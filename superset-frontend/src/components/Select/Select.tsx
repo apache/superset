@@ -80,6 +80,7 @@ export interface SelectProps extends PickedSelectProps {
   pageSize?: number;
   invertSelection?: boolean;
   fetchOnlyOnSearch?: boolean;
+  lazyLoading?: boolean;
 }
 
 const StyledContainer = styled.div`
@@ -146,6 +147,7 @@ const Select = ({
   filterOption = true,
   header = null,
   invertSelection = false,
+  lazyLoading = true,
   mode = 'single',
   name,
   options,
@@ -170,7 +172,7 @@ const Select = ({
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
-  const [loadingEnabled, setLoadingEnabled] = useState(false);
+  const [loadingEnabled, setLoadingEnabled] = useState(!lazyLoading);
   const fetchedQueries = useRef(new Map<string, number>());
   const mappedMode = isSingleMode
     ? undefined

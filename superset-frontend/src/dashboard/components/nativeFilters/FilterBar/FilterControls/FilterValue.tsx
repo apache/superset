@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import {
   QueryFormData,
   SuperChart,
@@ -27,6 +27,7 @@ import {
   ChartDataResponseResult,
   JsonObject,
   getChartMetadataRegistry,
+  DataRecord,
 } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
 import { areObjectsEqual } from 'src/reduxUtils';
@@ -82,12 +83,6 @@ const FilterValue: React.FC<FilterProps> = ({
   const dispatch = useDispatch();
 
   useEffect(() => {
-    if (!inViewFirstTime && inView) {
-      setInViewFirstTime(true);
-    }
-  }, [inView, inViewFirstTime, setInViewFirstTime]);
-
-  useEffect(() => {
     if (!inViewFirstTime) {
       return;
     }
@@ -107,56 +102,6 @@ const FilterValue: React.FC<FilterProps> = ({
     ) {
       setFormData(newFormData);
       setOwnState(filterOwnState);
-      if (!hasDataSource) {
-        return;
-      }
-      setIsRefreshing(true);
-      getChartDataRequest({
-        formData: newFormData,
-        force: false,
-        requestParams: { dashboardId: 0 },
-        ownState: filterOwnState,
-      })
-        .then(({ response, json }) => {
-          if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
-            // deal with getChartDataRequest transforming the response data
-            const result = 'result' in json ? json.result[0] : json;
-
-            if (response.status === 200) {
-              setIsRefreshing(false);
-              setIsLoading(false);
-              setState([result]);
-            } else if (response.status === 202) {
-              waitForAsyncData(result)
-                .then((asyncResult: ChartDataResponseResult[]) => {
-                  setIsRefreshing(false);
-                  setIsLoading(false);
-                  setState(asyncResult);
-                })
-                .catch((error: ClientErrorObject) => {
-                  setError(
-                    error.message || error.error || t('Check configuration'),
-                  );
-                  setIsRefreshing(false);
-                  setIsLoading(false);
-                });
-            } else {
-              throw new Error(
-                `Received unexpected response status (${response.status}) while fetching chart data`,
-              );
-            }
-          } else {
-            setState(json.result);
-            setError('');
-            setIsRefreshing(false);
-            setIsLoading(false);
-          }
-        })
-        .catch((error: Response) => {
-          setError(error.statusText);
-          setIsRefreshing(false);
-          setIsLoading(false);
-        });
     }
   }, [
     inViewFirstTime,
@@ -164,8 +109,63 @@ const FilterValue: React.FC<FilterProps> = ({
     datasetId,
     groupby,
     JSON.stringify(filter),
-    hasDataSource,
   ]);
+
+  useEffect(() => {
+    if (!inViewFirstTime && inView) {
+      setInViewFirstTime(true);
+    }
+  }, [inView, inViewFirstTime, setInViewFirstTime]);
+
+  const loadData: (
+    search: string,
+    offset: number,
+    limit: number,
+  ) => Promise<ChartDataResponseResult[]> = useMemo(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    () => (search, page, pageSize) => {
+      // TODO: Support pagination. We need the total number of results from the server.
+      // newFormData.row_offset = page * pageSize;
+      // newFormData.row_limit = pageSize;
+
+      const filterOwnState = filter.dataMask?.ownState || {};
+      if (!hasDataSource) {
+        return Promise.resolve([]);
+      }
+      return getChartDataRequest({
+        formData,
+        force: false,
+        requestParams: { dashboardId: 0 },
+        ownState: filterOwnState,
+      }).then(({ response, json }) => {
+        if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
+          // deal with getChartDataRequest transforming the response data
+          const result = 'result' in json ? json.result[0] : json;
+          if (response.status === 200) {
+            return [result];
+          }
+          if (response.status === 202) {
+            return waitForAsyncData(result).then(
+              (asyncResult: ChartDataResponseResult[]) => asyncResult,
+            );
+          }
+          throw new Error(
+            `Received unexpected response status (${response.status}) while fetching chart data`,
+          );
+        }
+        return json.result;
+      });
+    },
+    [
+      adhoc_filters,
+      cascadingFilters,
+      datasetId,
+      filter,
+      groupby,
+      hasDataSource,
+      time_range,
+    ],
+  );
 
   useEffect(() => {
     if (directPathToChild?.[0] === filter.id) {
@@ -204,24 +204,25 @@ const FilterValue: React.FC<FilterProps> = ({
 
   return (
     <StyledDiv data-test="form-item-value">
-      {isLoading ? (
-        <Loading position="inline-centered" />
-      ) : (
-        <SuperChart
-          height={HEIGHT}
-          width="100%"
-          formData={formData}
-          // For charts that don't have datasource we need workaround for empty placeholder
-          queriesData={hasDataSource ? state : [{ data: [{}] }]}
-          chartType={filterType}
-          behaviors={[Behavior.NATIVE_FILTER]}
-          filterState={filterState}
-          ownState={filter.dataMask?.ownState}
-          enableNoResults={metadata?.enableNoResults}
-          isRefreshing={isRefreshing}
-          hooks={{ setDataMask, setFocusedFilter, unsetFocusedFilter }}
-        />
-      )}
+      <SuperChart
+        height={HEIGHT}
+        width="100%"
+        formData={formData}
+        // For charts that don't have datasource we need workaround for empty placeholder
+        queriesData={hasDataSource ? state : [{ data: [{}] }]}
+        chartType={filterType}
+        behaviors={[Behavior.NATIVE_FILTER]}
+        filterState={filterState}
+        ownState={filter.dataMask?.ownState}
+        enableNoResults={metadata?.enableNoResults}
+        isRefreshing={false}
+        hooks={{
+          setDataMask,
+          setFocusedFilter,
+          unsetFocusedFilter,
+          loadData,
+        }}
+      />
     </StyledDiv>
   );
 };

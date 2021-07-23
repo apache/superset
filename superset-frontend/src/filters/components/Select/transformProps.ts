@@ -38,6 +38,7 @@ export default function transformProps(
     setDataMask = () => {},
     setFocusedFilter = () => {},
     unsetFocusedFilter = () => {},
+    loadData = () => {},
   } = hooks;
   const [queryData] = queriesData;
   const { colnames = [], coltypes = [], data = [] } = queryData || {};
@@ -59,5 +60,6 @@ export default function transformProps(
     setDataMask,
     setFocusedFilter,
     unsetFocusedFilter,
+    loadData,
   };
 }

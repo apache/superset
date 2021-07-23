@@ -1,4 +1,4 @@
-import { SetDataMaskHook } from '@superset-ui/core';
+import { SetDataMaskHook, ChartDataResponseResult } from '@superset-ui/core';
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -27,4 +27,9 @@ export interface PluginFilterHooks {
   setDataMask: SetDataMaskHook;
   setFocusedFilter: () => void;
   unsetFocusedFilter: () => void;
+  loadData: (
+    search: string,
+    offset: number,
+    limit: number,
+  ) => Promise<ChartDataResponseResult[]>;
 }

@@ -26,7 +26,6 @@ import {
   JsonObject,
   smartDateDetailedFormatter,
   t,
-  tn,
 } from '@superset-ui/core';
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { Select } from 'src/components';
@@ -72,15 +71,14 @@ function reducer(
 export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const {
     coltypeMap,
-    data,
     filterState,
     formData,
     height,
-    isRefreshing,
     width,
     setDataMask,
     setFocusedFilter,
     unsetFocusedFilter,
+    loadData,
     appSection,
   } = props;
   const {
@@ -99,6 +97,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     extraFormData: {},
     filterState,
   });
+
   const updateDataMask = useCallback(
     (values: SelectValue) => {
       const emptyFilter =
@@ -191,53 +190,28 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     [],
   );
 
-  const handleChange = (value?: SelectValue | number | string) => {
+  const handleChange = (value?: [{ value: string | number }]) => {
     const values = ensureIsArray(value);
     if (values.length === 0) {
       updateDataMask(null);
     } else {
-      updateDataMask(values);
+      updateDataMask(values.map(element => element.value));
     }
   };
 
   useEffect(() => {
-    if (defaultToFirstItem && filterState.value === undefined) {
-      // initialize to first value if set to default to first item
-      const firstItem: SelectValue = data[0]
-        ? (groupby.map(col => data[0][col]) as string[])
-        : null;
-      // firstItem[0] !== undefined for a case when groupby changed but new data still not fetched
-      // TODO: still need repopulate default value in config modal when column changed
-      if (firstItem && firstItem[0] !== undefined) {
-        updateDataMask(firstItem);
-      }
-    } else if (isDisabled) {
+    if (isDisabled) {
       // empty selection if filter is disabled
       updateDataMask(null);
     } else {
       // reset data mask based on filter state
       updateDataMask(filterState.value);
     }
-  }, [
-    col,
-    isDisabled,
-    defaultToFirstItem,
-    enableEmptyFilter,
-    inverseSelection,
-    updateDataMask,
-    data,
-    groupby,
-    JSON.stringify(filterState),
-  ]);
+  }, [filterState.value, isDisabled, updateDataMask]);
 
   useEffect(() => {
     setDataMask(dataMask);
   }, [JSON.stringify(dataMask)]);
-
-  const placeholderText =
-    data.length === 0
-      ? t('No data')
-      : tn('%s option', '%s options', data.length, data.length);
 
   const formItemData: FormItemProps = {};
   if (filterState.validateMessage) {
@@ -248,17 +222,48 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     );
   }
 
-  const options = useMemo(() => {
-    const options: { label: string; value: string | number }[] = [];
-    data.forEach(row => {
-      const [value] = groupby.map(col => row[col]);
-      options.push({
-        label: labelFormatter(value, datatype),
-        value: typeof value === 'number' ? value : String(value),
-      });
-    });
-    return options;
-  }, [data, datatype, groupby, labelFormatter]);
+  const loadParsedData = useMemo(
+    () => async (search: string, page: number, pageSize: number) => {
+      const results = await loadData(search, page, pageSize);
+      const result = results && results.length > 0 ? results[0] : undefined;
+      const data = result?.data || [];
+      const colName = result?.colnames[0];
+      const options: { label: string; value: string | number }[] = [];
+      if (colName) {
+        data.forEach(row => {
+          const value = row[colName];
+          options.push({
+            label: labelFormatter(value, datatype),
+            value: typeof value === 'number' ? value : String(value),
+          });
+        });
+      }
+
+      if (
+        defaultToFirstItem &&
+        !filterState.value &&
+        data.length > 0 &&
+        colName
+      ) {
+        const value = data[0][colName];
+        updateDataMask([typeof value === 'number' ? value : String(value)]);
+      }
+
+      return {
+        data: options,
+        totalCount: result?.rowcount || 0,
+      };
+    },
+    [], // TODO: Add required dependencies
+  );
+
+  let value: { label: string; value: string | number }[];
+  if (filterState.value) {
+    value = filterState.value.map((element: string | number) => ({
+      label: String(element),
+      value: element,
+    }));
+  }
 
   return (
     <FilterPluginStyle height={height} width={width}>
@@ -270,11 +275,11 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           allowClear
           allowNewOptions
           // @ts-ignore
-          value={filterState.value || []}
+          value={value}
           disabled={isDisabled}
           showSearch={showSearch}
+          lazyLoading={!defaultToFirstItem}
           mode={multiSelect ? 'multiple' : 'single'}
-          placeholder={placeholderText}
           onSearch={searchWrapper}
           onSelect={clearSuggestionSearch}
           onBlur={handleBlur}
@@ -283,10 +288,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           // @ts-ignore
           onChange={handleChange}
           ref={inputRef}
-          loading={isRefreshing}
           maxTagCount={5}
           invertSelection={inverseSelection}
-          options={options}
+          options={loadParsedData}
         />
       </StyledFormItem>
     </FilterPluginStyle>

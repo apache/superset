@@ -33,6 +33,7 @@ export default function transformProps(chartProps: ChartProps) {
     setDataMask = () => {},
     setFocusedFilter = () => {},
     unsetFocusedFilter = () => {},
+    loadData = () => {},
   } = hooks;
 
   const { data } = queriesData[0];
@@ -47,5 +48,6 @@ export default function transformProps(chartProps: ChartProps) {
     setDataMask,
     setFocusedFilter,
     unsetFocusedFilter,
+    loadData,
   };
 }
