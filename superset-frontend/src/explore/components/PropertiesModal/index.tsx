@@ -84,7 +84,6 @@ export default function PropertiesModal({
         );
 
         if (chart.query_context === null) {
-          // Update query context on explore
           const updateResponse = await SupersetClient.put({
             endpoint: `/api/v1/chart/${slice.slice_id}`,
             headers: { 'Content-Type': 'application/json' },
