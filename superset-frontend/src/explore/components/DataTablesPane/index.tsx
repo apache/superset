@@ -155,11 +155,10 @@ export const DataTablesPane = ({
       })
         .then(({ json }) => {
           // Only displaying the first query is currently supported
-          const result = ensureIsArray(json.result);
-          if (result.length > 1) {
+          if (json.result.length > 1) {
             const data: any[] = [];
-            result.forEach(item => {
-              ensureIsArray(item.data).forEach((row, i) => {
+            json.result.forEach((item: { data: any[] }) => {
+              item.data.forEach((row, i) => {
                 if (data[i] !== undefined) {
                   data[i] = { ...data[i], ...row };
                 } else {
@@ -174,7 +173,7 @@ export const DataTablesPane = ({
           } else {
             setData(prevData => ({
               ...prevData,
-              [resultType]: result[0].data,
+              [resultType]: json.result[0].data,
             }));
           }
 
