@@ -18,7 +18,7 @@
  */
 /* eslint-env browser */
 import cx from 'classnames';
-import React, { FC } from 'react';
+import React, { FC, useMemo } from 'react';
 import { JsonObject, styled } from '@superset-ui/core';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
@@ -175,10 +175,13 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
 
   const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
   const rootChildId = dashboardRoot.children[0];
-  const topLevelTabs =
-    rootChildId !== DASHBOARD_GRID_ID
-      ? dashboardLayout[rootChildId]
-      : undefined;
+  const topLevelTabs = useMemo(
+    () =>
+      rootChildId !== DASHBOARD_GRID_ID
+        ? dashboardLayout[rootChildId]
+        : undefined,
+    [dashboardLayout, rootChildId],
+  );
   const isStandalone = getUrlParam(URL_PARAMS.standalone);
   const hideDashboardHeader =
     isStandalone === DashboardStandaloneMode.HIDE_NAV_AND_TITLE;
@@ -305,4 +308,4 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   );
 };
 
-export default DashboardBuilder;
+export default React.memo(DashboardBuilder);

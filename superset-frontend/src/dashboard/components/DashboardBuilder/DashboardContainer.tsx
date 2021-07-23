@@ -41,6 +41,8 @@ type DashboardContainerProps = {
   topLevelTabs?: LayoutItem;
 };
 
+const EmptyComponent = () => <></>;
+
 const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
@@ -121,7 +123,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
           <Tabs
             id={DASHBOARD_GRID_ID}
             activeKey={activeKey}
-            renderTabBar={() => <></>}
+            renderTabBar={EmptyComponent}
             fullWidth={false}
             animated={false}
             allowOverflow
@@ -149,4 +151,4 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   );
 };
 
-export default DashboardContainer;
+export default React.memo(DashboardContainer);
