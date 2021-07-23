@@ -28,7 +28,6 @@ import Chart, { Slice } from 'src/types/Chart';
 import { Form, FormItem } from 'src/components/Form';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { buildV1ChartDataPayload } from '../../exploreUtils';
-import { ConsoleSqlOutlined } from '@ant-design/icons';
 
 type PropertiesModalProps = {
   slice: Slice;
@@ -72,6 +71,7 @@ export default function PropertiesModal({
 
   const fetchChartData = useCallback(
     async function fetchChartData() {
+      console.log(slice);
       try {
         console.log('fetching chart data!');
         const response = await SupersetClient.get({
