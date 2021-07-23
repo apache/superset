@@ -338,10 +338,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        logger.info("*" * 20)
-        logger.info("hit put endpoint!!")
-        logger.info("*" * 20)
-
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
         try:
