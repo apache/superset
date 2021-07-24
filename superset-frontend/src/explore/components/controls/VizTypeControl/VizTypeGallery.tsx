@@ -33,7 +33,7 @@ import {
   SupersetTheme,
   useTheme,
 } from '@superset-ui/core';
-import { Collapse, Input, Tooltip } from 'src/common/components';
+import { Collapse, Input } from 'src/common/components';
 import Label from 'src/components/Label';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import Icons from 'src/components/Icons';
@@ -105,8 +105,6 @@ const THUMBNAIL_GRID_UNITS = 24;
 
 export const MAX_ADVISABLE_VIZ_GALLERY_WIDTH = 1090;
 
-const MAX_TEXT_LENGTH = 14;
-
 const OTHER_CATEGORY = t('Other');
 
 const ALL_CHARTS = t('All charts');
@@ -117,19 +115,12 @@ const RECOMMENDED_TAGS = [
   t('Advanced-Analytics'),
 ];
 
-const COLLAPSE_LABEL = {
-  RECOMMENDED_TAGS: t('Recommended tags'),
-  ALL_CHARTS: t('All'),
-  CATEGORY: t('Category'),
-  TAGS: t('Tags'),
-};
-
 export const VIZ_TYPE_CONTROL_TEST_ID = 'viz-type-control';
 
 const VizPickerLayout = styled.div`
   display: grid;
   grid-template-rows: auto minmax(100px, 1fr) minmax(200px, 35%);
-  grid-template-columns: ${({ theme }) => theme.gridUnit * 45}px 5fr;
+  grid-template-columns: auto 5fr;
   grid-template-areas:
     'sidebar search'
     'sidebar main'
@@ -151,17 +142,6 @@ const LeftPane = styled.div`
   display: flex;
   flex-direction: column;
   border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  overflow: hidden;
-`;
-
-const RightPane = styled.div`
-  grid-area: main;
-  overflow-y: scroll;
-`;
-
-const Wrapper = styled.div`
-  display: flex;
-  flex-direction: column;
   overflow: auto;
 
   .ant-collapse .ant-collapse-item {
@@ -177,6 +157,11 @@ const Wrapper = styled.div`
       padding: 0 ${({ theme }) => theme.gridUnit * 2}px;
     }
   }
+`;
+
+const RightPane = styled.div`
+  grid-area: main;
+  overflow-y: scroll;
 `;
 
 const SearchWrapper = styled.div`
@@ -409,21 +394,14 @@ const ThumbnailGallery: React.FC<ThumbnailGalleryProps> = ({
   </IconsPane>
 );
 
-const ICONS_MAP = {
-  Tags: Icons.Tags,
-  Category: Icons.Category,
-  AllCharts: Icons.Ballot,
-};
-
 const Selector: React.FC<{
   selector: string;
-  type: Partial<keyof typeof ICONS_MAP>;
+  icon: JSX.Element;
   isSelected: boolean;
   onClick: (selector: string) => void;
   onClear: (e: React.MouseEvent) => void;
-}> = ({ selector, type, isSelected, onClick, onClear }) => {
+}> = ({ selector, icon, isSelected, onClick, onClear }) => {
   const btnRef = useRef<HTMLButtonElement>(null);
-  const Icon = ICONS_MAP[type];
 
   // see Element.scrollIntoViewIfNeeded()
   // see: https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoViewIfNeeded
@@ -447,20 +425,17 @@ const Selector: React.FC<{
       className={isSelected ? 'selected' : ''}
       onClick={() => onClick(selector)}
     >
-      <Icon />
-      {selector.length > MAX_TEXT_LENGTH ? (
-        <Tooltip title={selector}>{selector}</Tooltip>
-      ) : (
-        selector
-      )}
+      {icon}
+      {selector}
       <CloseOutlined className="cancel" onClick={onClear} />
     </SelectorLabel>
   );
 };
 
-const doesVizMatchCategory = (viz: ChartMetadata, category: string) =>
-  category === viz.category ||
-  (category === OTHER_CATEGORY && viz.category == null);
+const doesVizMatchSelector = (viz: ChartMetadata, selector: string) =>
+  selector === viz.category ||
+  (selector === OTHER_CATEGORY && viz.category == null) ||
+  (viz.tags || []).indexOf(selector) > -1;
 
 export default function VizTypeGallery(props: VizTypeGalleryProps) {
   const { selectedViz, onChange, className } = props;
@@ -584,9 +559,9 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
         stopSearching();
       }
       setActiveSelector(key);
-      // clear the selected viz if it is not present in the new category
+      // clear the selected viz if it is not present in the new category or tags
       const isSelectedVizCompatible =
-        selectedVizMetadata && doesVizMatchCategory(selectedVizMetadata, key);
+        selectedVizMetadata && doesVizMatchSelector(selectedVizMetadata, key);
       if (key !== activeSelector && !isSelectedVizCompatible) {
         onChange(null);
       }
@@ -609,6 +584,32 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     setActiveSelector(ALL_CHARTS);
   }, []);
 
+  const SELECTOR_MAP = useMemo(
+    () => ({
+      RECOMMENDED_TAGS: {
+        title: t('Recommended tags'),
+        icon: <Icons.Tags />,
+        selectors: RECOMMENDED_TAGS,
+      },
+      ALL_CHARTS: {
+        title: t('All'),
+        icon: <Icons.Ballot />,
+        selectors: [ALL_CHARTS],
+      },
+      CATEGORY: {
+        title: t('Category'),
+        icon: <Icons.Category />,
+        selectors: categories,
+      },
+      TAGS: {
+        title: t('Tags'),
+        icon: <Icons.Tags />,
+        selectors: tags,
+      },
+    }),
+    [categories, tags],
+  );
+
   const vizEntriesToDisplay = isActivelySearching
     ? searchResults
     : activeSelector === ALL_CHARTS
@@ -618,82 +619,34 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
   return (
     <VizPickerLayout className={className}>
       <LeftPane>
-        <Wrapper>
-          <Collapse
-            expandIconPosition="right"
-            ghost
-            defaultActiveKey={Object.values(COLLAPSE_LABEL)}
-          >
-            <Collapse.Panel
-              header={
-                <span className="header">
-                  {COLLAPSE_LABEL.RECOMMENDED_TAGS}
-                </span>
-              }
-              key={COLLAPSE_LABEL.RECOMMENDED_TAGS}
-            >
-              {RECOMMENDED_TAGS.map(tag => (
-                <Selector
-                  key={tag}
-                  selector={tag}
-                  type="Tags"
-                  isSelected={!isActivelySearching && tag === activeSelector}
-                  onClick={clickSelector}
-                  onClear={clearSelector}
-                />
-              ))}
-            </Collapse.Panel>
-            <Collapse.Panel
-              header={
-                <span className="header">{COLLAPSE_LABEL.ALL_CHARTS}</span>
-              }
-              key={COLLAPSE_LABEL.ALL_CHARTS}
-            >
-              <Selector
-                key={ALL_CHARTS}
-                selector={ALL_CHARTS}
-                type="AllCharts"
-                isSelected={
-                  !isActivelySearching && ALL_CHARTS === activeSelector
-                }
-                onClick={clickSelector}
-                onClear={clearSelector}
-              />
-            </Collapse.Panel>
-            <Collapse.Panel
-              header={<span className="header">{COLLAPSE_LABEL.CATEGORY}</span>}
-              key={COLLAPSE_LABEL.CATEGORY}
-            >
-              {categories.map(category => (
-                <Selector
-                  key={category}
-                  selector={category}
-                  type="Category"
-                  isSelected={
-                    !isActivelySearching && category === activeSelector
-                  }
-                  onClick={clickSelector}
-                  onClear={clearSelector}
-                />
-              ))}
-            </Collapse.Panel>
-            <Collapse.Panel
-              header={<span className="header">{COLLAPSE_LABEL.TAGS}</span>}
-              key={COLLAPSE_LABEL.TAGS}
-            >
-              {tags.map(tag => (
-                <Selector
-                  key={tag}
-                  selector={tag}
-                  type="Tags"
-                  isSelected={!isActivelySearching && tag === activeSelector}
-                  onClick={clickSelector}
-                  onClear={clearSelector}
-                />
-              ))}
-            </Collapse.Panel>
-          </Collapse>
-        </Wrapper>
+        <Collapse
+          expandIconPosition="right"
+          ghost
+          defaultActiveKey={Object.keys(SELECTOR_MAP)}
+        >
+          {Object.keys(SELECTOR_MAP).map(key => {
+            const section = SELECTOR_MAP[key];
+
+            return (
+              <Collapse.Panel
+                header={<span className="header">{section.title}</span>}
+                key={key}
+              >
+                {section.selectors.map((selector: string) => (
+                  <Selector
+                    selector={selector}
+                    icon={section.icon}
+                    isSelected={
+                      !isActivelySearching && selector === activeSelector
+                    }
+                    onClick={clickSelector}
+                    onClear={clearSelector}
+                  />
+                ))}
+              </Collapse.Panel>
+            );
+          })}
+        </Collapse>
       </LeftPane>
 
       <SearchWrapper>
