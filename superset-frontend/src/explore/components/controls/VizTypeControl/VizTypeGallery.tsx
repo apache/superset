@@ -584,14 +584,14 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     setActiveSelector(ALL_CHARTS);
   }, []);
 
-  const SELECTOR_MAP = useMemo(
+  const sectionMap = useMemo(
     () => ({
       RECOMMENDED_TAGS: {
         title: t('Recommended tags'),
         icon: <Icons.Tags />,
         selectors: RECOMMENDED_TAGS,
       },
-      ALL_CHARTS: {
+      ALL: {
         title: t('All'),
         icon: <Icons.Ballot />,
         selectors: [ALL_CHARTS],
@@ -622,10 +622,10 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
         <Collapse
           expandIconPosition="right"
           ghost
-          defaultActiveKey={Object.keys(SELECTOR_MAP)}
+          defaultActiveKey={Object.keys(sectionMap)}
         >
-          {Object.keys(SELECTOR_MAP).map(key => {
-            const section = SELECTOR_MAP[key];
+          {Object.keys(sectionMap).map(key => {
+            const section = sectionMap[key];
 
             return (
               <Collapse.Panel
