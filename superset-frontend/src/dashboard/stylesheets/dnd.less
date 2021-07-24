@@ -1,0 +1,157 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+.dragdroppable {
+  position: relative;
+}
+
+// Fixes ISSUE-12181 - before in chart's contract-trigger breaks drag and drop mode
+.dashboard--editing {
+  .contract-trigger:before {
+    display: none;
+  }
+}
+
+.dragdroppable--dragging {
+  opacity: 0.2;
+}
+
+.dragdroppable-row {
+  width: 100%;
+}
+
+.dragdroppable-column {
+  .resizable-container {
+    span {
+      div {
+        z-index: @z-index-above-dashboard-charts;
+      }
+    }
+  }
+}
+
+/* drop indicators */
+.drop-indicator {
+  display: block;
+  background-color: @indicator-color;
+  position: absolute;
+  z-index: @z-index-above-dashboard-charts;
+}
+
+.drop-indicator--top {
+  top: 0;
+  left: 0;
+  height: 4px;
+  width: 100%;
+  min-width: 16px;
+}
+
+.drop-indicator--bottom {
+  top: 100%;
+  left: 0;
+  height: 4px;
+  width: 100%;
+  min-width: 16px;
+}
+
+.empty-droptarget:first-child {
+  .drop-indicator--bottom {
+    top: 24px;
+  }
+}
+
+.drop-indicator--right {
+  top: 0;
+  left: 100%;
+  height: 100%;
+  width: 4px;
+  min-height: 16px;
+}
+
+.drop-indicator--left {
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 4px;
+  min-height: 16px;
+}
+
+/* drag handles */
+.drag-handle {
+  overflow: hidden;
+  width: 16px;
+  cursor: move;
+}
+
+.drag-handle--left {
+  width: 8px;
+}
+
+.drag-handle-dot {
+  float: left;
+  height: 2px;
+  margin: 1px;
+  width: 2px;
+
+  &:after {
+    content: '';
+    background: @gray;
+    float: left;
+    height: 2px;
+    margin: -1px;
+    width: 2px;
+  }
+}
+
+/* empty drop targets */
+.dashboard-component-tabs-content {
+  & > .empty-droptarget {
+    position: absolute;
+    width: 100%;
+  }
+
+  & > .empty-droptarget:first-child {
+    height: 14px;
+    top: -2px;
+    z-index: @z-index-above-dashboard-charts;
+  }
+
+  & > .empty-droptarget:last-child {
+    height: 12px;
+    bottom: 0px;
+  }
+}
+
+.grid-content {
+  /* note we don't do a :last-child selection because
+    assuming bottom empty-droptarget is last child is fragile */
+  & > .empty-droptarget {
+    width: 100%;
+    height: 100%;
+  }
+
+  & > .empty-droptarget:first-child {
+    height: 48px;
+    margin-top: -24px;
+    margin-bottom: -24px;
+  }
+
+  & > .empty-droptarget:only-child {
+    height: 80vh;
+  }
+}

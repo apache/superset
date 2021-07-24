@@ -1,6 +1,7 @@
 ---
 name: Bug report
 about: Create a report to help us improve
+labels: "#bug"
 
 ---
 
@@ -29,14 +30,13 @@ If applicable, add screenshots to help explain your problem.
 
 (please complete the following information):
 
-- superset version: [e.g. `v0.29`, `master`, `commit`]
+- superset version: `superset version`
 - python version: `python --version`
 - node.js version: `node -v`
-- npm version: `npm -v`
 
 ### Checklist
 
-Make sure these boxes are checked before submitting your issue - thank you!
+Make sure to follow these steps before submitting your issue - thank you!
 
 - [ ] I have checked the superset logs for python stacktraces and included it here as text if there are any.
 - [ ] I have reproduced the issue with at least the latest released version of superset.

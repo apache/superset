@@ -19,19 +19,17 @@
 {% extends "superset/basic.html" %}
 
 {% block title %}
-  Add new slice
+  Add new chart
 {% endblock %}
 
 {% block body %}
   <div
-    id="js-add-slice-container"
+    id="app"
     data-bootstrap="{{ bootstrap_data }}"
   ></div>
 {% endblock %}
 
 {% block tail_js %}
   {{ super() }}
-  {% with filename="addSlice" %}
-    {% include "superset/partials/_script_tag.html" %}
-  {% endwith %}
+  {{ js_bundle("addSlice") }}
 {% endblock %}

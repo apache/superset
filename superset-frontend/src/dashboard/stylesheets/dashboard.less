@@ -1,0 +1,176 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+/* header has mysterious extra margin */
+header.top {
+  margin-bottom: 2px;
+}
+
+body {
+  h1 {
+    font-weight: @font-weight-bold;
+    line-height: @line-height-base;
+    font-size: @font-size-xxl;
+    letter-spacing: -0.2px;
+    margin-top: 12px;
+    margin-bottom: 12px;
+  }
+
+  h2 {
+    font-weight: @font-weight-bold;
+    line-height: @line-height-base;
+    font-size: @font-size-xl;
+    margin-top: 12px;
+    margin-bottom: 8px;
+  }
+
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-weight: @font-weight-bold;
+    line-height: @line-height-base;
+    font-size: @font-size-l;
+    letter-spacing: 0.2px;
+    margin-top: 8px;
+    margin-bottom: 4px;
+  }
+
+  p {
+    margin: 0 0 8px 0;
+  }
+}
+
+.dashboard .chart-header {
+  font-size: @font-size-l;
+  font-weight: @font-weight-bold;
+  margin-bottom: 4px;
+  display: flex;
+  max-width: 100%;
+  align-items: flex-start;
+
+  & > .header-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    flex-grow: 1;
+  }
+
+  & > .header-controls {
+    display: flex;
+
+    & > * {
+      margin-left: 8px;
+    }
+  }
+
+  .dropdown.btn-group {
+    pointer-events: none;
+    vertical-align: top;
+    & > * {
+      pointer-events: auto;
+    }
+  }
+
+  .dropdown-toggle.btn.btn-default {
+    background: none;
+    border: none;
+    box-shadow: none;
+  }
+
+  .dropdown-menu.dropdown-menu-right {
+    top: 20px;
+  }
+
+  .divider {
+    margin: 5px 0;
+  }
+
+  .refresh-tooltip {
+    display: block;
+    height: 16px;
+    margin: 3px 0;
+    color: @gray;
+  }
+}
+
+.dashboard .chart-header,
+.dashboard .dashboard-header {
+  .dropdown-menu {
+    padding: 9px 0;
+  }
+
+  .dropdown-menu li {
+    font-weight: @font-weight-normal;
+  }
+}
+
+.react-bs-container-body {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.hidden,
+#pageDropDown {
+  display: none;
+}
+
+.separator .chart-container {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+}
+
+.dashboard .title {
+  margin: 0 20px;
+}
+
+.dashboard-header .dashboard-component-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+
+  .editable-title {
+    margin-right: 8px;
+  }
+
+  .favstar {
+    font-size: @font-size-xl;
+    position: relative;
+    margin-left: 8px;
+  }
+
+  .publish {
+    position: relative;
+    margin-left: 8px;
+  }
+}
+
+.slice_container .alert {
+  margin: 10px;
+}
+
+i.danger {
+  color: @danger;
+}
+
+i.warning {
+  color: @warning;
+}

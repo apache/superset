@@ -23,12 +23,12 @@ Create Date: 2019-03-21 10:22:01.610217
 """
 
 # revision identifiers, used by Alembic.
-revision = 'd94d33dbe938'
-down_revision = '80aa3f04bc82'
+revision = "d94d33dbe938"
+down_revision = "80aa3f04bc82"
 
 from alembic import op
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Text
+from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
 from superset.utils.core import MediumText
@@ -36,7 +36,7 @@ from superset.utils.core import MediumText
 Base = declarative_base()
 
 
-class BaseColumnMixin(object):
+class BaseColumnMixin:
     id = Column(Integer, primary_key=True)
     column_name = Column(String(255))
     description = Column(Text)
@@ -44,12 +44,12 @@ class BaseColumnMixin(object):
     verbose_name = Column(String(1024))
 
 
-class BaseDatasourceMixin(object):
+class BaseDatasourceMixin:
     id = Column(Integer, primary_key=True)
     description = Column(Text)
 
 
-class BaseMetricMixin(object):
+class BaseMetricMixin:
     id = Column(Integer, primary_key=True)
     d3format = Column(String(128))
     description = Column(Text)
@@ -60,7 +60,7 @@ class BaseMetricMixin(object):
 
 
 class Annotation(Base):
-    __tablename__ = 'annotation'
+    __tablename__ = "annotation"
 
     id = Column(Integer, primary_key=True)
     long_descr = Column(Text)
@@ -69,7 +69,7 @@ class Annotation(Base):
 
 
 class Dashboard(Base):
-    __tablename__ = 'dashboards'
+    __tablename__ = "dashboards"
 
     id = Column(Integer, primary_key=True)
     css = Column(Text)
@@ -81,7 +81,7 @@ class Dashboard(Base):
 
 
 class Database(Base):
-    __tablename__ = 'dbs'
+    __tablename__ = "dbs"
 
     id = Column(Integer, primary_key=True)
     database_name = Column(String(250))
@@ -92,7 +92,7 @@ class Database(Base):
 
 
 class DruidCluster(Base):
-    __tablename__ = 'clusters'
+    __tablename__ = "clusters"
 
     id = Column(Integer, primary_key=True)
     broker_host = Column(String(255))
@@ -102,13 +102,13 @@ class DruidCluster(Base):
 
 
 class DruidColumn(BaseColumnMixin, Base):
-    __tablename__ = 'columns'
+    __tablename__ = "columns"
 
     dimension_spec_json = Column(Text)
 
 
 class DruidDatasource(BaseDatasourceMixin, Base):
-    __tablename__ = 'datasources'
+    __tablename__ = "datasources"
 
     datasource_name = Column(String(255))
     default_endpoint = Column(Text)
@@ -116,13 +116,13 @@ class DruidDatasource(BaseDatasourceMixin, Base):
 
 
 class DruidMetric(BaseMetricMixin, Base):
-    __tablename__ = 'metrics'
+    __tablename__ = "metrics"
 
     json = Column(Text)
 
 
 class Slice(Base):
-    __tablename__ = 'slices'
+    __tablename__ = "slices"
 
     id = Column(Integer, primary_key=True)
     description = Column(Text)
@@ -132,7 +132,7 @@ class Slice(Base):
 
 
 class SqlaTable(BaseDatasourceMixin, Base):
-    __tablename__ = 'tables'
+    __tablename__ = "tables"
 
     default_endpoint = Column(MediumText())
     fetch_values_predicate = Column(String(1000))
@@ -144,13 +144,13 @@ class SqlaTable(BaseDatasourceMixin, Base):
 
 
 class SqlMetric(BaseMetricMixin, Base):
-    __tablename__ = 'sql_metrics'
+    __tablename__ = "sql_metrics"
 
     expression = Column(Text)
 
 
 class TableColumn(BaseColumnMixin, Base):
-    __tablename__ = 'table_columns'
+    __tablename__ = "table_columns"
 
     database_expression = Column(String(255))
     expression = Column(Text)
@@ -181,7 +181,7 @@ def upgrade():
                 if not col.primary_key:
                     value = getattr(record, col.name)
 
-                    if value is not None and value.strip() == '':
+                    if value is not None and value.strip() == "":
                         setattr(record, col.name, None)
 
         session.commit()

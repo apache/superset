@@ -1,0 +1,23 @@
+codecov:
+    notify:
+        after_n_builds: 4
+ignore:
+  - "superset/migrations/versions/*.py"
+  - "**/*.stories.tsx"
+  - "**/*.stories.jsx"
+coverage:
+  status:
+    project:
+      default:
+        informational: true
+        # Commits pushed to master should not make the overall
+        # project coverage decrease:
+        target: auto
+        threshold: 0%
+    patch:
+      default:
+        informational: true
+        threshold: 0%
+flag_management:
+  default_rules:
+    carryforward: true

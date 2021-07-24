@@ -209,25 +209,8 @@ limitations under the License.
    licenses.
 
 ========================================================================
-Third party Apache 2.0 licenses
+Third party SIL Open Font License v1.1 (OFL-1.1)
 ========================================================================
 
-========================================================================
-MIT licenses
-========================================================================
-
-    (MIT License) cal-heatmap v3.6.2 (https://github.com/wa0x6e/cal-heatmap)
-
-========================================================================
-BSD 2-Clause licenses
-========================================================================
-
-========================================================================
-BSD 3-Clause licenses
-========================================================================
-
-    (BSD 3 License) parallel-coordinates v0.7.0 (http://syntagmatic.github.com/parallel-coordinates/)
-
-========================================================================
-Creative Commons Attribution 4.0
-========================================================================
+(SIL OPEN FONT LICENSE Version 1.1) The Inter font family (https://github.com/rsms/inter)
+(SIL OPEN FONT LICENSE Version 1.1) The Fira Code font family (https://github.com/tonsky/FiraCode)

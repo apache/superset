@@ -1,0 +1,105 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+.resizable-container {
+  background-color: transparent;
+  position: relative;
+
+  /* re-resizable sets an empty div to 100% width and height, which doesn't
+  play well with many 100% height containers we need
+ */
+  & ~ div {
+    width: auto !important;
+    height: auto !important;
+  }
+}
+
+.resizable-container--resizing {
+  /* after ensures border visibility on top of any children */
+  &:after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    box-shadow: inset 0 0 0 2px @indicator-color;
+  }
+
+  & > span .resize-handle {
+    border-color: @indicator-color;
+  }
+}
+
+.resize-handle {
+  opacity: 0;
+  z-index: @z-index-above-dashboard-charts;
+
+  &--bottom-right {
+    position: absolute;
+    border: solid;
+    border-width: 0 1.5px 1.5px 0;
+    border-right-color: @gray;
+    border-bottom-color: @gray;
+    right: 16px;
+    bottom: 16px;
+    width: 8px;
+    height: 8px;
+  }
+
+  &--right {
+    width: 2px;
+    height: 20px;
+    right: 4px;
+    top: 50%;
+    transform: translate(0, -50%);
+    position: absolute;
+    border-left: 1px solid @gray;
+    border-right: 1px solid @gray;
+  }
+
+  &--bottom {
+    height: 2px;
+    width: 20px;
+    bottom: 4px;
+    left: 50%;
+    transform: translate(-50%);
+    position: absolute;
+    border-top: 1px solid @gray;
+    border-bottom: 1px solid @gray;
+  }
+}
+
+.resizable-container:hover .resize-handle,
+.resizable-container--resizing .resize-handle {
+  opacity: 1;
+}
+
+.dragdroppable-column .resizable-container-handle--right {
+  /* override the default because the inner column's handle's mouse target is very small */
+  right: -10px !important;
+}
+
+.dragdroppable-column .dragdroppable-column .resizable-container-handle--right {
+  /* override the default because the inner column's handle's mouse target is very small */
+  right: 0px !important;
+}
+
+.resizable-container-handle--bottom {
+  bottom: 0 !important;
+}

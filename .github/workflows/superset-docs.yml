@@ -1,0 +1,44 @@
+name: Docs
+
+on:
+  push:
+    paths:
+      - "docs/**"
+  pull_request:
+    paths:
+      - "docs/**"
+
+jobs:
+  build-deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-20.04
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: npm install
+        working-directory: ./docs
+        run: |
+          npm install
+      - name: lint
+        working-directory: ./docs
+        run: |
+          npm run lint
+      - name: gatsby build
+        working-directory: ./docs
+        run: |
+          npm run build
+      - name: deploy docs
+        if: github.ref == 'refs/heads/master'
+        uses: ./.github/actions/github-action-push-to-another-repository
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.SUPERSET_SITE_BUILD }}
+        with:
+          source-directory: './docs/public'
+          destination-github-username: 'apache'
+          destination-repository-name: 'superset-site'
+          target-branch: 'asf-site'
+          commit-message: "deploying docs: ${{ github.event.head_commit.message }} (apache/superset@${{ github.sha }})"
+          user-email: dev@superset.apache.org

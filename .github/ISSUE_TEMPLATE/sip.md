@@ -1,10 +1,14 @@
 ---
 name: SIP
 about: Superset Improvement Proposal
+labels: "#SIP"
 
 ---
 
-## [SIP] Proposal for XXX
+*Please make sure you are familiar with the SIP process documented*
+(here)[https://github.com/apache/superset/issues/5602]. The SIP number should be the next number after the latest SIP listed [here](https://github.com/apache/superset/issues?q=is%3Aissue+label%3Asip).
+
+## [SIP-\<number>] Proposal for <title>
 
 ### Motivation
 

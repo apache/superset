@@ -803,7 +803,7 @@
         <div class="row">
           <div class="col-lg-6">
             <h2 id="nav-tabs">Tabs</h2>
-            <div class="panel panel-default">
+            <div class="panel panel-default f2">
               <div class="panel-body">
                 <div class="bs-component">
                   <ul class="nav nav-tabs">
@@ -1184,13 +1184,13 @@
         <div class="row">
           <div class="col-lg-4">
             <div class="bs-component">
-              <div class="panel panel-default">
+              <div class="panel panel-default f3">
                 <div class="panel-body">
                   Basic panel
                 </div>
               </div>
 
-              <div class="panel panel-default">
+              <div class="panel panel-default f4">
                 <div class="panel-body">
                   Panel content
                 </div>
@@ -1200,7 +1200,7 @@
           </div>
           <div class="col-lg-4">
             <div class="bs-component">
-              <div class="panel panel-default">
+              <div class="panel panel-default f5">
                 <div class="panel-heading">
                   <h3 class="panel-title">Panel default</h3>
                 </div>
@@ -1278,9 +1278,9 @@
             <div class="bs-component">
               <div class="modal">
                 <div class="modal-dialog">
-                  <div class="modal-content">
-                    <div class="modal-header">
-                      <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                  <div class="modal-content" data-test="modal-content">
+                    <div class="modal-header" data-test="modal-header">
+                      <button type="button" class="close" data-dismiss="modal" aria-hidden="true" data-test="modal-header-close-button">×</button>
                       <h4 class="modal-title">Modal title</h4>
                     </div>
                     <div class="modal-body">
@@ -1288,7 +1288,7 @@
                     </div>
                     <div class="modal-footer">
                       <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                      <button type="button" class="btn btn-primary">Save changes</button>
+                      <button type="button" class="btn btn-primary" data-test="save-changes">Save changes</button>
                     </div>
                   </div>
                 </div>
@@ -1323,7 +1323,7 @@
 
       <div id="source-modal" class="modal fade">
         <div class="modal-dialog modal-lg">
-          <div class="modal-content">
+          <div class="modal-content" data-test="modal-content">
             <div class="modal-header">
               <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
               <h4 class="modal-title">Source Code</h4>
