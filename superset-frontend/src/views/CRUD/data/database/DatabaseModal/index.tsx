@@ -296,6 +296,7 @@ function dbReducer(
         [action.payload.name]: action.payload.value,
       };
     case ActionType.fetched:
+      console.log(action);
       // convert all the keys in this payload into strings
       if (action.payload.extra) {
         extra_json = {
@@ -309,13 +310,6 @@ function dbReducer(
           schemas_allowed_for_csv_upload:
             extra_json?.schemas_allowed_for_csv_upload,
         };
-      }
-
-      if (action.payload?.parameters?.query) {
-        // convert query into URI params string
-        query = new URLSearchParams(
-          action.payload.parameters.query as string,
-        ).toString();
       }
 
       if (
@@ -358,6 +352,25 @@ function dbReducer(
         } as DatabaseObject;
       }
 
+      if (action.payload?.parameters?.query) {
+        // convert query into URI params string
+        query = new URLSearchParams(
+          action.payload.parameters.query as string,
+        ).toString();
+
+        return {
+          ...action.payload,
+          encrypted_extra: action.payload.encrypted_extra || '',
+          engine: action.payload.backend || trimmedState.engine,
+          configuration_method: action.payload.configuration_method,
+          extra_json: deserializeExtraJSON,
+          parameters: {
+            ...action.payload.parameters,
+            query,
+          },
+        };
+      }
+
       return {
         ...action.payload,
         encrypted_extra: action.payload.encrypted_extra || '',
@@ -366,9 +379,11 @@ function dbReducer(
         extra_json: deserializeExtraJSON,
         parameters: {
           ...action.payload.parameters,
-          query,
         },
       };
+    }
+
+
     case ActionType.dbSelected:
       return {
         ...action.payload,
@@ -506,7 +521,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             .replace(/&/g, '","')
             .replace(/=/g, '":"')}"}`,
         );
-      } else if (dbToUpdate?.parameters?.query === '') {
+      } else if (
+        dbToUpdate?.parameters?.query === '' &&
+        'query' in dbModel.parameters
+      ) {
         dbToUpdate.parameters.query = {};
       }
 

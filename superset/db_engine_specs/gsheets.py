@@ -45,13 +45,11 @@ ma_plugin = MarshmallowPlugin()
 
 class GSheetsParametersSchema(Schema):
     catalog = fields.Dict()
-    query = fields.Dict(required=False)
 
 
 class GSheetsParametersType(TypedDict):
     credentials_info: Dict[str, Any]
     catalog: Dict[str, str]
-    query: Dict[str, str]
 
 
 class GSheetsEngineSpec(SqliteEngineSpec):
