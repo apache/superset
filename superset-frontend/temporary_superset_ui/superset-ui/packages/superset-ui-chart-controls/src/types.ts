@@ -190,7 +190,7 @@ export interface BaseControlConfig<
    */
   mapStateToProps?: (
     state: ControlPanelState,
-    controlState: this & ExtraControlProps,
+    controlState: ControlState,
     // TODO: add strict `chartState` typing (see superset-frontend/src/explore/types)
     chartState?: AnyDict,
   ) => ExtraControlProps;

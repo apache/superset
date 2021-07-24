@@ -184,7 +184,6 @@ const config: ControlPanelConfig = {
               mapStateToProps: (state: ControlPanelState, controlState: ControlState) => {
                 const { controls } = state;
                 const originalMapStateToProps = sharedControls?.groupby?.mapStateToProps;
-                // @ts-ignore
                 const newState = originalMapStateToProps?.(state, controlState) ?? {};
                 newState.externalValidationErrors = validateAggControlValues(controls, [
                   controls.metrics?.value,
