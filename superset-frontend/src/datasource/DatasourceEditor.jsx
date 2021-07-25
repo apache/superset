@@ -358,7 +358,7 @@ class DatasourceEditor extends React.PureComponent {
     this.onChangeEditMode = this.onChangeEditMode.bind(this);
     this.onDatasourcePropChange = this.onDatasourcePropChange.bind(this);
     this.onDatasourceChange = this.onDatasourceChange.bind(this);
-    this.onTableChangeAndSyncMetadata = this.onTableChangeAndSyncMetadata.bind(
+    this.tableChangeAndSyncMetadata = this.tableChangeAndSyncMetadata.bind(
       this,
     );
     this.syncMetadata = this.syncMetadata.bind(this);
@@ -401,7 +401,7 @@ class DatasourceEditor extends React.PureComponent {
         datasource: { ...prevState.datasource, [attr]: value },
       }),
       attr === 'table_name'
-        ? this.onDatasourceChange(datasource, this.onTableChangeAndSyncMetadata)
+        ? this.onDatasourceChange(datasource, this.tableChangeAndSyncMetadata)
         : this.onDatasourceChange(datasource, this.validateAndChange),
     );
   }
@@ -419,7 +419,7 @@ class DatasourceEditor extends React.PureComponent {
     this.validate(this.onChange);
   }
 
-  onTableChangeAndSyncMetadata() {
+  tableChangeAndSyncMetadata() {
     this.validate(() => {
       this.syncMetadata();
       this.onChange();
@@ -1095,6 +1095,7 @@ class DatasourceEditor extends React.PureComponent {
                     buttonStyle="tertiary"
                     onClick={this.syncMetadata}
                     className="sync-from-source"
+                    disabled={this.state.isEditMode}
                   >
                     <i className="fa fa-database" />{' '}
                     {t('Sync columns from source')}
