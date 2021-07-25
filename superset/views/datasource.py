@@ -31,6 +31,7 @@ from superset.models.core import Database
 from superset.typing import FlaskResponse
 from superset.views.base import check_ownership
 
+from ..utils.core import parse_js_uri_path_item
 from .base import api, BaseSupersetView, handle_api_exception, json_error_response
 
 
@@ -136,6 +137,10 @@ class Datasource(BaseSupersetView):
         table_name: str,
     ) -> FlaskResponse:
         """Gets table metadata from the source system and SQLAlchemy inspector"""
+        database_name = parse_js_uri_path_item(database_name) or ""
+        schema_name = parse_js_uri_path_item(schema_name, eval_undefined=True) or ""
+        table_name = parse_js_uri_path_item(table_name) or ""
+
         datasource = ConnectorRegistry.get_datasource_by_name(
             session=db.session,
             datasource_type=datasource_type,
