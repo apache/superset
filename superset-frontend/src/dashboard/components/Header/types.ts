@@ -48,7 +48,6 @@ export interface HeaderDropdownProps {
   onSave: () => void;
   refreshFrequency: number;
   setRefreshFrequency: () => void;
-  onRefresh: () => void;
   shouldPersistRefreshFrequency: boolean;
   showPropertiesModal: () => void;
   startPeriodicRender: () => void;
@@ -88,6 +87,7 @@ export interface HeaderProps {
   lastModifiedTime: number;
   onUndo: () => void;
   onRedo: () => void;
+  onRefresh: () => void;
   undoLength: number;
   redoLength: number;
   setMaxUndoHistoryExceeded: () => void;
