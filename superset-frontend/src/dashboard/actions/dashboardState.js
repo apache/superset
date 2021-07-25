@@ -241,6 +241,11 @@ export function saveDashboardRequest(data, id, saveType) {
   };
 }
 
+export const ON_REFRESH_SUCCESS = 'ON_REFRESH_SUCCESS';
+export function onRefreshSuccess() {
+  return { type: ON_REFRESH_SUCCESS };
+}
+
 export function fetchCharts(
   chartList = [],
   force = false,
@@ -272,6 +277,27 @@ export function fetchCharts(
         delay * i,
       );
     });
+  };
+}
+
+const refreshCharts = (chartList, force, interval, dashboardId, dispatch) =>
+  new Promise(resolve => {
+    dispatch(fetchCharts(chartList, force, interval, dashboardId));
+    resolve();
+  });
+
+export const ON_REFRESH = 'ON_REFRESH';
+export function onRefresh(
+  chartList = [],
+  force = false,
+  interval = 0,
+  dashboardId,
+) {
+  return dispatch => {
+    dispatch({ type: ON_REFRESH });
+    refreshCharts(chartList, force, interval, dashboardId, dispatch).then(() =>
+      dispatch({ type: ON_REFRESH_SUCCESS }),
+    );
   };
 }
 

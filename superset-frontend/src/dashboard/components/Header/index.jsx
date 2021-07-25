@@ -82,6 +82,7 @@ const propTypes = {
   lastModifiedTime: PropTypes.number.isRequired,
 
   // redux
+  onRefresh: PropTypes.func.isRequired,
   onUndo: PropTypes.func.isRequired,
   onRedo: PropTypes.func.isRequired,
   undoLength: PropTypes.number.isRequired,
@@ -216,13 +217,7 @@ class Header extends React.PureComponent {
         interval: 0,
         chartCount: chartList.length,
       });
-
-      return this.props.fetchCharts(
-        chartList,
-        true,
-        0,
-        this.props.dashboardInfo.id,
-      );
+      this.props.onRefresh(chartList, true, 0, this.props.dashboardInfo.id);
     }
     return false;
   }

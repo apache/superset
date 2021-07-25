@@ -48,6 +48,7 @@ export interface HeaderDropdownProps {
   onSave: () => void;
   refreshFrequency: number;
   setRefreshFrequency: () => void;
+  onRefresh: () => void;
   shouldPersistRefreshFrequency: boolean;
   showPropertiesModal: () => void;
   startPeriodicRender: () => void;
