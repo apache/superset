@@ -152,6 +152,7 @@ class Datasource(BaseSupersetView):
             if datasource is not None:
                 external_metadata = datasource.external_metadata()
             else:
+                # Use the SQLAlchemy inspector to get columns
                 database = (
                     db.session.query(Database)
                     .filter_by(database_name=database_name)
