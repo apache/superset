@@ -217,7 +217,12 @@ class Header extends React.PureComponent {
         interval: 0,
         chartCount: chartList.length,
       });
-      this.props.onRefresh(chartList, true, 0, this.props.dashboardInfo.id);
+      return this.props.onRefresh(
+        chartList,
+        true,
+        0,
+        this.props.dashboardInfo.id,
+      );
     }
     return false;
   }

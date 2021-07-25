@@ -241,11 +241,6 @@ export function saveDashboardRequest(data, id, saveType) {
   };
 }
 
-export const ON_REFRESH_SUCCESS = 'ON_REFRESH_SUCCESS';
-export function onRefreshSuccess() {
-  return { type: ON_REFRESH_SUCCESS };
-}
-
 export function fetchCharts(
   chartList = [],
   force = false,
@@ -285,6 +280,11 @@ const refreshCharts = (chartList, force, interval, dashboardId, dispatch) =>
     dispatch(fetchCharts(chartList, force, interval, dashboardId));
     resolve();
   });
+
+export const ON_REFRESH_SUCCESS = 'ON_REFRESH_SUCCESS';
+export function onRefreshSuccess() {
+  return { type: ON_REFRESH_SUCCESS };
+}
 
 export const ON_REFRESH = 'ON_REFRESH';
 export function onRefresh(
