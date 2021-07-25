@@ -39,7 +39,9 @@ def get_physical_table_metadata(
     """Use SQLAlchemy inspector to get table metadata"""
     db_engine_spec = database.db_engine_spec
     db_dialect = database.get_dialect()
-    cols = database.get_columns(table_name, schema=schema_name)
+    # ensure empty schema
+    _schema_name = schema_name if schema_name else None
+    cols = database.get_columns(table_name, schema=_schema_name)
     for col in cols:
         try:
             if isinstance(col["type"], TypeEngine):
