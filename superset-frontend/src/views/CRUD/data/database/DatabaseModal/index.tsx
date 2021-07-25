@@ -381,8 +381,6 @@ function dbReducer(
           ...action.payload.parameters,
         },
       };
-    }
-
 
     case ActionType.dbSelected:
       return {
