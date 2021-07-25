@@ -37,7 +37,6 @@ def test_validate_parameters_simple(
 
     parameters: GSheetsParametersType = {
         "credentials_info": {},
-        "query": {},
         "catalog": {},
     }
     errors = GSheetsEngineSpec.validate_parameters(parameters)
@@ -66,7 +65,6 @@ def test_validate_parameters_catalog(
 
     parameters: GSheetsParametersType = {
         "credentials_info": {},
-        "query": {},
         "catalog": {
             "private_sheet": "https://docs.google.com/spreadsheets/d/1/edit",
             "public_sheet": "https://docs.google.com/spreadsheets/d/1/edit#gid=1",
@@ -141,7 +139,6 @@ def test_validate_parameters_catalog_and_credentials(
 
     parameters: GSheetsParametersType = {
         "credentials_info": {},
-        "query": {},
         "catalog": {
             "private_sheet": "https://docs.google.com/spreadsheets/d/1/edit",
             "public_sheet": "https://docs.google.com/spreadsheets/d/1/edit#gid=1",

@@ -1573,10 +1573,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "engine": "gsheets",
                     "name": "Google Sheets",
                     "parameters": {
-                        "properties": {
-                            "catalog": {"type": "object"},
-                            "query": {"type": "object"},
-                        },
+                        "properties": {"catalog": {"type": "object"},},
                         "type": "object",
                     },
                     "preferred": False,
