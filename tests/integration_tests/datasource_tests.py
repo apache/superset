@@ -25,7 +25,7 @@ import pytest
 from superset import app, ConnectorRegistry, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.datasets.commands.exceptions import DatasetNotFoundError
-from superset.exceptions import SupersetException, SupersetGenericDBErrorException
+from superset.exceptions import SupersetGenericDBErrorException
 from superset.models.core import Database
 from superset.utils.core import get_example_database
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -97,9 +97,10 @@ class TestDatasource(SupersetTestCase):
     def test_external_metadata_by_name_for_physical_table(self):
         self.login(username="admin")
         tbl = self.get_table_by_name("birth_names")
+        # empty schema need to be represented by undefined
         url = (
             f"/datasource/external_metadata_by_name/table/"
-            f"{tbl.database.database_name}/{tbl.schema}/{tbl.table_name}/"
+            f"{tbl.database.database_name}/undefined/{tbl.table_name}/"
         )
         resp = self.get_json_resp(url)
         col_names = {o.get("name") for o in resp}
@@ -119,7 +120,7 @@ class TestDatasource(SupersetTestCase):
         session.commit()
 
         table = self.get_table_by_name("dummy_sql_table")
-        # empty schema need to be represented by undefine
+        # empty schema need to be represented by undefined
         url = (
             f"/datasource/external_metadata_by_name/table/"
             f"{table.database.database_name}/undefined/{table.table_name}/"
@@ -141,12 +142,11 @@ class TestDatasource(SupersetTestCase):
             col_names = {o.get("name") for o in resp}
             self.assertEqual(col_names, {"first", "second"})
 
-        with pytest.raises(SupersetException):
-            url = (
-                f"/datasource/external_metadata_by_name/table/"
-                f"foobar/undefined/foobar/"
-            )
-            self.get_json_resp(url)
+        url = (
+            f"/datasource/external_metadata_by_name/table/" f"foobar/undefined/foobar/"
+        )
+        resp = self.get_json_resp(url, raise_on_error=False)
+        self.assertIn("error", resp)
 
     def test_external_metadata_for_virtual_table_template_params(self):
         self.login(username="admin")
