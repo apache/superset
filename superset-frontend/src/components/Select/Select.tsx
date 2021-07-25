@@ -484,7 +484,7 @@ const Select = ({
         onDeselect={handleOnDeselect}
         onDropdownVisibleChange={handleOnDropdownVisibleChange}
         onPopupScroll={isAsync ? handlePagination : undefined}
-        onSearch={handleOnSearch}
+        onSearch={shouldShowSearch ? handleOnSearch : undefined}
         onSelect={handleOnSelect}
         onClear={() => setSelectValue(undefined)}
         options={selectOptions}
