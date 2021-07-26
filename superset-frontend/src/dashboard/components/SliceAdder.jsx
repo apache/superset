@@ -23,7 +23,7 @@ import { List } from 'react-virtualized';
 import { createFilter } from 'react-search-input';
 import { t, styled } from '@superset-ui/core';
 import { Input } from 'src/common/components';
-import Select from 'src/components/Select';
+import { Select } from 'src/components';
 import Loading from 'src/components/Loading';
 import {
   CHART_TYPE,
@@ -168,8 +168,7 @@ class SliceAdder extends React.Component {
     }));
   }
 
-  handleSelect(object) {
-    const sortBy = object.value;
+  handleSelect(sortBy) {
     this.setState(prevState => ({
       sortBy,
       filteredSlices: this.getFilteredSortedSlices(
