@@ -24,7 +24,8 @@ import controlPanel from './controlPanel';
 const metadata = new ChartMetadata({
   category: t('Ranking'),
   credits: ['https://syntagmatic.github.io/parallel-coordinates'],
-  description: '',
+  description:
+    'Plots the individual metrics for each row in the data vertically and links them together as a line. This chart is useful for comparing multiple metrics across all of the samples or rows in the data.',
   name: t('Parallel Coordinates'),
   tags: [t('Coordinates'), t('Directional'), t('Legacy'), t('Relational')],
   thumbnail,
