@@ -1498,6 +1498,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
 
         class QueryContext:
             result_format = ChartDataResultFormat.JSON
+            result_type = utils.ChartDataResultType.FULL
 
         cmd_run_val = {
             "query_context": QueryContext(),
@@ -1508,6 +1509,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             ChartDataCommand, "run", return_value=cmd_run_val
         ) as patched_run:
             request_payload = get_query_context("birth_names")
+            request_payload["result_type"] = utils.ChartDataResultType.FULL
             rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "post_data")
             self.assertEqual(rv.status_code, 200)
             data = json.loads(rv.data.decode("utf-8"))

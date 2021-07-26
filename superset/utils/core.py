@@ -178,6 +178,7 @@ class ChartDataResultType(str, Enum):
     RESULTS = "results"
     SAMPLES = "samples"
     TIMEGRAINS = "timegrains"
+    POST_PROCESSED = "post_processed"
 
 
 class DatasourceDict(TypedDict):
