@@ -16,34 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const path = require('path');
+import React from 'react';
+import { useArgs } from '@storybook/client-api';
+import TimezoneSelector, { TimezoneProps } from './index';
 
-// Superset's webpack.config.js
-const customConfig = require('../webpack.config.js');
+export default {
+  title: 'TimezoneSelector',
+  component: TimezoneSelector,
+};
 
-module.exports = {
-  stories: ['../src/@(components|common|filters)/**/*.stories.@(t|j)sx'],
-  addons: [
-    '@storybook/addon-essentials',
-    '@storybook/addon-links',
-    '@storybook/preset-typescript',
-    'storybook-addon-jsx',
-    '@storybook/addon-knobs/register',
-    'storybook-addon-paddings',
-  ],
-  webpackFinal: config => ({
-    ...config,
-    module: {
-      ...config.module,
-      rules: customConfig.module.rules,
-    },
-    resolve: {
-      ...config.resolve,
-      ...customConfig.resolve,
-    },
-    plugins: [...config.plugins, ...customConfig.plugins],
-  }),
-  typescript: {
-    reactDocgen: 'none',
-  },
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const InteractiveTimezoneSelector = (args: TimezoneProps) => {
+  const [{ timezone }, updateArgs] = useArgs();
+  const onTimezoneChange = (value: string) => {
+    updateArgs({ timezone: value });
+  };
+  return (
+    <TimezoneSelector timezone={timezone} onTimezoneChange={onTimezoneChange} />
+  );
+};
+
+InteractiveTimezoneSelector.args = {
+  timezone: 'America/Los_Angeles',
 };

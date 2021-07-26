@@ -398,7 +398,10 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
   const chartMetadata: VizEntry[] = useMemo(() => {
     const result = Object.entries(mountedPluginMetadata)
       .map(([key, value]) => ({ key, value }))
-      .filter(({ value }) => nativeFilterGate(value.behaviors || []));
+      .filter(
+        ({ value }) =>
+          nativeFilterGate(value.behaviors || []) && !value.deprecated,
+      );
     result.sort((a, b) => vizSortFactor(a) - vizSortFactor(b));
     return result;
   }, [mountedPluginMetadata]);

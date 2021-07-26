@@ -73,7 +73,7 @@ test('Rendering DataTablesPane correctly', () => {
   expect(screen.getByRole('img', { name: 'right' })).toBeVisible();
 });
 
-test('Shoud show tabs', async () => {
+test('Should show tabs', async () => {
   const props = createProps();
   render(<DataTablesPane {...props} />, { useRedux: true });
   expect(screen.queryByText('View results')).not.toBeInTheDocument();
@@ -83,7 +83,7 @@ test('Shoud show tabs', async () => {
   expect(screen.getByText('View samples')).toBeVisible();
 });
 
-test('Shoud show tabs: View results', async () => {
+test('Should show tabs: View results', async () => {
   const props = createProps();
   render(<DataTablesPane {...props} />, {
     useRedux: true,
@@ -93,7 +93,7 @@ test('Shoud show tabs: View results', async () => {
   expect(screen.getByText('0 rows retrieved')).toBeVisible();
 });
 
-test('Shoud show tabs: View samples', async () => {
+test('Should show tabs: View samples', async () => {
   const props = createProps();
   render(<DataTablesPane {...props} />, {
     useRedux: true,
