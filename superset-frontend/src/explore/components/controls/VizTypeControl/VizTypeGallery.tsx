@@ -19,6 +19,7 @@
 import React, {
   ChangeEventHandler,
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -32,11 +33,13 @@ import {
   SupersetTheme,
   useTheme,
 } from '@superset-ui/core';
-import { Input } from 'src/common/components';
+import { Collapse, Input } from 'src/common/components';
 import Label from 'src/components/Label';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import Icons from 'src/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
+import { CloseOutlined } from '@ant-design/icons';
+import scrollIntoView from 'scroll-into-view-if-needed';
 
 interface VizTypeGalleryProps {
   onChange: (vizType: string | null) => void;
@@ -96,8 +99,6 @@ const DEFAULT_ORDER = [
   'country_map',
 ];
 
-const ALL_TAGS = [t('Highly-used'), t('Text'), t('Trend'), t('Formattable')];
-
 const typesWithDefaultOrder = new Set(DEFAULT_ORDER);
 
 const THUMBNAIL_GRID_UNITS = 24;
@@ -106,16 +107,22 @@ export const MAX_ADVISABLE_VIZ_GALLERY_WIDTH = 1090;
 
 const OTHER_CATEGORY = t('Other');
 
-const DEFAULT_SEARCH_INPUT_VALUE = t('Highly-used');
+const ALL_CHARTS = t('All charts');
+
+const RECOMMENDED_TAGS = [
+  t('Highly-used'),
+  t('ECharts'),
+  t('Advanced-Analytics'),
+];
 
 export const VIZ_TYPE_CONTROL_TEST_ID = 'viz-type-control';
 
 const VizPickerLayout = styled.div`
   display: grid;
   grid-template-rows: auto minmax(100px, 1fr) minmax(200px, 35%);
-  grid-template-columns: 1fr 5fr;
+  grid-template-columns: auto 5fr;
   grid-template-areas:
-    'sidebar tags'
+    'sidebar search'
     'sidebar main'
     'details details';
   height: 70vh;
@@ -135,8 +142,21 @@ const LeftPane = styled.div`
   display: flex;
   flex-direction: column;
   border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  padding: ${({ theme }) => theme.gridUnit * 2}px;
-  overflow: hidden;
+  overflow: auto;
+
+  .ant-collapse .ant-collapse-item {
+    .ant-collapse-header {
+      font-size: ${({ theme }) => theme.typography.sizes.s}px;
+      color: ${({ theme }) => theme.colors.grayscale.base};
+      padding-left: ${({ theme }) => theme.gridUnit * 2}px;
+      padding-bottom: ${({ theme }) => theme.gridUnit}px;
+    }
+    .ant-collapse-content .ant-collapse-content-box {
+      display: flex;
+      flex-direction: column;
+      padding: 0 ${({ theme }) => theme.gridUnit * 2}px;
+    }
+  }
 `;
 
 const RightPane = styled.div`
@@ -144,25 +164,10 @@ const RightPane = styled.div`
   overflow-y: scroll;
 `;
 
-const AllTagsWrapper = styled.div`
-  ${({ theme }) => `
-    grid-area: tags;
-    margin: ${theme.gridUnit * 4}px ${theme.gridUnit * 2}px 0;
-    input {
-      font-size: ${theme.typography.sizes.s};
-    }
-  `}
-`;
-
-const CategoriesWrapper = styled.div`
-  display: flex;
-  flex-direction: column;
-  overflow: auto;
-`;
-
 const SearchWrapper = styled.div`
   ${({ theme }) => `
-    margin-bottom: ${theme.gridUnit * 2}px;
+    grid-area: search;
+    margin: ${theme.gridUnit * 2}px ${theme.gridUnit * 3}px;
     input {
       font-size: ${theme.typography.sizes.s};
     }
@@ -180,21 +185,48 @@ const InputIconAlignment = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
-const CategoryLabel = styled.button`
+const SelectorLabel = styled.button`
   ${({ theme }) => `
     all: unset; // remove default button styles
     cursor: pointer;
-    padding: ${theme.gridUnit}px;
+    margin: ${theme.gridUnit}px 0;
+    padding: 0 ${theme.gridUnit * 6}px 0 ${theme.gridUnit}px;
     border-radius: ${theme.borderRadius}px;
     line-height: 2em;
     font-size: ${theme.typography.sizes.s};
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    position: relative;
 
     &:focus {
       outline: initial;
     }
 
     &.selected {
-      background-color: ${theme.colors.secondary.light4};
+      background-color: ${theme.colors.primary.dark1};
+      color: ${theme.colors.primary.light5};
+
+      svg {
+        color: ${theme.colors.primary.light5};
+      }
+
+      &:hover {
+        .cancel {
+          visibility: visible;
+        }
+      }
+    }
+
+    svg {
+      position: relative;
+      top: ${theme.gridUnit * 2}px
+    }
+
+    .cancel {
+      visibility: hidden;
+      position: absolute;
+      right: ${theme.gridUnit * 2}px;
     }
   `}
 `;
@@ -362,32 +394,54 @@ const ThumbnailGallery: React.FC<ThumbnailGalleryProps> = ({
   </IconsPane>
 );
 
-const CategorySelector: React.FC<{
-  category: string;
+const Selector: React.FC<{
+  selector: string;
+  icon: JSX.Element;
   isSelected: boolean;
-  onClick: (category: string) => void;
-}> = ({ category, isSelected, onClick }) => (
-  <CategoryLabel
-    key={category}
-    name={category}
-    className={isSelected ? 'selected' : ''}
-    onClick={() => onClick(category)}
-  >
-    {category}
-  </CategoryLabel>
-);
+  onClick: (selector: string) => void;
+  onClear: (e: React.MouseEvent) => void;
+}> = ({ selector, icon, isSelected, onClick, onClear }) => {
+  const btnRef = useRef<HTMLButtonElement>(null);
 
-const doesVizMatchCategory = (viz: ChartMetadata, category: string) =>
-  category === viz.category ||
-  (category === OTHER_CATEGORY && viz.category == null);
+  // see Element.scrollIntoViewIfNeeded()
+  // see: https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoViewIfNeeded
+  useEffect(() => {
+    if (isSelected) {
+      // We need to wait for the modal to open and then scroll, so we put it in the microtask queue
+      queueMicrotask(() =>
+        scrollIntoView(btnRef.current as HTMLButtonElement, {
+          behavior: 'smooth',
+          scrollMode: 'if-needed',
+        }),
+      );
+    }
+  }, []);
+
+  return (
+    <SelectorLabel
+      ref={btnRef}
+      key={selector}
+      name={selector}
+      className={isSelected ? 'selected' : ''}
+      onClick={() => onClick(selector)}
+    >
+      {icon}
+      {selector}
+      <CloseOutlined className="cancel" onClick={onClear} />
+    </SelectorLabel>
+  );
+};
+
+const doesVizMatchSelector = (viz: ChartMetadata, selector: string) =>
+  selector === viz.category ||
+  (selector === OTHER_CATEGORY && viz.category == null) ||
+  (viz.tags || []).indexOf(selector) > -1;
 
 export default function VizTypeGallery(props: VizTypeGalleryProps) {
   const { selectedViz, onChange, className } = props;
   const { mountedPluginMetadata } = usePluginContext();
   const searchInputRef = useRef<HTMLInputElement>();
-  const [searchInputValue, setSearchInputValue] = useState(
-    DEFAULT_SEARCH_INPUT_VALUE,
-  );
+  const [searchInputValue, setSearchInputValue] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(true);
   const isActivelySearching = isSearchFocused && !!searchInputValue;
 
@@ -430,8 +484,38 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     [chartsByCategory],
   );
 
-  const [activeCategory, setActiveCategory] = useState<string>(
-    () => selectedVizMetadata?.category || categories[0],
+  const chartsByTags = useMemo(() => {
+    const result: Record<string, VizEntry[]> = {};
+    chartMetadata.forEach(entry => {
+      const tags = entry.value.tags || [];
+      tags.forEach(tag => {
+        if (!result[tag]) {
+          result[tag] = [];
+        }
+        result[tag].push(entry);
+      });
+    });
+    return result;
+  }, [chartMetadata]);
+
+  const tags = useMemo(
+    () =>
+      Object.keys(chartsByTags)
+        .sort((a, b) =>
+          // sort alphabetically
+          a.localeCompare(b),
+        )
+        .filter(tag => RECOMMENDED_TAGS.indexOf(tag) === -1),
+    [chartsByCategory],
+  );
+
+  const sortedMetadata = useMemo(
+    () => chartMetadata.sort((a, b) => a.key.localeCompare(b.key)),
+    [chartMetadata],
+  );
+
+  const [activeSelector, setActiveSelector] = useState<string>(
+    () => selectedVizMetadata?.category || RECOMMENDED_TAGS[0],
   );
 
   // get a fuse instance for fuzzy search
@@ -472,83 +556,125 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     searchInputRef.current!.blur();
   }, []);
 
-  const selectCategory = useCallback(
+  const clickSelector = useCallback(
     (key: string) => {
       if (isSearchFocused) {
         stopSearching();
       }
-      setActiveCategory(key);
-      // clear the selected viz if it is not present in the new category
+      setActiveSelector(key);
+      // clear the selected viz if it is not present in the new category or tags
       const isSelectedVizCompatible =
-        selectedVizMetadata && doesVizMatchCategory(selectedVizMetadata, key);
-      if (key !== activeCategory && !isSelectedVizCompatible) {
+        selectedVizMetadata && doesVizMatchSelector(selectedVizMetadata, key);
+      if (key !== activeSelector && !isSelectedVizCompatible) {
         onChange(null);
       }
     },
     [
       stopSearching,
       isSearchFocused,
-      activeCategory,
+      activeSelector,
       selectedVizMetadata,
       onChange,
     ],
   );
 
+  const clearSelector = useCallback(e => {
+    e.stopPropagation();
+    if (isSearchFocused) {
+      stopSearching();
+    }
+    // clear current selector and set all charts
+    setActiveSelector(ALL_CHARTS);
+  }, []);
+
+  const sectionMap = useMemo(
+    () => ({
+      RECOMMENDED_TAGS: {
+        title: t('Recommended tags'),
+        icon: <Icons.Tags />,
+        selectors: RECOMMENDED_TAGS,
+      },
+      ALL: {
+        title: t('All'),
+        icon: <Icons.Ballot />,
+        selectors: [ALL_CHARTS],
+      },
+      CATEGORY: {
+        title: t('Category'),
+        icon: <Icons.Category />,
+        selectors: categories,
+      },
+      TAGS: {
+        title: t('Tags'),
+        icon: <Icons.Tags />,
+        selectors: tags,
+      },
+    }),
+    [categories, tags],
+  );
+
   const vizEntriesToDisplay = isActivelySearching
     ? searchResults
-    : chartsByCategory[activeCategory] || [];
+    : activeSelector === ALL_CHARTS
+    ? sortedMetadata
+    : chartsByCategory[activeSelector] || chartsByTags[activeSelector] || [];
 
   return (
     <VizPickerLayout className={className}>
       <LeftPane>
-        <SearchWrapper>
-          <Input
-            type="text"
-            ref={searchInputRef as any /* cast required because emotion */}
-            value={searchInputValue}
-            placeholder={t('Search')}
-            onChange={changeSearch}
-            onFocus={focusSearch}
-            data-test={`${VIZ_TYPE_CONTROL_TEST_ID}__search-input`}
-            prefix={
-              <InputIconAlignment>
-                <Icons.Search iconSize="m" />
-              </InputIconAlignment>
-            }
-            suffix={
-              <InputIconAlignment>
-                {searchInputValue && (
-                  <Icons.XLarge iconSize="m" onClick={stopSearching} />
-                )}
-              </InputIconAlignment>
-            }
-          />
-        </SearchWrapper>
-        <CategoriesWrapper>
-          {categories.map(category => (
-            <CategorySelector
-              key={category}
-              category={category}
-              isSelected={!isActivelySearching && category === activeCategory}
-              onClick={selectCategory}
-            />
-          ))}
-        </CategoriesWrapper>
+        <Collapse
+          expandIconPosition="right"
+          ghost
+          defaultActiveKey={Object.keys(sectionMap)}
+        >
+          {Object.keys(sectionMap).map(key => {
+            const section = sectionMap[key];
+
+            return (
+              <Collapse.Panel
+                header={<span className="header">{section.title}</span>}
+                key={key}
+              >
+                {section.selectors.map((selector: string) => (
+                  <Selector
+                    selector={selector}
+                    icon={section.icon}
+                    isSelected={
+                      !isActivelySearching && selector === activeSelector
+                    }
+                    onClick={clickSelector}
+                    onClear={clearSelector}
+                  />
+                ))}
+              </Collapse.Panel>
+            );
+          })}
+        </Collapse>
       </LeftPane>
 
-      <AllTagsWrapper>
-        {ALL_TAGS.map(tag => (
-          <Label
-            key={tag}
-            onClick={() => {
-              focusSearch();
-              setSearchInputValue(tag);
-            }}
-          >
-            {tag}
-          </Label>
-        ))}
-      </AllTagsWrapper>
+      <SearchWrapper>
+        <Input
+          type="text"
+          ref={searchInputRef as any /* cast required because emotion */}
+          value={searchInputValue}
+          placeholder={t('Search all charts')}
+          onChange={changeSearch}
+          onFocus={focusSearch}
+          data-test={`${VIZ_TYPE_CONTROL_TEST_ID}__search-input`}
+          prefix={
+            <InputIconAlignment>
+              <Icons.Search iconSize="m" />
+            </InputIconAlignment>
+          }
+          suffix={
+            <InputIconAlignment>
+              {searchInputValue && (
+                <Icons.XLarge iconSize="m" onClick={stopSearching} />
+              )}
+            </InputIconAlignment>
+          }
+        />
+      </SearchWrapper>
 
       <RightPane>
         <ThumbnailGallery
