@@ -18,6 +18,7 @@
  */
 import React, { useState, useMemo, useEffect } from 'react';
 import { t } from '@superset-ui/core';
+import { filter } from 'lodash';
 import {
   useListViewResource,
   useChartEditModal,
@@ -52,6 +53,7 @@ interface ChartTableProps {
   user?: User;
   mine: Array<any>;
   showThumbnails: boolean;
+  examples?: Array<object>;
 }
 
 function ChartTable({
@@ -60,10 +62,17 @@ function ChartTable({
   addSuccessToast,
   mine,
   showThumbnails,
+  examples,
 }: ChartTableProps) {
   const history = useHistory();
   const filterStore = getFromLocalStorage(HOMEPAGE_CHART_FILTER, null);
-  const initialFilter = filterStore || TableTabTypes.MINE;
+  let initialFilter = filterStore || TableTabTypes.EXAMPLES;
+
+  if (!examples && filterStore === TableTabTypes.EXAMPLES) {
+    initialFilter = TableTabTypes.MINE;
+  }
+
+  const filteredExamples = filter(examples, obj => 'viz_type' in obj);
 
   const {
     state: { loading, resourceCollection: charts, bulkSelectEnabled },
@@ -76,7 +85,7 @@ function ChartTable({
     t('chart'),
     addDangerToast,
     true,
-    initialFilter === 'Favorite' ? [] : mine,
+    initialFilter === 'Mine' ? mine : filteredExamples,
     [],
     false,
   );
@@ -96,9 +105,13 @@ function ChartTable({
 
   const [chartFilter, setChartFilter] = useState(initialFilter);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
+  const [loaded, setLoaded] = useState<boolean>(false);
 
   useEffect(() => {
-    getData(chartFilter);
+    if (loaded || chartFilter === 'Favorite') {
+      getData(chartFilter);
+    }
+    setLoaded(true);
   }, [chartFilter]);
 
   const handleBulkChartExport = (chartsToExport: Chart[]) => {
@@ -118,7 +131,7 @@ function ChartTable({
         operator: 'rel_o_m',
         value: `${user?.userId}`,
       });
-    } else {
+    } else if (filterName === 'Favorite') {
       filters.push({
         id: 'id',
         operator: 'chart_is_favorite',
@@ -127,6 +140,36 @@ function ChartTable({
     }
     return filters;
   };
+
+  const menuTabs = [
+    {
+      name: 'Favorite',
+      label: t('Favorite'),
+      onClick: () => {
+        setChartFilter(TableTabTypes.FAVORITE);
+        setInLocalStorage(HOMEPAGE_CHART_FILTER, TableTabTypes.FAVORITE);
+      },
+    },
+    {
+      name: 'Mine',
+      label: t('Mine'),
+      onClick: () => {
+        setChartFilter(TableTabTypes.MINE);
+        setInLocalStorage(HOMEPAGE_CHART_FILTER, TableTabTypes.MINE);
+      },
+    },
+  ];
+
+  if (examples) {
+    menuTabs.push({
+      name: 'Examples',
+      label: t('Examples'),
+      onClick: () => {
+        setChartFilter(TableTabTypes.EXAMPLES);
+        setInLocalStorage(HOMEPAGE_CHART_FILTER, TableTabTypes.EXAMPLES);
+      },
+    });
+  }
 
   const getData = (filter: string) =>
     fetchData({
@@ -156,24 +199,7 @@ function ChartTable({
       <SubMenu
         activeChild={chartFilter}
         // eslint-disable-next-line react/no-children-prop
-        tabs={[
-          {
-            name: 'Favorite',
-            label: t('Favorite'),
-            onClick: () => {
-              setChartFilter('Favorite');
-              setInLocalStorage(HOMEPAGE_CHART_FILTER, TableTabTypes.FAVORITE);
-            },
-          },
-          {
-            name: 'Mine',
-            label: t('Mine'),
-            onClick: () => {
-              setChartFilter('Mine');
-              setInLocalStorage(HOMEPAGE_CHART_FILTER, TableTabTypes.MINE);
-            },
-          },
-        ]}
+        tabs={menuTabs}
         buttons={[
           {
             name: (

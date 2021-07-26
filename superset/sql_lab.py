@@ -587,23 +587,30 @@ def cancel_query(query: Query, user_name: Optional[str] = None) -> bool:
     """
     Cancel a running query.
 
+    Note some engines implicitly handle the cancelation of a query and thus no expliicit
+    action is required.
+
     :param query: Query to cancel
     :param user_name: Default username
     :return: True if query cancelled successfully, False otherwise
     """
-    cancel_query_id = query.extra.get(cancel_query_key, None)
+
+    if query.database.db_engine_spec.has_implicit_cancel():
+        return True
+
+    cancel_query_id = query.extra.get(cancel_query_key)
     if cancel_query_id is None:
         return False
 
-    database = query.database
-    engine = database.get_sqla_engine(
+    engine = query.database.get_sqla_engine(
         schema=query.schema,
         nullpool=True,
         user_name=user_name,
         source=QuerySource.SQL_LAB,
     )
-    db_engine_spec = database.db_engine_spec
 
     with closing(engine.raw_connection()) as conn:
         with closing(conn.cursor()) as cursor:
-            return db_engine_spec.cancel_query(cursor, query, cancel_query_id)
+            return query.database.db_engine_spec.cancel_query(
+                cursor, query, cancel_query_id
+            )

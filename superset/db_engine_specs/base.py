@@ -1306,6 +1306,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return None
 
     @classmethod
+    def has_implicit_cancel(cls) -> bool:
+        """
+        Return True if the live cursor handles the implicit cancelation of the query,
+        False otherise.
+
+        :return: Whether the live cursor implicitly cancels the query
+        :see: handle_cursor
+        """
+
+        return False
+
+    @classmethod
     def get_cancel_query_id(cls, cursor: Any, query: Query) -> Optional[str]:
         """
         Select identifiers from the database engine that uniquely identifies the
@@ -1316,6 +1328,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param query: Query instance
         :return: Query identifier
         """
+
         return None
 
     @classmethod
@@ -1329,6 +1342,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         other life-cycle methods of the query
         :return: True if query cancelled successfully, False otherwise
         """
+
+        return False
 
 
 # schema for adding a database by providing parameters instead of the
