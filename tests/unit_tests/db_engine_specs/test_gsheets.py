@@ -116,6 +116,10 @@ def test_validate_parameters_catalog(
         ),
     ]
 
+    create_engine.assert_called_with(
+        "gsheets://", service_account_info={}, subject="admin@example.com",
+    )
+
 
 def test_validate_parameters_catalog_and_credentials(
     mocker: MockFixture, app_context: AppContext,
@@ -169,3 +173,7 @@ def test_validate_parameters_catalog_and_credentials(
             },
         )
     ]
+
+    create_engine.assert_called_with(
+        "gsheets://", service_account_info={}, subject="admin@example.com",
+    )
