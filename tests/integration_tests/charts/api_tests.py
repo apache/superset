@@ -725,7 +725,6 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             "query_context": None,
         }
         data = json.loads(rv.data.decode("utf-8"))
-        print(data["result"])
         self.assertEqual(data["result"], expected_result)
         db.session.delete(chart)
         db.session.commit()
