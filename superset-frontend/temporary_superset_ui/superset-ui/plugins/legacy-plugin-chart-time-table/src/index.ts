@@ -34,7 +34,7 @@ const metadata = new ChartMetadata({
     t('Legacy'),
     t('Percentages'),
     t('Tabular'),
-    t('Text'),
+    t('Description'),
     t('Trend'),
   ],
   thumbnail,
