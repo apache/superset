@@ -150,6 +150,9 @@ const IconFileNames = [
   'warning_solid',
   'x-large',
   'x-small',
+  'tags',
+  'ballot',
+  'category',
 ];
 
 const iconOverrides: Record<string, React.FC> = {};
