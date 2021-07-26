@@ -306,6 +306,8 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
     }
     return new AdhocFilter({
       subject: (droppedItem as ColumnMeta)?.column_name,
+      operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.IN].operation,
+      operatorId: Operators.IN,
     });
   }, [droppedItem]);
 
