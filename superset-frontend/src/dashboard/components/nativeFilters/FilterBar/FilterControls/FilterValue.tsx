@@ -171,6 +171,7 @@ const FilterValue: React.FC<FilterProps> = ({
     groupby,
     JSON.stringify(filter),
     hasDataSource,
+    isRefreshing,
     isDashboardRefreshing,
   ]);
 
