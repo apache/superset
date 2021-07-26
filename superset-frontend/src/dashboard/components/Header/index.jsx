@@ -129,7 +129,10 @@ const StyledDashboardHeader = styled.div`
 
 class Header extends React.PureComponent {
   static discardChanges() {
-    window.location.reload();
+    const url = new URL(window.location.href);
+
+    url.searchParams.delete('edit');
+    window.location.assign(url);
   }
 
   constructor(props) {
