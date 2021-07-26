@@ -85,17 +85,21 @@ export default function PropertiesModal({
 
         if (chart.query_context === null) {
           // set query_context if null
+          const queryContext = buildV1ChartDataPayload({
+            formData: slice.form_data as QueryFormData,
+            force: false,
+            resultFormat: 'json',
+            resultType: 'full',
+            setDataMask: null,
+            ownState: null,
+          });
+
           await SupersetClient.put({
             endpoint: `/api/v1/chart/${slice.slice_id}`,
             headers: { 'Content-Type': 'application/json' },
-            body: {
-              query_context: buildV1ChartDataPayload({
-                formData: slice.form_data as QueryFormData,
-                force: false,
-                resultFormat: 'json',
-                resultType: 'full',
-              }),
-            },
+            body: JSON.stringify({
+              query_context: JSON.stringify(queryContext),
+            }),
           });
         }
       } catch (response) {
