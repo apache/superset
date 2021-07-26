@@ -152,6 +152,7 @@ class BaseReportState:
                     "ChartRestApi.get_data",
                     pk=self._report_schedule.chart_id,
                     format="csv",
+                    type="post_processed",
                 )
             return get_url_path(
                 "Superset.slice",
