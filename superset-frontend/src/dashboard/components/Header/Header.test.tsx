@@ -54,6 +54,7 @@ const createProps = () => ({
   onChange: jest.fn(),
   fetchFaveStar: jest.fn(),
   fetchCharts: jest.fn(),
+  onRefresh: jest.fn(),
   saveFaveStar: jest.fn(),
   savePublished: jest.fn(),
   isPublished: false,
@@ -301,5 +302,5 @@ test('should refresh the charts', async () => {
   render(setup(mockedProps));
   await openActionsDropdown();
   userEvent.click(screen.getByText('Refresh dashboard'));
-  expect(mockedProps.fetchCharts).toHaveBeenCalledTimes(1);
+  expect(mockedProps.onRefresh).toHaveBeenCalledTimes(1);
 });
