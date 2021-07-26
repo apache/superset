@@ -23,7 +23,8 @@ import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
   category: t('Correlation'),
-  description: '',
+  description:
+    'Table that visualizes paired t-tests, which are used to understand statistical differences between groups.',
   name: t('Paired t-test Table'),
   tags: [t('Legacy'), t('Statistical'), t('Tabular')],
   thumbnail,

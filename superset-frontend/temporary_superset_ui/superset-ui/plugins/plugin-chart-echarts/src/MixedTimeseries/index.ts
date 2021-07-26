@@ -52,6 +52,17 @@ export default class EchartsTimeseriesChartPlugin extends ChartPlugin {
         ],
         name: t('Mixed timeseries chart'),
         thumbnail,
+        tags: [
+          t('Advanced-Analytics'),
+          t('Aesthetic'),
+          t('ECharts'),
+          t('Experimental'),
+          t('Line'),
+          t('Multi-Variables'),
+          t('Predictive'),
+          t('Time'),
+          t('Transformable'),
+        ],
       }),
       transformProps,
     });

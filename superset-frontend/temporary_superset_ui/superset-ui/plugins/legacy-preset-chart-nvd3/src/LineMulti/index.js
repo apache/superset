@@ -28,7 +28,14 @@ const metadata = new ChartMetadata({
     'Visualize two different time series using the same x-axis time range. This chart is being deprecated and we recommend using the Mixed Timeseries Chart instead!',
   ),
   name: t('Multiple Line Charts'),
-  tags: [t('Multi-Variables'), t('Legacy'), t('nvd3')],
+  tags: [
+    t('Multi-Variables'),
+    t('Legacy'),
+    t('nvd3'),
+    t('Comparison'),
+    t('Time'),
+    t('Multi-Layers'),
+  ],
   thumbnail,
   useLegacyApi: true,
 });
