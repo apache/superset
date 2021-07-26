@@ -155,6 +155,40 @@ export class ExploreChartHeader extends React.PureComponent {
     this.setState({ showingReportModal: false });
   }
 
+  renderReportModal() {
+    const attachedReportExists = this.props.report?.count > 0;
+    return attachedReportExists ? (
+      <Icons.Calendar />
+    ) : (
+      <>
+        <span
+          role="button"
+          title={t('Schedule email report')}
+          tabIndex={0}
+          className="action-button"
+          onClick={this.showReportModal}
+        >
+          <Icons.Calendar />
+        </span>
+      </>
+    );
+  }
+
+  canAddReports() {
+    const { user } = this.props;
+    if (!user) {
+      // this is in the case that there is an anonymous user.
+      return false;
+    }
+    const roles = Object.keys(user.roles || []);
+    const permissions = roles.map(key =>
+      user.roles[key].filter(
+        perms => perms[0] === 'can_add' && perms[1] === 'AlertModelView',
+      ),
+    );
+    return this.props.report && permissions[0].length > 0;
+  }
+
   render() {
     const formData = this.props.form_data;
     const {
@@ -237,15 +271,7 @@ export class ExploreChartHeader extends React.PureComponent {
             isRunning={chartStatus === 'loading'}
             status={CHART_STATUS_MAP[chartStatus]}
           />
-          <span
-            role="button"
-            title={t('Schedule email report')}
-            tabIndex={0}
-            className="action-button"
-            onClick={this.showReportModal}
-          >
-            <Icons.Calendar />
-          </span>
+          {this.canAddReports() && this.renderReportModal()}
           <ReportModal
             show={this.state.showingReportModal}
             onHide={this.hideReportModal}
