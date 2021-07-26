@@ -232,7 +232,7 @@ const config: ControlPanelConfig = {
               type: 'AnnotationLayerControl',
               label: '',
               default: annotationLayers,
-              description: 'Annotation Layers',
+              description: t('Annotation Layers'),
             },
           },
         ],

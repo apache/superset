@@ -161,7 +161,7 @@ const config: ControlPanelConfig = {
             config: {
               type: 'SelectControl',
               label: t('Number format'),
-              description: 'D3 format syntax: https://github.com/d3/d3-format',
+              description: t('D3 format syntax: https://github.com/d3/d3-format'),
               freeForm: true,
               renderTrigger: true,
               default: DEFAULT_FORM_DATA.numberFormat,
