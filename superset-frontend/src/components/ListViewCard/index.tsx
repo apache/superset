@@ -97,7 +97,6 @@ const TitleContainer = styled.div`
 `;
 
 const TitleLink = styled.span`
-  max-width: 50%;
   overflow: hidden;
   text-overflow: ellipsis;
   & a {
@@ -107,6 +106,9 @@ const TitleLink = styled.span`
 
 const TitleRight = styled.span`
   margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+  position: absolute;
+  right: -1px;
+  bottom: ${({ theme }) => theme.gridUnit}px;
 `;
 
 const CoverFooter = styled.div`

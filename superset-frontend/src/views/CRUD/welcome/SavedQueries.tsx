@@ -64,7 +64,6 @@ interface SavedQueriesProps {
 
 export const CardStyles = styled.div`
   cursor: pointer;
-  min-width: 400px;
   a {
     text-decoration: none;
   }
