@@ -585,6 +585,10 @@ const FiltersConfigForm = (
 
   const defaultToFirstItem = formFilter?.controlValues?.defaultToFirstItem;
 
+  const hasAdvancedSection =
+    formFilter?.filterType === 'filter_select' ||
+    formFilter?.filterType === 'filter_range';
+
   const preFilterValidator = () => {
     if (hasTimeRange || hasAdhoc) {
       return Promise.resolve();
@@ -847,7 +851,7 @@ const FiltersConfigForm = (
               .filter(key => BASIC_CONTROL_ITEMS.includes(key))
               .map(key => controlItems[key].element)}
           </Collapse.Panel>
-          {((hasDataset && hasAdditionalFilters) || hasMetrics) && (
+          {hasAdvancedSection && (
             <Collapse.Panel
               forceRender
               header={FilterPanels.advanced.name}
