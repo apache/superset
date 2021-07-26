@@ -148,7 +148,7 @@ export default function transformProps(chartProps: EchartsPieChartProps): PieCha
       name,
       itemStyle: {
         color: colorFn(name),
-        opacity: isFiltered ? OpacityEnum.Transparent : OpacityEnum.NonTransparent,
+        opacity: isFiltered ? OpacityEnum.SemiTransparent : OpacityEnum.NonTransparent,
       },
     };
   });
