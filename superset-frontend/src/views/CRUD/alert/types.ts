@@ -73,6 +73,7 @@ export type AlertObject = {
   name?: string;
   owners?: Array<Owner | MetaObject>;
   sql?: string;
+  timezone?: string;
   recipients?: Array<Recipient>;
   report_format?: 'PNG' | 'CSV';
   type?: string;
