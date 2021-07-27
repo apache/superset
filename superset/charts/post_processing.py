@@ -26,11 +26,28 @@ In order to do that, we reproduce the post-processing in Python
 for these chart types.
 """
 
+import io
 from typing import Any, Callable, Dict, Optional, Union
 
 import pandas as pd
 
 from superset.utils.core import DTTM_ALIAS, extract_dataframe_dtypes, get_metric_name
+
+
+def paired_ttest(
+    result: Dict[Any, Any], form_data: Optional[Dict[str, Any]] = None
+) -> Dict[Any, Any]:
+    print("*" * 20)
+    for query in result["queries"]:
+        data_str = query["data"]
+        data = io.StringIO(data_str)
+        df = pd.DataFrame(data)
+        # form_data = form_data or {}
+        print(data)
+        print(type(data))
+    print("*" * 20)
+
+    return result
 
 
 def pivot_table(
@@ -97,4 +114,5 @@ def pivot_table(
 
 post_processors = {
     "pivot_table": pivot_table,
+    "paired_ttest": paired_ttest,
 }
