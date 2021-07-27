@@ -30,11 +30,14 @@ import DeleteModal from 'src/components/DeleteModal';
 import Icons from 'src/components/Icons';
 import SubMenu from 'src/components/Menu/SubMenu';
 import EmptyState from './EmptyState';
-import { CardContainer, createErrorHandler, shortenSQL } from '../utils';
+import {
+  CardContainer,
+  createErrorHandler,
+  shortenSQL,
+  PAGE_SIZE,
+} from '../utils';
 
 SyntaxHighlighter.registerLanguage('sql', sql);
-
-const PAGE_SIZE = 5;
 
 interface Query {
   id?: number;

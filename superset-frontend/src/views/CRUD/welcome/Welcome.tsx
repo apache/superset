@@ -84,7 +84,7 @@ const WelcomeContainer = styled.div`
     border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   }
   .ant-collapse-item .ant-collapse-content {
-    margin-bottom: ${({ theme }) => theme.gridUnit * -3}px;
+    margin-bottom: ${({ theme }) => theme.gridUnit * -6.25}px;
   }
   div.ant-collapse-item:last-child.ant-collapse-item-active
     .ant-collapse-header {

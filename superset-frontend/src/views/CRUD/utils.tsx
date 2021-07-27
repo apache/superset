@@ -268,6 +268,8 @@ export function shortenSQL(sql: string, maxLines: number) {
   return lines.join('\n');
 }
 
+export const PAGE_SIZE = 5;
+
 const breakpoints = [576, 768, 992, 1200];
 export const mq = breakpoints.map(bp => `@media (max-width: ${bp}px)`);
 
@@ -278,8 +280,8 @@ export const CardContainer = styled.div<{
     overflow: hidden;
     display: grid;
     grid-gap: ${theme.gridUnit * 12}px ${theme.gridUnit * 5.5}px;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 310px));
-    max-height: ${showThumbnails ? '342' : '140'}px;
+    grid-template-columns: repeat(auto-fit, 300px);
+    max-height: ${showThumbnails ? '314' : '140'}px;
     margin-top: ${theme.gridUnit * -6.25}px;
     padding: ${
       showThumbnails
@@ -295,7 +297,7 @@ export const CardStyles = styled.div`
     text-decoration: none;
   }
   .ant-card-cover > div {
-    height: 200px;
+    height: 168px;
   }
 `;
 

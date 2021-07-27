@@ -31,7 +31,11 @@ import {
   setInLocalStorage,
   getFromLocalStorage,
 } from 'src/utils/localStorageHelpers';
-import { createErrorHandler, CardContainer } from 'src/views/CRUD/utils';
+import {
+  createErrorHandler,
+  CardContainer,
+  PAGE_SIZE,
+} from 'src/views/CRUD/utils';
 import { HOMEPAGE_DASHBOARD_FILTER } from 'src/views/CRUD/storageKeys';
 
 import withToasts from 'src/messageToasts/enhancers/withToasts';
@@ -40,8 +44,6 @@ import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import DashboardCard from 'src/views/CRUD/dashboard/DashboardCard';
 import SubMenu from 'src/components/Menu/SubMenu';
 import EmptyState from './EmptyState';
-
-const PAGE_SIZE = 5;
 
 export interface FilterValue {
   col: string;
