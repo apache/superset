@@ -22,11 +22,13 @@ import transformProps from '../../transformProps';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  category: t('Map'),
   credits: ['https://uber.github.io/deck.gl'],
   description: '',
   name: t('deck.gl Path'),
   thumbnail,
   useLegacyApi: true,
+  tags: [t('Web'), t('deckGL')],
 });
 
 export default class PathChartPlugin extends ChartPlugin {

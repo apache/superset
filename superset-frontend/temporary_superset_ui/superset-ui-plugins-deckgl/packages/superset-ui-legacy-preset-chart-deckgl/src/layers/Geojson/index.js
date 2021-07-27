@@ -22,11 +22,13 @@ import transformProps from '../../transformProps';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  category: t('Map'),
   credits: ['https://uber.github.io/deck.gl'],
   description: '',
   name: t('deck.gl Geojson'),
   thumbnail,
   useLegacyApi: true,
+  tags: [t('2D'), t('Aesthetic'), t('deckGL')],
 });
 
 export default class GeojsonChartPlugin extends ChartPlugin {
