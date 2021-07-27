@@ -123,6 +123,7 @@ const DEFAULT_WORKING_TIMEOUT = 3600;
 const DEFAULT_CRON_VALUE = '0 * * * *'; // every hour
 const DEFAULT_ALERT = {
   active: true,
+  creation_method: 'alerts_reports',
   crontab: DEFAULT_CRON_VALUE,
   log_retention: DEFAULT_RETENTION,
   working_timeout: DEFAULT_WORKING_TIMEOUT,

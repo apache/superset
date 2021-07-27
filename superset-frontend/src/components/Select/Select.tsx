@@ -97,6 +97,12 @@ const StyledSelect = styled(AntdSelect, {
     && .ant-select-selector {
       border-radius: ${theme.gridUnit}px;
     }
+
+    // Open the dropdown when clicking on the suffix
+    // This is fixed in version 4.16
+    .ant-select-arrow .anticon:not(.ant-select-suffix) {
+      pointer-events: none;
+    }
   `}
 `;
 
@@ -484,7 +490,7 @@ const Select = ({
         onDeselect={handleOnDeselect}
         onDropdownVisibleChange={handleOnDropdownVisibleChange}
         onPopupScroll={isAsync ? handlePagination : undefined}
-        onSearch={handleOnSearch}
+        onSearch={shouldShowSearch ? handleOnSearch : undefined}
         onSelect={handleOnSelect}
         onClear={() => setSelectValue(undefined)}
         options={selectOptions}

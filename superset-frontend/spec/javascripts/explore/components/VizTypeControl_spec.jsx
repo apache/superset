@@ -84,7 +84,7 @@ describe('VizTypeControl', () => {
     const thumbnails = screen.getByTestId('viztype-selector-container');
     expect(thumbnails).toBeInTheDocument();
 
-    const searchInput = screen.getByPlaceholderText('Search');
+    const searchInput = screen.getByPlaceholderText('Search all charts');
     userEvent.type(searchInput, 'foo');
     await waitForEffects();
 
