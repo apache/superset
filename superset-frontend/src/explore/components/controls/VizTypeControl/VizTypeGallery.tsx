@@ -194,7 +194,7 @@ const SelectorLabel = styled.button`
     align-items: center;
     cursor: pointer;
     margin: ${theme.gridUnit}px 0;
-    padding: 0 ${theme.gridUnit * 6}px 0 ${theme.gridUnit}px;
+    padding: 0 ${theme.gridUnit}px;
     border-radius: ${theme.borderRadius}px;
     line-height: 2em;
     text-overflow: ellipsis;
@@ -222,12 +222,6 @@ const SelectorLabel = styled.button`
 
     & span:first-of-type svg {
       margin-top: ${theme.gridUnit * 1.5}px;
-    }
-
-    & span:last-of-type svg {
-      position: absolute;
-      top: ${theme.gridUnit * 2}px;
-      right: ${theme.gridUnit * 2}px;
     }
 
     .cancel {
@@ -404,9 +398,8 @@ const Selector: React.FC<{
   icon: JSX.Element;
   isSelected: boolean;
   onClick: (selector: string) => void;
-  onClear?: (e: React.MouseEvent) => void;
   className?: string;
-}> = ({ selector, icon, isSelected, onClick, onClear, className }) => {
+}> = ({ selector, icon, isSelected, onClick, className }) => {
   const btnRef = useRef<HTMLButtonElement>(null);
 
   // see Element.scrollIntoViewIfNeeded()
@@ -433,7 +426,6 @@ const Selector: React.FC<{
     >
       {icon}
       {selector}
-      {onClear && <CloseOutlined className="cancel" onClick={onClear} />}
     </SelectorLabel>
   );
 };
@@ -584,18 +576,6 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     ],
   );
 
-  const clearSelector = useCallback(
-    e => {
-      e.stopPropagation();
-      if (isSearchFocused) {
-        stopSearching();
-      }
-      // clear current selector and set all charts
-      setActiveSelector(ALL_CHARTS);
-    },
-    [isSearchFocused, stopSearching],
-  );
-
   const sectionMap = useMemo(
     () => ({
       RECOMMENDED_TAGS: {
@@ -660,7 +640,6 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
                       !isActivelySearching && selector === activeSelector
                     }
                     onClick={clickSelector}
-                    onClear={clearSelector}
                   />
                 ))}
               </Collapse.Panel>
