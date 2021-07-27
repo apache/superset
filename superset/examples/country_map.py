@@ -79,6 +79,7 @@ def load_country_map_data(only_metadata: bool = False, force: bool = False) -> N
         obj = table(table_name=tbl_name)
     obj.main_dttm_col = "dttm"
     obj.database = database
+    obj.filter_select_enabled = True
     if not any(col.metric_name == "avg__2004" for col in obj.metrics):
         col = str(column("2004").compile(db.engine))
         obj.metrics.append(SqlMetric(metric_name="avg__2004", expression=f"AVG({col})"))

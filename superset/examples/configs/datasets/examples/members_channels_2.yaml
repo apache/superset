@@ -25,7 +25,7 @@ sql: SELECT c.name AS channel_name, u.name AS member_name FROM channel_members c
   JOIN channels c ON cm.channel_id = c.id JOIN users u ON cm.user_id = u.id
 params: null
 template_params: null
-filter_select_enabled: false
+filter_select_enabled: true
 fetch_values_predicate: null
 extra: null
 uuid: 3d9c0054-b31b-4102-92de-b1ef9f9e5e77

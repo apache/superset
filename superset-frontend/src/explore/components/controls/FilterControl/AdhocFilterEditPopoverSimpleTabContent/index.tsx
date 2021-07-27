@@ -427,7 +427,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
         >
           {suggestions.map((suggestion: string) => (
             <Select.Option value={suggestion} key={suggestion}>
-              {suggestion}
+              {String(suggestion)}
             </Select.Option>
           ))}
 

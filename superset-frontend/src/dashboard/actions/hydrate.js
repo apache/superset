@@ -378,6 +378,7 @@ export const hydrateDashboard = (dashboardData, chartData) => (
         hasUnsavedChanges: false,
         maxUndoHistoryExceeded: false,
         lastModifiedTime: dashboardData.changed_on,
+        isRefreshing: false,
         activeTabs: [],
       },
       dashboardLayout,

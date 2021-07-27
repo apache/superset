@@ -27,7 +27,7 @@ params:
   database_name: examples
   import_time: 1606677834
 template_params: null
-filter_select_enabled: false
+filter_select_enabled: true
 fetch_values_predicate: null
 extra: null
 uuid: 53d47c0c-c03d-47f0-b9ac-81225f808283

@@ -17,12 +17,19 @@
  * under the License.
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { logging, SupersetClient, t, Metric } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  isFeatureEnabled,
+  logging,
+  Metric,
+  SupersetClient,
+  t,
+} from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import { Tooltip } from 'src/components/Tooltip';
 import {
-  Operators,
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
+  Operators,
 } from 'src/explore/constants';
 import { OptionSortType } from 'src/explore/types';
 import {
@@ -304,9 +311,14 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
         sqlExpression: (droppedItem as AdhocMetric)?.translateToSql(),
       });
     }
-    return new AdhocFilter({
+    const config: Partial<AdhocFilter> = {
       subject: (droppedItem as ColumnMeta)?.column_name,
-    });
+    };
+    if (isFeatureEnabled(FeatureFlag.UX_BETA)) {
+      config.operator = OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.IN].operation;
+      config.operatorId = Operators.IN;
+    }
+    return new AdhocFilter(config);
   }, [droppedItem]);
 
   return (

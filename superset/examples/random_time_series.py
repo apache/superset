@@ -65,6 +65,7 @@ def load_random_time_series_data(
         obj = table(table_name=tbl_name)
     obj.main_dttm_col = "ds"
     obj.database = database
+    obj.filter_select_enabled = True
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
