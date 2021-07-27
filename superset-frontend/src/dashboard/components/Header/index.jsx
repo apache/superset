@@ -35,6 +35,7 @@ import EditableTitle from 'src/components/EditableTitle';
 import FaveStar from 'src/components/FaveStar';
 import { safeStringify } from 'src/utils/safeStringify';
 import HeaderActionsDropdown from 'src/dashboard/components/Header/HeaderActionsDropdown';
+import HeaderReportActionsDropdown from 'src/components/ReportModal/HeaderReportActionsDropdown';
 import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
@@ -159,7 +160,7 @@ class Header extends React.PureComponent {
     this.hidePropertiesModal = this.hidePropertiesModal.bind(this);
     this.showReportModal = this.showReportModal.bind(this);
     this.hideReportModal = this.hideReportModal.bind(this);
-    this.handleReportClick = this.handleReportClick.bind(this);
+    this.renderReportModal = this.renderReportModal.bind(this);
   }
 
   componentDidMount() {
@@ -379,11 +380,27 @@ class Header extends React.PureComponent {
     this.setState({ showingReportModal: false });
   }
 
-  handleReportClick() {
+  renderReportModal() {
     const attachedReportExists = this.props.report?.count > 0;
-    if (!attachedReportExists) {
-      this.showReportModal();
-    }
+    return attachedReportExists ? (
+      <HeaderReportActionsDropdown
+        showReportModal={this.showReportModal}
+        hideReportModal={this.hideReportModal}
+        toggleActive={this.props.toggleActive}
+      />
+    ) : (
+      <>
+        <span
+          role="button"
+          title={t('Schedule email report')}
+          tabIndex={0}
+          className="action-button"
+          onClick={this.showReportModal}
+        >
+          <Icons.Calendar />
+        </span>
+      </>
+    );
   }
 
   canAddReports() {
@@ -548,19 +565,7 @@ class Header extends React.PureComponent {
               </span>
             </>
           )}
-          {shouldShowReport && (
-            <>
-              <span
-                role="button"
-                title={t('Schedule email report')}
-                tabIndex={0}
-                className="action-button"
-                onClick={this.handleReportClick}
-              >
-                <Icons.Calendar />
-              </span>
-            </>
-          )}
+          {shouldShowReport && this.renderReportModal()}
 
           {this.state.showingPropertiesModal && (
             <PropertiesModal

@@ -25,16 +25,17 @@ export const SET_REPORT = 'SET_REPORT';
 export function setReport(report) {
   return { type: SET_REPORT, report };
 }
+
 export function fetchUISpecificReport(
   userId,
-  search_field,
+  filter_field,
   creation_method,
   dashboardId,
 ) {
   const queryParams = rison.encode({
     filters: [
       {
-        col: search_field,
+        col: filter_field,
         opr: 'eq',
         value: dashboardId,
       },
@@ -66,5 +67,48 @@ export function fetchUISpecificReport(
           ),
         ),
       );
+  };
+}
+
+export const EDIT_REPORT = 'EDIT_REPORT';
+
+export function reportEditor(report) {
+  return function (dispatch) {
+    SupersetClient.put({
+      endpoint: `/api/v1/report/${report.id}`,
+      postPayload: { report },
+    })
+      .then(() => dispatch({ type: EDIT_REPORT, report }))
+      .catch(() =>
+        dispatch(
+          addDangerToast(t('An error occurred while editing this report.')),
+        ),
+      );
+  };
+}
+
+export const TOGGLE_ACTIVE = 'TOGGLE_ACTIVE';
+export function toggleActiveKey(report, isActive) {
+  return { type: TOGGLE_ACTIVE, report, isActive };
+}
+export function toggleActive(report, isActive) {
+  return function toggleActiveThunk(dispatch) {
+    return SupersetClient.put({
+      endpoint: encodeURI(`/api/v1/report/${report.id}`),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        active: isActive,
+      }),
+    })
+      .then(() => {
+        dispatch(toggleActiveKey(report, isActive));
+      })
+      .catch(() => {
+        dispatch(
+          addDangerToast(
+            t('We were unable to active or deactivate this report.'),
+          ),
+        );
+      });
   };
 }
