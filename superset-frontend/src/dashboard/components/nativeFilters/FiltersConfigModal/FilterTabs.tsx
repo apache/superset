@@ -20,25 +20,11 @@ import { PlusOutlined } from '@ant-design/icons';
 import { styled, t } from '@superset-ui/core';
 import React, { FC } from 'react';
 import { LineEditableTabs } from 'src/components/Tabs';
-import Icons from 'src/components/Icons';
+import FilterTabPane from './FilterTabPane';
+
 import { FilterRemoval } from './types';
-import { REMOVAL_DELAY_SECS } from './utils';
 
 export const FILTER_WIDTH = 180;
-
-export const StyledSpan = styled.span`
-  cursor: pointer;
-  color: ${({ theme }) => theme.colors.primary.dark1};
-  &:hover {
-    color: ${({ theme }) => theme.colors.primary.dark2};
-  }
-`;
-
-export const StyledFilterTitle = styled.span`
-  width: ${FILTER_WIDTH}px;
-  white-space: normal;
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
-`;
 
 export const StyledAddFilterBox = styled.div`
   color: ${({ theme }) => theme.colors.primary.dark1};
@@ -48,36 +34,6 @@ export const StyledAddFilterBox = styled.div`
 
   &:hover {
     color: ${({ theme }) => theme.colors.primary.base};
-  }
-`;
-
-export const StyledTrashIcon = styled(Icons.Trash)`
-  color: ${({ theme }) => theme.colors.grayscale.light3};
-`;
-
-export const FilterTabTitle = styled.span`
-  transition: color ${({ theme }) => theme.transitionTiming}s;
-  width: 100%;
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-
-  @keyframes tabTitleRemovalAnimation {
-    0%,
-    90% {
-      opacity: 1;
-    }
-    95%,
-    100% {
-      opacity: 0;
-    }
-  }
-
-  &.removed {
-    color: ${({ theme }) => theme.colors.warning.dark1};
-    transform-origin: top;
-    animation-name: tabTitleRemovalAnimation;
-    animation-duration: ${REMOVAL_DELAY_SECS}s;
   }
 `;
 
@@ -170,7 +126,7 @@ type FilterTabsProps = {
   onEdit: (filterId: string, action: 'add' | 'remove') => void;
   filterIds: string[];
   removedFilters: Record<string, FilterRemoval>;
-  restoreFilter: Function;
+  restoreFilter: (id: string) => void;
   children: Function;
 };
 
@@ -217,33 +173,15 @@ const FilterTabs: FC<FilterTabsProps> = ({
       ),
     }}
   >
-    {filterIds.map(id => (
-      <LineEditableTabs.TabPane
-        tab={
-          <FilterTabTitle className={removedFilters[id] ? 'removed' : ''}>
-            <StyledFilterTitle>
-              {removedFilters[id] ? t('(Removed)') : getFilterTitle(id)}
-            </StyledFilterTitle>
-            {removedFilters[id] && (
-              <StyledSpan
-                role="button"
-                data-test="undo-button"
-                tabIndex={0}
-                onClick={() => restoreFilter(id)}
-              >
-                {t('Undo?')}
-              </StyledSpan>
-            )}
-          </FilterTabTitle>
-        }
-        key={id}
-        closeIcon={removedFilters[id] ? <></> : <StyledTrashIcon />}
-      >
-        {
-          // @ts-ignore
-          children(id)
-        }
-      </LineEditableTabs.TabPane>
+    {filterIds.map(filterId => (
+      <FilterTabPane
+        filterId={filterId}
+        key={filterId}
+        isRemoved={!!removedFilters[filterId]}
+        getFilterTitle={getFilterTitle}
+        renderFilterConfig={children}
+        restoreFilter={restoreFilter}
+      />
     ))}
   </FilterTabsContainer>
 );
