@@ -151,7 +151,7 @@ const ExploreChartPanel = props => {
         });
       }
     },
-    [slice.id, slice.form_data, slice.query_context],
+    [slice.slice_id, slice.form_data, slice.query_context],
   );
   useEffect(() => {
     updateQueryContext();
