@@ -284,6 +284,7 @@ const Description = styled.p`
   grid-area: description;
   overflow: auto;
   padding-right: ${({ theme }) => theme.gridUnit * 14}px;
+  margin: 0;
 `;
 
 const Examples = styled.div`
