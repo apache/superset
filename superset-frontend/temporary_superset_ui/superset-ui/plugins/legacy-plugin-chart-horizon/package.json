@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-horizon",
-  "version": "0.17.72",
+  "version": "0.17.73",
   "description": "Superset Legacy Chart - Horizon",
   "sideEffects": [
     "*.css"
@@ -28,7 +28,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/chart-controls": "0.17.72",
+    "@superset-ui/chart-controls": "0.17.73",
     "@superset-ui/core": "0.17.71",
     "d3-array": "^2.0.3",
     "d3-scale": "^3.0.1",
