@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC } from 'react';
+import React, { FC, useCallback, useMemo } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import { useDispatch, useSelector } from 'react-redux';
@@ -89,6 +89,23 @@ const SliceHeader: FC<SliceHeaderProps> = ({
     state => state.dataMask[slice?.slice_id]?.filterState?.value,
   );
 
+  const handleClick = useCallback(
+    () => dispatch(clearDataMask(slice?.slice_id)),
+    [dispatch, slice?.slice_id],
+  );
+
+  const crossFilterTooltipTitle = useMemo(
+    () => (
+      <FilterIndicator
+        indicator={{
+          value: crossFilterValue,
+          name: t('Emitted values'),
+        }}
+        text={t('Click to clear emitted filters')}
+      />
+    ),
+    [crossFilterValue],
+  );
   return (
     <div className="chart-header" data-test="slice-header" ref={innerRef}>
       <div className="header-title">
@@ -135,21 +152,8 @@ const SliceHeader: FC<SliceHeaderProps> = ({
         {!editMode && (
           <>
             {crossFilterValue && (
-              <Tooltip
-                placement="top"
-                title={
-                  <FilterIndicator
-                    indicator={{
-                      value: crossFilterValue,
-                      name: t('Emitted values'),
-                    }}
-                    text={t('Click to clear emitted filters')}
-                  />
-                }
-              >
-                <CrossFilterIcon
-                  onClick={() => dispatch(clearDataMask(slice?.slice_id))}
-                />
+              <Tooltip placement="top" title={crossFilterTooltipTitle}>
+                <CrossFilterIcon onClick={handleClick} />
               </Tooltip>
             )}
             <FiltersBadge chartId={slice.slice_id} />
@@ -185,4 +189,4 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   );
 };
 
-export default SliceHeader;
+export default React.memo(SliceHeader);

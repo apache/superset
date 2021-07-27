@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-env browser */
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import Tabs from 'src/components/Tabs';
 import { StickyContainer, Sticky } from 'react-sticky';
 import { ParentSize } from '@vx/responsive';
@@ -43,52 +43,54 @@ const BuilderComponentPaneTabs = styled(Tabs)`
   margin-top: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
-const BuilderComponentPane: React.FC<BCPProps> = ({ topOffset = 0 }) => (
-  <div
-    className="dashboard-builder-sidepane"
-    style={{
+const BuilderComponentPane: React.FC<BCPProps> = ({ topOffset = 0 }) => {
+  const containerStyle = useMemo(
+    () => ({
       height: `calc(100vh - ${topOffset + SUPERSET_HEADER_HEIGHT}px)`,
-    }}
-  >
-    <ParentSize>
-      {({ height }) => (
-        <StickyContainer>
-          <Sticky topOffset={-topOffset} bottomOffset={Infinity}>
-            {({ style, isSticky }: { style: any; isSticky: boolean }) => (
-              <div
-                className="viewport"
-                style={isSticky ? { ...style, top: topOffset } : null}
+    }),
+    [topOffset],
+  );
+
+  const renderParentSizeContent = useCallback(
+    ({ height }: { height: number }) => (
+      <StickyContainer>
+        <Sticky topOffset={-topOffset} bottomOffset={Infinity}>
+          {({ style, isSticky }: { style: any; isSticky: boolean }) => (
+            <div
+              className="viewport"
+              style={isSticky ? { ...style, top: topOffset } : null}
+            >
+              <BuilderComponentPaneTabs
+                id="tabs"
+                className="tabs-components"
+                data-test="dashboard-builder-component-pane-tabs-navigation"
               >
-                <BuilderComponentPaneTabs
-                  id="tabs"
-                  className="tabs-components"
-                  data-test="dashboard-builder-component-pane-tabs-navigation"
-                >
-                  <Tabs.TabPane key={1} tab={t('Components')}>
-                    <NewTabs />
-                    <NewRow />
-                    <NewColumn />
-                    <NewHeader />
-                    <NewMarkdown />
-                    <NewDivider />
-                  </Tabs.TabPane>
-                  <Tabs.TabPane
-                    key={2}
-                    tab={t('Charts')}
-                    className="tab-charts"
-                  >
-                    <SliceAdder
-                      height={height + (isSticky ? SUPERSET_HEADER_HEIGHT : 0)}
-                    />
-                  </Tabs.TabPane>
-                </BuilderComponentPaneTabs>
-              </div>
-            )}
-          </Sticky>
-        </StickyContainer>
-      )}
-    </ParentSize>
-  </div>
-);
+                <Tabs.TabPane key={1} tab={t('Components')}>
+                  <NewTabs />
+                  <NewRow />
+                  <NewColumn />
+                  <NewHeader />
+                  <NewMarkdown />
+                  <NewDivider />
+                </Tabs.TabPane>
+                <Tabs.TabPane key={2} tab={t('Charts')} className="tab-charts">
+                  <SliceAdder
+                    height={height + (isSticky ? SUPERSET_HEADER_HEIGHT : 0)}
+                  />
+                </Tabs.TabPane>
+              </BuilderComponentPaneTabs>
+            </div>
+          )}
+        </Sticky>
+      </StickyContainer>
+    ),
+    [topOffset],
+  );
+  return (
+    <div className="dashboard-builder-sidepane" style={containerStyle}>
+      <ParentSize>{renderParentSizeContent}</ParentSize>
+    </div>
+  );
+};
 
 export default BuilderComponentPane;

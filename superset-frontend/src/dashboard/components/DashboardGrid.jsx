@@ -38,6 +38,14 @@ const propTypes = {
 
 const defaultProps = {};
 
+const renderDraggableContentBottom = ({ dropIndicatorProps }) =>
+  dropIndicatorProps && (
+    <div className="drop-indicator drop-indicator--bottom" />
+  );
+
+const renderDraggableContentTop = ({ dropIndicatorProps }) =>
+  dropIndicatorProps && <div className="drop-indicator drop-indicator--top" />;
+
 class DashboardGrid extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -144,11 +152,7 @@ class DashboardGrid extends React.PureComponent {
               className="empty-droptarget"
               editMode
             >
-              {({ dropIndicatorProps }) =>
-                dropIndicatorProps && (
-                  <div className="drop-indicator drop-indicator--bottom" />
-                )
-              }
+              {renderDraggableContentBottom}
             </DragDroppable>
           )}
 
@@ -181,11 +185,7 @@ class DashboardGrid extends React.PureComponent {
               className="empty-droptarget"
               editMode
             >
-              {({ dropIndicatorProps }) =>
-                dropIndicatorProps && (
-                  <div className="drop-indicator drop-indicator--top" />
-                )
-              }
+              {renderDraggableContentTop}
             </DragDroppable>
           )}
 

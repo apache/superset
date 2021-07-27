@@ -129,6 +129,7 @@ export class Tabs extends React.PureComponent {
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleDeleteTab = this.handleDeleteTab.bind(this);
     this.handleDropOnTab = this.handleDropOnTab.bind(this);
+    this.renderDraggableContent = this.renderDraggableContent.bind(this);
   }
 
   componentDidMount() {
@@ -281,18 +282,19 @@ export class Tabs extends React.PureComponent {
     }
   }
 
-  render() {
+  renderDraggableContent({
+    dropIndicatorProps: tabsDropIndicatorProps,
+    dragSourceRef: tabsDragSourceRef,
+  }) {
     const {
       depth,
       component: tabsComponent,
       parentComponent,
-      index,
       availableColumnCount,
       columnWidth,
       onResizeStart,
       onResize,
       onResizeStop,
-      handleComponentDrop,
       renderTabContent,
       renderHoverMenu,
       isComponentVisible: isCurrentTabVisible,
@@ -309,6 +311,88 @@ export class Tabs extends React.PureComponent {
         nativeFilters.filters[nativeFilters.focusedFilterId].tabsInScope;
     }
     return (
+      <StyledTabsContainer
+        className="dashboard-component dashboard-component-tabs"
+        data-test="dashboard-component-tabs"
+      >
+        {editMode && renderHoverMenu && (
+          <HoverMenu innerRef={tabsDragSourceRef} position="left">
+            <DragHandle position="left" />
+            <DeleteComponentButton onDelete={this.handleDeleteComponent} />
+          </HoverMenu>
+        )}
+
+        <LineEditableTabs
+          id={tabsComponent.id}
+          activeKey={activeKey}
+          onChange={key => {
+            this.handleClickTab(tabIds.indexOf(key));
+          }}
+          onEdit={this.handleEdit}
+          data-test="nav-list"
+          type={editMode ? 'editable-card' : 'card'}
+        >
+          {tabIds.map((tabId, tabIndex) => (
+            <LineEditableTabs.TabPane
+              key={tabId}
+              tab={
+                <DashboardComponent
+                  id={tabId}
+                  parentId={tabsComponent.id}
+                  depth={depth}
+                  index={tabIndex}
+                  renderType={RENDER_TAB}
+                  availableColumnCount={availableColumnCount}
+                  columnWidth={columnWidth}
+                  onDropOnTab={this.handleDropOnTab}
+                  isFocused={activeKey === tabId}
+                  isHighlighted={
+                    activeKey !== tabId && tabsToHighlight?.includes(tabId)
+                  }
+                />
+              }
+            >
+              {renderTabContent && (
+                <DashboardComponent
+                  id={tabId}
+                  parentId={tabsComponent.id}
+                  depth={depth} // see isValidChild.js for why tabs don't increment child depth
+                  index={tabIndex}
+                  renderType={RENDER_TAB_CONTENT}
+                  availableColumnCount={availableColumnCount}
+                  columnWidth={columnWidth}
+                  onResizeStart={onResizeStart}
+                  onResize={onResize}
+                  onResizeStop={onResizeStop}
+                  onDropOnTab={this.handleDropOnTab}
+                  isComponentVisible={
+                    selectedTabIndex === tabIndex && isCurrentTabVisible
+                  }
+                />
+              )}
+            </LineEditableTabs.TabPane>
+          ))}
+        </LineEditableTabs>
+
+        {/* don't indicate that a drop on root is allowed when tabs already exist */}
+        {tabsDropIndicatorProps && parentComponent.id !== DASHBOARD_ROOT_ID && (
+          <div {...tabsDropIndicatorProps} />
+        )}
+      </StyledTabsContainer>
+    );
+  }
+
+  render() {
+    const {
+      depth,
+      component: tabsComponent,
+      parentComponent,
+      index,
+      handleComponentDrop,
+      editMode,
+    } = this.props;
+
+    return (
       <DragDroppable
         component={tabsComponent}
         parentComponent={parentComponent}
@@ -318,80 +402,7 @@ export class Tabs extends React.PureComponent {
         onDrop={handleComponentDrop}
         editMode={editMode}
       >
-        {({
-          dropIndicatorProps: tabsDropIndicatorProps,
-          dragSourceRef: tabsDragSourceRef,
-        }) => (
-          <StyledTabsContainer
-            className="dashboard-component dashboard-component-tabs"
-            data-test="dashboard-component-tabs"
-          >
-            {editMode && renderHoverMenu && (
-              <HoverMenu innerRef={tabsDragSourceRef} position="left">
-                <DragHandle position="left" />
-                <DeleteComponentButton onDelete={this.handleDeleteComponent} />
-              </HoverMenu>
-            )}
-
-            <LineEditableTabs
-              id={tabsComponent.id}
-              activeKey={activeKey}
-              onChange={key => {
-                this.handleClickTab(tabIds.indexOf(key));
-              }}
-              onEdit={this.handleEdit}
-              data-test="nav-list"
-              type={editMode ? 'editable-card' : 'card'}
-            >
-              {tabIds.map((tabId, tabIndex) => (
-                <LineEditableTabs.TabPane
-                  key={tabId}
-                  tab={
-                    <DashboardComponent
-                      id={tabId}
-                      parentId={tabsComponent.id}
-                      depth={depth}
-                      index={tabIndex}
-                      renderType={RENDER_TAB}
-                      availableColumnCount={availableColumnCount}
-                      columnWidth={columnWidth}
-                      onDropOnTab={this.handleDropOnTab}
-                      isFocused={activeKey === tabId}
-                      isHighlighted={
-                        activeKey !== tabId && tabsToHighlight?.includes(tabId)
-                      }
-                    />
-                  }
-                >
-                  {renderTabContent && (
-                    <DashboardComponent
-                      id={tabId}
-                      parentId={tabsComponent.id}
-                      depth={depth} // see isValidChild.js for why tabs don't increment child depth
-                      index={tabIndex}
-                      renderType={RENDER_TAB_CONTENT}
-                      availableColumnCount={availableColumnCount}
-                      columnWidth={columnWidth}
-                      onResizeStart={onResizeStart}
-                      onResize={onResize}
-                      onResizeStop={onResizeStop}
-                      onDropOnTab={this.handleDropOnTab}
-                      isComponentVisible={
-                        selectedTabIndex === tabIndex && isCurrentTabVisible
-                      }
-                    />
-                  )}
-                </LineEditableTabs.TabPane>
-              ))}
-            </LineEditableTabs>
-
-            {/* don't indicate that a drop on root is allowed when tabs already exist */}
-            {tabsDropIndicatorProps &&
-              parentComponent.id !== DASHBOARD_ROOT_ID && (
-                <div {...tabsDropIndicatorProps} />
-              )}
-          </StyledTabsContainer>
-        )}
+        {this.renderDraggableContent}
       </DragDroppable>
     );
   }
@@ -407,5 +418,4 @@ function mapStateToProps(state) {
     activeTabs: state.dashboardState.activeTabs,
   };
 }
-Tabs.whyDidYouRender = true;
 export default connect(mapStateToProps)(Tabs);

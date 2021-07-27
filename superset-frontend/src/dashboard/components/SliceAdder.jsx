@@ -65,6 +65,15 @@ const KEYS_TO_SORT = {
   changed_on: 'Recent',
 };
 
+const options = Object.entries(KEYS_TO_SORT).map(([key, label]) => ({
+  label: `${t('Sort by')} ${label}`,
+  value: key,
+}));
+
+const DRAGGABLE_PARENT_COMPONENT = {
+  id: NEW_COMPONENTS_SOURCE_ID,
+  type: NEW_COMPONENT_SOURCE_TYPE,
+};
 const DEFAULT_SORT_KEY = 'changed_on';
 
 const MARGIN_BOTTOM = 16;
@@ -83,7 +92,7 @@ const StyledSelect = styled(Select)`
   min-width: 150px;
 `;
 
-class SliceAdder extends React.Component {
+class SliceAdder extends React.PureComponent {
   static sortByComparator(attr) {
     const desc = attr === 'changed_on' ? -1 : 1;
 
@@ -111,6 +120,7 @@ class SliceAdder extends React.Component {
     this.handleKeyPress = this.handleKeyPress.bind(this);
     this.handleChange = this.handleChange.bind(this);
     this.handleSelect = this.handleSelect.bind(this);
+    this.renderDraggableContent = this.renderDraggableContent.bind(this);
   }
 
   componentDidMount() {
@@ -178,6 +188,24 @@ class SliceAdder extends React.Component {
     }));
   }
 
+  renderDraggableContent(style, index) {
+    const { filteredSlices, selectedSliceIdsSet } = this.state;
+    const cellData = filteredSlices[index];
+    const isSelected = selectedSliceIdsSet.has(cellData.slice_id);
+    return ({ dragSourceRef }) => (
+      <AddSliceCard
+        innerRef={dragSourceRef}
+        style={style}
+        sliceName={cellData.slice_name}
+        lastModified={cellData.changed_on_humanized}
+        visType={cellData.viz_type}
+        datasourceUrl={cellData.datasource_url}
+        datasourceName={cellData.datasource_name}
+        isSelected={isSelected}
+      />
+    );
+  }
+
   rowRenderer({ key, index, style }) {
     const { filteredSlices, selectedSliceIdsSet } = this.state;
     const cellData = filteredSlices[index];
@@ -193,10 +221,7 @@ class SliceAdder extends React.Component {
       <DragDroppable
         key={key}
         component={{ type, id, meta }}
-        parentComponent={{
-          id: NEW_COMPONENTS_SOURCE_ID,
-          type: NEW_COMPONENT_SOURCE_TYPE,
-        }}
+        parentComponent={DRAGGABLE_PARENT_COMPONENT}
         index={index}
         depth={0}
         disableDragDrop={isSelected}
@@ -206,20 +231,8 @@ class SliceAdder extends React.Component {
         useEmptyDragPreview
         // List library expect style props here
         // actual style should be applied to nested AddSliceCard component
-        style={{}}
       >
-        {({ dragSourceRef }) => (
-          <AddSliceCard
-            innerRef={dragSourceRef}
-            style={style}
-            sliceName={cellData.slice_name}
-            lastModified={cellData.changed_on_humanized}
-            visType={cellData.viz_type}
-            datasourceUrl={cellData.datasource_url}
-            datasourceName={cellData.datasource_name}
-            isSelected={isSelected}
-          />
-        )}
+        {this.renderDraggableContent(style, index)}
       </DragDroppable>
     );
   }
@@ -244,10 +257,7 @@ class SliceAdder extends React.Component {
             id="slice-adder-sortby"
             value={this.state.sortBy}
             onChange={this.handleSelect}
-            options={Object.entries(KEYS_TO_SORT).map(([key, label]) => ({
-              label: `${t('Sort by')} ${label}`,
-              value: key,
-            }))}
+            options={options}
             placeholder={t('Sort by')}
           />
         </Controls>

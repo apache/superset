@@ -73,6 +73,14 @@ const TabTitleContainer = styled.div`
   `}
 `;
 
+const renderBottomDraggableIndicators = ({ dropIndicatorProps }) =>
+  dropIndicatorProps && (
+    <div className="drop-indicator drop-indicator--bottom" />
+  );
+
+const renderTopDraggableIndicators = ({ dropIndicatorProps }) =>
+  dropIndicatorProps && <div className="drop-indicator drop-indicator--top" />;
+
 export default class Tab extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -80,6 +88,7 @@ export default class Tab extends React.PureComponent {
     this.handleDrop = this.handleDrop.bind(this);
     this.handleTopDropTargetDrop = this.handleTopDropTargetDrop.bind(this);
     this.handleChangeTab = this.handleChangeTab.bind(this);
+    this.renderDraggableContent = this.renderDraggableContent.bind(this);
   }
 
   handleChangeTab({ pathToTabIndex }) {
@@ -119,6 +128,37 @@ export default class Tab extends React.PureComponent {
     }
   }
 
+  renderDraggableContent({ dropIndicatorProps, dragSourceRef }) {
+    const { component, index, editMode, isFocused, isHighlighted } = this.props;
+
+    return (
+      <TabTitleContainer
+        isHighlighted={isHighlighted}
+        className="dragdroppable-tab"
+        ref={dragSourceRef}
+      >
+        <EditableTitle
+          title={component.meta.text}
+          defaultTitle={component.meta.defaultText}
+          placeholder={component.meta.placeholder}
+          canEdit={editMode && isFocused}
+          onSaveTitle={this.handleChangeText}
+          showTooltip={false}
+          editing={editMode && isFocused}
+        />
+        {!editMode && (
+          <AnchorLink
+            anchorLinkId={component.id}
+            showShortLinkButton
+            placement={index >= 5 ? 'left' : 'right'}
+          />
+        )}
+
+        {dropIndicatorProps && <div {...dropIndicatorProps} />}
+      </TabTitleContainer>
+    );
+  }
+
   renderTabContent() {
     const {
       component: tabComponent,
@@ -147,11 +187,7 @@ export default class Tab extends React.PureComponent {
             editMode
             className="empty-droptarget"
           >
-            {({ dropIndicatorProps }) =>
-              dropIndicatorProps && (
-                <div className="drop-indicator drop-indicator--top" />
-              )
-            }
+            {renderTopDraggableIndicators}
           </DragDroppable>
         )}
         {tabComponent.children.map((componentId, componentIndex) => (
@@ -183,11 +219,7 @@ export default class Tab extends React.PureComponent {
             editMode
             className="empty-droptarget"
           >
-            {({ dropIndicatorProps }) =>
-              dropIndicatorProps && (
-                <div className="drop-indicator drop-indicator--bottom" />
-              )
-            }
+            {renderBottomDraggableIndicators}
           </DragDroppable>
         )}
       </div>
@@ -195,15 +227,7 @@ export default class Tab extends React.PureComponent {
   }
 
   renderTab() {
-    const {
-      component,
-      parentComponent,
-      index,
-      depth,
-      editMode,
-      isFocused,
-      isHighlighted,
-    } = this.props;
+    const { component, parentComponent, index, depth, editMode } = this.props;
 
     return (
       <DragDroppable
@@ -215,32 +239,7 @@ export default class Tab extends React.PureComponent {
         onDrop={this.handleDrop}
         editMode={editMode}
       >
-        {({ dropIndicatorProps, dragSourceRef }) => (
-          <TabTitleContainer
-            isHighlighted={isHighlighted}
-            className="dragdroppable-tab"
-            ref={dragSourceRef}
-          >
-            <EditableTitle
-              title={component.meta.text}
-              defaultTitle={component.meta.defaultText}
-              placeholder={component.meta.placeholder}
-              canEdit={editMode && isFocused}
-              onSaveTitle={this.handleChangeText}
-              showTooltip={false}
-              editing={editMode && isFocused}
-            />
-            {!editMode && (
-              <AnchorLink
-                anchorLinkId={component.id}
-                showShortLinkButton
-                placement={index >= 5 ? 'left' : 'right'}
-              />
-            )}
-
-            {dropIndicatorProps && <div {...dropIndicatorProps} />}
-          </TabTitleContainer>
-        )}
+        {this.renderDraggableContent}
       </DragDroppable>
     );
   }

@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
-import { connect } from 'react-redux';
+import { useSelector } from 'react-redux';
 
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import DragHandle from 'src/dashboard/components/dnd/DragHandle';
@@ -57,143 +57,187 @@ const propTypes = {
 
 const defaultProps = {};
 
-export class Header extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.state = {
-      isFocused: false,
-    };
-    this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
-    this.handleChangeFocus = this.handleChangeFocus.bind(this);
-    this.handleUpdateMeta = this.handleUpdateMeta.bind(this);
-    this.handleChangeSize = this.handleUpdateMeta.bind(this, 'headerSize');
-    this.handleChangeBackground = this.handleUpdateMeta.bind(
-      this,
-      'background',
-    );
-    this.handleChangeText = this.handleUpdateMeta.bind(this, 'text');
-  }
+const Header = ({
+  component,
+  depth,
+  parentComponent,
+  updateComponents,
+  deleteComponent,
+  id,
+  parentId,
+  index,
+  handleComponentDrop,
+  editMode,
+}) => {
+  const [isFocused, setIsFocused] = useState(false);
+  const dashboardFilters = useSelector(state => state.dashboardFilters);
 
-  handleChangeFocus(nextFocus) {
-    this.setState(() => ({ isFocused: nextFocus }));
-  }
+  const filters = useMemo(() => getActiveFilters(), [dashboardFilters]);
 
-  handleUpdateMeta(metaKey, nextValue) {
-    const { updateComponents, component } = this.props;
-    if (nextValue && component.meta[metaKey] !== nextValue) {
-      updateComponents({
-        [component.id]: {
-          ...component,
-          meta: {
-            ...component.meta,
-            [metaKey]: nextValue,
+  const handleChangeFocus = useCallback(nextFocus => {
+    setIsFocused(nextFocus);
+  }, []);
+
+  const handleUpdateMeta = useCallback(
+    (metaKey, nextValue) => {
+      if (nextValue && component.meta[metaKey] !== nextValue) {
+        updateComponents({
+          [component.id]: {
+            ...component,
+            meta: {
+              ...component.meta,
+              [metaKey]: nextValue,
+            },
           },
-        },
-      });
-    }
-  }
+        });
+      }
+    },
+    [component, updateComponents],
+  );
 
-  handleDeleteComponent() {
-    const { deleteComponent, id, parentId } = this.props;
+  const handleChangeSize = useCallback(
+    value => {
+      handleUpdateMeta('headerSize', value);
+    },
+    [handleUpdateMeta],
+  );
+
+  const handleChangeBackground = useCallback(
+    value => {
+      handleUpdateMeta('background', value);
+    },
+    [handleUpdateMeta],
+  );
+
+  const handleChangeText = useCallback(
+    value => {
+      handleUpdateMeta('text', value);
+    },
+    [handleUpdateMeta],
+  );
+
+  const handleDeleteComponent = useCallback(() => {
     deleteComponent(id, parentId);
-  }
+  }, [deleteComponent, id, parentId]);
 
-  render() {
-    const { isFocused } = this.state;
+  const headerStyle = useMemo(
+    () =>
+      headerStyleOptions.find(
+        opt => opt.value === (component.meta.headerSize || SMALL_HEADER),
+      ),
+    [component.meta.headerSize],
+  );
 
-    const {
-      component,
+  const rowStyle = useMemo(
+    () =>
+      backgroundStyleOptions.find(
+        opt =>
+          opt.value === (component.meta.background || BACKGROUND_TRANSPARENT),
+      ),
+    [component.meta.background],
+  );
+
+  const menuItems = useMemo(
+    () => [
+      <PopoverDropdown
+        id={`${component.id}-header-style`}
+        options={headerStyleOptions}
+        value={component.meta.headerSize}
+        onChange={handleChangeSize}
+      />,
+      <BackgroundStyleDropdown
+        id={`${component.id}-background`}
+        value={component.meta.background}
+        onChange={handleChangeBackground}
+      />,
+      <DeleteComponentButton onDelete={handleDeleteComponent} />,
+    ],
+    [
+      component.id,
+      component.meta.background,
+      component.meta.headerSize,
+      handleChangeBackground,
+      handleChangeSize,
+      handleDeleteComponent,
+    ],
+  );
+
+  const titleClass = useMemo(
+    () =>
+      cx(
+        'dashboard-component',
+        'dashboard-component-header',
+        headerStyle.className,
+        rowStyle.className,
+      ),
+    [headerStyle.className, rowStyle.className],
+  );
+
+  const renderDraggableContent = useCallback(
+    ({ dropIndicatorProps, dragSourceRef }) => (
+      <div ref={dragSourceRef}>
+        {editMode &&
+          depth <= 2 && ( // drag handle looks bad when nested
+            <HoverMenu position="left">
+              <DragHandle position="left" />
+            </HoverMenu>
+          )}
+
+        <WithPopoverMenu
+          onChangeFocus={handleChangeFocus}
+          menuItems={menuItems}
+          editMode={editMode}
+        >
+          <div className={titleClass}>
+            <EditableTitle
+              title={component.meta.text}
+              canEdit={editMode}
+              onSaveTitle={handleChangeText}
+              showTooltip={false}
+            />
+            {!editMode && (
+              <AnchorLink
+                anchorLinkId={component.id}
+                filters={filters}
+                showShortLinkButton
+              />
+            )}
+          </div>
+        </WithPopoverMenu>
+
+        {dropIndicatorProps && <div {...dropIndicatorProps} />}
+      </div>
+    ),
+    [
+      component.id,
+      component.meta.text,
       depth,
-      parentComponent,
-      index,
-      handleComponentDrop,
       editMode,
       filters,
-    } = this.props;
+      handleChangeFocus,
+      handleChangeText,
+      menuItems,
+      titleClass,
+    ],
+  );
 
-    const headerStyle = headerStyleOptions.find(
-      opt => opt.value === (component.meta.headerSize || SMALL_HEADER),
-    );
-
-    const rowStyle = backgroundStyleOptions.find(
-      opt =>
-        opt.value === (component.meta.background || BACKGROUND_TRANSPARENT),
-    );
-
-    return (
-      <DragDroppable
-        component={component}
-        parentComponent={parentComponent}
-        orientation="row"
-        index={index}
-        depth={depth}
-        onDrop={handleComponentDrop}
-        disableDragDrop={isFocused}
-        editMode={editMode}
-      >
-        {({ dropIndicatorProps, dragSourceRef }) => (
-          <div ref={dragSourceRef}>
-            {editMode &&
-              depth <= 2 && ( // drag handle looks bad when nested
-                <HoverMenu position="left">
-                  <DragHandle position="left" />
-                </HoverMenu>
-              )}
-
-            <WithPopoverMenu
-              onChangeFocus={this.handleChangeFocus}
-              menuItems={[
-                <PopoverDropdown
-                  id={`${component.id}-header-style`}
-                  options={headerStyleOptions}
-                  value={component.meta.headerSize}
-                  onChange={this.handleChangeSize}
-                />,
-                <BackgroundStyleDropdown
-                  id={`${component.id}-background`}
-                  value={component.meta.background}
-                  onChange={this.handleChangeBackground}
-                />,
-                <DeleteComponentButton onDelete={this.handleDeleteComponent} />,
-              ]}
-              editMode={editMode}
-            >
-              <div
-                className={cx(
-                  'dashboard-component',
-                  'dashboard-component-header',
-                  headerStyle.className,
-                  rowStyle.className,
-                )}
-              >
-                <EditableTitle
-                  title={component.meta.text}
-                  canEdit={editMode}
-                  onSaveTitle={this.handleChangeText}
-                  showTooltip={false}
-                />
-                {!editMode && (
-                  <AnchorLink
-                    anchorLinkId={component.id}
-                    filters={filters}
-                    showShortLinkButton
-                  />
-                )}
-              </div>
-            </WithPopoverMenu>
-
-            {dropIndicatorProps && <div {...dropIndicatorProps} />}
-          </div>
-        )}
-      </DragDroppable>
-    );
-  }
-}
+  return (
+    <DragDroppable
+      component={component}
+      parentComponent={parentComponent}
+      orientation="row"
+      index={index}
+      depth={depth}
+      onDrop={handleComponentDrop}
+      disableDragDrop={isFocused}
+      editMode={editMode}
+    >
+      {renderDraggableContent}
+    </DragDroppable>
+  );
+};
 
 Header.propTypes = propTypes;
 Header.defaultProps = defaultProps;
 
-function mapStateToProps() {
-  return { filters: getActiveFilters() };
-}
-export default connect(mapStateToProps)(Header);
+export default React.memo(Header);

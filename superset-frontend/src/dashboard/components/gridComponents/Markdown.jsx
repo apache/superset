@@ -96,6 +96,8 @@ export class Markdown extends React.PureComponent {
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleResizeStart = this.handleResizeStart.bind(this);
     this.setEditor = this.setEditor.bind(this);
+    this.renderDraggableContent = this.renderDraggableContent.bind(this);
+    // this.menuItems = this.menuItems.bind(this);
   }
 
   componentDidMount() {
@@ -271,30 +273,99 @@ export class Markdown extends React.PureComponent {
       />
     );
   }
+  //
+  // menuItems = [
+  //   <MarkdownModeDropdown
+  //     id={`${this.props.component.id}-mode`}
+  //     value={this.state.editorMode}
+  //     onChange={this.handleChangeEditorMode}
+  //   />,
+  //   <DeleteComponentButton onDelete={this.handleDeleteComponent} />,
+  // ];
 
-  render() {
+  renderDraggableContent({ dropIndicatorProps, dragSourceRef }) {
     const { isFocused, editorMode } = this.state;
-
     const {
       component,
       parentComponent,
-      index,
-      depth,
       availableColumnCount,
       columnWidth,
       onResize,
       onResizeStop,
-      handleComponentDrop,
       editMode,
     } = this.props;
 
-    // inherit the size of parent columns
     const widthMultiple =
       parentComponent.type === COLUMN_TYPE
         ? parentComponent.meta.width || GRID_MIN_COLUMN_COUNT
         : component.meta.width || GRID_MIN_COLUMN_COUNT;
 
     const isEditing = editorMode === 'edit';
+
+    return (
+      <WithPopoverMenu
+        onChangeFocus={this.handleChangeFocus}
+        menuItems={[
+          <MarkdownModeDropdown
+            id={`${this.props.component.id}-mode`}
+            value={this.state.editorMode}
+            onChange={this.handleChangeEditorMode}
+          />,
+          <DeleteComponentButton onDelete={this.handleDeleteComponent} />,
+        ]}
+        editMode={editMode}
+      >
+        <div
+          data-test="dashboard-markdown-editor"
+          className={cx(
+            'dashboard-markdown',
+            isEditing && 'dashboard-markdown--editing',
+          )}
+          id={component.id}
+        >
+          <ResizableContainer
+            id={component.id}
+            adjustableWidth={parentComponent.type === ROW_TYPE}
+            adjustableHeight
+            widthStep={columnWidth}
+            widthMultiple={widthMultiple}
+            heightStep={GRID_BASE_UNIT}
+            heightMultiple={component.meta.height}
+            minWidthMultiple={GRID_MIN_COLUMN_COUNT}
+            minHeightMultiple={GRID_MIN_ROW_UNITS}
+            maxWidthMultiple={availableColumnCount + widthMultiple}
+            onResizeStart={this.handleResizeStart}
+            onResize={onResize}
+            onResizeStop={onResizeStop}
+            editMode={isFocused ? false : editMode}
+          >
+            <div
+              ref={dragSourceRef}
+              className="dashboard-component dashboard-component-chart-holder"
+              data-test="dashboard-component-chart-holder"
+            >
+              {editMode && isEditing
+                ? this.renderEditMode()
+                : this.renderPreviewMode()}
+            </div>
+          </ResizableContainer>
+        </div>
+        {dropIndicatorProps && <div {...dropIndicatorProps} />}
+      </WithPopoverMenu>
+    );
+  }
+
+  render() {
+    const { isFocused } = this.state;
+
+    const {
+      component,
+      parentComponent,
+      index,
+      depth,
+      handleComponentDrop,
+      editMode,
+    } = this.props;
 
     return (
       <DragDroppable
@@ -307,57 +378,7 @@ export class Markdown extends React.PureComponent {
         disableDragDrop={isFocused}
         editMode={editMode}
       >
-        {({ dropIndicatorProps, dragSourceRef }) => (
-          <WithPopoverMenu
-            onChangeFocus={this.handleChangeFocus}
-            menuItems={[
-              <MarkdownModeDropdown
-                id={`${component.id}-mode`}
-                value={this.state.editorMode}
-                onChange={this.handleChangeEditorMode}
-              />,
-              <DeleteComponentButton onDelete={this.handleDeleteComponent} />,
-            ]}
-            editMode={editMode}
-          >
-            <div
-              data-test="dashboard-markdown-editor"
-              className={cx(
-                'dashboard-markdown',
-                isEditing && 'dashboard-markdown--editing',
-              )}
-              id={component.id}
-            >
-              <ResizableContainer
-                id={component.id}
-                adjustableWidth={parentComponent.type === ROW_TYPE}
-                adjustableHeight
-                widthStep={columnWidth}
-                widthMultiple={widthMultiple}
-                heightStep={GRID_BASE_UNIT}
-                heightMultiple={component.meta.height}
-                minWidthMultiple={GRID_MIN_COLUMN_COUNT}
-                minHeightMultiple={GRID_MIN_ROW_UNITS}
-                maxWidthMultiple={availableColumnCount + widthMultiple}
-                onResizeStart={this.handleResizeStart}
-                onResize={onResize}
-                onResizeStop={onResizeStop}
-                editMode={isFocused ? false : editMode}
-              >
-                <div
-                  ref={dragSourceRef}
-                  className="dashboard-component dashboard-component-chart-holder"
-                  data-test="dashboard-component-chart-holder"
-                >
-                  {editMode && isEditing
-                    ? this.renderEditMode()
-                    : this.renderPreviewMode()}
-                </div>
-              </ResizableContainer>
-            </div>
-            {dropIndicatorProps && <div {...dropIndicatorProps} />}
-          </WithPopoverMenu>
-        )}
+        {this.renderDraggableContent}
       </DragDroppable>
     );
   }

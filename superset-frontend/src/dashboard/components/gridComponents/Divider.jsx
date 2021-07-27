@@ -40,11 +40,29 @@ class Divider extends React.PureComponent {
   constructor(props) {
     super(props);
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
+    this.renderDraggableContent = this.renderDraggableContent.bind(this);
   }
 
   handleDeleteComponent() {
     const { deleteComponent, id, parentId } = this.props;
     deleteComponent(id, parentId);
+  }
+
+  renderDraggableContent({ dropIndicatorProps, dragSourceRef }) {
+    const { editMode } = this.props;
+    return (
+      <div ref={dragSourceRef}>
+        {editMode && (
+          <HoverMenu position="left">
+            <DeleteComponentButton onDelete={this.handleDeleteComponent} />
+          </HoverMenu>
+        )}
+
+        <div className="dashboard-component dashboard-component-divider" />
+
+        {dropIndicatorProps && <div {...dropIndicatorProps} />}
+      </div>
+    );
   }
 
   render() {
@@ -67,19 +85,7 @@ class Divider extends React.PureComponent {
         onDrop={handleComponentDrop}
         editMode={editMode}
       >
-        {({ dropIndicatorProps, dragSourceRef }) => (
-          <div ref={dragSourceRef}>
-            {editMode && (
-              <HoverMenu position="left">
-                <DeleteComponentButton onDelete={this.handleDeleteComponent} />
-              </HoverMenu>
-            )}
-
-            <div className="dashboard-component dashboard-component-divider" />
-
-            {dropIndicatorProps && <div {...dropIndicatorProps} />}
-          </div>
-        )}
+        {this.renderDraggableContent}
       </DragDroppable>
     );
   }

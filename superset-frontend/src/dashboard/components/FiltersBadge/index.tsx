@@ -89,7 +89,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     [dispatch],
   );
 
-  const chart = charts[chartId];
+  const chart = useMemo(() => charts[chartId], [chartId, charts]);
   const prevChartStatus = usePrevious(chart?.chartStatus);
 
   const showIndicators = useCallback(
@@ -155,17 +155,33 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     [dashboardIndicators, nativeIndicators],
   );
 
-  const appliedCrossFilterIndicators = indicators.filter(
-    indicator => indicator.status === IndicatorStatus.CrossFilterApplied,
+  const appliedCrossFilterIndicators = useMemo(
+    () =>
+      indicators.filter(
+        indicator => indicator.status === IndicatorStatus.CrossFilterApplied,
+      ),
+    [indicators],
   );
-  const appliedIndicators = indicators.filter(
-    indicator => indicator.status === IndicatorStatus.Applied,
+  const appliedIndicators = useMemo(
+    () =>
+      indicators.filter(
+        indicator => indicator.status === IndicatorStatus.Applied,
+      ),
+    [indicators],
   );
-  const unsetIndicators = indicators.filter(
-    indicator => indicator.status === IndicatorStatus.Unset,
+  const unsetIndicators = useMemo(
+    () =>
+      indicators.filter(
+        indicator => indicator.status === IndicatorStatus.Unset,
+      ),
+    [indicators],
   );
-  const incompatibleIndicators = indicators.filter(
-    indicator => indicator.status === IndicatorStatus.Incompatible,
+  const incompatibleIndicators = useMemo(
+    () =>
+      indicators.filter(
+        indicator => indicator.status === IndicatorStatus.Incompatible,
+      ),
+    [indicators],
   );
 
   if (

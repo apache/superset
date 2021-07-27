@@ -18,7 +18,7 @@
  */
 
 import { SearchOutlined } from '@ant-design/icons';
-import React, { FC } from 'react';
+import React, { FC, useCallback } from 'react';
 import { getFilterValueForDisplay } from 'src/dashboard/components/nativeFilters/FilterBar/FilterSets/utils';
 import {
   FilterIndicatorText,
@@ -41,9 +41,14 @@ const FilterIndicator: FC<IndicatorProps> = ({
   text,
 }) => {
   const resultValue = getFilterValueForDisplay(value);
+  const handleClick = useCallback(() => onClick([...path, `LABEL-${column}`]), [
+    column,
+    onClick,
+    path,
+  ]);
   return (
     <>
-      <Item onClick={() => onClick([...path, `LABEL-${column}`])}>
+      <Item onClick={handleClick}>
         <Title bold>
           <ItemIcon>
             <SearchOutlined />
@@ -58,4 +63,4 @@ const FilterIndicator: FC<IndicatorProps> = ({
   );
 };
 
-export default FilterIndicator;
+export default React.memo(FilterIndicator);

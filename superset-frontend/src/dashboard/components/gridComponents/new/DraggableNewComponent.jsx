@@ -35,30 +35,57 @@ const defaultProps = {
   className: null,
 };
 
+const DRAGGABLE_PARENT_COMPONENT = {
+  id: NEW_COMPONENTS_SOURCE_ID,
+  type: NEW_COMPONENT_SOURCE_TYPE,
+};
+
 export default class DraggableNewComponent extends React.PureComponent {
+  constructor(props) {
+    super(props);
+    this.renderDraggableContent = this.renderDraggableContent.bind(this);
+
+    this.state = {
+      component: { id: props.id, type: props.type },
+    };
+  }
+
+  static getDerivedStateFromProps(nextProps, prevState) {
+    if (
+      nextProps.id !== prevState.component.id ||
+      nextProps.type !== prevState.component.type
+    ) {
+      return {
+        component: { id: nextProps.id, type: nextProps.type },
+      };
+    }
+    return null;
+  }
+
+  renderDraggableContent({ dragSourceRef }) {
+    const { label, className } = this.props;
+    return (
+      <div
+        ref={dragSourceRef}
+        className="new-component"
+        data-test="new-component"
+      >
+        <div className={cx('new-component-placeholder', className)} />
+        {label}
+      </div>
+    );
+  }
+
   render() {
-    const { label, id, type, className } = this.props;
     return (
       <DragDroppable
-        component={{ type, id }}
-        parentComponent={{
-          id: NEW_COMPONENTS_SOURCE_ID,
-          type: NEW_COMPONENT_SOURCE_TYPE,
-        }}
+        component={this.state.component}
+        parentComponent={DRAGGABLE_PARENT_COMPONENT}
         index={0}
         depth={0}
         editMode
       >
-        {({ dragSourceRef }) => (
-          <div
-            ref={dragSourceRef}
-            className="new-component"
-            data-test="new-component"
-          >
-            <div className={cx('new-component-placeholder', className)} />
-            {label}
-          </div>
-        )}
+        {this.renderDraggableContent}
       </DragDroppable>
     );
   }

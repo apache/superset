@@ -197,6 +197,7 @@ export class ChartHolder extends React.Component {
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleUpdateSliceName = this.handleUpdateSliceName.bind(this);
     this.handleToggleFullSize = this.handleToggleFullSize.bind(this);
+    this.renderDraggableContent = this.renderDraggableContent.bind(this);
   }
 
   componentDidMount() {
@@ -251,19 +252,15 @@ export class ChartHolder extends React.Component {
     setFullSizeChartId(isFullSize ? null : chartId);
   }
 
-  render() {
-    const { isFocused } = this.state;
+  renderDraggableContent({ dropIndicatorProps, dragSourceRef }) {
     const {
       component,
       parentComponent,
-      index,
-      depth,
       availableColumnCount,
       columnWidth,
       onResizeStart,
       onResize,
       onResizeStop,
-      handleComponentDrop,
       editMode,
       isComponentVisible,
       dashboardId,
@@ -273,7 +270,6 @@ export class ChartHolder extends React.Component {
     const { chartId } = component.meta;
     const isFullSize = fullSizeChartId === chartId;
 
-    // inherit the size of parent columns
     const widthMultiple =
       parentComponent.type === COLUMN_TYPE
         ? parentComponent.meta.width || GRID_MIN_COLUMN_COUNT
@@ -297,6 +293,83 @@ export class ChartHolder extends React.Component {
     }
 
     return (
+      <ResizableContainer
+        id={component.id}
+        adjustableWidth={parentComponent.type === ROW_TYPE}
+        adjustableHeight
+        widthStep={columnWidth}
+        widthMultiple={widthMultiple}
+        heightStep={GRID_BASE_UNIT}
+        heightMultiple={component.meta.height}
+        minWidthMultiple={GRID_MIN_COLUMN_COUNT}
+        minHeightMultiple={GRID_MIN_ROW_UNITS}
+        maxWidthMultiple={availableColumnCount + widthMultiple}
+        onResizeStart={onResizeStart}
+        onResize={onResize}
+        onResizeStop={onResizeStop}
+        editMode={editMode}
+      >
+        <FilterFocusHighlight
+          chartId={chartId}
+          ref={dragSourceRef}
+          data-test="dashboard-component-chart-holder"
+          className={cx(
+            'dashboard-component',
+            'dashboard-component-chart-holder',
+            this.state.outlinedComponentId ? 'fade-in' : 'fade-out',
+            isFullSize && 'full-size',
+          )}
+        >
+          {!editMode && (
+            <AnchorLink
+              anchorLinkId={component.id}
+              inFocus={!!this.state.outlinedComponentId}
+            />
+          )}
+          {!!this.state.outlinedComponentId &&
+            ChartHolder.renderInFocusCSS(this.state.outlinedColumnName)}
+          <Chart
+            componentId={component.id}
+            id={component.meta.chartId}
+            dashboardId={dashboardId}
+            width={chartWidth}
+            height={chartHeight}
+            sliceName={
+              component.meta.sliceNameOverride || component.meta.sliceName || ''
+            }
+            updateSliceName={this.handleUpdateSliceName}
+            isComponentVisible={isComponentVisible}
+            handleToggleFullSize={this.handleToggleFullSize}
+            isFullSize={isFullSize}
+          />
+          {editMode && (
+            <HoverMenu position="top">
+              <div data-test="dashboard-delete-component-button">
+                <DeleteComponentButton onDelete={this.handleDeleteComponent} />
+              </div>
+            </HoverMenu>
+          )}
+        </FilterFocusHighlight>
+
+        {dropIndicatorProps && <div {...dropIndicatorProps} />}
+      </ResizableContainer>
+    );
+  }
+
+  render() {
+    const { isFocused } = this.state;
+    const {
+      component,
+      parentComponent,
+      index,
+      depth,
+      handleComponentDrop,
+      editMode,
+    } = this.props;
+
+    // inherit the size of parent columns
+
+    return (
       <DragDroppable
         component={component}
         parentComponent={parentComponent}
@@ -307,72 +380,7 @@ export class ChartHolder extends React.Component {
         disableDragDrop={isFocused}
         editMode={editMode}
       >
-        {({ dropIndicatorProps, dragSourceRef }) => (
-          <ResizableContainer
-            id={component.id}
-            adjustableWidth={parentComponent.type === ROW_TYPE}
-            adjustableHeight
-            widthStep={columnWidth}
-            widthMultiple={widthMultiple}
-            heightStep={GRID_BASE_UNIT}
-            heightMultiple={component.meta.height}
-            minWidthMultiple={GRID_MIN_COLUMN_COUNT}
-            minHeightMultiple={GRID_MIN_ROW_UNITS}
-            maxWidthMultiple={availableColumnCount + widthMultiple}
-            onResizeStart={onResizeStart}
-            onResize={onResize}
-            onResizeStop={onResizeStop}
-            editMode={editMode}
-          >
-            <FilterFocusHighlight
-              chartId={chartId}
-              ref={dragSourceRef}
-              data-test="dashboard-component-chart-holder"
-              className={cx(
-                'dashboard-component',
-                'dashboard-component-chart-holder',
-                this.state.outlinedComponentId ? 'fade-in' : 'fade-out',
-                isFullSize && 'full-size',
-              )}
-            >
-              {!editMode && (
-                <AnchorLink
-                  anchorLinkId={component.id}
-                  inFocus={!!this.state.outlinedComponentId}
-                />
-              )}
-              {!!this.state.outlinedComponentId &&
-                ChartHolder.renderInFocusCSS(this.state.outlinedColumnName)}
-              <Chart
-                componentId={component.id}
-                id={component.meta.chartId}
-                dashboardId={dashboardId}
-                width={chartWidth}
-                height={chartHeight}
-                sliceName={
-                  component.meta.sliceNameOverride ||
-                  component.meta.sliceName ||
-                  ''
-                }
-                updateSliceName={this.handleUpdateSliceName}
-                isComponentVisible={isComponentVisible}
-                handleToggleFullSize={this.handleToggleFullSize}
-                isFullSize={isFullSize}
-              />
-              {editMode && (
-                <HoverMenu position="top">
-                  <div data-test="dashboard-delete-component-button">
-                    <DeleteComponentButton
-                      onDelete={this.handleDeleteComponent}
-                    />
-                  </div>
-                </HoverMenu>
-              )}
-            </FilterFocusHighlight>
-
-            {dropIndicatorProps && <div {...dropIndicatorProps} />}
-          </ResizableContainer>
-        )}
+        {this.renderDraggableContent}
       </DragDroppable>
     );
   }

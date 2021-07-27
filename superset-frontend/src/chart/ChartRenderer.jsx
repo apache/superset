@@ -50,6 +50,8 @@ const propTypes = {
 
 const BLANK = {};
 
+const CHART_BEHAVIORS = [Behavior.INTERACTIVE_CHART];
+
 const defaultProps = {
   addFilter: () => BLANK,
   onFilterMenuOpen: () => BLANK,
@@ -224,13 +226,13 @@ class ChartRenderer extends React.Component {
         width={width}
         height={height}
         annotationData={annotationData}
-        datasource={datasource || {}}
+        datasource={datasource || BLANK}
         initialValues={initialValues}
         formData={formData}
         ownState={ownState}
         filterState={filterState}
         hooks={this.hooks}
-        behaviors={[Behavior.INTERACTIVE_CHART]}
+        behaviors={CHART_BEHAVIORS}
         queriesData={queriesResponse}
         onRenderSuccess={this.handleRenderSuccess}
         onRenderFailure={this.handleRenderFailure}
@@ -242,4 +244,4 @@ class ChartRenderer extends React.Component {
 ChartRenderer.propTypes = propTypes;
 ChartRenderer.defaultProps = defaultProps;
 
-export default ChartRenderer;
+export default React.memo(ChartRenderer);
