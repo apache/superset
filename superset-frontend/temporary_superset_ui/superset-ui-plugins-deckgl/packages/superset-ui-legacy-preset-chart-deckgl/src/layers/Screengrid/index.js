@@ -22,12 +22,20 @@ import transformProps from '../../transformProps';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  category: t('Map'),
   credits: ['https://uber.github.io/deck.gl'],
-  description: '',
+  description:
+    t('Aggregates data within the boundary of grid cells and maps the aggregated values to a dynamic color scale'),
   name: t('deck.gl Screen Grid'),
   thumbnail,
   useLegacyApi: true,
-  tags: [t('Highly-used')],
+  tags: [
+    t('Comparison'),
+    t('Experimental'),
+    t('Intensity'),
+    t('Density'),
+    t('deckGL'),
+  ],
 });
 
 export default class ScreengridChartPlugin extends ChartPlugin {

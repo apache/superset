@@ -22,11 +22,14 @@ import transformProps from '../../transformProps';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  category: t('Map'),
   credits: ['https://uber.github.io/deck.gl'],
-  description: '',
+  description:
+    t('Plot the distance (like flight paths) between origin and destination.'),
   name: t('deck.gl Arc'),
   thumbnail,
   useLegacyApi: true,
+  tags: [t('3D'), t('Geo'), t('Relational'), t('Web'), t('deckGL')],
 });
 
 export default class ArcChartPlugin extends ChartPlugin {
