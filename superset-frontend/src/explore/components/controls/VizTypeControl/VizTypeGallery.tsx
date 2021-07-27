@@ -198,7 +198,6 @@ const SelectorLabel = styled.button`
     border-radius: ${theme.borderRadius}px;
     line-height: 2em;
     text-overflow: ellipsis;
-    overflow: hidden;
     white-space: nowrap;
     position: relative;
 
