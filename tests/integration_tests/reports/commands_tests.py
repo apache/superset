@@ -50,7 +50,6 @@ from superset.reports.commands.exceptions import (
     ReportScheduleNotFoundError,
     ReportScheduleNotificationError,
     ReportSchedulePreviousWorkingError,
-    ReportSchedulePruneLogError,
     ReportScheduleScreenshotFailedError,
     ReportScheduleScreenshotTimeout,
     ReportScheduleWorkingTimeoutError,
@@ -133,6 +132,7 @@ def create_report_notification(
     validator_config_json: Optional[str] = None,
     grace_period: Optional[int] = None,
     report_format: Optional[ReportDataFormat] = None,
+    name: Optional[str] = None,
 ) -> ReportSchedule:
     report_type = report_type or ReportScheduleType.REPORT
     target = email_target or slack_channel
@@ -154,11 +154,14 @@ def create_report_notification(
             recipient_config_json=json.dumps(config_json),
         )
 
+    if name is None:
+        name = "report_with_csv" if report_format else "report"
+
     report_schedule = insert_report_schedule(
         type=report_type,
-        name=f"report_with_csv" if report_format else f"report",
-        crontab=f"0 9 * * *",
-        description=f"Daily report",
+        name=name,
+        crontab="0 9 * * *",
+        description="Daily report",
         sql=sql,
         chart=chart,
         dashboard=dashboard,
@@ -217,10 +220,26 @@ def create_report_email_chart():
 def create_report_email_chart_with_csv():
     with app.app_context():
         chart = db.session.query(Slice).first()
+        chart.query_context = '{"mock": "query_context"}'
         report_schedule = create_report_notification(
             email_target="target@email.com",
             chart=chart,
             report_format=ReportDataFormat.DATA,
+        )
+        yield report_schedule
+        cleanup_report_schedule(report_schedule)
+
+
+@pytest.fixture()
+def create_report_email_chart_with_csv_no_query_context():
+    with app.app_context():
+        chart = db.session.query(Slice).first()
+        chart.query_context = None
+        report_schedule = create_report_notification(
+            email_target="target@email.com",
+            chart=chart,
+            report_format=ReportDataFormat.DATA,
+            name="report_csv_no_query_context",
         )
         yield report_schedule
         cleanup_report_schedule(report_schedule)
@@ -254,6 +273,7 @@ def create_report_slack_chart():
 def create_report_slack_chart_with_csv():
     with app.app_context():
         chart = db.session.query(Slice).first()
+        chart.query_context = '{"mock": "query_context"}'
         report_schedule = create_report_notification(
             slack_channel="slack_channel",
             chart=chart,
@@ -658,6 +678,47 @@ def test_email_chart_report_schedule_with_csv(
         assert smtp_images[list(smtp_images.keys())[0]] == CSV_FILE
         # Assert logs are correct
         assert_log(ReportState.SUCCESS)
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices",
+    "create_report_email_chart_with_csv_no_query_context",
+)
+@patch("superset.utils.csv.urllib.request.urlopen")
+@patch("superset.utils.csv.urllib.request.OpenerDirector.open")
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.csv.get_chart_csv_data")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_email_chart_report_schedule_with_csv_no_query_context(
+    screenshot_mock,
+    csv_mock,
+    email_mock,
+    mock_open,
+    mock_urlopen,
+    create_report_email_chart_with_csv_no_query_context,
+):
+    """
+    ExecuteReport Command: Test chart email report schedule with CSV (no query context)
+    """
+    # setup screenshot mock
+    screenshot_mock.return_value = SCREENSHOT_FILE
+
+    # setup csv mock
+    response = Mock()
+    mock_open.return_value = response
+    mock_urlopen.return_value = response
+    mock_urlopen.return_value.getcode.return_value = 200
+    response.read.return_value = CSV_FILE
+
+    with freeze_time("2020-01-01T00:00:00Z"):
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID,
+            create_report_email_chart_with_csv_no_query_context.id,
+            datetime.utcnow(),
+        ).run()
+
+        # verify that when query context is null we request a screenshot
+        screenshot_mock.assert_called_once()
 
 
 @pytest.mark.usefixtures(

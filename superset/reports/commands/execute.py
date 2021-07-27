@@ -207,11 +207,29 @@ class BaseReportState:
         return image_data
 
     def _get_csv_data(self) -> bytes:
-        if self._report_schedule.chart:
-            url = self._get_url(csv=True)
-            auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(
-                self._get_user()
-            )
+        url = self._get_url(csv=True)
+        auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(
+            self._get_user()
+        )
+
+        # To load CSV data from the endpoint the chart must have been saved
+        # with its query context. For charts without saved query context we
+        # get a screenshot to force the chart to produce and save the query
+        # context.
+        if self._report_schedule.chart.query_context is None:
+            logger.warning("No query context found, taking a screenshot to generate it")
+            try:
+                self._get_screenshot()
+            except (
+                ReportScheduleScreenshotFailedError,
+                ReportScheduleScreenshotTimeout,
+            ) as ex:
+                raise ReportScheduleCsvFailedError(
+                    "Unable to fetch CSV data because the chart has no query context "
+                    "saved, and an error occurred when fetching it via a screenshot. "
+                    "Please try loading the chart and saving it again."
+                ) from ex
+
         try:
             csv_data = get_chart_csv_data(url, auth_cookies)
         except SoftTimeLimitExceeded:
