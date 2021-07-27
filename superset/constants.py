@@ -21,6 +21,10 @@
 NULL_STRING = "<NULL>"
 
 
+# UUID for the examples database
+EXAMPLES_DB_UUID = "a2dc77af-e654-49bb-b321-40f6b559a1ee"
+
+
 class RouteMethod:  # pylint: disable=too-few-public-methods
     """
     Route methods are a FAB concept around ModelView and RestModelView

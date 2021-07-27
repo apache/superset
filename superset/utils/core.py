@@ -85,6 +85,7 @@ from typing_extensions import TypedDict
 
 import _thread  # pylint: disable=C0411
 from superset.constants import (
+    EXAMPLES_DB_UUID,
     EXTRA_FORM_DATA_APPEND_KEYS,
     EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
     EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
@@ -1168,9 +1169,16 @@ def get_or_create_db(
         db.session.query(models.Database).filter_by(database_name=database_name).first()
     )
 
+    # databases with a fixed UUID
+    uuids = {
+        "examples": EXAMPLES_DB_UUID,
+    }
+
     if not database and always_create:
         logger.info("Creating database reference for %s", database_name)
-        database = models.Database(database_name=database_name)
+        database = models.Database(
+            database_name=database_name, uuid=uuids.get(database_name)
+        )
         db.session.add(database)
 
     if database:
