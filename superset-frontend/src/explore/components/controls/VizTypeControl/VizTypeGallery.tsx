@@ -635,6 +635,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
               >
                 {section.selectors.map((selector: string) => (
                   <Selector
+                    key={selector}
                     selector={selector}
                     icon={section.icon}
                     isSelected={
