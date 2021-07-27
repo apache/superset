@@ -25,6 +25,7 @@ import React, {
   useState,
 } from 'react';
 import Fuse from 'fuse.js';
+import cx from 'classnames';
 import {
   t,
   styled,
@@ -409,7 +410,8 @@ const Selector: React.FC<{
   isSelected: boolean;
   onClick: (selector: string) => void;
   onClear: (e: React.MouseEvent) => void;
-}> = ({ selector, icon, isSelected, onClick, onClear }) => {
+  className?: string;
+}> = ({ selector, icon, isSelected, onClick, onClear, className }) => {
   const btnRef = useRef<HTMLButtonElement>(null);
 
   // see Element.scrollIntoViewIfNeeded()
@@ -431,7 +433,7 @@ const Selector: React.FC<{
       ref={btnRef}
       key={selector}
       name={selector}
-      className={isSelected ? 'selected' : ''}
+      className={cx(className, isSelected && 'selected')}
       onClick={() => onClick(selector)}
     >
       {icon}
