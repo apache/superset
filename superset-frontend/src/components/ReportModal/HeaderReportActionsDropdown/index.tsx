@@ -17,13 +17,12 @@
  * under the License.
  */
 import React from 'react';
+import { useSelector } from 'react-redux';
 import { t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Switch } from 'src/components/Switch';
 import { AlertObject } from 'src/views/CRUD/alert/types';
-import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { Menu, NoAnimationDropdown } from 'src/common/components';
-
 // function useOnClickOutside(ref: any, handler: any) {
 //   useEffect(() => {
 //     const listener = (event: any) => {
@@ -43,30 +42,22 @@ import { Menu, NoAnimationDropdown } from 'src/common/components';
 export default function HeaderReportActionsDropDown({
   // showReportModal,
   // hideReportModal,
-  report,
-  addDangerToast,
+  // addDangerToast,
+  toggleActive,
 }: {
   showReportModal: () => void;
   hideReportModal: () => void;
-  report: AlertObject;
-  addDangerToast: () => void;
+  // addDangerToast: () => void;
+  toggleActive: (data: AlertObject, checked: boolean) => void;
 }) {
-  const { updateResource, state } = useSingleViewResource<Partial<AlertObject>>(
-    'report',
-    t('reports'),
-    addDangerToast,
-  );
   // const ref: any = useRef();
-  let active = state?.resource?.active || report[0].active;
+  const report = useSelector<any, AlertObject>(
+    state => state.reportState.report.result[0],
+  );
 
-  // useOnClickOutside(ref, () => setVisible(false));
-
-  const toggleActive = async (data: AlertObject, checked: boolean) => {
+  const toggleActiveKey = async (data: AlertObject, checked: boolean) => {
     if (data?.id) {
-      const update_id = data.id;
-      await updateResource(update_id, { active: checked }).then(() => {
-        active = state?.resource?.active;
-      });
+      toggleActive(data, checked);
     }
   };
 
@@ -76,8 +67,8 @@ export default function HeaderReportActionsDropDown({
         {t('Email reports active')}
         <Switch
           data-test="toggle-active"
-          checked={active}
-          onClick={(checked: boolean) => toggleActive(report[0], checked)}
+          checked={report.active}
+          onClick={(checked: boolean) => toggleActiveKey(report, checked)}
           size="small"
         />
       </Menu.Item>
