@@ -245,6 +245,30 @@ class SupersetAppInitializer:
             category_icon="fa-table",
         )
         appbuilder.add_separator("Data")
+        appbuilder.add_link(
+            "SQL Editor",
+            label=_("SQL Editor"),
+            href="/superset/sqllab/",
+            category_icon="fa-flask",
+            icon="fa-flask",
+            category="SQL Lab",
+            category_label=__("SQL Lab"),
+        )
+        appbuilder.add_link(
+            __("Saved Queries"),
+            href="/savedqueryview/list/",
+            icon="fa-save",
+            category="SQL Lab",
+        )
+        appbuilder.add_link(
+            "Query Search",
+            label=_("Query History"),
+            href="/superset/sqllab/history/",
+            icon="fa-search",
+            category_icon="fa-flask",
+            category="SQL Lab",
+            category_label=__("SQL Lab"),
+        )
         appbuilder.add_view(
             SliceModelView,
             "Charts",
@@ -332,30 +356,6 @@ class SupersetAppInitializer:
             cond=lambda: not feature_flag_manager.is_feature_enabled(
                 "VERSIONED_EXPORT"
             ),
-        )
-        appbuilder.add_link(
-            "SQL Editor",
-            label=_("SQL Editor"),
-            href="/superset/sqllab/",
-            category_icon="fa-flask",
-            icon="fa-flask",
-            category="SQL Lab",
-            category_label=__("SQL Lab"),
-        )
-        appbuilder.add_link(
-            __("Saved Queries"),
-            href="/savedqueryview/list/",
-            icon="fa-save",
-            category="SQL Lab",
-        )
-        appbuilder.add_link(
-            "Query Search",
-            label=_("Query History"),
-            href="/superset/sqllab/history/",
-            icon="fa-search",
-            category_icon="fa-flask",
-            category="SQL Lab",
-            category_label=__("SQL Lab"),
         )
         appbuilder.add_link(
             "Upload a CSV",
