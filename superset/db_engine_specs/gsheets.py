@@ -147,11 +147,18 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         cls, parameters: GSheetsParametersType,
     ) -> List[SupersetError]:
         errors: List[SupersetError] = []
-
         credentials_info = parameters.get("credentials_info")
         table_catalog = parameters.get("catalog", {})
 
         if not table_catalog:
+            errors.append(
+                SupersetError(
+                    message="URL is required",
+                    error_type=SupersetErrorType.MISSING_TEMPLATE_PARAMS_ERROR,
+                    level=ErrorLevel.WARNING,
+                    extra={"invalid": ["catalog"], "name": "", "url": ""},
+                ),
+            )
             return errors
 
         # We need a subject in case domain wide delegation is set, otherwise the
