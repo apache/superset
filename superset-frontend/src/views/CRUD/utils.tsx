@@ -65,12 +65,13 @@ const createFetchResourceMethod = (method: string) => (
   return [];
 };
 
+export const PAGE_SIZE = 5;
 const getParams = (filters?: Array<Filters>) => {
   const params = {
     order_column: 'changed_on_delta_humanized',
     order_direction: 'desc',
     page: 0,
-    page_size: 5,
+    page_size: PAGE_SIZE,
     filters,
   };
   if (!filters) delete params.filters;
@@ -189,7 +190,7 @@ export function handleChartDelete(
 ) {
   const filters = {
     pageIndex: 0,
-    pageSize: 5,
+    pageSize: PAGE_SIZE,
     sortBy: [
       {
         id: 'changed_on_delta_humanized',
@@ -232,7 +233,7 @@ export function handleDashboardDelete(
     () => {
       const filters = {
         pageIndex: 0,
-        pageSize: 3,
+        pageSize: PAGE_SIZE,
         sortBy: [
           {
             id: 'changed_on_delta_humanized',
@@ -267,8 +268,6 @@ export function shortenSQL(sql: string, maxLines: number) {
   }
   return lines.join('\n');
 }
-
-export const PAGE_SIZE = 5;
 
 const breakpoints = [576, 768, 992, 1200];
 export const mq = breakpoints.map(bp => `@media (max-width: ${bp}px)`);
