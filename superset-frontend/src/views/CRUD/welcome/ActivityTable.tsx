@@ -86,8 +86,7 @@ interface ActivityProps {
 const Styles = styled.div`
   .recentCards {
     max-height: none;
-    grid-gap: ${({ theme }) =>
-      `${theme.gridUnit * 2.5}px ${theme.gridUnit * 5.5}px`};
+    grid-gap: ${({ theme }) => `${theme.gridUnit * 4}px`};
   }
 `;
 
