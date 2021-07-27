@@ -161,13 +161,16 @@ const LeftPane = styled.div`
 
 const RightPane = styled.div`
   grid-area: main;
-  overflow-y: scroll;
+  overflow-y: auto;
 `;
 
 const SearchWrapper = styled.div`
   ${({ theme }) => `
     grid-area: search;
-    margin: ${theme.gridUnit * 2}px ${theme.gridUnit * 3}px;
+    margin-top: ${theme.gridUnit * 3}px;
+    margin-bottom: ${theme.gridUnit}px;
+    margin-left: ${theme.gridUnit * 3}px;
+    margin-right: ${theme.gridUnit * 3}px;
     input {
       font-size: ${theme.typography.sizes.s};
     }
@@ -188,6 +191,9 @@ const InputIconAlignment = styled.div`
 const SelectorLabel = styled.button`
   ${({ theme }) => `
     all: unset; // remove default button styles
+    display: flex;
+    flex-direction: row;
+    align-items: center;
     cursor: pointer;
     margin: ${theme.gridUnit}px 0;
     padding: 0 ${theme.gridUnit * 6}px 0 ${theme.gridUnit}px;
@@ -218,15 +224,18 @@ const SelectorLabel = styled.button`
       }
     }
 
-    svg {
-      position: relative;
-      top: ${theme.gridUnit * 2}px
+    & span:first-of-type svg {
+      margin-top: ${theme.gridUnit * 1.5}px;
+    }
+
+    & span:last-of-type svg {
+      position: absolute;
+      top: ${theme.gridUnit * 2}px;
+      right: ${theme.gridUnit * 2}px;
     }
 
     .cancel {
       visibility: hidden;
-      position: absolute;
-      right: ${theme.gridUnit * 2}px;
     }
   `}
 `;
