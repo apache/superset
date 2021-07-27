@@ -121,7 +121,8 @@ export const VIZ_TYPE_CONTROL_TEST_ID = 'viz-type-control';
 const VizPickerLayout = styled.div`
   display: grid;
   grid-template-rows: auto minmax(100px, 1fr) minmax(200px, 35%);
-  grid-template-columns: auto 5fr;
+  // em is used here because the sidebar should be sized to fit the longest standard tag
+  grid-template-columns: minmax(14em, auto) 5fr;
   grid-template-areas:
     'sidebar search'
     'sidebar main'
