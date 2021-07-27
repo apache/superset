@@ -168,10 +168,7 @@ export default class CRUDCollection extends React.PureComponent<
       if (!newItem.id) {
         newItem = { ...newItem, id: shortid.generate() };
       }
-      this.changeCollection({
-        ...this.state.collection,
-        [newItem.id]: newItem,
-      });
+      this.changeCollection(this.state.collection, newItem);
     }
   }
 
@@ -192,12 +189,17 @@ export default class CRUDCollection extends React.PureComponent<
     return label;
   }
 
-  changeCollection(collection: any) {
+  changeCollection(collection: any, newItem?: object) {
     this.setState({ collection });
     if (this.props.onChange) {
       const collectionArray = this.state.collectionArray
         .map((c: { id: number }) => collection[c.id])
+        // filter out removed items
         .filter(c => c !== undefined);
+
+      if (newItem) {
+        collectionArray.unshift(newItem);
+      }
       this.props.onChange(collectionArray);
     }
   }
