@@ -340,7 +340,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # make GET request to explore_json. explore_json accepts both GET and POST request.
     # See `PR 7935 <https://github.com/apache/superset/pull/7935>`_ for more details.
     "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,
-    "ENABLE_TEMPLATE_PROCESSING": False,
+    "ENABLE_TEMPLATE_PROCESSING": True,
     "ENABLE_TEMPLATE_REMOVE_FILTERS": False,
     "KV_STORE": False,
     # When this feature is enabled, nested types in Presto will be
@@ -1179,7 +1179,7 @@ OLD_API_CHECK_DATASET_OWNERSHIP = True
 SQLA_TABLE_MUTATOR = lambda table: table
 
 # Global async query config options.
-# Requires GLOBAL_ASYNC_QUERIES feature flag to be enabled.
+# Requires GLOBAL_time_range	ASYNC_QUERIES feature flag to be enabled.
 GLOBAL_ASYNC_QUERIES_REDIS_CONFIG = {
     "port": 6379,
     "host": "127.0.0.1",
@@ -1240,67 +1240,136 @@ import jwt
 from superset.utils import core as utils
 from superset.utils.date_parser import get_since_until
 #key to decrypt jwt token
-MOBI_SECRET_KEY=None
-MOBI_SECRET_KEY_OLD=None
+MOBI_SECRET_KEY='am1nsn2blip944621frejr36db0flstrk2548bqmlaio48vje026djg'
+MOBI_SECRET_KEY_OLD='am1nsn2blip944621fre'
+
+# def temp():
+#     a="true"
+#     pass
 
 
 def time_filter(default: Optional[str] = None) -> Optional[Any]:
-    form_data = request.form.get("form_data")
+    form_data = json.dumps(request.get_json(force=True))
+    # form_dict = json.loads(form_data)
+    # time_range_dict = form_dict["queries"][0]
+    # logger.info("time_range_dict: {}".format(str(time_range_dict)))
+    # time_range = time_range_dict.get("time_range")
 
     if isinstance(form_data, str):
-        form_data = json.loads(form_data)
-        extra_filters = form_data.get("extra_filters") or {}
-        time_range = [f["val"] for f in extra_filters if f["col"] == "__time_range"]
-        time_range = time_range[0] if time_range else None
+        #form_data = json.dumps(request.get_json(force=True))
+        #logger.info("form_data: {}".format(str(form_data)))
+        form_dict = json.loads(form_data)
+        time_range_dict = form_dict["queries"][0]
+
+        #logger.info("time_range_dict: {}".format(str(time_range_dict)))
+        time_range = time_range_dict.get("time_range")
+        #time_range = form_data.get("time_range") or {}
+        #time_range = [f["val"] for f in extra_filters if f["col"] == "__time_range"]
+        #time_range = time_range[0] if time_range else None
+
         if time_range is None:
             time_range = form_data.get("time_range") or None
-        since, until = get_since_until(time_range)
-        time_format = '%Y-%m-%d %H:%M:%S'
+        # since, until = get_since_until(time_range)
+        # time_format = '%Y-%m-%d %H:%M:%S'
 
-        until = until.strftime(time_format)
-        if not since:
-            return '<= \'{}\''.format(until)
-        since = since.strftime(time_format)
-        return 'BETWEEN \'{}\' AND \'{}\''.format(since, until)
+        try:
+            since, until = get_since_until(time_range)
+            time_format = '%Y-%m-%d %H:%M:%S'
+            until = until.strftime(time_format)
+            return '\'{}\''.format(since)
+            if not since:
+                return '<= \'{}\''.format(until)
+            since = since.strftime(time_format)
+            return 'BETWEEN \'{}\' AND \'{}\''.format(since, until)
+        except:
+            if since is None:
+                raise NoneError('Please provide Time Range filter')
+            # elif until is None:
+            #     raise NoneError('Please provide Time Range filter')
+
+
+        # until = until.strftime(time_format)
+        # if not since:
+        #     return '<= \'{}\''.format(until)
+        # since = since.strftime(time_format)
+        # return 'BETWEEN \'{}\' AND \'{}\''.format(since, until)
     return default
 
+class NoneError(Exception):
+    pass
 
 def end_date_filter(default: Optional[str] = None) -> Optional[Any]:
-    form_data = request.form.get("form_data")
+    form_data = json.dumps(request.get_json(force=True))
+    #form_dict = json.loads(form_data)
 
     if isinstance(form_data, str):
-        form_data = json.loads(form_data)
-        extra_filters = form_data.get("extra_filters") or {}
-        time_range = [f["val"] for f in extra_filters if f["col"] == "__time_range"]
-        time_range = time_range[0] if time_range else None
+        # form_data = json.loads(form_data)
+        # extra_filters = form_data.get("extra_filters") or {}
+        # time_range = [f["val"] for f in extra_filters if f["col"] == "__time_range"]
+        # time_range = time_range[0] if time_range else None
+        #form_data = json.dumps(request.get_json(force=True))
+        form_dict = json.loads(form_data)
+        time_range_dict = form_dict["queries"][0]
+
+        logger.info("time_range_dict: {}".format(str(time_range_dict)))
+        time_range = time_range_dict.get("time_range")
         if time_range is None:
             time_range = form_data.get("time_range") or None
-        since, until = get_since_until(time_range)
-        time_format = '%Y-%m-%d %H:%M:%S'
+        # since, until = get_since_until(time_range)
+        # time_format = '%Y-%m-%d %H:%M:%S'
 
-        until = until.strftime(time_format)
-        return '\'{}\''.format(until)
+        # if until is None:
+        #     return default
+        # else:
+        #     until = until.strftime(time_format)
+        #     return '\'{}\''.format(until)
+
+        try:
+            since, until = get_since_until(time_range)
+            time_format = '%Y-%m-%d %H:%M:%S'
+            until = until.strftime(time_format)
+            return '\'{}\''.format(until)
+        except:
+            if until is None:
+                raise NoneError('Please provide Time Range filter')
+
     return default
+
+
+
 
 
 def start_date_filter(default: Optional[str] = None) -> Optional[Any]:
-    form_data = request.form.get("form_data")
+    #form_data = request.form.get("form_data")
+    form_data = json.dumps(request.get_json(force=True))
 
     if isinstance(form_data, str):
-        form_data = json.loads(form_data)
-        extra_filters = form_data.get("extra_filters") or {}
-        time_range = [f["val"] for f in extra_filters if f["col"] == "__time_range"]
-        time_range = time_range[0] if time_range else None
+        # form_data = json.loads(form_data)
+        # extra_filters = form_data.get("extra_filters") or {}
+        # time_range = [f["val"] for f in extra_filters if f["col"] == "__time_range"]
+        # time_range = time_range[0] if time_range else None
+        #form_data = json.dumps(request.get_json(force=True))
+        form_dict = json.loads(form_data)
+        time_range_dict = form_dict["queries"][0]
+        time_range = time_range_dict.get("time_range")
         if time_range is None:
             time_range = form_data.get("time_range") or None
         since, until = get_since_until(time_range)
         time_format = '%Y-%m-%d %H:%M:%S'
 
-        until = until.strftime(time_format)
-        if not since:
-            return '\'{}\''.format(until)
-        since = since.strftime(time_format)
-        return '\'{}\''.format(since)
+        # until = until.strftime(time_format)
+        # if not since:
+        #     return '\'{}\''.format(until)
+        # since = since.strftime(time_format)
+        # return '\'{}\''.format(since)
+        try:
+            since, until = get_since_until(time_range)
+            time_format = '%Y-%m-%d %H:%M:%S'
+            since = since.strftime(time_format)
+            return '\'{}\''.format(since)
+        except:
+            if since is None:
+                raise NoneError('Please provide Time Range filter')
     return default
 
 
@@ -1313,9 +1382,11 @@ def uri_filter(cond="none", default="") -> Optional[Any]:
     logger.info("Default: {}".format(default))
     logger.info("Request: {}".format(str(request)))
     logger.info("Request form: {}".format(str(request.form)))
+    logger.info("Request json: {}".format(str(request.get_json(force=True))))
 
     # fetching form data
-    form_data = request.form.get("form_data")
+   # form_data = request.form.get("form_data")
+    form_data=json.dumps(request.get_json(force=True))
     logger.info("form_data: {}".format(str(form_data)))
 
     #fetching dashboard_id
@@ -1327,24 +1398,28 @@ def uri_filter(cond="none", default="") -> Optional[Any]:
 
     # convrting form_data into json node
     form_dict = json.loads(form_data)
-    logger.info("form data is:" + form_data)
 
+    #fetch queries for url_params
     # fetching url_params
-    url_params_dict = form_dict.get("url_params")
-    # logger.info(filter_dict)
+    url_params_dict = form_dict["queries"][0]["url_params"]
+    logger.info("url_params_dict: {}".format(str(url_params_dict)))
+
+    # # fetching url_params
+    # url_params_dict = form_dict.get("url_params")
+    # logger.info("url_params_dict: {}".format(str(url_params_dict)))
 
     # returning default value if url_params is null
     if url_params_dict is None:
         return default
 
-
     #fetching mobi_filter from url_params
     token=url_params_dict.get("mobi_filter")
+
 
     #returning default value if mobi_filter is null
     if token is None:
         return default
-
+    logger.info("token: {}".format(str(token)))
     #fetching payload from jwt_token
     try:
         jwt_payload = jwt.decode(token,MOBI_SECRET_KEY_OLD,algorithms=['HS256'])
@@ -1363,11 +1438,11 @@ def uri_filter(cond="none", default="") -> Optional[Any]:
 
     jwt_dashboard_id=str(mobi_resource_dict.get("dashboard"))
 
-    logger.info("url dashboard id:"+dashboard_id)
-    logger.info("jwt dashboard id:"+jwt_dashboard_id)
+    #logger.info("url dashboard id:"+dashboard_id)
+   # logger.info("jwt dashboard id:"+jwt_dashboard_id)
 
-    if jwt_dashboard_id != dashboard_id:
-        raise Exception("dashboard_id has manipulated")
+    # if jwt_dashboard_id != dashboard_id:
+    #     raise Exception("dashboard_id has manipulated")
 
     if cond not in mobi_filter_dict and cond == 'merchants':
         default="select merchant_code from process"
