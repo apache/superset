@@ -217,7 +217,18 @@ class BaseReportState:
         # get a screenshot to force the chart to produce and save the query
         # context.
         if self._report_schedule.chart.query_context is None:
-            self._get_screenshot()
+            logger.warning("No query context found, taking a screenshot to generate it")
+            try:
+                self._get_screenshot()
+            except (
+                ReportScheduleScreenshotFailedError,
+                ReportScheduleScreenshotTimeout,
+            ) as ex:
+                raise ReportScheduleCsvFailedError(
+                    "Unable to fetch CSV data because the chart has no query context "
+                    "saved, and an error occurred when fetching it via a screenshot. "
+                    "Please try loading the chart and saving it again."
+                ) from ex
 
         try:
             csv_data = get_chart_csv_data(url, auth_cookies)
