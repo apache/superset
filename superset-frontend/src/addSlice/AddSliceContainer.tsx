@@ -156,7 +156,7 @@ export default class AddSliceContainer extends React.PureComponent<
           />
           <span>
             {t(
-              "If you can't find the dataset, follow the instructions on how to add it in the Superset tutorial.",
+              "If you can't find a dataset, follow the instructions on how to add it in the Superset tutorial.",
             )}{' '}
             <a
               href="https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard#adding-a-new-table"
