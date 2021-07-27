@@ -22,11 +22,13 @@ import transformProps from '../../transformProps';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  category: t('Map'),
   credits: ['https://uber.github.io/deck.gl'],
   description: '',
   name: t('deck.gl Grid'),
   thumbnail,
   useLegacyApi: true,
+  tags: [t('3D'), t('Comparison'), t('Experimental'), t('deckGL')],
 });
 
 export default class GridChartPlugin extends ChartPlugin {

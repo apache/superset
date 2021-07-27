@@ -22,11 +22,19 @@ import transformProps from '../../transformProps';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  category: t('Map'),
   credits: ['https://uber.github.io/deck.gl'],
   description: '',
   name: t('deck.gl Polygon'),
   thumbnail,
   useLegacyApi: true,
+  tags: [
+    t('3D'),
+    t('Experimental'),
+    t('Geo'),
+    t('Multi-Dimensions'),
+    t('deckGL'),
+  ],
 });
 
 export default class PolygonChartPlugin extends ChartPlugin {

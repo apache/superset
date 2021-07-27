@@ -22,12 +22,22 @@ import transformProps from '../../transformProps';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  category: t('Map'),
   credits: ['https://uber.github.io/deck.gl'],
-  description: '',
+  description:
+    t('A map that takes rendering circles with a variable radius at latitude/longitude coordinates'),
   name: t('deck.gl Scatterplot'),
   thumbnail,
   useLegacyApi: true,
-  tags: [t('Highly-used')],
+  tags: [
+    t('2D'),
+    t('Comparison'),
+    t('Geo'),
+    t('Intensity'),
+    t('Density'),
+    t('Scatter'),
+    t('deckGL'),
+  ],
 });
 
 export default class ScatterChartPlugin extends ChartPlugin {
