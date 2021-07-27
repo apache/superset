@@ -25,7 +25,6 @@ import { logEvent } from 'src/logger/actions';
 import { addDangerToast } from 'src/messageToasts/actions';
 import { componentLookup } from '../components/gridComponents';
 import getDetailedComponentWidth from '../util/getDetailedComponentWidth';
-import { getActiveFilters } from '../util/activeDashboardFilters';
 import { componentShape } from '../util/propShapes';
 import { COLUMN_TYPE, ROW_TYPE } from '../util/componentTypes';
 
@@ -77,12 +76,8 @@ function mapStateToProps(
   const component = dashboardLayout[id];
   const props = {
     component,
-    dashboardLayout,
     parentComponent: dashboardLayout[parentId],
     editMode: dashboardState.editMode,
-    undoLength: undoableLayout.past.length,
-    redoLength: undoableLayout.future.length,
-    filters: getActiveFilters(),
     directPathToChild: dashboardState.directPathToChild,
     activeTabs: dashboardState.activeTabs,
     directPathLastUpdated: dashboardState.directPathLastUpdated,

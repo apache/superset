@@ -19,6 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
+import { connect } from 'react-redux';
 
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import DragHandle from 'src/dashboard/components/dnd/DragHandle';
@@ -36,6 +37,7 @@ import {
   SMALL_HEADER,
   BACKGROUND_TRANSPARENT,
 } from 'src/dashboard/util/constants';
+import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -55,7 +57,7 @@ const propTypes = {
 
 const defaultProps = {};
 
-class Header extends React.PureComponent {
+export class Header extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -191,4 +193,7 @@ class Header extends React.PureComponent {
 Header.propTypes = propTypes;
 Header.defaultProps = defaultProps;
 
-export default Header;
+function mapStateToProps() {
+  return { filters: getActiveFilters() };
+}
+export default connect(mapStateToProps)(Header);

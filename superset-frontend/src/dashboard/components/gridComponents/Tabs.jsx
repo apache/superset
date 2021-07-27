@@ -401,6 +401,11 @@ Tabs.propTypes = propTypes;
 Tabs.defaultProps = defaultProps;
 
 function mapStateToProps(state) {
-  return { nativeFilters: state.nativeFilters };
+  return {
+    nativeFilters: state.nativeFilters,
+    directPathToChild: state.dashboardState.directPathToChild,
+    activeTabs: state.dashboardState.activeTabs,
+  };
 }
+Tabs.whyDidYouRender = true;
 export default connect(mapStateToProps)(Tabs);

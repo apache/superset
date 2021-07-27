@@ -18,7 +18,7 @@
  */
 /* eslint-env browser */
 import cx from 'classnames';
-import React, { FC, useMemo } from 'react';
+import React, { FC, useCallback, useMemo } from 'react';
 import { JsonObject, styled } from '@superset-ui/core';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
@@ -155,13 +155,12 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     state => state.dashboardState.fullSizeChartId,
   );
 
-  const handleChangeTab = ({
-    pathToTabIndex,
-  }: {
-    pathToTabIndex: string[];
-  }) => {
-    dispatch(setDirectPathToChild(pathToTabIndex));
-  };
+  const handleChangeTab = useCallback(
+    ({ pathToTabIndex }: { pathToTabIndex: string[] }) => {
+      dispatch(setDirectPathToChild(pathToTabIndex));
+    },
+    [dispatch],
+  );
 
   const handleDeleteTopLevelTabs = () => {
     dispatch(deleteTopLevelTabs());

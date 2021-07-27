@@ -29,7 +29,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Provider } from 'react-redux';
 import { screen, render } from 'spec/helpers/testing-library';
 import { CHART_TYPE, ROW_TYPE } from '../../util/componentTypes';
-import { ChartHolder } from './index';
+import { ChartHolder } from './ChartHolder';
 
 describe('ChartHolder', () => {
   const defaultProps = {

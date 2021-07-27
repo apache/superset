@@ -25,7 +25,7 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 
 import Chart from 'src/dashboard/containers/Chart';
-import ChartHolder from 'src/dashboard/components/gridComponents/ChartHolder';
+import { ChartHolder } from 'src/dashboard/components/gridComponents/ChartHolder';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';

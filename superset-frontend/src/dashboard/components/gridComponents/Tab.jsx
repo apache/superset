@@ -39,7 +39,6 @@ const propTypes = {
   renderType: PropTypes.oneOf([RENDER_TAB, RENDER_TAB_CONTENT]).isRequired,
   onDropOnTab: PropTypes.func,
   editMode: PropTypes.bool.isRequired,
-  filters: PropTypes.object.isRequired,
 
   // grid related
   availableColumnCount: PropTypes.number,
@@ -202,7 +201,6 @@ export default class Tab extends React.PureComponent {
       index,
       depth,
       editMode,
-      filters,
       isFocused,
       isHighlighted,
     } = this.props;
@@ -235,7 +233,6 @@ export default class Tab extends React.PureComponent {
             {!editMode && (
               <AnchorLink
                 anchorLinkId={component.id}
-                filters={filters}
                 showShortLinkButton
                 placement={index >= 5 ? 'left' : 'right'}
               />

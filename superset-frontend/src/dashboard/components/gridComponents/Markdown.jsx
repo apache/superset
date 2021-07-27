@@ -18,12 +18,12 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-
+import { connect } from 'react-redux';
 import cx from 'classnames';
 import { t, SafeMarkdown } from '@superset-ui/core';
+
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { MarkdownEditor } from 'src/components/AsyncAceEditor';
-
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
@@ -77,7 +77,7 @@ Click here to edit [markdown](https://bit.ly/1dQOfRK)`;
 
 const MARKDOWN_ERROR_MESSAGE = t('This markdown component has an error.');
 
-class Markdown extends React.PureComponent {
+export class Markdown extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -366,4 +366,10 @@ class Markdown extends React.PureComponent {
 Markdown.propTypes = propTypes;
 Markdown.defaultProps = defaultProps;
 
-export default Markdown;
+function mapStateToProps(state) {
+  return {
+    undoLength: state.dashboardLayout.past.length,
+    redoLength: state.dashboardLayout.future.length,
+  };
+}
+export default connect(mapStateToProps)(Markdown);
