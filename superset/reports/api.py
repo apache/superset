@@ -83,6 +83,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "active",
         "chart.id",
         "chart.slice_name",
+        "chart.viz_type",
         "context_markdown",
         "creation_method",
         "crontab",

@@ -727,18 +727,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     return result;
   };
 
-  const getChartVisualizationType = (chartData?: MetaObject) => {
-    const chart = chartData || currentAlert?.chart;
-    if (!chart) {
-      return;
-    }
-
-    // Fetch the visulization type, since the "text" option is only available
-    // to text-based visualizations (pivot tables, t-test table, table).
-    return SupersetClient.get({
+  const getChartVisualizationType = (chart: SelectValue) =>
+    SupersetClient.get({
       endpoint: `/api/v1/chart/${chart.value}`,
     }).then(response => setChartVizType(response.json.result.viz_type));
-  };
 
   // Updating alert/report state
   const updateAlertState = (name: string, value: any) => {
@@ -942,6 +934,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           : resource.validator_config_json;
 
       setConditionNotNull(resource.validator_type === 'not null');
+
+      if (resource.chart) {
+        setChartVizType((resource.chart as ChartObject).viz_type);
+      }
 
       setCurrentAlert({
         ...resource,

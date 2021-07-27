@@ -27,6 +27,7 @@ type user = {
 export type ChartObject = {
   id: number;
   slice_name: string;
+  viz_type: string;
 };
 
 export type DashboardObject = {
