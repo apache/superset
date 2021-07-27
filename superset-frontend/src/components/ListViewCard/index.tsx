@@ -92,7 +92,7 @@ const TitleContainer = styled.div`
   .card-actions {
     margin-left: auto;
     align-self: flex-end;
-    padding-left: ${({ theme }) => theme.gridUnit * 8}px;
+    padding-left: ${({ theme }) => theme.gridUnit}px;
   }
 `;
 

@@ -83,6 +83,9 @@ const WelcomeContainer = styled.div`
   .ant-card.ant-card-bordered {
     border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   }
+  .ant-collapse-item .ant-collapse-content {
+    margin-bottom: ${({ theme }) => theme.gridUnit * -3}px;
+  }
   div.ant-collapse-item:last-child.ant-collapse-item-active
     .ant-collapse-header {
     padding-bottom: ${({ theme }) => theme.gridUnit * 3}px;

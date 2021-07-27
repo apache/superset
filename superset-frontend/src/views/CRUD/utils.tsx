@@ -279,7 +279,7 @@ export const CardContainer = styled.div<{
     display: grid;
     grid-gap: ${theme.gridUnit * 12}px ${theme.gridUnit * 5.5}px;
     grid-template-columns: repeat(auto-fit, minmax(300px, 310px));
-    max-height: ${showThumbnails ? '332' : '140'}px;
+    max-height: ${showThumbnails ? '342' : '140'}px;
     margin-top: ${theme.gridUnit * -6.25}px;
     padding: ${
       showThumbnails
