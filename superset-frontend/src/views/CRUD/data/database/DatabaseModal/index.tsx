@@ -102,9 +102,14 @@ const errorAlertMapping = {
     message: 'Invalid account information',
     description: 'Either the username or password is incorrect.',
   },
-  INVALID_PAYLOAD_SCHEMA: {
+  INVALID_PAYLOAD_SCHEMA_ERROR: {
     message: 'Incorrect Fields',
     description: 'Please make sure all fields are filled out correctly',
+  },
+  TABLE_DOES_NOT_EXIST_ERROR: {
+    message: 'URL could not be identified',
+    description:
+      'The URL could not be identified. Please check for typos and make sure that "Type of google sheet allowed" selection matches the input',
   },
 };
 interface DatabaseModalProps {

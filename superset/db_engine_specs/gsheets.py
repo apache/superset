@@ -171,7 +171,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
             except Exception:  # pylint: disable=broad-except
                 errors.append(
                     SupersetError(
-                        message=f"Unable to connect to spreadsheet {name} at {url}",
+                        message="URL could not be identified",
                         error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
                         level=ErrorLevel.WARNING,
                         extra={"invalid": ["catalog"], "name": name, "url": url},
