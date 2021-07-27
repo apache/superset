@@ -82,6 +82,7 @@ const propTypes = {
   lastModifiedTime: PropTypes.number.isRequired,
 
   // redux
+  onRefresh: PropTypes.func.isRequired,
   onUndo: PropTypes.func.isRequired,
   onRedo: PropTypes.func.isRequired,
   undoLength: PropTypes.number.isRequired,
@@ -129,7 +130,10 @@ const StyledDashboardHeader = styled.div`
 
 class Header extends React.PureComponent {
   static discardChanges() {
-    window.location.reload();
+    const url = new URL(window.location.href);
+
+    url.searchParams.delete('edit');
+    window.location.assign(url);
   }
 
   constructor(props) {
@@ -213,8 +217,7 @@ class Header extends React.PureComponent {
         interval: 0,
         chartCount: chartList.length,
       });
-
-      return this.props.fetchCharts(
+      return this.props.onRefresh(
         chartList,
         true,
         0,

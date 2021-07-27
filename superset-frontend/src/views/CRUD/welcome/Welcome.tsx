@@ -54,6 +54,8 @@ export interface ActivityData {
   Examples?: Array<object>;
 }
 
+const DEFAULT_TAB_ARR = ['2', '3'];
+
 const WelcomeContainer = styled.div`
   background-color: ${({ theme }) => theme.colors.grayscale.light4};
   .ant-row.menu {
@@ -114,11 +116,9 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     null,
   );
   const [loadedCount, setLoadedCount] = useState(0);
-  const [activeState, setActiveState] = useState<Array<string>>([
-    '1',
-    '2',
-    '3',
-  ]);
+  const [activeState, setActiveState] = useState<Array<string>>(
+    DEFAULT_TAB_ARR,
+  );
   const userid = user.userId;
   const id = userid.toString();
 
@@ -136,14 +136,15 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
         if (res.viewed) {
           const filtered = reject(res.viewed, ['item_url', null]).map(r => r);
           data.Viewed = filtered;
-          if (!activeTab) {
+          if (!activeTab && data.Viewed) {
             setActiveChild('Viewed');
+          } else if (!activeTab && !data.Viewed) {
+            setActiveChild('Created');
           } else setActiveChild(activeTab);
         } else {
+          if (!activeTab) setActiveChild('Created');
+          else setActiveChild(activeTab);
           data.Examples = res.examples;
-          if (activeTab === 'Viewed' || !activeTab) {
-            setActiveChild('Examples');
-          } else setActiveChild(activeTab);
         }
         setActivityData(activityData => ({ ...activityData, ...data }));
       })
@@ -200,9 +201,14 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   };
 
   useEffect(() => {
-    if (queryData?.length) {
-      setActiveState(['1', '2', '3', '4']);
+    const defaultArr = DEFAULT_TAB_ARR;
+    if (activityData?.Viewed) {
+      defaultArr.push('1');
     }
+    if (queryData?.length) {
+      defaultArr.push('4');
+    }
+    setActiveState(defaultArr);
     setActivityData(activityData => ({
       ...activityData,
       Created: [
@@ -213,6 +219,8 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     }));
   }, [chartData, queryData, dashboardData]);
 
+  const isRecentActivityLoading =
+    !activityData?.Examples && !activityData?.Viewed;
   return (
     <WelcomeContainer>
       <WelcomeNav>
@@ -243,21 +251,27 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           )}
         </Collapse.Panel>
         <Collapse.Panel header={t('Dashboards')} key="2">
-          {!dashboardData ? (
+          {!dashboardData || isRecentActivityLoading ? (
             <Loading position="inline" />
           ) : (
             <DashboardTable
               user={user}
               mine={dashboardData}
               showThumbnails={checked}
+              examples={activityData?.Examples}
             />
           )}
         </Collapse.Panel>
         <Collapse.Panel header={t('Charts')} key="3">
-          {!chartData ? (
+          {!chartData || isRecentActivityLoading ? (
             <Loading position="inline" />
           ) : (
-            <ChartTable showThumbnails={checked} user={user} mine={chartData} />
+            <ChartTable
+              showThumbnails={checked}
+              user={user}
+              mine={chartData}
+              examples={activityData?.Examples}
+            />
           )}
         </Collapse.Panel>
         <Collapse.Panel header={t('Saved queries')} key="4">

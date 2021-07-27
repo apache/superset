@@ -189,7 +189,6 @@ class InvalidPayloadFormatError(SupersetErrorException):
             message=message,
             error_type=SupersetErrorType.INVALID_PAYLOAD_FORMAT_ERROR,
             level=ErrorLevel.ERROR,
-            extra={},
         )
         super().__init__(error)
 

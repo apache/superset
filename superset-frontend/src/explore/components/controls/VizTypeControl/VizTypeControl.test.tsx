@@ -105,7 +105,9 @@ describe('VizTypeControl', () => {
 
     const visualizations = screen.getByTestId(getTestId('viz-row'));
 
-    userEvent.click(screen.getByRole('button', { name: 'Table' }));
+    userEvent.click(
+      screen.getByRole('button', { name: 'category Table close' }),
+    );
 
     expect(visualizations).toHaveTextContent(/Time-series Table/);
 

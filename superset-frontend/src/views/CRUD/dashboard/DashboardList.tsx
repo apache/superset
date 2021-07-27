@@ -166,6 +166,7 @@ function DashboardList(props: DashboardListProps) {
                 slug = '',
                 json_metadata = '',
                 changed_on_delta_humanized,
+                url = '',
               } = json.result;
               return {
                 ...dashboard,
@@ -176,6 +177,7 @@ function DashboardList(props: DashboardListProps) {
                 slug,
                 json_metadata,
                 changed_on_delta_humanized,
+                url,
               };
             }
             return dashboard;

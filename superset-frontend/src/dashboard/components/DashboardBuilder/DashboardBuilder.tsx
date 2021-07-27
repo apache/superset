@@ -69,10 +69,11 @@ const StyledDiv = styled.div`
   flex: 1;
 `;
 
+// @z-index-above-dashboard-charts + 1 = 11
 const FiltersPanel = styled.div`
   grid-column: 1;
   grid-row: 1 / span 2;
-  z-index: 2;
+  z-index: 11;
 `;
 
 const StickyPanel = styled.div<{ width: number }>`
@@ -82,12 +83,13 @@ const StickyPanel = styled.div<{ width: number }>`
   flex: 0 0 ${({ width }) => width}px;
 `;
 
+// @z-index-above-dashboard-charts + 1 = 11
 const StyledHeader = styled.div`
   grid-column: 2;
   grid-row: 1;
   position: sticky;
   top: 0px;
-  z-index: 2;
+  z-index: 11;
 `;
 
 const StyledContent = styled.div<{

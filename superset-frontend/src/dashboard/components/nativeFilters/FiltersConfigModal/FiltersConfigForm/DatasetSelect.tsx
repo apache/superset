@@ -36,18 +36,11 @@ const cachedSupersetGet = cacheWrapper(
 );
 
 interface DatasetSelectProps {
-  datasetDetails: Record<string, any> | undefined;
-  datasetId: number;
-  onChange: (value: number) => void;
-  value?: { value: number | undefined };
+  onChange: (value: { label: string; value: number }) => void;
+  value?: { label: string; value: number };
 }
 
-const DatasetSelect = ({
-  datasetDetails,
-  datasetId,
-  onChange,
-  value,
-}: DatasetSelectProps) => {
+const DatasetSelect = ({ onChange, value }: DatasetSelectProps) => {
   const getErrorMessage = useCallback(
     ({ error, message }: ClientErrorObject) => {
       let errorText = message || error || t('An error has occurred');
@@ -84,15 +77,6 @@ const DatasetSelect = ({
           .sort((a: { label: string }, b: { label: string }) =>
             a.label.localeCompare(b.label),
           );
-        if (!search) {
-          const found = data.find(element => element.value === datasetId);
-          if (!found && datasetDetails?.table_name) {
-            data.push({
-              label: datasetDetails.table_name,
-              value: datasetId,
-            });
-          }
-        }
         return {
           data,
           totalCount: response.json.count,
@@ -107,7 +91,7 @@ const DatasetSelect = ({
   return (
     <Select
       ariaLabel={t('Dataset')}
-      value={value?.value}
+      value={value}
       options={loadDatasetOptions}
       onChange={onChange}
     />
