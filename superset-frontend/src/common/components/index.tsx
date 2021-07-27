@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { RefObject } from 'react';
 import { styled } from '@superset-ui/core';
 import {
   Dropdown,
@@ -217,6 +217,10 @@ export const MainNav = Object.assign(StyledNav, {
   ItemGroup: AntdMenu.ItemGroup,
 });
 
+interface ExtendedDropDownProps extends DropDownProps {
+  ref?: RefObject<HTMLDivElement>;
+}
+
 export const Input = styled(AntdInput)`
   border: 1px solid ${({ theme }) => theme.colors.secondary.light3};
   border-radius: ${({ theme }) => theme.borderRadius}px;
@@ -234,7 +238,7 @@ export const TextArea = styled(AntdInput.TextArea)`
 
 // @z-index-below-dashboard-header (100) - 1 = 99
 export const NoAnimationDropdown = (
-  props: DropDownProps & { children?: React.ReactNode },
+  props: ExtendedDropDownProps & { children?: React.ReactNode },
 ) => (
   <Dropdown overlayStyle={{ zIndex: 99, animationDuration: '0s' }} {...props} />
 );
