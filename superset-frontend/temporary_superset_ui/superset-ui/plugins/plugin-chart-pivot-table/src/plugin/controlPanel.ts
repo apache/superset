@@ -94,6 +94,20 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        ['timeseries_limit_metric'],
+        [
+          {
+            name: 'order_desc',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Sort descending'),
+              default: true,
+              description: t(
+                'Whether to sort descending or ascending. Takes effect only when "Sort by" is set',
+              ),
+            },
+          },
+        ],
       ],
     },
     {

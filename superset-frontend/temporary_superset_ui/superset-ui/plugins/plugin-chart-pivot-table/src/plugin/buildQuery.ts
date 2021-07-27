@@ -16,19 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { buildQueryContext, ensureIsArray } from '@superset-ui/core';
+import { buildQueryContext, ensureIsArray, normalizeOrderBy } from '@superset-ui/core';
 import { PivotTableQueryFormData } from '../types';
 
 export default function buildQuery(formData: PivotTableQueryFormData) {
-  const { groupbyColumns = [], groupbyRows = [] } = formData;
+  const { groupbyColumns = [], groupbyRows = [], order_desc = true } = formData;
   const groupbySet = new Set([
     ...ensureIsArray<string>(groupbyColumns),
     ...ensureIsArray<string>(groupbyRows),
   ]);
-  return buildQueryContext(formData, baseQueryObject => [
-    {
-      ...baseQueryObject,
-      columns: [...groupbySet],
-    },
-  ]);
+  return buildQueryContext(formData, baseQueryObject => {
+    const queryObject = normalizeOrderBy({ ...baseQueryObject, order_desc });
+    return [
+      {
+        ...queryObject,
+        columns: [...groupbySet],
+      },
+    ];
+  });
 }
