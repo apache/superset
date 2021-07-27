@@ -154,7 +154,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
             errors.append(
                 SupersetError(
                     message="URL is required",
-                    error_type=SupersetErrorType.MISSING_TEMPLATE_PARAMS_ERROR,
+                    error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
                     level=ErrorLevel.WARNING,
                     extra={"invalid": ["catalog"], "name": "", "url": ""},
                 ),
