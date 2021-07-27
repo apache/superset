@@ -181,6 +181,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "chart": {
                 "id": report_schedule.chart.id,
                 "slice_name": report_schedule.chart.slice_name,
+                "viz_type": report_schedule.chart.viz_type,
             },
             "context_markdown": report_schedule.context_markdown,
             "crontab": report_schedule.crontab,
