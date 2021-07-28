@@ -133,6 +133,7 @@ class Dashboard extends React.PureComponent {
     const nextChartIds = getChartIdsFromLayout(nextProps.layout);
 
     if (this.props.dashboardInfo.id !== nextProps.dashboardInfo.id) {
+      // single-page-app navigation check
       return;
     }
 
