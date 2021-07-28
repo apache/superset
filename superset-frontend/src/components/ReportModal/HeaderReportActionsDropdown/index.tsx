@@ -23,6 +23,7 @@ import Icons from 'src/components/Icons';
 import { Switch } from 'src/components/Switch';
 import { AlertObject } from 'src/views/CRUD/alert/types';
 import { Menu, NoAnimationDropdown } from 'src/common/components';
+
 import DeleteModal from 'src/components/DeleteModal';
 
 const deleteColor = (theme: SupersetTheme) => css`

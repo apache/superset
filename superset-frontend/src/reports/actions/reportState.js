@@ -118,7 +118,10 @@ export function deleteActiveReport(report) {
     return SupersetClient.delete({
       endpoint: encodeURI(`/api/v1/report/${report.id}`),
     })
-      .then(() => {
+      .catch(() => {
+        dispatch(addDangerToast(t('Your report could not be deleted')));
+      })
+      .finally(() => {
         const state = getState();
         const { user, dashboardInfo, charts, explore } = state;
         if (dashboardInfo) {
@@ -142,9 +145,6 @@ export function deleteActiveReport(report) {
           );
         }
         dispatch(addSuccessToast(t('Deleted: %s', report.name)));
-      })
-      .catch(() => {
-        dispatch(addDangerToast(t('Your report could not be deleted')));
       });
   };
 }
