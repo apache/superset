@@ -730,6 +730,8 @@ class ChartDataPostProcessingOperationSchema(Schema):
                 "rolling",
                 "select",
                 "sort",
+                "diff",
+                "compare",
             )
         ),
         example="aggregate",
@@ -1074,6 +1076,7 @@ class ChartDataQueryObjectSchema(Schema):
         description="Should the rowcount of the actual query be returned",
         allow_none=True,
     )
+    time_offsets = fields.List(fields.String(), allow_none=True,)
 
 
 class ChartDataQueryContextSchema(Schema):
