@@ -20,6 +20,7 @@
 // check into source control. We're hardcoding the supported flags for now.
 export enum FeatureFlag {
   ALLOW_DASHBOARD_DOMAIN_SHARDING = 'ALLOW_DASHBOARD_DOMAIN_SHARDING',
+  ALERT_REPORTS = 'ALERT_REPORTS',
   OMNIBAR = 'OMNIBAR',
   CLIENT_CACHE = 'CLIENT_CACHE',
   DYNAMIC_PLUGINS = 'DYNAMIC_PLUGINS',
