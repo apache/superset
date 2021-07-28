@@ -16,14 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as convertKeysToCamelCase } from './convertKeysToCamelCase';
-export { default as ensureIsArray } from './ensureIsArray';
-export { default as ensureIsInt } from './ensureIsInt';
-export { default as isDefined } from './isDefined';
-export { default as isRequired } from './isRequired';
-export { default as makeSingleton } from './makeSingleton';
-export { default as promiseTimeout } from './promiseTimeout';
-export { default as logging } from './logging';
-export { default as removeDuplicates } from './removeDuplicates';
-export * from './featureFlags';
-export * from './random';
+
+export default function ensureIsInt<T>(value: T, defaultValue?: number): number {
+  const val = parseInt(String(value), 10);
+  const defaultOrNaN = defaultValue === undefined ? NaN : defaultValue;
+  return Number.isNaN(val) ? defaultOrNaN : val;
+}

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { ControlPanelSectionConfig } from './types';
+import { ControlPanelSectionConfig } from '../types';
 
 // A few standard controls sections that are used internally.
 // Not recommended for use in third-party plugins.

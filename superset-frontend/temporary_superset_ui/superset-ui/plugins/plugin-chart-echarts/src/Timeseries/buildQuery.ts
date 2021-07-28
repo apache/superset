@@ -16,59 +16,50 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { buildQueryContext, getMetricLabel, QueryFormData } from '@superset-ui/core';
+import { buildQueryContext, QueryFormData, normalizeOrderBy } from '@superset-ui/core';
+import {
+  rollingWindowOperator,
+  timeCompareOperator,
+  isValidTimeCompare,
+  sortOperator,
+  pivotOperator,
+} from '@superset-ui/chart-controls';
 
 export default function buildQuery(formData: QueryFormData) {
-  return buildQueryContext(formData, baseQueryObject => {
-    const metricLabels = (baseQueryObject.metrics || []).map(getMetricLabel);
-    const { timeseries_limit_metric, order_desc, orderby } = baseQueryObject;
-    return [
-      {
-        ...baseQueryObject,
-        groupby: formData.groupby || [],
-        is_timeseries: true,
-        orderby: orderby?.length
-          ? orderby
-          : timeseries_limit_metric
-          ? [[timeseries_limit_metric, !order_desc]]
-          : [],
-        post_processing: [
-          {
-            operation: 'pivot',
-            options: {
-              index: ['__timestamp'],
-              columns: formData.groupby || [],
-              // Create 'dummy' mean aggregates to assign cell values in pivot table
-              // use the 'mean' aggregates to avoid drop NaN
-              aggregates: Object.fromEntries(
-                metricLabels.map(metric => [metric, { operator: 'mean' }]),
-              ),
-              drop_missing_columns: false,
-            },
-          },
-          formData.contributionMode
-            ? {
-                operation: 'contribution',
-                options: {
-                  orientation: formData.contributionMode,
-                },
-              }
-            : undefined,
-          formData.forecastEnabled
-            ? {
-                operation: 'prophet',
-                options: {
-                  time_grain: formData.time_grain_sqla,
-                  periods: parseInt(formData.forecastPeriods, 10),
-                  confidence_interval: parseFloat(formData.forecastInterval),
-                  yearly_seasonality: formData.forecastSeasonalityYearly,
-                  weekly_seasonality: formData.forecastSeasonalityWeekly,
-                  daily_seasonality: formData.forecastSeasonalityDaily,
-                },
-              }
-            : undefined,
-        ],
-      },
-    ];
-  });
+  return buildQueryContext(formData, baseQueryObject => [
+    {
+      ...baseQueryObject,
+      is_timeseries: true,
+      // todo: move `normalizeOrderBy to extractQueryFields`
+      orderby: normalizeOrderBy(baseQueryObject).orderby,
+      time_offsets: isValidTimeCompare(formData, baseQueryObject) ? formData.time_compare : [],
+      post_processing: [
+        timeCompareOperator(formData, baseQueryObject),
+        sortOperator(formData, { ...baseQueryObject, is_timeseries: true }),
+        rollingWindowOperator(formData, baseQueryObject),
+        pivotOperator(formData, { ...baseQueryObject, is_timeseries: true }),
+        formData.contributionMode
+          ? {
+              operation: 'contribution',
+              options: {
+                orientation: formData.contributionMode,
+              },
+            }
+          : undefined,
+        formData.forecastEnabled
+          ? {
+              operation: 'prophet',
+              options: {
+                time_grain: formData.time_grain_sqla,
+                periods: parseInt(formData.forecastPeriods, 10),
+                confidence_interval: parseFloat(formData.forecastInterval),
+                yearly_seasonality: formData.forecastSeasonalityYearly,
+                weekly_seasonality: formData.forecastSeasonalityWeekly,
+                daily_seasonality: formData.forecastSeasonalityDaily,
+              },
+            }
+          : undefined,
+      ],
+    },
+  ]);
 }

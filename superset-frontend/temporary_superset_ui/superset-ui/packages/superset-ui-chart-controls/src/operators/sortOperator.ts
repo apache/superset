@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -13,17 +14,26 @@
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
+ * specific language governing permissions and limitationsxw
  * under the License.
  */
-export { default as convertKeysToCamelCase } from './convertKeysToCamelCase';
-export { default as ensureIsArray } from './ensureIsArray';
-export { default as ensureIsInt } from './ensureIsInt';
-export { default as isDefined } from './isDefined';
-export { default as isRequired } from './isRequired';
-export { default as makeSingleton } from './makeSingleton';
-export { default as promiseTimeout } from './promiseTimeout';
-export { default as logging } from './logging';
-export { default as removeDuplicates } from './removeDuplicates';
-export * from './featureFlags';
-export * from './random';
+import { PostProcessingSort, RollingType } from '@superset-ui/core';
+import { PostProcessingFactory } from './types';
+import { TIME_COLUMN } from './utils';
+
+export const sortOperator: PostProcessingFactory<PostProcessingSort | undefined> = (
+  formData,
+  queryObject,
+) => {
+  if (queryObject.is_timeseries && Object.values(RollingType).includes(formData.rolling_type)) {
+    return {
+      operation: 'sort',
+      options: {
+        columns: {
+          [TIME_COLUMN]: true,
+        },
+      },
+    };
+  }
+  return undefined;
+};
