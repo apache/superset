@@ -274,6 +274,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         try:
             dash = DashboardDAO.get_by_id_or_slug(id_or_slug)
             result = self.dashboard_get_response_schema.dump(dash)
+            self.pre_get(result)
             return self.response(200, result=result)
         except DashboardNotFoundError:
             return self.response_404()
@@ -456,7 +457,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
+            self.pre_add(item)
             new_model = CreateDashboardCommand(g.user, item).run()
+            self.post_add(item)
             return self.response(201, id=new_model.id, result=item)
         except DashboardInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
@@ -528,7 +531,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
+            self.pre_update(item)
             changed_model = UpdateDashboardCommand(g.user, pk, item).run()
+            self.post_update(item)
             response = self.response(200, id=changed_model.id, result=item)
         except DashboardNotFoundError:
             response = self.response_404()
