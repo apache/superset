@@ -23,9 +23,10 @@ import React, {
   Reducer,
   FunctionComponent,
 } from 'react';
-import { styled, css, t } from '@superset-ui/core';
+import { styled, css, t, SupersetTheme } from '@superset-ui/core';
 
 import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
+import TimezoneSelector from 'src/components/TimezoneSelector';
 import Icons from 'src/components/Icons';
 import Modal from 'src/components/Modal';
 import { CronPicker, CronError } from 'src/components/CronPicker';
@@ -46,6 +47,7 @@ interface ReportObject {
   owners: number[];
   recipients: [{ recipient_config_json: { target: string }; type: string }];
   report_format: string;
+  timezone: string;
   type: string;
   validator_config_json: {} | null;
   validator_type: string;
@@ -60,8 +62,6 @@ enum ActionType {
 
 interface ReportPayloadType {
   name: string;
-  description: string;
-  crontab: string;
   value: string;
 }
 
@@ -101,7 +101,7 @@ const StyledModal = styled(Modal)`
 `;
 
 const StyledTopSection = styled.div`
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
+  padding: ${({ theme }) => `${theme.gridUnit * 3}px ${theme.gridUnit * 4}px`};
 `;
 
 const StyledBottomSection = styled.div`
@@ -131,16 +131,19 @@ const noBottomMargin = css`
   margin-bottom: 0;
 `;
 
+const timezoneHeaderStyle = (theme: SupersetTheme) => css`
+  margin-top: ${theme.gridUnit * 3}px;
+`;
+
 const ReportModal: FunctionComponent<ReportProps> = ({
   show = false,
   onHide,
-  props,
 }) => {
   const [currentReport, setCurrentReport] = useReducer<
     Reducer<Partial<ReportObject> | null, ReportActionType>
   >(reportReducer, null);
   const onChange = useCallback((type: any, payload: any) => {
-    setCurrentReport({ type, payload } as ReportActionType);
+    setCurrentReport({ type, payload });
   }, []);
   const [error, setError] = useState<CronError>();
 
@@ -152,7 +155,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   );
 
   return (
-    <StyledModal show={show} onHide={onHide} title={wrappedTitle}>
+    <StyledModal show={show} onHide={onHide} title={wrappedTitle} width="432px">
       <StyledTopSection>
         <LabeledErrorBoundInput
           id="name"
@@ -210,6 +213,21 @@ const ReportModal: FunctionComponent<ReportProps> = ({
             });
           }}
           onError={setError}
+        />
+        <div
+          className="control-label"
+          css={(theme: SupersetTheme) => timezoneHeaderStyle(theme)}
+        >
+          {t('Timezone')}
+        </div>
+        <TimezoneSelector
+          onTimezoneChange={value => {
+            setCurrentReport({
+              type: ActionType.textChange,
+              payload: { name: 'timezone', value },
+            });
+          }}
+          timezone={currentReport?.timezone}
         />
         <StyledCronError>{error}</StyledCronError>
       </StyledBottomSection>
