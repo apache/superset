@@ -24,7 +24,6 @@ from typing import Dict, List, Optional, Union  # noqa: F401
 from urllib import parse
 
 from superset.custom_auth import use_ip_auth
-from ais_service_discovery import call
 from json import loads
 
 import backoff
@@ -52,6 +51,7 @@ import pyarrow as pa
 import simplejson as json
 from sqlalchemy import and_, or_, select
 from werkzeug.routing import BaseConverter
+import boto3
 
 from superset import (
     app,
@@ -120,6 +120,7 @@ stats_logger = config.get("STATS_LOGGER")
 DAR = models.DatasourceAccessRequest
 QueryStatus = utils.QueryStatus
 
+lambda_client = boto3.client('lambda')
 
 ALL_DATASOURCE_ACCESS_ERR = __(
     "This endpoint requires the `all_datasource_access` permission"
@@ -2881,21 +2882,19 @@ class Superset(BaseSupersetView):
                 session.commit()
 
                 logging.info(
-                 f"calling service disovery function for query_id: {query_id}"
+                 f"calling sql editor lambda function for query_id: {query_id}"
                 )
-                loads(call(
-                    'ais-{}'.format(STAGE),
-                    'sql-editor',
-                    'superset-async-response',
-                    {
-                      'error': msg,
-                      'status': 'failed',
-                      'queryId': query_id,
-                      'tenant': TENANT,
-                      },
-                    {'InvocationType': 'Event'}))
+                lambda_client.invoke(
+                    FunctionName='ais-service-sql-editor-{}-getSupersetResponse'.format(os.environ['STAGE']),
+                    InvocationType='Event',
+                    Payload=json.dumps({
+                              'error': msg,
+                              'status': 'failed',
+                              'queryId': query_id,
+                              'tenant': TENANT,
+                        }))
                 logging.info(
-                  f"service disovery function called successfully for query_id: {query_id}"
+                  f"sql editor lambda function called successfully for query_id: {query_id}"
                 )
 
                 return json_error_response("{}".format(msg))

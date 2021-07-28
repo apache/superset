@@ -60,6 +60,7 @@ superset/assets/cypress/screenshots
 superset/assets/cypress/videos
 superset/assets/version_info.json
 yarn-error.log
+credstash.log
 
 # IntelliJ
 *.iml

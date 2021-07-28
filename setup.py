@@ -69,7 +69,7 @@ setup(
     zip_safe=False,
     scripts=["superset/bin/superset"],
     install_requires=[
-        "ais-service-discovery~=0.0.9",
+        "ais-service-discovery==0.2.0",
         "backoff>=1.8.0",
         "bleach>=3.0.2, <4.0.0",
         "celery>=4.3.0, <5.0.0",
@@ -98,7 +98,7 @@ setup(
         "python-dateutil",
         "python-dotenv",
         "python-geohash",
-        "pyarrow>=0.14.1, <0.15.0",
+        "pyarrow>=0.14.0",
         "pyyaml>=5.1",
         "retry>=0.9.2",
         "selenium>=3.141.0",

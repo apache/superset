@@ -22,9 +22,8 @@ import os
 from sys import getsizeof
 from typing import Optional, Tuple, Union
 import uuid
-from ais_service_discovery import call
 from json import loads
-
+import boto3
 import backoff
 from celery.exceptions import SoftTimeLimitExceeded
 from contextlib2 import contextmanager
@@ -62,7 +61,7 @@ log_query = config.get("QUERY_LOGGER")
 TENANT = os.environ['TENANT']
 STAGE = os.environ['STAGE']
 CELERY_QUEUE = '{}-{}'.format(STAGE, TENANT)
-
+lambda_client = boto3.client('lambda')
 
 class SqlLabException(Exception):
     pass
@@ -179,22 +178,20 @@ def get_sql_results(
             stats_logger.incr("error_sqllab_unhandled")
             query = get_query(query_id, session)
             logging.info(
-             f"calling service disovery function for query_id: {query_id}"
+             f"calling sql editor lambda function for query_id: {query_id}"
             )
-            loads(call(
-                'ais-{}'.format(STAGE),
-                'sql-editor',
-                'superset-async-response',
-                {
-                  'error': msg,
-                  'status': 'failed',
-                  'queryId': query_id,
-                  'tenant': TENANT,
-                  },
-                {'InvocationType': 'Event'}))
+            lambda_client.invoke(
+                FunctionName='ais-service-sql-editor-{}-getSupersetResponse'.format(os.environ['STAGE']),
+                InvocationType='Event',
+                Payload=json.dumps({
+                      'error': msg,
+                      'status': 'failed',
+                      'queryId': query_id,
+                      'tenant': TENANT,
+                      }))
             logging.info(
-              f"service disovery function called successfully for query_id: {query_id}"
-            )
+                 f"sql editor lambda function called successfully for query_id: {query_id}"
+             )
             return handle_query_error(str(e), query, session)
 
 
@@ -402,22 +399,20 @@ def execute_sql_statements(
                     payload = handle_query_error(msg, query, session, payload)
 
                     logging.info(
-                     f"calling service disovery function for query_id: {query_id}"
+                     f"calling sql editor lambda function for query_id: {query_id}"
                     )
-                    loads(call(
-                        'ais-{}'.format(STAGE),
-                        'sql-editor',
-                        'superset-async-response',
-                        {
-                          'error': msg,
-                          'status': 'failed',
-                          'queryId': query_id,
-                          'tenant': TENANT,
-                          },
-                        {'InvocationType': 'Event'}))
+                    lambda_client.invoke(
+                        FunctionName='ais-service-sql-editor-{}-getSupersetResponse'.format(os.environ['STAGE']),
+                        InvocationType='Event',
+                        Payload=json.dumps({
+                              'error': msg,
+                              'status': 'failed',
+                              'queryId': query_id,
+                              'tenant': TENANT,
+                              }))
                     logging.info(
-                      f"service disovery function called successfully for query_id: {query_id}"
-                    )
+                         f"sql editor lambda function called successfully for query_id: {query_id}"
+                     )
                     return payload
 
     # Success, updating the query entry in database
@@ -477,22 +472,20 @@ def execute_sql_statements(
         query.results_key = key
 
         logging.info(
-         f"calling service disovery function for query_id: {query_id}"
+         f"calling sql editor lambda function for query_id: {query_id}"
         )
-        loads(call(
-            'ais-{}'.format(STAGE),
-            'sql-editor',
-            'superset-async-response',
-            {
-              'status': 'success',
-              'resultKey': key,
-              'queryId': query_id,
-              'tenant': TENANT,
-              },
-            {'InvocationType': 'Event'}))
+        lambda_client.invoke(
+            FunctionName='ais-service-sql-editor-{}-getSupersetResponse'.format(os.environ['STAGE']),
+            InvocationType='Event',
+            Payload=json.dumps({
+                  'status': 'success',
+                  'resultKey': key,
+                  'queryId': query_id,
+                  'tenant': TENANT,
+                  }))
         logging.info(
-          f"service disovery function called successfully for query_id: {query_id}"
-        )
+             f"sql editor lambda function called successfully for query_id: {query_id}"
+         )
 
     query.status = QueryStatus.SUCCESS
     session.commit()

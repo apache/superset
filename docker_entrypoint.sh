@@ -32,7 +32,7 @@ elif [ "$SUPERSET_ENV" = "production" ]; then
     celery beat --app=superset.tasks.celery_app:app &
     exec gunicorn --bind  0.0.0.0:8088 \
         --workers ${NO_OF_WORKERS:-$DEFAULT_NO_OF_WORKERS} \
-        --timeout 120 \
+        --timeout 180 \
         --limit-request-line 0 \
         --limit-request-field_size 0 \
         superset:app
