@@ -59,6 +59,7 @@ import { DASHBOARD_HEADER_ID } from '../util/constants';
 import {
   fetchUISpecificReport,
   toggleActive,
+  deleteActiveReport,
 } from '../../reports/actions/reportState';
 
 function mapStateToProps({
@@ -131,6 +132,7 @@ function mapDispatchToProps(dispatch) {
       updateDataMask,
       fetchUISpecificReport,
       toggleActive,
+      deleteActiveReport,
     },
     dispatch,
   );

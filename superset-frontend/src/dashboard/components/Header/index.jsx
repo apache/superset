@@ -387,6 +387,7 @@ class Header extends React.PureComponent {
         showReportModal={this.showReportModal}
         hideReportModal={this.hideReportModal}
         toggleActive={this.props.toggleActive}
+        deleteActiveReport={this.props.deleteActiveReport}
       />
     ) : (
       <>

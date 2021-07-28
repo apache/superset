@@ -16,34 +16,49 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
-import { t } from '@superset-ui/core';
+import { t, SupersetTheme, css } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Switch } from 'src/components/Switch';
 import { AlertObject } from 'src/views/CRUD/alert/types';
 import { Menu, NoAnimationDropdown } from 'src/common/components';
+
+import DeleteModal from 'src/components/DeleteModal';
+
+const deleteColor = (theme: SupersetTheme) => css`
+  color: ${theme.colors.error.base};
+`;
 
 export default function HeaderReportActionsDropDown({
   // showReportModal,
   // hideReportModal,
   // addDangerToast,
   toggleActive,
+  deleteActiveReport,
 }: {
   showReportModal: () => void;
   hideReportModal: () => void;
-  // addDangerToast: () => void;
   toggleActive: (data: AlertObject, checked: boolean) => void;
+  deleteActiveReport: (data: AlertObject) => void;
 }) {
-  // const ref: any = useRef();
   const report = useSelector<any, AlertObject>(
     state => state.reportState.report.result[0],
   );
+  const [
+    currentReportDeleting,
+    setCurrentReportDeleting,
+  ] = useState<AlertObject | null>(null);
 
   const toggleActiveKey = async (data: AlertObject, checked: boolean) => {
     if (data?.id) {
       toggleActive(data, checked);
     }
+  };
+
+  const handleReportDelete = (report: AlertObject) => {
+    deleteActiveReport(report);
+    setCurrentReportDeleting(null);
   };
 
   const menu = () => (
@@ -52,7 +67,7 @@ export default function HeaderReportActionsDropDown({
         {t('Email reports active')}
         <Switch
           data-test="toggle-active"
-          checked={report.active}
+          checked={report?.active}
           onClick={(checked: boolean) => toggleActiveKey(report, checked)}
           size="small"
         />
@@ -63,22 +78,45 @@ export default function HeaderReportActionsDropDown({
           {t('Edit email report')}
         </div>
       </Menu.Item>
-      <Menu.Item>{t('Delete email report')}</Menu.Item>
+      <Menu.Item
+        onClick={() => setCurrentReportDeleting(report)}
+        css={deleteColor}
+      >
+        {t('Delete email report')}
+      </Menu.Item>
     </Menu>
   );
 
   return (
-    <NoAnimationDropdown
-      // ref={ref}
-      overlay={menu()}
-      trigger={['click']}
-      getPopupContainer={(triggerNode: any) =>
-        triggerNode.closest('.action-button')
-      }
-    >
-      <span role="button" className="action-button" tabIndex={0}>
-        <Icons.Calendar />
-      </span>
-    </NoAnimationDropdown>
+    <>
+      <NoAnimationDropdown
+        // ref={ref}
+        overlay={menu()}
+        trigger={['click']}
+        getPopupContainer={(triggerNode: any) =>
+          triggerNode.closest('.action-button')
+        }
+      >
+        <span role="button" className="action-button" tabIndex={0}>
+          <Icons.Calendar />
+        </span>
+      </NoAnimationDropdown>
+      {currentReportDeleting && (
+        <DeleteModal
+          description={t(
+            'This action will permanently delete %s.',
+            currentReportDeleting.name,
+          )}
+          onConfirm={() => {
+            if (currentReportDeleting) {
+              handleReportDelete(currentReportDeleting);
+            }
+          }}
+          onHide={() => setCurrentReportDeleting(null)}
+          open
+          title={t('Delete Report?')}
+        />
+      )}
+    </>
   );
 }
