@@ -132,6 +132,10 @@ class Dashboard extends React.PureComponent {
     const currentChartIds = getChartIdsFromLayout(this.props.layout);
     const nextChartIds = getChartIdsFromLayout(nextProps.layout);
 
+    if (this.props.dashboardInfo.id !== nextProps.dashboardInfo.id) {
+      return;
+    }
+
     if (currentChartIds.length < nextChartIds.length) {
       const newChartIds = nextChartIds.filter(
         key => currentChartIds.indexOf(key) === -1,
