@@ -64,7 +64,7 @@ class ValidateDatabaseParametersCommand(BaseCommand):
                 ),
             )
         engine_spec = engine_specs[engine]
-        if not issubclass(engine_spec, BasicParametersMixin):
+        if not hasattr(engine_spec, "parameters_schema"):
             raise InvalidEngineError(
                 SupersetError(
                     message=__(
@@ -85,7 +85,9 @@ class ValidateDatabaseParametersCommand(BaseCommand):
             )
 
         # perform initial validation
-        errors = engine_spec.validate_parameters(self._properties.get("parameters", {}))
+        errors = engine_spec.validate_parameters(  # type: ignore
+            self._properties.get("parameters", {})
+        )
         if errors:
             raise InvalidParametersError(errors)
 
@@ -96,9 +98,8 @@ class ValidateDatabaseParametersCommand(BaseCommand):
             encrypted_extra = {}
 
         # try to connect
-        sqlalchemy_uri = engine_spec.build_sqlalchemy_uri(
-            self._properties.get("parameters"),  # type: ignore
-            encrypted_extra,
+        sqlalchemy_uri = engine_spec.build_sqlalchemy_uri(  # type: ignore
+            self._properties.get("parameters"), encrypted_extra,
         )
         if self._model and sqlalchemy_uri == self._model.safe_sqlalchemy_uri():
             sqlalchemy_uri = self._model.sqlalchemy_uri_decrypted
