@@ -18,28 +18,39 @@
  */
 import React, {
   useState,
+  // useEffect,
   useCallback,
   useReducer,
   Reducer,
   FunctionComponent,
 } from 'react';
-import { styled, css, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+// import { useSingleViewResource } from 'src/views/CRUD/hooks';
+
+import { bindActionCreators } from 'redux';
+import { connect, useDispatch } from 'react-redux';
+import { addReport } from 'src/reports/actions/reportState';
 
 import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
 import Icons from 'src/components/Icons';
-import Modal from 'src/components/Modal';
+import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { CronPicker, CronError } from 'src/components/CronPicker';
-
-interface ReportProps {
-  onHide: () => {};
-  show: boolean;
-  props: any;
-}
+import {
+  StyledModal,
+  StyledTopSection,
+  StyledBottomSection,
+  StyledIconWrapper,
+  StyledScheduleTitle,
+  StyledCronError,
+  noBottomMargin,
+  StyledFooterButton,
+} from './styles';
 
 interface ReportObject {
   active: boolean;
   crontab: string;
-  dashboard: number;
+  dashboard?: number;
+  chart?: number;
   description?: string;
   log_retention: number;
   name: string;
@@ -50,6 +61,22 @@ interface ReportObject {
   validator_config_json: {} | null;
   validator_type: string;
   working_timeout: number;
+  creation_method: string;
+}
+
+interface ReportProps {
+  addDangerToast: (msg: string) => void;
+  addSuccessToast: (msg: string) => void;
+  addReport: (report?: ReportObject) => {};
+  onHide: () => {};
+  onReportAdd: (report?: ReportObject) => {};
+  show: boolean;
+  userId: number;
+  userEmail: string;
+  dashboardId?: number;
+  chartId?: number;
+  creationMethod: string;
+  props: any;
 }
 
 enum ActionType {
@@ -94,47 +121,12 @@ const reportReducer = (
   }
 };
 
-const StyledModal = styled(Modal)`
-  .ant-modal-body {
-    padding: 0;
-  }
-`;
-
-const StyledTopSection = styled.div`
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
-`;
-
-const StyledBottomSection = styled.div`
-  border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
-`;
-
-const StyledIconWrapper = styled.span`
-  span {
-    margin-right: ${({ theme }) => theme.gridUnit * 2}px;
-    vertical-align: middle;
-  }
-  .text {
-    vertical-align: middle;
-  }
-`;
-
-const StyledScheduleTitle = styled.div`
-  margin-bottom: ${({ theme }) => theme.gridUnit * 7}px;
-`;
-
-const StyledCronError = styled.p`
-  color: ${({ theme }) => theme.colors.error.base};
-`;
-
-const noBottomMargin = css`
-  margin-bottom: 0;
-`;
-
 const ReportModal: FunctionComponent<ReportProps> = ({
-  show = false,
+  // addDangerToast,
+  onReportAdd,
   onHide,
-  props,
+  show = false,
+  ...props
 }) => {
   const [currentReport, setCurrentReport] = useReducer<
     Reducer<Partial<ReportObject> | null, ReportActionType>
@@ -143,6 +135,59 @@ const ReportModal: FunctionComponent<ReportProps> = ({
     setCurrentReport({ type, payload } as ReportActionType);
   }, []);
   const [error, setError] = useState<CronError>();
+  // ---------- comments on lines 21, 28, 125, 139-159 & 182 are being held for edit functionality
+  // const [hasConnectedReport, setHasConnectedReport] = useState<boolean>(false);
+  // const [isLoading, setLoading] = useState<boolean>(false);
+  const dispatch = useDispatch();
+
+  // Report fetch logic
+  // const {
+  //   state: { resource },
+  // } = useSingleViewResource<ReportObject>(
+  //   'report',
+  //   t('report'),
+  //   addDangerToast,
+  // );
+
+  // useEffect(() => {
+  //   if (resource?.dashboard) {
+  //     setHasConnectedReport(true);
+  //   }
+  // }, [resource?.dashboard]);
+
+  const onClose = () => {
+    // setLoading(false);
+    onHide();
+  };
+
+  const onSave = async () => {
+    // Create new Report
+    const newReportValues: Partial<ReportObject> = {
+      crontab: currentReport?.crontab,
+      dashboard: props.props.dashboardId,
+      chart: props.props.chartId,
+      description: currentReport?.description,
+      name: currentReport?.name || 'Weekly Report',
+      owners: [props.props.userId],
+      recipients: [
+        {
+          recipient_config_json: { target: props.props.userEmail },
+          type: 'Email',
+        },
+      ],
+      type: 'Report',
+      creation_method: props.props.creationMethod,
+    };
+
+    // setLoading(true);
+    await dispatch(addReport(newReportValues as ReportObject));
+
+    if (onReportAdd) {
+      onReportAdd();
+    }
+
+    onClose();
+  };
 
   const wrappedTitle = (
     <StyledIconWrapper>
@@ -151,8 +196,26 @@ const ReportModal: FunctionComponent<ReportProps> = ({
     </StyledIconWrapper>
   );
 
+  const renderModalFooter = (
+    <>
+      <StyledFooterButton key="back" onClick={onClose}>
+        Cancel
+      </StyledFooterButton>
+      <StyledFooterButton key="submit" buttonStyle="primary" onClick={onSave}>
+        Add
+      </StyledFooterButton>
+    </>
+  );
+
   return (
-    <StyledModal show={show} onHide={onHide} title={wrappedTitle}>
+    <StyledModal
+      show={show}
+      onHide={onClose}
+      title={wrappedTitle}
+      footer={renderModalFooter}
+      width="432"
+      centered
+    >
       <StyledTopSection>
         <LabeledErrorBoundInput
           id="name"
@@ -196,7 +259,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
 
       <StyledBottomSection>
         <StyledScheduleTitle>
-          <h1>Schedule</h1>
+          <h2>Schedule</h2>
           <p>Scheduled reports will be sent to your email as a PNG</p>
         </StyledScheduleTitle>
 
@@ -217,4 +280,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   );
 };
 
-export default ReportModal;
+const mapDispatchToProps = (dispatch: any) =>
+  bindActionCreators({ addReport }, dispatch);
+
+export default connect(null, mapDispatchToProps)(withToasts(ReportModal));
