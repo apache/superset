@@ -75,6 +75,7 @@ interface ReportProps {
   userEmail: string;
   dashboardId?: number;
   chartId?: number;
+  creationMethod: string;
   props: any;
 }
 
@@ -174,6 +175,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
         },
       ],
       type: 'Report',
+      creation_method: props.props.creationMethod,
     };
 
     setLoading(true);

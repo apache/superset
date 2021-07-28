@@ -595,6 +595,7 @@ class Header extends React.PureComponent {
                 userId: user.userId,
                 userEmail: user.email,
                 dashboardId: dashboardInfo.id,
+                creationMethod: 'dashboards',
               }}
             />
           )}
