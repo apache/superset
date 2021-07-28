@@ -814,7 +814,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         f".cache_screenshot",
         log_to_statsd=False,
     )
-    def cache_screenshot(self, pk: int, **kwargs: Dict[str, bool]) -> WerkzeugResponse:
+    def cache_screenshot(self, pk: int, **kwargs: Any) -> WerkzeugResponse:
         """
         ---
         get:
@@ -946,9 +946,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.thumbnail",
         log_to_statsd=False,
     )
-    def thumbnail(
-        self, pk: int, digest: str, **kwargs: Dict[str, bool]
-    ) -> WerkzeugResponse:
+    def thumbnail(self, pk: int, digest: str, **kwargs: Any) -> WerkzeugResponse:
         """Get Chart thumbnail
         ---
         get:

@@ -115,6 +115,8 @@ logger = logging.getLogger(__name__)
 
 DTTM_ALIAS = "__timestamp"
 
+TIME_COMPARISION = "__"
+
 JS_MAX_INTEGER = 9007199254740991  # Largest int Java Script can handle 2^53-1
 
 InputType = TypeVar("InputType")

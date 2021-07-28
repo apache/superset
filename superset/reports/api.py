@@ -83,6 +83,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "active",
         "chart.id",
         "chart.slice_name",
+        "chart.viz_type",
         "context_markdown",
         "creation_method",
         "crontab",
@@ -106,6 +107,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "recipients.type",
         "report_format",
         "sql",
+        "timezone",
         "type",
         "validator_config_json",
         "validator_type",
@@ -136,6 +138,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "owners.last_name",
         "recipients.id",
         "recipients.type",
+        "timezone",
         "type",
     ]
     add_columns = [
@@ -154,6 +157,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "recipients",
         "report_format",
         "sql",
+        "timezone",
         "type",
         "validator_config_json",
         "validator_type",
