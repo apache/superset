@@ -33,14 +33,7 @@ const metadata = new ChartMetadata({
   ),
   exampleGallery: [{ url: example1 }, { url: example2 }, { url: example3 }, { url: example4 }],
   name: t('Treemap'),
-  tags: [
-    t('Categorical'),
-    t('Distribution'),
-    t('Legacy'),
-    t('Multi-Levels'),
-    t('Percentages'),
-    t('Proportional'),
-  ],
+  tags: [t('Categorical'), t('Legacy'), t('Multi-Levels'), t('Percentages'), t('Proportional')],
   thumbnail,
   useLegacyApi: true,
 });
