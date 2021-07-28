@@ -36,7 +36,7 @@ const mockData = {
   id: 1,
   name: 'test report',
   description: 'test report description',
-  chart: { id: 1, slice_name: 'test chart' },
+  chart: { id: 1, slice_name: 'test chart', viz_type: 'table' },
   database: { id: 1, database_name: 'test database' },
   sql: 'SELECT NaN',
 };
@@ -76,7 +76,7 @@ fetchMock.get(dashboardEndpoint, {
 });
 
 fetchMock.get(chartEndpoint, {
-  result: [],
+  result: [{ text: 'table chart', value: 1 }],
 });
 
 async function mountAndWait(props = mockedProps) {
@@ -258,6 +258,22 @@ describe('AlertReportModal', () => {
   it('renders two radio buttons', () => {
     expect(wrapper.find(Radio)).toExist();
     expect(wrapper.find(Radio)).toHaveLength(2);
+  });
+
+  it('renders text option for text-based charts', async () => {
+    const props = {
+      ...mockedProps,
+      alert: mockData,
+    };
+    const textWrapper = await mountAndWait(props);
+
+    const chartOption = textWrapper.find('input[value="chart"]');
+    act(() => {
+      chartOption.props().onChange({ target: { value: 'chart' } });
+    });
+    await waitForComponentToPaint(textWrapper);
+
+    expect(textWrapper.find('input[value="TEXT"]')).toExist();
   });
 
   it('renders input element for working timeout', () => {

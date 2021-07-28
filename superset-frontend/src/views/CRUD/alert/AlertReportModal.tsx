@@ -51,6 +51,12 @@ import {
 
 const SELECT_PAGE_SIZE = 2000; // temporary fix for paginated query
 const TIMEOUT_MIN = 1;
+const TEXT_BASED_VISUALIZATION_TYPES = [
+  'pivot_table',
+  'pivot_table_v2',
+  'table',
+  'paired_ttest',
+];
 
 type SelectValue = {
   value: string;
@@ -416,6 +422,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [dashboardOptions, setDashboardOptions] = useState<MetaObject[]>([]);
   const [chartOptions, setChartOptions] = useState<MetaObject[]>([]);
 
+  // Chart metadata
+  const [chartVizType, setChartVizType] = useState<string>('');
+
   const isEditMode = alert !== null;
   const formatOptionEnabled =
     contentType === 'chart' &&
@@ -718,6 +727,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     return result;
   };
 
+  const getChartVisualizationType = (chart: SelectValue) =>
+    SupersetClient.get({
+      endpoint: `/api/v1/chart/${chart.value}`,
+    }).then(response => setChartVizType(response.json.result.viz_type));
+
   // Updating alert/report state
   const updateAlertState = (name: string, value: any) => {
     setCurrentAlert(currentAlertData => ({
@@ -770,6 +784,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const onChartChange = (chart: SelectValue) => {
+    getChartVisualizationType(chart);
     updateAlertState('chart', chart || undefined);
     updateAlertState('dashboard', null);
   };
@@ -919,6 +934,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           : resource.validator_config_json;
 
       setConditionNotNull(resource.validator_type === 'not null');
+
+      if (resource.chart) {
+        setChartVizType((resource.chart as ChartObject).viz_type);
+      }
 
       setCurrentAlert({
         ...resource,
@@ -1251,17 +1270,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <StyledRadio value="dashboard">{t('Dashboard')}</StyledRadio>
               <StyledRadio value="chart">{t('Chart')}</StyledRadio>
             </Radio.Group>
-            {formatOptionEnabled && (
-              <div className="inline-container">
-                <StyledRadioGroup
-                  onChange={onFormatChange}
-                  value={reportFormat}
-                >
-                  <StyledRadio value="PNG">{t('Send as PNG')}</StyledRadio>
-                  <StyledRadio value="CSV">{t('Send as CSV')}</StyledRadio>
-                </StyledRadioGroup>
-              </div>
-            )}
             <AsyncSelect
               className={
                 contentType === 'chart'
@@ -1302,6 +1310,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               cacheOptions
               onChange={onDashboardChange}
             />
+            {formatOptionEnabled && (
+              <div className="inline-container">
+                <StyledRadioGroup
+                  onChange={onFormatChange}
+                  value={reportFormat}
+                >
+                  <StyledRadio value="PNG">{t('Send as PNG')}</StyledRadio>
+                  <StyledRadio value="CSV">{t('Send as CSV')}</StyledRadio>
+                  {TEXT_BASED_VISUALIZATION_TYPES.includes(chartVizType) && (
+                    <StyledRadio value="TEXT">{t('Send as text')}</StyledRadio>
+                  )}
+                </StyledRadioGroup>
+              </div>
+            )}
             <StyledSectionTitle>
               <h4>{t('Notification method')}</h4>
               <span className="required">*</span>

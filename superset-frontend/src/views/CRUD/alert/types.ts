@@ -27,6 +27,7 @@ type user = {
 export type ChartObject = {
   id: number;
   slice_name: string;
+  viz_type: string;
 };
 
 export type DashboardObject = {
@@ -74,7 +75,7 @@ export type AlertObject = {
   owners?: Array<Owner | MetaObject>;
   sql?: string;
   recipients?: Array<Recipient>;
-  report_format?: 'PNG' | 'CSV';
+  report_format?: 'PNG' | 'CSV' | 'TEXT';
   type?: string;
   validator_config_json?: {
     op?: Operator;
