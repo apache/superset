@@ -235,6 +235,11 @@ export class ExploreChartHeader extends React.PureComponent {
           <ReportModal
             show={this.state.showingReportModal}
             onHide={this.hideReportModal}
+            props={{
+              userId: this.props.userId,
+              userEmail: this.props.email,
+              chartId: this.props.id,
+            }}
           />
           <ExploreActionButtons
             actions={{

@@ -17,11 +17,17 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { SET_REPORT } from '../actions/reportState';
+import { SET_REPORT, ADD_REPORT } from '../actions/reportState';
 
 export default function reportStateReducer(state = {}, action) {
   const actionHandlers = {
     [SET_REPORT]() {
+      return {
+        ...state,
+        report: action.report,
+      };
+    },
+    [ADD_REPORT]() {
       return {
         ...state,
         report: action.report,

@@ -18,6 +18,7 @@
  */
 import React, {
   useState,
+  useEffect,
   useCallback,
   useReducer,
   Reducer,
@@ -25,6 +26,10 @@ import React, {
 } from 'react';
 import { t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
+
+import { bindActionCreators } from 'redux';
+import { connect, useDispatch } from 'react-redux';
+import { addReport } from 'src/reports/actions/reportState';
 
 import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
 import Icons from 'src/components/Icons';
@@ -44,7 +49,8 @@ import {
 interface ReportObject {
   active: boolean;
   crontab: string;
-  dashboard: number;
+  dashboard?: number;
+  chart?: number;
   description?: string;
   log_retention: number;
   name: string;
@@ -61,12 +67,14 @@ interface ReportObject {
 interface ReportProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
+  addReport: (report?: ReportObject) => {};
   onHide: () => {};
   onReportAdd: (report?: ReportObject) => {};
   show: boolean;
   userId: number;
   userEmail: string;
-  dashboardId: number;
+  dashboardId?: number;
+  chartId?: number;
   props: any;
 }
 
@@ -128,23 +136,35 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   const [error, setError] = useState<CronError>();
   const [hasConnectedReport, setHasConnectedReport] = useState<boolean>(false);
   const [isLoading, setLoading] = useState<boolean>(false);
+  const dispatch = useDispatch();
 
   // Report fetch logic
-  // Below is not needed, data will be passed in
-  const { createResource } = useSingleViewResource<ReportObject>(
+  const {
+    state: { resource },
+  } = useSingleViewResource<ReportObject>(
     'report',
     t('report'),
     addDangerToast,
   );
 
+  useEffect(() => {
+    if (resource?.dashboard) {
+      setHasConnectedReport(true);
+    }
+  }, [resource?.dashboard]);
+
+  const onClose = () => {
+    setLoading(false);
+    onHide();
+  };
+
   const onSave = async () => {
     // Create new Report
-    const newReport: ReportObject = {
-      active: true,
-      crontab: currentReport?.crontab || '0 12 * * 1',
+    const newReportValues: Partial<ReportObject> = {
+      crontab: currentReport?.crontab,
       dashboard: props.props.dashboardId,
-      description: currentReport?.description || '',
-      log_retention: 90,
+      chart: props.props.chartId,
+      description: currentReport?.description,
       name: currentReport?.name || 'Weekly Report',
       owners: [props.props.userId],
       recipients: [
@@ -153,23 +173,17 @@ const ReportModal: FunctionComponent<ReportProps> = ({
           type: 'Email',
         },
       ],
-      report_format: 'PNG',
       type: 'Report',
-      validator_config_json: {},
-      validator_type: 'operator',
-      working_timeout: 3600,
-      creation_method: 'dashboards',
     };
 
     setLoading(true);
-    const currentReportID = await createResource(newReport as ReportObject);
+    await dispatch(addReport(newReportValues as ReportObject));
 
-    if (currentReportID) {
-      setHasConnectedReport(true);
-      if (onReportAdd) {
-        onReportAdd();
-      }
+    if (onReportAdd) {
+      onReportAdd();
     }
+
+    onClose();
   };
 
   const wrappedTitle = (
@@ -181,7 +195,9 @@ const ReportModal: FunctionComponent<ReportProps> = ({
 
   const renderModalFooter = (
     <>
-      <StyledFooterButton key="back">Cancel</StyledFooterButton>
+      <StyledFooterButton key="back" onClick={onClose}>
+        Cancel
+      </StyledFooterButton>
       <StyledFooterButton key="submit" buttonStyle="primary" onClick={onSave}>
         Add
       </StyledFooterButton>
@@ -191,7 +207,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   return (
     <StyledModal
       show={show}
-      onHide={onHide}
+      onHide={onClose}
       title={wrappedTitle}
       footer={renderModalFooter}
       width="432"
@@ -261,4 +277,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   );
 };
 
-export default withToasts(ReportModal);
+const mapDispatchToProps = (dispatch: any) =>
+  bindActionCreators({ addReport }, dispatch);
+
+export default connect(null, mapDispatchToProps)(withToasts(ReportModal));

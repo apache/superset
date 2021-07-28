@@ -25,6 +25,7 @@ export const SET_REPORT = 'SET_REPORT';
 export function setReport(report) {
   return { type: SET_REPORT, report };
 }
+
 export function fetchUISpecificReport(
   userId,
   search_field,
@@ -68,3 +69,20 @@ export function fetchUISpecificReport(
       );
   };
 }
+
+export const ADD_REPORT = 'ADD_REPORT';
+
+export const addReport = report => dispatch => {
+  SupersetClient.post({
+    endpoint: `/api/v1/report/`,
+    jsonPayload: report,
+  })
+    .then(() => {
+      dispatch({ type: ADD_REPORT, report });
+    })
+    .catch(() =>
+      dispatch(
+        addDangerToast(t('An error occurred while creating this report.')),
+      ),
+    );
+};
