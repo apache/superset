@@ -24,14 +24,13 @@ import React, {
   Reducer,
   FunctionComponent,
 } from 'react';
-import { t } from '@superset-ui/core';
-// import { useSingleViewResource } from 'src/views/CRUD/hooks';
-
+import { styled, css, t, SupersetTheme } from '@superset-ui/core';
 import { bindActionCreators } from 'redux';
 import { connect, useDispatch } from 'react-redux';
 import { addReport } from 'src/reports/actions/reportState';
 
 import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
+import TimezoneSelector from 'src/components/TimezoneSelector';
 import Icons from 'src/components/Icons';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { CronPicker, CronError } from 'src/components/CronPicker';
@@ -57,6 +56,7 @@ interface ReportObject {
   owners: number[];
   recipients: [{ recipient_config_json: { target: string }; type: string }];
   report_format: string;
+  timezone: string;
   type: string;
   validator_config_json: {} | null;
   validator_type: string;
@@ -87,8 +87,6 @@ enum ActionType {
 
 interface ReportPayloadType {
   name: string;
-  description: string;
-  crontab: string;
   value: string;
 }
 
@@ -132,7 +130,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
     Reducer<Partial<ReportObject> | null, ReportActionType>
   >(reportReducer, null);
   const onChange = useCallback((type: any, payload: any) => {
-    setCurrentReport({ type, payload } as ReportActionType);
+    setCurrentReport({ type, payload });
   }, []);
   const [error, setError] = useState<CronError>();
   // ---------- comments on lines 21, 28, 125, 139-159 & 182 are being held for edit functionality
@@ -273,6 +271,21 @@ const ReportModal: FunctionComponent<ReportProps> = ({
             });
           }}
           onError={setError}
+        />
+        <div
+          className="control-label"
+          css={(theme: SupersetTheme) => timezoneHeaderStyle(theme)}
+        >
+          {t('Timezone')}
+        </div>
+        <TimezoneSelector
+          onTimezoneChange={value => {
+            setCurrentReport({
+              type: ActionType.textChange,
+              payload: { name: 'timezone', value },
+            });
+          }}
+          timezone={currentReport?.timezone}
         />
         <StyledCronError>{error}</StyledCronError>
       </StyledBottomSection>
