@@ -19,7 +19,7 @@
 /* eslint camelcase: 0 */
 import { t, SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
-import { addDangerToast } from '../../messageToasts/actions';
+import { addDangerToast, addSuccessToast } from '../../messageToasts/actions';
 
 export const SET_REPORT = 'SET_REPORT';
 export function setReport(report) {
@@ -109,6 +109,42 @@ export function toggleActive(report, isActive) {
             t('We were unable to active or deactivate this report.'),
           ),
         );
+      });
+  };
+}
+
+export function deleteActiveReport(report) {
+  return function deleteActiveReportThunk(dispatch, getState) {
+    return SupersetClient.delete({
+      endpoint: encodeURI(`/api/v1/report/${report.id}`),
+    })
+      .then(() => {
+        const state = getState();
+        const { user, dashboardInfo, charts, explore } = state;
+        if (dashboardInfo) {
+          dispatch(
+            fetchUISpecificReport(
+              user.userId,
+              'dashboard_id',
+              'dashboards',
+              dashboardInfo.id,
+            ),
+          );
+        } else {
+          const [chartArr] = Object.keys(charts);
+          dispatch(
+            fetchUISpecificReport(
+              explore.user.userId,
+              'chart_id',
+              'charts',
+              charts[chartArr].id,
+            ),
+          );
+        }
+        dispatch(addSuccessToast(t('Deleted: %s', report.name)));
+      })
+      .catch(() => {
+        dispatch(addDangerToast(t('Your report could not be deleted')));
       });
   };
 }

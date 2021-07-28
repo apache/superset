@@ -27,6 +27,7 @@ import ReportModal from 'src/components/ReportModal';
 import {
   fetchUISpecificReport,
   toggleActive,
+  deleteActiveReport,
 } from 'src/reports/actions/reportState';
 import HeaderReportActionsDropdown from 'src/components/ReportModal/HeaderReportActionsDropdown';
 import { chartPropShape } from '../../dashboard/util/propShapes';
@@ -115,7 +116,7 @@ export class ExploreChartHeader extends React.PureComponent {
   componentDidMount() {
     const { user, chart } = this.props;
     if (user) {
-      // handles anonymous user.
+      // this is in the case that there is an anonymous user.
       this.props.fetchUISpecificReport(
         user.userId,
         'chart_id',
@@ -166,6 +167,7 @@ export class ExploreChartHeader extends React.PureComponent {
         showReportModal={this.showReportModal}
         hideReportModal={this.hideReportModal}
         toggleActive={this.props.toggleActive}
+        deleteActiveReport={this.props.deleteActiveReport}
       />
     ) : (
       <>
@@ -198,8 +200,7 @@ export class ExploreChartHeader extends React.PureComponent {
   }
 
   render() {
-    const formData = this.props.form_data;
-    const { user } = this.props;
+    const { user, form_data: formData } = this.props;
     const {
       chartStatus,
       chartUpdateEndTime,
@@ -306,7 +307,7 @@ ExploreChartHeader.propTypes = propTypes;
 
 function mapDispatchToProps(dispatch) {
   return bindActionCreators(
-    { sliceUpdated, fetchUISpecificReport, toggleActive },
+    { sliceUpdated, fetchUISpecificReport, toggleActive, deleteActiveReport },
     dispatch,
   );
 }
