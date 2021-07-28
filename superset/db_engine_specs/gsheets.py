@@ -172,6 +172,17 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         )
         conn = engine.connect()
         for name, url in table_catalog.items():
+
+            if not name:
+                errors.append(
+                    SupersetError(
+                        message="Sheet name is required",
+                        error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+                        level=ErrorLevel.WARNING,
+                        extra={"invalid": ["catalog"], "name": name, "url": url},
+                    ),
+                )
+
             try:
                 results = conn.execute(f'SELECT * FROM "{url}" LIMIT 1')
                 results.fetchall()
