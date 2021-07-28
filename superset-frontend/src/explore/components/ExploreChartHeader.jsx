@@ -24,6 +24,11 @@ import Icons from 'src/components/Icons';
 import { styled, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import ReportModal from 'src/components/ReportModal';
+import {
+  fetchUISpecificReport,
+  toggleActive,
+} from 'src/reports/actions/reportState';
+import HeaderReportActionsDropdown from 'src/components/ReportModal/HeaderReportActionsDropdown';
 import { chartPropShape } from '../../dashboard/util/propShapes';
 import ExploreActionButtons from './ExploreActionButtons';
 import RowCountLabel from './RowCountLabel';
@@ -107,6 +112,19 @@ export class ExploreChartHeader extends React.PureComponent {
     this.hideReportModal = this.hideReportModal.bind(this);
   }
 
+  componentDidMount() {
+    const { user, chart } = this.props;
+    if (user) {
+      // handles anonymous user.
+      this.props.fetchUISpecificReport(
+        user.userId,
+        'chart_id',
+        'charts',
+        chart.id,
+      );
+    }
+  }
+
   getSliceName() {
     return this.props.sliceName || t('%s - untitled', this.props.table_name);
   }
@@ -141,8 +159,47 @@ export class ExploreChartHeader extends React.PureComponent {
     this.setState({ showingReportModal: false });
   }
 
+  renderReportModal() {
+    const attachedReportExists = this.props.report?.count > 0;
+    return attachedReportExists ? (
+      <HeaderReportActionsDropdown
+        showReportModal={this.showReportModal}
+        hideReportModal={this.hideReportModal}
+        toggleActive={this.props.toggleActive}
+      />
+    ) : (
+      <>
+        <span
+          role="button"
+          title={t('Schedule email report')}
+          tabIndex={0}
+          className="action-button"
+          onClick={this.showReportModal}
+        >
+          <Icons.Calendar />
+        </span>
+      </>
+    );
+  }
+
+  canAddReports() {
+    const { user } = this.props;
+    if (!user) {
+      // this is in the case that there is an anonymous user.
+      return false;
+    }
+    const roles = Object.keys(user.roles || []);
+    const permissions = roles.map(key =>
+      user.roles[key].filter(
+        perms => perms[0] === 'can_add' && perms[1] === 'AlertModelView',
+      ),
+    );
+    return this.props.report && permissions[0].length > 0;
+  }
+
   render() {
     const formData = this.props.form_data;
+    const { user } = this.props;
     const {
       chartStatus,
       chartUpdateEndTime,
@@ -166,7 +223,7 @@ export class ExploreChartHeader extends React.PureComponent {
 
           {this.props.slice && (
             <StyledButtons>
-              {this.props.userId && (
+              {user.userId && (
                 <FaveStar
                   itemId={this.props.slice.slice_id}
                   fetchFaveStar={this.props.actions.fetchFaveStar}
@@ -232,9 +289,16 @@ export class ExploreChartHeader extends React.PureComponent {
           >
             <Icons.Calendar />
           </span>
+          {this.canAddReports() && this.renderReportModal()}
           <ReportModal
             show={this.state.showingReportModal}
             onHide={this.hideReportModal}
+            props={{
+              userId: this.props.userId,
+              userEmail: this.props.email,
+              chartId: this.props.chart.id,
+              creationMethod: 'charts',
+            }}
           />
           <ExploreActionButtons
             actions={{
@@ -256,7 +320,10 @@ export class ExploreChartHeader extends React.PureComponent {
 ExploreChartHeader.propTypes = propTypes;
 
 function mapDispatchToProps(dispatch) {
-  return bindActionCreators({ sliceUpdated }, dispatch);
+  return bindActionCreators(
+    { sliceUpdated, fetchUISpecificReport, toggleActive },
+    dispatch,
+  );
 }
 
 export default connect(null, mapDispatchToProps)(ExploreChartHeader);
