@@ -16,14 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as convertKeysToCamelCase } from './convertKeysToCamelCase';
-export { default as ensureIsArray } from './ensureIsArray';
-export { default as ensureIsInt } from './ensureIsInt';
-export { default as isDefined } from './isDefined';
-export { default as isRequired } from './isRequired';
-export { default as makeSingleton } from './makeSingleton';
-export { default as promiseTimeout } from './promiseTimeout';
-export { default as logging } from './logging';
-export { default as removeDuplicates } from './removeDuplicates';
-export * from './featureFlags';
-export * from './random';
+import { ensureIsInt } from '../../src';
+
+describe('ensureIsInt', () => {
+  it('handle inputs correctly', () => {
+    expect(ensureIsInt(undefined, 0)).toEqual(0);
+    expect(ensureIsInt('abc', 1)).toEqual(1);
+    expect(ensureIsInt(undefined)).toEqual(NaN);
+    expect(ensureIsInt('abc')).toEqual(NaN);
+    expect(ensureIsInt('12.5')).toEqual(12);
+    expect(ensureIsInt(12)).toEqual(12);
+    expect(ensureIsInt(12, 0)).toEqual(12);
+  });
+});

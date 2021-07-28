@@ -20,6 +20,7 @@ import * as sectionsModule from './sections';
 
 export * from './utils';
 export * from './constants';
+export * from './operators';
 
 // can't do `export * as sections from './sections'`, babel-transformer will fail
 export const sections = sectionsModule;
