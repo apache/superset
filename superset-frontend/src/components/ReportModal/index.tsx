@@ -18,14 +18,14 @@
  */
 import React, {
   useState,
-  useEffect,
+  // useEffect,
   useCallback,
   useReducer,
   Reducer,
   FunctionComponent,
 } from 'react';
 import { t } from '@superset-ui/core';
-import { useSingleViewResource } from 'src/views/CRUD/hooks';
+// import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
 import { bindActionCreators } from 'redux';
 import { connect, useDispatch } from 'react-redux';
@@ -122,7 +122,7 @@ const reportReducer = (
 };
 
 const ReportModal: FunctionComponent<ReportProps> = ({
-  addDangerToast,
+  // addDangerToast,
   onReportAdd,
   onHide,
   show = false,
@@ -135,7 +135,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
     setCurrentReport({ type, payload } as ReportActionType);
   }, []);
   const [error, setError] = useState<CronError>();
-  // ---------- comments on lines 139-159 & 182 are being held for edit functionality
+  // ---------- comments on lines 21, 28, 125, 139-159 & 182 are being held for edit functionality
   // const [hasConnectedReport, setHasConnectedReport] = useState<boolean>(false);
   // const [isLoading, setLoading] = useState<boolean>(false);
   const dispatch = useDispatch();
