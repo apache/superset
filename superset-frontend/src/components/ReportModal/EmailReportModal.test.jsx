@@ -53,6 +53,6 @@ describe('Email Report Modal', () => {
 
     // ----- Crontab
     const crontabInputs = screen.getAllByRole('combobox');
-    expect(crontabInputs).toHaveLength(4);
+    expect(crontabInputs).toHaveLength(5);
   });
 });
