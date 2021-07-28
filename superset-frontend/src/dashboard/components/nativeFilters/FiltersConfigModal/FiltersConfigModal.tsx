@@ -171,7 +171,7 @@ export function FiltersConfigModal({
     setCurrentFilterId(initialCurrentFilterId);
     setRemovedFilters({});
     setSaveAlertVisible(false);
-    setFormValues({ filters: {} });
+    setFormValues({ filters: {}, changed: false });
   };
 
   const getFilterTitle = (id: string) =>
@@ -212,6 +212,7 @@ export function FiltersConfigModal({
         onSave,
         values,
       )();
+      resetForm();
     } else {
       configFormRef.current.changeTab('configuration');
     }
@@ -223,7 +224,8 @@ export function FiltersConfigModal({
   };
 
   const handleCancel = () => {
-    if (unsavedFiltersIds.length > 0) {
+    const changed = form.getFieldValue('changed');
+    if (unsavedFiltersIds.length > 0 || form.isFieldsTouched() || changed) {
       setSaveAlertVisible(true);
     } else {
       handleConfirmCancel();
@@ -245,10 +247,8 @@ export function FiltersConfigModal({
         <Footer
           onDismiss={() => setSaveAlertVisible(false)}
           onCancel={handleCancel}
-          getFilterTitle={getFilterTitle}
           handleSave={handleSave}
           saveAlertVisible={saveAlertVisible}
-          unsavedFiltersIds={unsavedFiltersIds}
           onConfirmCancel={handleConfirmCancel}
         />
       }

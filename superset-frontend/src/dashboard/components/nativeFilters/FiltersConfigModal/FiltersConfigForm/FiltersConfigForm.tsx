@@ -44,6 +44,7 @@ import React, {
   useState,
 } from 'react';
 import { useSelector } from 'react-redux';
+import { isEqual } from 'lodash';
 import { FormItem } from 'src/components/Form';
 import { Input } from 'src/common/components';
 import { Select } from 'src/components';
@@ -525,9 +526,21 @@ const FiltersConfigForm = (
     showDataset,
   ]);
 
+  const formChanged = useCallback(() => {
+    form.setFields([
+      {
+        name: 'changed',
+        value: true,
+      },
+    ]);
+  }, [form]);
+
   const updateFormValues = useCallback(
-    (values: any) => setNativeFilterFieldValues(form, filterId, values),
-    [filterId, form],
+    (values: any) => {
+      setNativeFilterFieldValues(form, filterId, values);
+      formChanged();
+    },
+    [filterId, form, formChanged],
   );
 
   const parentFilterOptions = parentFilters.map(filter => ({
@@ -588,6 +601,11 @@ const FiltersConfigForm = (
   const hasAdvancedSection =
     formFilter?.filterType === 'filter_select' ||
     formFilter?.filterType === 'filter_range';
+
+  const initialDefaultValue =
+    formFilter.filterType === filterToEdit?.filterType
+      ? filterToEdit?.defaultDataMask
+      : null;
 
   const preFilterValidator = () => {
     if (hasTimeRange || hasAdhoc) {
@@ -784,16 +802,15 @@ const FiltersConfigForm = (
               disabled={isRequired || defaultToFirstItem}
               tooltip={defaultValueTooltip}
               checked={hasDefaultValue}
-              onChange={value => setHasDefaultValue(value)}
+              onChange={value => {
+                setHasDefaultValue(value);
+                formChanged();
+              }}
             >
               {formFilter.filterType && (
                 <StyledRowSubFormItem
                   name={['filters', filterId, 'defaultDataMask']}
-                  initialValue={
-                    formFilter.filterType === filterToEdit?.filterType
-                      ? filterToEdit?.defaultDataMask
-                      : null
-                  }
+                  initialValue={initialDefaultValue}
                   data-test="default-input"
                   label={<StyledLabel>{t('Default Value')}</StyledLabel>}
                   required={hasDefaultValue}
@@ -820,6 +837,14 @@ const FiltersConfigForm = (
                     <DefaultValueContainer>
                       <DefaultValue
                         setDataMask={dataMask => {
+                          if (
+                            !isEqual(
+                              initialDefaultValue?.filterState?.value,
+                              dataMask?.filterState?.value,
+                            )
+                          ) {
+                            formChanged();
+                          }
                           setNativeFilterFieldValues(form, filterId, {
                             defaultDataMask: dataMask,
                           });
@@ -862,6 +887,7 @@ const FiltersConfigForm = (
                   title={t('Filter is hierarchical')}
                   initialValue={hasParentFilter}
                   onChange={checked => {
+                    formChanged();
                     if (checked) {
                       // execute after render
                       setTimeout(
@@ -900,6 +926,7 @@ const FiltersConfigForm = (
                   title={t('Pre-filter available values')}
                   initialValue={hasPreFilter}
                   onChange={checked => {
+                    formChanged();
                     if (checked) {
                       validatePreFilter();
                     }
@@ -1000,7 +1027,10 @@ const FiltersConfigForm = (
               {formFilter?.filterType !== 'filter_range' && (
                 <CollapsibleControl
                   title={t('Sort filter values')}
-                  onChange={checked => onSortChanged(checked || undefined)}
+                  onChange={checked => {
+                    onSortChanged(checked || undefined);
+                    formChanged();
+                  }}
                   initialValue={hasSorting}
                 >
                   <StyledRowFormItem
