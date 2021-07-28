@@ -44,7 +44,7 @@ class QueryCacheManager:
     Class for manage query-cache getting and setting
     """
 
-    # pylint: disable=too-many-instance-attributes
+    # pylint: disable=too-many-instance-attributes,too-many-arguments
     def __init__(
         self,
         df: DataFrame = DataFrame(),
@@ -70,6 +70,7 @@ class QueryCacheManager:
         self.cache_dttm = cache_dttm
         self.cache_value = cache_value
 
+    # pylint: disable=too-many-arguments
     def set_query_result(
         self,
         key: str,

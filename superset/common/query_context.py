@@ -87,6 +87,7 @@ class QueryContext:
 
     # TODO: Type datasource and query_object dictionary with TypedDict when it becomes
     #  a vanilla python type https://github.com/python/mypy/issues/5288
+    # pylint: disable=too-many-arguments
     def __init__(
         self,
         datasource: DatasourceDict,
@@ -153,11 +154,11 @@ class QueryContext:
                 )
             # `offset` is added to the hash function
             cache_key = self.query_cache_key(query_object_clone, time_offset=offset)
-            _cache = QueryCacheManager.get(cache_key, CacheRegion.DATA, self.force)
+            cache = QueryCacheManager.get(cache_key, CacheRegion.DATA, self.force)
             # whether hit in the cache
-            if _cache.is_loaded:
-                df = self.left_join_on_dttm(df, _cache.df)
-                queries.append(_cache.query)
+            if cache.is_loaded:
+                df = self.left_join_on_dttm(df, cache.df)
+                queries.append(cache.query)
                 cache_keys.append(cache_key)
                 continue
 
@@ -207,7 +208,7 @@ class QueryContext:
                 "df": offset_metrics_df,
                 "query": result.query,
             }
-            _cache.set(
+            cache.set(
                 key=cache_key,
                 value=value,
                 timeout=self.cache_timeout,
@@ -441,11 +442,11 @@ class QueryContext:
     ) -> Dict[str, Any]:
         """Handles caching around the df payload retrieval"""
         cache_key = self.query_cache_key(query_obj)
-        _cache = QueryCacheManager.get(
+        cache = QueryCacheManager.get(
             cache_key, CacheRegion.DATA, self.force, force_cached,
         )
 
-        if query_obj and cache_key and not _cache.is_loaded:
+        if query_obj and cache_key and not cache.is_loaded:
             try:
                 invalid_columns = [
                     col
@@ -463,7 +464,7 @@ class QueryContext:
                     )
                 query_result = self.get_query_result(query_obj)
                 annotation_data = self.get_annotation_data(query_obj)
-                _cache.set_query_result(
+                cache.set_query_result(
                     key=cache_key,
                     query_result=query_result,
                     annotation_data=annotation_data,
@@ -473,21 +474,21 @@ class QueryContext:
                     region=CacheRegion.DATA,
                 )
             except QueryObjectValidationError as ex:
-                _cache.error_message = str(ex)
-                _cache.status = QueryStatus.FAILED
+                cache.error_message = str(ex)
+                cache.status = QueryStatus.FAILED
 
         return {
             "cache_key": cache_key,
-            "cached_dttm": _cache.cache_dttm,
+            "cached_dttm": cache.cache_dttm,
             "cache_timeout": self.cache_timeout,
-            "df": _cache.df,
-            "annotation_data": _cache.annotation_data,
-            "error": _cache.error_message,
-            "is_cached": _cache.is_cached,
-            "query": _cache.query,
-            "status": _cache.status,
-            "stacktrace": _cache.stacktrace,
-            "rowcount": len(_cache.df.index),
+            "df": cache.df,
+            "annotation_data": cache.annotation_data,
+            "error": cache.error_message,
+            "is_cached": cache.is_cached,
+            "query": cache.query,
+            "status": cache.status,
+            "stacktrace": cache.stacktrace,
+            "rowcount": len(cache.df.index),
         }
 
     def raise_for_access(self) -> None:
