@@ -33,7 +33,7 @@ const propTypes = {
   annotationData: PropTypes.object,
   actions: PropTypes.object,
   chartId: PropTypes.number.isRequired,
-  datasource: PropTypes.object.isRequired,
+  datasource: PropTypes.object,
   // current chart is included by dashboard
   dashboardId: PropTypes.number,
   // original selected values for FilterBox viz

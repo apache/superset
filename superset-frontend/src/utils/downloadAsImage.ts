@@ -64,15 +64,23 @@ export default function downloadAsImage(
       );
     }
 
+    // Mapbox controls are loaded from different origin, causing CORS error
+    // See https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toDataURL#exceptions
+    const filter = (node: Element) => {
+      if (typeof node.className === 'string') {
+        return (
+          node.className !== 'mapboxgl-control-container' &&
+          !node.className.includes('ant-dropdown')
+        );
+      }
+      return true;
+    };
+
     return domToImage
       .toJpeg(elementToPrint, {
         quality: 0.95,
         bgcolor: GRAY_BACKGROUND_COLOR,
-        // Mapbox controls are loaded from different origin, causing CORS error
-        // See https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toDataURL#exceptions
-        filter: (node: Element) =>
-          node.className !== 'mapboxgl-control-container',
-        ...domToImageOptions,
+        filter,
       })
       .then(dataUrl => {
         const link = document.createElement('a');

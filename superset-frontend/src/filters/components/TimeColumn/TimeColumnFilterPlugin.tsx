@@ -24,11 +24,10 @@ import {
   tn,
 } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
-import { Select } from 'src/common/components';
-import { Styles, StyledSelect } from '../common';
+import { Select } from 'src/components';
+import { FormItemProps } from 'antd/lib/form';
+import { FilterPluginStyle, StyledFormItem, StatusMessage } from '../common';
 import { PluginFilterTimeColumnProps } from './types';
-
-const { Option } = Select;
 
 export default function PluginFilterTimeColumn(
   props: PluginFilterTimeColumnProps,
@@ -64,14 +63,14 @@ export default function PluginFilterTimeColumn(
   };
 
   useEffect(() => {
-    handleChange(filterState.value ?? null);
-  }, [JSON.stringify(filterState.value)]);
-
-  useEffect(() => {
     handleChange(defaultValue ?? null);
     // I think after Config Modal update some filter it re-creates default value for all other filters
     // so we can process it like this `JSON.stringify` or start to use `Immer`
   }, [JSON.stringify(defaultValue)]);
+
+  useEffect(() => {
+    handleChange(filterState.value ?? null);
+  }, [JSON.stringify(filterState.value)]);
 
   const timeColumns = (data || []).filter(
     row => row.dtype === GenericDataType.TEMPORAL,
@@ -81,29 +80,44 @@ export default function PluginFilterTimeColumn(
     timeColumns.length === 0
       ? t('No time columns')
       : tn('%s option', '%s options', timeColumns.length, timeColumns.length);
+
+  const formItemData: FormItemProps = {};
+  if (filterState.validateMessage) {
+    formItemData.extra = (
+      <StatusMessage status={filterState.validateStatus}>
+        {filterState.validateMessage}
+      </StatusMessage>
+    );
+  }
+
+  const options = timeColumns.map(
+    (row: { column_name: string; verbose_name: string | null }) => {
+      const { column_name: columnName, verbose_name: verboseName } = row;
+      return {
+        label: verboseName ?? columnName,
+        value: columnName,
+      };
+    },
+  );
+
   return (
-    <Styles height={height} width={width}>
-      <StyledSelect
-        allowClear
-        value={value}
-        placeholder={placeholderText}
-        // @ts-ignore
-        onChange={handleChange}
-        onBlur={unsetFocusedFilter}
-        onFocus={setFocusedFilter}
-        ref={inputRef}
+    <FilterPluginStyle height={height} width={width}>
+      <StyledFormItem
+        validateStatus={filterState.validateStatus}
+        {...formItemData}
       >
-        {timeColumns.map(
-          (row: { column_name: string; verbose_name: string | null }) => {
-            const { column_name: columnName, verbose_name: verboseName } = row;
-            return (
-              <Option key={columnName} value={columnName}>
-                {verboseName ?? columnName}
-              </Option>
-            );
-          },
-        )}
-      </StyledSelect>
-    </Styles>
+        <Select
+          allowClear
+          value={value}
+          placeholder={placeholderText}
+          // @ts-ignore
+          onChange={handleChange}
+          onMouseEnter={setFocusedFilter}
+          onMouseLeave={unsetFocusedFilter}
+          ref={inputRef}
+          options={options}
+        />
+      </StyledFormItem>
+    </FilterPluginStyle>
   );
 }

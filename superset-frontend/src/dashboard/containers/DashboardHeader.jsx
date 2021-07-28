@@ -19,6 +19,7 @@
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
+import { updateDataMask } from 'src/dataMask/actions';
 import DashboardHeader from '../components/Header';
 import isDashboardLoading from '../util/isDashboardLoading';
 
@@ -38,6 +39,7 @@ import {
   setMaxUndoHistoryExceeded,
   maxUndoHistoryToast,
   setRefreshFrequency,
+  onRefresh,
 } from '../actions/dashboardState';
 
 import {
@@ -61,6 +63,8 @@ function mapStateToProps({
   dashboardState,
   dashboardInfo,
   charts,
+  dataMask,
+  user,
 }) {
   return {
     dashboardInfo,
@@ -77,7 +81,8 @@ function mapStateToProps({
     colorNamespace: dashboardState.colorNamespace,
     colorScheme: dashboardState.colorScheme,
     charts,
-    userId: dashboardInfo.userId,
+    dataMask,
+    userId: user.userId,
     isStarred: !!dashboardState.isStarred,
     isPublished: !!dashboardState.isPublished,
     isLoading: isDashboardLoading(charts),
@@ -116,8 +121,10 @@ function mapDispatchToProps(dispatch) {
       maxUndoHistoryToast,
       logEvent,
       setRefreshFrequency,
+      onRefresh,
       dashboardInfoChanged,
       dashboardTitleChanged,
+      updateDataMask,
     },
     dispatch,
   );

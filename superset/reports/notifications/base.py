@@ -29,6 +29,7 @@ class NotificationContent:
     text: Optional[str] = None
     description: Optional[str] = ""
     url: Optional[str] = None  # url to chart/dashboard for this screenshot
+    embedded_data: Optional[str] = ""
 
 
 class BaseNotification:  # pylint: disable=too-few-public-methods

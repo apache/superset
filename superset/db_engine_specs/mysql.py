@@ -37,6 +37,7 @@ from sqlalchemy.types import TypeEngine
 
 from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
 from superset.errors import SupersetErrorType
+from superset.models.sql_lab import Query
 from superset.utils import core as utils
 from superset.utils.core import ColumnSpec, GenericDataType
 
@@ -51,6 +52,11 @@ CONNECTION_HOST_DOWN_REGEX = re.compile(
     "Can't connect to MySQL server on '(?P<hostname>.*?)'"
 )
 CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile("Unknown database '(?P<database>.*?)'")
+
+SYNTAX_ERROR_REGEX = re.compile(
+    "check the manual that corresponds to your MySQL server "
+    "version for the right syntax to use near '(?P<server_error>.*)"
+)
 
 
 class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
@@ -134,6 +140,14 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
             SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
             {"invalid": ["database"]},
         ),
+        SYNTAX_ERROR_REGEX: (
+            __(
+                'Please check your query for syntax errors near "%(server_error)s". '
+                "Then, try running your query again."
+            ),
+            SupersetErrorType.SYNTAX_ERROR,
+            {},
+        ),
     }
 
     @classmethod
@@ -186,7 +200,7 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
         return message
 
     @classmethod
-    def get_column_spec(  # type: ignore
+    def get_column_spec(
         cls,
         native_type: Optional[str],
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
@@ -207,3 +221,34 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
         return super().get_column_spec(
             native_type, column_type_mappings=column_type_mappings
         )
+
+    @classmethod
+    def get_cancel_query_id(cls, cursor: Any, query: Query) -> Optional[str]:
+        """
+        Get MySQL connection ID that will be used to cancel all other running
+        queries in the same connection.
+
+        :param cursor: Cursor instance in which the query will be executed
+        :param query: Query instance
+        :return: MySQL Connection ID
+        """
+        cursor.execute("SELECT CONNECTION_ID()")
+        row = cursor.fetchone()
+        return row[0]
+
+    @classmethod
+    def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
+        """
+        Cancel query in the underlying database.
+
+        :param cursor: New cursor instance to the db of the query
+        :param query: Query instance
+        :param cancel_query_id: MySQL Connection ID
+        :return: True if query cancelled successfully, False otherwise
+        """
+        try:
+            cursor.execute(f"KILL CONNECTION {cancel_query_id}")
+        except Exception:  # pylint: disable=broad-except
+            return False
+
+        return True

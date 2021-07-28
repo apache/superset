@@ -19,37 +19,37 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   QueryFormData,
-  styled,
   SuperChart,
   DataMask,
   t,
+  styled,
   Behavior,
   ChartDataResponseResult,
   JsonObject,
   getChartMetadataRegistry,
 } from '@superset-ui/core';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { getChartDataRequest } from 'src/chart/chartAction';
 import Loading from 'src/components/Loading';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
-import {
-  setFocusedNativeFilter,
-  unsetFocusedNativeFilter,
-} from 'src/dashboard/actions/nativeFilters';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
+import { RootState } from 'src/dashboard/types';
+import { dispatchFocusAction } from './utils';
 import { FilterProps } from './types';
 import { getFormData } from '../../utils';
 import { useCascadingFilters } from './state';
 import { checkIsMissingRequiredValue } from '../utils';
 
-const FilterItem = styled.div`
-  min-height: ${({ theme }) => theme.gridUnit * 11}px;
-  padding-bottom: ${({ theme }) => theme.gridUnit * 3}px;
-  & > div > div {
-    height: auto;
+const HEIGHT = 32;
+
+// Overrides superset-ui height with min-height
+const StyledDiv = styled.div`
+  & > div {
+    height: auto !important;
+    min-height: ${HEIGHT}px;
   }
 `;
 
@@ -63,9 +63,14 @@ const FilterValue: React.FC<FilterProps> = ({
   const { id, targets, filterType, adhoc_filters, time_range } = filter;
   const metadata = getChartMetadataRegistry().get(filterType);
   const cascadingFilters = useCascadingFilters(id, dataMaskSelected);
+  const isDashboardRefreshing = useSelector<RootState, boolean>(
+    state => state.dashboardState.isRefreshing,
+  );
   const [state, setState] = useState<ChartDataResponseResult[]>([]);
   const [error, setError] = useState<string>('');
-  const [formData, setFormData] = useState<Partial<QueryFormData>>({});
+  const [formData, setFormData] = useState<Partial<QueryFormData>>({
+    inView: false,
+  });
   const [ownState, setOwnState] = useState<JsonObject>({});
   const [inViewFirstTime, setInViewFirstTime] = useState(inView);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -77,7 +82,7 @@ const FilterValue: React.FC<FilterProps> = ({
   const { name: groupby } = column;
   const hasDataSource = !!datasetId;
   const [isLoading, setIsLoading] = useState<boolean>(hasDataSource);
-  const [isRefreshing, setIsRefreshing] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -101,8 +106,10 @@ const FilterValue: React.FC<FilterProps> = ({
     });
     const filterOwnState = filter.dataMask?.ownState || {};
     if (
-      !areObjectsEqual(formData, newFormData) ||
-      !areObjectsEqual(ownState, filterOwnState)
+      !isRefreshing &&
+      (!areObjectsEqual(formData, newFormData) ||
+        !areObjectsEqual(ownState, filterOwnState) ||
+        isDashboardRefreshing)
     ) {
       setFormData(newFormData);
       setOwnState(filterOwnState);
@@ -116,25 +123,36 @@ const FilterValue: React.FC<FilterProps> = ({
         requestParams: { dashboardId: 0 },
         ownState: filterOwnState,
       })
-        .then(response => {
+        .then(({ response, json }) => {
           if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
             // deal with getChartDataRequest transforming the response data
-            const result = 'result' in response ? response.result[0] : response;
-            waitForAsyncData(result)
-              .then((asyncResult: ChartDataResponseResult[]) => {
-                setIsRefreshing(false);
-                setIsLoading(false);
-                setState(asyncResult);
-              })
-              .catch((error: ClientErrorObject) => {
-                setError(
-                  error.message || error.error || t('Check configuration'),
-                );
-                setIsRefreshing(false);
-                setIsLoading(false);
-              });
+            const result = 'result' in json ? json.result[0] : json;
+
+            if (response.status === 200) {
+              setIsRefreshing(false);
+              setIsLoading(false);
+              setState([result]);
+            } else if (response.status === 202) {
+              waitForAsyncData(result)
+                .then((asyncResult: ChartDataResponseResult[]) => {
+                  setIsRefreshing(false);
+                  setIsLoading(false);
+                  setState(asyncResult);
+                })
+                .catch((error: ClientErrorObject) => {
+                  setError(
+                    error.message || error.error || t('Check configuration'),
+                  );
+                  setIsRefreshing(false);
+                  setIsLoading(false);
+                });
+            } else {
+              throw new Error(
+                `Received unexpected response status (${response.status}) while fetching chart data`,
+              );
+            }
           } else {
-            setState(response.result);
+            setState(json.result);
             setError('');
             setIsRefreshing(false);
             setIsLoading(false);
@@ -153,6 +171,8 @@ const FilterValue: React.FC<FilterProps> = ({
     groupby,
     JSON.stringify(filter),
     hasDataSource,
+    isRefreshing,
+    isDashboardRefreshing,
   ]);
 
   useEffect(() => {
@@ -169,8 +189,8 @@ const FilterValue: React.FC<FilterProps> = ({
   const setDataMask = (dataMask: DataMask) =>
     onFilterSelectionChange(filter, dataMask);
 
-  const setFocusedFilter = () => dispatch(setFocusedNativeFilter(id));
-  const unsetFocusedFilter = () => dispatch(unsetFocusedNativeFilter());
+  const setFocusedFilter = () => dispatchFocusAction(dispatch, id);
+  const unsetFocusedFilter = () => dispatchFocusAction(dispatch);
 
   if (error) {
     return (
@@ -181,37 +201,36 @@ const FilterValue: React.FC<FilterProps> = ({
       />
     );
   }
-
   const isMissingRequiredValue = checkIsMissingRequiredValue(
     filter,
     filter.dataMask?.filterState,
   );
+  const filterState = {
+    ...filter.dataMask?.filterState,
+    validateStatus: isMissingRequiredValue && 'error',
+  };
 
   return (
-    <FilterItem data-test="form-item-value">
+    <StyledDiv data-test="form-item-value">
       {isLoading ? (
         <Loading position="inline-centered" />
       ) : (
         <SuperChart
-          height={20}
+          height={HEIGHT}
           width="100%"
           formData={formData}
           // For charts that don't have datasource we need workaround for empty placeholder
           queriesData={hasDataSource ? state : [{ data: [{}] }]}
           chartType={filterType}
           behaviors={[Behavior.NATIVE_FILTER]}
-          filterState={{
-            ...filter.dataMask?.filterState,
-            validateMessage: isMissingRequiredValue && t('Value is required'),
-            validateStatus: isMissingRequiredValue && 'error',
-          }}
+          filterState={filterState}
           ownState={filter.dataMask?.ownState}
           enableNoResults={metadata?.enableNoResults}
           isRefreshing={isRefreshing}
           hooks={{ setDataMask, setFocusedFilter, unsetFocusedFilter }}
         />
       )}
-    </FilterItem>
+    </StyledDiv>
   );
 };
 

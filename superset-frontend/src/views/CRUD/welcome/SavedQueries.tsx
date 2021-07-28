@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { t, SupersetClient, styled } from '@superset-ui/core';
+import { t, SupersetClient, styled, useTheme } from '@superset-ui/core';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
@@ -27,7 +27,7 @@ import { Dropdown, Menu } from 'src/common/components';
 import { useListViewResource, copyQueryLink } from 'src/views/CRUD/hooks';
 import ListViewCard from 'src/components/ListViewCard';
 import DeleteModal from 'src/components/DeleteModal';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import SubMenu from 'src/components/Menu/SubMenu';
 import EmptyState from './EmptyState';
 import { CardContainer, createErrorHandler, shortenSQL } from '../utils';
@@ -135,6 +135,8 @@ const SavedQueries = ({
   const [ifMine, setMine] = useState(true);
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
+
+  const theme = useTheme();
 
   const handleQueryDelete = ({ id, label }: Query) => {
     SupersetClient.delete({
@@ -283,7 +285,7 @@ const SavedQueries = ({
             ),
             buttonStyle: 'tertiary',
             onClick: () => {
-              window.location.href = '/superset/sqllab';
+              window.location.href = '/superset/sqllab?new=true';
             },
           },
           {
@@ -347,7 +349,9 @@ const SavedQueries = ({
                       }}
                     >
                       <Dropdown overlay={renderMenu(q)}>
-                        <Icon name="more-horiz" />
+                        <Icons.MoreHoriz
+                          iconColor={theme.colors.grayscale.base}
+                        />
                       </Dropdown>
                     </ListViewCard.Actions>
                   </QueryData>

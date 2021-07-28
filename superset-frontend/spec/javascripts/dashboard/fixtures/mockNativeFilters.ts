@@ -62,7 +62,6 @@ export const nativeFiltersInfo: NativeFiltersState = {
         rootPath: [],
         excluded: [],
       },
-      isInstant: true,
       controlValues: {
         allowsMultipleValues: true,
         isRequired: false,

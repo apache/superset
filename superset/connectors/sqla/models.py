@@ -22,7 +22,18 @@ from collections import defaultdict, OrderedDict
 from contextlib import closing
 from dataclasses import dataclass, field  # pylint: disable=wrong-import-order
 from datetime import datetime, timedelta
-from typing import Any, Dict, Hashable, List, NamedTuple, Optional, Tuple, Type, Union
+from typing import (
+    Any,
+    cast,
+    Dict,
+    Hashable,
+    List,
+    NamedTuple,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 import pandas as pd
 import sqlalchemy as sa
@@ -46,8 +57,11 @@ from sqlalchemy import (
     String,
     Table,
     Text,
+    update,
 )
+from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty, Session
+from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table, text
 from sqlalchemy.sql.elements import ColumnClause
@@ -241,7 +255,9 @@ class TableColumn(Model, BaseColumn):
         column_spec = db_engine_spec.get_column_spec(self.type)
         type_ = column_spec.sqla_type if column_spec else None
         if self.expression:
-            col = literal_column(self.expression, type_=type_)
+            tp = self.table.get_template_processor()
+            expression = tp.process_template(self.expression)
+            col = literal_column(expression, type_=type_)
         else:
             col = column(self.column_name, type_=type_)
         col = self.table.make_sqla_column_compatible(col, label)
@@ -393,7 +409,8 @@ class SqlMetric(Model, BaseMetric):
 
     def get_sqla_col(self, label: Optional[str] = None) -> Column:
         label = label or self.metric_name
-        sqla_col: ColumnClause = literal_column(self.expression)
+        tp = self.table.get_template_processor()
+        sqla_col: ColumnClause = literal_column(tp.process_template(self.expression))
         return self.table.make_sqla_column_compatible(sqla_col, label)
 
     @property
@@ -717,7 +734,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             self.table_name, schema=self.schema, show_cols=False, latest_partition=False
         )
 
-    @property  # type: ignore
+    @property
     def health_check_message(self) -> Optional[str]:
         check = config["DATASET_HEALTH_CHECK"]
         return check(self) if check else None
@@ -866,7 +883,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
     def adhoc_metric_to_sqla(
         self, metric: AdhocMetric, columns_by_name: Dict[str, TableColumn]
-    ) -> Column:
+    ) -> ColumnElement:
         """
         Turn an adhoc metric into a sqlalchemy column.
 
@@ -879,7 +896,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         label = utils.get_metric_name(metric)
 
         if expression_type == utils.AdhocMetricExpressionType.SIMPLE:
-            column_name = metric["column"].get("column_name")
+            column_name = cast(str, metric["column"].get("column_name"))
             table_column: Optional[TableColumn] = columns_by_name.get(column_name)
             if table_column:
                 sqla_column = table_column.get_sqla_col()
@@ -887,15 +904,17 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 sqla_column = column(column_name)
             sqla_metric = self.sqla_aggregations[metric["aggregate"]](sqla_column)
         elif expression_type == utils.AdhocMetricExpressionType.SQL:
-            sqla_metric = literal_column(metric.get("sqlExpression"))
+            tp = self.get_template_processor()
+            expression = tp.process_template(cast(str, metric["sqlExpression"]))
+            sqla_metric = literal_column(expression)
         else:
             raise QueryObjectValidationError("Adhoc metric expressionType is invalid")
 
         return self.make_sqla_column_compatible(sqla_metric, label)
 
     def make_sqla_column_compatible(
-        self, sqla_col: Column, label: Optional[str] = None
-    ) -> Column:
+        self, sqla_col: ColumnElement, label: Optional[str] = None
+    ) -> ColumnElement:
         """Takes a sqlalchemy column object and adds label info if supported by engine.
         :param sqla_col: sqlalchemy column instance
         :param label: alias/label that column is expected to have
@@ -1013,7 +1032,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         metrics = metrics or []
 
         # For backward compatibility
-        if granularity not in self.dttm_cols:
+        if granularity not in self.dttm_cols and granularity is not None:
             granularity = self.main_dttm_col
 
         # Database spec supports join-free timeslot grouping
@@ -1054,14 +1073,16 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
         # To ensure correct handling of the ORDER BY labeling we need to reference the
         # metric instance if defined in the SELECT clause.
-        metrics_exprs_by_label = {m.name: m for m in metrics_exprs}
+        # use the key of the ColumnClause for the expected label
+        metrics_exprs_by_label = {m.key: m for m in metrics_exprs}
         metrics_exprs_by_expr = {str(m): m for m in metrics_exprs}
 
         # Since orderby may use adhoc metrics, too; we need to process them first
         orderby_exprs: List[ColumnElement] = []
         for orig_col, ascending in orderby:
-            col: Union[Metric, ColumnElement] = orig_col
+            col: Union[AdhocMetric, ColumnElement] = orig_col
             if isinstance(col, dict):
+                col = cast(AdhocMetric, col)
                 if utils.is_adhoc_metric(col):
                     # add adhoc sort by column to columns_by_name if not exists
                     col = self.adhoc_metric_to_sqla(col, columns_by_name)
@@ -1649,9 +1670,24 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         return extra_cache_keys
 
 
+def update_table(
+    _mapper: Mapper, _connection: Connection, obj: Union[SqlMetric, TableColumn]
+) -> None:
+    """
+    Forces an update to the table's changed_on value when a metric or column on the
+    table is updated. This busts the cache key for all charts that use the table.
+
+    :param _mapper: Unused.
+    :param _connection: Unused.
+    :param obj: The metric or column that was updated.
+    """
+    db.session.execute(update(SqlaTable).where(SqlaTable.id == obj.table.id))
+
+
 sa.event.listen(SqlaTable, "after_insert", security_manager.set_perm)
 sa.event.listen(SqlaTable, "after_update", security_manager.set_perm)
-
+sa.event.listen(SqlMetric, "after_update", update_table)
+sa.event.listen(TableColumn, "after_update", update_table)
 
 RLSFilterRoles = Table(
     "rls_filter_roles",

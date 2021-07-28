@@ -157,8 +157,28 @@ function DashboardList(props: DashboardListProps) {
       ({ json = {} }) => {
         setDashboards(
           dashboards.map(dashboard => {
-            if (dashboard.id === json.id) {
-              return json.result;
+            if (dashboard.id === json?.result?.id) {
+              const {
+                changed_by_name,
+                changed_by_url,
+                changed_by,
+                dashboard_title = '',
+                slug = '',
+                json_metadata = '',
+                changed_on_delta_humanized,
+                url = '',
+              } = json.result;
+              return {
+                ...dashboard,
+                changed_by_name,
+                changed_by_url,
+                changed_by,
+                dashboard_title,
+                slug,
+                json_metadata,
+                changed_on_delta_humanized,
+                url,
+              };
             }
             return dashboard;
           }),

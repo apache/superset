@@ -50,7 +50,7 @@ export const useNativeFilters = () => {
     (canEdit || (!canEdit && filterValues.length !== 0));
 
   const requiredFirstFilter = filterValues.filter(
-    ({ requiredFirst }) => requiredFirst,
+    filter => filter.requiredFirst,
   );
   const dataMask = useNativeFiltersDataMask();
   const showDashboard =

@@ -193,18 +193,6 @@ test('Should not show export full CSV if report is not table', () => {
   );
 });
 
-test('Should "View chart in Explore"', () => {
-  const props = createProps();
-  render(<SliceHeaderControls {...props} />, { useRedux: true });
-
-  expect(props.exploreChart).toBeCalledTimes(0);
-  userEvent.click(
-    screen.getByRole('menuitem', { name: 'View chart in Explore' }),
-  );
-  expect(props.exploreChart).toBeCalledTimes(1);
-  expect(props.exploreChart).toBeCalledWith(371);
-});
-
 test('Should "Toggle chart description"', () => {
   const props = createProps();
   render(<SliceHeaderControls {...props} />, { useRedux: true });
