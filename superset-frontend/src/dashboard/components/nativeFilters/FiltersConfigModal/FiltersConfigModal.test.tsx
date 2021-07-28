@@ -28,7 +28,7 @@ import {
   TimeGrainFilterPlugin,
 } from 'src/filters/components';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import mockDatasource, { datasourceId } from 'spec/fixtures/mockDatasource';
+import mockDatasource, { id, datasourceId } from 'spec/fixtures/mockDatasource';
 import chartQueries from 'spec/fixtures/mockChartQueries';
 import {
   FiltersConfigModal,
@@ -71,9 +71,9 @@ const noTemporalColumnsState = () => {
   };
 };
 
-fetchMock.get('glob:*/api/v1/dataset/1', {
+const datasetResult = (id: number) => ({
   description_columns: {},
-  id: 1,
+  id,
   label_columns: {
     columns: 'Columns',
     table_name: 'Table Name',
@@ -87,10 +87,13 @@ fetchMock.get('glob:*/api/v1/dataset/1', {
       },
     ],
     table_name: 'birth_names',
-    id: 1,
+    id,
   },
   show_columns: ['id', 'table_name'],
 });
+
+fetchMock.get('glob:*/api/v1/dataset/1', datasetResult(1));
+fetchMock.get(`glob:*/api/v1/dataset/${id}`, datasetResult(id));
 
 fetchMock.post('glob:*/api/v1/chart/data', {
   result: [
@@ -320,6 +323,11 @@ test('validates the pre-filter value', async () => {
 
 test("doesn't render time range pre-filter if there are no temporal columns in datasource", async () => {
   defaultRender(noTemporalColumnsState());
+  userEvent.click(screen.getByText(DATASET_REGEX));
+  await waitFor(() => {
+    expect(screen.queryByLabelText('Loading')).not.toBeInTheDocument();
+    userEvent.click(screen.getByText('birth_names'));
+  });
   userEvent.click(screen.getByText(ADVANCED_REGEX));
   userEvent.click(getCheckbox(PRE_FILTER_REGEX));
   await waitFor(() =>

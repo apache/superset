@@ -28,16 +28,17 @@ import React, {
   useCallback,
 } from 'react';
 import { styled, t } from '@superset-ui/core';
-import { Select as AntdSelect } from 'antd';
-import Icons from 'src/components/Icons';
-import {
+import AntdSelect, {
   SelectProps as AntdSelectProps,
   SelectValue as AntdSelectValue,
   LabeledValue as AntdLabeledValue,
 } from 'antd/lib/select';
+import { DownOutlined, SearchOutlined } from '@ant-design/icons';
 import debounce from 'lodash/debounce';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { isEqual } from 'lodash';
+import { Spin } from 'antd';
+import Icons from 'src/components/Icons';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { hasOption } from './utils';
 
 type AntdSelectAllProps = AntdSelectProps<AntdSelectValue>;
@@ -47,7 +48,6 @@ type PickedSelectProps = Pick<
   | 'allowClear'
   | 'autoFocus'
   | 'value'
-  | 'defaultValue'
   | 'disabled'
   | 'filterOption'
   | 'notFoundContent'
@@ -66,8 +66,8 @@ export type OptionsTypePage = {
 
 export type OptionsPagePromise = (
   search: string,
-  offset: number,
-  limit: number,
+  page: number,
+  pageSize: number,
 ) => Promise<OptionsTypePage>;
 
 export interface SelectProps extends PickedSelectProps {
@@ -79,6 +79,7 @@ export interface SelectProps extends PickedSelectProps {
   options: OptionsType | OptionsPagePromise;
   pageSize?: number;
   invertSelection?: boolean;
+  fetchOnlyOnSearch?: boolean;
 }
 
 const StyledContainer = styled.div`
@@ -122,10 +123,14 @@ const StyledError = styled.div`
   `}
 `;
 
+const StyledSpin = styled(Spin)`
+  margin-top: ${({ theme }) => -theme.gridUnit}px;
+`;
+
 const MAX_TAG_COUNT = 4;
 const TOKEN_SEPARATORS = [',', '\n', '\t', ';'];
 const DEBOUNCE_TIMEOUT = 500;
-const DEFAULT_PAGE_SIZE = 50;
+const DEFAULT_PAGE_SIZE = 100;
 const EMPTY_OPTIONS: OptionsType = [];
 
 const Error = ({ error }: { error: string }) => (
@@ -137,15 +142,16 @@ const Error = ({ error }: { error: string }) => (
 const Select = ({
   allowNewOptions = false,
   ariaLabel,
+  fetchOnlyOnSearch,
   filterOption = true,
   header = null,
+  invertSelection = false,
   mode = 'single',
   name,
+  options,
   pageSize = DEFAULT_PAGE_SIZE,
   placeholder = t('Select ...'),
-  options,
   showSearch,
-  invertSelection = false,
   value,
   ...props
 }: SelectProps) => {
@@ -162,9 +168,10 @@ const Select = ({
   const [isLoading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
-  const [offset, setOffset] = useState(0);
+  const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
-  const fetchedQueries = useRef(new Set<string>());
+  const [loadingEnabled, setLoadingEnabled] = useState(false);
+  const fetchedQueries = useRef(new Map<string, number>());
   const mappedMode = isSingleMode
     ? undefined
     : allowNewOptions
@@ -178,6 +185,26 @@ const Select = ({
   }, [options]);
 
   useEffect(() => {
+    if (isAsync && value) {
+      const array: AntdLabeledValue[] = Array.isArray(value)
+        ? (value as AntdLabeledValue[])
+        : [value as AntdLabeledValue];
+      const options: AntdLabeledValue[] = [];
+      array.forEach(element => {
+        const found = selectOptions.find(
+          option => option.value === element.value,
+        );
+        if (!found) {
+          options.push(element);
+        }
+      });
+      if (options.length > 0) {
+        setSelectOptions([...selectOptions, ...options]);
+      }
+    }
+  }, [isAsync, selectOptions, value]);
+
+  useEffect(() => {
     setSelectValue(value);
   }, [value]);
 
@@ -185,24 +212,56 @@ const Select = ({
     (selectedValue: AntdSelectValue | undefined) => {
       // bringing selected options to the top of the list
       if (selectedValue) {
-        const currentValue = selectedValue as string[] | string;
-        const topOptions = selectOptions.filter(opt =>
-          Array.isArray(currentValue)
-            ? currentValue.includes(opt.value)
-            : currentValue === opt.value,
-        );
-        const otherOptions = selectOptions.filter(
-          opt => !topOptions.find(tOpt => tOpt.value === opt.value),
-        );
+        const topOptions: OptionsType = [];
+        const otherOptions: OptionsType = [];
+
+        selectOptions.forEach(opt => {
+          let found = false;
+          if (Array.isArray(selectedValue)) {
+            if (isAsync) {
+              found =
+                (selectedValue as AntdLabeledValue[]).find(
+                  element => element.value === opt.value,
+                ) !== undefined;
+            } else {
+              found = selectedValue.includes(opt.value);
+            }
+          } else {
+            found = isAsync
+              ? (selectedValue as AntdLabeledValue).value === opt.value
+              : selectedValue === opt.value;
+          }
+
+          if (found) {
+            topOptions.push(opt);
+          } else {
+            otherOptions.push(opt);
+          }
+        });
+
         // fallback for custom options in tags mode as they
         // do not appear in the selectOptions state
-        if (!isSingleMode && Array.isArray(currentValue)) {
-          // eslint-disable-next-line no-restricted-syntax
-          for (const val of currentValue) {
-            if (!topOptions.find(tOpt => tOpt.value === val)) {
-              topOptions.push({ label: val, value: val });
+        if (!isSingleMode && Array.isArray(selectedValue)) {
+          selectedValue.forEach((val: string | number | AntdLabeledValue) => {
+            if (
+              !topOptions.find(
+                tOpt =>
+                  tOpt.value ===
+                  (isAsync ? (val as AntdLabeledValue)?.value : val),
+              )
+            ) {
+              if (isAsync) {
+                const labelValue = val as AntdLabeledValue;
+                topOptions.push({
+                  label: labelValue.label,
+                  value: labelValue.value,
+                });
+              } else {
+                const value = val as string | number;
+                topOptions.push({ label: String(value), value });
+              }
             }
-          }
+          });
         }
 
         const sortedOptions = [...topOptions, ...otherOptions];
@@ -211,7 +270,7 @@ const Select = ({
         }
       }
     },
-    [isSingleMode, selectOptions],
+    [isAsync, isSingleMode, selectOptions],
   );
 
   const handleOnSelect = (
@@ -220,7 +279,11 @@ const Select = ({
     if (isSingleMode) {
       setSelectValue(selectedValue);
     } else {
-      const currentSelected = Array.isArray(selectValue) ? selectValue : [];
+      const currentSelected = selectValue
+        ? Array.isArray(selectValue)
+          ? selectValue
+          : [selectValue]
+        : [];
       if (
         typeof selectedValue === 'number' ||
         typeof selectedValue === 'string'
@@ -269,17 +332,19 @@ const Select = ({
   };
 
   const handlePaginatedFetch = useMemo(
-    () => (value: string, offset: number, limit: number) => {
-      const key = `${value};${offset};${limit}`;
-      if (fetchedQueries.current.has(key)) {
+    () => (value: string, page: number, pageSize: number) => {
+      const key = `${value};${page};${pageSize}`;
+      const cachedCount = fetchedQueries.current.get(key);
+      if (cachedCount) {
+        setTotalCount(cachedCount);
         return;
       }
       setLoading(true);
       const fetchOptions = options as OptionsPagePromise;
-      fetchOptions(value, offset, limit)
+      fetchOptions(value, page, pageSize)
         .then(({ data, totalCount }: OptionsTypePage) => {
           handleData(data);
-          fetchedQueries.current.add(key);
+          fetchedQueries.current.set(key, totalCount);
           setTotalCount(totalCount);
         })
         .catch(onError)
@@ -321,14 +386,12 @@ const Select = ({
     const vScroll = e.currentTarget;
     const thresholdReached =
       vScroll.scrollTop > (vScroll.scrollHeight - vScroll.offsetHeight) * 0.7;
-    const hasMoreData = offset + pageSize < totalCount;
+    const hasMoreData = page * pageSize + pageSize < totalCount;
 
     if (!isLoading && isAsync && hasMoreData && thresholdReached) {
-      const newOffset = offset + pageSize;
-      const limit =
-        newOffset + pageSize > totalCount ? totalCount - newOffset : pageSize;
-      handlePaginatedFetch(searchedValue, newOffset, limit);
-      setOffset(newOffset);
+      const newPage = page + 1;
+      handlePaginatedFetch(searchedValue, newPage, pageSize);
+      setPage(newPage);
     }
   };
 
@@ -353,6 +416,11 @@ const Select = ({
 
   const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
     setIsDropdownVisible(isDropdownVisible);
+
+    if (isAsync && !loadingEnabled) {
+      setLoadingEnabled(true);
+    }
+
     // multiple or tags mode keep the dropdown visible while selecting options
     // this waits for the dropdown to be closed before sorting the top options
     if (!isSingleMode && !isDropdownVisible) {
@@ -361,13 +429,20 @@ const Select = ({
   };
 
   useEffect(() => {
-    const foundOption = hasOption(searchedValue, selectOptions);
-    if (isAsync && !foundOption) {
-      const offset = 0;
-      handlePaginatedFetch(searchedValue, offset, pageSize);
-      setOffset(offset);
+    const allowFetch = !fetchOnlyOnSearch || searchedValue;
+    if (isAsync && loadingEnabled && allowFetch) {
+      const page = 0;
+      handlePaginatedFetch(searchedValue, page, pageSize);
+      setPage(page);
     }
-  }, [isAsync, searchedValue, selectOptions, pageSize, handlePaginatedFetch]);
+  }, [
+    isAsync,
+    searchedValue,
+    pageSize,
+    handlePaginatedFetch,
+    loadingEnabled,
+    fetchOnlyOnSearch,
+  ]);
 
   useEffect(() => {
     if (isSingleMode) {
@@ -384,6 +459,16 @@ const Select = ({
     return error ? <Error error={error} /> : originNode;
   };
 
+  const SuffixIcon = () => {
+    if (isLoading) {
+      return <StyledSpin size="small" />;
+    }
+    if (shouldShowSearch && isDropdownVisible) {
+      return <SearchOutlined />;
+    }
+    return <DownOutlined />;
+  };
+
   return (
     <StyledContainer>
       {header}
@@ -393,13 +478,13 @@ const Select = ({
         dropdownRender={dropdownRender}
         filterOption={handleFilterOption}
         getPopupContainer={triggerNode => triggerNode.parentNode}
-        loading={isLoading}
+        labelInValue={isAsync}
         maxTagCount={MAX_TAG_COUNT}
         mode={mappedMode}
         onDeselect={handleOnDeselect}
         onDropdownVisibleChange={handleOnDropdownVisibleChange}
         onPopupScroll={isAsync ? handlePagination : undefined}
-        onSearch={handleOnSearch}
+        onSearch={shouldShowSearch ? handleOnSearch : undefined}
         onSelect={handleOnSelect}
         onClear={() => setSelectValue(undefined)}
         options={selectOptions}
@@ -408,6 +493,7 @@ const Select = ({
         showArrow
         tokenSeparators={TOKEN_SEPARATORS}
         value={selectValue}
+        suffixIcon={<SuffixIcon />}
         menuItemSelectedIcon={
           invertSelection ? (
             <StyledStopOutlined iconSize="m" />

@@ -27,8 +27,6 @@ import {
 } from 'src/utils/getClientErrorObject';
 import { datasetToSelectOption } from './utils';
 
-const PAGE_SIZE = 50;
-
 const localCache = new Map<string, any>();
 
 const cachedSupersetGet = cacheWrapper(
@@ -38,18 +36,11 @@ const cachedSupersetGet = cacheWrapper(
 );
 
 interface DatasetSelectProps {
-  datasetDetails: Record<string, any> | undefined;
-  datasetId: number;
-  onChange: (value: number) => void;
-  value?: { value: number | undefined };
+  onChange: (value: { label: string; value: number }) => void;
+  value?: { label: string; value: number };
 }
 
-const DatasetSelect = ({
-  datasetDetails,
-  datasetId,
-  onChange,
-  value,
-}: DatasetSelectProps) => {
+const DatasetSelect = ({ onChange, value }: DatasetSelectProps) => {
   const getErrorMessage = useCallback(
     ({ error, message }: ClientErrorObject) => {
       let errorText = message || error || t('An error has occurred');
@@ -61,17 +52,16 @@ const DatasetSelect = ({
     [],
   );
 
-  // TODO Change offset and limit to page and pageSize
   const loadDatasetOptions = async (
     search: string,
-    offset: number,
-    limit: number, // eslint-disable-line @typescript-eslint/no-unused-vars
+    page: number,
+    pageSize: number,
   ) => {
     const searchColumn = 'table_name';
     const query = rison.encode({
       filters: [{ col: searchColumn, opr: 'ct', value: search }],
-      page: Math.floor(offset / PAGE_SIZE),
-      page_size: PAGE_SIZE,
+      page,
+      page_size: pageSize,
       order_column: searchColumn,
       order_direction: 'asc',
     });
@@ -87,15 +77,6 @@ const DatasetSelect = ({
           .sort((a: { label: string }, b: { label: string }) =>
             a.label.localeCompare(b.label),
           );
-        if (!search) {
-          const found = data.find(element => element.value === datasetId);
-          if (!found && datasetDetails?.table_name) {
-            data.push({
-              label: datasetDetails.table_name,
-              value: datasetId,
-            });
-          }
-        }
         return {
           data,
           totalCount: response.json.count,
@@ -110,8 +91,7 @@ const DatasetSelect = ({
   return (
     <Select
       ariaLabel={t('Dataset')}
-      value={value?.value}
-      pageSize={PAGE_SIZE}
+      value={value}
       options={loadDatasetOptions}
       onChange={onChange}
     />

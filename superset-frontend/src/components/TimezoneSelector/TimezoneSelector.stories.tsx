@@ -16,23 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { combineReducers } from 'redux';
+import React from 'react';
+import { useArgs } from '@storybook/client-api';
+import TimezoneSelector, { TimezoneProps } from './index';
 
-import reportState from 'src/reports/reducers/reportState';
-import charts from '../../chart/chartReducer';
-import saveModal from './saveModalReducer';
-import explore from './exploreReducer';
-import dataMask from '../../dataMask/reducer';
-import messageToasts from '../../messageToasts/reducers';
+export default {
+  title: 'TimezoneSelector',
+  component: TimezoneSelector,
+};
 
-const impressionId = (state = '') => state;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const InteractiveTimezoneSelector = (args: TimezoneProps) => {
+  const [{ timezone }, updateArgs] = useArgs();
+  const onTimezoneChange = (value: string) => {
+    updateArgs({ timezone: value });
+  };
+  return (
+    <TimezoneSelector timezone={timezone} onTimezoneChange={onTimezoneChange} />
+  );
+};
 
-export default combineReducers({
-  charts,
-  saveModal,
-  dataMask,
-  explore,
-  impressionId,
-  messageToasts,
-  reportState,
-});
+InteractiveTimezoneSelector.args = {
+  timezone: 'America/Los_Angeles',
+};

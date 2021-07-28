@@ -243,7 +243,9 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
           row: {
             original: { allow_run_async: allowRunAsync },
           },
-        }: any) => <BooleanDisplay value={allowRunAsync} />,
+        }: {
+          row: { original: { allow_run_async: boolean } };
+        }) => <BooleanDisplay value={allowRunAsync} />,
         size: 'sm',
       },
       {

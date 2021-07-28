@@ -17,7 +17,13 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { SET_REPORT, ADD_REPORT } from '../actions/reportState';
+import { alterInArr } from 'src/reduxUtils';
+import {
+  SET_REPORT,
+  ADD_REPORT,
+  EDIT_REPORT,
+  TOGGLE_ACTIVE,
+} from '../actions/reportState';
 
 export default function reportStateReducer(state = {}, action) {
   const actionHandlers = {
@@ -31,6 +37,31 @@ export default function reportStateReducer(state = {}, action) {
       return {
         ...state,
         report: action.report,
+      };
+    },
+    [EDIT_REPORT]() {
+      return {
+        ...state,
+        report: action.report,
+      };
+    },
+    [TOGGLE_ACTIVE]() {
+      const { report, isActive } = action;
+      const existing = state.report.result.find(
+        result => result.id === report.id,
+      );
+      const newArr = alterInArr(
+        state.report,
+        'result',
+        existing,
+        {
+          active: isActive,
+        },
+        'id',
+      );
+      return {
+        ...state,
+        report: newArr,
       };
     },
   };
