@@ -77,6 +77,8 @@ class QueryObject:
     granularity: Optional[str]
     from_dttm: Optional[datetime]
     to_dttm: Optional[datetime]
+    inner_from_dttm: Optional[datetime]
+    inner_to_dttm: Optional[datetime]
     is_timeseries: bool
     time_shift: Optional[timedelta]
     groupby: List[str]
@@ -94,6 +96,7 @@ class QueryObject:
     datasource: Optional[BaseDatasource]
     result_type: Optional[ChartDataResultType]
     is_rowcount: bool
+    time_offsets: List[str]
 
     def __init__(
         self,
@@ -125,6 +128,9 @@ class QueryObject:
         groupby = groupby or []
         extras = extras or {}
         annotation_layers = annotation_layers or []
+        self.time_offsets = kwargs.get("time_offsets", [])
+        self.inner_from_dttm = kwargs.get("inner_from_dttm")
+        self.inner_to_dttm = kwargs.get("inner_to_dttm")
 
         self.is_rowcount = is_rowcount
         self.datasource = None
@@ -268,6 +274,8 @@ class QueryObject:
             "groupby": self.groupby,
             "from_dttm": self.from_dttm,
             "to_dttm": self.to_dttm,
+            "inner_from_dttm": self.inner_from_dttm,
+            "inner_to_dttm": self.inner_to_dttm,
             "is_rowcount": self.is_rowcount,
             "is_timeseries": self.is_timeseries,
             "metrics": self.metrics,
@@ -307,6 +315,8 @@ class QueryObject:
             cache_dict["time_range"] = self.time_range
         if self.post_processing:
             cache_dict["post_processing"] = self.post_processing
+        if self.time_offsets:
+            cache_dict["time_offsets"] = self.time_offsets
 
         for k in ["from_dttm", "to_dttm"]:
             del cache_dict[k]

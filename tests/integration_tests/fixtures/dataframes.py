@@ -130,6 +130,15 @@ timeseries_df = DataFrame(
     data={"label": ["x", "y", "z", "q"], "y": [1.0, 2.0, 3.0, 4.0]},
 )
 
+timeseries_df2 = DataFrame(
+    index=to_datetime(["2019-01-01", "2019-01-02", "2019-01-05", "2019-01-07"]),
+    data={
+        "label": ["x", "y", "z", "q"],
+        "y": [2.0, 2.0, 2.0, 2.0],
+        "z": [2.0, 4.0, 10.0, 8.0],
+    },
+)
+
 lonlat_df = DataFrame(
     {
         "city": ["New York City", "Sydney"],

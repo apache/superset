@@ -16,26 +16,28 @@
 # under the License.
 from __future__ import annotations
 
+import copy
 import logging
 from typing import Any, ClassVar, Dict, List, Optional, TYPE_CHECKING, Union
 
 import numpy as np
 import pandas as pd
 from flask_babel import _
+from pandas import DateOffset
+from typing_extensions import TypedDict
 
 from superset import app, db, is_feature_enabled
 from superset.annotation_layers.dao import AnnotationLayerDAO
 from superset.charts.dao import ChartDAO
 from superset.common.query_actions import get_query_results
 from superset.common.query_object import QueryObject
+from superset.common.utils import QueryCacheManager
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.exceptions import (
-    CacheLoadError,
-    QueryObjectValidationError,
-    SupersetException,
-)
+from superset.constants import CacheRegion
+from superset.exceptions import QueryObjectValidationError, SupersetException
 from superset.extensions import cache_manager, security_manager
+from superset.models.helpers import QueryResult
 from superset.utils import csv
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
@@ -45,10 +47,12 @@ from superset.utils.core import (
     DTTM_ALIAS,
     error_msg_from_exception,
     get_column_names_from_metrics,
-    get_stacktrace,
+    get_metric_names,
     normalize_dttm_col,
     QueryStatus,
+    TIME_COMPARISION,
 )
+from superset.utils.date_parser import get_past_or_future, normalize_time_delta
 from superset.views.utils import get_viz
 
 if TYPE_CHECKING:
@@ -57,6 +61,12 @@ if TYPE_CHECKING:
 config = app.config
 stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
+
+
+class CachedTimeOffset(TypedDict):
+    df: pd.DataFrame
+    queries: List[str]
+    cache_keys: List[Optional[str]]
 
 
 class QueryContext:
@@ -77,7 +87,8 @@ class QueryContext:
 
     # TODO: Type datasource and query_object dictionary with TypedDict when it becomes
     #  a vanilla python type https://github.com/python/mypy/issues/5288
-    def __init__(  # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-arguments
+    def __init__(
         self,
         datasource: DatasourceDict,
         queries: List[Dict[str, Any]],
@@ -101,21 +112,143 @@ class QueryContext:
             "result_format": self.result_format,
         }
 
-    def get_query_result(self, query_object: QueryObject) -> Dict[str, Any]:
-        """Returns a pandas dataframe based on the query object"""
+    @staticmethod
+    def left_join_on_dttm(
+        left_df: pd.DataFrame, right_df: pd.DataFrame
+    ) -> pd.DataFrame:
+        df = left_df.set_index(DTTM_ALIAS).join(right_df.set_index(DTTM_ALIAS))
+        df.reset_index(level=0, inplace=True)
+        return df
 
-        # Here, we assume that all the queries will use the same datasource, which is
-        # a valid assumption for current setting. In the long term, we may
-        # support multiple queries from different data sources.
+    def processing_time_offsets(
+        self, df: pd.DataFrame, query_object: QueryObject,
+    ) -> CachedTimeOffset:
+        # ensure query_object is immutable
+        query_object_clone = copy.copy(query_object)
+        queries = []
+        cache_keys = []
 
+        time_offsets = query_object.time_offsets
+        outer_from_dttm = query_object.from_dttm
+        outer_to_dttm = query_object.to_dttm
+        for offset in time_offsets:
+            try:
+                query_object_clone.from_dttm = get_past_or_future(
+                    offset, outer_from_dttm,
+                )
+                query_object_clone.to_dttm = get_past_or_future(offset, outer_to_dttm)
+            except ValueError as ex:
+                raise QueryObjectValidationError(str(ex))
+            # make sure subquery use main query where clause
+            query_object_clone.inner_from_dttm = outer_from_dttm
+            query_object_clone.inner_to_dttm = outer_to_dttm
+            query_object_clone.time_offsets = []
+            query_object_clone.post_processing = []
+
+            if not query_object.from_dttm or not query_object.to_dttm:
+                raise QueryObjectValidationError(
+                    _(
+                        "An enclosed time range (both start and end) must be specified "
+                        "when using a Time Comparison."
+                    )
+                )
+            # `offset` is added to the hash function
+            cache_key = self.query_cache_key(query_object_clone, time_offset=offset)
+            cache = QueryCacheManager.get(cache_key, CacheRegion.DATA, self.force)
+            # whether hit in the cache
+            if cache.is_loaded:
+                df = self.left_join_on_dttm(df, cache.df)
+                queries.append(cache.query)
+                cache_keys.append(cache_key)
+                continue
+
+            query_object_clone_dct = query_object_clone.to_dict()
+            result = self.datasource.query(query_object_clone_dct)
+            queries.append(result.query)
+            cache_keys.append(None)
+
+            # rename metrics: SUM(value) => SUM(value) 1 year ago
+            columns_name_mapping = {
+                metric: TIME_COMPARISION.join([metric, offset])
+                for metric in get_metric_names(
+                    query_object_clone_dct.get("metrics", [])
+                )
+            }
+            columns_name_mapping[DTTM_ALIAS] = DTTM_ALIAS
+
+            offset_metrics_df = result.df
+            if offset_metrics_df.empty:
+                offset_metrics_df = pd.DataFrame(
+                    {col: [np.NaN] for col in columns_name_mapping.values()}
+                )
+            else:
+                # 1. normalize df, set dttm column
+                offset_metrics_df = self.normalize_df(
+                    offset_metrics_df, query_object_clone
+                )
+
+                # 2. extract `metrics` columns and `dttm` column from extra query
+                offset_metrics_df = offset_metrics_df[columns_name_mapping.keys()]
+
+                # 3. rename extra query columns
+                offset_metrics_df = offset_metrics_df.rename(
+                    columns=columns_name_mapping
+                )
+
+                # 4. set offset for dttm column
+                offset_metrics_df[DTTM_ALIAS] = offset_metrics_df[
+                    DTTM_ALIAS
+                ] - DateOffset(**normalize_time_delta(offset))
+
+            # df left join `offset_metrics_df` on `DTTM`
+            df = self.left_join_on_dttm(df, offset_metrics_df)
+
+            # set offset df to cache.
+            value = {
+                "df": offset_metrics_df,
+                "query": result.query,
+            }
+            cache.set(
+                key=cache_key,
+                value=value,
+                timeout=self.cache_timeout,
+                datasource_uid=self.datasource.uid,
+                region=CacheRegion.DATA,
+            )
+
+        return CachedTimeOffset(df=df, queries=queries, cache_keys=cache_keys)
+
+    def normalize_df(self, df: pd.DataFrame, query_object: QueryObject) -> pd.DataFrame:
         timestamp_format = None
         if self.datasource.type == "table":
             dttm_col = self.datasource.get_column(query_object.granularity)
             if dttm_col:
                 timestamp_format = dttm_col.python_date_format
 
+        normalize_dttm_col(
+            df=df,
+            timestamp_format=timestamp_format,
+            offset=self.datasource.offset,
+            time_shift=query_object.time_shift,
+        )
+
+        if self.enforce_numerical_metrics:
+            self.df_metrics_to_num(df, query_object)
+
+        df.replace([np.inf, -np.inf], np.nan, inplace=True)
+
+        return df
+
+    def get_query_result(self, query_object: QueryObject) -> QueryResult:
+        """Returns a pandas dataframe based on the query object"""
+
+        # Here, we assume that all the queries will use the same datasource, which is
+        # a valid assumption for current setting. In the long term, we may
+        # support multiple queries from different data sources.
+
         # The datasource here can be different backend but the interface is common
         result = self.datasource.query(query_object.to_dict())
+        query = result.query + ";\n\n"
 
         df = result.df
         # Transform the timestamp we received from database to pandas supported
@@ -124,25 +257,21 @@ class QueryContext:
         # If the datetime format is unix, the parse will use the corresponding
         # parsing logic
         if not df.empty:
-            normalize_dttm_col(
-                df=df,
-                timestamp_format=timestamp_format,
-                offset=self.datasource.offset,
-                time_shift=query_object.time_shift,
-            )
+            df = self.normalize_df(df, query_object)
 
-            if self.enforce_numerical_metrics:
-                self.df_metrics_to_num(df, query_object)
+            if query_object.time_offsets:
+                time_offsets = self.processing_time_offsets(df, query_object)
+                df = time_offsets["df"]
+                queries = time_offsets["queries"]
 
-            df.replace([np.inf, -np.inf], np.nan, inplace=True)
+                query += ";\n\n".join(queries)
+                query += ";\n\n"
+
             df = query_object.exec_post_processing(df)
 
-        return {
-            "query": result.query,
-            "status": result.status,
-            "error_message": result.error_message,
-            "df": df,
-        }
+        result.df = df
+        result.query = query
+        return result
 
     @staticmethod
     def df_metrics_to_num(df: pd.DataFrame, query_object: QueryObject) -> None:
@@ -308,47 +437,16 @@ class QueryContext:
             )
         return annotation_data
 
-    def get_df_payload(  # pylint: disable=too-many-statements,too-many-locals
+    def get_df_payload(
         self, query_obj: QueryObject, force_cached: Optional[bool] = False,
     ) -> Dict[str, Any]:
         """Handles caching around the df payload retrieval"""
         cache_key = self.query_cache_key(query_obj)
-        logger.info("Cache key: %s", cache_key)
-        is_loaded = False
-        stacktrace = None
-        df = pd.DataFrame()
-        cache_value = None
-        status = None
-        query = ""
-        annotation_data = {}
-        error_message = None
-        if cache_key and cache_manager.data_cache and not self.force:
-            cache_value = cache_manager.data_cache.get(cache_key)
-            if cache_value:
-                stats_logger.incr("loading_from_cache")
-                try:
-                    df = cache_value["df"]
-                    query = cache_value["query"]
-                    annotation_data = cache_value.get("annotation_data", {})
-                    status = QueryStatus.SUCCESS
-                    is_loaded = True
-                    stats_logger.incr("loaded_from_cache")
-                except KeyError as ex:
-                    logger.exception(ex)
-                    logger.error(
-                        "Error reading cache: %s",
-                        error_msg_from_exception(ex),
-                        exc_info=True,
-                    )
-                logger.info("Serving from cache")
+        cache = QueryCacheManager.get(
+            cache_key, CacheRegion.DATA, self.force, force_cached,
+        )
 
-        if force_cached and not is_loaded:
-            logger.warning(
-                "force_cached (QueryContext): value not found for key %s", cache_key
-            )
-            raise CacheLoadError("Error loading data from cache")
-
-        if query_obj and not is_loaded:
+        if query_obj and cache_key and not cache.is_loaded:
             try:
                 invalid_columns = [
                     col
@@ -365,47 +463,32 @@ class QueryContext:
                         )
                     )
                 query_result = self.get_query_result(query_obj)
-                status = query_result["status"]
-                query = query_result["query"]
-                error_message = query_result["error_message"]
-                df = query_result["df"]
                 annotation_data = self.get_annotation_data(query_obj)
-
-                if status != QueryStatus.FAILED:
-                    stats_logger.incr("loaded_from_source")
-                    if not self.force:
-                        stats_logger.incr("loaded_from_source_without_force")
-                    is_loaded = True
-            except QueryObjectValidationError as ex:
-                error_message = str(ex)
-                status = QueryStatus.FAILED
-            except Exception as ex:  # pylint: disable=broad-except
-                logger.exception(ex)
-                if not error_message:
-                    error_message = str(ex)
-                status = QueryStatus.FAILED
-                stacktrace = get_stacktrace()
-
-            if is_loaded and cache_key and status != QueryStatus.FAILED:
-                set_and_log_cache(
-                    cache_manager.data_cache,
-                    cache_key,
-                    {"df": df, "query": query, "annotation_data": annotation_data},
-                    self.cache_timeout,
-                    self.datasource.uid,
+                cache.set_query_result(
+                    key=cache_key,
+                    query_result=query_result,
+                    annotation_data=annotation_data,
+                    force_query=self.force,
+                    timeout=self.cache_timeout,
+                    datasource_uid=self.datasource.uid,
+                    region=CacheRegion.DATA,
                 )
+            except QueryObjectValidationError as ex:
+                cache.error_message = str(ex)
+                cache.status = QueryStatus.FAILED
+
         return {
             "cache_key": cache_key,
-            "cached_dttm": cache_value["dttm"] if cache_value is not None else None,
+            "cached_dttm": cache.cache_dttm,
             "cache_timeout": self.cache_timeout,
-            "df": df,
-            "annotation_data": annotation_data,
-            "error": error_message,
-            "is_cached": cache_value is not None,
-            "query": query,
-            "status": status,
-            "stacktrace": stacktrace,
-            "rowcount": len(df.index),
+            "df": cache.df,
+            "annotation_data": cache.annotation_data,
+            "error": cache.error_message,
+            "is_cached": cache.is_cached,
+            "query": cache.query,
+            "status": cache.status,
+            "stacktrace": cache.stacktrace,
+            "rowcount": len(cache.df.index),
         }
 
     def raise_for_access(self) -> None:
