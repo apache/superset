@@ -40,7 +40,24 @@ def test_validate_parameters_simple(
         "catalog": {},
     }
     errors = GSheetsEngineSpec.validate_parameters(parameters)
-    assert errors == []
+    assert errors == [
+        SupersetError(
+            message="URL is required",
+            error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+            level=ErrorLevel.WARNING,
+            extra={
+                "invalid": ["catalog"],
+                "name": "",
+                "url": "",
+                "issue_codes": [
+                    {
+                        "code": 1018,
+                        "message": "Issue 1018 - One or more parameters needed to configure a database are missing.",
+                    }
+                ],
+            },
+        )
+    ]
 
 
 def test_validate_parameters_catalog(
@@ -75,7 +92,7 @@ def test_validate_parameters_catalog(
 
     assert errors == [
         SupersetError(
-            message="Unable to connect to spreadsheet private_sheet at https://docs.google.com/spreadsheets/d/1/edit",
+            message="URL could not be identified",
             error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
             level=ErrorLevel.WARNING,
             extra={
@@ -95,7 +112,7 @@ def test_validate_parameters_catalog(
             },
         ),
         SupersetError(
-            message="Unable to connect to spreadsheet not_a_sheet at https://www.google.com/",
+            message="URL could not be identified",
             error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
             level=ErrorLevel.WARNING,
             extra={
@@ -150,10 +167,9 @@ def test_validate_parameters_catalog_and_credentials(
         },
     }
     errors = GSheetsEngineSpec.validate_parameters(parameters)  # ignore: type
-
     assert errors == [
         SupersetError(
-            message="Unable to connect to spreadsheet not_a_sheet at https://www.google.com/",
+            message="URL could not be identified",
             error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
             level=ErrorLevel.WARNING,
             extra={
