@@ -133,7 +133,7 @@ pivot_v2_aggfunc_map = {
 }
 
 
-def pivot_table_v2(
+def pivot_table_v2(  # pylint: disable=too-many-branches
     result: Dict[Any, Any], form_data: Optional[Dict[str, Any]] = None,
 ) -> Dict[Any, Any]:
     """
