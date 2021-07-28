@@ -30,6 +30,7 @@ import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import Icons from 'src/components/Icons';
 import { Switch } from 'src/components/Switch';
 import Modal from 'src/components/Modal';
+import TimezoneSelector from 'src/components/TimezoneSelector';
 import { Radio } from 'src/components/Radio';
 import { AsyncSelect, NativeGraySelect as Select } from 'src/components/Select';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
@@ -314,6 +315,7 @@ export const StyledInputContainer = styled.div`
     border-style: none;
     border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
     border-radius: ${({ theme }) => theme.gridUnit}px;
+    width: 425px;
 
     .ant-select-selection-placeholder,
     .ant-select-selection-item {
@@ -356,6 +358,10 @@ const StyledNotificationAddButton = styled.div`
     color: ${({ theme }) => theme.colors.grayscale.light1};
     cursor: default;
   }
+`;
+
+const timezoneHeaderStyle = (theme: SupersetTheme) => css`
+  margin: ${theme.gridUnit * 3}px 0;
 `;
 
 type NotificationAddStatus = 'active' | 'disabled' | 'hidden';
@@ -821,6 +827,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState('log_retention', retention);
   };
 
+  const onTimezoneChange = (timezone: string) => {
+    updateAlertState('timezone', timezone);
+  };
+
   const onContentTypeChange = (event: any) => {
     const { target } = event;
 
@@ -883,10 +893,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   useEffect(() => {
     if (
       isEditMode &&
-      (!currentAlert ||
-        !currentAlert.id ||
-        (alert && alert.id !== currentAlert.id) ||
-        (isHidden && show))
+      (!currentAlert?.id || alert?.id !== currentAlert.id || (isHidden && show))
     ) {
       if (alert && alert.id !== null && !loading && !fetchError) {
         const id = alert.id || 0;
@@ -1104,7 +1111,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   <AsyncSelect
                     name="source"
                     value={
-                      currentAlert && currentAlert.database
+                      currentAlert?.database
                         ? {
                             value: currentAlert.database.value,
                             label: currentAlert.database.label,
@@ -1195,11 +1202,19 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <span className="required">*</span>
             </StyledSectionTitle>
             <AlertReportCronScheduler
-              value={
-                (currentAlert && currentAlert.crontab) || DEFAULT_CRON_VALUE
-              }
+              value={currentAlert?.crontab || DEFAULT_CRON_VALUE}
               onChange={newVal => updateAlertState('crontab', newVal)}
             />
+            <div className="control-label">{t('Timezone')}</div>
+            <div
+              className="input-container"
+              css={(theme: SupersetTheme) => timezoneHeaderStyle(theme)}
+            >
+              <TimezoneSelector
+                onTimezoneChange={onTimezoneChange}
+                timezone={currentAlert?.timezone}
+              />
+            </div>
             <StyledSectionTitle>
               <h4>{t('Schedule settings')}</h4>
             </StyledSectionTitle>
