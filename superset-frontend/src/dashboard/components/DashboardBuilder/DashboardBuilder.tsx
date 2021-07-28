@@ -19,7 +19,7 @@
 /* eslint-env browser */
 import cx from 'classnames';
 import React, { FC } from 'react';
-import { JsonObject, styled } from '@superset-ui/core';
+import { JsonObject, styled, css } from '@superset-ui/core';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
 import DashboardHeader from 'src/dashboard/containers/DashboardHeader';
@@ -48,6 +48,7 @@ import {
 } from 'src/dashboard/util/constants';
 import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar';
 import Loading from 'src/components/Loading';
+import { Global } from '@emotion/react';
 import { shouldFocusTabs, getRootLevelTabsComponent } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
@@ -284,6 +285,13 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
         </DragDroppable>
       </StyledHeader>
       <StyledContent fullSizeChartId={fullSizeChartId}>
+        <Global
+          styles={css`
+            // @z-index-above-dashboard-header (100) + 1 = 101
+            ${fullSizeChartId &&
+            `div > .filterStatusPopover.ant-popover{z-index: 101}`}
+          `}
+        />
         <div
           data-test="dashboard-content"
           className={cx('dashboard', editMode && 'dashboard--editing')}
