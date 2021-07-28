@@ -301,7 +301,6 @@ function dbReducer(
         [action.payload.name]: action.payload.value,
       };
     case ActionType.fetched:
-      console.log(action);
       // convert all the keys in this payload into strings
       if (action.payload.extra) {
         extra_json = {
