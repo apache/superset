@@ -41,7 +41,6 @@ const metadata = new ChartMetadata({
     t('Categorical'),
     t('Comparison'),
     t('Discrete'),
-    t('Distribution'),
     t('Legacy'),
     t('Percentages'),
     t('Highly-used'),
