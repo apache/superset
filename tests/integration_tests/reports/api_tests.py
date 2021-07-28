@@ -60,10 +60,10 @@ class TestReportSchedulesApi(SupersetTestCase):
 
             report_schedule = insert_report_schedule(
                 type=ReportScheduleType.ALERT,
-                name=f"name_working",
-                crontab=f"* * * * *",
-                sql=f"SELECT value from table",
-                description=f"Report working",
+                name="name_working",
+                crontab="* * * * *",
+                sql="SELECT value from table",
+                description="Report working",
                 chart=chart,
                 database=example_db,
                 owners=[admin_user, alpha_user],
@@ -205,6 +205,7 @@ class TestReportSchedulesApi(SupersetTestCase):
                     "type": "Email",
                 }
             ],
+            "timezone": report_schedule.timezone,
             "type": report_schedule.type,
             "validator_config_json": report_schedule.validator_config_json,
             "validator_type": report_schedule.validator_type,
@@ -279,6 +280,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "name",
             "owners",
             "recipients",
+            "timezone",
             "type",
         ]
         assert rv.status_code == 200
@@ -302,7 +304,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         ReportSchedule Api: Test sorting on get list report schedules
         """
         self.login(username="admin")
-        uri = f"api/v1/report/"
+        uri = "api/v1/report/"
 
         order_columns = [
             "active",
@@ -672,6 +674,61 @@ class TestReportSchedulesApi(SupersetTestCase):
         }
         uri = "api/v1/report/"
         rv = self.client.post(uri, json=report_schedule_data)
+        assert rv.status_code == 201
+
+        # Test that report cannot be created with null timezone
+        report_schedule_data = {
+            "type": ReportScheduleType.ALERT,
+            "name": "new5",
+            "description": "description",
+            "creation_method": ReportCreationMethodType.ALERTS_REPORTS,
+            "crontab": "0 9 * * *",
+            "recipients": [
+                {
+                    "type": ReportRecipientType.EMAIL,
+                    "recipient_config_json": {"target": "target@superset.org"},
+                },
+                {
+                    "type": ReportRecipientType.SLACK,
+                    "recipient_config_json": {"target": "channel"},
+                },
+            ],
+            "working_timeout": 3600,
+            "timezone": None,
+            "dashboard": dashboard.id,
+            "database": example_db.id,
+        }
+        rv = self.client.post(uri, json=report_schedule_data)
+        assert rv.status_code == 400
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data == {"message": {"timezone": ["Field may not be null."]}}
+
+        # Test that report should reflect the timezone value passed in
+        report_schedule_data = {
+            "type": ReportScheduleType.ALERT,
+            "name": "new6",
+            "description": "description",
+            "creation_method": ReportCreationMethodType.ALERTS_REPORTS,
+            "crontab": "0 9 * * *",
+            "recipients": [
+                {
+                    "type": ReportRecipientType.EMAIL,
+                    "recipient_config_json": {"target": "target@superset.org"},
+                },
+                {
+                    "type": ReportRecipientType.SLACK,
+                    "recipient_config_json": {"target": "channel"},
+                },
+            ],
+            "working_timeout": 3600,
+            "timezone": "America/Los_Angeles",
+            "dashboard": dashboard.id,
+            "database": example_db.id,
+        }
+        uri = "api/v1/report/"
+        rv = self.client.post(uri, json=report_schedule_data)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["result"]["timezone"] == "America/Los_Angeles"
         assert rv.status_code == 201
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
