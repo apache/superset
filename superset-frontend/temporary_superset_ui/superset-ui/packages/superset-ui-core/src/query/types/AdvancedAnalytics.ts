@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -16,14 +17,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as convertKeysToCamelCase } from './convertKeysToCamelCase';
-export { default as ensureIsArray } from './ensureIsArray';
-export { default as ensureIsInt } from './ensureIsInt';
-export { default as isDefined } from './isDefined';
-export { default as isRequired } from './isRequired';
-export { default as makeSingleton } from './makeSingleton';
-export { default as promiseTimeout } from './promiseTimeout';
-export { default as logging } from './logging';
-export { default as removeDuplicates } from './removeDuplicates';
-export * from './featureFlags';
-export * from './random';
+export enum RollingType {
+  Mean = 'mean',
+  Sum = 'sum',
+  Std = 'std',
+  Cumsum = 'cumsum',
+}
+export interface RollingWindow {
+  rolling_type?: RollingType;
+  rolling_periods?: number;
+  min_periods?: number;
+}
+
+export enum ComparisionType {
+  Values = 'values',
+  Absolute = 'absolute',
+  Percentage = 'percentage',
+  Ratio = 'ratio',
+}
+export interface TimeCompare {
+  time_compare?: string;
+  comparison_type?: ComparisionType;
+}
+
+export default {};
