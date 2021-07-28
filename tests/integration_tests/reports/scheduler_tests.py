@@ -69,6 +69,7 @@ def test_scheduler_celery_no_timeout_ny(execute_mock):
             assert execute_mock.call_args[1] == {"eta": FakeDatetime(2020, 1, 1, 9, 0)}
         db.session.delete(report_schedule)
         db.session.commit()
+        app.config["ALERT_REPORTS_WORKING_TIME_OUT_KILL"] = True
 
 
 @patch("superset.tasks.scheduler.execute.apply_async")
@@ -87,6 +88,7 @@ def test_scheduler_celery_timeout_utc(execute_mock):
 
         with freeze_time("2020-01-01T09:00:00Z"):
             scheduler()
+            print(execute_mock.call_args)
             assert execute_mock.call_args[1]["soft_time_limit"] == 3601
             assert execute_mock.call_args[1]["time_limit"] == 3610
         db.session.delete(report_schedule)
@@ -112,3 +114,4 @@ def test_scheduler_celery_no_timeout_utc(execute_mock):
             assert execute_mock.call_args[1] == {"eta": FakeDatetime(2020, 1, 1, 9, 0)}
         db.session.delete(report_schedule)
         db.session.commit()
+        app.config["ALERT_REPORTS_WORKING_TIME_OUT_KILL"] = True
