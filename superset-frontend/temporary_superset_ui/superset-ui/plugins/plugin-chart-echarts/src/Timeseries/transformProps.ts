@@ -61,7 +61,7 @@ import { TIMESERIES_CONSTANTS } from '../constants';
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
 ): TimeseriesChartTransformedProps {
-  const { width, height, formData, hooks, queriesData } = chartProps;
+  const { width, height, filterState, formData, hooks, queriesData } = chartProps;
   const {
     annotation_data: annotationData_,
     data = [],
@@ -108,15 +108,27 @@ export default function transformProps(
   rawSeries.forEach(entry => {
     const transformedSeries = transformSeries(entry, colorScale, {
       area,
+      filterState,
       forecastEnabled,
       markerEnabled,
       markerSize,
-      opacity,
+      areaOpacity: opacity,
       seriesType,
       stack,
     });
     if (transformedSeries) series.push(transformedSeries);
   });
+
+  const selectedValues = (filterState.selectedValues || []).reduce(
+    (acc: Record<string, number>, selectedValue: string) => {
+      const index = series.findIndex(({ name }) => name === selectedValue);
+      return {
+        ...acc,
+        [index]: selectedValue,
+      };
+    },
+    {},
+  );
 
   annotationLayers
     .filter((layer: AnnotationLayer) => layer.show)
@@ -212,8 +224,7 @@ export default function transformProps(
       data: rawSeries
         .filter(
           entry =>
-            extractForecastSeriesContext((entry.name || '') as string).type ===
-            ForecastSeriesEnum.Observation,
+            extractForecastSeriesContext(entry.name || '').type === ForecastSeriesEnum.Observation,
         )
         .map(entry => entry.name || '')
         .concat(extractAnnotationLabels(annotationLayers, annotationData)),
@@ -246,13 +257,14 @@ export default function transformProps(
   };
 
   return {
-    formData,
-    width,
-    height,
     echartOptions,
-    setDataMask,
     emitFilter,
-    labelMap,
+    formData,
     groupby,
+    height,
+    labelMap,
+    selectedValues,
+    setDataMask,
+    width,
   };
 }
