@@ -17,9 +17,11 @@
 import json
 import logging
 from datetime import datetime, timedelta
+from io import BytesIO
 from typing import Any, List, Optional
 from uuid import UUID
 
+import pandas as pd
 from celery.exceptions import SoftTimeLimitExceeded
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session
@@ -240,6 +242,14 @@ class BaseReportState:
             raise ReportScheduleCsvFailedError()
         return csv_data
 
+    def _get_embedded_data(self) -> str:
+        """
+        Return data as an HTML table, to embed in the email.
+        """
+        buf = BytesIO(self._get_csv_data())
+        df = pd.read_csv(buf)
+        return df.to_html(na_rep="", index=False)
+
     def _get_notification_content(self) -> NotificationContent:
         """
         Gets a notification content, this is composed by a title and a screenshot
@@ -247,6 +257,7 @@ class BaseReportState:
         :raises: ReportScheduleScreenshotFailedError
         """
         csv_data = None
+        embedded_data = None
         error_text = None
         screenshot_data = None
         url = self._get_url(user_friendly=True)
@@ -270,6 +281,12 @@ class BaseReportState:
                     name=self._report_schedule.name, text=error_text
                 )
 
+        if (
+            self._report_schedule.chart
+            and self._report_schedule.report_format == ReportDataFormat.TEXT
+        ):
+            embedded_data = self._get_embedded_data()
+
         if self._report_schedule.chart:
             name = (
                 f"{self._report_schedule.name}: "
@@ -286,6 +303,7 @@ class BaseReportState:
             screenshot=screenshot_data,
             description=self._report_schedule.description,
             csv=csv_data,
+            embedded_data=embedded_data,
         )
 
     def _send(
