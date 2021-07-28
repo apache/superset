@@ -37,7 +37,6 @@ const metadata = new ChartMetadata({
   tags: [
     t('Categorical'),
     t('Directional'),
-    t('Distribution'),
     t('Legacy'),
     t('Percentages'),
     t('Proportional'),
