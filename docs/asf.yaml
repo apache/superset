@@ -1,0 +1,5 @@
+publish:
+  whoami: asf-site
+
+staging:
+  whoami: asf-site
