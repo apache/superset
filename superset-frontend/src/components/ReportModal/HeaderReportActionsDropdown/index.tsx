@@ -23,21 +23,6 @@ import Icons from 'src/components/Icons';
 import { Switch } from 'src/components/Switch';
 import { AlertObject } from 'src/views/CRUD/alert/types';
 import { Menu, NoAnimationDropdown } from 'src/common/components';
-// function useOnClickOutside(ref: any, handler: any) {
-//   useEffect(() => {
-//     const listener = (event: any) => {
-//       if (ref.current || ref.current.contains(event.target)) {
-//         handler(event);
-//       }
-//     };
-//     document.addEventListener('mousedown', listener, { capture: true });
-//     document.addEventListener('touchstart', listener, { capture: true });
-//     return () => {
-//       document.removeEventListener('mousedown', listener, { capture: true });
-//       document.removeEventListener('touchstart', listener, { capture: true });
-//     };
-//   }, [ref, handler]);
-// }
 
 export default function HeaderReportActionsDropDown({
   // showReportModal,

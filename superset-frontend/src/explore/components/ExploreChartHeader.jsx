@@ -24,7 +24,11 @@ import Icons from 'src/components/Icons';
 import { styled, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import ReportModal from 'src/components/ReportModal';
-import { fetchUISpecificReport } from 'src/reports/actions/reportState';
+import {
+  fetchUISpecificReport,
+  toggleActive,
+} from 'src/reports/actions/reportState';
+import HeaderReportActionsDropdown from 'src/components/ReportModal/HeaderReportActionsDropdown';
 import { chartPropShape } from '../../dashboard/util/propShapes';
 import ExploreActionButtons from './ExploreActionButtons';
 import RowCountLabel from './RowCountLabel';
@@ -111,7 +115,7 @@ export class ExploreChartHeader extends React.PureComponent {
   componentDidMount() {
     const { user, chart } = this.props;
     if (user) {
-      // this is in case there is an anonymous user.
+      // handles anonymous user.
       this.props.fetchUISpecificReport(
         user.userId,
         'chart_id',
@@ -158,7 +162,11 @@ export class ExploreChartHeader extends React.PureComponent {
   renderReportModal() {
     const attachedReportExists = this.props.report?.count > 0;
     return attachedReportExists ? (
-      <Icons.Calendar />
+      <HeaderReportActionsDropdown
+        showReportModal={this.showReportModal}
+        hideReportModal={this.hideReportModal}
+        toggleActive={this.props.toggleActive}
+      />
     ) : (
       <>
         <span
@@ -191,6 +199,7 @@ export class ExploreChartHeader extends React.PureComponent {
 
   render() {
     const formData = this.props.form_data;
+    const { user } = this.props;
     const {
       chartStatus,
       chartUpdateEndTime,
@@ -214,7 +223,7 @@ export class ExploreChartHeader extends React.PureComponent {
 
           {this.props.slice && (
             <StyledButtons>
-              {this.props.user.userId && (
+              {user.userId && (
                 <FaveStar
                   itemId={this.props.slice.slice_id}
                   fetchFaveStar={this.props.actions.fetchFaveStar}
@@ -296,7 +305,10 @@ export class ExploreChartHeader extends React.PureComponent {
 ExploreChartHeader.propTypes = propTypes;
 
 function mapDispatchToProps(dispatch) {
-  return bindActionCreators({ sliceUpdated, fetchUISpecificReport }, dispatch);
+  return bindActionCreators(
+    { sliceUpdated, fetchUISpecificReport, toggleActive },
+    dispatch,
+  );
 }
 
 export default connect(null, mapDispatchToProps)(ExploreChartHeader);
