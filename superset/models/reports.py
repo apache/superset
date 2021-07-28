@@ -111,6 +111,7 @@ class ReportSchedule(Model, AuditMixinNullable):
     creation_method = Column(
         String(255), server_default=ReportCreationMethodType.ALERTS_REPORTS
     )
+    timezone = Column(String(100), default="UTC", nullable=False)
     report_format = Column(String(50), default=ReportDataFormat.VISUALIZATION)
     sql = Column(Text())
     # (Alerts/Reports) M-O to chart
