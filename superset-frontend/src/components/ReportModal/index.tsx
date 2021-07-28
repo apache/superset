@@ -135,27 +135,28 @@ const ReportModal: FunctionComponent<ReportProps> = ({
     setCurrentReport({ type, payload } as ReportActionType);
   }, []);
   const [error, setError] = useState<CronError>();
-  const [hasConnectedReport, setHasConnectedReport] = useState<boolean>(false);
-  const [isLoading, setLoading] = useState<boolean>(false);
+  // ---------- comments on lines 139-159 & 182 are being held for edit functionality
+  // const [hasConnectedReport, setHasConnectedReport] = useState<boolean>(false);
+  // const [isLoading, setLoading] = useState<boolean>(false);
   const dispatch = useDispatch();
 
   // Report fetch logic
-  const {
-    state: { resource },
-  } = useSingleViewResource<ReportObject>(
-    'report',
-    t('report'),
-    addDangerToast,
-  );
+  // const {
+  //   state: { resource },
+  // } = useSingleViewResource<ReportObject>(
+  //   'report',
+  //   t('report'),
+  //   addDangerToast,
+  // );
 
-  useEffect(() => {
-    if (resource?.dashboard) {
-      setHasConnectedReport(true);
-    }
-  }, [resource?.dashboard]);
+  // useEffect(() => {
+  //   if (resource?.dashboard) {
+  //     setHasConnectedReport(true);
+  //   }
+  // }, [resource?.dashboard]);
 
   const onClose = () => {
-    setLoading(false);
+    // setLoading(false);
     onHide();
   };
 
@@ -178,7 +179,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
       creation_method: props.props.creationMethod,
     };
 
-    setLoading(true);
+    // setLoading(true);
     await dispatch(addReport(newReportValues as ReportObject));
 
     if (onReportAdd) {
