@@ -1032,7 +1032,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         metrics = metrics or []
 
         # For backward compatibility
-        if granularity not in self.dttm_cols:
+        if granularity not in self.dttm_cols and granularity is not None:
             granularity = self.main_dttm_col
 
         # Database spec supports join-free timeslot grouping
