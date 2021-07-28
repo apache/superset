@@ -18,6 +18,7 @@
  */
 import { JsonObject } from '../../connection';
 import { TimeGranularity } from '../../time-format';
+import { RollingType, ComparisionType } from './AdvancedAnalytics';
 
 export type NumpyFunction =
   | 'average'
@@ -43,6 +44,11 @@ export type NumpyFunction =
   | 'std'
   | 'sum'
   | 'var';
+
+export enum PandasAxis {
+  Row = 0,
+  Column = 1,
+}
 
 interface Aggregates {
   /**
@@ -106,6 +112,50 @@ export interface PostProcessingProphet {
   };
 }
 
+export interface PostProcessingDiff {
+  operation: 'diff';
+  options: {
+    columns: string[];
+    periods: number;
+    axis: PandasAxis;
+  };
+}
+
+export interface PostProcessingRolling {
+  operation: 'rolling';
+  options: {
+    rolling_type: RollingType;
+    window: number;
+    min_periods: number;
+    columns: string[];
+  };
+}
+
+export interface PostProcessingCum {
+  operation: 'cum';
+  options: {
+    columns: string[];
+    operator: NumpyFunction;
+  };
+}
+
+export interface PostProcessingCompare {
+  operation: 'compare';
+  options: {
+    source_columns: string[];
+    compare_columns: string[];
+    compare_type: Omit<ComparisionType, ComparisionType.Values>;
+    drop_original_columns: boolean;
+  };
+}
+
+export interface PostProcessingSort {
+  operation: 'sort';
+  options: {
+    columns: Record<string, boolean>;
+  };
+}
+
 /**
  * Parameters for chart data postprocessing.
  * See superset/utils/pandas_processing.py.
@@ -115,4 +165,9 @@ export type PostProcessingRule =
   | PostProcessingBoxplot
   | PostProcessingContribution
   | PostProcessingPivot
-  | PostProcessingProphet;
+  | PostProcessingProphet
+  | PostProcessingDiff
+  | PostProcessingRolling
+  | PostProcessingCum
+  | PostProcessingCompare
+  | PostProcessingSort;

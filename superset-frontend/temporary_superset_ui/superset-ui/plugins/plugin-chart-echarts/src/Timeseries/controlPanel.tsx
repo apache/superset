@@ -106,6 +106,7 @@ const config: ControlPanelConfig = {
         ['row_limit'],
       ],
     },
+    sections.advancedAnalytics,
     {
       label: t('Annotations and Layers'),
       expanded: false,
