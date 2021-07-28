@@ -83,13 +83,13 @@ const StickyPanel = styled.div<{ width: number }>`
   flex: 0 0 ${({ width }) => width}px;
 `;
 
-// @z-index-above-dashboard-charts + 1 = 11
+// @z-index-above-dashboard-popovers (99) + 1 = 100
 const StyledHeader = styled.div`
   grid-column: 2;
   grid-row: 1;
   position: sticky;
   top: 0px;
-  z-index: 11;
+  z-index: 100;
 `;
 
 const StyledContent = styled.div<{
@@ -97,7 +97,8 @@ const StyledContent = styled.div<{
 }>`
   grid-column: 2;
   grid-row: 2;
-  ${({ fullSizeChartId }) => fullSizeChartId && `z-index: 1000;`}
+  // @z-index-above-dashboard-header (100) + 1 = 101
+  ${({ fullSizeChartId }) => fullSizeChartId && `z-index: 101;`}
 `;
 
 const StyledDashboardContent = styled.div<{
