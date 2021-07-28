@@ -177,7 +177,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
                 errors.append(
                     SupersetError(
                         message="Sheet name is required",
-                        error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,  # pylint: line-too-long
+                        error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
                         level=ErrorLevel.WARNING,
                         extra={"invalid": [], "name": name, "url": url},
                     ),
