@@ -480,8 +480,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       return;
     }
 
-    console.log(db);
-
     const connection = {
       sqlalchemy_uri: db?.sqlalchemy_uri || '',
       database_name: db?.database_name?.trim() || undefined,

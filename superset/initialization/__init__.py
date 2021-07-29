@@ -227,37 +227,18 @@ class SupersetAppInitializer:
             category_icon="",
         )
         appbuilder.add_view(
-            DatabaseView,
-            "Databases",
-            label=__("Databases"),
-            icon="fa-database",
-            category="Data",
-            category_label=__("Data"),
-            category_icon="fa-database",
+            DashboardModelView,
+            "Dashboards",
+            label=__("Dashboards"),
+            icon="fa-dashboard",
+            category="",
+            category_icon="",
         )
-        appbuilder.add_link(
-            "Datasets",
-            label=__("Datasets"),
-            href="/tablemodelview/list/",
-            icon="fa-table",
-            category="Data",
-            category_label=__("Data"),
-            category_icon="fa-table",
-        )
-        appbuilder.add_separator("Data")
         appbuilder.add_view(
             SliceModelView,
             "Charts",
             label=__("Charts"),
             icon="fa-bar-chart",
-            category="",
-            category_icon="",
-        )
-        appbuilder.add_view(
-            DashboardModelView,
-            "Dashboards",
-            label=__("Dashboards"),
-            icon="fa-dashboard",
             category="",
             category_icon="",
         )
@@ -357,6 +338,25 @@ class SupersetAppInitializer:
             category="SQL Lab",
             category_label=__("SQL Lab"),
         )
+        appbuilder.add_view(
+            DatabaseView,
+            "Databases",
+            label=__("Databases"),
+            icon="fa-database",
+            category="Data",
+            category_label=__("Data"),
+            category_icon="fa-database",
+        )
+        appbuilder.add_link(
+            "Datasets",
+            label=__("Datasets"),
+            href="/tablemodelview/list/",
+            icon="fa-table",
+            category="Data",
+            category_label=__("Data"),
+            category_icon="fa-table",
+        )
+        appbuilder.add_separator("Data")
         appbuilder.add_link(
             "Upload a CSV",
             label=__("Upload a CSV"),

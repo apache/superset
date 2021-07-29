@@ -25,6 +25,7 @@ import {
   createFetchRelated,
   createErrorHandler,
   handleDashboardDelete,
+  CardStylesOverrides,
 } from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
@@ -501,24 +502,26 @@ function DashboardList(props: DashboardListProps) {
     const { userId } = props.user;
     const userKey = getFromLocalStorage(userId.toString(), null);
     return (
-      <DashboardCard
-        dashboard={dashboard}
-        hasPerm={hasPerm}
-        bulkSelectEnabled={bulkSelectEnabled}
-        refreshData={refreshData}
-        showThumbnails={
-          userKey
-            ? userKey.thumbnails
-            : isFeatureEnabled(FeatureFlag.THUMBNAILS)
-        }
-        loading={loading}
-        addDangerToast={addDangerToast}
-        addSuccessToast={addSuccessToast}
-        openDashboardEditModal={openDashboardEditModal}
-        saveFavoriteStatus={saveFavoriteStatus}
-        favoriteStatus={favoriteStatus[dashboard.id]}
-        handleBulkDashboardExport={handleBulkDashboardExport}
-      />
+      <CardStylesOverrides>
+        <DashboardCard
+          dashboard={dashboard}
+          hasPerm={hasPerm}
+          bulkSelectEnabled={bulkSelectEnabled}
+          refreshData={refreshData}
+          showThumbnails={
+            userKey
+              ? userKey.thumbnails
+              : isFeatureEnabled(FeatureFlag.THUMBNAILS)
+          }
+          loading={loading}
+          addDangerToast={addDangerToast}
+          addSuccessToast={addSuccessToast}
+          openDashboardEditModal={openDashboardEditModal}
+          saveFavoriteStatus={saveFavoriteStatus}
+          favoriteStatus={favoriteStatus[dashboard.id]}
+          handleBulkDashboardExport={handleBulkDashboardExport}
+        />
+      </CardStylesOverrides>
     );
   }
 

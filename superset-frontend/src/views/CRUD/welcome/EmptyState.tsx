@@ -77,9 +77,7 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
           );
         }
         if (tab === 'Examples') {
-          return t(
-            `Recent example charts, dashboards, and saved queries will appear here`,
-          );
+          return t(`Example ${tableName.toLowerCase()} will appear here`);
         }
         if (tab === 'Edited') {
           return t(
@@ -91,12 +89,14 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
     </span>
   );
   // Mine and Recent Activity(all tabs) tab empty state
-  if (tab === 'Mine' || tableName === 'RECENTS') {
+  if (tab === 'Mine' || tableName === 'RECENTS' || tab === 'Examples') {
     return (
       <EmptyContainer>
         <Empty
           image={`/static/assets/images/${tableIcon[tableName]}`}
-          description={tableName === 'RECENTS' ? recent : mine}
+          description={
+            tableName === 'RECENTS' || tab === 'Examples' ? recent : mine
+          }
         >
           {tableName !== 'RECENTS' && (
             <ButtonContainer>
