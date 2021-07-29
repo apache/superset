@@ -30,6 +30,7 @@ import {
   createErrorHandler,
   createFetchRelated,
   handleChartDelete,
+  CardStylesOverrides,
 } from 'src/views/CRUD/utils';
 import {
   useChartEditModal,
@@ -534,24 +535,26 @@ function ChartList(props: ChartListProps) {
     const { userId } = props.user;
     const userKey = getFromLocalStorage(userId.toString(), null);
     return (
-      <ChartCard
-        chart={chart}
-        showThumbnails={
-          userKey
-            ? userKey.thumbnails
-            : isFeatureEnabled(FeatureFlag.THUMBNAILS)
-        }
-        hasPerm={hasPerm}
-        openChartEditModal={openChartEditModal}
-        bulkSelectEnabled={bulkSelectEnabled}
-        addDangerToast={addDangerToast}
-        addSuccessToast={addSuccessToast}
-        refreshData={refreshData}
-        loading={loading}
-        favoriteStatus={favoriteStatus[chart.id]}
-        saveFavoriteStatus={saveFavoriteStatus}
-        handleBulkChartExport={handleBulkChartExport}
-      />
+      <CardStylesOverrides>
+        <ChartCard
+          chart={chart}
+          showThumbnails={
+            userKey
+              ? userKey.thumbnails
+              : isFeatureEnabled(FeatureFlag.THUMBNAILS)
+          }
+          hasPerm={hasPerm}
+          openChartEditModal={openChartEditModal}
+          bulkSelectEnabled={bulkSelectEnabled}
+          addDangerToast={addDangerToast}
+          addSuccessToast={addSuccessToast}
+          refreshData={refreshData}
+          loading={loading}
+          favoriteStatus={favoriteStatus[chart.id]}
+          saveFavoriteStatus={saveFavoriteStatus}
+          handleBulkChartExport={handleBulkChartExport}
+        />
+      </CardStylesOverrides>
     );
   }
   const subMenuButtons: SubMenuProps['buttons'] = [];
