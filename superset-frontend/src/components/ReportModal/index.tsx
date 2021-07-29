@@ -105,14 +105,15 @@ const reportReducer = (
   state: Partial<ReportObject> | null,
   action: ReportActionType,
 ): Partial<ReportObject> | null => {
-  const trimmedState = {
+  const initialState = {
+    name: state?.name || 'Weekly Report',
     ...(state || {}),
   };
 
   switch (action.type) {
     case ActionType.textChange:
       return {
-        ...trimmedState,
+        ...initialState,
         [action.payload.name]: action.payload.value,
       };
     default:
@@ -166,7 +167,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
       dashboard: props.props.dashboardId,
       chart: props.props.chartId,
       description: currentReport?.description,
-      name: currentReport?.name || 'Weekly Report',
+      name: currentReport?.name,
       owners: [props.props.userId],
       recipients: [
         {
