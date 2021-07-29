@@ -16,20 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  FeatureFlag,
-  isFeatureEnabled,
-  QueryFormMetric,
-  smartDateFormatter,
-  t,
-  validateNonEmpty,
-} from '@superset-ui/core';
+import { QueryFormMetric, smartDateFormatter, t, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   D3_TIME_FORMAT_OPTIONS,
   formatSelectOptions,
   sections,
   sharedControls,
+  emitFilterControl,
 } from '@superset-ui/chart-controls';
 import { MetricsLayoutEnum } from '../types';
 
@@ -86,6 +80,7 @@ const config: ControlPanelConfig = {
           },
         ],
         ['adhoc_filters'],
+        emitFilterControl,
         [
           {
             name: 'row_limit',
@@ -300,22 +295,6 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)
-          ? [
-              {
-                name: 'emitFilter',
-                config: {
-                  type: 'CheckboxControl',
-                  label: t('Enable emitting filters'),
-                  renderTrigger: true,
-                  default: false,
-                  description: t(
-                    'Whether to apply filter to dashboards when table cells are clicked',
-                  ),
-                },
-              },
-            ]
-          : [],
         [
           {
             name: 'conditional_formatting',

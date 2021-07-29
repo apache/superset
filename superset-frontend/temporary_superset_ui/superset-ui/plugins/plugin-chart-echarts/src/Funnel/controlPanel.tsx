@@ -17,18 +17,19 @@
  * under the License.
  */
 import React from 'react';
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   D3_FORMAT_OPTIONS,
   sections,
   sharedControls,
   ControlStateMapping,
+  emitFilterControl,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA, EchartsFunnelLabelTypeType } from './types';
 import { legendSection } from '../controls';
 
-const { labelType, numberFormat, showLabels, emitFilter } = DEFAULT_FORM_DATA;
+const { labelType, numberFormat, showLabels } = DEFAULT_FORM_DATA;
 
 const funnelLegendSection = [...legendSection];
 funnelLegendSection.splice(2, 1);
@@ -43,6 +44,7 @@ const config: ControlPanelConfig = {
         ['groupby'],
         ['metric'],
         ['adhoc_filters'],
+        emitFilterControl,
         [
           {
             name: 'row_limit',
@@ -70,20 +72,6 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         ['color_scheme'],
-        isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)
-          ? [
-              {
-                name: 'emit_filter',
-                config: {
-                  type: 'CheckboxControl',
-                  label: t('Enable emitting filters'),
-                  default: emitFilter,
-                  renderTrigger: true,
-                  description: t('Enable emmiting filters.'),
-                },
-              },
-            ]
-          : [],
         ...funnelLegendSection,
         // eslint-disable-next-line react/jsx-key
         [<h1 className="section-header">{t('Labels')}</h1>],
