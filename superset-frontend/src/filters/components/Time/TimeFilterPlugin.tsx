@@ -31,7 +31,8 @@ const ControlContainer = styled.div<{
   validateStatus?: 'error' | 'warning' | 'info';
 }>`
   padding: 2px;
-  & > span {
+  & > span,
+  & > span:hover {
     border: 2px solid transparent;
     display: inline-block;
     border: ${({ theme, validateStatus }) =>
