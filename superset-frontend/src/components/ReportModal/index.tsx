@@ -24,7 +24,7 @@ import React, {
   Reducer,
   FunctionComponent,
 } from 'react';
-import { styled, css, t, SupersetTheme } from '@superset-ui/core';
+import { t, SupersetTheme } from '@superset-ui/core';
 import { bindActionCreators } from 'redux';
 import { connect, useDispatch } from 'react-redux';
 import { addReport } from 'src/reports/actions/reportState';
@@ -43,6 +43,8 @@ import {
   StyledCronError,
   noBottomMargin,
   StyledFooterButton,
+  TimezoneHeaderStyle,
+  SectionHeaderStyle,
 } from './styles';
 
 interface ReportObject {
@@ -257,7 +259,9 @@ const ReportModal: FunctionComponent<ReportProps> = ({
 
       <StyledBottomSection>
         <StyledScheduleTitle>
-          <h2>Schedule</h2>
+          <h4 css={(theme: SupersetTheme) => SectionHeaderStyle(theme)}>
+            Schedule
+          </h4>
           <p>Scheduled reports will be sent to your email as a PNG</p>
         </StyledScheduleTitle>
 
@@ -272,9 +276,10 @@ const ReportModal: FunctionComponent<ReportProps> = ({
           }}
           onError={setError}
         />
+        <StyledCronError>{error}</StyledCronError>
         <div
           className="control-label"
-          css={(theme: SupersetTheme) => timezoneHeaderStyle(theme)}
+          css={(theme: SupersetTheme) => TimezoneHeaderStyle(theme)}
         >
           {t('Timezone')}
         </div>
@@ -287,7 +292,6 @@ const ReportModal: FunctionComponent<ReportProps> = ({
           }}
           timezone={currentReport?.timezone}
         />
-        <StyledCronError>{error}</StyledCronError>
       </StyledBottomSection>
     </StyledModal>
   );
