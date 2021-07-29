@@ -52,7 +52,7 @@ from superset.charts.commands.importers.dispatcher import ImportChartsCommand
 from superset.charts.commands.update import UpdateChartCommand
 from superset.charts.dao import ChartDAO
 from superset.charts.filters import ChartAllTextFilter, ChartFavoriteFilter, ChartFilter
-from superset.charts.post_processing import post_processors
+from superset.charts.post_processing import apply_post_process
 from superset.charts.schemas import (
     CHART_SCHEMAS,
     ChartPostSchema,
@@ -482,10 +482,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=str(ex))
 
     def send_chart_response(
-        self,
-        result: Dict[Any, Any],
-        viz_type: Optional[str] = None,
-        form_data: Optional[Dict[str, Any]] = None,
+        self, result: Dict[Any, Any], form_data: Optional[Dict[str, Any]] = None,
     ) -> Response:
         result_type = result["query_context"].result_type
         result_format = result["query_context"].result_format
@@ -495,10 +492,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         # post-processing of data, eg, the pivot table.
         if (
             result_type == ChartDataResultType.POST_PROCESSED
-            and viz_type in post_processors
+            and result_format == ChartDataResultFormat.CSV
         ):
-            post_process = post_processors[viz_type]
-            result = post_process(result, form_data)
+            result = apply_post_process(result, form_data)
 
         if result_format == ChartDataResultFormat.CSV:
             # Verify user has permission to export CSV file
@@ -525,7 +521,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
         self,
         command: ChartDataCommand,
         force_cached: bool = False,
-        viz_type: Optional[str] = None,
         form_data: Optional[Dict[str, Any]] = None,
     ) -> Response:
         try:
@@ -535,7 +530,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except ChartDataQueryFailedError as exc:
             return self.response_400(message=exc.message)
 
-        return self.send_chart_response(result, viz_type, form_data)
+        return self.send_chart_response(result, form_data)
 
     @expose("/<int:pk>/data/", methods=["GET"])
     @protect()
@@ -637,9 +632,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except (TypeError, json.decoder.JSONDecodeError):
             form_data = {}
 
-        return self.get_data_response(
-            command, viz_type=chart.viz_type, form_data=form_data
-        )
+        return self.get_data_response(command, form_data=form_data)
 
     @expose("/data", methods=["POST"])
     @protect()
