@@ -99,6 +99,7 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
           value={filterState.value || NO_TIME_RANGE}
           name="time_range"
           onChange={handleTimeRangeChange}
+          type={filterState.validateStatus}
         />
       </ControlContainer>
     </TimeFilterStyles>
