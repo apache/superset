@@ -232,13 +232,11 @@ export const TextArea = styled(AntdInput.TextArea)`
   border-radius: ${({ theme }) => theme.borderRadius}px;
 `;
 
+// @z-index-below-dashboard-header (100) - 1 = 99
 export const NoAnimationDropdown = (
   props: DropDownProps & { children?: React.ReactNode },
 ) => (
-  <Dropdown
-    overlayStyle={{ zIndex: 4000, animationDuration: '0s' }}
-    {...props}
-  />
+  <Dropdown overlayStyle={{ zIndex: 99, animationDuration: '0s' }} {...props} />
 );
 
 export const ThinSkeleton = styled(Skeleton)`
