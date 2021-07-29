@@ -264,6 +264,8 @@ sqlalchemy-utils==0.36.8
     #   flask-appbuilder
 sqlparse==0.3.0
     # via apache-superset
+tabulate==0.8.9
+    # via apache-superset
 typing-extensions==3.7.4.3
     # via
     #   aiohttp
