@@ -492,9 +492,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
     # not exist in the migrations, but is required by `import_from_dict` to ensure the
     # correct filters are applied in order to identify uniqueness.
     #
-    # The reason it does not physically exist is MySQL, PostgreSQL have a different
-    # interpretation of uniqueness when it comes to NULL which is problematic given the
-    # schema is optional.
+    # The reason it does not physically exist is MySQL, PostgreSQL, etc. have a
+    # different interpretation of uniqueness when it comes to NULL which is problematic
+    # given the schema is optional.
     __table_args__ = (UniqueConstraint("database_id", "schema", "table_name"),)
 
     table_name = Column(String(250), nullable=False)
