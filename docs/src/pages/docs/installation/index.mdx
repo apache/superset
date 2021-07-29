@@ -100,3 +100,11 @@ username: admin
 ```bash
 password: admin
 ```
+
+
+### 5. Connecting your local database instance to superset
+
+When running superset using `docker` or `docker-compose` it runs in its own docker container, as if the superset was running in a seperate machine entirely. Therefore attempts to connect to your local database with hostname `localhost` won't work as `localhost` refers to the docker container superset is running in, and not your actual host machine. Fortunately docker provides an easy way to access network resources in the host machine from inside a container, we will leverage this capability to connect to our local database instance. Here the instructions are for connecting to postgresql (which is running on your host machine) from superset (which is running in its docker container). Other databases may have slightly different configurations but gist would be same and boils down to 2 steps -
+
+1. Configuring the local postgresql/database instance to accept public incoming connections. By default postgresql only allows incoming connections from localhost only, but re-iterating once again, `localhosts` are different for host machine and docker container. For postgresql this involves make one-line changes to the files `postgresql.conf` and `pg_hba.conf`, you can find helpful links tailored to your OS / PG version on the web easily for this task.
+2. Instead of `localhost`, try using `host.docker.internal` or `172.18.0.1` as the host name when attempting to connect to the database. This is docker internal detail, to find the exact host name you want to use you can also do `ifconfig` or `ip addr show` and look at the ip address of `docker0` interface that must have been created by docker for you.
