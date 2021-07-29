@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { styled, css } from '@superset-ui/core';
+import { styled, css, SupersetTheme } from '@superset-ui/core';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 
@@ -60,4 +60,8 @@ export const noBottomMargin = css`
 
 export const StyledFooterButton = styled(Button)`
   width: ${({ theme }) => theme.gridUnit * 40}px;
+`;
+
+export const timezoneHeaderStyle = (theme: SupersetTheme) => css`
+  margin: ${theme.gridUnit * 3}px 0;
 `;

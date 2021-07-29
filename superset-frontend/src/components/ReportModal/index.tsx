@@ -18,17 +18,17 @@
  */
 import React, {
   useState,
-  // useEffect,
+  useEffect,
   useCallback,
   useReducer,
   Reducer,
   FunctionComponent,
 } from 'react';
-import { styled, css, t, SupersetTheme } from '@superset-ui/core';
+import { t, SupersetTheme } from '@superset-ui/core';
 import { bindActionCreators } from 'redux';
-import { connect, useDispatch } from 'react-redux';
+import { connect, useDispatch, useSelector } from 'react-redux';
 import { addReport } from 'src/reports/actions/reportState';
-
+// import { AlertObject } from 'src/views/CRUD/alert/types';
 import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
 import TimezoneSelector from 'src/components/TimezoneSelector';
 import Icons from 'src/components/Icons';
@@ -43,6 +43,7 @@ import {
   StyledCronError,
   noBottomMargin,
   StyledFooterButton,
+  timezoneHeaderStyle,
 } from './styles';
 
 interface ReportObject {
@@ -133,25 +134,20 @@ const ReportModal: FunctionComponent<ReportProps> = ({
     setCurrentReport({ type, payload });
   }, []);
   const [error, setError] = useState<CronError>();
-  // ---------- comments on lines 21, 28, 125, 139-159 & 182 are being held for edit functionality
-  // const [hasConnectedReport, setHasConnectedReport] = useState<boolean>(false);
+  const [hasConnectedReport, setHasConnectedReport] = useState<boolean>(false);
   // const [isLoading, setLoading] = useState<boolean>(false);
   const dispatch = useDispatch();
-
   // Report fetch logic
-  // const {
-  //   state: { resource },
-  // } = useSingleViewResource<ReportObject>(
-  //   'report',
-  //   t('report'),
-  //   addDangerToast,
-  // );
+  const report = useSelector<any, ReportObject>(
+    state => state.reportState.reports[0],
+  );
 
-  // useEffect(() => {
-  //   if (resource?.dashboard) {
-  //     setHasConnectedReport(true);
-  //   }
-  // }, [resource?.dashboard]);
+  useEffect(() => {
+    if (report) {
+      setHasConnectedReport(true);
+      setCurrentReport(report);
+    }
+  }, [report]);
 
   const onClose = () => {
     // setLoading(false);
@@ -190,7 +186,9 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   const wrappedTitle = (
     <StyledIconWrapper>
       <Icons.Calendar />
-      <span className="text">{t('New Email Report')}</span>
+      <span className="text">
+        {hasConnectedReport ? t('Edit Email Report') : t('New Email Report')}
+      </span>
     </StyledIconWrapper>
   );
 

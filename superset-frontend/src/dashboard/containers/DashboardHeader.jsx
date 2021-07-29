@@ -100,7 +100,7 @@ function mapStateToProps({
     editMode: !!dashboardState.editMode,
     slug: dashboardInfo.slug,
     metadata: dashboardInfo.metadata,
-    report: reportState.report,
+    reports: reportState.reports,
   };
 }
 

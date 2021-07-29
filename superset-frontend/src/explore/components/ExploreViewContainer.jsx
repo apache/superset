@@ -613,7 +613,7 @@ function mapStateToProps(state) {
     impressionId,
     userId: explore.user_id,
     user: explore.user,
-    report: reportState.report,
+    reports: reportState.reports,
   };
 }
 

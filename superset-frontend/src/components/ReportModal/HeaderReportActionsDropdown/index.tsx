@@ -31,20 +31,19 @@ const deleteColor = (theme: SupersetTheme) => css`
 `;
 
 export default function HeaderReportActionsDropDown({
-  // showReportModal,
-  // hideReportModal,
-  // addDangerToast,
+  showReportModal,
   toggleActive,
   deleteActiveReport,
 }: {
   showReportModal: () => void;
-  hideReportModal: () => void;
   toggleActive: (data: AlertObject, checked: boolean) => void;
   deleteActiveReport: (data: AlertObject) => void;
 }) {
-  const report = useSelector<any, AlertObject>(
-    state => state.reportState.report.result[0],
+  const reports = useSelector<any, AlertObject>(
+    state => state.reportState.reports[0],
   );
+  const reportsIds = Object.keys(reports);
+  const report = reports[reportsIds[0]];
   const [
     currentReportDeleting,
     setCurrentReportDeleting,
@@ -72,12 +71,7 @@ export default function HeaderReportActionsDropDown({
           size="small"
         />
       </Menu.Item>
-      <Menu.Item>
-        <div role="button" tabIndex={0}>
-          {' '}
-          {t('Edit email report')}
-        </div>
-      </Menu.Item>
+      <Menu.Item onClick={showReportModal}>{t('Edit email report')}</Menu.Item>
       <Menu.Item
         onClick={() => setCurrentReportDeleting(report)}
         css={deleteColor}
