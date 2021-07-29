@@ -349,7 +349,7 @@ const SavedQueries = ({
                       }}
                     >
                       <Dropdown overlay={renderMenu(q)}>
-                        <Icons.MoreHoriz
+                        <Icons.MoreOutlined
                           iconColor={theme.colors.grayscale.base}
                         />
                       </Dropdown>
