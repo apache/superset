@@ -27,8 +27,8 @@ import React, {
 import { t, SupersetTheme } from '@superset-ui/core';
 import { bindActionCreators } from 'redux';
 import { connect, useDispatch, useSelector } from 'react-redux';
-import { addReport } from 'src/reports/actions/reportState';
-// import { AlertObject } from 'src/views/CRUD/alert/types';
+import { addReport, editReport } from 'src/reports/actions/reportState';
+import { AlertObject } from 'src/views/CRUD/alert/types';
 import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
 import TimezoneSelector from 'src/components/TimezoneSelector';
 import Icons from 'src/components/Icons';
@@ -47,6 +47,7 @@ import {
 } from './styles';
 
 interface ReportObject {
+  id?: number;
   active: boolean;
   crontab: string;
   dashboard?: number;
@@ -115,6 +116,10 @@ const reportReducer = (
         ...trimmedState,
         [action.payload.name]: action.payload.value,
       };
+    case ActionType.fetched:
+      return {
+        ...action.payload,
+      };
     default:
       return state;
   }
@@ -138,17 +143,20 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   // const [isLoading, setLoading] = useState<boolean>(false);
   const dispatch = useDispatch();
   // Report fetch logic
-  const report = useSelector<any, ReportObject>(
+  const reports = useSelector<any, AlertObject>(
     state => state.reportState.reports[0],
   );
-
   useEffect(() => {
-    if (report) {
+    if (reports) {
+      const reportsIds = Object.keys(reports);
+      const report = reports[reportsIds[0]];
       setHasConnectedReport(true);
-      setCurrentReport(report);
+      setCurrentReport({
+        type: ActionType.fetched,
+        payload: report,
+      });
     }
-  }, [report]);
-
+  }, [reports]);
   const onClose = () => {
     // setLoading(false);
     onHide();
@@ -174,7 +182,13 @@ const ReportModal: FunctionComponent<ReportProps> = ({
     };
 
     // setLoading(true);
-    await dispatch(addReport(newReportValues as ReportObject));
+    if (hasConnectedReport) {
+      await dispatch(
+        editReport(currentReport?.id, newReportValues as ReportObject),
+      );
+    } else {
+      await dispatch(addReport(newReportValues as ReportObject));
+    }
 
     if (onReportAdd) {
       onReportAdd();
@@ -292,6 +306,6 @@ const ReportModal: FunctionComponent<ReportProps> = ({
 };
 
 const mapDispatchToProps = (dispatch: any) =>
-  bindActionCreators({ addReport }, dispatch);
+  bindActionCreators({ addReport, editReport }, dispatch);
 
 export default connect(null, mapDispatchToProps)(withToasts(ReportModal));

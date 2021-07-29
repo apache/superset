@@ -109,20 +109,21 @@ export const addReport = report => dispatch => {
       dispatch(structureFetchAction);
     });
 };
-export const EDIT_REPORT = 'EDIT_REPORT';
 
-export function reportEditor(report) {
+export function editReport(id, report) {
   return function (dispatch) {
     SupersetClient.put({
-      endpoint: `/api/v1/report/${report.id}`,
-      postPayload: { report },
+      endpoint: `/api/v1/report/${id}`,
+      jsonPayload: report,
     })
-      .then(() => dispatch({ type: EDIT_REPORT, report }))
       .catch(() =>
         dispatch(
           addDangerToast(t('An error occurred while editing this report.')),
         ),
-      );
+      )
+      .finally(() => {
+        dispatch(structureFetchAction);
+      });
   };
 }
 
