@@ -16,7 +16,7 @@
 # under the License.
 import json
 
-from superset.migrations.shared.migrate_pivot_table import pivottable_v1_to_v2
+from superset.migrations.shared.migrate_viz import MigratePivotTable
 
 pivot_table_v1_data = """{
     "adhoc_filters": [
@@ -56,7 +56,7 @@ pivot_table_v1_data = """{
 
 
 def test_pivottable_v1_to_v2():
-    pivottable_v2 = json.loads(pivottable_v1_to_v2(pivot_table_v1_data, "pivot_table"))
+    pivottable_v2 = json.loads(MigratePivotTable(pivot_table_v1_data).migrate())
     assert "groupbyRows" in pivottable_v2
     assert "groupbyColumns" in pivottable_v2
     assert "aggregateFunction" in pivottable_v2
