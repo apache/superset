@@ -61,3 +61,7 @@ export const noBottomMargin = css`
 export const StyledFooterButton = styled(Button)`
   width: ${({ theme }) => theme.gridUnit * 40}px;
 `;
+
+export const timezoneHeaderStyle = css`
+  width: inherit;
+`;

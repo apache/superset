@@ -43,6 +43,7 @@ import {
   StyledCronError,
   noBottomMargin,
   StyledFooterButton,
+  timezoneHeaderStyle,
 } from './styles';
 
 interface ReportObject {
@@ -199,7 +200,12 @@ const ReportModal: FunctionComponent<ReportProps> = ({
       <StyledFooterButton key="back" onClick={onClose}>
         Cancel
       </StyledFooterButton>
-      <StyledFooterButton key="submit" buttonStyle="primary" onClick={onSave}>
+      <StyledFooterButton
+        key="submit"
+        buttonStyle="primary"
+        onClick={onSave}
+        disabled={!currentReport?.name}
+      >
         Add
       </StyledFooterButton>
     </>
@@ -218,7 +224,8 @@ const ReportModal: FunctionComponent<ReportProps> = ({
         <LabeledErrorBoundInput
           id="name"
           name="name"
-          value={currentReport?.name || 'Weekly Report'}
+          value={currentReport?.name || ''}
+          placeholder="Weekly Report"
           required
           validationMethods={{
             onChange: ({ target }: { target: HTMLInputElement }) =>
@@ -272,10 +279,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
           }}
           onError={setError}
         />
-        <div
-          className="control-label"
-          css={(theme: SupersetTheme) => timezoneHeaderStyle(theme)}
-        >
+        <div className="control-label" css={timezoneHeaderStyle}>
           {t('Timezone')}
         </div>
         <TimezoneSelector
