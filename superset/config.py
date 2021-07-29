@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 """The main config file for Superset
-
 All configuration in this file can be overridden by providing a superset_config
 in your PYTHONPATH as there is a ``from superset_config import *``
 at the end of this file.
@@ -1256,21 +1255,12 @@ def time_filter(default: Optional[str] = None) -> Optional[Any]:
     # time_range = time_range_dict.get("time_range")
 
     if isinstance(form_data, str):
-        #form_data = json.dumps(request.get_json(force=True))
-        #logger.info("form_data: {}".format(str(form_data)))
         form_dict = json.loads(form_data)
         time_range_dict = form_dict["queries"][0]
-
-        #logger.info("time_range_dict: {}".format(str(time_range_dict)))
         time_range = time_range_dict.get("time_range")
-        #time_range = form_data.get("time_range") or {}
-        #time_range = [f["val"] for f in extra_filters if f["col"] == "__time_range"]
-        #time_range = time_range[0] if time_range else None
 
         if time_range is None:
             time_range = form_data.get("time_range") or None
-        # since, until = get_since_until(time_range)
-        # time_format = '%Y-%m-%d %H:%M:%S'
 
         try:
             since, until = get_since_until(time_range)
@@ -1284,15 +1274,6 @@ def time_filter(default: Optional[str] = None) -> Optional[Any]:
         except:
             if since is None:
                 raise NoneError('Please provide Time Range filter')
-            # elif until is None:
-            #     raise NoneError('Please provide Time Range filter')
-
-
-        # until = until.strftime(time_format)
-        # if not since:
-        #     return '<= \'{}\''.format(until)
-        # since = since.strftime(time_format)
-        # return 'BETWEEN \'{}\' AND \'{}\''.format(since, until)
     return default
 
 class NoneError(Exception):
@@ -1300,14 +1281,8 @@ class NoneError(Exception):
 
 def end_date_filter(default: Optional[str] = None) -> Optional[Any]:
     form_data = json.dumps(request.get_json(force=True))
-    #form_dict = json.loads(form_data)
 
     if isinstance(form_data, str):
-        # form_data = json.loads(form_data)
-        # extra_filters = form_data.get("extra_filters") or {}
-        # time_range = [f["val"] for f in extra_filters if f["col"] == "__time_range"]
-        # time_range = time_range[0] if time_range else None
-        #form_data = json.dumps(request.get_json(force=True))
         form_dict = json.loads(form_data)
         time_range_dict = form_dict["queries"][0]
 
@@ -1315,14 +1290,6 @@ def end_date_filter(default: Optional[str] = None) -> Optional[Any]:
         time_range = time_range_dict.get("time_range")
         if time_range is None:
             time_range = form_data.get("time_range") or None
-        # since, until = get_since_until(time_range)
-        # time_format = '%Y-%m-%d %H:%M:%S'
-
-        # if until is None:
-        #     return default
-        # else:
-        #     until = until.strftime(time_format)
-        #     return '\'{}\''.format(until)
 
         try:
             since, until = get_since_until(time_range)
@@ -1335,33 +1302,15 @@ def end_date_filter(default: Optional[str] = None) -> Optional[Any]:
 
     return default
 
-
-
-
-
 def start_date_filter(default: Optional[str] = None) -> Optional[Any]:
-    #form_data = request.form.get("form_data")
     form_data = json.dumps(request.get_json(force=True))
 
     if isinstance(form_data, str):
-        # form_data = json.loads(form_data)
-        # extra_filters = form_data.get("extra_filters") or {}
-        # time_range = [f["val"] for f in extra_filters if f["col"] == "__time_range"]
-        # time_range = time_range[0] if time_range else None
-        #form_data = json.dumps(request.get_json(force=True))
         form_dict = json.loads(form_data)
         time_range_dict = form_dict["queries"][0]
         time_range = time_range_dict.get("time_range")
         if time_range is None:
             time_range = form_data.get("time_range") or None
-        since, until = get_since_until(time_range)
-        time_format = '%Y-%m-%d %H:%M:%S'
-
-        # until = until.strftime(time_format)
-        # if not since:
-        #     return '\'{}\''.format(until)
-        # since = since.strftime(time_format)
-        # return '\'{}\''.format(since)
         try:
             since, until = get_since_until(time_range)
             time_format = '%Y-%m-%d %H:%M:%S'
@@ -1438,11 +1387,8 @@ def uri_filter(cond="none", default="") -> Optional[Any]:
 
     jwt_dashboard_id=str(mobi_resource_dict.get("dashboard"))
 
-    #logger.info("url dashboard id:"+dashboard_id)
-   # logger.info("jwt dashboard id:"+jwt_dashboard_id)
-
-    # if jwt_dashboard_id != dashboard_id:
-    #     raise Exception("dashboard_id has manipulated")
+    if jwt_dashboard_id != dashboard_id:
+        raise Exception("dashboard_id has manipulated")
 
     if cond not in mobi_filter_dict and cond == 'merchants':
         default="select merchant_code from process"
