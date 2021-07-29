@@ -16,23 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import * as sectionsModule from './sections';
 
-export * from './utils';
-export * from './constants';
-export * from './operators';
+import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
 
-// can't do `export * as sections from './sections'`, babel-transformer will fail
-export const sections = sectionsModule;
+const enableCrossFilter = isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS);
 
-export * from './components/InfoTooltipWithTrigger';
-export * from './components/ColumnOption';
-export * from './components/ColumnTypeLabel';
-export * from './components/MetricOption';
-
-// React control components
-export { default as sharedControls } from './shared-controls';
-export { default as sharedControlComponents } from './shared-controls/components';
-export * from './shared-controls/emitFilterControl';
-export * from './shared-controls/components';
-export * from './types';
+export const emitFilterControl = enableCrossFilter
+  ? [
+      {
+        name: 'emit_filter',
+        config: {
+          type: 'CheckboxControl',
+          label: t('Emit dashboard cross filters'),
+          default: false,
+          renderTrigger: true,
+          description: t('Emit dashboard cross filters.'),
+        },
+      },
+    ]
+  : [];
