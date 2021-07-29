@@ -21,16 +21,18 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import geohash as geohash_lib
 import numpy as np
+import pandas as pd
 from flask_babel import gettext as _
 from geopy.point import Point
 from pandas import DataFrame, NamedAgg, Series, Timestamp
 
-from superset.constants import NULL_STRING
+from superset.constants import NULL_STRING, PandasAxis, PandasPostprocessingCompare
 from superset.exceptions import QueryObjectValidationError
 from superset.utils.core import (
     DTTM_ALIAS,
     PostProcessingBoxplotWhiskerType,
     PostProcessingContributionOrientation,
+    TIME_COMPARISION,
 )
 
 NUMPY_FUNCTIONS = {
@@ -327,7 +329,7 @@ def rolling(  # pylint: disable=too-many-arguments
     df: DataFrame,
     columns: Dict[str, str],
     rolling_type: str,
-    window: int,
+    window: Optional[int] = None,
     rolling_type_options: Optional[Dict[str, Any]] = None,
     center: bool = False,
     win_type: Optional[str] = None,
@@ -357,8 +359,10 @@ def rolling(  # pylint: disable=too-many-arguments
     rolling_type_options = rolling_type_options or {}
     df_rolling = df[columns.keys()]
     kwargs: Dict[str, Union[str, int]] = {}
-    if not window:
+    if window is None:
         raise QueryObjectValidationError(_("Undefined window for rolling operation"))
+    if window == 0:
+        raise QueryObjectValidationError(_("Window must be > 0"))
 
     kwargs["window"] = window
     if min_periods is not None:
@@ -425,9 +429,14 @@ def select(
 
 
 @validate_column_args("columns")
-def diff(df: DataFrame, columns: Dict[str, str], periods: int = 1,) -> DataFrame:
+def diff(
+    df: DataFrame,
+    columns: Dict[str, str],
+    periods: int = 1,
+    axis: PandasAxis = PandasAxis.ROW,
+) -> DataFrame:
     """
-    Calculate row-by-row difference for select columns.
+    Calculate row-by-row or column-by-column difference for select columns.
 
     :param df: DataFrame on which the diff will be based.
     :param columns: columns on which to perform diff, mapping source column to
@@ -436,12 +445,67 @@ def diff(df: DataFrame, columns: Dict[str, str], periods: int = 1,) -> DataFrame
            on diff values calculated from `y`, leaving the original column `y`
            unchanged.
     :param periods: periods to shift for calculating difference.
+    :param axis: 0 for row, 1 for column. default 0.
     :return: DataFrame with diffed columns
     :raises QueryObjectValidationError: If the request in incorrect
     """
     df_diff = df[columns.keys()]
-    df_diff = df_diff.diff(periods=periods)
+    df_diff = df_diff.diff(periods=periods, axis=axis)
     return _append_columns(df, df_diff, columns)
+
+
+# pylint: disable=too-many-arguments
+@validate_column_args("source_columns", "compare_columns")
+def compare(
+    df: DataFrame,
+    source_columns: List[str],
+    compare_columns: List[str],
+    compare_type: Optional[PandasPostprocessingCompare],
+    drop_original_columns: Optional[bool] = False,
+    precision: Optional[int] = 4,
+) -> DataFrame:
+    """
+    Calculate column-by-column changing for select columns.
+
+    :param df: DataFrame on which the compare will be based.
+    :param source_columns: Main query columns
+    :param compare_columns: Columns being compared
+    :param compare_type: Type of compare. Choice of `absolute`, `percentage` or `ratio`
+    :param drop_original_columns: Whether to remove the source columns and
+           compare columns.
+    :param precision: Round a change rate to a variable number of decimal places.
+    :return: DataFrame with compared columns.
+    :raises QueryObjectValidationError: If the request in incorrect.
+    """
+    if len(source_columns) != len(compare_columns):
+        raise QueryObjectValidationError(
+            _("`compare_columns` must have the same length as `source_columns`.")
+        )
+    if compare_type not in tuple(PandasPostprocessingCompare):
+        raise QueryObjectValidationError(
+            _("`compare_type` must be `absolute`, `percentage` or `ratio`")
+        )
+    if len(source_columns) == 0:
+        return df
+
+    for s_col, c_col in zip(source_columns, compare_columns):
+        if compare_type == PandasPostprocessingCompare.ABS:
+            diff_series = df[s_col] - df[c_col]
+        elif compare_type == PandasPostprocessingCompare.PCT:
+            diff_series = (
+                ((df[s_col] - df[c_col]) / df[s_col]).astype(float).round(precision)
+            )
+        else:
+            # compare_type == "ratio"
+            diff_series = (df[s_col] / df[c_col]).astype(float).round(precision)
+        diff_df = diff_series.to_frame(
+            name=TIME_COMPARISION.join([compare_type, s_col, c_col])
+        )
+        df = pd.concat([df, diff_df], axis=1)
+
+    if drop_original_columns:
+        df = df.drop(source_columns + compare_columns, axis=1)
+    return df
 
 
 @validate_column_args("columns")

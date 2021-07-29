@@ -30,11 +30,14 @@ import DeleteModal from 'src/components/DeleteModal';
 import Icons from 'src/components/Icons';
 import SubMenu from 'src/components/Menu/SubMenu';
 import EmptyState from './EmptyState';
-import { CardContainer, createErrorHandler, shortenSQL } from '../utils';
+import {
+  CardContainer,
+  createErrorHandler,
+  shortenSQL,
+  PAGE_SIZE,
+} from '../utils';
 
 SyntaxHighlighter.registerLanguage('sql', sql);
-
-const PAGE_SIZE = 3;
 
 interface Query {
   id?: number;
@@ -298,7 +301,7 @@ const SavedQueries = ({
         ]}
       />
       {queries.length > 0 ? (
-        <CardContainer>
+        <CardContainer showThumbnails={showThumbnails}>
           {queries.map(q => (
             <CardStyles
               onClick={() => {
@@ -311,7 +314,7 @@ const SavedQueries = ({
                 url={`/superset/sqllab?savedQueryId=${q.id}`}
                 title={q.label}
                 imgFallbackURL="/static/assets/images/empty-query.svg"
-                description={t('Last run %s', q.changed_on_delta_humanized)}
+                description={t('Ran %s', q.changed_on_delta_humanized)}
                 cover={
                   q?.sql?.length && showThumbnails && featureFlag ? (
                     <QueryContainer>

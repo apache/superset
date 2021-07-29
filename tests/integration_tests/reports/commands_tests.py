@@ -231,6 +231,20 @@ def create_report_email_chart_with_csv():
 
 
 @pytest.fixture()
+def create_report_email_chart_with_text():
+    with app.app_context():
+        chart = db.session.query(Slice).first()
+        chart.query_context = '{"mock": "query_context"}'
+        report_schedule = create_report_notification(
+            email_target="target@email.com",
+            chart=chart,
+            report_format=ReportDataFormat.TEXT,
+        )
+        yield report_schedule
+        cleanup_report_schedule(report_schedule)
+
+
+@pytest.fixture()
 def create_report_email_chart_with_csv_no_query_context():
     with app.app_context():
         chart = db.session.query(Slice).first()
@@ -278,6 +292,21 @@ def create_report_slack_chart_with_csv():
             slack_channel="slack_channel",
             chart=chart,
             report_format=ReportDataFormat.DATA,
+        )
+        yield report_schedule
+
+        cleanup_report_schedule(report_schedule)
+
+
+@pytest.fixture()
+def create_report_slack_chart_with_text():
+    with app.app_context():
+        chart = db.session.query(Slice).first()
+        chart.query_context = '{"mock": "query_context"}'
+        report_schedule = create_report_notification(
+            slack_channel="slack_channel",
+            chart=chart,
+            report_format=ReportDataFormat.TEXT,
         )
         yield report_schedule
 
@@ -722,6 +751,59 @@ def test_email_chart_report_schedule_with_csv_no_query_context(
 
 
 @pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_report_email_chart_with_text"
+)
+@patch("superset.utils.csv.urllib.request.urlopen")
+@patch("superset.utils.csv.urllib.request.OpenerDirector.open")
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.csv.get_chart_csv_data")
+def test_email_chart_report_schedule_with_text(
+    csv_mock, email_mock, mock_open, mock_urlopen, create_report_email_chart_with_text,
+):
+    """
+    ExecuteReport Command: Test chart email report schedule with text
+    """
+    # setup csv mock
+    response = Mock()
+    mock_open.return_value = response
+    mock_urlopen.return_value = response
+    mock_urlopen.return_value.getcode.return_value = 200
+    response.read.return_value = CSV_FILE
+
+    with freeze_time("2020-01-01T00:00:00Z"):
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID, create_report_email_chart_with_text.id, datetime.utcnow()
+        ).run()
+
+        # assert that the data is embedded correctly
+        table_html = """<table>
+  <thead>
+    <tr>
+      <th>t1</th>
+      <th>t2</th>
+      <th>t3__sum</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>c11</td>
+      <td>c12</td>
+      <td>c13</td>
+    </tr>
+    <tr>
+      <td>c21</td>
+      <td>c22</td>
+      <td>c23</td>
+    </tr>
+  </tbody>
+</table>"""
+        assert table_html in email_mock.call_args[0][2]
+
+        # Assert logs are correct
+        assert_log(ReportState.SUCCESS)
+
+
+@pytest.mark.usefixtures(
     "load_birth_names_dashboard_with_slices", "create_report_email_dashboard"
 )
 @patch("superset.reports.notifications.email.send_email_smtp")
@@ -815,6 +897,47 @@ def test_slack_chart_report_schedule_with_csv(
         )
         assert file_upload_mock.call_args[1]["channels"] == notification_targets[0]
         assert file_upload_mock.call_args[1]["file"] == CSV_FILE
+
+        # Assert logs are correct
+        assert_log(ReportState.SUCCESS)
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_report_slack_chart_with_text"
+)
+@patch("superset.reports.notifications.slack.WebClient.chat_postMessage")
+@patch("superset.utils.csv.urllib.request.urlopen")
+@patch("superset.utils.csv.urllib.request.OpenerDirector.open")
+@patch("superset.utils.csv.get_chart_csv_data")
+def test_slack_chart_report_schedule_with_text(
+    csv_mock,
+    mock_open,
+    mock_urlopen,
+    post_message_mock,
+    create_report_slack_chart_with_text,
+):
+    """
+    ExecuteReport Command: Test chart slack report schedule with text
+    """
+    # setup csv mock
+    response = Mock()
+    mock_open.return_value = response
+    mock_urlopen.return_value = response
+    mock_urlopen.return_value.getcode.return_value = 200
+    response.read.return_value = CSV_FILE
+
+    with freeze_time("2020-01-01T00:00:00Z"):
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID, create_report_slack_chart_with_text.id, datetime.utcnow()
+        ).run()
+
+        table_markdown = """```
+t1    t2    t3__sum
+----  ----  ---------
+c11   c12   c13
+c21   c22   c23
+```"""
+        assert table_markdown in post_message_mock.call_args[1]["text"]
 
         # Assert logs are correct
         assert_log(ReportState.SUCCESS)

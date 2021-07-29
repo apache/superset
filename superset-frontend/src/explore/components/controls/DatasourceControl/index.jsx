@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -35,6 +36,7 @@ const propTypes = {
   onChange: PropTypes.func,
   value: PropTypes.string,
   datasource: PropTypes.object.isRequired,
+  form_data: PropTypes.object.isRequired,
   isEditable: PropTypes.bool,
   onDatasourceSave: PropTypes.func,
 };
@@ -122,6 +124,19 @@ class DatasourceControl extends React.PureComponent {
 
   onDatasourceSave(datasource) {
     this.props.actions.setDatasource(datasource);
+    const timeCol = this.props.form_data?.granularity_sqla;
+    const { columns } = this.props.datasource;
+    const firstDttmCol = columns.find(column => column.is_dttm);
+    if (
+      datasource.type === 'table' &&
+      !columns.find(({ column_name }) => column_name === timeCol)?.is_dttm
+    ) {
+      // set `granularity_sqla` to first datatime column name or null
+      this.props.actions.setControlValue(
+        'granularity_sqla',
+        firstDttmCol ? firstDttmCol.column_name : null,
+      );
+    }
     if (this.props.onDatasourceSave) {
       this.props.onDatasourceSave(datasource);
     }
@@ -211,9 +226,9 @@ class DatasourceControl extends React.PureComponent {
               <Icons.AlertSolid iconColor={supersetTheme.colors.warning.base} />
             </Tooltip>
           )}
-          {extra?.warning_markdown && ( // eslint-disable-line camelcase
+          {extra?.warning_markdown && (
             <WarningIconWithTooltip
-              warningMarkdown={extra.warning_markdown} // eslint-disable-line camelcase
+              warningMarkdown={extra.warning_markdown}
               size={30}
             />
           )}
