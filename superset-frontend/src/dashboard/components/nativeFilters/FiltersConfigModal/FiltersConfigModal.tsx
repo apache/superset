@@ -171,6 +171,7 @@ export function FiltersConfigModal({
     setCurrentFilterId(initialCurrentFilterId);
     setRemovedFilters({});
     setSaveAlertVisible(false);
+    setFormValues({ filters: {} });
   };
 
   const getFilterTitle = (id: string) =>
