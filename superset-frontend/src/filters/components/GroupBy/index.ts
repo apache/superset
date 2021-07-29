@@ -27,7 +27,7 @@ export default class FilterGroupByPlugin extends ChartPlugin {
     const metadata = new ChartMetadata({
       name: t('Group By'),
       description: t('Group By filter plugin'),
-      behaviors: [Behavior.INTERACTIVE_CHART, Behavior.NATIVE_FILTER],
+      behaviors: [Behavior.NATIVE_FILTER],
       thumbnail,
     });
 
