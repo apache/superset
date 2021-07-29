@@ -62,6 +62,7 @@ const Styles = styled.div`
   .ant-dropdown-trigger {
     margin-left: ${({ theme }) => 2 * theme.gridUnit}px;
     box-shadow: none;
+    margin-top: ${({ theme }) => theme.gridUnit}px;
     &:active {
       box-shadow: none;
     }
@@ -241,6 +242,7 @@ class DatasourceControl extends React.PureComponent {
               <Icons.MoreOutlined
                 className="datasource-modal-trigger"
                 data-test="datasource-menu-trigger"
+                iconSize="xxl"
               />
             </Tooltip>
           </Dropdown>

@@ -174,7 +174,10 @@ function DashboardCard({
               isStarred={favoriteStatus}
             />
             <Dropdown overlay={menu}>
-              <Icons.MoreOutlined iconColor={theme.colors.grayscale.base} />
+              <Icons.MoreOutlined
+                iconSize="xxl"
+                iconColor={theme.colors.grayscale.base}
+              />
             </Dropdown>
           </ListViewCard.Actions>
         }
