@@ -97,6 +97,7 @@ class WebDriverProxy:
         self, url: str, element_name: str, user: "User",
     ) -> Optional[bytes]:
 
+        url = f"{url}?standalone=3"
         driver = self.auth(user)
         driver.set_window_size(*self._window)
         driver.get(url)
@@ -125,7 +126,7 @@ class WebDriverProxy:
             ]
             logger.debug("Wait %i seconds for chart animation", selenium_animation_wait)
             sleep(selenium_animation_wait)
-            logger.info("Taking a PNG screenshot or url %s", url)
+            logger.info("Taking a PNG screenshot or url %s", f"{url}")
             img = element.screenshot_as_png
         except TimeoutException:
             logger.warning("Selenium timed out requesting url %s", url, exc_info=True)
