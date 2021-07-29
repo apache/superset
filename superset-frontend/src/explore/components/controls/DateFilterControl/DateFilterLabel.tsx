@@ -218,7 +218,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         ) {
           setActualTimeRange(value);
           setTooltipTitle(
-            type === 'error'
+            type === ('error' as Type)
               ? t('Default value is required')
               : actualRange || '',
           );
@@ -230,7 +230,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       }
       setLastFetchedTimeRange(value);
     });
-  }, [value, type]);
+  }, [value]);
 
   useDebouncedEffect(
     () => {
