@@ -35,8 +35,8 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
-from superset.migrations.shared.migrate_viz import MigratePivotTable
 from superset.config import DATA_DIR
+from superset.migrations.shared.migrate_viz import MigratePivotTable
 
 Base = declarative_base()
 
@@ -66,7 +66,9 @@ def upgrade():
             idx += 1
             print(f"Upgrading ({idx}/{total}): {slc.slice_name}#{slc.id}")
             with open(
-                os.path.join(DATA_DIR, "migrate_viz_pivottable", str(slc.uuid)),
+                os.path.join(
+                    DATA_DIR, "migrate_viz_pivottable", f"{str(slc.uuid)}.json"
+                ),
                 "w",
                 encoding="utf-8",
             ) as f:
@@ -86,9 +88,9 @@ def downgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
-    pathlist = Path(os.path.join(DATA_DIR, "migrate_viz_pivottable")).rglob("*")
+    pathlist = Path(os.path.join(DATA_DIR, "migrate_viz_pivottable")).rglob("*.json")
     for path in pathlist:
-        uuid = path.name
+        uuid = path.name.rstrip(".json")
         slc = session.query(Slice).filter(Slice.uuid == uuid).one_or_none()
         if slc:
             with open(path, "r", encoding="utf-8") as f:

@@ -15,13 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
-from typing import Dict, Set
+from typing import Any, Dict, Optional, Set
 
 
 class MigrateViz:
-    remove_keys: Set = set([])
+    remove_keys: Set[str]
 
-    mapping_keys: Dict[str, str] = {}
+    mapping_keys: Dict[str, str]
 
     viz_type: str
 
@@ -29,7 +29,7 @@ class MigrateViz:
         self.raw_data = v1_data
         self.data = json.loads(v1_data)
 
-    def post_processing(self, data: Dict) -> Dict:
+    def post_processing(self, data: Dict[str, Any]) -> Dict[str, Any]:
         raise NotImplementedError()
 
     def migrate(self) -> str:
@@ -65,7 +65,7 @@ class MigratePivotTable(MigrateViz):
     }
 
     @staticmethod
-    def convert_total_function(value):
+    def convert_total_function(value: str) -> Optional[str]:
         agg_mapping = {
             "sum": "Sum",
             "mean": "Average",
@@ -76,7 +76,7 @@ class MigratePivotTable(MigrateViz):
         }
         return agg_mapping.get(value, None)
 
-    def post_processing(self, data: Dict) -> Dict:
+    def post_processing(self, data: Dict[str, Any]) -> Dict[str, Any]:
         if "viz_type" in data:
             data["viz_type"] = "pivot_table_v2"
         if "aggregateFunction" in data:
