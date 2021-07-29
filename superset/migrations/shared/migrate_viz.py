@@ -19,7 +19,7 @@ from typing import Any, Dict, Optional, Set
 
 
 class MigrateViz:
-    remove_keys: Set[str]
+    remove_keys: Set[str] = set()
 
     mapping_keys: Dict[str, str]
 
