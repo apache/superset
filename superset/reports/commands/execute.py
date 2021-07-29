@@ -242,13 +242,13 @@ class BaseReportState:
             raise ReportScheduleCsvFailedError()
         return csv_data
 
-    def _get_embedded_data(self) -> str:
+    def _get_embedded_data(self) -> pd.DataFrame:
         """
         Return data as an HTML table, to embed in the email.
         """
         buf = BytesIO(self._get_csv_data())
         df = pd.read_csv(buf)
-        return df.to_html(na_rep="", index=False)
+        return df
 
     def _get_notification_content(self) -> NotificationContent:
         """

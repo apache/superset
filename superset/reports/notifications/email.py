@@ -75,19 +75,25 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         # Strip any malicious HTML from the description
         description = bleach.clean(self._content.description or "")
 
-        # Strip malicious HTML from embedded data, allowing table elements
-        embedded_data = bleach.clean(self._content.embedded_data or "", tags=TABLE_TAGS)
+        # Strip malicious HTML from embedded data, allowing only table elements
+        if self._content.embedded_data is not None:
+            df = self._content.embedded_data
+            html_table = bleach.clean(
+                df.to_html(na_rep="", index=False), tags=TABLE_TAGS
+            )
+        else:
+            html_table = ""
 
         body = __(
             """
             <p>%(description)s</p>
             <b><a href="%(url)s">Explore in Superset</a></b><p></p>
-            %(embedded_data)s
+            %(html_table)s
             %(img_tag)s
             """,
             description=description,
             url=self._content.url,
-            embedded_data=embedded_data,
+            html_table=html_table,
             img_tag='<img width="1000px" src="cid:{}">'.format(msgid)
             if self._content.screenshot
             else "",
