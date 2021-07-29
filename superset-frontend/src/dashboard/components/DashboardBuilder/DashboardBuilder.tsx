@@ -180,7 +180,6 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
       ? dashboardLayout[rootChildId]
       : undefined;
   const isStandalone = getUrlParam(URL_PARAMS.standalone);
-  console.log(isStandalone);
   const isReport = isStandalone === DashboardStandaloneMode.REPORT;
   const hideDashboardHeader =
     isStandalone === DashboardStandaloneMode.HIDE_NAV_AND_TITLE || isReport;

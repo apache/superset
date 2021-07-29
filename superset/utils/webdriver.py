@@ -16,6 +16,7 @@
 # under the License.
 
 import logging
+from enum import Enum
 from time import sleep
 from typing import Any, Dict, Optional, Tuple, TYPE_CHECKING
 
@@ -40,6 +41,12 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla.models import User
+
+
+class DashboardStandaloneMode(int, Enum):
+    HIDE_NAV = (1,)
+    HIDE_NAV_AND_TITLE = (2,)
+    REPORT = (3,)
 
 
 class WebDriverProxy:
@@ -97,7 +104,7 @@ class WebDriverProxy:
         self, url: str, element_name: str, user: "User",
     ) -> Optional[bytes]:
 
-        url = f"{url}?standalone=3"
+        url = f"{url}?standalone={DashboardStandaloneMode.REPORT}"
         driver = self.auth(user)
         driver.set_window_size(*self._window)
         driver.get(url)
