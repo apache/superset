@@ -30,6 +30,7 @@ import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import Icons from 'src/components/Icons';
 import { Switch } from 'src/components/Switch';
 import Modal from 'src/components/Modal';
+import TimezoneSelector from 'src/components/TimezoneSelector';
 import { Radio } from 'src/components/Radio';
 import { AsyncSelect, NativeGraySelect as Select } from 'src/components/Select';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
@@ -51,6 +52,12 @@ import {
 
 const SELECT_PAGE_SIZE = 2000; // temporary fix for paginated query
 const TIMEOUT_MIN = 1;
+const TEXT_BASED_VISUALIZATION_TYPES = [
+  'pivot_table',
+  'pivot_table_v2',
+  'table',
+  'paired_ttest',
+];
 
 type SelectValue = {
   value: string;
@@ -308,6 +315,7 @@ export const StyledInputContainer = styled.div`
     border-style: none;
     border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
     border-radius: ${({ theme }) => theme.gridUnit}px;
+    width: 425px;
 
     .ant-select-selection-placeholder,
     .ant-select-selection-item {
@@ -350,6 +358,10 @@ const StyledNotificationAddButton = styled.div`
     color: ${({ theme }) => theme.colors.grayscale.light1};
     cursor: default;
   }
+`;
+
+const timezoneHeaderStyle = (theme: SupersetTheme) => css`
+  margin: ${theme.gridUnit * 3}px 0;
 `;
 
 type NotificationAddStatus = 'active' | 'disabled' | 'hidden';
@@ -415,6 +427,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [sourceOptions, setSourceOptions] = useState<MetaObject[]>([]);
   const [dashboardOptions, setDashboardOptions] = useState<MetaObject[]>([]);
   const [chartOptions, setChartOptions] = useState<MetaObject[]>([]);
+
+  // Chart metadata
+  const [chartVizType, setChartVizType] = useState<string>('');
 
   const isEditMode = alert !== null;
   const formatOptionEnabled =
@@ -718,6 +733,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     return result;
   };
 
+  const getChartVisualizationType = (chart: SelectValue) =>
+    SupersetClient.get({
+      endpoint: `/api/v1/chart/${chart.value}`,
+    }).then(response => setChartVizType(response.json.result.viz_type));
+
   // Updating alert/report state
   const updateAlertState = (name: string, value: any) => {
     setCurrentAlert(currentAlertData => ({
@@ -770,6 +790,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const onChartChange = (chart: SelectValue) => {
+    getChartVisualizationType(chart);
     updateAlertState('chart', chart || undefined);
     updateAlertState('dashboard', null);
   };
@@ -804,6 +825,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const onLogRetentionChange = (retention: number) => {
     updateAlertState('log_retention', retention);
+  };
+
+  const onTimezoneChange = (timezone: string) => {
+    updateAlertState('timezone', timezone);
   };
 
   const onContentTypeChange = (event: any) => {
@@ -868,10 +893,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   useEffect(() => {
     if (
       isEditMode &&
-      (!currentAlert ||
-        !currentAlert.id ||
-        (alert && alert.id !== currentAlert.id) ||
-        (isHidden && show))
+      (!currentAlert?.id || alert?.id !== currentAlert.id || (isHidden && show))
     ) {
       if (alert && alert.id !== null && !loading && !fetchError) {
         const id = alert.id || 0;
@@ -919,6 +941,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           : resource.validator_config_json;
 
       setConditionNotNull(resource.validator_type === 'not null');
+
+      if (resource.chart) {
+        setChartVizType((resource.chart as ChartObject).viz_type);
+      }
 
       setCurrentAlert({
         ...resource,
@@ -1085,7 +1111,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   <AsyncSelect
                     name="source"
                     value={
-                      currentAlert && currentAlert.database
+                      currentAlert?.database
                         ? {
                             value: currentAlert.database.value,
                             label: currentAlert.database.label,
@@ -1176,11 +1202,19 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <span className="required">*</span>
             </StyledSectionTitle>
             <AlertReportCronScheduler
-              value={
-                (currentAlert && currentAlert.crontab) || DEFAULT_CRON_VALUE
-              }
+              value={currentAlert?.crontab || DEFAULT_CRON_VALUE}
               onChange={newVal => updateAlertState('crontab', newVal)}
             />
+            <div className="control-label">{t('Timezone')}</div>
+            <div
+              className="input-container"
+              css={(theme: SupersetTheme) => timezoneHeaderStyle(theme)}
+            >
+              <TimezoneSelector
+                onTimezoneChange={onTimezoneChange}
+                timezone={currentAlert?.timezone}
+              />
+            </div>
             <StyledSectionTitle>
               <h4>{t('Schedule settings')}</h4>
             </StyledSectionTitle>
@@ -1251,17 +1285,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <StyledRadio value="dashboard">{t('Dashboard')}</StyledRadio>
               <StyledRadio value="chart">{t('Chart')}</StyledRadio>
             </Radio.Group>
-            {formatOptionEnabled && (
-              <div className="inline-container">
-                <StyledRadioGroup
-                  onChange={onFormatChange}
-                  value={reportFormat}
-                >
-                  <StyledRadio value="PNG">{t('Send as PNG')}</StyledRadio>
-                  <StyledRadio value="CSV">{t('Send as CSV')}</StyledRadio>
-                </StyledRadioGroup>
-              </div>
-            )}
             <AsyncSelect
               className={
                 contentType === 'chart'
@@ -1302,6 +1325,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               cacheOptions
               onChange={onDashboardChange}
             />
+            {formatOptionEnabled && (
+              <div className="inline-container">
+                <StyledRadioGroup
+                  onChange={onFormatChange}
+                  value={reportFormat}
+                >
+                  <StyledRadio value="PNG">{t('Send as PNG')}</StyledRadio>
+                  <StyledRadio value="CSV">{t('Send as CSV')}</StyledRadio>
+                  {TEXT_BASED_VISUALIZATION_TYPES.includes(chartVizType) && (
+                    <StyledRadio value="TEXT">{t('Send as text')}</StyledRadio>
+                  )}
+                </StyledRadioGroup>
+              </div>
+            )}
             <StyledSectionTitle>
               <h4>{t('Notification method')}</h4>
               <span className="required">*</span>

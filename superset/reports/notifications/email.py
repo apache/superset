@@ -21,6 +21,7 @@ from dataclasses import dataclass
 from email.utils import make_msgid, parseaddr
 from typing import Any, Dict, Optional
 
+import bleach
 from flask_babel import gettext as __
 
 from superset import app
@@ -30,6 +31,8 @@ from superset.reports.notifications.exceptions import NotificationError
 from superset.utils.core import send_email_smtp
 
 logger = logging.getLogger(__name__)
+
+TABLE_TAGS = ["table", "th", "tr", "td", "thead", "tbody", "tfoot"]
 
 
 @dataclass
@@ -68,14 +71,23 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         csv_data = None
         domain = self._get_smtp_domain()
         msgid = make_msgid(domain)[1:-1]
+
+        # Strip any malicious HTML from the description
+        description = bleach.clean(self._content.description or "")
+
+        # Strip malicious HTML from embedded data, allowing table elements
+        embedded_data = bleach.clean(self._content.embedded_data or "", tags=TABLE_TAGS)
+
         body = __(
             """
             <p>%(description)s</p>
             <b><a href="%(url)s">Explore in Superset</a></b><p></p>
+            %(embedded_data)s
             %(img_tag)s
             """,
-            description=self._content.description or "",
+            description=description,
             url=self._content.url,
+            embedded_data=embedded_data,
             img_tag='<img width="1000px" src="cid:{}">'.format(msgid)
             if self._content.screenshot
             else "",
