@@ -261,17 +261,20 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [
-          {
-            name: 'server_pagination',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Server pagination'),
-              description: t('Enable server side pagination of results (experimental feature)'),
-              default: false,
-            },
-          },
-        ],
+        isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) ||
+        isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS)
+          ? [
+              {
+                name: 'server_pagination',
+                config: {
+                  type: 'CheckboxControl',
+                  label: t('Server pagination'),
+                  description: t('Enable server side pagination of results (experimental feature)'),
+                  default: false,
+                },
+              },
+            ]
+          : [],
         [
           {
             name: 'row_limit',
