@@ -17,6 +17,7 @@
 # under the License.
 import json
 import logging
+import textwrap
 from io import IOBase
 from typing import Optional, Union
 
@@ -24,6 +25,7 @@ import backoff
 from flask_babel import gettext as __
 from slack import WebClient
 from slack.errors import SlackApiError, SlackClientError
+from tabulate import tabulate
 
 from superset import app
 from superset.models.reports import ReportRecipientType
@@ -31,6 +33,9 @@ from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import NotificationError
 
 logger = logging.getLogger(__name__)
+
+# Slack only shows ~25 lines in the code block section
+MAXIMUM_ROWS_IN_CODE_SECTION = 21
 
 
 class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-methods
@@ -45,15 +50,17 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
 
     @staticmethod
     def _error_template(name: str, description: str, text: str) -> str:
-        return __(
-            """
+        return textwrap.dedent(
+            __(
+                """
             *%(name)s*\n
             %(description)s\n
             Error: %(text)s
             """,
-            name=name,
-            description=description,
-            text=text,
+                name=name,
+                description=description,
+                text=text,
+            )
         )
 
     def _get_body(self) -> str:
@@ -61,15 +68,36 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
             return self._error_template(
                 self._content.name, self._content.description or "", self._content.text
             )
+
+        # Convert Pandas dataframe into a nice ASCII table
+        if self._content.embedded_data is not None:
+            df = self._content.embedded_data
+
+            truncated = len(df) > MAXIMUM_ROWS_IN_CODE_SECTION
+            message = "(table was truncated)" if truncated else ""
+            if truncated:
+                df = df[:MAXIMUM_ROWS_IN_CODE_SECTION].fillna("")
+                # add a last row with '...' for values
+                df = df.append({k: "..." for k in df.columns}, ignore_index=True)
+
+            tabulated = tabulate(df, headers="keys", showindex=False)
+            table = f"```\n{tabulated}\n```\n\n{message}"
+        else:
+            table = ""
+
         return __(
-            """
-            *%(name)s*\n
-            %(description)s\n
-            <%(url)s|Explore in Superset>
+            """*%(name)s*
+
+%(description)s
+
+<%(url)s|Explore in Superset>
+
+%(table)s
             """,
             name=self._content.name,
             description=self._content.description or "",
             url=self._content.url,
+            table=table,
         )
 
     def _get_inline_file(self) -> Optional[Union[str, IOBase, bytes]]:
