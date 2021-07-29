@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/preset-chart-xy",
-  "version": "0.17.75",
+  "version": "0.17.76",
   "description": "Superset Chart - XY",
   "sideEffects": [
     "*.css"
@@ -31,7 +31,7 @@
   "dependencies": {
     "@data-ui/theme": "^0.0.84",
     "@data-ui/xy-chart": "^0.0.84",
-    "@superset-ui/chart-controls": "0.17.75",
+    "@superset-ui/chart-controls": "0.17.76",
     "@superset-ui/core": "0.17.75",
     "@vx/axis": "^0.0.198",
     "@vx/legend": "^0.0.198",
