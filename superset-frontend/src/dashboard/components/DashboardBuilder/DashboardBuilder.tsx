@@ -246,7 +246,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
           onDrop={dropResult => dispatch(handleComponentDrop(dropResult))}
           editMode={editMode}
           // you cannot drop on/displace tabs if they already exist
-          disableDragdrop={!!topLevelTabs}
+          disableDragDrop={!!topLevelTabs}
           style={{
             marginLeft: dashboardFiltersOpen || editMode ? 0 : -32,
           }}

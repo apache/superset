@@ -64,6 +64,7 @@ from superset.reports.notifications import create_notification
 from superset.reports.notifications.base import NotificationContent
 from superset.reports.notifications.exceptions import NotificationError
 from superset.utils.celery import session_scope
+from superset.utils.core import ChartDataResultFormat, ChartDataResultType
 from superset.utils.csv import get_chart_csv_data
 from superset.utils.screenshots import (
     BaseScreenshot,
@@ -146,7 +147,8 @@ class BaseReportState:
                 return get_url_path(
                     "ChartRestApi.get_data",
                     pk=self._report_schedule.chart_id,
-                    format="csv",
+                    format=ChartDataResultFormat.CSV.value,
+                    type=ChartDataResultType.POST_PROCESSED.value,
                 )
             return get_url_path(
                 "Superset.slice",
