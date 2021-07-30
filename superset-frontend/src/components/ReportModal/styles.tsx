@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { styled, css } from '@superset-ui/core';
+import { styled, css, SupersetTheme } from '@superset-ui/core';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 import { Radio } from 'src/components/Radio';
@@ -34,7 +34,12 @@ export const StyledModal = styled(Modal)`
 `;
 
 export const StyledTopSection = styled.div`
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
+  padding: ${({ theme }) =>
+    `${theme.gridUnit * 3}px ${theme.gridUnit * 4}px ${theme.gridUnit * 2}px`};
+  label {
+    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+    color: ${({ theme }) => theme.colors.grayscale.light1};
+  }
 `;
 
 export const StyledBottomSection = styled.div`
