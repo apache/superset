@@ -59,7 +59,7 @@ export default function HeaderReportActionsDropDown({
   };
 
   const menu = () => (
-    <Menu selectable={false}>
+    <Menu selectable={false} css={{ width: '200px' }}>
       <Menu.Item>
         {t('Email reports active')}
         <Switch
@@ -67,6 +67,7 @@ export default function HeaderReportActionsDropDown({
           checked={report?.active}
           onClick={(checked: boolean) => toggleActiveKey(report, checked)}
           size="small"
+          css={{ marginLeft: '8px' }}
         />
       </Menu.Item>
       <Menu.Item onClick={showReportModal}>{t('Edit email report')}</Menu.Item>
