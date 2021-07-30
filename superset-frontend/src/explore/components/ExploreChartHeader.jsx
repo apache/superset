@@ -29,6 +29,7 @@ import {
   toggleActive,
   deleteActiveReport,
 } from 'src/reports/actions/reports';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import HeaderReportActionsDropdown from 'src/components/ReportModal/HeaderReportActionsDropdown';
 import { chartPropShape } from '../../dashboard/util/propShapes';
 import ExploreActionButtons from './ExploreActionButtons';
@@ -116,7 +117,7 @@ export class ExploreChartHeader extends React.PureComponent {
 
   componentDidMount() {
     const { user, chart } = this.props;
-    if (user) {
+    if (user && isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
       // this is in the case that there is an anonymous user.
       this.props.fetchUISpecificReport(
         user.userId,
@@ -163,25 +164,29 @@ export class ExploreChartHeader extends React.PureComponent {
 
   renderReportModal() {
     const attachedReportExists = !!Object.keys(this.props.reports).length;
-    return attachedReportExists ? (
-      <HeaderReportActionsDropdown
-        showReportModal={this.showReportModal}
-        hideReportModal={this.hideReportModal}
-        toggleActive={this.props.toggleActive}
-        deleteActiveReport={this.props.deleteActiveReport}
-      />
-    ) : (
-      <>
-        <span
-          role="button"
-          title={t('Schedule email report')}
-          tabIndex={0}
-          className="action-button"
-          onClick={this.showReportModal}
-        >
-          <Icons.Calendar />
-        </span>
-      </>
+    const canAddReports = isFeatureEnabled(FeatureFlag.ALERT_REPORTS);
+    return (
+      (canAddReports || null) &&
+      (attachedReportExists ? (
+        <HeaderReportActionsDropdown
+          showReportModal={this.showReportModal}
+          hideReportModal={this.hideReportModal}
+          toggleActive={this.props.toggleActive}
+          deleteActiveReport={this.props.deleteActiveReport}
+        />
+      ) : (
+        <>
+          <span
+            role="button"
+            title={t('Schedule email report')}
+            tabIndex={0}
+            className="action-button"
+            onClick={this.showReportModal}
+          >
+            <Icons.Calendar />
+          </span>
+        </>
+      ))
     );
   }
 
