@@ -134,8 +134,6 @@ const reportReducer = (
 };
 
 const ReportModal: FunctionComponent<ReportProps> = ({
-  // addDangerToast,
-  addSuccessToast,
   onReportAdd,
   onHide,
   show = false,
@@ -170,7 +168,6 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   const onClose = () => {
     // setLoading(false);
     onHide();
-    addSuccessToast(t('The report has been created'));
   };
   const onSave = async () => {
     // Create new Report
