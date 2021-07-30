@@ -315,7 +315,6 @@ export const StyledInputContainer = styled.div`
     border-style: none;
     border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
     border-radius: ${({ theme }) => theme.gridUnit}px;
-    width: 425px;
 
     .ant-select-selection-placeholder,
     .ant-select-selection-item {
