@@ -18,7 +18,7 @@
 import copy
 from typing import Any, Dict
 
-from superset.charts.post_processing import pivot_table, pivot_table_v2
+from superset.charts.post_processing import apply_post_process
 from superset.utils.core import GenericDataType, QueryStatus
 
 RESULT: Dict[str, Any] = {
@@ -51,30 +51,30 @@ LIMIT 50000;
                 GenericDataType.STRING,
                 GenericDataType.NUMERIC,
             ],
-            "data": [
-                {"state": "OH", "gender": "boy", "Births": int("2376385")},
-                {"state": "TX", "gender": "girl", "Births": int("2313186")},
-                {"state": "MA", "gender": "boy", "Births": int("1285126")},
-                {"state": "MA", "gender": "girl", "Births": int("842146")},
-                {"state": "PA", "gender": "boy", "Births": int("2390275")},
-                {"state": "NY", "gender": "boy", "Births": int("3543961")},
-                {"state": "FL", "gender": "boy", "Births": int("1968060")},
-                {"state": "TX", "gender": "boy", "Births": int("3311985")},
-                {"state": "NJ", "gender": "boy", "Births": int("1486126")},
-                {"state": "CA", "gender": "girl", "Births": int("3567754")},
-                {"state": "CA", "gender": "boy", "Births": int("5430796")},
-                {"state": "IL", "gender": "girl", "Births": int("1614427")},
-                {"state": "FL", "gender": "girl", "Births": int("1312593")},
-                {"state": "NY", "gender": "girl", "Births": int("2280733")},
-                {"state": "NJ", "gender": "girl", "Births": int("992702")},
-                {"state": "MI", "gender": "girl", "Births": int("1326229")},
-                {"state": "other", "gender": "girl", "Births": int("15058341")},
-                {"state": "other", "gender": "boy", "Births": int("22044909")},
-                {"state": "MI", "gender": "boy", "Births": int("1938321")},
-                {"state": "IL", "gender": "boy", "Births": int("2357411")},
-                {"state": "PA", "gender": "girl", "Births": int("1615383")},
-                {"state": "OH", "gender": "girl", "Births": int("1622814")},
-            ],
+            "data": """state,gender,Births
+OH,boy,2376385
+TX,girl,2313186
+MA,boy,1285126
+MA,girl,842146
+PA,boy,2390275
+NY,boy,3543961
+FL,boy,1968060
+TX,boy,3311985
+NJ,boy,1486126
+CA,girl,3567754
+CA,boy,5430796
+IL,girl,1614427
+FL,girl,1312593
+NY,girl,2280733
+NJ,girl,992702
+MI,girl,1326229
+other,girl,15058341
+other,boy,22044909
+MI,boy,1938321
+IL,boy,2357411
+PA,girl,1615383
+OH,girl,1622814
+            """,
             "applied_filters": [],
             "rejected_filters": [],
         }
@@ -113,7 +113,7 @@ def test_pivot_table():
         "viz_type": "pivot_table",
     }
     result = copy.deepcopy(RESULT)
-    assert pivot_table(result, form_data) == {
+    assert apply_post_process(result, form_data) == {
         "query_context": None,
         "queries": [
             {
@@ -165,53 +165,11 @@ LIMIT 50000;
                     GenericDataType.NUMERIC,
                     GenericDataType.NUMERIC,
                 ],
-                "data": [
-                    {
-                        "Births CA": 5430796,
-                        "Births FL": 1968060,
-                        "Births IL": 2357411,
-                        "Births MA": 1285126,
-                        "Births MI": 1938321,
-                        "Births NJ": 1486126,
-                        "Births NY": 3543961,
-                        "Births OH": 2376385,
-                        "Births PA": 2390275,
-                        "Births TX": 3311985,
-                        "Births other": 22044909,
-                        "Births All": 48133355,
-                        "gender": "boy",
-                    },
-                    {
-                        "Births CA": 3567754,
-                        "Births FL": 1312593,
-                        "Births IL": 1614427,
-                        "Births MA": 842146,
-                        "Births MI": 1326229,
-                        "Births NJ": 992702,
-                        "Births NY": 2280733,
-                        "Births OH": 1622814,
-                        "Births PA": 1615383,
-                        "Births TX": 2313186,
-                        "Births other": 15058341,
-                        "Births All": 32546308,
-                        "gender": "girl",
-                    },
-                    {
-                        "Births CA": 8998550,
-                        "Births FL": 3280653,
-                        "Births IL": 3971838,
-                        "Births MA": 2127272,
-                        "Births MI": 3264550,
-                        "Births NJ": 2478828,
-                        "Births NY": 5824694,
-                        "Births OH": 3999199,
-                        "Births PA": 4005658,
-                        "Births TX": 5625171,
-                        "Births other": 37103250,
-                        "Births All": 80679663,
-                        "gender": "All",
-                    },
-                ],
+                "data": """gender,Births CA,Births FL,Births IL,Births MA,Births MI,Births NJ,Births NY,Births OH,Births PA,Births TX,Births other,Births All
+boy,5430796,1968060,2357411,1285126,1938321,1486126,3543961,2376385,2390275,3311985,22044909,48133355
+girl,3567754,1312593,1614427,842146,1326229,992702,2280733,1622814,1615383,2313186,15058341,32546308
+All,8998550,3280653,3971838,2127272,3264550,2478828,5824694,3999199,4005658,5625171,37103250,80679663
+""",
                 "applied_filters": [],
                 "rejected_filters": [],
             }
@@ -255,7 +213,7 @@ def test_pivot_table_v2():
         "viz_type": "pivot_table_v2",
     }
     result = copy.deepcopy(RESULT)
-    assert pivot_table_v2(result, form_data) == {
+    assert apply_post_process(result, form_data) == {
         "query_context": None,
         "queries": [
             {
@@ -285,80 +243,20 @@ LIMIT 50000;
                     GenericDataType.NUMERIC,
                     GenericDataType.NUMERIC,
                 ],
-                "data": [
-                    {
-                        "All Births": 1.0,
-                        "boy Births": 0.5965983645717509,
-                        "girl Births": 0.40340163542824914,
-                        "state": "All",
-                    },
-                    {
-                        "All Births": 1.0,
-                        "boy Births": 0.6035190113962805,
-                        "girl Births": 0.3964809886037195,
-                        "state": "CA",
-                    },
-                    {
-                        "All Births": 1.0,
-                        "boy Births": 0.5998988615985903,
-                        "girl Births": 0.4001011384014097,
-                        "state": "FL",
-                    },
-                    {
-                        "All Births": 1.0,
-                        "boy Births": 0.5935315085862012,
-                        "girl Births": 0.40646849141379887,
-                        "state": "IL",
-                    },
-                    {
-                        "All Births": 1.0,
-                        "boy Births": 0.6041192663655611,
-                        "girl Births": 0.3958807336344389,
-                        "state": "MA",
-                    },
-                    {
-                        "All Births": 1.0,
-                        "boy Births": 0.5937482960898133,
-                        "girl Births": 0.4062517039101867,
-                        "state": "MI",
-                    },
-                    {
-                        "All Births": 1.0,
-                        "boy Births": 0.5995276800165239,
-                        "girl Births": 0.40047231998347604,
-                        "state": "NJ",
-                    },
-                    {
-                        "All Births": 1.0,
-                        "boy Births": 0.6084372844307357,
-                        "girl Births": 0.39156271556926425,
-                        "state": "NY",
-                    },
-                    {
-                        "All Births": 1.0,
-                        "boy Births": 0.5942152416021308,
-                        "girl Births": 0.40578475839786915,
-                        "state": "OH",
-                    },
-                    {
-                        "All Births": 1.0,
-                        "boy Births": 0.596724682935987,
-                        "girl Births": 0.40327531706401293,
-                        "state": "PA",
-                    },
-                    {
-                        "All Births": 1.0,
-                        "boy Births": 0.5887794344385264,
-                        "girl Births": 0.41122056556147357,
-                        "state": "TX",
-                    },
-                    {
-                        "All Births": 1.0,
-                        "boy Births": 0.5941503507105172,
-                        "girl Births": 0.40584964928948275,
-                        "state": "other",
-                    },
-                ],
+                "data": """state,All Births,boy Births,girl Births
+All,1.0,0.5965983645717509,0.40340163542824914
+CA,1.0,0.6035190113962805,0.3964809886037195
+FL,1.0,0.5998988615985903,0.4001011384014097
+IL,1.0,0.5935315085862012,0.40646849141379887
+MA,1.0,0.6041192663655611,0.3958807336344389
+MI,1.0,0.5937482960898133,0.4062517039101867
+NJ,1.0,0.5995276800165239,0.40047231998347604
+NY,1.0,0.6084372844307357,0.39156271556926425
+OH,1.0,0.5942152416021308,0.40578475839786915
+PA,1.0,0.596724682935987,0.40327531706401293
+TX,1.0,0.5887794344385264,0.41122056556147357
+other,1.0,0.5941503507105172,0.40584964928948275
+""",
                 "applied_filters": [],
                 "rejected_filters": [],
             }
