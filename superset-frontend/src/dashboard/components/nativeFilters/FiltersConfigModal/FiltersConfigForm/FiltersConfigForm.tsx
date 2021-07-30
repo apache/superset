@@ -510,7 +510,8 @@ const FiltersConfigForm = (
     setHasDefaultValue,
   ] = useDefaultValue(formFilter, filterToEdit);
 
-  const showDataset = !datasetId || datasetDetails;
+  const showDataset =
+    !datasetId || datasetDetails || formFilter?.dataset?.label;
 
   useEffect(() => {
     if (hasDataset && hasFilledDataset && hasDefaultValue && isDataDirty) {
