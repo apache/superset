@@ -27,7 +27,6 @@ import { t } from '@superset-ui/core';
 import { bindActionCreators } from 'redux';
 import { connect, useDispatch } from 'react-redux';
 import { addReport } from 'src/reports/actions/reportState';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 
 import TimezoneSelector from 'src/components/TimezoneSelector';
 import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
