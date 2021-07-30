@@ -255,7 +255,7 @@ const ExploreChartPanel = props => {
       timeout={props.timeout}
       chart={props.chart}
       user={props.user}
-      report={props.report}
+      reports={props.reports}
     />
   );
 

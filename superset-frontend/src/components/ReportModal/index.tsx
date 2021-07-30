@@ -18,7 +18,7 @@
  */
 import React, {
   useState,
-  // useEffect,
+  useEffect,
   useCallback,
   useReducer,
   Reducer,
@@ -26,9 +26,9 @@ import React, {
 } from 'react';
 import { t, SupersetTheme } from '@superset-ui/core';
 import { bindActionCreators } from 'redux';
-import { connect, useDispatch } from 'react-redux';
-import { addReport } from 'src/reports/actions/reportState';
-
+import { connect, useDispatch, useSelector } from 'react-redux';
+import { addReport, editReport } from 'src/reports/actions/reports';
+import { AlertObject } from 'src/views/CRUD/alert/types';
 import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
 import TimezoneSelector from 'src/components/TimezoneSelector';
 import Icons from 'src/components/Icons';
@@ -48,6 +48,7 @@ import {
 } from './styles';
 
 interface ReportObject {
+  id?: number;
   active: boolean;
   crontab: string;
   dashboard?: number;
@@ -85,6 +86,7 @@ enum ActionType {
   textChange,
   inputChange,
   fetched,
+  reset,
 }
 
 interface ReportPayloadType {
@@ -100,6 +102,9 @@ type ReportActionType =
   | {
       type: ActionType.fetched;
       payload: Partial<ReportObject>;
+    }
+  | {
+      type: ActionType.reset;
     };
 
 const reportReducer = (
@@ -117,6 +122,12 @@ const reportReducer = (
         ...initialState,
         [action.payload.name]: action.payload.value,
       };
+    case ActionType.fetched:
+      return {
+        ...action.payload,
+      };
+    case ActionType.reset:
+      return null;
     default:
       return state;
   }
@@ -136,31 +147,29 @@ const ReportModal: FunctionComponent<ReportProps> = ({
     setCurrentReport({ type, payload });
   }, []);
   const [error, setError] = useState<CronError>();
-  // ---------- comments on lines 21, 28, 125, 139-159 & 182 are being held for edit functionality
-  // const [hasConnectedReport, setHasConnectedReport] = useState<boolean>(false);
   // const [isLoading, setLoading] = useState<boolean>(false);
   const dispatch = useDispatch();
-
   // Report fetch logic
-  // const {
-  //   state: { resource },
-  // } = useSingleViewResource<ReportObject>(
-  //   'report',
-  //   t('report'),
-  //   addDangerToast,
-  // );
-
-  // useEffect(() => {
-  //   if (resource?.dashboard) {
-  //     setHasConnectedReport(true);
-  //   }
-  // }, [resource?.dashboard]);
-
+  const reports = useSelector<any, AlertObject>(state => state.reports);
+  const isEditMode = reports && Object.keys(reports).length;
+  useEffect(() => {
+    if (isEditMode) {
+      const reportsIds = Object.keys(reports);
+      const report = reports[reportsIds[0]];
+      setCurrentReport({
+        type: ActionType.fetched,
+        payload: report,
+      });
+    } else {
+      setCurrentReport({
+        type: ActionType.reset,
+      });
+    }
+  }, [reports]);
   const onClose = () => {
     // setLoading(false);
     onHide();
   };
-
   const onSave = async () => {
     // Create new Report
     const newReportValues: Partial<ReportObject> = {
@@ -178,10 +187,17 @@ const ReportModal: FunctionComponent<ReportProps> = ({
       ],
       type: 'Report',
       creation_method: props.props.creationMethod,
+      active: true,
     };
 
     // setLoading(true);
-    await dispatch(addReport(newReportValues as ReportObject));
+    if (isEditMode) {
+      await dispatch(
+        editReport(currentReport?.id, newReportValues as ReportObject),
+      );
+    } else {
+      await dispatch(addReport(newReportValues as ReportObject));
+    }
 
     if (onReportAdd) {
       onReportAdd();
@@ -193,7 +209,9 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   const wrappedTitle = (
     <StyledIconWrapper>
       <Icons.Calendar />
-      <span className="text">{t('New Email Report')}</span>
+      <span className="text">
+        {isEditMode ? t('Edit Email Report') : t('New Email Report')}
+      </span>
     </StyledIconWrapper>
   );
 
@@ -305,6 +323,6 @@ const ReportModal: FunctionComponent<ReportProps> = ({
 };
 
 const mapDispatchToProps = (dispatch: any) =>
-  bindActionCreators({ addReport }, dispatch);
+  bindActionCreators({ addReport, editReport }, dispatch);
 
 export default connect(null, mapDispatchToProps)(withToasts(ReportModal));
