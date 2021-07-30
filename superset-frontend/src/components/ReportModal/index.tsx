@@ -226,7 +226,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
         onClick={onSave}
         disabled={!currentReport?.name}
       >
-        Add
+        {isEditMode ? t('Save') : t('Add')}
       </StyledFooterButton>
     </>
   );
