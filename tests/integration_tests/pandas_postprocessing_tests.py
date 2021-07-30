@@ -274,10 +274,7 @@ class TestPostProcessing(SupersetTestCase):
             aggregates={"metric": {"operator": "mean"}},
             drop_missing_columns=False,
         )
-        print(df)
-        self.assertEqual(df.columns[1], "0, 0")
-        self.assertEqual(df.columns[2], "1, 1")
-        self.assertEqual(len(df.columns), 3)
+        self.assertEqual(list(df.columns), ["dttm", "0, 0", "1, 1"])
         self.assertTrue(np.isnan(df["1, 1"][0]))
 
     def test_aggregate(self):
