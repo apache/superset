@@ -80,6 +80,9 @@ const WelcomeContainer = styled.div`
       padding: 3px 21px;
     }
   }
+  .ant-card-meta-description {
+    margin-top: ${({ theme }) => theme.gridUnit}px;
+  }
   .ant-card.ant-card-bordered {
     border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   }

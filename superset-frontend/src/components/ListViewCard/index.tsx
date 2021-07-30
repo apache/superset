@@ -93,6 +93,10 @@ const TitleContainer = styled.div`
     margin-left: auto;
     align-self: flex-end;
     padding-left: ${({ theme }) => theme.gridUnit}px;
+    span[role='img'] {
+      display: flex;
+      align-items: center;
+    }
   }
 `;
 
