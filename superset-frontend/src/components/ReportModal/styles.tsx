@@ -28,12 +28,25 @@ export const StyledModal = styled(Modal)`
 `;
 
 export const StyledTopSection = styled.div`
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
+  padding: ${({ theme }) =>
+    `${theme.gridUnit * 3}px ${theme.gridUnit * 4}px ${theme.gridUnit * 2}px`};
+  label {
+    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+    color: ${({ theme }) => theme.colors.grayscale.light1};
+  }
 `;
 
 export const StyledBottomSection = styled.div`
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
+  padding: ${({ theme }) =>
+    `${theme.gridUnit * 4}px ${theme.gridUnit * 4}px ${theme.gridUnit * 6}px`};
+  .ant-select {
+    width: 100%;
+  }
+  .control-label {
+    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+    color: ${({ theme }) => theme.colors.grayscale.light1};
+  }
 `;
 
 export const StyledIconWrapper = styled.span`
@@ -62,6 +75,11 @@ export const StyledFooterButton = styled(Button)`
   width: ${({ theme }) => theme.gridUnit * 40}px;
 `;
 
-export const timezoneHeaderStyle = (theme: SupersetTheme) => css`
+export const TimezoneHeaderStyle = (theme: SupersetTheme) => css`
+  margin: ${theme.gridUnit * 3}px 0 ${theme.gridUnit * 2}px;
+`;
+
+export const SectionHeaderStyle = (theme: SupersetTheme) => css`
   margin: ${theme.gridUnit * 3}px 0;
+  font-weight: ${theme.typography.weights.bold};
 `;

@@ -29,7 +29,7 @@ import ReportModal from '.';
 
 describe('Email Report Modal', () => {
   it('inputs respond correctly', () => {
-    render(<ReportModal show />);
+    render(<ReportModal show />, { useRedux: true });
 
     // ----- Report name textbox
     // Initial value

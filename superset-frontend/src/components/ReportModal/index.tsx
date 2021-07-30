@@ -43,7 +43,8 @@ import {
   StyledCronError,
   noBottomMargin,
   StyledFooterButton,
-  timezoneHeaderStyle,
+  TimezoneHeaderStyle,
+  SectionHeaderStyle,
 } from './styles';
 
 interface ReportObject {
@@ -149,7 +150,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   const dispatch = useDispatch();
   // Report fetch logic
   const reports = useSelector<any, AlertObject>(state => state.reports);
-  const isEditMode = Object.keys(reports).length;
+  const isEditMode = reports && Object.keys(reports).length;
   useEffect(() => {
     if (isEditMode) {
       const reportsIds = Object.keys(reports);
@@ -276,7 +277,9 @@ const ReportModal: FunctionComponent<ReportProps> = ({
 
       <StyledBottomSection>
         <StyledScheduleTitle>
-          <h2>Schedule</h2>
+          <h4 css={(theme: SupersetTheme) => SectionHeaderStyle(theme)}>
+            Schedule
+          </h4>
           <p>Scheduled reports will be sent to your email as a PNG</p>
         </StyledScheduleTitle>
 
@@ -291,9 +294,10 @@ const ReportModal: FunctionComponent<ReportProps> = ({
           }}
           onError={setError}
         />
+        <StyledCronError>{error}</StyledCronError>
         <div
           className="control-label"
-          css={(theme: SupersetTheme) => timezoneHeaderStyle(theme)}
+          css={(theme: SupersetTheme) => TimezoneHeaderStyle(theme)}
         >
           {t('Timezone')}
         </div>
@@ -306,7 +310,6 @@ const ReportModal: FunctionComponent<ReportProps> = ({
           }}
           timezone={currentReport?.timezone}
         />
-        <StyledCronError>{error}</StyledCronError>
       </StyledBottomSection>
     </StyledModal>
   );
