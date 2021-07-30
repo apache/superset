@@ -28,7 +28,7 @@ import {
   fetchUISpecificReport,
   toggleActive,
   deleteActiveReport,
-} from 'src/reports/actions/reportState';
+} from 'src/reports/actions/reports';
 import HeaderReportActionsDropdown from 'src/components/ReportModal/HeaderReportActionsDropdown';
 import { chartPropShape } from '../../dashboard/util/propShapes';
 import ExploreActionButtons from './ExploreActionButtons';
@@ -111,6 +111,7 @@ export class ExploreChartHeader extends React.PureComponent {
     this.closePropertiesModal = this.closePropertiesModal.bind(this);
     this.showReportModal = this.showReportModal.bind(this);
     this.hideReportModal = this.hideReportModal.bind(this);
+    this.renderReportModal = this.renderReportModal.bind(this);
   }
 
   componentDidMount() {
@@ -161,7 +162,7 @@ export class ExploreChartHeader extends React.PureComponent {
   }
 
   renderReportModal() {
-    const attachedReportExists = this.props.report?.count > 0;
+    const attachedReportExists = !!Object.keys(this.props.reports).length;
     return attachedReportExists ? (
       <HeaderReportActionsDropdown
         showReportModal={this.showReportModal}
@@ -196,7 +197,7 @@ export class ExploreChartHeader extends React.PureComponent {
         perms => perms[0] === 'can_add' && perms[1] === 'AlertModelView',
       ),
     );
-    return this.props.report && permissions[0].length > 0;
+    return permissions[0].length > 0;
   }
 
   render() {

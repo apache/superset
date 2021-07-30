@@ -70,6 +70,31 @@ export function fetchUISpecificReport(
   };
 }
 
+const structureFetchAction = (dispatch, getState) => {
+  const state = getState();
+  const { user, dashboardInfo, charts, explore } = state;
+  if (dashboardInfo) {
+    dispatch(
+      fetchUISpecificReport(
+        user.userId,
+        'dashboard_id',
+        'dashboards',
+        dashboardInfo.id,
+      ),
+    );
+  } else {
+    const [chartArr] = Object.keys(charts);
+    dispatch(
+      fetchUISpecificReport(
+        explore.user.userId,
+        'chart_id',
+        'charts',
+        charts[chartArr].id,
+      ),
+    );
+  }
+};
+
 export const ADD_REPORT = 'ADD_REPORT';
 
 export const addReport = report => dispatch => {
@@ -77,8 +102,9 @@ export const addReport = report => dispatch => {
     endpoint: `/api/v1/report/`,
     jsonPayload: report,
   })
-    .then(() => {
-      dispatch({ type: ADD_REPORT, report });
+    .then(response => {
+      const { json } = response;
+      dispatch({ type: ADD_REPORT, json });
     })
     .catch(() =>
       dispatch(
@@ -86,15 +112,18 @@ export const addReport = report => dispatch => {
       ),
     );
 };
+
 export const EDIT_REPORT = 'EDIT_REPORT';
 
-export function reportEditor(report) {
+export function editReport(id, report) {
   return function (dispatch) {
     SupersetClient.put({
-      endpoint: `/api/v1/report/${report.id}`,
-      postPayload: { report },
+      endpoint: `/api/v1/report/${id}`,
+      jsonPayload: report,
     })
-      .then(() => dispatch({ type: EDIT_REPORT, report }))
+      .then(({ json }) => {
+        dispatch({ type: EDIT_REPORT, json });
+      })
       .catch(() =>
         dispatch(
           addDangerToast(t('An error occurred while editing this report.')),
@@ -103,10 +132,6 @@ export function reportEditor(report) {
   };
 }
 
-export const TOGGLE_ACTIVE = 'TOGGLE_ACTIVE';
-export function toggleActiveKey(report, isActive) {
-  return { type: TOGGLE_ACTIVE, report, isActive };
-}
 export function toggleActive(report, isActive) {
   return function toggleActiveThunk(dispatch) {
     return SupersetClient.put({
@@ -116,21 +141,21 @@ export function toggleActive(report, isActive) {
         active: isActive,
       }),
     })
-      .then(() => {
-        dispatch(toggleActiveKey(report, isActive));
-      })
       .catch(() => {
         dispatch(
           addDangerToast(
             t('We were unable to active or deactivate this report.'),
           ),
         );
+      })
+      .finally(() => {
+        dispatch(structureFetchAction);
       });
   };
 }
 
 export function deleteActiveReport(report) {
-  return function deleteActiveReportThunk(dispatch, getState) {
+  return function deleteActiveReportThunk(dispatch) {
     return SupersetClient.delete({
       endpoint: encodeURI(`/api/v1/report/${report.id}`),
     })
@@ -138,28 +163,7 @@ export function deleteActiveReport(report) {
         dispatch(addDangerToast(t('Your report could not be deleted')));
       })
       .finally(() => {
-        const state = getState();
-        const { user, dashboardInfo, charts, explore } = state;
-        if (dashboardInfo) {
-          dispatch(
-            fetchUISpecificReport(
-              user.userId,
-              'dashboard_id',
-              'dashboards',
-              dashboardInfo.id,
-            ),
-          );
-        } else {
-          const [chartArr] = Object.keys(charts);
-          dispatch(
-            fetchUISpecificReport(
-              explore.user.userId,
-              'chart_id',
-              'charts',
-              charts[chartArr].id,
-            ),
-          );
-        }
+        dispatch(structureFetchAction);
         dispatch(addSuccessToast(t('Deleted: %s', report.name)));
       });
   };
