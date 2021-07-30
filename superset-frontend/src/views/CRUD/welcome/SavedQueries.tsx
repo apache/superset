@@ -352,9 +352,8 @@ const SavedQueries = ({
                       }}
                     >
                       <Dropdown overlay={renderMenu(q)}>
-                        <Icons.MoreOutlined
+                        <Icons.MoreVert
                           iconColor={theme.colors.grayscale.base}
-                          iconSize="xxl"
                         />
                       </Dropdown>
                     </ListViewCard.Actions>

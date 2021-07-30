@@ -62,7 +62,6 @@ const Styles = styled.div`
   .ant-dropdown-trigger {
     margin-left: ${({ theme }) => 2 * theme.gridUnit}px;
     box-shadow: none;
-    margin-top: ${({ theme }) => theme.gridUnit}px;
     &:active {
       box-shadow: none;
     }
@@ -98,7 +97,7 @@ const Styles = styled.div`
   span[aria-label='dataset-physical'] {
     color: ${({ theme }) => theme.colors.grayscale.base};
   }
-  span[aria-label='more'] {
+  span[aria-label='more-vert'] {
     color: ${({ theme }) => theme.colors.primary.base};
   }
 `;
@@ -239,10 +238,9 @@ class DatasourceControl extends React.PureComponent {
             data-test="datasource-menu"
           >
             <Tooltip title={t('More dataset related options')}>
-              <Icons.MoreOutlined
+              <Icons.MoreVert
                 className="datasource-modal-trigger"
                 data-test="datasource-menu-trigger"
-                iconSize="xxl"
               />
             </Tooltip>
           </Dropdown>
