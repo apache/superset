@@ -572,7 +572,7 @@ function ExploreViewContainer(props) {
 ExploreViewContainer.propTypes = propTypes;
 
 function mapStateToProps(state) {
-  const { explore, charts, impressionId, dataMask, reportState } = state;
+  const { explore, charts, impressionId, dataMask, reports } = state;
   const form_data = getFormDataFromControls(explore.controls);
   form_data.extra_form_data = mergeExtraFormData(
     { ...form_data.extra_form_data },
@@ -613,7 +613,7 @@ function mapStateToProps(state) {
     impressionId,
     userId: explore.user_id,
     user: explore.user,
-    reports: reportState.reports,
+    reports,
   };
 }
 

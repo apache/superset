@@ -95,20 +95,25 @@ const structureFetchAction = (dispatch, getState) => {
   }
 };
 
+export const ADD_REPORT = 'ADD_REPORT';
+
 export const addReport = report => dispatch => {
   SupersetClient.post({
     endpoint: `/api/v1/report/`,
     jsonPayload: report,
   })
+    .then(response => {
+      const { json } = response;
+      dispatch({ type: ADD_REPORT, json });
+    })
     .catch(() =>
       dispatch(
         addDangerToast(t('An error occurred while creating this report.')),
       ),
-    )
-    .finally(() => {
-      dispatch(structureFetchAction);
-    });
+    );
 };
+
+export const EDIT_REPORT = 'EDIT_REPORT';
 
 export function editReport(id, report) {
   return function (dispatch) {
@@ -116,14 +121,14 @@ export function editReport(id, report) {
       endpoint: `/api/v1/report/${id}`,
       jsonPayload: report,
     })
+      .then(({ json }) => {
+        dispatch({ type: EDIT_REPORT, json });
+      })
       .catch(() =>
         dispatch(
           addDangerToast(t('An error occurred while editing this report.')),
         ),
-      )
-      .finally(() => {
-        dispatch(structureFetchAction);
-      });
+      );
   };
 }
 

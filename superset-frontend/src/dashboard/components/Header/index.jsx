@@ -381,7 +381,7 @@ class Header extends React.PureComponent {
   }
 
   renderReportModal() {
-    const attachedReportExists = this.props.reports?.length > 0;
+    const attachedReportExists = !!Object.keys(this.props.reports).length;
     return attachedReportExists ? (
       <HeaderReportActionsDropdown
         showReportModal={this.showReportModal}

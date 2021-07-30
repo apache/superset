@@ -39,9 +39,7 @@ export default function HeaderReportActionsDropDown({
   toggleActive: (data: AlertObject, checked: boolean) => void;
   deleteActiveReport: (data: AlertObject) => void;
 }) {
-  const reports = useSelector<any, AlertObject>(
-    state => state.reportState.reports[0],
-  );
+  const reports = useSelector<any, AlertObject>(state => state.reports);
   const reportsIds = Object.keys(reports);
   const report = reports[reportsIds[0]];
   const [

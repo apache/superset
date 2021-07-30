@@ -27,7 +27,7 @@ import React, {
 import { t, SupersetTheme } from '@superset-ui/core';
 import { bindActionCreators } from 'redux';
 import { connect, useDispatch, useSelector } from 'react-redux';
-import { addReport, editReport } from 'src/reports/actions/reportState';
+import { addReport, editReport } from 'src/reports/actions/reports';
 import { AlertObject } from 'src/views/CRUD/alert/types';
 import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
 import TimezoneSelector from 'src/components/TimezoneSelector';
@@ -85,6 +85,7 @@ enum ActionType {
   textChange,
   inputChange,
   fetched,
+  reset,
 }
 
 interface ReportPayloadType {
@@ -100,6 +101,9 @@ type ReportActionType =
   | {
       type: ActionType.fetched;
       payload: Partial<ReportObject>;
+    }
+  | {
+      type: ActionType.reset;
     };
 
 const reportReducer = (
@@ -120,6 +124,8 @@ const reportReducer = (
       return {
         ...action.payload,
       };
+    case ActionType.reset:
+      return null;
     default:
       return state;
   }
@@ -139,21 +145,22 @@ const ReportModal: FunctionComponent<ReportProps> = ({
     setCurrentReport({ type, payload });
   }, []);
   const [error, setError] = useState<CronError>();
-  const [hasConnectedReport, setHasConnectedReport] = useState<boolean>(false);
   // const [isLoading, setLoading] = useState<boolean>(false);
   const dispatch = useDispatch();
   // Report fetch logic
-  const reports = useSelector<any, AlertObject>(
-    state => state.reportState.reports[0],
-  );
+  const reports = useSelector<any, AlertObject>(state => state.reports);
+  const isEditMode = Object.keys(reports).length;
   useEffect(() => {
-    if (reports) {
+    if (isEditMode) {
       const reportsIds = Object.keys(reports);
       const report = reports[reportsIds[0]];
-      setHasConnectedReport(true);
       setCurrentReport({
         type: ActionType.fetched,
         payload: report,
+      });
+    } else {
+      setCurrentReport({
+        type: ActionType.reset,
       });
     }
   }, [reports]);
@@ -161,7 +168,6 @@ const ReportModal: FunctionComponent<ReportProps> = ({
     // setLoading(false);
     onHide();
   };
-
   const onSave = async () => {
     // Create new Report
     const newReportValues: Partial<ReportObject> = {
@@ -179,10 +185,11 @@ const ReportModal: FunctionComponent<ReportProps> = ({
       ],
       type: 'Report',
       creation_method: props.props.creationMethod,
+      active: true,
     };
 
     // setLoading(true);
-    if (hasConnectedReport) {
+    if (isEditMode) {
       await dispatch(
         editReport(currentReport?.id, newReportValues as ReportObject),
       );
@@ -201,7 +208,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
     <StyledIconWrapper>
       <Icons.Calendar />
       <span className="text">
-        {hasConnectedReport ? t('Edit Email Report') : t('New Email Report')}
+        {isEditMode ? t('Edit Email Report') : t('New Email Report')}
       </span>
     </StyledIconWrapper>
   );

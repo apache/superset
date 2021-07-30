@@ -17,20 +17,32 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { SET_REPORT, EDIT_REPORT } from '../actions/reportState';
+import { SET_REPORT, ADD_REPORT, EDIT_REPORT } from '../actions/reports';
 
-export default function reportStateReducer(state = {}, action) {
+export default function reportsReducer(state = {}, action) {
   const actionHandlers = {
     [SET_REPORT]() {
       return {
+        ...action.report.result.reduce(
+          (obj, report) => ({ ...obj, [report.id]: report }),
+          {},
+        ),
+      };
+    },
+    [ADD_REPORT]() {
+      const report = action.json.result;
+      report.id = action.json.id;
+      return {
         ...state,
-        reports: action.report.result.map(report => ({ [report.id]: report })),
+        [action.json.id]: report,
       };
     },
     [EDIT_REPORT]() {
+      const report = action.json.result;
+      report.id = action.json.id;
       return {
         ...state,
-        report: action.report,
+        [action.json.id]: report,
       };
     },
   };
