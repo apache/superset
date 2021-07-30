@@ -55,7 +55,7 @@ logger = logging.getLogger(__name__)
 
 class Slice(
     Model, AuditMixinNullable, ImportExportMixin
-):  # pylint: disable=too-many-public-methods
+):  # pylint: disable=too-many-public-methods, too-many-instance-attributes
 
     """A slice is essentially a report or a view on data"""
 
