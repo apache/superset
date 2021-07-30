@@ -26,7 +26,7 @@ const metadata = new ChartMetadata({
   description: t(`Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location.
 
   This chart is being deprecated and we recommend checking out Pivot Table V2 instead!`),
-  name: t('Pivot Table (Deprecated)'),
+  name: t('Pivot Table'),
   tags: [t('Legacy')],
   thumbnail,
   useLegacyApi: true,
