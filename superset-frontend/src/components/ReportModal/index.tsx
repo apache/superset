@@ -134,7 +134,6 @@ const reportReducer = (
 };
 
 const ReportModal: FunctionComponent<ReportProps> = ({
-  // addDangerToast,
   onReportAdd,
   onHide,
   show = false,

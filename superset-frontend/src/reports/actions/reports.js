@@ -102,9 +102,9 @@ export const addReport = report => dispatch => {
     endpoint: `/api/v1/report/`,
     jsonPayload: report,
   })
-    .then(response => {
-      const { json } = response;
-      dispatch({ type: ADD_REPORT, json });
+    .then(() => {
+      dispatch({ type: ADD_REPORT, report });
+      dispatch(addSuccessToast(t('The report has been created')));
     })
     .catch(() =>
       dispatch(
