@@ -499,7 +499,10 @@ export default function sqlLabReducer(state = {}, action) {
     [actions.SET_DATABASES]() {
       const databases = {};
       action.databases.forEach(db => {
-        databases[db.id] = db;
+        databases[db.id] = {
+          ...db,
+          extra_json: JSON.parse(db.extra || ''),
+        };
       });
       return { ...state, databases };
     },
@@ -517,20 +520,7 @@ export default function sqlLabReducer(state = {}, action) {
           if (changedQuery.changedOn > queriesLastUpdate) {
             queriesLastUpdate = changedQuery.changedOn;
           }
-          const prevState = state.queries[id].state;
-          const currentState = changedQuery.state;
-          newQueries[id] = {
-            ...state.queries[id],
-            ...changedQuery,
-            // race condition:
-            // because of async behavior, sql lab may still poll a couple of seconds
-            // when it started fetching or finished rendering results
-            state:
-              currentState === 'success' &&
-              ['fetching', 'success'].includes(prevState)
-                ? prevState
-                : currentState,
-          };
+          newQueries[id] = { ...state.queries[id], ...changedQuery };
           change = true;
         }
       });

@@ -158,7 +158,6 @@ class SqlEditor extends React.PureComponent {
       ctas: '',
       northPercent: props.queryEditor.northPercent || INITIAL_NORTH_PERCENT,
       southPercent: props.queryEditor.southPercent || INITIAL_SOUTH_PERCENT,
-      sql: props.queryEditor.sql,
       autocompleteEnabled: true,
       showCreateAsModal: false,
       createAs: '',
@@ -194,6 +193,7 @@ class SqlEditor extends React.PureComponent {
       WINDOW_RESIZE_THROTTLE_MS,
     );
 
+    this.onBeforeUnload = this.onBeforeUnload.bind(this);
     this.renderDropdown = this.renderDropdown.bind(this);
   }
 
@@ -212,6 +212,7 @@ class SqlEditor extends React.PureComponent {
     this.setState({ height: this.getSqlEditorHeight() });
 
     window.addEventListener('resize', this.handleWindowResize);
+    window.addEventListener('beforeunload', this.onBeforeUnload);
 
     // setup hotkeys
     const hotkeys = this.getHotkeyConfig();
@@ -222,6 +223,7 @@ class SqlEditor extends React.PureComponent {
 
   componentWillUnmount() {
     window.removeEventListener('resize', this.handleWindowResize);
+    window.removeEventListener('beforeunload', this.onBeforeUnload);
   }
 
   onResizeStart() {
@@ -242,8 +244,17 @@ class SqlEditor extends React.PureComponent {
     }
   }
 
+  onBeforeUnload(event) {
+    if (
+      this.props.database?.extra_json?.cancel_query_on_windows_unload &&
+      this.props.latestQuery?.state === 'running'
+    ) {
+      event.preventDefault();
+      this.stopQuery();
+    }
+  }
+
   onSqlChanged(sql) {
-    this.setState({ sql });
     this.setQueryEditorSqlWithDebounce(sql);
     // Request server-side validation of the query text
     if (this.canValidateQuery()) {
@@ -282,7 +293,7 @@ class SqlEditor extends React.PureComponent {
         key: 'ctrl+r',
         descr: t('Run query'),
         func: () => {
-          if (this.state.sql.trim() !== '') {
+          if (this.props.queryEditor.sql.trim() !== '') {
             this.runQuery();
           }
         },
@@ -292,7 +303,7 @@ class SqlEditor extends React.PureComponent {
         key: 'ctrl+enter',
         descr: t('Run query'),
         func: () => {
-          if (this.state.sql.trim() !== '') {
+          if (this.props.queryEditor.sql.trim() !== '') {
             this.runQuery();
           }
         },
@@ -331,7 +342,7 @@ class SqlEditor extends React.PureComponent {
       const qe = this.props.queryEditor;
       const query = {
         dbId: qe.dbId,
-        sql: qe.selectedText ? qe.selectedText : this.state.sql,
+        sql: qe.selectedText ? qe.selectedText : this.props.queryEditor.sql,
         sqlEditorId: qe.id,
         schema: qe.schema,
         templateParams: qe.templateParams,
@@ -363,7 +374,7 @@ class SqlEditor extends React.PureComponent {
       const qe = this.props.queryEditor;
       const query = {
         dbId: qe.dbId,
-        sql: this.state.sql,
+        sql: this.props.queryEditor.sql,
         sqlEditorId: qe.id,
         schema: qe.schema,
         templateParams: qe.templateParams,
@@ -396,7 +407,7 @@ class SqlEditor extends React.PureComponent {
     const qe = this.props.queryEditor;
     const query = {
       dbId: qe.dbId,
-      sql: qe.selectedText ? qe.selectedText : this.state.sql,
+      sql: qe.selectedText ? qe.selectedText : this.props.queryEditor.sql,
       sqlEditorId: qe.id,
       tab: qe.title,
       schema: qe.schema,
@@ -609,7 +620,7 @@ class SqlEditor extends React.PureComponent {
               runQuery={this.runQuery}
               selectedText={qe.selectedText}
               stopQuery={this.stopQuery}
-              sql={this.state.sql}
+              sql={this.props.queryEditor.sql}
               overlayCreateAsMenu={showMenu ? runMenuBtn : null}
             />
           </span>

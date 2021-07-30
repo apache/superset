@@ -41,7 +41,6 @@ export interface NativeFiltersFormItem {
     label: string;
   };
   sortMetric: string | null;
-  isInstant: boolean;
   adhoc_filters?: AdhocFilter[];
   time_range?: string;
   granularity_sqla?: string;
@@ -49,6 +48,7 @@ export interface NativeFiltersFormItem {
 
 export interface NativeFiltersForm {
   filters: Record<string, NativeFiltersFormItem>;
+  changed?: boolean;
 }
 
 export type FilterRemoval =

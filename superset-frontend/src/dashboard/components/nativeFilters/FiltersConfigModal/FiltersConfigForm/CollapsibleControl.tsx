@@ -19,11 +19,14 @@
 import React, { ReactNode, useEffect, useState } from 'react';
 import { styled } from '@superset-ui/core';
 import { Checkbox } from 'src/common/components';
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
 interface CollapsibleControlProps {
   initialValue?: boolean;
+  disabled?: boolean;
   checked?: boolean;
   title: string;
+  tooltip?: string;
   children: ReactNode;
   onChange?: (checked: boolean) => void;
 }
@@ -48,7 +51,9 @@ const StyledContainer = styled.div<{ checked: boolean }>`
 const CollapsibleControl = (props: CollapsibleControlProps) => {
   const {
     checked,
+    disabled,
     title,
+    tooltip,
     children,
     onChange = () => {},
     initialValue = false,
@@ -68,6 +73,7 @@ const CollapsibleControl = (props: CollapsibleControlProps) => {
       <Checkbox
         className="checkbox"
         checked={isChecked}
+        disabled={disabled}
         onChange={e => {
           const value = e.target.checked;
           // external `checked` value has more priority then local state
@@ -78,7 +84,12 @@ const CollapsibleControl = (props: CollapsibleControlProps) => {
           onChange(value);
         }}
       >
-        {title}
+        <>
+          {title}&nbsp;
+          {tooltip && (
+            <InfoTooltipWithTrigger placement="top" tooltip={tooltip} />
+          )}
+        </>
       </Checkbox>
       {isChecked && children}
     </StyledContainer>

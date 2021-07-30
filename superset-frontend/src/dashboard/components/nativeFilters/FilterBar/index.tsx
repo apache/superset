@@ -19,20 +19,24 @@
 
 /* eslint-disable no-param-reassign */
 import { DataMask, HandlerFunction, styled, t } from '@superset-ui/core';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import cx from 'classnames';
 import Icons from 'src/components/Icons';
 import { Tabs } from 'src/common/components';
+import { useHistory } from 'react-router-dom';
 import { usePrevious } from 'src/common/hooks/usePrevious';
+import rison from 'rison';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
-import { updateDataMask } from 'src/dataMask/actions';
+import { updateDataMask, clearDataMask } from 'src/dataMask/actions';
 import { DataMaskStateWithId, DataMaskWithId } from 'src/dataMask/types';
 import { useImmer } from 'use-immer';
 import { testWithId } from 'src/utils/testUtils';
 import { Filter } from 'src/dashboard/components/nativeFilters/types';
 import Loading from 'src/components/Loading';
 import { getInitialDataMask } from 'src/dataMask/reducer';
+import { URL_PARAMS } from 'src/constants';
+import replaceUndefinedByNull from 'src/dashboard/util/replaceUndefinedByNull';
 import { checkIsApplyDisabled, TabIds } from './utils';
 import FilterSets from './FilterSets';
 import {
@@ -143,9 +147,11 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   height,
   offset,
 }) => {
+  const history = useHistory();
+  const dataMaskApplied: DataMaskStateWithId = useNativeFiltersDataMask();
   const [editFilterSetId, setEditFilterSetId] = useState<string | null>(null);
   const [dataMaskSelected, setDataMaskSelected] = useImmer<DataMaskStateWithId>(
-    {},
+    dataMaskApplied,
   );
   const dispatch = useDispatch();
   const filterSets = useFilterSets();
@@ -154,7 +160,6 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const filters = useFilters();
   const previousFilters = usePrevious(filters);
   const filterValues = Object.values<Filter>(filters);
-  const dataMaskApplied: DataMaskStateWithId = useNativeFiltersDataMask();
   const [isFilterSetChanged, setIsFilterSetChanged] = useState(false);
 
   useEffect(() => {
@@ -187,11 +192,10 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     setDataMaskSelected(draft => {
       // force instant updating on initialization for filters with `requiredFirst` is true or instant filters
       if (
-        (dataMaskSelected[filter.id] && filter.isInstant) ||
         // filterState.value === undefined - means that value not initialized
-        (dataMask.filterState?.value !== undefined &&
-          dataMaskSelected[filter.id]?.filterState?.value === undefined &&
-          filter.requiredFirst)
+        dataMask.filterState?.value !== undefined &&
+        dataMaskSelected[filter.id]?.filterState?.value === undefined &&
+        filter.requiredFirst
       ) {
         dispatch(updateDataMask(filter.id, dataMask));
       }
@@ -203,11 +207,51 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     });
   };
 
+  const publishDataMask = useCallback(
+    (dataMaskSelected: DataMaskStateWithId) => {
+      const { location } = history;
+      const { search } = location;
+      const previousParams = new URLSearchParams(search);
+      const newParams = new URLSearchParams();
+
+      previousParams.forEach((value, key) => {
+        if (key !== URL_PARAMS.nativeFilters.name) {
+          newParams.append(key, value);
+        }
+      });
+
+      newParams.set(
+        URL_PARAMS.nativeFilters.name,
+        rison.encode(replaceUndefinedByNull(dataMaskSelected)),
+      );
+
+      history.replace({
+        search: newParams.toString(),
+      });
+    },
+    [history],
+  );
+
+  const dataMaskAppliedText = JSON.stringify(dataMaskApplied);
+  useEffect(() => {
+    publishDataMask(dataMaskApplied);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataMaskAppliedText, publishDataMask]);
+
   const handleApply = () => {
     const filterIds = Object.keys(dataMaskSelected);
     filterIds.forEach(filterId => {
       if (dataMaskSelected[filterId]) {
         dispatch(updateDataMask(filterId, dataMaskSelected[filterId]));
+      }
+    });
+  };
+
+  const handleClearAll = () => {
+    const filterIds = Object.keys(dataMaskSelected);
+    filterIds.forEach(filterId => {
+      if (dataMaskSelected[filterId]) {
+        dispatch(clearDataMask(filterId));
       }
     });
   };
@@ -242,7 +286,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         <Header
           toggleFiltersBar={toggleFiltersBar}
           onApply={handleApply}
-          setDataMaskSelected={setDataMaskSelected}
+          onClearAll={handleClearAll}
           isApplyDisabled={isApplyDisabled}
           dataMaskSelected={dataMaskSelected}
           dataMaskApplied={dataMaskApplied}
