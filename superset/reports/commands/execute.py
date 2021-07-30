@@ -147,8 +147,8 @@ class BaseReportState:
                 return get_url_path(
                     "ChartRestApi.get_data",
                     pk=self._report_schedule.chart_id,
-                    format=ChartDataResultFormat.CSV,
-                    type=ChartDataResultType.POST_PROCESSED,
+                    format=ChartDataResultFormat.CSV.value,
+                    type=ChartDataResultType.POST_PROCESSED.value,
                 )
             return get_url_path(
                 "Superset.slice",
