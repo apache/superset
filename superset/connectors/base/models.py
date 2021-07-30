@@ -293,10 +293,15 @@ class BaseDatasource(
                             (metric.get("column") or {}).get("column_name")
                         )
 
-            # pull out all required columns from the form_data
+            # Columns used in filters
             for filter_ in form_data.get("adhoc_filters") or []:
                 if filter_["clause"] == "WHERE" and filter_.get("subject"):
                     column_names.add(filter_.get("subject"))
+
+            # columns used by Filter Box
+            for filter_config in form_data.get("filter_configs") or []:
+                if filter_config and "column" in filter_config:
+                    column_names.add(filter_config["column"])
 
             for param in COLUMN_FORM_DATA_PARAMS:
                 for column in utils.get_iterable(form_data.get(param) or []):
