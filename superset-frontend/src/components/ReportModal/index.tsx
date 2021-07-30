@@ -106,14 +106,15 @@ const reportReducer = (
   state: Partial<ReportObject> | null,
   action: ReportActionType,
 ): Partial<ReportObject> | null => {
-  const trimmedState = {
+  const initialState = {
+    name: state?.name || 'Weekly Report',
     ...(state || {}),
   };
 
   switch (action.type) {
     case ActionType.textChange:
       return {
-        ...trimmedState,
+        ...initialState,
         [action.payload.name]: action.payload.value,
       };
     default:
@@ -167,7 +168,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
       dashboard: props.props.dashboardId,
       chart: props.props.chartId,
       description: currentReport?.description,
-      name: currentReport?.name || 'Weekly Report',
+      name: currentReport?.name,
       owners: [props.props.userId],
       recipients: [
         {
@@ -201,7 +202,12 @@ const ReportModal: FunctionComponent<ReportProps> = ({
       <StyledFooterButton key="back" onClick={onClose}>
         Cancel
       </StyledFooterButton>
-      <StyledFooterButton key="submit" buttonStyle="primary" onClick={onSave}>
+      <StyledFooterButton
+        key="submit"
+        buttonStyle="primary"
+        onClick={onSave}
+        disabled={!currentReport?.name}
+      >
         Add
       </StyledFooterButton>
     </>
@@ -220,7 +226,8 @@ const ReportModal: FunctionComponent<ReportProps> = ({
         <LabeledErrorBoundInput
           id="name"
           name="name"
-          value={currentReport?.name || 'Weekly Report'}
+          value={currentReport?.name || ''}
+          placeholder="Weekly Report"
           required
           validationMethods={{
             onChange: ({ target }: { target: HTMLInputElement }) =>
