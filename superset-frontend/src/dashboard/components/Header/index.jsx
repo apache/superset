@@ -28,6 +28,7 @@ import {
   LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
   LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD,
 } from 'src/logger/LogUtils';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import Icons from 'src/components/Icons';
 import Button from 'src/components/Button';
@@ -167,7 +168,7 @@ class Header extends React.PureComponent {
   componentDidMount() {
     const { refreshFrequency, user, dashboardInfo } = this.props;
     this.startPeriodicRender(refreshFrequency * 1000);
-    if (user) {
+    if (user && isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
       // this is in case there is an anonymous user.
       this.props.fetchUISpecificReport(
         user.userId,
@@ -382,24 +383,28 @@ class Header extends React.PureComponent {
 
   renderReportModal() {
     const attachedReportExists = !!Object.keys(this.props.reports).length;
-    return attachedReportExists ? (
-      <HeaderReportActionsDropdown
-        showReportModal={this.showReportModal}
-        toggleActive={this.props.toggleActive}
-        deleteActiveReport={this.props.deleteActiveReport}
-      />
-    ) : (
-      <>
-        <span
-          role="button"
-          title={t('Schedule email report')}
-          tabIndex={0}
-          className="action-button"
-          onClick={this.showReportModal}
-        >
-          <Icons.Calendar />
-        </span>
-      </>
+    const canAddReports = isFeatureEnabled(FeatureFlag.ALERT_REPORTS);
+    return (
+      (canAddReports || null) &&
+      (attachedReportExists ? (
+        <HeaderReportActionsDropdown
+          showReportModal={this.showReportModal}
+          toggleActive={this.props.toggleActive}
+          deleteActiveReport={this.props.deleteActiveReport}
+        />
+      ) : (
+        <>
+          <span
+            role="button"
+            title={t('Schedule email report')}
+            tabIndex={0}
+            className="action-button"
+            onClick={this.showReportModal}
+          >
+            <Icons.Calendar />
+          </span>
+        </>
+      ))
     );
   }
 
