@@ -158,6 +158,7 @@ class SqlEditor extends React.PureComponent {
       ctas: '',
       northPercent: props.queryEditor.northPercent || INITIAL_NORTH_PERCENT,
       southPercent: props.queryEditor.southPercent || INITIAL_SOUTH_PERCENT,
+      sql: props.queryEditor.sql,
       autocompleteEnabled: true,
       showCreateAsModal: false,
       createAs: '',
@@ -255,6 +256,7 @@ class SqlEditor extends React.PureComponent {
   }
 
   onSqlChanged(sql) {
+    this.setState({ sql });
     this.setQueryEditorSqlWithDebounce(sql);
     // Request server-side validation of the query text
     if (this.canValidateQuery()) {
@@ -293,7 +295,7 @@ class SqlEditor extends React.PureComponent {
         key: 'ctrl+r',
         descr: t('Run query'),
         func: () => {
-          if (this.props.queryEditor.sql.trim() !== '') {
+          if (this.state.sql.trim() !== '') {
             this.runQuery();
           }
         },
@@ -303,7 +305,7 @@ class SqlEditor extends React.PureComponent {
         key: 'ctrl+enter',
         descr: t('Run query'),
         func: () => {
-          if (this.props.queryEditor.sql.trim() !== '') {
+          if (this.state.sql.trim() !== '') {
             this.runQuery();
           }
         },
@@ -342,7 +344,7 @@ class SqlEditor extends React.PureComponent {
       const qe = this.props.queryEditor;
       const query = {
         dbId: qe.dbId,
-        sql: qe.selectedText ? qe.selectedText : this.props.queryEditor.sql,
+        sql: qe.selectedText ? qe.selectedText : this.state.sql,
         sqlEditorId: qe.id,
         schema: qe.schema,
         templateParams: qe.templateParams,
@@ -374,7 +376,7 @@ class SqlEditor extends React.PureComponent {
       const qe = this.props.queryEditor;
       const query = {
         dbId: qe.dbId,
-        sql: this.props.queryEditor.sql,
+        sql: this.state.sql,
         sqlEditorId: qe.id,
         schema: qe.schema,
         templateParams: qe.templateParams,
@@ -407,7 +409,7 @@ class SqlEditor extends React.PureComponent {
     const qe = this.props.queryEditor;
     const query = {
       dbId: qe.dbId,
-      sql: qe.selectedText ? qe.selectedText : this.props.queryEditor.sql,
+      sql: qe.selectedText ? qe.selectedText : this.state.sql,
       sqlEditorId: qe.id,
       tab: qe.title,
       schema: qe.schema,
@@ -620,7 +622,7 @@ class SqlEditor extends React.PureComponent {
               runQuery={this.runQuery}
               selectedText={qe.selectedText}
               stopQuery={this.stopQuery}
-              sql={this.props.queryEditor.sql}
+              sql={this.state.sql}
               overlayCreateAsMenu={showMenu ? runMenuBtn : null}
             />
           </span>
