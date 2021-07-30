@@ -18,18 +18,22 @@
  */
 import React from 'react';
 import userEvent from '@testing-library/user-event';
-import {
-  render,
-  screen,
-  // within,
-  // cleanup,
-  // act,
-} from 'spec/helpers/testing-library';
+import { render, screen } from 'spec/helpers/testing-library';
 import ReportModal from '.';
+
+const mockedProps = {
+  props: {
+    chart: {
+      sliceFormData: {
+        viz_type: 'table',
+      },
+    },
+  },
+};
 
 describe('Email Report Modal', () => {
   it('inputs respond correctly', () => {
-    render(<ReportModal show />);
+    render(<ReportModal show {...mockedProps} />, { useRedux: true });
 
     // ----- Report name textbox
     // Initial value

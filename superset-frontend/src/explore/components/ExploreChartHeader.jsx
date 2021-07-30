@@ -281,23 +281,14 @@ export class ExploreChartHeader extends React.PureComponent {
             isRunning={chartStatus === 'loading'}
             status={CHART_STATUS_MAP[chartStatus]}
           />
-          <span
-            role="button"
-            title={t('Schedule email report')}
-            tabIndex={0}
-            className="action-button"
-            onClick={this.showReportModal}
-          >
-            <Icons.Calendar />
-          </span>
           {this.canAddReports() && this.renderReportModal()}
           <ReportModal
             show={this.state.showingReportModal}
             onHide={this.hideReportModal}
             props={{
-              userId: this.props.userId,
-              userEmail: this.props.email,
-              chartId: this.props.chart.id,
+              userId: this.props.user.userId,
+              userEmail: this.props.user.email,
+              chart: this.props.chart,
               creationMethod: 'charts',
             }}
           />
