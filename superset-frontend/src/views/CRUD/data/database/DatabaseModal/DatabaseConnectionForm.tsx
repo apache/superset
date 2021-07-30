@@ -19,19 +19,21 @@
 import React, { FormEvent, useState } from 'react';
 import { SupersetTheme, JsonObject, t } from '@superset-ui/core';
 import { InputProps } from 'antd/lib/input';
-import { Switch, Select, Button } from 'src/common/components';
+import { Input, Switch, Select, Button } from 'src/common/components';
 import InfoTooltip from 'src/components/InfoTooltip';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import FormLabel from 'src/components/Form/FormLabel';
-import { DeleteFilled } from '@ant-design/icons';
+import { DeleteFilled, CloseOutlined } from '@ant-design/icons';
 import {
   formScrollableStyles,
   validatedFormStyles,
   CredentialInfoForm,
   toggleStyle,
   infoTooltip,
+  StyledFooterButton,
+  StyledCatalogTable,
 } from './styles';
-import { DatabaseForm, DatabaseObject } from '../types';
+import { CatalogObject, DatabaseForm, DatabaseObject } from '../types';
 
 enum CredentialInfoOptions {
   jsonUpload,
@@ -46,6 +48,7 @@ export const FormFieldOrder = [
   'password',
   'database_name',
   'credentials_info',
+  'catalog',
   'query',
   'encryption',
 ];
@@ -58,7 +61,10 @@ interface FieldPropTypes {
   onParametersUploadFileChange: (value: any) => string;
   changeMethods: { onParametersChange: (value: any) => string } & {
     onChange: (value: any) => string;
-  } & { onParametersUploadFileChange: (value: any) => string };
+  } & { onParametersUploadFileChange: (value: any) => string } & {
+    onAddTableCatalog: () => void;
+    onRemoveTableCatalog: (idx: number) => void;
+  };
   validationErrors: JsonObject | null;
   getValidation: () => void;
   db?: DatabaseObject;
@@ -187,6 +193,89 @@ const CredentialsInfo = ({
   );
 };
 
+const TableCatalog = ({
+  required,
+  changeMethods,
+  getValidation,
+  validationErrors,
+  db,
+}: FieldPropTypes) => {
+  const tableCatalog = db?.catalog || [];
+  const catalogError = validationErrors || {};
+  return (
+    <StyledCatalogTable>
+      <div className="catalog-type-select">
+        <FormLabel required>{t('Type of Google Sheets Allowed')}</FormLabel>
+        <Select style={{ width: '100%' }} defaultValue="true" disabled>
+          <Select.Option value="true" key={1}>
+            {t('Publicly shared sheets only')}
+          </Select.Option>
+        </Select>
+      </div>
+      <h4 className="gsheet-title">
+        {t('Connect Google Sheets as tables to this database')}
+      </h4>
+      <div>
+        {tableCatalog?.map((sheet: CatalogObject, idx: number) => (
+          <>
+            <FormLabel className="catalog-label" required>
+              {t('Google Sheet Name and URL')}
+            </FormLabel>
+            <div className="catalog-name">
+              <Input
+                className="catalog-name-input"
+                placeholder={t('Enter a name for this sheet')}
+                onChange={e => {
+                  changeMethods.onParametersChange({
+                    target: {
+                      type: `catalog-${idx}`,
+                      name: 'name',
+                      value: e.target.value,
+                    },
+                  });
+                }}
+                value={sheet.name}
+              />
+
+              {tableCatalog?.length > 1 && (
+                <CloseOutlined
+                  className="catalog-delete"
+                  onClick={() => changeMethods.onRemoveTableCatalog(idx)}
+                />
+              )}
+            </div>
+            <ValidatedInput
+              className="catalog-name-url"
+              required={required}
+              validationMethods={{ onBlur: getValidation }}
+              errorMessage={catalogError[sheet.name]}
+              placeholder={t('Paste the shareable Google Sheet URL here')}
+              onChange={(e: { target: { value: any } }) =>
+                changeMethods.onParametersChange({
+                  target: {
+                    type: `catalog-${idx}`,
+                    name: 'value',
+                    value: e.target.value,
+                  },
+                })
+              }
+              value={sheet.value}
+            />
+          </>
+        ))}
+        <StyledFooterButton
+          className="catalog-add-btn"
+          onClick={() => {
+            changeMethods.onAddTableCatalog();
+          }}
+        >
+          + {t('Add sheet')}
+        </StyledFooterButton>
+      </div>
+    </StyledCatalogTable>
+  );
+};
+
 const hostField = ({
   required,
   changeMethods,
@@ -300,18 +389,22 @@ const displayField = ({
   validationErrors,
   db,
 }: FieldPropTypes) => (
-  <ValidatedInput
-    id="database_name"
-    name="database_name"
-    required
-    value={db?.database_name}
-    validationMethods={{ onBlur: getValidation }}
-    errorMessage={validationErrors?.database_name}
-    placeholder=""
-    label="Display Name"
-    onChange={changeMethods.onChange}
-    helpText={t('Pick a nickname for this database to display as in Superset.')}
-  />
+  <>
+    <ValidatedInput
+      id="database_name"
+      name="database_name"
+      required
+      value={db?.database_name}
+      validationMethods={{ onBlur: getValidation }}
+      errorMessage={validationErrors?.database_name}
+      placeholder=""
+      label={t('Display Name')}
+      onChange={changeMethods.onChange}
+      helpText={t(
+        'Pick a nickname for this database to display as in Superset.',
+      )}
+    />
+  </>
 );
 
 const queryField = ({
@@ -375,6 +468,7 @@ const FORM_FIELD_MAP = {
   query: queryField,
   encryption: forceSSLField,
   credentials_info: CredentialsInfo,
+  catalog: TableCatalog,
 };
 
 const DatabaseConnectionForm = ({
@@ -382,6 +476,8 @@ const DatabaseConnectionForm = ({
   onParametersChange,
   onChange,
   onParametersUploadFileChange,
+  onAddTableCatalog,
+  onRemoveTableCatalog,
   validationErrors,
   getValidation,
   db,
@@ -403,6 +499,8 @@ const DatabaseConnectionForm = ({
   onParametersUploadFileChange?: (
     event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;
+  onAddTableCatalog: () => void;
+  onRemoveTableCatalog: (idx: number) => void;
   validationErrors: JsonObject | null;
   getValidation: () => void;
 }) => (
@@ -426,6 +524,8 @@ const DatabaseConnectionForm = ({
               onParametersChange,
               onChange,
               onParametersUploadFileChange,
+              onAddTableCatalog,
+              onRemoveTableCatalog,
             },
             validationErrors,
             getValidation,

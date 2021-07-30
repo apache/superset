@@ -87,6 +87,7 @@ export interface HeaderProps {
   lastModifiedTime: number;
   onUndo: () => void;
   onRedo: () => void;
+  onRefresh: () => void;
   undoLength: number;
   redoLength: number;
   setMaxUndoHistoryExceeded: () => void;

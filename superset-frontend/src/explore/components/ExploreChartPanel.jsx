@@ -19,7 +19,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
-import { styled, useTheme } from '@superset-ui/core';
+import { styled, SupersetClient, useTheme } from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import ChartContainer from 'src/chart/ChartContainer';
@@ -29,6 +29,7 @@ import {
 } from 'src/utils/localStorageHelpers';
 import ConnectedExploreChartHeader from './ExploreChartHeader';
 import { DataTablesPane } from './DataTablesPane';
+import { buildV1ChartDataPayload } from '../exploreUtils';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -127,6 +128,34 @@ const ExploreChartPanel = props => {
   const [splitSizes, setSplitSizes] = useState(
     getFromLocalStorage(STORAGE_KEYS.sizes, INITIAL_SIZES),
   );
+
+  const { slice } = props;
+  const updateQueryContext = useCallback(
+    async function fetchChartData() {
+      if (slice && slice.query_context === null) {
+        const queryContext = buildV1ChartDataPayload({
+          formData: slice.form_data,
+          force: false,
+          resultFormat: 'json',
+          resultType: 'full',
+          setDataMask: null,
+          ownState: null,
+        });
+
+        await SupersetClient.put({
+          endpoint: `/api/v1/chart/${slice.slice_id}`,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query_context: JSON.stringify(queryContext),
+          }),
+        });
+      }
+    },
+    [slice],
+  );
+  useEffect(() => {
+    updateQueryContext();
+  }, [updateQueryContext]);
 
   const calcSectionHeight = useCallback(
     percent => {

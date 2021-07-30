@@ -18,7 +18,7 @@ import json
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 from zipfile import is_zipfile, ZipFile
 
 from flask import g, make_response, redirect, request, Response, send_file, url_for
@@ -755,9 +755,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.thumbnail",
         log_to_statsd=False,
     )
-    def thumbnail(
-        self, pk: int, digest: str, **kwargs: Dict[str, bool]
-    ) -> WerkzeugResponse:
+    def thumbnail(self, pk: int, digest: str, **kwargs: Any) -> WerkzeugResponse:
         """Get Dashboard thumbnail
         ---
         get:

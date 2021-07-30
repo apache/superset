@@ -52,6 +52,7 @@ from superset.charts.commands.importers.dispatcher import ImportChartsCommand
 from superset.charts.commands.update import UpdateChartCommand
 from superset.charts.dao import ChartDAO
 from superset.charts.filters import ChartAllTextFilter, ChartFavoriteFilter, ChartFilter
+from superset.charts.post_processing import apply_post_process
 from superset.charts.schemas import (
     CHART_SCHEMAS,
     ChartPostSchema,
@@ -129,6 +130,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "params",
         "slice_name",
         "viz_type",
+        "query_context",
     ]
     show_select_columns = show_columns + ["table.id"]
     list_columns = [
@@ -337,7 +339,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
         try:
@@ -345,7 +346,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
-
         try:
             changed_model = UpdateChartCommand(g.user, pk, item).run()
             response = self.response(200, id=changed_model.id, result=item)
@@ -481,8 +481,20 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except ChartBulkDeleteFailedError as ex:
             return self.response_422(message=str(ex))
 
-    def send_chart_response(self, result: Dict[Any, Any]) -> Response:
+    def send_chart_response(
+        self, result: Dict[Any, Any], form_data: Optional[Dict[str, Any]] = None,
+    ) -> Response:
+        result_type = result["query_context"].result_type
         result_format = result["query_context"].result_format
+
+        # Post-process the data so it matches the data presented in the chart.
+        # This is needed for sending reports based on text charts that do the
+        # post-processing of data, eg, the pivot table.
+        if (
+            result_type == ChartDataResultType.POST_PROCESSED
+            and result_format == ChartDataResultFormat.CSV
+        ):
+            result = apply_post_process(result, form_data)
 
         if result_format == ChartDataResultFormat.CSV:
             # Verify user has permission to export CSV file
@@ -506,7 +518,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
         return self.response_400(message=f"Unsupported result_format: {result_format}")
 
     def get_data_response(
-        self, command: ChartDataCommand, force_cached: bool = False
+        self,
+        command: ChartDataCommand,
+        force_cached: bool = False,
+        form_data: Optional[Dict[str, Any]] = None,
     ) -> Response:
         try:
             result = command.run(force_cached=force_cached)
@@ -515,7 +530,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except ChartDataQueryFailedError as exc:
             return self.response_400(message=exc.message)
 
-        return self.send_chart_response(result)
+        return self.send_chart_response(result, form_data)
 
     @expose("/<int:pk>/data/", methods=["GET"])
     @protect()
@@ -542,6 +557,11 @@ class ChartRestApi(BaseSupersetModelRestApi):
           - in: query
             name: format
             description: The format in which the data should be returned
+            schema:
+              type: string
+          - in: query
+            name: type
+            description: The type in which the data should be returned
             schema:
               type: string
           responses:
@@ -580,9 +600,12 @@ class ChartRestApi(BaseSupersetModelRestApi):
                 )
             )
 
+        # override saved query context
         json_body["result_format"] = request.args.get(
             "format", ChartDataResultFormat.JSON
         )
+        json_body["result_type"] = request.args.get("type", ChartDataResultType.FULL)
+
         try:
             command = ChartDataCommand()
             query_context = command.set_query_context(json_body)
@@ -604,7 +627,12 @@ class ChartRestApi(BaseSupersetModelRestApi):
         ):
             return self._run_async(command)
 
-        return self.get_data_response(command)
+        try:
+            form_data = json.loads(chart.params)
+        except (TypeError, json.decoder.JSONDecodeError):
+            form_data = {}
+
+        return self.get_data_response(command, form_data=form_data)
 
     @expose("/data", methods=["POST"])
     @protect()
@@ -779,7 +807,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         f".cache_screenshot",
         log_to_statsd=False,
     )
-    def cache_screenshot(self, pk: int, **kwargs: Dict[str, bool]) -> WerkzeugResponse:
+    def cache_screenshot(self, pk: int, **kwargs: Any) -> WerkzeugResponse:
         """
         ---
         get:
@@ -911,9 +939,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.thumbnail",
         log_to_statsd=False,
     )
-    def thumbnail(
-        self, pk: int, digest: str, **kwargs: Dict[str, bool]
-    ) -> WerkzeugResponse:
+    def thumbnail(self, pk: int, digest: str, **kwargs: Any) -> WerkzeugResponse:
         """Get Chart thumbnail
         ---
         get:

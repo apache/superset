@@ -193,6 +193,7 @@ class Slice(
             "description_markeddown": self.description_markeddown,
             "edit_url": self.edit_url,
             "form_data": self.form_data,
+            "query_context": self.query_context,
             "modified": self.modified(),
             "owners": [
                 f"{owner.first_name} {owner.last_name}" for owner in self.owners

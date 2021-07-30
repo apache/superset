@@ -105,7 +105,7 @@ describe('VizTypeControl', () => {
 
     const visualizations = screen.getByTestId(getTestId('viz-row'));
 
-    userEvent.click(screen.getByRole('button', { name: 'Table' }));
+    userEvent.click(screen.getByRole('button', { name: 'ballot All charts' }));
 
     expect(visualizations).toHaveTextContent(/Time-series Table/);
 
