@@ -1061,7 +1061,7 @@ class DatasourceEditor extends React.PureComponent {
                 <span className="m-t-10 m-r-10">
                   <Button
                     buttonSize="small"
-                    buttonStyle="primary"
+                    buttonStyle="tertiary"
                     onClick={this.syncMetadata}
                     className="sync-from-source"
                   >
