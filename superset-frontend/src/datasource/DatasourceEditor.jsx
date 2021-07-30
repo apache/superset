@@ -902,7 +902,7 @@ class DatasourceEditor extends React.PureComponent {
   renderMetricCollection() {
     const { datasource } = this.state;
     const { metrics } = datasource;
-    const sortedMetrics = this.sortMetrics(metrics);
+    const sortedMetrics = metrics?.length ? this.sortMetrics(metrics) : [];
 
     return (
       <CollectionTable
@@ -1036,7 +1036,7 @@ class DatasourceEditor extends React.PureComponent {
   render() {
     const { datasource, activeTabKey } = this.state;
     const { metrics } = datasource;
-    const sortedMetrics = this.sortMetrics(metrics);
+    const sortedMetrics = metrics?.length ? this.sortMetrics(metrics) : [];
 
     return (
       <DatasourceContainer>
