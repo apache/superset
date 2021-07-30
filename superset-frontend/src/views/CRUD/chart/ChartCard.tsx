@@ -168,7 +168,7 @@ export default function ChartCard({
               isStarred={favoriteStatus}
             />
             <Dropdown overlay={menu}>
-              <Icons.MoreHoriz iconColor={theme.colors.grayscale.base} />
+              <Icons.MoreVert iconColor={theme.colors.grayscale.base} />
             </Dropdown>
           </ListViewCard.Actions>
         }
