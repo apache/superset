@@ -264,6 +264,15 @@ def pivot(  # pylint: disable=too-many-arguments
     #  Remove once/if support is added.
     aggfunc = {na.column: na.aggfunc for na in aggregate_funcs.values()}
 
+    # When dropna = False, the pivot_table function will calculate cartesian-product
+    # for MultiIndex.
+    # https://github.com/apache/superset/issues/15956
+    # https://github.com/pandas-dev/pandas/issues/18030
+    series_set = set()
+    if not drop_missing_columns and columns:
+        for row in df[columns].itertuples():
+            metrics_and_series = tuple(aggfunc.keys()) + tuple(row[1:])
+            series_set.add(str(metrics_and_series))
     df = df.pivot_table(
         values=aggfunc.keys(),
         index=index,
@@ -274,6 +283,12 @@ def pivot(  # pylint: disable=too-many-arguments
         margins=marginal_distributions,
         margins_name=marginal_distribution_name,
     )
+
+    if not drop_missing_columns and len(series_set) > 0 and not df.empty:
+        for col in df.columns:
+            series = str(col)
+            if series not in series_set:
+                df = df.drop(col, axis=PandasAxis.COLUMN)
 
     if combine_value_with_metric:
         df = df.stack(0).unstack()
