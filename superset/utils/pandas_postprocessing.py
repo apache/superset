@@ -269,12 +269,10 @@ def pivot(  # pylint: disable=too-many-arguments
     # https://github.com/apache/superset/issues/15956
     # https://github.com/pandas-dev/pandas/issues/18030
     series_set = set()
-    lst_to_str: Callable[[List[Any]], str] = lambda lst: "_".join(str(_) for _ in lst)
     if not drop_missing_columns and columns:
         for row in df[columns].itertuples():
-            metrics_and_series = list(aggfunc.keys()) + list(row[1:])
-            series_set.add(lst_to_str(metrics_and_series))
-
+            metrics_and_series = tuple(aggfunc.keys()) + tuple(row[1:])
+            series_set.add(str(metrics_and_series))
     df = df.pivot_table(
         values=aggfunc.keys(),
         index=index,
@@ -288,7 +286,7 @@ def pivot(  # pylint: disable=too-many-arguments
 
     if not drop_missing_columns and len(series_set) > 0 and not df.empty:
         for col in df.columns:
-            series = lst_to_str(col)
+            series = str(col)
             if series not in series_set:
                 df = df.drop(col, axis=PandasAxis.COLUMN)
 
