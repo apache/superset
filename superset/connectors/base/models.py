@@ -287,25 +287,30 @@ class BaseDatasource(
             for param in METRIC_FORM_DATA_PARAMS:
                 for metric in utils.get_iterable(form_data.get(param) or []):
                     metric_names.add(utils.get_metric_name(metric))
-
                     if utils.is_adhoc_metric(metric):
                         column_names.add(
                             (metric.get("column") or {}).get("column_name")
                         )
 
-            # Columns used in filters
-            for filter_ in form_data.get("adhoc_filters") or []:
-                if filter_["clause"] == "WHERE" and filter_.get("subject"):
-                    column_names.add(filter_.get("subject"))
+            # Columns used in query filters
+            column_names.update(
+                filter_["subject"]
+                for filter_ in form_data.get("adhoc_filters") or []
+                if filter_.get("clause") == "WHERE" and filter_.get("subject")
+            )
 
             # columns used by Filter Box
-            for filter_config in form_data.get("filter_configs") or []:
-                if filter_config and "column" in filter_config:
-                    column_names.add(filter_config["column"])
+            column_names.update(
+                filter_config["column"]
+                for filter_config in form_data.get("filter_configs") or []
+                if "column" in filter_config
+            )
 
-            for param in COLUMN_FORM_DATA_PARAMS:
-                for column in utils.get_iterable(form_data.get(param) or []):
-                    column_names.add(column)
+            column_names.update(
+                column
+                for column in utils.get_iterable(form_data.get(param) or [])
+                for param in COLUMN_FORM_DATA_PARAMS
+            )
 
         filtered_metrics = [
             metric
