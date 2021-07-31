@@ -78,7 +78,7 @@ const LIMIT_DROPDOWN = [10, 100, 1000, 10000, 100000];
 const SQL_EDITOR_PADDING = 10;
 const INITIAL_NORTH_PERCENT = 30;
 const INITIAL_SOUTH_PERCENT = 70;
-const SET_QUERY_EDITOR_SQL_DEBOUNCE_MS = 2000;
+const SET_QUERY_EDITOR_SQL_DEBOUNCE_MS = 1000;
 const VALIDATION_DEBOUNCE_MS = 600;
 const WINDOW_RESIZE_THROTTLE_MS = 100;
 
@@ -776,8 +776,10 @@ SqlEditor.propTypes = propTypes;
 
 function mapStateToProps(state, props) {
   const { sqlLab } = state;
+  const activeQueryEditorId =
+    sqlLab.tabHistory.slice(-1).pop() || props.queryEditorId;
   const queryEditor = sqlLab.queryEditors.find(
-    editor => editor.id === props.queryEditorId,
+    editor => editor.id === activeQueryEditorId,
   );
 
   return { sqlLab, ...props, queryEditor };
