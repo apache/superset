@@ -417,7 +417,7 @@ export default class CRUDCollection extends React.PureComponent<
             <span className="m-t-10 m-r-10">
               <Button
                 buttonSize="small"
-                buttonStyle="primary"
+                buttonStyle="tertiary"
                 onClick={this.onAddItem}
                 data-test="add-item-button"
               >
