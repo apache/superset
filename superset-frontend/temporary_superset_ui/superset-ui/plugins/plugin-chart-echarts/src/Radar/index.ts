@@ -58,6 +58,7 @@ export default class EchartsRadarChartPlugin extends ChartPlugin<
           t('Multi-Variables'),
           t('Report'),
           t('Web'),
+          t('ECharts'),
         ],
         thumbnail,
       }),
