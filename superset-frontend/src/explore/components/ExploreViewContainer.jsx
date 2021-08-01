@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -164,7 +164,12 @@ function ExploreViewContainer(props) {
   const isDynamicPluginLoading = dynamicPlugin && dynamicPlugin.mounting;
   const wasDynamicPluginLoading = usePrevious(isDynamicPluginLoading);
 
+  /** the state of controls in the previous render */
   const previousControls = usePrevious(props.controls);
+  /** the state of controls last time a query was triggered */
+  const [lastQueriedControls, setLastQueriedControls] = useState(
+    props.controls,
+  );
   const windowSize = useWindowSize();
 
   const [showingModal, setShowingModal] = useState(false);
@@ -187,29 +192,32 @@ function ExploreViewContainer(props) {
     datasource_width: 300,
   };
 
-  function addHistory({ isReplace = false, title } = {}) {
-    const payload = { ...props.form_data };
-    const longUrl = getExploreLongUrl(
-      props.form_data,
-      props.standalone ? URL_PARAMS.standalone.name : null,
-      false,
-    );
-    try {
-      if (isReplace) {
-        window.history.replaceState(payload, title, longUrl);
-      } else {
-        window.history.pushState(payload, title, longUrl);
-      }
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        'Failed at altering browser history',
-        payload,
-        title,
-        longUrl,
+  const addHistory = useCallback(
+    ({ isReplace = false, title } = {}) => {
+      const payload = { ...props.form_data };
+      const longUrl = getExploreLongUrl(
+        props.form_data,
+        props.standalone ? URL_PARAMS.standalone.name : null,
+        false,
       );
-    }
-  }
+      try {
+        if (isReplace) {
+          window.history.replaceState(payload, title, longUrl);
+        } else {
+          window.history.pushState(payload, title, longUrl);
+        }
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          'Failed at altering browser history',
+          payload,
+          title,
+          longUrl,
+        );
+      }
+    },
+    [props.form_data, props.standalone],
+  );
 
   function handlePopstate() {
     const formData = window.history.state;
@@ -223,11 +231,11 @@ function ExploreViewContainer(props) {
       );
     }
   }
-
-  function onQuery() {
+  const onQuery = useCallback(() => {
     props.actions.triggerQuery(true, props.chart.id);
     addHistory();
-  }
+    setLastQueriedControls(props.controls);
+  }, [props.controls, addHistory, props.actions, props.chart.id]);
 
   function handleKeydown(event) {
     const controlOrCommand = event.ctrlKey || event.metaKey;
@@ -338,13 +346,13 @@ function ExploreViewContainer(props) {
   }, [props.controls, props.ownState]);
 
   const chartIsStale = useMemo(() => {
-    if (previousControls) {
+    if (lastQueriedControls) {
       const changedControlKeys = Object.keys(props.controls).filter(
         key =>
-          typeof previousControls[key] !== 'undefined' &&
+          typeof lastQueriedControls[key] !== 'undefined' &&
           !areObjectsEqual(
             props.controls[key].value,
-            previousControls[key].value,
+            lastQueriedControls[key].value,
           ),
       );
 
@@ -355,7 +363,7 @@ function ExploreViewContainer(props) {
       );
     }
     return false;
-  }, [previousControls, props.controls]);
+  }, [lastQueriedControls, props.controls]);
 
   useEffect(() => {
     if (props.ownState !== undefined) {
