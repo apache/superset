@@ -56,7 +56,6 @@ logger = logging.getLogger(__name__)
 class Slice(  # pylint: disable=too-many-instance-attributes,too-many-public-methods
     Model, AuditMixinNullable, ImportExportMixin
 ):
-
     """A slice is essentially a report or a view on data"""
 
     __tablename__ = "slices"
@@ -193,6 +192,7 @@ class Slice(  # pylint: disable=too-many-instance-attributes,too-many-public-met
             "description_markeddown": self.description_markeddown,
             "edit_url": self.edit_url,
             "form_data": self.form_data,
+            "query_context": self.query_context,
             "modified": self.modified(),
             "owners": [
                 f"{owner.first_name} {owner.last_name}" for owner in self.owners

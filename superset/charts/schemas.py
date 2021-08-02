@@ -730,6 +730,8 @@ class ChartDataPostProcessingOperationSchema(Schema):
                 "rolling",
                 "select",
                 "sort",
+                "diff",
+                "compare",
             )
         ),
         example="aggregate",
@@ -1074,6 +1076,7 @@ class ChartDataQueryObjectSchema(Schema):
         description="Should the rowcount of the actual query be returned",
         allow_none=True,
     )
+    time_offsets = fields.List(fields.String(), allow_none=True,)
 
 
 class ChartDataQueryContextSchema(Schema):
@@ -1202,7 +1205,7 @@ class ImportV1ChartSchema(Schema):
     slice_name = fields.String(required=True)
     viz_type = fields.String(required=True)
     params = fields.Dict()
-    query_context = fields.Dict()
+    query_context = fields.String(allow_none=True, validate=utils.validate_json)
     cache_timeout = fields.Integer(allow_none=True)
     uuid = fields.UUID(required=True)
     version = fields.String(required=True)

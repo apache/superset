@@ -25,6 +25,7 @@ import React, {
   useState,
 } from 'react';
 import Fuse from 'fuse.js';
+import cx from 'classnames';
 import {
   t,
   styled,
@@ -38,7 +39,6 @@ import Label from 'src/components/Label';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import Icons from 'src/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
-import { CloseOutlined } from '@ant-design/icons';
 import scrollIntoView from 'scroll-into-view-if-needed';
 
 interface VizTypeGalleryProps {
@@ -120,7 +120,8 @@ export const VIZ_TYPE_CONTROL_TEST_ID = 'viz-type-control';
 const VizPickerLayout = styled.div`
   display: grid;
   grid-template-rows: auto minmax(100px, 1fr) minmax(200px, 35%);
-  grid-template-columns: auto 5fr;
+  // em is used here because the sidebar should be sized to fit the longest standard tag
+  grid-template-columns: minmax(14em, auto) 5fr;
   grid-template-areas:
     'sidebar search'
     'sidebar main'
@@ -161,16 +162,16 @@ const LeftPane = styled.div`
 
 const RightPane = styled.div`
   grid-area: main;
-  overflow-y: scroll;
+  overflow-y: auto;
 `;
 
 const SearchWrapper = styled.div`
   ${({ theme }) => `
     grid-area: search;
-    margin: ${theme.gridUnit * 2}px ${theme.gridUnit * 3}px;
-    input {
-      font-size: ${theme.typography.sizes.s};
-    }
+    margin-top: ${theme.gridUnit * 3}px;
+    margin-bottom: ${theme.gridUnit}px;
+    margin-left: ${theme.gridUnit * 3}px;
+    margin-right: ${theme.gridUnit * 3}px;
     .ant-input-affix-wrapper {
       padding-left: ${theme.gridUnit * 2}px;
     }
@@ -188,14 +189,15 @@ const InputIconAlignment = styled.div`
 const SelectorLabel = styled.button`
   ${({ theme }) => `
     all: unset; // remove default button styles
+    display: flex;
+    flex-direction: row;
+    align-items: center;
     cursor: pointer;
     margin: ${theme.gridUnit}px 0;
-    padding: 0 ${theme.gridUnit * 6}px 0 ${theme.gridUnit}px;
+    padding: 0 ${theme.gridUnit}px;
     border-radius: ${theme.borderRadius}px;
     line-height: 2em;
-    font-size: ${theme.typography.sizes.s};
     text-overflow: ellipsis;
-    overflow: hidden;
     white-space: nowrap;
     position: relative;
 
@@ -218,15 +220,12 @@ const SelectorLabel = styled.button`
       }
     }
 
-    svg {
-      position: relative;
-      top: ${theme.gridUnit * 2}px
+    & span:first-of-type svg {
+      margin-top: ${theme.gridUnit * 1.5}px;
     }
 
     .cancel {
       visibility: hidden;
-      position: absolute;
-      right: ${theme.gridUnit * 2}px;
     }
   `}
 `;
@@ -284,6 +283,7 @@ const Description = styled.p`
   grid-area: description;
   overflow: auto;
   padding-right: ${({ theme }) => theme.gridUnit * 14}px;
+  margin: 0;
 `;
 
 const Examples = styled.div`
@@ -399,8 +399,8 @@ const Selector: React.FC<{
   icon: JSX.Element;
   isSelected: boolean;
   onClick: (selector: string) => void;
-  onClear: (e: React.MouseEvent) => void;
-}> = ({ selector, icon, isSelected, onClick, onClear }) => {
+  className?: string;
+}> = ({ selector, icon, isSelected, onClick, className }) => {
   const btnRef = useRef<HTMLButtonElement>(null);
 
   // see Element.scrollIntoViewIfNeeded()
@@ -422,12 +422,11 @@ const Selector: React.FC<{
       ref={btnRef}
       key={selector}
       name={selector}
-      className={isSelected ? 'selected' : ''}
+      className={cx(className, isSelected && 'selected')}
       onClick={() => onClick(selector)}
     >
       {icon}
       {selector}
-      <CloseOutlined className="cancel" onClick={onClear} />
     </SelectorLabel>
   );
 };
@@ -506,7 +505,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           a.localeCompare(b),
         )
         .filter(tag => RECOMMENDED_TAGS.indexOf(tag) === -1),
-    [chartsByCategory],
+    [chartsByTags],
   );
 
   const sortedMetadata = useMemo(
@@ -578,26 +577,12 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     ],
   );
 
-  const clearSelector = useCallback(e => {
-    e.stopPropagation();
-    if (isSearchFocused) {
-      stopSearching();
-    }
-    // clear current selector and set all charts
-    setActiveSelector(ALL_CHARTS);
-  }, []);
-
   const sectionMap = useMemo(
     () => ({
       RECOMMENDED_TAGS: {
         title: t('Recommended tags'),
         icon: <Icons.Tags />,
         selectors: RECOMMENDED_TAGS,
-      },
-      ALL: {
-        title: t('All'),
-        icon: <Icons.Ballot />,
-        selectors: [ALL_CHARTS],
       },
       CATEGORY: {
         title: t('Category'),
@@ -622,6 +607,19 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
   return (
     <VizPickerLayout className={className}>
       <LeftPane>
+        <Selector
+          css={({ gridUnit }) =>
+            // adjust style for not being inside a collapse
+            css`
+              margin: ${gridUnit * 2}px;
+              margin-bottom: 0;
+            `
+          }
+          selector={ALL_CHARTS}
+          icon={<Icons.Ballot />}
+          isSelected={!isActivelySearching && ALL_CHARTS === activeSelector}
+          onClick={clickSelector}
+        />
         <Collapse
           expandIconPosition="right"
           ghost
@@ -637,13 +635,13 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
               >
                 {section.selectors.map((selector: string) => (
                   <Selector
+                    key={selector}
                     selector={selector}
                     icon={section.icon}
                     isSelected={
                       !isActivelySearching && selector === activeSelector
                     }
                     onClick={clickSelector}
-                    onClear={clearSelector}
                   />
                 ))}
               </Collapse.Panel>

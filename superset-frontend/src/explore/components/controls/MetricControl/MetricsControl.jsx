@@ -142,7 +142,7 @@ class MetricsControl extends React.PureComponent {
         index={index}
         option={option}
         onMetricEdit={this.onMetricEdit}
-        onRemoveMetric={() => this.onRemoveMetric(index)}
+        onRemoveMetric={this.onRemoveMetric}
         columns={this.props.columns}
         datasource={this.props.datasource}
         savedMetrics={this.props.savedMetrics}

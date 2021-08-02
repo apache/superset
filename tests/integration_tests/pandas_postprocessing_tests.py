@@ -20,7 +20,8 @@ from importlib.util import find_spec
 import math
 from typing import Any, List, Optional
 
-from pandas import DataFrame, Series, Timestamp
+import numpy as np
+from pandas import DataFrame, Series, Timestamp, to_datetime
 import pytest
 
 from superset.exceptions import QueryObjectValidationError
@@ -38,6 +39,7 @@ from .fixtures.dataframes import (
     names_df,
     timeseries_df,
     prophet_df,
+    timeseries_df2,
 )
 
 AGGREGATES_SINGLE = {"idx_nulls": {"operator": "sum"}}
@@ -255,6 +257,26 @@ class TestPostProcessing(SupersetTestCase):
             aggregates={"idx_nulls": {}},
         )
 
+    def test_pivot_eliminate_cartesian_product_columns(self):
+        mock_df = DataFrame(
+            {
+                "dttm": to_datetime(["2019-01-01", "2019-01-01"]),
+                "a": [0, 1],
+                "b": [0, 1],
+                "metric": [9, np.NAN],
+            }
+        )
+
+        df = proc.pivot(
+            df=mock_df,
+            index=["dttm"],
+            columns=["a", "b"],
+            aggregates={"metric": {"operator": "mean"}},
+            drop_missing_columns=False,
+        )
+        self.assertEqual(list(df.columns), ["dttm", "0, 0", "1, 1"])
+        self.assertTrue(np.isnan(df["1, 1"][0]))
+
     def test_aggregate(self):
         aggregates = {
             "asc sum": {"column": "asc_idx", "operator": "sum"},
@@ -420,6 +442,64 @@ class TestPostProcessing(SupersetTestCase):
             proc.diff,
             df=timeseries_df,
             columns={"abc": "abc"},
+        )
+
+        # diff by columns
+        post_df = proc.diff(df=timeseries_df2, columns={"y": "y", "z": "z"}, axis=1)
+        self.assertListEqual(post_df.columns.tolist(), ["label", "y", "z"])
+        self.assertListEqual(series_to_list(post_df["z"]), [0.0, 2.0, 8.0, 6.0])
+
+    def test_compare(self):
+        # `absolute` comparison
+        post_df = proc.compare(
+            df=timeseries_df2,
+            source_columns=["y"],
+            compare_columns=["z"],
+            compare_type="absolute",
+        )
+        self.assertListEqual(
+            post_df.columns.tolist(), ["label", "y", "z", "absolute__y__z",]
+        )
+        self.assertListEqual(
+            series_to_list(post_df["absolute__y__z"]), [0.0, -2.0, -8.0, -6.0],
+        )
+
+        # drop original columns
+        post_df = proc.compare(
+            df=timeseries_df2,
+            source_columns=["y"],
+            compare_columns=["z"],
+            compare_type="absolute",
+            drop_original_columns=True,
+        )
+        self.assertListEqual(post_df.columns.tolist(), ["label", "absolute__y__z",])
+
+        # `percentage` comparison
+        post_df = proc.compare(
+            df=timeseries_df2,
+            source_columns=["y"],
+            compare_columns=["z"],
+            compare_type="percentage",
+        )
+        self.assertListEqual(
+            post_df.columns.tolist(), ["label", "y", "z", "percentage__y__z",]
+        )
+        self.assertListEqual(
+            series_to_list(post_df["percentage__y__z"]), [0.0, -1.0, -4.0, -3],
+        )
+
+        # `ratio` comparison
+        post_df = proc.compare(
+            df=timeseries_df2,
+            source_columns=["y"],
+            compare_columns=["z"],
+            compare_type="ratio",
+        )
+        self.assertListEqual(
+            post_df.columns.tolist(), ["label", "y", "z", "ratio__y__z",]
+        )
+        self.assertListEqual(
+            series_to_list(post_df["ratio__y__z"]), [1.0, 0.5, 0.2, 0.25],
         )
 
     def test_cum(self):

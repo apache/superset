@@ -674,7 +674,11 @@ export function useDatabaseValidation() {
                       message,
                     }: {
                       error_type: string;
-                      extra: { invalid?: string[]; missing?: string[] };
+                      extra: {
+                        invalid?: string[];
+                        missing?: string[];
+                        name: string;
+                      };
                       message: string;
                     },
                   ) => {
@@ -682,6 +686,13 @@ export function useDatabaseValidation() {
                     // error can't be mapped to a parameter
                     // so leave it alone
                     if (extra.invalid) {
+                      if (extra.invalid[0] === 'catalog') {
+                        return {
+                          ...obj,
+                          [extra.name]: message,
+                          error_type,
+                        };
+                      }
                       return {
                         ...obj,
                         [extra.invalid[0]]: message,
