@@ -571,6 +571,10 @@ class DatasourceEditor extends React.PureComponent {
     this.setState({ activeTabKey });
   }
 
+  sortMetrics(metrics) {
+    return metrics.sort(({ id: a }, { id: b }) => b - a);
+  }
+
   renderSettingsFieldset() {
     const { datasource } = this.state;
     return (
@@ -910,6 +914,10 @@ class DatasourceEditor extends React.PureComponent {
   }
 
   renderMetricCollection() {
+    const { datasource } = this.state;
+    const { metrics } = datasource;
+    const sortedMetrics = metrics?.length ? this.sortMetrics(metrics) : [];
+
     return (
       <CollectionTable
         tableColumns={['metric_name', 'verbose_name', 'expression']}
@@ -983,7 +991,7 @@ class DatasourceEditor extends React.PureComponent {
             </Fieldset>
           </FormContainer>
         }
-        collection={this.state.datasource.metrics}
+        collection={sortedMetrics}
         allowAddItem
         onChange={this.onDatasourcePropChange.bind(this, 'metrics')}
         itemGenerator={() => ({
@@ -1041,6 +1049,9 @@ class DatasourceEditor extends React.PureComponent {
 
   render() {
     const { datasource, activeTabKey } = this.state;
+    const { metrics } = datasource;
+    const sortedMetrics = metrics?.length ? this.sortMetrics(metrics) : [];
+
     return (
       <DatasourceContainer>
         {this.renderErrors()}
@@ -1070,7 +1081,7 @@ class DatasourceEditor extends React.PureComponent {
           <Tabs.TabPane
             tab={
               <CollectionTabTitle
-                collection={datasource.metrics}
+                collection={sortedMetrics}
                 title={t('Metrics')}
               />
             }
