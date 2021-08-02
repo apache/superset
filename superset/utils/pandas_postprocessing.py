@@ -271,8 +271,12 @@ def pivot(  # pylint: disable=too-many-arguments
     series_set = set()
     if not drop_missing_columns and columns:
         for row in df[columns].itertuples():
-            metrics_and_series = tuple(aggfunc.keys()) + tuple(row[1:])
-            series_set.add(str(metrics_and_series))
+            metrics_and_series = []
+            for metric in aggfunc.keys():
+                metrics_and_series.append(tuple([metric]) + tuple(row[1:]))
+            for m_series in metrics_and_series:
+                series_set.add(str(m_series))
+
     df = df.pivot_table(
         values=aggfunc.keys(),
         index=index,
