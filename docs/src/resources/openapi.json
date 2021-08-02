@@ -741,12 +741,7 @@
               "1969-12-28T00:00:00Z/P1W",
               "1969-12-29T00:00:00Z/P1W",
               "P1W/1970-01-03T00:00:00Z",
-              "P1W/1970-01-04T00:00:00Z",
-              "PT2H",
-              "PT4H",
-              "PT8H",
-              "PT10H",
-              "PT12H"
+              "P1W/1970-01-04T00:00:00Z"
             ],
             "example": "P1D",
             "nullable": true,
@@ -1014,12 +1009,7 @@
               "1969-12-28T00:00:00Z/P1W",
               "1969-12-29T00:00:00Z/P1W",
               "P1W/1970-01-03T00:00:00Z",
-              "P1W/1970-01-04T00:00:00Z",
-              "PT2H",
-              "PT4H",
-              "PT8H",
-              "PT10H",
-              "PT12H"
+              "P1W/1970-01-04T00:00:00Z"
             ],
             "example": "P1D",
             "type": "string"
@@ -1624,14 +1614,14 @@
             "type": "integer"
           },
           "dashboards": {
-            "$ref": "#/components/schemas/Meta10"
+            "$ref": "#/components/schemas/Meta9"
           },
           "description": {
             "nullable": true,
             "type": "string"
           },
           "owners": {
-            "$ref": "#/components/schemas/Meta9"
+            "$ref": "#/components/schemas/Meta10"
           },
           "params": {
             "nullable": true,
@@ -1662,7 +1652,7 @@
             "type": "integer"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/Meta5"
+            "$ref": "#/components/schemas/Meta8"
           },
           "changed_by_name": {
             "readOnly": true
@@ -1677,7 +1667,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/Meta6"
+            "$ref": "#/components/schemas/Meta5"
           },
           "datasource_id": {
             "format": "int32",
@@ -1710,7 +1700,7 @@
             "type": "integer"
           },
           "owners": {
-            "$ref": "#/components/schemas/Meta8"
+            "$ref": "#/components/schemas/Meta7"
           },
           "params": {
             "nullable": true,
@@ -1722,7 +1712,7 @@
             "type": "string"
           },
           "table": {
-            "$ref": "#/components/schemas/Meta7"
+            "$ref": "#/components/schemas/Meta6"
           },
           "thumbnail_url": {
             "readOnly": true
@@ -2207,7 +2197,7 @@
       "DashboardRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/Meta16"
+            "$ref": "#/components/schemas/Meta15"
           },
           "changed_by_name": {
             "readOnly": true
@@ -2242,7 +2232,7 @@
             "type": "string"
           },
           "owners": {
-            "$ref": "#/components/schemas/Meta15"
+            "$ref": "#/components/schemas/Meta17"
           },
           "position_json": {
             "nullable": true,
@@ -2253,7 +2243,7 @@
             "type": "boolean"
           },
           "roles": {
-            "$ref": "#/components/schemas/Meta17"
+            "$ref": "#/components/schemas/Meta16"
           },
           "slug": {
             "maxLength": 255,
@@ -3201,10 +3191,10 @@
             "type": "integer"
           },
           "columns": {
-            "$ref": "#/components/schemas/Meta24"
+            "$ref": "#/components/schemas/Meta22"
           },
           "database": {
-            "$ref": "#/components/schemas/Meta22"
+            "$ref": "#/components/schemas/Meta23"
           },
           "datasource_type": {
             "readOnly": true
@@ -3244,7 +3234,7 @@
             "type": "string"
           },
           "metrics": {
-            "$ref": "#/components/schemas/Meta23"
+            "$ref": "#/components/schemas/Meta25"
           },
           "offset": {
             "format": "int32",
@@ -3252,7 +3242,7 @@
             "type": "integer"
           },
           "owners": {
-            "$ref": "#/components/schemas/Meta25"
+            "$ref": "#/components/schemas/Meta24"
           },
           "schema": {
             "maxLength": 255,
@@ -3286,7 +3276,7 @@
       "DatasetRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/Meta20"
+            "$ref": "#/components/schemas/Meta19"
           },
           "changed_by_name": {
             "readOnly": true
@@ -3322,7 +3312,7 @@
             "readOnly": true
           },
           "owners": {
-            "$ref": "#/components/schemas/Meta19"
+            "$ref": "#/components/schemas/Meta20"
           },
           "schema": {
             "maxLength": 255,
@@ -3687,16 +3677,28 @@
       },
       "Meta10": {
         "properties": {
-          "dashboard_title": {
-            "maxLength": 500,
-            "nullable": true,
+          "first_name": {
+            "maxLength": 64,
             "type": "string"
           },
           "id": {
             "format": "int32",
             "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
           }
         },
+        "required": [
+          "first_name",
+          "last_name",
+          "username"
+        ],
         "type": "object"
       },
       "Meta11": {
@@ -3855,6 +3857,22 @@
       },
       "Meta16": {
         "properties": {
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "Meta17": {
+        "properties": {
           "first_name": {
             "maxLength": 64,
             "type": "string"
@@ -3876,22 +3894,6 @@
           "first_name",
           "last_name",
           "username"
-        ],
-        "type": "object"
-      },
-      "Meta17": {
-        "properties": {
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "name"
         ],
         "type": "object"
       },
@@ -3918,14 +3920,6 @@
             "maxLength": 64,
             "type": "string"
           },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
           "username": {
             "maxLength": 64,
             "type": "string"
@@ -3933,7 +3927,6 @@
         },
         "required": [
           "first_name",
-          "last_name",
           "username"
         ],
         "type": "object"
@@ -3958,6 +3951,14 @@
             "maxLength": 64,
             "type": "string"
           },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
           "username": {
             "maxLength": 64,
             "type": "string"
@@ -3965,6 +3966,7 @@
         },
         "required": [
           "first_name",
+          "last_name",
           "username"
         ],
         "type": "object"
@@ -3986,84 +3988,6 @@
         "type": "object"
       },
       "Meta22": {
-        "properties": {
-          "database_name": {
-            "maxLength": 250,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "database_name"
-        ],
-        "type": "object"
-      },
-      "Meta23": {
-        "properties": {
-          "changed_on": {
-            "format": "date-time",
-            "nullable": true,
-            "type": "string"
-          },
-          "created_on": {
-            "format": "date-time",
-            "nullable": true,
-            "type": "string"
-          },
-          "d3format": {
-            "maxLength": 128,
-            "nullable": true,
-            "type": "string"
-          },
-          "description": {
-            "nullable": true,
-            "type": "string"
-          },
-          "expression": {
-            "type": "string"
-          },
-          "extra": {
-            "nullable": true,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "metric_name": {
-            "maxLength": 255,
-            "type": "string"
-          },
-          "metric_type": {
-            "maxLength": 32,
-            "nullable": true,
-            "type": "string"
-          },
-          "uuid": {
-            "format": "uuid",
-            "nullable": true,
-            "type": "string"
-          },
-          "verbose_name": {
-            "maxLength": 1024,
-            "nullable": true,
-            "type": "string"
-          },
-          "warning_text": {
-            "nullable": true,
-            "type": "string"
-          }
-        },
-        "required": [
-          "expression",
-          "metric_name"
-        ],
-        "type": "object"
-      },
-      "Meta24": {
         "properties": {
           "changed_on": {
             "format": "date-time",
@@ -4136,7 +4060,23 @@
         ],
         "type": "object"
       },
-      "Meta25": {
+      "Meta23": {
+        "properties": {
+          "database_name": {
+            "maxLength": 250,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "database_name"
+        ],
+        "type": "object"
+      },
+      "Meta24": {
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -4159,6 +4099,68 @@
           "first_name",
           "last_name",
           "username"
+        ],
+        "type": "object"
+      },
+      "Meta25": {
+        "properties": {
+          "changed_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "created_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "d3format": {
+            "maxLength": 128,
+            "nullable": true,
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "expression": {
+            "type": "string"
+          },
+          "extra": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "metric_name": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "metric_type": {
+            "maxLength": 32,
+            "nullable": true,
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "verbose_name": {
+            "maxLength": 1024,
+            "nullable": true,
+            "type": "string"
+          },
+          "warning_text": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "expression",
+          "metric_name"
         ],
         "type": "object"
       },
@@ -4323,10 +4325,6 @@
             "maxLength": 64,
             "type": "string"
           },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
           "last_name": {
             "maxLength": 64,
             "type": "string"
@@ -4339,23 +4337,6 @@
         "type": "object"
       },
       "Meta35": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
-      "Meta36": {
         "properties": {
           "id": {
             "format": "int32",
@@ -4371,21 +4352,28 @@
         ],
         "type": "object"
       },
-      "Meta37": {
+      "Meta36": {
         "properties": {
-          "dashboard_title": {
-            "maxLength": 500,
-            "nullable": true,
+          "first_name": {
+            "maxLength": 64,
             "type": "string"
           },
           "id": {
             "format": "int32",
             "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
           }
         },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
         "type": "object"
       },
-      "Meta38": {
+      "Meta37": {
         "properties": {
           "database_name": {
             "maxLength": 250,
@@ -4401,23 +4389,45 @@
         ],
         "type": "object"
       },
-      "Meta39": {
+      "Meta38": {
         "properties": {
           "id": {
             "format": "int32",
             "type": "integer"
           },
-          "slice_name": {
-            "maxLength": 250,
+          "recipient_config_json": {
             "nullable": true,
             "type": "string"
           },
-          "viz_type": {
-            "maxLength": 250,
-            "nullable": true,
+          "type": {
+            "maxLength": 50,
             "type": "string"
           }
         },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "Meta39": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
         "type": "object"
       },
       "Meta4": {
@@ -4439,43 +4449,35 @@
       },
       "Meta40": {
         "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
           "id": {
             "format": "int32",
             "type": "integer"
           },
-          "last_name": {
-            "maxLength": 64,
+          "slice_name": {
+            "maxLength": 250,
+            "nullable": true,
+            "type": "string"
+          },
+          "viz_type": {
+            "maxLength": 250,
+            "nullable": true,
             "type": "string"
           }
         },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
         "type": "object"
       },
       "Meta41": {
         "properties": {
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "recipient_config_json": {
+          "dashboard_title": {
+            "maxLength": 500,
             "nullable": true,
             "type": "string"
           },
-          "type": {
-            "maxLength": 50,
-            "type": "string"
+          "id": {
+            "format": "int32",
+            "type": "integer"
           }
         },
-        "required": [
-          "type"
-        ],
         "type": "object"
       },
       "Meta42": {
@@ -4508,23 +4510,6 @@
             "maxLength": 64,
             "type": "string"
           },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
-      "Meta6": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
           "id": {
             "format": "int32",
             "type": "integer"
@@ -4540,7 +4525,7 @@
         ],
         "type": "object"
       },
-      "Meta7": {
+      "Meta6": {
         "properties": {
           "default_endpoint": {
             "nullable": true,
@@ -4556,7 +4541,7 @@
         ],
         "type": "object"
       },
-      "Meta8": {
+      "Meta7": {
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -4582,30 +4567,35 @@
         ],
         "type": "object"
       },
-      "Meta9": {
+      "Meta8": {
         "properties": {
           "first_name": {
             "maxLength": 64,
             "type": "string"
           },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
           "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "username": {
             "maxLength": 64,
             "type": "string"
           }
         },
         "required": [
           "first_name",
-          "last_name",
-          "username"
+          "last_name"
         ],
+        "type": "object"
+      },
+      "Meta9": {
+        "properties": {
+          "dashboard_title": {
+            "maxLength": 500,
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
         "type": "object"
       },
       "QueryRestApi.get": {
@@ -4996,7 +4986,7 @@
             "type": "boolean"
           },
           "chart": {
-            "$ref": "#/components/schemas/Meta39"
+            "$ref": "#/components/schemas/Meta40"
           },
           "context_markdown": {
             "nullable": true,
@@ -5012,10 +5002,10 @@
             "type": "string"
           },
           "dashboard": {
-            "$ref": "#/components/schemas/Meta37"
+            "$ref": "#/components/schemas/Meta41"
           },
           "database": {
-            "$ref": "#/components/schemas/Meta38"
+            "$ref": "#/components/schemas/Meta37"
           },
           "description": {
             "nullable": true,
@@ -5059,10 +5049,10 @@
             "type": "string"
           },
           "owners": {
-            "$ref": "#/components/schemas/Meta40"
+            "$ref": "#/components/schemas/Meta39"
           },
           "recipients": {
-            "$ref": "#/components/schemas/Meta41"
+            "$ref": "#/components/schemas/Meta38"
           },
           "report_format": {
             "maxLength": 50,
@@ -5111,7 +5101,7 @@
             "type": "boolean"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/Meta35"
+            "$ref": "#/components/schemas/Meta34"
           },
           "changed_on": {
             "format": "date-time",
@@ -5141,6 +5131,10 @@
           "crontab_humanized": {
             "readOnly": true
           },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
           "id": {
             "format": "int32",
             "type": "integer"
@@ -5160,10 +5154,10 @@
             "type": "string"
           },
           "owners": {
-            "$ref": "#/components/schemas/Meta34"
+            "$ref": "#/components/schemas/Meta36"
           },
           "recipients": {
-            "$ref": "#/components/schemas/Meta36"
+            "$ref": "#/components/schemas/Meta35"
           },
           "timezone": {
             "maxLength": 100,
@@ -6018,6 +6012,18 @@
           }
         },
         "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "jwt": {
+        "bearerFormat": "JWT",
+        "scheme": "bearer",
+        "type": "http"
+      },
+      "jwt_refresh": {
+        "bearerFormat": "JWT",
+        "scheme": "bearer",
+        "type": "http"
       }
     }
   },
@@ -12154,6 +12160,47 @@
         ]
       }
     },
+    "/openapi/{version}/_openapi": {
+      "get": {
+        "description": "Get the OpenAPI spec for a specific API version",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The OpenAPI spec"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "OpenApi"
+        ]
+      }
+    },
     "/query/": {
       "get": {
         "description": "Get a list of queries, use Rison or JSON query parameters for filtering, sorting, pagination and  for selecting specific columns and metadata.",
@@ -13996,6 +14043,116 @@
         "security": [
           {
             "jwt": []
+          }
+        ],
+        "tags": [
+          "Security"
+        ]
+      }
+    },
+    "/security/login": {
+      "post": {
+        "description": "Authenticate and get a JWT access and refresh token",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "password": {
+                    "description": "The password for authentication",
+                    "example": "complex-password",
+                    "type": "string"
+                  },
+                  "provider": {
+                    "description": "Choose an authentication provider",
+                    "enum": [
+                      "db",
+                      "ldap"
+                    ],
+                    "example": "db",
+                    "type": "string"
+                  },
+                  "refresh": {
+                    "description": "If true a refresh token is provided also",
+                    "example": true,
+                    "type": "boolean"
+                  },
+                  "username": {
+                    "description": "The username for authentication",
+                    "example": "admin",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "access_token": {
+                      "type": "string"
+                    },
+                    "refresh_token": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Authentication Successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "tags": [
+          "Security"
+        ]
+      }
+    },
+    "/security/refresh": {
+      "post": {
+        "description": "Use the refresh token to get a new JWT access token",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "access_token": {
+                      "description": "A new refreshed access token",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Refresh Successful"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt_refresh": []
           }
         ],
         "tags": [
