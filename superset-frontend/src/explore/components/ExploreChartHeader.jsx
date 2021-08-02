@@ -20,8 +20,16 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
+import Icons from 'src/components/Icons';
 import { styled, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
+import ReportModal from 'src/components/ReportModal';
+import {
+  fetchUISpecificReport,
+  toggleActive,
+  deleteActiveReport,
+} from 'src/reports/actions/reports';
+import HeaderReportActionsDropdown from 'src/components/ReportModal/HeaderReportActionsDropdown';
 import { chartPropShape } from '../../dashboard/util/propShapes';
 import ExploreActionButtons from './ExploreActionButtons';
 import RowCountLabel from './RowCountLabel';
@@ -80,6 +88,11 @@ const StyledHeader = styled.div`
       margin-left: ${({ theme }) => theme.gridUnit}px;
     }
   }
+
+  .action-button {
+    margin: 0 ${({ theme }) => theme.gridUnit * 1.5}px 0
+      ${({ theme }) => theme.gridUnit}px;
+  }
 `;
 
 const StyledButtons = styled.span`
@@ -92,9 +105,26 @@ export class ExploreChartHeader extends React.PureComponent {
     super(props);
     this.state = {
       isPropertiesModalOpen: false,
+      showingReportModal: false,
     };
     this.openPropertiesModal = this.openPropertiesModal.bind(this);
     this.closePropertiesModal = this.closePropertiesModal.bind(this);
+    this.showReportModal = this.showReportModal.bind(this);
+    this.hideReportModal = this.hideReportModal.bind(this);
+    this.renderReportModal = this.renderReportModal.bind(this);
+  }
+
+  componentDidMount() {
+    const { user, chart } = this.props;
+    if (user) {
+      // this is in the case that there is an anonymous user.
+      this.props.fetchUISpecificReport(
+        user.userId,
+        'chart_id',
+        'charts',
+        chart.id,
+      );
+    }
   }
 
   getSliceName() {
@@ -123,8 +153,55 @@ export class ExploreChartHeader extends React.PureComponent {
     });
   }
 
+  showReportModal() {
+    this.setState({ showingReportModal: true });
+  }
+
+  hideReportModal() {
+    this.setState({ showingReportModal: false });
+  }
+
+  renderReportModal() {
+    const attachedReportExists = !!Object.keys(this.props.reports).length;
+    return attachedReportExists ? (
+      <HeaderReportActionsDropdown
+        showReportModal={this.showReportModal}
+        hideReportModal={this.hideReportModal}
+        toggleActive={this.props.toggleActive}
+        deleteActiveReport={this.props.deleteActiveReport}
+      />
+    ) : (
+      <>
+        <span
+          role="button"
+          title={t('Schedule email report')}
+          tabIndex={0}
+          className="action-button"
+          onClick={this.showReportModal}
+        >
+          <Icons.Calendar />
+        </span>
+      </>
+    );
+  }
+
+  canAddReports() {
+    const { user } = this.props;
+    if (!user) {
+      // this is in the case that there is an anonymous user.
+      return false;
+    }
+    const roles = Object.keys(user.roles || []);
+    const permissions = roles.map(key =>
+      user.roles[key].filter(
+        perms => perms[0] === 'can_add' && perms[1] === 'AlertModelView',
+      ),
+    );
+    return permissions[0].length > 0;
+  }
+
   render() {
-    const formData = this.props.form_data;
+    const { user, form_data: formData } = this.props;
     const {
       chartStatus,
       chartUpdateEndTime,
@@ -148,7 +225,7 @@ export class ExploreChartHeader extends React.PureComponent {
 
           {this.props.slice && (
             <StyledButtons>
-              {this.props.userId && (
+              {user.userId && (
                 <FaveStar
                   itemId={this.props.slice.slice_id}
                   fetchFaveStar={this.props.actions.fetchFaveStar}
@@ -205,6 +282,17 @@ export class ExploreChartHeader extends React.PureComponent {
             isRunning={chartStatus === 'loading'}
             status={CHART_STATUS_MAP[chartStatus]}
           />
+          {this.canAddReports() && this.renderReportModal()}
+          <ReportModal
+            show={this.state.showingReportModal}
+            onHide={this.hideReportModal}
+            props={{
+              userId: this.props.user.userId,
+              userEmail: this.props.user.email,
+              chartId: this.props.chart.id,
+              creationMethod: 'charts',
+            }}
+          />
           <ExploreActionButtons
             actions={{
               ...this.props.actions,
@@ -225,7 +313,10 @@ export class ExploreChartHeader extends React.PureComponent {
 ExploreChartHeader.propTypes = propTypes;
 
 function mapDispatchToProps(dispatch) {
-  return bindActionCreators({ sliceUpdated }, dispatch);
+  return bindActionCreators(
+    { sliceUpdated, fetchUISpecificReport, toggleActive, deleteActiveReport },
+    dispatch,
+  );
 }
 
 export default connect(null, mapDispatchToProps)(ExploreChartHeader);
