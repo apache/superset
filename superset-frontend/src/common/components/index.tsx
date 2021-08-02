@@ -42,7 +42,6 @@ export {
   Dropdown,
   Form,
   Empty,
-  Modal,
   Typography,
   Tree,
   Popover,
@@ -58,6 +57,7 @@ export {
   Input as AntdInput,
 } from 'antd';
 export { Card as AntdCard } from 'antd';
+export { default as Modal, ModalProps } from 'antd/lib/modal';
 export { FormInstance } from 'antd/lib/form';
 export { RadioChangeEvent } from 'antd/lib/radio';
 export { TreeProps } from 'antd/lib/tree';
