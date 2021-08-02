@@ -53,8 +53,6 @@ pexpect==4.8.0
     # via ipython
 pickleshare==0.7.5
     # via ipython
-prompt-toolkit==3.0.8
-    # via ipython
 ptyprocess==0.6.0
     # via pexpect
 pyfakefs==4.4.0
@@ -80,8 +78,6 @@ statsd==3.3.0
     # via -r requirements/testing.in
 traitlets==5.0.5
     # via ipython
-wcwidth==0.2.5
-    # via prompt-toolkit
 websocket-client==0.57.0
     # via docker
 

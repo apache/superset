@@ -20,6 +20,7 @@ import React from 'react';
 import Button from 'src/components/Button';
 import { Select } from 'src/components';
 import { css, styled, t } from '@superset-ui/core';
+import { FormLabel } from 'src/components/Form';
 
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
@@ -77,7 +78,7 @@ const StyledContainer = styled.div`
       & > span {
         color: ${theme.colors.grayscale.light1};
         margin-left: ${theme.gridUnit * 4}px;
-        margin-top: ${theme.gridUnit * 5}px;
+        margin-top: ${theme.gridUnit * 6}px;
       }
     }
   `}
@@ -146,9 +147,10 @@ export default class AddSliceContainer extends React.PureComponent<
         <h3 css={cssStatic}>{t('Create a new chart')}</h3>
         <div className="dataset">
           <Select
+            autoFocus
             ariaLabel={t('Dataset')}
             name="select-datasource"
-            header={t('Choose a dataset')}
+            header={<FormLabel required>{t('Choose a dataset')}</FormLabel>}
             onChange={this.changeDatasource}
             options={this.props.datasources}
             placeholder={t('Choose a dataset')}
