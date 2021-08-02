@@ -42,11 +42,6 @@ from tests.integration_tests.fixtures.query_context import get_query_context
 from tests.integration_tests.test_app import app
 
 
-def get_table_by_name(name: str) -> SqlaTable:
-    with app.app_context():
-        return db.session.query(SqlaTable).filter_by(table_name=name).one()
-
-
 class TestAsyncQueries(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch.object(async_query_manager, "update_job")
@@ -127,7 +122,7 @@ class TestAsyncQueries(SupersetTestCase):
     @mock.patch.object(async_query_manager, "update_job")
     def test_load_explore_json_into_cache(self, mock_update_job):
         async_query_manager.init_app(app)
-        table = get_table_by_name("birth_names")
+        table = self.get_table(name="birth_names")
         user = security_manager.find_user("gamma")
         form_data = {
             "datasource": f"{table.id}__table",

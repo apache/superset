@@ -241,7 +241,7 @@ class TestDatabaseModel(SupersetTestCase):
             FilterTestCase(FilterOperator.IN, ["1", "2"], "IN (1, 2)"),
             FilterTestCase(FilterOperator.NOT_IN, ["1", "2"], "NOT IN (1, 2)"),
         )
-        table = self.get_table_by_name("birth_names")
+        table = self.get_table(name="birth_names")
         for filter_ in filters:
             query_obj = {
                 "granularity": None,
