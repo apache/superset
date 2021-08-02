@@ -16,6 +16,7 @@
 # under the License.
 """Unit tests for Superset"""
 import json
+from contextlib import contextmanager
 from copy import deepcopy
 from unittest import mock
 
@@ -24,7 +25,8 @@ import pytest
 from superset import app, ConnectorRegistry, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.datasets.commands.exceptions import DatasetNotFoundError
-from superset.exceptions import SupersetException, SupersetGenericDBErrorException
+from superset.exceptions import SupersetGenericDBErrorException
+from superset.models.core import Database
 from superset.utils.core import get_example_database
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -32,6 +34,22 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
 
 from .base_tests import db_insert_temp_object, SupersetTestCase
 from .fixtures.datasource import datasource_post
+
+
+@contextmanager
+def create_test_table_context(database: Database):
+    database.get_sqla_engine().execute(
+        "CREATE TABLE test_table AS SELECT 1 as first, 2 as second"
+    )
+    database.get_sqla_engine().execute(
+        "INSERT INTO test_table (first, second) VALUES (1, 2)"
+    )
+    database.get_sqla_engine().execute(
+        "INSERT INTO test_table (first, second) VALUES (3, 4)"
+    )
+
+    yield db.session
+    database.get_sqla_engine().execute("DROP TABLE test_table")
 
 
 class TestDatasource(SupersetTestCase):
@@ -74,6 +92,61 @@ class TestDatasource(SupersetTestCase):
         assert {o.get("name") for o in resp} == {"intcol", "strcol"}
         session.delete(table)
         session.commit()
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_external_metadata_by_name_for_physical_table(self):
+        self.login(username="admin")
+        tbl = self.get_table_by_name("birth_names")
+        # empty schema need to be represented by undefined
+        url = (
+            f"/datasource/external_metadata_by_name/table/"
+            f"{tbl.database.database_name}/undefined/{tbl.table_name}/"
+        )
+        resp = self.get_json_resp(url)
+        col_names = {o.get("name") for o in resp}
+        self.assertEqual(
+            col_names, {"num_boys", "num", "gender", "name", "ds", "state", "num_girls"}
+        )
+
+    def test_external_metadata_by_name_for_virtual_table(self):
+        self.login(username="admin")
+        session = db.session
+        table = SqlaTable(
+            table_name="dummy_sql_table",
+            database=get_example_database(),
+            sql="select 123 as intcol, 'abc' as strcol",
+        )
+        session.add(table)
+        session.commit()
+
+        table = self.get_table_by_name("dummy_sql_table")
+        # empty schema need to be represented by undefined
+        url = (
+            f"/datasource/external_metadata_by_name/table/"
+            f"{table.database.database_name}/undefined/{table.table_name}/"
+        )
+        resp = self.get_json_resp(url)
+        assert {o.get("name") for o in resp} == {"intcol", "strcol"}
+        session.delete(table)
+        session.commit()
+
+    def test_external_metadata_by_name_from_sqla_inspector(self):
+        self.login(username="admin")
+        example_database = get_example_database()
+        with create_test_table_context(example_database):
+            url = (
+                f"/datasource/external_metadata_by_name/table/"
+                f"{example_database.database_name}/undefined/test_table/"
+            )
+            resp = self.get_json_resp(url)
+            col_names = {o.get("name") for o in resp}
+            self.assertEqual(col_names, {"first", "second"})
+
+        url = (
+            f"/datasource/external_metadata_by_name/table/" f"foobar/undefined/foobar/"
+        )
+        resp = self.get_json_resp(url, raise_on_error=False)
+        self.assertIn("error", resp)
 
     def test_external_metadata_for_virtual_table_template_params(self):
         self.login(username="admin")
