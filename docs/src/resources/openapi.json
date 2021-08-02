@@ -227,7 +227,7 @@
       "AnnotationLayerRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/Meta3"
+            "$ref": "#/components/schemas/Meta4"
           },
           "changed_on": {
             "format": "date-time",
@@ -238,7 +238,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/Meta4"
+            "$ref": "#/components/schemas/Meta3"
           },
           "created_on": {
             "format": "date-time",
@@ -333,13 +333,13 @@
       "AnnotationRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/Meta"
+            "$ref": "#/components/schemas/Meta1"
           },
           "changed_on_delta_humanized": {
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/Meta1"
+            "$ref": "#/components/schemas/Meta"
           },
           "end_dttm": {
             "format": "date-time",
@@ -1652,7 +1652,7 @@
             "type": "integer"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/Meta7"
+            "$ref": "#/components/schemas/Meta8"
           },
           "changed_by_name": {
             "readOnly": true
@@ -1700,7 +1700,7 @@
             "type": "integer"
           },
           "owners": {
-            "$ref": "#/components/schemas/Meta6"
+            "$ref": "#/components/schemas/Meta7"
           },
           "params": {
             "nullable": true,
@@ -1712,7 +1712,7 @@
             "type": "string"
           },
           "table": {
-            "$ref": "#/components/schemas/Meta8"
+            "$ref": "#/components/schemas/Meta6"
           },
           "thumbnail_url": {
             "readOnly": true
@@ -1914,13 +1914,13 @@
       "CssTemplateRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/Meta11"
+            "$ref": "#/components/schemas/Meta12"
           },
           "changed_on_delta_humanized": {
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/Meta12"
+            "$ref": "#/components/schemas/Meta11"
           },
           "created_on": {
             "format": "date-time",
@@ -2197,7 +2197,7 @@
       "DashboardRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/Meta14"
+            "$ref": "#/components/schemas/Meta15"
           },
           "changed_by_name": {
             "readOnly": true
@@ -2212,7 +2212,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/Meta15"
+            "$ref": "#/components/schemas/Meta14"
           },
           "css": {
             "nullable": true,
@@ -3191,10 +3191,10 @@
             "type": "integer"
           },
           "columns": {
-            "$ref": "#/components/schemas/Meta23"
+            "$ref": "#/components/schemas/Meta22"
           },
           "database": {
-            "$ref": "#/components/schemas/Meta22"
+            "$ref": "#/components/schemas/Meta23"
           },
           "datasource_type": {
             "readOnly": true
@@ -3234,7 +3234,7 @@
             "type": "string"
           },
           "metrics": {
-            "$ref": "#/components/schemas/Meta24"
+            "$ref": "#/components/schemas/Meta25"
           },
           "offset": {
             "format": "int32",
@@ -3242,7 +3242,7 @@
             "type": "integer"
           },
           "owners": {
-            "$ref": "#/components/schemas/Meta25"
+            "$ref": "#/components/schemas/Meta24"
           },
           "schema": {
             "maxLength": 255,
@@ -3291,7 +3291,7 @@
             "readOnly": true
           },
           "database": {
-            "$ref": "#/components/schemas/Meta20"
+            "$ref": "#/components/schemas/Meta21"
           },
           "default_endpoint": {
             "nullable": true,
@@ -3312,7 +3312,7 @@
             "readOnly": true
           },
           "owners": {
-            "$ref": "#/components/schemas/Meta21"
+            "$ref": "#/components/schemas/Meta20"
           },
           "schema": {
             "maxLength": 255,
@@ -3703,6 +3703,27 @@
       },
       "Meta11": {
         "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "Meta12": {
+        "properties": {
           "active": {
             "nullable": true,
             "type": "boolean"
@@ -3766,27 +3787,6 @@
         ],
         "type": "object"
       },
-      "Meta12": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
       "Meta13": {
         "properties": {
           "first_name": {
@@ -3821,16 +3821,11 @@
           "last_name": {
             "maxLength": 64,
             "type": "string"
-          },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
           }
         },
         "required": [
           "first_name",
-          "last_name",
-          "username"
+          "last_name"
         ],
         "type": "object"
       },
@@ -3847,11 +3842,16 @@
           "last_name": {
             "maxLength": 64,
             "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
           }
         },
         "required": [
           "first_name",
-          "last_name"
+          "last_name",
+          "username"
         ],
         "type": "object"
       },
@@ -3947,22 +3947,6 @@
       },
       "Meta20": {
         "properties": {
-          "database_name": {
-            "maxLength": 250,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "database_name"
-        ],
-        "type": "object"
-      },
-      "Meta21": {
-        "properties": {
           "first_name": {
             "maxLength": 64,
             "type": "string"
@@ -3987,7 +3971,7 @@
         ],
         "type": "object"
       },
-      "Meta22": {
+      "Meta21": {
         "properties": {
           "database_name": {
             "maxLength": 250,
@@ -4003,7 +3987,7 @@
         ],
         "type": "object"
       },
-      "Meta23": {
+      "Meta22": {
         "properties": {
           "changed_on": {
             "format": "date-time",
@@ -4076,7 +4060,49 @@
         ],
         "type": "object"
       },
+      "Meta23": {
+        "properties": {
+          "database_name": {
+            "maxLength": 250,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "database_name"
+        ],
+        "type": "object"
+      },
       "Meta24": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name",
+          "username"
+        ],
+        "type": "object"
+      },
+      "Meta25": {
         "properties": {
           "changed_on": {
             "format": "date-time",
@@ -4135,32 +4161,6 @@
         "required": [
           "expression",
           "metric_name"
-        ],
-        "type": "object"
-      },
-      "Meta25": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name",
-          "username"
         ],
         "type": "object"
       },
@@ -4304,17 +4304,18 @@
       },
       "Meta33": {
         "properties": {
-          "id": {
-            "format": "int32",
-            "type": "integer"
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
           },
-          "type": {
-            "maxLength": 50,
+          "last_name": {
+            "maxLength": 64,
             "type": "string"
           }
         },
         "required": [
-          "type"
+          "first_name",
+          "last_name"
         ],
         "type": "object"
       },
@@ -4337,18 +4338,17 @@
       },
       "Meta35": {
         "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
+          "id": {
+            "format": "int32",
+            "type": "integer"
           },
-          "last_name": {
-            "maxLength": 64,
+          "type": {
+            "maxLength": 50,
             "type": "string"
           }
         },
         "required": [
-          "first_name",
-          "last_name"
+          "type"
         ],
         "type": "object"
       },
@@ -4375,6 +4375,22 @@
       },
       "Meta37": {
         "properties": {
+          "database_name": {
+            "maxLength": 250,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "database_name"
+        ],
+        "type": "object"
+      },
+      "Meta38": {
+        "properties": {
           "id": {
             "format": "int32",
             "type": "integer"
@@ -4390,22 +4406,6 @@
         },
         "required": [
           "type"
-        ],
-        "type": "object"
-      },
-      "Meta38": {
-        "properties": {
-          "database_name": {
-            "maxLength": 250,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "database_name"
         ],
         "type": "object"
       },
@@ -4449,20 +4449,6 @@
       },
       "Meta40": {
         "properties": {
-          "dashboard_title": {
-            "maxLength": 500,
-            "nullable": true,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          }
-        },
-        "type": "object"
-      },
-      "Meta41": {
-        "properties": {
           "id": {
             "format": "int32",
             "type": "integer"
@@ -4476,6 +4462,20 @@
             "maxLength": 250,
             "nullable": true,
             "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "Meta41": {
+        "properties": {
+          "dashboard_title": {
+            "maxLength": 500,
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
           }
         },
         "type": "object"
@@ -4527,6 +4527,22 @@
       },
       "Meta6": {
         "properties": {
+          "default_endpoint": {
+            "nullable": true,
+            "type": "string"
+          },
+          "table_name": {
+            "maxLength": 250,
+            "type": "string"
+          }
+        },
+        "required": [
+          "table_name"
+        ],
+        "type": "object"
+      },
+      "Meta7": {
+        "properties": {
           "first_name": {
             "maxLength": 64,
             "type": "string"
@@ -4551,7 +4567,7 @@
         ],
         "type": "object"
       },
-      "Meta7": {
+      "Meta8": {
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -4565,22 +4581,6 @@
         "required": [
           "first_name",
           "last_name"
-        ],
-        "type": "object"
-      },
-      "Meta8": {
-        "properties": {
-          "default_endpoint": {
-            "nullable": true,
-            "type": "string"
-          },
-          "table_name": {
-            "maxLength": 250,
-            "type": "string"
-          }
-        },
-        "required": [
-          "table_name"
         ],
         "type": "object"
       },
@@ -4986,7 +4986,7 @@
             "type": "boolean"
           },
           "chart": {
-            "$ref": "#/components/schemas/Meta41"
+            "$ref": "#/components/schemas/Meta40"
           },
           "context_markdown": {
             "nullable": true,
@@ -5002,10 +5002,10 @@
             "type": "string"
           },
           "dashboard": {
-            "$ref": "#/components/schemas/Meta40"
+            "$ref": "#/components/schemas/Meta41"
           },
           "database": {
-            "$ref": "#/components/schemas/Meta38"
+            "$ref": "#/components/schemas/Meta37"
           },
           "description": {
             "nullable": true,
@@ -5052,7 +5052,7 @@
             "$ref": "#/components/schemas/Meta39"
           },
           "recipients": {
-            "$ref": "#/components/schemas/Meta37"
+            "$ref": "#/components/schemas/Meta38"
           },
           "report_format": {
             "maxLength": 50,
@@ -5112,7 +5112,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/Meta35"
+            "$ref": "#/components/schemas/Meta33"
           },
           "created_on": {
             "format": "date-time",
@@ -5157,7 +5157,7 @@
             "$ref": "#/components/schemas/Meta36"
           },
           "recipients": {
-            "$ref": "#/components/schemas/Meta33"
+            "$ref": "#/components/schemas/Meta35"
           },
           "timezone": {
             "maxLength": 100,
