@@ -63,10 +63,10 @@ class TestDatasetApi(SupersetTestCase):
     @staticmethod
     def insert_dataset(
         table_name: str,
-        schema: str,
         owners: List[int],
         database: Database,
         sql: Optional[str] = None,
+        schema: Optional[str] = None,
     ) -> SqlaTable:
         obj_owners = list()
         for owner in owners:
@@ -86,7 +86,7 @@ class TestDatasetApi(SupersetTestCase):
 
     def insert_default_dataset(self):
         return self.insert_dataset(
-            "ab_permission", "", [self.get_user("admin").id], get_main_database()
+            "ab_permission", [self.get_user("admin").id], get_main_database()
         )
 
     def get_fixture_datasets(self) -> List[SqlaTable]:
@@ -105,11 +105,7 @@ class TestDatasetApi(SupersetTestCase):
             for table_name in self.fixture_virtual_table_names:
                 datasets.append(
                     self.insert_dataset(
-                        table_name,
-                        "",
-                        [admin.id],
-                        main_db,
-                        "SELECT * from ab_view_menu;",
+                        table_name, [admin.id], main_db, "SELECT * from ab_view_menu;",
                     )
                 )
             yield datasets
@@ -126,9 +122,7 @@ class TestDatasetApi(SupersetTestCase):
             admin = self.get_user("admin")
             main_db = get_main_database()
             for tables_name in self.fixture_tables_names:
-                datasets.append(
-                    self.insert_dataset(tables_name, "", [admin.id], main_db)
-                )
+                datasets.append(self.insert_dataset(tables_name, [admin.id], main_db))
             yield datasets
 
             # rollback changes
@@ -270,11 +264,13 @@ class TestDatasetApi(SupersetTestCase):
         datasets = []
         if example_db.backend == "postgresql":
             datasets.append(
-                self.insert_dataset("ab_permission", "public", [], get_main_database())
+                self.insert_dataset(
+                    "ab_permission", [], get_main_database(), schema="public"
+                )
             )
             datasets.append(
                 self.insert_dataset(
-                    "columns", "information_schema", [], get_main_database()
+                    "columns", [], get_main_database(), schema="information_schema",
                 )
             )
             schema_values = [
@@ -921,7 +917,7 @@ class TestDatasetApi(SupersetTestCase):
         dataset = self.insert_default_dataset()
         self.login(username="admin")
         ab_user = self.insert_dataset(
-            "ab_user", "", [self.get_user("admin").id], get_main_database()
+            "ab_user", [self.get_user("admin").id], get_main_database()
         )
         table_data = {"table_name": "ab_user"}
         uri = f"api/v1/dataset/{dataset.id}"

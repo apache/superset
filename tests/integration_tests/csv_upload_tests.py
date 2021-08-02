@@ -221,7 +221,7 @@ def test_import_csv_explore_database(setup_csv_upload, create_csv_files):
         f'CSV file "{CSV_FILENAME1}" uploaded to table "{CSV_UPLOAD_TABLE_W_EXPLORE}"'
         in resp
     )
-    table = SupersetTestCase.get_table_by_name(CSV_UPLOAD_TABLE_W_EXPLORE)
+    table = SupersetTestCase.get_table(name=CSV_UPLOAD_TABLE_W_EXPLORE)
     assert table.database_id == utils.get_example_database().id
 
 
@@ -267,7 +267,7 @@ def test_import_csv(setup_csv_upload, create_csv_files):
     )
     assert success_msg_f2 in resp
 
-    table = SupersetTestCase.get_table_by_name(CSV_UPLOAD_TABLE)
+    table = SupersetTestCase.get_table(name=CSV_UPLOAD_TABLE)
     # make sure the new column name is reflected in the table metadata
     assert "d" in table.column_names
 

@@ -545,7 +545,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         """
         admin = self.get_user("admin")
         gamma = self.get_user("gamma")
-        birth_names_table_id = SupersetTestCase.get_table_by_name("birth_names").id
+        birth_names_table_id = SupersetTestCase.get_table(name="birth_names").id
         chart_id = self.insert_chart(
             "title", [admin.id], birth_names_table_id, admin
         ).id
