@@ -152,6 +152,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "description_markeddown",
         "edit_url",
         "id",
+        "last_saved_at",
         "owners.first_name",
         "owners.id",
         "owners.last_name",
@@ -170,12 +171,14 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "changed_on_delta_humanized",
         "datasource_id",
         "datasource_name",
+        "last_saved_at",
         "slice_name",
         "viz_type",
     ]
     search_columns = [
         "created_by",
         "changed_by",
+        "last_saved_at",
         "datasource_id",
         "datasource_name",
         "datasource_type",
