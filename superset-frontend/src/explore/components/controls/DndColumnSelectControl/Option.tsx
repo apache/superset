@@ -41,10 +41,13 @@ export default function Option({
   canDelete = true,
 }: OptionProps) {
   const theme = useTheme();
-  const onClickClose = useCallback(() => clickClose(index), [
-    clickClose,
-    index,
-  ]);
+  const onClickClose = useCallback(
+    e => {
+      e.stopPropagation();
+      clickClose(index);
+    },
+    [clickClose, index],
+  );
   return (
     <OptionControlContainer data-test="option-label" withCaret={withCaret}>
       {canDelete && (
