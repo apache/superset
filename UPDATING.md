@@ -23,6 +23,9 @@ This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
 ## Next
+- [15909](https://github.com/apache/incubator-superset/pull/15909): a change which
+drops a uniqueness criterion (which may or may not have existed) to the tables table. This constraint was obsolete as it is handled by the ORM due to differences in how MySQL, PostgreSQL, etc. handle uniqueness for NULL values.
+
 - [15927](https://github.com/apache/superset/pull/15927): Upgrades Celery to 5.x. Per the [upgrading](https://docs.celeryproject.org/en/stable/history/whatsnew-5.0.html#upgrading-from-celery-4-x) instructions Celery 5.0 introduces a new CLI implementation which is not completely backwards compatible. Please ensure global options are positioned before the sub-command.
 
 - [13772](https://github.com/apache/superset/pull/13772): Row level security (RLS) is now enabled by default. To activate the feature, please run `superset init` to expose the RLS menus to Admin users.

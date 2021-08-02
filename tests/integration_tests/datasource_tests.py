@@ -17,7 +17,6 @@
 """Unit tests for Superset"""
 import json
 from contextlib import contextmanager
-from copy import deepcopy
 from unittest import mock
 
 import pytest
@@ -28,12 +27,11 @@ from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.exceptions import SupersetGenericDBErrorException
 from superset.models.core import Database
 from superset.utils.core import get_example_database
+from tests.integration_tests.base_tests import db_insert_temp_object, SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
 )
-
-from .base_tests import db_insert_temp_object, SupersetTestCase
-from .fixtures.datasource import datasource_post
+from tests.integration_tests.fixtures.datasource import get_datasource_post
 
 
 @contextmanager
@@ -54,20 +52,15 @@ def create_test_table_context(database: Database):
 
 class TestDatasource(SupersetTestCase):
     def setUp(self):
-        self.original_attrs = {}
-        self.datasource = None
+        db.session.begin(subtransactions=True)
 
     def tearDown(self):
-        if self.datasource:
-            for key, value in self.original_attrs.items():
-                setattr(self.datasource, key, value)
-
-            db.session.commit()
+        db.session.rollback()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_external_metadata_for_physical_table(self):
         self.login(username="admin")
-        tbl = self.get_table_by_name("birth_names")
+        tbl = self.get_table(name="birth_names")
         url = f"/datasource/external_metadata/table/{tbl.id}/"
         resp = self.get_json_resp(url)
         col_names = {o.get("name") for o in resp}
@@ -86,7 +79,7 @@ class TestDatasource(SupersetTestCase):
         session.add(table)
         session.commit()
 
-        table = self.get_table_by_name("dummy_sql_table")
+        table = self.get_table(name="dummy_sql_table")
         url = f"/datasource/external_metadata/table/{table.id}/"
         resp = self.get_json_resp(url)
         assert {o.get("name") for o in resp} == {"intcol", "strcol"}
@@ -96,7 +89,7 @@ class TestDatasource(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_external_metadata_by_name_for_physical_table(self):
         self.login(username="admin")
-        tbl = self.get_table_by_name("birth_names")
+        tbl = self.get_table(name="birth_names")
         # empty schema need to be represented by undefined
         url = (
             f"/datasource/external_metadata_by_name/table/"
@@ -119,7 +112,7 @@ class TestDatasource(SupersetTestCase):
         session.add(table)
         session.commit()
 
-        table = self.get_table_by_name("dummy_sql_table")
+        table = self.get_table(name="dummy_sql_table")
         # empty schema need to be represented by undefined
         url = (
             f"/datasource/external_metadata_by_name/table/"
@@ -160,7 +153,7 @@ class TestDatasource(SupersetTestCase):
         session.add(table)
         session.commit()
 
-        table = self.get_table_by_name("dummy_sql_table_with_template_params")
+        table = self.get_table(name="dummy_sql_table_with_template_params")
         url = f"/datasource/external_metadata/table/{table.id}/"
         resp = self.get_json_resp(url)
         assert {o.get("name") for o in resp} == {"intcol"}
@@ -196,7 +189,7 @@ class TestDatasource(SupersetTestCase):
     @mock.patch("superset.connectors.sqla.models.SqlaTable.external_metadata")
     def test_external_metadata_error_return_400(self, mock_get_datasource):
         self.login(username="admin")
-        tbl = self.get_table_by_name("birth_names")
+        tbl = self.get_table(name="birth_names")
         url = f"/datasource/external_metadata/table/{tbl.id}/"
 
         mock_get_datasource.side_effect = SupersetGenericDBErrorException("oops")
@@ -221,13 +214,9 @@ class TestDatasource(SupersetTestCase):
 
     def test_save(self):
         self.login(username="admin")
-        tbl_id = self.get_table_by_name("birth_names").id
+        tbl_id = self.get_table(name="birth_names").id
 
-        self.datasource = ConnectorRegistry.get_datasource("table", tbl_id, db.session)
-
-        for key in self.datasource.export_fields:
-            self.original_attrs[key] = getattr(self.datasource, key)
-
+        datasource_post = get_datasource_post()
         datasource_post["id"] = tbl_id
         data = dict(data=json.dumps(datasource_post))
         resp = self.get_json_resp("/datasource/save/", data)
@@ -241,25 +230,21 @@ class TestDatasource(SupersetTestCase):
             else:
                 self.assertEqual(resp[k], datasource_post[k])
 
-    def save_datasource_from_dict(self, datasource_dict):
+    def save_datasource_from_dict(self, datasource_post):
         data = dict(data=json.dumps(datasource_post))
         resp = self.get_json_resp("/datasource/save/", data)
         return resp
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_change_database(self):
         self.login(username="admin")
-        tbl = self.get_table_by_name("birth_names")
+        tbl = self.get_table(name="birth_names")
         tbl_id = tbl.id
         db_id = tbl.database_id
+        datasource_post = get_datasource_post()
         datasource_post["id"] = tbl_id
 
-        self.datasource = ConnectorRegistry.get_datasource("table", tbl_id, db.session)
-
-        for key in self.datasource.export_fields:
-            self.original_attrs[key] = getattr(self.datasource, key)
-
         new_db = self.create_fake_db()
-
         datasource_post["database"]["id"] = new_db.id
         resp = self.save_datasource_from_dict(datasource_post)
         self.assertEqual(resp["database"]["id"], new_db.id)
@@ -272,15 +257,11 @@ class TestDatasource(SupersetTestCase):
 
     def test_save_duplicate_key(self):
         self.login(username="admin")
-        tbl_id = self.get_table_by_name("birth_names").id
-        self.datasource = ConnectorRegistry.get_datasource("table", tbl_id, db.session)
+        tbl_id = self.get_table(name="birth_names").id
 
-        for key in self.datasource.export_fields:
-            self.original_attrs[key] = getattr(self.datasource, key)
-
-        datasource_post_copy = deepcopy(datasource_post)
-        datasource_post_copy["id"] = tbl_id
-        datasource_post_copy["columns"].extend(
+        datasource_post = get_datasource_post()
+        datasource_post["id"] = tbl_id
+        datasource_post["columns"].extend(
             [
                 {
                     "column_name": "<new column>",
@@ -298,18 +279,15 @@ class TestDatasource(SupersetTestCase):
                 },
             ]
         )
-        data = dict(data=json.dumps(datasource_post_copy))
+        data = dict(data=json.dumps(datasource_post))
         resp = self.get_json_resp("/datasource/save/", data, raise_on_error=False)
         self.assertIn("Duplicate column name(s): <new column>", resp["error"])
 
     def test_get_datasource(self):
         self.login(username="admin")
-        tbl = self.get_table_by_name("birth_names")
-        self.datasource = ConnectorRegistry.get_datasource("table", tbl.id, db.session)
+        tbl = self.get_table(name="birth_names")
 
-        for key in self.datasource.export_fields:
-            self.original_attrs[key] = getattr(self.datasource, key)
-
+        datasource_post = get_datasource_post()
         datasource_post["id"] = tbl.id
         data = dict(data=json.dumps(datasource_post))
         self.get_json_resp("/datasource/save/", data)
@@ -337,7 +315,7 @@ class TestDatasource(SupersetTestCase):
 
         app.config["DATASET_HEALTH_CHECK"] = my_check
         self.login(username="admin")
-        tbl = self.get_table_by_name("birth_names")
+        tbl = self.get_table(name="birth_names")
         datasource = ConnectorRegistry.get_datasource("table", tbl.id, db.session)
         assert datasource.health_check_message == "Warning message!"
         app.config["DATASET_HEALTH_CHECK"] = None
