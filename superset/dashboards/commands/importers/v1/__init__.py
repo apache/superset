@@ -27,7 +27,7 @@ from superset.commands.importers.v1 import ImportModelsCommand
 from superset.dashboards.commands.exceptions import DashboardImportError
 from superset.dashboards.commands.importers.v1.utils import (
     find_chart_uuids,
-    find_native_filter_dataset_uuids,
+    find_native_filter_datasets,
     import_dashboard,
     update_id_refs,
 )
@@ -67,9 +67,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
                 chart_uuids.update(find_chart_uuids(config["position"]))
-                dataset_uuids.update(
-                    find_native_filter_dataset_uuids(config["metadata"])
-                )
+                dataset_uuids.update(find_native_filter_datasets(config["metadata"]))
 
         # discover datasets associated with charts
         for file_name, config in configs.items():

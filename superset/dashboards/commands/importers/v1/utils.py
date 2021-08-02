@@ -33,7 +33,7 @@ def find_chart_uuids(position: Dict[str, Any]) -> Set[str]:
     return set(build_uuid_to_id_map(position))
 
 
-def find_native_filter_dataset_uuids(metadata: Dict[str, Any]) -> Set[str]:
+def find_native_filter_datasets(metadata: Dict[str, Any]) -> Set[str]:
     uuids: Set[str] = set()
     for native_filter in metadata.get("native_filter_configuration", []):
         targets = native_filter.get("targets", [])
