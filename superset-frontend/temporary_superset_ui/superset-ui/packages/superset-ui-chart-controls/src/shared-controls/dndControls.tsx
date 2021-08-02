@@ -102,6 +102,12 @@ export const dnd_adhoc_metric: SharedControlConfig<'DndMetricSelect'> = {
   description: t('Metric'),
 };
 
+export const dnd_adhoc_metric_2: SharedControlConfig<'DndMetricSelect'> = {
+  ...dnd_adhoc_metric,
+  label: t('Right Axis Metric'),
+  description: t('Choose a metric for right axis'),
+};
+
 export const dnd_sort_by: SharedControlConfig<'DndMetricSelect'> = {
   type: 'DndMetricSelect',
   label: t('Sort by'),
