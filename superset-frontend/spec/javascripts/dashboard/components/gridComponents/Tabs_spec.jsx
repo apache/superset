@@ -31,7 +31,7 @@ import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
-import Tabs from 'src/dashboard/components/gridComponents/Tabs';
+import { Tabs } from 'src/dashboard/components/gridComponents/Tabs';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import emptyDashboardLayout from 'src/dashboard/fixtures/emptyDashboardLayout';
 import { dashboardLayoutWithTabs } from 'spec/fixtures/mockDashboardLayout';
@@ -66,14 +66,15 @@ describe('Tabs', () => {
     nativeFilters: nativeFilters.filters,
   };
 
+  const mockStore = getMockStore({
+    ...initialState,
+    dashboardLayout: dashboardLayoutWithTabs,
+    dashboardFilters: {},
+  });
+
   function setup(overrideProps) {
     // We have to wrap provide DragDropContext for the underlying DragDroppable
     // otherwise we cannot assert on DragDroppable children
-    const mockStore = getMockStore({
-      ...initialState,
-      dashboardLayout: dashboardLayoutWithTabs,
-      dashboardFilters: {},
-    });
     const wrapper = mount(
       <Provider store={mockStore}>
         <DndProvider backend={HTML5Backend}>

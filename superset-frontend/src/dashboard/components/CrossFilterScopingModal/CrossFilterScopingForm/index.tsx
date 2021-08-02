@@ -45,11 +45,11 @@ const CrossFilterScopingForm: FC<CrossFilterScopingFormProps> = ({
           ...values,
         });
       }}
-      scope={scope}
+      filterScope={scope}
       chartId={chartId}
-      formScope={formScope}
+      formFilterScope={formScope}
       forceUpdate={forceUpdate}
-      formScoping={formScoping}
+      formScopingType={formScoping}
     />
   );
 };

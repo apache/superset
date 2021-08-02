@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { isString, keyBy } from 'lodash';
+import { isString } from 'lodash';
 import {
   Behavior,
   CategoricalColorNamespace,
@@ -60,7 +60,7 @@ import extractUrlParams from '../util/extractUrlParams';
 
 export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
 
-export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
+export const hydrateDashboard = (dashboardData, chartData) => (
   dispatch,
   getState,
 ) => {
@@ -288,7 +288,8 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
   }
 
   metadata.show_native_filters =
-    dashboardData?.metadata?.show_native_filters ?? true;
+    dashboardData?.metadata?.show_native_filters ??
+    isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS);
 
   if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
     // If user just added cross filter to dashboard it's not saving it scope on server,
@@ -328,7 +329,6 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
   return dispatch({
     type: HYDRATE_DASHBOARD,
     data: {
-      datasources: keyBy(datasourcesData, 'uid'),
       sliceEntities: { ...initSliceEntities, slices, isLoading: false },
       charts: chartQueries,
       // read-only data
@@ -360,6 +360,7 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
       dashboardFilters,
       nativeFilters,
       dashboardState: {
+        preselectNativeFilters: getUrlParam(URL_PARAMS.nativeFilters),
         sliceIds: Array.from(sliceIds),
         directPathToChild,
         directPathLastUpdated: Date.now(),
@@ -377,6 +378,7 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
         hasUnsavedChanges: false,
         maxUndoHistoryExceeded: false,
         lastModifiedTime: dashboardData.changed_on,
+        isRefreshing: false,
         activeTabs: [],
       },
       dashboardLayout,

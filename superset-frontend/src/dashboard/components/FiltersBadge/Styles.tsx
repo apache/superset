@@ -35,7 +35,7 @@ export const Pill = styled.div`
 
   svg {
     position: relative;
-    top: -1px;
+    top: -2px;
     color: ${({ theme }) => theme.colors.grayscale.light5};
     width: 1em;
     height: 1em;
@@ -152,4 +152,14 @@ export const FilterValue = styled.div`
   flex-grow: 1;
   overflow: auto;
   color: ${({ theme }) => theme.colors.grayscale.light5};
+`;
+
+export const FilterIndicatorText = styled.div`
+  ${({ theme }) => `
+  padding-top: ${theme.gridUnit * 3}px;
+  max-width: 100%;
+  flex-grow: 1;
+  overflow: auto;
+  color: ${theme.colors.grayscale.light5};
+  `}
 `;

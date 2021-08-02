@@ -25,6 +25,7 @@ import {
   createFetchRelated,
   createErrorHandler,
   handleDashboardDelete,
+  CardStylesOverrides,
 } from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
@@ -157,8 +158,28 @@ function DashboardList(props: DashboardListProps) {
       ({ json = {} }) => {
         setDashboards(
           dashboards.map(dashboard => {
-            if (dashboard.id === json.id) {
-              return json.result;
+            if (dashboard.id === json?.result?.id) {
+              const {
+                changed_by_name,
+                changed_by_url,
+                changed_by,
+                dashboard_title = '',
+                slug = '',
+                json_metadata = '',
+                changed_on_delta_humanized,
+                url = '',
+              } = json.result;
+              return {
+                ...dashboard,
+                changed_by_name,
+                changed_by_url,
+                changed_by,
+                dashboard_title,
+                slug,
+                json_metadata,
+                changed_on_delta_humanized,
+                url,
+              };
             }
             return dashboard;
           }),
@@ -481,24 +502,26 @@ function DashboardList(props: DashboardListProps) {
     const { userId } = props.user;
     const userKey = getFromLocalStorage(userId.toString(), null);
     return (
-      <DashboardCard
-        dashboard={dashboard}
-        hasPerm={hasPerm}
-        bulkSelectEnabled={bulkSelectEnabled}
-        refreshData={refreshData}
-        showThumbnails={
-          userKey
-            ? userKey.thumbnails
-            : isFeatureEnabled(FeatureFlag.THUMBNAILS)
-        }
-        loading={loading}
-        addDangerToast={addDangerToast}
-        addSuccessToast={addSuccessToast}
-        openDashboardEditModal={openDashboardEditModal}
-        saveFavoriteStatus={saveFavoriteStatus}
-        favoriteStatus={favoriteStatus[dashboard.id]}
-        handleBulkDashboardExport={handleBulkDashboardExport}
-      />
+      <CardStylesOverrides>
+        <DashboardCard
+          dashboard={dashboard}
+          hasPerm={hasPerm}
+          bulkSelectEnabled={bulkSelectEnabled}
+          refreshData={refreshData}
+          showThumbnails={
+            userKey
+              ? userKey.thumbnails
+              : isFeatureEnabled(FeatureFlag.THUMBNAILS)
+          }
+          loading={loading}
+          addDangerToast={addDangerToast}
+          addSuccessToast={addSuccessToast}
+          openDashboardEditModal={openDashboardEditModal}
+          saveFavoriteStatus={saveFavoriteStatus}
+          favoriteStatus={favoriteStatus[dashboard.id]}
+          handleBulkDashboardExport={handleBulkDashboardExport}
+        />
+      </CardStylesOverrides>
     );
   }
 

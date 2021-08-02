@@ -111,6 +111,7 @@ const IconFileNames = [
   'minus',
   'minus_solid',
   'more_horiz',
+  'more_vert',
   'move',
   'nav_charts',
   'nav_dashboard',
@@ -150,6 +151,9 @@ const IconFileNames = [
   'warning_solid',
   'x-large',
   'x-small',
+  'tags',
+  'ballot',
+  'category',
 ];
 
 const iconOverrides: Record<string, React.FC> = {};
@@ -159,6 +163,8 @@ IconFileNames.forEach(fileName => {
     <Icon fileName={fileName} {...props} />
   );
 });
+
+export { IconType };
 
 export default {
   ...AntdEnhancedIcons,

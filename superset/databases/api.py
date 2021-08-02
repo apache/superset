@@ -136,6 +136,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "database_name",
         "explore_database_id",
         "expose_in_sqllab",
+        "extra",
         "force_ctas_schema",
         "id",
     ]
@@ -246,6 +247,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             new_model = CreateDatabaseCommand(g.user, item).run()
             # Return censored version for sqlalchemy URI
             item["sqlalchemy_uri"] = new_model.sqlalchemy_uri
+            item["expose_in_sqllab"] = new_model.expose_in_sqllab
+
+            # If parameters are available return them in the payload
+            if new_model.parameters:
+                item["parameters"] = new_model.parameters
+
             return self.response(201, id=new_model.id, result=item)
         except DatabaseInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
@@ -914,6 +921,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         preferred_databases: List[str] = app.config.get("PREFERRED_DATABASES", [])
         available_databases = []
         for engine_spec, drivers in get_available_engine_specs().items():
+            if not drivers:
+                continue
+
             payload: Dict[str, Any] = {
                 "name": engine_spec.engine_name,
                 "engine": engine_spec.engine,

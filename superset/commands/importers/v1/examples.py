@@ -70,7 +70,7 @@ class ImportExamplesCommand(ImportModelsCommand):
             db.session.rollback()
             raise self.import_error()
 
-    # pylint: disable=too-many-locals, arguments-differ
+    # pylint: disable=too-many-locals, arguments-differ, too-many-branches
     @staticmethod
     def _import(
         session: Session,
@@ -86,16 +86,23 @@ class ImportExamplesCommand(ImportModelsCommand):
                 database_ids[str(database.uuid)] = database.id
 
         # import datasets
-        # TODO (betodealmeida): once we have all examples being imported we can
-        # have a stable UUID for the database stored in the dataset YAML; for
-        # now we need to fetch the current ID.
-        examples_id = (
-            db.session.query(Database).filter_by(database_name="examples").one().id
+        # If database_uuid is not in the list of UUIDs it means that the examples
+        # database was created before its UUID was frozen, so it has a random UUID.
+        # We need to determine its ID so we can point the dataset to it.
+        examples_db = (
+            db.session.query(Database).filter_by(database_name="examples").first()
         )
         dataset_info: Dict[str, Dict[str, Any]] = {}
         for file_name, config in configs.items():
             if file_name.startswith("datasets/"):
-                config["database_id"] = examples_id
+                # find the ID of the corresponding database
+                if config["database_uuid"] not in database_ids:
+                    if examples_db is None:
+                        raise Exception("Cannot find examples database")
+                    config["database_id"] = examples_db.id
+                else:
+                    config["database_id"] = database_ids[config["database_uuid"]]
+
                 dataset = import_dataset(
                     session, config, overwrite=overwrite, force_data=force_data
                 )
@@ -125,6 +132,8 @@ class ImportExamplesCommand(ImportModelsCommand):
             if file_name.startswith("dashboards/"):
                 config = update_id_refs(config, chart_ids)
                 dashboard = import_dashboard(session, config, overwrite=overwrite)
+                dashboard.published = True
+
                 for uuid in find_chart_uuids(config["position"]):
                     chart_id = chart_ids[uuid]
                     if (dashboard.id, chart_id) not in existing_relationships:
@@ -135,5 +144,5 @@ class ImportExamplesCommand(ImportModelsCommand):
             {"dashboard_id": dashboard_id, "slice_id": chart_id}
             for (dashboard_id, chart_id) in dashboard_chart_ids
         ]
-        # pylint: disable=no-value-for-parameter (sqlalchemy/issues/4656)
+        # pylint: disable=no-value-for-parameter # sqlalchemy/issues/4656
         session.execute(dashboard_slices.insert(), values)

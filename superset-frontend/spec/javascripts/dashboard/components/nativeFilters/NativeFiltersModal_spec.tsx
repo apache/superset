@@ -119,22 +119,12 @@ describe('FiltersConfigModal', () => {
       expect(onCancel.mock.calls).toHaveLength(1);
     });
 
-    it('shows correct alert message for an unsaved filter', async () => {
+    it('shows correct alert message for unsaved filters', async () => {
       addFilter();
       await clickCancel();
       expect(onCancel.mock.calls).toHaveLength(0);
       expect(wrapper.find(Alert).text()).toContain(
-        'Are you sure you want to cancel? "New filter" will not be saved.',
-      );
-    });
-
-    it('shows correct alert message for 2 unsaved filters', async () => {
-      addFilter();
-      addFilter();
-      await clickCancel();
-      expect(onCancel.mock.calls).toHaveLength(0);
-      expect(wrapper.find(Alert).text()).toContain(
-        'Are you sure you want to cancel? "New filter" and "New filter" will not be saved.',
+        'There are unsaved changes.',
       );
     });
   });

@@ -427,7 +427,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
         >
           {suggestions.map((suggestion: string) => (
             <Select.Option value={suggestion} key={suggestion}>
-              {suggestion}
+              {String(suggestion)}
             </Select.Option>
           ))}
 
@@ -447,7 +447,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
           name="filter-value"
           ref={ref => {
             if (ref && shouldFocusComparator) {
-              ref.blur();
+              ref.focus();
             }
           }}
           onChange={onInputComparatorChange}

@@ -28,7 +28,7 @@ sql: 'SELECT uc1.name as channel_1, uc2.name as channel_2, count(*) AS cnt
   HAVING uc1.name <> uc2.name'
 params: null
 template_params: null
-filter_select_enabled: false
+filter_select_enabled: true
 fetch_values_predicate: null
 extra: null
 uuid: 473d6113-b44a-48d8-a6ae-e0ef7e2aebb0
@@ -73,4 +73,4 @@ columns:
   description: null
   python_date_format: null
 version: 1.0.0
-database_uuid: 566ca280-3da8-967e-4aa4-4b349218736a
+database_uuid: a2dc77af-e654-49bb-b321-40f6b559a1ee

@@ -62,16 +62,18 @@ if not app.config["ENABLE_JAVASCRIPT_CONTROLS"]:
 
 def bootstrap_user_data(user: User, include_perms: bool = False) -> Dict[str, Any]:
     if user.is_anonymous:
-        return {}
-    payload = {
-        "username": user.username,
-        "firstName": user.first_name,
-        "lastName": user.last_name,
-        "userId": user.id,
-        "isActive": user.is_active,
-        "createdOn": user.created_on.isoformat(),
-        "email": user.email,
-    }
+        payload = {}
+        user.roles = (security_manager.find_role("Public"),)
+    else:
+        payload = {
+            "username": user.username,
+            "firstName": user.first_name,
+            "lastName": user.last_name,
+            "userId": user.id,
+            "isActive": user.is_active,
+            "createdOn": user.created_on.isoformat(),
+            "email": user.email,
+        }
 
     if include_perms:
         roles, permissions = get_permissions(user)
