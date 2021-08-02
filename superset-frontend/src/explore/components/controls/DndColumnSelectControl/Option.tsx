@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useCallback } from 'react';
 import { styled, t, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import {
@@ -41,13 +41,17 @@ export default function Option({
   canDelete = true,
 }: OptionProps) {
   const theme = useTheme();
+  const onClickClose = useCallback(() => clickClose(index), [
+    clickClose,
+    index,
+  ]);
   return (
     <OptionControlContainer data-test="option-label" withCaret={withCaret}>
       {canDelete && (
         <CloseContainer
           role="button"
           data-test="remove-control-button"
-          onClick={() => clickClose(index)}
+          onClick={onClickClose}
         >
           <Icons.XSmall iconColor={theme.colors.grayscale.light1} />
         </CloseContainer>
