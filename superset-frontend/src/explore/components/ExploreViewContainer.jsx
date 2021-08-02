@@ -580,7 +580,7 @@ function ExploreViewContainer(props) {
 ExploreViewContainer.propTypes = propTypes;
 
 function mapStateToProps(state) {
-  const { explore, charts, impressionId, dataMask } = state;
+  const { explore, charts, impressionId, dataMask, reports } = state;
   const form_data = getFormDataFromControls(explore.controls);
   form_data.extra_form_data = mergeExtraFormData(
     { ...form_data.extra_form_data },
@@ -620,6 +620,8 @@ function mapStateToProps(state) {
     ownState: dataMask[form_data.slice_id ?? 0]?.ownState, // 0 - unsaved chart
     impressionId,
     userId: explore.user_id,
+    user: explore.user,
+    reports,
   };
 }
 
