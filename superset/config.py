@@ -1132,7 +1132,7 @@ SESSION_COOKIE_SECURE = False  # Prevent cookie from being transmitted over non-
 SESSION_COOKIE_SAMESITE = "Lax"  # One of [None, 'None', 'Lax', 'Strict']
 
 # Cache static resources.
-SEND_FILE_MAX_AGE_DEFAULT = int(timedelta(days=365).total_seconds()) 
+SEND_FILE_MAX_AGE_DEFAULT = int(timedelta(days=365).total_seconds())
 
 # URI to database storing the example data, points to
 # SQLALCHEMY_DATABASE_URI by default if set to `None`
@@ -1193,7 +1193,9 @@ GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE = False
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN = None
 GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me"
 GLOBAL_ASYNC_QUERIES_TRANSPORT = "polling"
-GLOBAL_ASYNC_QUERIES_POLLING_DELAY = int(timedelta(milliseconds=500).total_seconds() * 1000)
+GLOBAL_ASYNC_QUERIES_POLLING_DELAY = int(
+    timedelta(milliseconds=500).total_seconds() * 1000
+)
 GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL = "ws://127.0.0.1:8080/"
 
 # A SQL dataset health check. Note if enabled it is strongly advised that the callable
