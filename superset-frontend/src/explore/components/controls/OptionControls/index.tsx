@@ -49,7 +49,7 @@ export const OptionControlContainer = styled.div<{
 export const Label = styled.div`
   ${({ theme }) => `
     display: flex;
-    max-width: 100%;
+    width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     align-items: center;
@@ -195,7 +195,9 @@ export const OptionControlLabel = ({
 }) => {
   const theme = useTheme();
   const ref = useRef<HTMLDivElement>(null);
-  const [, drop] = useDrop({
+  const labelRef = useRef<HTMLDivElement>(null);
+  const hasMetricName = savedMetric?.metric_name;
+  const [_, drop] = useDrop({
     accept: type,
     drop() {
       onDropLabel?.();
@@ -242,7 +244,7 @@ export const OptionControlLabel = ({
       item.index = hoverIndex;
     },
   });
-  const [, drag] = useDrag({
+  const [{ isDragging }, drag] = useDrag({
     item: {
       type,
       index,
@@ -253,11 +255,28 @@ export const OptionControlLabel = ({
     }),
   });
 
-  const getLabelContent = () => {
-    if (savedMetric?.metric_name) {
-      return <StyledMetricOption metric={savedMetric} />;
+  const shouldShowTooltip = () => {
+    if (labelRef && labelRef.current) {
+      return labelRef.current.scrollWidth > labelRef.current.clientWidth;
     }
-    return <Tooltip title={tooltipTitle}>{label}</Tooltip>;
+    return false;
+  };
+
+  const getLabelContent = () => {
+    const showTooltip = !isDragging && shouldShowTooltip();
+    if (savedMetric && hasMetricName) {
+      return (
+        <StyledMetricOption
+          metric={savedMetric}
+          labelRef={labelRef}
+          showTooltip={showTooltip}
+        />
+      );
+    }
+    if (!showTooltip) {
+      return label;
+    }
+    return <Tooltip title={tooltipTitle || label}>{label}</Tooltip>;
   };
 
   const getOptionControlContent = () => (
@@ -273,7 +292,10 @@ export const OptionControlLabel = ({
       >
         <Icons.XSmall iconColor={theme.colors.grayscale.light1} />
       </CloseContainer>
-      <Label data-test="control-label">
+      <Label
+        data-test="control-label"
+        ref={!hasMetricName ? labelRef : undefined}
+      >
         {isFunction && <Icons.FunctionX viewBox="0 0 16 11" iconSize="l" />}
         {getLabelContent()}
       </Label>

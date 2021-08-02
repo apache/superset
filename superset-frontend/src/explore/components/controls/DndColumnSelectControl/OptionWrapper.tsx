@@ -29,7 +29,17 @@ import {
   OptionProps,
   OptionItemInterface,
 } from 'src/explore/components/controls/DndColumnSelectControl/types';
+import { Tooltip } from 'src/components/Tooltip';
+import { StyledColumnOption } from 'src/explore/components/optionRenderers';
+import { styled } from '@superset-ui/core';
 import Option from './Option';
+
+export const OptionLabel = styled.div`
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
 
 export default function OptionWrapper(
   props: OptionProps & {
@@ -39,22 +49,24 @@ export default function OptionWrapper(
 ) {
   const {
     index,
+    label,
+    column,
     type,
     onShiftOptions,
     clickClose,
     withCaret,
     isExtra,
     canDelete = true,
-    children,
     ...rest
   } = props;
   const ref = useRef<HTMLDivElement>(null);
+  const labelRef = useRef<HTMLDivElement>(null);
 
   const item: OptionItemInterface = {
     dragIndex: index,
     type,
   };
-  const [, drag] = useDrag({
+  const [{ isDragging }, drag] = useDrag({
     item,
     collect: (monitor: DragSourceMonitor) => ({
       isDragging: monitor.isDragging(),
@@ -105,6 +117,49 @@ export default function OptionWrapper(
     },
   });
 
+  const shouldShowTooltip = () => {
+    if (labelRef && labelRef.current) {
+      return labelRef.current.scrollWidth > labelRef.current.clientWidth;
+    }
+    return false;
+  };
+
+  const Label = () => {
+    if (label) {
+      const showTooltip = !isDragging && shouldShowTooltip();
+      if (!showTooltip) {
+        return <>{label}</>;
+      }
+      return <Tooltip title={label}>{label}</Tooltip>;
+    }
+    return null;
+  };
+
+  const ColumnOption = () => {
+    if (column) {
+      const showTooltip = !isDragging && shouldShowTooltip();
+      return (
+        <StyledColumnOption
+          column={column}
+          labelRef={labelRef}
+          showTooltip={showTooltip}
+          showType
+        />
+      );
+    }
+    return null;
+  };
+
+  const LabelContent = () => {
+    if (label) {
+      return <Label />;
+    }
+    if (column) {
+      return <ColumnOption />;
+    }
+    return null;
+  };
+
   drag(drop(ref));
 
   return (
@@ -116,7 +171,9 @@ export default function OptionWrapper(
         isExtra={isExtra}
         canDelete={canDelete}
       >
-        {children}
+        <OptionLabel ref={label ? labelRef : undefined}>
+          <LabelContent />
+        </OptionLabel>
       </Option>
     </DragContainer>
   );
