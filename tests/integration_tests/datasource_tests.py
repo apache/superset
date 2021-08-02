@@ -89,7 +89,7 @@ class TestDatasource(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_external_metadata_by_name_for_physical_table(self):
         self.login(username="admin")
-        tbl = self.get_table_by_name("birth_names")
+        tbl = self.get_table(name="birth_names")
         # empty schema need to be represented by undefined
         url = (
             f"/datasource/external_metadata_by_name/table/"
@@ -112,7 +112,7 @@ class TestDatasource(SupersetTestCase):
         session.add(table)
         session.commit()
 
-        table = self.get_table_by_name("dummy_sql_table")
+        table = self.get_table(name="dummy_sql_table")
         # empty schema need to be represented by undefined
         url = (
             f"/datasource/external_metadata_by_name/table/"
