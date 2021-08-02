@@ -331,6 +331,7 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
     expand_data: bool,
     log_params: Optional[Dict[str, Any]],
 ) -> Optional[Dict[str, Any]]:
+    print(rendered_query)
     """Executes the sql query returns the results."""
     if store_results and start_time:
         # only asynchronous queries
