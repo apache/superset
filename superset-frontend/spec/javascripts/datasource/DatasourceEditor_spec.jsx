@@ -40,8 +40,7 @@ const props = {
   addDangerToast: () => {},
   onChange: () => {},
 };
-
-const DATASOURCE_ENDPOINT = 'glob:*/datasource/external_metadata/*';
+const DATASOURCE_ENDPOINT = 'glob:*/datasource/external_metadata_by_name/*';
 
 describe('DatasourceEditor', () => {
   const mockStore = configureStore([thunk]);
