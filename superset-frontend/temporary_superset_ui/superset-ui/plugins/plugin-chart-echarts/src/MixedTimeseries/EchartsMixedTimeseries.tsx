@@ -16,10 +16,92 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { EchartsProps } from '../types';
+import React, { useCallback } from 'react';
+import { EchartsMixedTimeseriesChartTransformedProps } from './types';
 import Echart from '../components/Echart';
+import { EventHandlers } from '../types';
 
-export default function EchartsMixedTimeseries({ height, width, echartOptions }: EchartsProps) {
-  return <Echart height={height} width={width} echartOptions={echartOptions} />;
+export default function EchartsMixedTimeseries({
+  height,
+  width,
+  echartOptions,
+  setDataMask,
+  labelMap,
+  labelMapB,
+  groupby,
+  groupbyB,
+  selectedValues,
+  formData,
+  seriesBreakdown,
+}: EchartsMixedTimeseriesChartTransformedProps) {
+  const isFirstQuery = useCallback((seriesIndex: number) => seriesIndex < seriesBreakdown, [
+    seriesBreakdown,
+  ]);
+
+  const handleChange = useCallback(
+    (values: string[], seriesIndex: number) => {
+      const emitFilter = isFirstQuery(seriesIndex) ? formData.emitFilter : formData.emitFilterB;
+      if (!emitFilter) {
+        return;
+      }
+
+      const currentGroupBy = isFirstQuery(seriesIndex) ? groupby : groupbyB;
+      const currentLabelMap = isFirstQuery(seriesIndex) ? labelMap : labelMapB;
+      const groupbyValues = values.map(value => currentLabelMap[value]).filter(value => !!value);
+
+      setDataMask({
+        extraFormData: {
+          // @ts-ignore
+          filters:
+            values.length === 0
+              ? []
+              : [
+                  ...currentGroupBy.map((col, idx) => {
+                    const val = groupbyValues.map(v => v[idx]);
+                    if (val === null || val === undefined)
+                      return {
+                        col,
+                        op: 'IS NULL',
+                      };
+                    return {
+                      col,
+                      op: 'IN',
+                      val: val as (string | number | boolean)[],
+                    };
+                  }),
+                ],
+        },
+        filterState: {
+          value: !groupbyValues.length ? null : groupbyValues,
+          selectedValues: values.length ? values : null,
+        },
+      });
+    },
+    [groupby, groupbyB, labelMap, labelMapB, setDataMask, selectedValues],
+  );
+
+  const eventHandlers: EventHandlers = {
+    click: props => {
+      const { seriesName, seriesIndex } = props;
+      const values: string[] = Object.values(selectedValues);
+      if (values.includes(seriesName)) {
+        handleChange(
+          values.filter(v => v !== seriesName),
+          seriesIndex,
+        );
+      } else {
+        handleChange([seriesName], seriesIndex);
+      }
+    },
+  };
+
+  return (
+    <Echart
+      height={height}
+      width={width}
+      echartOptions={echartOptions}
+      eventHandlers={eventHandlers}
+      selectedValues={selectedValues}
+    />
+  );
 }

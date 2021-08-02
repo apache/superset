@@ -16,7 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AnnotationLayer, TimeGranularity } from '@superset-ui/core';
+import { EChartsOption } from 'echarts';
+import {
+  AnnotationLayer,
+  TimeGranularity,
+  DataRecordValue,
+  SetDataMaskHook,
+  QueryFormData,
+  ChartProps,
+  ChartDataResponseResult,
+} from '@superset-ui/core';
 import { DEFAULT_LEGEND_FORM_DATA, EchartsLegendFormData } from '../types';
 import {
   DEFAULT_FORM_DATA as TIMESERIES_DEFAULTS,
@@ -24,7 +33,7 @@ import {
   EchartsTimeseriesSeriesType,
 } from '../Timeseries/types';
 
-export type EchartsMixedTimeseriesFormData = {
+export type EchartsMixedTimeseriesFormData = QueryFormData & {
   annotationLayers: AnnotationLayer[];
   // shared properties
   minorSplitLine: boolean;
@@ -68,8 +77,12 @@ export type EchartsMixedTimeseriesFormData = {
   stackB: boolean;
   yAxisIndex?: number;
   yAxisIndexB?: number;
+  groupby: string[];
+  groupbyB: string[];
+  emitFilter: boolean;
 } & EchartsLegendFormData;
 
+// @ts-ignore
 export const DEFAULT_FORM_DATA: EchartsMixedTimeseriesFormData = {
   ...DEFAULT_LEGEND_FORM_DATA,
   annotationLayers: [],
@@ -104,9 +117,32 @@ export const DEFAULT_FORM_DATA: EchartsMixedTimeseriesFormData = {
   stackB: TIMESERIES_DEFAULTS.stack,
   yAxisIndex: 0,
   yAxisIndexB: 0,
+  groupby: [],
+  groupbyB: [],
   xAxisShowMinLabel: TIMESERIES_DEFAULTS.xAxisShowMinLabel,
   xAxisShowMaxLabel: TIMESERIES_DEFAULTS.xAxisShowMaxLabel,
   zoomable: TIMESERIES_DEFAULTS.zoomable,
   richTooltip: TIMESERIES_DEFAULTS.richTooltip,
   xAxisLabelRotation: TIMESERIES_DEFAULTS.xAxisLabelRotation,
+};
+
+export interface EchartsMixedTimeseriesProps extends ChartProps {
+  formData: EchartsMixedTimeseriesFormData;
+  queriesData: ChartDataResponseResult[];
+}
+
+export type EchartsMixedTimeseriesChartTransformedProps = {
+  formData: EchartsMixedTimeseriesFormData;
+  height: number;
+  width: number;
+  echartOptions: EChartsOption;
+  emitFilter: boolean;
+  emitFilterB: boolean;
+  setDataMask: SetDataMaskHook;
+  groupby: string[];
+  groupbyB: string[];
+  labelMap: Record<string, DataRecordValue[]>;
+  labelMapB: Record<string, DataRecordValue[]>;
+  selectedValues: Record<number, string>;
+  seriesBreakdown: number;
 };
