@@ -20,7 +20,8 @@
 import {
   AnnotationLayer,
   CategoricalColorNamespace,
-  ChartProps,
+  DataRecordValue,
+  TimeseriesDataRecord,
   getNumberFormatter,
   isEventAnnotationLayer,
   isFormulaAnnotationLayer,
@@ -28,8 +29,12 @@ import {
   isTimeseriesAnnotationLayer,
 } from '@superset-ui/core';
 import { EChartsOption, SeriesOption } from 'echarts';
-import { DEFAULT_FORM_DATA, EchartsMixedTimeseriesFormData } from './types';
-import { EchartsProps, ForecastSeriesEnum, ProphetValue } from '../types';
+import {
+  DEFAULT_FORM_DATA,
+  EchartsMixedTimeseriesFormData,
+  EchartsMixedTimeseriesChartTransformedProps,
+} from './types';
+import { ForecastSeriesEnum, ProphetValue } from '../types';
 import { parseYAxisBound } from '../utils/controls';
 import { dedupSeries, extractTimeseriesSeries, getLegendProps } from '../utils/series';
 import { extractAnnotationLabels } from '../utils/annotation';
@@ -52,11 +57,14 @@ import {
 } from '../Timeseries/transformers';
 import { TIMESERIES_CONSTANTS } from '../constants';
 
-export default function transformProps(chartProps: ChartProps): EchartsProps {
-  const { width, height, formData, queriesData } = chartProps;
-  const { annotation_data: annotationData_, data: data1 = [] } = queriesData[0];
-  const { data: data2 = [] } = queriesData[1];
+export default function transformProps(
+  chartProps: EchartsMixedTimeseriesFormData,
+): EchartsMixedTimeseriesChartTransformedProps {
+  const { width, height, formData, queriesData, hooks, filterState } = chartProps;
+  const { annotation_data: annotationData_ } = queriesData[0];
   const annotationData = annotationData_ || {};
+  const data1: TimeseriesDataRecord[] = queriesData[0].data || [];
+  const data2: TimeseriesDataRecord[] = queriesData[1].data || [];
 
   const {
     area,
@@ -95,6 +103,10 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     zoomable,
     richTooltip,
     xAxisLabelRotation,
+    groupby,
+    groupbyB,
+    emitFilter,
+    emitFilterB,
   }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
@@ -130,6 +142,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
       seriesType,
       stack,
       yAxisIndex,
+      filterState,
     });
     if (transformedSeries) series.push(transformedSeries);
   });
@@ -142,6 +155,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
       seriesType: seriesTypeB,
       stack: stackB,
       yAxisIndex: yAxisIndexB,
+      filterState,
     });
     if (transformedSeries) series.push(transformedSeries);
   });
@@ -174,6 +188,25 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
 
   const addYAxisLabelOffset = !!(yAxisTitle || yAxisTitleSecondary);
   const chartPadding = getPadding(showLegend, legendOrientation, addYAxisLabelOffset, zoomable);
+
+  const labelMap = rawSeriesA.reduce((acc, datum) => {
+    const label = datum.name as string;
+    return {
+      ...acc,
+      [label]: label.split(', '),
+    };
+  }, {}) as Record<string, DataRecordValue[]>;
+
+  const labelMapB = rawSeriesB.reduce((acc, datum) => {
+    const label = datum.name as string;
+    return {
+      ...acc,
+      [label]: label.split(', '),
+    };
+  }, {}) as Record<string, DataRecordValue[]>;
+
+  const { setDataMask = () => {} } = hooks;
+
   const echartOptions: EChartsOption = {
     useUTC: true,
     grid: {
@@ -280,8 +313,18 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
   };
 
   return {
-    echartOptions,
+    formData,
     width,
     height,
+    echartOptions,
+    setDataMask,
+    emitFilter,
+    emitFilterB,
+    labelMap,
+    labelMapB,
+    groupby,
+    groupbyB,
+    seriesBreakdown: rawSeriesA.length,
+    selectedValues: filterState.selectedValues || [],
   };
 }
