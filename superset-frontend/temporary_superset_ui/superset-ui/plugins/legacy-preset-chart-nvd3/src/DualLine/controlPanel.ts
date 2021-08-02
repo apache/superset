@@ -39,12 +39,12 @@ const config: ControlPanelConfig = {
     {
       label: t('Y Axis 1'),
       expanded: true,
-      controlSetRows: [['metric', 'y_axis_format'], [yAxisShowMinmax], [yAxisBounds]],
+      controlSetRows: [['metric'], ['y_axis_format'], [yAxisShowMinmax], [yAxisBounds]],
     },
     {
       label: t('Y Axis 2'),
       expanded: true,
-      controlSetRows: [['metric_2', yAxis2Format], [yAxis2ShowMinmax], [yAxis2Bounds]],
+      controlSetRows: [['metric_2'], [yAxis2Format], [yAxis2ShowMinmax], [yAxis2Bounds]],
     },
     {
       label: t('Query'),

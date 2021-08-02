@@ -78,6 +78,7 @@ import {
   dndEntity,
   dndGroupByControl,
   dndSeries,
+  dnd_adhoc_metric_2,
 } from './dndControls';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
@@ -470,7 +471,7 @@ const sharedControls = {
   datasource: datasourceControl,
   viz_type,
   color_picker,
-  metric_2,
+  metric_2: enableExploreDnd ? dnd_adhoc_metric_2 : metric_2,
   linear_color_scheme,
   secondary_metric: enableExploreDnd ? dnd_secondary_metric : secondary_metric,
   groupby: enableExploreDnd ? dndGroupByControl : groupByControl,
