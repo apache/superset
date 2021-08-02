@@ -111,6 +111,7 @@ const IconFileNames = [
   'minus',
   'minus_solid',
   'more_horiz',
+  'more_vert',
   'move',
   'nav_charts',
   'nav_dashboard',

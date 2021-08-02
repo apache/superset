@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { tn } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
@@ -36,8 +36,13 @@ export const DndColumnSelect = (props: LabelProps) => {
     onChange,
     canDelete = true,
     ghostButtonText,
+    name,
+    label,
   } = props;
-  const optionSelector = new OptionSelector(options, multi, value);
+  const optionSelector = useMemo(
+    () => new OptionSelector(options, multi, value),
+    [multi, options, value],
+  );
 
   // synchronize values in case of dataset changes
   useEffect(() => {
@@ -63,46 +68,68 @@ export const DndColumnSelect = (props: LabelProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(value), JSON.stringify(optionSelector.getValues())]);
 
-  const onDrop = (item: DatasourcePanelDndItem) => {
-    const column = item.value as ColumnMeta;
-    if (!optionSelector.multi && !isEmpty(optionSelector.values)) {
-      optionSelector.replace(0, column.column_name);
-    } else {
-      optionSelector.add(column.column_name);
-    }
-    onChange(optionSelector.getValues());
-  };
+  const onDrop = useCallback(
+    (item: DatasourcePanelDndItem) => {
+      const column = item.value as ColumnMeta;
+      if (!optionSelector.multi && !isEmpty(optionSelector.values)) {
+        optionSelector.replace(0, column.column_name);
+      } else {
+        optionSelector.add(column.column_name);
+      }
+      onChange(optionSelector.getValues());
+    },
+    [onChange, optionSelector],
+  );
 
-  const canDrop = (item: DatasourcePanelDndItem) => {
-    const columnName = (item.value as ColumnMeta).column_name;
-    return (
-      columnName in optionSelector.options && !optionSelector.has(columnName)
-    );
-  };
+  const canDrop = useCallback(
+    (item: DatasourcePanelDndItem) => {
+      const columnName = (item.value as ColumnMeta).column_name;
+      return (
+        columnName in optionSelector.options && !optionSelector.has(columnName)
+      );
+    },
+    [optionSelector],
+  );
 
-  const onClickClose = (index: number) => {
-    optionSelector.del(index);
-    onChange(optionSelector.getValues());
-  };
+  const onClickClose = useCallback(
+    (index: number) => {
+      optionSelector.del(index);
+      onChange(optionSelector.getValues());
+    },
+    [onChange, optionSelector],
+  );
 
-  const onShiftOptions = (dragIndex: number, hoverIndex: number) => {
-    optionSelector.swap(dragIndex, hoverIndex);
-    onChange(optionSelector.getValues());
-  };
+  const onShiftOptions = useCallback(
+    (dragIndex: number, hoverIndex: number) => {
+      optionSelector.swap(dragIndex, hoverIndex);
+      onChange(optionSelector.getValues());
+    },
+    [onChange, optionSelector],
+  );
 
-  const valuesRenderer = () =>
-    optionSelector.values.map((column, idx) => (
-      <OptionWrapper
-        key={idx}
-        index={idx}
-        clickClose={onClickClose}
-        onShiftOptions={onShiftOptions}
-        type={DndItemType.ColumnOption}
-        canDelete={canDelete}
-      >
-        <StyledColumnOption column={column} showType />
-      </OptionWrapper>
-    ));
+  const valuesRenderer = useCallback(
+    () =>
+      optionSelector.values.map((column, idx) => (
+        <OptionWrapper
+          key={idx}
+          index={idx}
+          clickClose={onClickClose}
+          onShiftOptions={onShiftOptions}
+          type={`${DndItemType.ColumnOption}_${name}_${label}`}
+          canDelete={canDelete}
+        >
+          <StyledColumnOption column={column} showType />
+        </OptionWrapper>
+      )),
+    [
+      canDelete,
+      label,
+      name,
+      onClickClose,
+      onShiftOptions,
+      optionSelector.values,
+    ],
+  );
 
   return (
     <DndSelectLabel<string | string[], ColumnMeta[]>

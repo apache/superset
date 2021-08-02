@@ -66,7 +66,11 @@ const FaveStar = ({
       data-test="fave-unfave-icon"
       role="button"
     >
-      {isStarred ? <Icons.FavoriteSelected /> : <Icons.FavoriteUnselected />}
+      {isStarred ? (
+        <Icons.FavoriteSelected iconSize="xxl" />
+      ) : (
+        <Icons.FavoriteUnselected iconSize="xxl" />
+      )}
     </StyledLink>
   );
 

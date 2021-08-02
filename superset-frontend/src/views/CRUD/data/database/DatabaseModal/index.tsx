@@ -527,7 +527,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         );
       } else if (
         dbToUpdate?.parameters?.query === '' &&
-        'query' in dbModel.parameters
+        'query' in dbModel.parameters.properties
       ) {
         dbToUpdate.parameters.query = {};
       }
@@ -559,7 +559,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
     }
 
-    if (dbToUpdate.parameters.catalog) {
+    if (dbToUpdate?.parameters?.catalog) {
       // need to stringify gsheets catalog to allow it to be seralized
       dbToUpdate.extra_json = {
         engine_params: JSON.stringify({
