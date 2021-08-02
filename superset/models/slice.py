@@ -53,10 +53,9 @@ slice_user = Table(
 logger = logging.getLogger(__name__)
 
 
-class Slice(
+class Slice(  # pylint: disable=too-many-instance-attributes,too-many-public-methods
     Model, AuditMixinNullable, ImportExportMixin
-):  # pylint: disable=too-many-public-methods, too-many-instance-attributes
-
+):
     """A slice is essentially a report or a view on data"""
 
     __tablename__ = "slices"

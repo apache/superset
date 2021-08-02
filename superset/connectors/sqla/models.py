@@ -483,7 +483,15 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
     owner_class = security_manager.user_model
 
     __tablename__ = "tables"
-    __table_args__ = (UniqueConstraint("database_id", "table_name"),)
+
+    # Note this uniqueness constraint is not part of the physical schema, i.e., it does
+    # not exist in the migrations, but is required by `import_from_dict` to ensure the
+    # correct filters are applied in order to identify uniqueness.
+    #
+    # The reason it does not physically exist is MySQL, PostgreSQL, etc. have a
+    # different interpretation of uniqueness when it comes to NULL which is problematic
+    # given the schema is optional.
+    __table_args__ = (UniqueConstraint("database_id", "schema", "table_name"),)
 
     table_name = Column(String(250), nullable=False)
     main_dttm_col = Column(String(250))
@@ -1604,6 +1612,47 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             extra_cache_keys += sqla_query.extra_cache_keys
         return extra_cache_keys
 
+    @staticmethod
+    def before_update(
+        mapper: Mapper,  # pylint: disable=unused-argument
+        connection: Connection,  # pylint: disable=unused-argument
+        target: "SqlaTable",
+    ) -> None:
+        """
+        Check whether before update if the target table already exists.
+
+        Note this listener is called when any fields are being updated and thus it is
+        necessary to first check whether the reference table is being updated.
+
+        Note this logic is temporary, given uniqueness is handled via the dataset DAO,
+        but is necessary until both the legacy datasource editor and datasource/save
+        endpoints are deprecated.
+
+        :param mapper: The table mapper
+        :param connection: The DB-API connection
+        :param target: The mapped instance being persisted
+        :raises Exception: If the target table is not unique
+        """
+
+        from superset.datasets.commands.exceptions import get_dataset_exist_error_msg
+        from superset.datasets.dao import DatasetDAO
+
+        # Check whether the relevant attributes have changed.
+        state = db.inspect(target)  # pylint: disable=no-member
+
+        for attr in ["database_id", "schema", "table_name"]:
+            history = state.get_history(attr, True)
+
+            if history.has_changes():
+                break
+        else:
+            return None
+
+        if not DatasetDAO.validate_uniqueness(
+            target.database_id, target.schema, target.table_name
+        ):
+            raise Exception(get_dataset_exist_error_msg(target.full_name))
+
 
 def update_table(
     _mapper: Mapper, _connection: Connection, obj: Union[SqlMetric, TableColumn]
@@ -1621,6 +1670,7 @@ def update_table(
 
 sa.event.listen(SqlaTable, "after_insert", security_manager.set_perm)
 sa.event.listen(SqlaTable, "after_update", security_manager.set_perm)
+sa.event.listen(SqlaTable, "before_update", SqlaTable.before_update)
 sa.event.listen(SqlMetric, "after_update", update_table)
 sa.event.listen(TableColumn, "after_update", update_table)
 
