@@ -130,7 +130,7 @@ class ImportExamplesCommand(ImportModelsCommand):
         dashboard_chart_ids: List[Tuple[int, int]] = []
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
-                config = update_id_refs(config, chart_ids)
+                config = update_id_refs(config, chart_ids, dataset_info)
                 dashboard = import_dashboard(session, config, overwrite=overwrite)
                 dashboard.published = True
 
