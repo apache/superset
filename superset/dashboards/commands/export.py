@@ -130,7 +130,9 @@ class ExportDashboardsCommand(ExportModelsCommand):
 
         # Extract all native filter datasets and replace native
         # filter dataset references with uuid
-        for native_filter in payload["metadata"].get("native_filter_configuration", []):
+        for native_filter in payload.get("metadata", {}).get(
+            "native_filter_configuration", []
+        ):
             for target in native_filter.get("targets", []):
                 dataset_id = target.pop("datasetId", None)
                 if dataset_id is not None:
