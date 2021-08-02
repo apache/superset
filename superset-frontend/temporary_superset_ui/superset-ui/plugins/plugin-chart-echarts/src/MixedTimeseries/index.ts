@@ -16,13 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin, AnnotationType } from '@superset-ui/core';
+import { t, ChartMetadata, ChartPlugin, AnnotationType, Behavior } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import { EchartsMixedTimeseriesProps, EchartsMixedTimeseriesFormData } from './types';
 
-export default class EchartsTimeseriesChartPlugin extends ChartPlugin {
+export default class EchartsTimeseriesChartPlugin extends ChartPlugin<
+  EchartsMixedTimeseriesFormData,
+  EchartsMixedTimeseriesProps
+> {
   /**
    * The constructor is used to pass relevant metadata and callbacks that get
    * registered in respective registries that are used throughout the library
@@ -39,6 +43,7 @@ export default class EchartsTimeseriesChartPlugin extends ChartPlugin {
       controlPanel,
       loadChart: () => import('./EchartsMixedTimeseries'),
       metadata: new ChartMetadata({
+        behaviors: [Behavior.INTERACTIVE_CHART],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
         description: t(
@@ -64,6 +69,7 @@ export default class EchartsTimeseriesChartPlugin extends ChartPlugin {
           t('Transformable'),
         ],
       }),
+      // @ts-ignore
       transformProps,
     });
   }
