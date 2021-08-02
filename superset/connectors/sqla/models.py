@@ -19,7 +19,6 @@ import json
 import logging
 import re
 from collections import defaultdict, OrderedDict
-from contextlib import closing
 from dataclasses import dataclass, field  # pylint: disable=wrong-import-order
 from datetime import datetime, timedelta
 from typing import (
@@ -67,17 +66,15 @@ from sqlalchemy.sql import column, ColumnElement, literal_column, table, text
 from sqlalchemy.sql.elements import ColumnClause
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom, TextClause
 from sqlalchemy.sql.selectable import Alias, TableClause
-from sqlalchemy.types import TypeEngine
 
 from superset import app, db, is_feature_enabled, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
-from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
-from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import (
-    QueryObjectValidationError,
-    SupersetGenericDBErrorException,
-    SupersetSecurityException,
+from superset.connectors.sqla.utils import (
+    get_physical_table_metadata,
+    get_virtual_table_metadata,
 )
+from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
+from superset.exceptions import QueryObjectValidationError
 from superset.jinja_context import (
     BaseTemplateProcessor,
     ExtraCache,
@@ -86,7 +83,6 @@ from superset.jinja_context import (
 from superset.models.annotations import Annotation
 from superset.models.core import Database
 from superset.models.helpers import AuditMixinNullable, QueryResult
-from superset.result_set import SupersetResultSet
 from superset.sql_parse import ParsedQuery
 from superset.typing import AdhocMetric, Metric, OrderBy, QueryObjectDict
 from superset.utils import core as utils
@@ -652,72 +648,11 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         return self.database.sql_url + "?table_name=" + str(self.table_name)
 
     def external_metadata(self) -> List[Dict[str, str]]:
-        db_engine_spec = self.db_engine_spec
         if self.sql:
-            engine = self.database.get_sqla_engine(schema=self.schema)
-            sql = self.get_template_processor().process_template(
-                self.sql, **self.template_params_dict
-            )
-            parsed_query = ParsedQuery(sql)
-            if not db_engine_spec.is_readonly_query(parsed_query):
-                raise SupersetSecurityException(
-                    SupersetError(
-                        error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
-                        message=_("Only `SELECT` statements are allowed"),
-                        level=ErrorLevel.ERROR,
-                    )
-                )
-            statements = parsed_query.get_statements()
-            if len(statements) > 1:
-                raise SupersetSecurityException(
-                    SupersetError(
-                        error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
-                        message=_("Only single queries supported"),
-                        level=ErrorLevel.ERROR,
-                    )
-                )
-            # TODO(villebro): refactor to use same code that's used by
-            #  sql_lab.py:execute_sql_statements
-            try:
-                with closing(engine.raw_connection()) as conn:
-                    cursor = conn.cursor()
-                    query = self.database.apply_limit_to_sql(statements[0])
-                    db_engine_spec.execute(cursor, query)
-                    result = db_engine_spec.fetch_data(cursor, limit=1)
-                    result_set = SupersetResultSet(
-                        result, cursor.description, db_engine_spec
-                    )
-                    cols = result_set.columns
-            except Exception as exc:
-                raise SupersetGenericDBErrorException(message=str(exc))
-        else:
-            db_dialect = self.database.get_dialect()
-            cols = self.database.get_columns(
-                self.table_name, schema=self.schema or None
-            )
-            for col in cols:
-                try:
-                    if isinstance(col["type"], TypeEngine):
-                        db_type = db_engine_spec.column_datatype_to_string(
-                            col["type"], db_dialect
-                        )
-                        type_spec = db_engine_spec.get_column_spec(db_type)
-                        col.update(
-                            {
-                                "type": db_type,
-                                "type_generic": type_spec.generic_type
-                                if type_spec
-                                else None,
-                                "is_dttm": type_spec.is_dttm if type_spec else None,
-                            }
-                        )
-                # Broad exception catch, because there are multiple possible exceptions
-                # from different drivers that fall outside CompileError
-                except Exception:  # pylint: disable=broad-except
-                    col.update(
-                        {"type": "UNKNOWN", "generic_type": None, "is_dttm": None,}
-                    )
-        return cols
+            return get_virtual_table_metadata(dataset=self)
+        return get_physical_table_metadata(
+            database=self.database, table_name=self.table_name, schema_name=self.schema,
+        )
 
     @property
     def time_column_grains(self) -> Dict[str, Any]:
