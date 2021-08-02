@@ -43,10 +43,10 @@ if TYPE_CHECKING:
     from flask_appbuilder.security.sqla.models import User
 
 
-class DashboardStandaloneMode(int, Enum):
-    HIDE_NAV = (1,)
-    HIDE_NAV_AND_TITLE = (2,)
-    REPORT = (3,)
+class DashboardStandaloneMode(Enum):
+    HIDE_NAV = 1
+    HIDE_NAV_AND_TITLE = 2
+    REPORT = 3
 
 
 class WebDriverProxy:
@@ -104,7 +104,13 @@ class WebDriverProxy:
         self, url: str, element_name: str, user: "User",
     ) -> Optional[bytes]:
 
-        url = f"{url}?standalone={DashboardStandaloneMode.REPORT}"
+        from requests.models import PreparedRequest
+
+        params = {"standalone": DashboardStandaloneMode.REPORT.value}
+        req = PreparedRequest()
+        req.prepare_url(url, params)
+        url = req.url or ""
+
         driver = self.auth(user)
         driver.set_window_size(*self._window)
         driver.get(url)
