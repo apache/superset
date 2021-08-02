@@ -71,7 +71,7 @@ const StyledFormGroup = styled('div')`
     -webkit-appearance: none;
     margin: 0;
   }
-  margin-bottom: ${({ theme }) => theme.gridUnit * 5}px;
+  margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
   .ant-form-item {
     margin-bottom: 0;
   }
