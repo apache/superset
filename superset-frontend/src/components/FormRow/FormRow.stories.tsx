@@ -29,7 +29,7 @@ export const InteractiveFormRow = ({ isCheckbox, ...rest }: any) => {
   const control = isCheckbox ? (
     <CheckboxControl label="Checkbox" />
   ) : (
-    <TextControl />
+    <TextControl name="testTextControl" />
   );
   return (
     <div style={{ width: 300 }}>
@@ -41,13 +41,13 @@ export const InteractiveFormRow = ({ isCheckbox, ...rest }: any) => {
 InteractiveFormRow.args = {
   label: 'Label',
   tooltip: 'Tooltip',
-  control: <TextControl />,
+  control: <TextControl name="testTextControl" />,
   isCheckbox: false,
 };
 
 InteractiveFormRow.argTypes = {
   control: {
-    defaultValue: <TextControl />,
+    defaultValue: <TextControl name="testTextControl" />,
     table: {
       disable: true,
     },

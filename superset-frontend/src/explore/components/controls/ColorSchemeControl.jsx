@@ -129,7 +129,10 @@ export default class ColorSchemeControl extends React.PureComponent {
       value: this.props.value,
     };
     return (
-      <Select header={<ControlHeader htmlFor={selectName} {...this.props} />} {...selectProps} />
+      <Select
+        header={<ControlHeader htmlFor={selectName} {...this.props} />}
+        {...selectProps}
+      />
     );
   }
 }

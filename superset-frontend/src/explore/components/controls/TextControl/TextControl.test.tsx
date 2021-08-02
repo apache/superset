@@ -27,6 +27,7 @@ const mockedProps = {
   isInt: false,
   placeholder: 'Placeholder',
   value: 'Sample value',
+  name: 'testTextControl',
 };
 
 test('should render', () => {

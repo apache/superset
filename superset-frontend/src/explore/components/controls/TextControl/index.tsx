@@ -104,7 +104,7 @@ export default class TextControl<
     }
     return (
       <div>
-        <ControlHeader {...headerProps} htmlFor={name}/>
+        <ControlHeader {...headerProps} htmlFor={name} />
         <Input
           type="text"
           data-test="inline-name"
