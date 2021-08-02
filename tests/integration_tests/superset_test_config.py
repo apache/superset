@@ -16,6 +16,7 @@
 # under the License.
 # type: ignore
 from copy import copy
+from datetime import timedelta
 
 from superset.config import *
 from tests.integration_tests.superset_test_custom_template_processors import (
@@ -84,18 +85,18 @@ REDIS_CELERY_DB = os.environ.get("REDIS_CELERY_DB", 2)
 REDIS_RESULTS_DB = os.environ.get("REDIS_RESULTS_DB", 3)
 REDIS_CACHE_DB = os.environ.get("REDIS_CACHE_DB", 4)
 
-CACHE_DEFAULT_TIMEOUT = 600
+CACHE_DEFAULT_TIMEOUT = int(timedelta(minutes=10).total_seconds())
 
 CACHE_CONFIG = {
     "CACHE_TYPE": "redis",
-    "CACHE_DEFAULT_TIMEOUT": 60,
+    "CACHE_DEFAULT_TIMEOUT": int(timedelta(minutes=1).total_seconds()),
     "CACHE_KEY_PREFIX": "superset_cache",
     "CACHE_REDIS_URL": f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CACHE_DB}",
 }
 
 DATA_CACHE_CONFIG = {
     **CACHE_CONFIG,
-    "CACHE_DEFAULT_TIMEOUT": 30,
+    "CACHE_DEFAULT_TIMEOUT": int(timedelta(seconds=30).total_seconds()),
     "CACHE_KEY_PREFIX": "superset_data_cache",
 }
 
