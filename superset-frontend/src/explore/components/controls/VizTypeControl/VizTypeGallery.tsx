@@ -52,6 +52,13 @@ type VizEntry = {
   value: ChartMetadata;
 };
 
+enum SECTIONS {
+  ALL_CHARTS = 'ALL_CHARTS',
+  CATEGORY = 'CATEGORY',
+  TAGS = 'TAGS',
+  RECOMMENDED_TAGS = 'RECOMMENDED_TAGS',
+}
+
 const DEFAULT_ORDER = [
   'line',
   'big_number',
@@ -396,11 +403,12 @@ const ThumbnailGallery: React.FC<ThumbnailGalleryProps> = ({
 
 const Selector: React.FC<{
   selector: string;
+  sectionId: string;
   icon: JSX.Element;
   isSelected: boolean;
-  onClick: (selector: string) => void;
+  onClick: (selector: string, sectionId: string) => void;
   className?: string;
-}> = ({ selector, icon, isSelected, onClick, className }) => {
+}> = ({ selector, sectionId, icon, isSelected, onClick, className }) => {
   const btnRef = useRef<HTMLButtonElement>(null);
 
   // see Element.scrollIntoViewIfNeeded()
@@ -423,7 +431,7 @@ const Selector: React.FC<{
       key={selector}
       name={selector}
       className={cx(className, isSelected && 'selected')}
-      onClick={() => onClick(selector)}
+      onClick={() => onClick(selector, sectionId)}
     >
       {icon}
       {selector}
@@ -517,6 +525,12 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     () => selectedVizMetadata?.category || RECOMMENDED_TAGS[0],
   );
 
+  const [activeSection, setActiveSection] = useState<string>(() =>
+    selectedVizMetadata?.category
+      ? SECTIONS.CATEGORY
+      : SECTIONS.RECOMMENDED_TAGS,
+  );
+
   // get a fuse instance for fuzzy search
   const fuse = useMemo(
     () =>
@@ -556,15 +570,17 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
   }, []);
 
   const clickSelector = useCallback(
-    (key: string) => {
+    (selector: string, sectionId: string) => {
       if (isSearchFocused) {
         stopSearching();
       }
-      setActiveSelector(key);
+      setActiveSelector(selector);
+      setActiveSection(sectionId);
       // clear the selected viz if it is not present in the new category or tags
       const isSelectedVizCompatible =
-        selectedVizMetadata && doesVizMatchSelector(selectedVizMetadata, key);
-      if (key !== activeSelector && !isSelectedVizCompatible) {
+        selectedVizMetadata &&
+        doesVizMatchSelector(selectedVizMetadata, selector);
+      if (selector !== activeSelector && !isSelectedVizCompatible) {
         onChange(null);
       }
     },
@@ -579,17 +595,17 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
 
   const sectionMap = useMemo(
     () => ({
-      RECOMMENDED_TAGS: {
+      [SECTIONS.RECOMMENDED_TAGS]: {
         title: t('Recommended tags'),
         icon: <Icons.Tags />,
         selectors: RECOMMENDED_TAGS,
       },
-      CATEGORY: {
+      [SECTIONS.CATEGORY]: {
         title: t('Category'),
         icon: <Icons.Category />,
         selectors: categories,
       },
-      TAGS: {
+      [SECTIONS.TAGS]: {
         title: t('Tags'),
         icon: <Icons.Tags />,
         selectors: tags,
@@ -598,11 +614,31 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     [categories, tags],
   );
 
-  const vizEntriesToDisplay = isActivelySearching
-    ? searchResults
-    : activeSelector === ALL_CHARTS
-    ? sortedMetadata
-    : chartsByCategory[activeSelector] || chartsByTags[activeSelector] || [];
+  const getVizEntriesToDisplay = () => {
+    if (isActivelySearching) {
+      return searchResults;
+    }
+    if (
+      activeSelector === ALL_CHARTS &&
+      activeSection === SECTIONS.ALL_CHARTS
+    ) {
+      return sortedMetadata;
+    }
+    if (
+      activeSection === SECTIONS.CATEGORY &&
+      chartsByCategory[activeSelector]
+    ) {
+      return chartsByCategory[activeSelector];
+    }
+    if (
+      (activeSection === SECTIONS.TAGS ||
+        activeSection === SECTIONS.RECOMMENDED_TAGS) &&
+      chartsByTags[activeSelector]
+    ) {
+      return chartsByTags[activeSelector];
+    }
+    return [];
+  };
 
   return (
     <VizPickerLayout className={className}>
@@ -615,9 +651,14 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
               margin-bottom: 0;
             `
           }
+          sectionId={SECTIONS.ALL_CHARTS}
           selector={ALL_CHARTS}
           icon={<Icons.Ballot />}
-          isSelected={!isActivelySearching && ALL_CHARTS === activeSelector}
+          isSelected={
+            !isActivelySearching &&
+            ALL_CHARTS === activeSelector &&
+            SECTIONS.ALL_CHARTS === activeSection
+          }
           onClick={clickSelector}
         />
         <Collapse
@@ -625,21 +666,24 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           ghost
           defaultActiveKey={Object.keys(sectionMap)}
         >
-          {Object.keys(sectionMap).map(key => {
-            const section = sectionMap[key];
+          {Object.keys(sectionMap).map(sectionId => {
+            const section = sectionMap[sectionId];
 
             return (
               <Collapse.Panel
                 header={<span className="header">{section.title}</span>}
-                key={key}
+                key={sectionId}
               >
                 {section.selectors.map((selector: string) => (
                   <Selector
                     key={selector}
                     selector={selector}
+                    sectionId={sectionId}
                     icon={section.icon}
                     isSelected={
-                      !isActivelySearching && selector === activeSelector
+                      !isActivelySearching &&
+                      selector === activeSelector &&
+                      sectionId === activeSection
                     }
                     onClick={clickSelector}
                   />
@@ -676,7 +720,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
 
       <RightPane>
         <ThumbnailGallery
-          vizEntries={vizEntriesToDisplay}
+          vizEntries={getVizEntriesToDisplay()}
           selectedViz={selectedViz}
           setSelectedViz={onChange}
         />

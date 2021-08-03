@@ -525,7 +525,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         );
       } else if (
         dbToUpdate?.parameters?.query === '' &&
-        'query' in dbModel.parameters
+        'query' in dbModel.parameters.properties
       ) {
         dbToUpdate.parameters.query = {};
       }

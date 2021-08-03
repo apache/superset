@@ -79,6 +79,7 @@ Join our growing community!
 - [FBK - ICT center](http://ict.fbk.eu)
 - [GfK Data Lab](http://datalab.gfk.com) [@mherr]
 - [GrowthSimple](https://growthsimple.ai/)
+- [Hydrolix](https://www.hydrolix.io/)
 - [Intercom](https://www.intercom.com/) [@kate-gallo]
 - [jampp](https://jampp.com/)
 - [Konfío](http://konfio.mx) [@uis-rodriguez]

@@ -54,7 +54,7 @@ class ExportChartsCommand(ExportModelsCommand):
             export_uuids=True,
         )
         # TODO (betodealmeida): move this logic to export_to_dict once this
-        # becomes the default export endpoint
+        #  becomes the default export endpoint
         for key in REMOVE_KEYS:
             del payload[key]
         if payload.get("params"):

@@ -24,11 +24,14 @@ from flask_babel import _
 
 from superset import app, db, event_logger
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.connectors.sqla.utils import get_physical_table_metadata
 from superset.datasets.commands.exceptions import DatasetForbiddenError
 from superset.exceptions import SupersetException, SupersetSecurityException
+from superset.models.core import Database
 from superset.typing import FlaskResponse
 from superset.views.base import check_ownership
 
+from ..utils.core import parse_js_uri_path_item
 from .base import api, BaseSupersetView, handle_api_exception, json_error_response
 
 
@@ -115,6 +118,49 @@ class Datasource(BaseSupersetView):
         )
         try:
             external_metadata = datasource.external_metadata()
+        except SupersetException as ex:
+            return json_error_response(str(ex), status=400)
+        return self.json_response(external_metadata)
+
+    @expose(
+        "/external_metadata_by_name/<datasource_type>/<database_name>/"
+        "<schema_name>/<table_name>/"
+    )
+    @has_access_api
+    @api
+    @handle_api_exception
+    def external_metadata_by_name(
+        self,
+        datasource_type: str,
+        database_name: str,
+        schema_name: str,
+        table_name: str,
+    ) -> FlaskResponse:
+        """Gets table metadata from the source system and SQLAlchemy inspector"""
+        database_name = parse_js_uri_path_item(database_name) or ""
+        schema_name = parse_js_uri_path_item(schema_name, eval_undefined=True) or ""
+        table_name = parse_js_uri_path_item(table_name) or ""
+
+        datasource = ConnectorRegistry.get_datasource_by_name(
+            session=db.session,
+            datasource_type=datasource_type,
+            database_name=database_name,
+            schema=schema_name,
+            datasource_name=table_name,
+        )
+        try:
+            if datasource is not None:
+                external_metadata = datasource.external_metadata()
+            else:
+                # Use the SQLAlchemy inspector to get columns
+                database = (
+                    db.session.query(Database)
+                    .filter_by(database_name=database_name)
+                    .one()
+                )
+                external_metadata = get_physical_table_metadata(
+                    database=database, table_name=table_name, schema_name=schema_name,
+                )
         except SupersetException as ex:
             return json_error_response(str(ex), status=400)
         return self.json_response(external_metadata)

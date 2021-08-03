@@ -18,7 +18,7 @@ import copy
 from typing import Any, Dict, List
 
 from superset.utils.core import AnnotationType, DTTM_ALIAS, TimeRangeEndpoint
-from tests.integration_tests.base_tests import get_table_by_name
+from tests.integration_tests.base_tests import SupersetTestCase
 
 query_birth_names = {
     "extras": {
@@ -245,7 +245,7 @@ def get_query_context(
     :return: Request payload
     """
     table_name = query_name.split(":")[0]
-    table = get_table_by_name(table_name)
+    table = SupersetTestCase.get_table(name=table_name)
     return {
         "datasource": {"id": table.id, "type": table.type},
         "queries": [

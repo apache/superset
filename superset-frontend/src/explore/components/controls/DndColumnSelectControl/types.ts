@@ -44,6 +44,7 @@ export interface LabelProps<T = string[] | string> {
   multi?: boolean;
   canDelete?: boolean;
   ghostButtonText?: string;
+  label?: string;
 }
 
 export interface DndColumnSelectProps<
