@@ -75,7 +75,13 @@ class Slice(
     schema_perm = Column(String(1000))
     # the last time a user has saved the chart, changed_on is referencing
     # when the database row was last written
-    last_saved_at = Column(DateTime, default=datetime.now, nullable=True)
+    last_saved_at = Column(DateTime, nullable=True)
+    last_saved_by_fk = Column(
+        Integer, 
+        ForeignKey("ab_user.id"),
+        nullable=True,
+    )
+    last_saved_by = relationship(security_manager.user_model, foreign_keys=[last_saved_by_fk])
     owners = relationship(security_manager.user_model, secondary=slice_user)
     table = relationship(
         "SqlaTable",
