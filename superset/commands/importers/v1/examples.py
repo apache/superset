@@ -19,6 +19,7 @@ from typing import Any, Dict, List, Tuple
 
 from marshmallow import Schema
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.sql import select
 
 from superset import db
@@ -106,6 +107,20 @@ class ImportExamplesCommand(ImportModelsCommand):
                 dataset = import_dataset(
                     session, config, overwrite=overwrite, force_data=force_data
                 )
+
+                try:
+                    dataset = import_dataset(
+                        session, config, overwrite=overwrite, force_data=force_data
+                    )
+                except MultipleResultsFound:
+                    # Multiple result can be found for datasets. There was a bug in
+                    # load-examples that resulted in datasets being loaded with a NULL
+                    # schema. Users could then add a new dataset with the same name in
+                    # the correct schema, resulting in duplicates, since the uniqueness
+                    # constraint was not enforced correctly in the application logic.
+                    # See https://github.com/apache/superset/issues/16051.
+                    continue
+
                 dataset_info[str(dataset.uuid)] = {
                     "datasource_id": dataset.id,
                     "datasource_type": "view" if dataset.is_sqllab_view else "table",
@@ -115,7 +130,10 @@ class ImportExamplesCommand(ImportModelsCommand):
         # import charts
         chart_ids: Dict[str, int] = {}
         for file_name, config in configs.items():
-            if file_name.startswith("charts/"):
+            if (
+                file_name.startswith("charts/")
+                and config["dataset_uuid"] in dataset_info
+            ):
                 # update datasource id, type, and name
                 config.update(dataset_info[config["dataset_uuid"]])
                 chart = import_chart(session, config, overwrite=overwrite)
@@ -130,7 +148,11 @@ class ImportExamplesCommand(ImportModelsCommand):
         dashboard_chart_ids: List[Tuple[int, int]] = []
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
-                config = update_id_refs(config, chart_ids, dataset_info)
+                try:
+                    config = update_id_refs(config, chart_ids, dataset_info)
+                except KeyError:
+                    continue
+
                 dashboard = import_dashboard(session, config, overwrite=overwrite)
                 dashboard.published = True
 

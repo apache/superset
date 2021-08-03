@@ -222,6 +222,17 @@ function dbReducer(
           },
         };
       }
+      if (action.payload.name === 'schemas_allowed_for_csv_upload') {
+        return {
+          ...trimmedState,
+          extra_json: {
+            ...trimmedState.extra_json,
+            schemas_allowed_for_csv_upload: (action.payload.value || '').split(
+              ',',
+            ),
+          },
+        };
+      }
       return {
         ...trimmedState,
         extra_json: {
@@ -409,8 +420,9 @@ const serializeExtra = (extraJson: DatabaseObject['extra_json']) =>
     engine_params: JSON.parse(
       ((extraJson?.engine_params as unknown) as string) || '{}',
     ),
-    schemas_allowed_for_csv_upload:
-      (extraJson?.schemas_allowed_for_csv_upload as string) || '[]',
+    schemas_allowed_for_csv_upload: (
+      extraJson?.schemas_allowed_for_csv_upload || []
+    ).filter(schema => schema !== ''),
   });
 
 const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({

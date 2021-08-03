@@ -552,6 +552,25 @@ class DatabaseFunctionNamesResponse(Schema):
 
 
 class ImportV1DatabaseExtraSchema(Schema):
+    # pylint: disable=no-self-use, unused-argument
+    @pre_load
+    def fix_schemas_allowed_for_csv_upload(
+        self, data: Dict[str, Any], **kwargs: Any
+    ) -> Dict[str, Any]:
+        """
+        Fix ``schemas_allowed_for_csv_upload`` being a string.
+
+        Due to a bug in the database modal, some databases might have been
+        saved and exported with a string for ``schemas_allowed_for_csv_upload``.
+        """
+        schemas_allowed_for_csv_upload = data.get("schemas_allowed_for_csv_upload")
+        if isinstance(schemas_allowed_for_csv_upload, str):
+            data["schemas_allowed_for_csv_upload"] = json.loads(
+                schemas_allowed_for_csv_upload
+            )
+
+        return data
+
     metadata_params = fields.Dict(keys=fields.Str(), values=fields.Raw())
     engine_params = fields.Dict(keys=fields.Str(), values=fields.Raw())
     metadata_cache_timeout = fields.Dict(keys=fields.Str(), values=fields.Integer())
