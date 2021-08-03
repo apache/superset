@@ -46,3 +46,4 @@ def create_app() -> Flask:
 
 class SupersetApp(Flask):
     pass
+
