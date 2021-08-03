@@ -15,7 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
-from typing import Any, Dict, Optional, Set
+from enum import Enum
+from typing import Any, Dict, Optional, Set, Type, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from superset.models.slice import Slice
+
+
+class MirateVizEnum(str, Enum):
+    # the Enum member name is type of migration and the value is viz_type in database
+    pivot_table = "pivot_table"
 
 
 class MigrateViz:
@@ -52,6 +61,12 @@ class MigrateViz:
         rv_data = self.post_processing(rv_data)
         return json.dumps(rv_data)
 
+    @classmethod
+    def upgrade(cls, slc: "Slice") -> "Slice":
+        clz = cls(slc.params)
+        slc.params = clz.migrate()
+        return slc
+
 
 class MigratePivotTable(MigrateViz):
     viz_type = "pivot_table"
@@ -65,7 +80,7 @@ class MigratePivotTable(MigrateViz):
     }
 
     @staticmethod
-    def convert_total_function(value: str) -> Optional[str]:
+    def _convert_total_function(value: str) -> Optional[str]:
         agg_mapping = {
             "sum": "Sum",
             "mean": "Average",
@@ -80,7 +95,7 @@ class MigratePivotTable(MigrateViz):
         if "viz_type" in data:
             data["viz_type"] = "pivot_table_v2"
         if "aggregateFunction" in data:
-            data["aggregateFunction"] = self.convert_total_function(
+            data["aggregateFunction"] = self._convert_total_function(
                 data["aggregateFunction"]
             )
 
@@ -91,3 +106,14 @@ class MigratePivotTable(MigrateViz):
                 "rowTotals": True,
             }
         return data
+
+    @classmethod
+    def upgrade(cls, slc: "Slice") -> "Slice":
+        slc = super().upgrade(slc)
+        slc.viz_type = "pivot_table_v2"
+        return slc
+
+
+get_migrate_class: Dict[MirateVizEnum, Type[MigrateViz]] = {
+    MirateVizEnum.pivot_table: MigratePivotTable,
+}

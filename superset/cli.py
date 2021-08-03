@@ -37,6 +37,7 @@ from superset.app import create_app
 from superset.extensions import celery_app, db
 from superset.utils import core as utils
 from superset.utils.celery import session_scope
+from superset.utils.migrate_viz import get_migrate_class, MirateVizEnum
 from superset.utils.urls import get_url_path
 
 logger = logging.getLogger(__name__)
@@ -831,3 +832,35 @@ def update_api_docs() -> None:
             json.dump(api_spec.to_dict(), outfile, sort_keys=True, indent=2)
     else:
         click.secho("API version not found", err=True)
+
+
+@superset.command()
+@with_appcontext
+@click.option(
+    "--viz_type",
+    "-t",
+    type=click.Choice(MirateVizEnum, case_sensitive=False),
+    help="Specify which datasource name to load, if "
+    "omitted, all datasources will be refreshed",
+)
+def migrate_viz(viz_type: MirateVizEnum) -> None:
+    """ migrate legacy visualization """
+    from superset.models.slice import Slice
+
+    try:
+        slices = db.session.query(Slice).filter(Slice.viz_type == viz_type.value)
+        total = slices.count()
+        idx = 0
+        for slc in slices:
+            idx += 1
+            print(f"Upgrading ({idx}/{total}): {slc.slice_name}#{slc.id}")
+            new_viz = get_migrate_class[viz_type].upgrade(slc)
+            db.session.merge(new_viz)
+            db.session.commit()
+    except Exception as ex:  # pylint: disable=broad-except
+        print(
+            "Error while processing migration '{}'\n{}".format(viz_type.name, str(ex))
+        )
+        logger.exception(ex)
+
+    db.session.close()
