@@ -20,9 +20,10 @@ import { PlusOutlined } from '@ant-design/icons';
 import { styled, t } from '@superset-ui/core';
 import React, { FC } from 'react';
 import { LineEditableTabs } from 'src/components/Tabs';
-import FilterTabPane from './FilterTabPane';
-
+import Icons from 'src/components/Icons';
+import { useDrop } from 'react-dnd';
 import { FilterRemoval } from './types';
+import { FilterTabTitle } from './FilterTabPane';
 
 export const FILTER_WIDTH = 180;
 
@@ -36,6 +37,36 @@ export const StyledAddFilterBox = styled.div`
     color: ${({ theme }) => theme.colors.primary.base};
   }
 `;
+
+export const StyledTrashIcon = styled(Icons.Trash)`
+  color: ${({ theme }) => theme.colors.grayscale.light3};
+`;
+
+// export const FilterTabTitle = styled.span`
+//   transition: color ${({ theme }) => theme.transitionTiming}s;
+//   width: 100%;
+//   display: flex;
+//   flex-direction: row;
+//   justify-content: space-between;
+
+//   @keyframes tabTitleRemovalAnimation {
+//     0%,
+//     90% {
+//       opacity: 1;
+//     }
+//     95%,
+//     100% {
+//       opacity: 0;
+//     }
+//   }
+
+//   &.removed {
+//     color: ${({ theme }) => theme.colors.warning.dark1};
+//     transform-origin: top;
+//     animation-name: tabTitleRemovalAnimation;
+//     animation-duration: ${REMOVAL_DELAY_SECS}s;
+//   }
+// `;
 
 const FilterTabsContainer = styled(LineEditableTabs)`
   ${({ theme }) => `
@@ -76,14 +107,10 @@ const FilterTabsContainer = styled(LineEditableTabs)`
 
     // extra selector specificity:
     &.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {
-      min-width: ${FILTER_WIDTH}px;
-      margin: 0 ${theme.gridUnit * 2}px 0 0;
-      padding: ${theme.gridUnit}px
-        ${theme.gridUnit * 2}px;
       &:hover,
       &-active {
         color: ${theme.colors.grayscale.dark1};
-        border-radius: ${theme.borderRadius}px;
+        margin: 0px;
         background-color: ${theme.colors.secondary.light4};
 
         .ant-tabs-tab-remove > span {
@@ -139,51 +166,70 @@ const FilterTabs: FC<FilterTabsProps> = ({
   removedFilters = [],
   restoreFilter,
   children,
-}) => (
-  <FilterTabsContainer
-    id="native-filters-tabs"
-    type="editable-card"
-    tabPosition="left"
-    onChange={onChange}
-    activeKey={currentFilterId}
-    onEdit={onEdit}
-    hideAdd
-    tabBarExtraContent={{
-      left: <StyledHeader>{t('Filters')}</StyledHeader>,
-      right: (
-        <StyledAddFilterBox
-          onClick={() => {
-            onEdit('', 'add');
-            setTimeout(() => {
-              const element = document.getElementById('native-filters-tabs');
-              if (element) {
-                const navList = element.getElementsByClassName(
-                  'ant-tabs-nav-list',
-                )[0];
-                navList.scrollTop = navList.scrollHeight;
-              }
-            }, 0);
-          }}
-        >
-          <PlusOutlined />{' '}
-          <span data-test="add-filter-button" aria-label="Add filter">
-            {t('Add filter')}
-          </span>
-        </StyledAddFilterBox>
-      ),
-    }}
-  >
-    {filterIds.map(filterId => (
-      <FilterTabPane
-        filterId={filterId}
-        key={filterId}
-        isRemoved={!!removedFilters[filterId]}
-        getFilterTitle={getFilterTitle}
-        renderFilterConfig={children}
-        restoreFilter={restoreFilter}
-      />
-    ))}
-  </FilterTabsContainer>
-);
+}) => {
+  console.log('rendering');
+  const [collectedProps, drop] = useDrop({
+    accept: 'FILTER',
+  });
+  return (
+    <div ref={drop}>
+      <FilterTabsContainer
+        id="native-filters-tabs"
+        type="editable-card"
+        tabPosition="left"
+        onChange={onChange}
+        activeKey={currentFilterId}
+        onEdit={onEdit}
+        hideAdd
+        tabBarExtraContent={{
+          left: <StyledHeader>{t('Filters')}</StyledHeader>,
+          right: (
+            <StyledAddFilterBox
+              onClick={() => {
+                onEdit('', 'add');
+                setTimeout(() => {
+                  const element = document.getElementById(
+                    'native-filters-tabs',
+                  );
+                  if (element) {
+                    const navList = element.getElementsByClassName(
+                      'ant-tabs-nav-list',
+                    )[0];
+                    navList.scrollTop = navList.scrollHeight;
+                  }
+                }, 0);
+              }}
+            >
+              <PlusOutlined />{' '}
+              <span data-test="add-filter-button" aria-label="Add filter">
+                {t('Add filter')}
+              </span>
+            </StyledAddFilterBox>
+          ),
+        }}
+      >
+        {filterIds.map(id => (
+          <LineEditableTabs.TabPane
+            tab={
+              <FilterTabTitle
+                id={id}
+                isRemoved={!!removedFilters[id]}
+                restoreFilter={restoreFilter}
+                getFilterTitle={getFilterTitle}
+              />
+            }
+            key={id}
+            closable={false}
+          >
+            {
+              /* @ts-ignore */
+              children(id)
+            }
+          </LineEditableTabs.TabPane>
+        ))}
+      </FilterTabsContainer>
+    </div>
+  );
+};
 
 export default FilterTabs;

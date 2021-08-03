@@ -8,7 +8,6 @@ import { REMOVAL_DELAY_SECS } from './utils';
 const FILTER_WIDTH = 180;
 
 const StyledFilterTitle = styled.span`
-  width: ${FILTER_WIDTH}px;
   white-space: normal;
   color: ${({ theme }) => theme.colors.grayscale.dark1};
 `;
@@ -59,65 +58,54 @@ interface Props {
 }
 
 interface FilterTabTitleProps {
-  getFilterTitle: (id: string) => string;
+  id: string;
   isRemoved: boolean;
-  filterId: string;
+  getFilterTitle: (id: string) => string;
   restoreFilter: (id: string) => void;
 }
-const FilterTabTitle: React.FC<FilterTabTitleProps> = ({
-  filterId,
-  isRemoved,
-  getFilterTitle,
-  restoreFilter,
-}) => (
-  <StyledFilterTabTitle className={isRemoved ? 'removed' : ''}>
-    <StyledFilterTitle>
-      {isRemoved ? t('(Removed)') : getFilterTitle(filterId)}
-    </StyledFilterTitle>
-    {isRemoved && (
-      <StyledSpan
-        role="button"
-        data-test="undo-button"
-        tabIndex={0}
-        onClick={() => restoreFilter(filterId)}
-      >
-        {t('Undo?')}
-      </StyledSpan>
-    )}
-  </StyledFilterTabTitle>
-);
 
-const FilterTabPane: React.FC<Props> = ({
-  filterId,
+export const FilterTabTitle: React.FC<FilterTabTitleProps> = ({
+  id,
   isRemoved,
   getFilterTitle,
   restoreFilter,
-  renderFilterConfig,
 }) => {
-  const [collected, drag, dragPreview] = useDrag({
-    item: { type: 'FILTER', filterId },
+  const [{ isDragging }, drag, dragPreview] = useDrag({
+    item: { id, type: 'FILTER' },
   });
   return (
-    // <div ref={drag}>
-    <LineEditableTabs.TabPane
-      tab={
-        <FilterTabTitle
-          filterId={filterId}
-          isRemoved={isRemoved}
-          getFilterTitle={filterId => getFilterTitle(filterId)}
-          restoreFilter={restoreFilter}
-        />
-      }
-      key={filterId}
-      closeIcon={isRemoved ? <></> : <StyledTrashIcon />}
+    <div
+      ref={drag}
+      style={{
+        opacity: isDragging ? 0.5 : 1,
+        display: 'flex',
+        width: '100%',
+        padding: '4px 8px',
+        margin: '0 8px 0 0',
+        marginBottom: '2px',
+        borderRadius: '4px',
+      }}
     >
-      {
-        /* @ts-ignore */
-        renderFilterConfig(filterId)
-      }
-    </LineEditableTabs.TabPane>
-    // </div>
+      <StyledFilterTabTitle className={isRemoved ? 'removed' : ''}>
+        <StyledFilterTitle>
+          {isRemoved ? t('(Removed)') : getFilterTitle(id)}
+        </StyledFilterTitle>
+        {isRemoved && (
+          <StyledSpan
+            role="button"
+            data-test="undo-button"
+            tabIndex={0}
+            onClick={() => restoreFilter(id)}
+          >
+            {t('Undo?')}
+          </StyledSpan>
+        )}
+      </StyledFilterTabTitle>
+      <div style={{ alignSelf: 'flex-end' }}>
+        {isRemoved ? <></> : <StyledTrashIcon onClick={() => alert('Hi')} />}
+      </div>
+    </div>
   );
 };
 
-export default FilterTabPane;
+export default FilterTabTitle;
