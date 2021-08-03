@@ -1653,26 +1653,26 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         ):
             raise Exception(get_dataset_exist_error_msg(target.full_name))
 
+    @staticmethod
+    def update_table(
+        _mapper: Mapper, _connection: Connection, obj: Union[SqlMetric, TableColumn]
+    ) -> None:
+        """
+        Forces an update to the table's changed_on value when a metric or column on the
+        table is updated. This busts the cache key for all charts that use the table.
 
-def update_table(
-    _mapper: Mapper, _connection: Connection, obj: Union[SqlMetric, TableColumn]
-) -> None:
-    """
-    Forces an update to the table's changed_on value when a metric or column on the
-    table is updated. This busts the cache key for all charts that use the table.
-
-    :param _mapper: Unused.
-    :param _connection: Unused.
-    :param obj: The metric or column that was updated.
-    """
-    db.session.execute(update(SqlaTable).where(SqlaTable.id == obj.table.id))
+        :param _mapper: Unused.
+        :param _connection: Unused.
+        :param obj: The metric or column that was updated.
+        """
+        db.session.execute(update(SqlaTable).where(SqlaTable.id == obj.table.id))
 
 
 sa.event.listen(SqlaTable, "after_insert", security_manager.set_perm)
 sa.event.listen(SqlaTable, "after_update", security_manager.set_perm)
 sa.event.listen(SqlaTable, "before_update", SqlaTable.before_update)
-sa.event.listen(SqlMetric, "after_update", update_table)
-sa.event.listen(TableColumn, "after_update", update_table)
+sa.event.listen(SqlMetric, "after_update", SqlaTable.update_table)
+sa.event.listen(TableColumn, "after_update", SqlaTable.update_table)
 
 RLSFilterRoles = Table(
     "rls_filter_roles",
