@@ -386,7 +386,7 @@ class SupersetAppInitializer:
                     self.config["ALLOWED_EXTENSIONS"]
                 )
             ),
-        ) 
+        )
         try:
             import xlrd  # pylint: disable=unused-import
 

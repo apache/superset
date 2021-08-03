@@ -430,7 +430,7 @@ class ColumnarToDatabaseView(SimpleFormView):
 
         read = pd.read_parquet
         kwargs = {
-            "columns": form.usecols.data,
+            "columns": form.usecols.data if form.usecols.data else None,
         }
 
         if not schema_allows_csv_upload(database, columnar_table.schema):
