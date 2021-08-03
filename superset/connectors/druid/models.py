@@ -1690,25 +1690,25 @@ class DruidDatasource(Model, BaseDatasource):
         latest_metadata = self.latest_metadata() or {}
         return [{"name": k, "type": v.get("type")} for k, v in latest_metadata.items()]
 
+    @staticmethod
+    def update_datasource(
+        _mapper: Mapper, _connection: Connection, obj: Union[DruidColumn, DruidMetric]
+    ) -> None:
+        """
+        Forces an update to the datasource's changed_on value when a metric or column on
+        the datasource is updated. This busts the cache key for all charts that use the
+        datasource.
 
-def update_datasource(
-    _mapper: Mapper, _connection: Connection, obj: Union[DruidColumn, DruidMetric]
-) -> None:
-    """
-    Forces an update to the datasource's changed_on value when a metric or column on
-    the datasource is updated. This busts the cache key for all charts that use the
-    datasource.
-
-    :param _mapper: Unused.
-    :param _connection: Unused.
-    :param obj: The metric or column that was updated.
-    """
-    db.session.execute(
-        update(DruidDatasource).where(DruidDatasource.id == obj.datasource.id)
-    )
+        :param _mapper: Unused.
+        :param _connection: Unused.
+        :param obj: The metric or column that was updated.
+        """
+        db.session.execute(
+            update(DruidDatasource).where(DruidDatasource.id == obj.datasource.id)
+        )
 
 
 sa.event.listen(DruidDatasource, "after_insert", security_manager.set_perm)
 sa.event.listen(DruidDatasource, "after_update", security_manager.set_perm)
-sa.event.listen(DruidMetric, "after_update", update_datasource)
-sa.event.listen(DruidColumn, "after_update", update_datasource)
+sa.event.listen(DruidMetric, "after_update", DruidDatasource.update_datasource)
+sa.event.listen(DruidColumn, "after_update", DruidDatasource.update_datasource)
