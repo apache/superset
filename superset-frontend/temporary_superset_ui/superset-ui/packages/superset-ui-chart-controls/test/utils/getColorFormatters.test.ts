@@ -279,6 +279,22 @@ describe('getColorFunction()', () => {
     expect(colorFunction(100)).toBeUndefined();
   });
 
+  it('getColorFunction with operator None', () => {
+    const colorFunction = getColorFunction(
+      {
+        operator: COMPARATOR.NONE,
+        colorScheme: 'rgb(255,0,0)',
+        column: 'count',
+      },
+      countValues,
+    );
+    expect(colorFunction(20)).toEqual(undefined);
+    expect(colorFunction(50)).toEqual('rgba(255,0,0,0.3)');
+    expect(colorFunction(75)).toEqual('rgba(255,0,0,0.65)');
+    expect(colorFunction(100)).toEqual('rgba(255,0,0,1)');
+    expect(colorFunction(120)).toEqual(undefined);
+  });
+
   it('getColorFunction with operator undefined', () => {
     const colorFunction = getColorFunction(
       {

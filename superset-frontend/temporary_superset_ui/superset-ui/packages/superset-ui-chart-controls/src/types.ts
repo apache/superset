@@ -325,6 +325,7 @@ export type SectionOverrides = {
 // Ref:
 //  - superset-frontend/src/explore/components/ConditionalFormattingControl.tsx
 export enum COMPARATOR {
+  NONE = 'None',
   GREATER_THAN = '>',
   LESS_THAN = '<',
   GREATER_OR_EQUAL = '≥',

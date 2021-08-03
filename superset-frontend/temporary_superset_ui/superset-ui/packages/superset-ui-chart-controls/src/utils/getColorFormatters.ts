@@ -67,10 +67,23 @@ export const getColorFunction = (
   ) {
     return () => undefined;
   }
-  if (!MULTIPLE_VALUE_COMPARATORS.includes(operator) && targetValue === undefined) {
+  if (
+    operator !== COMPARATOR.NONE &&
+    !MULTIPLE_VALUE_COMPARATORS.includes(operator) &&
+    targetValue === undefined
+  ) {
     return () => undefined;
   }
   switch (operator) {
+    case COMPARATOR.NONE:
+      comparatorFunction = (value: number, allValues: number[]) => {
+        const cutoffValue = Math.min(...allValues);
+        const extremeValue = Math.max(...allValues);
+        return value >= cutoffValue && value <= extremeValue
+          ? { cutoffValue, extremeValue }
+          : false;
+      };
+      break;
     case COMPARATOR.GREATER_THAN:
       comparatorFunction = (value: number, allValues: number[]) =>
         value > targetValue!
@@ -156,10 +169,11 @@ export const getColorFormatters = (
   columnConfig?.reduce((acc: ColorFormatters, config: ConditionalFormattingConfig) => {
     if (
       config?.column !== undefined &&
-      config?.operator !== undefined &&
-      (MULTIPLE_VALUE_COMPARATORS.includes(config?.operator)
-        ? config?.targetValueLeft !== undefined && config?.targetValueRight !== undefined
-        : config?.targetValue !== undefined)
+      (config?.operator === COMPARATOR.NONE ||
+        (config?.operator !== undefined &&
+          (MULTIPLE_VALUE_COMPARATORS.includes(config?.operator)
+            ? config?.targetValueLeft !== undefined && config?.targetValueRight !== undefined
+            : config?.targetValue !== undefined)))
     ) {
       acc.push({
         column: config?.column,
