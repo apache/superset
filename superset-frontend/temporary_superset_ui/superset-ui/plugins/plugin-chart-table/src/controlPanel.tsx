@@ -434,6 +434,7 @@ const config: ControlPanelConfig = {
               mapStateToProps(explore, control, chart) {
                 return {
                   queryResponse: chart?.queriesResponse?.[0] as ChartDataResponseResult | undefined,
+                  emitFilter: explore?.controls?.table_filter?.value,
                 };
               },
             },
