@@ -840,8 +840,7 @@ def update_api_docs() -> None:
     "--viz_type",
     "-t",
     type=click.Choice(MirateVizEnum, case_sensitive=False),
-    help="Specify which datasource name to load, if "
-    "omitted, all datasources will be refreshed",
+    help="Specify which type of visualization to migrate",
 )
 def migrate_viz(viz_type: MirateVizEnum) -> None:
     """ migrate legacy visualization """
