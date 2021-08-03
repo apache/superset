@@ -32,6 +32,7 @@ export type ColumnConfigControlProps<T extends ColumnConfig> = ControlComponentP
   queryResponse?: ChartDataResponseResult;
   configFormLayout?: ColumnConfigFormLayout;
   appliedColumnNames?: string[];
+  emitFilter: boolean;
 };
 
 /**
@@ -48,8 +49,24 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
   value,
   onChange,
   configFormLayout = DEFAULT_CONFIG_FORM_LAYOUT,
+  emitFilter,
   ...props
 }: ColumnConfigControlProps<T>) {
+  if (emitFilter) {
+    Object.values(configFormLayout).forEach(array_of_array => {
+      if (!array_of_array.some(arr => arr.includes('emitTarget'))) {
+        array_of_array.push(['emitTarget']);
+      }
+    });
+  } else {
+    Object.values(configFormLayout).forEach(array_of_array => {
+      const index = array_of_array.findIndex(arr => arr.includes('emitTarget'));
+      if (index > -1) {
+        array_of_array.splice(index, 1);
+      }
+    });
+  }
+
   const { colnames: _colnames, coltypes: _coltypes } = queryResponse || {};
   let colnames: string[] = [];
   let coltypes: GenericDataType[] = [];
