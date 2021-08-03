@@ -217,7 +217,6 @@ const config: ControlPanelConfig = {
               label: t('Date format'),
               default: smartDateFormatter.id,
               renderTrigger: true,
-              clearable: false,
               choices: D3_TIME_FORMAT_OPTIONS,
               description: t('D3 time format for datetime columns'),
             },
