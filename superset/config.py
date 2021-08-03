@@ -1239,8 +1239,8 @@ import jwt
 from superset.utils import core as utils
 from superset.utils.date_parser import get_since_until
 #key to decrypt jwt token
-MOBI_SECRET_KEY='None'
-MOBI_SECRET_KEY_OLD='None'
+MOBI_SECRET_KEY=None
+MOBI_SECRET_KEY_OLD=None
 
 
 def time_filter(default: Optional[str] = None) -> Optional[Any]:
