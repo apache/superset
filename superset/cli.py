@@ -839,6 +839,7 @@ def update_api_docs() -> None:
 @click.option(
     "--viz_type",
     "-t",
+    required=True,
     type=click.Choice(MirateVizEnum, case_sensitive=False),
     help="Specify which type of visualization to migrate",
 )
