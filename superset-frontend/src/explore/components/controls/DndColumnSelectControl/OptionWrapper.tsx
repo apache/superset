@@ -31,6 +31,7 @@ import {
 import { Tooltip } from 'src/components/Tooltip';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
 import { styled } from '@superset-ui/core';
+import { ColumnMeta } from '@superset-ui/chart-controls/src';
 import Option from './Option';
 
 export const OptionLabel = styled.div`
@@ -39,6 +40,8 @@ export const OptionLabel = styled.div`
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
+
+const LabelText = styled.span``;
 
 export default function OptionWrapper(
   props: OptionProps & {
@@ -119,45 +122,49 @@ export default function OptionWrapper(
     },
   });
 
-  const shouldShowTooltip = () => {
-    if (labelRef && labelRef.current) {
-      return labelRef.current.scrollWidth > labelRef.current.clientWidth;
+  const shouldShowTooltip =
+    !isDragging &&
+    labelRef &&
+    labelRef.current &&
+    labelRef.current.scrollWidth > labelRef.current.clientWidth;
+
+  const LabelContent = () => {
+    if (!shouldShowTooltip) {
+      return <LabelText>{label}</LabelText>;
     }
-    return false;
+    return (
+      <Tooltip title={label}>
+        <LabelText>{label}</LabelText>
+      </Tooltip>
+    );
+  };
+
+  const ColumnOption = () => {
+    const showTooltip = !isDragging && shouldShowTooltip;
+    return (
+      <StyledColumnOption
+        column={column as ColumnMeta}
+        labelRef={labelRef}
+        showTooltip={!!showTooltip}
+        showType
+      />
+    );
   };
 
   const Label = () => {
     if (label) {
-      const showTooltip = !isDragging && shouldShowTooltip();
-      if (!showTooltip) {
-        return <>{label}</>;
-      }
-      return <Tooltip title={label}>{label}</Tooltip>;
-    }
-    return null;
-  };
-
-  const ColumnOption = () => {
-    if (column) {
-      const showTooltip = !isDragging && shouldShowTooltip();
       return (
-        <StyledColumnOption
-          column={column}
-          labelRef={labelRef}
-          showTooltip={showTooltip}
-          showType
-        />
+        <OptionLabel ref={labelRef}>
+          <LabelContent />
+        </OptionLabel>
       );
     }
-    return null;
-  };
-
-  const LabelContent = () => {
-    if (label) {
-      return <Label />;
-    }
     if (column) {
-      return <ColumnOption />;
+      return (
+        <OptionLabel>
+          <ColumnOption />
+        </OptionLabel>
+      );
     }
     return null;
   };
@@ -173,9 +180,7 @@ export default function OptionWrapper(
         isExtra={isExtra}
         canDelete={canDelete}
       >
-        <OptionLabel ref={label ? labelRef : undefined}>
-          <LabelContent />
-        </OptionLabel>
+        <Label />
       </Option>
     </DragContainer>
   );

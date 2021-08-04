@@ -259,25 +259,23 @@ export const OptionControlLabel = ({
     }),
   });
 
-  const shouldShowTooltip = () => {
-    if (labelRef && labelRef.current) {
-      return labelRef.current.scrollWidth > labelRef.current.clientWidth;
-    }
-    return false;
-  };
-
   const getLabelContent = () => {
-    const showTooltip = !isDragging && shouldShowTooltip();
+    const shouldShowTooltip =
+      !isDragging &&
+      labelRef &&
+      labelRef.current &&
+      labelRef.current.scrollWidth > labelRef.current.clientWidth;
+
     if (savedMetric && hasMetricName) {
       return (
         <StyledMetricOption
           metric={savedMetric}
           labelRef={labelRef}
-          showTooltip={showTooltip}
+          showTooltip={!!shouldShowTooltip}
         />
       );
     }
-    if (!showTooltip) {
+    if (!shouldShowTooltip) {
       return <LabelText ref={labelRef}>{label}</LabelText>;
     }
     return (
