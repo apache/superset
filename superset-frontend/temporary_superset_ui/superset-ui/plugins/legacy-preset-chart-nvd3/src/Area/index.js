@@ -52,7 +52,7 @@ const metadata = new ChartMetadata({
     t('Time'),
     t('Trend'),
     t('nvd3'),
-    t('Highly-used'),
+    t('Deprecated'),
   ],
   thumbnail,
   useLegacyApi: true,
