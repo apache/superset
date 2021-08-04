@@ -300,7 +300,7 @@ const config: ControlPanelConfig = {
             config: {
               type: 'ConditionalFormattingControl',
               renderTrigger: true,
-              label: t('Customize metrics'),
+              label: t('Conditional formatting'),
               description: t('Apply conditional color formatting to metrics'),
               mapStateToProps(explore) {
                 const values = (explore?.controls?.metrics?.value as QueryFormMetric[]) ?? [];
