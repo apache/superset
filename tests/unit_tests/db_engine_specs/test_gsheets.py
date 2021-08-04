@@ -40,22 +40,7 @@ def test_validate_parameters_simple(
         "catalog": {},
     }
     errors = GSheetsEngineSpec.validate_parameters(parameters)
-    assert errors == [
-        SupersetError(
-            message="Missing required field",
-            error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
-            level=ErrorLevel.WARNING,
-            extra={
-                "catalog": {"idx": 0},
-                "issue_codes": [
-                    {
-                        "code": 1018,
-                        "message": "Issue 1018 - One or more parameters needed to configure a database are missing.",
-                    }
-                ],
-            },
-        )
-    ]
+    assert errors == []
 
 
 def test_validate_parameters_catalog(
