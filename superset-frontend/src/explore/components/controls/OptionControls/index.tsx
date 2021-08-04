@@ -45,7 +45,6 @@ export const OptionControlContainer = styled.div<{
   border-radius: 3px;
   cursor: ${({ withCaret }) => (withCaret ? 'pointer' : 'default')};
 `;
-
 export const Label = styled.div`
   ${({ theme }) => `
     display: flex;
@@ -69,6 +68,11 @@ export const Label = styled.div`
       display: inline;
     }
   `}
+`;
+
+const LabelText = styled.span`
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 export const CaretContainer = styled.div`
@@ -274,9 +278,13 @@ export const OptionControlLabel = ({
       );
     }
     if (!showTooltip) {
-      return label;
+      return <LabelText ref={labelRef}>{label}</LabelText>;
     }
-    return <Tooltip title={tooltipTitle || label}>{label}</Tooltip>;
+    return (
+      <Tooltip title={tooltipTitle || label}>
+        <LabelText ref={labelRef}>{label}</LabelText>
+      </Tooltip>
+    );
   };
 
   const getOptionControlContent = () => (
@@ -292,10 +300,7 @@ export const OptionControlLabel = ({
       >
         <Icons.XSmall iconColor={theme.colors.grayscale.light1} />
       </CloseContainer>
-      <Label
-        data-test="control-label"
-        ref={!hasMetricName ? labelRef : undefined}
-      >
+      <Label data-test="control-label">
         {isFunction && <Icons.FunctionX viewBox="0 0 16 11" iconSize="l" />}
         {getLabelContent()}
       </Label>

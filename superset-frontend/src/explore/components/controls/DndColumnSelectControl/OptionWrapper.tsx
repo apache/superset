@@ -119,6 +119,8 @@ export default function OptionWrapper(
 
   const shouldShowTooltip = () => {
     if (labelRef && labelRef.current) {
+      console.log("SCROLL WIDTH OPTION WRAPPER", labelRef.current.scrollWidth);
+      console.log("CLIENT WIDTH OPTION", labelRef.current.clientWidth);
       return labelRef.current.scrollWidth > labelRef.current.clientWidth;
     }
     return false;
