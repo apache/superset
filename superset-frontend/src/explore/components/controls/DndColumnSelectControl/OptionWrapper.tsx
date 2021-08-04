@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useRef } from 'react';
+import React, { useMemo, useRef } from 'react';
 import {
   useDrag,
   useDrop,
@@ -24,7 +24,6 @@ import {
   DragSourceMonitor,
 } from 'react-dnd';
 import { DragContainer } from 'src/explore/components/controls/OptionControls';
-import { DndItemType } from 'src/explore/components/DndItemType';
 import {
   OptionProps,
   OptionItemInterface,
@@ -43,7 +42,7 @@ export const OptionLabel = styled.div`
 
 export default function OptionWrapper(
   props: OptionProps & {
-    type: DndItemType;
+    type: string;
     onShiftOptions: (dragIndex: number, hoverIndex: number) => void;
   },
 ) {
@@ -62,10 +61,13 @@ export default function OptionWrapper(
   const ref = useRef<HTMLDivElement>(null);
   const labelRef = useRef<HTMLDivElement>(null);
 
-  const item: OptionItemInterface = {
-    dragIndex: index,
-    type,
-  };
+  const item: OptionItemInterface = useMemo(
+    () => ({
+      dragIndex: index,
+      type,
+    }),
+    [index, type],
+  );
   const [{ isDragging }, drag] = useDrag({
     item,
     collect: (monitor: DragSourceMonitor) => ({

@@ -283,7 +283,8 @@ const ExploreChartPanel = props => {
       form_data={props.form_data}
       timeout={props.timeout}
       chart={props.chart}
-      userId={props.userId}
+      user={props.user}
+      reports={props.reports}
     />
   );
 
