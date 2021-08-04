@@ -17,14 +17,20 @@
  * under the License.
  */
 import { t, ChartMetadata, ChartPlugin, AnnotationType, Behavior } from '@superset-ui/core';
-import buildQuery from './buildQuery';
+import buildQuery from '../buildQuery';
 import controlPanel from './controlPanel';
-import transformProps from './transformProps';
+import transformProps from '../transformProps';
 import thumbnail from './images/thumbnail.png';
-import { EchartsTimeseriesChartProps, EchartsTimeseriesFormData } from './types';
-import example from './images/Time-series_Chart.jpg';
+import { EchartsTimeseriesChartProps, EchartsTimeseriesFormData } from '../types';
+import example1 from './images/Area1.png';
 
-export default class EchartsTimeseriesChartPlugin extends ChartPlugin<
+const areaTransformProps = (chartProps: EchartsTimeseriesChartProps) =>
+  transformProps({
+    ...chartProps,
+    formData: { ...chartProps.formData, area: true },
+  });
+
+export default class EchartsTimeseriesScatterChartPlugin extends ChartPlugin<
   EchartsTimeseriesFormData,
   EchartsTimeseriesChartProps
 > {
@@ -42,33 +48,36 @@ export default class EchartsTimeseriesChartPlugin extends ChartPlugin<
     super({
       buildQuery,
       controlPanel,
-      loadChart: () => import('./EchartsTimeseries'),
+      loadChart: () => import('../EchartsTimeseries'),
       metadata: new ChartMetadata({
         behaviors: [Behavior.INTERACTIVE_CHART],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
         description: t(
-          'Swiss army knife for visualizing time series data. Choose between  step, line, scatter, and bar charts. This viz type has many customization options as well.',
+          'Time-series Area chart are similar to line chart in that they represent variables with the same scale, but area charts stack the metrics on top of each other. An area chart in Superset can be stream, stack, or expand.',
         ),
-        exampleGallery: [{ url: example }],
+        exampleGallery: [{ url: example1 }],
         supportedAnnotationTypes: [
           AnnotationType.Event,
           AnnotationType.Formula,
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
-        name: t('Time-series Chart'),
+        name: t('Time-series Area Chart'),
         tags: [
+          t('ECharts'),
+          t('Predictive'),
           t('Advanced-Analytics'),
           t('Aesthetic'),
-          t('Line'),
-          t('Predictive'),
           t('Time'),
+          t('Line'),
           t('Transformable'),
+          t('Stacked'),
+          t('Highly-used'),
         ],
         thumbnail,
       }),
-      transformProps,
+      transformProps: areaTransformProps,
     });
   }
 }
