@@ -21,11 +21,13 @@ from unittest.mock import patch
 
 import pytest
 import yaml
+from flask import g
 
 from superset import db, security_manager
 from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.charts.commands.export import ExportChartsCommand
 from superset.charts.commands.importers.v1 import ImportChartsCommand
+from superset.charts.commands.update import UpdateChartCommand
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
@@ -266,7 +268,7 @@ class TestImportChartsCommand(SupersetTestCase):
         del broken_config["database_name"]
         contents["metadata.yaml"] = yaml.safe_dump(chart_metadata_config)
         contents["databases/imported_database.yaml"] = yaml.safe_dump(broken_config)
-        command = ImportChartsCommand(contents)
+        command = ImprtChartsCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
         assert str(excinfo.value) == "Error importing chart"
@@ -275,3 +277,25 @@ class TestImportChartsCommand(SupersetTestCase):
                 "database_name": ["Missing data for required field."],
             }
         }
+
+
+class TestChartsUpdateCommand(SupersetTestCase):
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_update_v1_response(self):
+        "Test that a chart command updates properties"
+        g.user = security_manager.find_user(username="admin")
+        actor = g.user
+        model_id = "1"
+        json_obj = {
+            "slice_name": "Update_Energy_SanKey_Chart",
+            "description": "test for update",
+            "cache_timeout": None,
+            "owners": [1],
+        }
+        command = UpdateChartCommand(actor, model_id, json_obj)
+        command.run()
+        chart = db.session.query(Slice).all()[0]
+
+        assert chart.slice_name == "Update_Energy_SanKey_Chart"
+        assert chart.description == "test for update"
+        assert chart.last_saved_by == g.user

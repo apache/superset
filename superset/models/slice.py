@@ -14,9 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from datetime import datetime
 import json
 import logging
+from datetime import datetime
 from typing import Any, Dict, Optional, Type, TYPE_CHECKING
 from urllib import parse
 
@@ -76,12 +76,10 @@ class Slice(
     # the last time a user has saved the chart, changed_on is referencing
     # when the database row was last written
     last_saved_at = Column(DateTime, nullable=True)
-    last_saved_by_fk = Column(
-        Integer, 
-        ForeignKey("ab_user.id"),
-        nullable=True,
+    last_saved_by_fk = Column(Integer, ForeignKey("ab_user.id"), nullable=True,)
+    last_saved_by = relationship(
+        security_manager.user_model, foreign_keys=[last_saved_by_fk]
     )
-    last_saved_by = relationship(security_manager.user_model, foreign_keys=[last_saved_by_fk])
     owners = relationship(security_manager.user_model, secondary=slice_user)
     table = relationship(
         "SqlaTable",
