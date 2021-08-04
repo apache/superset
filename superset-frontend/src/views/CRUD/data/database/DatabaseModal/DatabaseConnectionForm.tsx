@@ -228,7 +228,7 @@ const TableCatalog = ({
                 validationMethods={{ onBlur: getValidation }}
                 errorMessage={catalogError[idx]?.name}
                 placeholder={t('Enter a name for this sheet')}
-                onChange={e => {
+                onChange={(e: { target: { value: any } }) => {
                   changeMethods.onParametersChange({
                     target: {
                       type: `catalog-${idx}`,
