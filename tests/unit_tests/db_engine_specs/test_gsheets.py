@@ -42,13 +42,11 @@ def test_validate_parameters_simple(
     errors = GSheetsEngineSpec.validate_parameters(parameters)
     assert errors == [
         SupersetError(
-            message="URL is required",
+            message="Missing required field",
             error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
             level=ErrorLevel.WARNING,
             extra={
-                "invalid": ["catalog"],
-                "name": "",
-                "url": "",
+                "catalog": {"idx": 0},
                 "issue_codes": [
                     {
                         "code": 1018,
@@ -96,9 +94,7 @@ def test_validate_parameters_catalog(
             error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
             level=ErrorLevel.WARNING,
             extra={
-                "invalid": ["catalog"],
-                "name": "private_sheet",
-                "url": "https://docs.google.com/spreadsheets/d/1/edit",
+                "catalog": {"idx": 0, "url": True,},
                 "issue_codes": [
                     {
                         "code": 1003,
@@ -116,9 +112,7 @@ def test_validate_parameters_catalog(
             error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
             level=ErrorLevel.WARNING,
             extra={
-                "invalid": ["catalog"],
-                "name": "not_a_sheet",
-                "url": "https://www.google.com/",
+                "catalog": {"idx": 2, "url": True,},
                 "issue_codes": [
                     {
                         "code": 1003,
@@ -173,9 +167,7 @@ def test_validate_parameters_catalog_and_credentials(
             error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
             level=ErrorLevel.WARNING,
             extra={
-                "invalid": ["catalog"],
-                "name": "not_a_sheet",
-                "url": "https://www.google.com/",
+                "catalog": {"idx": 2, "url": True,},
                 "issue_codes": [
                     {
                         "code": 1003,
