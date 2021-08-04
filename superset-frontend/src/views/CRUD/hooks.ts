@@ -691,6 +691,7 @@ export function useDatabaseValidation() {
                       if (extra.catalog.name) {
                         return {
                           ...obj,
+                          error_type,
                           [extra.catalog.idx]: {
                             name: message,
                           },
@@ -699,6 +700,7 @@ export function useDatabaseValidation() {
                       if (extra.catalog.url) {
                         return {
                           ...obj,
+                          error_type,
                           [extra.catalog.idx]: {
                             url: message,
                           },
@@ -707,6 +709,7 @@ export function useDatabaseValidation() {
 
                       return {
                         ...obj,
+                        error_type,
                         [extra.catalog.idx]: {
                           name: message,
                           url: message,
