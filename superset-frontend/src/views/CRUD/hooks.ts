@@ -681,7 +681,7 @@ export function useDatabaseValidation() {
                         catalog: {
                           name: string;
                           url: string;
-                          idx: string;
+                          idx: number;
                         };
                       };
                       message: string;
