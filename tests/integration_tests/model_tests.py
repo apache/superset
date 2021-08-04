@@ -497,13 +497,15 @@ class TestSqlaTableModel(SupersetTestCase):
         slc = (
             metadata_db.session.query(Slice)
             .filter_by(
-                datasource_id=tbl.id,
-                datasource_type=tbl.type,
-                slice_name="Participants",
+                datasource_id=tbl.id, datasource_type=tbl.type, slice_name="Genders",
             )
             .first()
         )
         data_for_slices = tbl.data_for_slices([slc])
-        self.assertEqual(len(data_for_slices["columns"]), 0)
-        self.assertEqual(len(data_for_slices["metrics"]), 1)
-        self.assertEqual(len(data_for_slices["verbose_map"].keys()), 2)
+        assert len(data_for_slices["metrics"]) == 1
+        assert len(data_for_slices["columns"]) == 1
+        assert data_for_slices["metrics"][0]["metric_name"] == "sum__num"
+        assert data_for_slices["columns"][0]["column_name"] == "gender"
+        assert set(data_for_slices["verbose_map"].keys()) == set(
+            ["__timestamp", "sum__num", "gender",]
+        )
