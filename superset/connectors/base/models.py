@@ -282,10 +282,9 @@ class BaseDatasource(
         column_names = set()
         for slc in slices:
             form_data = slc.form_data
-
             # pull out all required metrics from the form_data
-            for param in METRIC_FORM_DATA_PARAMS:
-                for metric in utils.get_iterable(form_data.get(param) or []):
+            for metric_param in METRIC_FORM_DATA_PARAMS:
+                for metric in utils.get_iterable(form_data.get(metric_param) or []):
                     metric_names.add(utils.get_metric_name(metric))
                     if utils.is_adhoc_metric(metric):
                         column_names.add(
@@ -308,8 +307,8 @@ class BaseDatasource(
 
             column_names.update(
                 column
-                for column in utils.get_iterable(form_data.get(param) or [])
-                for param in COLUMN_FORM_DATA_PARAMS
+                for column_param in COLUMN_FORM_DATA_PARAMS
+                for column in utils.get_iterable(form_data.get(column_param) or [])
             )
 
         filtered_metrics = [
