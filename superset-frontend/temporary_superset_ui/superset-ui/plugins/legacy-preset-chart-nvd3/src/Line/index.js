@@ -42,7 +42,7 @@ const metadata = new ChartMetadata({
     ANNOTATION_TYPES.EVENT,
     ANNOTATION_TYPES.FORMULA,
   ],
-  tags: [t('Aesthetic'), t('Legacy'), t('nvd3')],
+  tags: [t('Aesthetic'), t('Legacy'), t('nvd3'), t('Deprecated')],
   thumbnail,
   useLegacyApi: true,
 });

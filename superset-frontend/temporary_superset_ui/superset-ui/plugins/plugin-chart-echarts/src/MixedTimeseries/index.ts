@@ -55,7 +55,7 @@ export default class EchartsTimeseriesChartPlugin extends ChartPlugin<
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
-        name: t('Mixed timeseries chart'),
+        name: t('Mixed Time-Series'),
         thumbnail,
         tags: [
           t('Advanced-Analytics'),
