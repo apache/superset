@@ -153,10 +153,10 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         if not table_catalog:
             errors.append(
                 SupersetError(
-                    message="URL is required",
+                    message="Missing required field",
                     error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
                     level=ErrorLevel.WARNING,
-                    extra={"invalid": ["catalog"], "name": "", "url": ""},
+                    extra={"catalog": {"idx": 0}},
                 ),
             )
             return errors
@@ -171,6 +171,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
             "gsheets://", service_account_info=credentials_info, subject=subject,
         )
         conn = engine.connect()
+        idx = 0
         for name, url in table_catalog.items():
 
             if not name:
@@ -179,9 +180,21 @@ class GSheetsEngineSpec(SqliteEngineSpec):
                         message="Sheet name is required",
                         error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
                         level=ErrorLevel.WARNING,
-                        extra={"invalid": [], "name": name, "url": url},
+                        extra={"catalog": {"idx": idx, "name": True}},
                     ),
                 )
+                return errors
+
+            if not url:
+                errors.append(
+                    SupersetError(
+                        message="URL is required",
+                        error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+                        level=ErrorLevel.WARNING,
+                        extra={"catalog": {"idx": idx, "url": True}},
+                    ),
+                )
+                return errors
 
             try:
                 results = conn.execute(f'SELECT * FROM "{url}" LIMIT 1')
@@ -192,7 +205,8 @@ class GSheetsEngineSpec(SqliteEngineSpec):
                         message="URL could not be identified",
                         error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
                         level=ErrorLevel.WARNING,
-                        extra={"invalid": ["catalog"], "name": name, "url": url},
+                        extra={"catalog": {"idx": idx, "url": True}},
                     ),
                 )
+            idx += 1
         return errors
