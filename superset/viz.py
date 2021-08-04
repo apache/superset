@@ -1230,7 +1230,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
         d = super().query_obj()
         sort_by = self.form_data.get(
             "timeseries_limit_metric"
-        ) or utils.get_main_metric_name(d.get("metrics") or [])
+        ) or utils.get_first_metric_name(d.get("metrics") or [])
         is_asc = not self.form_data.get("order_desc")
         if sort_by:
             sort_by_label = utils.get_metric_name(sort_by)
