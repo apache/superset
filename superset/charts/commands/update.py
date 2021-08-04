@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from datetime import datetime
 import logging
 from typing import Any, Dict, List, Optional
 
@@ -51,7 +52,9 @@ class UpdateChartCommand(BaseCommand):
     def run(self) -> Model:
         self.validate()
         try:
-            chart = ChartDAO.update(self._model, self._properties)
+            self._properties['last_saved_at'] = datetime.now()
+            self._properties['last_saved_by'] = self._actor
+            chart = ChartDAO.update(self._model, self._properties )
         except DAOUpdateFailedError as ex:
             logger.exception(ex.exception)
             raise ChartUpdateFailedError()
