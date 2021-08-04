@@ -139,17 +139,14 @@ export default function OptionWrapper(
     );
   };
 
-  const ColumnOption = () => {
-    const showTooltip = !isDragging && shouldShowTooltip;
-    return (
-      <StyledColumnOption
-        column={column as ColumnMeta}
-        labelRef={labelRef}
-        showTooltip={!!showTooltip}
-        showType
-      />
-    );
-  };
+  const ColumnOption = () => (
+    <StyledColumnOption
+      column={column as ColumnMeta}
+      labelRef={labelRef}
+      showTooltip={!!shouldShowTooltip}
+      showType
+    />
+  );
 
   const Label = () => {
     if (label) {
