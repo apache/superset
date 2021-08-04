@@ -151,14 +151,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         table_catalog = parameters.get("catalog", {})
 
         if not table_catalog:
-            errors.append(
-                SupersetError(
-                    message="Missing required field",
-                    error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
-                    level=ErrorLevel.WARNING,
-                    extra={"catalog": {"idx": 0}},
-                ),
-            )
+            # Allowing users to submit empty catalogs
             return errors
 
         # We need a subject in case domain wide delegation is set, otherwise the
