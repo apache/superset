@@ -16,17 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, getNumberFormatter } from '@superset-ui/core';
+import { ChartProps, getNumberFormatter, SqlaFormData } from '@superset-ui/core';
 import transformProps, { formatPieLabel } from '../../src/Pie/transformProps';
 import { EchartsPieLabelType } from '../../src/Pie/types';
 
 describe('Pie tranformProps', () => {
-  const formData = {
+  const formData: SqlaFormData = {
     colorScheme: 'bnbColors',
     datasource: '3__table',
     granularity_sqla: 'ds',
     metric: 'sum__num',
     groupby: ['foo', 'bar'],
+    viz_type: 'my_viz',
   };
   const chartProps = new ChartProps({
     formData,
@@ -91,5 +92,20 @@ describe('formatPieLabel', () => {
     expect(
       formatPieLabel({ params, numberFormatter, labelType: EchartsPieLabelType.KeyValuePercent }),
     ).toEqual('My Label: 1.23k (12.34%)');
+    expect(
+      formatPieLabel({
+        params: { ...params, name: '<NULL>' },
+        numberFormatter,
+        labelType: EchartsPieLabelType.Key,
+      }),
+    ).toEqual('<NULL>');
+    expect(
+      formatPieLabel({
+        params: { ...params, name: '<NULL>' },
+        numberFormatter,
+        labelType: EchartsPieLabelType.Key,
+        sanitizeName: true,
+      }),
+    ).toEqual('&lt;NULL&gt;');
   });
 });
