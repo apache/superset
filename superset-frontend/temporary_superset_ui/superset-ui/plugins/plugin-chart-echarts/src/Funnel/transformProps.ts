@@ -50,13 +50,15 @@ export function formatFunnelLabel({
   params,
   labelType,
   numberFormatter,
+  sanitizeName = false,
 }: {
-  params: CallbackDataParams;
+  params: Pick<CallbackDataParams, 'name' | 'value' | 'percent'>;
   labelType: EchartsFunnelLabelTypeType;
   numberFormatter: NumberFormatter;
+  sanitizeName?: boolean;
 }): string {
   const { name: rawName = '', value, percent } = params;
-  const name = sanitizeHtml(rawName);
+  const name = sanitizeName ? sanitizeHtml(rawName) : rawName;
   const formattedValue = numberFormatter(value as number);
   const formattedPercent = percentFormatter((percent as number) / 100);
   switch (labelType) {
