@@ -62,9 +62,7 @@ import {
   EchartsTimeseriesLineChartPlugin,
   EchartsTimeseriesScatterChartPlugin,
   EchartsTimeseriesSmoothLineChartPlugin,
-  EchartsTimeseriesStepEndChartPlugin,
-  EchartsTimeseriesStepMiddleChartPlugin,
-  EchartsTimeseriesStepStartChartPlugin,
+  EchartsTimeseriesStepChartPlugin,
   EchartsGraphChartPlugin,
   EchartsGaugeChartPlugin,
   EchartsRadarChartPlugin,
@@ -159,14 +157,8 @@ export default class MainPreset extends Preset {
         new EchartsTimeseriesScatterChartPlugin().configure({
           key: 'echarts_timeseries_scatter',
         }),
-        new EchartsTimeseriesStepStartChartPlugin().configure({
-          key: 'echarts_timeseries_step_start',
-        }),
-        new EchartsTimeseriesStepMiddleChartPlugin().configure({
-          key: 'echarts_timeseries_step_middle',
-        }),
-        new EchartsTimeseriesStepEndChartPlugin().configure({
-          key: 'echarts_timeseries_step_end',
+        new EchartsTimeseriesStepChartPlugin().configure({
+          key: 'echarts_timeseries_step',
         }),
         new SelectFilterPlugin().configure({ key: 'filter_select' }),
         new RangeFilterPlugin().configure({ key: 'filter_range' }),
