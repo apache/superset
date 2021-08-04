@@ -102,5 +102,20 @@ describe('formatFunnelLabel', () => {
         labelType: EchartsFunnelLabelTypeType.KeyValuePercent,
       }),
     ).toEqual('My Label: 1.23k (12.34%)');
+    expect(
+      formatFunnelLabel({
+        params: { ...params, name: '<NULL>' },
+        numberFormatter,
+        labelType: EchartsFunnelLabelTypeType.Key,
+      }),
+    ).toEqual('<NULL>');
+    expect(
+      formatFunnelLabel({
+        params: { ...params, name: '<NULL>' },
+        numberFormatter,
+        labelType: EchartsFunnelLabelTypeType.Key,
+        sanitizeName: true,
+      }),
+    ).toEqual('&lt;NULL&gt;');
   });
 });
