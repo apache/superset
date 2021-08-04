@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-preset-chart-big-number",
-  "version": "0.17.77",
+  "version": "0.17.78",
   "description": "Superset Legacy Chart - Big Number",
   "sideEffects": [
     "*.css"
@@ -29,7 +29,7 @@
   },
   "dependencies": {
     "@data-ui/xy-chart": "^0.0.84",
-    "@superset-ui/chart-controls": "0.17.77",
+    "@superset-ui/chart-controls": "0.17.78",
     "@superset-ui/core": "0.17.75",
     "@types/d3-color": "^1.2.2",
     "@types/shortid": "^0.0.29",
