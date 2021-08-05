@@ -76,6 +76,18 @@ import {
 } from './styles';
 import ModalHeader, { DOCUMENTATION_LINK } from './ModalHeader';
 
+const engineSpecificAlertMapping = {
+  gsheets: {
+    message: 'Why do I need to create a database?',
+    description:
+      'To begin using your Google Sheets, you need to create a database first. ' +
+      'Databases are used as a way to identify ' +
+      'your data so that it can be queried and visualized. This ' +
+      'database will hold all of your individual Google Sheets ' +
+      'you choose to connect here.',
+  },
+};
+
 const errorAlertMapping = {
   CONNECTION_MISSING_PARAMETERS_ERROR: {
     message: 'Missing Required Fields',
@@ -454,6 +466,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const sslForced = isFeatureEnabled(
     FeatureFlag.FORCE_DATABASE_CONNECTIONS_SSL,
   );
+  const hasAlert =
+    connectionAlert || !!(db?.engine && engineSpecificAlertMapping[db.engine]);
   const useSqlAlchemyForm =
     db?.configuration_method === CONFIGURATION_METHOD.SQLALCHEMY_URI;
   const useTabLayout = isEditMode || useSqlAlchemyForm;
@@ -842,12 +856,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           type="info"
           showIcon
           message={
-            connectionAlert.DB_ALERTS[db.engine]?.message ||
-            connectionAlert.DB_ALERTS.default.message
+            engineSpecificAlertMapping[db.engine]?.message ||
+            connectionAlert?.ALLOWED_IPS?.message
           }
           description={
-            connectionAlert.DB_ALERTS[db.engine]?.description ||
-            connectionAlert.DB_ALERTS.default.description
+            engineSpecificAlertMapping[db.engine]?.description ||
+            connectionAlert?.ALLOWED_IPS?.description
           }
         />
       </StyledAlertMargin>
@@ -1207,7 +1221,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   dbName={dbName}
                   dbModel={dbModel}
                 />
-                {connectionAlert && renderStepTwoAlert()}
+                {hasAlert && renderStepTwoAlert()}
                 <DatabaseConnectionForm
                   db={db}
                   sslForced={sslForced}
