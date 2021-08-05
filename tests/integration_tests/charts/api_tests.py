@@ -187,9 +187,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
         assert set(data["permissions"]) == {
-            "can_get_data",
             "can_read",
-            "can_post_data",
             "can_write",
         }
 
