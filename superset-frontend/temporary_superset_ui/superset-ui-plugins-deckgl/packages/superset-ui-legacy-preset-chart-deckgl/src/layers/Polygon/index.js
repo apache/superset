@@ -24,11 +24,13 @@ import controlPanel from './controlPanel';
 const metadata = new ChartMetadata({
   category: t('Map'),
   credits: ['https://uber.github.io/deck.gl'],
-  description: '',
+  description: t(
+    'Visualizes geographic areas from your data as polygons on a Mapbox rendered map. Polygons can be colored using a metric.',
+  ),
   name: t('deck.gl Polygon'),
   thumbnail,
   useLegacyApi: true,
-  tags: [t('3D'), t('Experimental'), t('Geo'), t('Multi-Dimensions'), t('deckGL')],
+  tags: [t('deckGL'), t('3D'), t('Multi-Dimensions'), t('Geo'), t('Experimental')],
 });
 
 export default class PolygonChartPlugin extends ChartPlugin {

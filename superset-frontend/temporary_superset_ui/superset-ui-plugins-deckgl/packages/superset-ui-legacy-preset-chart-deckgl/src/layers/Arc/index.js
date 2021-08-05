@@ -28,7 +28,7 @@ const metadata = new ChartMetadata({
   name: t('deck.gl Arc'),
   thumbnail,
   useLegacyApi: true,
-  tags: [t('3D'), t('Geo'), t('Relational'), t('Web'), t('deckGL')],
+  tags: [t('deckGL'), t('Geo'), t('3D'), t('Relational'), t('Web')],
 });
 
 export default class ArcChartPlugin extends ChartPlugin {

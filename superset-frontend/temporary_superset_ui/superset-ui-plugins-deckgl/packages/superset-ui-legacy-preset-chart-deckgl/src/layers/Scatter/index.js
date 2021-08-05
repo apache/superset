@@ -31,13 +31,13 @@ const metadata = new ChartMetadata({
   thumbnail,
   useLegacyApi: true,
   tags: [
-    t('2D'),
+    t('deckGL'),
     t('Comparison'),
+    t('Scatter'),
+    t('2D'),
     t('Geo'),
     t('Intensity'),
     t('Density'),
-    t('Scatter'),
-    t('deckGL'),
   ],
 });
 
