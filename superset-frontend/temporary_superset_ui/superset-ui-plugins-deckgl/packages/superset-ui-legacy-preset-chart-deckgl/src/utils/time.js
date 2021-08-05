@@ -77,8 +77,8 @@ function getStepSeconds(step, start) {
 }
 
 export function getPlaySliderParams(timestamps, timeGrain) {
-  const minTimestamp = moment(Math.min(...timestamps));
-  const maxTimestamp = moment(Math.max(...timestamps));
+  const minTimestamp = moment(Number(timestamps.reduce((a,b) => a < b ? a : b)));
+  const maxTimestamp = moment(Number(timestamps.reduce((a,b) => a > b ? a : b)));
   let step;
   let reference;
 
