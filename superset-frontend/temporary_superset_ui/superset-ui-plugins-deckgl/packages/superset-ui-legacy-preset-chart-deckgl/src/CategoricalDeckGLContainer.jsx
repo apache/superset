@@ -130,6 +130,9 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
         points: props.getPoints(features),
       });
     }
+    if (viewport.zoom < 0) {
+      viewport.zoom = 0;
+    }
 
     return {
       start,
