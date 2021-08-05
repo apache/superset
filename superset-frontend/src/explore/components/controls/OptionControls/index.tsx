@@ -201,7 +201,7 @@ export const OptionControlLabel = ({
   const ref = useRef<HTMLDivElement>(null);
   const labelRef = useRef<HTMLDivElement>(null);
   const hasMetricName = savedMetric?.metric_name;
-  const [_, drop] = useDrop({
+  const [, drop] = useDrop({
     accept: type,
     drop() {
       onDropLabel?.();
