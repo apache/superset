@@ -41,8 +41,6 @@ export const OptionLabel = styled.div`
   white-space: nowrap;
 `;
 
-const LabelText = styled.span``;
-
 export default function OptionWrapper(
   props: OptionProps & {
     type: string;
@@ -130,11 +128,11 @@ export default function OptionWrapper(
 
   const LabelContent = () => {
     if (!shouldShowTooltip) {
-      return <LabelText>{label}</LabelText>;
+      return <span>{label}</span>;
     }
     return (
       <Tooltip title={label}>
-        <LabelText>{label}</LabelText>
+        <span>{label}</span>
       </Tooltip>
     );
   };
