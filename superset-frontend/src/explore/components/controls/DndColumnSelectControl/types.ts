@@ -56,7 +56,7 @@ export interface DndColumnSelectProps<
 > extends LabelProps<T> {
   onDrop: (item: DatasourcePanelDndItem) => void;
   canDrop: (item: DatasourcePanelDndItem) => boolean;
-  canDropValue: (value: DndItemValue) => boolean;
+  canDropValue?: (value: DndItemValue) => boolean;
   valuesRenderer: () => ReactNode;
   accept: DndItemType | DndItemType[];
   ghostButtonText?: string;
