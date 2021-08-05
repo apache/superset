@@ -36,7 +36,7 @@ from superset.migrations.shared.security_converge import (
 
 # revision identifiers, used by Alembic.
 revision = "f6196627326f"
-down_revision = "143b6f2815da"
+down_revision = "ae1ed299413b"
 
 PVM_MAP = {
     Pvm("Chart", "can_get_data"): (Pvm("Chart", "can_read"),),
