@@ -24,11 +24,11 @@ import controlPanel from './controlPanel';
 const metadata = new ChartMetadata({
   category: t('Map'),
   credits: ['https://uber.github.io/deck.gl'],
-  description: '',
+  description: t('Visualizes connected points, which form a path, on a map.'),
   name: t('deck.gl Path'),
   thumbnail,
   useLegacyApi: true,
-  tags: [t('Web'), t('deckGL')],
+  tags: [t('deckGL'), t('Web')],
 });
 
 export default class PathChartPlugin extends ChartPlugin {

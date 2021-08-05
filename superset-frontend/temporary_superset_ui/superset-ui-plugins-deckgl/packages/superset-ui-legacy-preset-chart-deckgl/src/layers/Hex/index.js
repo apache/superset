@@ -30,7 +30,7 @@ const metadata = new ChartMetadata({
   name: t('deck.gl 3D Hexagon'),
   thumbnail,
   useLegacyApi: true,
-  tags: [t('3D'), t('Comparison'), t('Experimental'), t('Geo'), t('deckGL')],
+  tags: [t('deckGL'), t('3D'), t('Geo'), t('Comparison'), t('Experimental')],
 });
 
 export default class HexChartPlugin extends ChartPlugin {

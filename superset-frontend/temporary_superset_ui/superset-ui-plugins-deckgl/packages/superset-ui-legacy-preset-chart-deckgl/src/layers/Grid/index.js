@@ -24,11 +24,13 @@ import controlPanel from './controlPanel';
 const metadata = new ChartMetadata({
   category: t('Map'),
   credits: ['https://uber.github.io/deck.gl'],
-  description: '',
+  description: t(
+    'Visualize geospatial data like 3D buildings, landscapes, or objects in grid view.',
+  ),
   name: t('deck.gl Grid'),
   thumbnail,
   useLegacyApi: true,
-  tags: [t('3D'), t('Comparison'), t('Experimental'), t('deckGL')],
+  tags: [t('deckGL'), t('3D'), t('Comparison'), t('Experimental')],
 });
 
 export default class GridChartPlugin extends ChartPlugin {

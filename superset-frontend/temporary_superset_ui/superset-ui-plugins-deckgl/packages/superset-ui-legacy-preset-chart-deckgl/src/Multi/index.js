@@ -24,11 +24,11 @@ import controlPanel from './controlPanel';
 const metadata = new ChartMetadata({
   category: t('Map'),
   credits: ['https://uber.github.io/deck.gl'],
-  description: '',
+  description: t('Compose multiple layers together to form complex visuals.'),
   name: t('deck.gl Multiple Layers'),
   thumbnail,
   useLegacyApi: true,
-  tags: [t('Multi-Layers'), t('deckGL')],
+  tags: [t('deckGL'), t('Multi-Layers')],
 });
 
 export default class MultiChartPlugin extends ChartPlugin {

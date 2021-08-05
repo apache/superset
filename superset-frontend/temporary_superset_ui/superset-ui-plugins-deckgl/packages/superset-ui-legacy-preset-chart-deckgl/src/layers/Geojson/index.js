@@ -24,11 +24,13 @@ import controlPanel from './controlPanel';
 const metadata = new ChartMetadata({
   category: t('Map'),
   credits: ['https://uber.github.io/deck.gl'],
-  description: '',
+  description: t(
+    'The GeoJsonLayer takes in GeoJSON formatted data and renders it as interactive polygons, lines and points (circles, icons and/or texts).',
+  ),
   name: t('deck.gl Geojson'),
   thumbnail,
   useLegacyApi: true,
-  tags: [t('2D'), t('Aesthetic'), t('deckGL')],
+  tags: [t('deckGL'), t('2D'), t('Aesthetic')],
 });
 
 export default class GeojsonChartPlugin extends ChartPlugin {
