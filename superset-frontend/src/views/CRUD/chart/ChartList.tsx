@@ -275,7 +275,13 @@ function ChartList(props: ChartListProps) {
               changed_by_url: changedByUrl,
             },
           },
-        }: any) => <a href={changedByUrl}>{lastSavedBy?.first_name || null}</a>,
+        }: any) => (
+          <a href={changedByUrl}>
+            {lastSavedBy?.first_name
+              ? `${lastSavedBy?.first_name} ${lastSavedBy?.last_name}`
+              : null}
+          </a>
+        ),
         Header: t('Modified by'),
         accessor: 'last_saved_by',
         size: 'xl',
