@@ -16,7 +16,6 @@
 # under the License.
 import json
 import logging
-from datetime import datetime
 from typing import Any, Dict, Optional, Type, TYPE_CHECKING
 from urllib import parse
 
