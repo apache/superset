@@ -42,7 +42,8 @@ export default function DndSelectLabel<T, O>({
       props.onDrop(item);
     },
 
-    canDrop: (item: DatasourcePanelDndItem) => props.canDrop(item),
+    canDrop: (item: DatasourcePanelDndItem) =>
+      props.canDrop(item) && (props.canDropValue?.(item.value) ?? true),
 
     collect: monitor => ({
       isOver: monitor.isOver(),
