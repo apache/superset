@@ -30,7 +30,7 @@ const metadata = new ChartMetadata({
   name: t('deck.gl Screen Grid'),
   thumbnail,
   useLegacyApi: true,
-  tags: [t('Comparison'), t('Experimental'), t('Intensity'), t('Density'), t('deckGL')],
+  tags: [t('deckGL'), t('Comparison'), t('Intensity'), t('Experimental'), t('Density')],
 });
 
 export default class ScreengridChartPlugin extends ChartPlugin {
