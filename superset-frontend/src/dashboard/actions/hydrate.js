@@ -335,7 +335,7 @@ export const hydrateDashboard = (dashboardData, chartData) => (
       dashboardInfo: {
         ...dashboardData,
         metadata,
-        userId: String(user.userId), // legacy, please use state.user instead
+        userId: user.userId ? String(user.userId) : null, // legacy, please use state.user instead
         dash_edit_perm: canEdit,
         dash_save_perm: findPermission('can_save_dash', 'Superset', roles),
         dash_share_perm: findPermission(
