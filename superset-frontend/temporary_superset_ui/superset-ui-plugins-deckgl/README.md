@@ -26,12 +26,13 @@ repo.
 
 ### Releasing
 
-Make sure you have commit rights to the main `superset-ui-plugins-deckgl` repo, have checked it out (NOT a fork!) and
-belong to the `superset-ui` org on npm (=can publish new versions).
+Make sure you have commit rights to the main `superset-ui-plugins-deckgl` repo, have checked it out
+(NOT a fork!) and belong to the `superset-ui` org on npm (=can publish new versions).
 
 1. `yarn install`
 2. `yarn build`
-3. `yarn release-patch-version`. This will raise an error, but you should see a new commit and tag, e.g. `v0.4.8`
+3. `yarn release-patch-version`. This will raise an error, but you should see a new commit and tag,
+   e.g. `v0.4.8`
 4. go to the DeckGL directory: `cd packages/superset-ui-legacy-preset-chart-deckgl`
 5. make sure you're logged into npm: `npm whoami` should display your npm username.
 6. `npm publish`
