@@ -24,8 +24,7 @@ import controlPanel from './controlPanel';
 const metadata = new ChartMetadata({
   category: t('Map'),
   credits: ['https://uber.github.io/deck.gl'],
-  description:
-    t('Plot the distance (like flight paths) between origin and destination.'),
+  description: t('Plot the distance (like flight paths) between origin and destination.'),
   name: t('deck.gl Arc'),
   thumbnail,
   useLegacyApi: true,
