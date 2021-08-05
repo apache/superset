@@ -17,7 +17,7 @@
 """add_last_saved_at_to_slice_model
 
 Revision ID: 6d20ba9ecb33
-Revises: ae1ed299413b
+Revises: ('ae1ed299413b', 'f6196627326f')
 Create Date: 2021-08-02 21:14:58.200438
 
 """
