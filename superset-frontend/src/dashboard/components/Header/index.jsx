@@ -48,7 +48,9 @@ import {
   SAVE_TYPE_OVERWRITE,
   DASHBOARD_POSITION_DATA_LIMIT,
 } from 'src/dashboard/util/constants';
-import setPeriodicRunner from 'src/dashboard/util/setPeriodicRunner';
+import setPeriodicRunner, {
+  stopPeriodicRender,
+} from 'src/dashboard/util/setPeriodicRunner';
 import { options as PeriodicRefreshOptions } from 'src/dashboard/components/RefreshIntervalModal';
 
 const propTypes = {
@@ -196,6 +198,8 @@ class Header extends React.PureComponent {
   }
 
   componentWillUnmount() {
+    stopPeriodicRender(this.refreshTimer);
+    this.props.setRefreshFrequency(0);
     clearTimeout(this.ctrlYTimeout);
     clearTimeout(this.ctrlZTimeout);
   }
