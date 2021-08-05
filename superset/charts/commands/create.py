@@ -14,8 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from datetime import datetime, timedelta
 import logging
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 from flask_appbuilder.models.sqla import Model
@@ -44,8 +44,8 @@ class CreateChartCommand(BaseCommand):
     def run(self) -> Model:
         self.validate()
         try:
-            self._properties['last_saved_at'] = datetime.now()
-            self._properties['last_saved_by'] = self._actor
+            self._properties["last_saved_at"] = datetime.now()
+            self._properties["last_saved_by"] = self._actor
             chart = ChartDAO.create(self._properties)
         except DAOCreateFailedError as ex:
             logger.exception(ex.exception)
