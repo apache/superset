@@ -104,7 +104,7 @@ def _get_full(
         payload["data"] = query_context.get_data(df)
     del payload["df"]
 
-    filters = query_obj.filter
+    filters = query_obj.filter or []
     filter_columns = cast(List[str], [flt.get("col") for flt in filters])
     columns = set(datasource.column_names)
     applied_time_columns, rejected_time_columns = get_time_filter_status(

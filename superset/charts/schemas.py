@@ -756,7 +756,7 @@ class ChartDataPostProcessingOperationSchema(Schema):
 
 class ChartDataFilterSchema(Schema):
     col = fields.String(
-        description="The column to filter.", required=True, example="country"
+        description="The column to filter.", required=True, example="country",
     )
     op = fields.String(  # pylint: disable=invalid-name
         description="The comparison operator.",
@@ -770,6 +770,9 @@ class ChartDataFilterSchema(Schema):
         description="The value or values to compare against. Can be a string, "
         "integer, decimal or list, depending on the operator.",
         example=["China", "France", "Japan"],
+    )
+    grain = fields.String(
+        description="Optional time grain for temporal filters", example="PT1M",
     )
 
 

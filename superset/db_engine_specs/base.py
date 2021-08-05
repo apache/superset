@@ -381,7 +381,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         elif pdf == "epoch_ms":
             time_expr = time_expr.replace("{col}", cls.epoch_ms_to_dttm())
 
-        return TimestampExpression(time_expr, col, type_=DateTime)
+        return TimestampExpression(time_expr, col, type_=col.type)
 
     @classmethod
     def get_time_grains(cls) -> Tuple[TimeGrain, ...]:

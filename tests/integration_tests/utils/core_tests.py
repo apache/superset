@@ -17,10 +17,10 @@
 # pylint: disable=no-self-use
 import pytest
 
-from superset.utils.core import to_adhoc
+from superset.utils.core import form_data_to_adhoc, simple_filter_to_adhoc
 
 
-def test_to_adhoc_generates_deterministic_values():
+def test_simple_filter_to_adhoc_generates_deterministic_values():
     input_1 = {
         "op": "IS NOT NULL",
         "col": "LATITUDE",
@@ -30,8 +30,8 @@ def test_to_adhoc_generates_deterministic_values():
     input_2 = {**input_1, "col": "LONGITUDE"}
 
     # The result is the same when given the same input
-    assert to_adhoc(input_1) == to_adhoc(input_1)
-    assert to_adhoc(input_1) == {
+    assert simple_filter_to_adhoc(input_1) == simple_filter_to_adhoc(input_1)
+    assert simple_filter_to_adhoc(input_1) == {
         "clause": "WHERE",
         "expressionType": "SIMPLE",
         "isExtra": False,
@@ -42,8 +42,8 @@ def test_to_adhoc_generates_deterministic_values():
     }
 
     # The result is different when given different input
-    assert to_adhoc(input_1) != to_adhoc(input_2)
-    assert to_adhoc(input_2) == {
+    assert simple_filter_to_adhoc(input_1) != simple_filter_to_adhoc(input_2)
+    assert simple_filter_to_adhoc(input_2) == {
         "clause": "WHERE",
         "expressionType": "SIMPLE",
         "isExtra": False,
@@ -52,3 +52,36 @@ def test_to_adhoc_generates_deterministic_values():
         "subject": "LONGITUDE",
         "filterOptionName": "c5f283f727d4dfc6258b351d4a8663bc",
     }
+
+
+def test_form_data_to_adhoc_generates_deterministic_values():
+    form_data = {"where": "1 = 1", "having": "count(*) > 1"}
+
+    # The result is the same when given the same input
+    assert form_data_to_adhoc(form_data, "where") == form_data_to_adhoc(
+        form_data, "where"
+    )
+    assert form_data_to_adhoc(form_data, "where") == {
+        "clause": "WHERE",
+        "expressionType": "SQL",
+        "sqlExpression": "1 = 1",
+        "filterOptionName": "99fe79985afbddea4492626dc6a87b74",
+    }
+
+    # The result is different when given different input
+    assert form_data_to_adhoc(form_data, "having") == form_data_to_adhoc(
+        form_data, "having"
+    )
+    assert form_data_to_adhoc(form_data, "having") == {
+        "clause": "HAVING",
+        "expressionType": "SQL",
+        "sqlExpression": "count(*) > 1",
+        "filterOptionName": "1da11f6b709c3190daeabb84f77fc8c2",
+    }
+
+
+def test_form_data_to_adhoc_incorrect_clause_type():
+    form_data = {"where": "1 = 1", "having": "count(*) > 1"}
+
+    with pytest.raises(ValueError):
+        form_data_to_adhoc(form_data, "foobar")
