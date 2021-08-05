@@ -67,7 +67,7 @@ setup(
         "backoff>=1.8.0",
         "bleach>=3.0.2, <4.0.0",
         "cachelib>=0.1.1,<0.2",
-        "celery>=5.0.0, <6.0.0",
+        "celery>=4.3.0, <5.0.0, !=4.4.1",
         "click<8",
         "colorama",
         "croniter>=0.3.28",
