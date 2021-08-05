@@ -24,8 +24,9 @@ import controlPanel from './controlPanel';
 const metadata = new ChartMetadata({
   category: t('Map'),
   credits: ['https://uber.github.io/deck.gl'],
-  description:
-    t('Overlays a hexagonal grid on a map, and aggregates data within the boundary of each cell.'),
+  description: t(
+    'Overlays a hexagonal grid on a map, and aggregates data within the boundary of each cell.',
+  ),
   name: t('deck.gl 3D Hexagon'),
   thumbnail,
   useLegacyApi: true,
