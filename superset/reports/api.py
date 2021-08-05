@@ -129,6 +129,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "creation_method",
         "crontab",
         "crontab_humanized",
+        "description",
         "id",
         "last_eval_dttm",
         "last_state",
@@ -169,6 +170,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
 
     order_columns = [
         "active",
+        "description",
         "created_by.first_name",
         "changed_by.first_name",
         "changed_on",

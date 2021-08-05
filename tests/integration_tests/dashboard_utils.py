@@ -35,6 +35,7 @@ def create_table_for_dashboard(
     dtype: Dict[str, Any],
     table_description: str = "",
     fetch_values_predicate: Optional[str] = None,
+    schema: Optional[str] = None,
 ) -> SqlaTable:
     df.to_sql(
         table_name,
@@ -44,14 +45,17 @@ def create_table_for_dashboard(
         dtype=dtype,
         index=False,
         method="multi",
+        schema=schema,
     )
 
     table_source = ConnectorRegistry.sources["table"]
     table = (
-        db.session.query(table_source).filter_by(table_name=table_name).one_or_none()
+        db.session.query(table_source)
+        .filter_by(database_id=database.id, schema=schema, table_name=table_name)
+        .one_or_none()
     )
     if not table:
-        table = table_source(table_name=table_name)
+        table = table_source(schema=schema, table_name=table_name)
     if fetch_values_predicate:
         table.fetch_values_predicate = fetch_values_predicate
     table.database = database

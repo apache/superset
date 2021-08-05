@@ -16,6 +16,7 @@
 # under the License.
 
 import logging
+from enum import Enum
 from time import sleep
 from typing import Any, Dict, Optional, Tuple, TYPE_CHECKING
 
@@ -40,6 +41,12 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla.models import User
+
+
+class DashboardStandaloneMode(Enum):
+    HIDE_NAV = 1
+    HIDE_NAV_AND_TITLE = 2
+    REPORT = 3
 
 
 class WebDriverProxy:
@@ -96,6 +103,13 @@ class WebDriverProxy:
     def get_screenshot(
         self, url: str, element_name: str, user: "User",
     ) -> Optional[bytes]:
+
+        from requests.models import PreparedRequest
+
+        params = {"standalone": DashboardStandaloneMode.REPORT.value}
+        req = PreparedRequest()
+        req.prepare_url(url, params)
+        url = req.url or ""
 
         driver = self.auth(user)
         driver.set_window_size(*self._window)

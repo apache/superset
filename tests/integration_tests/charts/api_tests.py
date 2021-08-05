@@ -187,9 +187,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
         assert set(data["permissions"]) == {
-            "can_get_data",
             "can_read",
-            "can_post_data",
             "can_write",
         }
 
@@ -545,7 +543,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         """
         admin = self.get_user("admin")
         gamma = self.get_user("gamma")
-        birth_names_table_id = SupersetTestCase.get_table_by_name("birth_names").id
+        birth_names_table_id = SupersetTestCase.get_table(name="birth_names").id
         chart_id = self.insert_chart(
             "title", [admin.id], birth_names_table_id, admin
         ).id

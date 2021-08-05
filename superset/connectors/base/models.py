@@ -282,25 +282,34 @@ class BaseDatasource(
         column_names = set()
         for slc in slices:
             form_data = slc.form_data
-
             # pull out all required metrics from the form_data
-            for param in METRIC_FORM_DATA_PARAMS:
-                for metric in utils.get_iterable(form_data.get(param) or []):
+            for metric_param in METRIC_FORM_DATA_PARAMS:
+                for metric in utils.get_iterable(form_data.get(metric_param) or []):
                     metric_names.add(utils.get_metric_name(metric))
-
                     if utils.is_adhoc_metric(metric):
                         column_names.add(
                             (metric.get("column") or {}).get("column_name")
                         )
 
-            # pull out all required columns from the form_data
-            for filter_ in form_data.get("adhoc_filters") or []:
-                if filter_["clause"] == "WHERE" and filter_.get("subject"):
-                    column_names.add(filter_.get("subject"))
+            # Columns used in query filters
+            column_names.update(
+                filter_["subject"]
+                for filter_ in form_data.get("adhoc_filters") or []
+                if filter_.get("clause") == "WHERE" and filter_.get("subject")
+            )
 
-            for param in COLUMN_FORM_DATA_PARAMS:
-                for column in utils.get_iterable(form_data.get(param) or []):
-                    column_names.add(column)
+            # columns used by Filter Box
+            column_names.update(
+                filter_config["column"]
+                for filter_config in form_data.get("filter_configs") or []
+                if "column" in filter_config
+            )
+
+            column_names.update(
+                column
+                for column_param in COLUMN_FORM_DATA_PARAMS
+                for column in utils.get_iterable(form_data.get(column_param) or [])
+            )
 
         filtered_metrics = [
             metric
