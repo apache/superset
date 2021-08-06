@@ -37,7 +37,7 @@ const propTypes = {
   component: componentShape.isRequired,
   parentComponent: componentShape,
   depth: PropTypes.number.isRequired,
-  disableDragdrop: PropTypes.bool,
+  disableDragDrop: PropTypes.bool,
   orientation: PropTypes.oneOf(['row', 'column']),
   index: PropTypes.number.isRequired,
   style: PropTypes.object,
@@ -58,7 +58,7 @@ const defaultProps = {
   className: null,
   style: null,
   parentComponent: null,
-  disableDragdrop: false,
+  disableDragDrop: false,
   children() {},
   onDrop() {},
   orientation: 'row',
@@ -104,6 +104,7 @@ export class UnwrappedDragDroppable extends React.Component {
       className,
       orientation,
       dragSourceRef,
+      disableDragDrop,
       isDragging,
       isDraggingOver,
       style,
@@ -112,7 +113,7 @@ export class UnwrappedDragDroppable extends React.Component {
 
     const { dropIndicator } = this.state;
     const dropIndicatorProps =
-      isDraggingOver && dropIndicator
+      isDraggingOver && dropIndicator && !disableDragDrop
         ? {
             className: cx(
               'drop-indicator',

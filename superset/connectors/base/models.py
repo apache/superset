@@ -17,24 +17,26 @@
 import json
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, Hashable, List, Optional, Type, Union
+from typing import Any, Dict, Hashable, List, Optional, Set, Type, Union
 
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy import and_, Boolean, Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import foreign, Query, relationship, RelationshipProperty
+from sqlalchemy.orm import foreign, Query, relationship, RelationshipProperty, Session
 
-from superset import security_manager
+from superset import is_feature_enabled, security_manager
 from superset.constants import NULL_STRING
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin, QueryResult
 from superset.models.slice import Slice
 from superset.typing import FilterValue, FilterValues, QueryObjectDict
 from superset.utils import core as utils
+from superset.utils.core import GenericDataType
 
 METRIC_FORM_DATA_PARAMS = [
     "metric",
-    "metrics",
     "metric_2",
+    "metrics",
+    "metrics_b",
     "percent_metrics",
     "secondary_metric",
     "size",
@@ -101,7 +103,7 @@ class BaseDatasource(
     description = Column(Text)
     default_endpoint = Column(Text)
     is_featured = Column(Boolean, default=False)  # TODO deprecating
-    filter_select_enabled = Column(Boolean, default=False)
+    filter_select_enabled = Column(Boolean, default=is_feature_enabled("UX_BETA"))
     offset = Column(Integer, default=0)
     cache_timeout = Column(Integer)
     params = Column(String(1000))
@@ -280,25 +282,34 @@ class BaseDatasource(
         column_names = set()
         for slc in slices:
             form_data = slc.form_data
-
             # pull out all required metrics from the form_data
-            for param in METRIC_FORM_DATA_PARAMS:
-                for metric in utils.get_iterable(form_data.get(param) or []):
+            for metric_param in METRIC_FORM_DATA_PARAMS:
+                for metric in utils.get_iterable(form_data.get(metric_param) or []):
                     metric_names.add(utils.get_metric_name(metric))
-
                     if utils.is_adhoc_metric(metric):
                         column_names.add(
                             (metric.get("column") or {}).get("column_name")
                         )
 
-            # pull out all required columns from the form_data
-            for filter_ in form_data.get("adhoc_filters") or []:
-                if filter_["clause"] == "WHERE" and filter_.get("subject"):
-                    column_names.add(filter_.get("subject"))
+            # Columns used in query filters
+            column_names.update(
+                filter_["subject"]
+                for filter_ in form_data.get("adhoc_filters") or []
+                if filter_.get("clause") == "WHERE" and filter_.get("subject")
+            )
 
-            for param in COLUMN_FORM_DATA_PARAMS:
-                for column in utils.get_iterable(form_data.get(param) or []):
-                    column_names.add(column)
+            # columns used by Filter Box
+            column_names.update(
+                filter_config["column"]
+                for filter_config in form_data.get("filter_configs") or []
+                if "column" in filter_config
+            )
+
+            column_names.update(
+                column
+                for column_param in COLUMN_FORM_DATA_PARAMS
+                for column in utils.get_iterable(form_data.get(column_param) or [])
+            )
 
         filtered_metrics = [
             metric
@@ -306,12 +317,16 @@ class BaseDatasource(
             if metric["metric_name"] in metric_names
         ]
 
-        filtered_columns = [
-            column
-            for column in data["columns"]
-            if column["column_name"] in column_names
-        ]
+        filtered_columns: List[Column] = []
+        column_types: Set[GenericDataType] = set()
+        for column in data["columns"]:
+            generic_type = column.get("type_generic")
+            if generic_type is not None:
+                column_types.add(generic_type)
+            if column["column_name"] in column_names:
+                filtered_columns.append(column)
 
+        data["column_types"] = list(column_types)
         del data["description"]
         data.update({"metrics": filtered_metrics})
         data.update({"columns": filtered_columns})
@@ -510,6 +525,12 @@ class BaseDatasource(
         """
 
         security_manager.raise_for_access(datasource=self)
+
+    @classmethod
+    def get_datasource_by_name(
+        cls, session: Session, datasource_name: str, schema: str, database_name: str
+    ) -> Optional["BaseDatasource"]:
+        raise NotImplementedError()
 
 
 class BaseColumn(AuditMixinNullable, ImportExportMixin):

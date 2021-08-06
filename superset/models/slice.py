@@ -35,8 +35,9 @@ from superset.models.tags import ChartUpdater
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.utils import core as utils
 from superset.utils.hashing import md5_sha_from_str
+from superset.utils.memoized import memoized
 from superset.utils.urls import get_url_path
-from superset.viz import BaseViz, viz_types  # type: ignore
+from superset.viz import BaseViz, viz_types
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
@@ -52,10 +53,9 @@ slice_user = Table(
 logger = logging.getLogger(__name__)
 
 
-class Slice(
+class Slice(  # pylint: disable=too-many-instance-attributes,too-many-public-methods
     Model, AuditMixinNullable, ImportExportMixin
-):  # pylint: disable=too-many-public-methods
-
+):
     """A slice is essentially a report or a view on data"""
 
     __tablename__ = "slices"
@@ -66,6 +66,7 @@ class Slice(
     datasource_name = Column(String(2000))
     viz_type = Column(String(250))
     params = Column(Text)
+    query_context = Column(Text)
     description = Column(Text)
     cache_timeout = Column(Integer)
     perm = Column(String(1000))
@@ -88,6 +89,7 @@ class Slice(
         "datasource_name",
         "viz_type",
         "params",
+        "query_context",
         "cache_timeout",
     ]
     export_parent = "table"
@@ -117,7 +119,7 @@ class Slice(
 
     # pylint: disable=using-constant-test
     @datasource.getter  # type: ignore
-    @utils.memoized
+    @memoized
     def get_datasource(self) -> Optional["BaseDatasource"]:
         return db.session.query(self.cls_model).filter_by(id=self.datasource_id).first()
 
@@ -156,7 +158,7 @@ class Slice(
     # pylint: enable=using-constant-test
 
     @property  # type: ignore
-    @utils.memoized
+    @memoized
     def viz(self) -> Optional[BaseViz]:
         form_data = json.loads(self.params)
         viz_class = viz_types.get(self.viz_type)
@@ -190,6 +192,7 @@ class Slice(
             "description_markeddown": self.description_markeddown,
             "edit_url": self.edit_url,
             "form_data": self.form_data,
+            "query_context": self.query_context,
             "modified": self.modified(),
             "owners": [
                 f"{owner.first_name} {owner.last_name}" for owner in self.owners

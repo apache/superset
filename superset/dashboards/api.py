@@ -18,7 +18,7 @@ import json
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 from zipfile import is_zipfile, ZipFile
 
 from flask import g, make_response, redirect, request, Response, send_file, url_for
@@ -32,7 +32,7 @@ from werkzeug.wsgi import FileWrapper
 
 from superset import is_feature_enabled, thumbnail_cache
 from superset.charts.schemas import ChartEntityResponseSchema
-from superset.commands.exceptions import CommandInvalidError
+from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.dashboards.commands.bulk_delete import BulkDeleteDashboardCommand
@@ -43,7 +43,6 @@ from superset.dashboards.commands.exceptions import (
     DashboardCreateFailedError,
     DashboardDeleteFailedError,
     DashboardForbiddenError,
-    DashboardImportError,
     DashboardInvalidError,
     DashboardNotFoundError,
     DashboardUpdateFailedError,
@@ -707,6 +706,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         requested_ids = kwargs["rison"]
 
         if is_feature_enabled("VERSIONED_EXPORT"):
+            token = request.args.get("token")
             timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
             root = f"dashboard_export_{timestamp}"
             filename = f"{root}.zip"
@@ -723,12 +723,15 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                     return self.response_404()
             buf.seek(0)
 
-            return send_file(
+            response = send_file(
                 buf,
                 mimetype="application/zip",
                 as_attachment=True,
                 attachment_filename=filename,
             )
+            if token:
+                response.set_cookie(token, "done", max_age=600)
+            return response
 
         query = self.datamodel.session.query(Dashboard).filter(
             Dashboard.id.in_(requested_ids)
@@ -752,9 +755,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.thumbnail",
         log_to_statsd=False,
     )
-    def thumbnail(
-        self, pk: int, digest: str, **kwargs: Dict[str, bool]
-    ) -> WerkzeugResponse:
+    def thumbnail(self, pk: int, digest: str, **kwargs: Any) -> WerkzeugResponse:
         """Get Dashboard thumbnail
         ---
         get:
@@ -888,7 +889,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
     @expose("/import/", methods=["POST"])
     @protect()
-    @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
@@ -914,7 +914,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                       type: string
                     overwrite:
                       description: overwrite existing databases?
-                      type: bool
+                      type: boolean
           responses:
             200:
               description: Dashboard import result
@@ -944,6 +944,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             upload.seek(0)
             contents = {upload.filename: upload.read()}
 
+        if not contents:
+            raise NoValidFilesFoundError()
+
         passwords = (
             json.loads(request.form["passwords"])
             if "passwords" in request.form
@@ -954,12 +957,5 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         command = ImportDashboardsCommand(
             contents, passwords=passwords, overwrite=overwrite
         )
-        try:
-            command.run()
-            return self.response(200, message="OK")
-        except CommandInvalidError as exc:
-            logger.warning("Import dashboard failed")
-            return self.response_422(message=exc.normalized_messages())
-        except DashboardImportError as exc:
-            logger.exception("Import dashboard failed")
-            return self.response_500(message=str(exc))
+        command.run()
+        return self.response(200, message="OK")

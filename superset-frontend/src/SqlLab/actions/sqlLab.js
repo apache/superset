@@ -250,18 +250,22 @@ export function queryFailed(query, msg, link, errors) {
           })
         : Promise.resolve();
 
-    return sync
-      .then(() => dispatch({ type: QUERY_FAILED, query, msg, link, errors }))
-      .catch(() =>
-        dispatch(
-          addDangerToast(
-            t(
-              'An error occurred while storing the latest query id in the backend. ' +
-                'Please contact your administrator if this problem persists.',
+    return (
+      sync
+        .catch(() =>
+          dispatch(
+            addDangerToast(
+              t(
+                'An error occurred while storing the latest query id in the backend. ' +
+                  'Please contact your administrator if this problem persists.',
+              ),
             ),
           ),
-        ),
-      );
+        )
+        // We should always show the error message, even if we couldn't sync the
+        // state to the backend
+        .then(() => dispatch({ type: QUERY_FAILED, query, msg, link, errors }))
+    );
   };
 }
 
@@ -987,7 +991,9 @@ export function mergeTable(table, query) {
 function getTableMetadata(table, query, dispatch) {
   return SupersetClient.get({
     endpoint: encodeURI(
-      `/api/v1/database/${query.dbId}/table/${table.name}/${table.schema}/`,
+      `/api/v1/database/${query.dbId}/table/${encodeURIComponent(
+        table.name,
+      )}/${encodeURIComponent(table.schema)}/`,
     ),
   })
     .then(({ json }) => {

@@ -16,26 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { t } from '@superset-ui/core';
+import { filter } from 'lodash';
 import {
   useListViewResource,
   useChartEditModal,
   useFavoriteStatus,
 } from 'src/views/CRUD/hooks';
+import {
+  setInLocalStorage,
+  getFromLocalStorage,
+} from 'src/utils/localStorageHelpers';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { useHistory } from 'react-router-dom';
+import { TableTabTypes } from 'src/views/CRUD/types';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { User } from 'src/types/bootstrapTypes';
+import { CardContainer, PAGE_SIZE } from 'src/views/CRUD/utils';
+import { HOMEPAGE_CHART_FILTER } from 'src/views/CRUD/storageKeys';
 import ChartCard from 'src/views/CRUD/chart/ChartCard';
 import Chart from 'src/types/Chart';
+import handleResourceExport from 'src/utils/export';
 import Loading from 'src/components/Loading';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import SubMenu from 'src/components/Menu/SubMenu';
 import EmptyState from './EmptyState';
-import { CardContainer } from '../utils';
-
-const PAGE_SIZE = 3;
 
 interface ChartTableProps {
   addDangerToast: (message: string) => void;
@@ -45,6 +51,7 @@ interface ChartTableProps {
   user?: User;
   mine: Array<any>;
   showThumbnails: boolean;
+  examples?: Array<object>;
 }
 
 function ChartTable({
@@ -53,8 +60,14 @@ function ChartTable({
   addSuccessToast,
   mine,
   showThumbnails,
+  examples,
 }: ChartTableProps) {
   const history = useHistory();
+  const filterStore = getFromLocalStorage(HOMEPAGE_CHART_FILTER, null);
+  const initialFilter = filterStore || TableTabTypes.EXAMPLES;
+
+  const filteredExamples = filter(examples, obj => 'viz_type' in obj);
+
   const {
     state: { loading, resourceCollection: charts, bulkSelectEnabled },
     setResourceCollection: setCharts,
@@ -66,7 +79,7 @@ function ChartTable({
     t('chart'),
     addDangerToast,
     true,
-    mine,
+    initialFilter === 'Mine' ? mine : filteredExamples,
     [],
     false,
   );
@@ -84,7 +97,24 @@ function ChartTable({
     closeChartEditModal,
   } = useChartEditModal(setCharts, charts);
 
-  const [chartFilter, setChartFilter] = useState('Mine');
+  const [chartFilter, setChartFilter] = useState(initialFilter);
+  const [preparingExport, setPreparingExport] = useState<boolean>(false);
+  const [loaded, setLoaded] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (loaded || chartFilter === 'Favorite') {
+      getData(chartFilter);
+    }
+    setLoaded(true);
+  }, [chartFilter]);
+
+  const handleBulkChartExport = (chartsToExport: Chart[]) => {
+    const ids = chartsToExport.map(({ id }) => id);
+    handleResourceExport('chart', ids, () => {
+      setPreparingExport(false);
+    });
+    setPreparingExport(true);
+  };
 
   const getFilters = (filterName: string) => {
     const filters = [];
@@ -95,7 +125,7 @@ function ChartTable({
         operator: 'rel_o_m',
         value: `${user?.userId}`,
       });
-    } else {
+    } else if (filterName === 'Favorite') {
       filters.push({
         id: 'id',
         operator: 'chart_is_favorite',
@@ -118,6 +148,35 @@ function ChartTable({
       filters: getFilters(filter),
     });
 
+  const menuTabs = [
+    {
+      name: 'Favorite',
+      label: t('Favorite'),
+      onClick: () => {
+        setChartFilter(TableTabTypes.FAVORITE);
+        setInLocalStorage(HOMEPAGE_CHART_FILTER, TableTabTypes.FAVORITE);
+      },
+    },
+    {
+      name: 'Mine',
+      label: t('Mine'),
+      onClick: () => {
+        setChartFilter(TableTabTypes.MINE);
+        setInLocalStorage(HOMEPAGE_CHART_FILTER, TableTabTypes.MINE);
+      },
+    },
+  ];
+  if (examples) {
+    menuTabs.push({
+      name: 'Examples',
+      label: t('Examples'),
+      onClick: () => {
+        setChartFilter(TableTabTypes.EXAMPLES);
+        setInLocalStorage(HOMEPAGE_CHART_FILTER, TableTabTypes.EXAMPLES);
+      },
+    });
+  }
+
   if (loading) return <Loading position="inline" />;
   return (
     <ErrorBoundary>
@@ -132,20 +191,7 @@ function ChartTable({
 
       <SubMenu
         activeChild={chartFilter}
-        // eslint-disable-next-line react/no-children-prop
-        tabs={[
-          {
-            name: 'Favorite',
-            label: t('Favorite'),
-            onClick: () =>
-              getData('Favorite').then(() => setChartFilter('Favorite')),
-          },
-          {
-            name: 'Mine',
-            label: t('Mine'),
-            onClick: () => getData('Mine').then(() => setChartFilter('Mine')),
-          },
-        ]}
+        tabs={menuTabs}
         buttons={[
           {
             name: (
@@ -173,7 +219,7 @@ function ChartTable({
         ]}
       />
       {charts?.length ? (
-        <CardContainer>
+        <CardContainer showThumbnails={showThumbnails}>
           {charts.map(e => (
             <ChartCard
               key={`${e.id}`}
@@ -189,12 +235,14 @@ function ChartTable({
               addSuccessToast={addSuccessToast}
               favoriteStatus={favoriteStatus[e.id]}
               saveFavoriteStatus={saveFavoriteStatus}
+              handleBulkChartExport={handleBulkChartExport}
             />
           ))}
         </CardContainer>
       ) : (
         <EmptyState tableName="CHARTS" tab={chartFilter} />
       )}
+      {preparingExport && <Loading />}
     </ErrorBoundary>
   );
 }

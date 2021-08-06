@@ -35,6 +35,7 @@ import {
 } from '../util/activeDashboardFilters';
 import getFormDataWithExtraFilters from '../util/charts/getFormDataWithExtraFilters';
 import Chart from '../components/gridComponents/Chart';
+import { PLACEHOLDER_DATASOURCE } from '../constants';
 
 const EMPTY_FILTERS = {};
 
@@ -48,13 +49,15 @@ function mapStateToProps(
     datasources,
     sliceEntities,
     nativeFilters,
+    common,
   },
   ownProps,
 ) {
   const { id } = ownProps;
   const chart = chartQueries[id] || {};
   const datasource =
-    (chart && chart.form_data && datasources[chart.form_data.datasource]) || {};
+    (chart && chart.form_data && datasources[chart.form_data.datasource]) ||
+    PLACEHOLDER_DATASOURCE;
   const { colorScheme, colorNamespace } = dashboardState;
 
   // note: this method caches filters if possible to prevent render cascades
@@ -89,6 +92,7 @@ function mapStateToProps(
     sliceCanEdit: !!dashboardInfo.slice_can_edit,
     ownState: dataMask[id]?.ownState,
     filterState: dataMask[id]?.filterState,
+    maxRows: common.conf.SQL_MAX_ROW,
   };
 }
 

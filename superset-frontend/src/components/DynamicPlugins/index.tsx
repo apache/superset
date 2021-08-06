@@ -17,30 +17,45 @@
  * under the License.
  */
 import React, { useContext, useEffect, useReducer } from 'react';
-import { defineSharedModules, logging, makeApi } from '@superset-ui/core';
+import {
+  ChartMetadata,
+  defineSharedModules,
+  getChartMetadataRegistry,
+  logging,
+  makeApi,
+} from '@superset-ui/core';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { omitBy } from 'lodash';
+
+const metadataRegistry = getChartMetadataRegistry();
 
 export type PluginContextType = {
   loading: boolean;
-  plugins: {
+  /** These are actually only the dynamic plugins */
+  dynamicPlugins: {
     [key: string]: {
       key: string;
-      loading: boolean;
+      mounting: boolean;
       error: null | Error;
     };
   };
+  keys: string[];
+  /** Mounted means the plugin's js bundle has been imported */
+  mountedPluginMetadata: Record<string, ChartMetadata>;
   fetchAll: () => void;
 };
 
 const dummyPluginContext: PluginContextType = {
   loading: true,
-  plugins: {},
+  dynamicPlugins: {},
+  keys: [],
+  mountedPluginMetadata: {},
   fetchAll: () => {},
 };
 
 /**
- * It is highly recommended to use the useDynamicPluginContext hook instead.
- * @see useDynamicPluginContext
+ * It is highly recommended to use the usePluginContext hook instead.
+ * @see usePluginContext
  */
 export const PluginContext = React.createContext(dummyPluginContext);
 
@@ -52,7 +67,7 @@ export const PluginContext = React.createContext(dummyPluginContext);
  * Those are compiled into the Superset bundle at build time.
  * Dynamic plugins are added by the end user and can be any webhosted javascript.
  */
-export const useDynamicPluginContext = () => useContext(PluginContext);
+export const usePluginContext = () => useContext(PluginContext);
 
 // the plugin returned from the API
 type Plugin = {
@@ -75,36 +90,58 @@ type BeginAction = {
   keys: string[];
 };
 
+type ChangedKeysAction = {
+  type: 'changed keys';
+};
+
+type PluginAction = BeginAction | CompleteAction | ChangedKeysAction;
+
+function getRegistryData() {
+  return {
+    keys: metadataRegistry.keys(),
+    mountedPluginMetadata: omitBy(
+      metadataRegistry.getMap(),
+      value => value === undefined,
+    ) as Record<string, ChartMetadata>, // cast required to get rid of undefined values
+  };
+}
+
 function pluginContextReducer(
   state: PluginContextType,
-  action: BeginAction | CompleteAction,
+  action: PluginAction,
 ): PluginContextType {
   switch (action.type) {
     case 'begin': {
-      const plugins = { ...state.plugins };
+      const plugins = { ...state.dynamicPlugins };
       action.keys.forEach(key => {
-        plugins[key] = { key, error: null, loading: true };
+        plugins[key] = { key, error: null, mounting: true };
       });
       return {
         ...state,
         loading: action.keys.length > 0,
-        plugins,
+        dynamicPlugins: plugins,
       };
     }
     case 'complete': {
       return {
         ...state,
-        loading: Object.values(state.plugins).some(
-          plugin => plugin.loading && plugin.key !== action.key,
+        loading: Object.values(state.dynamicPlugins).some(
+          plugin => plugin.mounting && plugin.key !== action.key,
         ),
-        plugins: {
-          ...state.plugins,
+        dynamicPlugins: {
+          ...state.dynamicPlugins,
           [action.key]: {
             key: action.key,
-            loading: false,
+            mounting: false,
             error: action.error,
           },
         },
+      };
+    }
+    case 'changed keys': {
+      return {
+        ...state,
+        ...getRegistryData(),
       };
     }
     default:
@@ -126,14 +163,18 @@ const sharedModules = {
 };
 
 export const DynamicPluginProvider: React.FC = ({ children }) => {
-  const [pluginState, dispatch] = useReducer(pluginContextReducer, {
-    // use the dummy plugin context, and override the methods
-    ...dummyPluginContext,
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    fetchAll,
-    loading: isFeatureEnabled(FeatureFlag.DYNAMIC_PLUGINS),
-    // TODO: Write fetchByKeys
-  });
+  const [pluginState, dispatch] = useReducer(
+    pluginContextReducer,
+    dummyPluginContext,
+    state => ({
+      ...state,
+      ...getRegistryData(),
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      fetchAll,
+      loading: isFeatureEnabled(FeatureFlag.DYNAMIC_PLUGINS),
+      // TODO: Write fetchByKeys
+    }),
+  );
 
   // For now, we fetch all the plugins at the same time.
   // In the future it would be nice to fetch on an as-needed basis.
@@ -171,6 +212,13 @@ export const DynamicPluginProvider: React.FC = ({ children }) => {
     if (isFeatureEnabled(FeatureFlag.DYNAMIC_PLUGINS)) {
       fetchAll();
     }
+    const registryListener = () => {
+      dispatch({ type: 'changed keys' });
+    };
+    metadataRegistry.addListener(registryListener);
+    return () => {
+      metadataRegistry.removeListener(registryListener);
+    };
   }, []);
 
   return (

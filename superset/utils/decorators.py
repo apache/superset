@@ -14,18 +14,22 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import time
-from functools import wraps
-from typing import Any, Callable, Dict, Iterator, Union
+from __future__ import annotations
 
-from contextlib2 import contextmanager
+import time
+from contextlib import contextmanager
+from functools import wraps
+from typing import Any, Callable, Dict, Iterator, TYPE_CHECKING, Union
+
 from flask import current_app, Response
 
 from superset import is_feature_enabled
 from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
-from superset.stats_logger import BaseStatsLogger
 from superset.utils import core as utils
 from superset.utils.dates import now_as_float
+
+if TYPE_CHECKING:
+    from superset.stats_logger import BaseStatsLogger
 
 
 @contextmanager
@@ -40,7 +44,7 @@ def stats_timing(stats_key: str, stats_logger: BaseStatsLogger) -> Iterator[floa
         stats_logger.timing(stats_key, now_as_float() - start_ts)
 
 
-def arghash(args: Any, kwargs: Dict[str, Any]) -> int:
+def arghash(args: Any, kwargs: Any) -> int:
     """Simple argument hash with kwargs sorted."""
     sorted_args = tuple(
         x if hasattr(x, "__repr__") else x for x in [*args, *sorted(kwargs.items())]

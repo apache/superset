@@ -54,6 +54,7 @@ const findMatches = (undefinedParameters: string[], templateKeys: string[]) => {
 function ParameterErrorMessage({
   error,
   source = 'sqllab',
+  subtitle,
 }: ErrorMessageComponentProps<ParameterErrorExtra>) {
   const { extra, level, message } = error;
 
@@ -112,7 +113,7 @@ ${extra.issue_codes.map(issueCode => issueCode.message).join('\n')}`;
   return (
     <ErrorAlert
       title={t('Parameter error')}
-      subtitle={message}
+      subtitle={subtitle}
       level={level}
       source={source}
       copyText={copyText}

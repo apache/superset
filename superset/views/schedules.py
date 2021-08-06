@@ -23,11 +23,13 @@ from typing import Type, Union
 
 import simplejson as json
 from croniter import croniter
-from flask import flash, g, Markup
+from flask import current_app as app, flash, g, Markup
 from flask_appbuilder import expose
+from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import lazy_gettext as _
+from werkzeug.exceptions import NotFound
 from wtforms import BooleanField, Form, StringField
 
 from superset import db, security_manager
@@ -53,6 +55,15 @@ class EmailScheduleView(
 ):  # pylint: disable=too-many-ancestors
     include_route_methods = RouteMethod.CRUD_SET
     _extra_data = {"test_email": False, "test_email_recipients": None}
+
+    @staticmethod
+    def is_enabled() -> bool:
+        return app.config["ENABLE_SCHEDULED_EMAIL_REPORTS"]
+
+    @before_request
+    def ensure_enabled(self) -> None:
+        if not self.is_enabled():
+            raise NotFound()
 
     @property
     def schedule_type(self) -> str:

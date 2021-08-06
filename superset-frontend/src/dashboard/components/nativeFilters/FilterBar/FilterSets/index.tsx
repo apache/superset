@@ -22,7 +22,7 @@ import { DataMask, HandlerFunction, styled, t } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
 import { DataMaskState, DataMaskWithId } from 'src/dataMask/types';
 import { setFilterSetsConfiguration } from 'src/dashboard/actions/nativeFilters';
-import { Filters, FilterSet, FilterSets } from 'src/dashboard/reducers/types';
+import { Filters, FilterSet } from 'src/dashboard/reducers/types';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { findExistingFilterSet, generateFiltersSetId } from './utils';
 import { Filter } from '../../types';
@@ -36,6 +36,9 @@ const FilterSetsWrapper = styled.div`
   align-items: center;
   justify-content: center;
   grid-template-columns: 1fr;
+  padding: ${({ theme }) => theme.gridUnit * 2}px
+    ${({ theme }) => theme.gridUnit * 4}px;
+
   & button.superset-button {
     margin-left: 0;
   }
@@ -48,18 +51,17 @@ const FilterSetUnitWrapper = styled.div<{
   onClick?: HandlerFunction;
   'data-selected'?: boolean;
 }>`
-  display: grid;
-  align-items: center;
-  justify-content: center;
-  grid-template-columns: 1fr;
-  grid-gap: ${({ theme }) => theme.gridUnit}px;
-  ${({ theme }) =>
-    `padding: 0 ${theme.gridUnit * 4}px ${theme.gridUnit * 4}px`};
-  border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  padding: ${({ theme }) => `${theme.gridUnit * 3}px ${theme.gridUnit * 2}px`};
-  cursor: ${({ onClick }) => (!onClick ? 'auto' : 'pointer')};
-  ${({ theme, 'data-selected': selected }) =>
-    `background: ${selected ? theme.colors.primary.light5 : 'transparent'}`};
+  ${({ theme, 'data-selected': selected, onClick }) => `
+    display: grid;
+    align-items: center;
+    justify-content: center;
+    grid-template-columns: 1fr;
+    grid-gap: ${theme.gridUnit}px;
+    border-bottom: 1px solid ${theme.colors.grayscale.light2};
+    padding: ${theme.gridUnit * 2}px 0px};
+    cursor: ${!onClick ? 'auto' : 'pointer'};
+    background: ${selected ? theme.colors.primary.light5 : 'transparent'};
+  `}
 `;
 
 export type FilterSetsProps = {

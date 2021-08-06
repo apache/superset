@@ -283,6 +283,67 @@ export const queries = [
     results: null,
   },
 ];
+export const queryWithNoQueryLimit = {
+  dbId: 1,
+  sql: 'SELECT * FROM superset.slices',
+  sqlEditorId: 'SJ8YO72R',
+  tab: 'Demo',
+  runAsync: false,
+  ctas: false,
+  cached: false,
+  id: 'BkA1CLrJg',
+  progress: 100,
+  startDttm: 1476910566092.96,
+  state: 'success',
+  changedOn: 1476910566000,
+  tempTable: null,
+  userId: 1,
+  executedSql: null,
+  changed_on: '2016-10-19T20:56:06',
+  rows: 42,
+  endDttm: 1476910566798,
+  limit_reached: false,
+  schema: 'test_schema',
+  errorMessage: null,
+  db: 'main',
+  user: 'admin',
+  limit: 1000,
+  serverId: 141,
+  resultsKey: null,
+  results: {
+    columns: [
+      {
+        is_date: true,
+        name: 'ds',
+        type: 'STRING',
+      },
+      {
+        is_date: false,
+        name: 'gender',
+        type: 'STRING',
+      },
+    ],
+    selected_columns: [
+      {
+        is_date: true,
+        name: 'ds',
+        type: 'STRING',
+      },
+      {
+        is_date: false,
+        name: 'gender',
+        type: 'STRING',
+      },
+    ],
+    data: [
+      { col1: 0, col2: 1 },
+      { col1: 2, col2: 3 },
+    ],
+    query: {
+      limit: 100,
+    },
+  },
+};
 export const queryWithBadColumns = {
   ...queries[0],
   results: {

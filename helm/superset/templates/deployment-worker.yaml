@@ -53,6 +53,9 @@ spec:
         app: {{ template "superset.name" . }}-worker
         release: {{ .Release.Name }}
     spec:
+      {{- if .Values.serviceAccountName }}
+      serviceAccountName: {{ .Values.serviceAccountName }}
+      {{- end }}
       securityContext:
         runAsUser: {{ .Values.runAsUser }}
       {{- if .Values.supersetWorker.initContainers }}
@@ -67,7 +70,7 @@ spec:
           env:
             - name: "SUPERSET_PORT"
               value: {{ .Values.service.port | quote}}
-          {{ if .Values.extraEnv }}
+          {{- if .Values.extraEnv }}
             {{- range $key, $value := .Values.extraEnv }}
             - name: {{ $key | quote}}
               value: {{ $value | quote }}
@@ -76,6 +79,10 @@ spec:
           envFrom:
             - secretRef:
                 name: {{ tpl .Values.envFromSecret . | quote }}
+            {{- range .Values.envFromSecrets }}
+            - secretRef:
+                name: {{ tpl . $ | quote }}
+            {{- end }}
           volumeMounts:
             - name: superset-config
               mountPath: {{ .Values.configMountPath | quote }}
@@ -94,6 +101,10 @@ spec:
       tolerations:
 {{ toYaml . | indent 8 }}
     {{- end }}
+{{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.imagePullSecrets | indent 8 }}
+      {{- end }}
       volumes:
         - name: superset-config
           secret:

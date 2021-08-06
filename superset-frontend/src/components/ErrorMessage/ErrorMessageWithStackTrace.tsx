@@ -50,7 +50,13 @@ export default function ErrorMessageWithStackTrace({
       error.error_type,
     );
     if (ErrorMessageComponent) {
-      return <ErrorMessageComponent error={error} source={source} />;
+      return (
+        <ErrorMessageComponent
+          error={error}
+          source={source}
+          subtitle={subtitle}
+        />
+      );
     }
   }
 

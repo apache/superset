@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from flask import current_app as app
+from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 import superset.models.core as models
@@ -42,3 +44,13 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
         "referrer",
     ]
     show_columns = list_columns
+
+    @staticmethod
+    def is_enabled() -> bool:
+        return app.config["FAB_ADD_SECURITY_VIEWS"] and app.config["SUPERSET_LOG_VIEW"]
+
+    @before_request
+    def ensure_enabled(self) -> None:
+        if not self.is_enabled():
+            return self.response_404()
+        return None

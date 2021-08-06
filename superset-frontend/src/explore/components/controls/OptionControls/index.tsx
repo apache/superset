@@ -60,9 +60,10 @@ export const Label = styled.div`
       margin-left: ${theme.gridUnit}px;
     }
     .type-label {
-      margin-right: ${theme.gridUnit}px;
+      margin-right: ${theme.gridUnit * 2}px;
       margin-left: ${theme.gridUnit}px;
       font-weight: ${theme.typography.weights.normal};
+      width: auto;
     }
     .option-label {
       display: inline;

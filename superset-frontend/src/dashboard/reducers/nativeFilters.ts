@@ -20,7 +20,10 @@ import {
   AnyFilterAction,
   SAVE_FILTER_SETS,
   SET_FILTER_CONFIG_COMPLETE,
+  SET_IN_SCOPE_STATUS_OF_FILTERS,
   SET_FILTER_SETS_CONFIG_COMPLETE,
+  SET_FOCUSED_NATIVE_FILTER,
+  UNSET_FOCUSED_NATIVE_FILTER,
 } from 'src/dashboard/actions/nativeFilters';
 import { FilterSet, NativeFiltersState } from './types';
 import { FilterConfiguration } from '../components/nativeFilters/types';
@@ -58,6 +61,7 @@ export function getInitialState({
   } else {
     state.filterSets = prevState?.filterSets ?? {};
   }
+  state.focusedFilterId = undefined;
   return state as NativeFiltersState;
 }
 
@@ -89,6 +93,7 @@ export default function nativeFilterReducer(
       };
 
     case SET_FILTER_CONFIG_COMPLETE:
+    case SET_IN_SCOPE_STATUS_OF_FILTERS:
       return getInitialState({ filterConfig: action.filterConfig, state });
 
     case SET_FILTER_SETS_CONFIG_COMPLETE:
@@ -97,6 +102,17 @@ export default function nativeFilterReducer(
         state,
       });
 
+    case SET_FOCUSED_NATIVE_FILTER:
+      return {
+        ...state,
+        focusedFilterId: action.id,
+      };
+
+    case UNSET_FOCUSED_NATIVE_FILTER:
+      return {
+        ...state,
+        focusedFilterId: undefined,
+      };
     // TODO handle SET_FILTER_CONFIG_FAIL action
     default:
       return state;

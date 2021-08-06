@@ -18,10 +18,13 @@
  */
 import React from 'react';
 import Button from 'src/components/Button';
-import Select from 'src/components/Select';
-import { styled, t } from '@superset-ui/core';
+import { Select } from 'src/components';
+import { css, styled, t } from '@superset-ui/core';
+import { FormLabel } from 'src/components/Form';
 
-import VizTypeControl from '../explore/components/controls/VizTypeControl';
+import VizTypeGallery, {
+  MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
+} from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
 
 interface Datasource {
   label: string;
@@ -36,17 +39,62 @@ export type AddSliceContainerState = {
   datasourceId?: string;
   datasourceType?: string;
   datasourceValue?: string;
-  visType: string;
+  visType: string | null;
 };
 
-const styleSelectContainer = { width: 600, marginBottom: '10px' };
+const ESTIMATED_NAV_HEIGHT = '56px';
+
 const StyledContainer = styled.div`
-  border-radius: ${({ theme }) => theme.gridUnit}px;
-  background-color: ${({ theme }) => theme.colors.grayscale.light5};
-  padding: ${({ theme }) => theme.gridUnit * 6}px;
-  h3 {
-    padding-bottom: ${({ theme }) => theme.gridUnit * 3}px;
-  }
+  ${({ theme }) => `
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 100%;
+    max-width: ${MAX_ADVISABLE_VIZ_GALLERY_WIDTH}px;
+    max-height: calc(100vh - ${ESTIMATED_NAV_HEIGHT});
+    border-radius: ${theme.gridUnit}px;
+    background-color: ${theme.colors.grayscale.light5};
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: ${theme.gridUnit * 4}px;
+    padding-right: ${theme.gridUnit * 4}px;
+    padding-bottom: ${theme.gridUnit * 4}px;
+
+    h3 {
+      padding-bottom: ${theme.gridUnit * 3}px;
+    }
+
+    & .dataset {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+
+      & > div {
+        min-width: 200px;
+        width: 300px;
+      }
+
+      & > span {
+        color: ${theme.colors.grayscale.light1};
+        margin-left: ${theme.gridUnit * 4}px;
+        margin-top: ${theme.gridUnit * 6}px;
+      }
+    }
+  `}
+`;
+
+const cssStatic = css`
+  flex: 0 0 auto;
+`;
+
+const StyledVizTypeGallery = styled(VizTypeGallery)`
+  ${({ theme }) => `
+    border: 1px solid ${theme.colors.grayscale.light2};
+    border-radius: ${theme.gridUnit}px;
+    margin: ${theme.gridUnit * 3}px 0px;
+    flex: 1 1 auto;
+  `}
 `;
 
 export default class AddSliceContainer extends React.PureComponent<
@@ -56,7 +104,7 @@ export default class AddSliceContainer extends React.PureComponent<
   constructor(props: AddSliceContainerProps) {
     super(props);
     this.state = {
-      visType: 'table',
+      visType: null,
     };
 
     this.changeDatasource = this.changeDatasource.bind(this);
@@ -78,14 +126,14 @@ export default class AddSliceContainer extends React.PureComponent<
     window.location.href = this.exploreUrl();
   }
 
-  changeDatasource(option: { value: string }) {
+  changeDatasource(value: string) {
     this.setState({
-      datasourceValue: option.value,
-      datasourceId: option.value.split('__')[0],
+      datasourceValue: value,
+      datasourceId: value.split('__')[0],
     });
   }
 
-  changeVisType(visType: string) {
+  changeVisType(visType: string | null) {
     this.setState({ visType });
   }
 
@@ -95,31 +143,23 @@ export default class AddSliceContainer extends React.PureComponent<
 
   render() {
     return (
-      <StyledContainer className="container">
-        <h3>{t('Create a new chart')}</h3>
-        <div>
-          <p>{t('Choose a dataset')}</p>
-          <div style={styleSelectContainer}>
-            <Select
-              clearable={false}
-              ignoreAccents={false}
-              name="select-datasource"
-              onChange={this.changeDatasource}
-              options={this.props.datasources}
-              placeholder={t('Choose a dataset')}
-              value={
-                this.state.datasourceValue
-                  ? {
-                      value: this.state.datasourceValue,
-                    }
-                  : undefined
-              }
-              width={600}
-            />
-          </div>
-          <span className="text-muted">
+      <StyledContainer>
+        <h3 css={cssStatic}>{t('Create a new chart')}</h3>
+        <div className="dataset">
+          <Select
+            autoFocus
+            ariaLabel={t('Dataset')}
+            name="select-datasource"
+            header={<FormLabel required>{t('Choose a dataset')}</FormLabel>}
+            onChange={this.changeDatasource}
+            options={this.props.datasources}
+            placeholder={t('Choose a dataset')}
+            showSearch
+            value={this.state.datasourceValue}
+          />
+          <span>
             {t(
-              'If the dataset you are looking for is not available in the list, follow the instructions on how to add it in the Superset tutorial.',
+              'Instructions to add a dataset are available in the Superset tutorial.',
             )}{' '}
             <a
               href="https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard#adding-a-new-table"
@@ -130,27 +170,23 @@ export default class AddSliceContainer extends React.PureComponent<
             </a>
           </span>
         </div>
-        <br />
-        <div>
-          <p>{t('Choose a visualization type')}</p>
-          <VizTypeControl
-            name="select-vis-type"
-            onChange={this.changeVisType}
-            value={this.state.visType}
-            labelType="primary"
-          />
-        </div>
-        <br />
-        <hr />
+        <StyledVizTypeGallery
+          onChange={this.changeVisType}
+          selectedViz={this.state.visType}
+        />
         <Button
+          css={[
+            cssStatic,
+            css`
+              align-self: flex-end;
+            `,
+          ]}
           buttonStyle="primary"
           disabled={this.isBtnDisabled()}
           onClick={this.gotoSlice}
         >
           {t('Create new chart')}
         </Button>
-        <br />
-        <br />
       </StyledContainer>
     );
   }

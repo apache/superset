@@ -19,13 +19,13 @@
 import React, { useEffect, useState, FunctionComponent } from 'react';
 import moment, { Moment, MomentInput } from 'moment';
 import { t, styled } from '@superset-ui/core';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 
 const REFRESH_INTERVAL = 60000; // every minute
 
 interface LastUpdatedProps {
   updatedAt: MomentInput;
-  update?: React.MouseEventHandler<SVGSVGElement>;
+  update?: React.MouseEventHandler<HTMLSpanElement>;
 }
 moment.updateLocale('en', {
   calendar: {
@@ -42,7 +42,7 @@ const TextStyles = styled.span`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
-const Refresh = styled(Icon)`
+const Refresh = styled(Icons.Refresh)`
   color: ${({ theme }) => theme.colors.primary.base};
   width: auto;
   height: ${({ theme }) => theme.gridUnit * 5}px;
@@ -72,7 +72,7 @@ export const LastUpdated: FunctionComponent<LastUpdatedProps> = ({
   return (
     <TextStyles>
       {t('Last Updated %s', timeSince.isValid() ? timeSince.calendar() : '--')}
-      {update && <Refresh name="refresh" onClick={update} />}
+      {update && <Refresh onClick={update} />}
     </TextStyles>
   );
 };

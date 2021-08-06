@@ -43,8 +43,7 @@ const OptionContainer = styled.div`
   }
   .type-label {
     margin-right: ${({ theme }) => theme.gridUnit * 3}px;
-    margin-left: ${({ theme }) => theme.gridUnit * 3}px;
-    width: ${({ theme }) => theme.gridUnit * 4}px;
+    width: ${({ theme }) => theme.gridUnit * 7}px;
     display: inline-block;
     text-align: center;
     font-weight: ${({ theme }) => theme.typography.weights.bold};

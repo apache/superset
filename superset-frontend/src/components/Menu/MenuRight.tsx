@@ -20,14 +20,14 @@ import React from 'react';
 import { MainNav as Menu } from 'src/common/components';
 import { t, styled, css, SupersetTheme } from '@superset-ui/core';
 import { Link } from 'react-router-dom';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import LanguagePicker from './LanguagePicker';
 import { NavBarProps, MenuObjectProps } from './Menu';
 
 export const dropdownItems = [
   {
     label: t('SQL query'),
-    url: '/superset/sqllab',
+    url: '/superset/sqllab?new=true',
     icon: 'fa-fw fa-search',
   },
   {
@@ -53,29 +53,38 @@ const StyledI = styled.div`
   color: ${({ theme }) => theme.colors.primary.dark1};
 `;
 
-const StyledDiv = styled.div`
+const StyledDiv = styled.div<{ align: string }>`
   display: flex;
   flex-direction: row;
-  justify-content: flex-end;
+  justify-content: ${({ align }) => align};
   align-items: center;
-  min-width: 360px;
-  margin-right: ${({ theme }) => theme.gridUnit * 4}px;
+  margin-right: ${({ theme }) => theme.gridUnit}px;
+  .ant-menu-submenu-title > svg {
+    top: ${({ theme }) => theme.gridUnit * 5.25}px;
+  }
+`;
+
+const StyledAnchor = styled.a`
+  padding-right: ${({ theme }) => theme.gridUnit}px;
+  padding-left: ${({ theme }) => theme.gridUnit}px;
 `;
 
 const { SubMenu } = Menu;
 
 interface RightMenuProps {
+  align: 'flex-start' | 'flex-end';
   settings: MenuObjectProps[];
   navbarRight: NavBarProps;
   isFrontendRoute: (path?: string) => boolean;
 }
 
 const RightMenu = ({
+  align,
   settings,
   navbarRight,
   isFrontendRoute,
 }: RightMenuProps) => (
-  <StyledDiv>
+  <StyledDiv align={align}>
     <Menu mode="horizontal">
       {!navbarRight.user_is_anonymous && (
         <SubMenu
@@ -83,7 +92,7 @@ const RightMenu = ({
           title={
             <StyledI data-test="new-dropdown-icon" className="fa fa-plus" />
           }
-          icon={<Icon name="triangle-down" />}
+          icon={<Icons.TriangleDown />}
         >
           {dropdownItems.map(menu => (
             <Menu.Item key={menu.label}>
@@ -98,7 +107,7 @@ const RightMenu = ({
           ))}
         </SubMenu>
       )}
-      <SubMenu title="Settings" icon={<Icon name="triangle-down" />}>
+      <SubMenu title="Settings" icon={<Icons.TriangleDown iconSize="xl" />}>
         {settings.map((section, index) => [
           <Menu.ItemGroup key={`${section.label}`} title={section.label}>
             {section.childs?.map(child => {
@@ -139,6 +148,11 @@ const RightMenu = ({
           <Menu.Divider key="version-info-divider" />,
           <Menu.ItemGroup key="about-section" title={t('About')}>
             <div className="about-section">
+              {navbarRight.show_watermark && (
+                <div css={versionInfoStyles}>
+                  {t('Powered by Apache Superset')}
+                </div>
+              )}
               {navbarRight.version_string && (
                 <div css={versionInfoStyles}>
                   Version: {navbarRight.version_string}
@@ -161,7 +175,7 @@ const RightMenu = ({
       )}
     </Menu>
     {navbarRight.documentation_url && (
-      <a
+      <StyledAnchor
         href={navbarRight.documentation_url}
         target="_blank"
         rel="noreferrer"
@@ -169,23 +183,23 @@ const RightMenu = ({
       >
         <i className="fa fa-question" />
         &nbsp;
-      </a>
+      </StyledAnchor>
     )}
     {navbarRight.bug_report_url && (
-      <a
+      <StyledAnchor
         href={navbarRight.bug_report_url}
         target="_blank"
         rel="noreferrer"
         title={t('Report a bug')}
       >
         <i className="fa fa-bug" />
-      </a>
+      </StyledAnchor>
     )}
     {navbarRight.user_is_anonymous && (
-      <a href={navbarRight.user_login_url}>
+      <StyledAnchor href={navbarRight.user_login_url}>
         <i className="fa fa-fw fa-sign-in" />
         {t('Login')}
-      </a>
+      </StyledAnchor>
     )}
   </StyledDiv>
 );

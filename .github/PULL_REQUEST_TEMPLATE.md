@@ -4,8 +4,8 @@
 ### BEFORE/AFTER SCREENSHOTS OR ANIMATED GIF
 <!--- Skip this if not applicable -->
 
-### TEST PLAN
-<!--- What steps should be taken to verify the changes -->
+### TESTING INSTRUCTIONS
+<!--- Required! What steps can be taken to manually verify the changes? -->
 
 ### ADDITIONAL INFORMATION
 <!--- Check any relevant boxes with "x" -->

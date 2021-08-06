@@ -18,7 +18,12 @@
  */
 import React from 'react';
 import { Provider } from 'react-redux';
-import { render, screen, fireEvent } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { mockStoreWithChartsInTabsAndRoot } from 'spec/fixtures/mockStore';
 import { Form, FormInstance } from 'src/common/components';
 import { NativeFiltersForm } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/types';
@@ -34,7 +39,7 @@ describe('FilterScope', () => {
     save,
   };
 
-  const MockModal = ({ scope }: { scope: object | undefined }) => {
+  const MockModal = ({ scope }: { scope?: object }) => {
     const [newForm] = Form.useForm<NativeFiltersForm>();
     form = newForm;
     if (scope) {
@@ -55,56 +60,66 @@ describe('FilterScope', () => {
     );
   };
 
-  const getWrapper = (scope?: object) => {
-    render(<MockModal scope={scope} />);
-  };
-
   const getTreeSwitcher = (order = 0) =>
     document.querySelectorAll('.ant-tree-switcher')[order];
 
   it('renders "apply to all" filter scope', () => {
-    getWrapper();
-    expect(screen.queryByRole('tree')).toBe(null);
+    render(<MockModal />);
+    expect(screen.queryByRole('tree')).not.toBeInTheDocument();
   });
 
-  it('select tree values with 1 excluded', () => {
-    getWrapper();
+  it('select tree values with 1 excluded', async () => {
+    render(<MockModal />);
+    fireEvent.click(screen.getByText('Scoping'));
     fireEvent.click(screen.getByLabelText('Apply to specific panels'));
     expect(screen.getByRole('tree')).not.toBe(null);
     fireEvent.click(getTreeSwitcher(2));
     fireEvent.click(screen.getByText('CHART_ID2'));
-    expect(form.getFieldValue('filters')?.[mockedProps.filterId].scope).toEqual(
-      {
+    await waitFor(() =>
+      expect(
+        form.getFieldValue('filters')?.[mockedProps.filterId].scope,
+      ).toEqual({
         excluded: [20],
         rootPath: ['ROOT_ID'],
-      },
+      }),
     );
   });
 
-  it('select 1 value only', () => {
-    getWrapper();
+  it('select 1 value only', async () => {
+    render(<MockModal />);
+    fireEvent.click(screen.getByText('Scoping'));
     fireEvent.click(screen.getByLabelText('Apply to specific panels'));
     expect(screen.getByRole('tree')).not.toBe(null);
     fireEvent.click(getTreeSwitcher(2));
     fireEvent.click(screen.getByText('CHART_ID2'));
     fireEvent.click(screen.getByText('tab1'));
-    expect(form.getFieldValue('filters')?.[mockedProps.filterId].scope).toEqual(
-      {
+    await waitFor(() =>
+      expect(
+        form.getFieldValue('filters')?.[mockedProps.filterId].scope,
+      ).toEqual({
         excluded: [18, 20],
         rootPath: ['ROOT_ID'],
-      },
+      }),
     );
   });
 
-  it('correct init tree with values', () => {
-    getWrapper({
-      rootPath: ['TAB_ID'],
-      excluded: [],
-    });
-    fireEvent.click(screen.getByLabelText('Apply to specific panels'));
-    expect(screen.getByRole('tree')).not.toBe(null);
-    expect(document.querySelectorAll('.ant-tree-checkbox-checked').length).toBe(
-      1,
+  it('correct init tree with values', async () => {
+    render(
+      <MockModal
+        scope={{
+          rootPath: ['TAB_ID'],
+          excluded: [],
+        }}
+      />,
     );
+    fireEvent.click(screen.getByText('Scoping'));
+    fireEvent.click(screen.getByLabelText('Apply to specific panels'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('tree')).toBeInTheDocument();
+      expect(
+        document.querySelectorAll('.ant-tree-checkbox-checked').length,
+      ).toBe(1);
+    });
   });
 });

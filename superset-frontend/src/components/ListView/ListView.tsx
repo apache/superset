@@ -23,7 +23,7 @@ import Alert from 'src/components/Alert';
 import { ReactComponent as EmptyImage } from 'images/empty.svg';
 import cx from 'classnames';
 import Button from 'src/components/Button';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import { TableCollection, Pagination } from 'src/components/dataViewCommon';
 import CardCollection from './CardCollection';
@@ -114,6 +114,10 @@ const BulkSelectWrapper = styled(Alert)`
     vertical-align: middle;
     position: relative;
   }
+
+  .ant-alert-close-icon {
+    margin-top: ${({ theme }) => theme.gridUnit * 1.5}px;
+  }
 `;
 
 const bulkSelectColumnConfig = {
@@ -138,7 +142,7 @@ const ViewModeContainer = styled.div`
     display: inline-block;
     border-radius: ${({ theme }) => theme.gridUnit / 2}px;
     padding: ${({ theme }) => theme.gridUnit}px;
-    padding-bottom: 0;
+    padding-bottom: ${({ theme }) => theme.gridUnit * 0.5}px;
 
     &:first-of-type {
       margin-right: ${({ theme }) => theme.gridUnit * 2}px;
@@ -178,7 +182,7 @@ const ViewModeToggle = ({
       }}
       className={cx('toggle-button', { active: mode === 'card' })}
     >
-      <Icon name="card-view" />
+      <Icons.CardView />
     </div>
     <div
       role="button"
@@ -189,7 +193,7 @@ const ViewModeToggle = ({
       }}
       className={cx('toggle-button', { active: mode === 'table' })}
     >
-      <Icon name="list-view" />
+      <Icons.ListView />
     </div>
   </ViewModeContainer>
 );

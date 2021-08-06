@@ -51,3 +51,12 @@ test('calls onChange with correct values', async () => {
     expect(defaultProps.onChange).toHaveBeenLastCalledWith([1, 2]),
   );
 });
+
+test('receives 0 value', async () => {
+  render(<BoundsControl {...defaultProps} />);
+  const minInput = screen.getAllByRole('spinbutton')[0];
+  userEvent.type(minInput, '0');
+  await waitFor(() =>
+    expect(defaultProps.onChange).toHaveBeenLastCalledWith([0, null]),
+  );
+});

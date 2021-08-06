@@ -275,6 +275,32 @@ export function fetchCharts(
   };
 }
 
+const refreshCharts = (chartList, force, interval, dashboardId, dispatch) =>
+  new Promise(resolve => {
+    dispatch(fetchCharts(chartList, force, interval, dashboardId));
+    resolve();
+  });
+
+export const ON_REFRESH_SUCCESS = 'ON_REFRESH_SUCCESS';
+export function onRefreshSuccess() {
+  return { type: ON_REFRESH_SUCCESS };
+}
+
+export const ON_REFRESH = 'ON_REFRESH';
+export function onRefresh(
+  chartList = [],
+  force = false,
+  interval = 0,
+  dashboardId,
+) {
+  return dispatch => {
+    dispatch({ type: ON_REFRESH });
+    refreshCharts(chartList, force, interval, dashboardId, dispatch).then(() =>
+      dispatch({ type: ON_REFRESH_SUCCESS }),
+    );
+  };
+}
+
 export const SHOW_BUILDER_PANE = 'SHOW_BUILDER_PANE';
 export function showBuilderPane() {
   return { type: SHOW_BUILDER_PANE };
@@ -344,6 +370,11 @@ export function setDirectPathToChild(path) {
   return { type: SET_DIRECT_PATH, path };
 }
 
+export const SET_ACTIVE_TABS = 'SET_ACTIVE_TABS';
+export function setActiveTabs(tabIds) {
+  return { type: SET_ACTIVE_TABS, tabIds };
+}
+
 export const SET_FOCUSED_FILTER_FIELD = 'SET_FOCUSED_FILTER_FIELD';
 export function setFocusedFilterField(chartId, column) {
   return { type: SET_FOCUSED_FILTER_FIELD, chartId, column };
@@ -352,6 +383,11 @@ export function setFocusedFilterField(chartId, column) {
 export const UNSET_FOCUSED_FILTER_FIELD = 'UNSET_FOCUSED_FILTER_FIELD';
 export function unsetFocusedFilterField(chartId, column) {
   return { type: UNSET_FOCUSED_FILTER_FIELD, chartId, column };
+}
+
+export const SET_FULL_SIZE_CHART_ID = 'SET_FULL_SIZE_CHART_ID';
+export function setFullSizeChartId(chartId) {
+  return { type: SET_FULL_SIZE_CHART_ID, chartId };
 }
 
 // Undo history ---------------------------------------------------------------

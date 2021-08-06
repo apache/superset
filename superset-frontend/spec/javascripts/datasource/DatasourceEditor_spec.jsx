@@ -21,9 +21,12 @@ import { shallow } from 'enzyme';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
+import userEvent from '@testing-library/user-event';
+import { render, screen } from 'spec/helpers/testing-library';
+
 import { Radio } from 'src/components/Radio';
 
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import Tabs from 'src/components/Tabs';
 import DatasourceEditor from 'src/datasource/DatasourceEditor';
 import Field from 'src/CRUD/Field';
@@ -37,8 +40,7 @@ const props = {
   addDangerToast: () => {},
   onChange: () => {},
 };
-
-const DATASOURCE_ENDPOINT = 'glob:*/datasource/external_metadata/*';
+const DATASOURCE_ENDPOINT = 'glob:*/datasource/external_metadata_by_name/*';
 
 describe('DatasourceEditor', () => {
   const mockStore = configureStore([thunk]);
@@ -54,6 +56,10 @@ describe('DatasourceEditor', () => {
     el = <DatasourceEditor {...props} store={store} />;
     wrapper = shallow(el).dive();
     inst = wrapper.instance();
+  });
+
+  afterEach(() => {
+    wrapper.unmount();
   });
 
   it('is valid', () => {
@@ -86,6 +92,7 @@ describe('DatasourceEditor', () => {
         nullable: true,
         default: '',
         primary_key: false,
+        is_dttm: true,
       },
       {
         name: 'gender',
@@ -93,6 +100,7 @@ describe('DatasourceEditor', () => {
         nullable: true,
         default: '',
         primary_key: false,
+        is_dttm: false,
       },
       {
         name: 'new_column',
@@ -100,6 +108,7 @@ describe('DatasourceEditor', () => {
         nullable: true,
         default: '',
         primary_key: false,
+        is_dttm: false,
       },
     ];
 
@@ -164,8 +173,8 @@ describe('DatasourceEditor', () => {
       const sourceTab = wrapper.find(Tabs.TabPane).first();
       expect(sourceTab.find(Radio).first().prop('disabled')).toBe(false);
 
-      const icon = sourceTab.find(Icon);
-      expect(icon.prop('name')).toBe('lock-unlocked');
+      const icon = wrapper.find(Icons.LockUnlocked);
+      expect(icon).toExist();
 
       const tableSelector = sourceTab.find(Field).shallow().find(TableSelector);
       expect(tableSelector.length).toBe(1);
@@ -177,8 +186,8 @@ describe('DatasourceEditor', () => {
       expect(sourceTab.find(Radio).length).toBe(2);
       expect(sourceTab.find(Radio).first().prop('disabled')).toBe(true);
 
-      const icon = sourceTab.find(Icon);
-      expect(icon.prop('name')).toBe('lock-locked');
+      const icon = wrapper.find(Icons.LockLocked);
+      expect(icon).toExist();
       icon.parent().simulate('click');
       expect(wrapper.state('isEditMode')).toBe(true);
 
@@ -200,9 +209,44 @@ describe('DatasourceEditor', () => {
     expect(sourceTab.find(Radio).length).toBe(2);
     expect(sourceTab.find(Radio).first().prop('disabled')).toBe(true);
 
-    const icon = sourceTab.find(Icon);
+    const icon = sourceTab.find(Icons.LockLocked);
     expect(icon).toHaveLength(0);
 
     isFeatureEnabledMock.mockRestore();
+  });
+});
+
+describe('DatasourceEditor RTL', () => {
+  it('properly renders the metric information', async () => {
+    render(<DatasourceEditor {...props} />, { useRedux: true });
+    const metricButton = screen.getByTestId('collection-tab-Metrics');
+    userEvent.click(metricButton);
+    const expandToggle = await screen.findAllByLabelText(/toggle expand/i);
+    userEvent.click(expandToggle[0]);
+    const certificationDetails = await screen.findByPlaceholderText(
+      /certification details/i,
+    );
+    expect(certificationDetails.value).toEqual('foo');
+    const warningMarkdown = await await screen.findByPlaceholderText(
+      /certified by/i,
+    );
+    expect(warningMarkdown.value).toEqual('someone');
+  });
+  it('properly updates the metric information', async () => {
+    render(<DatasourceEditor {...props} />, {
+      useRedux: true,
+    });
+    const metricButton = screen.getByTestId('collection-tab-Metrics');
+    userEvent.click(metricButton);
+    const expandToggle = await screen.findAllByLabelText(/toggle expand/i);
+    userEvent.click(expandToggle[1]);
+    const certifiedBy = await screen.findByPlaceholderText(/certified by/i);
+    userEvent.type(certifiedBy, 'I am typing a new name');
+    const certificationDetails = await screen.findByPlaceholderText(
+      /certification details/i,
+    );
+    expect(certifiedBy.value).toEqual('I am typing a new name');
+    userEvent.type(certificationDetails, 'I am typing something new');
+    expect(certificationDetails.value).toEqual('I am typing something new');
   });
 });
