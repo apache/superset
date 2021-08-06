@@ -297,10 +297,10 @@ class TestChartsUpdateCommand(SupersetTestCase):
             "owners": [1],
         }
         command = UpdateChartCommand(actor, model_id, json_obj)
-        last_saved_before = db.session.query(Slice).filter_by(datasource_id=pk).all()[0]
+        last_saved_before = db.session.query(Slice).get(pk).last_saved_at
         command.run()
         # session = db.session
-        chart = db.session.query(Slice).filter_by(datasource_id=pk).all()[0]
+        chart = db.session.query(Slice).get(pk)
         print("chart", chart.__dict__)
         # session.refresh(chart)
         assert chart.last_saved_at != last_saved_before
