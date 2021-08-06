@@ -293,7 +293,11 @@ class TestDatabaseModel(SupersetTestCase):
         }
         sqla_query = table.get_sqla_query(**query_obj)
         sql = table.database.compile_sqla_query(sqla_query.sqla_query)
-        self.assertIn("IN (true, false)", sql)
+        dialect = table.database.get_dialect()
+        operand = "(true, false)"
+        if not dialect.supports_native_boolean:
+            operand = "(1, 0)"
+        self.assertIn(f"IN {operand}", sql)
 
     def test_incorrect_jinja_syntax_raises_correct_exception(self):
         query_obj = {
