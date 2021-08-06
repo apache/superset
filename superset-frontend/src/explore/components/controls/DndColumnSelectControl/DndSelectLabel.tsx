@@ -55,7 +55,10 @@ export default function DndSelectLabel<T, O>({
 
   function renderGhostButton() {
     return (
-      <AddControlLabel cancelHover>
+      <AddControlLabel
+        cancelHover={!props.onClickGhostButton}
+        onClick={props.onClickGhostButton}
+      >
         <Icons.PlusSmall iconColor={theme.colors.grayscale.light1} />
         {t(props.ghostButtonText || 'Drop columns here')}
       </AddControlLabel>

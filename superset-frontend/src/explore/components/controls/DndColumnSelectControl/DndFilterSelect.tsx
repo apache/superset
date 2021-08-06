@@ -333,6 +333,11 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
     ],
   );
 
+  const handleClickGhostButton = useCallback(() => {
+    setDroppedItem(null);
+    togglePopover(true);
+  }, [togglePopover]);
+
   const adhocFilter = useMemo(() => {
     if (droppedItem?.metric_name) {
       return new AdhocFilter({
@@ -375,6 +380,7 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
         valuesRenderer={valuesRenderer}
         accept={DND_ACCEPTED_TYPES}
         ghostButtonText={t('Drop columns or metrics here')}
+        onClickGhostButton={handleClickGhostButton}
         {...props}
       />
       <AdhocFilterPopoverTrigger

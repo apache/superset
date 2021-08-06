@@ -312,6 +312,11 @@ export const DndMetricSelect = (props: any) => {
     [onNewMetric, togglePopover],
   );
 
+  const handleClickGhostButton = useCallback(() => {
+    setDroppedItem(null);
+    togglePopover(true);
+  }, [togglePopover]);
+
   const adhocMetric = useMemo(() => {
     if (droppedItem?.type === DndItemType.Column) {
       const itemValue = droppedItem?.value as ColumnMeta;
@@ -347,6 +352,7 @@ export const DndMetricSelect = (props: any) => {
           multi ? 2 : 1,
         )}
         displayGhostButton={multi || value.length === 0}
+        onClickGhostButton={handleClickGhostButton}
         {...props}
       />
       <AdhocMetricPopoverTrigger
