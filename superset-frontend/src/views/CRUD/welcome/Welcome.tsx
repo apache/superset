@@ -159,16 +159,14 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     null,
   );
   const [loadedCount, setLoadedCount] = useState(0);
-  const [activeState, setActiveState] = useState<Array<string>>(
-    DEFAULT_TAB_ARR,
-  );
+
+  const collapseState = getFromLocalStorage(HOMEPAGE_COLLAPSE_STATE, null);
+  const [activeState, setActiveState] = useState<Array<string>>(collapseState);
 
   const handleCollapse = (state: Array<string>) => {
     setActiveState(state);
     setInLocalStorage(HOMEPAGE_COLLAPSE_STATE, state);
   };
-
-  const collapseState = getFromLocalStorage(HOMEPAGE_COLLAPSE_STATE, null);
 
   useEffect(() => {
     const activeTab = getFromLocalStorage(HOMEPAGE_ACTIVITY_FILTER, null);
@@ -242,7 +240,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   };
 
   useEffect(() => {
-    if (queryData?.length) {
+    if (!collapseState && queryData?.length) {
       setActiveState(activeState => [...activeState, '4']);
     }
     setActivityData(activityData => ({
