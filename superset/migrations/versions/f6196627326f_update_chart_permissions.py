@@ -38,6 +38,7 @@ from superset.migrations.shared.security_converge import (
 revision = "f6196627326f"
 down_revision = "143b6f2815da"
 
+NEW_PVMS = {"Chart": ("can_read",)}
 PVM_MAP = {
     Pvm("Chart", "can_get_data"): (Pvm("Chart", "can_read"),),
     Pvm("Chart", "can_post_data"): (Pvm("Chart", "can_read"),),
@@ -49,6 +50,7 @@ def upgrade():
     session = Session(bind=bind)
 
     # Add the new permissions on the migration itself
+    add_pvms(session, NEW_PVMS)
     migrate_roles(session, PVM_MAP)
     try:
         session.commit()
