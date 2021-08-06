@@ -20,6 +20,8 @@ from typing import Any, Dict, NamedTuple, List, Pattern, Tuple, Union
 from unittest.mock import patch
 import pytest
 
+import sqlalchemy as sa
+
 from superset import db
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.db_engine_specs.bigquery import BigQueryEngineSpec
@@ -295,7 +297,10 @@ class TestDatabaseModel(SupersetTestCase):
         sql = table.database.compile_sqla_query(sqla_query.sqla_query)
         dialect = table.database.get_dialect()
         operand = "(true, false)"
-        if not dialect.supports_native_boolean:
+
+        # override native_boolean=False behavior in MySQLCompiler
+        # https://github.com/sqlalchemy/sqlalchemy/blob/b75630cec9418ef087e7c6af0370ac6ba728a251/lib/sqlalchemy/dialects/mysql/base.py
+        if not dialect.supports_native_boolean and dialect.name != "mysql":
             operand = "(1, 0)"
         self.assertIn(f"IN {operand}", sql)
 
