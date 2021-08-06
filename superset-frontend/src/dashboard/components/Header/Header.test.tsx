@@ -38,7 +38,17 @@ const createProps = () => ({
       conf: {},
     },
   },
-  userId: 1,
+  user: {
+    createdOn: '2021-04-27T18:12:38.952304',
+    email: 'admin',
+    firstName: 'admin',
+    isActive: true,
+    lastName: 'admin',
+    permissions: {},
+    roles: { Admin: Array(173) },
+    userId: 1,
+    username: 'admin',
+  },
   dashboardTitle: 'Dashboard Title',
   charts: {},
   layout: {},
@@ -54,6 +64,8 @@ const createProps = () => ({
   onChange: jest.fn(),
   fetchFaveStar: jest.fn(),
   fetchCharts: jest.fn(),
+  onRefresh: jest.fn(),
+  fetchUISpecificReport: jest.fn(),
   saveFaveStar: jest.fn(),
   savePublished: jest.fn(),
   isPublished: false,
@@ -96,6 +108,7 @@ const redoProps = {
 };
 
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
+fetchMock.get('glob:*/api/v1/report*', {});
 
 function setup(props: HeaderProps) {
   return (
@@ -253,10 +266,9 @@ test('should NOT render the fave icon on anonymous user', () => {
   const mockedProps = createProps();
   const anonymousUserProps = {
     ...mockedProps,
-    userId: undefined,
+    user: undefined,
   };
   render(setup(anonymousUserProps));
-  expect(mockedProps.fetchFaveStar).not.toHaveBeenCalled();
   expect(() =>
     screen.getByRole('img', { name: 'favorite-unselected' }),
   ).toThrowError('Unable to find');
@@ -301,5 +313,5 @@ test('should refresh the charts', async () => {
   render(setup(mockedProps));
   await openActionsDropdown();
   userEvent.click(screen.getByText('Refresh dashboard'));
-  expect(mockedProps.fetchCharts).toHaveBeenCalledTimes(1);
+  expect(mockedProps.onRefresh).toHaveBeenCalledTimes(1);
 });

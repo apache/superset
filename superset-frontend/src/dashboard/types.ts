@@ -60,6 +60,7 @@ export type DashboardState = {
   directPathToChild: string[];
   activeTabs: ActiveTabs;
   fullSizeChartId: number | null;
+  isRefreshing: boolean;
 };
 export type DashboardInfo = {
   common: {

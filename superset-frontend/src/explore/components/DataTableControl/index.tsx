@@ -122,7 +122,7 @@ export const useTableColumns = (
         ? Object.keys(data[0]).map(
             key =>
               ({
-                accessor: key,
+                accessor: row => row[key],
                 Header: key,
                 Cell: ({ value }) => {
                   if (value === true) {

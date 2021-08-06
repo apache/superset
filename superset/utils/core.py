@@ -85,6 +85,7 @@ from typing_extensions import TypedDict
 
 import _thread  # pylint: disable=C0411
 from superset.constants import (
+    EXAMPLES_DB_UUID,
     EXTRA_FORM_DATA_APPEND_KEYS,
     EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
     EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
@@ -113,6 +114,8 @@ logging.getLogger("MARKDOWN").setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
 
 DTTM_ALIAS = "__timestamp"
+
+TIME_COMPARISION = "__"
 
 JS_MAX_INTEGER = 9007199254740991  # Largest int Java Script can handle 2^53-1
 
@@ -178,6 +181,7 @@ class ChartDataResultType(str, Enum):
     RESULTS = "results"
     SAMPLES = "samples"
     TIMEGRAINS = "timegrains"
+    POST_PROCESSED = "post_processed"
 
 
 class DatasourceDict(TypedDict):
@@ -1167,9 +1171,16 @@ def get_or_create_db(
         db.session.query(models.Database).filter_by(database_name=database_name).first()
     )
 
+    # databases with a fixed UUID
+    uuids = {
+        "examples": EXAMPLES_DB_UUID,
+    }
+
     if not database and always_create:
         logger.info("Creating database reference for %s", database_name)
-        database = models.Database(database_name=database_name)
+        database = models.Database(
+            database_name=database_name, uuid=uuids.get(database_name)
+        )
         db.session.add(database)
 
     if database:
@@ -1206,10 +1217,10 @@ def get_metric_name(metric: Metric) -> str:
 
 
 def get_metric_names(metrics: Sequence[Metric]) -> List[str]:
-    return [get_metric_name(metric) for metric in metrics]
+    return [metric for metric in map(get_metric_name, metrics) if metric]
 
 
-def get_main_metric_name(metrics: Sequence[Metric]) -> Optional[str]:
+def get_first_metric_name(metrics: Sequence[Metric]) -> Optional[str]:
     metric_labels = get_metric_names(metrics)
     return metric_labels[0] if metric_labels else None
 
@@ -1416,7 +1427,6 @@ def get_iterable(x: Any) -> List[Any]:
     :param x: The object
     :returns: An iterable representation
     """
-
     return x if isinstance(x, list) else [x]
 
 
@@ -1453,12 +1463,7 @@ def get_column_names_from_metrics(metrics: List[Metric]) -> List[str]:
     :param metrics: Ad-hoc metric
     :return: column name if simple metric, otherwise None
     """
-    columns: List[str] = []
-    for metric in metrics:
-        column_name = get_column_name_from_metric(metric)
-        if column_name:
-            columns.append(column_name)
-    return columns
+    return [col for col in map(get_column_name_from_metric, metrics) if col]
 
 
 def extract_dataframe_dtypes(df: pd.DataFrame) -> List[GenericDataType]:

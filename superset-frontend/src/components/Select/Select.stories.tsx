@@ -144,6 +144,11 @@ InteractiveSelect.argTypes = {
       disable: true,
     },
   },
+  fetchOnlyOnSearch: {
+    table: {
+      disable: true,
+    },
+  },
 };
 
 InteractiveSelect.story = {
@@ -296,10 +301,12 @@ const USERS = [
 
 export const AsyncSelect = ({
   withError,
+  withInitialValue,
   responseTime,
   ...rest
 }: SelectProps & {
   withError: boolean;
+  withInitialValue: boolean;
   responseTime: number;
 }) => {
   const [requests, setRequests] = useState<ReactNode[]>([]);
@@ -340,15 +347,18 @@ export const AsyncSelect = ({
   const fetchUserListPage = useCallback(
     (
       search: string,
-      offset: number,
-      limit: number,
+      page: number,
+      pageSize: number,
     ): Promise<OptionsTypePage> => {
       const username = search.trim().toLowerCase();
       return new Promise(resolve => {
         let results = getResults(username);
         const totalCount = results.length;
-        results = results.splice(offset, limit);
-        setRequestLog(offset + results.length, totalCount, username);
+        const start = page * pageSize;
+        const deleteCount =
+          start + pageSize < totalCount ? pageSize : totalCount - start;
+        results = results.splice(start, deleteCount);
+        setRequestLog(start + results.length, totalCount, username);
         setTimeout(() => {
           resolve({ data: results, totalCount });
         }, responseTime * 1000);
@@ -372,6 +382,11 @@ export const AsyncSelect = ({
         <Select
           {...rest}
           options={withError ? fetchUserListError : fetchUserListPage}
+          value={
+            withInitialValue
+              ? { label: 'Valentina', value: 'Valentina' }
+              : undefined
+          }
         />
       </div>
       <div
@@ -395,9 +410,11 @@ export const AsyncSelect = ({
 };
 
 AsyncSelect.args = {
-  withError: false,
-  pageSize: 10,
   allowNewOptions: false,
+  fetchOnlyOnSearch: false,
+  pageSize: 10,
+  withError: false,
+  withInitialValue: false,
 };
 
 AsyncSelect.argTypes = {
@@ -428,6 +445,7 @@ AsyncSelect.argTypes = {
       type: 'range',
       min: 0.5,
       max: 5,
+      step: 0.5,
     },
   },
 };

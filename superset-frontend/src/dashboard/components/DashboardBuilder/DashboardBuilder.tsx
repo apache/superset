@@ -19,7 +19,7 @@
 /* eslint-env browser */
 import cx from 'classnames';
 import React, { FC } from 'react';
-import { JsonObject, styled } from '@superset-ui/core';
+import { JsonObject, styled, css } from '@superset-ui/core';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
 import DashboardHeader from 'src/dashboard/containers/DashboardHeader';
@@ -48,6 +48,7 @@ import {
 } from 'src/dashboard/util/constants';
 import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar';
 import Loading from 'src/components/Loading';
+import { Global } from '@emotion/react';
 import { shouldFocusTabs, getRootLevelTabsComponent } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
@@ -69,10 +70,11 @@ const StyledDiv = styled.div`
   flex: 1;
 `;
 
+// @z-index-above-dashboard-charts + 1 = 11
 const FiltersPanel = styled.div`
   grid-column: 1;
   grid-row: 1 / span 2;
-  z-index: 2;
+  z-index: 11;
 `;
 
 const StickyPanel = styled.div<{ width: number }>`
@@ -82,12 +84,13 @@ const StickyPanel = styled.div<{ width: number }>`
   flex: 0 0 ${({ width }) => width}px;
 `;
 
+// @z-index-above-dashboard-popovers (99) + 1 = 100
 const StyledHeader = styled.div`
   grid-column: 2;
   grid-row: 1;
   position: sticky;
   top: 0px;
-  z-index: 2;
+  z-index: 100;
 `;
 
 const StyledContent = styled.div<{
@@ -95,7 +98,8 @@ const StyledContent = styled.div<{
 }>`
   grid-column: 2;
   grid-row: 2;
-  z-index: ${({ fullSizeChartId }) => (fullSizeChartId ? 1000 : 1)};
+  // @z-index-above-dashboard-header (100) + 1 = 101
+  ${({ fullSizeChartId }) => fullSizeChartId && `z-index: 101;`}
 `;
 
 const StyledDashboardContent = styled.div<{
@@ -177,9 +181,10 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     rootChildId !== DASHBOARD_GRID_ID
       ? dashboardLayout[rootChildId]
       : undefined;
-  const isStandalone = getUrlParam(URL_PARAMS.standalone);
+  const StandaloneMode = getUrlParam(URL_PARAMS.standalone);
+  const isReport = StandaloneMode === DashboardStandaloneMode.REPORT;
   const hideDashboardHeader =
-    isStandalone === DashboardStandaloneMode.HIDE_NAV_AND_TITLE;
+    StandaloneMode === DashboardStandaloneMode.HIDE_NAV_AND_TITLE || isReport;
 
   const barTopOffset =
     (hideDashboardHeader ? 0 : HEADER_HEIGHT) +
@@ -206,7 +211,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
 
   const offset =
     FILTER_BAR_HEADER_HEIGHT +
-    (isSticky || isStandalone ? 0 : MAIN_HEADER_HEIGHT) +
+    (isSticky || StandaloneMode ? 0 : MAIN_HEADER_HEIGHT) +
     (filterSetEnabled ? FILTER_BAR_TABS_HEIGHT : 0);
 
   const filterBarHeight = `calc(100vh - ${offset}px)`;
@@ -242,7 +247,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
           onDrop={dropResult => dispatch(handleComponentDrop(dropResult))}
           editMode={editMode}
           // you cannot drop on/displace tabs if they already exist
-          disableDragdrop={!!topLevelTabs}
+          disableDragDrop={!!topLevelTabs}
           style={{
             marginLeft: dashboardFiltersOpen || editMode ? 0 : -32,
           }}
@@ -251,7 +256,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
             <div>
               {!hideDashboardHeader && <DashboardHeader />}
               {dropIndicatorProps && <div {...dropIndicatorProps} />}
-              {topLevelTabs && (
+              {!isReport && topLevelTabs && (
                 <WithPopoverMenu
                   shouldFocus={shouldFocusTabs}
                   menuItems={[
@@ -281,6 +286,13 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
         </DragDroppable>
       </StyledHeader>
       <StyledContent fullSizeChartId={fullSizeChartId}>
+        <Global
+          styles={css`
+            // @z-index-above-dashboard-header (100) + 1 = 101
+            ${fullSizeChartId &&
+            `div > .filterStatusPopover.ant-popover{z-index: 101}`}
+          `}
+        />
         <div
           data-test="dashboard-content"
           className={cx('dashboard', editMode && 'dashboard--editing')}

@@ -48,6 +48,7 @@ export interface TableViewProps {
   isPaginationSticky?: boolean;
   showRowCount?: boolean;
   scrollTable?: boolean;
+  small?: boolean;
 }
 
 const EmptyWrapper = styled.div`
@@ -57,6 +58,7 @@ const EmptyWrapper = styled.div`
 const TableViewStyles = styled.div<{
   isPaginationSticky?: boolean;
   scrollTable?: boolean;
+  small?: boolean;
 }>`
   ${({ scrollTable, theme }) =>
     scrollTable &&
@@ -67,11 +69,24 @@ const TableViewStyles = styled.div<{
   `}
 
   .table-row {
-    height: 43px;
+    ${({ theme, small }) => !small && `height: ${theme.gridUnit * 11 - 1}px;`}
+
+    .table-cell {
+      ${({ theme, small }) =>
+        small &&
+        `
+        padding-top: ${theme.gridUnit + 1}px;
+        padding-bottom: ${theme.gridUnit + 1}px;
+        line-height: 1.45;
+      `}
+    }
   }
 
   th[role='columnheader'] {
     z-index: 1;
+    border-bottom: ${({ theme }) =>
+      `${theme.gridUnit - 2}px solid ${theme.colors.grayscale.light2}`};
+    ${({ small }) => small && `padding-bottom: 0;`}
   }
 
   .pagination-container {
@@ -81,7 +96,7 @@ const TableViewStyles = styled.div<{
     align-items: center;
     background-color: ${({ theme }) => theme.colors.grayscale.light5};
 
-    ${({ theme, isPaginationSticky }) =>
+    ${({ isPaginationSticky }) =>
       isPaginationSticky &&
       `
         position: sticky;

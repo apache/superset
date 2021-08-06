@@ -43,6 +43,7 @@ export type AdhocMetricPopoverTriggerProps = {
 };
 
 export type AdhocMetricPopoverTriggerState = {
+  adhocMetric: AdhocMetric;
   popoverVisible: boolean;
   title: { label: string; hasCustomLabel: boolean };
   currentLabel: string;
@@ -65,6 +66,7 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
     this.onChange = this.onChange.bind(this);
 
     this.state = {
+      adhocMetric: props.adhocMetric,
       popoverVisible: false,
       title: {
         label: props.adhocMetric.label,
@@ -73,6 +75,26 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
       currentLabel: '',
       labelModified: false,
       isTitleEditDisabled: false,
+    };
+  }
+
+  static getDerivedStateFromProps(
+    nextProps: AdhocMetricPopoverTriggerProps,
+    prevState: AdhocMetricPopoverTriggerState,
+  ) {
+    if (prevState.adhocMetric.optionName !== nextProps.adhocMetric.optionName) {
+      return {
+        adhocMetric: nextProps.adhocMetric,
+        title: {
+          label: nextProps.adhocMetric.label,
+          hasCustomLabel: nextProps.adhocMetric.hasCustomLabel,
+        },
+        currentLabel: '',
+        labelModified: false,
+      };
+    }
+    return {
+      adhocMetric: nextProps.adhocMetric,
     };
   }
 

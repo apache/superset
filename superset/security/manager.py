@@ -179,6 +179,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "can_list",
         "can_get",
         "can_external_metadata",
+        "can_external_metadata_by_name",
         "can_read",
     }
 

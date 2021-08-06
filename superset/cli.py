@@ -19,6 +19,7 @@ import json
 import logging
 import sys
 from datetime import datetime, timedelta
+from pathlib import Path
 from subprocess import Popen
 from typing import Any, Dict, List, Optional, Type, Union
 from zipfile import is_zipfile, ZipFile
@@ -30,7 +31,6 @@ from colorama import Fore, Style
 from flask import current_app, g
 from flask.cli import FlaskGroup, with_appcontext
 from flask_appbuilder import Model
-from pathlib2 import Path
 
 from superset import app, appbuilder, config, security_manager
 from superset.app import create_app
@@ -133,8 +133,9 @@ def load_examples_run(
     print("Loading [Birth names]")
     examples.load_birth_names(only_metadata, force)
 
-    print("Loading [Tabbed dashboard]")
-    examples.load_tabbed_dashboard(only_metadata)
+    if load_test_data:
+        print("Loading [Tabbed dashboard]")
+        examples.load_tabbed_dashboard(only_metadata)
 
     if not load_test_data:
         print("Loading [Random time series data]")

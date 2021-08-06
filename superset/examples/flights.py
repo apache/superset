@@ -63,6 +63,7 @@ def load_flights(only_metadata: bool = False, force: bool = False) -> None:
         tbl = table(table_name=tbl_name)
     tbl.description = "Random set of flights in the US"
     tbl.database = database
+    tbl.filter_select_enabled = True
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
