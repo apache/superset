@@ -26,6 +26,10 @@ interface ColumnSelectPopoverTriggerProps {
   columns: ColumnMeta[];
   editedColumn?: ColumnMeta;
   onColumnEdit: (editedColumn: ColumnMeta) => void;
+  isControlledComponent?: boolean;
+  visible?: boolean;
+  togglePopover?: (visible: boolean) => void;
+  closePopover?: () => void;
   children: React.ReactNode;
 }
 
@@ -33,7 +37,9 @@ const ColumnSelectPopoverTrigger = ({
   columns,
   editedColumn,
   onColumnEdit,
+  isControlledComponent,
   children,
+  ...props
 }: ColumnSelectPopoverTriggerProps) => {
   const [popoverVisible, setPopoverVisible] = useState(false);
 
@@ -45,18 +51,34 @@ const ColumnSelectPopoverTrigger = ({
     setPopoverVisible(false);
   }, []);
 
+  const {
+    visible,
+    handleTogglePopover,
+    handleClosePopover,
+  } = isControlledComponent
+    ? {
+        visible: props.visible,
+        handleTogglePopover: props.togglePopover!,
+        handleClosePopover: props.closePopover!,
+      }
+    : {
+        visible: popoverVisible,
+        handleTogglePopover: togglePopover,
+        handleClosePopover: closePopover,
+      };
+
   const overlayContent = useMemo(
     () => (
       <ExplorePopoverContent>
         <ColumnSelectPopover
           editedColumn={editedColumn}
           columns={columns}
-          onClose={closePopover}
+          onClose={handleClosePopover}
           onChange={onColumnEdit}
         />
       </ExplorePopoverContent>
     ),
-    [closePopover, columns, editedColumn, onColumnEdit],
+    [columns, editedColumn, handleClosePopover, onColumnEdit],
   );
 
   return (
@@ -64,9 +86,9 @@ const ColumnSelectPopoverTrigger = ({
       placement="right"
       trigger="click"
       content={overlayContent}
-      defaultVisible={popoverVisible}
-      visible={popoverVisible}
-      onVisibleChange={togglePopover}
+      defaultVisible={visible}
+      visible={visible}
+      onVisibleChange={handleTogglePopover}
       destroyTooltipOnHide
     >
       {children}

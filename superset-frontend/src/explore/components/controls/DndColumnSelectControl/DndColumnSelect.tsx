@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { tn } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
@@ -40,6 +40,8 @@ export const DndColumnSelect = (props: LabelProps) => {
     name,
     label,
   } = props;
+  const [newColumnPopoverVisible, setNewColumnPopoverVisible] = useState(false);
+
   const optionSelector = useMemo(
     () => new OptionSelector(options, multi, value),
     [multi, options, value],
@@ -111,11 +113,22 @@ export const DndColumnSelect = (props: LabelProps) => {
     [onChange, optionSelector],
   );
 
+  const popoverOptions = useMemo(
+    () =>
+      Object.values(options).filter(
+        col =>
+          !optionSelector.values
+            .map(val => val.column_name)
+            .includes(col.column_name),
+      ),
+    [optionSelector.values, options],
+  );
+
   const valuesRenderer = useCallback(
     () =>
       optionSelector.values.map((column, idx) => (
         <ColumnSelectPopoverTrigger
-          columns={Object.values(options)}
+          columns={popoverOptions}
           onColumnEdit={newColumn => {
             optionSelector.replace(idx, newColumn.column_name);
             onChange(optionSelector.getValues());
@@ -142,22 +155,54 @@ export const DndColumnSelect = (props: LabelProps) => {
       onClickClose,
       onShiftOptions,
       optionSelector,
-      options,
+      popoverOptions,
     ],
   );
 
+  const addNewColumnWithPopover = useCallback(
+    (newColumn: ColumnMeta) => {
+      optionSelector.add(newColumn.column_name);
+      onChange(optionSelector.getValues());
+    },
+    [onChange, optionSelector],
+  );
+
+  const togglePopover = useCallback((visible: boolean) => {
+    setNewColumnPopoverVisible(visible);
+  }, []);
+
+  const closePopover = useCallback(() => {
+    togglePopover(false);
+  }, [togglePopover]);
+
+  const openPopover = useCallback(() => {
+    togglePopover(true);
+  }, [togglePopover]);
+
   return (
-    <DndSelectLabel<string | string[], ColumnMeta[]>
-      onDrop={onDrop}
-      canDrop={canDrop}
-      valuesRenderer={valuesRenderer}
-      accept={DndItemType.Column}
-      displayGhostButton={multi || optionSelector.values.length === 0}
-      ghostButtonText={
-        ghostButtonText ||
-        tn('Drop column here', 'Drop columns here', multi ? 2 : 1)
-      }
-      {...props}
-    />
+    <div>
+      <DndSelectLabel<string | string[], ColumnMeta[]>
+        onDrop={onDrop}
+        canDrop={canDrop}
+        valuesRenderer={valuesRenderer}
+        accept={DndItemType.Column}
+        displayGhostButton={multi || optionSelector.values.length === 0}
+        ghostButtonText={
+          ghostButtonText || tn('Drop column here', 'Drop columns here', multi ? 2 : 1)
+        }
+        onClickGhostButton={openPopover}
+        {...props}
+      />
+      <ColumnSelectPopoverTrigger
+        columns={popoverOptions}
+        onColumnEdit={addNewColumnWithPopover}
+        isControlledComponent
+        togglePopover={togglePopover}
+        closePopover={closePopover}
+        visible={newColumnPopoverVisible}
+      >
+        <div />
+      </ColumnSelectPopoverTrigger>
+    </div>
   );
 };
