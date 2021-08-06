@@ -45,8 +45,6 @@ export const DndColumnSelect = (props: LabelProps) => {
     [multi, options, value],
   );
 
-  console.log("DND COLUMN SELECT")
-
   // synchronize values in case of dataset changes
   const handleOptionsChange = useCallback(() => {
     const optionSelectorValues = optionSelector.getValues();
