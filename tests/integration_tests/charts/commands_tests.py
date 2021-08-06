@@ -17,6 +17,7 @@
 # pylint: disable=no-self-use, invalid-name
 
 import json
+from datetime import datetime
 from unittest.mock import patch
 
 import pytest
@@ -295,7 +296,8 @@ class TestChartsUpdateCommand(SupersetTestCase):
             "owners": [1],
         }
         command = UpdateChartCommand(actor, model_id, json_obj)
+        last_saved_before = db.session.query(Slice).all()[0].last_saved_at
         command.run()
         chart = db.session.query(Slice).all()[0]
-        assert chart.description == "test for update"
+        assert chart.last_saved_at != last_saved_before
         assert chart.last_saved_by == actor
