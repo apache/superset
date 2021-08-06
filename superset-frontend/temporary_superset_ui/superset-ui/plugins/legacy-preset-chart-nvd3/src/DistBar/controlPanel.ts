@@ -16,8 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, validateNonEmpty } from '@superset-ui/core';
-import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
+import { ensureIsArray, t, validateNonEmpty } from '@superset-ui/core';
+import {
+  ColumnMeta,
+  ControlPanelConfig,
+  sections,
+  sharedControls,
+} from '@superset-ui/chart-controls';
 import {
   showLegend,
   showControls,
@@ -107,10 +112,24 @@ const config: ControlPanelConfig = {
     groupby: {
       label: t('Series'),
       validators: [validateNonEmpty],
+      mapStateToProps: (state, controlState) => {
+        const groupbyProps = sharedControls.groupby.mapStateToProps?.(state, controlState) || {};
+        groupbyProps.canDropValue = (column: ColumnMeta) =>
+          !ensureIsArray(state.controls?.columns?.value).includes(column.column_name);
+        return groupbyProps;
+      },
+      rerender: ['columns'],
     },
     columns: {
       label: t('Breakdowns'),
       description: t('Defines how each series is broken down'),
+      mapStateToProps: (state, controlState) => {
+        const columnsProps = sharedControls.columns.mapStateToProps?.(state, controlState) || {};
+        columnsProps.canDropValue = (column: ColumnMeta) =>
+          !ensureIsArray(state.controls?.groupby?.value).includes(column.column_name);
+        return columnsProps;
+      },
+      rerender: ['groupby'],
     },
   },
 };
