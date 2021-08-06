@@ -122,10 +122,14 @@ export default function OptionWrapper(
   });
 
   const shouldShowTooltip =
-    !isDragging &&
-    labelRef &&
-    labelRef.current &&
-    labelRef.current.scrollWidth > labelRef.current.clientWidth;
+    (!isDragging &&
+      tooltipTitle &&
+      label &&
+      tooltipTitle.length > label.length) ||
+    (!isDragging &&
+      labelRef &&
+      labelRef.current &&
+      labelRef.current.scrollWidth > labelRef.current.clientWidth);
 
   const LabelContent = () => {
     if (!shouldShowTooltip) {
