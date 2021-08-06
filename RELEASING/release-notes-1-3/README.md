@@ -19,7 +19,7 @@ under the License.
 
 # Release Notes for Superset 1.3
 
-Superset 1.3 focus on hardening and improving the superset user experience, with tons of improvements and bugfixes focused on charts, dashboards, and the new dashboard-native filters.
+Superset 1.3 focus on hardening and polishing the superset user experience, with tons of UX improvements and bugfixes focused on charts, dashboards, and the new dashboard-native filters.
 
 - [**User Experience**](#user-experience)
 - [**PR Highlights**](#pr-highlights)
@@ -34,7 +34,15 @@ Native-filters can also be set to load collapsed, which also improves connected 
 
 ![dashboard native filter collapsed](media/native_filters_collapsed.png)
 
-Users can now download a full .csv of the full dataset behind a table chart from the dashboard.
+For charts, we've added a new funnel chart.
+
+![funnel chart](media/funnel_chart.png)
+
+Users can also now use Jinja templating in calculated columns and SQL metrics.
+
+![jinja templating](media/jinja_templating.png)
+
+At the dashboard level, work has been focused on improving available information and UX ergonomics. Users can now download a full .csv of the full dataset behind a table chart from the dashboard.
 
 ![export full csv](media/export_full_csv.png)
 
@@ -55,12 +63,11 @@ Also in the works is a new database connection UI, which should make connecting 
 - [14682](https://github.com/apache/superset/pull/14682) add ascend engine spec (#14682) (@Daniel Wood)
 - [14420](https://github.com/apache/superset/pull/14420) feat: API endpoint to validate databases using separate parameters (#14420) (@Beto Dealmeida)
 - [14934](https://github.com/apache/superset/pull/14934) feat: Adding FORCE_SSL as feature flag in config.py (#14934) (@AAfghahi)
-
-**Improvements to Dashboard Native Filters**
+- [14480](https://github.com/apache/superset/pull/14480) feat(viz): add funnel chart (#14480) (@Ville Brofeldt)
 
 
 
 ## Breaking Changes and Full Changelog
 
 - To see the complete changelog in this release, head to [CHANGELOG.MD](../../CHANGELOG.md).
-- In line with the semantic versioning scheme adopted by the community, 1.3.0 does not contain any backwards incompatible changes.
+- 1.3.0 does not contain any backwards incompatible changes.
