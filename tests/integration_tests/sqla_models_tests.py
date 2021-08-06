@@ -297,7 +297,6 @@ class TestDatabaseModel(SupersetTestCase):
         sql = table.database.compile_sqla_query(sqla_query.sqla_query)
         dialect = table.database.get_dialect()
         operand = "(true, false)"
-
         # override native_boolean=False behavior in MySQLCompiler
         # https://github.com/sqlalchemy/sqlalchemy/blob/master/lib/sqlalchemy/dialects/mysql/base.py
         if not dialect.supports_native_boolean and dialect.name != "mysql":
