@@ -280,15 +280,16 @@ class TestImportChartsCommand(SupersetTestCase):
 
 
 class TestChartsUpdateCommand(SupersetTestCase):
+    @patch("superset.views.base.g")
+    @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_update_v1_response(self):
+    def test_update_v1_response(self, mock_sm_g, mock_g):
         """"Test that a chart command updates properties"""
         pk = db.session.query(Slice).all()[0].id
-        g.user = security_manager.find_user(username="admin")
-        actor = g.user
+        actor = security_manager.find_user(username="admin")
+        mock_g.user = mock_sm_g.user = actor
         model_id = pk
         json_obj = {
-            "slice_name": "Update_Energy_SanKey_Chart",
             "description": "test for update",
             "cache_timeout": None,
             "owners": [1],
@@ -296,6 +297,5 @@ class TestChartsUpdateCommand(SupersetTestCase):
         command = UpdateChartCommand(actor, model_id, json_obj)
         command.run()
         chart = db.session.query(Slice).all()[0]
-        assert chart.slice_name == "Update_Energy_SanKey_Chart"
         assert chart.description == "test for update"
-        assert chart.last_saved_by == g.user
+        assert chart.last_saved_by == actor
