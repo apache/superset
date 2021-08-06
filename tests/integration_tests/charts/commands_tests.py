@@ -287,6 +287,7 @@ class TestChartsUpdateCommand(SupersetTestCase):
     def test_update_v1_response(self, mock_sm_g, mock_g):
         """"Test that a chart command updates properties"""
         pk = db.session.query(Slice).all()[0].id
+        print("pk =>", pk)
         actor = security_manager.find_user(username="admin")
         mock_g.user = mock_sm_g.user = actor
         model_id = pk
@@ -296,9 +297,11 @@ class TestChartsUpdateCommand(SupersetTestCase):
             "owners": [1],
         }
         command = UpdateChartCommand(actor, model_id, json_obj)
-        last_saved_before = db.session.query(Slice).all()[0].last_saved_at
+        last_saved_before = db.session.query(Slice).filter_by(datasource_id=pk).all()[0]
         command.run()
-        chart = db.session.query(Slice).all()[0]
+        # session = db.session
+        chart = db.session.query(Slice).filter_by(datasource_id=pk).all()[0]
         print("chart", chart.__dict__)
+        # session.refresh(chart)
         assert chart.last_saved_at != last_saved_before
         assert chart.last_saved_by == actor
