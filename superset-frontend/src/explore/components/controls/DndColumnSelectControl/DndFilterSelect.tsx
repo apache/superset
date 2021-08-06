@@ -298,6 +298,7 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
     () =>
       values.map((adhocFilter: AdhocFilter, index: number) => {
         const label = adhocFilter.getDefaultLabel();
+        const tooltipTitle = adhocFilter.getTooltipTitle();
         return (
           <AdhocFilterPopoverTrigger
             key={index}
@@ -311,6 +312,7 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
               key={index}
               index={index}
               label={label}
+              tooltipTitle={tooltipTitle}
               clickClose={onClickClose}
               onShiftOptions={onShiftOptions}
               type={DndItemType.FilterOption}

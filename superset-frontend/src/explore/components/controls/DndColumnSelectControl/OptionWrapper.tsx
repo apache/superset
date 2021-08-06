@@ -50,6 +50,7 @@ export default function OptionWrapper(
   const {
     index,
     label,
+    tooltipTitle,
     column,
     type,
     onShiftOptions,
@@ -131,7 +132,7 @@ export default function OptionWrapper(
       return <span>{label}</span>;
     }
     return (
-      <Tooltip title={label}>
+      <Tooltip title={tooltipTitle || label}>
         <span>{label}</span>
       </Tooltip>
     );
