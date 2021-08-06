@@ -45,6 +45,8 @@ export const DndColumnSelect = (props: LabelProps) => {
     [multi, options, value],
   );
 
+  console.log("DND COLUMN SELECT")
+
   // synchronize values in case of dataset changes
   const handleOptionsChange = useCallback(() => {
     const optionSelectorValues = optionSelector.getValues();
@@ -68,7 +70,7 @@ export const DndColumnSelect = (props: LabelProps) => {
     }
     // when options change, that means that the dataset has changed
     // so we have to check if values are still applicable.
-  }, [options, value, optionSelector]);
+  }, [JSON.stringify(value), JSON.stringify(optionSelector.getValues())]);
 
   // useComponentDidUpdate to avoid running this for the first render, to avoid
   // calling onChange when the initial value is not valid for the dataset
