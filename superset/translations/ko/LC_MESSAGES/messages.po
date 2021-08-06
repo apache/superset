@@ -1845,19 +1845,19 @@ msgid "Year"
 msgstr "년"
 
 #: superset/db_engine_specs/base.py:95
-msgid "Week starting sunday"
+msgid "Week starting Sunday"
 msgstr ""
 
 #: superset/db_engine_specs/base.py:96
-msgid "Week starting monday"
+msgid "Week starting Monday"
 msgstr ""
 
 #: superset/db_engine_specs/base.py:97
-msgid "Week ending saturday"
+msgid "Week ending Saturday"
 msgstr ""
 
 #: superset/db_engine_specs/base.py:98
-msgid "Week_ending sunday"
+msgid "Week ending Sunday"
 msgstr ""
 
 #: superset/db_engine_specs/presto.py:930

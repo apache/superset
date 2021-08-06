@@ -25,7 +25,7 @@ import {
 } from './dashboard.helper';
 
 function openDashboardEditProperties() {
-  cy.get('.dashboard-header [data-test=edit-alt]').click();
+  cy.get('.dashboard-header [aria-label=edit-alt]').click();
   cy.get('#save-dash-split-button').trigger('click', { force: true });
   cy.get('.dropdown-menu').contains('Edit dashboard properties').click();
 }
@@ -42,7 +42,7 @@ describe('Dashboard save action', () => {
           'copyRequest',
         );
 
-        cy.get('[data-test="more-horiz"]').trigger('click', { force: true });
+        cy.get('[aria-label="more-horiz"]').trigger('click', { force: true });
         cy.get('[data-test="save-as-menu-item"]').trigger('click', {
           force: true,
         });
@@ -68,7 +68,7 @@ describe('Dashboard save action', () => {
     WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
 
     // remove box_plot chart from dashboard
-    cy.get('[data-test="edit-alt"]').click({ timeout: 5000 });
+    cy.get('[aria-label="edit-alt"]').click({ timeout: 5000 });
     cy.get('[data-test="dashboard-delete-component-button"]')
       .last()
       .trigger('moustenter')
@@ -87,7 +87,7 @@ describe('Dashboard save action', () => {
     // go back to view mode
     cy.wait('@saveRequest');
     cy.get('[data-test="dashboard-header"]')
-      .find('[data-test="edit-alt"]')
+      .find('[aria-label="edit-alt"]')
       .click();
 
     // deleted boxplot should still not exist

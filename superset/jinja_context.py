@@ -38,11 +38,8 @@ from typing_extensions import TypedDict
 
 from superset.exceptions import SupersetTemplateException
 from superset.extensions import feature_flag_manager
-from superset.utils.core import (
-    convert_legacy_filters_into_adhoc,
-    memoized,
-    merge_extra_filters,
-)
+from superset.utils.core import convert_legacy_filters_into_adhoc, merge_extra_filters
+from superset.utils.memoized import memoized
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable

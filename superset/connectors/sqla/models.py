@@ -19,10 +19,20 @@ import json
 import logging
 import re
 from collections import defaultdict, OrderedDict
-from contextlib import closing
 from dataclasses import dataclass, field  # pylint: disable=wrong-import-order
 from datetime import datetime, timedelta
-from typing import Any, Dict, Hashable, List, NamedTuple, Optional, Tuple, Type, Union
+from typing import (
+    Any,
+    cast,
+    Dict,
+    Hashable,
+    List,
+    NamedTuple,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 import pandas as pd
 import sqlalchemy as sa
@@ -46,24 +56,25 @@ from sqlalchemy import (
     String,
     Table,
     Text,
+    update,
 )
+from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty, Session
+from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table, text
 from sqlalchemy.sql.elements import ColumnClause
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom, TextClause
 from sqlalchemy.sql.selectable import Alias, TableClause
-from sqlalchemy.types import TypeEngine
 
 from superset import app, db, is_feature_enabled, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
-from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
-from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import (
-    QueryObjectValidationError,
-    SupersetGenericDBErrorException,
-    SupersetSecurityException,
+from superset.connectors.sqla.utils import (
+    get_physical_table_metadata,
+    get_virtual_table_metadata,
 )
+from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
+from superset.exceptions import QueryObjectValidationError
 from superset.jinja_context import (
     BaseTemplateProcessor,
     ExtraCache,
@@ -72,7 +83,6 @@ from superset.jinja_context import (
 from superset.models.annotations import Annotation
 from superset.models.core import Database
 from superset.models.helpers import AuditMixinNullable, QueryResult
-from superset.result_set import SupersetResultSet
 from superset.sql_parse import ParsedQuery
 from superset.typing import AdhocMetric, Metric, OrderBy, QueryObjectDict
 from superset.utils import core as utils
@@ -230,6 +240,8 @@ class TableColumn(Model, BaseColumn):
 
     @property
     def type_generic(self) -> Optional[utils.GenericDataType]:
+        if self.is_dttm:
+            return GenericDataType.TEMPORAL
         column_spec = self.db_engine_spec.get_column_spec(self.type)
         return column_spec.generic_type if column_spec else None
 
@@ -239,7 +251,9 @@ class TableColumn(Model, BaseColumn):
         column_spec = db_engine_spec.get_column_spec(self.type)
         type_ = column_spec.sqla_type if column_spec else None
         if self.expression:
-            col = literal_column(self.expression, type_=type_)
+            tp = self.table.get_template_processor()
+            expression = tp.process_template(self.expression)
+            col = literal_column(expression, type_=type_)
         else:
             col = column(self.column_name, type_=type_)
         col = self.table.make_sqla_column_compatible(col, label)
@@ -391,7 +405,8 @@ class SqlMetric(Model, BaseMetric):
 
     def get_sqla_col(self, label: Optional[str] = None) -> Column:
         label = label or self.metric_name
-        sqla_col: ColumnClause = literal_column(self.expression)
+        tp = self.table.get_template_processor()
+        sqla_col: ColumnClause = literal_column(tp.process_template(self.expression))
         return self.table.make_sqla_column_compatible(sqla_col, label)
 
     @property
@@ -468,7 +483,15 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
     owner_class = security_manager.user_model
 
     __tablename__ = "tables"
-    __table_args__ = (UniqueConstraint("database_id", "table_name"),)
+
+    # Note this uniqueness constraint is not part of the physical schema, i.e., it does
+    # not exist in the migrations, but is required by `import_from_dict` to ensure the
+    # correct filters are applied in order to identify uniqueness.
+    #
+    # The reason it does not physically exist is MySQL, PostgreSQL, etc. have a
+    # different interpretation of uniqueness when it comes to NULL which is problematic
+    # given the schema is optional.
+    __table_args__ = (UniqueConstraint("database_id", "schema", "table_name"),)
 
     table_name = Column(String(250), nullable=False)
     main_dttm_col = Column(String(250))
@@ -633,58 +656,11 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         return self.database.sql_url + "?table_name=" + str(self.table_name)
 
     def external_metadata(self) -> List[Dict[str, str]]:
-        db_engine_spec = self.db_engine_spec
         if self.sql:
-            engine = self.database.get_sqla_engine(schema=self.schema)
-            sql = self.get_template_processor().process_template(self.sql)
-            parsed_query = ParsedQuery(sql)
-            if not db_engine_spec.is_readonly_query(parsed_query):
-                raise SupersetSecurityException(
-                    SupersetError(
-                        error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
-                        message=_("Only `SELECT` statements are allowed"),
-                        level=ErrorLevel.ERROR,
-                    )
-                )
-            statements = parsed_query.get_statements()
-            if len(statements) > 1:
-                raise SupersetSecurityException(
-                    SupersetError(
-                        error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
-                        message=_("Only single queries supported"),
-                        level=ErrorLevel.ERROR,
-                    )
-                )
-            # TODO(villebro): refactor to use same code that's used by
-            #  sql_lab.py:execute_sql_statements
-            try:
-                with closing(engine.raw_connection()) as conn:
-                    cursor = conn.cursor()
-                    query = self.database.apply_limit_to_sql(statements[0])
-                    db_engine_spec.execute(cursor, query)
-                    result = db_engine_spec.fetch_data(cursor, limit=1)
-                    result_set = SupersetResultSet(
-                        result, cursor.description, db_engine_spec
-                    )
-                    cols = result_set.columns
-            except Exception as exc:
-                raise SupersetGenericDBErrorException(message=str(exc))
-        else:
-            db_dialect = self.database.get_dialect()
-            cols = self.database.get_columns(
-                self.table_name, schema=self.schema or None
-            )
-            for col in cols:
-                try:
-                    if isinstance(col["type"], TypeEngine):
-                        col["type"] = db_engine_spec.column_datatype_to_string(
-                            col["type"], db_dialect
-                        )
-                # Broad exception catch, because there are multiple possible exceptions
-                # from different drivers that fall outside CompileError
-                except Exception:  # pylint: disable=broad-except
-                    col["type"] = "UNKNOWN"
-        return cols
+            return get_virtual_table_metadata(dataset=self)
+        return get_physical_table_metadata(
+            database=self.database, table_name=self.table_name, schema_name=self.schema,
+        )
 
     @property
     def time_column_grains(self) -> Dict[str, Any]:
@@ -701,7 +677,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             self.table_name, schema=self.schema, show_cols=False, latest_partition=False
         )
 
-    @property  # type: ignore
+    @property
     def health_check_message(self) -> Optional[str]:
         check = config["DATASET_HEALTH_CHECK"]
         return check(self) if check else None
@@ -850,7 +826,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
     def adhoc_metric_to_sqla(
         self, metric: AdhocMetric, columns_by_name: Dict[str, TableColumn]
-    ) -> Column:
+    ) -> ColumnElement:
         """
         Turn an adhoc metric into a sqlalchemy column.
 
@@ -863,7 +839,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         label = utils.get_metric_name(metric)
 
         if expression_type == utils.AdhocMetricExpressionType.SIMPLE:
-            column_name = metric["column"].get("column_name")
+            column_name = cast(str, metric["column"].get("column_name"))
             table_column: Optional[TableColumn] = columns_by_name.get(column_name)
             if table_column:
                 sqla_column = table_column.get_sqla_col()
@@ -871,15 +847,17 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 sqla_column = column(column_name)
             sqla_metric = self.sqla_aggregations[metric["aggregate"]](sqla_column)
         elif expression_type == utils.AdhocMetricExpressionType.SQL:
-            sqla_metric = literal_column(metric.get("sqlExpression"))
+            tp = self.get_template_processor()
+            expression = tp.process_template(cast(str, metric["sqlExpression"]))
+            sqla_metric = literal_column(expression)
         else:
             raise QueryObjectValidationError("Adhoc metric expressionType is invalid")
 
         return self.make_sqla_column_compatible(sqla_metric, label)
 
     def make_sqla_column_compatible(
-        self, sqla_col: Column, label: Optional[str] = None
-    ) -> Column:
+        self, sqla_col: ColumnElement, label: Optional[str] = None
+    ) -> ColumnElement:
         """Takes a sqlalchemy column object and adds label info if supported by engine.
         :param sqla_col: sqlalchemy column instance
         :param label: alias/label that column is expected to have
@@ -997,7 +975,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         metrics = metrics or []
 
         # For backward compatibility
-        if granularity not in self.dttm_cols:
+        if granularity not in self.dttm_cols and granularity is not None:
             granularity = self.main_dttm_col
 
         # Database spec supports join-free timeslot grouping
@@ -1038,14 +1016,16 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
         # To ensure correct handling of the ORDER BY labeling we need to reference the
         # metric instance if defined in the SELECT clause.
-        metrics_exprs_by_label = {m.name: m for m in metrics_exprs}
+        # use the key of the ColumnClause for the expected label
+        metrics_exprs_by_label = {m.key: m for m in metrics_exprs}
         metrics_exprs_by_expr = {str(m): m for m in metrics_exprs}
 
         # Since orderby may use adhoc metrics, too; we need to process them first
         orderby_exprs: List[ColumnElement] = []
         for orig_col, ascending in orderby:
-            col: Union[Metric, ColumnElement] = orig_col
+            col: Union[AdhocMetric, ColumnElement] = orig_col
             if isinstance(col, dict):
+                col = cast(AdhocMetric, col)
                 if utils.is_adhoc_metric(col):
                     # add adhoc sort by column to columns_by_name if not exists
                     col = self.adhoc_metric_to_sqla(col, columns_by_name)
@@ -1632,10 +1612,67 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             extra_cache_keys += sqla_query.extra_cache_keys
         return extra_cache_keys
 
+    @staticmethod
+    def before_update(
+        mapper: Mapper,  # pylint: disable=unused-argument
+        connection: Connection,  # pylint: disable=unused-argument
+        target: "SqlaTable",
+    ) -> None:
+        """
+        Check whether before update if the target table already exists.
+
+        Note this listener is called when any fields are being updated and thus it is
+        necessary to first check whether the reference table is being updated.
+
+        Note this logic is temporary, given uniqueness is handled via the dataset DAO,
+        but is necessary until both the legacy datasource editor and datasource/save
+        endpoints are deprecated.
+
+        :param mapper: The table mapper
+        :param connection: The DB-API connection
+        :param target: The mapped instance being persisted
+        :raises Exception: If the target table is not unique
+        """
+
+        from superset.datasets.commands.exceptions import get_dataset_exist_error_msg
+        from superset.datasets.dao import DatasetDAO
+
+        # Check whether the relevant attributes have changed.
+        state = db.inspect(target)  # pylint: disable=no-member
+
+        for attr in ["database_id", "schema", "table_name"]:
+            history = state.get_history(attr, True)
+
+            if history.has_changes():
+                break
+        else:
+            return None
+
+        if not DatasetDAO.validate_uniqueness(
+            target.database_id, target.schema, target.table_name
+        ):
+            raise Exception(get_dataset_exist_error_msg(target.full_name))
+
+    @staticmethod
+    def update_table(
+        _mapper: Mapper, _connection: Connection, obj: Union[SqlMetric, TableColumn]
+    ) -> None:
+        """
+        Forces an update to the table's changed_on value when a metric or column on the
+        table is updated. This busts the cache key for all charts that use the table.
+
+        :param _mapper: Unused.
+        :param _connection: Unused.
+        :param obj: The metric or column that was updated.
+        """
+        db.session.execute(update(SqlaTable).where(SqlaTable.id == obj.table.id))
+
 
 sa.event.listen(SqlaTable, "after_insert", security_manager.set_perm)
 sa.event.listen(SqlaTable, "after_update", security_manager.set_perm)
-
+sa.event.listen(SqlaTable, "before_update", SqlaTable.before_update)
+sa.event.listen(SqlMetric, "after_update", SqlaTable.update_table)
+sa.event.listen(TableColumn, "after_update", SqlaTable.update_table)
 
 RLSFilterRoles = Table(
     "rls_filter_roles",

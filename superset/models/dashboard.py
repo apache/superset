@@ -18,8 +18,9 @@ from __future__ import annotations
 
 import json
 import logging
+from collections import defaultdict
 from functools import partial
-from typing import Any, Callable, Dict, List, Set, Union
+from typing import Any, Callable, Dict, List, Set, Tuple, Type, Union
 
 import sqlalchemy as sqla
 from flask_appbuilder import Model
@@ -171,8 +172,21 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
 
     @property
     def datasources(self) -> Set[BaseDatasource]:
-        # pylint: disable=using-constant-test
-        return {slc.datasource for slc in self.slices if slc.datasource}
+        # Verbose but efficient database enumeration of dashboard datasources.
+        datasources_by_cls_model: Dict[Type["BaseDatasource"], Set[int]] = defaultdict(
+            set
+        )
+
+        for slc in self.slices:
+            datasources_by_cls_model[slc.cls_model].add(slc.datasource_id)
+
+        return {
+            datasource
+            for cls_model, datasource_ids in datasources_by_cls_model.items()
+            for datasource in db.session.query(cls_model)
+            .filter(cls_model.id.in_(datasource_ids))
+            .all()
+        }
 
     @property
     def charts(self) -> List[BaseDatasource]:
@@ -246,13 +260,26 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         unless=lambda: not is_feature_enabled("DASHBOARD_CACHE"),
     )
     def datasets_trimmed_for_slices(self) -> List[Dict[str, Any]]:
-        datasource_slices = utils.indexed(self.slices, "datasource")
-        return [
-            # Filter out unneeded fields from the datasource payload
-            datasource.data_for_slices(slices)
-            for datasource, slices in datasource_slices.items()
-            if datasource
-        ]
+        # Verbose but efficient database enumeration of dashboard datasources.
+        slices_by_datasource: Dict[
+            Tuple[Type["BaseDatasource"], int], Set[Slice]
+        ] = defaultdict(set)
+
+        for slc in self.slices:
+            slices_by_datasource[(slc.cls_model, slc.datasource_id)].add(slc)
+
+        result: List[Dict[str, Any]] = []
+
+        for (cls_model, datasource_id), slices in slices_by_datasource.items():
+            datasource = (
+                db.session.query(cls_model).filter_by(id=datasource_id).one_or_none()
+            )
+
+            if datasource:
+                # Filter out unneeded fields from the datasource payload
+                result.append(datasource.data_for_slices(slices))
+
+        return result
 
     @property  # type: ignore
     def params(self) -> str:  # type: ignore
@@ -334,6 +361,20 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
                 # set slices without creating ORM relations
                 slices = copied_dashboard.__dict__.setdefault("slices", [])
                 slices.append(copied_slc)
+
+            json_metadata = json.loads(dashboard.json_metadata)
+            native_filter_configuration: List[Dict[str, Any]] = json_metadata.get(
+                "native_filter_configuration", []
+            )
+            for native_filter in native_filter_configuration:
+                session = db.session()
+                for target in native_filter.get("targets", []):
+                    id_ = target.get("datasetId")
+                    if id_ is None:
+                        continue
+                    datasource = ConnectorRegistry.get_datasource_by_id(session, id_)
+                    datasource_ids.add((datasource.id, datasource.type))
+
             copied_dashboard.alter_params(remote_id=dashboard_id)
             copied_dashboards.append(copied_dashboard)
 

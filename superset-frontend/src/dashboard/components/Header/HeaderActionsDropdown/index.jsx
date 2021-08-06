@@ -22,7 +22,7 @@ import PropTypes from 'prop-types';
 import { styled, SupersetClient, t } from '@superset-ui/core';
 
 import { Menu, NoAnimationDropdown } from 'src/common/components';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import { URL_PARAMS } from 'src/constants';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 import CssEditor from 'src/dashboard/components/CssEditor';
@@ -42,6 +42,7 @@ const propTypes = {
   dashboardInfo: PropTypes.object.isRequired,
   dashboardId: PropTypes.number.isRequired,
   dashboardTitle: PropTypes.string.isRequired,
+  dataMask: PropTypes.object.isRequired,
   customCss: PropTypes.string.isRequired,
   colorNamespace: PropTypes.string,
   colorScheme: PropTypes.string,
@@ -87,6 +88,9 @@ const MENU_KEYS = {
 
 const DropdownButton = styled.div`
   margin-left: ${({ theme }) => theme.gridUnit * 2.5}px;
+  span {
+    color: ${({ theme }) => theme.colors.grayscale.base};
+  }
 `;
 
 const SCREENSHOT_NODE_SELECTOR = '.dashboard';
@@ -158,18 +162,21 @@ class HeaderActionsDropdown extends React.PureComponent {
         downloadAsImage(
           SCREENSHOT_NODE_SELECTOR,
           this.props.dashboardTitle,
+          {},
+          true,
         )(domEvent).then(() => {
           menu.style.visibility = 'visible';
         });
         break;
       }
       case MENU_KEYS.TOGGLE_FULLSCREEN: {
-        const url = getDashboardUrl(
-          window.location.pathname,
-          getActiveFilters(),
-          window.location.hash,
-          getUrlParam(URL_PARAMS.standalone),
-        );
+        const url = getDashboardUrl({
+          dataMask: this.props.dataMask,
+          pathname: window.location.pathname,
+          filters: getActiveFilters(),
+          hash: window.location.hash,
+          standalone: !getUrlParam(URL_PARAMS.standalone),
+        });
         window.location.replace(url);
         break;
       }
@@ -183,6 +190,7 @@ class HeaderActionsDropdown extends React.PureComponent {
       dashboardTitle,
       dashboardId,
       dashboardInfo,
+      dataMask,
       refreshFrequency,
       shouldPersistRefreshFrequency,
       editMode,
@@ -206,11 +214,13 @@ class HeaderActionsDropdown extends React.PureComponent {
     const emailTitle = t('Superset dashboard');
     const emailSubject = `${emailTitle} ${dashboardTitle}`;
     const emailBody = t('Check out this dashboard: ');
-    const url = getDashboardUrl(
-      window.location.pathname,
-      getActiveFilters(),
-      window.location.hash,
-    );
+
+    const url = getDashboardUrl({
+      dataMask,
+      pathname: window.location.pathname,
+      filters: getActiveFilters(),
+      hash: window.location.hash,
+    });
 
     const menu = (
       <Menu
@@ -307,7 +317,9 @@ class HeaderActionsDropdown extends React.PureComponent {
 
         {!editMode && (
           <Menu.Item key={MENU_KEYS.TOGGLE_FULLSCREEN}>
-            {t('Toggle fullscreen')}
+            {getUrlParam(URL_PARAMS.standalone)
+              ? t('Exit fullscreen')
+              : t('Enter fullscreen')}
           </Menu.Item>
         )}
       </Menu>
@@ -321,7 +333,7 @@ class HeaderActionsDropdown extends React.PureComponent {
         }
       >
         <DropdownButton id="save-dash-split-button" role="button">
-          <Icon name="more-horiz" />
+          <Icons.MoreHoriz />
         </DropdownButton>
       </NoAnimationDropdown>
     );

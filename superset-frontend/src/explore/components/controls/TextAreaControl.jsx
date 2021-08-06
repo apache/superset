@@ -62,21 +62,27 @@ const defaultProps = {
 export default class TextAreaControl extends React.Component {
   constructor() {
     super();
+    this.state = {
+      value: '',
+    };
     this.onAceChangeDebounce = debounce(value => {
       this.onAceChange(value);
     }, FAST_DEBOUNCE);
   }
 
   onControlChange(event) {
-    this.props.onChange(event.target.value);
+    const { value } = event.target;
+    this.setState({ value });
+    this.props.onChange(value);
   }
 
   onAceChange(value) {
+    this.setState({ value });
     this.props.onChange(value);
   }
 
   renderEditor(inModal = false) {
-    const value = this.props.value || '';
+    const value = this.state.value || this.props.value;
     const minLines = inModal ? 40 : this.props.minLines || 12;
     if (this.props.language) {
       const style = { border: '1px solid #CCC' };

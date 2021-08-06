@@ -20,7 +20,7 @@ import React from 'react';
 import { MainNav as Menu } from 'src/common/components';
 import { t, styled, css, SupersetTheme } from '@superset-ui/core';
 import { Link } from 'react-router-dom';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import LanguagePicker from './LanguagePicker';
 import { NavBarProps, MenuObjectProps } from './Menu';
 
@@ -59,6 +59,9 @@ const StyledDiv = styled.div<{ align: string }>`
   justify-content: ${({ align }) => align};
   align-items: center;
   margin-right: ${({ theme }) => theme.gridUnit}px;
+  .ant-menu-submenu-title > svg {
+    top: ${({ theme }) => theme.gridUnit * 5.25}px;
+  }
 `;
 
 const StyledAnchor = styled.a`
@@ -89,7 +92,7 @@ const RightMenu = ({
           title={
             <StyledI data-test="new-dropdown-icon" className="fa fa-plus" />
           }
-          icon={<Icon name="triangle-down" />}
+          icon={<Icons.TriangleDown />}
         >
           {dropdownItems.map(menu => (
             <Menu.Item key={menu.label}>
@@ -104,7 +107,7 @@ const RightMenu = ({
           ))}
         </SubMenu>
       )}
-      <SubMenu title="Settings" icon={<Icon name="triangle-down" />}>
+      <SubMenu title="Settings" icon={<Icons.TriangleDown iconSize="xl" />}>
         {settings.map((section, index) => [
           <Menu.ItemGroup key={`${section.label}`} title={section.label}>
             {section.childs?.map(child => {
@@ -145,6 +148,11 @@ const RightMenu = ({
           <Menu.Divider key="version-info-divider" />,
           <Menu.ItemGroup key="about-section" title={t('About')}>
             <div className="about-section">
+              {navbarRight.show_watermark && (
+                <div css={versionInfoStyles}>
+                  {t('Powered by Apache Superset')}
+                </div>
+              )}
               {navbarRight.version_string && (
                 <div css={versionInfoStyles}>
                   Version: {navbarRight.version_string}

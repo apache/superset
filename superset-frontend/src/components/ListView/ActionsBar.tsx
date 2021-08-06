@@ -19,7 +19,6 @@
 import React from 'react';
 import { styled } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
-import { IconName } from 'src/components/Icon';
 import Icons from 'src/components/Icons';
 import { TooltipPlacement } from 'antd/lib/tooltip';
 
@@ -27,7 +26,7 @@ export type ActionProps = {
   label: string;
   tooltip?: string | React.ReactElement;
   placement?: TooltipPlacement;
-  icon: IconName;
+  icon: string;
   onClick: () => void;
 };
 

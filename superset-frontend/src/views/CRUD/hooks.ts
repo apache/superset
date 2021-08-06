@@ -20,12 +20,18 @@ import rison from 'rison';
 import { useState, useEffect, useCallback } from 'react';
 import { makeApi, SupersetClient, t, JsonObject } from '@superset-ui/core';
 
-import { createErrorHandler } from 'src/views/CRUD/utils';
+import {
+  createErrorHandler,
+  getAlreadyExists,
+  getPasswordsNeeded,
+  hasTerminalValidation,
+} from 'src/views/CRUD/utils';
 import { FetchDataConfig } from 'src/components/ListView';
 import { FilterValue } from 'src/components/ListView/types';
 import Chart, { Slice } from 'src/types/Chart';
 import copyTextToClipboard from 'src/utils/copy';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import SupersetText from 'src/utils/textUtils';
 import { FavoriteStatus, ImportResourceName, DatabaseObject } from './types';
 
 interface ListViewResourceState<D extends object = any> {
@@ -205,7 +211,7 @@ export function useListViewResource<D extends object = any>(
 interface SingleViewResourceState<D extends object = any> {
   loading: boolean;
   resource: D | null;
-  error: string | Record<string, string[] | string> | null;
+  error: any | null;
 }
 
 export function useSingleViewResource<D extends object = any>(
@@ -263,7 +269,7 @@ export function useSingleViewResource<D extends object = any>(
   );
 
   const createResource = useCallback(
-    (resource: D) => {
+    (resource: D, hideToast = false) => {
       // Set loading state
       updateState({
         loading: true,
@@ -283,13 +289,16 @@ export function useSingleViewResource<D extends object = any>(
             return json.id;
           },
           createErrorHandler((errMsg: Record<string, string[] | string>) => {
-            handleErrorMsg(
-              t(
-                'An error occurred while creating %ss: %s',
-                resourceLabel,
-                parsedErrorMessage(errMsg),
-              ),
-            );
+            // we did not want toasts for db-connection-ui but did not want to disable it everywhere
+            if (!hideToast) {
+              handleErrorMsg(
+                t(
+                  'An error occurred while creating %ss: %s',
+                  resourceLabel,
+                  parsedErrorMessage(errMsg),
+                ),
+              );
+            }
 
             updateState({
               error: errMsg,
@@ -304,7 +313,7 @@ export function useSingleViewResource<D extends object = any>(
   );
 
   const updateResource = useCallback(
-    (resourceID: number, resource: D) => {
+    (resourceID: number, resource: D, hideToast = false) => {
       // Set loading state
       updateState({
         loading: true,
@@ -324,13 +333,15 @@ export function useSingleViewResource<D extends object = any>(
             return json.result;
           },
           createErrorHandler(errMsg => {
-            handleErrorMsg(
-              t(
-                'An error occurred while fetching %ss: %s',
-                resourceLabel,
-                JSON.stringify(errMsg),
-              ),
-            );
+            if (!hideToast) {
+              handleErrorMsg(
+                t(
+                  'An error occurred while fetching %ss: %s',
+                  resourceLabel,
+                  JSON.stringify(errMsg),
+                ),
+              );
+            }
 
             updateState({
               error: errMsg,
@@ -384,40 +395,6 @@ export function useImportResource(
     setState(currentState => ({ ...currentState, ...update }));
   }
 
-  /* eslint-disable no-underscore-dangle */
-  const isNeedsPassword = (payload: any) =>
-    typeof payload === 'object' &&
-    Array.isArray(payload._schema) &&
-    payload._schema.length === 1 &&
-    payload._schema[0] === 'Must provide a password for the database';
-
-  const isAlreadyExists = (payload: any) =>
-    typeof payload === 'string' &&
-    payload.includes('already exists and `overwrite=true` was not passed');
-
-  const getPasswordsNeeded = (
-    errMsg: Record<string, Record<string, string[] | string>>,
-  ) =>
-    Object.entries(errMsg)
-      .filter(([, validationErrors]) => isNeedsPassword(validationErrors))
-      .map(([fileName]) => fileName);
-
-  const getAlreadyExists = (
-    errMsg: Record<string, Record<string, string[] | string>>,
-  ) =>
-    Object.entries(errMsg)
-      .filter(([, validationErrors]) => isAlreadyExists(validationErrors))
-      .map(([fileName]) => fileName);
-
-  const hasTerminalValidation = (
-    errMsg: Record<string, Record<string, string[] | string>>,
-  ) =>
-    Object.values(errMsg).some(
-      validationErrors =>
-        !isNeedsPassword(validationErrors) &&
-        !isAlreadyExists(validationErrors),
-    );
-
   const importResource = useCallback(
     (
       bundle: File,
@@ -452,29 +429,28 @@ export function useImportResource(
         .then(() => true)
         .catch(response =>
           getClientErrorObject(response).then(error => {
-            const errMsg = error.message || error.error;
-            if (typeof errMsg === 'string') {
+            if (!error.errors) {
               handleErrorMsg(
                 t(
                   'An error occurred while importing %s: %s',
                   resourceLabel,
-                  parsedErrorMessage(errMsg),
+                  error.message || error.error,
                 ),
               );
               return false;
             }
-            if (hasTerminalValidation(errMsg)) {
+            if (hasTerminalValidation(error.errors)) {
               handleErrorMsg(
                 t(
                   'An error occurred while importing %s: %s',
                   resourceLabel,
-                  parsedErrorMessage(errMsg),
+                  error.errors.map(payload => payload.message).join('\n'),
                 ),
               );
             } else {
               updateState({
-                passwordsNeeded: getPasswordsNeeded(errMsg),
-                alreadyExists: getAlreadyExists(errMsg),
+                passwordsNeeded: getPasswordsNeeded(error.errors),
+                alreadyExists: getAlreadyExists(error.errors),
               });
             }
             return false;
@@ -625,6 +601,12 @@ export const copyQueryLink = (
     });
 };
 
+export const getDatabaseImages = () => SupersetText.DB_IMAGES;
+
+export const getConnectionAlert = () => SupersetText.DB_CONNECTION_ALERTS;
+export const getDatabaseDocumentationLinks = () =>
+  SupersetText.DB_CONNECTION_DOC_LINKS;
+
 export const testDatabaseConnection = (
   connection: DatabaseObject,
   handleErrorMsg: (errorMsg: string) => void,
@@ -649,11 +631,100 @@ export function useAvailableDatabases() {
 
   const getAvailable = useCallback(() => {
     SupersetClient.get({
-      endpoint: `/api/v1/database/available`,
+      endpoint: `/api/v1/database/available/`,
     }).then(({ json }) => {
       setAvailableDbs(json);
     });
   }, [setAvailableDbs]);
 
   return [availableDbs, getAvailable] as const;
+}
+
+export function useDatabaseValidation() {
+  const [validationErrors, setValidationErrors] = useState<JsonObject | null>(
+    null,
+  );
+  const getValidation = useCallback(
+    (database: Partial<DatabaseObject> | null, onCreate = false) => {
+      SupersetClient.post({
+        endpoint: '/api/v1/database/validate_parameters',
+        body: JSON.stringify(database),
+        headers: { 'Content-Type': 'application/json' },
+      })
+        .then(() => {
+          setValidationErrors(null);
+        })
+        .catch(e => {
+          if (typeof e.json === 'function') {
+            e.json().then(({ errors = [] }: JsonObject) => {
+              const parsedErrors = errors
+                .filter((error: { error_type: string }) => {
+                  const skipValidationError = ![
+                    'CONNECTION_MISSING_PARAMETERS_ERROR',
+                    'CONNECTION_ACCESS_DENIED_ERROR',
+                  ].includes(error.error_type);
+                  return skipValidationError || onCreate;
+                })
+                .reduce(
+                  (
+                    obj: {},
+                    {
+                      error_type,
+                      extra,
+                      message,
+                    }: {
+                      error_type: string;
+                      extra: {
+                        invalid?: string[];
+                        missing?: string[];
+                        name: string;
+                      };
+                      message: string;
+                    },
+                  ) => {
+                    // if extra.invalid doesn't exist then the
+                    // error can't be mapped to a parameter
+                    // so leave it alone
+                    if (extra.invalid) {
+                      if (extra.invalid[0] === 'catalog') {
+                        return {
+                          ...obj,
+                          [extra.name]: message,
+                          error_type,
+                        };
+                      }
+                      return {
+                        ...obj,
+                        [extra.invalid[0]]: message,
+                        error_type,
+                      };
+                    }
+                    if (extra.missing) {
+                      return {
+                        ...obj,
+                        error_type,
+                        ...Object.assign(
+                          {},
+                          ...extra.missing.map(field => ({
+                            [field]: 'This is a required field',
+                          })),
+                        ),
+                      };
+                    }
+                    return obj;
+                  },
+                  {},
+                );
+              setValidationErrors(parsedErrors);
+            });
+          } else {
+            // eslint-disable-next-line no-console
+            console.error(e);
+          }
+        });
+    },
+    [setValidationErrors],
+  );
+
+  return [validationErrors, getValidation, setValidationErrors] as const;
 }

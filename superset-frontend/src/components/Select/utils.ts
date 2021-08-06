@@ -23,6 +23,8 @@ import {
   GroupedOptionsType,
 } from 'react-select';
 
+import { OptionsType as AntdOptionsType } from './Select';
+
 /**
  * Find Option value that matches a possibly string value.
  *
@@ -56,4 +58,17 @@ export function findValue<OptionType extends OptionTypeBase>(
   // If value is a single string, must return an Array so `cleanValue` won't be
   // empty: https://github.com/JedWatson/react-select/blob/32ad5c040bdd96cd1ca71010c2558842d684629c/packages/react-select/src/utils.js#L64
   return (Array.isArray(value) ? value : [value]).map(find);
+}
+
+export function hasOption(search: string, options: AntdOptionsType) {
+  const searchOption = search.trim().toLowerCase();
+  return options.find(opt => {
+    const { label, value } = opt;
+    const labelText = String(label);
+    const valueText = String(value);
+    return (
+      valueText.toLowerCase().includes(searchOption) ||
+      labelText.toLowerCase().includes(searchOption)
+    );
+  });
 }

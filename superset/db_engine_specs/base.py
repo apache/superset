@@ -43,6 +43,7 @@ from apispec.ext.marshmallow import MarshmallowPlugin
 from flask import current_app, g
 from flask_babel import gettext as __, lazy_gettext as _
 from marshmallow import fields, Schema
+from marshmallow.validate import Range
 from sqlalchemy import column, DateTime, select, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.interfaces import Compiled, Dialect
@@ -63,6 +64,7 @@ from superset.sql_parse import ParsedQuery, Table
 from superset.utils import core as utils
 from superset.utils.core import ColumnSpec, GenericDataType
 from superset.utils.hashing import md5_sha_from_str
+from superset.utils.memoized import memoized
 from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:
@@ -85,21 +87,24 @@ QueryStatus = utils.QueryStatus
 builtin_time_grains: Dict[Optional[str], str] = {
     None: __("Original value"),
     "PT1S": __("Second"),
+    "PT5S": __("5 second"),
+    "PT30S": __("30 second"),
     "PT1M": __("Minute"),
     "PT5M": __("5 minute"),
     "PT10M": __("10 minute"),
     "PT15M": __("15 minute"),
     "PT0.5H": __("Half hour"),
     "PT1H": __("Hour"),
+    "PT6H": __("6 hour"),
     "P1D": __("Day"),
     "P1W": __("Week"),
     "P1M": __("Month"),
     "P0.25Y": __("Quarter"),
     "P1Y": __("Year"),
-    "1969-12-28T00:00:00Z/P1W": __("Week starting sunday"),
-    "1969-12-29T00:00:00Z/P1W": __("Week starting monday"),
-    "P1W/1970-01-03T00:00:00Z": __("Week ending saturday"),
-    "P1W/1970-01-04T00:00:00Z": __("Week_ending sunday"),
+    "1969-12-28T00:00:00Z/P1W": __("Week starting Sunday"),
+    "1969-12-29T00:00:00Z/P1W": __("Week starting Monday"),
+    "P1W/1970-01-03T00:00:00Z": __("Week ending Saturday"),
+    "P1W/1970-01-04T00:00:00Z": __("Week_ending Sunday"),
 }
 
 
@@ -1255,7 +1260,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         )
 
     @classmethod
-    @utils.memoized
+    def is_select_query(cls, parsed_query: ParsedQuery) -> bool:
+        """
+        Determine if the statement should be considered as SELECT statement.
+        Some query dialects do not contain "SELECT" word in queries (eg. Kusto)
+        """
+        return parsed_query.is_select()
+
+    @classmethod
+    @memoized
     def get_column_spec(
         cls,
         native_type: Optional[str],
@@ -1292,6 +1305,46 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             )
         return None
 
+    @classmethod
+    def has_implicit_cancel(cls) -> bool:
+        """
+        Return True if the live cursor handles the implicit cancelation of the query,
+        False otherise.
+
+        :return: Whether the live cursor implicitly cancels the query
+        :see: handle_cursor
+        """
+
+        return False
+
+    @classmethod
+    def get_cancel_query_id(cls, cursor: Any, query: Query) -> Optional[str]:
+        """
+        Select identifiers from the database engine that uniquely identifies the
+        queries to cancel. The identifier is typically a session id, process id
+        or similar.
+
+        :param cursor: Cursor instance in which the query will be executed
+        :param query: Query instance
+        :return: Query identifier
+        """
+
+        return None
+
+    @classmethod
+    def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
+        """
+        Cancel query in the underlying database.
+
+        :param cursor: New cursor instance to the db of the query
+        :param query: Query instance
+        :param cancel_query_id: Value returned by get_cancel_query_payload or set in
+        other life-cycle methods of the query
+        :return: True if query cancelled successfully, False otherwise
+        """
+
+        return False
+
 
 # schema for adding a database by providing parameters instead of the
 # full SQLAlchemy URI
@@ -1299,7 +1352,11 @@ class BasicParametersSchema(Schema):
     username = fields.String(required=True, allow_none=True, description=__("Username"))
     password = fields.String(allow_none=True, description=__("Password"))
     host = fields.String(required=True, description=__("Hostname or IP address"))
-    port = fields.Integer(required=True, description=__("Database port"))
+    port = fields.Integer(
+        required=True,
+        description=__("Database port"),
+        validate=Range(min=0, max=2 ** 16, max_inclusive=False),
+    )
     database = fields.String(required=True, description=__("Database name"))
     query = fields.Dict(
         keys=fields.Str(), values=fields.Raw(), description=__("Additional parameters")
@@ -1402,7 +1459,7 @@ class BasicParametersMixin:
         errors: List[SupersetError] = []
 
         required = {"host", "port", "username", "database"}
-        present = {key for key in parameters if parameters[key]}  # type: ignore
+        present = {key for key in parameters if parameters.get(key, ())}
         missing = sorted(required - present)
 
         if missing:
@@ -1415,7 +1472,7 @@ class BasicParametersMixin:
                 ),
             )
 
-        host = parameters["host"]
+        host = parameters.get("host", None)
         if not host:
             return errors
         if not is_hostname_valid(host):
@@ -1429,10 +1486,33 @@ class BasicParametersMixin:
             )
             return errors
 
-        port = parameters["port"]
+        port = parameters.get("port", None)
         if not port:
             return errors
-        if not is_port_open(host, port):
+        try:
+            port = int(port)
+        except (ValueError, TypeError):
+            errors.append(
+                SupersetError(
+                    message="Port must be a valid integer.",
+                    error_type=SupersetErrorType.CONNECTION_INVALID_PORT_ERROR,
+                    level=ErrorLevel.ERROR,
+                    extra={"invalid": ["port"]},
+                ),
+            )
+        if not (isinstance(port, int) and 0 <= port < 2 ** 16):
+            errors.append(
+                SupersetError(
+                    message=(
+                        "The port must be an integer between 0 and 65535 "
+                        "(inclusive)."
+                    ),
+                    error_type=SupersetErrorType.CONNECTION_INVALID_PORT_ERROR,
+                    level=ErrorLevel.ERROR,
+                    extra={"invalid": ["port"]},
+                ),
+            )
+        elif not is_port_open(host, port):
             errors.append(
                 SupersetError(
                     message="The port is closed.",

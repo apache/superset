@@ -29,14 +29,15 @@ import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
   createErrorHandler,
   createFetchRelated,
-  handleBulkChartExport,
   handleChartDelete,
+  CardStylesOverrides,
 } from 'src/views/CRUD/utils';
 import {
   useChartEditModal,
   useFavoriteStatus,
   useListViewResource,
 } from 'src/views/CRUD/hooks';
+import handleResourceExport from 'src/utils/export';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import FaveStar from 'src/components/FaveStar';
@@ -47,6 +48,7 @@ import ListView, {
   ListViewProps,
   SelectOption,
 } from 'src/components/ListView';
+import Loading from 'src/components/Loading';
 import { getFromLocalStorage } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
@@ -156,6 +158,7 @@ function ChartList(props: ChartListProps) {
 
   const [importingChart, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
+  const [preparingExport, setPreparingExport] = useState<boolean>(false);
 
   const openChartImportModal = () => {
     showImportModal(true);
@@ -176,6 +179,14 @@ function ChartList(props: ChartListProps) {
   const canExport =
     hasPerm('can_read') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
+
+  const handleBulkChartExport = (chartsToExport: Chart[]) => {
+    const ids = chartsToExport.map(({ id }) => id);
+    handleResourceExport('chart', ids, () => {
+      setPreparingExport(false);
+    });
+    setPreparingExport(true);
+  };
 
   function handleBulkChartDelete(chartsToDelete: Chart[]) {
     SupersetClient.delete({
@@ -488,7 +499,7 @@ function ChartList(props: ChartListProps) {
           ),
         ),
       ),
-      paginate: false,
+      paginate: true,
     },
     ...(props.user.userId ? [favoritesFilter] : []),
     {
@@ -524,23 +535,26 @@ function ChartList(props: ChartListProps) {
     const { userId } = props.user;
     const userKey = getFromLocalStorage(userId.toString(), null);
     return (
-      <ChartCard
-        chart={chart}
-        showThumbnails={
-          userKey
-            ? userKey.thumbnails
-            : isFeatureEnabled(FeatureFlag.THUMBNAILS)
-        }
-        hasPerm={hasPerm}
-        openChartEditModal={openChartEditModal}
-        bulkSelectEnabled={bulkSelectEnabled}
-        addDangerToast={addDangerToast}
-        addSuccessToast={addSuccessToast}
-        refreshData={refreshData}
-        loading={loading}
-        favoriteStatus={favoriteStatus[chart.id]}
-        saveFavoriteStatus={saveFavoriteStatus}
-      />
+      <CardStylesOverrides>
+        <ChartCard
+          chart={chart}
+          showThumbnails={
+            userKey
+              ? userKey.thumbnails
+              : isFeatureEnabled(FeatureFlag.THUMBNAILS)
+          }
+          hasPerm={hasPerm}
+          openChartEditModal={openChartEditModal}
+          bulkSelectEnabled={bulkSelectEnabled}
+          addDangerToast={addDangerToast}
+          addSuccessToast={addSuccessToast}
+          refreshData={refreshData}
+          loading={loading}
+          favoriteStatus={favoriteStatus[chart.id]}
+          saveFavoriteStatus={saveFavoriteStatus}
+          handleBulkChartExport={handleBulkChartExport}
+        />
+      </CardStylesOverrides>
     );
   }
   const subMenuButtons: SubMenuProps['buttons'] = [];
@@ -653,6 +667,7 @@ function ChartList(props: ChartListProps) {
         passwordFields={passwordFields}
         setPasswordFields={setPasswordFields}
       />
+      {preparingExport && <Loading />}
     </>
   );
 }

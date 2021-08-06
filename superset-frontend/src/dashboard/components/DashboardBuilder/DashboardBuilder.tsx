@@ -18,24 +18,24 @@
  */
 /* eslint-env browser */
 import cx from 'classnames';
-import React, { FC, useEffect, useState } from 'react';
-import { Sticky, StickyContainer } from 'react-sticky';
-import { JsonObject, styled } from '@superset-ui/core';
+import React, { FC } from 'react';
+import { JsonObject, styled, css } from '@superset-ui/core';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
 import DashboardHeader from 'src/dashboard/containers/DashboardHeader';
+import Icons from 'src/components/Icons';
 import IconButton from 'src/dashboard/components/IconButton';
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
-import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import getDirectPathToTabIndex from 'src/dashboard/util/getDirectPathToTabIndex';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { URL_PARAMS } from 'src/constants';
 import { useDispatch, useSelector } from 'react-redux';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { DashboardLayout, RootState } from 'src/dashboard/types';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
+import { useElementOnScreen } from 'src/common/hooks/useElementOnScreen';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
   deleteTopLevelTabs,
   handleComponentDrop,
@@ -47,23 +47,70 @@ import {
   DashboardStandaloneMode,
 } from 'src/dashboard/util/constants';
 import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar';
-import { StickyVerticalBar } from '../StickyVerticalBar';
+import Loading from 'src/components/Loading';
+import { Global } from '@emotion/react';
 import { shouldFocusTabs, getRootLevelTabsComponent } from './utils';
-import { useFilters } from '../nativeFilters/FilterBar/state';
-import { Filter } from '../nativeFilters/types';
 import DashboardContainer from './DashboardContainer';
+import { useNativeFilters } from './state';
 
-const TABS_HEIGHT = 47;
-const HEADER_HEIGHT = 67;
+const MAIN_HEADER_HEIGHT = 53;
+const TABS_HEIGHT = 50;
+const HEADER_HEIGHT = 72;
+const CLOSED_FILTER_BAR_WIDTH = 32;
+const OPEN_FILTER_BAR_WIDTH = 260;
+const FILTER_BAR_HEADER_HEIGHT = 80;
+const FILTER_BAR_TABS_HEIGHT = 46;
 
 type DashboardBuilderProps = {};
 
-const StyledDashboardContent = styled.div<{ dashboardFiltersOpen: boolean }>`
+const StyledDiv = styled.div`
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto 1fr;
+  flex: 1;
+`;
+
+// @z-index-above-dashboard-charts + 1 = 11
+const FiltersPanel = styled.div`
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  z-index: 11;
+`;
+
+const StickyPanel = styled.div<{ width: number }>`
+  position: sticky;
+  top: -1px;
+  width: ${({ width }) => width}px;
+  flex: 0 0 ${({ width }) => width}px;
+`;
+
+// @z-index-above-dashboard-popovers (99) + 1 = 100
+const StyledHeader = styled.div`
+  grid-column: 2;
+  grid-row: 1;
+  position: sticky;
+  top: 0px;
+  z-index: 100;
+`;
+
+const StyledContent = styled.div<{
+  fullSizeChartId: number | null;
+}>`
+  grid-column: 2;
+  grid-row: 2;
+  // @z-index-above-dashboard-header (100) + 1 = 101
+  ${({ fullSizeChartId }) => fullSizeChartId && `z-index: 101;`}
+`;
+
+const StyledDashboardContent = styled.div<{
+  dashboardFiltersOpen: boolean;
+  editMode: boolean;
+}>`
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
   height: auto;
-  flex-grow: 1;
+  flex: 1;
 
   .grid-container .dashboard-component-tabs {
     box-shadow: none;
@@ -72,17 +119,18 @@ const StyledDashboardContent = styled.div<{ dashboardFiltersOpen: boolean }>`
 
   .grid-container {
     /* without this, the grid will not get smaller upon toggling the builder panel on */
-    min-width: 0;
-    width: 100%;
-    flex-grow: 1;
+    width: 0px;
+    flex: 1;
     position: relative;
-    margin: ${({ theme }) => theme.gridUnit * 6}px
-      ${({ theme }) => theme.gridUnit * 8}px
-      ${({ theme }) => theme.gridUnit * 6}px
-      ${({ theme, dashboardFiltersOpen }) => {
-        if (dashboardFiltersOpen) return theme.gridUnit * 8;
+    margin-top: ${({ theme }) => theme.gridUnit * 6}px;
+    margin-right: ${({ theme }) => theme.gridUnit * 8}px;
+    margin-bottom: ${({ theme }) => theme.gridUnit * 6}px;
+    margin-left: ${({ theme, dashboardFiltersOpen, editMode }) => {
+      if (!dashboardFiltersOpen && !editMode) {
         return 0;
-      }}px;
+      }
+      return theme.gridUnit * 8;
+    }}px;
   }
 
   .dashboard-component-chart-holder {
@@ -99,34 +147,15 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
   );
-  const showNativeFilters = useSelector<RootState, boolean>(
-    state => state.dashboardInfo.metadata?.show_native_filters,
-  );
-  const canEdit = useSelector<RootState, boolean>(
-    ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
-  );
   const editMode = useSelector<RootState, boolean>(
     state => state.dashboardState.editMode,
   );
   const directPathToChild = useSelector<RootState, string[]>(
     state => state.dashboardState.directPathToChild,
   );
-
-  const filters = useFilters();
-  const filterValues = Object.values<Filter>(filters);
-
-  const nativeFiltersEnabled =
-    showNativeFilters &&
-    isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
-    (canEdit || (!canEdit && filterValues.length !== 0));
-
-  const [dashboardFiltersOpen, setDashboardFiltersOpen] = useState(
-    getUrlParam(URL_PARAMS.showFilters) ?? true,
+  const fullSizeChartId = useSelector<RootState, number | null>(
+    state => state.dashboardState.fullSizeChartId,
   );
-
-  const toggleDashboardFiltersOpen = (visible?: boolean) => {
-    setDashboardFiltersOpen(visible ?? !dashboardFiltersOpen);
-  };
 
   const handleChangeTab = ({
     pathToTabIndex,
@@ -152,104 +181,137 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     rootChildId !== DASHBOARD_GRID_ID
       ? dashboardLayout[rootChildId]
       : undefined;
-
+  const StandaloneMode = getUrlParam(URL_PARAMS.standalone);
+  const isReport = StandaloneMode === DashboardStandaloneMode.REPORT;
   const hideDashboardHeader =
-    getUrlParam(URL_PARAMS.standalone) ===
-    DashboardStandaloneMode.HIDE_NAV_AND_TITLE;
+    StandaloneMode === DashboardStandaloneMode.HIDE_NAV_AND_TITLE || isReport;
 
   const barTopOffset =
     (hideDashboardHeader ? 0 : HEADER_HEIGHT) +
     (topLevelTabs ? TABS_HEIGHT : 0);
 
-  useEffect(() => {
-    if (
-      filterValues.length === 0 &&
-      dashboardFiltersOpen &&
-      nativeFiltersEnabled
-    ) {
-      toggleDashboardFiltersOpen(false);
-    }
-  }, [filterValues.length]);
+  const {
+    showDashboard,
+    dashboardFiltersOpen,
+    toggleDashboardFiltersOpen,
+    nativeFiltersEnabled,
+  } = useNativeFilters();
+
+  const filterBarWidth = dashboardFiltersOpen
+    ? OPEN_FILTER_BAR_WIDTH
+    : CLOSED_FILTER_BAR_WIDTH;
+
+  const [containerRef, isSticky] = useElementOnScreen<HTMLDivElement>({
+    threshold: [1],
+  });
+
+  const filterSetEnabled = isFeatureEnabled(
+    FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET,
+  );
+
+  const offset =
+    FILTER_BAR_HEADER_HEIGHT +
+    (isSticky || StandaloneMode ? 0 : MAIN_HEADER_HEIGHT) +
+    (filterSetEnabled ? FILTER_BAR_TABS_HEIGHT : 0);
+
+  const filterBarHeight = `calc(100vh - ${offset}px)`;
+  const filterBarOffset = dashboardFiltersOpen ? 0 : barTopOffset + 20;
 
   return (
-    <StickyContainer
-      className={cx('dashboard', editMode && 'dashboard--editing')}
-    >
-      <Sticky>
-        {({ style }) => (
-          // @ts-ignore
-          <DragDroppable
-            component={dashboardRoot}
-            parentComponent={null}
-            depth={DASHBOARD_ROOT_DEPTH}
-            index={0}
-            orientation="column"
-            onDrop={dropResult => dispatch(handleComponentDrop(dropResult))}
-            editMode={editMode}
-            // you cannot drop on/displace tabs if they already exist
-            disableDragdrop={!!topLevelTabs}
-            style={{
-              zIndex: 100,
-              ...style,
-            }}
-          >
-            {({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) => (
-              <div>
-                {!hideDashboardHeader && <DashboardHeader />}
-                {dropIndicatorProps && <div {...dropIndicatorProps} />}
-                {topLevelTabs && (
-                  <WithPopoverMenu
-                    shouldFocus={shouldFocusTabs}
-                    menuItems={[
-                      <IconButton
-                        className="fa fa-level-down"
-                        label="Collapse tab content"
-                        onClick={handleDeleteTopLevelTabs}
-                      />,
-                    ]}
-                    editMode={editMode}
-                  >
-                    {/*
-                    // @ts-ignore */}
-                    <DashboardComponent
-                      id={topLevelTabs?.id}
-                      parentId={DASHBOARD_ROOT_ID}
-                      depth={DASHBOARD_ROOT_DEPTH + 1}
-                      index={0}
-                      renderTabContent={false}
-                      renderHoverMenu={false}
-                      onChangeTab={handleChangeTab}
-                    />
-                  </WithPopoverMenu>
-                )}
-              </div>
-            )}
-          </DragDroppable>
-        )}
-      </Sticky>
-      <StyledDashboardContent
-        className="dashboard-content"
-        dashboardFiltersOpen={dashboardFiltersOpen}
-      >
-        {nativeFiltersEnabled && !editMode && (
-          <StickyVerticalBar
-            filtersOpen={dashboardFiltersOpen}
-            topOffset={barTopOffset}
-          >
+    <StyledDiv>
+      {nativeFiltersEnabled && !editMode && (
+        <FiltersPanel>
+          <StickyPanel ref={containerRef} width={filterBarWidth}>
             <ErrorBoundary>
               <FilterBar
                 filtersOpen={dashboardFiltersOpen}
                 toggleFiltersBar={toggleDashboardFiltersOpen}
                 directPathToChild={directPathToChild}
+                width={filterBarWidth}
+                height={filterBarHeight}
+                offset={filterBarOffset}
               />
             </ErrorBoundary>
-          </StickyVerticalBar>
-        )}
-        <DashboardContainer topLevelTabs={topLevelTabs} />
-        {editMode && <BuilderComponentPane topOffset={barTopOffset} />}
-      </StyledDashboardContent>
-      <ToastPresenter />
-    </StickyContainer>
+          </StickyPanel>
+        </FiltersPanel>
+      )}
+      <StyledHeader>
+        {/* @ts-ignore */}
+        <DragDroppable
+          data-test="top-level-tabs"
+          component={dashboardRoot}
+          parentComponent={null}
+          depth={DASHBOARD_ROOT_DEPTH}
+          index={0}
+          orientation="column"
+          onDrop={dropResult => dispatch(handleComponentDrop(dropResult))}
+          editMode={editMode}
+          // you cannot drop on/displace tabs if they already exist
+          disableDragDrop={!!topLevelTabs}
+          style={{
+            marginLeft: dashboardFiltersOpen || editMode ? 0 : -32,
+          }}
+        >
+          {({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) => (
+            <div>
+              {!hideDashboardHeader && <DashboardHeader />}
+              {dropIndicatorProps && <div {...dropIndicatorProps} />}
+              {!isReport && topLevelTabs && (
+                <WithPopoverMenu
+                  shouldFocus={shouldFocusTabs}
+                  menuItems={[
+                    <IconButton
+                      icon={<Icons.FallOutlined iconSize="xl" />}
+                      label="Collapse tab content"
+                      onClick={handleDeleteTopLevelTabs}
+                    />,
+                  ]}
+                  editMode={editMode}
+                >
+                  {/*
+                      // @ts-ignore */}
+                  <DashboardComponent
+                    id={topLevelTabs?.id}
+                    parentId={DASHBOARD_ROOT_ID}
+                    depth={DASHBOARD_ROOT_DEPTH + 1}
+                    index={0}
+                    renderTabContent={false}
+                    renderHoverMenu={false}
+                    onChangeTab={handleChangeTab}
+                  />
+                </WithPopoverMenu>
+              )}
+            </div>
+          )}
+        </DragDroppable>
+      </StyledHeader>
+      <StyledContent fullSizeChartId={fullSizeChartId}>
+        <Global
+          styles={css`
+            // @z-index-above-dashboard-header (100) + 1 = 101
+            ${fullSizeChartId &&
+            `div > .filterStatusPopover.ant-popover{z-index: 101}`}
+          `}
+        />
+        <div
+          data-test="dashboard-content"
+          className={cx('dashboard', editMode && 'dashboard--editing')}
+        >
+          <StyledDashboardContent
+            className="dashboard-content"
+            dashboardFiltersOpen={dashboardFiltersOpen}
+            editMode={editMode}
+          >
+            {showDashboard ? (
+              <DashboardContainer topLevelTabs={topLevelTabs} />
+            ) : (
+              <Loading />
+            )}
+            {editMode && <BuilderComponentPane topOffset={barTopOffset} />}
+          </StyledDashboardContent>
+        </div>
+      </StyledContent>
+    </StyledDiv>
   );
 };
 

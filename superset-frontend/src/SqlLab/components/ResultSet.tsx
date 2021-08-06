@@ -280,7 +280,8 @@ export default class ResultSet extends React.PureComponent<
     // before saving the dataset.
     if (templateParams) {
       const p = JSON.parse(templateParams);
-      if (p.filters) {
+      /* eslint-disable-next-line no-underscore-dangle */
+      if (p._filters) {
         /* eslint-disable-next-line no-underscore-dangle */
         delete p._filters;
         templateParams = JSON.stringify(p);
@@ -540,7 +541,7 @@ export default class ResultSet extends React.PureComponent<
     let limitMessage;
     const limitReached = results?.displayLimitReached;
     const limit = queryLimit || results.query.limit;
-    const isAdmin = !!this.props.user?.roles.Admin;
+    const isAdmin = !!this.props.user?.roles?.Admin;
     const displayMaxRowsReachedMessage = {
       withAdmin: t(
         `The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROWS. `,

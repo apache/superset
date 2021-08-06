@@ -18,7 +18,7 @@ import json
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 from zipfile import is_zipfile, ZipFile
 
 from flask import g, make_response, redirect, request, Response, send_file, url_for
@@ -706,6 +706,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         requested_ids = kwargs["rison"]
 
         if is_feature_enabled("VERSIONED_EXPORT"):
+            token = request.args.get("token")
             timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
             root = f"dashboard_export_{timestamp}"
             filename = f"{root}.zip"
@@ -722,12 +723,15 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                     return self.response_404()
             buf.seek(0)
 
-            return send_file(
+            response = send_file(
                 buf,
                 mimetype="application/zip",
                 as_attachment=True,
                 attachment_filename=filename,
             )
+            if token:
+                response.set_cookie(token, "done", max_age=600)
+            return response
 
         query = self.datamodel.session.query(Dashboard).filter(
             Dashboard.id.in_(requested_ids)
@@ -751,9 +755,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.thumbnail",
         log_to_statsd=False,
     )
-    def thumbnail(
-        self, pk: int, digest: str, **kwargs: Dict[str, bool]
-    ) -> WerkzeugResponse:
+    def thumbnail(self, pk: int, digest: str, **kwargs: Any) -> WerkzeugResponse:
         """Get Dashboard thumbnail
         ---
         get:

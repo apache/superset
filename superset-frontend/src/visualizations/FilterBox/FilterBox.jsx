@@ -223,10 +223,10 @@ class FilterBox extends React.PureComponent {
         ? [
             {
               clause: 'WHERE',
-              comparator: null,
-              expressionType: 'SQL',
-              // TODO: Evaluate SQL Injection risk
-              sqlExpression: `lower(${key}) like '%${input}%'`,
+              expressionType: 'SIMPLE',
+              subject: key,
+              operator: 'ILIKE',
+              comparator: `%${input}%`,
             },
           ]
         : null,

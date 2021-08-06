@@ -34,8 +34,9 @@ import IconButton from 'src/dashboard/components/IconButton';
 import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 
-import { mockStore } from 'spec/fixtures/mockStore';
+import { getMockStore } from 'spec/fixtures/mockStore';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
+import { initialState } from 'spec/javascripts/sqllab/fixtures';
 
 describe('Column', () => {
   const columnWithoutChildren = {
@@ -65,6 +66,9 @@ describe('Column', () => {
   function setup(overrideProps) {
     // We have to wrap provide DragDropContext for the underlying DragDroppable
     // otherwise we cannot assert on DragDroppable children
+    const mockStore = getMockStore({
+      ...initialState,
+    });
     const wrapper = mount(
       <Provider store={mockStore}>
         <DndProvider backend={HTML5Backend}>

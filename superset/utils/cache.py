@@ -14,23 +14,28 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, Optional, TYPE_CHECKING, Union
 
 from flask import current_app as app, request
 from flask_caching import Cache
+from flask_caching.backends import NullCache
 from werkzeug.wrappers.etag import ETagResponseMixin
 
 from superset import db
 from superset.extensions import cache_manager
 from superset.models.cache import CacheKey
-from superset.stats_logger import BaseStatsLogger
 from superset.utils.core import json_int_dttm_ser
 from superset.utils.hashing import md5_sha_from_dict
 
-config = app.config  # type: ignore
+if TYPE_CHECKING:
+    from superset.stats_logger import BaseStatsLogger
+
+config = app.config
 stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 
@@ -47,6 +52,9 @@ def set_and_log_cache(
     cache_timeout: Optional[int] = None,
     datasource_uid: Optional[str] = None,
 ) -> None:
+    if isinstance(cache_instance.cache, NullCache):
+        return
+
     timeout = cache_timeout if cache_timeout else config["CACHE_DEFAULT_TIMEOUT"]
     try:
         dttm = datetime.utcnow().isoformat().split(".")[0]

@@ -43,9 +43,9 @@ test('Should send correct props', () => {
   expect(FilterScope).toHaveBeenCalledWith(
     expect.objectContaining({
       chartId: 123,
-      scope: 'Scope',
-      formScope: 'scope',
-      formScoping: 'scoping',
+      filterScope: 'Scope',
+      formFilterScope: 'scope',
+      formScopingType: 'scoping',
     }),
     {},
   );

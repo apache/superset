@@ -87,6 +87,7 @@ FRONTEND_CONF_KEYS = (
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT",
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE",
     "DISABLE_DATASET_SOURCE_EDIT",
+    "DRUID_IS_ACTIVE",
     "ENABLE_JAVASCRIPT_CONTROLS",
     "DEFAULT_SQLLAB_LIMIT",
     "DEFAULT_VIZ_TYPE",
@@ -206,6 +207,9 @@ def handle_api_exception(
             return json_errors_response(
                 errors=[ex.error], status=ex.status, payload=ex.payload
             )
+        except SupersetErrorsException as ex:
+            logger.warning(ex, exc_info=True)
+            return json_errors_response(errors=ex.errors, status=ex.status)
         except SupersetErrorException as ex:
             logger.warning(ex)
             return json_errors_response(errors=[ex.error], status=ex.status)
@@ -305,13 +309,14 @@ def menu_data() -> Dict[str, Any]:
             **appbuilder.languages[lang],
             "url": appbuilder.get_url_for_locale(lang),
         }
-
+    brand_text = appbuilder.app.config["LOGO_RIGHT_TEXT"]
+    if callable(brand_text):
+        brand_text = brand_text()
     build_number = ""
     try:
         build_number = appbuilder.app.config["BUILD_NUMBER"]
     except Exception as ex:
         logger.debug("BUILD_NUMBER is missing from the config", ex)
-
     return {
         "menu": menu,
         "brand": {
@@ -319,8 +324,12 @@ def menu_data() -> Dict[str, Any]:
             "icon": appbuilder.app_icon,
             "alt": appbuilder.app_name,
             "width": appbuilder.app.config["APP_ICON_WIDTH"],
+            "tooltip": appbuilder.app.config["LOGO_TOOLTIP"],
+            "text": brand_text,
         },
         "navbar_right": {
+            # show the watermark if the default app icon has been overriden
+            "show_watermark": ("superset-logo-horiz" not in appbuilder.app_icon),
             "bug_report_url": appbuilder.app.config["BUG_REPORT_URL"],
             "documentation_url": appbuilder.app.config["DOCUMENTATION_URL"],
             "version_string": appbuilder.app.config["VERSION_STRING"],
@@ -401,7 +410,7 @@ def show_http_exception(ex: HTTPException) -> FlaskResponse:
         and ex.code in {404, 500}
     ):
         path = resource_filename("superset", f"static/assets/{ex.code}.html")
-        return send_file(path)
+        return send_file(path), ex.code
 
     return json_errors_response(
         errors=[
@@ -409,7 +418,6 @@ def show_http_exception(ex: HTTPException) -> FlaskResponse:
                 message=utils.error_msg_from_exception(ex),
                 error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
                 level=ErrorLevel.ERROR,
-                extra={},
             ),
         ],
         status=ex.code or 500,
@@ -446,7 +454,6 @@ def show_unexpected_exception(ex: Exception) -> FlaskResponse:
                 message=utils.error_msg_from_exception(ex),
                 error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
                 level=ErrorLevel.ERROR,
-                extra={},
             ),
         ],
     )

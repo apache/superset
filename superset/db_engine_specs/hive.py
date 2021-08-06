@@ -331,7 +331,12 @@ class HiveEngineSpec(PrestoEngineSpec):
                 cursor.cancel()
                 break
 
-            log = cursor.fetch_logs() or ""
+            try:
+                log = cursor.fetch_logs() or ""
+            except Exception:  # pylint: disable=broad-except
+                logger.warning("Call to GetLog() failed")
+                log = ""
+
             if log:
                 log_lines = log.splitlines()
                 progress = cls.progress(log_lines)
@@ -540,3 +545,20 @@ class HiveEngineSpec(PrestoEngineSpec):
             or parsed_query.is_set()
             or parsed_query.is_show()
         )
+
+    @classmethod
+    def has_implicit_cancel(cls) -> bool:
+        """
+        Return True if the live cursor handles the implicit cancelation of the query,
+        False otherise.
+
+        :return: Whether the live cursor implicitly cancels the query
+        :see: handle_cursor
+        """
+
+        return True
+
+
+class SparkEngineSpec(HiveEngineSpec):
+
+    engine_name = "Apache Spark SQL"

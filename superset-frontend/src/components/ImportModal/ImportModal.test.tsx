@@ -17,10 +17,12 @@
  * under the License.
  */
 import React from 'react';
+import { act } from 'react-dom/test-utils';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import { styledMount as mount } from 'spec/helpers/theming';
 import { ReactWrapper } from 'enzyme';
+import { Upload } from 'src/common/components';
 import Button from 'src/components/Button';
 import { ImportResourceName } from 'src/views/CRUD/types';
 import ImportModelsModal from 'src/components/ImportModal';
@@ -66,29 +68,37 @@ describe('ImportModelsModal', () => {
     expect(wrapper.find('h4').text()).toEqual('Import database');
   });
 
-  it('renders a label and a file input field', () => {
+  it('renders a file input field', () => {
     expect(wrapper.find('input[type="file"]')).toExist();
-    expect(wrapper.find('label')).toExist();
   });
 
-  it('should attach the label to the input field', () => {
-    const id = 'modelFile';
-    expect(wrapper.find('label').prop('htmlFor')).toBe(id);
-    expect(wrapper.find('input').prop('id')).toBe(id);
-  });
-
-  it('should render the close, import and cancel buttons', () => {
-    expect(wrapper.find('button')).toHaveLength(3);
+  it('should render the close, file, import and cancel buttons', () => {
+    expect(wrapper.find('button')).toHaveLength(4);
   });
 
   it('should render the import button initially disabled', () => {
-    expect(wrapper.find(Button).at(1).prop('disabled')).toBe(true);
+    expect(wrapper.find(Button).at(2).prop('disabled')).toBe(true);
   });
 
   it('should render the import button enabled when a file is selected', () => {
     const file = new File([new ArrayBuffer(1)], 'model_export.zip');
-    wrapper.find('input').simulate('change', { target: { files: [file] } });
-    expect(wrapper.find(Button).at(1).prop('disabled')).toBe(false);
+    act(() => {
+      const handler = wrapper.find(Upload).prop('onChange');
+      if (handler) {
+        handler({
+          fileList: [],
+          file: {
+            name: 'model_export.zip',
+            originFileObj: file,
+            uid: '-1',
+            size: 0,
+            type: 'zip',
+          },
+        });
+      }
+    });
+    wrapper.update();
+    expect(wrapper.find(Button).at(2).prop('disabled')).toBe(false);
   });
 
   it('should render password fields when needed for import', () => {

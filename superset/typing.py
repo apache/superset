@@ -19,7 +19,22 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 from flask import Flask
 from flask_caching import Cache
+from typing_extensions import TypedDict
 from werkzeug.wrappers import Response
+
+
+class AdhocMetricColumn(TypedDict):
+    column_name: Optional[str]
+    type: str
+
+
+class AdhocMetric(TypedDict):
+    aggregate: str
+    column: AdhocMetricColumn
+    expressionType: str
+    label: str
+    sqlExpression: Optional[str]
+
 
 CacheConfig = Union[Callable[[Flask], Cache], Dict[str, Any]]
 DbapiDescriptionRow = Tuple[
@@ -31,7 +46,6 @@ FilterValue = Union[datetime, float, int, str]
 FilterValues = Union[FilterValue, List[FilterValue], Tuple[FilterValue]]
 FormData = Dict[str, Any]
 Granularity = Union[str, Dict[str, Union[str, float]]]
-AdhocMetric = Dict[str, Any]
 Metric = Union[AdhocMetric, str]
 OrderBy = Tuple[Metric, bool]
 QueryObjectDict = Dict[str, Any]
@@ -43,5 +57,9 @@ Base = Union[bytes, str]
 Status = Union[int, str]
 Headers = Dict[str, Any]
 FlaskResponse = Union[
-    Response, Base, Tuple[Base, Status], Tuple[Base, Status, Headers],
+    Response,
+    Base,
+    Tuple[Base, Status],
+    Tuple[Base, Status, Headers],
+    Tuple[Response, Status],
 ]
