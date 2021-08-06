@@ -264,6 +264,37 @@ class TestDatabaseModel(SupersetTestCase):
             else:
                 self.assertIn(filter_.expected, sql)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_boolean_type_where_operators(self):
+        table = self.get_table(name="birth_names")
+        db.session.add(
+            TableColumn(
+                column_name="boolean_gender",
+                expression="case when gender = 'boy' then True else False end",
+                type="BOOLEAN",
+                table=table,
+            )
+        )
+        query_obj = {
+            "granularity": None,
+            "from_dttm": None,
+            "to_dttm": None,
+            "groupby": ["boolean_gender"],
+            "metrics": ["count"],
+            "is_timeseries": False,
+            "filter": [
+                {
+                    "col": "boolean_gender",
+                    "op": FilterOperator.IN,
+                    "val": ["true", "false"],
+                }
+            ],
+            "extras": {},
+        }
+        sqla_query = table.get_sqla_query(**query_obj)
+        sql = table.database.compile_sqla_query(sqla_query.sqla_query)
+        self.assertIn("IN (true, false)", sql)
+
     def test_incorrect_jinja_syntax_raises_correct_exception(self):
         query_obj = {
             "granularity": None,

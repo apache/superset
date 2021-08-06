@@ -112,7 +112,7 @@ const ColumnButtonWrapper = styled.div`
 const checkboxGenerator = (d, onChange) => (
   <CheckboxControl value={d} onChange={onChange} />
 );
-const DATA_TYPES = ['STRING', 'NUMERIC', 'DATETIME'];
+const DATA_TYPES = ['STRING', 'NUMERIC', 'DATETIME', 'BOOLEAN'];
 
 const DATASOURCE_TYPES_ARR = [
   { key: 'physical', label: t('Physical (table or view)') },

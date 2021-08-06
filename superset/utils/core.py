@@ -423,6 +423,35 @@ def cast_to_num(value: Optional[Union[float, int, str]]) -> Optional[Union[float
         return None
 
 
+def cast_to_boolean(value: Any) -> bool:
+    """Casts a value to an int/float
+
+    >>> cast_to_boolean(1)
+    True
+    >>> cast_to_boolean(0)
+    False
+    >>> cast_to_boolean(0.5)
+    True
+    >>> cast_to_boolean('true')
+    True
+    >>> cast_to_boolean('false')
+    False
+    >>> cast_to_boolean('False')
+    False
+    >>> cast_to_boolean(None)
+    False
+
+    :param value: value to be converted to boolean representation
+    :returns: value cast to `bool`. when value is 'true' or value that are not 0
+              converte into True
+    """
+    if isinstance(value, (int, float)):
+        return value != 0
+    if isinstance(value, str):
+        return value.strip().lower() == "true"
+    return False
+
+
 def list_minus(l: List[Any], minus: List[Any]) -> List[Any]:
     """Returns l without what is in minus
 
