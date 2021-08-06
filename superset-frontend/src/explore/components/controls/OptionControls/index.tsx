@@ -261,10 +261,15 @@ export const OptionControlLabel = ({
 
   const getLabelContent = () => {
     const shouldShowTooltip =
-      !isDragging &&
-      labelRef &&
-      labelRef.current &&
-      labelRef.current.scrollWidth > labelRef.current.clientWidth;
+      (!isDragging &&
+        typeof label === 'string' &&
+        tooltipTitle &&
+        label &&
+        tooltipTitle !== label) ||
+      (!isDragging &&
+        labelRef &&
+        labelRef.current &&
+        labelRef.current.scrollWidth > labelRef.current.clientWidth);
 
     if (savedMetric && hasMetricName) {
       return (
