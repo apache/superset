@@ -268,7 +268,7 @@ class TestImportChartsCommand(SupersetTestCase):
         del broken_config["database_name"]
         contents["metadata.yaml"] = yaml.safe_dump(chart_metadata_config)
         contents["databases/imported_database.yaml"] = yaml.safe_dump(broken_config)
-        command = ImprtChartsCommand(contents)
+        command = ImportChartsCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
         assert str(excinfo.value) == "Error importing chart"
