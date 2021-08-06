@@ -166,9 +166,6 @@ class ImportExportMixin:
             | {"uuid"}
         )
         new_children = {c: dict_rep[c] for c in cls.export_children if c in dict_rep}
-        unique_constrains = cls._unique_constrains()
-
-        filters = []  # Using these filters to check if obj already exists
 
         # Remove fields that should not get imported
         for k in list(dict_rep):
@@ -187,35 +184,9 @@ class ImportExportMixin:
             for k, v in parent_refs.items():
                 dict_rep[k] = getattr(parent, v)
 
-        # Add filter for parent obj
-        filters.extend([getattr(cls, k) == dict_rep.get(k) for k in parent_refs.keys()])
-
-        # Add filter for unique constraints
-        ucs = [
-            and_(
-                *[
-                    getattr(cls, k) == dict_rep.get(k)
-                    for k in cs
-                    if dict_rep.get(k) is not None
-                ]
-            )
-            for cs in unique_constrains
-        ]
-        filters.append(or_(*ucs))
-
-        # Check if object already exists in DB, break if more than one is found
-        try:
-            obj_query = session.query(cls).filter(and_(*filters))
-            obj = obj_query.one_or_none()
-        except MultipleResultsFound as ex:
-            logger.error(
-                "Error importing %s \n %s \n %s",
-                cls.__name__,
-                str(obj_query),
-                yaml.safe_dump(dict_rep),
-                exc_info=True,
-            )
-            raise ex
+        # Check if object already exists in DB
+        obj_query = session.query(cls).filter_by(uuid=dict_rep["uuid"])
+        obj = obj_query.one_or_none()
 
         if not obj:
             is_new_obj = True

@@ -107,20 +107,6 @@ class ImportExamplesCommand(ImportModelsCommand):
                 dataset = import_dataset(
                     session, config, overwrite=overwrite, force_data=force_data
                 )
-
-                try:
-                    dataset = import_dataset(
-                        session, config, overwrite=overwrite, force_data=force_data
-                    )
-                except MultipleResultsFound:
-                    # Multiple result can be found for datasets. There was a bug in
-                    # load-examples that resulted in datasets being loaded with a NULL
-                    # schema. Users could then add a new dataset with the same name in
-                    # the correct schema, resulting in duplicates, since the uniqueness
-                    # constraint was not enforced correctly in the application logic.
-                    # See https://github.com/apache/superset/issues/16051.
-                    continue
-
                 dataset_info[str(dataset.uuid)] = {
                     "datasource_id": dataset.id,
                     "datasource_type": "view" if dataset.is_sqllab_view else "table",
