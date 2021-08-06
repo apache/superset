@@ -63,6 +63,7 @@ Join our growing community!
 - [Utair](https://www.utair.ru) [@utair-digital]
 - [Zalando](https://www.zalando.com) [@dmigo]
 - [Zalora](https://www.zalora.com) [@ksaagariconic]
+- [VkusVill](https://www.vkusvill.ru) [@ETselikov]
 
 ### Enterprise Technology
 - [A3Data](https://a3data.com.br) [@neylsoncrepalde]
@@ -102,6 +103,7 @@ Join our growing community!
 - [Whale](http://whale.im)
 - [Windsor.ai](https://www.windsor.ai/) [@octaviancorlade]
 - [Zeta](https://www.zeta.tech/) [@shaikidris]
+- [TechAudit](https://www.techaudit.info) [@ETselikov]
 
 
 ### Entertainment
