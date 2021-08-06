@@ -299,5 +299,6 @@ class TestChartsUpdateCommand(SupersetTestCase):
         last_saved_before = db.session.query(Slice).all()[0].last_saved_at
         command.run()
         chart = db.session.query(Slice).all()[0]
+        print("chart", chart.__dict__)
         assert chart.last_saved_at != last_saved_before
         assert chart.last_saved_by == actor
