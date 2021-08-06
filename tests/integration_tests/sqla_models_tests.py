@@ -299,7 +299,7 @@ class TestDatabaseModel(SupersetTestCase):
         operand = "(true, false)"
 
         # override native_boolean=False behavior in MySQLCompiler
-        # https://github.com/sqlalchemy/sqlalchemy/blob/b75630cec9418ef087e7c6af0370ac6ba728a251/lib/sqlalchemy/dialects/mysql/base.py
+        # https://github.com/sqlalchemy/sqlalchemy/blob/master/lib/sqlalchemy/dialects/mysql/base.py
         if not dialect.supports_native_boolean and dialect.name != "mysql":
             operand = "(1, 0)"
         self.assertIn(f"IN {operand}", sql)
