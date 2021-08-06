@@ -296,7 +296,6 @@ class TestChartsUpdateCommand(SupersetTestCase):
         command = UpdateChartCommand(actor, model_id, json_obj)
         command.run()
         chart = db.session.query(Slice).all()[0]
-        print("chart", chart.id)
         assert chart.slice_name == "Update_Energy_SanKey_Chart"
         assert chart.description == "test for update"
         assert chart.last_saved_by == g.user
