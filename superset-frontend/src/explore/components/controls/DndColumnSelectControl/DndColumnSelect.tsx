@@ -27,6 +27,7 @@ import { OptionSelector } from 'src/explore/components/controls/DndColumnSelectC
 import { DatasourcePanelDndItem } from 'src/explore/components/DatasourcePanel/types';
 import { DndItemType } from 'src/explore/components/DndItemType';
 import { useComponentDidUpdate } from 'src/common/hooks/useComponentDidUpdate';
+import ColumnSelectPopoverTrigger from './ColumnSelectPopoverTrigger';
 
 export const DndColumnSelect = (props: LabelProps) => {
   const {
@@ -113,23 +114,35 @@ export const DndColumnSelect = (props: LabelProps) => {
   const valuesRenderer = useCallback(
     () =>
       optionSelector.values.map((column, idx) => (
-        <OptionWrapper
-          key={idx}
-          index={idx}
-          clickClose={onClickClose}
-          onShiftOptions={onShiftOptions}
-          type={`${DndItemType.ColumnOption}_${name}_${label}`}
-          canDelete={canDelete}
-          column={column}
-        />
+        <ColumnSelectPopoverTrigger
+          columns={Object.values(options)}
+          onColumnEdit={newColumn => {
+            optionSelector.replace(idx, newColumn.column_name);
+            onChange(optionSelector.getValues());
+          }}
+          editedColumn={column}
+        >
+          <OptionWrapper
+            key={idx}
+            index={idx}
+            clickClose={onClickClose}
+            onShiftOptions={onShiftOptions}
+            type={`${DndItemType.ColumnOption}_${name}_${label}`}
+            canDelete={canDelete}
+            column={column}
+            withCaret
+          />
+        </ColumnSelectPopoverTrigger>
       )),
     [
       canDelete,
       label,
       name,
+      onChange,
       onClickClose,
       onShiftOptions,
-      optionSelector.values,
+      optionSelector,
+      options,
     ],
   );
 
