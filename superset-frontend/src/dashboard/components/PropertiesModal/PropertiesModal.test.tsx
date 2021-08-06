@@ -113,8 +113,6 @@ fetchMock.get('http://localhost/api/v1/dashboard/26', {
       published: false,
       roles: [],
       slug: null,
-      table_names:
-        '[examples].[covid_vaccines], [examples].[covid_vaccines], [examples].[covid_vaccines], [examples].[covid_vaccines], [examples].[covid_vaccines], [examples].[covid_vaccines], [examples].[covid_vaccines], [examples].[covid_vaccines]',
       thumbnail_url:
         '/api/v1/dashboard/26/thumbnail/b24805e98d90116da8c0974d24f5c533/',
       url: '/superset/dashboard/26/',
