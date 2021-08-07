@@ -162,11 +162,6 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         return f"Dashboard<{self.id or self.slug}>"
 
     @property
-    def table_names(self) -> str:
-        # pylint: disable=no-member
-        return ", ".join(str(s.datasource.full_name) for s in self.slices)
-
-    @property
     def url(self) -> str:
         return f"/superset/dashboard/{self.slug or self.id}/"
 
