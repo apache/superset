@@ -158,7 +158,6 @@ class DashboardGetResponseSchema(Schema):
     charts = fields.List(fields.String(description=charts_description))
     owners = fields.List(fields.Nested(UserSchema))
     roles = fields.List(fields.Nested(RolesSchema))
-    table_names = fields.String()  # legacy nonsense
     changed_on_humanized = fields.String(data_key="changed_on_delta_humanized")
 
 

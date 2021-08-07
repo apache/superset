@@ -339,7 +339,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             "published": False,
             "url": "/superset/dashboard/slug1/",
             "slug": "slug1",
-            "table_names": "",
             "thumbnail_url": dashboard.thumbnail_url,
         }
         data = json.loads(rv.data.decode("utf-8"))
