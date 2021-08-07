@@ -36,6 +36,18 @@ Install the following packages using the `yum` package manager:
 sudo yum install gcc gcc-c++ libffi-devel python-devel python-pip python-wheel openssl-devel cyrus-sasl-devel openldap-devel
 ```
 
+In more recent versions of CentOS and Fedora, you may need to install a slightly different set of packages using `dnf`:
+
+```
+sudo dnf install gcc gcc-c++ libffi-devel python3-devel python3-pip python3-wheel openssl-devel cyrus-sasl-devel openldap-devel
+```
+
+Also, on CentOS, you may need to upgrade pip for the install to work:
+
+```
+pip3 install --upgrade pip
+```
+
 **Mac OS X**
 
 If you're not on the latest version of OS X, we recommend upgrading because we've found that many
