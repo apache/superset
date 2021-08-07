@@ -390,7 +390,7 @@ class DatasourceEditor extends React.PureComponent {
     this.setState(prevState => ({ isEditMode: !prevState.isEditMode }));
   }
 
-  onDatasourceChange(datasource, callback) {
+  onDatasourceChange(datasource, callback = this.validateAndChange) {
     this.setState({ datasource }, callback);
   }
 
