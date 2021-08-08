@@ -14,9 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import json
 import os
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING
 
 import celery
 from cachelib.base import BaseCache
@@ -32,6 +34,9 @@ from superset.utils.cache_manager import CacheManager
 from superset.utils.encrypt import EncryptedFieldFactory
 from superset.utils.feature_flag_manager import FeatureFlagManager
 from superset.utils.machine_auth import MachineAuthProviderFactory
+
+if TYPE_CHECKING:
+    from keys_management import KeysManagement
 
 
 class ResultsBackendManager:
@@ -114,3 +119,4 @@ migrate = Migrate()
 results_backend_manager = ResultsBackendManager()
 security_manager = LocalProxy(lambda: appbuilder.sm)
 talisman = Talisman()
+secrets_manager: Optional[KeysManagement]

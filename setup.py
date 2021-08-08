@@ -88,6 +88,7 @@ setup(
         "humanize",
         "itsdangerous>=1.0.0, <2.0.0",  # https://github.com/apache/superset/pull/14627
         "isodate",
+        "keys-management>=0.1.5, <0.2.0",
         "markdown>=3.0",
         "msgpack>=1.0.0, <1.1",
         "pandas>=1.2.2, <1.3",

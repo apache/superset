@@ -563,6 +563,8 @@ class SupersetAppInitializer:
         # Configuration of feature_flags must be done first to allow init features
         # conditionally
         self.configure_feature_flags()
+        if feature_flag_manager.is_feature_enabled("SECRET_KEYS_ROTATIONS"):
+            self.configure_secret_keys()
         self.configure_db_encrypt()
         self.setup_db()
         self.configure_celery()
@@ -715,6 +717,11 @@ class SupersetAppInitializer:
 
     def setup_bundle_manifest(self) -> None:
         manifest_processor.init_app(self.superset_app)
+
+    def configure_secret_keys(self) -> None:
+        from superset.initialization.secret_keys import configure
+
+        configure(self.superset_app)
 
 
 class SupersetIndexView(IndexView):
