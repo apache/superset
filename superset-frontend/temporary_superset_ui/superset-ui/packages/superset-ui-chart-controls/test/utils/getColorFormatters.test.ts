@@ -46,9 +46,11 @@ describe('round', () => {
 describe('getOpacity', () => {
   it('getOpacity', () => {
     expect(getOpacity(100, 100, 100)).toEqual(1);
-    expect(getOpacity(75, 50, 100)).toEqual(0.65);
-    expect(getOpacity(75, 100, 50)).toEqual(0.65);
-    expect(getOpacity(100, 100, 50)).toEqual(0.3);
+    expect(getOpacity(75, 50, 100)).toEqual(0.53);
+    expect(getOpacity(75, 100, 50)).toEqual(0.53);
+    expect(getOpacity(100, 100, 50)).toEqual(0.05);
+    expect(getOpacity(100, 100, 100, 0, 0.8)).toEqual(0.8);
+    expect(getOpacity(100, 100, 50, 0, 1)).toEqual(0);
   });
 });
 
@@ -97,7 +99,7 @@ describe('getColorFunction()', () => {
       },
       countValues,
     );
-    expect(colorFunction(50)).toEqual('rgba(255,0,0,0.3)');
+    expect(colorFunction(50)).toEqual('rgba(255,0,0,0.05)');
     expect(colorFunction(100)).toEqual('rgba(255,0,0,1)');
     expect(colorFunction(0)).toBeUndefined();
   });
@@ -113,7 +115,7 @@ describe('getColorFunction()', () => {
       countValues,
     );
     expect(colorFunction(50)).toEqual('rgba(255,0,0,1)');
-    expect(colorFunction(100)).toEqual('rgba(255,0,0,0.3)');
+    expect(colorFunction(100)).toEqual('rgba(255,0,0,0.05)');
     expect(colorFunction(150)).toBeUndefined();
   });
 
@@ -143,7 +145,7 @@ describe('getColorFunction()', () => {
     );
     expect(colorFunction(60)).toBeUndefined();
     expect(colorFunction(100)).toEqual('rgba(255,0,0,1)');
-    expect(colorFunction(50)).toEqual('rgba(255,0,0,0.48)');
+    expect(colorFunction(50)).toEqual('rgba(255,0,0,0.29)');
 
     colorFunction = getColorFunction(
       {
@@ -155,7 +157,7 @@ describe('getColorFunction()', () => {
       countValues,
     );
     expect(colorFunction(90)).toBeUndefined();
-    expect(colorFunction(100)).toEqual('rgba(255,0,0,0.48)');
+    expect(colorFunction(100)).toEqual('rgba(255,0,0,0.29)');
     expect(colorFunction(50)).toEqual('rgba(255,0,0,1)');
   });
 
@@ -171,7 +173,7 @@ describe('getColorFunction()', () => {
       countValues,
     );
     expect(colorFunction(50)).toBeUndefined();
-    expect(colorFunction(100)).toEqual('rgba(255,0,0,0.65)');
+    expect(colorFunction(100)).toEqual('rgba(255,0,0,0.53)');
   });
 
   it('getColorFunction BETWEEN_OR_EQUAL', () => {
@@ -185,7 +187,7 @@ describe('getColorFunction()', () => {
       },
       countValues,
     );
-    expect(colorFunction(50)).toEqual('rgba(255,0,0,0.3)');
+    expect(colorFunction(50)).toEqual('rgba(255,0,0,0.05)');
     expect(colorFunction(100)).toEqual('rgba(255,0,0,1)');
     expect(colorFunction(150)).toBeUndefined();
   });
@@ -201,7 +203,7 @@ describe('getColorFunction()', () => {
       },
       countValues,
     );
-    expect(colorFunction(50)).toEqual('rgba(255,0,0,0.3)');
+    expect(colorFunction(50)).toEqual('rgba(255,0,0,0.05)');
     expect(colorFunction(100)).toBeUndefined();
   });
 
@@ -289,8 +291,8 @@ describe('getColorFunction()', () => {
       countValues,
     );
     expect(colorFunction(20)).toEqual(undefined);
-    expect(colorFunction(50)).toEqual('rgba(255,0,0,0.3)');
-    expect(colorFunction(75)).toEqual('rgba(255,0,0,0.65)');
+    expect(colorFunction(50)).toEqual('rgba(255,0,0,0)');
+    expect(colorFunction(75)).toEqual('rgba(255,0,0,0.5)');
     expect(colorFunction(100)).toEqual('rgba(255,0,0,1)');
     expect(colorFunction(120)).toEqual(undefined);
   });
@@ -364,7 +366,7 @@ describe('getColorFormatters()', () => {
     expect(colorFormatters[1].getColorFromValue(400)).toBeUndefined();
 
     expect(colorFormatters[2].column).toEqual('count');
-    expect(colorFormatters[2].getColorFromValue(100)).toEqual('rgba(255,0,0,0.65)');
+    expect(colorFormatters[2].getColorFromValue(100)).toEqual('rgba(255,0,0,0.53)');
   });
 
   it('undefined column config', () => {
