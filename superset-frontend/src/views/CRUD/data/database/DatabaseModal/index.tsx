@@ -521,12 +521,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     const dbToUpdate = JSON.parse(JSON.stringify(update));
 
     if (dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM) {
-      // Validate DB before saving
-      await getValidation(dbToUpdate, true);
-      if (validationErrors && !isEmpty(validationErrors)) {
-        return;
-      }
-
       if (dbToUpdate?.parameters?.query) {
         // convert query params into dictionary
         dbToUpdate.parameters.query = JSON.parse(
@@ -540,6 +534,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         'query' in dbModel.parameters.properties
       ) {
         dbToUpdate.parameters.query = {};
+      }
+
+      // Validate DB before saving
+      await getValidation(dbToUpdate, true);
+      if (validationErrors && !isEmpty(validationErrors)) {
+        return;
       }
 
       const engine = dbToUpdate.backend || dbToUpdate.engine;

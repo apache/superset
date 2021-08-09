@@ -646,6 +646,8 @@ export function useDatabaseValidation() {
   );
   const getValidation = useCallback(
     (database: Partial<DatabaseObject> | null, onCreate = false) => {
+      console.log('inValidate', database);
+      console.log(onCreate);
       SupersetClient.post({
         endpoint: '/api/v1/database/validate_parameters',
         body: JSON.stringify(database),
