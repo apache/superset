@@ -18,7 +18,6 @@
 import json
 import logging
 import re
-from ast import literal_eval
 from contextlib import closing
 from datetime import datetime
 from typing import (
