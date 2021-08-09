@@ -6,11 +6,14 @@ import {
   isBinaryOperator,
   isSetOperator,
 } from './Operator';
+import { TimeGranularity } from '../../time-format';
 
 interface BaseSimpleAdhocFilter {
   expressionType: 'SIMPLE';
   clause: 'WHERE' | 'HAVING';
   subject: string;
+  timeGrain?: TimeGranularity;
+  isExtra?: boolean;
 }
 
 export type UnaryAdhocFilter = BaseSimpleAdhocFilter & {
