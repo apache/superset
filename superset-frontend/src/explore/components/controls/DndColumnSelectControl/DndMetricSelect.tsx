@@ -334,8 +334,8 @@ export const DndMetricSelect = (props: any) => {
         valuesRenderer={valuesRenderer}
         accept={DND_ACCEPTED_TYPES}
         ghostButtonText={tn(
-          'Drop column or metric',
-          'Drop columns or metrics',
+          'Drop column or metric here',
+          'Drop columns or metrics here',
           multi ? 2 : 1,
         )}
         displayGhostButton={multi || value.length === 0}
