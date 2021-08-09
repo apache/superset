@@ -417,7 +417,7 @@ class Header extends React.PureComponent {
     const roles = Object.keys(user.roles || []);
     const permissions = roles.map(key =>
       user.roles[key].filter(
-        perms => perms[0] === 'can_add' && perms[1] === 'AlertModelView',
+        perms => perms[0] === 'menu_access' && perms[1] === 'Manage',
       ),
     );
     return permissions[0].length > 0;
