@@ -1260,10 +1260,9 @@ def convert_legacy_filters_into_adhoc(  # pylint: disable=invalid-name
 ) -> None:
     mapping = {"having": "having_filters", "where": "filters"}
 
-    adhoc_filters: List[AdhocFilterClause] = form_data.get("adhoc_filters", [])
-    form_data["adhoc_filters"] = adhoc_filters
     if not form_data.get("adhoc_filters"):
-        form_data["adhoc_filters"] = []
+        adhoc_filters: List[AdhocFilterClause] = []
+        form_data["adhoc_filters"] = adhoc_filters
 
         for clause, filters in mapping.items():
             if clause in form_data and form_data[clause] != "":
