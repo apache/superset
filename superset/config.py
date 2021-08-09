@@ -196,6 +196,10 @@ WTF_CSRF_EXEMPT_LIST = ["superset.views.core.log", "superset.charts.api.data"]
 DEBUG = os.environ.get("FLASK_ENV") == "development"
 FLASK_USE_RELOAD = True
 
+# Enable profiling of Python calls. Turn this on and append ``?_instrument=1``
+# to the page to see the call stack.
+PROFILING = False
+
 # Superset allows server-side python stacktraces to be surfaced to the
 # user when this feature is on. This may has security implications
 # and it's more secure to turn it off in production settings.

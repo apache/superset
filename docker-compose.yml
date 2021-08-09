@@ -118,6 +118,9 @@ services:
     depends_on: *superset-depends-on
     user: *superset-user
     volumes: *superset-volumes
+    # Bump memory limit if processing selenium / thumbails on superset-worker
+    # mem_limit: 2038m
+    # mem_reservation: 128M
 
   superset-worker-beat:
     image: *superset-image
