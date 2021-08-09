@@ -30,19 +30,24 @@ export const round = (num: number, precision = 0) =>
 export const rgbToRgba = (rgb: string, alpha: number) =>
   rgb.replace(/rgb/i, 'rgba').replace(/\)/i, `,${alpha})`);
 
-export const getOpacity = (value: number, cutoffPoint: number, extremeValue: number) => {
-  const MIN_OPACITY = 0.3;
-  const MAX_OPACITY = 1;
-
-  return extremeValue === cutoffPoint
-    ? MAX_OPACITY
+const MIN_OPACITY_BOUNDED = 0.05;
+const MIN_OPACITY_UNBOUNDED = 0;
+const MAX_OPACITY = 1;
+export const getOpacity = (
+  value: number,
+  cutoffPoint: number,
+  extremeValue: number,
+  minOpacity = MIN_OPACITY_BOUNDED,
+  maxOpacity = MAX_OPACITY,
+) =>
+  extremeValue === cutoffPoint
+    ? maxOpacity
     : round(
         Math.abs(
-          ((MAX_OPACITY - MIN_OPACITY) / (extremeValue - cutoffPoint)) * (value - cutoffPoint),
-        ) + MIN_OPACITY,
+          ((maxOpacity - minOpacity) / (extremeValue - cutoffPoint)) * (value - cutoffPoint),
+        ) + minOpacity,
         2,
       );
-};
 
 export const getColorFunction = (
   {
@@ -54,6 +59,9 @@ export const getColorFunction = (
   }: ConditionalFormattingConfig,
   columnValues: number[],
 ) => {
+  let minOpacity = MIN_OPACITY_BOUNDED;
+  const maxOpacity = MAX_OPACITY;
+
   let comparatorFunction: (
     value: number,
     allValues: number[],
@@ -76,6 +84,7 @@ export const getColorFunction = (
   }
   switch (operator) {
     case COMPARATOR.NONE:
+      minOpacity = MIN_OPACITY_UNBOUNDED;
       comparatorFunction = (value: number, allValues: number[]) => {
         const cutoffValue = Math.min(...allValues);
         const extremeValue = Math.max(...allValues);
@@ -158,7 +167,10 @@ export const getColorFunction = (
     const compareResult = comparatorFunction(value, columnValues);
     if (compareResult === false) return undefined;
     const { cutoffValue, extremeValue } = compareResult;
-    return rgbToRgba(colorScheme, getOpacity(value, cutoffValue, extremeValue));
+    return rgbToRgba(
+      colorScheme,
+      getOpacity(value, cutoffValue, extremeValue, minOpacity, maxOpacity),
+    );
   };
 };
 
