@@ -356,7 +356,7 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
     const config: Partial<AdhocFilter> = {
       subject: (droppedItem as ColumnMeta)?.column_name,
     };
-    if (isFeatureEnabled(FeatureFlag.UX_BETA)) {
+    if (config.subject && isFeatureEnabled(FeatureFlag.UX_BETA)) {
       config.operator = OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.IN].operation;
       config.operatorId = Operators.IN;
     }
