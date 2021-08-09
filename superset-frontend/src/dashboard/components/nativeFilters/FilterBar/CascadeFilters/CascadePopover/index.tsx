@@ -201,7 +201,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
       id={filter.id}
       overlayStyle={{ width: '400px' }}
     >
-      <div className="sweetclass">
+      <div>
         {activeFilters.map(activeFilter => (
           <FilterControl
             dataMaskSelected={dataMaskSelected}

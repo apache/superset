@@ -29,9 +29,9 @@ export const FILTER_WIDTH = 180;
 
 export const StyledAddFilterBox = styled.div`
   color: ${({ theme }) => theme.colors.primary.dark1};
+  padding: ${({ theme }) => theme.gridUnit * 2}px;
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   cursor: pointer;
-
   &:hover {
     color: ${({ theme }) => theme.colors.primary.base};
   }
@@ -150,69 +150,65 @@ const FilterTabs: FC<FilterTabsProps> = ({
   onRearrage,
   orderedFilterIds,
 }) => (
-  <div>
-    <FilterTabsContainer
-      id="native-filters-tabs"
-      type="editable-card"
-      tabPosition="left"
-      onChange={onChange}
-      activeKey={currentFilterId}
-      onEdit={onEdit}
-      hideAdd
-      tabBarExtraContent={{
-        left: <StyledHeader>{t('Filters')}</StyledHeader>,
-        right: (
-          <StyledAddFilterBox
-            onClick={() => {
-              onEdit('', 'add');
-              setTimeout(() => {
-                const element = document.getElementById('native-filters-tabs');
-                if (element) {
-                  const navList = element.getElementsByClassName(
-                    'ant-tabs-nav-list',
-                  )[0];
-                  navList.scrollTop = navList.scrollHeight;
-                }
-              }, 0);
-            }}
-          >
-            <PlusOutlined />{' '}
-            <span data-test="add-filter-button" aria-label="Add filter">
-              {t('Add filter')}
-            </span>
-          </StyledAddFilterBox>
-        ),
-      }}
-    >
-      {filterIds
-        .slice()
-        .sort(
-          (a, b) => orderedFilterIds.indexOf(a) - orderedFilterIds.indexOf(b),
-        )
-        .map((id, index) => (
-          <LineEditableTabs.TabPane
-            tab={
-              <FilterTabTitle
-                id={id}
-                index={index}
-                isRemoved={!!removedFilters[id]}
-                restoreFilter={restoreFilter}
-                getFilterTitle={getFilterTitle}
-                onRearrage={onRearrage}
-                onRemove={(id: string) => curry(onEdit)(id)('remove')}
-              />
-            }
-            key={id}
-            closable={false}
-          >
-            {
-              /* @ts-ignore */
-              children(id)
-            }
-          </LineEditableTabs.TabPane>
-        ))}
-    </FilterTabsContainer>
-  </div>
+  <FilterTabsContainer
+    id="native-filters-tabs"
+    type="editable-card"
+    tabPosition="left"
+    onChange={onChange}
+    activeKey={currentFilterId}
+    onEdit={onEdit}
+    hideAdd
+    tabBarExtraContent={{
+      left: <StyledHeader>{t('Filters')}</StyledHeader>,
+      right: (
+        <StyledAddFilterBox
+          onClick={() => {
+            onEdit('', 'add');
+            setTimeout(() => {
+              const element = document.getElementById('native-filters-tabs');
+              if (element) {
+                const navList = element.getElementsByClassName(
+                  'ant-tabs-nav-list',
+                )[0];
+                navList.scrollTop = navList.scrollHeight;
+              }
+            }, 0);
+          }}
+        >
+          <PlusOutlined />{' '}
+          <span data-test="add-filter-button" aria-label="Add filter">
+            {t('Add filter')}
+          </span>
+        </StyledAddFilterBox>
+      ),
+    }}
+  >
+    {filterIds
+      .slice()
+      .sort((a, b) => orderedFilterIds.indexOf(a) - orderedFilterIds.indexOf(b))
+      .map((id, index) => (
+        <LineEditableTabs.TabPane
+          tab={
+            <FilterTabTitle
+              id={id}
+              index={index}
+              isRemoved={!!removedFilters[id]}
+              restoreFilter={restoreFilter}
+              getFilterTitle={getFilterTitle}
+              onRearrage={onRearrage}
+              onRemove={(id: string) => curry(onEdit)(id)('remove')}
+            />
+          }
+          key={id}
+          closable={false}
+        >
+          {
+            /* @ts-ignore */
+            children(id)
+          }
+        </LineEditableTabs.TabPane>
+      ))}
+  </FilterTabsContainer>
 );
 
 export default FilterTabs;

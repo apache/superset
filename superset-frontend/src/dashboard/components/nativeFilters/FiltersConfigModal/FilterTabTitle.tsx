@@ -1,6 +1,6 @@
 import { styled, t } from '@superset-ui/core';
 import React, { useRef } from 'react';
-import { useDrag, useDrop } from 'react-dnd';
+import { DropTargetMonitor, useDrag, useDrop, XYCoord } from 'react-dnd';
 import Icons from 'src/components/Icons';
 import { REMOVAL_DELAY_SECS } from './utils';
 
@@ -80,15 +80,15 @@ export const FilterTabTitle: React.FC<FilterTabTitleProps> = ({
   onRemove,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
-  const [{ isDragging }, drag, dragPreview] = useDrag({
+  const [{ isDragging }, drag] = useDrag({
     item: { id, type: FILTER_TYPE, index },
+    collect: (monitor: any) => ({
+      isDragging: monitor.isDragging(),
+    }),
   });
   const [, drop] = useDrop({
     accept: FILTER_TYPE,
-    collect: monitor => ({
-      isOver: !!monitor.isOver(),
-    }),
-    hover: (item: DragItem) => {
+    hover: (item: DragItem, monitor: DropTargetMonitor) => {
       if (!ref.current) {
         return;
       }
@@ -98,6 +98,32 @@ export const FilterTabTitle: React.FC<FilterTabTitleProps> = ({
 
       // Don't replace items with themselves
       if (dragIndex === hoverIndex) {
+        return;
+      }
+      // Determine rectangle on screen
+      const hoverBoundingRect = ref.current?.getBoundingClientRect();
+
+      // Get vertical middle
+      const hoverMiddleY =
+        (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
+
+      // Determine mouse position
+      const clientOffset = monitor.getClientOffset();
+
+      // Get pixels to the top
+      const hoverClientY = (clientOffset as XYCoord).y - hoverBoundingRect.top;
+
+      // Only perform the move when the mouse has crossed half of the items height
+      // When dragging downwards, only move when the cursor is below 50%
+      // When dragging upwards, only move when the cursor is above 50%
+
+      // Dragging downwards
+      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
+        return;
+      }
+
+      // Dragging upwards
+      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
         return;
       }
 
