@@ -267,7 +267,9 @@ def cache_warmup(
     """
     logger.info("Loading strategy")
     class_ = None
-    for class_ in strategies:
+
+    extra_strategies: List[Strategy] = app.config["EXTRA_CACHING_STRATEGIES"]
+    for class_ in strategies + extra_strategies:
         if class_.name == strategy_name:  # type: ignore
             break
     else:
