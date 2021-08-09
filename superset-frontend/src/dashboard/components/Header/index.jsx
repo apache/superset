@@ -384,6 +384,8 @@ class Header extends React.PureComponent {
   renderReportModal() {
     const attachedReportExists = !!Object.keys(this.props.reports).length;
     const canAddReports = isFeatureEnabled(FeatureFlag.ALERT_REPORTS);
+    console.warn('canAddReports', canAddReports);
+    console.warn('attachedReportExists', attachedReportExists);
     return (
       (canAddReports || null) &&
       (attachedReportExists ? (
@@ -415,10 +417,14 @@ class Header extends React.PureComponent {
     }
     const roles = Object.keys(user.roles || []);
     const permissions = roles.map(key =>
-      user.roles[key].filter(
-        perms => perms[0] === 'can_add' && perms[1] === 'AlertModelView',
-      ),
+      user.roles[key].filter(perms => {
+        console.log('perms', perms);
+        return perms[0] === 'can_add' && perms[1] === 'AlertModelView';
+      }),
     );
+    console.warn('permissions', permissions);
+    console.warn('roles', roles);
+    console.warn('user.roles', user.roles);
     return permissions[0].length > 0;
   }
 
@@ -454,6 +460,9 @@ class Header extends React.PureComponent {
     const userCanShare = dashboardInfo.dash_share_perm;
     const userCanSaveAs = dashboardInfo.dash_save_perm;
     const shouldShowReport = !editMode && this.canAddReports();
+    console.warn('shouldShowReport', shouldShowReport);
+    console.warn('editMode', editMode);
+    console.warn('this.canAddReports', this.canAddReports());
     const refreshLimit =
       dashboardInfo.common.conf.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
     const refreshWarning =

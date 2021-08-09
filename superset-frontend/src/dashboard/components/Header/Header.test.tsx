@@ -23,7 +23,6 @@ import { render, screen, fireEvent } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import * as featureFlags from 'src/featureFlags';
-import Icons from 'src/components/Icons';
 import { HeaderProps } from './types';
 import Header from '.';
 
@@ -49,10 +48,11 @@ const createProps = () => ({
     isActive: true,
     lastName: 'admin',
     permissions: {},
-    roles: { Admin: Array(173) },
+    roles: { Admin: [['can_add', 'AlertModelView']] },
     userId: 1,
     username: 'admin',
   },
+  reports: {},
   dashboardTitle: 'Dashboard Title',
   charts: {},
   layout: {},
@@ -332,7 +332,7 @@ describe('Email Report Modal', () => {
     isFeatureEnabledMock.mockRestore();
   });
 
-  it.only('Email Report Modal-create', async () => {
+  it.only('creates a new email report', async () => {
     const mockedProps = createProps();
     const mockedUserPermsProps = {
       ...mockedProps,
@@ -340,22 +340,13 @@ describe('Email Report Modal', () => {
     };
     render(
       <div className="dashboard">
-        <Header {...mockedUserPermsProps}>
-          <span
-            role="button"
-            title="Schedule email report"
-            tabIndex={0}
-            className="action-button"
-            onClick={() => {}}
-            data-test="schedule-email-report-button-test"
-          >
-            <Icons.Calendar />
-          </span>
-        </Header>
+        <Header {...mockedUserPermsProps} />
       </div>,
     );
     // await openActionsDropdown();
-    const emailReportModalButton = screen.getByRole('button');
+    const emailReportModalButton = screen.getByTestId(
+      'schedule-email-report-button-test',
+    );
     screen.debug(emailReportModalButton);
 
     screen.logTestingPlaygroundURL();
