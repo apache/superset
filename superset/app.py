@@ -21,7 +21,6 @@ import os
 from flask import Flask
 
 from superset.initialization import SupersetAppInitializer
-from superset.utils.profiler import SupersetProfiler
 
 logger = logging.getLogger(__name__)
 
@@ -36,10 +35,6 @@ def create_app() -> Flask:
 
         app_initializer = app.config.get("APP_INITIALIZER", SupersetAppInitializer)(app)
         app_initializer.init_app()
-
-        profiling = app.config.get("PROFILING", False)
-        if profiling:
-            app.wsgi_app = SupersetProfiler(app.wsgi_app)  # type: ignore
 
         return app
 
