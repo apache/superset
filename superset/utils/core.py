@@ -1007,21 +1007,24 @@ def zlib_decompress(blob: bytes, decode: Optional[bool] = True) -> Union[bytes, 
     return decompressed.decode("utf-8") if decode else decompressed
 
 
-def simple_filter_to_adhoc(filt: QueryObjectFilterClause) -> AdhocFilterClause:
+def simple_filter_to_adhoc(
+    filt: QueryObjectFilterClause, clause: str = "where",
+) -> AdhocFilterClause:
     result: AdhocFilterClause = {
-        "clause": "WHERE",
+        "clause": clause.upper(),
         "expressionType": "SIMPLE",
-        "isExtra": bool(filt.get("isExtra")),
         "comparator": filt.get("val"),
         "operator": filt["op"],
         "subject": filt["col"],
     }
+    if filt.get("isExtra"):
+        result["isExtra"] = True
     result["filterOptionName"] = md5_sha_from_dict(cast(Dict[Any, Any], result))
 
     return result
 
 
-def form_data_to_adhoc(form_data: Dict[str, Any], clause: str,) -> AdhocFilterClause:
+def form_data_to_adhoc(form_data: Dict[str, Any], clause: str) -> AdhocFilterClause:
     if clause not in ("where", "having"):
         raise ValueError(__("Unsupported clause type: %(clause)s", clause=clause))
     result: AdhocFilterClause = {
@@ -1270,7 +1273,7 @@ def convert_legacy_filters_into_adhoc(  # pylint: disable=invalid-name
 
             if filters in form_data:
                 for filt in filter(lambda x: x is not None, form_data[filters]):
-                    adhoc_filters.append(simple_filter_to_adhoc(filt))
+                    adhoc_filters.append(simple_filter_to_adhoc(filt, clause))
 
     for key in ("filters", "having", "having_filters", "where"):
         if key in form_data:
