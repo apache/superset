@@ -154,6 +154,7 @@ class MetricsControl extends React.PureComponent {
         datasourceType={this.props.datasourceType}
         onMoveLabel={this.moveLabel}
         onDropLabel={() => this.props.onChange(this.state.value)}
+        multi={this.props.multi}
       />
     );
     this.select = null;
