@@ -106,8 +106,11 @@ export const createHandleSave = (
   removedFilters: Record<string, FilterRemoval>,
   saveForm: Function,
   values: NativeFiltersForm,
+  orderedFilters: string[],
 ) => async () => {
   const newFilterConfig: FilterConfiguration = filterIds
+    .slice()
+    .sort((a, b) => orderedFilters.indexOf(a) - orderedFilters.indexOf(b))
     .filter(id => !removedFilters[id])
     .map(id => {
       // create a filter config object from the form inputs

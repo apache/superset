@@ -16,27 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useMemo, useState, useRef } from 'react';
+import { styled, t } from '@superset-ui/core';
 import { uniq } from 'lodash';
-import { t, styled } from '@superset-ui/core';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Form } from 'src/common/components';
-import { StyledModal } from 'src/components/Modal';
 import ErrorBoundary from 'src/components/ErrorBoundary';
+import { StyledModal } from 'src/components/Modal';
 import { testWithId } from 'src/utils/testUtils';
 import { useFilterConfigMap, useFilterConfiguration } from '../state';
-import { FilterRemoval, NativeFiltersForm } from './types';
 import { FilterConfiguration } from '../types';
+import FiltersConfigForm from './FiltersConfigForm/FiltersConfigForm';
+import FilterTabs from './FilterTabs';
+import Footer from './Footer/Footer';
+import { useOpenModal, useRemoveCurrentFilter } from './state';
+import { FilterRemoval, NativeFiltersForm } from './types';
 import {
-  validateForm,
   createHandleSave,
   createHandleTabEdit,
   generateFilterId,
   getFilterIds,
+  validateForm,
 } from './utils';
-import Footer from './Footer/Footer';
-import FilterTabs from './FilterTabs';
-import FiltersConfigForm from './FiltersConfigForm/FiltersConfigForm';
-import { useOpenModal, useRemoveCurrentFilter } from './state';
 
 const StyledModalWrapper = styled(StyledModal)`
   min-width: 700px;
@@ -132,6 +132,11 @@ export function FiltersConfigModal({
     filters: {},
   });
 
+  // State for tracking the re-ordering of filters
+  const [orderedFilters, setOrderedFilters] = useState<string[]>(
+    filterIds.filter(id => !removedFilters[id]),
+  );
+
   const unsavedFiltersIds = newFilterIds.filter(id => !removedFilters[id]);
   // brings back a filter that was previously removed ("Undo")
   const restoreFilter = (id: string) => {
@@ -210,6 +215,7 @@ export function FiltersConfigModal({
         removedFilters,
         onSave,
         values,
+        orderedFilters,
       )();
     } else {
       configFormRef.current.changeTab('configuration');
@@ -228,7 +234,13 @@ export function FiltersConfigModal({
       handleConfirmCancel();
     }
   };
-
+  const onRearrage = (filterId: string, targetIndex: number) => {
+    const currentIndex = orderedFilters.indexOf(filterId);
+    const newOrderedFilter = [...orderedFilters];
+    newOrderedFilter.splice(currentIndex, 1);
+    newOrderedFilter.splice(targetIndex, 0, filterId);
+    setOrderedFilters(newOrderedFilter);
+  };
   return (
     <StyledModalWrapper
       visible={isOpen}
@@ -279,6 +291,8 @@ export function FiltersConfigModal({
               filterIds={filterIds}
               removedFilters={removedFilters}
               restoreFilter={restoreFilter}
+              onRearrage={onRearrage}
+              orderedFilterIds={orderedFilters}
             >
               {(id: string) => (
                 <FiltersConfigForm

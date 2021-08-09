@@ -18,18 +18,17 @@
  */
 import { PlusOutlined } from '@ant-design/icons';
 import { styled, t } from '@superset-ui/core';
+import { curry } from 'lodash/fp';
 import React, { FC } from 'react';
-import { LineEditableTabs } from 'src/components/Tabs';
 import Icons from 'src/components/Icons';
-import { useDrop } from 'react-dnd';
+import { LineEditableTabs } from 'src/components/Tabs';
+import { FilterTabTitle } from './FilterTabTitle';
 import { FilterRemoval } from './types';
-import { FilterTabTitle } from './FilterTabPane';
 
 export const FILTER_WIDTH = 180;
 
 export const StyledAddFilterBox = styled.div`
   color: ${({ theme }) => theme.colors.primary.dark1};
-  padding: ${({ theme }) => theme.gridUnit * 2}px;
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   cursor: pointer;
 
@@ -41,32 +40,6 @@ export const StyledAddFilterBox = styled.div`
 export const StyledTrashIcon = styled(Icons.Trash)`
   color: ${({ theme }) => theme.colors.grayscale.light3};
 `;
-
-// export const FilterTabTitle = styled.span`
-//   transition: color ${({ theme }) => theme.transitionTiming}s;
-//   width: 100%;
-//   display: flex;
-//   flex-direction: row;
-//   justify-content: space-between;
-
-//   @keyframes tabTitleRemovalAnimation {
-//     0%,
-//     90% {
-//       opacity: 1;
-//     }
-//     95%,
-//     100% {
-//       opacity: 0;
-//     }
-//   }
-
-//   &.removed {
-//     color: ${({ theme }) => theme.colors.warning.dark1};
-//     transform-origin: top;
-//     animation-name: tabTitleRemovalAnimation;
-//     animation-duration: ${REMOVAL_DELAY_SECS}s;
-//   }
-// `;
 
 const FilterTabsContainer = styled(LineEditableTabs)`
   ${({ theme }) => `
@@ -98,24 +71,29 @@ const FilterTabsContainer = styled(LineEditableTabs)`
     .ant-tabs-nav-list {
       overflow-x: hidden;
       overflow-y: auto;
+      width: 270px;
       padding-top: ${theme.gridUnit * 2}px;
       padding-right: ${theme.gridUnit}px;
       padding-bottom: ${theme.gridUnit * 3}px;
       padding-left: ${theme.gridUnit * 3}px;
-      width: 270px;
     }
 
     // extra selector specificity:
     &.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {
+      margin: 0;
+      padding: ${theme.gridUnit}px;;
       &:hover,
       &-active {
         color: ${theme.colors.grayscale.dark1};
-        margin: 0px;
+        margin-bottom: ${theme.gridUnit / 2}px;
         background-color: ${theme.colors.secondary.light4};
 
         .ant-tabs-tab-remove > span {
           color: ${theme.colors.grayscale.base};
           transition: all 0.3s;
+        }
+        .anticon {
+          color: ${theme.colors.grayscale.base};
         }
       }
     }
@@ -124,6 +102,7 @@ const FilterTabsContainer = styled(LineEditableTabs)`
       text-align: left;
       justify-content: space-between;
       text-transform: unset;
+      padding-left: ${theme.gridUnit}px;
     }
 
     .ant-tabs-nav-more {
@@ -152,9 +131,11 @@ type FilterTabsProps = {
   currentFilterId: string;
   onEdit: (filterId: string, action: 'add' | 'remove') => void;
   filterIds: string[];
+  orderedFilterIds: string[];
   removedFilters: Record<string, FilterRemoval>;
   restoreFilter: (id: string) => void;
   children: Function;
+  onRearrage: (itemId: string, targetIndex: number) => void;
 };
 
 const FilterTabs: FC<FilterTabsProps> = ({
@@ -166,56 +147,59 @@ const FilterTabs: FC<FilterTabsProps> = ({
   removedFilters = [],
   restoreFilter,
   children,
-}) => {
-  console.log('rendering');
-  const [collectedProps, drop] = useDrop({
-    accept: 'FILTER',
-  });
-  return (
-    <div ref={drop}>
-      <FilterTabsContainer
-        id="native-filters-tabs"
-        type="editable-card"
-        tabPosition="left"
-        onChange={onChange}
-        activeKey={currentFilterId}
-        onEdit={onEdit}
-        hideAdd
-        tabBarExtraContent={{
-          left: <StyledHeader>{t('Filters')}</StyledHeader>,
-          right: (
-            <StyledAddFilterBox
-              onClick={() => {
-                onEdit('', 'add');
-                setTimeout(() => {
-                  const element = document.getElementById(
-                    'native-filters-tabs',
-                  );
-                  if (element) {
-                    const navList = element.getElementsByClassName(
-                      'ant-tabs-nav-list',
-                    )[0];
-                    navList.scrollTop = navList.scrollHeight;
-                  }
-                }, 0);
-              }}
-            >
-              <PlusOutlined />{' '}
-              <span data-test="add-filter-button" aria-label="Add filter">
-                {t('Add filter')}
-              </span>
-            </StyledAddFilterBox>
-          ),
-        }}
-      >
-        {filterIds.map(id => (
+  onRearrage,
+  orderedFilterIds,
+}) => (
+  <div>
+    <FilterTabsContainer
+      id="native-filters-tabs"
+      type="editable-card"
+      tabPosition="left"
+      onChange={onChange}
+      activeKey={currentFilterId}
+      onEdit={onEdit}
+      hideAdd
+      tabBarExtraContent={{
+        left: <StyledHeader>{t('Filters')}</StyledHeader>,
+        right: (
+          <StyledAddFilterBox
+            onClick={() => {
+              onEdit('', 'add');
+              setTimeout(() => {
+                const element = document.getElementById('native-filters-tabs');
+                if (element) {
+                  const navList = element.getElementsByClassName(
+                    'ant-tabs-nav-list',
+                  )[0];
+                  navList.scrollTop = navList.scrollHeight;
+                }
+              }, 0);
+            }}
+          >
+            <PlusOutlined />{' '}
+            <span data-test="add-filter-button" aria-label="Add filter">
+              {t('Add filter')}
+            </span>
+          </StyledAddFilterBox>
+        ),
+      }}
+    >
+      {filterIds
+        .slice()
+        .sort(
+          (a, b) => orderedFilterIds.indexOf(a) - orderedFilterIds.indexOf(b),
+        )
+        .map((id, index) => (
           <LineEditableTabs.TabPane
             tab={
               <FilterTabTitle
                 id={id}
+                index={index}
                 isRemoved={!!removedFilters[id]}
                 restoreFilter={restoreFilter}
                 getFilterTitle={getFilterTitle}
+                onRearrage={onRearrage}
+                onRemove={(id: string) => curry(onEdit)(id)('remove')}
               />
             }
             key={id}
@@ -227,9 +211,8 @@ const FilterTabs: FC<FilterTabsProps> = ({
             }
           </LineEditableTabs.TabPane>
         ))}
-      </FilterTabsContainer>
-    </div>
-  );
-};
+    </FilterTabsContainer>
+  </div>
+);
 
 export default FilterTabs;

@@ -1,17 +1,19 @@
 import { styled, t } from '@superset-ui/core';
-import React from 'react';
-import { LineEditableTabs } from 'src/components/Tabs';
+import React, { useRef } from 'react';
+import { useDrag, useDrop } from 'react-dnd';
 import Icons from 'src/components/Icons';
-import { useDrag } from 'react-dnd';
 import { REMOVAL_DELAY_SECS } from './utils';
 
-const FILTER_WIDTH = 180;
-
+const FILTER_TYPE = 'FILTER';
 const StyledFilterTitle = styled.span`
   white-space: normal;
   color: ${({ theme }) => theme.colors.grayscale.dark1};
 `;
-
+const TabTitleContainer = styled.div`
+  display: flex;
+  width: 100%;
+  border-radius: ${({ theme }) => theme.gridUnit}px;
+`;
 const StyledFilterTabTitle = styled.span`
   transition: color ${({ theme }) => theme.transitionTiming}s;
   width: 100%;
@@ -47,43 +49,73 @@ const StyledSpan = styled.span`
 
 const StyledTrashIcon = styled(Icons.Trash)`
   color: ${({ theme }) => theme.colors.grayscale.light3};
+  &:hover {
+    color: ${({ theme }) => theme.colors.primary.dark2};
+  }
 `;
-
-interface Props {
-  getFilterTitle: (id: string) => string;
-  isRemoved: boolean;
-  filterId: string;
-  restoreFilter: (id: string) => void;
-  renderFilterConfig: React.ReactNode;
-}
 
 interface FilterTabTitleProps {
   id: string;
   isRemoved: boolean;
+  index: number;
   getFilterTitle: (id: string) => string;
   restoreFilter: (id: string) => void;
+  onRearrage: (itemId: string, targetIndex: number) => void;
+  onRemove: (id: string) => void;
+}
+
+interface DragItem {
+  index: number;
+  id: string;
+  type: string;
 }
 
 export const FilterTabTitle: React.FC<FilterTabTitleProps> = ({
   id,
+  index,
   isRemoved,
   getFilterTitle,
   restoreFilter,
+  onRearrage,
+  onRemove,
 }) => {
+  const ref = useRef<HTMLDivElement>(null);
   const [{ isDragging }, drag, dragPreview] = useDrag({
-    item: { id, type: 'FILTER' },
+    item: { id, type: FILTER_TYPE, index },
   });
+  const [, drop] = useDrop({
+    accept: FILTER_TYPE,
+    collect: monitor => ({
+      isOver: !!monitor.isOver(),
+    }),
+    hover: (item: DragItem) => {
+      if (!ref.current) {
+        return;
+      }
+
+      const dragIndex = item.index;
+      const hoverIndex = index;
+
+      // Don't replace items with themselves
+      if (dragIndex === hoverIndex) {
+        return;
+      }
+
+      onRearrage(item.id, index);
+      // Note: we're mutating the monitor item here.
+      // Generally it's better to avoid mutations,
+      // but it's good here for the sake of performance
+      // to avoid expensive index searches.
+      // eslint-disable-next-line no-param-reassign
+      item.index = hoverIndex;
+    },
+  });
+  drag(drop(ref));
   return (
-    <div
-      ref={drag}
+    <TabTitleContainer
+      ref={ref}
       style={{
         opacity: isDragging ? 0.5 : 1,
-        display: 'flex',
-        width: '100%',
-        padding: '4px 8px',
-        margin: '0 8px 0 0',
-        marginBottom: '2px',
-        borderRadius: '4px',
       }}
     >
       <StyledFilterTabTitle className={isRemoved ? 'removed' : ''}>
@@ -102,9 +134,9 @@ export const FilterTabTitle: React.FC<FilterTabTitleProps> = ({
         )}
       </StyledFilterTabTitle>
       <div style={{ alignSelf: 'flex-end' }}>
-        {isRemoved ? <></> : <StyledTrashIcon onClick={() => alert('Hi')} />}
+        {isRemoved ? <></> : <StyledTrashIcon onClick={() => onRemove(id)} />}
       </div>
-    </div>
+    </TabTitleContainer>
   );
 };
 
