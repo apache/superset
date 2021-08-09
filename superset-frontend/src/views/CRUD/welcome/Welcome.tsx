@@ -105,7 +105,7 @@ const WelcomeContainer = styled.div`
     padding-bottom: ${({ theme }) => theme.gridUnit * 9}px;
   }
   .loading-cards {
-    margin-top: 16px;
+    margin-top: ${({ theme }) => theme.gridUnit * 4}px;
     .ant-card-cover > div {
       height: 168px;
     }
