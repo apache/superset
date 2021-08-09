@@ -989,6 +989,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         )
         # If not screenshot then send request to compute thumb to celery
         if not screenshot:
+            self.incr_stats("async", self.thumbnail.__name__)
             logger.info(
                 "Triggering thumbnail compute (chart id: %s) ASYNC", str(chart.id)
             )
@@ -996,11 +997,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response(202, message="OK Async")
         # If digests
         if chart.digest != digest:
+            self.incr_stats("redirect", self.thumbnail.__name__)
             return redirect(
                 url_for(
                     f"{self.__class__.__name__}.thumbnail", pk=pk, digest=chart.digest
                 )
             )
+        self.incr_stats("from_cache", self.thumbnail.__name__)
         return Response(
             FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
         )
