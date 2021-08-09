@@ -42,6 +42,7 @@ from superset.extensions import (
     machine_auth_provider_factory,
     manifest_processor,
     migrate,
+    profiling,
     results_backend_manager,
     talisman,
 )
@@ -566,6 +567,7 @@ class SupersetAppInitializer:
         self.configure_db_encrypt()
         self.setup_db()
         self.configure_celery()
+        self.enable_profiling()
         self.setup_event_logger()
         self.setup_bundle_manifest()
         self.register_blueprints()
@@ -715,6 +717,10 @@ class SupersetAppInitializer:
 
     def setup_bundle_manifest(self) -> None:
         manifest_processor.init_app(self.superset_app)
+
+    def enable_profiling(self) -> None:
+        if self.config["PROFILING"]:
+            profiling.init_app(self.superset_app)
 
 
 class SupersetIndexView(IndexView):
