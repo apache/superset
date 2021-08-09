@@ -34,11 +34,10 @@ def test_simple_filter_to_adhoc_generates_deterministic_values():
     assert simple_filter_to_adhoc(input_1) == {
         "clause": "WHERE",
         "expressionType": "SIMPLE",
-        "isExtra": False,
         "comparator": "",
         "operator": "IS NOT NULL",
         "subject": "LATITUDE",
-        "filterOptionName": "d0908f77d950131db7a69fdc820cb739",
+        "filterOptionName": "6ac89d498115da22396f80a765cffc70",
     }
 
     # The result is different when given different input
@@ -46,11 +45,10 @@ def test_simple_filter_to_adhoc_generates_deterministic_values():
     assert simple_filter_to_adhoc(input_2) == {
         "clause": "WHERE",
         "expressionType": "SIMPLE",
-        "isExtra": False,
         "comparator": "",
         "operator": "IS NOT NULL",
         "subject": "LONGITUDE",
-        "filterOptionName": "c5f283f727d4dfc6258b351d4a8663bc",
+        "filterOptionName": "9c984bd3714883ca859948354ce26ab9",
     }
 
 

@@ -1236,7 +1236,6 @@ class TestBaseDeckGLViz(SupersetTestCase):
             test_viz_deckgl.spatial_control_keys = [mock_key]
             test_viz_deckgl.add_null_filters()
             adhoc_filters = test_viz_deckgl.form_data["adhoc_filters"]
-            self.assertEqual(expected_results.get(mock_key), adhoc_filters)
             assert expected_results.get(mock_key) == adhoc_filters
 
 
