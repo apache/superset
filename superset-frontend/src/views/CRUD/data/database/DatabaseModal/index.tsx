@@ -524,7 +524,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       if (dbToUpdate?.parameters?.query) {
         // convert query params into dictionary
         const urlParams = new URLSearchParams(dbToUpdate?.parameters?.query);
-        /* tslint:disable-next-line */
         dbToUpdate.parameters.query = Object.fromEntries(urlParams);
       } else if (
         dbToUpdate?.parameters?.query === '' &&
