@@ -83,6 +83,7 @@ export interface TableChartProps extends ChartProps {
 }
 
 export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
+  timeGrain?: TimeGranularity;
   height: number;
   width: number;
   rowCount?: number;

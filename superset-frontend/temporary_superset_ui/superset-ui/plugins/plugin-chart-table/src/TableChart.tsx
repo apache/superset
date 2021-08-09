@@ -22,7 +22,16 @@ import { extent as d3Extent, max as d3Max } from 'd3-array';
 import { FaSort } from '@react-icons/all-files/fa/FaSort';
 import { FaSortDown as FaSortDesc } from '@react-icons/all-files/fa/FaSortDown';
 import { FaSortUp as FaSortAsc } from '@react-icons/all-files/fa/FaSortUp';
-import { DataRecord, DataRecordValue, GenericDataType, t, tn } from '@superset-ui/core';
+import {
+  DataRecord,
+  DataRecordValue,
+  DTTM_ALIAS,
+  ensureIsArray,
+  GenericDataType,
+  getTimeFormatterForGranularity,
+  t,
+  tn,
+} from '@superset-ui/core';
 
 import { DataColumnMeta, TableChartTransformedProps } from './types';
 import DataTable, {
@@ -146,6 +155,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   },
 ) {
   const {
+    timeGrain,
     height,
     width,
     data,
@@ -167,6 +177,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     sticky = true, // whether to use sticky header
     columnColorFormatters,
   } = props;
+  const timestampFormatter = useCallback(
+    value => getTimeFormatterForGranularity(timeGrain)(value),
+    [timeGrain],
+  );
 
   const handleChange = useCallback(
     (filters: { [x: string]: DataRecordValue[] }) => {
@@ -176,14 +190,25 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
       const groupBy = Object.keys(filters);
       const groupByValues = Object.values(filters);
+      const labelElements: string[] = [];
+      groupBy.forEach(col => {
+        const isTimestamp = col === DTTM_ALIAS;
+        const filterValues = ensureIsArray(filters?.[col]);
+        if (filterValues.length) {
+          const valueLabels = filterValues.map(value =>
+            isTimestamp ? timestampFormatter(value) : value,
+          );
+          labelElements.push(`${valueLabels.join(', ')}`);
+        }
+      });
       setDataMask({
         extraFormData: {
           filters:
             groupBy.length === 0
               ? []
               : groupBy.map(col => {
-                  const val = filters?.[col];
-                  if (val === null || val === undefined)
+                  const val = ensureIsArray(filters?.[col]);
+                  if (!val.length)
                     return {
                       col,
                       op: 'IS NULL',
@@ -191,11 +216,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   return {
                     col,
                     op: 'IN',
-                    val: val as (string | number | boolean)[],
+                    val: val.map(el => (el instanceof Date ? el.getTime() : el!)),
+                    grain: col === DTTM_ALIAS ? timeGrain : undefined,
                   };
                 }),
         },
         filterState: {
+          label: labelElements.join(', '),
           value: groupByValues.length ? groupByValues : null,
           filters: filters && Object.keys(filters).length ? filters : null,
         },
