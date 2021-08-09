@@ -252,7 +252,7 @@ class DashboardTagsStrategy(Strategy):
         return urls
 
 
-strategies : List[Strategy] = [DummyStrategy, TopNDashboardsStrategy, DashboardTagsStrategy]
+strategies = [DummyStrategy, TopNDashboardsStrategy, DashboardTagsStrategy]
 
 
 @celery_app.task(name="cache-warmup")
@@ -268,7 +268,7 @@ def cache_warmup(
     logger.info("Loading strategy")
     class_ = None
 
-    extra_strategies: List[Strategy] = app.config["EXTRA_CACHING_STRATEGIES"]
+    extra_strategies = app.config["EXTRA_CACHING_STRATEGIES"]
     for class_ in strategies + extra_strategies:
         if class_.name == strategy_name:  # type: ignore
             break

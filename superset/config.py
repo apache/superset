@@ -51,7 +51,6 @@ from superset.utils.logging_configurator import DefaultLoggingConfigurator
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from tasks.cache import Strategy
     from flask_appbuilder.security.sqla import models  # pylint: disable=unused-import
 
     from superset.connectors.sqla.models import (  # pylint: disable=unused-import
@@ -706,7 +705,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
 CELERY_CONFIG = CeleryConfig  # pylint: disable=invalid-name
 
 # Additional Caching strategies to be used in the CELERYBEAT_SCHEDULE config
-EXTRA_CACHING_STRATEGIES: List[Strategy] = []
+EXTRA_CACHING_STRATEGIES = []
 
 # Set celery config to None to disable all the above configuration
 # CELERY_CONFIG = None
