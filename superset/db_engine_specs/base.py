@@ -18,6 +18,7 @@
 import json
 import logging
 import re
+from ast import literal_eval
 from contextlib import closing
 from datetime import datetime
 from typing import (
@@ -1411,6 +1412,13 @@ class BasicParametersMixin:
         encryted_extra: Optional[Dict[str, str]] = None,
     ) -> str:
         query = parameters.get("query", {})
+        if isinstance(query, str):
+            # Make sure query isn't an empty string
+            if not query:
+                query = {}
+            else:
+                query = literal_eval(query)
+
         if parameters.get("encryption"):
             if not cls.encryption_parameters:
                 raise Exception("Unable to build a URL with encryption enabled")
