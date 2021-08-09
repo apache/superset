@@ -177,6 +177,7 @@ export const OptionControlLabel = ({
   index,
   isExtra,
   tooltipTitle,
+  multi = true,
   ...props
 }: {
   label: string | React.ReactNode;
@@ -192,15 +193,22 @@ export const OptionControlLabel = ({
   index: number;
   isExtra?: boolean;
   tooltipTitle: string;
+  multi?: boolean;
 }) => {
   const theme = useTheme();
   const ref = useRef<HTMLDivElement>(null);
   const [, drop] = useDrop({
     accept: type,
     drop() {
+      if (!multi) {
+        return;
+      }
       onDropLabel?.();
     },
     hover(item: DragItem, monitor: DropTargetMonitor) {
+      if (!multi) {
+        return;
+      }
       if (!ref.current) {
         return;
       }
