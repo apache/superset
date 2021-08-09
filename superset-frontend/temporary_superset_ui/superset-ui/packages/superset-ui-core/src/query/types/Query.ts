@@ -29,6 +29,8 @@ import { TimeGranularity } from '../../time-format';
 
 export type QueryObjectFilterClause = {
   col: string;
+  grain?: TimeGranularity;
+  isExtra?: boolean;
 } & (
   | {
       op: BinaryOperator;

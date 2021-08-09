@@ -31,7 +31,10 @@ export default class DateWithFormatter extends Date {
 
   constructor(
     input: DataRecordValue,
-    { formatter = String, forceUTC = true }: { formatter?: TimeFormatFunction; forceUTC?: boolean },
+    {
+      formatter = String,
+      forceUTC = true,
+    }: { formatter?: TimeFormatFunction; forceUTC?: boolean } = {},
   ) {
     let value = input;
     // assuming timestamps without a timezone is in UTC time
