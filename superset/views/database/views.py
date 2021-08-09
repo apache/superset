@@ -291,7 +291,7 @@ class ExcelToDatabaseView(SimpleFormView):
             flash(message, "danger")
             return redirect("/exceltodatabaseview/form")
 
-        uploaded_tmp_file_path = tempfile.NamedTemporaryFile(
+        uploaded_tmp_file_path = tempfile.NamedTemporaryFile(  # pylint: disable=consider-using-with
             dir=app.config["UPLOAD_FOLDER"],
             suffix=os.path.splitext(form.excel_file.data.filename)[1].lower(),
             delete=False,

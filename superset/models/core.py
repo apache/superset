@@ -506,7 +506,7 @@ class Database(
         return self.db_engine_spec.get_all_datasource_names(self, "view")
 
     @cache_util.memoized_func(
-        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:table_list",  # type: ignore
+        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:table_list",
         cache=cache_manager.data_cache,
     )
     def get_all_table_names_in_schema(
@@ -536,9 +536,10 @@ class Database(
             ]
         except Exception as ex:  # pylint: disable=broad-except
             logger.warning(ex)
+            return []
 
     @cache_util.memoized_func(
-        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:view_list",  # type: ignore
+        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:view_list",
         cache=cache_manager.data_cache,
     )
     def get_all_view_names_in_schema(
@@ -566,6 +567,7 @@ class Database(
             return [utils.DatasourceName(table=view, schema=schema) for view in views]
         except Exception as ex:  # pylint: disable=broad-except
             logger.warning(ex)
+            return []
 
     @cache_util.memoized_func(
         key=lambda self, *args, **kwargs: f"db:{self.id}:schema_list",

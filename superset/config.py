@@ -20,7 +20,7 @@ All configuration in this file can be overridden by providing a superset_config
 in your PYTHONPATH as there is a ``from superset_config import *``
 at the end of this file.
 """
-import imp
+import imp  # pylint: disable=deprecated-module
 import importlib.util
 import json
 import logging

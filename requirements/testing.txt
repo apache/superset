@@ -11,7 +11,7 @@
     # via -r requirements/base.in
 appnope==0.1.2
     # via ipython
-astroid==2.4.2
+astroid==2.6.6
     # via pylint
 backcall==0.2.0
     # via ipython
@@ -63,7 +63,7 @@ pyhive[hive,presto]==0.6.3
     # via
     #   -r requirements/development.in
     #   -r requirements/testing.in
-pylint==2.6.0
+pylint==2.9.6
     # via -r requirements/testing.in
 pytest==6.1.2
     # via

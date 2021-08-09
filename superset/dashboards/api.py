@@ -237,7 +237,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
-        log_to_statsd=False,
+        log_to_statsd=False,  # pylint: disable=arguments-renamed
     )
     def get(self, id_or_slug: str) -> Response:
         """Gets a dashboard

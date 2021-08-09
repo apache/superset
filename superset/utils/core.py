@@ -1228,8 +1228,8 @@ def get_main_metric_name(metrics: Sequence[Metric]) -> Optional[str]:
 def ensure_path_exists(path: str) -> None:
     try:
         os.makedirs(path)
-    except OSError as exc:
-        if not (os.path.isdir(path) and exc.errno == errno.EEXIST):
+    except OSError as ex:
+        if not (os.path.isdir(path) and ex.errno == errno.EEXIST):
             raise
 
 
@@ -1346,9 +1346,8 @@ def create_ssl_cert_file(certificate: str) -> str:
     if not os.path.exists(path):
         # Validate certificate prior to persisting to temporary directory
         parse_ssl_cert(certificate)
-        cert_file = open(path, "w")
-        cert_file.write(certificate)
-        cert_file.close()
+        with open(path, "w") as cert_file:
+            cert_file.write(certificate)
     return path
 
 
