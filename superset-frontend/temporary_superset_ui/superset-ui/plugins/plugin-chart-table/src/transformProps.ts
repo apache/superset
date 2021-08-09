@@ -206,6 +206,7 @@ const transformProps = (chartProps: TableChartProps): TableChartTransformedProps
     show_totals: showTotals,
     conditional_formatting: conditionalFormatting,
   } = formData;
+  const timeGrain = extractTimegrain(formData);
 
   const [metrics, percentMetrics, columns] = processColumns(chartProps);
 
@@ -249,6 +250,7 @@ const transformProps = (chartProps: TableChartProps): TableChartTransformedProps
     emitFilter,
     onChangeFilter,
     columnColorFormatters,
+    timeGrain,
   };
 };
 
