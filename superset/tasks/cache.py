@@ -161,7 +161,7 @@ class TopNDashboardsStrategy(Strategy):
     name = "top_n_dashboards"
 
     def __init__(self, top_n: int = 5, since: str = "7 days ago") -> None:
-        super(TopNDashboardsStrategy, self).__init__()
+        super().__init__()
         self.top_n = top_n
         self.since = parse_human_datetime(since) if since else None
 
@@ -206,7 +206,7 @@ class DashboardTagsStrategy(Strategy):
     name = "dashboard_tags"
 
     def __init__(self, tags: Optional[List[str]] = None) -> None:
-        super(DashboardTagsStrategy, self).__init__()
+        super().__init__()
         self.tags = tags or []
 
     def get_urls(self) -> List[str]:
