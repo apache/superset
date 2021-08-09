@@ -1155,19 +1155,12 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             col = flt["col"]
             val = flt.get("val")
             op = flt["op"].upper()
-            if col == utils.DTTM_ALIAS and is_timeseries and dttm_col:
-                col_obj = dttm_col
-            elif col in columns_by_name:
-                col_obj = columns_by_name[col]
-            else:
-                raise QueryObjectValidationError(
-                    _("Invalid column reference in filter: %(column)s", column=col)
-                )
+            col_obj = (
+                dttm_col
+                if col == utils.DTTM_ALIAS and is_timeseries and dttm_col
+                else columns_by_name.get(col)
+            )
             filter_grain = flt.get("grain")
-            if filter_grain:
-                sqla_col = col_obj.get_timestamp_expression(filter_grain)
-            else:
-                sqla_col = col_obj.get_sqla_col()
 
             if is_feature_enabled("ENABLE_TEMPLATE_REMOVE_FILTERS"):
                 if col in removed_filters:
@@ -1175,6 +1168,10 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                     continue
 
             if col_obj:
+                if filter_grain:
+                    sqla_col = col_obj.get_timestamp_expression(filter_grain)
+                else:
+                    sqla_col = col_obj.get_sqla_col()
                 col_spec = db_engine_spec.get_column_spec(col_obj.type)
                 is_list_target = op in (
                     utils.FilterOperator.IN.value,
