@@ -47,11 +47,11 @@ from superset.utils.core import is_test, parse_boolean_string
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
-from tasks.cache import Strategy
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
+    from tasks.cache import Strategy
     from flask_appbuilder.security.sqla import models  # pylint: disable=unused-import
 
     from superset.connectors.sqla.models import (  # pylint: disable=unused-import

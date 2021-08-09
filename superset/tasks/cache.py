@@ -252,7 +252,7 @@ class DashboardTagsStrategy(Strategy):
         return urls
 
 
-strategies = [DummyStrategy, TopNDashboardsStrategy, DashboardTagsStrategy]
+strategies : List[Strategy] = [DummyStrategy, TopNDashboardsStrategy, DashboardTagsStrategy]
 
 
 @celery_app.task(name="cache-warmup")
