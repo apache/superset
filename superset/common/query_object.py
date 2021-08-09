@@ -86,7 +86,7 @@ class QueryObject:
     metrics: Optional[List[Metric]]
     row_limit: int
     row_offset: int
-    filter: Optional[List[QueryObjectFilterClause]]
+    filter: List[QueryObjectFilterClause]
     timeseries_limit: int
     timeseries_limit_metric: Optional[Metric]
     order_desc: bool
