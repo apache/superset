@@ -39,7 +39,7 @@ const metadata = new ChartMetadata({
     t('Multi-Layers'),
     t('Multi-Variables'),
     t('Scatter'),
-    t('Highly-used'),
+    t('Popular'),
   ],
   thumbnail,
   useLegacyApi: true,

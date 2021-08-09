@@ -43,7 +43,7 @@ const metadata = new ChartMetadata({
     t('Discrete'),
     t('Legacy'),
     t('Percentages'),
-    t('Highly-used'),
+    t('Popular'),
     t('Stacked'),
     t('Vertical'),
     t('nvd3'),

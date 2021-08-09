@@ -42,7 +42,7 @@ const metadata = new ChartMetadata({
     t('Formattable'),
     t('Legacy'),
     t('Percentages'),
-    t('Highly-used'),
+    t('Popular'),
     t('Report'),
     t('Description'),
   ],

@@ -52,7 +52,7 @@ export default class PivotTableChartPlugin extends ChartPlugin<
         'Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location. Not the most visually stunning visualization, but highly informative and versatile.',
       ),
       name: t('Pivot Table v2'),
-      tags: [t('Additive'), t('Report'), t('Tabular'), t('Highly-used')],
+      tags: [t('Additive'), t('Report'), t('Tabular'), t('Popular')],
       thumbnail,
     });
 
