@@ -202,7 +202,7 @@ class AdhocFilterClause(TypedDict, total=False):
 
 class QueryObjectFilterClause(TypedDict, total=False):
     col: str
-    op: str
+    op: str  # pylint: disable=invalid-name
     val: Optional[FilterValues]
     grain: Optional[str]
     isExtra: Optional[bool]
@@ -1074,10 +1074,16 @@ def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
     append_adhoc_filters: List[AdhocFilterClause] = extra_form_data.get(
         "adhoc_filters", []
     )
-    adhoc_filters.extend({"isExtra": True, **fltr} for fltr in append_adhoc_filters)  # type: ignore
+    adhoc_filters.extend(
+        {"isExtra": True, **fltr} for fltr in append_adhoc_filters  # type: ignore
+    )
     if append_filters:
         adhoc_filters.extend(
-            simple_filter_to_adhoc({"isExtra": True, **fltr}) for fltr in append_filters if fltr  # type: ignore
+            simple_filter_to_adhoc(
+                {"isExtra": True, **fltr}  # type: ignore
+            )
+            for fltr in append_filters
+            if fltr
         )
 
 
