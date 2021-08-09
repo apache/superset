@@ -1008,16 +1008,16 @@ def zlib_decompress(blob: bytes, decode: Optional[bool] = True) -> Union[bytes, 
 
 
 def simple_filter_to_adhoc(
-    filt: QueryObjectFilterClause, clause: str = "where",
+    filter_clause: QueryObjectFilterClause, clause: str = "where",
 ) -> AdhocFilterClause:
     result: AdhocFilterClause = {
         "clause": clause.upper(),
         "expressionType": "SIMPLE",
-        "comparator": filt.get("val"),
-        "operator": filt["op"],
-        "subject": filt["col"],
+        "comparator": filter_clause.get("val"),
+        "operator": filter_clause["op"],
+        "subject": filter_clause["col"],
     }
-    if filt.get("isExtra"):
+    if filter_clause.get("isExtra"):
         result["isExtra"] = True
     result["filterOptionName"] = md5_sha_from_dict(cast(Dict[Any, Any], result))
 
