@@ -1,3 +1,5 @@
+/* eslint-disable no-only-tests/no-only-tests */
+/* eslint-disable jest/no-focused-tests */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -20,6 +22,8 @@ import React from 'react';
 import { render, screen, fireEvent } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
+import * as featureFlags from 'src/featureFlags';
+import Icons from 'src/components/Icons';
 import { HeaderProps } from './types';
 import Header from '.';
 
@@ -314,4 +318,47 @@ test('should refresh the charts', async () => {
   await openActionsDropdown();
   userEvent.click(screen.getByText('Refresh dashboard'));
   expect(mockedProps.onRefresh).toHaveBeenCalledTimes(1);
+});
+
+describe('Email Report Modal', () => {
+  let isFeatureEnabledMock: any;
+  beforeEach(async () => {
+    isFeatureEnabledMock = jest
+      .spyOn(featureFlags, 'isFeatureEnabled')
+      .mockImplementation(() => true);
+  });
+
+  afterAll(() => {
+    isFeatureEnabledMock.mockRestore();
+  });
+
+  it.only('Email Report Modal-create', async () => {
+    const mockedProps = createProps();
+    const mockedUserPermsProps = {
+      ...mockedProps,
+      canAddReports: true,
+    };
+    render(
+      <div className="dashboard">
+        <Header {...mockedUserPermsProps}>
+          <span
+            role="button"
+            title="Schedule email report"
+            tabIndex={0}
+            className="action-button"
+            onClick={() => {}}
+            data-test="schedule-email-report-button-test"
+          >
+            <Icons.Calendar />
+          </span>
+        </Header>
+      </div>,
+    );
+    // await openActionsDropdown();
+    const emailReportModalButton = screen.getByRole('button');
+    screen.debug(emailReportModalButton);
+
+    screen.logTestingPlaygroundURL();
+    expect.anything();
+  });
 });

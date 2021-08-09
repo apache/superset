@@ -1,3 +1,5 @@
+/* eslint-disable no-only-tests/no-only-tests */
+/* eslint-disable jest/no-focused-tests */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,6 +19,8 @@
  * under the License.
  */
 import React from 'react';
+import { render, screen } from 'spec/helpers/testing-library';
+// import userEvent from '@testing-library/user-event';
 import { shallow } from 'enzyme';
 
 import { ExploreChartHeader } from 'src/explore/components/ExploreChartHeader';
@@ -83,5 +87,13 @@ describe('ExploreChartHeader', () => {
   it('should update title but not save', () => {
     const editableTitle = wrapper.find(EditableTitle);
     expect(editableTitle.props().onSaveTitle).toBe(updateChartTitleStub);
+  });
+});
+
+describe.only('RTL', () => {
+  it('renders the calendar icon', () => {
+    render(<ExploreChartHeader {...mockProps} />, { useRedux: true });
+    screen.logTestingPlaygroundURL();
+    expect.anything();
   });
 });

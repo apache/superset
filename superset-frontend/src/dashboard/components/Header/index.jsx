@@ -393,17 +393,16 @@ class Header extends React.PureComponent {
           deleteActiveReport={this.props.deleteActiveReport}
         />
       ) : (
-        <>
-          <span
-            role="button"
-            title={t('Schedule email report')}
-            tabIndex={0}
-            className="action-button"
-            onClick={this.showReportModal}
-          >
-            <Icons.Calendar />
-          </span>
-        </>
+        <span
+          role="button"
+          title={t('Schedule email report')}
+          tabIndex={0}
+          className="action-button"
+          onClick={this.showReportModal}
+          data-test="schedule-email-report-button-test"
+        >
+          <Icons.Calendar />
+        </span>
       ))
     );
   }
