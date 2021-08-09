@@ -139,20 +139,15 @@ const ColumnSelectPopover = ({
   );
 
   return (
-    <Form
-      layout="vertical"
-      id="metrics-edit-popover"
-      data-test="metrics-edit-popover"
-    >
+    <Form layout="vertical" id="metrics-edit-popover">
       <Tabs
         id="adhoc-metric-edit-tabs"
-        data-test="adhoc-metric-edit-tabs"
         defaultActiveKey={defaultActiveTabKey}
         className="adhoc-metric-edit-tabs"
         allowOverflow
       >
         <Tabs.TabPane key="saved" tab={t('Saved')}>
-          <FormItem label={t('Calculated column')}>
+          <FormItem label={t('Saved expressions')}>
             <StyledSelect
               value={selectedCalculatedColumn?.column_name}
               getPopupContainer={getPopupContainer}
@@ -206,12 +201,7 @@ const ColumnSelectPopover = ({
         </Tabs.TabPane>
       </Tabs>
       <div>
-        <Button
-          buttonSize="small"
-          onClick={onResetStateAndClose}
-          data-test="AdhocMetricEdit#cancel"
-          cta
-        >
+        <Button buttonSize="small" onClick={onResetStateAndClose} cta>
           {t('Close')}
         </Button>
         <Button
@@ -220,7 +210,6 @@ const ColumnSelectPopover = ({
             hasUnsavedChanges && stateIsValid ? 'primary' : 'default'
           }
           buttonSize="small"
-          data-test="AdhocMetricEdit#save"
           onClick={onSave}
           cta
         >
