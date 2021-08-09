@@ -857,11 +857,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           showIcon
           message={
             engineSpecificAlertMapping[db.engine]?.message ||
-            connectionAlert?.ALLOWED_IPS?.message
+            connectionAlert?.DEFAULT?.message
           }
           description={
             engineSpecificAlertMapping[db.engine]?.description ||
-            connectionAlert?.ALLOWED_IPS?.description
+            connectionAlert?.DEFAULT?.description
           }
         />
       </StyledAlertMargin>
