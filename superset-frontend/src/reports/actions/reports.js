@@ -19,6 +19,7 @@
 /* eslint camelcase: 0 */
 import { t, SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { addDangerToast, addSuccessToast } from '../../messageToasts/actions';
 
 export const SET_REPORT = 'SET_REPORT';
@@ -106,11 +107,17 @@ export const addReport = report => dispatch => {
       dispatch({ type: ADD_REPORT, json });
       dispatch(addSuccessToast(t('The report has been created')));
     })
-    .catch(() =>
+    .catch(async e => {
+      const parsedError = await getClientErrorObject(e);
+      const errorMessage = parsedError.message;
+      const errorArr = Object.keys(errorMessage);
+      const error = errorMessage[errorArr[0]][0];
       dispatch(
-        addDangerToast(t('An error occurred while creating this report.')),
-      ),
-    );
+        addDangerToast(
+          t('An error occurred while editing this report: %s', error),
+        ),
+      );
+    });
 };
 
 export const EDIT_REPORT = 'EDIT_REPORT';
