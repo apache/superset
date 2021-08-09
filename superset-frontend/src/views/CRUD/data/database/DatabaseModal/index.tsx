@@ -76,6 +76,18 @@ import {
 } from './styles';
 import ModalHeader, { DOCUMENTATION_LINK } from './ModalHeader';
 
+const engineSpecificAlertMapping = {
+  gsheets: {
+    message: 'Why do I need to create a database?',
+    description:
+      'To begin using your Google Sheets, you need to create a database first. ' +
+      'Databases are used as a way to identify ' +
+      'your data so that it can be queried and visualized. This ' +
+      'database will hold all of your individual Google Sheets ' +
+      'you choose to connect here.',
+  },
+};
+
 const errorAlertMapping = {
   CONNECTION_MISSING_PARAMETERS_ERROR: {
     message: 'Missing Required Fields',
@@ -454,10 +466,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const sslForced = isFeatureEnabled(
     FeatureFlag.FORCE_DATABASE_CONNECTIONS_SSL,
   );
+  const hasAlert =
+    connectionAlert || !!(db?.engine && engineSpecificAlertMapping[db.engine]);
   const useSqlAlchemyForm =
     db?.configuration_method === CONFIGURATION_METHOD.SQLALCHEMY_URI;
   const useTabLayout = isEditMode || useSqlAlchemyForm;
-
   // Database fetch logic
   const {
     state: { loading: dbLoading, resource: dbFetched, error: dbErrors },
@@ -834,6 +847,26 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setTabKey(key);
   };
 
+  const renderStepTwoAlert = () =>
+    db?.engine && (
+      <StyledAlertMargin>
+        <Alert
+          closable={false}
+          css={(theme: SupersetTheme) => antDAlertStyles(theme)}
+          type="info"
+          showIcon
+          message={
+            engineSpecificAlertMapping[db.engine]?.message ||
+            connectionAlert?.DEFAULT?.message
+          }
+          description={
+            engineSpecificAlertMapping[db.engine]?.description ||
+            connectionAlert?.DEFAULT?.description
+          }
+        />
+      </StyledAlertMargin>
+    );
+
   const errorAlert = () => {
     if (
       isEmpty(dbErrors) ||
@@ -1188,18 +1221,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   dbName={dbName}
                   dbModel={dbModel}
                 />
-                {connectionAlert && (
-                  <StyledAlertMargin>
-                    <Alert
-                      closable={false}
-                      css={(theme: SupersetTheme) => antDAlertStyles(theme)}
-                      type="info"
-                      showIcon
-                      message={t('IP Allowlist')}
-                      description={connectionAlert.ALLOWED_IPS}
-                    />
-                  </StyledAlertMargin>
-                )}
+                {hasAlert && renderStepTwoAlert()}
                 <DatabaseConnectionForm
                   db={db}
                   sslForced={sslForced}
