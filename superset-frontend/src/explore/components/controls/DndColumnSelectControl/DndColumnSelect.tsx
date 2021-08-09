@@ -188,7 +188,8 @@ export const DndColumnSelect = (props: LabelProps) => {
         accept={DndItemType.Column}
         displayGhostButton={multi || optionSelector.values.length === 0}
         ghostButtonText={
-          ghostButtonText || tn('Drop column here', 'Drop columns here', multi ? 2 : 1)
+          ghostButtonText ||
+          tn('Drop column here', 'Drop columns here', multi ? 2 : 1)
         }
         onClickGhostButton={openPopover}
         {...props}
