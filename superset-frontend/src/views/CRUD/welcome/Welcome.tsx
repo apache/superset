@@ -33,6 +33,7 @@ import {
   mq,
   CardContainer,
   getUserOwnedObjects,
+  loadingCardCount,
 } from 'src/views/CRUD/utils';
 import {
   HOMEPAGE_ACTIVITY_FILTER,
@@ -105,7 +106,7 @@ const WelcomeContainer = styled.div`
     padding-bottom: ${({ theme }) => theme.gridUnit * 9}px;
   }
   .loading-cards {
-    margin-top: ${({ theme }) => theme.gridUnit * 4}px;
+    margin-top: ${({ theme }) => theme.gridUnit * 8}px;
     .ant-card-cover > div {
       height: 168px;
     }
@@ -134,7 +135,7 @@ const WelcomeNav = styled.div`
 
 export const LoadingCards = ({ cover }: LoadingProps) => (
   <CardContainer showThumbnails={cover} className="loading-cards">
-    {[...new Array(8)].map(() => (
+    {[...new Array(loadingCardCount)].map(() => (
       <ListViewCard cover={cover ? false : <></>} description="" loading />
     ))}
   </CardContainer>
