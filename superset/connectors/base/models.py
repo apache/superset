@@ -375,6 +375,8 @@ class BaseDatasource(
                     return None
                 if value == "<empty string>":
                     return ""
+            if target_column_type == utils.GenericDataType.BOOLEAN:
+                return utils.cast_to_boolean(value)
             return value
 
         if isinstance(values, (list, tuple)):
