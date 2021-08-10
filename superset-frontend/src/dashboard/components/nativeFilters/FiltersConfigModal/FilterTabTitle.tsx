@@ -178,7 +178,16 @@ export const FilterTabTitle: React.FC<FilterTabTitleProps> = ({
         )}
       </StyledFilterTabTitle>
       <div style={{ alignSelf: 'flex-end' }}>
-        {isRemoved ? <></> : <StyledTrashIcon onClick={() => onRemove(id)} />}
+        {isRemoved ? (
+          <></>
+        ) : (
+          <StyledTrashIcon
+            onClick={event => {
+              event.stopPropagation();
+              onRemove(id);
+            }}
+          />
+        )}
       </div>
     </TabTitleContainer>
   );
