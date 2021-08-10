@@ -73,18 +73,6 @@ const config: ControlPanelConfig = {
         ['color_scheme', 'label_colors'],
         [
           {
-            name: 'show_legend',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Legend'),
-              renderTrigger: true,
-              default: false,
-              description: t('Whether to display the legend (toggles)'),
-            },
-          },
-        ],
-        [
-          {
             name: 'link_length',
             config: {
               type: 'SelectControl',
@@ -107,6 +95,8 @@ const config: ControlPanelConfig = {
               default: '',
             },
           },
+        ],
+        [
           {
             name: 'y_axis_label',
             config: {
@@ -114,6 +104,18 @@ const config: ControlPanelConfig = {
               label: t('Y Axis Label'),
               renderTrigger: true,
               default: '',
+            },
+          },
+        ],
+        [
+          {
+            name: 'show_legend',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Legend'),
+              renderTrigger: true,
+              default: false,
+              description: t('Whether to display the legend (toggles)'),
             },
           },
         ],
