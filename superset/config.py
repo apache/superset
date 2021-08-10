@@ -1233,6 +1233,9 @@ GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL = "ws://127.0.0.1:8080/"
 #
 DATASET_HEALTH_CHECK: Optional[Callable[["SqlaTable"], str]] = None
 
+# Do not show user info or profile in the menu
+MENU_HIDE_USER_INFO = False
+
 # SQLalchemy link doc reference
 SQLALCHEMY_DOCS_URL = "https://docs.sqlalchemy.org/en/13/core/engines.html"
 SQLALCHEMY_DISPLAY_TEXT = "SQLAlchemy docs"
