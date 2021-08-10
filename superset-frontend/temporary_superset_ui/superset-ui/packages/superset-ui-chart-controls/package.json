@@ -32,6 +32,7 @@
     "prop-types": "^15.7.2"
   },
   "peerDependencies": {
+    "@emotion/react": "^11.1.5",
     "@types/react": "*",
     "antd": "^4.9.4",
     "react": "^16.13.1"
