@@ -23,7 +23,7 @@ import moment from 'moment-timezone';
 import { NativeGraySelect as Select } from 'src/components/Select';
 
 const DEFAULT_TIMEZONE = 'GMT Standard Time';
-const MIN_SELECT_WIDTH = '375px';
+const MIN_SELECT_WIDTH = '400px';
 
 const offsetsToName = {
   '-300-240': ['Eastern Standard Time', 'Eastern Daylight Time'],
