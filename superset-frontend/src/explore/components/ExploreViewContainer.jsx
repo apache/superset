@@ -81,7 +81,7 @@ const Styles = styled.div`
   text-align: left;
   position: relative;
   width: 100%;
-  height: 100%;
+  max-height: 100%;
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
@@ -448,6 +448,7 @@ function ExploreViewContainer(props) {
             margin-bottom: 0;
           }
           body {
+            height: 100vh;
             max-height: 100vh;
             overflow: hidden;
           }
@@ -458,7 +459,7 @@ function ExploreViewContainer(props) {
           #app {
             flex-basis: 100%;
             overflow: hidden;
-            height: 100vh;
+            height: 100%;
           }
           #app-menu {
             flex-shrink: 0;

@@ -64,7 +64,7 @@ RUN /frontend-mem-nag.sh \
 
 # Next, copy in the rest and let webpack do its thing
 COPY ./superset-frontend /app/superset-frontend
-# This is BY FAR the most expensive step (thanks Terser!)
+# This seems to be the most expensive step
 RUN cd /app/superset-frontend \
         && npm run ${BUILD_CMD} \
         && rm -rf node_modules
