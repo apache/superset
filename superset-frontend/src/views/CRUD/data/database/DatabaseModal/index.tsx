@@ -854,10 +854,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const renderStepTwoAlert = () => {
     const path = window.location.hostname;
-    const region = path.split('.')[1];
-    const ipAlert =
-      connectionAlert?.REGIONAL_IPS[region] ||
-      connectionAlert?.REGIONAL_IPS?.us1a;
+    let ipAlert = connectionAlert.REGIONAL_IPS.default;
+    const regionalIPs = Object.keys(connectionAlert.REGIONAL_IPS);
+    regionalIPs.forEach(regex => {
+      if (regex.match(path)) {
+        ipAlert = connectionAlert.REGIONAL_IPS[regex];
+      }
+    });
     return (
       db?.engine && (
         <StyledAlertMargin>
