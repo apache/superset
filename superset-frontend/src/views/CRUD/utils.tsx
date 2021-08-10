@@ -138,9 +138,9 @@ export const getRecentAcitivtyObjs = (
           col: 'created_by',
           opr: 'rel_o_m',
           value: 0,
-        }
-      ]
-    }
+        },
+      ],
+    };
     const newBatch = [
       SupersetClient.get({
         endpoint: `/api/v1/chart/?q=${getParams(filters.examples)}`,
