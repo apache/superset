@@ -26,6 +26,7 @@ import {
   getTimeFormatter,
   IntervalAnnotationLayer,
   isTimeseriesAnnotationResult,
+  NumberFormatter,
   smartDateDetailedFormatter,
   smartDateFormatter,
   TimeFormatter,
@@ -73,6 +74,10 @@ export function transformSeries(
     seriesType?: EchartsTimeseriesSeriesType;
     stack?: boolean;
     yAxisIndex?: number;
+    showValue?: boolean;
+    formatter?: NumberFormatter;
+    totalStackedValues?: number[];
+    showValueIndexes?: number[];
   },
 ): SeriesOption | undefined {
   const { name } = series;
@@ -86,6 +91,10 @@ export function transformSeries(
     seriesType,
     stack,
     yAxisIndex = 0,
+    showValue,
+    formatter,
+    totalStackedValues = [],
+    showValueIndexes = [],
   } = opts;
 
   const forecastSeries = extractForecastSeriesContext(name || '');
@@ -119,6 +128,18 @@ export function transformSeries(
   } else {
     plotType = seriesType === 'bar' ? 'bar' : 'line';
   }
+  let showSymbol = false;
+  if (!isConfidenceBand) {
+    if (plotType === 'scatter') {
+      showSymbol = true;
+    } else if (forecastEnabled && isObservation) {
+      showSymbol = true;
+    } else if (plotType === 'line' && showValue) {
+      showSymbol = true;
+    } else if (markerEnabled) {
+      showSymbol = true;
+    }
+  }
   const lineStyle = isConfidenceBand ? { opacity: OpacityEnum.Transparent } : { opacity };
   return {
     ...series,
@@ -141,10 +162,29 @@ export function transformSeries(
           ? opacity * areaOpacity
           : 0,
     },
-    showSymbol:
-      !isConfidenceBand &&
-      (plotType === 'scatter' || (forecastEnabled && isObservation) || markerEnabled),
+    showSymbol,
     symbolSize: markerSize,
+    label: {
+      show: !!showValue,
+      position: 'top',
+      formatter: (params: any) => {
+        const {
+          value: [, numericValue],
+          dataIndex,
+          seriesIndex,
+        } = params;
+        if (formatter) {
+          if (!stack) {
+            return formatter(numericValue);
+          }
+          if (seriesIndex === showValueIndexes[dataIndex]) {
+            return formatter(totalStackedValues[dataIndex]);
+          }
+          return '';
+        }
+        return numericValue;
+      },
+    },
   };
 }
 

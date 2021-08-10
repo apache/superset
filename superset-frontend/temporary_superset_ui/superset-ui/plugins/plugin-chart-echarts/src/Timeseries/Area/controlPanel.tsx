@@ -32,7 +32,7 @@ import {
   EchartsTimeseriesContributionType,
   EchartsTimeseriesSeriesType,
 } from '../types';
-import { legendSection } from '../../controls';
+import { legendSection, showValueControl } from '../../controls';
 
 const {
   annotationLayers,
@@ -251,6 +251,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [showValueControl],
         [
           {
             name: 'stack',
