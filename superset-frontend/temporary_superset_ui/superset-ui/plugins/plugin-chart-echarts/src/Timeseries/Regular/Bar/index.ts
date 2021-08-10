@@ -36,7 +36,7 @@ const barTransformProps = (chartProps: EchartsTimeseriesChartProps) =>
     formData: { ...chartProps.formData, seriesType: EchartsTimeseriesSeriesType.Bar },
   });
 
-export default class EchartsTimeseriesScatterChartPlugin extends ChartPlugin<
+export default class EchartsTimeseriesBarChartPlugin extends ChartPlugin<
   EchartsTimeseriesFormData,
   EchartsTimeseriesChartProps
 > {

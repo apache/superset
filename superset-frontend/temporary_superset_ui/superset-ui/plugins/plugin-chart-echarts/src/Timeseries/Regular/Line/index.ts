@@ -35,7 +35,7 @@ const lineTransformProps = (chartProps: EchartsTimeseriesChartProps) =>
     formData: { ...chartProps.formData, seriesType: EchartsTimeseriesSeriesType.Line },
   });
 
-export default class EchartsTimeseriesScatterChartPlugin extends ChartPlugin<
+export default class EchartsTimeseriesLineChartPlugin extends ChartPlugin<
   EchartsTimeseriesFormData,
   EchartsTimeseriesChartProps
 > {

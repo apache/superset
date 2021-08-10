@@ -34,7 +34,7 @@ const smoothTransformProps = (chartProps: EchartsTimeseriesChartProps) =>
     formData: { ...chartProps.formData, seriesType: EchartsTimeseriesSeriesType.Smooth },
   });
 
-export default class EchartsTimeseriesScatterChartPlugin extends ChartPlugin<
+export default class EchartsTimeseriesSmoothLineChartPlugin extends ChartPlugin<
   EchartsTimeseriesFormData,
   EchartsTimeseriesChartProps
 > {

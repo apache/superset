@@ -25,7 +25,7 @@ import { EchartsTimeseriesChartProps, EchartsTimeseriesFormData } from '../types
 import example1 from './images/Step1.png';
 import example2 from './images/Step2.png';
 
-export default class EchartsTimeseriesScatterChartPlugin extends ChartPlugin<
+export default class EchartsTimeseriesStepChartPlugin extends ChartPlugin<
   EchartsTimeseriesFormData,
   EchartsTimeseriesChartProps
 > {

@@ -93,3 +93,14 @@ export const legendSection = [
   [legendOrientationControl],
   [legendMarginControl],
 ];
+
+export const showValueControl = {
+  name: 'show_value',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Show Value'),
+    default: false,
+    renderTrigger: true,
+    description: t('Show series values on the chart'),
+  },
+};
