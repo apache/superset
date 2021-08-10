@@ -539,25 +539,21 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     const dbToUpdate = JSON.parse(JSON.stringify(update));
 
     if (dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM) {
-      // Validate DB before saving
-      await getValidation(dbToUpdate, true);
-      if (validationErrors && !isEmpty(validationErrors)) {
-        return;
-      }
-
       if (dbToUpdate?.parameters?.query) {
         // convert query params into dictionary
-        dbToUpdate.parameters.query = JSON.parse(
-          `{"${decodeURI((dbToUpdate?.parameters?.query as string) || '')
-            .replace(/"/g, '\\"')
-            .replace(/&/g, '","')
-            .replace(/=/g, '":"')}"}`,
-        );
+        const urlParams = new URLSearchParams(dbToUpdate?.parameters?.query);
+        dbToUpdate.parameters.query = Object.fromEntries(urlParams);
       } else if (
         dbToUpdate?.parameters?.query === '' &&
         'query' in dbModel.parameters.properties
       ) {
         dbToUpdate.parameters.query = {};
+      }
+
+      // Validate DB before saving
+      await getValidation(dbToUpdate, true);
+      if (validationErrors && !isEmpty(validationErrors)) {
+        return;
       }
 
       const engine = dbToUpdate.backend || dbToUpdate.engine;

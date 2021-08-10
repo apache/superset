@@ -107,7 +107,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         RouteMethod.IMPORT,
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
-        "post_data",
+        "data",
         "get_data",
         "data_from_cache",
         "viz_types",
@@ -152,6 +152,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "description_markeddown",
         "edit_url",
         "id",
+        "last_saved_at",
+        "last_saved_by.id",
+        "last_saved_by.first_name",
+        "last_saved_by.last_name",
         "owners.first_name",
         "owners.id",
         "owners.last_name",
@@ -170,12 +174,20 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "changed_on_delta_humanized",
         "datasource_id",
         "datasource_name",
+        "last_saved_at",
+        "last_saved_by.id",
+        "last_saved_by.first_name",
+        "last_saved_by.last_name",
         "slice_name",
         "viz_type",
     ]
     search_columns = [
         "created_by",
         "changed_by",
+        "last_saved_at",
+        "last_saved_by.id",
+        "last_saved_by.first_name",
+        "last_saved_by.last_name",
         "datasource_id",
         "datasource_name",
         "datasource_type",
@@ -641,7 +653,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
         log_to_statsd=False,
     )
-    def post_data(self) -> Response:
+    def data(self) -> Response:
         """
         Takes a query context constructed in the client and returns payload
         data response for the given query.
