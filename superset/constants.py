@@ -119,12 +119,12 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "refresh": "write",
     "cache_screenshot": "read",
     "screenshot": "read",
+    "data": "read",
     "data_from_cache": "read",
     "get_charts": "read",
     "get_datasets": "read",
     "function_names": "read",
     "available": "read",
-    "post_data": "read",  # used to fetch chart data, so "read"
     "get_data": "read",
 }
 
