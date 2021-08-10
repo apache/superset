@@ -37,6 +37,7 @@ const propTypes = {
   onDropLabel: PropTypes.func,
   index: PropTypes.number,
   type: PropTypes.string,
+  multi: PropTypes.bool,
 };
 
 class AdhocMetricOption extends React.PureComponent {
@@ -62,6 +63,7 @@ class AdhocMetricOption extends React.PureComponent {
       onDropLabel,
       index,
       type,
+      multi,
     } = this.props;
 
     return (
@@ -84,6 +86,7 @@ class AdhocMetricOption extends React.PureComponent {
           type={type ?? DndItemType.AdhocMetricOption}
           withCaret
           isFunction
+          multi={multi}
         />
       </AdhocMetricPopoverTrigger>
     );

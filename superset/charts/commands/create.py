@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from flask_appbuilder.models.sqla import Model
@@ -43,6 +44,8 @@ class CreateChartCommand(BaseCommand):
     def run(self) -> Model:
         self.validate()
         try:
+            self._properties["last_saved_at"] = datetime.now()
+            self._properties["last_saved_by"] = self._actor
             chart = ChartDAO.create(self._properties)
         except DAOCreateFailedError as ex:
             logger.exception(ex.exception)

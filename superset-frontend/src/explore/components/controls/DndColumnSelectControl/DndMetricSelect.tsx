@@ -245,7 +245,10 @@ export const DndMetricSelect = (props: any) => {
     [props.savedMetrics, props.value],
   );
 
-  const handleDropLabel = useCallback(() => onChange(value), [onChange, value]);
+  const handleDropLabel = useCallback(
+    () => onChange(multi ? value : value[0]),
+    [multi, onChange, value],
+  );
 
   const valueRenderer = useCallback(
     (option: Metric | AdhocMetric | string, index: number) => (
@@ -262,12 +265,14 @@ export const DndMetricSelect = (props: any) => {
         onMoveLabel={moveLabel}
         onDropLabel={handleDropLabel}
         type={`${DndItemType.AdhocMetricOption}_${props.name}_${props.label}`}
+        multi={multi}
       />
     ),
     [
       getSavedMetricOptionsForMetric,
       handleDropLabel,
       moveLabel,
+      multi,
       onMetricEdit,
       onRemoveMetric,
       props.columns,
@@ -334,8 +339,8 @@ export const DndMetricSelect = (props: any) => {
         valuesRenderer={valuesRenderer}
         accept={DND_ACCEPTED_TYPES}
         ghostButtonText={tn(
-          'Drop column or metric',
-          'Drop columns or metrics',
+          'Drop column or metric here',
+          'Drop columns or metrics here',
           multi ? 2 : 1,
         )}
         displayGhostButton={multi || value.length === 0}

@@ -36,6 +36,7 @@ from superset.utils.core import (
     get_metric_names,
     is_adhoc_metric,
     json_int_dttm_ser,
+    QueryObjectFilterClause,
 )
 from superset.utils.date_parser import get_since_until, parse_human_timedelta
 from superset.utils.hashing import md5_sha_from_dict
@@ -85,7 +86,7 @@ class QueryObject:
     metrics: Optional[List[Metric]]
     row_limit: int
     row_offset: int
-    filter: List[Dict[str, Any]]
+    filter: List[QueryObjectFilterClause]
     timeseries_limit: int
     timeseries_limit_metric: Optional[Metric]
     order_desc: bool
@@ -108,7 +109,7 @@ class QueryObject:
         granularity: Optional[str] = None,
         metrics: Optional[List[Metric]] = None,
         groupby: Optional[List[str]] = None,
-        filters: Optional[List[Dict[str, Any]]] = None,
+        filters: Optional[List[QueryObjectFilterClause]] = None,
         time_range: Optional[str] = None,
         time_shift: Optional[str] = None,
         is_timeseries: Optional[bool] = None,

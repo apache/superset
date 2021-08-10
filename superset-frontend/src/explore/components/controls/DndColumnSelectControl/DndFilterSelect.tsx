@@ -374,7 +374,7 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
         canDrop={canDrop}
         valuesRenderer={valuesRenderer}
         accept={DND_ACCEPTED_TYPES}
-        ghostButtonText={t('Drop columns or metrics')}
+        ghostButtonText={t('Drop columns or metrics here')}
         {...props}
       />
       <AdhocFilterPopoverTrigger

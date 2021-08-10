@@ -29,7 +29,7 @@ const defaultProps: LabelProps = {
 
 test('renders with default props', () => {
   render(<DndColumnSelect {...defaultProps} />, { useDnd: true });
-  expect(screen.getByText('Drop columns')).toBeInTheDocument();
+  expect(screen.getByText('Drop columns here')).toBeInTheDocument();
 });
 
 test('renders with value', () => {

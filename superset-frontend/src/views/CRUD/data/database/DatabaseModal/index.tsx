@@ -76,6 +76,18 @@ import {
 } from './styles';
 import ModalHeader, { DOCUMENTATION_LINK } from './ModalHeader';
 
+const engineSpecificAlertMapping = {
+  gsheets: {
+    message: 'Why do I need to create a database?',
+    description:
+      'To begin using your Google Sheets, you need to create a database first. ' +
+      'Databases are used as a way to identify ' +
+      'your data so that it can be queried and visualized. This ' +
+      'database will hold all of your individual Google Sheets ' +
+      'you choose to connect here.',
+  },
+};
+
 const errorAlertMapping = {
   CONNECTION_MISSING_PARAMETERS_ERROR: {
     message: 'Missing Required Fields',
@@ -332,16 +344,21 @@ function dbReducer(
         action.payload.configuration_method ===
           CONFIGURATION_METHOD.DYNAMIC_FORM
       ) {
+        // convert query into URI params string
+        query = new URLSearchParams(
+          action?.payload?.parameters?.query as string,
+        ).toString();
+
         return {
           ...action.payload,
           engine: action.payload.backend,
           configuration_method: action.payload.configuration_method,
           extra_json: deserializeExtraJSON,
           parameters: {
-            query,
             credentials_info: JSON.stringify(
               action.payload?.parameters?.credentials_info || '',
             ),
+            query,
           },
         };
       }
@@ -454,10 +471,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const sslForced = isFeatureEnabled(
     FeatureFlag.FORCE_DATABASE_CONNECTIONS_SSL,
   );
+  const hasAlert =
+    connectionAlert || !!(db?.engine && engineSpecificAlertMapping[db.engine]);
   const useSqlAlchemyForm =
     db?.configuration_method === CONFIGURATION_METHOD.SQLALCHEMY_URI;
   const useTabLayout = isEditMode || useSqlAlchemyForm;
-
   // Database fetch logic
   const {
     state: { loading: dbLoading, resource: dbFetched, error: dbErrors },
@@ -521,25 +539,21 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     const dbToUpdate = JSON.parse(JSON.stringify(update));
 
     if (dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM) {
-      // Validate DB before saving
-      await getValidation(dbToUpdate, true);
-      if (validationErrors && !isEmpty(validationErrors)) {
-        return;
-      }
-
       if (dbToUpdate?.parameters?.query) {
         // convert query params into dictionary
-        dbToUpdate.parameters.query = JSON.parse(
-          `{"${decodeURI((dbToUpdate?.parameters?.query as string) || '')
-            .replace(/"/g, '\\"')
-            .replace(/&/g, '","')
-            .replace(/=/g, '":"')}"}`,
-        );
+        const urlParams = new URLSearchParams(dbToUpdate?.parameters?.query);
+        dbToUpdate.parameters.query = Object.fromEntries(urlParams);
       } else if (
         dbToUpdate?.parameters?.query === '' &&
         'query' in dbModel.parameters.properties
       ) {
         dbToUpdate.parameters.query = {};
+      }
+
+      // Validate DB before saving
+      await getValidation(dbToUpdate, true);
+      if (validationErrors && !isEmpty(validationErrors)) {
+        return;
       }
 
       const engine = dbToUpdate.backend || dbToUpdate.engine;
@@ -833,6 +847,26 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const tabChange = (key: string) => {
     setTabKey(key);
   };
+
+  const renderStepTwoAlert = () =>
+    db?.engine && (
+      <StyledAlertMargin>
+        <Alert
+          closable={false}
+          css={(theme: SupersetTheme) => antDAlertStyles(theme)}
+          type="info"
+          showIcon
+          message={
+            engineSpecificAlertMapping[db.engine]?.message ||
+            connectionAlert?.DEFAULT?.message
+          }
+          description={
+            engineSpecificAlertMapping[db.engine]?.description ||
+            connectionAlert?.DEFAULT?.description
+          }
+        />
+      </StyledAlertMargin>
+    );
 
   const errorAlert = () => {
     if (
@@ -1188,18 +1222,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   dbName={dbName}
                   dbModel={dbModel}
                 />
-                {connectionAlert && (
-                  <StyledAlertMargin>
-                    <Alert
-                      closable={false}
-                      css={(theme: SupersetTheme) => antDAlertStyles(theme)}
-                      type="info"
-                      showIcon
-                      message={t('IP Allowlist')}
-                      description={connectionAlert.ALLOWED_IPS}
-                    />
-                  </StyledAlertMargin>
-                )}
+                {hasAlert && renderStepTwoAlert()}
                 <DatabaseConnectionForm
                   db={db}
                   sslForced={sslForced}

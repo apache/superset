@@ -40,9 +40,11 @@ export default function DndSelectLabel<T, O>({
 
     drop: (item: DatasourcePanelDndItem) => {
       props.onDrop(item);
+      props.onDropValue?.(item.value);
     },
 
-    canDrop: (item: DatasourcePanelDndItem) => props.canDrop(item),
+    canDrop: (item: DatasourcePanelDndItem) =>
+      props.canDrop(item) && (props.canDropValue?.(item.value) ?? true),
 
     collect: monitor => ({
       isOver: monitor.isOver(),
@@ -55,7 +57,7 @@ export default function DndSelectLabel<T, O>({
     return (
       <AddControlLabel cancelHover>
         <Icons.PlusSmall iconColor={theme.colors.grayscale.light1} />
-        {t(props.ghostButtonText || 'Drop columns')}
+        {t(props.ghostButtonText || 'Drop columns here')}
       </AddControlLabel>
     );
   }

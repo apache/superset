@@ -41,16 +41,18 @@ class _memoized:
         if self.is_method:
             key.append(tuple([getattr(args[0], v, None) for v in self.watch]))
         key = tuple(key)  # type: ignore
-        if key in self.cache:
-            return self.cache[key]
         try:
-            value = self.func(*args, **kwargs)
+            if key in self.cache:
+                return self.cache[key]
+        except TypeError as ex:
+            # Uncachable -- for instance, passing a list as an argument.
+            raise TypeError("Function cannot be memoized") from ex
+        value = self.func(*args, **kwargs)
+        try:
             self.cache[key] = value
-            return value
-        except TypeError:
-            # uncachable -- for instance, passing a list as an argument.
-            # Better to not cache than to blow up entirely.
-            return self.func(*args, **kwargs)
+        except TypeError as ex:
+            raise TypeError("Function cannot be memoized") from ex
+        return value
 
     def __repr__(self) -> str:
         """Return the function's docstring."""
