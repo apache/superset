@@ -52,8 +52,9 @@ class UpdateChartCommand(BaseCommand):
     def run(self) -> Model:
         self.validate()
         try:
-            self._properties["last_saved_at"] = datetime.now()
-            self._properties["last_saved_by"] = self._actor
+            if self._properties.get("query_context_generation") is None:
+                self._properties["last_saved_at"] = datetime.now()
+                self._properties["last_saved_by"] = self._actor
             chart = ChartDAO.update(self._model, self._properties)
         except DAOUpdateFailedError as ex:
             logger.exception(ex.exception)
