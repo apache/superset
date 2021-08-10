@@ -293,6 +293,13 @@ class ChartDataAdhocMetricSchema(Schema):
         "will be generated.",
         example="metric_aec60732-fac0-4b17-b736-93f1a5c93e30",
     )
+    timeGrain = fields.String(
+        description="Optional time grain for temporal filters", example="PT1M",
+    )
+    isExtra = fields.Boolean(
+        description="Indicates if the filter has been added by a filter component as "
+        "opposed to being a part of the original query."
+    )
 
 
 class ChartDataAggregateConfigField(fields.Dict):
@@ -770,6 +777,13 @@ class ChartDataFilterSchema(Schema):
         description="The value or values to compare against. Can be a string, "
         "integer, decimal or list, depending on the operator.",
         example=["China", "France", "Japan"],
+    )
+    grain = fields.String(
+        description="Optional time grain for temporal filters", example="PT1M",
+    )
+    isExtra = fields.Boolean(
+        description="Indicates if the filter has been added by a filter component as "
+        "opposed to being a part of the original query."
     )
 
 
