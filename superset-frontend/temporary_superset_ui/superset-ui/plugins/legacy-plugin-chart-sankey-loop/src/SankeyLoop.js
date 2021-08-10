@@ -98,7 +98,10 @@ function SankeyLoop(element, props) {
     )
     .linkColor(d => color(d.source.name));
 
-  const svg = select(element)
+  const div = select(element);
+  div.selectAll('*').remove();
+
+  const svg = div
     .append('svg')
     .classed('superset-legacy-chart-sankey-loop', true)
     .style('width', width)
