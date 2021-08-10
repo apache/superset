@@ -82,6 +82,11 @@ query_context_description = (
     "in order to generate the data the visualization, and in what "
     "format the data should be returned."
 )
+query_context_generation_description = (
+    "The query context generation represents whether the query_context"
+    "is user generated or not so that it does not update user modfied"
+    "state."
+)
 cache_timeout_description = (
     "Duration (in seconds) of the caching timeout "
     "for this chart. Note this defaults to the datasource/table"
@@ -176,6 +181,9 @@ class ChartPostSchema(Schema):
         allow_none=True,
         validate=utils.validate_json,
     )
+    query_context_generation = fields.Boolean(
+        description=query_context_generation_description, allow_none=True
+    )
     cache_timeout = fields.Integer(
         description=cache_timeout_description, allow_none=True
     )
@@ -210,6 +218,9 @@ class ChartPutSchema(Schema):
     params = fields.String(description=params_description, allow_none=True)
     query_context = fields.String(
         description=query_context_description, allow_none=True
+    )
+    query_context_generation = fields.Boolean(
+        description=query_context_generation_description, allow_none=True
     )
     cache_timeout = fields.Integer(
         description=cache_timeout_description, allow_none=True
