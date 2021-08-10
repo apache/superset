@@ -269,6 +269,9 @@ export function shortenSQL(sql: string, maxLines: number) {
   return lines.join('\n');
 }
 
+// loading card count for homepage
+export const loadingCardCount = 5;
+
 const breakpoints = [576, 768, 992, 1200];
 export const mq = breakpoints.map(bp => `@media (max-width: ${bp}px)`);
 
@@ -286,7 +289,7 @@ export const CardContainer = styled.div<{
     display: grid;
     grid-gap: ${theme.gridUnit * 12}px ${theme.gridUnit * 4}px;
     grid-template-columns: repeat(auto-fit, 300px);
-    max-height: ${showThumbnails ? '314' : '140'}px;
+    max-height: ${showThumbnails ? '314' : '148'}px;
     margin-top: ${theme.gridUnit * -6}px;
     padding: ${
       showThumbnails

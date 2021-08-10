@@ -147,6 +147,7 @@ const ExploreChartPanel = props => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             query_context: JSON.stringify(queryContext),
+            query_context_generation: true,
           }),
         });
       }

@@ -604,7 +604,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
 
         form_data = get_form_data()[0]
-
         try:
             datasource_id, datasource_type = get_datasource_info(
                 datasource_id, datasource_type, form_data
@@ -719,7 +718,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         user_id = g.user.get_id() if g.user else None
         form_data, slc = get_form_data(use_slice_data=True)
         query_context = request.form.get("query_context")
-
         # Flash the SIP-15 message if the slice is owned by the current user and has not
         # been updated, i.e., is not using the [start, end) interval.
         if (
@@ -948,6 +946,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         slc.viz_type = form_data["viz_type"]
         slc.datasource_type = datasource_type
         slc.datasource_id = datasource_id
+        slc.last_saved_by = g.user
+        slc.last_saved_at = datetime.now()
         slc.slice_name = slice_name
         slc.query_context = query_context
 

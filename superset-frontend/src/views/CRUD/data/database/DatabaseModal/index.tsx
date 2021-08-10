@@ -344,16 +344,21 @@ function dbReducer(
         action.payload.configuration_method ===
           CONFIGURATION_METHOD.DYNAMIC_FORM
       ) {
+        // convert query into URI params string
+        query = new URLSearchParams(
+          action?.payload?.parameters?.query as string,
+        ).toString();
+
         return {
           ...action.payload,
           engine: action.payload.backend,
           configuration_method: action.payload.configuration_method,
           extra_json: deserializeExtraJSON,
           parameters: {
-            query,
             credentials_info: JSON.stringify(
               action.payload?.parameters?.credentials_info || '',
             ),
+            query,
           },
         };
       }
