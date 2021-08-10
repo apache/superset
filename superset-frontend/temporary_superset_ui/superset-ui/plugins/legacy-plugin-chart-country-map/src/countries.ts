@@ -1,4 +1,5 @@
 /* eslint-disable import/no-webpack-loader-syntax, import/no-unresolved */
+import austria from 'file-loader!./countries/austria.geojson';
 import australia from 'file-loader!./countries/australia.geojson';
 import belgium from 'file-loader!./countries/belgium.geojson';
 import brazil from 'file-loader!./countries/brazil.geojson';
@@ -36,6 +37,7 @@ import usa from 'file-loader!./countries/usa.geojson';
 import zambia from 'file-loader!./countries/zambia.geojson';
 
 export const countries = {
+  austria,
   australia,
   belgium,
   brazil,
