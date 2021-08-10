@@ -35,6 +35,7 @@ import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { User } from 'src/types/bootstrapTypes';
 import { CardContainer, PAGE_SIZE } from 'src/views/CRUD/utils';
 import { HOMEPAGE_CHART_FILTER } from 'src/views/CRUD/storageKeys';
+import { LoadingCards } from 'src/views/CRUD/welcome/Welcome';
 import ChartCard from 'src/views/CRUD/chart/ChartCard';
 import Chart from 'src/types/Chart';
 import handleResourceExport from 'src/utils/export';
@@ -177,7 +178,7 @@ function ChartTable({
     });
   }
 
-  if (loading) return <Loading position="inline" />;
+  if (loading) return <LoadingCards cover={showThumbnails} />;
   return (
     <ErrorBoundary>
       {sliceCurrentlyEditing && (
