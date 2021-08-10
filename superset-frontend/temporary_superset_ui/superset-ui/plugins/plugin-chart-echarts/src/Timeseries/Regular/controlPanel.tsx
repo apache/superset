@@ -28,7 +28,7 @@ import {
 } from '@superset-ui/chart-controls';
 
 import { DEFAULT_FORM_DATA, EchartsTimeseriesContributionType } from '../types';
-import { legendSection } from '../../controls';
+import { legendSection, showValueControl } from '../../controls';
 
 const {
   annotationLayers,
@@ -211,6 +211,7 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         ['color_scheme', 'label_colors'],
+        [showValueControl],
         [
           {
             name: 'stack',
