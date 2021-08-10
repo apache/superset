@@ -17,28 +17,34 @@
  * under the License.
  */
 import React from 'react';
+import rison from 'rison';
 import Button from 'src/components/Button';
 import { Select } from 'src/components';
-import { css, styled, t } from '@superset-ui/core';
+import {
+  css,
+  styled,
+  t,
+  SupersetClient,
+  JsonResponse,
+} from '@superset-ui/core';
 import { FormLabel } from 'src/components/Form';
+import { Tooltip } from 'src/components/Tooltip';
 
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
 } from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
 
-interface Datasource {
-  label: string;
-  value: string;
-}
-
-export type AddSliceContainerProps = {
-  datasources: Datasource[];
+type Dataset = {
+  id: number;
+  table_name: string;
+  description: string;
+  datasource_type: string;
 };
 
+export type AddSliceContainerProps = {};
+
 export type AddSliceContainerState = {
-  datasourceId?: string;
-  datasourceType?: string;
-  datasourceValue?: string;
+  datasource?: { label: string; value: string };
   visType: string | null;
 };
 
@@ -81,6 +87,34 @@ const StyledContainer = styled.div`
         margin-top: ${theme.gridUnit * 6}px;
       }
     }
+
+    & .ant-tooltip-open {
+      display: inline;
+    }
+  `}
+`;
+
+const TooltipContent = styled.div<{ hasDescription: boolean }>`
+  ${({ theme, hasDescription }) => `
+    .tooltip-header {
+      font-size: ${
+        hasDescription ? theme.typography.sizes.l : theme.typography.sizes.s
+      }px;
+      font-weight: ${
+        hasDescription
+          ? theme.typography.weights.bold
+          : theme.typography.weights.normal
+      };
+    }
+
+    .tooltip-description {
+      margin-top: ${theme.gridUnit * 2}px;
+      display: -webkit-box;
+      -webkit-line-clamp: 20;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
   `}
 `;
 
@@ -110,13 +144,15 @@ export default class AddSliceContainer extends React.PureComponent<
     this.changeDatasource = this.changeDatasource.bind(this);
     this.changeVisType = this.changeVisType.bind(this);
     this.gotoSlice = this.gotoSlice.bind(this);
+    this.newLabel = this.newLabel.bind(this);
+    this.loadDatasources = this.loadDatasources.bind(this);
   }
 
   exploreUrl() {
     const formData = encodeURIComponent(
       JSON.stringify({
         viz_type: this.state.visType,
-        datasource: this.state.datasourceValue,
+        datasource: this.state.datasource?.value,
       }),
     );
     return `/superset/explore/?form_data=${formData}`;
@@ -126,11 +162,8 @@ export default class AddSliceContainer extends React.PureComponent<
     window.location.href = this.exploreUrl();
   }
 
-  changeDatasource(value: string) {
-    this.setState({
-      datasourceValue: value,
-      datasourceId: value.split('__')[0],
-    });
+  changeDatasource(datasource: { label: string; value: string }) {
+    this.setState({ datasource });
   }
 
   changeVisType(visType: string | null) {
@@ -138,7 +171,45 @@ export default class AddSliceContainer extends React.PureComponent<
   }
 
   isBtnDisabled() {
-    return !(this.state.datasourceId && this.state.visType);
+    return !(this.state.datasource?.value && this.state.visType);
+  }
+
+  newLabel(item: Dataset) {
+    return (
+      <Tooltip
+        title={
+          <TooltipContent hasDescription={!!item.description}>
+            <div className="tooltip-header">{item.table_name}</div>
+            {item.description && (
+              <div className="tooltip-description">{item.description}</div>
+            )}
+          </TooltipContent>
+        }
+      >
+        {item.table_name}
+      </Tooltip>
+    );
+  }
+
+  loadDatasources(search: string, page: number, pageSize: number) {
+    const query = rison.encode({
+      columns: ['id', 'table_name', 'description', 'datasource_type'],
+      filter: search,
+      page,
+      page_size: pageSize,
+    });
+    return SupersetClient.get({
+      endpoint: `/api/v1/dataset?q=${query}`,
+    }).then((response: JsonResponse) => {
+      const list = response.json.result.map((item: Dataset) => ({
+        value: `${item.id}__${item.datasource_type}`,
+        label: this.newLabel(item),
+      }));
+      return {
+        data: list,
+        totalCount: response.json.count,
+      };
+    });
   }
 
   render() {
@@ -152,10 +223,10 @@ export default class AddSliceContainer extends React.PureComponent<
             name="select-datasource"
             header={<FormLabel required>{t('Choose a dataset')}</FormLabel>}
             onChange={this.changeDatasource}
-            options={this.props.datasources}
+            options={this.loadDatasources}
             placeholder={t('Choose a dataset')}
             showSearch
-            value={this.state.datasourceValue}
+            value={this.state.datasource}
           />
           <span>
             {t(
