@@ -158,6 +158,7 @@ export const createHandleTabEdit = (
       | Record<string, FilterRemoval>,
   ) => void,
   setSaveAlertVisible: Function,
+  removeFilterFromOrderedFilters: (removedFilterId: string) => void,
   addFilter: Function,
 ) => (filterId: string, action: 'add' | 'remove') => {
   const completeFilterRemoval = (filterId: string) => {
@@ -172,10 +173,10 @@ export const createHandleTabEdit = (
 
   if (action === 'remove') {
     // first set up the timer to completely remove it
-    const timerId = window.setTimeout(
-      () => completeFilterRemoval(filterId),
-      REMOVAL_DELAY_SECS * 1000,
-    );
+    const timerId = window.setTimeout(() => {
+      completeFilterRemoval(filterId);
+      removeFilterFromOrderedFilters(filterId);
+    }, REMOVAL_DELAY_SECS * 1000);
     // mark the filter state as "removal in progress"
     setRemovedFilters(removedFilters => ({
       ...removedFilters,

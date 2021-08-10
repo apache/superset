@@ -152,6 +152,7 @@ export function FiltersConfigModal({
     setNewFilterIds([...newFilterIds, newFilterId]);
     setCurrentFilterId(newFilterId);
     setSaveAlertVisible(false);
+    setOrderedFilters([...orderedFilters, newFilterId]);
   }, [newFilterIds, setCurrentFilterId]);
 
   useOpenModal(isOpen, addFilter, createNewOnOpen);
@@ -163,9 +164,16 @@ export function FiltersConfigModal({
     setCurrentFilterId,
   );
 
+  const removeFilterFromOrderedFilters = (removedFilterId: string) => {
+    setOrderedFilters(
+      orderedFilters.filter(filterId => filterId !== removedFilterId),
+    );
+  };
+
   const handleTabEdit = createHandleTabEdit(
     setRemovedFilters,
     setSaveAlertVisible,
+    removeFilterFromOrderedFilters,
     addFilter,
   );
 
