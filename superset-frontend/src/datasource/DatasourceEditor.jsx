@@ -620,6 +620,7 @@ class DatasourceEditor extends React.PureComponent {
               <TextAreaControl
                 language="sql"
                 controlId="fetch_values_predicate"
+                minLines={5}
               />
             }
           />
