@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from flask_appbuilder.models.sqla import Model
@@ -51,6 +52,9 @@ class UpdateChartCommand(BaseCommand):
     def run(self) -> Model:
         self.validate()
         try:
+            if self._properties.get("query_context_generation") is None:
+                self._properties["last_saved_at"] = datetime.now()
+                self._properties["last_saved_by"] = self._actor
             chart = ChartDAO.update(self._model, self._properties)
         except DAOUpdateFailedError as ex:
             logger.exception(ex.exception)
