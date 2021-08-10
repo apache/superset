@@ -17,18 +17,25 @@
 """change_fetch_values_predicate_to_text
 
 Revision ID: 07071313dd52
-Revises: f6196627326f
+Revises: 6d20ba9ecb33
 Create Date: 2021-08-09 17:32:56.204184
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "07071313dd52"
-down_revision = "f6196627326f"
+down_revision = "6d20ba9ecb33"
+
+import logging
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy import and_, func, or_
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.sql.schema import Table
+
+from superset import db
+from superset.connectors.sqla.models import SqlaTable
 
 
 def upgrade():
@@ -41,7 +48,33 @@ def upgrade():
         )
 
 
+def remove_value_if_too_long():
+    bind = op.get_bind()
+    session = db.Session(bind=bind)
+
+    # it will be easier for users to notice that their field has been deleted rather than truncated
+    # so just remove it if it won't fit back into the 1000 string length column
+    try:
+        rows = (
+            session.query(SqlaTable)
+            .filter(func.length(SqlaTable.fetch_values_predicate) > 1000)
+            .all()
+        )
+
+        for row in rows:
+            row.fetch_values_predicate = None
+
+        logging.info(f"{len(rows)} values deleted")
+
+        session.commit()
+        session.close()
+    except Exception as ex:
+        logging.warning(ex)
+
+
 def downgrade():
+    remove_value_if_too_long()
+
     with op.batch_alter_table("tables") as batch_op:
         batch_op.alter_column(
             "fetch_values_predicate",
