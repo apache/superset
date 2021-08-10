@@ -112,6 +112,8 @@ const config: ControlPanelConfig = {
               description: t('Number of steps to take between ticks when displaying the X scale'),
             },
           },
+        ],
+        [
           {
             name: 'yscale_interval',
             config: {
@@ -143,6 +145,8 @@ const config: ControlPanelConfig = {
               ),
             },
           },
+        ],
+        [
           {
             name: 'normalize_across',
             config: {
@@ -176,6 +180,8 @@ const config: ControlPanelConfig = {
               description: t('Left margin, in pixels, allowing for more room for axis labels'),
             },
           },
+        ],
+        [
           {
             name: 'bottom_margin',
             config: {
@@ -204,7 +210,31 @@ const config: ControlPanelConfig = {
               ),
             },
           },
-          'y_axis_format',
+        ],
+        ['y_axis_format'],
+        [
+          {
+            name: 'sort_x_axis',
+            config: {
+              type: 'SelectControl',
+              label: t('Sort X Axis'),
+              choices: sortAxisChoices,
+              clearable: false,
+              default: 'alpha_asc',
+            },
+          },
+        ],
+        [
+          {
+            name: 'sort_y_axis',
+            config: {
+              type: 'SelectControl',
+              label: t('Sort Y Axis'),
+              choices: sortAxisChoices,
+              clearable: false,
+              default: 'alpha_asc',
+            },
+          },
         ],
         [
           {
@@ -217,6 +247,8 @@ const config: ControlPanelConfig = {
               description: t('Whether to display the legend (toggles)'),
             },
           },
+        ],
+        [
           {
             name: 'show_perc',
             config: {
@@ -239,6 +271,8 @@ const config: ControlPanelConfig = {
               description: t('Whether to display the numerical values within the cells'),
             },
           },
+        ],
+        [
           {
             name: 'normalized',
             config: {
@@ -249,28 +283,6 @@ const config: ControlPanelConfig = {
                 'Whether to apply a normal distribution based on rank on the color scale',
               ),
               default: false,
-            },
-          },
-        ],
-        [
-          {
-            name: 'sort_x_axis',
-            config: {
-              type: 'SelectControl',
-              label: t('Sort X Axis'),
-              choices: sortAxisChoices,
-              clearable: false,
-              default: 'alpha_asc',
-            },
-          },
-          {
-            name: 'sort_y_axis',
-            config: {
-              type: 'SelectControl',
-              label: t('Sort Y Axis'),
-              choices: sortAxisChoices,
-              clearable: false,
-              default: 'alpha_asc',
             },
           },
         ],
