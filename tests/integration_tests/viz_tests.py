@@ -1196,42 +1196,38 @@ class TestBaseDeckGLViz(SupersetTestCase):
                 {
                     "clause": "WHERE",
                     "expressionType": "SIMPLE",
-                    "filterOptionName": "bfa3a42a6f3de3c781b7d4f8e8d6613d",
+                    "filterOptionName": "c7f171cf3204bcbf456acfeac5cd9afd",
                     "comparator": "",
                     "operator": "IS NOT NULL",
                     "subject": "lat",
-                    "isExtra": False,
                 },
                 {
                     "clause": "WHERE",
                     "expressionType": "SIMPLE",
-                    "filterOptionName": "2d35d87b57c6f1a5ae139f1a6b0cbd0a",
+                    "filterOptionName": "52634073fbb8ae0a3aa59ad48abac55e",
                     "comparator": "",
                     "operator": "IS NOT NULL",
                     "subject": "lon",
-                    "isExtra": False,
                 },
             ],
             "delimited_key": [
                 {
                     "clause": "WHERE",
                     "expressionType": "SIMPLE",
-                    "filterOptionName": "89cc0fafe39a4eabc5df2cd52e4d6514",
+                    "filterOptionName": "cae5c925c140593743da08499e6fb207",
                     "comparator": "",
                     "operator": "IS NOT NULL",
                     "subject": "lonlat",
-                    "isExtra": False,
                 }
             ],
             "geohash_key": [
                 {
                     "clause": "WHERE",
                     "expressionType": "SIMPLE",
-                    "filterOptionName": "fa734d9a7bab254a53b41540d46cdb6c",
+                    "filterOptionName": "d84f55222d8e414e888fa5f990b341d2",
                     "comparator": "",
                     "operator": "IS NOT NULL",
                     "subject": "geo",
-                    "isExtra": False,
                 }
             ],
         }
