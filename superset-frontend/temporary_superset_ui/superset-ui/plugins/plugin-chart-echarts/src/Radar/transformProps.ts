@@ -19,6 +19,7 @@
 import {
   CategoricalColorNamespace,
   DataRecordValue,
+  ensureIsInt,
   getMetricLabel,
   getNumberFormatter,
   getTimeFormatter,
@@ -100,6 +101,7 @@ export default function transformProps(
 
   const metricsLabel = metrics.map(metric => getMetricLabel(metric));
 
+  const metricLabelAndMaxValueMap = new Map<string, number>();
   const columnsLabelMap = new Map<string, DataRecordValue[]>();
   const transformedData: RadarSeriesDataItemOption[] = [];
   data.forEach(datum => {
@@ -114,6 +116,22 @@ export default function transformProps(
       joinedName,
       groupby.map(col => datum[col]),
     );
+
+    // put max value of series into metricLabelAndMaxValueMap
+    // eslint-disable-next-line no-restricted-syntax
+    for (const [metricLabel, value] of Object.entries(datum)) {
+      if (metricLabelAndMaxValueMap.has(metricLabel)) {
+        metricLabelAndMaxValueMap.set(
+          metricLabel,
+          Math.max(
+            value as number,
+            ensureIsInt(metricLabelAndMaxValueMap.get(metricLabel), Number.MIN_SAFE_INTEGER),
+          ),
+        );
+      } else {
+        metricLabelAndMaxValueMap.set(metricLabel, value as number);
+      }
+    }
 
     const isFiltered =
       filterState.selectedValues && !filterState.selectedValues.includes(joinedName);
@@ -148,10 +166,19 @@ export default function transformProps(
     {},
   );
 
-  const indicator = metricsLabel.map(metricLabel => ({
-    name: metricLabel,
-    max: columnConfig?.[metricLabel]?.radarMetricMaxValue,
-  }));
+  const indicator = metricsLabel.map(metricLabel => {
+    const maxValueInControl = columnConfig?.[metricLabel]?.radarMetricMaxValue;
+    // Ensure that 0 is at the center of the polar coordinates
+    const metricValueAsMax =
+      metricLabelAndMaxValueMap.get(metricLabel) === 0
+        ? Number.MAX_SAFE_INTEGER
+        : metricLabelAndMaxValueMap.get(metricLabel);
+    const max = maxValueInControl === null ? metricValueAsMax : maxValueInControl;
+    return {
+      name: metricLabel,
+      max,
+    };
+  });
 
   const series: RadarSeriesOption[] = [
     {
