@@ -489,9 +489,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     addDangerToast,
   );
   const isDynamic = (engine: string | undefined) =>
-    availableDbs?.databases.filter(
+    availableDbs?.databases?.find(
       (DB: DatabaseObject) => DB.backend === engine || DB.engine === engine,
-    )[0].parameters !== undefined;
+    )?.parameters !== undefined;
   const showDBError = validationErrors || dbErrors;
   const isEmpty = (data?: Object | null) =>
     data && Object.keys(data).length === 0;
