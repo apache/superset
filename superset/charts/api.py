@@ -107,7 +107,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         RouteMethod.IMPORT,
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
-        "post_data",
+        "data",
         "get_data",
         "data_from_cache",
         "viz_types",
@@ -653,7 +653,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
         log_to_statsd=False,
     )
-    def post_data(self) -> Response:
+    def data(self) -> Response:
         """
         Takes a query context constructed in the client and returns payload
         data response for the given query.
