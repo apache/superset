@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 import re
 from pathlib import Path
 from typing import Any, Dict
@@ -21,8 +22,11 @@ from typing import Any, Dict
 import yaml
 from pkg_resources import resource_isdir, resource_listdir, resource_stream
 
+from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.v1.examples import ImportExamplesCommand
 from superset.commands.importers.v1.utils import METADATA_FILE_NAME
+
+_logger = logging.getLogger(__name__)
 
 YAML_EXTENSIONS = {".yaml", ".yml"}
 
@@ -90,4 +94,7 @@ def load_configs_from_directory(
     command = ImportExamplesCommand(
         contents, overwrite=overwrite, force_data=force_data
     )
-    command.run()
+    try:
+        command.run()
+    except CommandInvalidError as ex:
+        _logger.error("An error occurred: %s", ex.normalized_messages())
