@@ -6,6 +6,7 @@ import canada from 'file-loader!./countries/canada.geojson';
 import china from 'file-loader!./countries/china.geojson';
 import egypt from 'file-loader!./countries/egypt.geojson';
 import france from 'file-loader!./countries/france.geojson';
+import finland from 'file-loader!./countries/finland.geojson';
 import germany from 'file-loader!./countries/germany.geojson';
 import india from 'file-loader!./countries/india.geojson';
 import indonesia from 'file-loader!./countries/indonesia.geojson';
@@ -41,6 +42,7 @@ export const countries = {
   china,
   egypt,
   france,
+  finland,
   germany,
   india,
   indonesia,
