@@ -19,7 +19,7 @@
 import React, { FormEvent, useState } from 'react';
 import { SupersetTheme, JsonObject, t } from '@superset-ui/core';
 import { InputProps } from 'antd/lib/input';
-import { Input, Switch, Select, Button } from 'src/common/components';
+import { Switch, Select, Button } from 'src/common/components';
 import InfoTooltip from 'src/components/InfoTooltip';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import FormLabel from 'src/components/Form/FormLabel';
@@ -222,10 +222,13 @@ const TableCatalog = ({
               {t('Google Sheet Name and URL')}
             </FormLabel>
             <div className="catalog-name">
-              <Input
+              <ValidatedInput
                 className="catalog-name-input"
+                required={required}
+                validationMethods={{ onBlur: getValidation }}
+                errorMessage={catalogError[idx]?.name}
                 placeholder={t('Enter a name for this sheet')}
-                onChange={e => {
+                onChange={(e: { target: { value: any } }) => {
                   changeMethods.onParametersChange({
                     target: {
                       type: `catalog-${idx}`,
@@ -236,7 +239,6 @@ const TableCatalog = ({
                 }}
                 value={sheet.name}
               />
-
               {tableCatalog?.length > 1 && (
                 <CloseOutlined
                   className="catalog-delete"
@@ -248,7 +250,7 @@ const TableCatalog = ({
               className="catalog-name-url"
               required={required}
               validationMethods={{ onBlur: getValidation }}
-              errorMessage={catalogError[sheet.name]}
+              errorMessage={catalogError[idx]?.url}
               placeholder={t('Paste the shareable Google Sheet URL here')}
               onChange={(e: { target: { value: any } }) =>
                 changeMethods.onParametersChange({

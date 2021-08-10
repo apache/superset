@@ -552,13 +552,14 @@ export const StyledCatalogTable = styled.div`
   }
 
   .catalog-label {
-    margin: 0 0 8px;
+    margin: 0 0 7px;
   }
 
   .catalog-name {
     display: flex;
     .catalog-name-input {
       width: 95%;
+      margin-bottom: 0px;
     }
   }
 
@@ -570,7 +571,7 @@ export const StyledCatalogTable = styled.div`
   .catalog-delete {
     align-self: center;
     background: ${({ theme }) => theme.colors.grayscale.light4};
-    margin: 5px;
+    margin: 5px 5px 8px 5px;
   }
 
   .catalog-add-btn {
