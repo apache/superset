@@ -41,6 +41,7 @@ const CHART_MARGIN = {
 
 const PROPORTION = {
   // text size: proportion of the chart container sans trendline
+  KICKER: 0.1,
   HEADER: 0.3,
   SUBHEADER: 0.125,
   // trendline size: proportion of the whole chart container
@@ -80,11 +81,14 @@ type BigNumberVisProps = {
   fromDatetime?: number;
   toDatetime?: number;
   headerFontSize: number;
+  kickerFontSize: number;
   subheader: string;
   subheaderFontSize: number;
+  showTimestamp?: boolean;
   showTrendLine?: boolean;
   startYAxisAtZero?: boolean;
   timeRangeFixed?: boolean;
+  timestamp?: number;
   trendLineData?: TimeSeriesDatum[];
   mainColor: string;
 };
@@ -97,7 +101,9 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps, {}> {
     formatNumber: defaultNumberFormatter,
     formatTime: smartDateVerboseFormatter,
     headerFontSize: PROPORTION.HEADER,
+    kickerFontSize: PROPORTION.KICKER,
     mainColor: BRAND_COLOR,
+    showTimestamp: false,
     showTrendLine: false,
     startYAxisAtZero: true,
     subheader: '',
@@ -123,8 +129,8 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps, {}> {
   }
 
   renderFallbackWarning() {
-    const { bigNumberFallback, formatTime } = this.props;
-    if (!bigNumberFallback) return null;
+    const { bigNumberFallback, formatTime, showTimestamp } = this.props;
+    if (!bigNumberFallback || showTimestamp) return null;
     return (
       <span
         className="alert alert-warning"
@@ -133,6 +139,36 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps, {}> {
       >
         {t('Not up to date')}
       </span>
+    );
+  }
+
+  renderKicker(maxHeight: number) {
+    const { timestamp, showTimestamp, formatTime, width } = this.props;
+    if (!showTimestamp) return null;
+
+    const text = timestamp === null ? '' : formatTime(timestamp);
+
+    const container = this.createTemporaryContainer();
+    document.body.append(container);
+    const fontSize = computeMaxFontSize({
+      text,
+      maxWidth: width,
+      maxHeight,
+      className: 'kicker',
+      container,
+    });
+    container.remove();
+
+    return (
+      <div
+        className="kicker"
+        style={{
+          fontSize,
+          height: maxHeight,
+        }}
+      >
+        {text}
+      </div>
     );
   }
 
@@ -273,7 +309,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps, {}> {
   }
 
   render() {
-    const { showTrendLine, height, headerFontSize, subheaderFontSize } = this.props;
+    const { showTrendLine, height, kickerFontSize, headerFontSize, subheaderFontSize } = this.props;
     const className = this.getClassName();
 
     if (showTrendLine) {
@@ -284,6 +320,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps, {}> {
         <div className={className}>
           <div className="text-container" style={{ height: allTextHeight }}>
             {this.renderFallbackWarning()}
+            {this.renderKicker(Math.ceil(kickerFontSize * (1 - PROPORTION.TRENDLINE) * height))}
             {this.renderHeader(Math.ceil(headerFontSize * (1 - PROPORTION.TRENDLINE) * height))}
             {this.renderSubheader(
               Math.ceil(subheaderFontSize * (1 - PROPORTION.TRENDLINE) * height),
@@ -296,6 +333,8 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps, {}> {
 
     return (
       <div className={className} style={{ height }}>
+        {this.renderFallbackWarning()}
+        {this.renderKicker(kickerFontSize * height)}
         {this.renderHeader(Math.ceil(headerFontSize * height))}
         {this.renderSubheader(Math.ceil(subheaderFontSize * height))}
       </div>
@@ -328,6 +367,12 @@ export default styled(BigNumberVis)`
     }
   }
 
+  .kicker {
+    font-weight: ${({ theme }) => theme.typography.weights.light};
+    line-height: 1em;
+    padding-bottom: 2em;
+  }
+
   .header-line {
     font-weight: ${({ theme }) => theme.typography.weights.normal};
     position: relative;
@@ -345,6 +390,7 @@ export default styled(BigNumberVis)`
   }
 
   &.is-fallback-value {
+    .kicker,
     .header-line,
     .subheader-line {
       opacity: 0.5;
