@@ -853,12 +853,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const renderStepTwoAlert = () => {
-    const hostname = window.location.hostname;
+    const { hostname } = window.location;
     let ipAlert = connectionAlert?.REGIONAL_IPS?.default || '';
-    const regionalIPs = Object.keys(connectionAlert.REGIONAL_IPS);
-    regionalIPs.forEach(regex => {
-      if (regex.match(path)) {
-        ipAlert = connectionAlert.REGIONAL_IPS[regex];
+    const regionalIPs = connectionAlert?.REGIONAL_IPS || {};
+    Object.entries(regionalIPs).forEach(([regex, ipRange]) => {
+      if (regex.match(hostname)) {
+        ipAlert = ipRange;
       }
     });
     return (
