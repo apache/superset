@@ -853,7 +853,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const renderStepTwoAlert = () => {
-    const path = window.location.hostname;
+    const hostname = window.location.hostname;
     let ipAlert = connectionAlert.REGIONAL_IPS.default;
     const regionalIPs = Object.keys(connectionAlert.REGIONAL_IPS);
     regionalIPs.forEach(regex => {
