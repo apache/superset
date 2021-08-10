@@ -44,7 +44,7 @@ from flask import current_app, g
 from flask_babel import gettext as __, lazy_gettext as _
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
-from sqlalchemy import column, DateTime, select, types
+from sqlalchemy import column, select, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.interfaces import Compiled, Dialect
 from sqlalchemy.engine.reflection import Inspector
@@ -381,7 +381,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         elif pdf == "epoch_ms":
             time_expr = time_expr.replace("{col}", cls.epoch_ms_to_dttm())
 
-        return TimestampExpression(time_expr, col, type_=DateTime)
+        return TimestampExpression(time_expr, col, type_=col.type)
 
     @classmethod
     def get_time_grains(cls) -> Tuple[TimeGrain, ...]:

@@ -42,7 +42,7 @@ DbapiDescriptionRow = Tuple[
 ]
 DbapiDescription = Union[List[DbapiDescriptionRow], Tuple[DbapiDescriptionRow, ...]]
 DbapiResult = Sequence[Union[List[Any], Tuple[Any, ...]]]
-FilterValue = Union[datetime, float, int, str]
+FilterValue = Union[bool, datetime, float, int, str]
 FilterValues = Union[FilterValue, List[FilterValue], Tuple[FilterValue]]
 FormData = Dict[str, Any]
 Granularity = Union[str, Dict[str, Union[str, float]]]
