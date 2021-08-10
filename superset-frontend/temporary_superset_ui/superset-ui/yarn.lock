@@ -4396,10 +4396,10 @@
     d3-cloud "^1.2.1"
     prop-types "^15.6.2"
 
-"@superset-ui/react-pivottable@^0.12.10":
-  version "0.12.10"
-  resolved "https://registry.yarnpkg.com/@superset-ui/react-pivottable/-/react-pivottable-0.12.10.tgz#cd1e06a965ac1fed45b5157f04e5c786f556f5ae"
-  integrity sha512-+/DgVlfiJgXrswtnf7NOHpobgJFqF4h61kPn/cUeWdC6tDRjfnDc3xDqQMSqvbBjjaSnUD3880eBIxmrJD9ZGA==
+"@superset-ui/react-pivottable@^0.12.11":
+  version "0.12.12"
+  resolved "https://registry.yarnpkg.com/@superset-ui/react-pivottable/-/react-pivottable-0.12.12.tgz#34055c263a695e6060d3858464837c55c0118326"
+  integrity sha512-4+wx2kQy3IRKoWHTf2bIkXjlzDA0u/eN2k0FfLfJ5bdER2GuqZErWuKtiZzARsn5kSS9hPIrvt77uv52R3FnfQ==
   dependencies:
     immutability-helper "^3.1.1"
     prop-types "^15.7.2"
@@ -4786,9 +4786,9 @@
     "@types/lodash" "*"
 
 "@types/lodash@*", "@types/lodash@^4.14.146", "@types/lodash@^4.14.149":
-  version "4.14.168"
-  resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.168.tgz#fe24632e79b7ade3f132891afff86caa5e5ce008"
-  integrity sha512-oVfRvqHV/V6D1yifJbVRU3TMp8OT6o6BG+U9MkwuJ3U8/CsDHvalRpsxBqivn71ztOFZBTfJMvETbqHiaNSj7Q==
+  version "4.14.172"
+  resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.172.tgz#aad774c28e7bfd7a67de25408e03ee5a8c3d028a"
+  integrity sha512-/BHF5HAx3em7/KkzVKm3LrsD6HZAXuXO1AJZQ3cRRBZj4oHZDviWPYu0aEplAqDFNHZPW6d3G7KN+ONcCCC7pw==
 
 "@types/markdown-to-jsx@^6.11.0":
   version "6.11.3"
