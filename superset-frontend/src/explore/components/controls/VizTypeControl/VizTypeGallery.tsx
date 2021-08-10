@@ -122,7 +122,7 @@ const OTHER_CATEGORY = t('Other');
 const ALL_CHARTS = t('All charts');
 
 const RECOMMENDED_TAGS = [
-  t('Highly-used'),
+  t('Popular'),
   t('ECharts'),
   t('Advanced-Analytics'),
 ];
