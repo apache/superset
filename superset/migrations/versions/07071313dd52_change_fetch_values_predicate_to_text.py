@@ -64,7 +64,7 @@ def remove_value_if_too_long():
         for row in rows:
             row.fetch_values_predicate = None
 
-        logging.info(f"{len(rows)} values deleted")
+        logging.info("%d values deleted", len(rows))
 
         session.commit()
         session.close()
