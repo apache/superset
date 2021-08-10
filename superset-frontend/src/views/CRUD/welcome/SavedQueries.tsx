@@ -22,7 +22,7 @@ import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import Loading from 'src/components/Loading';
+import { LoadingCards } from 'src/views/CRUD/welcome/Welcome';
 import { Dropdown, Menu } from 'src/common/components';
 import { useListViewResource, copyQueryLink } from 'src/views/CRUD/hooks';
 import ListViewCard from 'src/components/ListViewCard';
@@ -240,7 +240,7 @@ const SavedQueries = ({
     </Menu>
   );
 
-  if (loading) return <Loading position="inline" />;
+  if (loading) return <LoadingCards cover={showThumbnails} />;
   return (
     <>
       {queryDeleteModal && (
