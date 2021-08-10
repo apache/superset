@@ -57,6 +57,7 @@ export interface DndColumnSelectProps<
   onDrop: (item: DatasourcePanelDndItem) => void;
   canDrop: (item: DatasourcePanelDndItem) => boolean;
   canDropValue?: (value: DndItemValue) => boolean;
+  onDropValue?: (value: DndItemValue) => void;
   valuesRenderer: () => ReactNode;
   accept: DndItemType | DndItemType[];
   ghostButtonText?: string;
