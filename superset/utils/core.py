@@ -96,7 +96,7 @@ from superset.exceptions import (
     SupersetException,
     SupersetTimeoutException,
 )
-from superset.typing import AdhocMetric, FlaskResponse, FormData, Metric
+from superset.typing import AdhocMetric, FilterValues, FlaskResponse, FormData, Metric
 from superset.utils.dates import datetime_to_epoch, EPOCH
 from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
 
@@ -187,6 +187,25 @@ class ChartDataResultType(str, Enum):
 class DatasourceDict(TypedDict):
     type: str
     id: int
+
+
+class AdhocFilterClause(TypedDict, total=False):
+    clause: str
+    expressionType: str
+    filterOptionName: Optional[str]
+    comparator: Optional[FilterValues]
+    operator: str
+    subject: str
+    isExtra: Optional[bool]
+    sqlExpression: Optional[str]
+
+
+class QueryObjectFilterClause(TypedDict, total=False):
+    col: str
+    op: str  # pylint: disable=invalid-name
+    val: Optional[FilterValues]
+    grain: Optional[str]
+    isExtra: Optional[bool]
 
 
 class ExtraFiltersTimeColumnType(str, Enum):
@@ -1017,28 +1036,32 @@ def zlib_decompress(blob: bytes, decode: Optional[bool] = True) -> Union[bytes, 
     return decompressed.decode("utf-8") if decode else decompressed
 
 
-def to_adhoc(
-    filt: Dict[str, Any], expression_type: str = "SIMPLE", clause: str = "where"
-) -> Dict[str, Any]:
-    result = {
+def simple_filter_to_adhoc(
+    filter_clause: QueryObjectFilterClause, clause: str = "where",
+) -> AdhocFilterClause:
+    result: AdhocFilterClause = {
         "clause": clause.upper(),
-        "expressionType": expression_type,
-        "isExtra": bool(filt.get("isExtra")),
+        "expressionType": "SIMPLE",
+        "comparator": filter_clause.get("val"),
+        "operator": filter_clause["op"],
+        "subject": filter_clause["col"],
     }
+    if filter_clause.get("isExtra"):
+        result["isExtra"] = True
+    result["filterOptionName"] = md5_sha_from_dict(cast(Dict[Any, Any], result))
 
-    if expression_type == "SIMPLE":
-        result.update(
-            {
-                "comparator": filt.get("val"),
-                "operator": filt.get("op"),
-                "subject": filt.get("col"),
-            }
-        )
-    elif expression_type == "SQL":
-        result.update({"sqlExpression": filt.get(clause)})
+    return result
 
-    deterministic_name = md5_sha_from_dict(result)
-    result["filterOptionName"] = deterministic_name
+
+def form_data_to_adhoc(form_data: Dict[str, Any], clause: str) -> AdhocFilterClause:
+    if clause not in ("where", "having"):
+        raise ValueError(__("Unsupported clause type: %(clause)s", clause=clause))
+    result: AdhocFilterClause = {
+        "clause": clause.upper(),
+        "expressionType": "SQL",
+        "sqlExpression": form_data.get(clause),
+    }
+    result["filterOptionName"] = md5_sha_from_dict(cast(Dict[Any, Any], result))
 
     return result
 
@@ -1050,7 +1073,7 @@ def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
     """
     filter_keys = ["filters", "adhoc_filters"]
     extra_form_data = form_data.pop("extra_form_data", {})
-    append_filters = extra_form_data.get("filters", None)
+    append_filters: List[QueryObjectFilterClause] = extra_form_data.get("filters", None)
 
     # merge append extras
     for key in [key for key in EXTRA_FORM_DATA_APPEND_KEYS if key not in filter_keys]:
@@ -1075,13 +1098,21 @@ def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
     if extras:
         form_data["extras"] = extras
 
-    adhoc_filters = form_data.get("adhoc_filters", [])
+    adhoc_filters: List[AdhocFilterClause] = form_data.get("adhoc_filters", [])
     form_data["adhoc_filters"] = adhoc_filters
-    append_adhoc_filters = extra_form_data.get("adhoc_filters", [])
-    adhoc_filters.extend({"isExtra": True, **fltr} for fltr in append_adhoc_filters)
+    append_adhoc_filters: List[AdhocFilterClause] = extra_form_data.get(
+        "adhoc_filters", []
+    )
+    adhoc_filters.extend(
+        {"isExtra": True, **fltr} for fltr in append_adhoc_filters  # type: ignore
+    )
     if append_filters:
         adhoc_filters.extend(
-            to_adhoc({"isExtra": True, **fltr}) for fltr in append_filters if fltr
+            simple_filter_to_adhoc(
+                {"isExtra": True, **fltr}  # type: ignore
+            )
+            for fltr in append_filters
+            if fltr
         )
 
 
@@ -1148,16 +1179,16 @@ def merge_extra_filters(  # pylint: disable=too-many-branches
                             # Add filters for unequal lists
                             # order doesn't matter
                             if set(existing_filters[filter_key]) != set(filtr["val"]):
-                                adhoc_filters.append(to_adhoc(filtr))
+                                adhoc_filters.append(simple_filter_to_adhoc(filtr))
                         else:
-                            adhoc_filters.append(to_adhoc(filtr))
+                            adhoc_filters.append(simple_filter_to_adhoc(filtr))
                     else:
                         # Do not add filter if same value already exists
                         if filtr["val"] != existing_filters[filter_key]:
-                            adhoc_filters.append(to_adhoc(filtr))
+                            adhoc_filters.append(simple_filter_to_adhoc(filtr))
                 else:
                     # Filter not found, add it
-                    adhoc_filters.append(to_adhoc(filtr))
+                    adhoc_filters.append(simple_filter_to_adhoc(filtr))
         # Remove extra filters from the form data since no longer needed
         del form_data["extra_filters"]
 
@@ -1268,15 +1299,16 @@ def convert_legacy_filters_into_adhoc(  # pylint: disable=invalid-name
     mapping = {"having": "having_filters", "where": "filters"}
 
     if not form_data.get("adhoc_filters"):
-        form_data["adhoc_filters"] = []
+        adhoc_filters: List[AdhocFilterClause] = []
+        form_data["adhoc_filters"] = adhoc_filters
 
         for clause, filters in mapping.items():
             if clause in form_data and form_data[clause] != "":
-                form_data["adhoc_filters"].append(to_adhoc(form_data, "SQL", clause))
+                adhoc_filters.append(form_data_to_adhoc(form_data, clause))
 
             if filters in form_data:
                 for filt in filter(lambda x: x is not None, form_data[filters]):
-                    form_data["adhoc_filters"].append(to_adhoc(filt, "SIMPLE", clause))
+                    adhoc_filters.append(simple_filter_to_adhoc(filt, clause))
 
     for key in ("filters", "having", "having_filters", "where"):
         if key in form_data:

@@ -86,7 +86,11 @@ from superset.models.helpers import AuditMixinNullable, QueryResult
 from superset.sql_parse import ParsedQuery
 from superset.typing import AdhocMetric, Metric, OrderBy, QueryObjectDict
 from superset.utils import core as utils
-from superset.utils.core import GenericDataType, remove_duplicates
+from superset.utils.core import (
+    GenericDataType,
+    QueryObjectFilterClause,
+    remove_duplicates,
+)
 
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
@@ -303,13 +307,15 @@ class TableColumn(Model, BaseColumn):
 
         pdf = self.python_date_format
         is_epoch = pdf in ("epoch_s", "epoch_ms")
+        column_spec = self.db_engine_spec.get_column_spec(self.type)
+        type_ = column_spec.sqla_type if column_spec else DateTime
         if not self.expression and not time_grain and not is_epoch:
-            sqla_col = column(self.column_name, type_=DateTime)
+            sqla_col = column(self.column_name, type_=type_)
             return self.table.make_sqla_column_compatible(sqla_col, label)
         if self.expression:
-            col = literal_column(self.expression)
+            col = literal_column(self.expression, type_=type_)
         else:
-            col = column(self.column_name)
+            col = column(self.column_name, type_=type_)
         time_expr = self.db_engine_spec.get_timestamp_expr(
             col, pdf, time_grain, self.type
         )
@@ -935,7 +941,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         columns: Optional[List[str]] = None,
         groupby: Optional[List[str]] = None,
         filter: Optional[  # pylint: disable=redefined-builtin
-            List[Dict[str, Any]]
+            List[QueryObjectFilterClause]
         ] = None,
         is_timeseries: bool = True,
         timeseries_limit: int = 15,
@@ -1056,6 +1062,8 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         # filter out the pseudo column  __timestamp from columns
         columns = columns or []
         columns = [col for col in columns if col != utils.DTTM_ALIAS]
+        time_grain = extras.get("time_grain_sqla")
+        dttm_col = columns_by_name.get(granularity) if granularity else None
 
         if need_groupby:
             # dedup columns while preserving order
@@ -1063,7 +1071,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             for selected in columns:
                 # if groupby field/expr equals granularity field/expr
                 if selected == granularity:
-                    time_grain = extras.get("time_grain_sqla")
                     sqla_col = columns_by_name[selected]
                     outer = sqla_col.get_timestamp_expression(time_grain, selected)
                 # if groupby field equals a selected column
@@ -1087,15 +1094,13 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         groupby_exprs_with_timestamp = OrderedDict(groupby_exprs_sans_timestamp.items())
 
         if granularity:
-            if granularity not in columns_by_name:
+            if granularity not in columns_by_name or not dttm_col:
                 raise QueryObjectValidationError(
                     _(
                         'Time column "%(col)s" does not exist in dataset',
                         col=granularity,
                     )
                 )
-            dttm_col = columns_by_name[granularity]
-            time_grain = extras.get("time_grain_sqla")
             time_filters = []
 
             if is_timeseries:
@@ -1150,7 +1155,12 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             col = flt["col"]
             val = flt.get("val")
             op = flt["op"].upper()
-            col_obj = columns_by_name.get(col)
+            col_obj = (
+                dttm_col
+                if col == utils.DTTM_ALIAS and is_timeseries and dttm_col
+                else columns_by_name.get(col)
+            )
+            filter_grain = flt.get("grain")
 
             if is_feature_enabled("ENABLE_TEMPLATE_REMOVE_FILTERS"):
                 if col in removed_filters:
@@ -1158,6 +1168,10 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                     continue
 
             if col_obj:
+                if filter_grain:
+                    sqla_col = col_obj.get_timestamp_expression(filter_grain)
+                else:
+                    sqla_col = col_obj.get_sqla_col()
                 col_spec = db_engine_spec.get_column_spec(col_obj.type)
                 is_list_target = op in (
                     utils.FilterOperator.IN.value,
@@ -1180,24 +1194,24 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                         )
                     if None in eq:
                         eq = [x for x in eq if x is not None]
-                        is_null_cond = col_obj.get_sqla_col().is_(None)
+                        is_null_cond = sqla_col.is_(None)
                         if eq:
-                            cond = or_(is_null_cond, col_obj.get_sqla_col().in_(eq))
+                            cond = or_(is_null_cond, sqla_col.in_(eq))
                         else:
                             cond = is_null_cond
                     else:
-                        cond = col_obj.get_sqla_col().in_(eq)
+                        cond = sqla_col.in_(eq)
                     if op == utils.FilterOperator.NOT_IN.value:
                         cond = ~cond
                     where_clause_and.append(cond)
                 elif op == utils.FilterOperator.IS_NULL.value:
-                    where_clause_and.append(col_obj.get_sqla_col().is_(None))
+                    where_clause_and.append(sqla_col.is_(None))
                 elif op == utils.FilterOperator.IS_NOT_NULL.value:
-                    where_clause_and.append(col_obj.get_sqla_col().isnot(None))
+                    where_clause_and.append(sqla_col.isnot(None))
                 elif op == utils.FilterOperator.IS_TRUE.value:
-                    where_clause_and.append(col_obj.get_sqla_col().is_(True))
+                    where_clause_and.append(sqla_col.is_(True))
                 elif op == utils.FilterOperator.IS_FALSE.value:
-                    where_clause_and.append(col_obj.get_sqla_col().is_(False))
+                    where_clause_and.append(sqla_col.is_(False))
                 else:
                     if eq is None:
                         raise QueryObjectValidationError(
@@ -1207,21 +1221,21 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                             )
                         )
                     if op == utils.FilterOperator.EQUALS.value:
-                        where_clause_and.append(col_obj.get_sqla_col() == eq)
+                        where_clause_and.append(sqla_col == eq)
                     elif op == utils.FilterOperator.NOT_EQUALS.value:
-                        where_clause_and.append(col_obj.get_sqla_col() != eq)
+                        where_clause_and.append(sqla_col != eq)
                     elif op == utils.FilterOperator.GREATER_THAN.value:
-                        where_clause_and.append(col_obj.get_sqla_col() > eq)
+                        where_clause_and.append(sqla_col > eq)
                     elif op == utils.FilterOperator.LESS_THAN.value:
-                        where_clause_and.append(col_obj.get_sqla_col() < eq)
+                        where_clause_and.append(sqla_col < eq)
                     elif op == utils.FilterOperator.GREATER_THAN_OR_EQUALS.value:
-                        where_clause_and.append(col_obj.get_sqla_col() >= eq)
+                        where_clause_and.append(sqla_col >= eq)
                     elif op == utils.FilterOperator.LESS_THAN_OR_EQUALS.value:
-                        where_clause_and.append(col_obj.get_sqla_col() <= eq)
+                        where_clause_and.append(sqla_col <= eq)
                     elif op == utils.FilterOperator.LIKE.value:
-                        where_clause_and.append(col_obj.get_sqla_col().like(eq))
+                        where_clause_and.append(sqla_col.like(eq))
                     elif op == utils.FilterOperator.ILIKE.value:
-                        where_clause_and.append(col_obj.get_sqla_col().ilike(eq))
+                        where_clause_and.append(sqla_col.ilike(eq))
                     else:
                         raise QueryObjectValidationError(
                             _("Invalid filter operation type: %(op)s", op=op)
@@ -1281,6 +1295,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             and timeseries_limit
             and not time_groupby_inline
             and groupby_exprs_sans_timestamp
+            and dttm_col
         ):
             if db_engine_spec.allows_joins:
                 # some sql dialects require for order by expressions

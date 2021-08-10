@@ -22,7 +22,6 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
 )
 
-import pandas
 import pytest
 from sqlalchemy.engine.url import make_url
 
@@ -339,12 +338,19 @@ class TestDatabaseModel(SupersetTestCase):
 class TestSqlaTableModel(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_timestamp_expression(self):
+        col_type = (
+            "VARCHAR"
+            if get_example_database().backend == "presto"
+            else "TemporalWrapperType"
+        )
         tbl = self.get_table(name="birth_names")
         ds_col = tbl.get_column("ds")
         sqla_literal = ds_col.get_timestamp_expression(None)
         self.assertEqual(str(sqla_literal.compile()), "ds")
+        assert type(sqla_literal.type).__name__ == col_type
 
         sqla_literal = ds_col.get_timestamp_expression("P1D")
+        assert type(sqla_literal.type).__name__ == col_type
         compiled = "{}".format(sqla_literal.compile())
         if tbl.database.backend == "mysql":
             self.assertEqual(compiled, "DATE(ds)")
@@ -352,6 +358,7 @@ class TestSqlaTableModel(SupersetTestCase):
         prev_ds_expr = ds_col.expression
         ds_col.expression = "DATE_ADD(ds, 1)"
         sqla_literal = ds_col.get_timestamp_expression("P1D")
+        assert type(sqla_literal.type).__name__ == col_type
         compiled = "{}".format(sqla_literal.compile())
         if tbl.database.backend == "mysql":
             self.assertEqual(compiled, "DATE(DATE_ADD(ds, 1))")
