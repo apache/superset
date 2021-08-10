@@ -528,9 +528,9 @@ def create_dashboard(slices: List[Slice]) -> Dashboard:
         }
     }"""
     )
+    # pylint: disable=line-too-long
     pos = json.loads(
         textwrap.dedent(
-            # pylint: disable=line-too-long
             """\
         {
           "CHART-6GdlekVise": {
@@ -800,9 +800,10 @@ def create_dashboard(slices: List[Slice]) -> Dashboard:
             "type": "ROW"
           }
         }
-        """  # pylint: enable=line-too-long
+        """
         )
     )
+    # pylint: enable=line-too-long
     # dashboard v2 doesn't allow add markup slice
     dash.slices = [slc for slc in slices if slc.viz_type != "markup"]
     update_slice_ids(pos, dash.slices)

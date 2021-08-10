@@ -222,6 +222,20 @@ class TestQueryContext(SupersetTestCase):
         cache_key = query_context.query_cache_key(query_object)
         self.assertNotEqual(cache_key_original, cache_key)
 
+    def test_query_cache_key_changes_when_time_offsets_is_updated(self):
+        self.login(username="admin")
+        payload = get_query_context("birth_names", add_time_offsets=True)
+
+        query_context = ChartDataQueryContextSchema().load(payload)
+        query_object = query_context.queries[0]
+        cache_key_original = query_context.query_cache_key(query_object)
+
+        payload["queries"][0]["time_offsets"].pop()
+        query_context = ChartDataQueryContextSchema().load(payload)
+        query_object = query_context.queries[0]
+        cache_key = query_context.query_cache_key(query_object)
+        self.assertNotEqual(cache_key_original, cache_key)
+
     def test_query_context_time_range_endpoints(self):
         """
         Ensure that time_range_endpoints are populated automatically when missing
@@ -476,3 +490,92 @@ class TestQueryContext(SupersetTestCase):
         responses = query_context.get_payload()
         new_cache_key = responses["queries"][0]["cache_key"]
         self.assertEqual(orig_cache_key, new_cache_key)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_time_offsets_in_query_object(self):
+        """
+        Ensure that time_offsets can generate the correct query
+        """
+        self.login(username="admin")
+        payload = get_query_context("birth_names")
+        payload["queries"][0]["metrics"] = ["sum__num"]
+        payload["queries"][0]["groupby"] = ["name"]
+        payload["queries"][0]["is_timeseries"] = True
+        payload["queries"][0]["timeseries_limit"] = 5
+        payload["queries"][0]["time_offsets"] = ["1 year ago", "1 year later"]
+        payload["queries"][0]["time_range"] = "1990 : 1991"
+        query_context = ChartDataQueryContextSchema().load(payload)
+        responses = query_context.get_payload()
+        self.assertEqual(
+            responses["queries"][0]["colnames"],
+            [
+                "__timestamp",
+                "name",
+                "sum__num",
+                "sum__num__1 year ago",
+                "sum__num__1 year later",
+            ],
+        )
+
+        sqls = [
+            sql for sql in responses["queries"][0]["query"].split(";") if sql.strip()
+        ]
+        self.assertEqual(len(sqls), 3)
+        # 1 year ago
+        assert re.search(r"1989-01-01.+1990-01-01", sqls[1], re.S)
+        assert re.search(r"1990-01-01.+1991-01-01", sqls[1], re.S)
+
+        # # 1 year later
+        assert re.search(r"1991-01-01.+1992-01-01", sqls[2], re.S)
+        assert re.search(r"1990-01-01.+1991-01-01", sqls[2], re.S)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_processing_time_offsets_cache(self):
+        """
+        Ensure that time_offsets can generate the correct query
+        """
+        self.login(username="admin")
+        payload = get_query_context("birth_names")
+        payload["queries"][0]["metrics"] = ["sum__num"]
+        payload["queries"][0]["groupby"] = ["name"]
+        payload["queries"][0]["is_timeseries"] = True
+        payload["queries"][0]["timeseries_limit"] = 5
+        payload["queries"][0]["time_offsets"] = []
+        payload["queries"][0]["time_range"] = "1990 : 1991"
+        query_context = ChartDataQueryContextSchema().load(payload)
+        query_object = query_context.queries[0]
+        query_result = query_context.get_query_result(query_object)
+        # get main query dataframe
+        df = query_result.df
+
+        payload["queries"][0]["time_offsets"] = ["1 year ago", "1 year later"]
+        query_context = ChartDataQueryContextSchema().load(payload)
+        query_object = query_context.queries[0]
+        # query without cache
+        query_context.processing_time_offsets(df, query_object)
+        # query with cache
+        rv = query_context.processing_time_offsets(df, query_object)
+        cache_keys = rv["cache_keys"]
+        cache_keys__1_year_ago = cache_keys[0]
+        cache_keys__1_year_later = cache_keys[1]
+        self.assertIsNotNone(cache_keys__1_year_ago)
+        self.assertIsNotNone(cache_keys__1_year_later)
+        self.assertNotEqual(cache_keys__1_year_ago, cache_keys__1_year_later)
+
+        # swap offsets
+        payload["queries"][0]["time_offsets"] = ["1 year later", "1 year ago"]
+        query_context = ChartDataQueryContextSchema().load(payload)
+        query_object = query_context.queries[0]
+        rv = query_context.processing_time_offsets(df, query_object)
+        cache_keys = rv["cache_keys"]
+        self.assertEqual(cache_keys__1_year_ago, cache_keys[1])
+        self.assertEqual(cache_keys__1_year_later, cache_keys[0])
+
+        # remove all offsets
+        payload["queries"][0]["time_offsets"] = []
+        query_context = ChartDataQueryContextSchema().load(payload)
+        query_object = query_context.queries[0]
+        rv = query_context.processing_time_offsets(df, query_object,)
+        self.assertIs(rv["df"], df)
+        self.assertEqual(rv["queries"], [])
+        self.assertEqual(rv["cache_keys"], [])

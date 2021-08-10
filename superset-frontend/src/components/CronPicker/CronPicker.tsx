@@ -31,7 +31,7 @@ export const LOCALE: Locale = {
   emptyWeekDays: t('every day of the week'),
   emptyWeekDaysShort: t('day of the week'),
   emptyHours: t('every hour'),
-  emptyMinutes: t('every minute UTC'),
+  emptyMinutes: t('every minute'),
   emptyMinutesForHourPeriod: t('every'),
   yearOption: t('year'),
   monthOption: t('month'),
@@ -48,7 +48,7 @@ export const LOCALE: Locale = {
   prefixHours: t('at'),
   prefixMinutes: t(':'),
   prefixMinutesForHourPeriod: t('at'),
-  suffixMinutesForHourPeriod: t('minute(s) UTC'),
+  suffixMinutesForHourPeriod: t('minute(s)'),
   errorInvalidCron: t('Invalid cron expression'),
   clearButtonText: t('Clear'),
   weekDays: [
