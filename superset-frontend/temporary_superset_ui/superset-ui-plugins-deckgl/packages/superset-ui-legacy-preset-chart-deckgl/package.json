@@ -30,24 +30,24 @@
     "@types/d3-array": "^2.0.0",
     "bootstrap-slider": "^10.0.0",
     "d3-array": "^1.2.4",
-    "d3-color": "^1.2.0",
-    "d3-scale": "^2.1.2",
-    "deck.gl": "7.1.11",
+    "d3-color": "^1.4.1",
+    "d3-scale": "^3.0.0",
+    "deck.gl": "8.5.2",
     "jquery": "^3.4.1",
     "lodash": "^4.17.15",
-    "mapbox-gl": "^0.53.0",
+    "mapbox-gl": "^2.4.0",
     "moment": "^2.20.1",
     "mousetrap": "^1.6.1",
     "prop-types": "^15.6.0",
     "react-bootstrap-slider": "2.1.5",
-    "react-map-gl": "^4.0.10",
+    "react-map-gl": "^6.1.16",
     "underscore": "^1.8.3",
     "urijs": "^1.18.10",
     "xss": "^1.0.6"
   },
   "peerDependencies": {
-    "@superset-ui/chart-controls": "^0.17.12",
-    "@superset-ui/core": "^0.17.11",
-    "react": "^15 || ^16"
+    "@superset-ui/chart-controls": "^0.17.80",
+    "@superset-ui/core": "^0.17.80",
+    "react": "^16.13.1"
   }
 }
