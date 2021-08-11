@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { hot } from 'react-hot-loader/root';
-import { ThemeProvider } from '@superset-ui/core';
+import { ThemeProvider, JsonResponse, SupersetClient } from '@superset-ui/core';
 import setupApp from '../setup/setupApp';
 import setupPlugins from '../setup/setupPlugins';
 import { DynamicPluginProvider } from '../components/DynamicPlugins';
@@ -35,6 +35,20 @@ const bootstrapData = JSON.parse(
 );
 
 initFeatureFlags(bootstrapData.common.feature_flags);
+
+console.log(bootstrapData.datasources);
+
+// Get datasets
+
+const getDatasets = async () => {
+  const endpoint = `/api/v1/dataset`;
+  const data: JsonResponse = await SupersetClient.get({
+    endpoint,
+  });
+  console.log(data);
+};
+
+getDatasets();
 
 const App = () => (
   <ThemeProvider theme={theme}>

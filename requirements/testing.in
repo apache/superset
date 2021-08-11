@@ -22,7 +22,7 @@ freezegun
 ipdb
 # pinning ipython as pip-compile-multi was bringing higher version
 # of the ipython that was not found in CI
-ipython==7.16.1
+ipython
 openapi-spec-validator
 openpyxl
 parameterized
@@ -33,3 +33,4 @@ pytest
 pytest-cov
 statsd
 pytest-mock
+packaging==21.0
