@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-table_name: FCC 2018 Survey
+table_name: FCC Survey Results
 main_dttm_col: null
 description: null
 default_endpoint: null
