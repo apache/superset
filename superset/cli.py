@@ -124,8 +124,9 @@ def load_examples_run(
 
     examples.load_css_templates()
 
-    print("Loading energy related dataset")
-    examples.load_energy(only_metadata, force)
+    if load_test_data:
+        print("Loading energy related dataset")
+        examples.load_energy(only_metadata, force)
 
     print("Loading [World Bank's Health Nutrition and Population Stats]")
     examples.load_world_bank_health_n_pop(only_metadata, force)
@@ -138,20 +139,11 @@ def load_examples_run(
         examples.load_tabbed_dashboard(only_metadata)
 
     if not load_test_data:
-        print("Loading [Random time series data]")
-        examples.load_random_time_series_data(only_metadata, force)
-
         print("Loading [Random long/lat data]")
         examples.load_long_lat_data(only_metadata, force)
 
         print("Loading [Country Map data]")
         examples.load_country_map_data(only_metadata, force)
-
-        print("Loading [Multiformat time series]")
-        examples.load_multiformat_time_series(only_metadata, force)
-
-        print("Loading [Paris GeoJson]")
-        examples.load_paris_iris_geojson(only_metadata, force)
 
         print("Loading [San Francisco population polygons]")
         examples.load_sf_population_polygons(only_metadata, force)
