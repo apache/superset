@@ -364,10 +364,10 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "DISPLAY_MARKDOWN_HTML": True,
     # When True, this escapes HTML (rather than rendering it) in Markdown components
     "ESCAPE_MARKDOWN_HTML": False,
-    "DASHBOARD_NATIVE_FILTERS": True,
-    "DASHBOARD_CROSS_FILTERS": True,
-    "DASHBOARD_NATIVE_FILTERS_SET": True,
-    "DASHBOARD_FILTERS_EXPERIMENTAL": True,
+    "DASHBOARD_NATIVE_FILTERS": False,
+    "DASHBOARD_CROSS_FILTERS": False,
+    "DASHBOARD_NATIVE_FILTERS_SET": False,
+    "DASHBOARD_FILTERS_EXPERIMENTAL": False,
     "GLOBAL_ASYNC_QUERIES": False,
     "VERSIONED_EXPORT": False,
     # Note that: RowLevelSecurityFilter is only given by default to the Admin role
