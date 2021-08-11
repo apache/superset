@@ -847,33 +847,23 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const tabChange = (key: string) => {
     setTabKey(key);
   };
+
   const renderStepTwoAlert = () =>
-    dbModel?.parameters.properties.catalog ? (
+    db?.engine && (
       <StyledAlertMargin>
         <Alert
           closable={false}
           css={(theme: SupersetTheme) => antDAlertStyles(theme)}
           type="info"
           showIcon
-          message={t('Why do I need to create a database?')}
-          description={t(
-            'To begin using your Google Sheets, you need to ' +
-              'create a database first. Databases are used as ' +
-              'a way to identify your data so that it can be queried ' +
-              'and visualized. This database will hold all of your ' +
-              'individual Google Sheets you choose to connect here.',
-          )}
-        />
-      </StyledAlertMargin>
-    ) : (
-      <StyledAlertMargin>
-        <Alert
-          closable={false}
-          css={(theme: SupersetTheme) => antDAlertStyles(theme)}
-          type="info"
-          showIcon
-          message={t('IP Allowlist')}
-          description={connectionAlert.ALLOWED_IPS}
+          message={
+            engineSpecificAlertMapping[db.engine]?.message ||
+            connectionAlert?.DEFAULT?.message
+          }
+          description={
+            engineSpecificAlertMapping[db.engine]?.description ||
+            connectionAlert?.DEFAULT?.description
+          }
         />
       </StyledAlertMargin>
     );
