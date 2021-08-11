@@ -21,7 +21,7 @@ default_endpoint: null
 offset: 0
 cache_timeout: null
 schema: null
-sql: SELECT m.ts, c.name, m.text FROM messages m JOIN "Slack Messages" c ON m.channel_id =
+sql: SELECT m.ts, c.name, m.text FROM "Slack Messages" m JOIN "Slack Channels" c ON m.channel_id =
   c.id
 params: null
 template_params: null
