@@ -56,7 +56,7 @@ def load_energy(
             method="multi",
         )
 
-    print("Creating table [wb_health_population] reference")
+    print("Creating table [World Bank Health Data] reference")
     table = get_table_connector_registry()
     tbl = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not tbl:

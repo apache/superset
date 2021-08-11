@@ -31,7 +31,6 @@ import {
   createErrorHandler,
   createFetchRelated,
   handleChartDelete,
-  CardStylesOverrides,
 } from 'src/views/CRUD/utils';
 import {
   useChartEditModal,
@@ -160,6 +159,9 @@ function ChartList(props: ChartListProps) {
   const [importingChart, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
+
+  const { userId } = props.user;
+  const userKey = getFromLocalStorage(userId.toString(), null);
 
   const openChartImportModal = () => {
     showImportModal(true);
@@ -543,29 +545,25 @@ function ChartList(props: ChartListProps) {
   ];
 
   function renderCard(chart: Chart) {
-    const { userId } = props.user;
-    const userKey = getFromLocalStorage(userId.toString(), null);
     return (
-      <CardStylesOverrides>
-        <ChartCard
-          chart={chart}
-          showThumbnails={
-            userKey
-              ? userKey.thumbnails
-              : isFeatureEnabled(FeatureFlag.THUMBNAILS)
-          }
-          hasPerm={hasPerm}
-          openChartEditModal={openChartEditModal}
-          bulkSelectEnabled={bulkSelectEnabled}
-          addDangerToast={addDangerToast}
-          addSuccessToast={addSuccessToast}
-          refreshData={refreshData}
-          loading={loading}
-          favoriteStatus={favoriteStatus[chart.id]}
-          saveFavoriteStatus={saveFavoriteStatus}
-          handleBulkChartExport={handleBulkChartExport}
-        />
-      </CardStylesOverrides>
+      <ChartCard
+        chart={chart}
+        showThumbnails={
+          userKey
+            ? userKey.thumbnails
+            : isFeatureEnabled(FeatureFlag.THUMBNAILS)
+        }
+        hasPerm={hasPerm}
+        openChartEditModal={openChartEditModal}
+        bulkSelectEnabled={bulkSelectEnabled}
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+        refreshData={refreshData}
+        loading={loading}
+        favoriteStatus={favoriteStatus[chart.id]}
+        saveFavoriteStatus={saveFavoriteStatus}
+        handleBulkChartExport={handleBulkChartExport}
+      />
     );
   }
   const subMenuButtons: SubMenuProps['buttons'] = [];
@@ -655,6 +653,11 @@ function ChartList(props: ChartListProps) {
               loading={loading}
               pageSize={PAGE_SIZE}
               renderCard={renderCard}
+              showThumbnails={
+                userKey
+                  ? userKey.thumbnails
+                  : isFeatureEnabled(FeatureFlag.THUMBNAILS)
+              }
               defaultViewMode={
                 isFeatureEnabled(FeatureFlag.LISTVIEWS_DEFAULT_CARD_VIEW)
                   ? 'card'
