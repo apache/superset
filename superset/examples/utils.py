@@ -38,6 +38,7 @@ def load_contents(load_test_data: bool = False) -> Dict[str, Any]:
     queue = [root / resource_name for resource_name in resource_names]
 
     contents: Dict[Path, str] = {}
+
     while queue:
         path_name = queue.pop()
         test_re = re.compile(r"\.test\.|metadata\.yaml$")
@@ -49,6 +50,8 @@ def load_contents(load_test_data: bool = False) -> Dict[str, Any]:
             )
         elif path_name.suffix.lower() in YAML_EXTENSIONS:
             if load_test_data and test_re.search(str(path_name)) is None:
+                continue
+            elif not load_test_data and test_re.search(str(path_name)) is not None:
                 continue
             contents[path_name] = (
                 resource_stream("superset", str(path_name)).read().decode("utf-8")
