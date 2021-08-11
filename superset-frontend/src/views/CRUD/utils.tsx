@@ -132,10 +132,19 @@ export const getRecentAcitivtyObjs = (
 ) =>
   SupersetClient.get({ endpoint: recent }).then(recentsRes => {
     const res: any = {};
+    const filters = [
+      {
+        col: 'created_by',
+        opr: 'rel_o_m',
+        value: 0,
+      },
+    ];
     const newBatch = [
-      SupersetClient.get({ endpoint: `/api/v1/chart/?q=${getParams()}` }),
       SupersetClient.get({
-        endpoint: `/api/v1/dashboard/?q=${getParams()}`,
+        endpoint: `/api/v1/chart/?q=${getParams(filters)}`,
+      }),
+      SupersetClient.get({
+        endpoint: `/api/v1/dashboard/?q=${getParams(filters)}`,
       }),
     ];
     return Promise.all(newBatch)
