@@ -502,7 +502,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
     table_name = Column(String(250), nullable=False)
     main_dttm_col = Column(String(250))
     database_id = Column(Integer, ForeignKey("dbs.id"), nullable=False)
-    fetch_values_predicate = Column(String(1000))
+    fetch_values_predicate = Column(Text)
     owners = relationship(owner_class, secondary=sqlatable_user, backref="tables")
     database: Database = relationship(
         "Database",
