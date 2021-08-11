@@ -29,7 +29,7 @@ from tests.integration_tests.fixtures.query_context import get_query_context
 class TestSchema(SupersetTestCase):
     def test_query_context_limit_and_offset(self):
         self.login(username="admin")
-        payload = get_query_context("birth_names")
+        payload = get_query_context("USA Birth Names")
 
         # Use defaults
         payload["queries"][0].pop("row_limit", None)
@@ -57,13 +57,13 @@ class TestSchema(SupersetTestCase):
 
     def test_query_context_null_timegrain(self):
         self.login(username="admin")
-        payload = get_query_context("birth_names")
+        payload = get_query_context("USA Birth Names")
         payload["queries"][0]["extras"]["time_grain_sqla"] = None
         _ = ChartDataQueryContextSchema().load(payload)
 
     def test_query_context_series_limit(self):
         self.login(username="admin")
-        payload = get_query_context("birth_names")
+        payload = get_query_context("USA Birth Names")
 
         payload["queries"][0]["timeseries_limit"] = 2
         payload["queries"][0]["timeseries_limit_metric"] = {
@@ -84,7 +84,7 @@ class TestSchema(SupersetTestCase):
 
     def test_query_context_null_post_processing_op(self):
         self.login(username="admin")
-        payload = get_query_context("birth_names")
+        payload = get_query_context("USA Birth Names")
 
         payload["queries"][0]["post_processing"] = [None]
         query_context = ChartDataQueryContextSchema().load(payload)

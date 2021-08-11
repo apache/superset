@@ -34,7 +34,7 @@ RESULT: Dict[str, Any] = {
             "query": """SELECT state AS state,
        gender AS gender,
        sum(num) AS \"Births\"
-FROM birth_names
+FROM "USA Birth Names"
 WHERE ds >= TO_TIMESTAMP('1921-07-28 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
   AND ds < TO_TIMESTAMP('2021-07-28 10:39:44.000000', 'YYYY-MM-DD HH24:MI:SS.US')
 GROUP BY state,
@@ -126,7 +126,7 @@ def test_pivot_table():
                 "query": """SELECT state AS state,
        gender AS gender,
        sum(num) AS \"Births\"
-FROM birth_names
+FROM "USA Birth Names"
 WHERE ds >= TO_TIMESTAMP('1921-07-28 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
   AND ds < TO_TIMESTAMP('2021-07-28 10:39:44.000000', 'YYYY-MM-DD HH24:MI:SS.US')
 GROUP BY state,
@@ -226,7 +226,7 @@ def test_pivot_table_v2():
                 "query": """SELECT state AS state,
        gender AS gender,
        sum(num) AS \"Births\"
-FROM birth_names
+FROM "USA Birth Names"
 WHERE ds >= TO_TIMESTAMP('1921-07-28 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
   AND ds < TO_TIMESTAMP('2021-07-28 10:39:44.000000', 'YYYY-MM-DD HH24:MI:SS.US')
 GROUP BY state,

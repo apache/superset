@@ -702,14 +702,14 @@ class TestCore(SupersetTestCase):
         client_id = "{}".format(random.getrandbits(64))[:10]
         get_name_sql = """
                     SELECT name
-                    FROM birth_names
+                    FROM "USA Birth Names"
                     LIMIT 1
                 """
         resp = self.run_sql(get_name_sql, client_id, raise_on_error=True)
         name = resp["data"][0]["name"]
         sql = f"""
             SELECT name
-            FROM birth_names
+            FROM "USA Birth Names"
             WHERE name = '{name}'
             LIMIT 1
         """
@@ -736,7 +736,7 @@ class TestCore(SupersetTestCase):
         example_db = utils.get_example_database()
         schema = "default" if example_db.backend in {"presto", "hive"} else "superset"
         self.get_json_resp(
-            f"/superset/extra_table_metadata/{example_db.id}/birth_names/{schema}/"
+            f"/superset/extra_table_metadata/{example_db.id}/USA%20Birth%20Names/{schema}/"
         )
 
     def test_templated_sql_json(self):
@@ -909,7 +909,7 @@ class TestCore(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_explore_json(self):
-        tbl_id = self.table_ids.get("birth_names")
+        tbl_id = self.table_ids.get("USA Birth Names")
         form_data = {
             "datasource": f"{tbl_id}__table",
             "viz_type": "dist_bar",
@@ -932,7 +932,7 @@ class TestCore(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_explore_json_dist_bar_order(self):
-        tbl_id = self.table_ids.get("birth_names")
+        tbl_id = self.table_ids.get("USA Birth Names")
         form_data = {
             "datasource": f"{tbl_id}__table",
             "viz_type": "dist_bar",
@@ -1006,7 +1006,7 @@ class TestCore(SupersetTestCase):
         resp = self.run_sql(
             """
             SELECT count(name) AS count_name, count(ds) AS count_ds
-            FROM birth_names
+            FROM "USA Birth Names"
             WHERE ds >= '1921-01-22 00:00:00.000000' AND ds < '2021-01-22 00:00:00.000000'
             GROUP BY name
             ORDER BY count_name DESC
@@ -1032,7 +1032,7 @@ class TestCore(SupersetTestCase):
         GLOBAL_ASYNC_QUERIES=True,
     )
     def test_explore_json_async(self):
-        tbl_id = self.table_ids.get("birth_names")
+        tbl_id = self.table_ids.get("USA Birth Names")
         form_data = {
             "datasource": f"{tbl_id}__table",
             "viz_type": "dist_bar",
@@ -1063,7 +1063,7 @@ class TestCore(SupersetTestCase):
         GLOBAL_ASYNC_QUERIES=True,
     )
     def test_explore_json_async_results_format(self):
-        tbl_id = self.table_ids.get("birth_names")
+        tbl_id = self.table_ids.get("USA Birth Names")
         form_data = {
             "datasource": f"{tbl_id}__table",
             "viz_type": "dist_bar",
@@ -1090,7 +1090,7 @@ class TestCore(SupersetTestCase):
     )
     @mock.patch("superset.viz.BaseViz.force_cached", new_callable=mock.PropertyMock)
     def test_explore_json_data(self, mock_force_cached, mock_cache):
-        tbl_id = self.table_ids.get("birth_names")
+        tbl_id = self.table_ids.get("USA Birth Names")
         form_data = dict(
             {
                 "form_data": {
@@ -1129,7 +1129,7 @@ class TestCore(SupersetTestCase):
         new_callable=mock.PropertyMock,
     )
     def test_explore_json_data_no_login(self, mock_cache):
-        tbl_id = self.table_ids.get("birth_names")
+        tbl_id = self.table_ids.get("USA Birth Names")
         form_data = dict(
             {
                 "form_data": {
@@ -1195,7 +1195,7 @@ class TestCore(SupersetTestCase):
     def test_select_star(self):
         self.login(username="admin")
         examples_db = utils.get_example_database()
-        resp = self.get_resp(f"/superset/select_star/{examples_db.id}/birth_names")
+        resp = self.get_resp(f"/superset/select_star/{examples_db.id}/%20")
         self.assertIn("gender", resp)
 
     def test_get_select_star_not_allowed(self):
@@ -1204,7 +1204,9 @@ class TestCore(SupersetTestCase):
         """
         self.login(username="gamma")
         example_db = utils.get_example_database()
-        resp = self.client.get(f"/superset/select_star/{example_db.id}/birth_names")
+        resp = self.client.get(
+            f"/superset/select_star/{example_db.id}/USA%20Birth%20Names"
+        )
         self.assertEqual(resp.status_code, 403)
 
     @mock.patch("superset.views.core.results_backend_use_msgpack", False)
@@ -1266,7 +1268,7 @@ class TestCore(SupersetTestCase):
         results = SupersetResultSet(data, cursor_descr, db_engine_spec)
         query = {
             "database_id": 1,
-            "sql": "SELECT * FROM birth_names LIMIT 100",
+            "sql": "SELECT * FROM 'USA Birth Names' LIMIT 100",
             "status": utils.QueryStatus.PENDING,
         }
         (
@@ -1314,7 +1316,7 @@ class TestCore(SupersetTestCase):
         results = SupersetResultSet(data, cursor_descr, db_engine_spec)
         query = {
             "database_id": 1,
-            "sql": "SELECT * FROM birth_names LIMIT 100",
+            "sql": 'SELECT * FROM "USA Birth Names" LIMIT 100',
             "status": utils.QueryStatus.PENDING,
         }
         (
@@ -1418,7 +1420,7 @@ class TestCore(SupersetTestCase):
 
         # run a query in the created tab
         self.run_sql(
-            "SELECT name FROM birth_names",
+            "SELECT name FROM 'USA Birth Names'",
             "client_id_1",
             user_name=username,
             raise_on_error=True,
@@ -1426,7 +1428,7 @@ class TestCore(SupersetTestCase):
         )
         # run an orphan query (no tab)
         self.run_sql(
-            "SELECT name FROM birth_names",
+            'SELECT name FROM "USA Birth Names"',
             "client_id_2",
             user_name=username,
             raise_on_error=True,

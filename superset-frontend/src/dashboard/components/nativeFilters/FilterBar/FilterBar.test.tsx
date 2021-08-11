@@ -63,7 +63,7 @@ fetchMock.get('glob:*/api/v1/dataset/7', {
         id: 1,
       },
     ],
-    table_name: 'birth_names',
+    table_name: 'USA Birth Names',
     id: 1,
   },
   show_columns: ['id', 'table_name'],

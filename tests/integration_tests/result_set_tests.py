@@ -150,7 +150,7 @@ class TestSupersetResultSet(SupersetTestCase):
             ),
             (
                 3,
-                [{"table_name": "birth_names", "database_id": 1}],
+                [{"table_name": "USA Birth Names", "database_id": 1}],
                 [4, 5, 6],
                 {"chart_name": "plot"},
             ),
@@ -173,7 +173,7 @@ class TestSupersetResultSet(SupersetTestCase):
                 },
                 {
                     "id": 3,
-                    "dict_arr": '[{"table_name": "birth_names", "database_id": 1}]',
+                    "dict_arr": '[{"table_name": "USA Birth Names", "database_id": 1}]',
                     "num_arr": "[4, 5, 6]",
                     "map_col": '{"chart_name": "plot"}',
                 },

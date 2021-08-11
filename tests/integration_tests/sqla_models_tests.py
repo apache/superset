@@ -243,7 +243,7 @@ class TestDatabaseModel(SupersetTestCase):
             FilterTestCase(FilterOperator.IN, ["1", "2"], "IN (1, 2)"),
             FilterTestCase(FilterOperator.NOT_IN, ["1", "2"], "NOT IN (1, 2)"),
         )
-        table = self.get_table(name="birth_names")
+        table = self.get_table(name="USA Birth Names")
         for filter_ in filters:
             query_obj = {
                 "granularity": None,
@@ -268,7 +268,7 @@ class TestDatabaseModel(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_boolean_type_where_operators(self):
-        table = self.get_table(name="birth_names")
+        table = self.get_table(name="USA Birth Names")
         db.session.add(
             TableColumn(
                 column_name="boolean_gender",

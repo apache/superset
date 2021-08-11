@@ -271,7 +271,9 @@ class TestImportExport(SupersetTestCase):
             resp.data.decode("utf-8"), object_hook=decode_dashboards
         )["datasources"]
         self.assertEqual(1, len(exported_tables))
-        self.assert_table_equals(self.get_table(name="birth_names"), exported_tables[0])
+        self.assert_table_equals(
+            self.get_table(name="USA Birth Names"), exported_tables[0]
+        )
 
     @pytest.mark.usefixtures(
         "load_world_bank_dashboard_with_slices",
@@ -310,7 +312,9 @@ class TestImportExport(SupersetTestCase):
             resp_data.get("datasources"), key=lambda t: t.table_name
         )
         self.assertEqual(2, len(exported_tables))
-        self.assert_table_equals(self.get_table(name="birth_names"), exported_tables[0])
+        self.assert_table_equals(
+            self.get_table(name="USA Birth Names"), exported_tables[0]
+        )
         self.assert_table_equals(
             self.get_table(name="wb_health_population"), exported_tables[1]
         )
@@ -406,7 +410,7 @@ class TestImportExport(SupersetTestCase):
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_import_dashboard_2_slices(self):
         e_slc = self.create_slice("e_slc", id=10007, table_name="energy_usage")
-        b_slc = self.create_slice("b_slc", id=10008, table_name="birth_names")
+        b_slc = self.create_slice("b_slc", id=10008, table_name="USA Birth Names")
         dash_with_2_slices = self.create_dashboard(
             "dash_with_2_slices", slcs=[e_slc, b_slc], id=10003
         )
@@ -458,7 +462,7 @@ class TestImportExport(SupersetTestCase):
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_import_override_dashboard_2_slices(self):
         e_slc = self.create_slice("e_slc", id=10009, table_name="energy_usage")
-        b_slc = self.create_slice("b_slc", id=10010, table_name="birth_names")
+        b_slc = self.create_slice("b_slc", id=10010, table_name="USA Birth Names")
         dash_to_import = self.create_dashboard(
             "override_dashboard", slcs=[e_slc, b_slc], id=10004
         )
@@ -466,8 +470,8 @@ class TestImportExport(SupersetTestCase):
 
         # create new instances of the slices
         e_slc = self.create_slice("e_slc", id=10009, table_name="energy_usage")
-        b_slc = self.create_slice("b_slc", id=10010, table_name="birth_names")
-        c_slc = self.create_slice("c_slc", id=10011, table_name="birth_names")
+        b_slc = self.create_slice("b_slc", id=10010, table_name="USA Birth Names")
+        c_slc = self.create_slice("c_slc", id=10011, table_name="USA Birth Names")
         dash_to_import_override = self.create_dashboard(
             "override_dashboard_new", slcs=[e_slc, b_slc, c_slc], id=10004
         )

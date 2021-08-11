@@ -84,7 +84,7 @@ test('should render', () => {
 
 test('should display items in controls', () => {
   render(setup(props));
-  expect(screen.getByText('birth_names')).toBeInTheDocument();
+  expect(screen.getByText('USA Birth Names')).toBeInTheDocument();
   expect(screen.getByText('Metrics')).toBeInTheDocument();
   expect(screen.getByText('Columns')).toBeInTheDocument();
 });

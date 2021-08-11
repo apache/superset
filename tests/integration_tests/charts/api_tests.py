@@ -543,7 +543,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         """
         admin = self.get_user("admin")
         gamma = self.get_user("gamma")
-        birth_names_table_id = SupersetTestCase.get_table(name="birth_names").id
+        birth_names_table_id = SupersetTestCase.get_table(name="USA Birth Names").id
         chart_id = self.insert_chart(
             "title", [admin.id], birth_names_table_id, admin
         ).id
@@ -575,7 +575,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(model.cache_timeout, 1000)
         self.assertEqual(model.datasource_id, birth_names_table_id)
         self.assertEqual(model.datasource_type, "table")
-        self.assertEqual(model.datasource_name, "birth_names")
+        self.assertEqual(model.datasource_name, "USA Birth Names")
         self.assertIn(model.id, [slice.id for slice in related_dashboard.slices])
         db.session.delete(model)
         db.session.commit()
@@ -1050,7 +1050,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         Chart data API: Test chart data query
         """
         self.login(username="admin")
-        request_payload = get_query_context("birth_names")
+        request_payload = get_query_context("USA Birth Names")
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
@@ -1120,7 +1120,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         Chart data API: Test chart data query with applied time extras
         """
         self.login(username="admin")
-        request_payload = get_query_context("birth_names")
+        request_payload = get_query_context("USA Birth Names")
         request_payload["queries"][0]["applied_time_extras"] = {
             "__time_range": "100 years ago : now",
             "__time_origin": "now",
@@ -1150,7 +1150,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         Chart data API: Test chart data query with limit and offset
         """
         self.login(username="admin")
-        request_payload = get_query_context("birth_names")
+        request_payload = get_query_context("USA Birth Names")
         request_payload["queries"][0]["row_limit"] = 5
         request_payload["queries"][0]["row_offset"] = 0
         request_payload["queries"][0]["orderby"] = [["name", True]]
@@ -1182,7 +1182,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         Chart data API: Ensure row count doesn't exceed default limit
         """
         self.login(username="admin")
-        request_payload = get_query_context("birth_names")
+        request_payload = get_query_context("USA Birth Names")
         del request_payload["queries"][0]["row_limit"]
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
         response_payload = json.loads(rv.data.decode("utf-8"))
@@ -1198,7 +1198,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         Chart data API: Ensure sample response row count doesn't exceed default limit
         """
         self.login(username="admin")
-        request_payload = get_query_context("birth_names")
+        request_payload = get_query_context("USA Birth Names")
         request_payload["result_type"] = utils.ChartDataResultType.SAMPLES
         request_payload["queries"][0]["row_limit"] = 10
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
@@ -1211,7 +1211,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         Chart data API: Test chart data with unsupported result type
         """
         self.login(username="admin")
-        request_payload = get_query_context("birth_names")
+        request_payload = get_query_context("USA Birth Names")
         request_payload["result_type"] = "qwerty"
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
         self.assertEqual(rv.status_code, 400)
@@ -1222,7 +1222,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         Chart data API: Test chart data with unsupported result format
         """
         self.login(username="admin")
-        request_payload = get_query_context("birth_names")
+        request_payload = get_query_context("USA Birth Names")
         request_payload["result_format"] = "qwerty"
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
         self.assertEqual(rv.status_code, 400)
@@ -1248,7 +1248,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         Chart data API: Test chart data with query result format
         """
         self.login(username="admin")
-        request_payload = get_query_context("birth_names")
+        request_payload = get_query_context("USA Birth Names")
         request_payload["result_type"] = utils.ChartDataResultType.QUERY
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
         self.assertEqual(rv.status_code, 200)
@@ -1259,7 +1259,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         Chart data API: Test chart data with CSV result format
         """
         self.login(username="admin")
-        request_payload = get_query_context("birth_names")
+        request_payload = get_query_context("USA Birth Names")
         request_payload["result_format"] = "csv"
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
         self.assertEqual(rv.status_code, 200)
@@ -1271,7 +1271,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         Chart data API: Test chart data with CSV result format
         """
         self.login(username="gamma_no_csv")
-        request_payload = get_query_context("birth_names")
+        request_payload = get_query_context("USA Birth Names")
         request_payload["result_format"] = "csv"
 
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
@@ -1283,7 +1283,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         Chart data API: Ensure mixed case filter operator generates valid result
         """
         self.login(username="admin")
-        request_payload = get_query_context("birth_names")
+        request_payload = get_query_context("USA Birth Names")
         request_payload["queries"][0]["filters"][0]["op"] = "In"
         request_payload["queries"][0]["row_limit"] = 10
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
@@ -1303,7 +1303,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             return
 
         self.login(username="admin")
-        request_payload = get_query_context("birth_names")
+        request_payload = get_query_context("USA Birth Names")
         request_payload["queries"][0]["time_range"] = ""
         dttm = self.get_dttm()
         ms_epoch = dttm.timestamp() * 1000
@@ -1338,7 +1338,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         """
         pytest.importorskip("prophet")
         self.login(username="admin")
-        request_payload = get_query_context("birth_names")
+        request_payload = get_query_context("USA Birth Names")
         time_grain = "P1Y"
         request_payload["queries"][0]["is_timeseries"] = True
         request_payload["queries"][0]["groupby"] = []
@@ -1372,7 +1372,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         Chart data API: Ensure filter referencing missing column is ignored
         """
         self.login(username="admin")
-        request_payload = get_query_context("birth_names")
+        request_payload = get_query_context("USA Birth Names")
         request_payload["queries"][0]["filters"] = [
             {"col": "non_existent_filter", "op": "==", "val": "foo"},
         ]
@@ -1388,7 +1388,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         Chart data API: Test chart data with empty result
         """
         self.login(username="admin")
-        request_payload = get_query_context("birth_names")
+        request_payload = get_query_context("USA Birth Names")
         request_payload["queries"][0]["filters"] = [
             {"col": "gender", "op": "==", "val": "foo"}
         ]
@@ -1404,7 +1404,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         Chart data API: Test chart data with invalid SQL
         """
         self.login(username="admin")
-        request_payload = get_query_context("birth_names")
+        request_payload = get_query_context("USA Birth Names")
         request_payload["queries"][0]["filters"] = []
         # erroneus WHERE-clause
         request_payload["queries"][0]["extras"]["where"] = "(gender abc def)"
@@ -1416,7 +1416,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         Chart data API: Test chart data query with invalid schema
         """
         self.login(username="admin")
-        payload = get_query_context("birth_names")
+        payload = get_query_context("USA Birth Names")
         payload["datasource"] = "abc"
         rv = self.post_assert_metric(CHART_DATA_URI, payload, "data")
         self.assertEqual(rv.status_code, 400)
@@ -1426,7 +1426,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         Chart data API: Test chart data query with invalid enum value
         """
         self.login(username="admin")
-        payload = get_query_context("birth_names")
+        payload = get_query_context("USA Birth Names")
         payload["queries"][0]["extras"]["time_range_endpoints"] = [
             "abc",
             "EXCLUSIVE",
@@ -1439,7 +1439,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         Chart data API: Test chart data query not allowed
         """
         self.login(username="gamma")
-        payload = get_query_context("birth_names")
+        payload = get_query_context("USA Birth Names")
         rv = self.post_assert_metric(CHART_DATA_URI, payload, "data")
         self.assertEqual(rv.status_code, 401)
         response_payload = json.loads(rv.data.decode("utf-8"))
@@ -1454,7 +1454,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         Chart data API: Ensure request referencing filters via jinja renders a correct query
         """
         self.login(username="admin")
-        request_payload = get_query_context("birth_names")
+        request_payload = get_query_context("USA Birth Names")
         request_payload["result_type"] = utils.ChartDataResultType.QUERY
         request_payload["queries"][0]["filters"] = [
             {"col": "gender", "op": "==", "val": "boy"}
@@ -1476,7 +1476,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         """
         async_query_manager.init_app(app)
         self.login(username="admin")
-        request_payload = get_query_context("birth_names")
+        request_payload = get_query_context("USA Birth Names")
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
         self.assertEqual(rv.status_code, 202)
         data = json.loads(rv.data.decode("utf-8"))
@@ -1507,7 +1507,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         with mock.patch.object(
             ChartDataCommand, "run", return_value=cmd_run_val
         ) as patched_run:
-            request_payload = get_query_context("birth_names")
+            request_payload = get_query_context("USA Birth Names")
             request_payload["result_type"] = utils.ChartDataResultType.FULL
             rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
             self.assertEqual(rv.status_code, 200)
@@ -1523,7 +1523,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         """
         async_query_manager.init_app(app)
         self.login(username="admin")
-        request_payload = get_query_context("birth_names")
+        request_payload = get_query_context("USA Birth Names")
         request_payload["result_type"] = "results"
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
         self.assertEqual(rv.status_code, 200)
@@ -1536,7 +1536,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         """
         async_query_manager.init_app(app)
         self.login(username="admin")
-        request_payload = get_query_context("birth_names")
+        request_payload = get_query_context("USA Birth Names")
         test_client.set_cookie(
             "localhost", app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME"], "foo"
         )
@@ -1552,7 +1552,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         """
         async_query_manager.init_app(app)
         self.login(username="admin")
-        query_context = get_query_context("birth_names")
+        query_context = get_query_context("USA Birth Names")
         load_qc_mock.return_value = query_context
         orig_run = ChartDataCommand.run
 
@@ -1580,7 +1580,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         """
         async_query_manager.init_app(app)
         self.login(username="admin")
-        query_context = get_query_context("birth_names")
+        query_context = get_query_context("USA Birth Names")
         load_qc_mock.return_value = query_context
         rv = self.get_assert_metric(
             f"{CHART_DATA_URI}/test-cache-key", "data_from_cache"
@@ -1598,7 +1598,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         Chart data cache API: Test chart data async cache request (no login)
         """
         async_query_manager.init_app(app)
-        query_context = get_query_context("birth_names")
+        query_context = get_query_context("USA Birth Names")
         load_qc_mock.return_value = query_context
         orig_run = ChartDataCommand.run
 
@@ -1828,7 +1828,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         Chart data API: Test chart data query
         """
         self.login(username="admin")
-        request_payload = get_query_context("birth_names")
+        request_payload = get_query_context("USA Birth Names")
 
         annotation_layers = []
         request_payload["queries"][0]["annotation_layers"] = annotation_layers
@@ -1868,7 +1868,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             year=start_date.year - 100, hour=0, minute=0, second=0
         )
 
-        quoted_table_name = self.quote_name("birth_names")
+        quoted_table_name = self.quote_name("USA Birth Names")
         sql = f"""
                             SELECT COUNT(*) AS rows_count FROM (
                                 SELECT name AS name, SUM(num) AS sum__num
@@ -1897,7 +1897,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         Chart data API: Query total rows
         """
         self.login(username="admin")
-        request_payload = get_query_context("birth_names")
+        request_payload = get_query_context("USA Birth Names")
         request_payload["queries"][0]["is_rowcount"] = True
         request_payload["queries"][0]["groupby"] = ["name"]
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
@@ -1912,7 +1912,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         Chart data API: Query timegrains and columns
         """
         self.login(username="admin")
-        request_payload = get_query_context("birth_names")
+        request_payload = get_query_context("USA Birth Names")
         request_payload["queries"] = [
             {"result_type": utils.ChartDataResultType.TIMEGRAINS},
             {"result_type": utils.ChartDataResultType.COLUMNS},

@@ -99,7 +99,7 @@ def load_birth_names(
 ) -> None:
     """Loading birth name dataset from a zip file in the repo"""
     # pylint: disable=too-many-locals
-    tbl_name = "birth_names"
+    tbl_name = "USA Birth Names"
     database = get_example_database()
     table_exists = database.has_table_by_name(tbl_name)
 

@@ -23,7 +23,9 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 import pytest
 from pandas import DataFrame
-from sqlalchemy import DateTime, String, TIMESTAMP
+from sqlalchemy import create_engine, DateTime, MetaData, String, TIMESTAMP
+from sqlalchemy.engine.url import URL
+from sqlalchemy.ext.declarative import declarative_base
 
 from superset import ConnectorRegistry, db
 from superset.connectors.sqla.models import SqlaTable
@@ -52,7 +54,7 @@ def load_birth_names_dashboard_with_slices_module_scope():
 
 
 def _load_data():
-    table_name = "birth_names"
+    table_name = "USA Birth Names"
 
     with app.app_context():
         database = get_example_database()
@@ -102,14 +104,25 @@ def _create_table(
     return table
 
 
+def _drop_table(table_name, engine):
+    Base = declarative_base()
+    metadata = MetaData()
+    metadata.reflect(bind=engine)
+    table = metadata.tables[table_name]
+    if table is not None:
+        Base.metadata.drop_all(engine, [table], checkfirst=True)
+
+
 def _cleanup(dash_id: int, slices_ids: List[int]) -> None:
-    table_id = db.session.query(SqlaTable).filter_by(table_name="birth_names").one().id
+    table_id = (
+        db.session.query(SqlaTable).filter_by(table_name="USA Birth Names").one().id
+    )
     datasource = ConnectorRegistry.get_datasource("table", table_id, db.session)
     columns = [column for column in datasource.columns]
     metrics = [metric for metric in datasource.metrics]
 
     engine = get_example_database().get_sqla_engine()
-    engine.execute("DROP TABLE IF EXISTS birth_names")
+    _drop_table("USA Birth Names", engine)
     for column in columns:
         db.session.delete(column)
     for metric in metrics:

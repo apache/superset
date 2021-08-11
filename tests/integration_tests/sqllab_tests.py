@@ -58,9 +58,9 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
 )
 
-QUERY_1 = "SELECT * FROM birth_names LIMIT 1"
+QUERY_1 = 'SELECT * FROM "USA Birth Names" LIMIT 1'
 QUERY_2 = "SELECT * FROM NO_TABLE"
-QUERY_3 = "SELECT * FROM birth_names LIMIT 10"
+QUERY_3 = 'SELECT * FROM "USA Birth Names" LIMIT 10'
 
 
 class TestSqlLab(SupersetTestCase):
@@ -87,7 +87,7 @@ class TestSqlLab(SupersetTestCase):
 
         self.login("admin")
 
-        data = self.run_sql("SELECT * FROM birth_names LIMIT 10", "1")
+        data = self.run_sql('SELECT * FROM "USA Birth Names" LIMIT 10', "1")
         self.assertLess(0, len(data["data"]))
 
         data = self.run_sql("SELECT * FROM unexistant_table", "2")
@@ -130,7 +130,7 @@ class TestSqlLab(SupersetTestCase):
     def test_sql_json_dml_disallowed(self):
         self.login("admin")
 
-        data = self.run_sql("DELETE FROM birth_names", "1")
+        data = self.run_sql('DELETE FROM "USA Birth Names"', "1")
         assert data == {
             "errors": [
                 {
@@ -158,7 +158,7 @@ class TestSqlLab(SupersetTestCase):
 
         self.login("admin")
 
-        sql_statement = "SELECT * FROM birth_names LIMIT 10"
+        sql_statement = 'SELECT * FROM "USA Birth Names" LIMIT 10'
         examples_db_id = get_example_database().id
         saved_query = SavedQuery(db_id=examples_db_id, sql=sql_statement)
         db.session.add(saved_query)
@@ -197,7 +197,7 @@ class TestSqlLab(SupersetTestCase):
             self.login("admin")
             tmp_table_name = f"test_target_{ctas_method.lower()}"
             self.run_sql(
-                "SELECT * FROM birth_names",
+                'SELECT * FROM "USA Birth Names"',
                 "1",
                 database_name="examples",
                 tmp_table_name=tmp_table_name,
@@ -212,7 +212,9 @@ class TestSqlLab(SupersetTestCase):
             data = engine.execute(
                 f"SELECT * FROM admin_database.{tmp_table_name}"
             ).fetchall()
-            names_count = engine.execute(f"SELECT COUNT(*) FROM birth_names").first()
+            names_count = engine.execute(
+                f'SELECT COUNT(*) FROM "USA Birth Names"'
+            ).first()
             self.assertEqual(
                 names_count[0], len(data)
             )  # SQL_MAX_ROW not applied due to the SQLLAB_CTAS_NO_LIMIT set to True
@@ -227,8 +229,8 @@ class TestSqlLab(SupersetTestCase):
         self.login("admin")
 
         multi_sql = """
-        SELECT * FROM birth_names LIMIT 1;
-        SELECT * FROM birth_names LIMIT 2;
+        SELECT * FROM "USA Birth Names" LIMIT 1;
+        SELECT * FROM "USA Birth Names" LIMIT 2;
         """
         data = self.run_sql(multi_sql, "2234")
         self.assertLess(0, len(data["data"]))
@@ -237,7 +239,7 @@ class TestSqlLab(SupersetTestCase):
     def test_explain(self):
         self.login("admin")
 
-        data = self.run_sql("EXPLAIN SELECT * FROM birth_names", "1")
+        data = self.run_sql('EXPLAIN SELECT * FROM "USA Birth Names"', "1")
         self.assertLess(0, len(data["data"]))
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -323,8 +325,8 @@ class TestSqlLab(SupersetTestCase):
         self.assertEqual(2, len(data))
 
         # Run 2 more queries
-        self.run_sql("SELECT * FROM birth_names LIMIT 1", client_id="client_id_4")
-        self.run_sql("SELECT * FROM birth_names LIMIT 2", client_id="client_id_5")
+        self.run_sql('SELECT * FROM "USA Birth Names" LIMIT 1', client_id="client_id_4")
+        self.run_sql('SELECT * FROM "USA Birth Names" LIMIT 2', client_id="client_id_5")
         self.login("admin")
         data = self.get_json_resp("/superset/queries/0")
         self.assertEqual(4, len(data))
@@ -332,7 +334,7 @@ class TestSqlLab(SupersetTestCase):
         now = datetime.now() + timedelta(days=1)
         query = (
             db.session.query(Query)
-            .filter_by(sql="SELECT * FROM birth_names LIMIT 1")
+            .filter_by(sql='SELECT * FROM "USA Birth Names" LIMIT 1')
             .first()
         )
         query.changed_on = now
@@ -440,7 +442,7 @@ class TestSqlLab(SupersetTestCase):
 
     def test_alias_duplicate(self):
         self.run_sql(
-            "SELECT name as col, gender as col FROM birth_names LIMIT 10",
+            'SELECT name as col, gender as col FROM "USA Birth Names" LIMIT 10',
             client_id="2e2df3",
             user_name="admin",
             raise_on_error=True,
@@ -483,7 +485,7 @@ class TestSqlLab(SupersetTestCase):
             ],
             "sql": """\
                 SELECT *
-                FROM birth_names
+                FROM "USA Birth Names"
                 LIMIT 10""",
             "dbId": examples_dbid,
         }
@@ -513,7 +515,7 @@ class TestSqlLab(SupersetTestCase):
             ],
             "sql": """\
                 SELECT *
-                FROM birth_names
+                FROM "USA Birth Names"
                 LIMIT 10""",
         }
         data = {"data": json.dumps(payload)}
@@ -556,15 +558,17 @@ class TestSqlLab(SupersetTestCase):
     def test_sql_limit(self):
         self.login("admin")
         test_limit = 1
-        data = self.run_sql("SELECT * FROM birth_names", client_id="sql_limit_1")
+        data = self.run_sql('SELECT * FROM "USA Birth Names"', client_id="sql_limit_1")
         self.assertGreater(len(data["data"]), test_limit)
         data = self.run_sql(
-            "SELECT * FROM birth_names", client_id="sql_limit_2", query_limit=test_limit
+            'SELECT * FROM "USA Birth Names"',
+            client_id="sql_limit_2",
+            query_limit=test_limit,
         )
         self.assertEqual(len(data["data"]), test_limit)
 
         data = self.run_sql(
-            "SELECT * FROM birth_names LIMIT {}".format(test_limit),
+            'SELECT * FROM "USA Birth Names" LIMIT {}'.format(test_limit),
             client_id="sql_limit_3",
             query_limit=test_limit + 1,
         )
@@ -572,7 +576,7 @@ class TestSqlLab(SupersetTestCase):
         self.assertEqual(data["query"]["limitingFactor"], LimitingFactor.QUERY)
 
         data = self.run_sql(
-            "SELECT * FROM birth_names LIMIT {}".format(test_limit + 1),
+            'SELECT * FROM "USA Birth Names" LIMIT {}'.format(test_limit + 1),
             client_id="sql_limit_4",
             query_limit=test_limit,
         )
@@ -580,7 +584,7 @@ class TestSqlLab(SupersetTestCase):
         self.assertEqual(data["query"]["limitingFactor"], LimitingFactor.DROPDOWN)
 
         data = self.run_sql(
-            "SELECT * FROM birth_names LIMIT {}".format(test_limit),
+            'SELECT * FROM "USA Birth Names" LIMIT {}'.format(test_limit),
             client_id="sql_limit_5",
             query_limit=test_limit,
         )
@@ -590,13 +594,17 @@ class TestSqlLab(SupersetTestCase):
         )
 
         data = self.run_sql(
-            "SELECT * FROM birth_names", client_id="sql_limit_6", query_limit=10000,
+            'SELECT * FROM "USA Birth Names"',
+            client_id="sql_limit_6",
+            query_limit=10000,
         )
         self.assertEqual(len(data["data"]), 1200)
         self.assertEqual(data["query"]["limitingFactor"], LimitingFactor.NOT_LIMITED)
 
         data = self.run_sql(
-            "SELECT * FROM birth_names", client_id="sql_limit_7", query_limit=1200,
+            'SELECT * FROM "USA Birth Names"',
+            client_id="sql_limit_7",
+            query_limit=1200,
         )
         self.assertEqual(len(data["data"]), 1200)
         self.assertEqual(data["query"]["limitingFactor"], LimitingFactor.NOT_LIMITED)
@@ -697,14 +705,14 @@ class TestSqlLab(SupersetTestCase):
         self.login("admin")
 
         data = self.run_sql(
-            "SELECT * FROM birth_names WHERE state = '{{ state }}' LIMIT 10",
+            'SELECT * FROM "USA Birth Names" WHERE state = "{{ state }}" LIMIT 10',
             "1",
             template_params=json.dumps({"state": "CA"}),
         )
         assert data["status"] == "success"
 
         data = self.run_sql(
-            "SELECT * FROM birth_names WHERE state = '{{ stat }}' LIMIT 10",
+            'SELECT * FROM "USA Birth Names" WHERE state = "{{ stat }}" LIMIT 10',
             "2",
             template_params=json.dumps({"state": "CA"}),
         )
@@ -962,7 +970,7 @@ class TestSqlLab(SupersetTestCase):
             examples_db.db_engine_spec, "handle_cursor"
         ) as handle_cursor:
             handle_cursor.side_effect = SoftTimeLimitExceeded()
-            data = self.run_sql("SELECT * FROM birth_names LIMIT 1", "1")
+            data = self.run_sql("SELECT * FROM 'USA Birth Names' LIMIT 1", "1")
 
         assert data == {
             "errors": [

@@ -60,7 +60,7 @@ class TestDatasource(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_external_metadata_for_physical_table(self):
         self.login(username="admin")
-        tbl = self.get_table(name="birth_names")
+        tbl = self.get_table(name="USA Birth Names")
         url = f"/datasource/external_metadata/table/{tbl.id}/"
         resp = self.get_json_resp(url)
         col_names = {o.get("name") for o in resp}
@@ -89,7 +89,7 @@ class TestDatasource(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_external_metadata_by_name_for_physical_table(self):
         self.login(username="admin")
-        tbl = self.get_table(name="birth_names")
+        tbl = self.get_table(name="USA Birth Names")
         # empty schema need to be represented by undefined
         url = (
             f"/datasource/external_metadata_by_name/table/"
@@ -165,7 +165,7 @@ class TestDatasource(SupersetTestCase):
         table = SqlaTable(
             table_name="malicious_sql_table",
             database=get_example_database(),
-            sql="delete table birth_names",
+            sql='delete table "USA Birth Names"',
         )
         with db_insert_temp_object(table):
             url = f"/datasource/external_metadata/table/{table.id}/"
@@ -189,7 +189,7 @@ class TestDatasource(SupersetTestCase):
     @mock.patch("superset.connectors.sqla.models.SqlaTable.external_metadata")
     def test_external_metadata_error_return_400(self, mock_get_datasource):
         self.login(username="admin")
-        tbl = self.get_table(name="birth_names")
+        tbl = self.get_table(name="USA Birth Names")
         url = f"/datasource/external_metadata/table/{tbl.id}/"
 
         mock_get_datasource.side_effect = SupersetGenericDBErrorException("oops")
@@ -214,7 +214,7 @@ class TestDatasource(SupersetTestCase):
 
     def test_save(self):
         self.login(username="admin")
-        tbl_id = self.get_table(name="birth_names").id
+        tbl_id = self.get_table(name="USA Birth Names").id
 
         datasource_post = get_datasource_post()
         datasource_post["id"] = tbl_id
@@ -238,7 +238,7 @@ class TestDatasource(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_change_database(self):
         self.login(username="admin")
-        tbl = self.get_table(name="birth_names")
+        tbl = self.get_table(name="USA Birth Names")
         tbl_id = tbl.id
         db_id = tbl.database_id
         datasource_post = get_datasource_post()
@@ -257,7 +257,7 @@ class TestDatasource(SupersetTestCase):
 
     def test_save_duplicate_key(self):
         self.login(username="admin")
-        tbl_id = self.get_table(name="birth_names").id
+        tbl_id = self.get_table(name="USA Birth Names").id
 
         datasource_post = get_datasource_post()
         datasource_post["id"] = tbl_id
@@ -285,7 +285,7 @@ class TestDatasource(SupersetTestCase):
 
     def test_get_datasource(self):
         self.login(username="admin")
-        tbl = self.get_table(name="birth_names")
+        tbl = self.get_table(name="USA Birth Names")
 
         datasource_post = get_datasource_post()
         datasource_post["id"] = tbl.id
@@ -315,7 +315,7 @@ class TestDatasource(SupersetTestCase):
 
         app.config["DATASET_HEALTH_CHECK"] = my_check
         self.login(username="admin")
-        tbl = self.get_table(name="birth_names")
+        tbl = self.get_table(name="USA Birth Names")
         datasource = ConnectorRegistry.get_datasource("table", tbl.id, db.session)
         assert datasource.health_check_message == "Warning message!"
         app.config["DATASET_HEALTH_CHECK"] = None

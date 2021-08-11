@@ -78,7 +78,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
             "metadata.yaml",
             "databases/examples.yaml",
             "datasets/examples/energy_usage.yaml",
-            "datasets/examples/birth_names.yaml",
+            "datasets/examples/USA%20Birth%20Names.yaml",
         }
         expected_extra = {
             "engine_params": {},
@@ -122,7 +122,9 @@ class TestExportDatabasesCommand(SupersetTestCase):
             }
         )
 
-        metadata = yaml.safe_load(contents["datasets/examples/birth_names.yaml"])
+        metadata = yaml.safe_load(
+            contents["datasets/examples/USA%20Birth%20Names.yaml"]
+        )
         metadata.pop("uuid")
 
         metadata["columns"].sort(key=lambda x: x["column_name"])
@@ -261,7 +263,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
             "params": None,
             "schema": None,
             "sql": None,
-            "table_name": "birth_names",
+            "table_name": "USA Birth Names",
             "template_params": None,
             "version": "1.0.0",
         }

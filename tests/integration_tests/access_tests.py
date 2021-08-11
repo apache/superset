@@ -47,7 +47,7 @@ ROLE_TABLES_PERM_DATA = {
         {
             "datasource_type": "table",
             "name": "examples",
-            "schema": [{"name": "", "datasources": ["birth_names"]}],
+            "schema": [{"name": "", "datasources": ["USA Birth Names"]}],
         }
     ],
 }
@@ -58,7 +58,7 @@ ROLE_ALL_PERM_DATA = {
         {
             "datasource_type": "table",
             "name": "examples",
-            "schema": [{"name": "", "datasources": ["birth_names"]}],
+            "schema": [{"name": "", "datasources": ["USA Birth Names"]}],
         },
         {
             "datasource_type": "druid",
@@ -161,7 +161,7 @@ class TestRequestAccess(SupersetTestCase):
 
         updated_override_me = security_manager.find_role("override_me")
         self.assertEqual(1, len(updated_override_me.permissions))
-        birth_names = self.get_table(name="birth_names")
+        birth_names = self.get_table(name="USA Birth Names")
         self.assertEqual(
             birth_names.perm, updated_override_me.permissions[0].view_menu.name
         )
@@ -190,7 +190,7 @@ class TestRequestAccess(SupersetTestCase):
             "datasource_access", updated_role.permissions[1].permission.name
         )
 
-        birth_names = self.get_table(name="birth_names")
+        birth_names = self.get_table(name="USA Birth Names")
         self.assertEqual(birth_names.perm, perms[2].view_menu.name)
         self.assertEqual(
             "datasource_access", updated_role.permissions[2].permission.name
@@ -218,7 +218,7 @@ class TestRequestAccess(SupersetTestCase):
         self.assertEqual(201, response.status_code)
         updated_override_me = security_manager.find_role("override_me")
         self.assertEqual(1, len(updated_override_me.permissions))
-        birth_names = self.get_table(name="birth_names")
+        birth_names = self.get_table(name="USA Birth Names")
         self.assertEqual(
             birth_names.perm, updated_override_me.permissions[0].view_menu.name
         )
@@ -268,9 +268,11 @@ class TestRequestAccess(SupersetTestCase):
         # Check if request by gamma has been deleted
 
         access_request1 = create_access_request(
-            session, "table", "birth_names", TEST_ROLE_1, "gamma"
+            session, "table", "USA Birth Names", TEST_ROLE_1, "gamma"
         )
-        create_access_request(session, "table", "birth_names", TEST_ROLE_2, "gamma2")
+        create_access_request(
+            session, "table", "USA Birth Names", TEST_ROLE_2, "gamma2"
+        )
         ds_1_id = access_request1.datasource_id
         # gamma becomes alpha
         alpha_role = security_manager.find_role("Alpha")

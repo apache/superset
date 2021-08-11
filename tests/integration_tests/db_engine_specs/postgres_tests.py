@@ -174,9 +174,9 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
 
         cursor = mock.Mock()
         cursor.fetchone.return_value = (
-            "Seq Scan on birth_names  (cost=0.00..1537.91 rows=75691 width=46)",
+            'Seq Scan on "USA Birth Names"  (cost=0.00..1537.91 rows=75691 width=46)',
         )
-        sql = "SELECT * FROM birth_names"
+        sql = 'SELECT * FROM "USA Birth Names"'
         results = PostgresEngineSpec.estimate_statement_cost(sql, cursor)
         self.assertEqual(
             results, {"Start-up cost": 0.00, "Total cost": 1537.91,},
@@ -192,11 +192,11 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         cursor.execute.side_effect = errors.SyntaxError(
             """
             syntax error at or near "EXPLAIN"
-            LINE 1: EXPLAIN DROP TABLE birth_names
+            LINE 1: EXPLAIN DROP TABLE "USA Birth Names"
                             ^
             """
         )
-        sql = "DROP TABLE birth_names"
+        sql = 'DROP TABLE "USA Birth Names"'
         with self.assertRaises(errors.SyntaxError):
             PostgresEngineSpec.estimate_statement_cost(sql, cursor)
 

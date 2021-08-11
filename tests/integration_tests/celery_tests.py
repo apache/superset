@@ -46,7 +46,7 @@ from superset.sql_parse import ParsedQuery, CtasMethod
 from superset.utils.core import get_example_database, backend
 
 CELERY_SLEEP_TIME = 6
-QUERY = "SELECT name FROM birth_names LIMIT 1"
+QUERY = 'SELECT name FROM "USA Birth Names" LIMIT 1'
 TEST_SYNC = "test_sync"
 TEST_ASYNC_LOWER_LIMIT = "test_async_lower_limit"
 TEST_SYNC_CTA = "test_sync_cta"
@@ -204,7 +204,7 @@ def test_run_sync_query_cta(setup_sqllab, ctas_method):
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 def test_run_sync_query_cta_no_data(setup_sqllab):
-    sql_empty_result = "SELECT * FROM birth_names WHERE name='random'"
+    sql_empty_result = 'SELECT * FROM "USA Birth Names" WHERE name="random"'
     result = run_sql(sql_empty_result)
     assert QueryStatus.SUCCESS == result["query"]["state"]
     assert ([], []) == (result["data"], result["columns"])
@@ -350,7 +350,7 @@ def test_default_payload_serialization():
     results = SupersetResultSet(SERIALIZATION_DATA, CURSOR_DESCR, db_engine_spec)
     query = {
         "database_id": 1,
-        "sql": "SELECT * FROM birth_names LIMIT 100",
+        "sql": 'SELECT * FROM "USA Birth Names" LIMIT 100',
         "status": QueryStatus.PENDING,
     }
     (
@@ -383,7 +383,7 @@ def test_msgpack_payload_serialization():
     results = SupersetResultSet(SERIALIZATION_DATA, CURSOR_DESCR, db_engine_spec)
     query = {
         "database_id": 1,
-        "sql": "SELECT * FROM birth_names LIMIT 100",
+        "sql": 'SELECT * FROM "USA Birth Names" LIMIT 100',
         "status": QueryStatus.PENDING,
     }
     (

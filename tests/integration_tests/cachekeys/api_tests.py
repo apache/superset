@@ -111,7 +111,7 @@ def test_invalidate_existing_caches(logged_in_admin):
             "datasource_uids": ["3__druid", "4__druid"],
             "datasources": [
                 {
-                    "datasource_name": "birth_names",
+                    "datasource_name": "USA Birth Names",
                     "database_name": "examples",
                     "schema": "",
                     "datasource_type": "table",
@@ -129,13 +129,13 @@ def test_invalidate_existing_caches(logged_in_admin):
                     "datasource_type": "table",
                 },
                 {  # database doesn't exist
-                    "datasource_name": "birth_names",
+                    "datasource_name": "USA Birth Names",
                     "database_name": "does_not_exist",
                     "schema": "",
                     "datasource_type": "table",
                 },
                 {  # database doesn't exist
-                    "datasource_name": "birth_names",
+                    "datasource_name": "USA Birth Names",
                     "database_name": "examples",
                     "schema": "does_not_exist",
                     "datasource_type": "table",

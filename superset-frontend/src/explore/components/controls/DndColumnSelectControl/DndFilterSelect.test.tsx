@@ -81,7 +81,7 @@ test('renders options with column', () => {
 
 test('renders options with adhoc metric', () => {
   const adhocMetric = new AdhocMetric({
-    expression: 'AVG(birth_names.num)',
+    expression: 'AVG("USA Birth Names".num)',
     metric_name: 'avg__num',
   });
   render(<DndFilterSelect {...defaultProps} formData={[adhocMetric]} />, {

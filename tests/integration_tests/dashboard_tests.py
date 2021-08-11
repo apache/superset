@@ -371,7 +371,9 @@ class TestDashboard(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @pytest.mark.usefixtures("public_role_like_gamma")
     def test_public_user_dashboard_access(self):
-        table = db.session.query(SqlaTable).filter_by(table_name="birth_names").one()
+        table = (
+            db.session.query(SqlaTable).filter_by(table_name="USA Birth Names").one()
+        )
 
         # Make the births dash published so it can be seen
         births_dash = db.session.query(Dashboard).filter_by(slug="births").one()
@@ -385,7 +387,7 @@ class TestDashboard(SupersetTestCase):
         self.logout()
 
         resp = self.get_resp("/api/v1/chart/")
-        self.assertNotIn("birth_names", resp)
+        self.assertNotIn("USA Birth Namese", resp)
 
         resp = self.get_resp("/api/v1/dashboard/")
         self.assertNotIn("/superset/dashboard/births/", resp)
@@ -393,7 +395,7 @@ class TestDashboard(SupersetTestCase):
         self.grant_public_access_to_table(table)
 
         # Try access after adding appropriate permissions.
-        self.assertIn("birth_names", self.get_resp("/api/v1/chart/"))
+        self.assertIn("USA Birth Names", self.get_resp("/api/v1/chart/"))
 
         resp = self.get_resp("/api/v1/dashboard/")
         self.assertIn("/superset/dashboard/births/", resp)
@@ -412,7 +414,9 @@ class TestDashboard(SupersetTestCase):
     @pytest.mark.usefixtures("public_role_like_gamma")
     def test_dashboard_with_created_by_can_be_accessed_by_public_users(self):
         self.logout()
-        table = db.session.query(SqlaTable).filter_by(table_name="birth_names").one()
+        table = (
+            db.session.query(SqlaTable).filter_by(table_name="USA Birth Names").one()
+        )
         self.grant_public_access_to_table(table)
 
         dash = db.session.query(Dashboard).filter_by(slug="births").first()

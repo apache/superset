@@ -292,7 +292,7 @@ test('validates the column', async () => {
 // eslint-disable-next-line jest/no-disabled-tests
 test.skip('validates the default value', async () => {
   defaultRender(noTemporalColumnsState());
-  expect(await screen.findByText('birth_names')).toBeInTheDocument();
+  expect(await screen.findByText('USA Birth Names')).toBeInTheDocument();
   userEvent.type(screen.getByRole('combobox'), `Column A${specialChars.enter}`);
   userEvent.click(getCheckbox(DEFAULT_VALUE_REGEX));
   await waitFor(() => {

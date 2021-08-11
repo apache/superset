@@ -432,7 +432,7 @@ export const databases = {
 export const tables = {
   options: [
     {
-      value: 'birth_names',
+      value: 'USA Birth Names',
       schema: 'main',
       label: 'birth_names',
       title: 'birth_names',

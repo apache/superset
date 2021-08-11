@@ -59,7 +59,9 @@ class TestQueryContext(SupersetTestCase):
         Ensure that the deserialized QueryContext contains all required fields.
         """
 
-        payload = get_query_context("birth_names", add_postprocessing_operations=True)
+        payload = get_query_context(
+            "USA Birth Names", add_postprocessing_operations=True
+        )
         query_context = ChartDataQueryContextSchema().load(payload)
         self.assertEqual(len(query_context.queries), len(payload["queries"]))
 
@@ -91,7 +93,7 @@ class TestQueryContext(SupersetTestCase):
                 self.assertEqual(post_proc["options"], payload_post_proc["options"])
 
     def test_cache(self):
-        table_name = "birth_names"
+        table_name = "USA Birth Names"
         table = self.get_table(name=table_name)
         payload = get_query_context(table.name, table.id)
         payload["force"] = True
@@ -120,7 +122,7 @@ class TestQueryContext(SupersetTestCase):
 
     def test_query_cache_key_changes_when_datasource_is_updated(self):
         self.login(username="admin")
-        payload = get_query_context("birth_names")
+        payload = get_query_context("USA Birth Names")
 
         # construct baseline query_cache_key
         query_context = ChartDataQueryContextSchema().load(payload)
@@ -149,7 +151,7 @@ class TestQueryContext(SupersetTestCase):
 
     def test_query_cache_key_changes_when_metric_is_updated(self):
         self.login(username="admin")
-        payload = get_query_context("birth_names")
+        payload = get_query_context("USA Birth Names")
 
         # make temporary change and revert it to refresh the changed_on property
         datasource = ConnectorRegistry.get_datasource(
@@ -185,7 +187,9 @@ class TestQueryContext(SupersetTestCase):
 
     def test_query_cache_key_does_not_change_for_non_existent_or_null(self):
         self.login(username="admin")
-        payload = get_query_context("birth_names", add_postprocessing_operations=True)
+        payload = get_query_context(
+            "USA Birth Names", add_postprocessing_operations=True
+        )
         del payload["queries"][0]["granularity"]
 
         # construct baseline query_cache_key from query_context with post processing operation
@@ -201,7 +205,9 @@ class TestQueryContext(SupersetTestCase):
 
     def test_query_cache_key_changes_when_post_processing_is_updated(self):
         self.login(username="admin")
-        payload = get_query_context("birth_names", add_postprocessing_operations=True)
+        payload = get_query_context(
+            "USA Birth Names", add_postprocessing_operations=True
+        )
 
         # construct baseline query_cache_key from query_context with post processing operation
         query_context = ChartDataQueryContextSchema().load(payload)
@@ -224,7 +230,7 @@ class TestQueryContext(SupersetTestCase):
 
     def test_query_cache_key_changes_when_time_offsets_is_updated(self):
         self.login(username="admin")
-        payload = get_query_context("birth_names", add_time_offsets=True)
+        payload = get_query_context("USA Birth Names", add_time_offsets=True)
 
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
@@ -242,7 +248,7 @@ class TestQueryContext(SupersetTestCase):
         from the payload.
         """
         self.login(username="admin")
-        payload = get_query_context("birth_names")
+        payload = get_query_context("USA Birth Names")
         del payload["queries"][0]["extras"]["time_range_endpoints"]
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
@@ -265,7 +271,7 @@ class TestQueryContext(SupersetTestCase):
             "label": "Boys",
             "optionName": "metric_11",
         }
-        payload = get_query_context("birth_names")
+        payload = get_query_context("USA Birth Names")
         payload["queries"][0]["metrics"] = ["sum__num", {"label": "abc"}, adhoc_metric]
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
@@ -276,7 +282,7 @@ class TestQueryContext(SupersetTestCase):
         Ensure that deprecated fields are converted correctly
         """
         self.login(username="admin")
-        payload = get_query_context("birth_names")
+        payload = get_query_context("USA Birth Names")
         payload["queries"][0]["granularity_sqla"] = "timecol"
         payload["queries"][0]["having_filters"] = [{"col": "a", "op": "==", "val": "b"}]
         query_context = ChartDataQueryContextSchema().load(payload)
@@ -291,7 +297,7 @@ class TestQueryContext(SupersetTestCase):
         Ensure that CSV result format works
         """
         self.login(username="admin")
-        payload = get_query_context("birth_names")
+        payload = get_query_context("USA Birth Names")
         payload["result_format"] = ChartDataResultFormat.CSV.value
         payload["queries"][0]["row_limit"] = 10
         query_context = ChartDataQueryContextSchema().load(payload)
@@ -306,7 +312,7 @@ class TestQueryContext(SupersetTestCase):
         Ensure that calling invalid columns names in groupby are caught
         """
         self.login(username="admin")
-        payload = get_query_context("birth_names")
+        payload = get_query_context("USA Birth Names")
         payload["queries"][0]["groupby"] = ["currentDatabase()"]
         query_context = ChartDataQueryContextSchema().load(payload)
         query_payload = query_context.get_payload()
@@ -317,7 +323,7 @@ class TestQueryContext(SupersetTestCase):
         Ensure that calling invalid column names in columns are caught
         """
         self.login(username="admin")
-        payload = get_query_context("birth_names")
+        payload = get_query_context("USA Birth Names")
         payload["queries"][0]["groupby"] = []
         payload["queries"][0]["metrics"] = []
         payload["queries"][0]["columns"] = ["*, 'extra'"]
@@ -330,7 +336,7 @@ class TestQueryContext(SupersetTestCase):
         Ensure that calling invalid column names in filters are caught
         """
         self.login(username="admin")
-        payload = get_query_context("birth_names")
+        payload = get_query_context("USA Birth Names")
         payload["queries"][0]["groupby"] = ["name"]
         payload["queries"][0]["metrics"] = [
             {
@@ -350,7 +356,7 @@ class TestQueryContext(SupersetTestCase):
         Ensure that samples result type works
         """
         self.login(username="admin")
-        payload = get_query_context("birth_names")
+        payload = get_query_context("USA Birth Names")
         payload["result_type"] = ChartDataResultType.SAMPLES.value
         payload["queries"][0]["row_limit"] = 5
         query_context = ChartDataQueryContextSchema().load(payload)
@@ -367,7 +373,7 @@ class TestQueryContext(SupersetTestCase):
         Ensure that query result type works
         """
         self.login(username="admin")
-        payload = get_query_context("birth_names")
+        payload = get_query_context("USA Birth Names")
         sql_text = get_sql_text(payload)
         assert "SELECT" in sql_text
         assert re.search(r'[`"\[]?num[`"\]]? IS NOT NULL', sql_text)
@@ -384,7 +390,7 @@ class TestQueryContext(SupersetTestCase):
         """
         self.login(username="admin")
 
-        sql_text = get_sql_text(get_query_context("birth_names"))
+        sql_text = get_sql_text(get_query_context("USA Birth Names"))
         if backend() == "hive":
             # should have no duplicate `SUM(num)`
             assert "SUM(num) AS `sum__num`," not in sql_text
@@ -395,7 +401,7 @@ class TestQueryContext(SupersetTestCase):
             assert re.search(r'ORDER BY [`"\[]?sum__num[`"\]]? DESC', sql_text)
 
         sql_text = get_sql_text(
-            get_query_context("birth_names:only_orderby_has_metric")
+            get_query_context("'USA Birth Names':only_orderby_has_metric")
         )
         if backend() == "hive":
             assert "SUM(num) AS `sum__num`," not in sql_text
@@ -406,7 +412,9 @@ class TestQueryContext(SupersetTestCase):
                 r'ORDER BY SUM\([`"\[]?num[`"\]]?\) DESC', sql_text, re.IGNORECASE
             )
 
-        sql_text = get_sql_text(get_query_context("birth_names:orderby_dup_alias"))
+        sql_text = get_sql_text(
+            get_query_context('"USA Birth Names":orderby_dup_alias')
+        )
 
         # Check SELECT clauses
         if backend() == "presto":
@@ -467,7 +475,7 @@ class TestQueryContext(SupersetTestCase):
         """
         self.login(username="admin")
 
-        payload = get_query_context("birth_names")
+        payload = get_query_context("USA Birth Names")
         sql_text = get_sql_text(payload)
         assert "123 = 123" not in sql_text
 
@@ -481,7 +489,7 @@ class TestQueryContext(SupersetTestCase):
         have an identical cache key as one without the unknown field
         """
         self.login(username="admin")
-        payload = get_query_context("birth_names")
+        payload = get_query_context("USA Birth Names")
         query_context = ChartDataQueryContextSchema().load(payload)
         responses = query_context.get_payload()
         orig_cache_key = responses["queries"][0]["cache_key"]
@@ -497,7 +505,7 @@ class TestQueryContext(SupersetTestCase):
         Ensure that time_offsets can generate the correct query
         """
         self.login(username="admin")
-        payload = get_query_context("birth_names")
+        payload = get_query_context("USA Birth Names")
         payload["queries"][0]["metrics"] = ["sum__num"]
         payload["queries"][0]["groupby"] = ["name"]
         payload["queries"][0]["is_timeseries"] = True
@@ -535,7 +543,7 @@ class TestQueryContext(SupersetTestCase):
         Ensure that time_offsets can generate the correct query
         """
         self.login(username="admin")
-        payload = get_query_context("birth_names")
+        payload = get_query_context("USA Birth Names")
         payload["queries"][0]["metrics"] = ["sum__num"]
         payload["queries"][0]["groupby"] = ["name"]
         payload["queries"][0]["is_timeseries"] = True

@@ -47,7 +47,7 @@ class TestAsyncQueries(SupersetTestCase):
     @mock.patch.object(async_query_manager, "update_job")
     def test_load_chart_data_into_cache(self, mock_update_job):
         async_query_manager.init_app(app)
-        query_context = get_query_context("birth_names")
+        query_context = get_query_context("USA Birth Names")
         user = security_manager.find_user("gamma")
         job_metadata = {
             "channel_id": str(uuid4()),
@@ -73,7 +73,7 @@ class TestAsyncQueries(SupersetTestCase):
     @mock.patch.object(async_query_manager, "update_job")
     def test_load_chart_data_into_cache_error(self, mock_update_job, mock_run_command):
         async_query_manager.init_app(app)
-        query_context = get_query_context("birth_names")
+        query_context = get_query_context("USA Birth Names")
         user = security_manager.find_user("gamma")
         job_metadata = {
             "channel_id": str(uuid4()),
@@ -122,7 +122,7 @@ class TestAsyncQueries(SupersetTestCase):
     @mock.patch.object(async_query_manager, "update_job")
     def test_load_explore_json_into_cache(self, mock_update_job):
         async_query_manager.init_app(app)
-        table = self.get_table(name="birth_names")
+        table = self.get_table(name="USA Birth Names")
         user = security_manager.find_user("gamma")
         form_data = {
             "datasource": f"{table.id}__table",

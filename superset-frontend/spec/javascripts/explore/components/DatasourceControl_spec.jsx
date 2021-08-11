@@ -96,7 +96,7 @@ describe('DatasourceControl', () => {
 
     wrapper = setup({
       datasource: {
-        name: 'birth_names',
+        name: 'USA Birth Names',
         type: 'druid',
         uid: '1__druid',
         id: 1,

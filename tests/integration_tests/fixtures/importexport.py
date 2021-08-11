@@ -507,7 +507,7 @@ saved_queries_config = {
     "schema": "public",
     "label": "Test Saved Query",
     "description": None,
-    "sql": "-- Note: Unless you save your query, these tabs will NOT persist if you clear\nyour cookies or change browsers.\n\n\nSELECT * from birth_names",
+    "sql": '-- Note: Unless you save your query, these tabs will NOT persist if you clear\nyour cookies or change browsers.\n\n\nSELECT * from "USA Birth Names"',
     "uuid": "05b679b5-8eaf-452c-b874-a7a774cfa4e9",
     "version": "1.0.0",
     "database_uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89",

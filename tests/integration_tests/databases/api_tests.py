@@ -726,11 +726,11 @@ class TestDatabaseApi(SupersetTestCase):
         """
         example_db = get_example_database()
         self.login(username="admin")
-        uri = f"api/v1/database/{example_db.id}/table/birth_names/null/"
+        uri = f"api/v1/database/{example_db.id}/table/USA%20Birth%20Names/null/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(response["name"], "birth_names")
+        self.assertEqual(response["name"], "USA Birth Names")
         self.assertIsNone(response["comment"])
         self.assertTrue(len(response["columns"]) > 5)
         self.assertTrue(response.get("selectStar").startswith("SELECT"))
@@ -779,7 +779,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         self.login(username="gamma")
         example_db = get_example_database()
-        uri = f"api/v1/database/{example_db.id}/birth_names/null/"
+        uri = f"api/v1/database/{example_db.id}/USA%20Birth%20Names/null/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
@@ -790,7 +790,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         self.login(username="admin")
         example_db = get_example_database()
-        uri = f"api/v1/database/{example_db.id}/select_star/birth_names/"
+        uri = f"api/v1/database/{example_db.id}/select_star/USA%20Birth%20Names/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
@@ -802,7 +802,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         self.login(username="gamma")
         example_db = get_example_database()
-        uri = f"api/v1/database/{example_db.id}/select_star/birth_names/"
+        uri = f"api/v1/database/{example_db.id}/select_star/USA%20Birth%20Names/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
@@ -841,7 +841,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         self.login(username="admin")
         max_id = db.session.query(func.max(Database.id)).scalar()
-        uri = f"api/v1/database/{max_id + 1}/select_star/birth_names/"
+        uri = f"api/v1/database/{max_id + 1}/select_star/USA%20Birth%20Names/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 

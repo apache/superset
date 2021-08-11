@@ -560,7 +560,7 @@ class TestRolePermission(SupersetTestCase):
         self.login(username="gamma")
         data = str(self.client.get("tablemodelview/list/").data)
         self.assertIn("wb_health_population", data)
-        self.assertNotIn("birth_names", data)
+        self.assertNotIn("USA Birth Names", data)
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_gamma_user_schema_access_to_charts(self):
@@ -581,7 +581,9 @@ class TestRolePermission(SupersetTestCase):
         if they already exist on a public role.
         Also check that non data access permissions are removed
         """
-        table = db.session.query(SqlaTable).filter_by(table_name="birth_names").one()
+        table = (
+            db.session.query(SqlaTable).filter_by(table_name="USA Birth Names").one()
+        )
         self.grant_public_access_to_table(table)
         public_role = security_manager.get_public_role()
         unwanted_pvm = security_manager.find_permission_view_menu(
@@ -1100,7 +1102,7 @@ class TestRowLevelSecurity(SupersetTestCase):
         self.rls_entry2 = RowLevelSecurityFilter()
         self.rls_entry2.tables.extend(
             session.query(SqlaTable)
-            .filter(SqlaTable.table_name.in_(["birth_names"]))
+            .filter(SqlaTable.table_name.in_(["USA Birth Names"]))
             .all()
         )
         self.rls_entry2.filter_type = "Regular"
@@ -1113,7 +1115,7 @@ class TestRowLevelSecurity(SupersetTestCase):
         self.rls_entry3 = RowLevelSecurityFilter()
         self.rls_entry3.tables.extend(
             session.query(SqlaTable)
-            .filter(SqlaTable.table_name.in_(["birth_names"]))
+            .filter(SqlaTable.table_name.in_(["USA Birth Names"]))
             .all()
         )
         self.rls_entry3.filter_type = "Regular"
@@ -1126,7 +1128,7 @@ class TestRowLevelSecurity(SupersetTestCase):
         self.rls_entry4 = RowLevelSecurityFilter()
         self.rls_entry4.tables.extend(
             session.query(SqlaTable)
-            .filter(SqlaTable.table_name.in_(["birth_names"]))
+            .filter(SqlaTable.table_name.in_(["USA Birth Names"]))
             .all()
         )
         self.rls_entry4.filter_type = "Base"
@@ -1179,7 +1181,7 @@ class TestRowLevelSecurity(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_rls_filter_alters_gamma_birth_names_query(self):
         g.user = self.get_user(username="gamma")
-        tbl = self.get_table(name="birth_names")
+        tbl = self.get_table(name="USA Birth Names")
         sql = tbl.get_query_str(self.query_obj)
 
         # establish that the filters are grouped together correctly with
@@ -1192,7 +1194,7 @@ class TestRowLevelSecurity(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_rls_filter_alters_no_role_user_birth_names_query(self):
         g.user = self.get_user(username="NoRlsRoleUser")
-        tbl = self.get_table(name="birth_names")
+        tbl = self.get_table(name="USA Birth Names")
         sql = tbl.get_query_str(self.query_obj)
 
         # gamma's filters should not be present query
@@ -1205,7 +1207,7 @@ class TestRowLevelSecurity(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_rls_filter_doesnt_alter_admin_birth_names_query(self):
         g.user = self.get_user(username="admin")
-        tbl = self.get_table(name="birth_names")
+        tbl = self.get_table(name="USA Birth Names")
         sql = tbl.get_query_str(self.query_obj)
 
         # no filters are applied for admin user

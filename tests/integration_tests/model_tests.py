@@ -343,7 +343,7 @@ class TestSqlaTableModel(SupersetTestCase):
             if get_example_database().backend == "presto"
             else "TemporalWrapperType"
         )
-        tbl = self.get_table(name="birth_names")
+        tbl = self.get_table(name="USA Birth Names")
         ds_col = tbl.get_column("ds")
         sqla_literal = ds_col.get_timestamp_expression(None)
         self.assertEqual(str(sqla_literal.compile()), "ds")
@@ -366,7 +366,7 @@ class TestSqlaTableModel(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_timestamp_expression_epoch(self):
-        tbl = self.get_table(name="birth_names")
+        tbl = self.get_table(name="USA Birth Names")
         ds_col = tbl.get_column("ds")
 
         ds_col.expression = None
@@ -391,7 +391,7 @@ class TestSqlaTableModel(SupersetTestCase):
         ds_col.expression = prev_ds_expr
 
     def query_with_expr_helper(self, is_timeseries, inner_join=True):
-        tbl = self.get_table(name="birth_names")
+        tbl = self.get_table(name="USA Birth Names")
         ds_col = tbl.get_column("ds")
         ds_col.expression = None
         ds_col.python_date_format = None
@@ -454,7 +454,7 @@ class TestSqlaTableModel(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_sql_mutator(self):
-        tbl = self.get_table(name="birth_names")
+        tbl = self.get_table(name="USA Birth Names")
         query_obj = dict(
             groupby=[],
             metrics=None,
@@ -479,7 +479,7 @@ class TestSqlaTableModel(SupersetTestCase):
         app.config["SQL_QUERY_MUTATOR"] = None
 
     def test_query_with_non_existent_metrics(self):
-        tbl = self.get_table(name="birth_names")
+        tbl = self.get_table(name="USA Birth Names")
 
         query_obj = dict(
             groupby=[],
@@ -500,7 +500,7 @@ class TestSqlaTableModel(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_data_for_slices(self):
-        tbl = self.get_table(name="birth_names")
+        tbl = self.get_table(name="USA Birth Names")
         slc = (
             metadata_db.session.query(Slice)
             .filter_by(

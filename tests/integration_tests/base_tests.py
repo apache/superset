@@ -128,7 +128,7 @@ class SupersetTestCase(TestCase):
 
     @staticmethod
     def get_birth_names_dataset() -> SqlaTable:
-        return SupersetTestCase.get_table(name="birth_names")
+        return SupersetTestCase.get_table(name="USA Birth Names")
 
     @staticmethod
     def create_user_with_roles(

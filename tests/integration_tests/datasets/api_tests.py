@@ -164,7 +164,7 @@ class TestDatasetApi(SupersetTestCase):
         arguments = {
             "filters": [
                 {"col": "database", "opr": "rel_o_m", "value": f"{example_db.id}"},
-                {"col": "table_name", "opr": "eq", "value": "birth_names"},
+                {"col": "table_name", "opr": "eq", "value": "USA Birth Names"},
             ]
         }
         uri = f"api/v1/dataset/?q={prison.dumps(arguments)}"
@@ -490,14 +490,14 @@ class TestDatasetApi(SupersetTestCase):
 
         example_db = get_example_database()
         example_db.get_sqla_engine().execute(
-            f"CREATE TABLE {CTAS_SCHEMA_NAME}.birth_names AS SELECT 2 as two"
+            f'CREATE TABLE {CTAS_SCHEMA_NAME}."USA Birth Names" AS SELECT 2 as two'
         )
 
         self.login(username="admin")
         table_data = {
             "database": example_db.id,
             "schema": CTAS_SCHEMA_NAME,
-            "table_name": "birth_names",
+            "table_name": "USA Birth Names",
         }
 
         uri = "api/v1/dataset/"
@@ -510,7 +510,7 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.client.delete(uri)
         assert rv.status_code == 200
         example_db.get_sqla_engine().execute(
-            f"DROP TABLE {CTAS_SCHEMA_NAME}.birth_names"
+            f'DROP TABLE {CTAS_SCHEMA_NAME}."USA Birth Names"'
         )
 
     def test_create_dataset_validate_database(self):
@@ -518,7 +518,7 @@ class TestDatasetApi(SupersetTestCase):
         Dataset API: Test create dataset validate database exists
         """
         self.login(username="admin")
-        dataset_data = {"database": 1000, "schema": "", "table_name": "birth_names"}
+        dataset_data = {"database": 1000, "schema": "", "table_name": "USA Birth Names"}
         uri = "api/v1/dataset/"
         rv = self.post_assert_metric(uri, dataset_data, "post")
         assert rv.status_code == 422
@@ -1302,7 +1302,7 @@ class TestDatasetApi(SupersetTestCase):
         cli_export_tables = cli_export["databases"][0]["tables"]
         expected_response = {}
         for export_table in cli_export_tables:
-            if export_table["table_name"] == "birth_names":
+            if export_table["table_name"] == "USA Birth Names":
                 expected_response = export_table
                 break
         ui_export = yaml.safe_load(rv.data.decode("utf-8"))

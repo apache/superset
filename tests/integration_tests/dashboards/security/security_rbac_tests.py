@@ -89,7 +89,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         # act
         response = self.get_dashboard_view_response(dashboard_to_access)
 
-        request_payload = get_query_context("birth_names")
+        request_payload = get_query_context("USA Birth Names")
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
         self.assertEqual(rv.status_code, 401)
 
@@ -139,7 +139,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         # assert
         self.assert200(response)
 
-        request_payload = get_query_context("birth_names")
+        request_payload = get_query_context("USA Birth Names")
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
         self.assertEqual(rv.status_code, 200)
 

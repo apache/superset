@@ -40,7 +40,7 @@ export default {
     },
     metrics: [
       {
-        expression: 'SUM(birth_names.num)',
+        expression: 'SUM("USA Birth Names".num)',
         warning_text: null,
         verbose_name: 'sum__num',
         metric_name: 'sum__num',
@@ -49,35 +49,35 @@ export default {
           '{"certification":{"details":"foo", "certified_by":"someone"},"warning_markdown":"bar"}',
       },
       {
-        expression: 'AVG(birth_names.num)',
+        expression: 'AVG("USA Birth Names".num)',
         warning_text: null,
         verbose_name: 'avg__num',
         metric_name: 'avg__num',
         description: null,
       },
       {
-        expression: 'SUM(birth_names.num_boys)',
+        expression: 'SUM("USA Birth Names".num_boys)',
         warning_text: null,
         verbose_name: 'sum__num_boys',
         metric_name: 'sum__num_boys',
         description: null,
       },
       {
-        expression: 'AVG(birth_names.num_boys)',
+        expression: 'AVG("USA Birth Names".num_boys)',
         warning_text: null,
         verbose_name: 'avg__num_boys',
         metric_name: 'avg__num_boys',
         description: null,
       },
       {
-        expression: 'SUM(birth_names.num_girls)',
+        expression: 'SUM("USA Birth Names".num_girls)',
         warning_text: null,
         verbose_name: 'sum__num_girls',
         metric_name: 'sum__num_girls',
         description: null,
       },
       {
-        expression: 'AVG(birth_names.num_girls)',
+        expression: 'AVG("USA Birth Names".num_girls)',
         warning_text: null,
         verbose_name: 'avg__num_girls',
         metric_name: 'avg__num_girls',
@@ -167,7 +167,7 @@ export default {
     column_types: [0, 1, 2],
     id,
     granularity_sqla: [['ds', 'ds']],
-    name: 'birth_names',
+    name: '"USA Birth Names"',
     database: {
       allow_multi_schema_metadata_fetch: null,
       name: 'main',
