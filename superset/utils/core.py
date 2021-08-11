@@ -1275,14 +1275,6 @@ def backend() -> str:
     return get_example_database().backend
 
 
-def is_legacy_metric(metric: Metric) -> bool:
-    return (
-        isinstance(metric, dict)
-        and "label" in metric
-        and "expressionType" not in metric
-    )
-
-
 def is_adhoc_metric(metric: Metric) -> bool:
     return isinstance(metric, dict) and "expressionType" in metric
 
@@ -1295,8 +1287,6 @@ def get_metric_name(metric: Metric) -> str:
     :return: String representation of metric
     :raises ValueError: if metric object is invalid
     """
-    if isinstance(metric, str):
-        return cast(str, metric)
     if is_adhoc_metric(metric):
         metric = cast(AdhocMetric, metric)
         label = metric.get("label")
@@ -1315,7 +1305,8 @@ def get_metric_name(metric: Metric) -> str:
                 return f"{aggregate}({column_name})"
             if column_name:
                 return column_name
-    raise ValueError(__("Invalid metric object"))
+        raise ValueError(__("Invalid metric object"))
+    return cast(str, metric)
 
 
 def get_metric_names(metrics: Sequence[Metric]) -> List[str]:

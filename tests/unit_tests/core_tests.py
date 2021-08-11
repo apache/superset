@@ -68,9 +68,6 @@ def test_get_metric_name_adhoc():
 
 
 def test_get_metric_name_invalid_metric():
-    with pytest.raises(ValueError):
-        get_metric_name({})
-
     metric = deepcopy(SIMPLE_SUM_ADHOC_METRIC)
     del metric["label"]
     del metric["column"]
