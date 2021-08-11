@@ -21,6 +21,10 @@
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 // import userEvent from '@testing-library/user-event';
+// import sinon from 'sinon';
+// import fetchMock from 'fetch-mock';
+// import * as actions from 'src/reports/actions/reports';
+import * as featureFlags from 'src/featureFlags';
 import { shallow } from 'enzyme';
 
 import { ExploreChartHeader } from 'src/explore/components/ExploreChartHeader';
@@ -49,15 +53,16 @@ const mockProps = {
   },
   user: {
     createdOn: '2021-04-27T18:12:38.952304',
-    email: 'admin',
+    email: 'admin@test.com',
     firstName: 'admin',
     isActive: true,
     lastName: 'admin',
     permissions: {},
-    roles: { Admin: Array(173) },
+    roles: { Admin: [['can_add', 'AlertModelView']] },
     userId: 1,
     username: 'admin',
   },
+  reports: {},
   timeout: 1000,
   chart: {
     id: 0,
@@ -90,7 +95,24 @@ describe('ExploreChartHeader', () => {
   });
 });
 
-describe.only('RTL', () => {
+describe('RTL', () => {
+  // TODO (lyndsiWilliams): Cannot get ExploreChartHeader to render at all - errors in both RTL and enzyme
+  // ERROR: TypeError: Cannot read property 'datasource' of undefined (also cannot find 'userId' nor 'find')
+  // Possible an issue mocking redux/state?
+
+  let isFeatureEnabledMock;
+  // let dispatch;
+  beforeEach(async () => {
+    isFeatureEnabledMock = jest
+      .spyOn(featureFlags, 'isFeatureEnabled')
+      .mockImplementation(() => true);
+    // dispatch = sinon.spy();
+  });
+
+  afterAll(() => {
+    isFeatureEnabledMock.mockRestore();
+  });
+
   it('renders the calendar icon', () => {
     render(<ExploreChartHeader {...mockProps} />, { useRedux: true });
     screen.logTestingPlaygroundURL();
