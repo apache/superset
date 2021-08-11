@@ -185,6 +185,9 @@ export const DndMetricSelect = (props: any) => {
 
   const onMetricEdit = useCallback(
     (changedMetric: Metric | AdhocMetric, oldMetric: Metric | AdhocMetric) => {
+      if (oldMetric instanceof AdhocMetric && oldMetric.equals(changedMetric)) {
+        return;
+      }
       const newValue = value.map(value => {
         if (
           // compare saved metrics
