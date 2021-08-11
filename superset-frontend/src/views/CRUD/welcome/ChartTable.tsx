@@ -132,6 +132,12 @@ function ChartTable({
         operator: 'chart_is_favorite',
         value: true,
       });
+    } else if (filterName === 'Examples') {
+      filters.push({
+        id: 'created_by',
+        operator: 'rel_o_m',
+        value: 0,
+      });
     }
     return filters;
   };
