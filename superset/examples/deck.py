@@ -176,7 +176,7 @@ def load_deck_dash() -> None:
     print("Loading deck.gl dashboard")
     slices = []
     table = get_table_connector_registry()
-    tbl = db.session.query(table).filter_by(table_name="long_lat").first()
+    tbl = db.session.query(table).filter_by(table_name="Sample Geodata").first()
     slice_data = {
         "spatial": {"type": "latlong", "lonCol": "LON", "latCol": "LAT"},
         "color_picker": COLOR_RED,
@@ -323,7 +323,9 @@ def load_deck_dash() -> None:
     slices.append(slc)
 
     polygon_tbl = (
-        db.session.query(table).filter_by(table_name="sf_population_polygons").first()
+        db.session.query(table)
+        .filter_by(table_name="San Francisco Population Polygons")
+        .first()
     )
     slice_data = {
         "datasource": "11__table",
@@ -456,7 +458,7 @@ def load_deck_dash() -> None:
         viz_type="deck_arc",
         datasource_type="table",
         datasource_id=db.session.query(table)
-        .filter_by(table_name="flights")
+        .filter_by(table_name="Flights")
         .first()
         .id,
         params=get_slice_json(slice_data),
@@ -508,7 +510,7 @@ def load_deck_dash() -> None:
         viz_type="deck_path",
         datasource_type="table",
         datasource_id=db.session.query(table)
-        .filter_by(table_name="bart_lines")
+        .filter_by(table_name="San Franciso BART Lines")
         .first()
         .id,
         params=get_slice_json(slice_data),

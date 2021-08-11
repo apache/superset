@@ -28,7 +28,7 @@ from .helpers import get_example_data, get_table_connector_registry
 def load_sf_population_polygons(
     only_metadata: bool = False, force: bool = False
 ) -> None:
-    tbl_name = "sf_population_polygons"
+    tbl_name = "San Francisco Population Polygons"
     database = utils.get_example_database()
     table_exists = database.has_table_by_name(tbl_name)
 
