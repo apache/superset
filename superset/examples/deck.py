@@ -508,7 +508,7 @@ def load_deck_dash() -> None:
         viz_type="deck_path",
         datasource_type="table",
         datasource_id=db.session.query(table)
-        .filter_by(table_name="bart_lines")
+        .filter_by(table_name="San Franciso BART Lines")
         .first()
         .id,
         params=get_slice_json(slice_data),
