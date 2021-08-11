@@ -22,7 +22,7 @@ offset: 0
 cache_timeout: null
 schema: null
 sql: SELECT c.name AS channel_name, u.name AS member_name FROM "Slack Channels and Members" cm
-  JOIN channels c ON cm.channel_id = c.id JOIN users u ON cm.user_id = u.id
+  JOIN "Slack Channels" c ON cm.channel_id = c.id JOIN users u ON cm.user_id = u.id
 params: null
 template_params: null
 filter_select_enabled: true
