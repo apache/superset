@@ -14,14 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-table_name: messages_channels
+table_name: Slack Messages and Channels
 main_dttm_col: null
 description: null
 default_endpoint: null
 offset: 0
 cache_timeout: null
 schema: null
-sql: SELECT m.ts, c.name, m.text FROM messages m JOIN channels c ON m.channel_id =
+sql: SELECT m.ts, c.name, m.text FROM messages m JOIN "Slack Messages" c ON m.channel_id =
   c.id
 params: null
 template_params: null
