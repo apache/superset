@@ -132,10 +132,19 @@ export const getRecentAcitivtyObjs = (
 ) =>
   SupersetClient.get({ endpoint: recent }).then(recentsRes => {
     const res: any = {};
+    const filters = [
+      {
+        col: 'created_by',
+        opr: 'rel_o_m',
+        value: 0,
+      },
+    ];
     const newBatch = [
-      SupersetClient.get({ endpoint: `/api/v1/chart/?q=${getParams()}` }),
       SupersetClient.get({
-        endpoint: `/api/v1/dashboard/?q=${getParams()}`,
+        endpoint: `/api/v1/chart/?q=${getParams(filters)}`,
+      }),
+      SupersetClient.get({
+        endpoint: `/api/v1/dashboard/?q=${getParams(filters)}`,
       }),
     ];
     return Promise.all(newBatch)
@@ -274,12 +283,6 @@ export const loadingCardCount = 5;
 
 const breakpoints = [576, 768, 992, 1200];
 export const mq = breakpoints.map(bp => `@media (max-width: ${bp}px)`);
-
-export const CardStylesOverrides = styled.div`
-  .ant-card-cover > div {
-    height: 264px;
-  }
-`;
 
 export const CardContainer = styled.div<{
   showThumbnails?: boolean | undefined;

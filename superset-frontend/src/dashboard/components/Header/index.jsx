@@ -177,11 +177,13 @@ class Header extends React.PureComponent {
         'dashboard_id',
         'dashboards',
         dashboardInfo.id,
+        user.email,
       );
     }
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
+    const { user } = this.props;
     if (
       UNDO_LIMIT - nextProps.undoLength <= 0 &&
       !this.state.didNotifyMaxUndoHistoryToast
@@ -194,6 +196,16 @@ class Header extends React.PureComponent {
       !this.props.maxUndoHistoryExceeded
     ) {
       this.props.setMaxUndoHistoryExceeded();
+    }
+    if (user && nextProps.dashboardInfo.id !== this.props.dashboardInfo.id) {
+      // this is in case there is an anonymous user.
+      this.props.fetchUISpecificReport(
+        user.userId,
+        'dashboard_id',
+        'dashboards',
+        nextProps.dashboardInfo.id,
+        user.email,
+      );
     }
   }
 

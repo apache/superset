@@ -295,7 +295,7 @@ export class ExploreChartHeader extends React.PureComponent {
             props={{
               userId: this.props.user.userId,
               userEmail: this.props.user.email,
-              chartId: this.props.chart.id,
+              chart: this.props.chart,
               creationMethod: 'charts',
             }}
           />
