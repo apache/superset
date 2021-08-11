@@ -488,11 +488,14 @@ class DatasourceEditor extends React.PureComponent {
     const { datasource } = this.state;
     const params = {
       datasource_type: datasource.type || datasource.datasource_type,
-      database_name: datasource.database.database_name || datasource.database.name,
+      database_name:
+        datasource.database.database_name || datasource.database.name,
       schema_name: datasource.schema,
       table_name: datasource.table_name,
-    }
-    const endpoint = `/datasource/external_metadata_by_name/?q=${rison.encode(params)}`;
+    };
+    const endpoint = `/datasource/external_metadata_by_name/?q=${rison.encode(
+      params,
+    )}`;
     this.setState({ metadataLoading: true });
 
     SupersetClient.get({ endpoint })
