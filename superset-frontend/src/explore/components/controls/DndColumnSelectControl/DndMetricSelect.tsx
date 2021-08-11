@@ -352,7 +352,11 @@ export const DndMetricSelect = (props: any) => {
           multi ? 2 : 1,
         )}
         displayGhostButton={multi || value.length === 0}
-        onClickGhostButton={handleClickGhostButton}
+        onClickGhostButton={
+          isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX)
+            ? handleClickGhostButton
+            : undefined
+        }
         {...props}
       />
       <AdhocMetricPopoverTrigger

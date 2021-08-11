@@ -380,7 +380,11 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
         valuesRenderer={valuesRenderer}
         accept={DND_ACCEPTED_TYPES}
         ghostButtonText={t('Drop columns or metrics here')}
-        onClickGhostButton={handleClickGhostButton}
+        onClickGhostButton={
+          isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX)
+            ? handleClickGhostButton
+            : undefined
+        }
         {...props}
       />
       <AdhocFilterPopoverTrigger

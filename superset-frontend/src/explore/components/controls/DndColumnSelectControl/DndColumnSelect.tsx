@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import { tn } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled, tn } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
 import { LabelProps } from 'src/explore/components/controls/DndColumnSelectControl/types';
@@ -126,15 +126,29 @@ export const DndColumnSelect = (props: LabelProps) => {
 
   const valuesRenderer = useCallback(
     () =>
-      optionSelector.values.map((column, idx) => (
-        <ColumnSelectPopoverTrigger
-          columns={popoverOptions}
-          onColumnEdit={newColumn => {
-            optionSelector.replace(idx, newColumn.column_name);
-            onChange(optionSelector.getValues());
-          }}
-          editedColumn={column}
-        >
+      optionSelector.values.map((column, idx) =>
+        isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX) ? (
+          <ColumnSelectPopoverTrigger
+            columns={popoverOptions}
+            onColumnEdit={newColumn => {
+              optionSelector.replace(idx, newColumn.column_name);
+              onChange(optionSelector.getValues());
+            }}
+            editedColumn={column}
+          >
+            <OptionWrapper
+              key={idx}
+              index={idx}
+              clickClose={onClickClose}
+              onShiftOptions={onShiftOptions}
+              type={`${DndItemType.ColumnOption}_${name}_${label}`}
+              canDelete={canDelete}
+              withCaret
+            >
+              <StyledColumnOption column={column} showType />
+            </OptionWrapper>
+          </ColumnSelectPopoverTrigger>
+        ) : (
           <OptionWrapper
             key={idx}
             index={idx}
@@ -145,8 +159,7 @@ export const DndColumnSelect = (props: LabelProps) => {
             column={column}
             withCaret
           />
-        </ColumnSelectPopoverTrigger>
-      )),
+      ),
     [
       canDelete,
       label,
@@ -191,7 +204,11 @@ export const DndColumnSelect = (props: LabelProps) => {
           ghostButtonText ||
           tn('Drop column here', 'Drop columns here', multi ? 2 : 1)
         }
-        onClickGhostButton={openPopover}
+        onClickGhostButton={
+          isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX)
+            ? openPopover
+            : undefined
+        }
         {...props}
       />
       <ColumnSelectPopoverTrigger
