@@ -121,11 +121,7 @@ const OTHER_CATEGORY = t('Other');
 
 const ALL_CHARTS = t('All charts');
 
-const RECOMMENDED_TAGS = [
-  t('Highly-used'),
-  t('ECharts'),
-  t('Advanced-Analytics'),
-];
+const RECOMMENDED_TAGS = [t('Popular'), t('ECharts'), t('Advanced-Analytics')];
 
 export const VIZ_TYPE_CONTROL_TEST_ID = 'viz-type-control';
 
