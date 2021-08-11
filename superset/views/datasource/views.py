@@ -156,7 +156,7 @@ class Datasource(BaseSupersetView):
         )
         try:
             if datasource is not None:
-                # Get external from Superset metadata
+                # Get columns from Superset metadata
                 external_metadata = datasource.external_metadata()
             else:
                 # Use the SQLAlchemy inspector to get columns
