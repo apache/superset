@@ -143,7 +143,7 @@ export const getRecentAcitivtyObjs = (
     };
     const newBatch = [
       SupersetClient.get({
-        endpoint: `/api/v1/chart/?q=${getParams(filters.examples)}`,
+        endpoint: `/api/v1/chart/?q=${getParams(filters)}`,
       }),
       SupersetClient.get({
         endpoint: `/api/v1/dashboard/?q=${getParams(filters)}`,
