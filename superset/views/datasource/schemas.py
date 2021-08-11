@@ -14,9 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, TypedDict
+from typing import Any
 
 from marshmallow import fields, post_load, Schema
+from typing_extensions import TypedDict
 
 
 class ExternalMetadataParams(TypedDict):
