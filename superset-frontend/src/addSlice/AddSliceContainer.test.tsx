@@ -19,7 +19,7 @@
 import React from 'react';
 import { ReactWrapper } from 'enzyme';
 import Button from 'src/components/Button';
-import Select from 'src/components/Select';
+import { Select } from 'src/components';
 import AddSliceContainer, {
   AddSliceContainerProps,
   AddSliceContainerState,

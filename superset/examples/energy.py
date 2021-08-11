@@ -56,13 +56,14 @@ def load_energy(
             method="multi",
         )
 
-    print("Creating table [wb_health_population] reference")
+    print("Creating table [World Bank Health Data] reference")
     table = get_table_connector_registry()
     tbl = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not tbl:
         tbl = table(table_name=tbl_name)
     tbl.description = "Energy consumption"
     tbl.database = database
+    tbl.filter_select_enabled = True
 
     if not any(col.metric_name == "sum__value" for col in tbl.metrics):
         col = str(column("value").compile(db.engine))

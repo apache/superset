@@ -22,8 +22,9 @@ import Alert from 'src/components/Alert';
 import { styled, logging, t } from '@superset-ui/core';
 
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 import Button from 'src/components/Button';
-import Loading from '../components/Loading';
+import Loading from 'src/components/Loading';
 import ErrorBoundary from '../components/ErrorBoundary';
 import ChartRenderer from './ChartRenderer';
 import { ChartErrorMessage } from './ChartErrorMessage';
@@ -164,10 +165,32 @@ class Chart extends React.PureComponent {
   }
 
   renderErrorMessage(queryResponse) {
-    const { chartId, chartAlert, chartStackTrace, dashboardId } = this.props;
+    const {
+      chartId,
+      chartAlert,
+      chartStackTrace,
+      datasource,
+      dashboardId,
+      height,
+    } = this.props;
 
     const error = queryResponse?.errors?.[0];
     const message = chartAlert || queryResponse?.message;
+
+    // if datasource is still loading, don't render JS errors
+    if (chartAlert && datasource === PLACEHOLDER_DATASOURCE) {
+      return (
+        <Styles
+          data-ui-anchor="chart"
+          className="chart-container"
+          data-test="chart-container"
+          height={height}
+        >
+          <Loading />
+        </Styles>
+      );
+    }
+
     return (
       <ChartErrorMessage
         chartId={chartId}
@@ -198,6 +221,7 @@ class Chart extends React.PureComponent {
     if (chartStatus === 'failed') {
       return queriesResponse.map(item => this.renderErrorMessage(item));
     }
+
     if (errorMessage) {
       return (
         <Alert

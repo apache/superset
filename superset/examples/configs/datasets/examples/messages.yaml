@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-table_name: messages
+table_name: Slack Messages
 main_dttm_col: bot_profile__updated
 description: null
 default_endpoint: null
@@ -24,7 +24,7 @@ schema: null
 sql: null
 params: null
 template_params: null
-filter_select_enabled: false
+filter_select_enabled: true
 fetch_values_predicate: null
 extra: null
 uuid: e032c69e-716e-d700-eff7-07800d0f9989

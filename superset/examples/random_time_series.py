@@ -65,13 +65,14 @@ def load_random_time_series_data(
         obj = table(table_name=tbl_name)
     obj.main_dttm_col = "ds"
     obj.database = database
+    obj.filter_select_enabled = True
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
     tbl = obj
 
     slice_data = {
-        "granularity_sqla": "day",
+        "granularity_sqla": "ds",
         "row_limit": app.config["ROW_LIMIT"],
         "since": "2019-01-01",
         "until": "2019-02-01",

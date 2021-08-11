@@ -32,6 +32,7 @@ from superset.utils.cache_manager import CacheManager
 from superset.utils.encrypt import EncryptedFieldFactory
 from superset.utils.feature_flag_manager import FeatureFlagManager
 from superset.utils.machine_auth import MachineAuthProviderFactory
+from superset.utils.profiler import SupersetProfiler
 
 
 class ResultsBackendManager:
@@ -97,6 +98,14 @@ class UIManifestProcessor:
         return self.manifest.get(bundle, {}).get(asset_type, [])
 
 
+class ProfilingExtension:
+    def __init__(self, interval: float = 1e-4) -> None:
+        self.interval = interval
+
+    def init_app(self, app: Flask) -> None:
+        app.wsgi_app = SupersetProfiler(app.wsgi_app, self.interval)  # type: ignore
+
+
 APP_DIR = os.path.dirname(__file__)
 appbuilder = AppBuilder(update_perms=False)
 async_query_manager = AsyncQueryManager()
@@ -111,6 +120,7 @@ feature_flag_manager = FeatureFlagManager()
 machine_auth_provider_factory = MachineAuthProviderFactory()
 manifest_processor = UIManifestProcessor(APP_DIR)
 migrate = Migrate()
+profiling = ProfilingExtension()
 results_backend_manager = ResultsBackendManager()
 security_manager = LocalProxy(lambda: appbuilder.sm)
 talisman = Talisman()

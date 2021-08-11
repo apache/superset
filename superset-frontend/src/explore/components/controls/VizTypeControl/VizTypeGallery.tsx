@@ -25,6 +25,7 @@ import React, {
   useState,
 } from 'react';
 import Fuse from 'fuse.js';
+import cx from 'classnames';
 import {
   t,
   styled,
@@ -38,7 +39,6 @@ import Label from 'src/components/Label';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import Icons from 'src/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
-import { CloseOutlined } from '@ant-design/icons';
 import scrollIntoView from 'scroll-into-view-if-needed';
 
 interface VizTypeGalleryProps {
@@ -52,20 +52,32 @@ type VizEntry = {
   value: ChartMetadata;
 };
 
+enum SECTIONS {
+  ALL_CHARTS = 'ALL_CHARTS',
+  CATEGORY = 'CATEGORY',
+  TAGS = 'TAGS',
+  RECOMMENDED_TAGS = 'RECOMMENDED_TAGS',
+}
+
 const DEFAULT_ORDER = [
   'line',
   'big_number',
+  'big_number_total',
   'table',
+  'pivot_table_v2',
+  'echarts_timeseries_line',
+  'echarts_area',
+  'echarts_timeseries_bar',
+  'echarts_timeseries_scatter',
+  'pie',
+  'mixed_timeseries',
   'filter_box',
   'dist_bar',
   'area',
   'bar',
   'deck_polygon',
-  'pie',
   'time_table',
-  'pivot_table_v2',
   'histogram',
-  'big_number_total',
   'deck_scatter',
   'deck_hex',
   'time_pivot',
@@ -109,18 +121,15 @@ const OTHER_CATEGORY = t('Other');
 
 const ALL_CHARTS = t('All charts');
 
-const RECOMMENDED_TAGS = [
-  t('Highly-used'),
-  t('ECharts'),
-  t('Advanced-Analytics'),
-];
+const RECOMMENDED_TAGS = [t('Popular'), t('ECharts'), t('Advanced-Analytics')];
 
 export const VIZ_TYPE_CONTROL_TEST_ID = 'viz-type-control';
 
 const VizPickerLayout = styled.div`
   display: grid;
   grid-template-rows: auto minmax(100px, 1fr) minmax(200px, 35%);
-  grid-template-columns: auto 5fr;
+  // em is used here because the sidebar should be sized to fit the longest standard tag
+  grid-template-columns: minmax(14em, auto) 5fr;
   grid-template-areas:
     'sidebar search'
     'sidebar main'
@@ -161,16 +170,16 @@ const LeftPane = styled.div`
 
 const RightPane = styled.div`
   grid-area: main;
-  overflow-y: scroll;
+  overflow-y: auto;
 `;
 
 const SearchWrapper = styled.div`
   ${({ theme }) => `
     grid-area: search;
-    margin: ${theme.gridUnit * 2}px ${theme.gridUnit * 3}px;
-    input {
-      font-size: ${theme.typography.sizes.s};
-    }
+    margin-top: ${theme.gridUnit * 3}px;
+    margin-bottom: ${theme.gridUnit}px;
+    margin-left: ${theme.gridUnit * 3}px;
+    margin-right: ${theme.gridUnit * 3}px;
     .ant-input-affix-wrapper {
       padding-left: ${theme.gridUnit * 2}px;
     }
@@ -188,14 +197,15 @@ const InputIconAlignment = styled.div`
 const SelectorLabel = styled.button`
   ${({ theme }) => `
     all: unset; // remove default button styles
+    display: flex;
+    flex-direction: row;
+    align-items: center;
     cursor: pointer;
     margin: ${theme.gridUnit}px 0;
-    padding: 0 ${theme.gridUnit * 6}px 0 ${theme.gridUnit}px;
+    padding: 0 ${theme.gridUnit}px;
     border-radius: ${theme.borderRadius}px;
     line-height: 2em;
-    font-size: ${theme.typography.sizes.s};
     text-overflow: ellipsis;
-    overflow: hidden;
     white-space: nowrap;
     position: relative;
 
@@ -218,15 +228,12 @@ const SelectorLabel = styled.button`
       }
     }
 
-    svg {
-      position: relative;
-      top: ${theme.gridUnit * 2}px
+    & span:first-of-type svg {
+      margin-top: ${theme.gridUnit * 1.5}px;
     }
 
     .cancel {
       visibility: hidden;
-      position: absolute;
-      right: ${theme.gridUnit * 2}px;
     }
   `}
 `;
@@ -284,6 +291,7 @@ const Description = styled.p`
   grid-area: description;
   overflow: auto;
   padding-right: ${({ theme }) => theme.gridUnit * 14}px;
+  margin: 0;
 `;
 
 const Examples = styled.div`
@@ -396,11 +404,12 @@ const ThumbnailGallery: React.FC<ThumbnailGalleryProps> = ({
 
 const Selector: React.FC<{
   selector: string;
+  sectionId: string;
   icon: JSX.Element;
   isSelected: boolean;
-  onClick: (selector: string) => void;
-  onClear: (e: React.MouseEvent) => void;
-}> = ({ selector, icon, isSelected, onClick, onClear }) => {
+  onClick: (selector: string, sectionId: string) => void;
+  className?: string;
+}> = ({ selector, sectionId, icon, isSelected, onClick, className }) => {
   const btnRef = useRef<HTMLButtonElement>(null);
 
   // see Element.scrollIntoViewIfNeeded()
@@ -422,12 +431,11 @@ const Selector: React.FC<{
       ref={btnRef}
       key={selector}
       name={selector}
-      className={isSelected ? 'selected' : ''}
-      onClick={() => onClick(selector)}
+      className={cx(className, isSelected && 'selected')}
+      onClick={() => onClick(selector, sectionId)}
     >
       {icon}
       {selector}
-      <CloseOutlined className="cancel" onClick={onClear} />
     </SelectorLabel>
   );
 };
@@ -506,7 +514,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           a.localeCompare(b),
         )
         .filter(tag => RECOMMENDED_TAGS.indexOf(tag) === -1),
-    [chartsByCategory],
+    [chartsByTags],
   );
 
   const sortedMetadata = useMemo(
@@ -516,6 +524,12 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
 
   const [activeSelector, setActiveSelector] = useState<string>(
     () => selectedVizMetadata?.category || RECOMMENDED_TAGS[0],
+  );
+
+  const [activeSection, setActiveSection] = useState<string>(() =>
+    selectedVizMetadata?.category
+      ? SECTIONS.CATEGORY
+      : SECTIONS.RECOMMENDED_TAGS,
   );
 
   // get a fuse instance for fuzzy search
@@ -557,15 +571,17 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
   }, []);
 
   const clickSelector = useCallback(
-    (key: string) => {
+    (selector: string, sectionId: string) => {
       if (isSearchFocused) {
         stopSearching();
       }
-      setActiveSelector(key);
+      setActiveSelector(selector);
+      setActiveSection(sectionId);
       // clear the selected viz if it is not present in the new category or tags
       const isSelectedVizCompatible =
-        selectedVizMetadata && doesVizMatchSelector(selectedVizMetadata, key);
-      if (key !== activeSelector && !isSelectedVizCompatible) {
+        selectedVizMetadata &&
+        doesVizMatchSelector(selectedVizMetadata, selector);
+      if (selector !== activeSelector && !isSelectedVizCompatible) {
         onChange(null);
       }
     },
@@ -578,33 +594,19 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     ],
   );
 
-  const clearSelector = useCallback(e => {
-    e.stopPropagation();
-    if (isSearchFocused) {
-      stopSearching();
-    }
-    // clear current selector and set all charts
-    setActiveSelector(ALL_CHARTS);
-  }, []);
-
   const sectionMap = useMemo(
     () => ({
-      RECOMMENDED_TAGS: {
+      [SECTIONS.RECOMMENDED_TAGS]: {
         title: t('Recommended tags'),
         icon: <Icons.Tags />,
         selectors: RECOMMENDED_TAGS,
       },
-      ALL: {
-        title: t('All'),
-        icon: <Icons.Ballot />,
-        selectors: [ALL_CHARTS],
-      },
-      CATEGORY: {
+      [SECTIONS.CATEGORY]: {
         title: t('Category'),
         icon: <Icons.Category />,
         selectors: categories,
       },
-      TAGS: {
+      [SECTIONS.TAGS]: {
         title: t('Tags'),
         icon: <Icons.Tags />,
         selectors: tags,
@@ -613,37 +615,78 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     [categories, tags],
   );
 
-  const vizEntriesToDisplay = isActivelySearching
-    ? searchResults
-    : activeSelector === ALL_CHARTS
-    ? sortedMetadata
-    : chartsByCategory[activeSelector] || chartsByTags[activeSelector] || [];
+  const getVizEntriesToDisplay = () => {
+    if (isActivelySearching) {
+      return searchResults;
+    }
+    if (
+      activeSelector === ALL_CHARTS &&
+      activeSection === SECTIONS.ALL_CHARTS
+    ) {
+      return sortedMetadata;
+    }
+    if (
+      activeSection === SECTIONS.CATEGORY &&
+      chartsByCategory[activeSelector]
+    ) {
+      return chartsByCategory[activeSelector];
+    }
+    if (
+      (activeSection === SECTIONS.TAGS ||
+        activeSection === SECTIONS.RECOMMENDED_TAGS) &&
+      chartsByTags[activeSelector]
+    ) {
+      return chartsByTags[activeSelector];
+    }
+    return [];
+  };
 
   return (
     <VizPickerLayout className={className}>
       <LeftPane>
+        <Selector
+          css={({ gridUnit }) =>
+            // adjust style for not being inside a collapse
+            css`
+              margin: ${gridUnit * 2}px;
+              margin-bottom: 0;
+            `
+          }
+          sectionId={SECTIONS.ALL_CHARTS}
+          selector={ALL_CHARTS}
+          icon={<Icons.Ballot />}
+          isSelected={
+            !isActivelySearching &&
+            ALL_CHARTS === activeSelector &&
+            SECTIONS.ALL_CHARTS === activeSection
+          }
+          onClick={clickSelector}
+        />
         <Collapse
           expandIconPosition="right"
           ghost
           defaultActiveKey={Object.keys(sectionMap)}
         >
-          {Object.keys(sectionMap).map(key => {
-            const section = sectionMap[key];
+          {Object.keys(sectionMap).map(sectionId => {
+            const section = sectionMap[sectionId];
 
             return (
               <Collapse.Panel
                 header={<span className="header">{section.title}</span>}
-                key={key}
+                key={sectionId}
               >
                 {section.selectors.map((selector: string) => (
                   <Selector
+                    key={selector}
                     selector={selector}
+                    sectionId={sectionId}
                     icon={section.icon}
                     isSelected={
-                      !isActivelySearching && selector === activeSelector
+                      !isActivelySearching &&
+                      selector === activeSelector &&
+                      sectionId === activeSection
                     }
                     onClick={clickSelector}
-                    onClear={clearSelector}
                   />
                 ))}
               </Collapse.Panel>
@@ -678,7 +721,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
 
       <RightPane>
         <ThumbnailGallery
-          vizEntries={vizEntriesToDisplay}
+          vizEntries={getVizEntriesToDisplay()}
           selectedViz={selectedViz}
           setSelectedViz={onChange}
         />

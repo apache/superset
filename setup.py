@@ -108,6 +108,7 @@ setup(
         "sqlalchemy>=1.3.16, <1.4, !=1.3.21",
         "sqlalchemy-utils>=0.36.6,<0.37",
         "sqlparse==0.3.0",  # PINNED! see https://github.com/andialbrecht/sqlparse/issues/562
+        "tabulate==0.8.9",
         "typing-extensions>=3.7.4.3,<4",  # needed to support typing.Literal on py37
         "wtforms-json",
     ],

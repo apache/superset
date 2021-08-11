@@ -18,6 +18,8 @@
 # ATTENTION: If you change any constants, make sure to also change utils/common.js
 
 # string to use when None values *need* to be converted to/from strings
+from enum import Enum
+
 NULL_STRING = "<NULL>"
 
 
@@ -123,6 +125,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "get_datasets": "read",
     "function_names": "read",
     "available": "read",
+    "get_data": "read",
 }
 
 EXTRA_FORM_DATA_APPEND_KEYS = {
@@ -154,3 +157,20 @@ EXTRA_FORM_DATA_OVERRIDE_KEYS = (
     set(EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS.values())
     | EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS
 )
+
+
+class PandasAxis(int, Enum):
+    ROW = 0
+    COLUMN = 1
+
+
+class PandasPostprocessingCompare(str, Enum):
+    ABS = "absolute"
+    PCT = "percentage"
+    RAT = "ratio"
+
+
+class CacheRegion(str, Enum):
+    DEFAULT = "default"
+    DATA = "data"
+    THUMBNAIL = "thumbnail"

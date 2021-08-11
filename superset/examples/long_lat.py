@@ -36,7 +36,7 @@ from .helpers import (
 
 def load_long_lat_data(only_metadata: bool = False, force: bool = False) -> None:
     """Loading lat/long data from a csv file in the repo"""
-    tbl_name = "long_lat"
+    tbl_name = "Sample Geodata"
     database = utils.get_example_database()
     table_exists = database.has_table_by_name(tbl_name)
 
@@ -88,6 +88,7 @@ def load_long_lat_data(only_metadata: bool = False, force: bool = False) -> None
         obj = table(table_name=tbl_name)
     obj.main_dttm_col = "datetime"
     obj.database = database
+    obj.filter_select_enabled = True
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()

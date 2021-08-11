@@ -31,7 +31,12 @@ import {
   setInLocalStorage,
   getFromLocalStorage,
 } from 'src/utils/localStorageHelpers';
-import { createErrorHandler, CardContainer } from 'src/views/CRUD/utils';
+import { LoadingCards } from 'src/views/CRUD/welcome/Welcome';
+import {
+  createErrorHandler,
+  CardContainer,
+  PAGE_SIZE,
+} from 'src/views/CRUD/utils';
 import { HOMEPAGE_DASHBOARD_FILTER } from 'src/views/CRUD/storageKeys';
 
 import withToasts from 'src/messageToasts/enhancers/withToasts';
@@ -40,8 +45,6 @@ import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import DashboardCard from 'src/views/CRUD/dashboard/DashboardCard';
 import SubMenu from 'src/components/Menu/SubMenu';
 import EmptyState from './EmptyState';
-
-const PAGE_SIZE = 3;
 
 export interface FilterValue {
   col: string;
@@ -59,11 +62,7 @@ function DashboardTable({
 }: DashboardTableProps) {
   const history = useHistory();
   const filterStore = getFromLocalStorage(HOMEPAGE_DASHBOARD_FILTER, null);
-  let defaultFilter = filterStore || TableTabTypes.EXAMPLES;
-
-  if (!examples && filterStore === TableTabTypes.EXAMPLES) {
-    defaultFilter = TableTabTypes.MINE;
-  }
+  const defaultFilter = filterStore || TableTabTypes.EXAMPLES;
 
   const filteredExamples = filter(examples, obj => !('viz_type' in obj));
 
@@ -191,7 +190,7 @@ function DashboardTable({
       filters: getFilters(filter),
     });
 
-  if (loading) return <Loading position="inline" />;
+  if (loading) return <LoadingCards cover={showThumbnails} />;
   return (
     <>
       <SubMenu
@@ -232,7 +231,7 @@ function DashboardTable({
         />
       )}
       {dashboards.length > 0 && (
-        <CardContainer>
+        <CardContainer showThumbnails={showThumbnails}>
           {dashboards.map(e => (
             <DashboardCard
               key={e.id}

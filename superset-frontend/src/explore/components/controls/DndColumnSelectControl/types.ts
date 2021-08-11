@@ -19,7 +19,10 @@
 import { ReactNode } from 'react';
 import { Metric } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
-import { DatasourcePanelDndItem } from '../../DatasourcePanel/types';
+import {
+  DatasourcePanelDndItem,
+  DndItemValue,
+} from '../../DatasourcePanel/types';
 import { DndItemType } from '../../DndItemType';
 
 export interface OptionProps {
@@ -44,6 +47,7 @@ export interface LabelProps<T = string[] | string> {
   multi?: boolean;
   canDelete?: boolean;
   ghostButtonText?: string;
+  label?: string;
 }
 
 export interface DndColumnSelectProps<
@@ -52,6 +56,8 @@ export interface DndColumnSelectProps<
 > extends LabelProps<T> {
   onDrop: (item: DatasourcePanelDndItem) => void;
   canDrop: (item: DatasourcePanelDndItem) => boolean;
+  canDropValue?: (value: DndItemValue) => boolean;
+  onDropValue?: (value: DndItemValue) => void;
   valuesRenderer: () => ReactNode;
   accept: DndItemType | DndItemType[];
   ghostButtonText?: string;
