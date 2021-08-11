@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-table_name: threads
+table_name: Slack Threads
 main_dttm_col: ts
 description: null
 default_endpoint: null

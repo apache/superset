@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-table_name: new_members_daily
+table_name: Slack Daily Member Count
 main_dttm_col: null
 description: null
 default_endpoint: null
@@ -22,7 +22,7 @@ offset: 0
 cache_timeout: null
 schema: null
 sql: SELECT date, total_membership - lag(total_membership) OVER (ORDER BY date) AS
-  new_members FROM exported_stats
+  new_members FROM "Slack Exported Metrics"
 params: null
 template_params: null
 filter_select_enabled: true
