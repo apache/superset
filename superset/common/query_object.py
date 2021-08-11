@@ -177,7 +177,7 @@ class QueryObject:
         #   2. { label: 'label_name' }  - legacy format for a predefined metric
         #   3. { expressionType: 'SIMPLE' | 'SQL', ... } - adhoc metric
         self.metrics = metrics and [
-            x if isinstance(x, str) or is_adhoc_metric(x) else x["label"]
+            x if isinstance(x, str) or is_adhoc_metric(x) else x["label"]  # type: ignore
             for x in metrics
         ]
 
