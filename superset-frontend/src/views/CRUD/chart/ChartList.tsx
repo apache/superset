@@ -285,7 +285,7 @@ function ChartList(props: ChartListProps) {
           </a>
         ),
         Header: t('Modified by'),
-        accessor: 'last_saved_by',
+        accessor: 'last_saved_by.first_name',
         size: 'xl',
       },
       {
