@@ -489,9 +489,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     addDangerToast,
   );
   const isDynamic = (engine: string | undefined) =>
-    availableDbs?.databases.filter(
+    availableDbs?.databases?.find(
       (DB: DatabaseObject) => DB.backend === engine || DB.engine === engine,
-    )[0].parameters !== undefined;
+    )?.parameters !== undefined;
   const showDBError = validationErrors || dbErrors;
   const isEmpty = (data?: Object | null) =>
     data && Object.keys(data).length === 0;
@@ -539,25 +539,21 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     const dbToUpdate = JSON.parse(JSON.stringify(update));
 
     if (dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM) {
-      // Validate DB before saving
-      await getValidation(dbToUpdate, true);
-      if (validationErrors && !isEmpty(validationErrors)) {
-        return;
-      }
-
       if (dbToUpdate?.parameters?.query) {
         // convert query params into dictionary
-        dbToUpdate.parameters.query = JSON.parse(
-          `{"${decodeURI((dbToUpdate?.parameters?.query as string) || '')
-            .replace(/"/g, '\\"')
-            .replace(/&/g, '","')
-            .replace(/=/g, '":"')}"}`,
-        );
+        const urlParams = new URLSearchParams(dbToUpdate?.parameters?.query);
+        dbToUpdate.parameters.query = Object.fromEntries(urlParams);
       } else if (
         dbToUpdate?.parameters?.query === '' &&
         'query' in dbModel.parameters.properties
       ) {
         dbToUpdate.parameters.query = {};
+      }
+
+      // Validate DB before saving
+      await getValidation(dbToUpdate, true);
+      if (validationErrors && !isEmpty(validationErrors)) {
+        return;
       }
 
       const engine = dbToUpdate.backend || dbToUpdate.engine;
@@ -852,25 +848,36 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setTabKey(key);
   };
 
-  const renderStepTwoAlert = () =>
-    db?.engine && (
-      <StyledAlertMargin>
-        <Alert
-          closable={false}
-          css={(theme: SupersetTheme) => antDAlertStyles(theme)}
-          type="info"
-          showIcon
-          message={
-            engineSpecificAlertMapping[db.engine]?.message ||
-            connectionAlert?.DEFAULT?.message
-          }
-          description={
-            engineSpecificAlertMapping[db.engine]?.description ||
-            connectionAlert?.DEFAULT?.description
-          }
-        />
-      </StyledAlertMargin>
+  const renderStepTwoAlert = () => {
+    const { hostname } = window.location;
+    let ipAlert = connectionAlert?.REGIONAL_IPS?.default || '';
+    const regionalIPs = connectionAlert?.REGIONAL_IPS || {};
+    Object.entries(regionalIPs).forEach(([regex, ipRange]) => {
+      if (regex.match(hostname)) {
+        ipAlert = ipRange;
+      }
+    });
+    return (
+      db?.engine && (
+        <StyledAlertMargin>
+          <Alert
+            closable={false}
+            css={(theme: SupersetTheme) => antDAlertStyles(theme)}
+            type="info"
+            showIcon
+            message={
+              engineSpecificAlertMapping[db.engine]?.message ||
+              connectionAlert?.DEFAULT?.message
+            }
+            description={
+              engineSpecificAlertMapping[db.engine]?.description ||
+              connectionAlert?.DEFAULT?.description + ipAlert
+            }
+          />
+        </StyledAlertMargin>
+      )
     );
+  };
 
   const errorAlert = () => {
     if (

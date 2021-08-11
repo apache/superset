@@ -48,7 +48,9 @@ import {
   SAVE_TYPE_OVERWRITE,
   DASHBOARD_POSITION_DATA_LIMIT,
 } from 'src/dashboard/util/constants';
-import setPeriodicRunner from 'src/dashboard/util/setPeriodicRunner';
+import setPeriodicRunner, {
+  stopPeriodicRender,
+} from 'src/dashboard/util/setPeriodicRunner';
 import { options as PeriodicRefreshOptions } from 'src/dashboard/components/RefreshIntervalModal';
 
 const propTypes = {
@@ -175,11 +177,13 @@ class Header extends React.PureComponent {
         'dashboard_id',
         'dashboards',
         dashboardInfo.id,
+        user.email,
       );
     }
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
+    const { user } = this.props;
     if (
       UNDO_LIMIT - nextProps.undoLength <= 0 &&
       !this.state.didNotifyMaxUndoHistoryToast
@@ -193,9 +197,21 @@ class Header extends React.PureComponent {
     ) {
       this.props.setMaxUndoHistoryExceeded();
     }
+    if (user && nextProps.dashboardInfo.id !== this.props.dashboardInfo.id) {
+      // this is in case there is an anonymous user.
+      this.props.fetchUISpecificReport(
+        user.userId,
+        'dashboard_id',
+        'dashboards',
+        nextProps.dashboardInfo.id,
+        user.email,
+      );
+    }
   }
 
   componentWillUnmount() {
+    stopPeriodicRender(this.refreshTimer);
+    this.props.setRefreshFrequency(0);
     clearTimeout(this.ctrlYTimeout);
     clearTimeout(this.ctrlZTimeout);
   }

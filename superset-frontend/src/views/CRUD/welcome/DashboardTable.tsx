@@ -31,6 +31,7 @@ import {
   setInLocalStorage,
   getFromLocalStorage,
 } from 'src/utils/localStorageHelpers';
+import { LoadingCards } from 'src/views/CRUD/welcome/Welcome';
 import {
   createErrorHandler,
   CardContainer,
@@ -189,7 +190,7 @@ function DashboardTable({
       filters: getFilters(filter),
     });
 
-  if (loading) return <Loading position="inline" />;
+  if (loading) return <LoadingCards cover={showThumbnails} />;
   return (
     <>
       <SubMenu

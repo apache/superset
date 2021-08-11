@@ -112,7 +112,7 @@ const ColumnButtonWrapper = styled.div`
 const checkboxGenerator = (d, onChange) => (
   <CheckboxControl value={d} onChange={onChange} />
 );
-const DATA_TYPES = ['STRING', 'NUMERIC', 'DATETIME'];
+const DATA_TYPES = ['STRING', 'NUMERIC', 'DATETIME', 'BOOLEAN'];
 
 const DATASOURCE_TYPES_ARR = [
   { key: 'physical', label: t('Physical (table or view)') },
@@ -616,7 +616,13 @@ class DatasourceEditor extends React.PureComponent {
                 'values from the table. Typically the intent would be to limit the scan ' +
                 'by applying a relative time filter on a partitioned or indexed time-related field.',
             )}
-            control={<TextControl controlId="fetch_values_predicate" />}
+            control={
+              <TextAreaControl
+                language="sql"
+                controlId="fetch_values_predicate"
+                minLines={5}
+              />
+            }
           />
         )}
         {this.state.isSqla && (
