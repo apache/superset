@@ -30,6 +30,8 @@ import {
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import mockDatasource, { id, datasourceId } from 'spec/fixtures/mockDatasource';
 import chartQueries from 'spec/fixtures/mockChartQueries';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import {
   FiltersConfigModal,
   FiltersConfigModalProps,
@@ -149,10 +151,15 @@ beforeAll(() => {
 });
 
 function defaultRender(initialState = defaultState()) {
-  return render(<FiltersConfigModal {...props} />, {
-    useRedux: true,
-    initialState,
-  });
+  return render(
+    <DndProvider backend={HTML5Backend}>
+      <FiltersConfigModal {...props} />
+    </DndProvider>,
+    {
+      useRedux: true,
+      initialState,
+    },
+  );
 }
 
 function getCheckbox(name: RegExp) {
@@ -336,6 +343,7 @@ test("doesn't render time range pre-filter if there are no temporal columns in d
     ).not.toBeInTheDocument(),
   );
 });
+
 /*
   TODO
     adds a new value filter type with all fields filled
