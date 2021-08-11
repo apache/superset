@@ -95,6 +95,10 @@ spec:
               mountPath: {{ .Values.extraConfigMountPath | quote }}
               readOnly: true
           {{- end }}
+          {{- range $volumeName, $mount := .Values.extraVolumeMounts }}
+            - name: {{ $volumeName }}
+              {{- tpl (toYaml $mount) $ | nindent 14 -}}
+          {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
@@ -126,4 +130,8 @@ spec:
         - name: superset-extra-config
           configMap:
             name: {{ template "superset.fullname" . }}-extra-config
+        {{- end }}
+        {{- range $volumeName, $volume := .Values.extraVolumes }}
+        - name: {{ $volumeName }}
+          {{- tpl (toYaml $volume) $ | nindent 10 -}}
         {{- end }}
