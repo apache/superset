@@ -121,9 +121,6 @@ export type DatabaseForm = {
         description: string;
         type: string;
       };
-      catalog: {
-        type: {};
-      };
       username: {
         description: string;
         nullable: boolean;
