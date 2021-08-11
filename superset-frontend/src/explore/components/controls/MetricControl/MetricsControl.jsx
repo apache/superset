@@ -18,7 +18,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
-import { t, useTheme } from '@superset-ui/core';
+import { ensureIsArray, t, useTheme } from '@superset-ui/core';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import Icons from 'src/components/Icons';
 import {
@@ -139,12 +139,7 @@ const MetricsControl = ({
         return;
       }
 
-      let transformedOpts;
-      if (Array.isArray(opts)) {
-        transformedOpts = opts;
-      } else {
-        transformedOpts = opts ? [opts] : [];
-      }
+      const transformedOpts = ensureIsArray(opts);
       const optionValues = transformedOpts
         .map(option => {
           // pre-defined metric
