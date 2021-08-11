@@ -616,7 +616,13 @@ class DatasourceEditor extends React.PureComponent {
                 'values from the table. Typically the intent would be to limit the scan ' +
                 'by applying a relative time filter on a partitioned or indexed time-related field.',
             )}
-            control={<TextControl controlId="fetch_values_predicate" />}
+            control={
+              <TextAreaControl
+                language="sql"
+                controlId="fetch_values_predicate"
+                minLines={5}
+              />
+            }
           />
         )}
         {this.state.isSqla && (
