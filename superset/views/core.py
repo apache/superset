@@ -166,6 +166,8 @@ DATABASE_KEYS = [
     "id",
 ]
 
+ADHOC_FILTERS_REGEX = re.compile("^adhoc_filters")
+
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
 USER_MISSING_ERR = __("The user seems to have been deleted")
 PARAMETER_MISSING_ERR = (
@@ -936,9 +938,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 form_data.pop("slice_id")  # don't save old slice_id
             slc = Slice(owners=[g.user] if g.user else [])
 
-        form_data["adhoc_filters"] = self.remove_extra_filters(
-            form_data.get("adhoc_filters", [])
-        )
+        for key, value in form_data.items():
+            if ADHOC_FILTERS_REGEX.match(key):
+                form_data[key] = self.remove_extra_filters(form_data.get(key, []))
 
         assert slc
         slc.params = json.dumps(form_data, indent=2, sort_keys=True)
