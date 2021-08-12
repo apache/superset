@@ -50,8 +50,10 @@ def load_contents(load_test_data: bool = False) -> Dict[str, Any]:
                 for child_name in resource_listdir("superset", str(path_name))
             )
         elif path_name.suffix.lower() in YAML_EXTENSIONS:
+            # in testing environment, only bring in files that are for test
             if load_test_data and test_re.search(str(path_name)) is None:
                 continue
+            # in non testing environment, do not bring in files that are for test
             if not load_test_data and test_check_re.search(str(path_name)) is not None:
                 continue
             contents[path_name] = (
