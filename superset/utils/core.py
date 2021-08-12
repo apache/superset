@@ -96,7 +96,14 @@ from superset.exceptions import (
     SupersetException,
     SupersetTimeoutException,
 )
-from superset.typing import AdhocMetric, FilterValues, FlaskResponse, FormData, Metric
+from superset.typing import (
+    AdhocMetric,
+    AdhocMetricColumn,
+    FilterValues,
+    FlaskResponse,
+    FormData,
+    Metric,
+)
 from superset.utils.dates import datetime_to_epoch, EPOCH
 from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
 
@@ -1273,7 +1280,33 @@ def is_adhoc_metric(metric: Metric) -> bool:
 
 
 def get_metric_name(metric: Metric) -> str:
-    return metric["label"] if is_adhoc_metric(metric) else metric  # type: ignore
+    """
+    Extract label from metric
+
+    :param metric: object to extract label from
+    :return: String representation of metric
+    :raises ValueError: if metric object is invalid
+    """
+    if is_adhoc_metric(metric):
+        metric = cast(AdhocMetric, metric)
+        label = metric.get("label")
+        if label:
+            return label
+        expression_type = metric.get("expressionType")
+        if expression_type == "SQL":
+            sql_expression = metric.get("sqlExpression")
+            if sql_expression:
+                return sql_expression
+        elif expression_type == "SIMPLE":
+            column: AdhocMetricColumn = metric.get("column") or {}
+            column_name = column.get("column_name")
+            aggregate = metric.get("aggregate")
+            if column and aggregate:
+                return f"{aggregate}({column_name})"
+            if column_name:
+                return column_name
+        raise ValueError(__("Invalid metric object"))
+    return cast(str, metric)
 
 
 def get_metric_names(metrics: Sequence[Metric]) -> List[str]:
