@@ -61,6 +61,8 @@ interface FieldPropTypes {
   onParametersUploadFileChange: (value: any) => string;
   changeMethods: { onParametersChange: (value: any) => string } & {
     onChange: (value: any) => string;
+  } & {
+    onQueryChange: (value: any) => string;
   } & { onParametersUploadFileChange: (value: any) => string } & {
     onAddTableCatalog: () => void;
     onRemoveTableCatalog: (idx: number) => void;
@@ -425,7 +427,7 @@ const queryField = ({
     errorMessage={validationErrors?.query}
     placeholder="e.g. param1=value1&param2=value2"
     label="Additional Parameters"
-    onChange={changeMethods.onChange}
+    onChange={changeMethods.onQueryChange}
     helpText={t('Add additional custom parameters')}
   />
 );
@@ -477,6 +479,7 @@ const DatabaseConnectionForm = ({
   dbModel: { parameters },
   onParametersChange,
   onChange,
+  onQueryChange,
   onParametersUploadFileChange,
   onAddTableCatalog,
   onRemoveTableCatalog,
@@ -496,6 +499,9 @@ const DatabaseConnectionForm = ({
     event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;
   onChange: (
+    event: FormEvent<InputProps> | { target: HTMLInputElement },
+  ) => void;
+  onQueryChange: (
     event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;
   onParametersUploadFileChange?: (
@@ -525,6 +531,7 @@ const DatabaseConnectionForm = ({
             changeMethods: {
               onParametersChange,
               onChange,
+              onQueryChange,
               onParametersUploadFileChange,
               onAddTableCatalog,
               onRemoveTableCatalog,

@@ -146,6 +146,7 @@ enum ActionType {
   extraEditorChange,
   addTableCatalogSheet,
   removeTableCatalogSheet,
+  queryChange,
 }
 
 interface DBReducerPayloadType {
@@ -163,6 +164,7 @@ type DBReducerActionType =
         | ActionType.extraEditorChange
         | ActionType.extraInputChange
         | ActionType.textChange
+        | ActionType.queryChange
         | ActionType.inputChange
         | ActionType.editorChange
         | ActionType.parametersChange;
@@ -319,19 +321,16 @@ function dbReducer(
         ...trimmedState,
         [action.payload.name]: action.payload.json,
       };
+    case ActionType.queryChange:
+      return {
+        ...trimmedState,
+        parameters: {
+          ...trimmedState.parameters,
+          query: Object.fromEntries(new URLSearchParams(action.payload.value)),
+        },
+        query_input: action.payload.value,
+      };
     case ActionType.textChange:
-      if (action.payload.name === 'query_input') {
-        return {
-          ...trimmedState,
-          parameters: {
-            ...trimmedState.parameters,
-            query: Object.fromEntries(
-              new URLSearchParams(action.payload.value),
-            ),
-          },
-          query_input: action.payload.value,
-        };
-      }
       return {
         ...trimmedState,
         [action.payload.name]: action.payload.value,
@@ -959,6 +958,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             value: target.value,
           })
         }
+        onQueryChange={({ target }: { target: HTMLInputElement }) =>
+          onChange(ActionType.queryChange, {
+            name: target.name,
+            value: target.value,
+          })
+        }
         onAddTableCatalog={() =>
           setDB({ type: ActionType.addTableCatalogSheet })
         }
@@ -1076,6 +1081,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               }
               onChange={({ target }: { target: HTMLInputElement }) =>
                 onChange(ActionType.textChange, {
+                  name: target.name,
+                  value: target.value,
+                })
+              }
+              onQueryChange={({ target }: { target: HTMLInputElement }) =>
+                onChange(ActionType.queryChange, {
                   name: target.name,
                   value: target.value,
                 })
@@ -1226,6 +1237,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   onAddTableCatalog={() => {
                     setDB({ type: ActionType.addTableCatalogSheet });
                   }}
+                  onQueryChange={({ target }: { target: HTMLInputElement }) =>
+                    onChange(ActionType.queryChange, {
+                      name: target.name,
+                      value: target.value,
+                    })
+                  }
                   onRemoveTableCatalog={(idx: number) => {
                     setDB({
                       type: ActionType.removeTableCatalogSheet,
