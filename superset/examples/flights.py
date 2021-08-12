@@ -25,7 +25,7 @@ from .helpers import get_example_data, get_table_connector_registry
 
 def load_flights(only_metadata: bool = False, force: bool = False) -> None:
     """Loading random time series data from a zip file in the repo"""
-    tbl_name = "Flights"
+    tbl_name = "flights"
     database = utils.get_example_database()
     table_exists = database.has_table_by_name(tbl_name)
 

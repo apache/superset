@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-table_name: Slack Exported Metrics
+table_name: exported_stats
 main_dttm_col: Date
 description: null
 default_endpoint: null
