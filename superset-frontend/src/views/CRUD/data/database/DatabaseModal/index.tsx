@@ -656,21 +656,34 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const setDatabaseModel = (database_name: string) => {
-    const selectedDbModel = availableDbs?.databases.filter(
-      (db: DatabaseObject) => db.name === database_name,
-    )[0];
-    const { engine, parameters } = selectedDbModel;
-    const isDynamic = parameters !== undefined;
-    setDB({
-      type: ActionType.dbSelected,
-      payload: {
-        database_name,
-        configuration_method: isDynamic
-          ? CONFIGURATION_METHOD.DYNAMIC_FORM
-          : CONFIGURATION_METHOD.SQLALCHEMY_URI,
-        engine,
-      },
-    });
+    if (database_name === 'Other') {
+      // Allow users to connect to DB via legacy SQLA form
+      setDB({
+        type: ActionType.dbSelected,
+        payload: {
+          database_name,
+          configuration_method: CONFIGURATION_METHOD.SQLALCHEMY_URI,
+          engine: undefined,
+        },
+      });
+    } else {
+      const selectedDbModel = availableDbs?.databases.filter(
+        (db: DatabaseObject) => db.name === database_name,
+      )[0];
+      const { engine, parameters } = selectedDbModel;
+      const isDynamic = parameters !== undefined;
+      setDB({
+        type: ActionType.dbSelected,
+        payload: {
+          database_name,
+          configuration_method: isDynamic
+            ? CONFIGURATION_METHOD.DYNAMIC_FORM
+            : CONFIGURATION_METHOD.SQLALCHEMY_URI,
+          engine,
+        },
+      });
+    }
+
     setDB({ type: ActionType.addTableCatalogSheet });
   };
 
@@ -694,6 +707,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               {database.name}
             </Select.Option>
           ))}
+        {/* Allow users to connect to DB via legacy SQLA form */}
+        <Select.Option value="Other" key="Other">
+          Other
+        </Select.Option>
       </Select>
       <Alert
         showIcon

@@ -91,7 +91,6 @@ disable=
     too-few-public-methods,
     too-many-locals,
 
-
 [REPORTS]
 
 # Set the output format. Available formats are text, parseable, colorized, msvs
