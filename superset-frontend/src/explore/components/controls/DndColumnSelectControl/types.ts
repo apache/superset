@@ -26,8 +26,11 @@ import {
 import { DndItemType } from '../../DndItemType';
 
 export interface OptionProps {
-  children: ReactNode;
+  children?: ReactNode;
   index: number;
+  label?: string;
+  tooltipTitle?: string;
+  column?: ColumnMeta;
   clickClose: (index: number) => void;
   withCaret?: boolean;
   isExtra?: boolean;

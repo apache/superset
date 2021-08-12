@@ -45,11 +45,10 @@ export const OptionControlContainer = styled.div<{
   border-radius: 3px;
   cursor: ${({ withCaret }) => (withCaret ? 'pointer' : 'default')};
 `;
-
 export const Label = styled.div`
   ${({ theme }) => `
     display: flex;
-    max-width: 100%;
+    width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     align-items: center;
@@ -69,6 +68,11 @@ export const Label = styled.div`
       display: inline;
     }
   `}
+`;
+
+const LabelText = styled.span`
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 export const CaretContainer = styled.div`
@@ -197,6 +201,8 @@ export const OptionControlLabel = ({
 }) => {
   const theme = useTheme();
   const ref = useRef<HTMLDivElement>(null);
+  const labelRef = useRef<HTMLDivElement>(null);
+  const hasMetricName = savedMetric?.metric_name;
   const [, drop] = useDrop({
     accept: type,
     drop() {
@@ -250,7 +256,7 @@ export const OptionControlLabel = ({
       item.index = hoverIndex;
     },
   });
-  const [, drag] = useDrag({
+  const [{ isDragging }, drag] = useDrag({
     item: {
       type,
       index,
@@ -262,10 +268,34 @@ export const OptionControlLabel = ({
   });
 
   const getLabelContent = () => {
-    if (savedMetric?.metric_name) {
-      return <StyledMetricOption metric={savedMetric} />;
+    const shouldShowTooltip =
+      (!isDragging &&
+        typeof label === 'string' &&
+        tooltipTitle &&
+        label &&
+        tooltipTitle !== label) ||
+      (!isDragging &&
+        labelRef &&
+        labelRef.current &&
+        labelRef.current.scrollWidth > labelRef.current.clientWidth);
+
+    if (savedMetric && hasMetricName) {
+      return (
+        <StyledMetricOption
+          metric={savedMetric}
+          labelRef={labelRef}
+          showTooltip={!!shouldShowTooltip}
+        />
+      );
     }
-    return <Tooltip title={tooltipTitle}>{label}</Tooltip>;
+    if (!shouldShowTooltip) {
+      return <LabelText ref={labelRef}>{label}</LabelText>;
+    }
+    return (
+      <Tooltip title={tooltipTitle || label}>
+        <LabelText ref={labelRef}>{label}</LabelText>
+      </Tooltip>
+    );
   };
 
   const getOptionControlContent = () => (
