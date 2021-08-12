@@ -18,13 +18,25 @@
  */
 import React from 'react';
 import Button from 'src/components/Button';
+import rison from 'rison';
 import { Select } from 'src/components';
-import { css, styled, t } from '@superset-ui/core';
+import { AutoComplete } from 'src/common/components';
+import { css, styled, t, makeApi } from '@superset-ui/core';
 import { FormLabel } from 'src/components/Form';
 
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
 } from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
+
+const convertArrayToObject = (array, key) => {
+  const initialValue = {};
+  return array.reduce((obj, item) => {
+    return {
+      ...obj,
+      [item[key]]: item,
+    };
+  }, initialValue);
+};
 
 interface Datasource {
   label: string;
@@ -40,6 +52,7 @@ export type AddSliceContainerState = {
   datasourceType?: string;
   datasourceValue?: string;
   visType: string | null;
+  datasets: [];
 };
 
 const ESTIMATED_NAV_HEIGHT = '56px';
@@ -105,18 +118,25 @@ export default class AddSliceContainer extends React.PureComponent<
     super(props);
     this.state = {
       visType: null,
+      datasets: [],
+      currentDataset: {},
     };
 
     this.changeDatasource = this.changeDatasource.bind(this);
     this.changeVisType = this.changeVisType.bind(this);
     this.gotoSlice = this.gotoSlice.bind(this);
+    this.getDatasets = this.getDatasets.bind(this);
+  }
+
+  componentDidMount() {
+    this.getDatasets();
   }
 
   exploreUrl() {
     const formData = encodeURIComponent(
       JSON.stringify({
         viz_type: this.state.visType,
-        datasource: this.state.datasourceValue,
+        datasource: `${this.state.currentDataset.id}__table`,
       }),
     );
     return `/superset/explore/?form_data=${formData}`;
@@ -127,9 +147,13 @@ export default class AddSliceContainer extends React.PureComponent<
   }
 
   changeDatasource(value: string) {
+    const { datasets } = this.state;
+    const map = convertArrayToObject(datasets, 'id')
     this.setState({
-      datasourceValue: value,
-      datasourceId: value.split('__')[0],
+      datasourceValue: `${value}__table`, // legacy formatting for datasourceIds
+      datasourceId: value,
+      datasetLabel: map[value],
+      datasetSearchText: '',
     });
   }
 
@@ -138,24 +162,72 @@ export default class AddSliceContainer extends React.PureComponent<
   }
 
   isBtnDisabled() {
-    return !(this.state.datasourceId && this.state.visType);
+    return !(this.state.currentDataset && this.state.visType);
+  }
+
+  async getDatasets(searchText = '') {
+    console.log('getting datasets');
+
+    const queryParams = rison.encode({
+      filters: [
+        {
+          col: 'table_name',
+          opr: 'ct',
+          value: searchText,
+        },
+      ],
+      order_column: 'changed_on_delta_humanized',
+      order_direction: 'desc',
+    });
+
+    const response = await makeApi({
+      method: 'GET',
+      endpoint: '/api/v1/dataset',
+    })(`q=${queryParams}`);
+
+    this.setState({ datasets: response.result });
   }
 
   render() {
+    const { datasets, currentDataset } = this.state;
+    const optionDatasets = datasets.map(
+      (dataset: { id: number; table_name: string }) => ({
+        value: dataset.table_name,
+        id: dataset.id,
+      }),
+    );
+
     return (
       <StyledContainer>
         <h3 css={cssStatic}>{t('Create a new chart')}</h3>
         <div className="dataset">
-          <Select
+          {/* <Select
             autoFocus
             ariaLabel={t('Dataset')}
-            name="select-datasource"
+            name="select-datasource"s
             header={<FormLabel required>{t('Choose a dataset')}</FormLabel>}
             onChange={this.changeDatasource}
-            options={this.props.datasources}
+            options={optionDatasets}
             placeholder={t('Choose a dataset')}
             showSearch
             value={this.state.datasourceValue}
+          /> */}
+          <AutoComplete
+            className="smd-autocomplete"
+            options={optionDatasets}
+            onSelect={(_, option) => {
+              this.setState({ currentDataset: option });
+            }}
+            onSearch={e => {
+              // connect to api
+              console.log('onSearch', e);
+              this.getDatasets(e);
+            }}
+            onChange={d => {
+              this.setState({ currentDataset: {} });
+            }}
+            filterOption={() => true}
+            placeholder="Select or type dataset name"
           />
           <span>
             {t(

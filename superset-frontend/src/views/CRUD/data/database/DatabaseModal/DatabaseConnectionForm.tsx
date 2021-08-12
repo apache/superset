@@ -206,9 +206,12 @@ const TableCatalog = ({
     <StyledCatalogTable>
       <div className="catalog-type-select">
         <FormLabel required>{t('Type of Google Sheets Allowed')}</FormLabel>
-        <Select style={{ width: '100%' }} defaultValue="true" disabled>
-          <Select.Option value="true" key={1}>
+        <Select style={{ width: '100%' }} defaultValue="public">
+          <Select.Option value="public" key={1}>
             {t('Publicly shared sheets only')}
+          </Select.Option>
+          <Select.Option value="private" key={2}>
+            {t('Publicly and privately shared sheets only')}
           </Select.Option>
         </Select>
       </div>
