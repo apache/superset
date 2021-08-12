@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { styled, t } from '@superset-ui/core';
-import { Form, FormItem } from 'src/components/Form';
+import { Form, FormItem, FormProps } from 'src/components/Form';
 import { Select } from 'src/components';
 import { Col, InputNumber, Row } from 'src/common/components';
 import Button from 'src/components/Button';
@@ -57,29 +57,56 @@ const operatorOptions = [
   { value: COMPARATOR.BETWEEN_OR_RIGHT_EQUAL, label: '< x ≤' },
 ];
 
-const targetValueLeftValidator = (rightValue?: number) => (
+const targetValueValidator = (
+  compare: (targetValue: number, compareValue: number) => boolean,
+  rejectMessage: string,
+) => (targetValue: number | string) => (
   _: any,
-  value?: number,
+  compareValue: number | string,
 ) => {
-  if (!value || !rightValue || Number(rightValue) > Number(value)) {
+  if (
+    !targetValue ||
+    !compareValue ||
+    compare(Number(targetValue), Number(compareValue))
+  ) {
     return Promise.resolve();
   }
-  return Promise.reject(
-    new Error(t('This value should be smaller than the right target value')),
-  );
+  return Promise.reject(new Error(rejectMessage));
 };
 
-const targetValueRightValidator = (leftValue?: number) => (
-  _: any,
-  value?: number,
-) => {
-  if (!value || !leftValue || Number(leftValue) < Number(value)) {
-    return Promise.resolve();
-  }
-  return Promise.reject(
-    new Error(t('This value should be greater than the left target value')),
-  );
-};
+const targetValueLeftValidator = targetValueValidator(
+  (target: number, val: number) => target > val,
+  t('This value should be smaller than the right target value'),
+);
+
+const targetValueRightValidator = targetValueValidator(
+  (target: number, val: number) => target < val,
+  t('This value should be greater than the left target value'),
+);
+
+// const targetValueLeftValidator = (rightValue?: number) => (
+//   _: any,
+//   value?: number,
+// ) => {
+//   if (!value || !rightValue || Number(rightValue) > Number(value)) {
+//     return Promise.resolve();
+//   }
+//   return Promise.reject(
+//     new Error(t('This value should be smaller than the right target value')),
+//   );
+// };
+
+// const targetValueRightValidator = (leftValue?: number) => (
+//   _: any,
+//   value?: number,
+// ) => {
+//   if (!value || !leftValue || Number(leftValue) < Number(value)) {
+//     return Promise.resolve();
+//   }
+//   return Promise.reject(
+//     new Error(t('This value should be greater than the left target value')),
+//   );
+// };
 
 const isOperatorMultiValue = (operator?: COMPARATOR) =>
   operator && MULTIPLE_VALUE_COMPARATORS.includes(operator);
@@ -89,24 +116,17 @@ const isOperatorNone = (operator?: COMPARATOR) =>
 
 const rulesRequired = [{ required: true, message: t('Required') }];
 
+type GetFieldValue = Pick<Required<FormProps>['form'], 'getFieldValue'>;
 const rulesTargetValueLeft = [
   { required: true, message: t('Required') },
-  ({
-    getFieldValue,
-  }: {
-    getFieldValue: (name: string | number | (string | number)[]) => any;
-  }) => ({
+  ({ getFieldValue }: GetFieldValue) => ({
     validator: targetValueLeftValidator(getFieldValue('targetValueRight')),
   }),
 ];
 
 const rulesTargetValueRight = [
   { required: true, message: t('Required') },
-  ({
-    getFieldValue,
-  }: {
-    getFieldValue: (name: string | number | (string | number)[]) => any;
-  }) => ({
+  ({ getFieldValue }: GetFieldValue) => ({
     validator: targetValueRightValidator(getFieldValue('targetValueLeft')),
   }),
 ];
@@ -134,7 +154,7 @@ const operatorField = (
   </FormItem>
 );
 
-const renderOperatorFields = ({ getFieldValue }) =>
+const renderOperatorFields = ({ getFieldValue }: GetFieldValue) =>
   isOperatorNone(getFieldValue('operator')) ? (
     <Row gutter={12}>
       <Col span={6}>{operatorField}</Col>
