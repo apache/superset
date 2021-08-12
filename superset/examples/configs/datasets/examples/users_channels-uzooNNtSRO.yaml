@@ -22,11 +22,11 @@ offset: 0
 cache_timeout: null
 schema: null
 sql: >
-  'SELECT uc1.name as channel_1, uc2.name as channel_2, count(*) AS cnt
+  SELECT uc1.name as channel_1, uc2.name as channel_2, count(*) AS cnt
   FROM users_channels uc1
   JOIN users_channels uc2 ON uc1.user_id = uc2.user_id
   GROUP BY uc1.name, uc2.name
-  HAVING uc1.name <> uc2.name'
+  HAVING uc1.name <> uc2.name
 params: null
 template_params: null
 filter_select_enabled: true
