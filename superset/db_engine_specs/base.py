@@ -1411,7 +1411,7 @@ class BasicParametersMixin:
         encryted_extra: Optional[Dict[str, str]] = None,
     ) -> str:
         # make a copy so that we don't update the original
-        query = dict(parameters.get("query", {}))
+        query = parameters.get("query", {}).copy()
         if parameters.get("encryption"):
             if not cls.encryption_parameters:
                 raise Exception("Unable to build a URL with encryption enabled")
