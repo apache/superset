@@ -168,7 +168,7 @@ def load_examples_run(
         examples.load_big_data()
 
     # load examples that are stored as YAML config files
-    examples.load_from_configs(force, load_test_data)
+    examples.load_examples_from_configs(force, load_test_data)
 
 
 @with_appcontext
@@ -187,8 +187,26 @@ def load_examples(
     only_metadata: bool = False,
     force: bool = False,
 ) -> None:
-    """Loads a set of Slices and Dashboards and a supporting dataset """
+    """Loads a set of Slices and Dashboards and a supporting dataset"""
     load_examples_run(load_test_data, load_big_data, only_metadata, force)
+
+
+@with_appcontext
+@superset.command()
+@click.argument("directory")
+@click.option(
+    "--overwrite", "-o", is_flag=True, help="Overwriting existing metadata definitions"
+)
+@click.option(
+    "--force", "-f", is_flag=True, help="Force load data even if table already exists"
+)
+def import_directory(directory: str, overwrite: bool, force: bool) -> None:
+    """Imports configs from a given directory"""
+    from superset.examples.utils import load_configs_from_directory
+
+    load_configs_from_directory(
+        root=Path(directory), overwrite=overwrite, force_data=force,
+    )
 
 
 @with_appcontext
