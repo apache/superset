@@ -671,7 +671,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         (db: DatabaseObject) => db.name === database_name,
       )[0];
       const { engine, parameters } = selectedDbModel;
-      const isDynamic = parameters !== undefined || database_name === 'Other';
+      const isDynamic = parameters !== undefined;
       setDB({
         type: ActionType.dbSelected,
         payload: {
