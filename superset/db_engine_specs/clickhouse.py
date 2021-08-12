@@ -88,21 +88,28 @@ class ClickHouseEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         :param database: The database to get functions for
         :return: A list of function names usable in the database
         """
-        df = database.get_df("SELECT name FROM system.functions")
-        if cls._show_functions_column in df:
-            return df[cls._show_functions_column].tolist()
+        system_functions_sql = "SELECT name FROM system.functions"
+        try:
+            df = database.get_df(system_functions_sql)
+            if cls._show_functions_column in df:
+                return df[cls._show_functions_column].tolist()
+            columns = df.columns.values.tolist()
+            logger.error(
+                "Payload from `%s` has the incorrect format. "
+                "Expected column `%s`, found: %s.",
+                system_functions_sql, cls._show_functions_column, ", ".join(columns),
+                exc_info=True,
+            )
+            # if the results have a single column, use that
+            if len(columns) == 1:
+                return df[columns[0]].tolist()
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.error(
+                "Query `%s` fire error %s. ", system_functions_sql, str(ex),
+                exc_info=True,
+            )
+            return []
 
-        columns = df.columns.values.tolist()
-        logger.error(
-            "Payload from `SELECT name FROM system.functions` has the incorrect format. "
-            "Expected column `%s`, found: %s.",
-            cls._show_functions_column,
-            ", ".join(columns),
-            exc_info=True,
-        )
-        # if the results have a single column, use that
-        if len(columns) == 1:
-            return df[columns[0]].tolist()
 
         # otherwise, return no function names to prevent errors
         return []
