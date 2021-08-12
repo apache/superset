@@ -20,7 +20,11 @@ import { NO_TIME_RANGE, TIME_FILTER_MAP } from 'src/explore/constants';
 import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
 import { ChartConfiguration, Filters } from 'src/dashboard/reducers/types';
 import { DataMaskStateWithId, DataMaskType } from 'src/dataMask/types';
-import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  FeatureFlag,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import { Layout } from '../../types';
 import { getTreeCheckedItems } from '../nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/utils';
 
@@ -249,18 +253,24 @@ export const selectNativeIndicatorsForChart = (
         ),
       )
       .map(chartConfig => {
-        let value =
+        const value = ensureIsArray(
           dataMask[chartConfig.id]?.filterState?.label ??
-          dataMask[chartConfig.id]?.filterState?.value ??
-          null;
-        if (!Array.isArray(value) && value !== null) {
-          value = [value];
-        }
+            dataMask[chartConfig.id]?.filterState?.value ??
+            null,
+        );
+        const filtersState = dataMask[chartConfig.id]?.filterState?.filters;
+        const column = filtersState && Object.keys(filtersState)[0];
+
+        const dashboardLayoutItem = Object.values(dashboardLayout).find(
+          layoutItem => layoutItem?.meta?.chartId === chartConfig.id,
+        );
         return {
-          name: Object.values(dashboardLayout).find(
-            layoutItem => layoutItem?.meta?.chartId === chartConfig.id,
-          )?.meta?.sliceName as string,
-          path: [`${chartConfig.id}`],
+          column,
+          name: dashboardLayoutItem?.meta?.sliceName as string,
+          path: [
+            ...(dashboardLayoutItem?.parents ?? []),
+            dashboardLayoutItem?.id,
+          ],
           status: getStatus({
             value,
             type: DataMaskType.CrossFilters,
