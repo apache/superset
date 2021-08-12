@@ -26,7 +26,6 @@ import OptionWrapper from 'src/explore/components/controls/DndColumnSelectContro
 import { OptionSelector } from 'src/explore/components/controls/DndColumnSelectControl/utils';
 import { DatasourcePanelDndItem } from 'src/explore/components/DatasourcePanel/types';
 import { DndItemType } from 'src/explore/components/DndItemType';
-import { StyledColumnOption } from 'src/explore/components/optionRenderers';
 import { useComponentDidUpdate } from 'src/common/hooks/useComponentDidUpdate';
 
 export const DndColumnSelect = (props: LabelProps) => {
@@ -121,9 +120,8 @@ export const DndColumnSelect = (props: LabelProps) => {
           onShiftOptions={onShiftOptions}
           type={`${DndItemType.ColumnOption}_${name}_${label}`}
           canDelete={canDelete}
-        >
-          <StyledColumnOption column={column} showType />
-        </OptionWrapper>
+          column={column}
+        />
       )),
     [
       canDelete,
