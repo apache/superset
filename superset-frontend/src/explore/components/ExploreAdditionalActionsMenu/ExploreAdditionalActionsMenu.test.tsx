@@ -48,7 +48,7 @@ const createProps = () => ({
     cache_timeout: null,
     changed_on: '2021-03-19T16:30:56.750230',
     changed_on_humanized: '3 days ago',
-    datasource: 'FCC Survey Results',
+    datasource: 'FCC 2018 Survey',
     description: null,
     description_markeddown: '',
     edit_url: '/chart/edit/318',

@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-table_name: Slack Messages
+table_name: messages
 main_dttm_col: bot_profile__updated
 description: null
 default_endpoint: null

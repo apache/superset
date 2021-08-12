@@ -27,7 +27,7 @@ from .helpers import get_example_data, get_table_connector_registry
 
 
 def load_bart_lines(only_metadata: bool = False, force: bool = False) -> None:
-    tbl_name = "San Franciso BART Lines"
+    tbl_name = "bart_lines"
     database = get_example_database()
     table_exists = database.has_table_by_name(tbl_name)
 
