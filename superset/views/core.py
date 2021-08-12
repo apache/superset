@@ -940,7 +940,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         for key, value in form_data.items():
             if ADHOC_FILTERS_REGEX.match(key):
-                form_data[key] = self.remove_extra_filters(form_data.get(key, []))
+                form_data[key] = self.remove_extra_filters(value or [])
 
         assert slc
         slc.params = json.dumps(form_data, indent=2, sort_keys=True)
