@@ -205,7 +205,8 @@ function dbReducer(
   const trimmedState = {
     ...(state || {}),
   };
-  let query = '';
+  let query = {};
+  let query_input = '';
   let deserializeExtraJSON = {};
   let extra_json: DatabaseObject['extra_json'];
 
@@ -319,6 +320,18 @@ function dbReducer(
         [action.payload.name]: action.payload.json,
       };
     case ActionType.textChange:
+      if (action.payload.name === 'query_input') {
+        return {
+          ...trimmedState,
+          parameters: {
+            ...trimmedState.parameters,
+            query: Object.fromEntries(
+              new URLSearchParams(action.payload.value),
+            ),
+          },
+          query_input: action.payload.value,
+        };
+      }
       return {
         ...trimmedState,
         [action.payload.name]: action.payload.value,
@@ -339,16 +352,17 @@ function dbReducer(
         };
       }
 
+      // convert query to a string and store in query_input
+      query = action.payload?.parameters?.query || {};
+      query_input = Object.entries(query)
+        .map(([key, value]) => `${key}=${value}`)
+        .join('&');
+
       if (
         action.payload.backend === 'bigquery' &&
         action.payload.configuration_method ===
           CONFIGURATION_METHOD.DYNAMIC_FORM
       ) {
-        // convert query into URI params string
-        query = new URLSearchParams(
-          action?.payload?.parameters?.query as string,
-        ).toString();
-
         return {
           ...action.payload,
           engine: action.payload.backend,
@@ -360,6 +374,7 @@ function dbReducer(
             ),
             query,
           },
+          query_input,
         };
       }
 
@@ -381,26 +396,8 @@ function dbReducer(
             name: e,
             value: engineParamsCatalog[e],
           })),
+          query_input,
         } as DatabaseObject;
-      }
-
-      if (action.payload?.parameters?.query) {
-        // convert query into URI params string
-        query = new URLSearchParams(
-          action.payload.parameters.query as string,
-        ).toString();
-
-        return {
-          ...action.payload,
-          encrypted_extra: action.payload.encrypted_extra || '',
-          engine: action.payload.backend || trimmedState.engine,
-          configuration_method: action.payload.configuration_method,
-          extra_json: deserializeExtraJSON,
-          parameters: {
-            ...action.payload.parameters,
-            query,
-          },
-        };
       }
 
       return {
@@ -409,9 +406,8 @@ function dbReducer(
         engine: action.payload.backend || trimmedState.engine,
         configuration_method: action.payload.configuration_method,
         extra_json: deserializeExtraJSON,
-        parameters: {
-          ...action.payload.parameters,
-        },
+        parameters: action.payload.parameters,
+        query_input,
       };
 
     case ActionType.dbSelected:
@@ -539,17 +535,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     const dbToUpdate = JSON.parse(JSON.stringify(update));
 
     if (dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM) {
-      if (dbToUpdate?.parameters?.query) {
-        // convert query params into dictionary
-        const urlParams = new URLSearchParams(dbToUpdate?.parameters?.query);
-        dbToUpdate.parameters.query = Object.fromEntries(urlParams);
-      } else if (
-        dbToUpdate?.parameters?.query === '' &&
-        'query' in dbModel.parameters.properties
-      ) {
-        dbToUpdate.parameters.query = {};
-      }
-
       // Validate DB before saving
       await getValidation(dbToUpdate, true);
       if (validationErrors && !isEmpty(validationErrors)) {

@@ -417,15 +417,15 @@ const queryField = ({
   db,
 }: FieldPropTypes) => (
   <ValidatedInput
-    id="query"
-    name="query"
+    id="query_input"
+    name="query_input"
     required={required}
-    value={db?.parameters?.query}
+    value={db?.query_input || ''}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.query}
     placeholder="e.g. param1=value1&param2=value2"
     label="Additional Parameters"
-    onChange={changeMethods.onParametersChange}
+    onChange={changeMethods.onChange}
     helpText={t('Add additional custom parameters')}
   />
 );
