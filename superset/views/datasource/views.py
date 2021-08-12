@@ -24,11 +24,16 @@ from flask_appbuilder.api import rison
 from flask_appbuilder.security.decorators import has_access_api
 from flask_babel import _
 from marshmallow import ValidationError
+from sqlalchemy.exc import NoSuchTableError
+from sqlalchemy.orm.exc import NoResultFound
 
 from superset import app, db, event_logger
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.utils import get_physical_table_metadata
-from superset.datasets.commands.exceptions import DatasetForbiddenError
+from superset.datasets.commands.exceptions import (
+    DatasetForbiddenError,
+    DatasetNotFoundError,
+)
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.core import Database
 from superset.typing import FlaskResponse
@@ -170,6 +175,6 @@ class Datasource(BaseSupersetView):
                     table_name=params["table_name"],
                     schema_name=params["schema_name"],
                 )
-        except SupersetException as ex:
-            return json_error_response(str(ex), status=400)
+        except (NoResultFound, NoSuchTableError):
+            raise DatasetNotFoundError
         return self.json_response(external_metadata)

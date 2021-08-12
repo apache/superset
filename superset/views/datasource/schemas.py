@@ -36,10 +36,10 @@ get_external_metadata_schema = {
 
 
 class ExternalMetadataSchema(Schema):
-    datasource_type = fields.Str()
-    database_name = fields.Str()
+    datasource_type = fields.Str(required=True)
+    database_name = fields.Str(required=True)
     schema_name = fields.Str(allow_none=True)
-    table_name = fields.Str()
+    table_name = fields.Str(required=True)
 
     # pylint: disable=no-self-use,unused-argument
     @post_load
@@ -49,6 +49,6 @@ class ExternalMetadataSchema(Schema):
         return ExternalMetadataParams(
             datasource_type=data["datasource_type"],
             database_name=data["database_name"],
-            schema_name=data["schema_name"] or "",
+            schema_name=data.get("schema_name", ""),
             table_name=data["table_name"],
         )
