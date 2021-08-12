@@ -84,30 +84,6 @@ const targetValueRightValidator = targetValueValidator(
   t('This value should be greater than the left target value'),
 );
 
-// const targetValueLeftValidator = (rightValue?: number) => (
-//   _: any,
-//   value?: number,
-// ) => {
-//   if (!value || !rightValue || Number(rightValue) > Number(value)) {
-//     return Promise.resolve();
-//   }
-//   return Promise.reject(
-//     new Error(t('This value should be smaller than the right target value')),
-//   );
-// };
-
-// const targetValueRightValidator = (leftValue?: number) => (
-//   _: any,
-//   value?: number,
-// ) => {
-//   if (!value || !leftValue || Number(leftValue) < Number(value)) {
-//     return Promise.resolve();
-//   }
-//   return Promise.reject(
-//     new Error(t('This value should be greater than the left target value')),
-//   );
-// };
-
 const isOperatorMultiValue = (operator?: COMPARATOR) =>
   operator && MULTIPLE_VALUE_COMPARATORS.includes(operator);
 
