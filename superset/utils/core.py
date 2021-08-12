@@ -81,7 +81,7 @@ from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql.type_api import Variant
 from sqlalchemy.types import TEXT, TypeDecorator, TypeEngine
-from typing_extensions import TypedDict
+from typing_extensions import TypedDict, TypeGuard
 
 import _thread  # pylint: disable=C0411
 from superset.constants import (
@@ -1275,7 +1275,7 @@ def backend() -> str:
     return get_example_database().backend
 
 
-def is_adhoc_metric(metric: Metric) -> bool:
+def is_adhoc_metric(metric: Metric) -> TypeGuard[AdhocMetric]:
     return isinstance(metric, dict) and "expressionType" in metric
 
 
@@ -1288,7 +1288,6 @@ def get_metric_name(metric: Metric) -> str:
     :raises ValueError: if metric object is invalid
     """
     if is_adhoc_metric(metric):
-        metric = cast(AdhocMetric, metric)
         label = metric.get("label")
         if label:
             return label
@@ -1306,7 +1305,7 @@ def get_metric_name(metric: Metric) -> str:
             if column_name:
                 return column_name
         raise ValueError(__("Invalid metric object"))
-    return cast(str, metric)
+    return metric  # type: ignore
 
 
 def get_metric_names(metrics: Sequence[Metric]) -> List[str]:

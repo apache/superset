@@ -18,3 +18,15 @@
 -e file:.
 pyrsistent>=0.16.1,<0.17
 zipp==3.4.1
+
+# stubs
+types-Markdown
+types-PyYAML
+types-bleach
+types-croniter
+types-python-dateutil
+types-pytz
+types-redis
+types-requests
+types-setuptools
+types-simplejson
