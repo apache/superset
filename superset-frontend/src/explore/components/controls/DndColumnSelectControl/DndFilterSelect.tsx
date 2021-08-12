@@ -26,7 +26,6 @@ import {
   t,
 } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
-import { Tooltip } from 'src/components/Tooltip';
 import {
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
   Operators,
@@ -299,6 +298,7 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
     () =>
       values.map((adhocFilter: AdhocFilter, index: number) => {
         const label = adhocFilter.getDefaultLabel();
+        const tooltipTitle = adhocFilter.getTooltipTitle();
         return (
           <AdhocFilterPopoverTrigger
             key={index}
@@ -311,14 +311,14 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
             <OptionWrapper
               key={index}
               index={index}
+              label={label}
+              tooltipTitle={tooltipTitle}
               clickClose={onClickClose}
               onShiftOptions={onShiftOptions}
               type={DndItemType.FilterOption}
               withCaret
               isExtra={adhocFilter.isExtra}
-            >
-              <Tooltip title={label}>{label}</Tooltip>
-            </OptionWrapper>
+            />
           </AdhocFilterPopoverTrigger>
         );
       }),
