@@ -91,7 +91,7 @@
     "@superset-ui/legacy-preset-chart-big-number": "^0.17.82",
     "@superset-ui/legacy-preset-chart-deckgl": "^0.4.10",
     "@superset-ui/legacy-preset-chart-nvd3": "^0.17.81",
-    "@superset-ui/plugin-chart-echarts": "^0.17.81",
+    "@superset-ui/plugin-chart-echarts": "^0.17.83",
     "@superset-ui/plugin-chart-pivot-table": "^0.17.81",
     "@superset-ui/plugin-chart-table": "^0.17.82",
     "@superset-ui/plugin-chart-word-cloud": "^0.17.81",
