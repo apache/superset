@@ -28,7 +28,6 @@ const metadata = new ChartMetadata({
     'Compare multiple time series charts (as sparklines) and related metrics quickly. ',
   ),
   tags: [
-    t('Advanced-Analytics'),
     t('Multi-Variables'),
     t('Comparison'),
     t('Legacy'),
