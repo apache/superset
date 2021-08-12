@@ -58,7 +58,7 @@ const DetailsPanelPopover = ({
   const [visible, setVisible] = useState(false);
   const theme = useTheme();
   const activeTabs = useSelector<RootState>(
-    state => state.dashboardState.activeTabs,
+    state => state.dashboardState?.activeTabs,
   );
 
   // we don't need to clean up useEffect, setting { once: true } removes the event listener after handle function is called
