@@ -119,7 +119,7 @@ def update_id_refs(
             child["meta"]["chartId"] = chart_ids[child["meta"]["uuid"]]
 
     # fix native filter references
-    native_filter_configuration = fixed["metadata"].get(
+    native_filter_configuration = fixed.get("metadata", {}).get(
         "native_filter_configuration", []
     )
     for native_filter in native_filter_configuration:
