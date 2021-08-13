@@ -196,6 +196,10 @@ WTF_CSRF_EXEMPT_LIST = ["superset.views.core.log", "superset.charts.api.data"]
 DEBUG = os.environ.get("FLASK_ENV") == "development"
 FLASK_USE_RELOAD = True
 
+# Enable profiling of Python calls. Turn this on and append ``?_instrument=1``
+# to the page to see the call stack.
+PROFILING = False
+
 # Superset allows server-side python stacktraces to be surfaced to the
 # user when this feature is on. This may has security implications
 # and it's more secure to turn it off in production settings.
@@ -1228,6 +1232,9 @@ GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL = "ws://127.0.0.1:8080/"
 #            cache_manager.cache.set(name, code, timeout=0)
 #
 DATASET_HEALTH_CHECK: Optional[Callable[["SqlaTable"], str]] = None
+
+# Do not show user info or profile in the menu
+MENU_HIDE_USER_INFO = False
 
 # SQLalchemy link doc reference
 SQLALCHEMY_DOCS_URL = "https://docs.sqlalchemy.org/en/13/core/engines.html"

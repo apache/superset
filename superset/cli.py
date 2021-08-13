@@ -124,8 +124,9 @@ def load_examples_run(
 
     examples.load_css_templates()
 
-    print("Loading energy related dataset")
-    examples.load_energy(only_metadata, force)
+    if load_test_data:
+        print("Loading energy related dataset")
+        examples.load_energy(only_metadata, force)
 
     print("Loading [World Bank's Health Nutrition and Population Stats]")
     examples.load_world_bank_health_n_pop(only_metadata, force)
@@ -133,24 +134,16 @@ def load_examples_run(
     print("Loading [Birth names]")
     examples.load_birth_names(only_metadata, force)
 
-    print("Loading [Tabbed dashboard]")
-    examples.load_tabbed_dashboard(only_metadata)
+    if load_test_data:
+        print("Loading [Tabbed dashboard]")
+        examples.load_tabbed_dashboard(only_metadata)
 
     if not load_test_data:
-        print("Loading [Random time series data]")
-        examples.load_random_time_series_data(only_metadata, force)
-
         print("Loading [Random long/lat data]")
         examples.load_long_lat_data(only_metadata, force)
 
         print("Loading [Country Map data]")
         examples.load_country_map_data(only_metadata, force)
-
-        print("Loading [Multiformat time series]")
-        examples.load_multiformat_time_series(only_metadata, force)
-
-        print("Loading [Paris GeoJson]")
-        examples.load_paris_iris_geojson(only_metadata, force)
 
         print("Loading [San Francisco population polygons]")
         examples.load_sf_population_polygons(only_metadata, force)
@@ -175,7 +168,7 @@ def load_examples_run(
         examples.load_big_data()
 
     # load examples that are stored as YAML config files
-    examples.load_from_configs(force, load_test_data)
+    examples.load_examples_from_configs(force, load_test_data)
 
 
 @with_appcontext
@@ -196,6 +189,24 @@ def load_examples(
 ) -> None:
     """Loads a set of Slices and Dashboards and a supporting dataset"""
     load_examples_run(load_test_data, load_big_data, only_metadata, force)
+
+
+@with_appcontext
+@superset.command()
+@click.argument("directory")
+@click.option(
+    "--overwrite", "-o", is_flag=True, help="Overwriting existing metadata definitions"
+)
+@click.option(
+    "--force", "-f", is_flag=True, help="Force load data even if table already exists"
+)
+def import_directory(directory: str, overwrite: bool, force: bool) -> None:
+    """Imports configs from a given directory"""
+    from superset.examples.utils import load_configs_from_directory
+
+    load_configs_from_directory(
+        root=Path(directory), overwrite=overwrite, force_data=force,
+    )
 
 
 @with_appcontext

@@ -60,6 +60,7 @@ from superset.models.core import Database
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin, QueryResult
 from superset.typing import (
     AdhocMetric,
+    AdhocMetricColumn,
     FilterValues,
     Granularity,
     Metric,
@@ -93,7 +94,13 @@ except ImportError:
     pass
 
 try:
-    from superset.utils.core import DimSelector, DTTM_ALIAS, FilterOperator, flasher
+    from superset.utils.core import (
+        DimSelector,
+        DTTM_ALIAS,
+        FilterOperator,
+        flasher,
+        get_metric_name,
+    )
 except ImportError:
     pass
 
@@ -1021,7 +1028,7 @@ class DruidDatasource(Model, BaseDatasource):
 
     @staticmethod
     def druid_type_from_adhoc_metric(adhoc_metric: AdhocMetric) -> str:
-        column_type = adhoc_metric["column"]["type"].lower()
+        column_type = adhoc_metric["column"]["type"].lower()  # type: ignore
         aggregate = adhoc_metric["aggregate"].lower()
 
         if aggregate == "count":
@@ -1063,11 +1070,13 @@ class DruidDatasource(Model, BaseDatasource):
                 _("Metric(s) {} must be aggregations.").format(invalid_metric_names)
             )
         for adhoc_metric in adhoc_metrics:
-            aggregations[adhoc_metric["label"]] = {
-                "fieldName": adhoc_metric["column"]["column_name"],
-                "fieldNames": [adhoc_metric["column"]["column_name"]],
+            label = get_metric_name(adhoc_metric)
+            column = cast(AdhocMetricColumn, adhoc_metric["column"])
+            aggregations[label] = {
+                "fieldName": column["column_name"],
+                "fieldNames": [column["column_name"]],
                 "type": DruidDatasource.druid_type_from_adhoc_metric(adhoc_metric),
-                "name": adhoc_metric["label"],
+                "name": label,
             }
         return aggregations
 
@@ -1690,25 +1699,25 @@ class DruidDatasource(Model, BaseDatasource):
         latest_metadata = self.latest_metadata() or {}
         return [{"name": k, "type": v.get("type")} for k, v in latest_metadata.items()]
 
+    @staticmethod
+    def update_datasource(
+        _mapper: Mapper, _connection: Connection, obj: Union[DruidColumn, DruidMetric]
+    ) -> None:
+        """
+        Forces an update to the datasource's changed_on value when a metric or column on
+        the datasource is updated. This busts the cache key for all charts that use the
+        datasource.
 
-def update_datasource(
-    _mapper: Mapper, _connection: Connection, obj: Union[DruidColumn, DruidMetric]
-) -> None:
-    """
-    Forces an update to the datasource's changed_on value when a metric or column on
-    the datasource is updated. This busts the cache key for all charts that use the
-    datasource.
-
-    :param _mapper: Unused.
-    :param _connection: Unused.
-    :param obj: The metric or column that was updated.
-    """
-    db.session.execute(
-        update(DruidDatasource).where(DruidDatasource.id == obj.datasource.id)
-    )
+        :param _mapper: Unused.
+        :param _connection: Unused.
+        :param obj: The metric or column that was updated.
+        """
+        db.session.execute(
+            update(DruidDatasource).where(DruidDatasource.id == obj.datasource.id)
+        )
 
 
 sa.event.listen(DruidDatasource, "after_insert", security_manager.set_perm)
 sa.event.listen(DruidDatasource, "after_update", security_manager.set_perm)
-sa.event.listen(DruidMetric, "after_update", update_datasource)
-sa.event.listen(DruidColumn, "after_update", update_datasource)
+sa.event.listen(DruidMetric, "after_update", DruidDatasource.update_datasource)
+sa.event.listen(DruidColumn, "after_update", DruidDatasource.update_datasource)

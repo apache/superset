@@ -167,7 +167,7 @@ class Database(
     extra_import_fields = ["password"]
     export_children = ["tables"]
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # pylint: disable=invalid-repr-returned
         return self.name
 
     @property

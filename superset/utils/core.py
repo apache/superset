@@ -96,7 +96,14 @@ from superset.exceptions import (
     SupersetException,
     SupersetTimeoutException,
 )
-from superset.typing import AdhocMetric, FlaskResponse, FormData, Metric
+from superset.typing import (
+    AdhocMetric,
+    AdhocMetricColumn,
+    FilterValues,
+    FlaskResponse,
+    FormData,
+    Metric,
+)
 from superset.utils.dates import datetime_to_epoch, EPOCH
 from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
 
@@ -187,6 +194,25 @@ class ChartDataResultType(str, Enum):
 class DatasourceDict(TypedDict):
     type: str
     id: int
+
+
+class AdhocFilterClause(TypedDict, total=False):
+    clause: str
+    expressionType: str
+    filterOptionName: Optional[str]
+    comparator: Optional[FilterValues]
+    operator: str
+    subject: str
+    isExtra: Optional[bool]
+    sqlExpression: Optional[str]
+
+
+class QueryObjectFilterClause(TypedDict, total=False):
+    col: str
+    op: str  # pylint: disable=invalid-name
+    val: Optional[FilterValues]
+    grain: Optional[str]
+    isExtra: Optional[bool]
 
 
 class ExtraFiltersTimeColumnType(str, Enum):
@@ -421,6 +447,35 @@ def cast_to_num(value: Optional[Union[float, int, str]]) -> Optional[Union[float
         return float(value)
     except ValueError:
         return None
+
+
+def cast_to_boolean(value: Any) -> bool:
+    """Casts a value to an int/float
+
+    >>> cast_to_boolean(1)
+    True
+    >>> cast_to_boolean(0)
+    False
+    >>> cast_to_boolean(0.5)
+    True
+    >>> cast_to_boolean('true')
+    True
+    >>> cast_to_boolean('false')
+    False
+    >>> cast_to_boolean('False')
+    False
+    >>> cast_to_boolean(None)
+    False
+
+    :param value: value to be converted to boolean representation
+    :returns: value cast to `bool`. when value is 'true' or value that are not 0
+              converte into True
+    """
+    if isinstance(value, (int, float)):
+        return value != 0
+    if isinstance(value, str):
+        return value.strip().lower() == "true"
+    return False
 
 
 def list_minus(l: List[Any], minus: List[Any]) -> List[Any]:
@@ -988,28 +1043,32 @@ def zlib_decompress(blob: bytes, decode: Optional[bool] = True) -> Union[bytes, 
     return decompressed.decode("utf-8") if decode else decompressed
 
 
-def to_adhoc(
-    filt: Dict[str, Any], expression_type: str = "SIMPLE", clause: str = "where"
-) -> Dict[str, Any]:
-    result = {
+def simple_filter_to_adhoc(
+    filter_clause: QueryObjectFilterClause, clause: str = "where",
+) -> AdhocFilterClause:
+    result: AdhocFilterClause = {
         "clause": clause.upper(),
-        "expressionType": expression_type,
-        "isExtra": bool(filt.get("isExtra")),
+        "expressionType": "SIMPLE",
+        "comparator": filter_clause.get("val"),
+        "operator": filter_clause["op"],
+        "subject": filter_clause["col"],
     }
+    if filter_clause.get("isExtra"):
+        result["isExtra"] = True
+    result["filterOptionName"] = md5_sha_from_dict(cast(Dict[Any, Any], result))
 
-    if expression_type == "SIMPLE":
-        result.update(
-            {
-                "comparator": filt.get("val"),
-                "operator": filt.get("op"),
-                "subject": filt.get("col"),
-            }
-        )
-    elif expression_type == "SQL":
-        result.update({"sqlExpression": filt.get(clause)})
+    return result
 
-    deterministic_name = md5_sha_from_dict(result)
-    result["filterOptionName"] = deterministic_name
+
+def form_data_to_adhoc(form_data: Dict[str, Any], clause: str) -> AdhocFilterClause:
+    if clause not in ("where", "having"):
+        raise ValueError(__("Unsupported clause type: %(clause)s", clause=clause))
+    result: AdhocFilterClause = {
+        "clause": clause.upper(),
+        "expressionType": "SQL",
+        "sqlExpression": form_data.get(clause),
+    }
+    result["filterOptionName"] = md5_sha_from_dict(cast(Dict[Any, Any], result))
 
     return result
 
@@ -1021,7 +1080,7 @@ def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
     """
     filter_keys = ["filters", "adhoc_filters"]
     extra_form_data = form_data.pop("extra_form_data", {})
-    append_filters = extra_form_data.get("filters", None)
+    append_filters: List[QueryObjectFilterClause] = extra_form_data.get("filters", None)
 
     # merge append extras
     for key in [key for key in EXTRA_FORM_DATA_APPEND_KEYS if key not in filter_keys]:
@@ -1046,13 +1105,21 @@ def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
     if extras:
         form_data["extras"] = extras
 
-    adhoc_filters = form_data.get("adhoc_filters", [])
+    adhoc_filters: List[AdhocFilterClause] = form_data.get("adhoc_filters", [])
     form_data["adhoc_filters"] = adhoc_filters
-    append_adhoc_filters = extra_form_data.get("adhoc_filters", [])
-    adhoc_filters.extend({"isExtra": True, **fltr} for fltr in append_adhoc_filters)
+    append_adhoc_filters: List[AdhocFilterClause] = extra_form_data.get(
+        "adhoc_filters", []
+    )
+    adhoc_filters.extend(
+        {"isExtra": True, **fltr} for fltr in append_adhoc_filters  # type: ignore
+    )
     if append_filters:
         adhoc_filters.extend(
-            to_adhoc({"isExtra": True, **fltr}) for fltr in append_filters if fltr
+            simple_filter_to_adhoc(
+                {"isExtra": True, **fltr}  # type: ignore
+            )
+            for fltr in append_filters
+            if fltr
         )
 
 
@@ -1119,16 +1186,16 @@ def merge_extra_filters(  # pylint: disable=too-many-branches
                             # Add filters for unequal lists
                             # order doesn't matter
                             if set(existing_filters[filter_key]) != set(filtr["val"]):
-                                adhoc_filters.append(to_adhoc(filtr))
+                                adhoc_filters.append(simple_filter_to_adhoc(filtr))
                         else:
-                            adhoc_filters.append(to_adhoc(filtr))
+                            adhoc_filters.append(simple_filter_to_adhoc(filtr))
                     else:
                         # Do not add filter if same value already exists
                         if filtr["val"] != existing_filters[filter_key]:
-                            adhoc_filters.append(to_adhoc(filtr))
+                            adhoc_filters.append(simple_filter_to_adhoc(filtr))
                 else:
                     # Filter not found, add it
-                    adhoc_filters.append(to_adhoc(filtr))
+                    adhoc_filters.append(simple_filter_to_adhoc(filtr))
         # Remove extra filters from the form data since no longer needed
         del form_data["extra_filters"]
 
@@ -1213,14 +1280,40 @@ def is_adhoc_metric(metric: Metric) -> bool:
 
 
 def get_metric_name(metric: Metric) -> str:
-    return metric["label"] if is_adhoc_metric(metric) else metric  # type: ignore
+    """
+    Extract label from metric
+
+    :param metric: object to extract label from
+    :return: String representation of metric
+    :raises ValueError: if metric object is invalid
+    """
+    if is_adhoc_metric(metric):
+        metric = cast(AdhocMetric, metric)
+        label = metric.get("label")
+        if label:
+            return label
+        expression_type = metric.get("expressionType")
+        if expression_type == "SQL":
+            sql_expression = metric.get("sqlExpression")
+            if sql_expression:
+                return sql_expression
+        elif expression_type == "SIMPLE":
+            column: AdhocMetricColumn = metric.get("column") or {}
+            column_name = column.get("column_name")
+            aggregate = metric.get("aggregate")
+            if column and aggregate:
+                return f"{aggregate}({column_name})"
+            if column_name:
+                return column_name
+        raise ValueError(__("Invalid metric object"))
+    return cast(str, metric)
 
 
 def get_metric_names(metrics: Sequence[Metric]) -> List[str]:
-    return [get_metric_name(metric) for metric in metrics]
+    return [metric for metric in map(get_metric_name, metrics) if metric]
 
 
-def get_main_metric_name(metrics: Sequence[Metric]) -> Optional[str]:
+def get_first_metric_name(metrics: Sequence[Metric]) -> Optional[str]:
     metric_labels = get_metric_names(metrics)
     return metric_labels[0] if metric_labels else None
 
@@ -1239,15 +1332,16 @@ def convert_legacy_filters_into_adhoc(  # pylint: disable=invalid-name
     mapping = {"having": "having_filters", "where": "filters"}
 
     if not form_data.get("adhoc_filters"):
-        form_data["adhoc_filters"] = []
+        adhoc_filters: List[AdhocFilterClause] = []
+        form_data["adhoc_filters"] = adhoc_filters
 
         for clause, filters in mapping.items():
             if clause in form_data and form_data[clause] != "":
-                form_data["adhoc_filters"].append(to_adhoc(form_data, "SQL", clause))
+                adhoc_filters.append(form_data_to_adhoc(form_data, clause))
 
             if filters in form_data:
                 for filt in filter(lambda x: x is not None, form_data[filters]):
-                    form_data["adhoc_filters"].append(to_adhoc(filt, "SIMPLE", clause))
+                    adhoc_filters.append(simple_filter_to_adhoc(filt, clause))
 
     for key in ("filters", "having", "having_filters", "where"):
         if key in form_data:
@@ -1426,7 +1520,6 @@ def get_iterable(x: Any) -> List[Any]:
     :param x: The object
     :returns: An iterable representation
     """
-
     return x if isinstance(x, list) else [x]
 
 
@@ -1463,12 +1556,7 @@ def get_column_names_from_metrics(metrics: List[Metric]) -> List[str]:
     :param metrics: Ad-hoc metric
     :return: column name if simple metric, otherwise None
     """
-    columns: List[str] = []
-    for metric in metrics:
-        column_name = get_column_name_from_metric(metric)
-        if column_name:
-            columns.append(column_name)
-    return columns
+    return [col for col in map(get_column_name_from_metric, metrics) if col]
 
 
 def extract_dataframe_dtypes(df: pd.DataFrame) -> List[GenericDataType]:

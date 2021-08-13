@@ -91,6 +91,7 @@ const StyledHeader = styled.div`
   }
 
   .action-button {
+    color: ${({ theme }) => theme.colors.grayscale.base};
     margin: 0 ${({ theme }) => theme.gridUnit * 1.5}px 0
       ${({ theme }) => theme.gridUnit}px;
   }
@@ -199,7 +200,7 @@ export class ExploreChartHeader extends React.PureComponent {
     const roles = Object.keys(user.roles || []);
     const permissions = roles.map(key =>
       user.roles[key].filter(
-        perms => perms[0] === 'can_add' && perms[1] === 'AlertModelView',
+        perms => perms[0] === 'menu_access' && perms[1] === 'Manage',
       ),
     );
     return permissions[0].length > 0;
@@ -294,7 +295,7 @@ export class ExploreChartHeader extends React.PureComponent {
             props={{
               userId: this.props.user.userId,
               userEmail: this.props.user.email,
-              chartId: this.props.chart.id,
+              chart: this.props.chart,
               creationMethod: 'charts',
             }}
           />

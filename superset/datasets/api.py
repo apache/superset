@@ -100,6 +100,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "changed_on_utc",
         "changed_on_delta_humanized",
         "default_endpoint",
+        "description",
+        "datasource_type",
         "explore_url",
         "extra",
         "kind",

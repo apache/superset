@@ -217,7 +217,7 @@ const Select = ({
   const handleTopOptions = useCallback(
     (selectedValue: AntdSelectValue | undefined) => {
       // bringing selected options to the top of the list
-      if (selectedValue) {
+      if (selectedValue !== undefined && selectedValue !== null) {
         const topOptions: OptionsType = [];
         const otherOptions: OptionsType = [];
 
@@ -310,10 +310,13 @@ const Select = ({
 
   const handleOnDeselect = (value: string | number | AntdLabeledValue) => {
     if (Array.isArray(selectValue)) {
-      const selectedValues = [
-        ...(selectValue as []).filter(opt => opt !== value),
-      ];
-      setSelectValue(selectedValues);
+      if (typeof value === 'number' || typeof value === 'string') {
+        const array = selectValue as (string | number)[];
+        setSelectValue(array.filter(element => element !== value));
+      } else {
+        const array = selectValue as AntdLabeledValue[];
+        setSelectValue(array.filter(element => element.value !== value.value));
+      }
     }
     setSearchedValue('');
   };

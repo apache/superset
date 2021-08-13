@@ -27,7 +27,6 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
-const TerserPlugin = require('terser-webpack-plugin');
 const ManifestPlugin = require('webpack-manifest-plugin');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const parsedArgs = require('yargs').argv;
@@ -508,14 +507,6 @@ if (isDevMode) {
   if (hasSymlink) {
     console.log(''); // pure cosmetic new line
   }
-} else {
-  config.optimization.minimizer = [
-    new TerserPlugin({
-      cache: '.terser-plugin-cache/',
-      parallel: true,
-      extractComments: true,
-    }),
-  ];
 }
 
 // Bundle analyzer is disabled by default

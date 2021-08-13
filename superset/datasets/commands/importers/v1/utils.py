@@ -119,10 +119,12 @@ def import_dataset(
     example_database = get_example_database()
     try:
         table_exists = example_database.has_table_by_name(dataset.table_name)
-    except Exception as ex:
+    except Exception:  # pylint: disable=broad-except
         # MySQL doesn't play nice with GSheets table names
-        logger.warning("Couldn't check if table %s exists, stopping import")
-        raise ex
+        logger.warning(
+            "Couldn't check if table %s exists, assuming it does", dataset.table_name
+        )
+        table_exists = True
 
     if data_uri and (not table_exists or force_data):
         load_data(data_uri, dataset, example_database, session)
