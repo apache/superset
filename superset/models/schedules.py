@@ -31,17 +31,20 @@ metadata = Model.metadata  # pylint: disable=no-member
 
 
 class ScheduleType(str, enum.Enum):
+    # pylint: disable=invalid-name
     slice = "slice"
     dashboard = "dashboard"
     alert = "alert"
 
 
 class EmailDeliveryType(str, enum.Enum):
+    # pylint: disable=invalid-name
     attachment = "Attachment"
     inline = "Inline"
 
 
 class SliceEmailReportFormat(str, enum.Enum):
+    # pylint: disable=invalid-name
     visualization = "Visualization"
     data = "Raw data"
 

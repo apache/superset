@@ -352,7 +352,7 @@ def get_dashboard_extra_filters(
         dashboard is None
         or not dashboard.json_metadata
         or not dashboard.slices
-        or not any([slc for slc in dashboard.slices if slc.id == slice_id])
+        or not any(slc for slc in dashboard.slices if slc.id == slice_id)
     ):
         return []
 
@@ -455,7 +455,7 @@ def is_slice_in_container(
 
 
 def is_owner(obj: Union[Dashboard, Slice], user: User) -> bool:
-    """ Check if user is owner of the slice """
+    """Check if user is owner of the slice"""
     return obj and user in obj.owners
 
 

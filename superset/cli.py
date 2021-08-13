@@ -221,7 +221,7 @@ def import_directory(directory: str, overwrite: bool, force: bool) -> None:
     help="Create the DB if it doesn't exist",
 )
 def set_database_uri(database_name: str, uri: str, skip_create: bool) -> None:
-    """Updates a database connection URI """
+    """Updates a database connection URI"""
     utils.get_or_create_db(database_name, uri, not skip_create)
 
 
@@ -341,7 +341,8 @@ if feature_flags.get("VERSIONED_EXPORT"):
             with ZipFile(path) as bundle:
                 contents = get_contents_from_bundle(bundle)
         else:
-            contents = {path: open(path).read()}
+            with open(path) as file:
+                contents = {path: file.read()}
         try:
             ImportDashboardsCommand(contents, overwrite=True).run()
         except Exception:  # pylint: disable=broad-except
@@ -366,7 +367,8 @@ if feature_flags.get("VERSIONED_EXPORT"):
             with ZipFile(path) as bundle:
                 contents = get_contents_from_bundle(bundle)
         else:
-            contents = {path: open(path).read()}
+            with open(path) as file:
+                contents = {path: file.read()}
         try:
             ImportDatasetsCommand(contents, overwrite=True).run()
         except Exception:  # pylint: disable=broad-except
@@ -491,7 +493,10 @@ else:
             files.extend(path_object.rglob("*.json"))
         if username is not None:
             g.user = security_manager.find_user(username=username)
-        contents = {path.name: open(path).read() for path in files}
+        contents = {}
+        for path_ in files:
+            with open(path_) as file:
+                contents[path_.name] = file.read()
         try:
             ImportDashboardsCommand(contents).run()
         except Exception:  # pylint: disable=broad-except
@@ -539,7 +544,10 @@ else:
         elif path_object.exists() and recursive:
             files.extend(path_object.rglob("*.yaml"))
             files.extend(path_object.rglob("*.yml"))
-        contents = {path.name: open(path).read() for path in files}
+        contents = {}
+        for path_ in files:
+            with open(path_) as file:
+                contents[path_.name] = file.read()
         try:
             ImportDatasetsCommand(contents, sync_columns, sync_metrics).run()
         except Exception:  # pylint: disable=broad-except
@@ -632,7 +640,7 @@ def flower(port: int, address: str) -> None:
     print(Fore.BLUE + "-=" * 40)
     print(Fore.YELLOW + cmd)
     print(Fore.BLUE + "-=" * 40)
-    Popen(cmd, shell=True).wait()
+    Popen(cmd, shell=True).wait()  # pylint: disable=consider-using-with
 
 
 @superset.command()
