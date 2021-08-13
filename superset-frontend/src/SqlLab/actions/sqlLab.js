@@ -379,7 +379,7 @@ export function validateQuery(query) {
     };
 
     return SupersetClient.post({
-      endpoint: `/superset/validate_sql_json/`,
+      endpoint: `/superset/validate_sql_json/${window.location.search}`,
       postPayload,
       stringify: false,
     })
