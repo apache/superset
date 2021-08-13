@@ -22,6 +22,7 @@ import { styled } from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import Modal from 'src/components/Modal';
 import { useComponentDidMount } from 'src/common/hooks/useComponentDidMount';
+import { logEvent } from 'src/logger/actions';
 import { Omnibar } from './Omnibar';
 import { LOG_ACTIONS_OMNIBAR_TRIGGERED } from '../../logger/LogUtils';
 import { getDashboards } from './getDashboards';
@@ -34,12 +35,9 @@ const OmniModal = styled(Modal)`
   }
 `;
 
-interface Props {
-  logEvent: (log: string, object: object) => void;
-}
-
-export default function OmniContainer({ logEvent }: Props) {
+export default function OmniContainer() {
   const showOmni = useRef<boolean>();
+  const modalRef = useRef<HTMLDivElement>(null);
   const [showModal, setShowModal] = useState(false);
 
   useComponentDidMount(() => {
@@ -60,8 +58,21 @@ export default function OmniContainer({ logEvent }: Props) {
       }
     }
 
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        modalRef.current &&
+        !modalRef.current.contains(event.target as Node)
+      ) {
+        alert('You clicked outside of me!');
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('keydown', handleKeydown);
-    return () => document.removeEventListener('keydown', handleKeydown);
+    return () => {
+      document.removeEventListener('keydown', handleKeydown);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   });
 
   return (
@@ -71,12 +82,15 @@ export default function OmniContainer({ logEvent }: Props) {
       hideFooter
       closable={false}
       onHide={() => {}}
+      // @ts-ignore
     >
-      <Omnibar
-        id="InputOmnibar"
-        placeholder="Search all dashboards"
-        extensions={[getDashboards]}
-      />
+      <div ref={modalRef}>
+        <Omnibar
+          id="InputOmnibar"
+          placeholder="Search all dashboards"
+          extensions={[getDashboards]}
+        />
+      </div>
     </OmniModal>
   );
 }
