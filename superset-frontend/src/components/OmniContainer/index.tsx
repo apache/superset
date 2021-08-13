@@ -18,7 +18,7 @@
  */
 
 import React, { useRef, useState } from 'react';
-import { styled } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import Modal from 'src/components/Modal';
 import { useComponentDidMount } from 'src/common/hooks/useComponentDidMount';
@@ -56,12 +56,9 @@ export default function OmniContainer() {
       const controlOrCommand = event.ctrlKey || event.metaKey;
       const isOk = ['KeyK'].includes(event.code);
       const isEsc = event.key === 'Escape';
+
       if (isEsc && showOmni.current) {
-        logEvent(LOG_ACTIONS_OMNIBAR_TRIGGERED, {
-          show_omni: false,
-        });
-        showOmni.current = false;
-        setShowModal(false);
+        handleClose();
         return;
       }
       if (controlOrCommand && isOk) {
@@ -100,12 +97,11 @@ export default function OmniContainer() {
       hideFooter
       closable={false}
       onHide={() => {}}
-      // @ts-ignore
     >
       <div ref={modalRef}>
         <Omnibar
           id="InputOmnibar"
-          placeholder="Search all dashboards"
+          placeholder={t('Search all dashboards')}
           extensions={[getDashboards]}
         />
       </div>
