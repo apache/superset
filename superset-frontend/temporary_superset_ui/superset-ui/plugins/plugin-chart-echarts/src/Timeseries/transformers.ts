@@ -78,6 +78,7 @@ export function transformSeries(
     formatter?: NumberFormatter;
     totalStackedValues?: number[];
     showValueIndexes?: number[];
+    richTooltip?: boolean;
   },
 ): SeriesOption | undefined {
   const { name } = series;
@@ -95,6 +96,7 @@ export function transformSeries(
     formatter,
     totalStackedValues = [],
     showValueIndexes = [],
+    richTooltip,
   } = opts;
 
   const forecastSeries = extractForecastSeriesContext(name || '');
@@ -128,6 +130,11 @@ export function transformSeries(
   } else {
     plotType = seriesType === 'bar' ? 'bar' : 'line';
   }
+  const itemStyle = {
+    color: colorScale(forecastSeries.name),
+    opacity,
+  };
+  let emphasis = {};
   let showSymbol = false;
   if (!isConfidenceBand) {
     if (plotType === 'scatter') {
@@ -136,6 +143,16 @@ export function transformSeries(
       showSymbol = true;
     } else if (plotType === 'line' && showValue) {
       showSymbol = true;
+    } else if (plotType === 'line' && !richTooltip && !markerEnabled) {
+      // this is hack to make timeseries line chart clickable when tooltip trigger is 'item'
+      // so that the chart can emit cross-filtering
+      showSymbol = true;
+      itemStyle.opacity = 0;
+      emphasis = {
+        itemStyle: {
+          opacity: 1,
+        },
+      };
     } else if (markerEnabled) {
       showSymbol = true;
     }
@@ -145,10 +162,7 @@ export function transformSeries(
     ...series,
     yAxisIndex,
     name: forecastSeries.name,
-    itemStyle: {
-      color: colorScale(forecastSeries.name),
-      opacity,
-    },
+    itemStyle,
     // @ts-ignore
     type: plotType,
     smooth: seriesType === 'smooth',
@@ -162,6 +176,7 @@ export function transformSeries(
           ? opacity * areaOpacity
           : 0,
     },
+    emphasis,
     showSymbol,
     symbolSize: markerSize,
     label: {
