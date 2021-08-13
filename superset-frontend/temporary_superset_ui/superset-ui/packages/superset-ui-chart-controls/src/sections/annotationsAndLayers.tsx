@@ -16,8 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@superset-ui/core';
+import { ControlPanelSectionConfig } from '../types';
 
-export * from './sections';
-export * from './advancedAnalytics';
-export * from './annotationsAndLayers';
-export * from './forecastInterval';
+export const annotationLayers = [];
+
+export const annotationsAndLayersControls: ControlPanelSectionConfig = {
+  label: t('Annotations and Layers'),
+  expanded: false,
+  controlSetRows: [
+    [
+      {
+        name: 'annotation_layers',
+        config: {
+          type: 'AnnotationLayerControl',
+          label: '',
+          default: annotationLayers,
+          description: t('Annotation Layers'),
+        },
+      },
+    ],
+  ],
+};
