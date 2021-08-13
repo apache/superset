@@ -171,7 +171,7 @@ class SupersetAppInitializer:
             DatabaseView,
             ExcelToDatabaseView,
         )
-        from superset.views.datasource import Datasource
+        from superset.views.datasource.views import Datasource
         from superset.views.dynamic_plugins import DynamicPluginsView
         from superset.views.key_value import KV
         from superset.views.log.api import LogRestApi
