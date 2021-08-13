@@ -32,6 +32,7 @@ const OmniModal = styled(Modal)`
 
   .ant-modal-body {
     padding: 0;
+    overflow: visible;
   }
 `;
 
@@ -39,9 +40,17 @@ export default function OmniContainer() {
   const showOmni = useRef<boolean>();
   const modalRef = useRef<HTMLDivElement>(null);
   const [showModal, setShowModal] = useState(false);
+  const handleClose = () => {
+    logEvent(LOG_ACTIONS_OMNIBAR_TRIGGERED, {
+      show_omni: false,
+    });
+    showOmni.current = false;
+    setShowModal(false);
+  };
 
   useComponentDidMount(() => {
     showOmni.current = false;
+
     function handleKeydown(event: KeyboardEvent) {
       if (!isFeatureEnabled(FeatureFlag.OMNIBAR)) return;
       const controlOrCommand = event.ctrlKey || event.metaKey;
@@ -63,7 +72,7 @@ export default function OmniContainer() {
         modalRef.current &&
         !modalRef.current.contains(event.target as Node)
       ) {
-        alert('You clicked outside of me!');
+        handleClose();
       }
     }
 
