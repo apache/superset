@@ -145,6 +145,7 @@ export default function transformProps(
       showValue,
       totalStackedValues,
       showValueIndexes,
+      richTooltip,
     });
     if (transformedSeries) series.push(transformedSeries);
   });
