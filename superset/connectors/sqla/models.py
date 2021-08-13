@@ -404,9 +404,7 @@ class SqlMetric(Model, BaseMetric):
         "extra",
         "warning_text",
     ]
-    update_from_object_fields = list(
-        [s for s in export_fields if s not in ("table_id",)]
-    )
+    update_from_object_fields = list(s for s in export_fields if s != "table_id")
     export_parent = "table"
 
     def get_sqla_col(self, label: Optional[str] = None) -> Column:
@@ -1151,7 +1149,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         having_clause_and = []
 
         for flt in filter:  # type: ignore
-            if not all([flt.get(s) for s in ["col", "op"]]):
+            if not all(flt.get(s) for s in ["col", "op"]):
                 continue
             col = flt["col"]
             val = flt.get("val")

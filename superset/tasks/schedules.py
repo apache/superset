@@ -827,7 +827,7 @@ def get_scheduler_action(report_type: str) -> Optional[Callable[..., Any]]:
 
 @celery_app.task(name="email_reports.schedule_hourly")
 def schedule_hourly() -> None:
-    """ Celery beat job meant to be invoked hourly """
+    """Celery beat job meant to be invoked hourly"""
     if not config["ENABLE_SCHEDULED_EMAIL_REPORTS"]:
         logger.info("Scheduled email reports not enabled in config")
         return
@@ -845,7 +845,7 @@ def schedule_hourly() -> None:
 
 @celery_app.task(name="alerts.schedule_check")
 def schedule_alerts() -> None:
-    """ Celery beat job meant to be invoked every minute to check alerts """
+    """Celery beat job meant to be invoked every minute to check alerts"""
     resolution = 0
     now = datetime.utcnow()
     start_at = now - timedelta(

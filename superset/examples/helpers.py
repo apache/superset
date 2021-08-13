@@ -69,7 +69,9 @@ def get_slice_json(defaults: Dict[Any, Any], **kwargs: Any) -> str:
 def get_example_data(
     filepath: str, is_gzip: bool = True, make_bytes: bool = False
 ) -> BytesIO:
-    content = request.urlopen(f"{BASE_URL}{filepath}?raw=true").read()
+    content = request.urlopen(  # pylint: disable=consider-using-with
+        f"{BASE_URL}{filepath}?raw=true"
+    ).read()
     if is_gzip:
         content = zlib.decompress(content, zlib.MAX_WBITS | 16)
     if make_bytes:
