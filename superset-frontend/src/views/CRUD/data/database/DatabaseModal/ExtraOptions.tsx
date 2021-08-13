@@ -169,9 +169,9 @@ const ExtraOptions = ({
             <StyledInputContainer css={no_margin_bottom}>
               <div className="input-container">
                 <IndeterminateCheckbox
-                  id="cost_query_enabled"
+                  id="cost_estimate_enabled"
                   indeterminate={false}
-                  checked={!!db?.extra_json?.cost_query_enabled}
+                  checked={!!db?.extra_json?.cost_estimate_enabled}
                   onChange={onExtraInputChange}
                   labelText={t('Enable query cost estimation')}
                 />
