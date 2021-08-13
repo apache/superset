@@ -118,7 +118,7 @@ test('Open Omnibar with Command + k with featureflag enabled', () => {
   ).not.toBeVisible();
 });
 
-test('Close Omnibar with ESC', () => {
+test('Open Omnibar with Cmd/Ctrl-K and close with ESC', () => {
   (isFeatureEnabled as jest.Mock).mockImplementation(
     (ff: string) => ff === 'OMNIBAR',
   );
