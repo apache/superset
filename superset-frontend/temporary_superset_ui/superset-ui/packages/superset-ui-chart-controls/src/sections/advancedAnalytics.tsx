@@ -21,7 +21,7 @@ import { t, RollingType, ComparisionType } from '@superset-ui/core';
 import { ControlPanelSectionConfig } from '../types';
 import { formatSelectOptions } from '../utils';
 
-export const advancedAnalytics: ControlPanelSectionConfig = {
+export const advancedAnalyticsControls: ControlPanelSectionConfig = {
   label: t('Advanced analytics'),
   tabOverride: 'data',
   description: t(
