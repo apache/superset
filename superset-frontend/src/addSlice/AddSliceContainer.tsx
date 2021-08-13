@@ -91,6 +91,14 @@ const StyledContainer = styled.div`
     & .ant-tooltip-open {
       display: inline;
     }
+
+    &&&& .ant-select-selector {
+      padding: 0;
+    }
+
+    &&&& .ant-select-selection-placeholder {
+      padding-left: ${theme.gridUnit * 3}px;
+    }
   `}
 `;
 
@@ -131,6 +139,16 @@ const StyledVizTypeGallery = styled(VizTypeGallery)`
   `}
 `;
 
+const StyledLabel = styled.span`
+  ${({ theme }) => `
+    position: absolute;
+    left: ${theme.gridUnit * 3}px;
+    right: ${theme.gridUnit * 3}px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  `}
+`;
+
 export default class AddSliceContainer extends React.PureComponent<
   AddSliceContainerProps,
   AddSliceContainerState
@@ -146,6 +164,7 @@ export default class AddSliceContainer extends React.PureComponent<
     this.gotoSlice = this.gotoSlice.bind(this);
     this.newLabel = this.newLabel.bind(this);
     this.loadDatasources = this.loadDatasources.bind(this);
+    this.handleFilterOption = this.handleFilterOption.bind(this);
   }
 
   exploreUrl() {
@@ -177,6 +196,8 @@ export default class AddSliceContainer extends React.PureComponent<
   newLabel(item: Dataset) {
     return (
       <Tooltip
+        mouseEnterDelay={1}
+        placement="right"
         title={
           <TooltipContent hasDescription={!!item.description}>
             <div className="tooltip-header">{item.table_name}</div>
@@ -186,7 +207,7 @@ export default class AddSliceContainer extends React.PureComponent<
           </TooltipContent>
         }
       >
-        {item.table_name}
+        <StyledLabel>{item.table_name}</StyledLabel>
       </Tooltip>
     );
   }
@@ -204,12 +225,22 @@ export default class AddSliceContainer extends React.PureComponent<
       const list = response.json.result.map((item: Dataset) => ({
         value: `${item.id}__${item.datasource_type}`,
         label: this.newLabel(item),
+        labelText: item.table_name,
       }));
       return {
         data: list,
         totalCount: response.json.count,
       };
     });
+  }
+
+  handleFilterOption(
+    search: string,
+    option: { label: string; value: number; labelText: string },
+  ) {
+    const searchValue = search.trim().toLowerCase();
+    const { labelText } = option;
+    return labelText.toLowerCase().includes(searchValue);
   }
 
   render() {
@@ -222,6 +253,7 @@ export default class AddSliceContainer extends React.PureComponent<
             ariaLabel={t('Dataset')}
             name="select-datasource"
             header={<FormLabel required>{t('Choose a dataset')}</FormLabel>}
+            filterOption={this.handleFilterOption}
             onChange={this.changeDatasource}
             options={this.loadDatasources}
             placeholder={t('Choose a dataset')}
