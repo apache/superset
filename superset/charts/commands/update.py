@@ -31,8 +31,8 @@ from superset.charts.commands.exceptions import (
     DatasourceTypeUpdateRequiredValidationError,
 )
 from superset.charts.dao import ChartDAO
-from superset.commands.base import BaseCommand
-from superset.commands.utils import get_datasource_by_id, populate_owners
+from superset.commands.base import BaseCommand, UpdateMixin
+from superset.commands.utils import get_datasource_by_id
 from superset.dao.exceptions import DAOUpdateFailedError
 from superset.dashboards.dao import DashboardDAO
 from superset.exceptions import SupersetSecurityException
@@ -42,7 +42,13 @@ from superset.views.base import check_ownership
 logger = logging.getLogger(__name__)
 
 
-class UpdateChartCommand(BaseCommand):
+def is_query_context_update(properties: Dict[str, Any]) -> bool:
+    return set(properties) == {"query_context", "query_context_generation"} and bool(
+        properties.get("query_context_generation")
+    )
+
+
+class UpdateChartCommand(UpdateMixin, BaseCommand):
     def __init__(self, user: User, model_id: int, data: Dict[str, Any]):
         self._actor = user
         self._model_id = model_id
@@ -77,11 +83,14 @@ class UpdateChartCommand(BaseCommand):
         self._model = ChartDAO.find_by_id(self._model_id)
         if not self._model:
             raise ChartNotFoundError()
-        # Check ownership
-        try:
-            check_ownership(self._model)
-        except SupersetSecurityException:
-            raise ChartForbiddenError()
+
+        # Check ownership; when only updating query context we ignore
+        # ownership so the update can be performed by report workers
+        if not is_query_context_update(self._properties):
+            try:
+                check_ownership(self._model)
+            except SupersetSecurityException:
+                raise ChartForbiddenError()
 
         # Validate/Populate datasource
         if datasource_id is not None:
@@ -100,7 +109,7 @@ class UpdateChartCommand(BaseCommand):
 
         # Validate/Populate owner
         try:
-            owners = populate_owners(self._actor, owner_ids)
+            owners = self.populate_owners(self._actor, owner_ids)
             self._properties["owners"] = owners
         except ValidationError as ex:
             exceptions.append(ex)
