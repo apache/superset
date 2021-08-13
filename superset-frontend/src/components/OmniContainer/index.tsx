@@ -40,12 +40,18 @@ export default function OmniContainer() {
   const showOmni = useRef<boolean>();
   const modalRef = useRef<HTMLDivElement>(null);
   const [showModal, setShowModal] = useState(false);
-  const handleClose = () => {
+  const handleLogEvent = (show: boolean) =>
     logEvent(LOG_ACTIONS_OMNIBAR_TRIGGERED, {
-      show_omni: false,
+      show_omni: show,
     });
+  const handleClose = () => {
+    const inputEl = document.getElementById('InputOmnibar') as HTMLInputElement;
+    if (inputEl) {
+      inputEl.value = '';
+    }
     showOmni.current = false;
     setShowModal(false);
+    handleLogEvent(false);
   };
 
   useComponentDidMount(() => {
@@ -62,14 +68,12 @@ export default function OmniContainer() {
         return;
       }
       if (controlOrCommand && isOk) {
-        logEvent(LOG_ACTIONS_OMNIBAR_TRIGGERED, {
-          show_omni: !!showOmni.current,
-        });
         showOmni.current = !showOmni.current;
         setShowModal(showOmni.current);
         if (showOmni.current) {
           document.getElementById('InputOmnibar')?.focus();
         }
+        handleLogEvent(!!showOmni.current);
       }
     }
 
