@@ -23,6 +23,7 @@ import { DataMaskStateWithId, DataMaskType } from 'src/dataMask/types';
 import {
   ensureIsArray,
   FeatureFlag,
+  FilterState,
   isFeatureEnabled,
 } from '@superset-ui/core';
 import { Layout } from '../../types';
@@ -52,6 +53,16 @@ type Filter = {
   isDateFilter: boolean;
   directPathToFilter: string[];
   datasourceId: string;
+};
+
+const extractLabel = (filter?: FilterState): string | null => {
+  if (filter?.label) {
+    return filter.label;
+  }
+  if (filter?.value) {
+    return ensureIsArray(filter?.value).join(', ');
+  }
+  return null;
 };
 
 const selectIndicatorValue = (
@@ -186,16 +197,16 @@ export const selectNativeIndicatorsForChart = (
   const rejectedColumns = getRejectedColumns(chart);
 
   const getStatus = ({
-    value,
+    label,
     column,
     type = DataMaskType.NativeFilters,
   }: {
-    value: any;
+    label: string | null;
     column?: string;
     type?: DataMaskType;
   }): IndicatorStatus => {
     // a filter is only considered unset if it's value is null
-    const hasValue = value !== null;
+    const hasValue = label !== null;
     if (type === DataMaskType.CrossFilters && hasValue) {
       return IndicatorStatus.CrossFilterApplied;
     }
@@ -224,19 +235,14 @@ export const selectNativeIndicatorsForChart = (
         )
         .map(nativeFilter => {
           const column = nativeFilter.targets[0]?.column?.name;
-          let value =
-            dataMask[nativeFilter.id]?.filterState?.label ??
-            dataMask[nativeFilter.id]?.filterState?.value ??
-            null;
-          if (!Array.isArray(value) && value !== null) {
-            value = [value];
-          }
+          const filterState = dataMask[nativeFilter.id]?.filterState;
+          const label = extractLabel(filterState);
           return {
             column,
             name: nativeFilter.name,
             path: [nativeFilter.id],
-            status: getStatus({ value, column }),
-            value,
+            status: getStatus({ label, column }),
+            value: label,
           };
         });
   }
@@ -253,12 +259,9 @@ export const selectNativeIndicatorsForChart = (
         ),
       )
       .map(chartConfig => {
-        const value = ensureIsArray(
-          dataMask[chartConfig.id]?.filterState?.label ??
-            dataMask[chartConfig.id]?.filterState?.value ??
-            null,
-        );
-        const filtersState = dataMask[chartConfig.id]?.filterState?.filters;
+        const filterState = dataMask[chartConfig.id]?.filterState;
+        const label = extractLabel(filterState);
+        const filtersState = filterState?.filters;
         const column = filtersState && Object.keys(filtersState)[0];
 
         const dashboardLayoutItem = Object.values(dashboardLayout).find(
@@ -272,10 +275,10 @@ export const selectNativeIndicatorsForChart = (
             dashboardLayoutItem?.id,
           ],
           status: getStatus({
-            value,
+            label,
             type: DataMaskType.CrossFilters,
           }),
-          value,
+          value: label,
         };
       })
       .filter(filter => filter.status === IndicatorStatus.CrossFilterApplied);
