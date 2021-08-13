@@ -568,7 +568,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(model.created_by, admin)
         self.assertEqual(model.slice_name, "title1_changed")
         self.assertEqual(model.description, "description1")
-        self.assertIn(admin, model.owners)
+        self.assertNotIn(admin, model.owners)
         self.assertIn(gamma, model.owners)
         self.assertEqual(model.viz_type, "viz_type1")
         self.assertEqual(model.params, """{"a": 1}""")
@@ -580,20 +580,39 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         db.session.delete(model)
         db.session.commit()
 
-    def test_update_chart_new_owner(self):
+    def test_update_chart_new_owner_not_admin(self):
         """
-        Chart API: Test update set new owner to current user
+        Chart API: Test update set new owner implicitly adds logged in owner
+        """
+        gamma = self.get_user("gamma")
+        alpha = self.get_user("alpha")
+        chart_id = self.insert_chart("title", [alpha.id], 1).id
+        chart_data = {"slice_name": "title1_changed", "owners": [gamma.id]}
+        self.login(username="alpha")
+        uri = f"api/v1/chart/{chart_id}"
+        rv = self.put_assert_metric(uri, chart_data, "put")
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(Slice).get(chart_id)
+        self.assertIn(alpha, model.owners)
+        self.assertIn(gamma, model.owners)
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_update_chart_new_owner_admin(self):
+        """
+        Chart API: Test update set new owner as admin to other than current user
         """
         gamma = self.get_user("gamma")
         admin = self.get_user("admin")
-        chart_id = self.insert_chart("title", [gamma.id], 1).id
-        chart_data = {"slice_name": "title1_changed"}
+        chart_id = self.insert_chart("title", [admin.id], 1).id
+        chart_data = {"slice_name": "title1_changed", "owners": [gamma.id]}
         self.login(username="admin")
         uri = f"api/v1/chart/{chart_id}"
         rv = self.put_assert_metric(uri, chart_data, "put")
         self.assertEqual(rv.status_code, 200)
         model = db.session.query(Slice).get(chart_id)
-        self.assertIn(admin, model.owners)
+        self.assertNotIn(admin, model.owners)
+        self.assertIn(gamma, model.owners)
         db.session.delete(model)
         db.session.commit()
 
