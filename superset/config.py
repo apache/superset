@@ -1256,6 +1256,7 @@ from flask import  request
 import jwt
 from superset.utils import core as utils
 from superset.utils.date_parser import get_since_until
+
 #key to decrypt jwt token
 MOBI_SECRET_KEY=None
 MOBI_SECRET_KEY_OLD=None
@@ -1354,6 +1355,10 @@ def uri_filter(cond="none", default="") -> Optional[Any]:
 
     #fetching dashboard_id
     dashboard_id = request.args.get("dashboard_id")
+    if dashboard_id is None:
+        return default
+    else:
+        return dashboard_id
     logger.info("dashboard_id: {}".format(str(dashboard_id)))
     # returning default value if form is null
     if form_data is None:
