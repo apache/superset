@@ -156,7 +156,7 @@ export const dnd_granularity_sqla: typeof dndGroupByControl = {
       'expression',
   ),
   canDelete: false,
-  ghostButtonText: t('Drop temporal column'),
+  ghostButtonText: t('Drop temporal column here'),
   mapStateToProps: ({ datasource }) => {
     const temporalColumns = datasource?.columns.filter(c => c.is_dttm) ?? [];
     const options = Object.fromEntries(temporalColumns.map(option => [option.column_name, option]));
