@@ -527,10 +527,10 @@ DEFAULT_PROCESSORS = {"presto": PrestoTemplateProcessor, "hive": HiveTemplatePro
 @memoized
 def get_template_processors() -> Dict[str, Any]:
     processors = current_app.config.get("CUSTOM_TEMPLATE_PROCESSORS", {})
-    for engine in DEFAULT_PROCESSORS:
+    for engine, processor in DEFAULT_PROCESSORS.items():
         # do not overwrite engine-specific CUSTOM_TEMPLATE_PROCESSORS
         if not engine in processors:
-            processors[engine] = DEFAULT_PROCESSORS[engine]
+            processors[engine] = processor
 
     return processors
 
