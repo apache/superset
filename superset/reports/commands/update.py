@@ -22,7 +22,7 @@ from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
-from superset.commands.utils import populate_owners
+from superset.commands.base import UpdateMixin
 from superset.dao.exceptions import DAOUpdateFailedError
 from superset.databases.dao import DatabaseDAO
 from superset.exceptions import SupersetSecurityException
@@ -42,7 +42,7 @@ from superset.views.base import check_ownership
 logger = logging.getLogger(__name__)
 
 
-class UpdateReportScheduleCommand(BaseReportScheduleCommand):
+class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
     def __init__(self, user: User, model_id: int, data: Dict[str, Any]):
         self._actor = user
         self._model_id = model_id
@@ -117,7 +117,7 @@ class UpdateReportScheduleCommand(BaseReportScheduleCommand):
         if owner_ids is None:
             owner_ids = [owner.id for owner in self._model.owners]
         try:
-            owners = populate_owners(self._actor, owner_ids)
+            owners = self.populate_owners(self._actor, owner_ids)
             self._properties["owners"] = owners
         except ValidationError as ex:
             exceptions.append(ex)
