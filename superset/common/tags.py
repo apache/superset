@@ -79,7 +79,7 @@ def add_types(engine: Engine, metadata: Metadata) -> None:
 
     # add a tag for each object type
     insert = tag.insert()
-    for type_ in ObjectTypes.__members__:
+    for type_ in ObjectTypes.__members__:  # pylint: disable=not-an-iterable
         try:
             engine.execute(insert, name=f"type:{type_}", type=TagTypes.type)
         except IntegrityError:
