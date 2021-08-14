@@ -177,7 +177,7 @@ def pivot_table_v2(  # pylint: disable=too-many-branches
         df = df.stack(0).unstack().reindex(level=-1, columns=metrics)
 
     # flatten column names
-    df.columns = [" ".join(column) for column in df.columns]
+    df.columns = [" ".join(str(name) for name in column) for column in df.columns]
 
     return df
 
