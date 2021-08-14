@@ -170,7 +170,7 @@ class Header extends React.PureComponent {
   componentDidMount() {
     const { refreshFrequency, user, dashboardInfo } = this.props;
     this.startPeriodicRender(refreshFrequency * 1000);
-    if (user && isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
+    if (this.canAddReports()) {
       // this is in case there is an anonymous user.
       this.props.fetchUISpecificReport(
         user.userId,
@@ -197,7 +197,10 @@ class Header extends React.PureComponent {
     ) {
       this.props.setMaxUndoHistoryExceeded();
     }
-    if (user && nextProps.dashboardInfo.id !== this.props.dashboardInfo.id) {
+    if (
+      this.canAddReports() &&
+      nextProps.dashboardInfo.id !== this.props.dashboardInfo.id
+    ) {
       // this is in case there is an anonymous user.
       this.props.fetchUISpecificReport(
         user.userId,
@@ -399,32 +402,31 @@ class Header extends React.PureComponent {
 
   renderReportModal() {
     const attachedReportExists = !!Object.keys(this.props.reports).length;
-    const canAddReports = isFeatureEnabled(FeatureFlag.ALERT_REPORTS);
-    return (
-      (canAddReports || null) &&
-      (attachedReportExists ? (
-        <HeaderReportActionsDropdown
-          showReportModal={this.showReportModal}
-          toggleActive={this.props.toggleActive}
-          deleteActiveReport={this.props.deleteActiveReport}
-        />
-      ) : (
-        <>
-          <span
-            role="button"
-            title={t('Schedule email report')}
-            tabIndex={0}
-            className="action-button"
-            onClick={this.showReportModal}
-          >
-            <Icons.Calendar />
-          </span>
-        </>
-      ))
+    return attachedReportExists ? (
+      <HeaderReportActionsDropdown
+        showReportModal={this.showReportModal}
+        toggleActive={this.props.toggleActive}
+        deleteActiveReport={this.props.deleteActiveReport}
+      />
+    ) : (
+      <>
+        <span
+          role="button"
+          title={t('Schedule email report')}
+          tabIndex={0}
+          className="action-button"
+          onClick={this.showReportModal}
+        >
+          <Icons.Calendar />
+        </span>
+      </>
     );
   }
 
   canAddReports() {
+    if (!isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
+      return false;
+    }
     const { user } = this.props;
     if (!user) {
       // this is in the case that there is an anonymous user.
