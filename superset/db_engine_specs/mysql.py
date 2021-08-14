@@ -171,6 +171,7 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
     def get_datatype(cls, type_code: Any) -> Optional[str]:
         if not cls.type_code_map:
             # only import and store if needed at least once
+            # pylint: disable=import-outside-toplevel
             import MySQLdb
 
             ft = MySQLdb.constants.FIELD_TYPE

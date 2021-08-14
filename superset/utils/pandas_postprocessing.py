@@ -714,11 +714,11 @@ def _prophet_fit_and_predict(  # pylint: disable=too-many-arguments
     Fit a prophet model and return a DataFrame with predicted results.
     """
     try:
+        # pylint: disable=import-error,import-outside-toplevel
+        from prophet import Prophet
+
         prophet_logger = logging.getLogger("prophet.plot")
-
         prophet_logger.setLevel(logging.CRITICAL)
-        from prophet import Prophet  # pylint: disable=import-error
-
         prophet_logger.setLevel(logging.NOTSET)
     except ModuleNotFoundError:
         raise QueryObjectValidationError(_("`prophet` package not installed"))
