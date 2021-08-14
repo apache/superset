@@ -89,7 +89,7 @@ WEBDRIVER_BASEURL = config["WEBDRIVER_BASEURL"]
 WEBDRIVER_BASEURL_USER_FRIENDLY = config["WEBDRIVER_BASEURL_USER_FRIENDLY"]
 
 ReportContent = namedtuple(
-    "EmailContent",
+    "ReportContent",
     [
         "body",  # email body
         "data",  # attachments

@@ -23,6 +23,7 @@ from superset.utils.core import (
     GenericDataType,
     get_metric_name,
     get_metric_names,
+    is_adhoc_metric,
 )
 
 STR_METRIC = "my_metric"
@@ -91,3 +92,9 @@ def test_get_metric_names():
     assert get_metric_names(
         [STR_METRIC, SIMPLE_SUM_ADHOC_METRIC, SQL_ADHOC_METRIC]
     ) == ["my_metric", "my SUM", "my_sql"]
+
+
+def test_is_adhoc_metric():
+    assert is_adhoc_metric(STR_METRIC) is False
+    assert is_adhoc_metric(SIMPLE_SUM_ADHOC_METRIC) is True
+    assert is_adhoc_metric(SQL_ADHOC_METRIC) is True
