@@ -719,7 +719,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                     "Error in jinja expression in fetch values predicate: %(msg)s",
                     msg=ex.message,
                 )
-            )
+            ) from ex
 
     def values_for_column(self, column_name: str, limit: int = 10000) -> List[Any]:
         """Runs query against sqla to retrieve some
@@ -818,7 +818,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                         "Error while rendering virtual dataset query: %(msg)s",
                         msg=ex.message,
                     )
-                )
+                ) from ex
         sql = sqlparse.format(sql.strip("\t\r\n; "), strip_comments=True)
         if not sql:
             raise QueryObjectValidationError(_("Virtual dataset query cannot be empty"))
@@ -929,7 +929,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         except TemplateError as ex:
             raise QueryObjectValidationError(
                 _("Error in jinja expression in RLS filters: %(msg)s", msg=ex.message,)
-            )
+            ) from ex
 
     def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
         self,
@@ -1252,7 +1252,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                             "Error in jinja expression in WHERE clause: %(msg)s",
                             msg=ex.message,
                         )
-                    )
+                    ) from ex
                 where_clause_and += [sa.text("({})".format(where))]
             having = extras.get("having")
             if having:
@@ -1264,7 +1264,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                             "Error in jinja expression in HAVING clause: %(msg)s",
                             msg=ex.message,
                         )
-                    )
+                    ) from ex
                 having_clause_and += [sa.text("({})".format(having))]
         if apply_fetch_values_predicate and self.fetch_values_predicate:
             qry = qry.where(self.get_fetch_values_predicate())

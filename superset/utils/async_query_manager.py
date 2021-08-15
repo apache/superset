@@ -165,9 +165,9 @@ class AsyncQueryManager:
 
         try:
             return self.parse_jwt(token)
-        except Exception as exc:
-            logger.warning(exc)
-            raise AsyncQueryTokenException("Failed to parse token")
+        except Exception as ex:
+            logger.warning(ex)
+            raise AsyncQueryTokenException("Failed to parse token") from ex
 
     def init_job(self, channel_id: str, user_id: Optional[str]) -> Dict[str, Any]:
         job_id = str(uuid.uuid4())

@@ -53,7 +53,7 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             dashboard = DashboardDAO.update_charts_owners(dashboard, commit=True)
         except DAOUpdateFailedError as ex:
             logger.exception(ex.exception)
-            raise DashboardUpdateFailedError()
+            raise DashboardUpdateFailedError() from ex
         return dashboard
 
     def validate(self) -> None:
@@ -69,8 +69,8 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
         # Check ownership
         try:
             check_ownership(self._model)
-        except SupersetSecurityException:
-            raise DashboardForbiddenError()
+        except SupersetSecurityException as ex:
+            raise DashboardForbiddenError() from ex
 
         # Validate slug uniqueness
         if not DashboardDAO.validate_update_slug_uniqueness(self._model_id, slug):

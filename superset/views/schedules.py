@@ -134,8 +134,8 @@ class EmailScheduleView(
         try:
             recipients = get_email_address_list(item.recipients)
             item.recipients = ", ".join(recipients)
-        except Exception:
-            raise SupersetException("Invalid email list")
+        except Exception as ex:
+            raise SupersetException("Invalid email list") from ex
 
         item.user = item.user or g.user
         if not croniter.is_valid(item.crontab):

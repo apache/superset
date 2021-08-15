@@ -521,7 +521,7 @@ def check_datasource_perms(
                 level=ErrorLevel.ERROR,
                 message=str(ex),
             )
-        )
+        ) from ex
 
     if datasource_type is None:
         raise SupersetSecurityException(
@@ -539,14 +539,14 @@ def check_datasource_perms(
             form_data=form_data,
             force=False,
         )
-    except NoResultFound:
+    except NoResultFound as ex:
         raise SupersetSecurityException(
             SupersetError(
                 error_type=SupersetErrorType.UNKNOWN_DATASOURCE_TYPE_ERROR,
                 level=ErrorLevel.ERROR,
                 message=_("Could not find viz object"),
             )
-        )
+        ) from ex
 
     viz_obj.raise_for_access()
 
@@ -572,14 +572,14 @@ def check_slice_perms(_self: Any, slice_id: int) -> None:
                 form_data=form_data,
                 force=False,
             )
-        except NoResultFound:
+        except NoResultFound as ex:
             raise SupersetSecurityException(
                 SupersetError(
                     error_type=SupersetErrorType.UNKNOWN_DATASOURCE_TYPE_ERROR,
                     level=ErrorLevel.ERROR,
                     message="Could not find viz object",
                 )
-            )
+            ) from ex
 
         viz_obj.raise_for_access()
 
@@ -597,8 +597,8 @@ def _deserialize_results_payload(
         with stats_timing("sqllab.query.results_backend_pa_deserialize", stats_logger):
             try:
                 pa_table = pa.deserialize(ds_payload["data"])
-            except pa.ArrowSerializationError:
-                raise SerializationError("Unable to deserialize table")
+            except pa.ArrowSerializationError as ex:
+                raise SerializationError("Unable to deserialize table") from ex
 
         df = result_set.SupersetResultSet.convert_table_to_df(pa_table)
         ds_payload["data"] = dataframe.df_to_records(df) or []

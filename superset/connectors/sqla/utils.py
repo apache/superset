@@ -110,6 +110,6 @@ def get_virtual_table_metadata(dataset: "SqlaTable") -> List[Dict[str, str]]:
             result = db_engine_spec.fetch_data(cursor, limit=1)
             result_set = SupersetResultSet(result, cursor.description, db_engine_spec)
             cols = result_set.columns
-    except Exception as exc:
-        raise SupersetGenericDBErrorException(message=str(exc))
+    except Exception as ex:
+        raise SupersetGenericDBErrorException(message=str(ex)) from ex
     return cols

@@ -201,13 +201,13 @@ class BaseReportState:
         user = self._get_user()
         try:
             image_data = screenshot.get_screenshot(user=user)
-        except SoftTimeLimitExceeded:
+        except SoftTimeLimitExceeded as ex:
             logger.warning("A timeout occurred while taking a screenshot.")
-            raise ReportScheduleScreenshotTimeout()
+            raise ReportScheduleScreenshotTimeout() from ex
         except Exception as ex:
             raise ReportScheduleScreenshotFailedError(
                 f"Failed taking a screenshot {str(ex)}"
-            )
+            ) from ex
         if not image_data:
             raise ReportScheduleScreenshotFailedError()
         return image_data
@@ -239,10 +239,12 @@ class BaseReportState:
         try:
             logger.info("Getting chart from %s", url)
             csv_data = get_chart_csv_data(url, auth_cookies)
-        except SoftTimeLimitExceeded:
-            raise ReportScheduleCsvTimeout()
+        except SoftTimeLimitExceeded as ex:
+            raise ReportScheduleCsvTimeout() from ex
         except Exception as ex:
-            raise ReportScheduleCsvFailedError(f"Failed generating csv {str(ex)}")
+            raise ReportScheduleCsvFailedError(
+                f"Failed generating csv {str(ex)}"
+            ) from ex
         if not csv_data:
             raise ReportScheduleCsvFailedError()
         return csv_data
@@ -581,7 +583,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             except CommandException as ex:
                 raise ex
             except Exception as ex:
-                raise ReportScheduleUnexpectedError(str(ex))
+                raise ReportScheduleUnexpectedError(str(ex)) from ex
 
     def validate(  # pylint: disable=arguments-differ
         self, session: Session = None

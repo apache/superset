@@ -72,7 +72,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
                 return dataset
             except DAOUpdateFailedError as ex:
                 logger.exception(ex.exception)
-                raise DatasetUpdateFailedError()
+                raise DatasetUpdateFailedError() from ex
         raise DatasetUpdateFailedError()
 
     def validate(self) -> None:
@@ -85,8 +85,8 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         # Check ownership
         try:
             check_ownership(self._model)
-        except SupersetSecurityException:
-            raise DatasetForbiddenError()
+        except SupersetSecurityException as ex:
+            raise DatasetForbiddenError() from ex
 
         database_id = self._properties.get("database", None)
         table_name = self._properties.get("table_name", None)

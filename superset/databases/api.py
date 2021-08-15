@@ -1014,7 +1014,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
         try:
             payload = DatabaseValidateParametersSchema().load(request.json)
-        except ValidationError as error:
+        except ValidationError as ex:
             errors = [
                 SupersetError(
                     message="\n".join(messages),
@@ -1022,9 +1022,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                     level=ErrorLevel.ERROR,
                     extra={"invalid": [attribute]},
                 )
-                for attribute, messages in error.messages.items()
+                for attribute, messages in ex.messages.items()
             ]
-            raise InvalidParametersError(errors)
+            raise InvalidParametersError(errors) from ex
 
         command = ValidateDatabaseParametersCommand(g.user, payload)
         command.run()

@@ -110,7 +110,7 @@ class ReportScheduleDAO(BaseDAO):
         except SQLAlchemyError as ex:
             if commit:
                 db.session.rollback()
-            raise DAODeleteFailedError(str(ex))
+            raise DAODeleteFailedError(str(ex)) from ex
 
     @staticmethod
     def validate_update_uniqueness(
@@ -161,7 +161,7 @@ class ReportScheduleDAO(BaseDAO):
             return model
         except SQLAlchemyError as ex:
             db.session.rollback()
-            raise DAOCreateFailedError(str(ex))
+            raise DAOCreateFailedError(str(ex)) from ex
 
     @classmethod
     def update(
@@ -195,7 +195,7 @@ class ReportScheduleDAO(BaseDAO):
             return model
         except SQLAlchemyError as ex:
             db.session.rollback()
-            raise DAOCreateFailedError(str(ex))
+            raise DAOCreateFailedError(str(ex)) from ex
 
     @staticmethod
     def find_active(session: Optional[Session] = None) -> List[ReportSchedule]:
@@ -303,4 +303,4 @@ class ReportScheduleDAO(BaseDAO):
         except SQLAlchemyError as ex:
             if commit:
                 session.rollback()
-            raise DAODeleteFailedError(str(ex))
+            raise DAODeleteFailedError(str(ex)) from ex
