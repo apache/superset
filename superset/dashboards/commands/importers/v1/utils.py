@@ -56,7 +56,7 @@ def build_uuid_to_id_map(position: Dict[str, Any]) -> Dict[str, int]:
     }
 
 
-def update_id_refs(
+def update_id_refs(  # pylint: disable=too-many-locals
     config: Dict[str, Any],
     chart_ids: Dict[str, int],
     dataset_info: Dict[str, Dict[str, Any]],
