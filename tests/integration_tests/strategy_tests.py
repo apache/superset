@@ -22,7 +22,8 @@ from unittest.mock import MagicMock
 
 from superset.tasks.caching.strategies.dashboard_tags import DashboardTagsStrategy
 from superset.tasks.caching.strategies.top_n import TopNDashboardsStrategy
-from superset.views.utils import get_form_data
+from superset.tasks.caching.strategies.utils import get_form_data
+
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
 )
