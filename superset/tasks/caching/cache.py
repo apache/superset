@@ -43,7 +43,7 @@ strategies: List[Type[Strategy]] = [
 
 @celery_app.task(name="cache-warmup")
 def cache_warmup(
-    strategy_name: str, *args: Any, **kwargs: Any
+    strategy_name: str, *args: Any, **kwargs: Any # pylint: disable=unused-argument
 ) -> Union[Dict[str, List[str]], str]:
     """
     Warm up cache.
@@ -52,19 +52,19 @@ def cache_warmup(
 
     """
     logger.info("Loading strategy")
-
+    class_ = None
     extra_strategies: List[Type[Strategy]] = app.config["EXTRA_CACHING_STRATEGIES"]
     for class_ in strategies + extra_strategies:
         if class_.__name__ == strategy_name:
             break
-    else:
-        message = f"No strategy {strategy_name} found!"
-        logger.error(message, exc_info=True)
-        return message
+        else:
+            message = f"No strategy {strategy_name} found!"
+            logger.error(message, exc_info=True)
+            return message
 
     logger.info("Loading %s", class_.__name__)
     try:
-        strategy = class_()
+        strategy = class_(*args, **kwargs)
         logger.info("Success!")
     except TypeError:
         message = "Error loading strategy!"
@@ -75,7 +75,7 @@ def cache_warmup(
     for url in strategy.get_urls():
         try:
             logger.info("Fetching %s", url)
-            request.urlopen(url)
+            request.urlopen(url)  # pylint: disable=consider-using-with
             results["success"].append(url)
         except URLError:
             logger.exception("Error warming up cache!")

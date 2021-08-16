@@ -17,9 +17,9 @@
 
 from typing import List
 
-from maf.tests.models import Slice
 
 from superset import db
+from superset.models.slice import Slice
 from superset.tasks.caching.strategies.utils import get_url
 from superset.tasks.caching.strategy import Strategy
 
