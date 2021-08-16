@@ -18,15 +18,10 @@
  */
 import React from 'react';
 import rison from 'rison';
+import { styled, t, SupersetClient, JsonResponse } from '@superset-ui/core';
+import { Steps } from 'src/common/components';
 import Button from 'src/components/Button';
 import { Select } from 'src/components';
-import {
-  css,
-  styled,
-  t,
-  SupersetClient,
-  JsonResponse,
-} from '@superset-ui/core';
 import { FormLabel } from 'src/components/Form';
 import { Tooltip } from 'src/components/Tooltip';
 
@@ -48,7 +43,8 @@ export type AddSliceContainerState = {
   visType: string | null;
 };
 
-const ESTIMATED_NAV_HEIGHT = '56px';
+const ESTIMATED_NAV_HEIGHT = 56;
+const ELEMENTS_EXCEPT_VIZ_GALLERY = ESTIMATED_NAV_HEIGHT + 250;
 
 const StyledContainer = styled.div`
   ${({ theme }) => `
@@ -58,7 +54,7 @@ const StyledContainer = styled.div`
     justify-content: space-between;
     width: 100%;
     max-width: ${MAX_ADVISABLE_VIZ_GALLERY_WIDTH}px;
-    max-height: calc(100vh - ${ESTIMATED_NAV_HEIGHT});
+    max-height: calc(100vh - ${ESTIMATED_NAV_HEIGHT}px);
     border-radius: ${theme.gridUnit}px;
     background-color: ${theme.colors.grayscale.light5};
     margin-left: auto;
@@ -75,6 +71,7 @@ const StyledContainer = styled.div`
       display: flex;
       flex-direction: row;
       align-items: center;
+      margin-bottom: ${theme.gridUnit * 2}px;
 
       & > div {
         min-width: 200px;
@@ -84,11 +81,56 @@ const StyledContainer = styled.div`
       & > span {
         color: ${theme.colors.grayscale.light1};
         margin-left: ${theme.gridUnit * 4}px;
-        margin-top: ${theme.gridUnit * 6}px;
       }
     }
 
-    & .ant-tooltip-open {
+    & .viz-gallery {
+      border: 1px solid ${theme.colors.grayscale.light2};
+      border-radius: ${theme.gridUnit}px;
+      margin: ${theme.gridUnit}px 0px;
+      max-height: calc(100vh - ${ELEMENTS_EXCEPT_VIZ_GALLERY}px);
+      flex: 1;
+    }
+
+    & .footer {
+      flex: 1;
+      display: flex;
+      flex-direction: row;
+      justify-content: flex-end;
+      align-items: center;
+
+      & > span {
+        color: ${theme.colors.grayscale.light1};
+        margin-right: ${theme.gridUnit * 4}px;
+      }
+    }
+
+    /* The following extra ampersands (&&&&) are used to boost selector specificity */
+
+    &&&& .ant-steps-item-tail {
+      display: none;
+    }
+
+    &&&& .ant-steps-item-icon {
+      margin-right: ${theme.gridUnit * 2}px;
+      width: ${theme.gridUnit * 5}px;
+      height: ${theme.gridUnit * 5}px;
+      line-height: ${theme.gridUnit * 5}px;
+    }
+
+    &&&& .ant-steps-item-title {
+      line-height: ${theme.gridUnit * 5}px;
+    }
+
+    &&&& .ant-steps-item-content {
+      overflow: unset;
+
+      .ant-steps-item-description {
+        margin-top: ${theme.gridUnit}px;
+      }
+    }
+
+    &&&& .ant-tooltip-open {
       display: inline;
     }
 
@@ -123,19 +165,6 @@ const TooltipContent = styled.div<{ hasDescription: boolean }>`
       overflow: hidden;
       text-overflow: ellipsis;
     }
-  `}
-`;
-
-const cssStatic = css`
-  flex: 0 0 auto;
-`;
-
-const StyledVizTypeGallery = styled(VizTypeGallery)`
-  ${({ theme }) => `
-    border: 1px solid ${theme.colors.grayscale.light2};
-    border-radius: ${theme.gridUnit}px;
-    margin: ${theme.gridUnit * 3}px 0px;
-    flex: 1 1 auto;
   `}
 `;
 
@@ -215,18 +244,27 @@ export default class AddSliceContainer extends React.PureComponent<
   loadDatasources(search: string, page: number, pageSize: number) {
     const query = rison.encode({
       columns: ['id', 'table_name', 'description', 'datasource_type'],
-      filter: search,
+      filters: [{ col: 'table_name', opr: 'ct', value: search }],
       page,
       page_size: pageSize,
+      order_column: 'table_name',
+      order_direction: 'asc',
     });
     return SupersetClient.get({
-      endpoint: `/api/v1/dataset?q=${query}`,
+      endpoint: `/api/v1/dataset/?q=${query}`,
     }).then((response: JsonResponse) => {
-      const list = response.json.result.map((item: Dataset) => ({
-        value: `${item.id}__${item.datasource_type}`,
-        label: this.newLabel(item),
-        labelText: item.table_name,
-      }));
+      const list: {
+        label: string;
+        value: string;
+      }[] = response.json.result
+        .map((item: Dataset) => ({
+          value: `${item.id}__${item.datasource_type}`,
+          label: this.newLabel(item),
+          labelText: item.table_name,
+        }))
+        .sort((a: { labelText: string }, b: { labelText: string }) =>
+          a.labelText.localeCompare(b.labelText),
+        );
       return {
         data: list,
         totalCount: response.json.count,
@@ -244,52 +282,68 @@ export default class AddSliceContainer extends React.PureComponent<
   }
 
   render() {
+    const isButtonDisabled = this.isBtnDisabled();
     return (
       <StyledContainer>
-        <h3 css={cssStatic}>{t('Create a new chart')}</h3>
-        <div className="dataset">
-          <Select
-            autoFocus
-            ariaLabel={t('Dataset')}
-            name="select-datasource"
-            header={<FormLabel required>{t('Choose a dataset')}</FormLabel>}
-            filterOption={this.handleFilterOption}
-            onChange={this.changeDatasource}
-            options={this.loadDatasources}
-            placeholder={t('Choose a dataset')}
-            showSearch
-            value={this.state.datasource}
+        <h3>{t('Create a new chart')}</h3>
+        <Steps direction="vertical" size="small">
+          <Steps.Step
+            title={<FormLabel>{t('Choose a dataset')}</FormLabel>}
+            status={this.state.datasource?.value ? 'finish' : 'process'}
+            description={
+              <div className="dataset">
+                <Select
+                  autoFocus
+                  ariaLabel={t('Dataset')}
+                  name="select-datasource"
+                  filterOption={this.handleFilterOption}
+                  onChange={this.changeDatasource}
+                  options={this.loadDatasources}
+                  placeholder={t('Choose a dataset')}
+                  showSearch
+                  value={this.state.datasource}
+                />
+                <span>
+                  {t(
+                    'Instructions to add a dataset are available in the Superset tutorial.',
+                  )}{' '}
+                  <a
+                    href="https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard#adding-a-new-table"
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    <i className="fa fa-external-link" />
+                  </a>
+                </span>
+              </div>
+            }
           />
-          <span>
-            {t(
-              'Instructions to add a dataset are available in the Superset tutorial.',
-            )}{' '}
-            <a
-              href="https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard#adding-a-new-table"
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              <i className="fa fa-external-link" />
-            </a>
-          </span>
+          <Steps.Step
+            title={<FormLabel>{t('Choose chart type')}</FormLabel>}
+            status={this.state.visType ? 'finish' : 'process'}
+            description={
+              <VizTypeGallery
+                className="viz-gallery"
+                onChange={this.changeVisType}
+                selectedViz={this.state.visType}
+              />
+            }
+          />
+        </Steps>
+        <div className="footer">
+          {isButtonDisabled && (
+            <span>
+              {t('Please select both a Dataset and a Chart type to proceed')}
+            </span>
+          )}
+          <Button
+            buttonStyle="primary"
+            disabled={isButtonDisabled}
+            onClick={this.gotoSlice}
+          >
+            {t('Create new chart')}
+          </Button>
         </div>
-        <StyledVizTypeGallery
-          onChange={this.changeVisType}
-          selectedViz={this.state.visType}
-        />
-        <Button
-          css={[
-            cssStatic,
-            css`
-              align-self: flex-end;
-            `,
-          ]}
-          buttonStyle="primary"
-          disabled={this.isBtnDisabled()}
-          onClick={this.gotoSlice}
-        >
-          {t('Create new chart')}
-        </Button>
       </StyledContainer>
     );
   }

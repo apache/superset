@@ -49,6 +49,7 @@ export {
   Row,
   Space,
   Skeleton,
+  Steps,
   Switch,
   Tag,
   Tabs,
