@@ -19,24 +19,12 @@
 import React from 'react';
 import Button from 'src/components/Button';
 import rison from 'rison';
-import { Select } from 'src/components';
 import { AutoComplete } from 'src/common/components';
 import { css, styled, t, makeApi } from '@superset-ui/core';
-import { FormLabel } from 'src/components/Form';
 
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
 } from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
-
-const convertArrayToObject = (array, key) => {
-  const initialValue = {};
-  return array.reduce((obj, item) => {
-    return {
-      ...obj,
-      [item[key]]: item,
-    };
-  }, initialValue);
-};
 
 interface Datasource {
   label: string;
@@ -53,6 +41,11 @@ export type AddSliceContainerState = {
   datasourceValue?: string;
   visType: string | null;
   datasets: [];
+  currentDataset:
+    | {
+        id: number | null;
+      }
+    | {};
 };
 
 const ESTIMATED_NAV_HEIGHT = '56px';
@@ -74,6 +67,10 @@ const StyledContainer = styled.div`
     padding-right: ${theme.gridUnit * 4}px;
     padding-bottom: ${theme.gridUnit * 4}px;
 
+    .autocomplete {
+      margin-right: ${theme.gridUnit * 3}px;
+    }
+
     h3 {
       padding-bottom: ${theme.gridUnit * 3}px;
     }
@@ -90,8 +87,6 @@ const StyledContainer = styled.div`
 
       & > span {
         color: ${theme.colors.grayscale.light1};
-        margin-left: ${theme.gridUnit * 4}px;
-        margin-top: ${theme.gridUnit * 6}px;
       }
     }
   `}
@@ -122,7 +117,6 @@ export default class AddSliceContainer extends React.PureComponent<
       currentDataset: {},
     };
 
-    this.changeDatasource = this.changeDatasource.bind(this);
     this.changeVisType = this.changeVisType.bind(this);
     this.gotoSlice = this.gotoSlice.bind(this);
     this.getDatasets = this.getDatasets.bind(this);
@@ -146,17 +140,6 @@ export default class AddSliceContainer extends React.PureComponent<
     window.location.href = this.exploreUrl();
   }
 
-  changeDatasource(value: string) {
-    const { datasets } = this.state;
-    const map = convertArrayToObject(datasets, 'id')
-    this.setState({
-      datasourceValue: `${value}__table`, // legacy formatting for datasourceIds
-      datasourceId: value,
-      datasetLabel: map[value],
-      datasetSearchText: '',
-    });
-  }
-
   changeVisType(visType: string | null) {
     this.setState({ visType });
   }
@@ -166,8 +149,6 @@ export default class AddSliceContainer extends React.PureComponent<
   }
 
   async getDatasets(searchText = '') {
-    console.log('getting datasets');
-
     const queryParams = rison.encode({
       filters: [
         {
@@ -189,7 +170,7 @@ export default class AddSliceContainer extends React.PureComponent<
   }
 
   render() {
-    const { datasets, currentDataset } = this.state;
+    const { datasets } = this.state;
     const optionDatasets = datasets.map(
       (dataset: { id: number; table_name: string }) => ({
         value: dataset.table_name,
@@ -201,27 +182,14 @@ export default class AddSliceContainer extends React.PureComponent<
       <StyledContainer>
         <h3 css={cssStatic}>{t('Create a new chart')}</h3>
         <div className="dataset">
-          {/* <Select
-            autoFocus
-            ariaLabel={t('Dataset')}
-            name="select-datasource"s
-            header={<FormLabel required>{t('Choose a dataset')}</FormLabel>}
-            onChange={this.changeDatasource}
-            options={optionDatasets}
-            placeholder={t('Choose a dataset')}
-            showSearch
-            value={this.state.datasourceValue}
-          /> */}
           <AutoComplete
-            className="smd-autocomplete"
+            className="autocomplete"
             options={optionDatasets}
             onSelect={(_, option) => {
               this.setState({ currentDataset: option });
             }}
-            onSearch={e => {
-              // connect to api
-              console.log('onSearch', e);
-              this.getDatasets(e);
+            onSearch={searchTerm => {
+              this.getDatasets(searchTerm);
             }}
             onChange={d => {
               this.setState({ currentDataset: {} });
