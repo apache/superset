@@ -17,6 +17,8 @@
 from datetime import datetime
 from typing import Dict, Optional, Type
 
+from urllib3.exceptions import NewConnectionError
+
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.exceptions import SupersetDBAPIDatabaseError
 from superset.utils import core as utils
@@ -48,8 +50,6 @@ class ClickHouseEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
-        from urllib3.exceptions import NewConnectionError
-
         return {NewConnectionError: SupersetDBAPIDatabaseError}
 
     @classmethod
