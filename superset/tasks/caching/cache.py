@@ -43,7 +43,7 @@ strategies: List[Type[Strategy]] = [
 
 @celery_app.task(name="cache-warmup")
 def cache_warmup(
-    strategy_name: str, *args: Any, **kwargs: Any # pylint: disable=unused-argument
+    strategy_name: str, *args: Any, **kwargs: Any  # pylint: disable=unused-argument
 ) -> Union[Dict[str, List[str]], str]:
     """
     Warm up cache.

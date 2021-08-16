@@ -17,7 +17,6 @@
 
 from typing import List
 
-
 from superset import db
 from superset.models.slice import Slice
 from superset.tasks.caching.strategies.utils import get_url

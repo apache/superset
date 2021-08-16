@@ -18,7 +18,6 @@
 import json
 from typing import Any, Dict, Optional
 
-
 from superset import app
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
