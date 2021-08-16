@@ -260,22 +260,6 @@ describe('AlertReportModal', () => {
     expect(wrapper.find(Radio)).toHaveLength(2);
   });
 
-  it('renders text option for text-based charts', async () => {
-    const props = {
-      ...mockedProps,
-      alert: mockData,
-    };
-    const textWrapper = await mountAndWait(props);
-
-    const chartOption = textWrapper.find('input[value="chart"]');
-    act(() => {
-      chartOption.props().onChange({ target: { value: 'chart' } });
-    });
-    await waitForComponentToPaint(textWrapper);
-
-    expect(textWrapper.find('input[value="TEXT"]')).toExist();
-  });
-
   it('renders input element for working timeout', () => {
     expect(wrapper.find('input[name="working_timeout"]')).toExist();
   });
