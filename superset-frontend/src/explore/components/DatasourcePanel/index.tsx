@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { styled, t } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
 import { ControlConfig, DatasourceMeta } from '@superset-ui/chart-controls';
@@ -26,7 +26,7 @@ import { FAST_DEBOUNCE } from 'src/constants';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import Control from 'src/explore/components/Control';
-import DatasourcePanelDragWrapper from './DatasourcePanelDragWrapper';
+import DatasourcePanelDragOption from './DatasourcePanelDragOption';
 import { DndItemType } from '../DndItemType';
 import { StyledColumnOption, StyledMetricOption } from '../optionRenderers';
 
@@ -87,7 +87,7 @@ const DatasourceContainer = styled.div`
   }
 `;
 
-const LabelContainer = styled.div`
+const LabelWrapper = styled.div`
   overflow: hidden;
   text-overflow: ellipsis;
 
@@ -109,6 +109,42 @@ const LabelContainer = styled.div`
     }
   }
 `;
+
+const LabelContainer = (props: {
+  children: React.ReactElement;
+  className: string;
+}) => {
+  const labelRef = useRef<HTMLDivElement>(null);
+  const [showTooltip, setShowTooltip] = useState(true);
+  const isLabelTruncated = () =>
+    !!(
+      labelRef &&
+      labelRef.current &&
+      labelRef.current.scrollWidth > labelRef.current.clientWidth
+    );
+  const handleShowTooltip = () => {
+    const shouldShowTooltip = isLabelTruncated();
+    if (shouldShowTooltip !== showTooltip) {
+      setShowTooltip(shouldShowTooltip);
+    }
+  };
+  const handleResetTooltip = () => {
+    setShowTooltip(true);
+  };
+  const extendedProps = {
+    labelRef,
+    showTooltip,
+  };
+  return (
+    <LabelWrapper
+      onMouseEnter={handleShowTooltip}
+      onMouseLeave={handleResetTooltip}
+      className={props.className}
+    >
+      {React.cloneElement(props.children, extendedProps)}
+    </LabelWrapper>
+  );
+};
 
 const enableExploreDnd = isFeatureEnabled(
   FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP,
@@ -245,12 +281,10 @@ export default function DataSourcePanel({
             {metricSlice.map(m => (
               <LabelContainer key={m.metric_name} className="column">
                 {enableExploreDnd ? (
-                  <DatasourcePanelDragWrapper
+                  <DatasourcePanelDragOption
                     value={m}
                     type={DndItemType.Metric}
-                  >
-                    <StyledMetricOption metric={m} showType />
-                  </DatasourcePanelDragWrapper>
+                  />
                 ) : (
                   <StyledMetricOption metric={m} showType />
                 )}
@@ -276,12 +310,10 @@ export default function DataSourcePanel({
             {columnSlice.map(col => (
               <LabelContainer key={col.column_name} className="column">
                 {enableExploreDnd ? (
-                  <DatasourcePanelDragWrapper
+                  <DatasourcePanelDragOption
                     value={col}
                     type={DndItemType.Column}
-                  >
-                    <StyledColumnOption column={col} showType />
-                  </DatasourcePanelDragWrapper>
+                  />
                 ) : (
                   <StyledColumnOption column={col} showType />
                 )}

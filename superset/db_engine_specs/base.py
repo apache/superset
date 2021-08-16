@@ -44,7 +44,7 @@ from flask import current_app, g
 from flask_babel import gettext as __, lazy_gettext as _
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
-from sqlalchemy import column, DateTime, select, types
+from sqlalchemy import column, select, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.interfaces import Compiled, Dialect
 from sqlalchemy.engine.reflection import Inspector
@@ -381,7 +381,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         elif pdf == "epoch_ms":
             time_expr = time_expr.replace("{col}", cls.epoch_ms_to_dttm())
 
-        return TimestampExpression(time_expr, col, type_=DateTime)
+        return TimestampExpression(time_expr, col, type_=col.type)
 
     @classmethod
     def get_time_grains(cls) -> Tuple[TimeGrain, ...]:
@@ -1410,7 +1410,8 @@ class BasicParametersMixin:
         parameters: BasicParametersType,
         encryted_extra: Optional[Dict[str, str]] = None,
     ) -> str:
-        query = parameters.get("query", {})
+        # make a copy so that we don't update the original
+        query = parameters.get("query", {}).copy()
         if parameters.get("encryption"):
             if not cls.encryption_parameters:
                 raise Exception("Unable to build a URL with encryption enabled")
@@ -1433,6 +1434,11 @@ class BasicParametersMixin:
         cls, uri: str, encrypted_extra: Optional[Dict[str, Any]] = None
     ) -> BasicParametersType:
         url = make_url(uri)
+        query = {
+            key: value
+            for (key, value) in url.query.items()
+            if (key, value) not in cls.encryption_parameters.items()
+        }
         encryption = all(
             item in url.query.items() for item in cls.encryption_parameters.items()
         )
@@ -1442,7 +1448,7 @@ class BasicParametersMixin:
             "host": url.host,
             "port": url.port,
             "database": url.database,
-            "query": url.query,
+            "query": query,
             "encryption": encryption,
         }
 

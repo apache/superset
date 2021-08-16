@@ -38,6 +38,13 @@ const defaultProps = {
   userEmail: 'test@test.com',
   dashboardId: 1,
   creationMethod: 'charts_dashboards',
+  props: {
+    chart: {
+      sliceFormData: {
+        viz_type: 'table',
+      },
+    },
+  },
 };
 
 describe('Email Report Modal', () => {

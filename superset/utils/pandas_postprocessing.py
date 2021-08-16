@@ -593,7 +593,7 @@ def geohash_encode(
         )
         return _append_columns(df, encode_df, {"geohash": geohash})
     except ValueError:
-        QueryObjectValidationError(_("Invalid longitude/latitude"))
+        raise QueryObjectValidationError(_("Invalid longitude/latitude"))
 
 
 def geodetic_parse(

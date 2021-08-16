@@ -33,7 +33,7 @@ const defaultProps = {
 
 test('renders with default props', async () => {
   render(<DndSelectLabel {...defaultProps} />, { useDnd: true });
-  expect(await screen.findByText('Drop columns')).toBeInTheDocument();
+  expect(await screen.findByText('Drop columns here')).toBeInTheDocument();
 });
 
 test('renders ghost button when empty', async () => {

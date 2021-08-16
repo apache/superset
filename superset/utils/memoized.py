@@ -39,7 +39,7 @@ class _memoized:
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         key = [args, frozenset(kwargs.items())]
         if self.is_method:
-            key.append(tuple([getattr(args[0], v, None) for v in self.watch]))
+            key.append(tuple(getattr(args[0], v, None) for v in self.watch))
         key = tuple(key)  # type: ignore
         try:
             if key in self.cache:
