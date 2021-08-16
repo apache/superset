@@ -21,6 +21,8 @@ import Button from 'src/components/Button';
 import rison from 'rison';
 import { AutoComplete } from 'src/common/components';
 import { css, styled, t, makeApi } from '@superset-ui/core';
+import debounce from 'lodash/debounce';
+import { FAST_DEBOUNCE } from 'src/constants';
 
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
@@ -188,9 +190,9 @@ export default class AddSliceContainer extends React.PureComponent<
             onSelect={(_, option) => {
               this.setState({ currentDataset: option });
             }}
-            onSearch={searchTerm => {
+            onSearch={debounce(searchTerm => {
               this.getDatasets(searchTerm);
-            }}
+            }, FAST_DEBOUNCE)}
             onChange={d => {
               this.setState({ currentDataset: {} });
             }}
