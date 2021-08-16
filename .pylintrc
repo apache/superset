@@ -86,7 +86,6 @@ disable=
     too-many-lines,
     import-outside-toplevel,
     raise-missing-from,
-    too-many-locals,
     duplicate-code,
 
 [REPORTS]
