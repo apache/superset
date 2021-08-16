@@ -58,7 +58,7 @@ class Strategy:
 
     """
 
-    def __init__(self) -> None:
+    def __init__(self, *args, **kwargs) -> None:
         pass
 
     def get_urls(self) -> List[str]:
