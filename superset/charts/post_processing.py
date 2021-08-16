@@ -72,15 +72,15 @@ def pivot_table(df: pd.DataFrame, form_data: Dict[str, Any]) -> pd.DataFrame:
         margins=form_data.get("pivot_margins"),
     )
 
-    # Re-order the columns adhering to the metric ordering.
-    df = df[metrics]
-
     # Display metrics side by side with each column
     if form_data.get("combine_metric"):
         df = df.stack(0).unstack().reindex(level=-1, columns=metrics)
 
     # flatten column names
-    df.columns = [" ".join(column) for column in df.columns]
+    df.columns = [
+        " ".join(str(name) for name in column) if isinstance(column, tuple) else column
+        for column in df.columns
+    ]
 
     return df
 
@@ -144,9 +144,9 @@ def pivot_table_v2(  # pylint: disable=too-many-branches
     # The pandas `pivot_table` method either brings both row/column
     # totals, or none at all. We pass `margin=True` to get both, and
     # remove any dimension that was not requests.
-    if not form_data.get("rowTotals"):
+    if columns and not form_data.get("rowTotals"):
         df.drop(df.columns[len(df.columns) - 1], axis=1, inplace=True)
-    if not form_data.get("colTotals"):
+    if groupby and not form_data.get("colTotals"):
         df = df[:-1]
 
     # Compute fractions, if needed. If `colTotals` or `rowTotals` are
@@ -169,15 +169,15 @@ def pivot_table_v2(  # pylint: disable=too-many-branches
         if form_data.get("rowTotals"):
             df *= 2
 
-    # Re-order the columns adhering to the metric ordering.
-    df = df[metrics]
-
     # Display metrics side by side with each column
     if form_data.get("combineMetric"):
         df = df.stack(0).unstack().reindex(level=-1, columns=metrics)
 
     # flatten column names
-    df.columns = [" ".join(str(name) for name in column) for column in df.columns]
+    df.columns = [
+        " ".join(str(name) for name in column) if isinstance(column, tuple) else column
+        for column in df.columns
+    ]
 
     return df
 
