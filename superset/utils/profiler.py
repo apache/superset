@@ -27,7 +27,7 @@ except ModuleNotFoundError:
     Profiler = None
 
 
-class SupersetProfiler:
+class SupersetProfiler:  # pylint: disable=too-few-public-methods
     """
     WSGI middleware to instrument Superset.
 
