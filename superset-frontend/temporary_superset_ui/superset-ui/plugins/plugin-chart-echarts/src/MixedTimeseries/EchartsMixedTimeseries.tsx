@@ -20,6 +20,7 @@ import React, { useCallback } from 'react';
 import { EchartsMixedTimeseriesChartTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { EventHandlers } from '../types';
+import { currentSeries } from '../utils/series';
 
 export default function EchartsMixedTimeseries({
   height,
@@ -92,6 +93,12 @@ export default function EchartsMixedTimeseries({
       } else {
         handleChange([seriesName], seriesIndex);
       }
+    },
+    mousemove: params => {
+      currentSeries.name = params.seriesName;
+    },
+    mouseout: () => {
+      currentSeries.name = '';
     },
   };
 

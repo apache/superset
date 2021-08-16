@@ -204,3 +204,8 @@ export function dedupSeries(series: SeriesOption[]): SeriesOption[] {
 export function sanitizeHtml(text: string): string {
   return format.encodeHTML(text);
 }
+
+// TODO: Better use other method to maintain this state
+export const currentSeries = {
+  name: '',
+};
