@@ -211,7 +211,7 @@ def _append_columns(
 
 
 @validate_column_args("index", "columns")
-def pivot(  # pylint: disable=too-many-arguments
+def pivot(  # pylint: disable=too-many-arguments,too-many-locals
     df: DataFrame,
     index: List[str],
     aggregates: Dict[str, Dict[str, Any]],

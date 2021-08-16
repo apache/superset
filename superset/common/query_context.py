@@ -120,7 +120,7 @@ class QueryContext:
         df.reset_index(level=0, inplace=True)
         return df
 
-    def processing_time_offsets(
+    def processing_time_offsets(  # pylint: disable=too-many-locals
         self, df: pd.DataFrame, query_object: QueryObject,
     ) -> CachedTimeOffset:
         # ensure query_object is immutable
