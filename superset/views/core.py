@@ -2040,14 +2040,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         try:
             table_name = data["datasourceName"]
             database_id = data["dbId"]
-        except KeyError:
+        except KeyError as ex:
             raise SupersetGenericErrorException(
                 __(
                     "One or more required fields are missing in the request. Please try "
                     "again, and if the problem persists conctact your administrator."
                 ),
                 status=400,
-            )
+            ) from ex
         database = db.session.query(Database).get(database_id)
         if not database:
             raise SupersetErrorException(
@@ -2480,7 +2480,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             query.error_message = message
             session.commit()
 
-            raise SupersetErrorException(error)
+            raise SupersetErrorException(error) from ex
 
         # Update saved query with execution info from the query execution
         QueryDAO.update_saved_query_exec_info(query_id)
@@ -2549,7 +2549,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             raise ex
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception("Query %i failed unexpectedly", query.id)
-            raise SupersetGenericDBErrorException(utils.error_msg_from_exception(ex))
+            raise SupersetGenericDBErrorException(
+                utils.error_msg_from_exception(ex)
+            ) from ex
 
         if data.get("status") == QueryStatus.FAILED:
             # new error payload with rich context

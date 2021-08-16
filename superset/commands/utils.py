@@ -76,5 +76,5 @@ def get_datasource_by_id(datasource_id: int, datasource_type: str) -> BaseDataso
         return ConnectorRegistry.get_datasource(
             datasource_type, datasource_id, db.session
         )
-    except DatasetNotFoundError:
-        raise DatasourceNotFoundValidationError()
+    except DatasetNotFoundError as ex:
+        raise DatasourceNotFoundValidationError() from ex

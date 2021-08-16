@@ -254,7 +254,7 @@ def validate_sqlatable(table: models.SqlaTable) -> None:
                 "database connection, schema, and "
                 "table name, error: {}"
             ).format(table.name, str(ex))
-        )
+        ) from ex
 
 
 def create_table_permissions(table: models.SqlaTable) -> None:
@@ -501,7 +501,7 @@ def validate_json(form: Form, field: Field) -> None:  # pylint: disable=unused-a
         json.loads(field.data)
     except Exception as ex:
         logger.exception(ex)
-        raise Exception(_("json isn't valid"))
+        raise Exception(_("json isn't valid")) from ex
 
 
 class YamlExportMixin:  # pylint: disable=too-few-public-methods

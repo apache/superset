@@ -84,7 +84,6 @@ confidence=
 disable=
     missing-docstring,
     too-many-lines,
-    raise-missing-from,
     duplicate-code,
 
 [REPORTS]

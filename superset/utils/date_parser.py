@@ -66,7 +66,7 @@ def parse_human_datetime(human_readable: str) -> datetime:
         # 0 == not parsed at all
         if parsed_flags == 0:
             logger.debug(ex)
-            raise TimeRangeParseFailError(human_readable)
+            raise TimeRangeParseFailError(human_readable) from ex
         # when time is not extracted, we 'reset to midnight'
         if parsed_flags & 2 == 0:
             parsed_dttm = parsed_dttm.replace(hour=0, minute=0, second=0)
@@ -476,8 +476,8 @@ def datetime_eval(datetime_expression: Optional[str] = None) -> Optional[datetim
     if datetime_expression:
         try:
             return datetime_parser().parseString(datetime_expression)[0].eval()
-        except ParseException as error:
-            raise ValueError(error)
+        except ParseException as ex:
+            raise ValueError(ex) from ex
     return None
 
 

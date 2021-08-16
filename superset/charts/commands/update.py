@@ -64,7 +64,7 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
             chart = ChartDAO.update(self._model, self._properties)
         except DAOUpdateFailedError as ex:
             logger.exception(ex.exception)
-            raise ChartUpdateFailedError()
+            raise ChartUpdateFailedError() from ex
         return chart
 
     def validate(self) -> None:
@@ -89,8 +89,8 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         if not is_query_context_update(self._properties):
             try:
                 check_ownership(self._model)
-            except SupersetSecurityException:
-                raise ChartForbiddenError()
+            except SupersetSecurityException as ex:
+                raise ChartForbiddenError() from ex
 
         # Validate/Populate datasource
         if datasource_id is not None:

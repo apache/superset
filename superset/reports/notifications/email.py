@@ -133,4 +133,4 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             )
             logger.info("Report sent to email")
         except Exception as ex:
-            raise NotificationError(ex)
+            raise NotificationError(ex) from ex

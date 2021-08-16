@@ -65,7 +65,7 @@ def certificate_form_validator(_: _, field: StringField) -> None:
         try:
             utils.parse_ssl_cert(field.data)
         except CertificateException as ex:
-            raise ValidationError(ex.message)
+            raise ValidationError(ex.message) from ex
 
 
 def upload_stream_write(form_file_field: "FileStorage", path: str) -> None:

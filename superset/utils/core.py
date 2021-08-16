@@ -765,7 +765,7 @@ def validate_json(obj: Union[bytes, bytearray, str]) -> None:
             json.loads(obj)
         except Exception as ex:
             logger.error("JSON is not valid %s", str(ex), exc_info=True)
-            raise SupersetException("JSON is not valid")
+            raise SupersetException("JSON is not valid") from ex
 
 
 class SigalrmTimeout:
@@ -1424,8 +1424,8 @@ def parse_ssl_cert(certificate: str) -> _Certificate:
         return x509.load_pem_x509_certificate(
             certificate.encode("utf-8"), default_backend()
         )
-    except ValueError:
-        raise CertificateException("Invalid certificate")
+    except ValueError as ex:
+        raise CertificateException("Invalid certificate") from ex
 
 
 def create_ssl_cert_file(certificate: str) -> str:
