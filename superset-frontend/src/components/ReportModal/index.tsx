@@ -126,12 +126,7 @@ type ReportActionType =
     };
 
 const DEFAULT_NOTIFICATION_FORMAT = 'TEXT';
-const TEXT_BASED_VISUALIZATION_TYPES = [
-  'pivot_table',
-  'pivot_table_v2',
-  'table',
-  'paired_ttest',
-];
+const TEXT_BASED_VISUALIZATION_TYPES: string[] = [];
 
 const reportReducer = (
   state: Partial<ReportObject> | null,
