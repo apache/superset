@@ -20,6 +20,7 @@ import { List } from 'immutable';
 import JSONbig from 'json-bigint';
 import React, { PureComponent } from 'react';
 import JSONTree from 'react-json-tree';
+//change from virtualized to react-table
 import {
   Column,
   Grid,
