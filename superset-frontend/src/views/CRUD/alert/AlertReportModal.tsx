@@ -52,12 +52,7 @@ import {
 
 const SELECT_PAGE_SIZE = 2000; // temporary fix for paginated query
 const TIMEOUT_MIN = 1;
-const TEXT_BASED_VISUALIZATION_TYPES = [
-  'pivot_table',
-  'pivot_table_v2',
-  'table',
-  'paired_ttest',
-];
+const TEXT_BASED_VISUALIZATION_TYPES: string[] = [];
 
 type SelectValue = {
   value: string;
