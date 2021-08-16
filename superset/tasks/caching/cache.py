@@ -64,7 +64,7 @@ def cache_warmup(
 
     logger.info("Loading %s", class_.__name__)
     try:
-        strategy = class_(*args, **kwargs)
+        strategy = class_(*args, **kwargs)  # pylint: disable=too-many-arguments
         logger.info("Success!")
     except TypeError:
         message = "Error loading strategy!"

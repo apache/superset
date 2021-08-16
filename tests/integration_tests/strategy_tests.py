@@ -26,6 +26,7 @@ from superset.views.utils import get_form_data
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
 )
+from .fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
 
 import pytest
 
