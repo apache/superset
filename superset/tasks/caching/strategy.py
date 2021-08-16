@@ -32,7 +32,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import List
+from typing import List, Any
 
 
 class Strategy:
@@ -58,7 +58,7 @@ class Strategy:
 
     """
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         pass
 
     def get_urls(self) -> List[str]:
