@@ -1,5 +1,3 @@
-/* eslint-disable no-only-tests/no-only-tests */
-/* eslint-disable jest/no-focused-tests */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
