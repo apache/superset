@@ -85,7 +85,6 @@ disable=
     missing-docstring,
     too-many-lines,
     raise-missing-from,
-    too-few-public-methods,
     duplicate-code,
 
 [REPORTS]

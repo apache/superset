@@ -214,7 +214,7 @@ def extra_validator(value: str) -> str:
     return value
 
 
-class DatabaseParametersSchemaMixin:
+class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
     """
     Allow SQLAlchemy URI to be passed as separate parameters.
 
