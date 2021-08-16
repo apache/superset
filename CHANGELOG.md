@@ -17,8 +17,10 @@ specific language governing permissions and limitations
 under the License.
 -->
 ## Change Log
-### 1.3 (Mon Aug 9 21:13:37 2021 -0500)
+### 1.3.0 (Fri Aug 13 20:41:03 2021 -0700)
 **Database Migrations**
+- [#16160](https://github.com/apache/superset/pull/16160) feat: change query predicate to text (@eschutho)
+- [#16077](https://github.com/apache/superset/pull/16077) fix: ensure that users viewing chart does not automatically save edit data (@pkdotson)
 - [#16098](https://github.com/apache/superset/pull/16098) fix: migrate_roles (@betodealmeida)
 - [#16078](https://github.com/apache/superset/pull/16078) chore: simplify chart permissions (@betodealmeida)
 - [#16045](https://github.com/apache/superset/pull/16045) feat(explore): add automatic conditional formatter to pivot table v2 (@villebro)
@@ -36,6 +38,14 @@ under the License.
 - [#14433](https://github.com/apache/superset/pull/14433) feat: Adding configuration_method column to Database Model (@AAfghahi)
 
 **Features**
+- [#16199](https://github.com/apache/superset/pull/16199) feat: Changing Dataset names (@AAfghahi)
+- [#16183](https://github.com/apache/superset/pull/16183) feat: update covid dashboard (@eschutho)
+- [#16178](https://github.com/apache/superset/pull/16178) feat: CLI cleanup  (@AAfghahi)
+- [#16170](https://github.com/apache/superset/pull/16170) feat: Added multi-regional IPs to Database Connections (@AAfghahi)
+- [#16158](https://github.com/apache/superset/pull/16158) feat: add chart image info to reports from charts (@eschutho)
+- [#16139](https://github.com/apache/superset/pull/16139) feat(cross-filters): add support for temporal filters (@villebro)
+- [#16156](https://github.com/apache/superset/pull/16156) feat: add config to hide some user menu items (@eschutho)
+- [#16102](https://github.com/apache/superset/pull/16102) feat: add sticky state to tables and loadingcards state. (@pkdotson)
 - [#16131](https://github.com/apache/superset/pull/16131) feat: better errors for report in charts and dashboard (@AAfghahi)
 - [#16095](https://github.com/apache/superset/pull/16095) feat: added google alert to DB Connection Form (@AAfghahi)
 - [#16052](https://github.com/apache/superset/pull/16052) feat: handle subtle bug with load-examples (@betodealmeida)
@@ -166,6 +176,27 @@ under the License.
 - [#14480](https://github.com/apache/superset/pull/14480) feat(viz): add funnel chart (@villebro)
 
 **Fixes**
+- [#16260](https://github.com/apache/superset/pull/16260) fix: check roles before fetching reports (@eschutho)
+- [#16259](https://github.com/apache/superset/pull/16259) fix: pivot columns with ints for name (@betodealmeida)
+- [#16253](https://github.com/apache/superset/pull/16253) fix: Homepage dashboard examples tab does not show user created objects (@pkdotson)
+- [#16233](https://github.com/apache/superset/pull/16233) fix(dashboard): cross filter chart highlight when filters badge icon clicked (@kgabryje)
+- [#16241](https://github.com/apache/superset/pull/16241) fix: validate_parameters and query (@betodealmeida)
+- [#16240](https://github.com/apache/superset/pull/16240) fix: Remove Advanced Analytics tag for 2 charts (@rusackas)
+- [#16214](https://github.com/apache/superset/pull/16214) fix: remove encryption from db params (@eschutho)
+- [#16230](https://github.com/apache/superset/pull/16230) fix(explore): conditional formatting value validators (@kgabryje)
+- [#16212](https://github.com/apache/superset/pull/16212) fix: example tabs filter (@pkdotson)
+- [#16208](https://github.com/apache/superset/pull/16208) fix: sorting on "Modified By" in chart table (@pkdotson)
+- [#16196](https://github.com/apache/superset/pull/16196) fix(explore): adhoc metrics popover resets label after hovering outside (@kgabryje)
+- [#16190](https://github.com/apache/superset/pull/16190) fix(explore): metric label disappearing in some scenarios (@kgabryje)
+- [#16171](https://github.com/apache/superset/pull/16171) fix: change listivew card layouts to the new homepage card layout (@pkdotson)
+- [#16176](https://github.com/apache/superset/pull/16176) fix: ensure created user entities do not show inside examples (@pkdotson)
+- [#16175](https://github.com/apache/superset/pull/16175) fix: isDynamic function (@betodealmeida)
+- [#16162](https://github.com/apache/superset/pull/16162) fix: revert data endpoint name (@betodealmeida)
+- [#16151](https://github.com/apache/superset/pull/16151) fix:  turn on SSL in database edit form show 500 error (@hughhhh)
+- [#16089](https://github.com/apache/superset/pull/16089) fix: Safari is not showing scroll bars in Explore (@michael-s-molina)
+- [#16094](https://github.com/apache/superset/pull/16094) fix: Multiple dashboard refresh triggers for the same session (@michael-s-molina)
+- [#16107](https://github.com/apache/superset/pull/16107) fix: boolean type into SQL 'in' operator (@zhaoyongjie)
+- [#16053](https://github.com/apache/superset/pull/16053) fix(dashboard): 500 error caused by data_for_slices API (@ktmud)
 - [#16161](https://github.com/apache/superset/pull/16161) fix: Big Query additional parameters field doesn't keep value (@lyndsiWilliams)
 - [#16118](https://github.com/apache/superset/pull/16118) fix: change Alert Permissions (@AAfghahi)
 - [#16088](https://github.com/apache/superset/pull/16088) fix(explore): dnd error when dragging metric if multi: false (@kgabryje)
@@ -492,6 +523,9 @@ under the License.
 - [#14360](https://github.com/apache/superset/pull/14360) fix: parse simple string error message values (@samtfm)
 
 **Others**
+- [#16251](https://github.com/apache/superset/pull/16251) chore: bump superset-ui packages to 0.17.84 (@pkdotson)
+- [#16186](https://github.com/apache/superset/pull/16186) chore: bump superset-ui to 0.17.81 (@villebro)
+- [#16174](https://github.com/apache/superset/pull/16174) chore: switch back tag name to popular from highly-used (@junlincc)
 - [#16116](https://github.com/apache/superset/pull/16116) chore(explore): change dnd placeholders (@kgabryje)
 - [#16133](https://github.com/apache/superset/pull/16133) chore: add stats logging to thumbnail api (@mistercrunch)
 - [#16086](https://github.com/apache/superset/pull/16086) chore(explore): bump deckgl to 0.4.9 (@kgabryje)
@@ -723,7 +757,7 @@ under the License.
 - [#14432](https://github.com/apache/superset/pull/14432) docs: update README with new docs and recordings (@srinify)
 - [#14425](https://github.com/apache/superset/pull/14425) docs: Renamed impyla from implya and updated PIP name to impyla from impala. (@jagamts1)
 
-### 1.2 (Date TBD)
+### 1.2.0 (2021-06-04)
 **Features**
 - [11498](https://github.com/apache/superset/pull/11498) feat(SIP-39): Websocket sidecar app (#11498) (@Rob DiCiuccio)
 - [13894](https://github.com/apache/superset/pull/13894) feat(alert/report): add ALERTS_ATTACH_REPORTS feature flags + feature (#13894) (@Lily Kuang)
