@@ -124,8 +124,9 @@ def load_examples_run(
 
     examples.load_css_templates()
 
-    print("Loading energy related dataset")
-    examples.load_energy(only_metadata, force)
+    if load_test_data:
+        print("Loading energy related dataset")
+        examples.load_energy(only_metadata, force)
 
     print("Loading [World Bank's Health Nutrition and Population Stats]")
     examples.load_world_bank_health_n_pop(only_metadata, force)
@@ -138,20 +139,11 @@ def load_examples_run(
         examples.load_tabbed_dashboard(only_metadata)
 
     if not load_test_data:
-        print("Loading [Random time series data]")
-        examples.load_random_time_series_data(only_metadata, force)
-
         print("Loading [Random long/lat data]")
         examples.load_long_lat_data(only_metadata, force)
 
         print("Loading [Country Map data]")
         examples.load_country_map_data(only_metadata, force)
-
-        print("Loading [Multiformat time series]")
-        examples.load_multiformat_time_series(only_metadata, force)
-
-        print("Loading [Paris GeoJson]")
-        examples.load_paris_iris_geojson(only_metadata, force)
 
         print("Loading [San Francisco population polygons]")
         examples.load_sf_population_polygons(only_metadata, force)
@@ -176,7 +168,7 @@ def load_examples_run(
         examples.load_big_data()
 
     # load examples that are stored as YAML config files
-    examples.load_from_configs(force, load_test_data)
+    examples.load_examples_from_configs(force, load_test_data)
 
 
 @with_appcontext
@@ -195,8 +187,26 @@ def load_examples(
     only_metadata: bool = False,
     force: bool = False,
 ) -> None:
-    """Loads a set of Slices and Dashboards and a supporting dataset """
+    """Loads a set of Slices and Dashboards and a supporting dataset"""
     load_examples_run(load_test_data, load_big_data, only_metadata, force)
+
+
+@with_appcontext
+@superset.command()
+@click.argument("directory")
+@click.option(
+    "--overwrite", "-o", is_flag=True, help="Overwriting existing metadata definitions"
+)
+@click.option(
+    "--force", "-f", is_flag=True, help="Force load data even if table already exists"
+)
+def import_directory(directory: str, overwrite: bool, force: bool) -> None:
+    """Imports configs from a given directory"""
+    from superset.examples.utils import load_configs_from_directory
+
+    load_configs_from_directory(
+        root=Path(directory), overwrite=overwrite, force_data=force,
+    )
 
 
 @with_appcontext
@@ -211,7 +221,7 @@ def load_examples(
     help="Create the DB if it doesn't exist",
 )
 def set_database_uri(database_name: str, uri: str, skip_create: bool) -> None:
-    """Updates a database connection URI """
+    """Updates a database connection URI"""
     utils.get_or_create_db(database_name, uri, not skip_create)
 
 
@@ -331,7 +341,8 @@ if feature_flags.get("VERSIONED_EXPORT"):
             with ZipFile(path) as bundle:
                 contents = get_contents_from_bundle(bundle)
         else:
-            contents = {path: open(path).read()}
+            with open(path) as file:
+                contents = {path: file.read()}
         try:
             ImportDashboardsCommand(contents, overwrite=True).run()
         except Exception:  # pylint: disable=broad-except
@@ -356,7 +367,8 @@ if feature_flags.get("VERSIONED_EXPORT"):
             with ZipFile(path) as bundle:
                 contents = get_contents_from_bundle(bundle)
         else:
-            contents = {path: open(path).read()}
+            with open(path) as file:
+                contents = {path: file.read()}
         try:
             ImportDatasetsCommand(contents, overwrite=True).run()
         except Exception:  # pylint: disable=broad-except
@@ -481,7 +493,10 @@ else:
             files.extend(path_object.rglob("*.json"))
         if username is not None:
             g.user = security_manager.find_user(username=username)
-        contents = {path.name: open(path).read() for path in files}
+        contents = {}
+        for path_ in files:
+            with open(path_) as file:
+                contents[path_.name] = file.read()
         try:
             ImportDashboardsCommand(contents).run()
         except Exception:  # pylint: disable=broad-except
@@ -529,7 +544,10 @@ else:
         elif path_object.exists() and recursive:
             files.extend(path_object.rglob("*.yaml"))
             files.extend(path_object.rglob("*.yml"))
-        contents = {path.name: open(path).read() for path in files}
+        contents = {}
+        for path_ in files:
+            with open(path_) as file:
+                contents[path_.name] = file.read()
         try:
             ImportDatasetsCommand(contents, sync_columns, sync_metrics).run()
         except Exception:  # pylint: disable=broad-except
@@ -622,7 +640,7 @@ def flower(port: int, address: str) -> None:
     print(Fore.BLUE + "-=" * 40)
     print(Fore.YELLOW + cmd)
     print(Fore.BLUE + "-=" * 40)
-    Popen(cmd, shell=True).wait()
+    Popen(cmd, shell=True).wait()  # pylint: disable=consider-using-with
 
 
 @superset.command()

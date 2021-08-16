@@ -22,7 +22,7 @@ from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
-from superset.commands.utils import populate_owners
+from superset.commands.base import CreateMixin
 from superset.dao.exceptions import DAOCreateFailedError
 from superset.databases.dao import DatabaseDAO
 from superset.models.reports import ReportScheduleType
@@ -40,7 +40,7 @@ from superset.reports.dao import ReportScheduleDAO
 logger = logging.getLogger(__name__)
 
 
-class CreateReportScheduleCommand(BaseReportScheduleCommand):
+class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
     def __init__(self, user: User, data: Dict[str, Any]):
         self._actor = user
         self._properties = data.copy()
@@ -90,7 +90,7 @@ class CreateReportScheduleCommand(BaseReportScheduleCommand):
             )
 
         try:
-            owners = populate_owners(self._actor, owner_ids)
+            owners = self.populate_owners(self._actor, owner_ids)
             self._properties["owners"] = owners
         except ValidationError as ex:
             exceptions.append(ex)
