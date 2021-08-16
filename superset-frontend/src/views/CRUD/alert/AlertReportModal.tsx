@@ -826,8 +826,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const onContentTypeChange = (event: any) => {
     const { target } = event;
-
-    setContentType(target.value);
+    // Gives time to close the select before changing the type
+    setTimeout(() => setContentType(target.value), 200);
   };
 
   const onFormatChange = (event: any) => {
