@@ -20,6 +20,7 @@ import React, { useCallback } from 'react';
 import { EventHandlers } from '../types';
 import Echart from '../components/Echart';
 import { TimeseriesChartTransformedProps } from './types';
+import { currentSeries } from '../utils/series';
 
 // @ts-ignore
 export default function EchartsTimeseries({
@@ -77,6 +78,12 @@ export default function EchartsTimeseries({
       } else {
         handleChange([name]);
       }
+    },
+    mousemove: params => {
+      currentSeries.name = params.seriesName;
+    },
+    mouseout: () => {
+      currentSeries.name = '';
     },
   };
 
