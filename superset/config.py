@@ -37,7 +37,6 @@ from dateutil import tz
 from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
 from pandas.io.parsers import STR_NA_VALUES
-from tasks.caching.strategy import Strategy
 
 from superset.jinja_context import (  # pylint: disable=unused-import
     BaseTemplateProcessor,
@@ -58,6 +57,7 @@ if TYPE_CHECKING:
         SqlaTable,
     )
     from superset.models.core import Database  # pylint: disable=unused-import
+    from superset.tasks.caching.strategy import Strategy
 
 # Realtime stats logger, a StatsD implementation exists
 STATS_LOGGER = DummyStatsLogger()
