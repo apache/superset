@@ -79,7 +79,7 @@ test('Open Omnibar with ctrl + k with featureflag enabled', () => {
   });
   expect(
     screen.queryByPlaceholderText('Search all dashboards'),
-  ).not.toBeVisible();
+  ).not.toBeInTheDocument();
 });
 
 test('Open Omnibar with Command + k with featureflag enabled', () => {
@@ -112,7 +112,7 @@ test('Open Omnibar with Command + k with featureflag enabled', () => {
   });
   expect(
     screen.queryByPlaceholderText('Search all dashboards'),
-  ).not.toBeVisible();
+  ).not.toBeInTheDocument();
 });
 
 test('Open Omnibar with Cmd/Ctrl-K and close with ESC', () => {
@@ -145,5 +145,5 @@ test('Open Omnibar with Cmd/Ctrl-K and close with ESC', () => {
   });
   expect(
     screen.queryByPlaceholderText('Search all dashboards'),
-  ).not.toBeVisible();
+  ).not.toBeInTheDocument();
 });
