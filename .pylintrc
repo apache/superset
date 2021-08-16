@@ -86,7 +86,6 @@ disable=
     too-many-lines,
     raise-missing-from,
     too-few-public-methods,
-    too-many-locals,
     duplicate-code,
 
 [REPORTS]
