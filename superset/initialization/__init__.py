@@ -18,9 +18,11 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Callable, Dict, TYPE_CHECKING
+from functools import wraps
+from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING
 
 import wtforms_json
+from celery.result import AsyncResult
 from deprecation import deprecated
 from flask import Flask, redirect
 from flask_appbuilder import expose, IndexView
@@ -94,15 +96,52 @@ class SupersetAppInitializer:
         # Here, we want to ensure that every call into Celery task has an app context
         # setup properly
         task_base = celery_app.Task
+        config = self.config
+
+        flask_metadata_param_name = "_celery_flask_metadata"
 
         class AppContextTask(task_base):  # type: ignore
-            # pylint: disable=too-few-public-methods
             abstract = True
 
             # Grab each call into the task and set up an app context
             def __call__(self, *args: Any, **kwargs: Any) -> Any:
                 with superset_app.app_context():
+                    metadata = kwargs.pop(flask_metadata_param_name, None)
+                    metadata_initializer = config["CELERY_FLASK_METADATA_INITIALIZER"]
+                    if metadata is not None and metadata_initializer is not None:
+                        metadata_initializer(metadata)
                     return task_base.__call__(self, *args, **kwargs)
+
+            def apply_async(
+                self,
+                args: Optional[List[Any]] = None,
+                kwargs: Optional[Dict[str, Any]] = None,
+                *rest: Any,
+                **kwrest: Any,
+            ) -> AsyncResult:
+                kwargs = kwargs if kwargs is not None else {}
+                metadata_extractor = config["CELERY_FLASK_METADATA_EXTRACTOR"]
+                metadata = {}
+                if metadata_extractor is not None:
+                    metadata = metadata_extractor()
+                kwargs = {
+                    **kwargs,
+                    flask_metadata_param_name: metadata,
+                }
+                try:
+                    check_arguments = self.__header__  # type: ignore
+                except AttributeError:
+                    pass
+                else:
+
+                    @wraps(check_arguments)
+                    def wrapper(*args: Any, **kwargs: Any) -> Any:
+                        kwargs = dict(kwargs)
+                        kwargs.pop(flask_metadata_param_name, None)
+                        return check_arguments(*args, **kwargs)
+
+                    self.__header__ = wrapper
+                return super().apply_async(args, kwargs, *rest, **kwrest)
 
         celery_app.Task = AppContextTask
 
