@@ -45,10 +45,6 @@ export default function OmniContainer() {
       show_omni: show,
     });
   const handleClose = () => {
-    const inputEl = document.getElementById('InputOmnibar') as HTMLInputElement;
-    if (inputEl) {
-      inputEl.value = '';
-    }
     showOmni.current = false;
     setShowModal(false);
     handleLogEvent(false);
@@ -70,9 +66,6 @@ export default function OmniContainer() {
       if (controlOrCommand && isOk) {
         showOmni.current = !showOmni.current;
         setShowModal(showOmni.current);
-        if (showOmni.current) {
-          document.getElementById('InputOmnibar')?.focus();
-        }
         handleLogEvent(!!showOmni.current);
       }
     }
@@ -101,6 +94,7 @@ export default function OmniContainer() {
       hideFooter
       closable={false}
       onHide={() => {}}
+      destroyOnClose
     >
       <div ref={modalRef}>
         <Omnibar

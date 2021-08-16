@@ -39,7 +39,7 @@ export function Omnibar({ extensions, placeholder, id }: Props) {
       placeholder={placeholder}
       extensions={extensions}
       autoComplete="off"
-      // autoFocus // I tried to use this prop (autoFocus) but it only works the first time that Omnibar is shown
+      autoFocus
     />
   );
 }
