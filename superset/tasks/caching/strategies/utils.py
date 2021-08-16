@@ -18,10 +18,10 @@
 import json
 from typing import Any, Dict, Optional
 
-from maf.tests.models import Slice
 
 from superset import app
 from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
 from superset.views.utils import build_extra_filters
 
 
