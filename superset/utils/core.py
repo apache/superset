@@ -1123,9 +1123,7 @@ def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
     )
     if append_filters:
         adhoc_filters.extend(
-            simple_filter_to_adhoc(
-                {"isExtra": True, **fltr}  # type: ignore
-            )
+            simple_filter_to_adhoc({"isExtra": True, **fltr})  # type: ignore
             for fltr in append_filters
             if fltr
         )
@@ -1239,6 +1237,7 @@ def user_label(user: User) -> Optional[str]:
 def get_or_create_db(
     database_name: str, sqlalchemy_uri: str, always_create: Optional[bool] = True
 ) -> "Database":
+    # pylint: disable=import-outside-toplevel
     from superset import db
     from superset.models import core as models
 
@@ -1266,16 +1265,15 @@ def get_or_create_db(
 
 
 def get_example_database() -> "Database":
-    from superset import conf
-
-    db_uri = conf.get("SQLALCHEMY_EXAMPLES_URI") or conf.get("SQLALCHEMY_DATABASE_URI")
+    db_uri = (
+        current_app.config.get("SQLALCHEMY_EXAMPLES_URI")
+        or current_app.config["SQLALCHEMY_DATABASE_URI"]
+    )
     return get_or_create_db("examples", db_uri)
 
 
 def get_main_database() -> "Database":
-    from superset import conf
-
-    db_uri = conf.get("SQLALCHEMY_DATABASE_URI")
+    db_uri = current_app.config["SQLALCHEMY_DATABASE_URI"]
     return get_or_create_db("main", db_uri)
 
 
