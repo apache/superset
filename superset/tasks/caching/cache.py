@@ -25,12 +25,10 @@ from celery.utils.log import get_task_logger
 
 from superset import app
 from superset.extensions import celery_app
-from superset.tasks.caching.cache_strategy import (
-    DashboardTagsStrategy,
-    DummyStrategy,
-    Strategy,
-    TopNDashboardsStrategy,
-)
+from superset.tasks.caching.strategies.dashboard_tags import DashboardTagsStrategy
+from superset.tasks.caching.strategies.dummy import DummyStrategy
+from superset.tasks.caching.strategies.top_n import TopNDashboardsStrategy
+from superset.tasks.caching.strategy import Strategy
 
 logger = get_task_logger(__name__)
 logger.setLevel(logging.INFO)
