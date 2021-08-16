@@ -19,6 +19,10 @@
 import datetime
 import json
 from unittest.mock import MagicMock
+
+from superset.tasks.caching.strategies.dashboard_tags import DashboardTagsStrategy
+from superset.tasks.caching.strategies.top_n import TopNDashboardsStrategy
+from superset.views.utils import get_form_data
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
 )
@@ -29,11 +33,7 @@ from superset import db
 
 from superset.models.core import Log
 from superset.models.tags import get_tag, ObjectTypes, TaggedObject, TagTypes
-from superset.tasks.caching.cache_strategy import (
-    DashboardTagsStrategy,
-    get_form_data,
-    TopNDashboardsStrategy,
-)
+
 
 from .base_tests import SupersetTestCase
 
