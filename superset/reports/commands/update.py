@@ -55,7 +55,7 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
             report_schedule = ReportScheduleDAO.update(self._model, self._properties)
         except DAOUpdateFailedError as ex:
             logger.exception(ex.exception)
-            raise ReportScheduleUpdateFailedError()
+            raise ReportScheduleUpdateFailedError() from ex
         return report_schedule
 
     def validate(self) -> None:
@@ -110,8 +110,8 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
         # Check ownership
         try:
             check_ownership(self._model)
-        except SupersetSecurityException:
-            raise ReportScheduleForbiddenError()
+        except SupersetSecurityException as ex:
+            raise ReportScheduleForbiddenError() from ex
 
         # Validate/Populate owner
         if owner_ids is None:

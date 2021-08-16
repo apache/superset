@@ -152,4 +152,4 @@ Error: %(text)s
                 client.chat_postMessage(channel=channel, text=body)
             logger.info("Report sent to slack")
         except SlackClientError as ex:
-            raise NotificationError(ex)
+            raise NotificationError(ex) from ex

@@ -49,7 +49,7 @@ class CreateChartCommand(CreateMixin, BaseCommand):
             chart = ChartDAO.create(self._properties)
         except DAOCreateFailedError as ex:
             logger.exception(ex.exception)
-            raise ChartCreateFailedError()
+            raise ChartCreateFailedError() from ex
         return chart
 
     def validate(self) -> None:

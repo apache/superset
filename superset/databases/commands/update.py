@@ -56,7 +56,7 @@ class UpdateDatabaseCommand(BaseCommand):
                 schemas = database.get_all_schema_names()
             except Exception as ex:
                 db.session.rollback()
-                raise DatabaseConnectionFailedError()
+                raise DatabaseConnectionFailedError() from ex
             for schema in schemas:
                 security_manager.add_permission_view_menu(
                     "schema_access", security_manager.get_schema_perm(database, schema)
@@ -65,7 +65,7 @@ class UpdateDatabaseCommand(BaseCommand):
 
         except DAOUpdateFailedError as ex:
             logger.exception(ex.exception)
-            raise DatabaseUpdateFailedError()
+            raise DatabaseUpdateFailedError() from ex
         return database
 
     def validate(self) -> None:

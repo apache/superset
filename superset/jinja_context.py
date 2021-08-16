@@ -333,10 +333,10 @@ def safe_proxy(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
     if value_type in COLLECTION_TYPES:
         try:
             return_value = json.loads(json.dumps(return_value))
-        except TypeError:
+        except TypeError as ex:
             raise SupersetTemplateException(
                 _("Unsupported return value for method %(name)s", name=func.__name__,)
-            )
+            ) from ex
 
     return return_value
 
@@ -357,10 +357,10 @@ def validate_context_types(context: Dict[str, Any]) -> Dict[str, Any]:
         if arg_type in COLLECTION_TYPES:
             try:
                 context[key] = json.loads(json.dumps(context[key]))
-            except TypeError:
+            except TypeError as ex:
                 raise SupersetTemplateException(
                     _("Unsupported template value for key %(key)s", key=key)
-                )
+                ) from ex
 
     return context
 

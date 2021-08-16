@@ -44,7 +44,7 @@ class CreateAnnotationLayerCommand(BaseCommand):
             annotation_layer = AnnotationLayerDAO.create(self._properties)
         except DAOCreateFailedError as ex:
             logger.exception(ex.exception)
-            raise AnnotationLayerCreateFailedError()
+            raise AnnotationLayerCreateFailedError() from ex
         return annotation_layer
 
     def validate(self) -> None:
