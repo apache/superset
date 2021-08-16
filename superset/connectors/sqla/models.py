@@ -1648,6 +1648,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         :raises Exception: If the target table is not unique
         """
 
+        # pylint: disable=import-outside-toplevel
         from superset.datasets.commands.exceptions import get_dataset_exist_error_msg
         from superset.datasets.dao import DatasetDAO
 

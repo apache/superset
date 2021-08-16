@@ -324,6 +324,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
         """
 
         try:
+            # pylint: disable=import-outside-toplevel
             import pandas_gbq
             from google.oauth2 import service_account
         except ImportError:

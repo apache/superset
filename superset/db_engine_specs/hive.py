@@ -62,8 +62,8 @@ def upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
     :returns: The S3 location of the table
     """
 
-    # Optional dependency
-    import boto3  # pylint: disable=import-error
+    # pylint: disable=import-outside-toplevel
+    import boto3
 
     bucket_path = current_app.config["CSV_TO_HIVE_UPLOAD_S3_BUCKET"]
 
@@ -128,6 +128,7 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def patch(cls) -> None:
+        # pylint: disable=import-outside-toplevel
         from pyhive import hive
         from TCLIService import (
             constants as patched_constants,
@@ -152,6 +153,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     def fetch_data(
         cls, cursor: Any, limit: Optional[int] = None
     ) -> List[Tuple[Any, ...]]:
+        # pylint: disable=import-outside-toplevel
         import pyhive
         from TCLIService import ttypes
 
@@ -314,6 +316,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         cls, cursor: Any, query: Query, session: Session
     ) -> None:
         """Updates progress information"""
+        # pylint: disable=import-outside-toplevel
         from pyhive import hive
 
         unfinished_states = (
