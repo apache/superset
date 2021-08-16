@@ -288,7 +288,7 @@ def cache_warmup(
     for url in strategy.get_urls():
         try:
             logger.info("Fetching %s", url)
-            request.urlopen(url)
+            request.urlopen(url)  # pylint: disable=consider-using-with
             results["success"].append(url)
         except URLError:
             logger.exception("Error warming up cache!")

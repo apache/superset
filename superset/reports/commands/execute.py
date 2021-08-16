@@ -182,6 +182,7 @@ class BaseReportState:
         screenshot: Optional[BaseScreenshot] = None
         if self._report_schedule.chart:
             url = self._get_url(standalone="true")
+            logger.info("Screenshotting chart at %s", url)
             screenshot = ChartScreenshot(
                 url,
                 self._report_schedule.chart.digest,
@@ -190,6 +191,7 @@ class BaseReportState:
             )
         else:
             url = self._get_url()
+            logger.info("Screenshotting dashboard at %s", url)
             screenshot = DashboardScreenshot(
                 url,
                 self._report_schedule.dashboard.digest,
@@ -235,6 +237,7 @@ class BaseReportState:
                 ) from ex
 
         try:
+            logger.info("Getting chart from %s", url)
             csv_data = get_chart_csv_data(url, auth_cookies)
         except SoftTimeLimitExceeded:
             raise ReportScheduleCsvTimeout()
