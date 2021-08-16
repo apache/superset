@@ -87,7 +87,6 @@ disable=
     ungrouped-imports,
     import-outside-toplevel,
     raise-missing-from,
-    super-with-arguments,
     too-few-public-methods,
     too-many-locals,
     duplicate-code,
