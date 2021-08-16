@@ -42,6 +42,7 @@ from superset.jinja_context import (  # pylint: disable=unused-import
     BaseTemplateProcessor,
 )
 from superset.stats_logger import DummyStatsLogger
+from superset.tasks.caching.strategy import Strategy
 from superset.typing import CacheConfig
 from superset.utils.core import is_test, parse_boolean_string
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
@@ -57,7 +58,6 @@ if TYPE_CHECKING:
         SqlaTable,
     )
     from superset.models.core import Database  # pylint: disable=unused-import
-    from superset.tasks.caching.strategy import Strategy
 
 # Realtime stats logger, a StatsD implementation exists
 STATS_LOGGER = DummyStatsLogger()
