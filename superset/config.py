@@ -57,6 +57,7 @@ if TYPE_CHECKING:
         SqlaTable,
     )
     from superset.models.core import Database  # pylint: disable=unused-import
+    from tasks.caching.cache_strategy import Strategy
 
 # Realtime stats logger, a StatsD implementation exists
 STATS_LOGGER = DummyStatsLogger()
@@ -705,7 +706,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
 CELERY_CONFIG = CeleryConfig  # pylint: disable=invalid-name
 
 # Additional Caching strategies to be used in the CELERYBEAT_SCHEDULE config
-EXTRA_CACHING_STRATEGIES = []
+EXTRA_CACHING_STRATEGIES: List[Type[Strategy]] = []
 
 # Set celery config to None to disable all the above configuration
 # CELERY_CONFIG = None

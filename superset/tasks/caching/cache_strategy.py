@@ -1,88 +1,14 @@
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
-# pylint: disable=too-few-public-methods
+from typing import List, Optional
 
-import json
-import logging
-from typing import Any, Dict, List, Optional, Union
-from urllib import request
-from urllib.error import URLError
-
-from celery.utils.log import get_task_logger
 from sqlalchemy import and_, func
 
-from superset import app, db
-from superset.extensions import celery_app
+from superset import db
 from superset.models.core import Log
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.tags import Tag, TaggedObject
+from superset.tasks.caching.utils import get_form_data, get_url
 from superset.utils.date_parser import parse_human_datetime
-from superset.views.utils import build_extra_filters
-
-logger = get_task_logger(__name__)
-logger.setLevel(logging.INFO)
-
-
-def get_form_data(
-    chart_id: int, dashboard: Optional[Dashboard] = None
-) -> Dict[str, Any]:
-    """
-    Build `form_data` for chart GET request from dashboard's `default_filters`.
-
-    When a dashboard has `default_filters` they need to be added  as extra
-    filters in the GET request for charts.
-
-    """
-    form_data: Dict[str, Any] = {"slice_id": chart_id}
-
-    if dashboard is None or not dashboard.json_metadata:
-        return form_data
-
-    json_metadata = json.loads(dashboard.json_metadata)
-    default_filters = json.loads(json_metadata.get("default_filters", "null"))
-    if not default_filters:
-        return form_data
-
-    filter_scopes = json_metadata.get("filter_scopes", {})
-    layout = json.loads(dashboard.position_json or "{}")
-    if (
-        isinstance(layout, dict)
-        and isinstance(filter_scopes, dict)
-        and isinstance(default_filters, dict)
-    ):
-        extra_filters = build_extra_filters(
-            layout, filter_scopes, default_filters, chart_id
-        )
-        if extra_filters:
-            form_data["extra_filters"] = extra_filters
-
-    return form_data
-
-
-def get_url(chart: Slice, extra_filters: Optional[Dict[str, Any]] = None) -> str:
-    """Return external URL for warming up a given chart/table cache."""
-    with app.test_request_context():
-        baseurl = (
-            "{SUPERSET_WEBSERVER_PROTOCOL}://"
-            "{SUPERSET_WEBSERVER_ADDRESS}:"
-            "{SUPERSET_WEBSERVER_PORT}".format(**app.config)
-        )
-        return f"{baseurl}{chart.get_explore_url(overrides=extra_filters)}"
 
 
 class Strategy:
@@ -250,50 +176,3 @@ class DashboardTagsStrategy(Strategy):
             urls.append(get_url(chart))
 
         return urls
-
-
-strategies = [DummyStrategy, TopNDashboardsStrategy, DashboardTagsStrategy]
-
-
-@celery_app.task(name="cache-warmup")
-def cache_warmup(
-    strategy_name: str, *args: Any, **kwargs: Any
-) -> Union[Dict[str, List[str]], str]:
-    """
-    Warm up cache.
-
-    This task periodically hits charts to warm up the cache.
-
-    """
-    logger.info("Loading strategy")
-    class_ = None
-
-    extra_strategies = app.config["EXTRA_CACHING_STRATEGIES"]
-    for class_ in strategies + extra_strategies:
-        if class_.name == strategy_name:  # type: ignore
-            break
-    else:
-        message = f"No strategy {strategy_name} found!"
-        logger.error(message, exc_info=True)
-        return message
-
-    logger.info("Loading %s", class_.__name__)
-    try:
-        strategy = class_(*args, **kwargs)
-        logger.info("Success!")
-    except TypeError:
-        message = "Error loading strategy!"
-        logger.exception(message)
-        return message
-
-    results: Dict[str, List[str]] = {"success": [], "errors": []}
-    for url in strategy.get_urls():
-        try:
-            logger.info("Fetching %s", url)
-            request.urlopen(url)
-            results["success"].append(url)
-        except URLError:
-            logger.exception("Error warming up cache!")
-            results["errors"].append(url)
-
-    return results
