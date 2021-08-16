@@ -36,7 +36,12 @@ import {
 } from './types';
 import { ForecastSeriesEnum, ProphetValue } from '../types';
 import { parseYAxisBound } from '../utils/controls';
-import { dedupSeries, extractTimeseriesSeries, getLegendProps } from '../utils/series';
+import {
+  currentSeries,
+  dedupSeries,
+  extractTimeseriesSeries,
+  getLegendProps,
+} from '../utils/series';
 import { extractAnnotationLabels } from '../utils/annotation';
 import {
   extractForecastSeriesContext,
@@ -249,6 +254,7 @@ export default function transformProps(
     ],
     tooltip: {
       ...defaultTooltip,
+      appendToBody: true,
       trigger: richTooltip ? 'axis' : 'item',
       formatter: (params: any) => {
         const value: number = !richTooltip ? params.value : params[0].value[0];
@@ -261,13 +267,16 @@ export default function transformProps(
 
         Object.keys(prophetValues).forEach(key => {
           const value = prophetValues[key];
-          rows.push(
-            formatProphetTooltipSeries({
-              ...value,
-              seriesName: key,
-              formatter: primarySeries.has(key) ? formatter : formatterSecondary,
-            }),
-          );
+          const content = formatProphetTooltipSeries({
+            ...value,
+            seriesName: key,
+            formatter: primarySeries.has(key) ? formatter : formatterSecondary,
+          });
+          if (currentSeries.name === key) {
+            rows.push(`<span style="font-weight: 700">${content}</span>`);
+          } else {
+            rows.push(`<span style="opacity: 0.7">${content}</span>`);
+          }
         });
         return rows.join('<br />');
       },
