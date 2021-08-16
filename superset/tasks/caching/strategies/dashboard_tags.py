@@ -27,7 +27,7 @@ from superset.tasks.caching.strategies.utils import get_url
 from superset.tasks.caching.strategy import Strategy
 
 
-class DashboardTagsStrategy(Strategy):
+class DashboardTagsStrategy(Strategy):  # pylint: disable=too-few-public-methods
     """
     Warm up charts in dashboards with custom tags.
 

@@ -27,7 +27,7 @@ from superset.tasks.caching.strategy import Strategy
 from superset.utils.date_parser import parse_human_datetime
 
 
-class TopNDashboardsStrategy(Strategy):
+class TopNDashboardsStrategy(Strategy):  # pylint: disable=too-few-public-methods
     """
     Warm up charts in the top-n dashboards.
 

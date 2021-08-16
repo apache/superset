@@ -23,7 +23,7 @@ from superset.tasks.caching.strategies.utils import get_url
 from superset.tasks.caching.strategy import Strategy
 
 
-class DummyStrategy(Strategy):
+class DummyStrategy(Strategy):  # pylint: disable=too-few-public-methods
     """
     Warm up all charts.
 
