@@ -129,6 +129,11 @@ const StyledError = styled.div`
   `}
 `;
 
+const StyledErrorMessage = styled.div`
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
 const StyledSpin = styled(Spin)`
   margin-top: ${({ theme }) => -theme.gridUnit}px;
 `;
@@ -141,7 +146,7 @@ const EMPTY_OPTIONS: OptionsType = [];
 
 const Error = ({ error }: { error: string }) => (
   <StyledError>
-    <Icons.ErrorSolid /> {error}
+    <Icons.ErrorSolid /> <StyledErrorMessage>{error}</StyledErrorMessage>
   </StyledError>
 );
 
