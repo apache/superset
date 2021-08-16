@@ -642,7 +642,7 @@ function DashboardList(props: DashboardListProps) {
         onHide={closeDashboardImportModal}
         passwordFields={passwordFields}
         setPasswordFields={setPasswordFields}
-      />s
+      />
 
       <OmniContainer />
 
