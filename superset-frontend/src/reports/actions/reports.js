@@ -118,7 +118,6 @@ export const addReport = report => dispatch =>
         ),
       );
     });
-};
 
 export const EDIT_REPORT = 'EDIT_REPORT';
 
