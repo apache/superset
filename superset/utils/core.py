@@ -122,6 +122,8 @@ logger = logging.getLogger(__name__)
 
 DTTM_ALIAS = "__timestamp"
 
+NO_TIME_RANGE = "No filter"
+
 TIME_COMPARISION = "__"
 
 JS_MAX_INTEGER = 9007199254740991  # Largest int Java Script can handle 2^53-1
@@ -221,6 +223,12 @@ class ExtraFiltersTimeColumnType(str, Enum):
     TIME_GRAIN = "__time_grain"
     TIME_ORIGIN = "__time_origin"
     TIME_RANGE = "__time_range"
+
+
+class ExtraFiltersReasonType(str, Enum):
+    NO_TEMPORAL_COLUMN = "no_temporal_column"
+    COL_NOT_IN_DATASOURCE = "not_in_datasource"
+    NOT_DRUID_DATASOURCE = "not_druid_datasource"
 
 
 class FilterOperator(str, Enum):
@@ -1620,7 +1628,7 @@ def get_time_filter_status(  # pylint: disable=too-many-branches
         else:
             rejected.append(
                 {
-                    "reason": "not_in_datasource",
+                    "reason": ExtraFiltersReasonType.COL_NOT_IN_DATASOURCE,
                     "column": ExtraFiltersTimeColumnType.TIME_COL,
                 }
             )
@@ -1632,19 +1640,20 @@ def get_time_filter_status(  # pylint: disable=too-many-branches
         else:
             rejected.append(
                 {
-                    "reason": "no_temporal_column",
+                    "reason": ExtraFiltersReasonType.NO_TEMPORAL_COLUMN,
                     "column": ExtraFiltersTimeColumnType.TIME_GRAIN,
                 }
             )
 
-    if ExtraFiltersTimeColumnType.TIME_RANGE in applied_time_extras:
+    time_range = applied_time_extras.get(ExtraFiltersTimeColumnType.TIME_RANGE)
+    if time_range and time_range != NO_TIME_RANGE:
         # are there any temporal columns to assign the time grain to?
         if temporal_columns:
             applied.append({"column": ExtraFiltersTimeColumnType.TIME_RANGE})
         else:
             rejected.append(
                 {
-                    "reason": "no_temporal_column",
+                    "reason": ExtraFiltersReasonType.NO_TEMPORAL_COLUMN,
                     "column": ExtraFiltersTimeColumnType.TIME_RANGE,
                 }
             )
@@ -1655,7 +1664,7 @@ def get_time_filter_status(  # pylint: disable=too-many-branches
         else:
             rejected.append(
                 {
-                    "reason": "not_druid_datasource",
+                    "reason": ExtraFiltersReasonType.NOT_DRUID_DATASOURCE,
                     "column": ExtraFiltersTimeColumnType.TIME_ORIGIN,
                 }
             )
@@ -1666,7 +1675,7 @@ def get_time_filter_status(  # pylint: disable=too-many-branches
         else:
             rejected.append(
                 {
-                    "reason": "not_druid_datasource",
+                    "reason": ExtraFiltersReasonType.NOT_DRUID_DATASOURCE,
                     "column": ExtraFiltersTimeColumnType.GRANULARITY,
                 }
             )

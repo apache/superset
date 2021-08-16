@@ -20,11 +20,16 @@ import pytest
 
 from superset.utils.core import (
     AdhocMetric,
+    ExtraFiltersReasonType,
+    ExtraFiltersTimeColumnType,
     GenericDataType,
     get_metric_name,
     get_metric_names,
+    get_time_filter_status,
     is_adhoc_metric,
+    NO_TIME_RANGE,
 )
+from tests.unit_tests.fixtures.datasets import get_dataset_mock
 
 STR_METRIC = "my_metric"
 SIMPLE_SUM_ADHOC_METRIC: AdhocMetric = {
@@ -98,3 +103,72 @@ def test_is_adhoc_metric():
     assert is_adhoc_metric(STR_METRIC) is False
     assert is_adhoc_metric(SIMPLE_SUM_ADHOC_METRIC) is True
     assert is_adhoc_metric(SQL_ADHOC_METRIC) is True
+
+
+def test_get_time_filter_status_time_col():
+    dataset = get_dataset_mock()
+
+    assert get_time_filter_status(
+        dataset, {ExtraFiltersTimeColumnType.TIME_COL: "ds"}
+    ) == ([{"column": ExtraFiltersTimeColumnType.TIME_COL}], [])
+
+
+def test_get_time_filter_status_time_range():
+    dataset = get_dataset_mock()
+
+    assert get_time_filter_status(
+        dataset, {ExtraFiltersTimeColumnType.TIME_RANGE: NO_TIME_RANGE}
+    ) == ([], [])
+
+    assert get_time_filter_status(
+        dataset, {ExtraFiltersTimeColumnType.TIME_RANGE: "1 year ago"}
+    ) == ([{"column": ExtraFiltersTimeColumnType.TIME_RANGE}], [])
+
+
+def test_get_time_filter_status_time_grain():
+    dataset = get_dataset_mock()
+
+    assert get_time_filter_status(
+        dataset, {ExtraFiltersTimeColumnType.TIME_GRAIN: "PT1M"}
+    ) == ([{"column": ExtraFiltersTimeColumnType.TIME_GRAIN}], [])
+
+
+def test_get_time_filter_status_no_temporal_col():
+    dataset = get_dataset_mock()
+    dataset.columns[0].is_dttm = False
+
+    assert get_time_filter_status(
+        dataset, {ExtraFiltersTimeColumnType.TIME_COL: "foobar"}
+    ) == (
+        [],
+        [
+            {
+                "reason": ExtraFiltersReasonType.COL_NOT_IN_DATASOURCE,
+                "column": ExtraFiltersTimeColumnType.TIME_COL,
+            }
+        ],
+    )
+
+    assert get_time_filter_status(
+        dataset, {ExtraFiltersTimeColumnType.TIME_RANGE: "1 year ago"}
+    ) == (
+        [],
+        [
+            {
+                "reason": ExtraFiltersReasonType.NO_TEMPORAL_COLUMN,
+                "column": ExtraFiltersTimeColumnType.TIME_RANGE,
+            }
+        ],
+    )
+
+    assert get_time_filter_status(
+        dataset, {ExtraFiltersTimeColumnType.TIME_GRAIN: "PT1M"}
+    ) == (
+        [],
+        [
+            {
+                "reason": ExtraFiltersReasonType.NO_TEMPORAL_COLUMN,
+                "column": ExtraFiltersTimeColumnType.TIME_GRAIN,
+            }
+        ],
+    )
