@@ -87,7 +87,6 @@ disable=
     import-outside-toplevel,
     raise-missing-from,
     too-few-public-methods,
-    too-many-locals,
     duplicate-code,
 
 [REPORTS]
