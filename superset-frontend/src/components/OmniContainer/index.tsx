@@ -31,6 +31,7 @@ const OmniModal = styled(Modal)`
 
   .ant-modal-body {
     padding: 0;
+    overflow: visible;
   }
 `;
 
@@ -47,7 +48,16 @@ export default function OmniContainer({ logEvent }: Props) {
     function handleKeydown(event: KeyboardEvent) {
       if (!isFeatureEnabled(FeatureFlag.OMNIBAR)) return;
       const controlOrCommand = event.ctrlKey || event.metaKey;
-      const isOk = ['KeyK', 'KeyS'].includes(event.code); // valid keys "s" or "k"
+      const isOk = ['KeyK'].includes(event.code);
+      const isEsc = event.key === 'Escape';
+      if (isEsc && showOmni.current) {
+        logEvent(LOG_ACTIONS_OMNIBAR_TRIGGERED, {
+          show_omni: false,
+        });
+        showOmni.current = false;
+        setShowModal(false);
+        return;
+      }
       if (controlOrCommand && isOk) {
         logEvent(LOG_ACTIONS_OMNIBAR_TRIGGERED, {
           show_omni: !!showOmni.current,

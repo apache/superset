@@ -22,8 +22,7 @@ from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
-from superset.commands.base import BaseCommand
-from superset.commands.utils import populate_owners
+from superset.commands.base import BaseCommand, UpdateMixin
 from superset.connectors.sqla.models import SqlaTable
 from superset.dao.exceptions import DAOUpdateFailedError
 from superset.datasets.commands.exceptions import (
@@ -47,7 +46,7 @@ from superset.views.base import check_ownership
 logger = logging.getLogger(__name__)
 
 
-class UpdateDatasetCommand(BaseCommand):
+class UpdateDatasetCommand(UpdateMixin, BaseCommand):
     def __init__(
         self,
         user: User,
@@ -101,7 +100,7 @@ class UpdateDatasetCommand(BaseCommand):
             exceptions.append(DatabaseChangeValidationError())
         # Validate/Populate owner
         try:
-            owners = populate_owners(self._actor, owner_ids)
+            owners = self.populate_owners(self._actor, owner_ids)
             self._properties["owners"] = owners
         except ValidationError as ex:
             exceptions.append(ex)
