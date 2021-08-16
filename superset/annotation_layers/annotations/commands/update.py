@@ -52,7 +52,7 @@ class UpdateAnnotationCommand(BaseCommand):
             annotation = AnnotationDAO.update(self._model, self._properties)
         except DAOUpdateFailedError as ex:
             logger.exception(ex.exception)
-            raise AnnotationUpdateFailedError()
+            raise AnnotationUpdateFailedError() from ex
         return annotation
 
     def validate(self) -> None:

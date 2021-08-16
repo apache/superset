@@ -81,8 +81,8 @@ class Datasource(BaseSupersetView):
             if app.config["OLD_API_CHECK_DATASET_OWNERSHIP"]:
                 try:
                     check_ownership(orm_datasource)
-                except SupersetSecurityException:
-                    raise DatasetForbiddenError()
+                except SupersetSecurityException as ex:
+                    raise DatasetForbiddenError() from ex
 
             datasource_dict["owners"] = (
                 db.session.query(orm_datasource.owner_class)
@@ -175,6 +175,6 @@ class Datasource(BaseSupersetView):
                     table_name=params["table_name"],
                     schema_name=params["schema_name"],
                 )
-        except (NoResultFound, NoSuchTableError):
-            raise DatasetNotFoundError
+        except (NoResultFound, NoSuchTableError) as ex:
+            raise DatasetNotFoundError() from ex
         return self.json_response(external_metadata)
