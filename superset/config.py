@@ -57,7 +57,7 @@ if TYPE_CHECKING:
         SqlaTable,
     )
     from superset.models.core import Database  # pylint: disable=unused-import
-    from tasks.caching.cache_strategy import Strategy
+    from tasks.caching.strategy import Strategy
 
 # Realtime stats logger, a StatsD implementation exists
 STATS_LOGGER = DummyStatsLogger()
