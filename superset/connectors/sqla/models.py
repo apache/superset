@@ -1156,7 +1156,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             op = flt["op"].upper()
             col_obj = (
                 dttm_col
-                if col == utils.DTTM_ALIAS and is_timeseries and dttm_col
+                if col == utils.DTTM_ALIAS and dttm_col
                 else columns_by_name.get(col)
             )
             filter_grain = flt.get("grain")
