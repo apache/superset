@@ -35,6 +35,7 @@ def fetch_logs(
     .. note::
         This is not a part of DB-API.
     """
+    # pylint: disable=import-outside-toplevel
     from pyhive import hive
     from TCLIService import ttypes
     from thrift import Thrift

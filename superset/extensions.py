@@ -98,7 +98,7 @@ class UIManifestProcessor:
         return self.manifest.get(bundle, {}).get(asset_type, [])
 
 
-class ProfilingExtension:
+class ProfilingExtension:  # pylint: disable=too-few-public-methods
     def __init__(self, interval: float = 1e-4) -> None:
         self.interval = interval
 

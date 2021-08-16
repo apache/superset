@@ -84,11 +84,6 @@ confidence=
 disable=
     missing-docstring,
     too-many-lines,
-    ungrouped-imports,
-    import-outside-toplevel,
-    super-with-arguments,
-    too-few-public-methods,
-    too-many-locals,
     duplicate-code,
 
 [REPORTS]

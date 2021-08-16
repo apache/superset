@@ -169,6 +169,7 @@ class ExtraCache:
         :returns: The URL parameters
         """
 
+        # pylint: disable=import-outside-toplevel
         from superset.views.utils import get_form_data
 
         if request.args.get(param):
@@ -284,6 +285,7 @@ class ExtraCache:
             only apply to the inner query
         :return: returns a list of filters
         """
+        # pylint: disable=import-outside-toplevel
         from superset.utils.core import FilterOperator
         from superset.views.utils import get_form_data
 
@@ -496,6 +498,7 @@ class PrestoTemplateProcessor(JinjaTemplateProcessor):
         :return: the latest partition array
         """
 
+        # pylint: disable=import-outside-toplevel
         from superset.db_engine_specs.presto import PrestoEngineSpec
 
         table_name, schema = self._schema_table(table_name, self._schema)
@@ -506,6 +509,7 @@ class PrestoTemplateProcessor(JinjaTemplateProcessor):
     def latest_sub_partition(self, table_name: str, **kwargs: Any) -> Any:
         table_name, schema = self._schema_table(table_name, self._schema)
 
+        # pylint: disable=import-outside-toplevel
         from superset.db_engine_specs.presto import PrestoEngineSpec
 
         return cast(

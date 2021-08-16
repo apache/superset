@@ -50,6 +50,7 @@ def ensure_user_is_set(user_id: Optional[int]) -> None:
 def load_chart_data_into_cache(
     job_metadata: Dict[str, Any], form_data: Dict[str, Any],
 ) -> None:
+    # pylint: disable=import-outside-toplevel
     from superset.charts.commands.data import ChartDataCommand
 
     try:

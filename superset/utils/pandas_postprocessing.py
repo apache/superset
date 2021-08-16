@@ -211,7 +211,7 @@ def _append_columns(
 
 
 @validate_column_args("index", "columns")
-def pivot(  # pylint: disable=too-many-arguments
+def pivot(  # pylint: disable=too-many-arguments,too-many-locals
     df: DataFrame,
     index: List[str],
     aggregates: Dict[str, Dict[str, Any]],
@@ -714,11 +714,11 @@ def _prophet_fit_and_predict(  # pylint: disable=too-many-arguments
     Fit a prophet model and return a DataFrame with predicted results.
     """
     try:
+        # pylint: disable=import-error,import-outside-toplevel
+        from prophet import Prophet
+
         prophet_logger = logging.getLogger("prophet.plot")
-
         prophet_logger.setLevel(logging.CRITICAL)
-        from prophet import Prophet  # pylint: disable=import-error
-
         prophet_logger.setLevel(logging.NOTSET)
     except ModuleNotFoundError as ex:
         raise QueryObjectValidationError(_("`prophet` package not installed")) from ex

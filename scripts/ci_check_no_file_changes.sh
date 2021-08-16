@@ -34,7 +34,7 @@ REGEXES=()
 for CHECK in "$@"
 do
   if [[ ${CHECK} == "python" ]]; then
-    REGEX="(^\.github\/workflows\/.*python|^tests\/|^superset\/|^setup\.py|^requirements\/.+\.txt)"
+    REGEX="(^\.github\/workflows\/.*python|^tests\/|^superset\/|^setup\.py|^requirements\/.+\.txt|^\.pylintrc)"
     echo "Searching for changes in python files"
   elif [[ ${CHECK} == "frontend" ]]; then
     REGEX="(^\.github\/workflows\/.*(frontend|e2e)|^superset-frontend\/)"

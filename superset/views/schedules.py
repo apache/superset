@@ -267,7 +267,7 @@ class DashboardEmailScheduleView(
     def pre_add(self, item: "DashboardEmailScheduleView") -> None:
         if item.dashboard is None:
             raise SupersetException("Dashboard is mandatory")
-        super(DashboardEmailScheduleView, self).pre_add(item)
+        super().pre_add(item)
 
 
 class SliceEmailScheduleView(EmailScheduleView):  # pylint: disable=too-many-ancestors
@@ -348,4 +348,4 @@ class SliceEmailScheduleView(EmailScheduleView):  # pylint: disable=too-many-anc
     def pre_add(self, item: "SliceEmailScheduleView") -> None:
         if item.slice is None:
             raise SupersetException("Slice is mandatory")
-        super(SliceEmailScheduleView, self).pre_add(item)
+        super().pre_add(item)

@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -138,7 +139,6 @@ class ReportScheduleDAO(BaseDAO):
         create a report schedule and nested recipients
         :raises: DAOCreateFailedError
         """
-        import json
 
         try:
             model = ReportSchedule()
@@ -171,7 +171,6 @@ class ReportScheduleDAO(BaseDAO):
         create a report schedule and nested recipients
         :raises: DAOCreateFailedError
         """
-        import json
 
         try:
             for key, value in properties.items():
