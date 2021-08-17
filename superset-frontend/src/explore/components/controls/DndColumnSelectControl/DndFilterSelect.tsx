@@ -372,6 +372,10 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
     [togglePopover],
   );
 
+  const ghostButtonText = isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX)
+    ? t('Drop columns/metrics here or click')
+    : t('Drop columns or metrics here');
+
   return (
     <>
       <DndSelectLabel<OptionValueType, OptionValueType[]>
@@ -379,7 +383,7 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
         canDrop={canDrop}
         valuesRenderer={valuesRenderer}
         accept={DND_ACCEPTED_TYPES}
-        ghostButtonText={t('Drop columns or metrics here')}
+        ghostButtonText={ghostButtonText}
         onClickGhostButton={
           isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX)
             ? handleClickGhostButton

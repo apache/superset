@@ -143,10 +143,9 @@ export const DndColumnSelect = (props: LabelProps) => {
               onShiftOptions={onShiftOptions}
               type={`${DndItemType.ColumnOption}_${name}_${label}`}
               canDelete={canDelete}
+              column={column}
               withCaret
-            >
-              <StyledColumnOption column={column} showType />
-            </OptionWrapper>
+            />
           </ColumnSelectPopoverTrigger>
         ) : (
           <OptionWrapper
@@ -159,6 +158,7 @@ export const DndColumnSelect = (props: LabelProps) => {
             column={column}
             withCaret
           />
+        ),
       ),
     [
       canDelete,
@@ -192,6 +192,16 @@ export const DndColumnSelect = (props: LabelProps) => {
     togglePopover(true);
   }, [togglePopover]);
 
+  const defaultGhostButtonText = isFeatureEnabled(
+    FeatureFlag.ENABLE_DND_WITH_CLICK_UX,
+  )
+    ? tn(
+        'Drop a column here or click',
+        'Drop columns here or click',
+        multi ? 2 : 1,
+      )
+    : tn('Drop column here', 'Drop columns here', multi ? 2 : 1);
+
   return (
     <div>
       <DndSelectLabel<string | string[], ColumnMeta[]>
@@ -200,10 +210,7 @@ export const DndColumnSelect = (props: LabelProps) => {
         valuesRenderer={valuesRenderer}
         accept={DndItemType.Column}
         displayGhostButton={multi || optionSelector.values.length === 0}
-        ghostButtonText={
-          ghostButtonText ||
-          tn('Drop column here', 'Drop columns here', multi ? 2 : 1)
-        }
+        ghostButtonText={ghostButtonText || defaultGhostButtonText}
         onClickGhostButton={
           isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX)
             ? openPopover
