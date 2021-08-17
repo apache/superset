@@ -96,6 +96,10 @@ const aggregatorsFactory = (formatter: NumberFormatter) => ({
   ),
 });
 
+/* If you change this logic, please update the corresponding Python
+ * function (https://github.com/apache/superset/blob/master/superset/charts/post_processing.py),
+ * or reach out to @betodealmeida.
+ */
 export default function PivotTableChart(props: PivotTableProps) {
   const {
     data,
