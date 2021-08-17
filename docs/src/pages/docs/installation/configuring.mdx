@@ -201,6 +201,25 @@ CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
   ]
   ```
 
+### Flask app Configuration Hook
+
+`FLASK_APP_MUTATOR` is a configuration function that can be provided in your environment, receives
+the app object and can alter it in any way. For example, add `FLASK_APP_MUTATOR` into your
+`superset_config.py` to setup session cookie expiration time to 24 hours:
+
+```
+def make_session_permanent():
+    '''
+    Enable maxAge for the cookie 'session'
+    '''
+    session.permanent = True
+
+# Set up max age of session to 24 hours
+PERMANENT_SESSION_LIFETIME = timedelta(hours=24)
+def FLASK_APP_MUTATOR(app: Flask) -> None:
+    app.before_request_funcs.setdefault(None, []).append(make_session_permanent)
+```
+
 ### Feature Flags
 
 To support a diverse set of users, Superset has some features that are not enabled by default. For
