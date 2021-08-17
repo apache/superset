@@ -156,7 +156,6 @@ export const DndColumnSelect = (props: LabelProps) => {
             type={`${DndItemType.ColumnOption}_${name}_${label}`}
             canDelete={canDelete}
             column={column}
-            withCaret
           />
         ),
       ),
