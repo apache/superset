@@ -152,7 +152,7 @@ LIMIT 50000;
                     "Births TX",
                     "Births other",
                     "Births Subtotal",
-                    "Total (Sum) ",
+                    "Total (Sum)",
                 ],
                 "coltypes": [
                     GenericDataType.NUMERIC,
@@ -169,7 +169,7 @@ LIMIT 50000;
                     GenericDataType.NUMERIC,
                     GenericDataType.NUMERIC,
                 ],
-                "data": """,Births CA,Births FL,Births IL,Births MA,Births MI,Births NJ,Births NY,Births OH,Births PA,Births TX,Births other,Births Subtotal,Total (Sum) 
+                "data": """,Births CA,Births FL,Births IL,Births MA,Births MI,Births NJ,Births NY,Births OH,Births PA,Births TX,Births other,Births Subtotal,Total (Sum)
 boy,5430796,1968060,2357411,1285126,1938321,1486126,3543961,2376385,2390275,3311985,22044909,48133355,48133355
 girl,3567754,1312593,1614427,842146,1326229,992702,2280733,1622814,1615383,2313186,15058341,32546308,32546308
 Total (Sum),8998550,3280653,3971838,2127272,3264550,2478828,5824694,3999199,4005658,5625171,37103250,80679663,80679663
@@ -246,7 +246,7 @@ LIMIT 50000;
                     "boy Subtotal",
                     "girl Births",
                     "girl Subtotal",
-                    "Total (Sum as Fraction of Rows) ",
+                    "Total (Sum as Fraction of Rows)",
                 ],
                 "coltypes": [
                     GenericDataType.NUMERIC,
@@ -255,7 +255,7 @@ LIMIT 50000;
                     GenericDataType.NUMERIC,
                     GenericDataType.NUMERIC,
                 ],
-                "data": """,boy Births,boy Subtotal,girl Births,girl Subtotal,Total (Sum as Fraction of Rows) 
+                "data": """,boy Births,boy Subtotal,girl Births,girl Subtotal,Total (Sum as Fraction of Rows)
 CA,0.6035190113962805,0.6035190113962805,0.3964809886037195,0.3964809886037195,1.0
 FL,0.5998988615985903,0.5998988615985903,0.4001011384014097,0.4001011384014097,1.0
 IL,0.5935315085862012,0.5935315085862012,0.40646849141379887,0.40646849141379887,1.0

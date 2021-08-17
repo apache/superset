@@ -284,7 +284,7 @@ def apply_post_process(
 
         # flatten column names
         processed_df.columns = [
-            " ".join(str(name) for name in column)
+            " ".join(str(name) for name in column).strip()
             if isinstance(column, tuple)
             else column
             for column in processed_df.columns
