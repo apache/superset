@@ -31,7 +31,6 @@ import { getColorFormatters } from '@superset-ui/chart-controls';
 import { DateFormatter } from '../types';
 
 const { DATABASE_DATETIME } = TimeFormats;
-const TIME_COLUMN = '__timestamp';
 
 function isNumeric(key: string, data: DataRecord[] = []) {
   return data.every(
@@ -108,7 +107,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     .reduce((acc: Record<string, DateFormatter | undefined>, temporalColname: string) => {
       let formatter: DateFormatter | undefined;
       if (dateFormat === smartDateFormatter.id) {
-        if (temporalColname === TIME_COLUMN) {
+        if (granularity) {
           // time column use formats based on granularity
           formatter = getTimeFormatterForGranularity(granularity);
         } else if (isNumeric(temporalColname, data)) {

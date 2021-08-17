@@ -39,11 +39,6 @@ import { DataColumnMeta, TableChartProps, TableChartTransformedProps } from './t
 
 const { PERCENT_3_POINT } = NumberFormats;
 const { DATABASE_DATETIME } = TimeFormats;
-const TIME_COLUMN = '__timestamp';
-
-function isTimeColumn(key: string) {
-  return key === TIME_COLUMN;
-}
 
 function isNumeric(key: string, data: DataRecord[] = []) {
   return data.every(x => x[key] === null || x[key] === undefined || typeof x[key] === 'number');
@@ -122,7 +117,7 @@ const processColumns = memoizeOne(function processColumns(props: TableChartProps
         const timeFormat = customFormat || tableTimestampFormat;
         // When format is "Adaptive Formatting" (smart_date)
         if (timeFormat === smartDateFormatter.id) {
-          if (isTimeColumn(key)) {
+          if (granularity) {
             // time column use formats based on granularity
             formatter = getTimeFormatterForGranularity(granularity);
           } else if (customFormat) {
