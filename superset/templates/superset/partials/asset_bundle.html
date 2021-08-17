@@ -21,7 +21,7 @@
      with development version #}
   <!-- Bundle js {{ filename }} START -->
   {% for entry in js_manifest(filename) %}
-    <script src="{{ entry }}"></script>
+    <script src="{{ entry }}" async></script>
   {% endfor %}
   <!-- Bundle js {{ filename }} END -->
 {% endmacro %}
