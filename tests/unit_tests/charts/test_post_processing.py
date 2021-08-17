@@ -123,17 +123,7 @@ def test_pivot_table():
                 "annotation_data": {},
                 "error": None,
                 "is_cached": None,
-                "query": """SELECT state AS state,
-       gender AS gender,
-       sum(num) AS \"Births\"
-FROM birth_names
-WHERE ds >= TO_TIMESTAMP('1921-07-28 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
-  AND ds < TO_TIMESTAMP('2021-07-28 10:39:44.000000', 'YYYY-MM-DD HH24:MI:SS.US')
-GROUP BY state,
-         gender
-LIMIT 50000;
-
-""",
+                "query": "SELECT state AS state,\n       gender AS gender,\n       sum(num) AS \"Births\"\nFROM birth_names\nWHERE ds >= TO_TIMESTAMP('1921-07-28 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')\n  AND ds < TO_TIMESTAMP('2021-07-28 10:39:44.000000', 'YYYY-MM-DD HH24:MI:SS.US')\nGROUP BY state,\n         gender\nLIMIT 50000;\n\n",
                 "status": QueryStatus.SUCCESS,
                 "stacktrace": None,
                 "rowcount": 3,
@@ -149,7 +139,8 @@ LIMIT 50000;
                     "Births PA",
                     "Births TX",
                     "Births other",
-                    "Births All",
+                    "Births Subtotal",
+                    "Total (Sum) ",
                 ],
                 "coltypes": [
                     GenericDataType.NUMERIC,
@@ -164,11 +155,12 @@ LIMIT 50000;
                     GenericDataType.NUMERIC,
                     GenericDataType.NUMERIC,
                     GenericDataType.NUMERIC,
+                    GenericDataType.NUMERIC,
                 ],
-                "data": """gender,Births CA,Births FL,Births IL,Births MA,Births MI,Births NJ,Births NY,Births OH,Births PA,Births TX,Births other,Births All
-boy,5430796,1968060,2357411,1285126,1938321,1486126,3543961,2376385,2390275,3311985,22044909,48133355
-girl,3567754,1312593,1614427,842146,1326229,992702,2280733,1622814,1615383,2313186,15058341,32546308
-All,8998550,3280653,3971838,2127272,3264550,2478828,5824694,3999199,4005658,5625171,37103250,80679663
+                "data": """,Births CA,Births FL,Births IL,Births MA,Births MI,Births NJ,Births NY,Births OH,Births PA,Births TX,Births other,Births Subtotal,Total (Sum)
+boy,5430796,1968060,2357411,1285126,1938321,1486126,3543961,2376385,2390275,3311985,22044909,48133355,48133355
+girl,3567754,1312593,1614427,842146,1326229,992702,2280733,1622814,1615383,2313186,15058341,32546308,32546308
+Total (Sum),8998550,3280653,3971838,2127272,3264550,2478828,5824694,3999199,4005658,5625171,37103250,80679663,80679663
 """,
                 "applied_filters": [],
                 "rejected_filters": [],
@@ -199,7 +191,7 @@ def test_pivot_table_v2():
                 "optionName": "metric_11",
             }
         ],
-        "metricsLayout": "ROWS",
+        "metricsLayout": "COLUMNS",
         "rowOrder": "key_a_to_z",
         "rowTotals": True,
         "row_limit": 50000,
@@ -223,39 +215,37 @@ def test_pivot_table_v2():
                 "annotation_data": {},
                 "error": None,
                 "is_cached": None,
-                "query": """SELECT state AS state,
-       gender AS gender,
-       sum(num) AS \"Births\"
-FROM birth_names
-WHERE ds >= TO_TIMESTAMP('1921-07-28 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
-  AND ds < TO_TIMESTAMP('2021-07-28 10:39:44.000000', 'YYYY-MM-DD HH24:MI:SS.US')
-GROUP BY state,
-         gender
-LIMIT 50000;
-
-""",
+                "query": "SELECT state AS state,\n       gender AS gender,\n       sum(num) AS \"Births\"\nFROM birth_names\nWHERE ds >= TO_TIMESTAMP('1921-07-28 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')\n  AND ds < TO_TIMESTAMP('2021-07-28 10:39:44.000000', 'YYYY-MM-DD HH24:MI:SS.US')\nGROUP BY state,\n         gender\nLIMIT 50000;\n\n",
                 "status": QueryStatus.SUCCESS,
                 "stacktrace": None,
                 "rowcount": 12,
-                "colnames": ["All Births", "boy Births", "girl Births"],
+                "colnames": [
+                    "boy Births",
+                    "boy Subtotal",
+                    "girl Births",
+                    "girl Subtotal",
+                    "Total (Sum as Fraction of Rows) ",
+                ],
                 "coltypes": [
                     GenericDataType.NUMERIC,
                     GenericDataType.NUMERIC,
                     GenericDataType.NUMERIC,
+                    GenericDataType.NUMERIC,
+                    GenericDataType.NUMERIC,
                 ],
-                "data": """state,All Births,boy Births,girl Births
-All,1.0,0.5965983645717509,0.40340163542824914
-CA,1.0,0.6035190113962805,0.3964809886037195
-FL,1.0,0.5998988615985903,0.4001011384014097
-IL,1.0,0.5935315085862012,0.40646849141379887
-MA,1.0,0.6041192663655611,0.3958807336344389
-MI,1.0,0.5937482960898133,0.4062517039101867
-NJ,1.0,0.5995276800165239,0.40047231998347604
-NY,1.0,0.6084372844307357,0.39156271556926425
-OH,1.0,0.5942152416021308,0.40578475839786915
-PA,1.0,0.596724682935987,0.40327531706401293
-TX,1.0,0.5887794344385264,0.41122056556147357
-other,1.0,0.5941503507105172,0.40584964928948275
+                "data": """,boy Births,boy Subtotal,girl Births,girl Subtotal,Total (Sum as Fraction of Rows)
+CA,0.6035190113962805,0.6035190113962805,0.3964809886037195,0.3964809886037195,1.0
+FL,0.5998988615985903,0.5998988615985903,0.4001011384014097,0.4001011384014097,1.0
+IL,0.5935315085862012,0.5935315085862012,0.40646849141379887,0.40646849141379887,1.0
+MA,0.6041192663655611,0.6041192663655611,0.3958807336344389,0.3958807336344389,1.0
+MI,0.5937482960898133,0.5937482960898133,0.4062517039101867,0.4062517039101867,1.0
+NJ,0.5995276800165239,0.5995276800165239,0.40047231998347604,0.40047231998347604,1.0
+NY,0.6084372844307357,0.6084372844307357,0.39156271556926425,0.39156271556926425,1.0
+OH,0.5942152416021308,0.5942152416021308,0.40578475839786915,0.40578475839786915,1.0
+PA,0.596724682935987,0.596724682935987,0.40327531706401293,0.40327531706401293,1.0
+TX,0.5887794344385264,0.5887794344385264,0.41122056556147357,0.41122056556147357,1.0
+other,0.5941503507105172,0.5941503507105172,0.40584964928948275,0.40584964928948275,1.0
+Total (Sum as Fraction of Rows),6.576651618170867,6.576651618170867,4.423348381829133,4.423348381829133,11.0
 """,
                 "applied_filters": [],
                 "rejected_filters": [],
