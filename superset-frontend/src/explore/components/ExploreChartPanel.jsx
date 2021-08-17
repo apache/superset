@@ -132,7 +132,7 @@ const ExploreChartPanel = props => {
   const { slice } = props;
   const updateQueryContext = useCallback(
     async function fetchChartData() {
-      if (props.can_overwrite && slice && slice.query_context === null) {
+      if (slice && slice.query_context === null) {
         const queryContext = buildV1ChartDataPayload({
           formData: slice.form_data,
           force: false,
