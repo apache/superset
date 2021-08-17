@@ -122,6 +122,7 @@ from superset.views.base import (
     get_error_msg,
     get_user_roles,
     handle_api_exception,
+    is_user_admin,
     json_error_response,
     json_errors_response,
     json_success,
@@ -787,7 +788,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         # slc perms
         slice_add_perm = security_manager.can_access("can_write", "Chart")
-        slice_overwrite_perm = is_owner(slc, g.user) if slc else False
+        slice_overwrite_perm = (
+            is_owner(slc, g.user) or is_user_admin() if slc else False
+        )
         slice_download_perm = security_manager.can_access("can_csv", "Superset")
 
         form_data["datasource"] = str(datasource_id) + "__" + cast(str, datasource_type)
