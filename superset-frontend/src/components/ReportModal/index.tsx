@@ -215,6 +215,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
       creation_method: props.props.creationMethod,
       active: true,
       report_format: currentReport?.report_format,
+      timezone: currentReport?.timezone,
     };
 
     if (isEditMode) {
