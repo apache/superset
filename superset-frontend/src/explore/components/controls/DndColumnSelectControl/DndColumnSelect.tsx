@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useMemo } from 'react';
-import { tn } from '@superset-ui/core';
+import React, { useCallback, useMemo, useState } from 'react';
+import { FeatureFlag, isFeatureEnabled, tn } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
 import { LabelProps } from 'src/explore/components/controls/DndColumnSelectControl/types';
