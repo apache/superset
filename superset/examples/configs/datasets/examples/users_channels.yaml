@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-table_name: Slack Users and Channels
+table_name: users_channels
 main_dttm_col: null
 description: null
 default_endpoint: null
