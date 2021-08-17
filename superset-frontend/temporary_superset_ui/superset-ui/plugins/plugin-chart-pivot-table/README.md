@@ -4,6 +4,8 @@
 
 This plugin provides Pivot Table for Superset.
 
+If you change the logic of this plugin, please update [`pivot_table`](https://github.com/apache/superset/blob/master/superset/charts/post_processing.py).
+
 ### Usage
 
 Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to
