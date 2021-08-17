@@ -190,6 +190,7 @@ export default class ResultSet extends React.PureComponent<
       this,
     );
     this.handleExploreBtnClick = this.handleExploreBtnClick.bind(this);
+    this.orderResultsData = this.orderResultsData.bind(this);
   }
 
   async componentDidMount() {
@@ -442,13 +443,34 @@ export default class ResultSet extends React.PureComponent<
     }
   }
 
+  orderResultsData(data: Record<string, unknown>[]) {
+    // orders the data from results based on the columns.
+    const { columns } = this.props.query.results;
+    const orderedData = [];
+    for (let i = 0; i < data.length; i += 1) {
+      const row = {};
+      for (let j = 0; j < columns.length; j += 1) {
+        const key = columns[j].name;
+        if (data[i][key]) {
+          row[j] = data[i][key];
+        } else {
+          row[j] = data[i][parseFloat(key)];
+        }
+      }
+      orderedData.push(row);
+    }
+    return orderedData;
+  }
+
   renderControls() {
     if (this.props.search || this.props.visualize || this.props.csv) {
       let { data } = this.props.query.results;
       if (this.props.cache && this.props.query.cached) {
         ({ data } = this.state);
       }
-
+      // JavaScript does not mantain the order of a mixed set of keys (i.e integers and strings)
+      // the below function orders the keys based on the column names.
+      const orderedData = this.orderResultsData(data);
       // Added compute logic to stop user from being able to Save & Explore
       const {
         saveDatasetRadioBtnState,
@@ -508,7 +530,7 @@ export default class ResultSet extends React.PureComponent<
             )}
 
             <CopyToClipboard
-              text={prepareCopyToClipboardTabularData(data)}
+              text={prepareCopyToClipboardTabularData(orderedData)}
               wrapped={false}
               copyNode={
                 <Button buttonSize="small">
