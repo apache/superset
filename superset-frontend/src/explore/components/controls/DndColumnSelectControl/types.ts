@@ -57,6 +57,7 @@ export interface DndColumnSelectProps<
   accept: DndItemType | DndItemType[];
   ghostButtonText?: string;
   displayGhostButton?: boolean;
+  onClickGhostButton?: () => void;
 }
 
 export type OptionValueType = Record<string, any>;
