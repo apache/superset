@@ -87,11 +87,18 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
         # the index with the metric name so it shows up in the table
         df.index = pd.Index([*df.index[:-1], metric_name], name="metric")
 
+    # if no rows were passed the metrics will be in the rows, so we
+    # need to move them back to columns
+    if columns and not rows:
+        df = df.stack().to_frame().T
+        df = df[metrics]
+        df.index = pd.Index([*df.index[:-1], metric_name], name="metric")
+
     # combining metrics changes the column hierarchy, moving the metric
     # from the top to the bottom, eg:
     #
     # ('SUM(col)', 'age', 'name') => ('age', 'name', 'SUM(col)')
-    if combine_metrics:
+    if combine_metrics and isinstance(df.columns, pd.MultiIndex):
         # move metrics to the lowest level
         new_order = [*range(1, df.columns.nlevels), 0]
         df = df.reorder_levels(new_order, axis=1)
@@ -103,7 +110,7 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
         )
         indexes = [i for col, i in grouped_columns]
         df = df[df.columns[indexes]]
-    else:
+    elif rows:
         # if metrics were not combined we sort the dataframe by the list
         # of metrics defined by the user
         df = df[metrics]
@@ -138,7 +145,7 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                 # insert column after subgroup
                 df.insert(int(slice_.stop), subtotal_name, subtotal)
 
-    if show_columns_total:
+    if rows and show_columns_total:
         # convert to a MultiIndex to simplify logic
         if not isinstance(df.index, pd.MultiIndex):
             df.index = pd.MultiIndex.from_tuples([(str(i),) for i in df.index])
@@ -165,12 +172,6 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
     # dataframe back
     if apply_metrics_on_rows:
         df = df.T
-
-    # flatten column names
-    df.columns = [
-        " ".join(str(name) for name in column) if isinstance(column, tuple) else column
-        for column in df.columns
-    ]
 
     return df
 
@@ -280,6 +281,14 @@ def apply_post_process(
     for query in result["queries"]:
         df = pd.read_csv(StringIO(query["data"]))
         processed_df = post_processor(df, form_data)
+
+        # flatten column names
+        processed_df.columns = [
+            " ".join(str(name) for name in column)
+            if isinstance(column, tuple)
+            else column
+            for column in processed_df.columns
+        ]
 
         buf = StringIO()
         processed_df.to_csv(buf)
