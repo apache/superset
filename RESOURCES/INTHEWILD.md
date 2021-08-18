@@ -134,6 +134,7 @@ Join our growing community!
 - [QPID Health](http://www.qpidhealth.com/)
 - [TrustMedis](https://trustmedis.com) [@famasya]
 - [WeSure](https://www.wesure.cn/)
+- [Care](https://www.getcare.io/)[@alandao2021]
 
 ### Others
  - [Grassroot](https://www.grassrootinstitute.org/)
