@@ -120,8 +120,6 @@ export class ExploreChartHeader extends React.PureComponent {
     this.closePropertiesModal = this.closePropertiesModal.bind(this);
     this.showReportModal = this.showReportModal.bind(this);
     this.hideReportModal = this.hideReportModal.bind(this);
-    this.renderReportModal = this.renderReportModal.bind(this);
-    this.fetchChartDashboardData = this.fetchChartDashboardData.bind(this);
   }
 
   componentDidMount() {
@@ -200,30 +198,6 @@ export class ExploreChartHeader extends React.PureComponent {
 
   hideReportModal() {
     this.setState({ showingReportModal: false });
-  }
-
-  renderReportModal() {
-    const attachedReportExists = !!Object.keys(this.props.reports).length;
-    return attachedReportExists ? (
-      <HeaderReportActionsDropdown
-        showReportModal={this.showReportModal}
-        hideReportModal={this.hideReportModal}
-        toggleActive={this.props.toggleActive}
-        deleteActiveReport={this.props.deleteActiveReport}
-      />
-    ) : (
-      <>
-        <span
-          role="button"
-          title={t('Schedule email report')}
-          tabIndex={0}
-          className="action-button"
-          onClick={this.showReportModal}
-        >
-          <Icons.Calendar />
-        </span>
-      </>
-    );
   }
 
   canAddReports() {
@@ -343,7 +317,11 @@ export class ExploreChartHeader extends React.PureComponent {
             isRunning={chartStatus === 'loading'}
             status={CHART_STATUS_MAP[chartStatus]}
           />
-          {this.canAddReports() && this.renderReportModal()}
+          <HeaderReportActionsDropdown
+            showReportModal={this.showReportModal}
+            toggleActive={this.props.toggleActive}
+            deleteActiveReport={this.props.deleteActiveReport}
+          />
           <ReportModal
             show={this.state.showingReportModal}
             onHide={this.hideReportModal}
