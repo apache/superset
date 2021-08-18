@@ -161,6 +161,8 @@ class Header extends React.PureComponent {
     this.overwriteDashboard = this.overwriteDashboard.bind(this);
     this.showPropertiesModal = this.showPropertiesModal.bind(this);
     this.hidePropertiesModal = this.hidePropertiesModal.bind(this);
+    this.showReportModal = this.showReportModal.bind(this);
+    this.hideReportModal = this.hideReportModal.bind(this);
   }
 
   componentDidMount() {
@@ -370,6 +372,14 @@ class Header extends React.PureComponent {
     this.setState({ showingPropertiesModal: false });
   }
 
+  showReportModal() {
+    this.setState({ showingReportModal: true });
+  }
+
+  hideReportModal() {
+    this.setState({ showingReportModal: false });
+  }
+
   render() {
     const {
       dashboardTitle,
@@ -533,6 +543,7 @@ class Header extends React.PureComponent {
                 toggleActive={this.props.toggleActive}
                 deleteActiveReport={this.props.deleteActiveReport}
                 dashboardId={dashboardInfo.id}
+                showReportModal={this.showReportModal}
               />
             </>
           )}
@@ -544,8 +555,10 @@ class Header extends React.PureComponent {
               onHide={this.hidePropertiesModal}
               colorScheme={this.props.colorScheme}
               onSubmit={updates => {
-                const { dashboardInfoChanged, dashboardTitleChanged } =
-                  this.props;
+                const {
+                  dashboardInfoChanged,
+                  dashboardTitleChanged
+                } = this.props;
                 dashboardInfoChanged({
                   slug: updates.slug,
                   metadata: JSON.parse(updates.jsonMetadata),
