@@ -25,15 +25,12 @@ import findPermission from 'src/dashboard/util/findPermission';
 import LanguagePicker from './LanguagePicker';
 import { NavBarProps, MenuObjectProps } from './Menu';
 
-const appContainer = document.getElementById('app') || '{}';
-const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
-console.log('userRoles', bootstrapData.user.roles);
+const appContainer = document.getElementById('app');
+const bootstrapData = JSON.parse(
+  appContainer?.getAttribute('data-bootstrap') || '{}',
+);
 
 const { roles } = bootstrapData.user;
-console.log(findPermission('can_dashboard', 'Superset', roles));
-console.log(findPermission('can_sqllab', 'Superset', roles));
-console.log(findPermission('can_slice', 'Superset', roles));
-
 const canChart = findPermission('can_write', 'Chart', roles);
 const canSql = findPermission('can_sqllab', 'Superset', roles);
 const canDashboard = findPermission('can_write', 'Dashboard', roles);
