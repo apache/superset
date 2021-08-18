@@ -127,9 +127,9 @@ from superset.views.base import (
     json_success,
     validate_sqlatable,
 )
+from superset.utils.sql_query_results import apply_display_max_row_limit
 from superset.views.utils import (
     _deserialize_results_payload,
-    apply_display_max_row_limit,
     bootstrap_user_data,
     check_datasource_perms,
     check_explore_cache_perms,
@@ -2539,7 +2539,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
             # TODO: set LimitingFactor to display?
             payload = json.dumps(
-                apply_display_max_row_limit(data),
+                apply_display_max_row_limit(data, config["DISPLAY_MAX_ROW"]),
                 default=utils.pessimistic_json_iso_dttm_ser,
                 ignore_nan=True,
                 encoding=None,

@@ -49,14 +49,9 @@ from superset.models.helpers import (
 from superset.models.tags import QueryUpdater
 from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.utils.core import QueryStatus, user_label
+from superset.sqllab.limiting_factor import LimitingFactor
 
 
-class LimitingFactor(str, enum.Enum):
-    QUERY = "QUERY"
-    DROPDOWN = "DROPDOWN"
-    QUERY_AND_DROPDOWN = "QUERY_AND_DROPDOWN"
-    NOT_LIMITED = "NOT_LIMITED"
-    UNKNOWN = "UNKNOWN"
 
 
 class Query(Model, ExtraJSONMixin):
@@ -182,6 +177,12 @@ class Query(Model, ExtraJSONMixin):
         """
 
         security_manager.raise_for_access(query=self)
+
+    def is_running(self) -> bool:
+        return self.status in [
+            QueryStatus.RUNNING,
+            QueryStatus.PENDING,
+            QueryStatus.TIMED_OUT]
 
 
 class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
