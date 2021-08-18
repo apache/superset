@@ -110,11 +110,12 @@ export const addReport = report => dispatch => {
     .catch(async e => {
       const parsedError = await getClientErrorObject(e);
       const errorMessage = parsedError.message;
-      const errorArr = Object.keys(errorMessage);
-      const error = errorMessage[errorArr[0]][0];
+      // Do we need this?
+      // const errorArr = Object.keys(errorMessage);
+      // const error = errorMessage[errorArr[0]][0];
       dispatch(
         addDangerToast(
-          t('An error occurred while editing this report: %s', error),
+          t('An error occurred while editing this report: %s', errorMessage),
         ),
       );
     });
