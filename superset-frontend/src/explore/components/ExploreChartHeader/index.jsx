@@ -21,6 +21,8 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import Icons from 'src/components/Icons';
+import { Tooltip } from 'src/components/Tooltip';
+import ReportModal from 'src/components/ReportModal';
 import {
   CategoricalColorNamespace,
   SupersetClient,

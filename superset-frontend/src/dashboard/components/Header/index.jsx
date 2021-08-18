@@ -160,6 +160,8 @@ class Header extends React.PureComponent {
     this.overwriteDashboard = this.overwriteDashboard.bind(this);
     this.showPropertiesModal = this.showPropertiesModal.bind(this);
     this.hidePropertiesModal = this.hidePropertiesModal.bind(this);
+    this.showReportModal = this.showReportModal.bind(this);
+    this.hideReportModal = this.hideReportModal.bind(this);
   }
 
   componentDidMount() {
@@ -382,27 +384,6 @@ class Header extends React.PureComponent {
     this.setState({ showingPropertiesModal: false });
   }
 
-<<<<<<< HEAD
-  canAddReports() {
-    if (!isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
-      return false;
-    }
-    const { user } = this.props;
-    if (!user?.userId) {
-      // this is in the case that there is an anonymous user.
-      return false;
-    }
-    const roles = Object.keys(user.roles || []);
-    const permissions = roles.map(key =>
-      user.roles[key].filter(
-        perms => perms[0] === 'menu_access' && perms[1] === 'Manage',
-      ),
-    );
-    return permissions[0].length > 0;
-  }
-
-=======
->>>>>>> code dry (#16358)
   render() {
     const {
       dashboardTitle,
@@ -578,16 +559,33 @@ class Header extends React.PureComponent {
             </>
           )}
 
-          <PropertiesModal
-            dashboardId={dashboardInfo.id}
-            dashboardInfo={dashboardInfo}
-            dashboardTitle={dashboardTitle}
-            show={this.state.showingPropertiesModal}
-            onHide={this.hidePropertiesModal}
-            colorScheme={this.props.colorScheme}
-            onSubmit={handleOnPropertiesChange}
-            onlyApply
-          />
+          {this.state.showingPropertiesModal && (
+            <PropertiesModal
+              dashboardId={dashboardInfo.id}
+              show={this.state.showingPropertiesModal}
+              onHide={this.hidePropertiesModal}
+              colorScheme={this.props.colorScheme}
+              onSubmit={updates => {
+                const {
+                  dashboardInfoChanged,
+                  dashboardTitleChanged,
+                } = this.props;
+                dashboardInfoChanged({
+                  slug: updates.slug,
+                  metadata: JSON.parse(updates.jsonMetadata),
+                });
+                setColorSchemeAndUnsavedChanges(updates.colorScheme);
+                dashboardTitleChanged(updates.title);
+                if (updates.slug) {
+                  window.history.pushState(
+                    { event: 'dashboard_properties_changed' },
+                    '',
+                    `/superset/dashboard/${updates.slug}/`,
+                  );
+                }
+              }}
+            />
+          )}
 
           {this.state.showingReportModal && (
             <ReportModal
