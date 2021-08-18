@@ -165,7 +165,6 @@ class Header extends React.PureComponent {
     this.hidePropertiesModal = this.hidePropertiesModal.bind(this);
     this.showReportModal = this.showReportModal.bind(this);
     this.hideReportModal = this.hideReportModal.bind(this);
-    this.renderReportModal = this.renderReportModal.bind(this);
   }
 
   componentDidMount() {
@@ -411,29 +410,6 @@ class Header extends React.PureComponent {
     this.setState({ showingReportModal: false });
   }
 
-  renderReportModal() {
-    const attachedReportExists = !!Object.keys(this.props.reports).length;
-    return attachedReportExists ? (
-      <HeaderReportActionsDropdown
-        showReportModal={this.showReportModal}
-        toggleActive={this.props.toggleActive}
-        deleteActiveReport={this.props.deleteActiveReport}
-      />
-    ) : (
-      <>
-        <span
-          role="button"
-          title={t('Schedule email report')}
-          tabIndex={0}
-          className="action-button"
-          onClick={this.showReportModal}
-        >
-          <Icons.Calendar />
-        </span>
-      </>
-    );
-  }
-
   canAddReports() {
     if (!isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
       return false;
@@ -488,7 +464,6 @@ class Header extends React.PureComponent {
     const userCanSaveAs =
       dashboardInfo.dash_save_perm &&
       filterboxMigrationState !== FILTER_BOX_MIGRATION_STATES.REVIEWING;
-    const shouldShowReport = !editMode && this.canAddReports();
     const refreshLimit =
       dashboardInfo.common?.conf?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
     const refreshWarning =
@@ -602,27 +577,31 @@ class Header extends React.PureComponent {
               )}
             </div>
           )}
-          {editMode && (
+          {editMode ? (
             <UndoRedoKeyListeners
               onUndo={this.handleCtrlZ}
               onRedo={this.handleCtrlY}
             />
-          )}
-
-          {!editMode && userCanEdit && (
+          ) : (
             <>
-              <span
-                role="button"
-                title={t('Edit dashboard')}
-                tabIndex={0}
-                className="action-button"
-                onClick={this.toggleEditMode}
-              >
-                <Icons.EditAlt />
-              </span>
+              {userCanEdit && (
+                <span
+                  role="button"
+                  title={t('Edit dashboard')}
+                  tabIndex={0}
+                  className="action-button"
+                  onClick={this.toggleEditMode}
+                >
+                  <Icons.EditAlt />
+                </span>
+              )}
+              <HeaderReportActionsDropdown
+                showReportModal={this.showReportModal}
+                toggleActive={this.props.toggleActive}
+                deleteActiveReport={this.props.deleteActiveReport}
+              />
             </>
           )}
-          {shouldShowReport && this.renderReportModal()}
 
           <PropertiesModal
             dashboardId={dashboardInfo.id}
