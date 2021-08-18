@@ -86,4 +86,4 @@ flask-app:
 	flask run -p 8088 --with-threads --reload --debugger
 
 node-app:
-	cd superset-frontend; npm run dev-server -- --devserverPort=9001
+	cd superset-frontend; npm run dev-server
