@@ -24,6 +24,7 @@ from superset.commands.base import BaseCommand
 from superset.dashboards.dao import DashboardDAO
 from superset.reports.commands.exceptions import (
     ChartNotFoundValidationError,
+    ChartNotSavedValidationError,
     DashboardNotFoundValidationError,
     ReportScheduleChartOrDashboardValidationError,
 )
@@ -60,4 +61,4 @@ class BaseReportScheduleCommand(BaseCommand):
                 exceptions.append(DashboardNotFoundValidationError())
             self._properties["dashboard"] = dashboard
         elif not update:
-            exceptions.append(ReportScheduleChartOrDashboardValidationError())
+            exceptions.append(ChartNotSavedValidationError())

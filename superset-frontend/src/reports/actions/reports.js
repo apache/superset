@@ -17,7 +17,6 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import { ConsoleSqlOutlined } from '@ant-design/icons';
 import { t, SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';

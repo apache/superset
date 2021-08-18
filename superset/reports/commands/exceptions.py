@@ -80,6 +80,17 @@ class ReportScheduleChartOrDashboardValidationError(ValidationError):
         super().__init__(_("Choose a chart or dashboard not both"), field_name="chart")
 
 
+class ChartNotSavedValidationError(ValidationError):
+    """
+    Marshmallow validation error for charts that haven't been saved yet
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            _("Chart needs to be saved before creating schedule"), field_name="chart"
+        )
+
+
 class ReportScheduleInvalidError(CommandInvalidError):
     message = _("Report Schedule parameters are invalid.")
 
