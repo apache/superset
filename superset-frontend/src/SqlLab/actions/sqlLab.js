@@ -333,7 +333,7 @@ export function runQuery(query) {
     };
 
     return SupersetClient.post({
-      endpoint: `/superset/sql_json/${window.location.search}`,
+      endpoint: `/superset/sql_json/`,
       body: JSON.stringify(postPayload),
       headers: { 'Content-Type': 'application/json' },
       parseMethod: 'text',

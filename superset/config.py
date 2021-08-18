@@ -34,7 +34,7 @@ from cachelib.base import BaseCache
 from celery.schedules import crontab
 from dateutil import tz
 from flask import Blueprint
-from flask_appbuilder.security.manager import AUTH_DB
+from flask_appbuilder.security.manager import AUTH_DB,AUTH_OAUTH,AUTH_OID,AUTH_REMOTE_USER,AUTH_LDAP
 from pandas.io.parsers import STR_NA_VALUES
 
 from superset.jinja_context import (  # pylint: disable=unused-import
@@ -158,8 +158,9 @@ SECRET_KEY = "\2\1thisismyscretkey\1\2\\e\\y\\y\\h"
 
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "superset.db")
-# SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
-# SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
+#SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
+#SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
+#SQLALCHEMY_DATABASE_URI='postgresql://superset:superset@localhost:5432/superset'
 
 # In order to hook up a custom password store for all SQLACHEMY connections
 # implement a function that takes a single argument of type 'sqla.engine.url',
@@ -258,19 +259,21 @@ DRUID_METADATA_LINKS_ENABLED = True
 # AUTH_DB : Is for database (username/password)
 # AUTH_LDAP : Is for LDAP
 # AUTH_REMOTE_USER : Is for using REMOTE_USER from web server
-AUTH_TYPE = AUTH_DB
+
+#AUTH_TYPE = AUTH_DB
+#AUTH_TYPE = AUTH_OAUTH
 
 # Uncomment to setup Full admin role name
-# AUTH_ROLE_ADMIN = 'Admin'
+#AUTH_ROLE_ADMIN = 'Admin'
 
 # Uncomment to setup Public role name, no authentication needed
-# AUTH_ROLE_PUBLIC = 'Public'
+#AUTH_ROLE_PUBLIC = 'Public'
 
 # Will allow user self registration
-# AUTH_USER_REGISTRATION = True
+#AUTH_USER_REGISTRATION = True
 
 # The default user self registration role
-# AUTH_USER_REGISTRATION_ROLE = "Public"
+#AUTH_USER_REGISTRATION_ROLE = "Public"
 
 # When using LDAP Auth, setup the LDAP server
 # AUTH_LDAP_SERVER = "ldap://ldapserver.new"
@@ -279,6 +282,23 @@ AUTH_TYPE = AUTH_DB
 # OPENID_PROVIDERS = [
 #    { 'name': 'Yahoo', 'url': 'https://open.login.yahoo.com/' },
 #    { 'name': 'Flickr', 'url': 'https://www.flickr.com/<username>' },
+
+# OAUTH_PROVIDERS = [
+#     {'name': 'google', 'icon': 'fa-google',
+#      'token_key': 'access_token',
+#      'remote_app': {
+#          'client_id': '719745002707-rkconk6trg3euhvnvvme1nbbmbcd6hca.apps.googleusercontent.com',
+#          'client_secret': '7yzqk19vCiqe7xH_SrJxTRgB',
+#          'api_base_url': 'https://www.googleapis.com/oauth2/v2/',
+#          'client_kwargs': {
+#              'scope': 'email profile'
+#          },
+#          'request_token_url': None,
+#          'access_token_url': 'https://accounts.google.com/o/oauth2/token',
+#          'authorize_url': 'https://accounts.google.com/o/oauth2/auth'
+#
+#      }
+#      }]
 
 # ---------------------------------------------------
 # Roles config
@@ -1238,10 +1258,10 @@ from flask import  request
 import jwt
 from superset.utils import core as utils
 from superset.utils.date_parser import get_since_until
+
 #key to decrypt jwt token
 MOBI_SECRET_KEY=None
 MOBI_SECRET_KEY_OLD=None
-
 
 def time_filter(default: Optional[str] = None) -> Optional[Any]:
     form_data = json.dumps(request.get_json(force=True))
@@ -1336,6 +1356,7 @@ def uri_filter(cond="none", default="") -> Optional[Any]:
 
     #fetching dashboard_id
     dashboard_id = request.args.get("dashboard_id")
+
     logger.info("dashboard_id: {}".format(str(dashboard_id)))
     # returning default value if form is null
     if form_data is None:
@@ -1383,7 +1404,7 @@ def uri_filter(cond="none", default="") -> Optional[Any]:
 
     jwt_dashboard_id=str(mobi_resource_dict.get("dashboard"))
 
-    if jwt_dashboard_id != dashboard_id:
+    if ((dashboard_id != None) and (jwt_dashboard_id != dashboard_id)):
         raise Exception("dashboard_id has manipulated")
 
     if cond not in mobi_filter_dict and cond == 'merchants':
