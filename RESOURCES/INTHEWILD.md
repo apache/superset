@@ -136,7 +136,6 @@ Join our growing community!
 - [TrustMedis](https://trustmedis.com) [@famasya]
 - [WeSure](https://www.wesure.cn/)
 
-
 ### Others
  - [Grassroot](https://www.grassrootinstitute.org/)
  - [komoot](https://www.komoot.com/) [@christophlingg]
