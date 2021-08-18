@@ -27,6 +27,7 @@ import { NoAnimationDropdown } from 'src/components/Dropdown';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import DeleteModal from 'src/components/DeleteModal';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 
 const deleteColor = (theme: SupersetTheme) => css`
   color: ${theme.colors.error.base};
@@ -41,11 +42,19 @@ export default function HeaderReportActionsDropDown({
   toggleActive: (data: AlertObject, checked: boolean) => void;
   deleteActiveReport: (data: AlertObject) => void;
 }) {
-  const reports = useSelector<any, AlertObject>(state => state.reports);
+  const reports: Record<number, AlertObject> = useSelector<any, AlertObject>(
+    state => state.reports,
+  );
+  const user: UserWithPermissionsAndRoles = useSelector<
+    any,
+    UserWithPermissionsAndRoles
+  >(state => state.user || state.explore?.user);
   const reportsIds = Object.keys(reports);
-  const report = reports[reportsIds[0]];
-  const [currentReportDeleting, setCurrentReportDeleting] =
-    useState<AlertObject | null>(null);
+  const report: AlertObject = reports[reportsIds[0]];
+  const [
+    currentReportDeleting,
+    setCurrentReportDeleting,
+  ] = useState<AlertObject | null>(null);
   const theme = useTheme();
 
   const toggleActiveKey = async (data: AlertObject, checked: boolean) => {
@@ -57,6 +66,23 @@ export default function HeaderReportActionsDropDown({
   const handleReportDelete = (report: AlertObject) => {
     deleteActiveReport(report);
     setCurrentReportDeleting(null);
+  };
+
+  const canAddReports = () => {
+    if (!isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
+      return false;
+    }
+    if (!user) {
+      // this is in the case that there is an anonymous user.
+      return false;
+    }
+    const roles = Object.keys(user.roles || []);
+    const permissions = roles.map(key =>
+      user.roles[key].filter(
+        perms => perms[0] === 'menu_access' && perms[1] === 'Manage',
+      ),
+    );
+    return permissions[0].length > 0;
   };
 
   const menu = () => (
@@ -81,36 +107,48 @@ export default function HeaderReportActionsDropDown({
     </Menu>
   );
 
-  return isFeatureEnabled(FeatureFlag.ALERT_REPORTS) ? (
-    <>
-      <NoAnimationDropdown
-        // ref={ref}
-        overlay={menu()}
-        trigger={['click']}
-        getPopupContainer={(triggerNode: any) =>
-          triggerNode.closest('.action-button')
-        }
+  return canAddReports() ? (
+    report ? (
+      <>
+        <NoAnimationDropdown
+          // ref={ref}
+          overlay={menu()}
+          trigger={['click']}
+          getPopupContainer={(triggerNode: any) =>
+            triggerNode.closest('.action-button')
+          }
+        >
+          <span role="button" className="action-button" tabIndex={0}>
+            <Icons.Calendar />
+          </span>
+        </NoAnimationDropdown>
+        {currentReportDeleting && (
+          <DeleteModal
+            description={t(
+              'This action will permanently delete %s.',
+              currentReportDeleting.name,
+            )}
+            onConfirm={() => {
+              if (currentReportDeleting) {
+                handleReportDelete(currentReportDeleting);
+              }
+            }}
+            onHide={() => setCurrentReportDeleting(null)}
+            open
+            title={t('Delete Report?')}
+          />
+        )}
+      </>
+    ) : (
+      <span
+        role="button"
+        title={t('Schedule email report')}
+        tabIndex={0}
+        className="action-button"
+        onClick={showReportModal}
       >
-        <span role="button" className="action-button" tabIndex={0}>
-          <Icons.Calendar />
-        </span>
-      </NoAnimationDropdown>
-      {currentReportDeleting && (
-        <DeleteModal
-          description={t(
-            'This action will permanently delete %s.',
-            currentReportDeleting.name,
-          )}
-          onConfirm={() => {
-            if (currentReportDeleting) {
-              handleReportDelete(currentReportDeleting);
-            }
-          }}
-          onHide={() => setCurrentReportDeleting(null)}
-          open
-          title={t('Delete Report?')}
-        />
-      )}
-    </>
+        <Icons.Calendar />
+      </span>
+    )
   ) : null;
 }
