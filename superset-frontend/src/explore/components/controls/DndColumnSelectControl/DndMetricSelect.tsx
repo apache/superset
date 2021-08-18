@@ -378,7 +378,6 @@ export const DndMetricSelect = (props: any) => {
         visible={newMetricPopoverVisible}
         togglePopover={togglePopover}
         closePopover={closePopover}
-        createNew
       >
         <div />
       </AdhocMetricPopoverTrigger>
