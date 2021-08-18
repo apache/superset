@@ -55,11 +55,13 @@ const CopyNode = (
 
 export const CopyToClipboardButton = ({
   data,
+  columns,
 }: {
   data?: Record<string, any>;
+  columns?: string[];
 }) => (
   <CopyToClipboard
-    text={data ? prepareCopyToClipboardTabularData(data) : ''}
+    text={data ? prepareCopyToClipboardTabularData(data, columns) : ''}
     wrapped={false}
     copyNode={CopyNode}
   />

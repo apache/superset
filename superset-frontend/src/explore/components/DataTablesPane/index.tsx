@@ -281,6 +281,7 @@ export const DataTablesPane = ({
     [RESULT_TYPES.results]: useTableColumns(data[RESULT_TYPES.results]),
     [RESULT_TYPES.samples]: useTableColumns(data[RESULT_TYPES.samples]),
   };
+  const { all_columns } = queryFormData;
 
   const renderDataTable = (type: string) => {
     if (isLoading[type]) {
@@ -316,7 +317,7 @@ export const DataTablesPane = ({
   const TableControls = (
     <TableControlsWrapper>
       <RowCount data={data[activeTabKey]} loading={isLoading[activeTabKey]} />
-      <CopyToClipboardButton data={data[activeTabKey]} />
+      <CopyToClipboardButton data={data[activeTabKey]} columns={all_columns} />
       <FilterInput onChangeHandler={setFilterText} />
     </TableControlsWrapper>
   );
