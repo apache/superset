@@ -63,6 +63,7 @@
   "dependencies": {
     "@ant-design/icons": "^4.2.2",
     "@babel/runtime-corejs3": "^7.12.5",
+    "@cypress/react": "^5.9.4",
     "@data-ui/sparkline": "^0.0.84",
     "@emotion/babel-preset-css-prop": "^11.2.0",
     "@emotion/cache": "^11.4.0",
