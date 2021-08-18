@@ -1069,12 +1069,12 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             columns = groupby or columns
             for selected in columns:
                 # if groupby field/expr equals granularity field/expr
-                if selected == granularity:
-                    sqla_col = columns_by_name[selected]
-                    outer = sqla_col.get_timestamp_expression(time_grain, selected)
+                table_col = columns_by_name.get(selected)
+                if table_col and table_col.type_generic == GenericDataType.TEMPORAL:
+                    outer = table_col.get_timestamp_expression(time_grain, selected)
                 # if groupby field equals a selected column
-                elif selected in columns_by_name:
-                    outer = columns_by_name[selected].get_sqla_col()
+                elif table_col:
+                    outer = table_col.get_sqla_col()
                 else:
                     outer = literal_column(f"({selected})")
                     outer = self.make_sqla_column_compatible(outer, selected)
