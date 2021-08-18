@@ -129,6 +129,7 @@ Join our growing community!
 
 ### Healthcare
 - [Amino](https://amino.com) [@shkr]
+- [Care](https://www.getcare.io/)[@alandao2021]
 - [Living Goods](https://www.livinggoods.org) [@chelule]
 - [Maieutical Labs](https://maieuticallabs.it) [@xrmx]
 - [QPID Health](http://www.qpidhealth.com/)
