@@ -17,6 +17,7 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
+import { ConsoleSqlOutlined } from '@ant-design/icons';
 import { t, SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
@@ -110,12 +111,11 @@ export const addReport = report => dispatch => {
     .catch(async e => {
       const parsedError = await getClientErrorObject(e);
       const errorMessage = parsedError.message;
-      // Do we need this?
-      // const errorArr = Object.keys(errorMessage);
-      // const error = errorMessage[errorArr[0]][0];
+      const errorArr = Object.keys(errorMessage);
+      const error = errorMessage[errorArr[0]];
       dispatch(
         addDangerToast(
-          t('An error occurred while editing this report: %s', errorMessage),
+          t('An error occurred while editing this report: %s', error),
         ),
       );
     });
