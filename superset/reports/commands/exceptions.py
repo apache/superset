@@ -87,7 +87,8 @@ class ChartNotSavedValidationError(ValidationError):
 
     def __init__(self) -> None:
         super().__init__(
-            _("Chart needs to be saved before creating schedule"), field_name="chart"
+            _("Please save your chart first, then try creating a new email report."),
+            field_name="chart",
         )
 
 
