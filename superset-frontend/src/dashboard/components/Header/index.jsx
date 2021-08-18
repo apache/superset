@@ -162,6 +162,8 @@ class Header extends React.PureComponent {
     this.overwriteDashboard = this.overwriteDashboard.bind(this);
     this.showPropertiesModal = this.showPropertiesModal.bind(this);
     this.hidePropertiesModal = this.hidePropertiesModal.bind(this);
+    this.showReportModal = this.showReportModal.bind(this);
+    this.hideReportModal = this.hideReportModal.bind(this);
   }
 
   componentDidMount() {
@@ -561,16 +563,15 @@ class Header extends React.PureComponent {
             </>
           )}
 
-          <PropertiesModal
-            dashboardId={dashboardInfo.id}
-            dashboardInfo={dashboardInfo}
-            dashboardTitle={dashboardTitle}
-            show={this.state.showingPropertiesModal}
-            onHide={this.hidePropertiesModal}
-            colorScheme={this.props.colorScheme}
-            onSubmit={handleOnPropertiesChange}
-            onlyApply
-          />
+          {this.state.showingPropertiesModal && (
+            <PropertiesModal
+              dashboardId={dashboardInfo.id}
+              show={this.state.showingPropertiesModal}
+              onHide={this.hidePropertiesModal}
+              colorScheme={this.props.colorScheme}
+              onSubmit={handleOnPropertiesChange}
+            />
+          )}
 
           {this.state.showingReportModal && (
             <ReportModal

@@ -28,8 +28,8 @@ import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import DeleteModal from 'src/components/DeleteModal';
 import ReportModal from 'src/components/ReportModal';
 import { ChartState } from 'src/explore/types';
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { fetchUISpecificReport } from 'src/reports/actions/reports';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 
 const deleteColor = (theme: SupersetTheme) => css`
   color: ${theme.colors.error.base};
