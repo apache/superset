@@ -34,7 +34,7 @@ from cachelib.base import BaseCache
 from celery.schedules import crontab
 from dateutil import tz
 from flask import Blueprint
-from flask_appbuilder.security.manager import AUTH_DB, AUTH_OAUTH,AUTH_OID,AUTH_REMOTE_USER,AUTH_LDAP
+from flask_appbuilder.security.manager import AUTH_DB,AUTH_OAUTH,AUTH_OID,AUTH_REMOTE_USER,AUTH_LDAP
 from pandas.io.parsers import STR_NA_VALUES
 
 from superset.jinja_context import (  # pylint: disable=unused-import
@@ -259,6 +259,7 @@ DRUID_METADATA_LINKS_ENABLED = True
 # AUTH_DB : Is for database (username/password)
 # AUTH_LDAP : Is for LDAP
 # AUTH_REMOTE_USER : Is for using REMOTE_USER from web server
+
 #AUTH_TYPE = AUTH_DB
 #AUTH_TYPE = AUTH_OAUTH
 
@@ -1259,11 +1260,8 @@ from superset.utils import core as utils
 from superset.utils.date_parser import get_since_until
 
 #key to decrypt jwt token
-# MOBI_SECRET_KEY=None
-# MOBI_SECRET_KEY_OLD=None
-
-MOBI_SECRET_KEY='am1nsn2blip944621frejr36db0flstrk2548bqmlaio48vje026djg'
-MOBI_SECRET_KEY_OLD='am1nsn2blip944621fre'
+MOBI_SECRET_KEY=None
+MOBI_SECRET_KEY_OLD=None
 
 def time_filter(default: Optional[str] = None) -> Optional[Any]:
     form_data = json.dumps(request.get_json(force=True))
