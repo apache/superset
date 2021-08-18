@@ -158,8 +158,8 @@ SECRET_KEY = "\2\1thisismyscretkey\1\2\\e\\y\\y\\h"
 
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "superset.db")
-# SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 #SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
+#SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 #SQLALCHEMY_DATABASE_URI='postgresql://superset:superset@localhost:5432/superset'
 
 # In order to hook up a custom password store for all SQLACHEMY connections
@@ -260,19 +260,19 @@ DRUID_METADATA_LINKS_ENABLED = True
 # AUTH_LDAP : Is for LDAP
 # AUTH_REMOTE_USER : Is for using REMOTE_USER from web server
 #AUTH_TYPE = AUTH_DB
-AUTH_TYPE = AUTH_OAUTH
+#AUTH_TYPE = AUTH_OAUTH
 
 # Uncomment to setup Full admin role name
-AUTH_ROLE_ADMIN = 'Admin'
+#AUTH_ROLE_ADMIN = 'Admin'
 
 # Uncomment to setup Public role name, no authentication needed
-AUTH_ROLE_PUBLIC = 'Public'
+#AUTH_ROLE_PUBLIC = 'Public'
 
 # Will allow user self registration
 #AUTH_USER_REGISTRATION = True
 
 # The default user self registration role
-AUTH_USER_REGISTRATION_ROLE = "Public"
+#AUTH_USER_REGISTRATION_ROLE = "Public"
 
 # When using LDAP Auth, setup the LDAP server
 # AUTH_LDAP_SERVER = "ldap://ldapserver.new"
@@ -282,22 +282,22 @@ AUTH_USER_REGISTRATION_ROLE = "Public"
 #    { 'name': 'Yahoo', 'url': 'https://open.login.yahoo.com/' },
 #    { 'name': 'Flickr', 'url': 'https://www.flickr.com/<username>' },
 
-OAUTH_PROVIDERS = [
-    {'name': 'google', 'icon': 'fa-google',
-     'token_key': 'access_token',
-     'remote_app': {
-         'client_id': '719745002707-rkconk6trg3euhvnvvme1nbbmbcd6hca.apps.googleusercontent.com',
-         'client_secret': '7yzqk19vCiqe7xH_SrJxTRgB',
-         'api_base_url': 'https://www.googleapis.com/oauth2/v2/',
-         'client_kwargs': {
-             'scope': 'email profile'
-         },
-         'request_token_url': None,
-         'access_token_url': 'https://accounts.google.com/o/oauth2/token',
-         'authorize_url': 'https://accounts.google.com/o/oauth2/auth'
-
-     }
-     }]
+# OAUTH_PROVIDERS = [
+#     {'name': 'google', 'icon': 'fa-google',
+#      'token_key': 'access_token',
+#      'remote_app': {
+#          'client_id': '719745002707-rkconk6trg3euhvnvvme1nbbmbcd6hca.apps.googleusercontent.com',
+#          'client_secret': '7yzqk19vCiqe7xH_SrJxTRgB',
+#          'api_base_url': 'https://www.googleapis.com/oauth2/v2/',
+#          'client_kwargs': {
+#              'scope': 'email profile'
+#          },
+#          'request_token_url': None,
+#          'access_token_url': 'https://accounts.google.com/o/oauth2/token',
+#          'authorize_url': 'https://accounts.google.com/o/oauth2/auth'
+#
+#      }
+#      }]
 
 # ---------------------------------------------------
 # Roles config
@@ -358,7 +358,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # make GET request to explore_json. explore_json accepts both GET and POST request.
     # See `PR 7935 <https://github.com/apache/superset/pull/7935>`_ for more details.
     "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,
-    "ENABLE_TEMPLATE_PROCESSING": True,
+    "ENABLE_TEMPLATE_PROCESSING": False,
     "ENABLE_TEMPLATE_REMOVE_FILTERS": False,
     "KV_STORE": False,
     # When this feature is enabled, nested types in Presto will be
@@ -1259,9 +1259,11 @@ from superset.utils import core as utils
 from superset.utils.date_parser import get_since_until
 
 #key to decrypt jwt token
-MOBI_SECRET_KEY=None
-MOBI_SECRET_KEY_OLD=None
+# MOBI_SECRET_KEY=None
+# MOBI_SECRET_KEY_OLD=None
 
+MOBI_SECRET_KEY='am1nsn2blip944621frejr36db0flstrk2548bqmlaio48vje026djg'
+MOBI_SECRET_KEY_OLD='am1nsn2blip944621fre'
 
 def time_filter(default: Optional[str] = None) -> Optional[Any]:
     form_data = json.dumps(request.get_json(force=True))
@@ -1356,10 +1358,7 @@ def uri_filter(cond="none", default="") -> Optional[Any]:
 
     #fetching dashboard_id
     dashboard_id = request.args.get("dashboard_id")
-    if dashboard_id is None:
-        return default
-    else:
-        return dashboard_id
+
     logger.info("dashboard_id: {}".format(str(dashboard_id)))
     # returning default value if form is null
     if form_data is None:
@@ -1407,7 +1406,7 @@ def uri_filter(cond="none", default="") -> Optional[Any]:
 
     jwt_dashboard_id=str(mobi_resource_dict.get("dashboard"))
 
-    if jwt_dashboard_id != dashboard_id:
+    if ((dashboard_id != None) and (jwt_dashboard_id != dashboard_id)):
         raise Exception("dashboard_id has manipulated")
 
     if cond not in mobi_filter_dict and cond == 'merchants':
