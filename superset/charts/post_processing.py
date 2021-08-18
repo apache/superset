@@ -131,7 +131,7 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
     if not isinstance(df.columns, pd.MultiIndex):
         df.columns = pd.MultiIndex.from_tuples([(str(i),) for i in df.columns])
 
-    if rows and show_rows_total:
+    if show_rows_total:
         # add subtotal for each group and overall total; we start from the
         # overall group, and iterate deeper into subgroups
         groups = df.columns
