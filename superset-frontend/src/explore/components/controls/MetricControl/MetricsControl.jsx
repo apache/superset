@@ -236,7 +236,6 @@ const MetricsControl = ({
           datasource={datasource}
           savedMetric={emptySavedMetric}
           datasourceType={datasourceType}
-          createNew
         >
           {trigger}
         </AdhocMetricPopoverTrigger>
