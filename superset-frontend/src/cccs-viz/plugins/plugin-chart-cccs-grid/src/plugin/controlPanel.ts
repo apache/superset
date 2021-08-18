@@ -167,9 +167,8 @@ const config: ControlPanelConfig = {
 
         [
           {
-            name: 'metrics',
+            name: 'groupby',
             override: {
-              validators: [],
               visibility: isAggMode,
             },
           },
@@ -177,8 +176,9 @@ const config: ControlPanelConfig = {
 
         [
           {
-            name: 'groupby',
+            name: 'metrics',
             override: {
+              validators: [],
               visibility: isAggMode,
             },
           },
@@ -231,22 +231,9 @@ const config: ControlPanelConfig = {
 
     },
     {
-      label: t('Hello Controls!'),
+      label: t('CCCS Grid Options'),
       expanded: true,
       controlSetRows: [
-        [
-          {
-            name: 'header_text',
-            config: {
-              type: 'TextControl',
-              default: 'Hello, World!',
-              renderTrigger: true,
-              // ^ this makes it apply instantaneously, without triggering a "run query" button
-              label: t('Header Text'),
-              description: t('The text you want to see in the header'),
-            },
-          },
-        ],
         [
           {
             name: 'bold_text',
@@ -266,9 +253,9 @@ const config: ControlPanelConfig = {
               config: {
                 type: 'CheckboxControl',
                 label: t('Enable emitting filters'),
-                default: true,
+                default: false,
                 renderTrigger: true,
-                description: t('Enable emmiting filters.'),
+                description: t('Whether to apply filter to dashboards when grid cells are clicked.'),
               },
             },
           ] : []
