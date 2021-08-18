@@ -143,22 +143,23 @@ const reportReducer = (
   action: ReportActionType,
 ): Partial<ReportObject> | null => {
   const initialState = {
-    name: state?.name || 'Weekly Report',
-    ...(state || {}),
+    name: 'Weekly Report',
   };
 
   switch (action.type) {
     case ActionType.inputChange:
       return {
         ...initialState,
+        ...state,
         [action.payload.name]: action.payload.value,
       };
     case ActionType.fetched:
       return {
+        ...initialState,
         ...action.payload,
       };
     case ActionType.reset:
-      return null;
+      return { ...initialState };
     default:
       return state;
   }
@@ -178,7 +179,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
       : NOTIFICATION_FORMATS.PNG;
   const [currentReport, setCurrentReport] = useReducer<
     Reducer<Partial<ReportObject> | null, ReportActionType>
-  >(reportReducer, { report_format: defaultNotificationFormat });
+  >(reportReducer, null);
   const onChange = useCallback((type: any, payload: any) => {
     setCurrentReport({ type, payload });
   }, []);
@@ -224,7 +225,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
       type: 'Report',
       creation_method: props.props.creationMethod,
       active: true,
-      report_format: currentReport?.report_format,
+      report_format: currentReport?.report_format || defaultNotificationFormat,
       timezone: currentReport?.timezone,
     };
 
