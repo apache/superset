@@ -75,8 +75,8 @@ class ConnectorRegistry:
         return datasources
 
     @classmethod
-    def get_datasource_by_id(  # pylint: disable=too-many-arguments
-        cls, session: Session, datasource_id: int,
+    def get_datasource_by_id(
+        cls, session: Session, datasource_id: int
     ) -> "BaseDatasource":
         """
         Find a datasource instance based on the unique id.

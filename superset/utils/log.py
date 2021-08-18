@@ -194,7 +194,7 @@ class AbstractEventLogger(ABC):
         )
 
     @contextmanager
-    def log_context(  # pylint: disable=too-many-locals
+    def log_context(
         self, action: str, object_ref: Optional[str] = None, log_to_statsd: bool = True,
     ) -> Iterator[Callable[..., None]]:
         """

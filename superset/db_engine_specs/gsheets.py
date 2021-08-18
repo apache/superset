@@ -108,8 +108,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         encrypted_extra: Optional[  # pylint: disable=unused-argument
             Dict[str, Any]
         ] = None,
-    ) -> str:  # pylint: disable=unused-variable
-
+    ) -> str:
         return "gsheets://"
 
     @classmethod
