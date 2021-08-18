@@ -262,14 +262,14 @@ export default function DataSourcePanel({
     () =>
       showAllMetrics
         ? lists.metrics
-        : lists.metrics.slice(0, DEFAULT_MAX_COLUMNS_LENGTH),
+        : lists.metrics.slice(0, DEFAULT_MAX_METRICS_LENGTH),
     [lists.metrics, showAllMetrics],
   );
   const columnSlice = useMemo(
     () =>
       showAllColumns
         ? lists.columns
-        : lists.columns.slice(0, DEFAULT_MAX_METRICS_LENGTH),
+        : lists.columns.slice(0, DEFAULT_MAX_COLUMNS_LENGTH),
     [lists.columns, showAllColumns],
   );
 
