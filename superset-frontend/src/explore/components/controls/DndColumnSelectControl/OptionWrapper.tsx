@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useRef } from 'react';
+import React, { useRef } from 'react';
 import {
   useDrag,
   useDrop,
@@ -63,15 +63,11 @@ export default function OptionWrapper(
   const ref = useRef<HTMLDivElement>(null);
   const labelRef = useRef<HTMLDivElement>(null);
 
-  const item: OptionItemInterface = useMemo(
-    () => ({
-      dragIndex: index,
-      type,
-    }),
-    [index, type],
-  );
   const [{ isDragging }, drag] = useDrag({
-    item,
+    item: {
+      type,
+      dragIndex: index,
+    },
     collect: (monitor: DragSourceMonitor) => ({
       isDragging: monitor.isDragging(),
     }),
@@ -99,8 +95,8 @@ export default function OptionWrapper(
       // Determine mouse position
       const clientOffset = monitor.getClientOffset();
       // Get pixels to the top
-      const hoverClientY = clientOffset?.y
-        ? clientOffset?.y - hoverBoundingRect.top
+      const hoverClientY = clientOffset
+        ? clientOffset.y - hoverBoundingRect.top
         : 0;
       // Only perform the move when the mouse has crossed half of the items height
       // When dragging downwards, only move when the cursor is below 50%
