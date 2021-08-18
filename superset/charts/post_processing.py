@@ -26,7 +26,6 @@ In order to do that, we reproduce the post-processing in Python
 for these chart types.
 """
 
-from io import StringIO
 from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
