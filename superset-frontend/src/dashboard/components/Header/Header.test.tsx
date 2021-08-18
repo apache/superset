@@ -52,7 +52,7 @@ const createProps = () => ({
     isActive: true,
     lastName: 'admin',
     permissions: {},
-    roles: { Admin: [['can_add', 'AlertModelView']] },
+    roles: { Admin: [['menu_access', 'Manage']] },
     userId: 1,
     username: 'admin',
   },
@@ -456,14 +456,12 @@ describe('Email Report Modal', () => {
     const nameTextbox = screen.getByTestId('report-name-test');
     userEvent.type(nameTextbox, ' edit');
 
-    const addButton = screen.getByRole('button', { name: /add/i });
-    userEvent.click(addButton);
+    const saveButton = screen.getByRole('button', { name: /save/i });
+    userEvent.click(saveButton);
 
     // TODO (lyndsiWilliams): There should be a report in state at this porint,
     // which would render the HeaderReportActionsDropDown under the calendar icon
     // BLOCKER: I cannot get report to populate, as its data is handled through redux
-
-    screen.logTestingPlaygroundURL();
     expect.anything();
   });
 });
