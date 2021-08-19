@@ -104,6 +104,7 @@ def _get_full(
         payload["indexnames"] = list(df.index)
         payload["coltypes"] = extract_dataframe_dtypes(df)
         payload["data"] = query_context.get_data(df)
+        payload["result_format"] = query_context.result_format
     del payload["df"]
 
     filters = query_obj.filter
