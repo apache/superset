@@ -276,12 +276,17 @@ export const DataTablesPane = ({
       data[RESULT_TYPES.samples],
     ),
   };
-
-  const columns = {
-    [RESULT_TYPES.results]: useTableColumns(data[RESULT_TYPES.results]),
-    [RESULT_TYPES.samples]: useTableColumns(data[RESULT_TYPES.samples]),
-  };
   const { all_columns } = queryFormData;
+  const columns = {
+    [RESULT_TYPES.results]: useTableColumns(
+      all_columns,
+      data[RESULT_TYPES.results],
+    ),
+    [RESULT_TYPES.samples]: useTableColumns(
+      all_columns,
+      data[RESULT_TYPES.samples],
+    ),
+  };
 
   const renderDataTable = (type: string) => {
     if (isLoading[type]) {

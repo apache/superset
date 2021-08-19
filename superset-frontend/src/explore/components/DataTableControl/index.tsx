@@ -115,13 +115,14 @@ export const useFilteredTableData = (
   }, [data, filterText]);
 
 export const useTableColumns = (
+  all_columns: string[],
   data?: Record<string, any>[],
   moreConfigs?: { [key: string]: Partial<Column> },
 ) =>
   useMemo(
     () =>
       data?.length
-        ? Object.keys(data[0]).map(
+        ? all_columns.map(
             key =>
               ({
                 accessor: row => row[key],

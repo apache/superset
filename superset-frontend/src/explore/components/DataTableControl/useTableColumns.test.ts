@@ -30,6 +30,7 @@ for (let i = 32; i < 127; i += 1) {
 const asciiKey = asciiChars.join('');
 const unicodeKey = '你好. 吃了吗?';
 
+const all_columns = ['col01', 'col02'];
 const data = [
   { col01: true, col02: false, [asciiKey]: asciiKey, [unicodeKey]: unicodeKey },
   { col01: true, col02: false, [asciiKey]: asciiKey, [unicodeKey]: unicodeKey },
@@ -44,7 +45,7 @@ const data = [
 ];
 
 test('useTableColumns with no options', () => {
-  const hook = renderHook(() => useTableColumns(data));
+  const hook = renderHook(() => useTableColumns(all_columns, data));
   expect(hook.result.current).toEqual([
     {
       Cell: expect.any(Function),
@@ -83,7 +84,7 @@ test('useTableColumns with no options', () => {
 
 test('use only the first record columns', () => {
   const newData = [data[3], data[0]];
-  const hook = renderHook(() => useTableColumns(newData));
+  const hook = renderHook(() => useTableColumns(all_columns, newData));
   expect(hook.result.current).toEqual([
     {
       Cell: expect.any(Function),
@@ -134,7 +135,9 @@ test('use only the first record columns', () => {
 });
 
 test('useTableColumns with options', () => {
-  const hook = renderHook(() => useTableColumns(data, { col01: { id: 'ID' } }));
+  const hook = renderHook(() =>
+    useTableColumns(all_columns, data, { col01: { id: 'ID' } }),
+  );
   expect(hook.result.current).toEqual([
     {
       Cell: expect.any(Function),
