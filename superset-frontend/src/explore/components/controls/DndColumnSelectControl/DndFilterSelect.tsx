@@ -401,7 +401,6 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
         visible={newFilterPopoverVisible}
         togglePopover={togglePopover}
         closePopover={closePopover}
-        createNew
       >
         <div />
       </AdhocFilterPopoverTrigger>
