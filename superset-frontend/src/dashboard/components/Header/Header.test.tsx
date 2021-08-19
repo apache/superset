@@ -1,5 +1,3 @@
-/* eslint-disable no-only-tests/no-only-tests */
-/* eslint-disable jest/no-focused-tests */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -368,11 +366,12 @@ describe('Email Report Modal', () => {
     // Watch for report POST
     fetchMock.post(REPORT_ENDPOINT, reportValues);
 
+    screen.logTestingPlaygroundURL();
     // ---------- Begin tests ----------
     // Click calendar icon to open email report modal
-    const emailReportModalButton = screen.getByTestId(
-      'schedule-email-report-button-test',
-    );
+    const emailReportModalButton = screen.getByRole('button', {
+      name: /schedule email report/i,
+    });
     userEvent.click(emailReportModalButton);
 
     // Click "Add" button to create a new email report
@@ -448,9 +447,9 @@ describe('Email Report Modal', () => {
 
     // ---------- Begin tests ----------
     // Click calendar icon to open email report modal
-    const emailReportModalButton = screen.getByTestId(
-      'schedule-email-report-button-test',
-    );
+    const emailReportModalButton = screen.getByRole('button', {
+      name: /schedule email report/i,
+    });
     userEvent.click(emailReportModalButton);
 
     const nameTextbox = screen.getByTestId('report-name-test');
