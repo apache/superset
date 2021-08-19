@@ -50,8 +50,8 @@ export default function HeaderReportActionsDropDown({
     any,
     UserWithPermissionsAndRoles
   >(state => state.user || state.explore?.user);
-  const reportsIds = Object.keys(reports);
-  const report: AlertObject = reports[reportsIds[0]];
+  const reportsIds = Object.keys(reports || []);
+  const report: AlertObject = reports?.[reportsIds[0]];
   const [
     currentReportDeleting,
     setCurrentReportDeleting,
