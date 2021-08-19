@@ -55,9 +55,11 @@ class BaseReportScheduleCommand(BaseCommand):
         if creation_method == ReportCreationMethodType.CHARTS and not chart_id:
             # User has not saved chart yet in Explore view
             exceptions.append(ChartNotSavedValidationError())
+            return
 
         if creation_method == ReportCreationMethodType.DASHBOARDS and not dashboard_id:
             exceptions.append(DashboardNotSavedValidationError())
+            return
 
         if chart_id and dashboard_id:
             exceptions.append(ReportScheduleChartOrDashboardValidationError())

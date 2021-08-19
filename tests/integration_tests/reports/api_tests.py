@@ -746,7 +746,6 @@ class TestReportSchedulesApi(SupersetTestCase):
         dashboard = db.session.query(Dashboard).first()
         example_db = get_example_database()
 
-        # Check that a report does not have a database reference
         report_schedule_data = {
             "type": ReportScheduleType.REPORT,
             "name": "name3",
@@ -775,8 +774,6 @@ class TestReportSchedulesApi(SupersetTestCase):
         chart = db.session.query(Slice).first()
         dashboard = db.session.query(Dashboard).first()
         example_db = get_example_database()
-
-        # Check that a report does not have a database reference
         report_schedule_data = {
             "type": ReportScheduleType.REPORT,
             "name": "name3",
@@ -788,6 +785,10 @@ class TestReportSchedulesApi(SupersetTestCase):
         rv = self.client.post(uri, json=report_schedule_data)
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 422
+        assert (
+            data["message"]["dashboard"]
+            == "Please save your dashboard first, then try creating a new email report."
+        )
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_create_report_schedule_chart_dash_validation(self):
