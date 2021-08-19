@@ -74,3 +74,6 @@ def load_big_data() -> None:
     print("Creating table with long name")
     name = "".join(random.choices(string.ascii_letters + string.digits, k=64))
     add_data(columns=columns, num_rows=10, table_name=name)
+
+    print("Creating table `long_table` with 1M rows")
+    add_data(columns=columns, num_rows=1000000, table_name="long_table")
