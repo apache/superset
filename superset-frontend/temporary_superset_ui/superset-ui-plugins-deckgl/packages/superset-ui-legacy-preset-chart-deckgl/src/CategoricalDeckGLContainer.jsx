@@ -58,16 +58,17 @@ function getCategories(fd, data) {
 }
 
 const propTypes = {
+  datasource: PropTypes.object.isRequired,
   formData: PropTypes.object.isRequired,
-  mapboxApiKey: PropTypes.string.isRequired,
-  setControlValue: PropTypes.func.isRequired,
-  viewport: PropTypes.object.isRequired,
   getLayer: PropTypes.func.isRequired,
   getPoints: PropTypes.func.isRequired,
-  payload: PropTypes.object.isRequired,
-  onAddFilter: PropTypes.func,
-  width: PropTypes.number.isRequired,
   height: PropTypes.number.isRequired,
+  mapboxApiKey: PropTypes.string.isRequired,
+  onAddFilter: PropTypes.func,
+  payload: PropTypes.object.isRequired,
+  setControlValue: PropTypes.func.isRequired,
+  viewport: PropTypes.object.isRequired,
+  width: PropTypes.number.isRequired,
 };
 
 export default class CategoricalDeckGLContainer extends React.PureComponent {
@@ -179,7 +180,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
       data: { ...payload.data, features },
     };
 
-    return [getLayer(fd, filteredPayload, onAddFilter, this.setTooltip)];
+    return [getLayer(fd, filteredPayload, onAddFilter, this.setTooltip, this.props.datasource)];
   }
 
   // eslint-disable-next-line class-methods-use-this
@@ -255,11 +256,12 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
           height={this.props.height}
         >
           <Legend
+            forceCategorical
             categories={this.state.categories}
-            toggleCategory={this.toggleCategory}
-            showSingleCategory={this.showSingleCategory}
-            position={this.props.formData.legend_position}
             format={this.props.formData.legend_format}
+            position={this.props.formData.legend_position}
+            showSingleCategory={this.showSingleCategory}
+            toggleCategory={this.toggleCategory}
           />
         </AnimatableDeckGLContainer>
       </div>
