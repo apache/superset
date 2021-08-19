@@ -103,24 +103,6 @@ export class ExploreChartHeader extends React.PureComponent {
     };
     this.openPropertiesModal = this.openPropertiesModal.bind(this);
     this.closePropertiesModal = this.closePropertiesModal.bind(this);
-<<<<<<< HEAD
-=======
-    this.showReportModal = this.showReportModal.bind(this);
-    this.hideReportModal = this.hideReportModal.bind(this);
-  }
-
-  componentDidMount() {
-    if (this.canAddReports()) {
-      const { user, chart } = this.props;
-      // this is in the case that there is an anonymous user.
-      this.props.fetchUISpecificReport(
-        user.userId,
-        'chart_id',
-        'charts',
-        chart.id,
-      );
-    }
->>>>>>> pexdax refactor (#16333)
   }
 
   getSliceName() {
@@ -232,25 +214,9 @@ export class ExploreChartHeader extends React.PureComponent {
             status={CHART_STATUS_MAP[chartStatus]}
           />
           <HeaderReportActionsDropdown
-<<<<<<< HEAD
             chart={this.props.chart}
             toggleActive={this.props.toggleActive}
             deleteActiveReport={this.props.deleteActiveReport}
-=======
-            showReportModal={this.showReportModal}
-            toggleActive={this.props.toggleActive}
-            deleteActiveReport={this.props.deleteActiveReport}
-          />
-          <ReportModal
-            show={this.state.showingReportModal}
-            onHide={this.hideReportModal}
-            props={{
-              userId: this.props.user.userId,
-              userEmail: this.props.user.email,
-              chart: this.props.chart,
-              creationMethod: 'charts',
-            }}
->>>>>>> pexdax refactor (#16333)
           />
           <ExploreActionButtons
             actions={{
