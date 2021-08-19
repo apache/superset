@@ -312,11 +312,7 @@ def menu_data() -> Dict[str, Any]:
     brand_text = appbuilder.app.config["LOGO_RIGHT_TEXT"]
     if callable(brand_text):
         brand_text = brand_text()
-    build_number = ""
-    try:
-        build_number = appbuilder.app.config["BUILD_NUMBER"]
-    except Exception as ex:
-        logger.debug("BUILD_NUMBER is missing from the config", ex)
+    build_number = appbuilder.app.config["BUILD_NUMBER"]
     return {
         "menu": menu,
         "brand": {
