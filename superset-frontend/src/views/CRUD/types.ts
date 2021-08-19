@@ -17,6 +17,7 @@
  * under the License.
  */
 import { User } from 'src/types/bootstrapTypes';
+import Database from 'src/types/Database';
 import Owner from 'src/types/Owner';
 
 export type FavoriteStatus = {
@@ -137,12 +138,5 @@ export type ImportResourceName =
   | 'dataset'
   | 'saved_query';
 
-export type DatabaseObject = {
-  allow_run_async?: boolean;
-  database_name?: string;
-  encrypted_extra?: string;
-  extra?: string;
-  impersonate_user?: boolean;
-  server_cert?: string;
-  sqlalchemy_uri: string;
-};
+export type DatabaseObject = Partial<Database> &
+  Pick<Database, 'sqlalchemy_uri'>;
