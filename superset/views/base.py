@@ -254,7 +254,7 @@ def validate_sqlatable(table: models.SqlaTable) -> None:
                 "database connection, schema, and "
                 "table name, error: {}"
             ).format(table.name, str(ex))
-        )
+        ) from ex
 
 
 def create_table_permissions(table: models.SqlaTable) -> None:
@@ -338,11 +338,13 @@ def menu_data() -> Dict[str, Any]:
             "languages": languages,
             "show_language_picker": len(languages.keys()) > 1,
             "user_is_anonymous": g.user.is_anonymous,
-            "user_info_url": appbuilder.get_url_for_userinfo,
+            "user_info_url": None
+            if appbuilder.app.config["MENU_HIDE_USER_INFO"]
+            else appbuilder.get_url_for_userinfo,
             "user_logout_url": appbuilder.get_url_for_logout,
             "user_login_url": appbuilder.get_url_for_login,
             "user_profile_url": None
-            if g.user.is_anonymous
+            if g.user.is_anonymous or appbuilder.app.config["MENU_HIDE_USER_INFO"]
             else f"/superset/profile/{g.user.username}",
             "locale": session.get("locale", "en"),
         },
@@ -505,7 +507,7 @@ def validate_json(form: Form, field: Field) -> None:  # pylint: disable=unused-a
         json.loads(field.data)
     except Exception as ex:
         logger.exception(ex)
-        raise Exception(_("json isn't valid"))
+        raise Exception(_("json isn't valid")) from ex
 
 
 class YamlExportMixin:  # pylint: disable=too-few-public-methods

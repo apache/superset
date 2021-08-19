@@ -20,7 +20,7 @@ All configuration in this file can be overridden by providing a superset_config
 in your PYTHONPATH as there is a ``from superset_config import *``
 at the end of this file.
 """
-import imp
+import imp  # pylint: disable=deprecated-module
 import importlib.util
 import json
 import logging
@@ -195,6 +195,10 @@ WTF_CSRF_EXEMPT_LIST = ["superset.views.core.log", "superset.charts.api.data"]
 # Whether to run the web server in debug mode or not
 DEBUG = os.environ.get("FLASK_ENV") == "development"
 FLASK_USE_RELOAD = True
+
+# Enable profiling of Python calls. Turn this on and append ``?_instrument=1``
+# to the page to see the call stack.
+PROFILING = False
 
 # Superset allows server-side python stacktraces to be surfaced to the
 # user when this feature is on. This may has security implications
@@ -384,6 +388,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "OMNIBAR": False,
     "DASHBOARD_RBAC": False,
     "ENABLE_EXPLORE_DRAG_AND_DROP": False,
+    "ENABLE_DND_WITH_CLICK_UX": False,
     # Enabling ALERTS_ATTACH_REPORTS, the system sends email and slack message
     # with screenshot and link
     # Disables ALERTS_ATTACH_REPORTS, the system DOES NOT generate screenshot
@@ -1228,6 +1233,9 @@ GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL = "ws://127.0.0.1:8080/"
 #            cache_manager.cache.set(name, code, timeout=0)
 #
 DATASET_HEALTH_CHECK: Optional[Callable[["SqlaTable"], str]] = None
+
+# Do not show user info or profile in the menu
+MENU_HIDE_USER_INFO = False
 
 # SQLalchemy link doc reference
 SQLALCHEMY_DOCS_URL = "https://docs.sqlalchemy.org/en/13/core/engines.html"

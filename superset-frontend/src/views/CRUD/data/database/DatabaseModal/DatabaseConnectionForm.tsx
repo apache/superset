@@ -19,7 +19,7 @@
 import React, { FormEvent, useState } from 'react';
 import { SupersetTheme, JsonObject, t } from '@superset-ui/core';
 import { InputProps } from 'antd/lib/input';
-import { Input, Switch, Select, Button } from 'src/common/components';
+import { Switch, Select, Button } from 'src/common/components';
 import InfoTooltip from 'src/components/InfoTooltip';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import FormLabel from 'src/components/Form/FormLabel';
@@ -61,6 +61,8 @@ interface FieldPropTypes {
   onParametersUploadFileChange: (value: any) => string;
   changeMethods: { onParametersChange: (value: any) => string } & {
     onChange: (value: any) => string;
+  } & {
+    onQueryChange: (value: any) => string;
   } & { onParametersUploadFileChange: (value: any) => string } & {
     onAddTableCatalog: () => void;
     onRemoveTableCatalog: (idx: number) => void;
@@ -222,10 +224,13 @@ const TableCatalog = ({
               {t('Google Sheet Name and URL')}
             </FormLabel>
             <div className="catalog-name">
-              <Input
+              <ValidatedInput
                 className="catalog-name-input"
+                required={required}
+                validationMethods={{ onBlur: getValidation }}
+                errorMessage={catalogError[idx]?.name}
                 placeholder={t('Enter a name for this sheet')}
-                onChange={e => {
+                onChange={(e: { target: { value: any } }) => {
                   changeMethods.onParametersChange({
                     target: {
                       type: `catalog-${idx}`,
@@ -236,7 +241,6 @@ const TableCatalog = ({
                 }}
                 value={sheet.name}
               />
-
               {tableCatalog?.length > 1 && (
                 <CloseOutlined
                   className="catalog-delete"
@@ -248,7 +252,7 @@ const TableCatalog = ({
               className="catalog-name-url"
               required={required}
               validationMethods={{ onBlur: getValidation }}
-              errorMessage={catalogError[sheet.name]}
+              errorMessage={catalogError[idx]?.url}
               placeholder={t('Paste the shareable Google Sheet URL here')}
               onChange={(e: { target: { value: any } }) =>
                 changeMethods.onParametersChange({
@@ -415,15 +419,15 @@ const queryField = ({
   db,
 }: FieldPropTypes) => (
   <ValidatedInput
-    id="query"
-    name="query"
+    id="query_input"
+    name="query_input"
     required={required}
-    value={db?.parameters?.query}
+    value={db?.query_input || ''}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.query}
     placeholder="e.g. param1=value1&param2=value2"
     label="Additional Parameters"
-    onChange={changeMethods.onParametersChange}
+    onChange={changeMethods.onQueryChange}
     helpText={t('Add additional custom parameters')}
   />
 );
@@ -475,6 +479,7 @@ const DatabaseConnectionForm = ({
   dbModel: { parameters },
   onParametersChange,
   onChange,
+  onQueryChange,
   onParametersUploadFileChange,
   onAddTableCatalog,
   onRemoveTableCatalog,
@@ -494,6 +499,9 @@ const DatabaseConnectionForm = ({
     event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;
   onChange: (
+    event: FormEvent<InputProps> | { target: HTMLInputElement },
+  ) => void;
+  onQueryChange: (
     event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;
   onParametersUploadFileChange?: (
@@ -523,6 +531,7 @@ const DatabaseConnectionForm = ({
             changeMethods: {
               onParametersChange,
               onChange,
+              onQueryChange,
               onParametersUploadFileChange,
               onAddTableCatalog,
               onRemoveTableCatalog,

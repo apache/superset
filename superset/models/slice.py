@@ -23,7 +23,7 @@ import sqlalchemy as sqla
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from markupsafe import escape, Markup
-from sqlalchemy import Column, ForeignKey, Integer, String, Table, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Table, Text
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.mapper import Mapper
@@ -71,6 +71,13 @@ class Slice(  # pylint: disable=too-many-instance-attributes,too-many-public-met
     cache_timeout = Column(Integer)
     perm = Column(String(1000))
     schema_perm = Column(String(1000))
+    # the last time a user has saved the chart, changed_on is referencing
+    # when the database row was last written
+    last_saved_at = Column(DateTime, nullable=True)
+    last_saved_by_fk = Column(Integer, ForeignKey("ab_user.id"), nullable=True,)
+    last_saved_by = relationship(
+        security_manager.user_model, foreign_keys=[last_saved_by_fk]
+    )
     owners = relationship(security_manager.user_model, secondary=slice_user)
     table = relationship(
         "SqlaTable",

@@ -56,14 +56,15 @@ const EmptyWrapper = styled.div`
 `;
 
 const TableViewStyles = styled.div<{
+  hasPagination?: boolean;
   isPaginationSticky?: boolean;
   scrollTable?: boolean;
   small?: boolean;
 }>`
-  ${({ scrollTable, theme }) =>
+  ${({ hasPagination, scrollTable, theme }) =>
     scrollTable &&
     `
-    height: 380px;
+    height: ${hasPagination ? '300px' : '380px'};
     margin-bottom: ${theme.gridUnit * 4}px;
     overflow: auto;
   `}
@@ -88,22 +89,24 @@ const TableViewStyles = styled.div<{
       `${theme.gridUnit - 2}px solid ${theme.colors.grayscale.light2}`};
     ${({ small }) => small && `padding-bottom: 0;`}
   }
+`;
 
-  .pagination-container {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    background-color: ${({ theme }) => theme.colors.grayscale.light5};
+const PaginationStyles = styled.div<{
+  isPaginationSticky?: boolean;
+}>`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: ${({ theme }) => theme.colors.grayscale.light5};
 
-    ${({ isPaginationSticky }) =>
-      isPaginationSticky &&
-      `
+  ${({ isPaginationSticky }) =>
+    isPaginationSticky &&
+    `
         position: sticky;
         bottom: 0;
         left: 0;
     `};
-  }
 
   .row-count-container {
     margin-top: ${({ theme }) => theme.gridUnit * 2}px;
@@ -189,32 +192,38 @@ const TableView = ({
   }
 
   const isEmpty = !loading && content.length === 0;
+  const hasPagination = pageCount > 1 && withPagination;
 
   return (
-    <TableViewStyles {...props}>
-      <TableCollection
-        getTableProps={getTableProps}
-        getTableBodyProps={getTableBodyProps}
-        prepareRow={prepareRow}
-        headerGroups={headerGroups}
-        rows={content}
-        columns={columns}
-        loading={loading}
-      />
-      {isEmpty && (
-        <EmptyWrapperComponent>
-          {noDataText ? (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={noDataText}
-            />
-          ) : (
-            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />
-          )}
-        </EmptyWrapperComponent>
-      )}
-      {pageCount > 1 && withPagination && (
-        <div className="pagination-container">
+    <>
+      <TableViewStyles hasPagination={hasPagination} {...props}>
+        <TableCollection
+          getTableProps={getTableProps}
+          getTableBodyProps={getTableBodyProps}
+          prepareRow={prepareRow}
+          headerGroups={headerGroups}
+          rows={content}
+          columns={columns}
+          loading={loading}
+        />
+        {isEmpty && (
+          <EmptyWrapperComponent>
+            {noDataText ? (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={noDataText}
+              />
+            ) : (
+              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />
+            )}
+          </EmptyWrapperComponent>
+        )}
+      </TableViewStyles>
+      {hasPagination && (
+        <PaginationStyles
+          className="pagination-container"
+          isPaginationSticky={props.isPaginationSticky}
+        >
           <Pagination
             totalPages={pageCount || 0}
             currentPage={pageCount ? pageIndex + 1 : 0}
@@ -232,9 +241,9 @@ const TableView = ({
                 )}
             </div>
           )}
-        </div>
+        </PaginationStyles>
       )}
-    </TableViewStyles>
+    </>
   );
 };
 

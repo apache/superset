@@ -329,10 +329,9 @@ class TestImportExport(SupersetTestCase):
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_import_2_slices_for_same_table(self):
         table_id = self.get_table(name="wb_health_population").id
-        # table_id != 666, import func will have to find the table
-        slc_1 = self.create_slice("Import Me 1", ds_id=666, id=10002)
+        slc_1 = self.create_slice("Import Me 1", ds_id=table_id, id=10002)
         slc_id_1 = import_chart(slc_1, None)
-        slc_2 = self.create_slice("Import Me 2", ds_id=666, id=10003)
+        slc_2 = self.create_slice("Import Me 2", ds_id=table_id, id=10003)
         slc_id_2 = import_chart(slc_2, None)
 
         imported_slc_1 = self.get_slice(slc_id_1)

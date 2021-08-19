@@ -262,8 +262,8 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         """
         try:
             extra = json.loads(database.extra or "{}")
-        except json.JSONDecodeError:
-            raise SupersetException("Unable to parse database extras")
+        except json.JSONDecodeError as ex:
+            raise SupersetException("Unable to parse database extras") from ex
 
         if database.server_cert:
             engine_params = extra.get("engine_params", {})

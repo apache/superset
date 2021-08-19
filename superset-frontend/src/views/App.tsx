@@ -32,13 +32,11 @@ import Menu from 'src/components/Menu/Menu';
 import FlashProvider from 'src/components/FlashProvider';
 import { theme } from 'src/preamble';
 import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
-import setupPlugins from 'src/setup/setupPlugins';
 import setupApp from 'src/setup/setupApp';
 import { routes, isFrontendRoute } from 'src/views/routes';
 import { store } from './store';
 
 setupApp();
-setupPlugins();
 
 const container = document.getElementById('app');
 const bootstrap = JSON.parse(container?.getAttribute('data-bootstrap') ?? '{}');

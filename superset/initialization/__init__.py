@@ -26,6 +26,7 @@ from flask import Flask, redirect
 from flask_appbuilder import expose, IndexView
 from flask_babel import gettext as __, lazy_gettext as _
 from flask_compress import Compress
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.extensions import (
@@ -42,6 +43,7 @@ from superset.extensions import (
     machine_auth_provider_factory,
     manifest_processor,
     migrate,
+    profiling,
     results_backend_manager,
     talisman,
 )
@@ -110,9 +112,7 @@ class SupersetAppInitializer:
         # models which in turn try to import
         # the global Flask app
         #
-        # pylint: disable=too-many-locals
-        # pylint: disable=too-many-statements
-        # pylint: disable=too-many-branches
+        # pylint: disable=import-outside-toplevel,too-many-branches,too-many-locals,too-many-statements
         from superset.annotation_layers.api import AnnotationLayerRestApi
         from superset.annotation_layers.annotations.api import AnnotationRestApi
         from superset.async_events.api import AsyncEventsRestApi
@@ -171,7 +171,7 @@ class SupersetAppInitializer:
             DatabaseView,
             ExcelToDatabaseView,
         )
-        from superset.views.datasource import Datasource
+        from superset.views.datasource.views import Datasource
         from superset.views.dynamic_plugins import DynamicPluginsView
         from superset.views.key_value import KV
         from superset.views.log.api import LogRestApi
@@ -566,6 +566,7 @@ class SupersetAppInitializer:
         self.configure_db_encrypt()
         self.setup_db()
         self.configure_celery()
+        self.enable_profiling()
         self.setup_event_logger()
         self.setup_bundle_manifest()
         self.register_blueprints()
@@ -621,6 +622,7 @@ class SupersetAppInitializer:
         # Doing local imports here as model importing causes a reference to
         # app.config to be invoked and we need the current_app to have been setup
         #
+        # pylint: disable=import-outside-toplevel
         from superset.utils.url_map_converters import (
             ObjectTypeConverter,
             RegexConverter,
@@ -631,13 +633,12 @@ class SupersetAppInitializer:
 
     def configure_middlewares(self) -> None:
         if self.config["ENABLE_CORS"]:
+            # pylint: disable=import-outside-toplevel
             from flask_cors import CORS
 
             CORS(self.superset_app, **self.config["CORS_OPTIONS"])
 
         if self.config["ENABLE_PROXY_FIX"]:
-            from werkzeug.middleware.proxy_fix import ProxyFix
-
             self.superset_app.wsgi_app = ProxyFix(  # type: ignore
                 self.superset_app.wsgi_app, **self.config["PROXY_FIX_CONFIG"]
             )
@@ -715,6 +716,10 @@ class SupersetAppInitializer:
 
     def setup_bundle_manifest(self) -> None:
         manifest_processor.init_app(self.superset_app)
+
+    def enable_profiling(self) -> None:
+        if self.config["PROFILING"]:
+            profiling.init_app(self.superset_app)
 
 
 class SupersetIndexView(IndexView):

@@ -44,6 +44,7 @@ from superset.charts.commands.exceptions import (
     TimeRangeAmbiguousError,
     TimeRangeParseFailError,
 )
+from superset.utils.core import NO_TIME_RANGE
 from superset.utils.memoized import memoized
 
 ParserElement.enablePackrat()
@@ -65,7 +66,7 @@ def parse_human_datetime(human_readable: str) -> datetime:
         # 0 == not parsed at all
         if parsed_flags == 0:
             logger.debug(ex)
-            raise TimeRangeParseFailError(human_readable)
+            raise TimeRangeParseFailError(human_readable) from ex
         # when time is not extracted, we 'reset to midnight'
         if parsed_flags & 2 == 0:
             parsed_dttm = parsed_dttm.replace(hour=0, minute=0, second=0)
@@ -174,7 +175,7 @@ def get_since_until(
     _relative_start = relative_start if relative_start else "today"
     _relative_end = relative_end if relative_end else "today"
 
-    if time_range == "No filter":
+    if time_range == NO_TIME_RANGE:
         return None, None
 
     if time_range and time_range.startswith("Last") and separator not in time_range:
@@ -475,8 +476,8 @@ def datetime_eval(datetime_expression: Optional[str] = None) -> Optional[datetim
     if datetime_expression:
         try:
             return datetime_parser().parseString(datetime_expression)[0].eval()
-        except ParseException as error:
-            raise ValueError(error)
+        except ParseException as ex:
+            raise ValueError(ex) from ex
     return None
 
 

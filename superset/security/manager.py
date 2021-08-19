@@ -364,9 +364,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: The access URL
         """
 
-        from superset import conf
-
-        return conf.get("PERMISSION_INSTRUCTIONS_LINK")
+        return current_app.config.get("PERMISSION_INSTRUCTIONS_LINK")
 
     def get_datasource_access_error_object(  # pylint: disable=invalid-name
         self, datasource: "BaseDatasource"
@@ -428,9 +426,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: The access URL
         """
 
-        from superset import conf
-
-        return conf.get("PERMISSION_INSTRUCTIONS_LINK")
+        return current_app.config.get("PERMISSION_INSTRUCTIONS_LINK")
 
     def get_user_datasources(self) -> List["BaseDatasource"]:
         """
@@ -528,6 +524,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: The list of accessible SQL schemas
         """
 
+        # pylint: disable=import-outside-toplevel
         from superset.connectors.sqla.models import SqlaTable
 
         if hierarchical and self.can_access_database(database):
@@ -629,6 +626,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Creates missing FAB permissions for datasources, schemas and metrics.
         """
 
+        # pylint: disable=import-outside-toplevel
         from superset.models import core as models
 
         logger.info("Fetching a set of all perms to lookup which ones are missing")
@@ -678,8 +676,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Initialize the Superset application with security roles and such.
         """
 
-        from superset import conf
-
         logger.info("Syncing role definition")
 
         self.create_custom_permissions()
@@ -692,9 +688,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.set_role("sql_lab", self._is_sql_lab_pvm)
 
         # Configure public role
-        if conf["PUBLIC_ROLE_LIKE"]:
-            self.copy_role(conf["PUBLIC_ROLE_LIKE"], self.auth_role_public, merge=True)
-        if conf.get("PUBLIC_ROLE_LIKE_GAMMA", False):
+        if current_app.config["PUBLIC_ROLE_LIKE"]:
+            self.copy_role(
+                current_app.config["PUBLIC_ROLE_LIKE"],
+                self.auth_role_public,
+                merge=True,
+            )
+        if current_app.config.get("PUBLIC_ROLE_LIKE_GAMMA", False):
             logger.warning(
                 "The config `PUBLIC_ROLE_LIKE_GAMMA` is deprecated and will be removed "
                 "in Superset 1.0. Please use `PUBLIC_ROLE_LIKE` instead."
@@ -996,7 +996,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :raises SupersetSecurityException: If the user cannot access the resource
         """
 
+        # pylint: disable=import-outside-toplevel
         from superset.connectors.sqla.models import SqlaTable
+        from superset.extensions import feature_flag_manager
         from superset.sql_parse import Table
 
         if database and table or query:
@@ -1046,8 +1048,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
             assert datasource
 
-            from superset.extensions import feature_flag_manager
-
             if not (
                 self.can_access_schema(datasource)
                 or self.can_access("datasource_access", datasource.perm or "")
@@ -1087,6 +1087,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: A list of filters
         """
         if hasattr(g, "user") and hasattr(g.user, "id"):
+            # pylint: disable=import-outside-toplevel
             from superset.connectors.sqla.models import (
                 RLSFilterRoles,
                 RLSFilterTables,
@@ -1168,6 +1169,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param dashboard: Dashboard the user wants access to
         :raises DashboardAccessDeniedError: If the user cannot access the resource
         """
+        # pylint: disable=import-outside-toplevel
         from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
         from superset.views.base import get_user_roles, is_user_admin
         from superset.views.utils import is_owner
@@ -1189,6 +1191,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     @staticmethod
     def can_access_based_on_dashboard(datasource: "BaseDatasource") -> bool:
+        # pylint: disable=import-outside-toplevel
         from superset import db
         from superset.dashboards.filters import DashboardAccessFilter
         from superset.models.slice import Slice
