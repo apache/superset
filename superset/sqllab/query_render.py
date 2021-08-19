@@ -19,7 +19,7 @@ from typing import Callable, TYPE_CHECKING
 
 from flask_babel import gettext as __, ngettext
 from jinja2 import TemplateError
-
+from jinja2.meta import find_undeclared_variables
 from superset import is_feature_enabled
 from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetTemplateParamsErrorException

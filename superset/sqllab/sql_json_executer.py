@@ -64,7 +64,7 @@ class SynchronousSqlJsonExecutor(SqlJsonExecutorBase):
                 execution_context: SqlJsonExecutionContext,
                 rendered_query: str,
                 log_params: Optional[Dict[str, Any]]) -> SqlJsonExecutionContext:
-        query_id = execution_context.query.model.id
+        query_id = execution_context.query.id
         try:
             timeout = app.config["SQLLAB_TIMEOUT"]
             timeout_msg = f"The query exceeded the {timeout} seconds timeout."
@@ -117,7 +117,7 @@ class ASynchronousSqlJsonExecutor(SqlJsonExecutorBase):
     def execute(self, execution_context: SqlJsonExecutionContext, rendered_query: str,
                 log_params: Optional[Dict[str, Any]]) -> SqlJsonExecutionContext:
 
-        query_id = execution_context.query.model.id
+        query_id = execution_context.query.id
         logger.info("Query %i: Running query on a Celery worker", query_id)
         try:
             task = self._get_sql_results_task.delay(
@@ -149,7 +149,7 @@ class ASynchronousSqlJsonExecutor(SqlJsonExecutorBase):
                 level=ErrorLevel.ERROR,
             )
             error_payload = dataclasses.asdict(error)
-            query = execution_context.query.model
+            query = execution_context.query
             query.set_extra_json_key("errors", [error_payload])
             query.status = QueryStatus.FAILED
             query.error_message = message

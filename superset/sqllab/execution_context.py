@@ -36,7 +36,7 @@ SqlResults = Dict[str, Any]
 
 
 class SqlJsonExecutionContext:
-    _query_model_class: Type[Query]
+    _query_model_class: Type[Query] = None
     _database_id: int
     _schema: str
     _sql: str
@@ -126,8 +126,8 @@ class SqlJsonExecutionContext:
         except RuntimeError:
             return None
 
-    def build_query(self) -> Query:
-        return self._query_model_class(
+    def build_query(self) -> None:
+        self.query = self._query_model_class(
             database_id=self._database_id,
             sql=self._sql,
             schema=self._schema,
@@ -135,7 +135,7 @@ class SqlJsonExecutionContext:
             ctas_method=self._ctas_method,
             start_time=now_as_float(),
             tab_name=self._tab_name,
-            status=self._status,
+            status=QueryStatus.PENDING if self._async_flag else QueryStatus.RUNNING,
             sql_editor_id=self._sql_editor_id,
             tmp_table_name=self._tmp_table_name,
             user_id=self._user_id,
@@ -170,13 +170,13 @@ class SqlJsonExecutionContext:
 
     @property
     def query(self) -> Query:
-        if self.query is None:
+        if self._query is None:
             self._query = self.build_query()
         return self._query
 
     @query.setter
     def query(self, query: Query):
-        self.query = query
+        self._query = query
 
     @property
     def client_id(self) -> str:

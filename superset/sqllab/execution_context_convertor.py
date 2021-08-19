@@ -16,7 +16,7 @@
 # under the License.
 from __future__ import annotations
 from typing import Optional, TYPE_CHECKING
-import json
+import simplejson as json
 
 from superset.sqllab.commands.execute_sql_json_command import ExecutionContextConvertor
 from superset.utils.sql_query_results import apply_display_max_row_limit

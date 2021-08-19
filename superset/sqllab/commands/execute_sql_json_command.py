@@ -80,7 +80,8 @@ class ExecuteSqlJsonCommand(BaseCommand):
 
     def _run_from_scratch(self) -> None:
         self._set_context_temp_schema_name()
-        query = self._execution_context.build_query()
+        self._execution_context.build_query()
+        query = self._execution_context.query
         self._query_dao.save(query)
         self._access_validator.validate(query)
         rendered_query = self._get_rendered_query()

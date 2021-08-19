@@ -292,7 +292,40 @@ class SupersetAppInitializer:
         appbuilder.add_view_no_menu(SqlLab)
         appbuilder.add_view_no_menu(SqlMetricInlineView)
         appbuilder.add_view_no_menu(AnnotationModelView)
-        appbuilder.add_view_no_menu(Superset)
+
+        from superset.sqllab.factories.command_factory import ExecuteSqlJsonCommandFactory
+        from superset.sqllab.factories.validators_factory import CanAccessQueryValidatorFactory
+        from superset.sqllab.factories.execution_context_convertor_factory import ExecutionContextConvertorFactory
+        from superset.sqllab.factories.sql_query_render_factory import SqlQueryRenderFactory
+        from superset.sqllab.factories.dao_factories import DaoFactory
+        from superset.sqllab.factories.sql_json_executor_factory import SqlJsonExecutorFactory
+        from superset.sql_lab import get_sql_results
+        from superset.queries.dao import QueryDAO
+        from superset.databases.dao import DatabaseDAO
+
+
+        query_dao_factory = DaoFactory(QueryDAO)
+        sql_json_executor_factory = SqlJsonExecutorFactory(query_dao_factory, get_sql_results)
+        database_dao_factory = DaoFactory(DatabaseDAO)
+
+        sql_query_render_factory = SqlQueryRenderFactory()
+        execution_context_convertor_factory = ExecutionContextConvertorFactory(
+            self.superset_app.config)
+
+        can_access_query_validator_factory = CanAccessQueryValidatorFactory()
+
+
+        factory = ExecuteSqlJsonCommandFactory(can_access_query_validator_factory,
+                                               execution_context_convertor_factory,
+                                               sql_query_render_factory,
+                                               query_dao_factory,
+                                               database_dao_factory,
+                                               sql_json_executor_factory,
+                                               self.superset_app.config)
+
+        superset_view = Superset()
+        superset_view.execute_sql_json_command_factory = factory
+        appbuilder.add_view_no_menu(superset_view)
         appbuilder.add_view_no_menu(TableColumnInlineView)
         appbuilder.add_view_no_menu(TableModelView)
         appbuilder.add_view_no_menu(TableSchemaView)

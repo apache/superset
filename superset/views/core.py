@@ -127,7 +127,7 @@ from superset.views.base import (
     json_success,
     validate_sqlatable,
 )
-from superset.utils.sql_query_results import apply_display_max_row_limit
+from superset.utils.sql_query_results import apply_display_max_row_limit, get_cta_schema_name
 from superset.views.utils import (
     _deserialize_results_payload,
     bootstrap_user_data,
@@ -135,7 +135,6 @@ from superset.views.utils import (
     check_explore_cache_perms,
     check_resource_permissions,
     check_slice_perms,
-    get_cta_schema_name,
     get_dashboard_extra_filters,
     get_datasource_info,
     get_form_data,
@@ -174,9 +173,11 @@ PARAMETER_MISSING_ERR = (
     "your query again."
 )
 
+from superset.sqllab.factories.command_factory import ExecuteSqlJsonCommandFactory
 
 class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     """The base views for Superset!"""
+    execute_sql_json_command_factory: ExecuteSqlJsonCommandFactory
 
     logger = logging.getLogger(__name__)
 
@@ -2570,7 +2571,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         log_params = {
             "user_agent": cast(Optional[str], request.headers.get("USER_AGENT"))
         }
-        return self.sql_json_exec(request.json, log_params)
+        command = self.execute_sql_json_command_factory.create(request.json,
+                                                              log_params)
+        payload = command.run()
+        return json_success(payload)
+        # return self.sql_json_exec(request.json, log_params)
 
     def sql_json_exec(  # pylint: disable=too-many-statements,too-many-locals
         self, query_params: Dict[str, Any], log_params: Optional[Dict[str, Any]] = None
