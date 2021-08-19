@@ -116,6 +116,10 @@ class ReportScheduleCsvFailedError(CommandException):
     message = _("Report Schedule execution failed when generating a csv.")
 
 
+class ReportScheduleDataFrameFailedError(CommandException):
+    message = _("Report Schedule execution failed when generating a dataframe.")
+
+
 class ReportScheduleExecuteUnexpectedError(CommandException):
     message = _("Report Schedule execution got an unexpected error.")
 
@@ -169,6 +173,10 @@ class ReportScheduleScreenshotTimeout(CommandException):
 
 class ReportScheduleCsvTimeout(CommandException):
     message = _("A timeout occurred while generating a csv.")
+
+
+class ReportScheduleDataFrameTimeout(CommandException):
+    message = _("A timeout occurred while generating a dataframe.")
 
 
 class ReportScheduleAlertGracePeriodError(CommandException):

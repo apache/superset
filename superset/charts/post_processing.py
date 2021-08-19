@@ -26,7 +26,6 @@ In order to do that, we reproduce the post-processing in Python
 for these chart types.
 """
 
-from io import StringIO
 from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
@@ -126,11 +125,13 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
         total = df.sum(axis=axis["columns"])
         df = df.astype(total.dtypes).div(total, axis=axis["rows"])
 
-    if show_rows_total:
-        # convert to a MultiIndex to simplify logic
-        if not isinstance(df.columns, pd.MultiIndex):
-            df.columns = pd.MultiIndex.from_tuples([(str(i),) for i in df.columns])
+    # convert to a MultiIndex to simplify logic
+    if not isinstance(df.index, pd.MultiIndex):
+        df.index = pd.MultiIndex.from_tuples([(str(i),) for i in df.index])
+    if not isinstance(df.columns, pd.MultiIndex):
+        df.columns = pd.MultiIndex.from_tuples([(str(i),) for i in df.columns])
 
+    if show_rows_total:
         # add subtotal for each group and overall total; we start from the
         # overall group, and iterate deeper into subgroups
         groups = df.columns
@@ -146,10 +147,6 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                 df.insert(int(slice_.stop), subtotal_name, subtotal)
 
     if rows and show_columns_total:
-        # convert to a MultiIndex to simplify logic
-        if not isinstance(df.index, pd.MultiIndex):
-            df.index = pd.MultiIndex.from_tuples([(str(i),) for i in df.index])
-
         # add subtotal for each group and overall total; we start from the
         # overall group, and iterate deeper into subgroups
         groups = df.index
@@ -279,24 +276,28 @@ def apply_post_process(
     post_processor = post_processors[viz_type]
 
     for query in result["queries"]:
-        df = pd.read_csv(StringIO(query["data"]))
+        df = pd.DataFrame.from_dict(query["data"])
         processed_df = post_processor(df, form_data)
 
-        # flatten column names
+        query["colnames"] = list(processed_df.columns)
+        query["indexnames"] = list(processed_df.index)
+        query["coltypes"] = extract_dataframe_dtypes(processed_df)
+        query["rowcount"] = len(processed_df.index)
+
+        # flatten columns/index so we can encode data as JSON
         processed_df.columns = [
             " ".join(str(name) for name in column).strip()
             if isinstance(column, tuple)
             else column
             for column in processed_df.columns
         ]
+        processed_df.index = [
+            " ".join(str(name) for name in index).strip()
+            if isinstance(index, tuple)
+            else index
+            for index in processed_df.index
+        ]
 
-        buf = StringIO()
-        processed_df.to_csv(buf)
-        buf.seek(0)
-
-        query["data"] = buf.getvalue()
-        query["colnames"] = list(processed_df.columns)
-        query["coltypes"] = extract_dataframe_dtypes(processed_df)
-        query["rowcount"] = len(processed_df.index)
+        query["data"] = processed_df.to_dict()
 
     return result

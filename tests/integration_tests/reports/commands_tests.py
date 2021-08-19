@@ -756,19 +756,37 @@ def test_email_chart_report_schedule_with_csv_no_query_context(
 @patch("superset.utils.csv.urllib.request.urlopen")
 @patch("superset.utils.csv.urllib.request.OpenerDirector.open")
 @patch("superset.reports.notifications.email.send_email_smtp")
-@patch("superset.utils.csv.get_chart_csv_data")
+@patch("superset.utils.csv.get_chart_dataframe")
 def test_email_chart_report_schedule_with_text(
-    csv_mock, email_mock, mock_open, mock_urlopen, create_report_email_chart_with_text,
+    dataframe_mock,
+    email_mock,
+    mock_open,
+    mock_urlopen,
+    create_report_email_chart_with_text,
 ):
     """
     ExecuteReport Command: Test chart email report schedule with text
     """
-    # setup csv mock
+    # setup dataframe mock
     response = Mock()
     mock_open.return_value = response
     mock_urlopen.return_value = response
     mock_urlopen.return_value.getcode.return_value = 200
-    response.read.return_value = CSV_FILE
+    response.read.return_value = json.dumps(
+        {
+            "result": [
+                {
+                    "data": {
+                        "t1": {0: "c11", 1: "c21"},
+                        "t2": {0: "c12", 1: "c22"},
+                        "t3__sum": {0: "c13", 1: "c23"},
+                    },
+                    "colnames": [("t1",), ("t2",), ("t3__sum",)],
+                    "indexnames": [(0,), (1,)],
+                },
+            ],
+        }
+    ).encode("utf-8")
 
     with freeze_time("2020-01-01T00:00:00Z"):
         AsyncExecuteReportScheduleCommand(
@@ -776,9 +794,10 @@ def test_email_chart_report_schedule_with_text(
         ).run()
 
         # assert that the data is embedded correctly
-        table_html = """<table>
+        table_html = """<table border="1" class="dataframe">
   <thead>
     <tr>
+      <th></th>
       <th>t1</th>
       <th>t2</th>
       <th>t3__sum</th>
@@ -786,11 +805,13 @@ def test_email_chart_report_schedule_with_text(
   </thead>
   <tbody>
     <tr>
+      <th>0</th>
       <td>c11</td>
       <td>c12</td>
       <td>c13</td>
     </tr>
     <tr>
+      <th>1</th>
       <td>c21</td>
       <td>c22</td>
       <td>c23</td>
@@ -908,9 +929,9 @@ def test_slack_chart_report_schedule_with_csv(
 @patch("superset.reports.notifications.slack.WebClient.chat_postMessage")
 @patch("superset.utils.csv.urllib.request.urlopen")
 @patch("superset.utils.csv.urllib.request.OpenerDirector.open")
-@patch("superset.utils.csv.get_chart_csv_data")
+@patch("superset.utils.csv.get_chart_dataframe")
 def test_slack_chart_report_schedule_with_text(
-    csv_mock,
+    dataframe_mock,
     mock_open,
     mock_urlopen,
     post_message_mock,
@@ -919,24 +940,36 @@ def test_slack_chart_report_schedule_with_text(
     """
     ExecuteReport Command: Test chart slack report schedule with text
     """
-    # setup csv mock
+    # setup dataframe mock
     response = Mock()
     mock_open.return_value = response
     mock_urlopen.return_value = response
     mock_urlopen.return_value.getcode.return_value = 200
-    response.read.return_value = CSV_FILE
+    response.read.return_value = json.dumps(
+        {
+            "result": [
+                {
+                    "data": {
+                        "t1": {0: "c11", 1: "c21"},
+                        "t2": {0: "c12", 1: "c22"},
+                        "t3__sum": {0: "c13", 1: "c23"},
+                    },
+                    "colnames": [("t1",), ("t2",), ("t3__sum",)],
+                    "indexnames": [(0,), (1,)],
+                },
+            ],
+        }
+    ).encode("utf-8")
 
     with freeze_time("2020-01-01T00:00:00Z"):
         AsyncExecuteReportScheduleCommand(
             TEST_ID, create_report_slack_chart_with_text.id, datetime.utcnow()
         ).run()
 
-        table_markdown = """```
-t1    t2    t3__sum
-----  ----  ---------
-c11   c12   c13
-c21   c22   c23
-```"""
+        table_markdown = """|    | t1   | t2   | t3__sum   |
+|---:|:-----|:-----|:----------|
+|  0 | c11  | c12  | c13       |
+|  1 | c21  | c22  | c23       |"""
         assert table_markdown in post_message_mock.call_args[1]["text"]
 
         # Assert logs are correct
