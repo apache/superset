@@ -402,27 +402,24 @@ class Header extends React.PureComponent {
 
   renderReportModal() {
     const attachedReportExists = !!Object.keys(this.props.reports).length;
-    const canAddReports = isFeatureEnabled(FeatureFlag.ALERT_REPORTS);
-    return (
-      (canAddReports || null) &&
-      (attachedReportExists ? (
-        <HeaderReportActionsDropdown
-          showReportModal={this.showReportModal}
-          toggleActive={this.props.toggleActive}
-          deleteActiveReport={this.props.deleteActiveReport}
-        />
-      ) : (
+    return attachedReportExists ? (
+      <HeaderReportActionsDropdown
+        showReportModal={this.showReportModal}
+        toggleActive={this.props.toggleActive}
+        deleteActiveReport={this.props.deleteActiveReport}
+      />
+    ) : (
+      <>
         <span
           role="button"
           title={t('Schedule email report')}
           tabIndex={0}
           className="action-button"
           onClick={this.showReportModal}
-          data-test="schedule-email-report-button-test"
         >
           <Icons.Calendar />
         </span>
-      ))
+      </>
     );
   }
 
