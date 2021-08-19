@@ -31,14 +31,14 @@ export function fetchUISpecificReport(
   userId,
   filter_field,
   creation_method,
-  dashboardId,
+  resourceId,
 ) {
   const queryParams = rison.encode({
     filters: [
       {
         col: filter_field,
         opr: 'eq',
-        value: dashboardId,
+        value: resourceId,
       },
       {
         col: 'creation_method',
