@@ -18,7 +18,7 @@
  */
 import { ScatterplotLayer } from 'deck.gl';
 import React from 'react';
-import { t } from '@superset-ui/core';
+import { getMetricLabel, t } from '@superset-ui/core';
 import { commonLayerProps } from '../common';
 import { createCategoricalDeckGLComponent } from '../../factory';
 import TooltipRow from '../../TooltipRow';
@@ -28,27 +28,27 @@ function getPoints(data) {
   return data.map(d => d.position);
 }
 
-function setTooltipContent(formData) {
-  return o => (
-    <div className="deckgl-tooltip">
-      <TooltipRow
-        label={`${t('Longitude and Latitude')}: `}
-        value={`${o.object.position[0]}, ${o.object.position[1]}`}
-      />
-      {o.object.cat_color && (
-        <TooltipRow label={`${t('Category')}: `} value={`${o.object.cat_color}`} />
-      )}
-      {o.object.metric && (
+function setTooltipContent(formData, verboseMap) {
+  return o => {
+    const label =
+      verboseMap?.[formData.point_radius_fixed.value] ||
+      getMetricLabel(formData.point_radius_fixed?.value);
+    return (
+      <div className="deckgl-tooltip">
         <TooltipRow
-          label={`${formData.point_radius_fixed.value.label}: `}
-          value={`${o.object.metric}`}
+          label={`${t('Longitude and Latitude')}: `}
+          value={`${o.object.position[0]}, ${o.object.position[1]}`}
         />
-      )}
-    </div>
-  );
+        {o.object.cat_color && (
+          <TooltipRow label={`${t('Category')}: `} value={`${o.object.cat_color}`} />
+        )}
+        {o.object.metric && <TooltipRow label={`${label}: `} value={`${o.object.metric}`} />}
+      </div>
+    );
+  };
 }
 
-export function getLayer(formData, payload, onAddFilter, setTooltip) {
+export function getLayer(formData, payload, onAddFilter, setTooltip, datasource) {
   const fd = formData;
   const dataWithRadius = payload.data.features.map(d => {
     let radius = unitToRadius(fd.point_unit, d.radius) || 10;
@@ -73,7 +73,7 @@ export function getLayer(formData, payload, onAddFilter, setTooltip) {
     radiusMinPixels: fd.min_radius || null,
     radiusMaxPixels: fd.max_radius || null,
     stroked: false,
-    ...commonLayerProps(fd, setTooltip, setTooltipContent(fd)),
+    ...commonLayerProps(fd, setTooltip, setTooltipContent(fd, datasource?.verboseMap)),
   });
 }
 
