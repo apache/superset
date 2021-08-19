@@ -61,9 +61,9 @@ Join our growing community!
 - [Tails.com](https://tails.com) [@alanmcruickshank]
 - [THE ICONIC](http://theiconic.com.au/) [@ksaagariconic]
 - [Utair](https://www.utair.ru) [@utair-digital]
+- [VkusVill](https://www.vkusvill.ru) [@ETselikov]
 - [Zalando](https://www.zalando.com) [@dmigo]
 - [Zalora](https://www.zalora.com) [@ksaagariconic]
-- [VkusVill](https://www.vkusvill.ru) [@ETselikov]
 
 ### Enterprise Technology
 - [A3Data](https://a3data.com.br) [@neylsoncrepalde]
@@ -97,6 +97,7 @@ Join our growing community!
 - [Showmax](https://tech.showmax.com) [@bobek]
 - [source{d}](https://www.sourced.tech) [@marnovo]
 - [Steamroot](https://streamroot.io/)
+- [TechAudit](https://www.techaudit.info) [@ETselikov]
 - [Tenable](https://www.tenable.com) [@dflionis]
 - [timbr.ai](https://timbr.ai/) [@semantiDan]
 - [Tobii](http://www.tobii.com/) [@dwa]
@@ -104,8 +105,6 @@ Join our growing community!
 - [Whale](http://whale.im)
 - [Windsor.ai](https://www.windsor.ai/) [@octaviancorlade]
 - [Zeta](https://www.zeta.tech/) [@shaikidris]
-- [TechAudit](https://www.techaudit.info) [@ETselikov]
-
 
 ### Entertainment
 - [6play](https://www.6play.fr) [@CoryChaplin]
