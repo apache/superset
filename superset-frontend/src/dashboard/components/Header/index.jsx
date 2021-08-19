@@ -160,8 +160,6 @@ class Header extends React.PureComponent {
     this.overwriteDashboard = this.overwriteDashboard.bind(this);
     this.showPropertiesModal = this.showPropertiesModal.bind(this);
     this.hidePropertiesModal = this.hidePropertiesModal.bind(this);
-    this.showReportModal = this.showReportModal.bind(this);
-    this.hideReportModal = this.hideReportModal.bind(this);
   }
 
   componentDidMount() {
