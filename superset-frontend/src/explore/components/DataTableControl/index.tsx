@@ -61,7 +61,9 @@ export const CopyToClipboardButton = ({
   columns?: string[];
 }) => (
   <CopyToClipboard
-    text={data ? prepareCopyToClipboardTabularData(data, columns) : ''}
+    text={
+      data && columns ? prepareCopyToClipboardTabularData(data, columns) : ''
+    }
     wrapped={false}
     copyNode={CopyNode}
   />
@@ -115,14 +117,14 @@ export const useFilteredTableData = (
   }, [data, filterText]);
 
 export const useTableColumns = (
-  all_columns: string[],
+  colnames?: string[],
   data?: Record<string, any>[],
   moreConfigs?: { [key: string]: Partial<Column> },
 ) =>
   useMemo(
     () =>
-      data?.length
-        ? all_columns
+      colnames && data?.length
+        ? colnames
             .filter((column: string) => Object.keys(data[0]).includes(column))
             .map(
               key =>

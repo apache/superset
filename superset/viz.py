@@ -449,7 +449,7 @@ class BaseViz:
 
         payload = self.get_df_payload(query_obj)
 
-        df = payload.get("df")
+        df = pd.DataFrame()
 
         if self.status != utils.QueryStatus.FAILED:
             payload["data"] = self.get_data(df)
@@ -481,7 +481,8 @@ class BaseViz:
             for col in filter_columns
             if col not in columns and col not in filter_values_columns
         ] + rejected_time_columns
-
+        if hasattr(df, "columns"):
+            payload["colnames"] = list(df.columns)
         return payload
 
     def get_df_payload(

@@ -127,7 +127,6 @@ const ExploreChartPanel = props => {
   const [splitSizes, setSplitSizes] = useState(
     getFromLocalStorage(STORAGE_KEYS.sizes, INITIAL_SIZES),
   );
-
   const { slice } = props;
   const updateQueryContext = useCallback(
     async function fetchChartData() {
@@ -210,7 +209,6 @@ const ExploreChartPanel = props => {
     }
     setSplitSizes(splitSizes);
   };
-
   const renderChart = useCallback(() => {
     const { chart, vizType } = props;
     const newHeight =
@@ -316,6 +314,7 @@ const ExploreChartPanel = props => {
             onCollapseChange={onCollapseChange}
             chartStatus={props.chart.chartStatus}
             errorMessage={props.errorMessage}
+            queriesResponse={props.chart.queriesResponse}
           />
         </Split>
       )}
