@@ -162,8 +162,6 @@ class Header extends React.PureComponent {
     this.overwriteDashboard = this.overwriteDashboard.bind(this);
     this.showPropertiesModal = this.showPropertiesModal.bind(this);
     this.hidePropertiesModal = this.hidePropertiesModal.bind(this);
-    this.showReportModal = this.showReportModal.bind(this);
-    this.hideReportModal = this.hideReportModal.bind(this);
   }
 
   componentDidMount() {
@@ -176,7 +174,6 @@ class Header extends React.PureComponent {
         'dashboard_id',
         'dashboards',
         dashboardInfo.id,
-        user.email,
       );
     }
   }
@@ -213,7 +210,6 @@ class Header extends React.PureComponent {
         'dashboard_id',
         'dashboards',
         nextProps.dashboardInfo.id,
-        user.email,
       );
     }
   }
@@ -406,14 +402,6 @@ class Header extends React.PureComponent {
     this.setState({ showingPropertiesModal: false });
   }
 
-  showReportModal() {
-    this.setState({ showingReportModal: true });
-  }
-
-  hideReportModal() {
-    this.setState({ showingReportModal: false });
-  }
-
   canAddReports() {
     if (!isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
       return false;
@@ -579,9 +567,9 @@ class Header extends React.PureComponent {
                 </span>
               )}
               <HeaderReportActionsDropdown
-                showReportModal={this.showReportModal}
                 toggleActive={this.props.toggleActive}
                 deleteActiveReport={this.props.deleteActiveReport}
+                dashboardId={dashboardInfo.id}
               />
             </>
           )}
