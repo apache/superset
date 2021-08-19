@@ -42,7 +42,7 @@ const DashboardContainer = React.lazy(
     ),
 );
 
-const documentTitle = document.title;
+const originalDocumentTitle = document.title;
 
 const DashboardPage: FC = () => {
   const dispatch = useDispatch();
@@ -74,7 +74,7 @@ const DashboardPage: FC = () => {
       document.title = dashboard_title;
     }
     return () => {
-      document.title = documentTitle;
+      document.title = originalDocumentTitle;
     };
   }, [dashboard_title]);
 
