@@ -499,6 +499,12 @@ class ChartRestApi(BaseSupersetModelRestApi):
         result_type = result["query_context"].result_type
         result_format = result["query_context"].result_format
 
+        # Post-process the data so it matches the data presented in the chart.
+        # This is needed for sending reports based on text charts that do the
+        # post-processing of data, eg, the pivot table.
+        if result_type == ChartDataResultType.POST_PROCESSED:
+            result = apply_post_process(result, form_data)
+
         if result_format == ChartDataResultFormat.CSV:
             # Verify user has permission to export CSV file
             if not security_manager.can_access("can_csv", "Superset"):
@@ -509,12 +515,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return CsvResponse(data, headers=generate_download_headers("csv"))
 
         if result_format == ChartDataResultFormat.JSON:
-            # Post-process the data so it matches the data presented in the chart.
-            # This is needed for sending reports based on text charts that do the
-            # post-processing of data, eg, the pivot table.
-            if result_type == ChartDataResultType.POST_PROCESSED:
-                result = apply_post_process(result, form_data)
-
             response_data = simplejson.dumps(
                 {"result": result["queries"]},
                 default=json_int_dttm_ser,
