@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-sankey-loop",
-  "version": "0.17.84",
+  "version": "0.17.85",
   "description": "Superset Legacy Chart - Sankey Diagram with Loops",
   "sideEffects": [
     "*.css"
@@ -28,7 +28,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/chart-controls": "0.17.84",
+    "@superset-ui/chart-controls": "0.17.85",
     "@superset-ui/core": "0.17.81",
     "d3-sankey-diagram": "^0.7.3",
     "d3-selection": "^1.4.0",
