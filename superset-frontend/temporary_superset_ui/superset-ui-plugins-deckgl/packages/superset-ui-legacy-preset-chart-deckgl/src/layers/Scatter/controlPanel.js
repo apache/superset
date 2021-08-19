@@ -66,8 +66,8 @@ export default {
     {
       label: t('Point Size'),
       controlSetRows: [
+        [pointRadiusFixed],
         [
-          pointRadiusFixed,
           {
             name: 'point_unit',
             config: {
@@ -125,17 +125,17 @@ export default {
     {
       label: t('Point Color'),
       controlSetRows: [
-        ['color_picker', legendPosition],
-        [null, legendFormat],
+        ['color_picker'],
+        [legendPosition],
+        [legendFormat],
         [
           {
             ...dimension,
             label: t('Categorical Color'),
             description: t('Pick a dimension from which categorical colors are defined'),
           },
-          'color_scheme',
-          'label_colors',
         ],
+        ['color_scheme'],
       ],
     },
     {

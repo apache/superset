@@ -29,23 +29,25 @@ const categoryDelimiter = ' - ';
 
 const propTypes = {
   categories: PropTypes.object,
-  toggleCategory: PropTypes.func,
-  showSingleCategory: PropTypes.func,
+  forceCategorical: PropTypes.bool,
   format: PropTypes.string,
   position: PropTypes.oneOf([null, 'tl', 'tr', 'bl', 'br']),
+  showSingleCategory: PropTypes.func,
+  toggleCategory: PropTypes.func,
 };
 
 const defaultProps = {
   categories: {},
-  toggleCategory: () => {},
-  showSingleCategory: () => {},
+  forceCategorical: false,
   format: null,
   position: 'tr',
+  showSingleCategory: () => {},
+  toggleCategory: () => {},
 };
 
 export default class Legend extends React.PureComponent {
   format(value) {
-    if (!this.props.format) {
+    if (!this.props.format || this.props.forceCategorical) {
       return value;
     }
 

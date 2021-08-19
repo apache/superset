@@ -30,13 +30,14 @@ import CategoricalDeckGLContainer from './CategoricalDeckGLContainer';
 import fitViewport from './utils/fitViewport';
 
 const propTypes = {
+  datasource: PropTypes.object.isRequired,
   formData: PropTypes.object.isRequired,
+  height: PropTypes.number.isRequired,
+  onAddFilter: PropTypes.func,
   payload: PropTypes.object.isRequired,
   setControlValue: PropTypes.func.isRequired,
   viewport: PropTypes.object.isRequired,
-  onAddFilter: PropTypes.func,
   width: PropTypes.number.isRequired,
-  height: PropTypes.number.isRequired,
 };
 const defaultProps = {
   onAddFilter() {},
@@ -120,10 +121,11 @@ export function createDeckGLComponent(getLayer, getPoints) {
 
 export function createCategoricalDeckGLComponent(getLayer, getPoints) {
   function Component(props) {
-    const { formData, payload, setControlValue, viewport, width, height } = props;
+    const { datasource, formData, height, payload, setControlValue, viewport, width } = props;
 
     return (
       <CategoricalDeckGLContainer
+        datasource={datasource}
         formData={formData}
         mapboxApiKey={payload.data.mapboxApiKey}
         setControlValue={setControlValue}
