@@ -30,7 +30,6 @@ for (let i = 32; i < 127; i += 1) {
 const asciiKey = asciiChars.join('');
 const unicodeKey = '你好. 吃了吗?';
 
-const all_columns = ['col01', 'col02'];
 const data = [
   { col01: true, col02: false, [asciiKey]: asciiKey, [unicodeKey]: unicodeKey },
   { col01: true, col02: false, [asciiKey]: asciiKey, [unicodeKey]: unicodeKey },
@@ -43,6 +42,7 @@ const data = [
     [unicodeKey]: unicodeKey,
   },
 ];
+const all_columns = ['col01', 'col02', 'col03', asciiKey, unicodeKey];
 
 test('useTableColumns with no options', () => {
   const hook = renderHook(() => useTableColumns(all_columns, data));

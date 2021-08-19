@@ -276,7 +276,10 @@ export const DataTablesPane = ({
       data[RESULT_TYPES.samples],
     ),
   };
+
   const { all_columns } = queryFormData;
+  // this is to preserve the order of the columns, even if there are integer values,
+  // while also only grabbing the first column's keys
   const columns = {
     [RESULT_TYPES.results]: useTableColumns(
       all_columns,

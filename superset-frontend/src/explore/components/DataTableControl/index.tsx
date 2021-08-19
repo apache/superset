@@ -122,23 +122,25 @@ export const useTableColumns = (
   useMemo(
     () =>
       data?.length
-        ? all_columns.map(
-            key =>
-              ({
-                accessor: row => row[key],
-                Header: key,
-                Cell: ({ value }) => {
-                  if (value === true) {
-                    return BOOL_TRUE_DISPLAY;
-                  }
-                  if (value === false) {
-                    return BOOL_FALSE_DISPLAY;
-                  }
-                  return String(value);
-                },
-                ...moreConfigs?.[key],
-              } as Column),
-          )
+        ? all_columns
+            .filter((column: string) => Object.keys(data[0]).includes(column))
+            .map(
+              key =>
+                ({
+                  accessor: row => row[key],
+                  Header: key,
+                  Cell: ({ value }) => {
+                    if (value === true) {
+                      return BOOL_TRUE_DISPLAY;
+                    }
+                    if (value === false) {
+                      return BOOL_FALSE_DISPLAY;
+                    }
+                    return String(value);
+                  },
+                  ...moreConfigs?.[key],
+                } as Column),
+            )
         : [],
     [data, moreConfigs],
   );
