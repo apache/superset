@@ -98,7 +98,6 @@ interface ReportProps {
   userEmail: string;
   dashboardId?: number;
   chart?: ChartObject;
-  creationMethod: string;
   props: any;
 }
 
@@ -182,10 +181,14 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   onReportAdd,
   onHide,
   show = false,
+  dashboardId,
+  chart,
+  userId,
+  userEmail,
   ...props
 }) => {
-  const vizType = props.props.chart?.sliceFormData?.viz_type;
-  const isChart = !!props.props.chart;
+  const vizType = chart?.sliceFormData?.viz_type;
+  const isChart = !!chart;
   const defaultNotificationFormat =
     isChart && TEXT_BASED_VISUALIZATION_TYPES.includes(vizType)
       ? NOTIFICATION_FORMATS.TEXT
@@ -221,19 +224,19 @@ const ReportModal: FunctionComponent<ReportProps> = ({
     // Create new Report
     const newReportValues: Partial<ReportObject> = {
       crontab: currentReport?.crontab,
-      dashboard: props.props.dashboardId,
-      chart: props.props.chart?.id,
+      dashboard: dashboardId,
+      chart: chart?.id,
       description: currentReport?.description,
       name: currentReport?.name,
-      owners: [props.props.userId],
+      owners: [userId],
       recipients: [
         {
-          recipient_config_json: { target: props.props.userEmail },
+          recipient_config_json: { target: userEmail },
           type: 'Email',
         },
       ],
       type: 'Report',
-      creation_method: props.props.creationMethod,
+      creation_method: dashboardId ? 'dashboards' : 'charts',
       active: true,
       report_format: currentReport?.report_format || defaultNotificationFormat,
       timezone: currentReport?.timezone,
