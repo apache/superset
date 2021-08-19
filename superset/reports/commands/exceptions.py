@@ -92,6 +92,20 @@ class ChartNotSavedValidationError(ValidationError):
         )
 
 
+class DashboardNotSavedValidationError(ValidationError):
+    """
+    Marshmallow validation error for dashboards that haven't been saved yet
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            _(
+                "Please save your dashboard first, then try creating a new email report."
+            ),
+            field_name="dashboard",
+        )
+
+
 class ReportScheduleInvalidError(CommandInvalidError):
     message = _("Report Schedule parameters are invalid.")
 
