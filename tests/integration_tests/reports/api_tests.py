@@ -734,6 +734,62 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert data["result"]["timezone"] == "America/Los_Angeles"
         assert rv.status_code == 201
 
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "create_report_schedules"
+    )
+    def test_unsaved_report_schedule_schema(self):
+        """
+        ReportSchedule Api: Test create report schedule with unsaved chart
+        """
+        self.login(username="admin")
+        chart = db.session.query(Slice).first()
+        dashboard = db.session.query(Dashboard).first()
+        example_db = get_example_database()
+
+        report_schedule_data = {
+            "type": ReportScheduleType.REPORT,
+            "name": "name3",
+            "description": "description",
+            "creation_method": ReportCreationMethodType.CHARTS,
+            "crontab": "0 9 * * *",
+            "chart": 0,
+        }
+        uri = "api/v1/report/"
+        rv = self.client.post(uri, json=report_schedule_data)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 422
+        assert (
+            data["message"]["chart"]
+            == "Please save your chart first, then try creating a new email report."
+        )
+
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "create_report_schedules"
+    )
+    def test_no_dashboard_report_schedule_schema(self):
+        """
+        ReportSchedule Api: Test create report schedule with not dashboard id
+        """
+        self.login(username="admin")
+        chart = db.session.query(Slice).first()
+        dashboard = db.session.query(Dashboard).first()
+        example_db = get_example_database()
+        report_schedule_data = {
+            "type": ReportScheduleType.REPORT,
+            "name": "name3",
+            "description": "description",
+            "creation_method": ReportCreationMethodType.DASHBOARDS,
+            "crontab": "0 9 * * *",
+        }
+        uri = "api/v1/report/"
+        rv = self.client.post(uri, json=report_schedule_data)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 422
+        assert (
+            data["message"]["dashboard"]
+            == "Please save your dashboard first, then try creating a new email report."
+        )
+
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_create_report_schedule_chart_dash_validation(self):
         """
