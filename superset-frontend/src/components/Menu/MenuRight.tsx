@@ -30,10 +30,17 @@ const bootstrapData = JSON.parse(
   appContainer?.getAttribute('data-bootstrap') || '{}',
 );
 
-const { roles } = bootstrapData.user;
-const canChart = findPermission('can_write', 'Chart', roles);
-const canSql = findPermission('can_sqllab', 'Superset', roles);
-const canDashboard = findPermission('can_write', 'Dashboard', roles);
+const canChart = findPermission('can_write', 'Chart', bootstrapData.user.roles);
+const canSql = findPermission(
+  'can_sqllab',
+  'Superset',
+  bootstrapData.user.roles,
+);
+const canDashboard = findPermission(
+  'can_write',
+  'Dashboard',
+  bootstrapData.user.roles,
+);
 
 // if user has any of these roles the dropdown will appear
 const showActionDropdown = canChart || canSql || canDashboard;
