@@ -26,11 +26,17 @@ In order to do that, we reproduce the post-processing in Python
 for these chart types.
 """
 
+from io import StringIO
 from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 
-from superset.utils.core import DTTM_ALIAS, extract_dataframe_dtypes, get_metric_name
+from superset.utils.core import (
+    ChartDataResultFormat,
+    DTTM_ALIAS,
+    extract_dataframe_dtypes,
+    get_metric_name,
+)
 
 
 def get_column_key(label: Tuple[str, ...], metrics: List[str]) -> Tuple[Any, ...]:
@@ -276,7 +282,13 @@ def apply_post_process(
     post_processor = post_processors[viz_type]
 
     for query in result["queries"]:
-        df = pd.DataFrame.from_dict(query["data"])
+        if query["result_format"] == ChartDataResultFormat.JSON:
+            df = pd.DataFrame.from_dict(query["data"])
+        elif query["result_format"] == ChartDataResultFormat.CSV:
+            df = pd.read_csv(StringIO(query["data"]))
+        else:
+            raise Exception(f"Result format {query['result_format']} not supported")
+
         processed_df = post_processor(df, form_data)
 
         query["colnames"] = list(processed_df.columns)
@@ -298,6 +310,12 @@ def apply_post_process(
             for index in processed_df.index
         ]
 
-        query["data"] = processed_df.to_dict()
+        if query["result_format"] == ChartDataResultFormat.JSON:
+            query["data"] = processed_df.to_dict()
+        elif query["result_format"] == ChartDataResultFormat.CSV:
+            buf = StringIO()
+            processed_df.to_csv(buf)
+            buf.seek(0)
+            query["data"] = buf.getvalue()
 
     return result
