@@ -237,7 +237,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
-        log_to_statsd=False,
+        log_to_statsd=False,  # pylint: disable=arguments-renamed
     )
     def get(self, id_or_slug: str) -> Response:
         """Gets a dashboard
@@ -671,7 +671,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
         log_to_statsd=False,
-    )
+    )  # pylint: disable=too-many-locals
     def export(self, **kwargs: Any) -> Response:
         """Export dashboards
         ---
@@ -820,10 +820,12 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         ).get_from_cache(cache=thumbnail_cache)
         # If the screenshot does not exist, request one from the workers
         if not screenshot:
+            self.incr_stats("async", self.thumbnail.__name__)
             cache_dashboard_thumbnail.delay(dashboard_url, dashboard.digest, force=True)
             return self.response(202, message="OK Async")
         # If digests
         if dashboard.digest != digest:
+            self.incr_stats("redirect", self.thumbnail.__name__)
             return redirect(
                 url_for(
                     f"{self.__class__.__name__}.thumbnail",
@@ -831,6 +833,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                     digest=dashboard.digest,
                 )
             )
+        self.incr_stats("from_cache", self.thumbnail.__name__)
         return Response(
             FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
         )

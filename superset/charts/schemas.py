@@ -82,6 +82,11 @@ query_context_description = (
     "in order to generate the data the visualization, and in what "
     "format the data should be returned."
 )
+query_context_generation_description = (
+    "The query context generation represents whether the query_context"
+    "is user generated or not so that it does not update user modfied"
+    "state."
+)
 cache_timeout_description = (
     "Duration (in seconds) of the caching timeout "
     "for this chart. Note this defaults to the datasource/table"
@@ -145,7 +150,6 @@ class ChartEntityResponseSchema(Schema):
     cache_timeout = fields.Integer(description=cache_timeout_description)
     changed_on = fields.String(description=changed_on_description)
     modified = fields.String()
-    datasource = fields.String(description=datasource_name_description)
     description = fields.String(description=description_description)
     description_markeddown = fields.String(
         description=description_markeddown_description
@@ -176,6 +180,9 @@ class ChartPostSchema(Schema):
         description=query_context_description,
         allow_none=True,
         validate=utils.validate_json,
+    )
+    query_context_generation = fields.Boolean(
+        description=query_context_generation_description, allow_none=True
     )
     cache_timeout = fields.Integer(
         description=cache_timeout_description, allow_none=True
@@ -211,6 +218,9 @@ class ChartPutSchema(Schema):
     params = fields.String(description=params_description, allow_none=True)
     query_context = fields.String(
         description=query_context_description, allow_none=True
+    )
+    query_context_generation = fields.Boolean(
+        description=query_context_generation_description, allow_none=True
     )
     cache_timeout = fields.Integer(
         description=cache_timeout_description, allow_none=True
@@ -293,6 +303,13 @@ class ChartDataAdhocMetricSchema(Schema):
         "metrics have a unique identifier. If undefined, a random name "
         "will be generated.",
         example="metric_aec60732-fac0-4b17-b736-93f1a5c93e30",
+    )
+    timeGrain = fields.String(
+        description="Optional time grain for temporal filters", example="PT1M",
+    )
+    isExtra = fields.Boolean(
+        description="Indicates if the filter has been added by a filter component as "
+        "opposed to being a part of the original query."
     )
 
 
@@ -771,6 +788,13 @@ class ChartDataFilterSchema(Schema):
         description="The value or values to compare against. Can be a string, "
         "integer, decimal or list, depending on the operator.",
         example=["China", "France", "Japan"],
+    )
+    grain = fields.String(
+        description="Optional time grain for temporal filters", example="PT1M",
+    )
+    isExtra = fields.Boolean(
+        description="Indicates if the filter has been added by a filter component as "
+        "opposed to being a part of the original query."
     )
 
 

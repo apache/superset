@@ -100,6 +100,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "changed_on_utc",
         "changed_on_delta_humanized",
         "default_endpoint",
+        "description",
+        "datasource_type",
         "explore_url",
         "extra",
         "kind",
@@ -413,7 +415,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
         log_to_statsd=False,
-    )
+    )  # pylint: disable=too-many-locals
     def export(self, **kwargs: Any) -> Response:
         """Export datasets
         ---

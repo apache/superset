@@ -142,7 +142,7 @@ def sqlalchemy_uri_validator(value: str) -> str:
     """
     try:
         uri = make_url(value.strip())
-    except (ArgumentError, AttributeError, ValueError):
+    except (ArgumentError, AttributeError, ValueError) as ex:
         raise ValidationError(
             [
                 _(
@@ -150,12 +150,12 @@ def sqlalchemy_uri_validator(value: str) -> str:
                     "driver://user:password@database-host/database-name"
                 )
             ]
-        )
+        ) from ex
     if current_app.config.get("PREVENT_UNSAFE_DB_CONNECTIONS", True):
         try:
             check_sqlalchemy_uri(uri)
         except SupersetSecurityException as ex:
-            raise ValidationError([str(ex)])
+            raise ValidationError([str(ex)]) from ex
     return value
 
 
@@ -166,8 +166,8 @@ def server_cert_validator(value: str) -> str:
     if value:
         try:
             parse_ssl_cert(value)
-        except CertificateException:
-            raise ValidationError([_("Invalid certificate")])
+        except CertificateException as ex:
+            raise ValidationError([_("Invalid certificate")]) from ex
     return value
 
 
@@ -181,7 +181,7 @@ def encrypted_extra_validator(value: str) -> str:
         except json.JSONDecodeError as ex:
             raise ValidationError(
                 [_("Field cannot be decoded by JSON. %(msg)s", msg=str(ex))]
-            )
+            ) from ex
     return value
 
 
@@ -196,7 +196,7 @@ def extra_validator(value: str) -> str:
         except json.JSONDecodeError as ex:
             raise ValidationError(
                 [_("Field cannot be decoded by JSON. %(msg)s", msg=str(ex))]
-            )
+            ) from ex
         else:
             metadata_signature = inspect.signature(MetaData)
             for key in extra_.get("metadata_params", {}):
@@ -214,7 +214,7 @@ def extra_validator(value: str) -> str:
     return value
 
 
-class DatabaseParametersSchemaMixin:
+class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
     """
     Allow SQLAlchemy URI to be passed as separate parameters.
 

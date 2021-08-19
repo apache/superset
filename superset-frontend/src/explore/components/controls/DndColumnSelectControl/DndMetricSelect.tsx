@@ -185,6 +185,9 @@ export const DndMetricSelect = (props: any) => {
 
   const onMetricEdit = useCallback(
     (changedMetric: Metric | AdhocMetric, oldMetric: Metric | AdhocMetric) => {
+      if (oldMetric instanceof AdhocMetric && oldMetric.equals(changedMetric)) {
+        return;
+      }
       const newValue = value.map(value => {
         if (
           // compare saved metrics
@@ -245,7 +248,10 @@ export const DndMetricSelect = (props: any) => {
     [props.savedMetrics, props.value],
   );
 
-  const handleDropLabel = useCallback(() => onChange(value), [onChange, value]);
+  const handleDropLabel = useCallback(
+    () => onChange(multi ? value : value[0]),
+    [multi, onChange, value],
+  );
 
   const valueRenderer = useCallback(
     (option: Metric | AdhocMetric | string, index: number) => (
@@ -262,12 +268,14 @@ export const DndMetricSelect = (props: any) => {
         onMoveLabel={moveLabel}
         onDropLabel={handleDropLabel}
         type={`${DndItemType.AdhocMetricOption}_${props.name}_${props.label}`}
+        multi={multi}
       />
     ),
     [
       getSavedMetricOptionsForMetric,
       handleDropLabel,
       moveLabel,
+      multi,
       onMetricEdit,
       onRemoveMetric,
       props.columns,
@@ -304,6 +312,11 @@ export const DndMetricSelect = (props: any) => {
     [onNewMetric, togglePopover],
   );
 
+  const handleClickGhostButton = useCallback(() => {
+    setDroppedItem(null);
+    togglePopover(true);
+  }, [togglePopover]);
+
   const adhocMetric = useMemo(() => {
     if (droppedItem?.type === DndItemType.Column) {
       const itemValue = droppedItem?.value as ColumnMeta;
@@ -326,6 +339,18 @@ export const DndMetricSelect = (props: any) => {
     return new AdhocMetric({ isNew: true });
   }, [droppedItem]);
 
+  const ghostButtonText = isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX)
+    ? tn(
+        'Drop a column/metric here or click',
+        'Drop columns/metrics here or click',
+        multi ? 2 : 1,
+      )
+    : tn(
+        'Drop column or metric here',
+        'Drop columns or metrics here',
+        multi ? 2 : 1,
+      );
+
   return (
     <div className="metrics-select">
       <DndSelectLabel<OptionValueType, OptionValueType[]>
@@ -333,12 +358,13 @@ export const DndMetricSelect = (props: any) => {
         canDrop={canDrop}
         valuesRenderer={valuesRenderer}
         accept={DND_ACCEPTED_TYPES}
-        ghostButtonText={tn(
-          'Drop column or metric',
-          'Drop columns or metrics',
-          multi ? 2 : 1,
-        )}
+        ghostButtonText={ghostButtonText}
         displayGhostButton={multi || value.length === 0}
+        onClickGhostButton={
+          isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX)
+            ? handleClickGhostButton
+            : undefined
+        }
         {...props}
       />
       <AdhocMetricPopoverTrigger
@@ -352,7 +378,6 @@ export const DndMetricSelect = (props: any) => {
         visible={newMetricPopoverVisible}
         togglePopover={togglePopover}
         closePopover={closePopover}
-        createNew
       >
         <div />
       </AdhocMetricPopoverTrigger>

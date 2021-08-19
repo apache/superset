@@ -32,7 +32,7 @@ export enum TableTabTypes {
 export type Filters = {
   col: string;
   opr: string;
-  value: string;
+  value: string | number;
 };
 
 export interface DashboardTableProps {

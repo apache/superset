@@ -45,14 +45,11 @@ export type DatabaseObject = {
     password?: string;
     encryption?: boolean;
     credentials_info?: string;
-    query?: string | object;
-    catalog?: {};
+    query?: Record<string, string>;
+    catalog?: Record<string, string>;
   };
   configuration_method: CONFIGURATION_METHOD;
   engine?: string;
-
-  // Gsheets temporary storage
-  catalog?: Array<CatalogObject>;
 
   // Performance
   cache_timeout?: string;
@@ -85,11 +82,14 @@ export type DatabaseObject = {
     allows_virtual_table_explore?: boolean; // in SQL Lab
     schemas_allowed_for_csv_upload?: string[]; // in Security
     cancel_query_on_windows_unload?: boolean; // in Performance
-    version?: string;
 
-    // todo: ask beto where this should live
-    cost_query_enabled?: boolean; // in SQL Lab
+    version?: string;
+    cost_estimate_enabled?: boolean; // in SQL Lab
   };
+
+  // Temporary storage
+  catalog?: Array<CatalogObject>;
+  query_input?: string;
   extra?: string;
 };
 

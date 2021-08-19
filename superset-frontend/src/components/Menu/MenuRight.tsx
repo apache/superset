@@ -136,9 +136,11 @@ const RightMenu = ({
                 <a href={navbarRight.user_profile_url}>{t('Profile')}</a>
               </Menu.Item>
             )}
-            <Menu.Item key="info">
-              <a href={navbarRight.user_info_url}>{t('Info')}</a>
-            </Menu.Item>
+            {navbarRight.user_info_url && (
+              <Menu.Item key="info">
+                <a href={navbarRight.user_info_url}>{t('Info')}</a>
+              </Menu.Item>
+            )}
             <Menu.Item key="logout">
               <a href={navbarRight.user_logout_url}>{t('Logout')}</a>
             </Menu.Item>

@@ -119,10 +119,12 @@ def import_dataset(
     example_database = get_example_database()
     try:
         table_exists = example_database.has_table_by_name(dataset.table_name)
-    except Exception as ex:
+    except Exception:  # pylint: disable=broad-except
         # MySQL doesn't play nice with GSheets table names
-        logger.warning("Couldn't check if table %s exists, stopping import")
-        raise ex
+        logger.warning(
+            "Couldn't check if table %s exists, assuming it does", dataset.table_name
+        )
+        table_exists = True
 
     if data_uri and (not table_exists or force_data):
         load_data(data_uri, dataset, example_database, session)
@@ -133,8 +135,7 @@ def import_dataset(
 def load_data(
     data_uri: str, dataset: SqlaTable, example_database: Database, session: Session
 ) -> None:
-
-    data = request.urlopen(data_uri)
+    data = request.urlopen(data_uri)  # pylint: disable=consider-using-with
     if data_uri.endswith(".gz"):
         data = gzip.open(data)
     df = pd.read_csv(data, encoding="utf-8")

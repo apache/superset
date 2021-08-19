@@ -31,8 +31,8 @@ def validate_owner(value: int) -> None:
             .filter_by(id=value)
             .one()
         )
-    except NoResultFound:
-        raise ValidationError(f"User {value} does not exist")
+    except NoResultFound as ex:
+        raise ValidationError(f"User {value} does not exist") from ex
 
 
 class BaseSupersetSchema(Schema):

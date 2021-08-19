@@ -221,6 +221,7 @@ export interface ListViewProps<T extends object = any> {
   cardSortSelectOptions?: Array<CardSortSelectOption>;
   defaultViewMode?: ViewModeType;
   highlightRowId?: number;
+  showThumbnails?: boolean;
   emptyState?: {
     message?: string;
     slot?: React.ReactNode;
@@ -242,6 +243,7 @@ function ListView<T extends object = any>({
   disableBulkSelect = () => {},
   renderBulkSelectCopy = selected => t('%s Selected', selected.length),
   renderCard,
+  showThumbnails,
   cardSortSelectOptions,
   defaultViewMode = 'card',
   highlightRowId,
@@ -376,6 +378,7 @@ function ListView<T extends object = any>({
               renderCard={renderCard}
               rows={rows}
               loading={loading}
+              showThumbnails={showThumbnails}
             />
           )}
           {viewMode === 'table' && (

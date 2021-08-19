@@ -31,6 +31,7 @@ import {
   setInLocalStorage,
   getFromLocalStorage,
 } from 'src/utils/localStorageHelpers';
+import { LoadingCards } from 'src/views/CRUD/welcome/Welcome';
 import {
   createErrorHandler,
   CardContainer,
@@ -132,8 +133,8 @@ function DashboardTable({
     const filters = [];
     if (filterName === 'Mine') {
       filters.push({
-        id: 'owners',
-        operator: 'rel_m_m',
+        id: 'created_by',
+        operator: 'rel_o_m',
         value: `${user?.userId}`,
       });
     } else if (filterName === 'Favorite') {
@@ -141,6 +142,12 @@ function DashboardTable({
         id: 'id',
         operator: 'dashboard_is_favorite',
         value: true,
+      });
+    } else if (filterName === 'Examples') {
+      filters.push({
+        id: 'created_by',
+        operator: 'rel_o_m',
+        value: 0,
       });
     }
     return filters;
@@ -189,7 +196,7 @@ function DashboardTable({
       filters: getFilters(filter),
     });
 
-  if (loading) return <Loading position="inline" />;
+  if (loading) return <LoadingCards cover={showThumbnails} />;
   return (
     <>
       <SubMenu
