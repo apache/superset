@@ -449,7 +449,7 @@ class BaseViz:
 
         payload = self.get_df_payload(query_obj)
 
-        df = pd.DataFrame()
+        df = payload.get("df") or pd.DataFrame()
 
         if self.status != utils.QueryStatus.FAILED:
             payload["data"] = self.get_data(df)
