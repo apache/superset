@@ -95,6 +95,7 @@ interface ReportProps {
   dashboardId?: number;
   dashboardName?: string;
   creationMethod: ReportCreationMethod;
+  props: any;
 }
 
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -126,10 +127,15 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   onReportAdd,
   onHide,
   show = false,
+  dashboardId,
+  chart,
+  userId,
+  userEmail,
+  creationMethod,
   ...props
 }) => {
-  const vizType = props.chart?.sliceFormData?.viz_type;
-  const isChart = !!props.chart;
+  const vizType = chart?.sliceFormData?.viz_type;
+  const isChart = !!chart;
   const isTextBasedChart =
     isChart && vizType && TEXT_BASED_VISUALIZATION_TYPES.includes(vizType);
   const defaultNotificationFormat = isTextBasedChart
@@ -185,13 +191,13 @@ const ReportModal: FunctionComponent<ReportProps> = ({
       type: 'Report',
       active: true,
       force_screenshot: false,
-      creation_method: props.creationMethod,
-      dashboard: props.dashboardId,
-      chart: props.chart?.id,
-      owners: [props.userId],
+      creation_method: creationMethod,
+      dashboard: dashboardId,
+      chart: chart?.id,
+      owners: [userId],
       recipients: [
         {
-          recipient_config_json: { target: props.userEmail },
+          recipient_config_json: { target: userEmail },
           type: 'Email',
         },
       ],
