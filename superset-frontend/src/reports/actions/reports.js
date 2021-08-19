@@ -111,7 +111,7 @@ export const addReport = report => dispatch => {
       const parsedError = await getClientErrorObject(e);
       const errorMessage = parsedError.message;
       const errorArr = Object.keys(errorMessage);
-      const error = errorMessage[errorArr[0]][0];
+      const error = errorMessage[errorArr[0]];
       dispatch(
         addDangerToast(
           t('An error occurred while editing this report: %s', error),
