@@ -161,13 +161,23 @@ class Header extends React.PureComponent {
     this.overwriteDashboard = this.overwriteDashboard.bind(this);
     this.showPropertiesModal = this.showPropertiesModal.bind(this);
     this.hidePropertiesModal = this.hidePropertiesModal.bind(this);
-    this.showReportModal = this.showReportModal.bind(this);
-    this.hideReportModal = this.hideReportModal.bind(this);
   }
 
   componentDidMount() {
     const { refreshFrequency } = this.props;
     this.startPeriodicRender(refreshFrequency * 1000);
+<<<<<<< HEAD
+=======
+    if (this.canAddReports()) {
+      // this is in case there is an anonymous user.
+      this.props.fetchUISpecificReport(
+        user.userId,
+        'dashboard_id',
+        'dashboards',
+        dashboardInfo.id,
+      );
+    }
+>>>>>>> refactor progress (#16339)
   }
 
   componentDidUpdate(prevProps) {
@@ -191,6 +201,21 @@ class Header extends React.PureComponent {
     ) {
       this.props.setMaxUndoHistoryExceeded();
     }
+<<<<<<< HEAD
+=======
+    if (
+      this.canAddReports() &&
+      nextProps.dashboardInfo.id !== this.props.dashboardInfo.id
+    ) {
+      // this is in case there is an anonymous user.
+      this.props.fetchUISpecificReport(
+        user.userId,
+        'dashboard_id',
+        'dashboards',
+        nextProps.dashboardInfo.id,
+      );
+    }
+>>>>>>> refactor progress (#16339)
   }
 
   componentWillUnmount() {
@@ -372,12 +397,31 @@ class Header extends React.PureComponent {
     this.setState({ showingPropertiesModal: false });
   }
 
+<<<<<<< HEAD
   showReportModal() {
     this.setState({ showingReportModal: true });
   }
 
   hideReportModal() {
     this.setState({ showingReportModal: false });
+=======
+  canAddReports() {
+    if (!isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
+      return false;
+    }
+    const { user } = this.props;
+    if (!user) {
+      // this is in the case that there is an anonymous user.
+      return false;
+    }
+    const roles = Object.keys(user.roles || []);
+    const permissions = roles.map(key =>
+      user.roles[key].filter(
+        perms => perms[0] === 'menu_access' && perms[1] === 'Manage',
+      ),
+    );
+    return permissions[0].length > 0;
+>>>>>>> refactor progress (#16339)
   }
 
   render() {

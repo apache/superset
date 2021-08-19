@@ -26,6 +26,7 @@ import { Menu, NoAnimationDropdown } from 'src/common/components';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import DeleteModal from 'src/components/DeleteModal';
 import { ChartState } from 'src/explore/types';
+import ReportModal from 'src/components/ReportModal';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 
 const deleteColor = (theme: SupersetTheme) => css`
@@ -36,13 +37,10 @@ export default function HeaderReportActionsDropDown({
   toggleActive,
   deleteActiveReport,
   dashboardId,
-  showReportModal,
 }: {
-  showReportModal: () => void;
   toggleActive: (data: AlertObject, checked: boolean) => void;
   deleteActiveReport: (data: AlertObject) => void;
   dashboardId?: number;
-  chart?: ChartState;
 }) {
   const reports: Record<number, AlertObject> = useSelector<any, AlertObject>(
     state => state.reports,
@@ -59,7 +57,6 @@ export default function HeaderReportActionsDropDown({
   ] = useState<AlertObject | null>(null);
   const theme = useTheme();
   const [showModal, setShowModal] = useState(false);
-  const dashboardIdRef = useRef(dashboardId);
   const toggleActiveKey = async (data: AlertObject, checked: boolean) => {
     if (data?.id) {
       toggleActive(data, checked);
@@ -112,48 +109,59 @@ export default function HeaderReportActionsDropDown({
     </Menu>
   );
 
-  return canAddReports() ? (
-    report ? (
+  return (
+    canAddReports() && (
       <>
-        <NoAnimationDropdown
-          // ref={ref}
-          overlay={menu()}
-          trigger={['click']}
-          getPopupContainer={(triggerNode: any) =>
-            triggerNode.closest('.action-button')
-          }
-        >
-          <span role="button" className="action-button" tabIndex={0}>
+        <ReportModal
+          show={showModal}
+          onHide={() => setShowModal(false)}
+          userId={user.userId}
+          userEmail={user.email}
+          dashboardId={dashboardId}
+        />
+        {report ? (
+          <>
+            <NoAnimationDropdown
+              // ref={ref}
+              overlay={menu()}
+              trigger={['click']}
+              getPopupContainer={(triggerNode: any) =>
+                triggerNode.closest('.action-button')
+              }
+            >
+              <span role="button" className="action-button" tabIndex={0}>
+                <Icons.Calendar />
+              </span>
+            </NoAnimationDropdown>
+            {currentReportDeleting && (
+              <DeleteModal
+                description={t(
+                  'This action will permanently delete %s.',
+                  currentReportDeleting.name,
+                )}
+                onConfirm={() => {
+                  if (currentReportDeleting) {
+                    handleReportDelete(currentReportDeleting);
+                  }
+                }}
+                onHide={() => setCurrentReportDeleting(null)}
+                open
+                title={t('Delete Report?')}
+              />
+            )}
+          </>
+        ) : (
+          <span
+            role="button"
+            title={t('Schedule email report')}
+            tabIndex={0}
+            className="action-button"
+            onClick={() => setShowModal(true)}
+          >
             <Icons.Calendar />
           </span>
-        </NoAnimationDropdown>
-        {currentReportDeleting && (
-          <DeleteModal
-            description={t(
-              'This action will permanently delete %s.',
-              currentReportDeleting.name,
-            )}
-            onConfirm={() => {
-              if (currentReportDeleting) {
-                handleReportDelete(currentReportDeleting);
-              }
-            }}
-            onHide={() => setCurrentReportDeleting(null)}
-            open
-            title={t('Delete Report?')}
-          />
         )}
       </>
-    ) : (
-      <span
-        role="button"
-        title={t('Schedule email report')}
-        tabIndex={0}
-        className="action-button"
-        onClick={showReportModal}
-      >
-        <Icons.Calendar />
-      </span>
     )
-  ) : null;
+  );
 }
