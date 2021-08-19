@@ -125,6 +125,7 @@ export const useTableColumns = (
                 accessor: row => row[key],
                 Header: key,
                 Cell: ({ value }) => {
+                  console.log(data);
                   if (value === true) {
                     return BOOL_TRUE_DISPLAY;
                   }

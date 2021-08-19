@@ -16,18 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
-import { useSelector } from 'react-redux';
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import { t, SupersetTheme, css, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Switch } from 'src/components/Switch';
 import { AlertObject } from 'src/views/CRUD/alert/types';
 import { Menu, NoAnimationDropdown } from 'src/common/components';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
-
 import DeleteModal from 'src/components/DeleteModal';
 import ReportModal from 'src/components/ReportModal';
+import { ChartState } from 'src/explore/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { fetchUISpecificReport } from 'src/reports/actions/reports';
 
 const deleteColor = (theme: SupersetTheme) => css`
   color: ${theme.colors.error.base};
@@ -37,11 +38,14 @@ export default function HeaderReportActionsDropDown({
   toggleActive,
   deleteActiveReport,
   dashboardId,
+  chart,
 }: {
   toggleActive: (data: AlertObject, checked: boolean) => void;
   deleteActiveReport: (data: AlertObject) => void;
   dashboardId?: number;
+  chart?: ChartState;
 }) {
+  const dispatch = useDispatch();
   const reports: Record<number, AlertObject> = useSelector<any, AlertObject>(
     state => state.reports,
   );
@@ -86,6 +90,19 @@ export default function HeaderReportActionsDropDown({
     return permissions[0].length > 0;
   };
 
+  useEffect(() => {
+    if (canAddReports()) {
+      dispatch(
+        fetchUISpecificReport({
+          userId: user.userId,
+          filterField: dashboardId ? 'dashboard_id' : 'chart_id',
+          creationMethod: dashboardId ? 'dashboards' : 'charts',
+          resourceId: dashboardId || chart?.id,
+        }),
+      );
+    }
+  }, []);
+
   const menu = () => (
     <Menu selectable={false} css={{ width: '200px' }}>
       <Menu.Item>
@@ -119,6 +136,7 @@ export default function HeaderReportActionsDropDown({
           userId={user.userId}
           userEmail={user.email}
           dashboardId={dashboardId}
+          chart={chart}
         />
         {report ? (
           <>
