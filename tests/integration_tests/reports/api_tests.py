@@ -734,6 +734,36 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert data["result"]["timezone"] == "America/Los_Angeles"
         assert rv.status_code == 201
 
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "create_report_schedules"
+    )
+    def test_unsaved_report_schedule_schema(self):
+        """
+        ReportSchedule Api: Test create report schedule schema check
+        """
+        self.login(username="admin")
+        chart = db.session.query(Slice).first()
+        dashboard = db.session.query(Dashboard).first()
+        example_db = get_example_database()
+
+        # Check that a report does not have a database reference
+        report_schedule_data = {
+            "type": ReportScheduleType.REPORT,
+            "name": "name3",
+            "description": "description",
+            "creation_method": ReportCreationMethodType.CHARTS,
+            "crontab": "0 9 * * *",
+            "chart": 0,
+        }
+        uri = "api/v1/report/"
+        rv = self.client.post(uri, json=report_schedule_data)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 422
+        assert (
+            data["message"]["chart"]
+            == "Please save your chart first, then try creating a new email report."
+        )
+
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_create_report_schedule_chart_dash_validation(self):
         """

@@ -60,5 +60,8 @@ class BaseReportScheduleCommand(BaseCommand):
             if not dashboard:
                 exceptions.append(DashboardNotFoundValidationError())
             self._properties["dashboard"] = dashboard
-        elif not update:
+        elif dashboard_id is None and not chart_id:
+            # User hasn't saved the chart in explore yet
             exceptions.append(ChartNotSavedValidationError())
+        elif not update:
+            exceptions.append(ReportScheduleChartOrDashboardValidationError())
