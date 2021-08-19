@@ -96,10 +96,14 @@ def get_chart_dataframe(
 
     result = simplejson.loads(content.decode("utf-8"))
     df = pd.DataFrame.from_dict(result["result"][0]["data"])
+
+    # rebuild hierarchical columns and index
     df.columns = pd.MultiIndex.from_tuples(
-        tuple(colname) for colname in result["result"][0]["colnames"]
+        tuple(colname) if isinstance(colname, list) else (colname,)
+        for colname in result["result"][0]["colnames"]
     )
     df.index = pd.MultiIndex.from_tuples(
-        tuple(indexname) for indexname in result["result"][0]["indexnames"]
+        tuple(indexname) if isinstance(indexname, list) else (indexname,)
+        for indexname in result["result"][0]["indexnames"]
     )
     return df

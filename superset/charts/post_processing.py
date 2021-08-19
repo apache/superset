@@ -296,7 +296,9 @@ def apply_post_process(
         query["coltypes"] = extract_dataframe_dtypes(processed_df)
         query["rowcount"] = len(processed_df.index)
 
-        # flatten columns/index so we can encode data as JSON
+        # Flatten hierarchical columns/index since they are represented as
+        # `Tuple[str]`. Otherwise encoding to JSON later will fail because
+        # maps cannot have tuples as their keys in JSON.
         processed_df.columns = [
             " ".join(str(name) for name in column).strip()
             if isinstance(column, tuple)
