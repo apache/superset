@@ -55,13 +55,17 @@ describe('Email Report Modal', () => {
         (featureFlag: FeatureFlag) => featureFlag === FeatureFlag.ALERT_REPORTS,
       );
   });
+
+  beforeEach(() => {
+    render(<ReportModal {...defaultProps} />, { useRedux: true });
+  });
+
   afterAll(() => {
     // @ts-ignore
     isFeatureEnabledMock.restore();
   });
-  it('inputs respond correctly', () => {
-    render(<ReportModal {...defaultProps} />, { useRedux: true });
 
+  it('inputs respond correctly', () => {
     // ----- Report name textbox
     // Initial value
     const reportNameTextbox = screen.getByTestId('report-name-test');
@@ -85,5 +89,22 @@ describe('Email Report Modal', () => {
     // ----- Crontab
     const crontabInputs = screen.getAllByRole('combobox');
     expect(crontabInputs).toHaveLength(5);
+  });
+
+  it('does not allow user to create a report without a name', () => {
+    // Grab name textbox and add button
+    const reportNameTextbox = screen.getByTestId('report-name-test');
+    const addButton = screen.getByRole('button', { name: /add/i });
+
+    // Add button should be enabled while name textbox has text
+    expect(reportNameTextbox).toHaveDisplayValue('Weekly Report');
+    expect(addButton).toBeEnabled();
+
+    // Clear the text from the name textbox
+    userEvent.clear(reportNameTextbox);
+
+    // Add button should now be disabled, blocking user from creation
+    expect(reportNameTextbox).toHaveDisplayValue('');
+    expect(addButton).toBeDisabled();
   });
 });
