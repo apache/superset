@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { t, SupersetTheme, css, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
@@ -56,14 +56,13 @@ export default function HeaderReportActionsDropDown({
   >(state => state.user || state.explore?.user);
   const reportsIds = Object.keys(reports || []);
   const report: AlertObject = reports?.[reportsIds[0]];
-  console.log(report);
   const [
     currentReportDeleting,
     setCurrentReportDeleting,
   ] = useState<AlertObject | null>(null);
   const theme = useTheme();
   const [showModal, setShowModal] = useState(false);
-
+  const dashboardIdRef = useRef(dashboardId);
   const toggleActiveKey = async (data: AlertObject, checked: boolean) => {
     if (data?.id) {
       toggleActive(data, checked);
@@ -104,6 +103,23 @@ export default function HeaderReportActionsDropDown({
       );
     }
   }, []);
+
+  useEffect(() => {
+    if (
+      canAddReports() &&
+      dashboardId &&
+      dashboardId !== dashboardIdRef.current
+    ) {
+      dispatch(
+        fetchUISpecificReport({
+          userId: user.userId,
+          filterField: 'dashboard_id',
+          creationMethod: 'dashboards',
+          resourceId: dashboardId,
+        }),
+      );
+    }
+  }, [dashboardId]);
 
   const menu = () => (
     <Menu selectable={false} css={{ width: '200px' }}>
