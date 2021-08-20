@@ -87,9 +87,8 @@ spec:
             - name: superset-config
               mountPath: {{ .Values.configMountPath | quote }}
               readOnly: true
-          {{- range $volumeName, $mount := .Values.extraVolumeMounts }}
-            - name: {{ $volumeName }}
-              {{- tpl (toYaml $mount) $ | nindent 14 -}}
+          {{- with .Values.extraVolumeMounts }}
+          {{- tpl (toYaml .) $ | nindent 12 -}}
           {{- end }}
           resources:
 {{ toYaml .Values.resources | indent 12 }}
@@ -113,7 +112,6 @@ spec:
         - name: superset-config
           secret:
             secretName: {{ tpl .Values.configFromSecret . }}
-        {{- range $volumeName, $volume := .Values.extraVolumes }}
-        - name: {{ $volumeName }}
-          {{- tpl (toYaml $volume) $ | nindent 10 -}}
-        {{- end }}
+      {{- with .Values.extraVolumes }}
+      {{- tpl (toYaml .) $ | nindent 8 -}}
+      {{- end }}

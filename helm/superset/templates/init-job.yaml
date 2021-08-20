@@ -60,9 +60,8 @@ spec:
             mountPath: {{ .Values.extraConfigMountPath | quote }}
             readOnly: true
         {{- end }}
-        {{- range $volumeName, $mount := .Values.extraVolumeMounts }}
-          - name: {{ $volumeName }}
-            {{- tpl (toYaml $mount) $ | nindent 12 -}}
+        {{- with .Values.extraVolumeMounts }}
+        {{- tpl (toYaml .) $ | nindent 10 -}}
         {{- end }}
         command: {{  tpl (toJson .Values.init.command) . }}
         resources:
@@ -80,9 +79,8 @@ spec:
           configMap:
             name: {{ template "superset.fullname" . }}-extra-config
         {{- end }}
-        {{- range $volumeName, $volume := .Values.extraVolumes }}
-        - name: {{ $volumeName }}
-          {{- tpl (toYaml $volume) $ | nindent 10 -}}
+        {{- with .Values.extraVolumes }}
+        {{- tpl (toYaml .) $ | nindent 8 -}}
         {{- end }}
       restartPolicy: Never
 {{- end }}
