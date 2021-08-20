@@ -165,17 +165,6 @@ class Header extends React.PureComponent {
   componentDidMount() {
     const { refreshFrequency } = this.props;
     this.startPeriodicRender(refreshFrequency * 1000);
-    if (this.canAddReports()) {
-      // this is in case there is an anonymous user.
-      if (Object.entries(dashboardInfo).length) {
-        this.props.fetchUISpecificReport(
-          user.userId,
-          'dashboard_id',
-          'dashboards',
-          dashboardInfo.id,
-        );
-      }
-    }
   }
 
   componentDidUpdate(prevProps) {
