@@ -493,11 +493,14 @@ class DatasourceEditor extends React.PureComponent {
       schema_name: datasource.schema,
       table_name: datasource.table_name,
     };
-    const endpoint = `/datasource/external_metadata_by_name/?q=${rison.encode(
+    Object.entries(params).forEach(([key, value]) => {
       // rison can't encode the undefined value
-      Object.keys(params).map(key =>
-        params[key] === undefined ? null : params[key],
-      ),
+      if (value === undefined) {
+        params[key] = null;
+      }
+    });
+    const endpoint = `/datasource/external_metadata_by_name/?q=${rison.encode(
+      params,
     )}`;
     this.setState({ metadataLoading: true });
 
