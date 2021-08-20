@@ -37,6 +37,7 @@ import Icons from 'src/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { CronError } from 'src/components/CronPicker';
 import { RadioChangeEvent } from 'src/components';
+import { ChartState } from 'src/explore/types';
 import {
   antDErrorAlertStyles,
   StyledModal,
@@ -191,12 +192,12 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   chart,
   userId,
   userEmail,
-  ...props
+  props,
 }) => {
   const vizType = chart?.sliceFormData?.viz_type;
   const isChart = !!chart;
   const defaultNotificationFormat =
-    isChart && TEXT_BASED_VISUALIZATION_TYPES.includes(vizType)
+    vizType && TEXT_BASED_VISUALIZATION_TYPES.includes(vizType)
       ? NOTIFICATION_FORMATS.TEXT
       : NOTIFICATION_FORMATS.PNG;
   const [currentReport, setCurrentReport] = useReducer<
@@ -307,7 +308,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
           }}
           value={currentReport?.report_format || defaultNotificationFormat}
         >
-          {TEXT_BASED_VISUALIZATION_TYPES.includes(vizType) && (
+          {vizType && TEXT_BASED_VISUALIZATION_TYPES.includes(vizType) && (
             <StyledRadio value={NOTIFICATION_FORMATS.TEXT}>
               {t('Text embedded in email')}
             </StyledRadio>
