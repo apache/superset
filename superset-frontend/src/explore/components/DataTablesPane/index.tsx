@@ -204,7 +204,6 @@ export const DataTablesPane = ({
     },
     [queryFormData],
   );
-  console.log(queryFormData);
   useEffect(() => {
     setInLocalStorage(STORAGE_KEYS.isOpen, panelOpen);
   }, [panelOpen]);
