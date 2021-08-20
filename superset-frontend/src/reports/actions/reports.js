@@ -78,22 +78,22 @@ const structureFetchAction = (dispatch, getState) => {
   const { user, dashboardInfo, charts, explore } = state;
   if (dashboardInfo) {
     dispatch(
-      fetchUISpecificReport(
-        user.userId,
-        'dashboard_id',
-        'dashboards',
-        dashboardInfo.id,
-      ),
+      fetchUISpecificReport({
+        userId: user.userId,
+        filterField: 'dashboard_id',
+        creationMethod: 'dashboards',
+        resourceId: dashboardInfo.id,
+      }),
     );
   } else {
     const [chartArr] = Object.keys(charts);
     dispatch(
-      fetchUISpecificReport(
-        explore.user.userId,
-        'chart_id',
-        'charts',
-        charts[chartArr].id,
-      ),
+      fetchUISpecificReport({
+        userId: explore.user.userId,
+        filterField: 'chart_id',
+        creationMethod: 'charts',
+        resourceId: charts[chartArr].id,
+      }),
     );
   }
 };
