@@ -167,6 +167,7 @@ class Header extends React.PureComponent {
     const { refreshFrequency } = this.props;
     this.startPeriodicRender(refreshFrequency * 1000);
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
     if (this.canAddReports()) {
       // this is in case there is an anonymous user.
@@ -178,6 +179,8 @@ class Header extends React.PureComponent {
       );
     }
 >>>>>>> refactor progress (#16339)
+=======
+>>>>>>> code dry (#16358)
   }
 
   componentDidUpdate(prevProps) {
@@ -202,6 +205,7 @@ class Header extends React.PureComponent {
       this.props.setMaxUndoHistoryExceeded();
     }
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
     if (
       this.canAddReports() &&
@@ -216,6 +220,8 @@ class Header extends React.PureComponent {
       );
     }
 >>>>>>> refactor progress (#16339)
+=======
+>>>>>>> code dry (#16358)
   }
 
   componentWillUnmount() {
@@ -398,6 +404,7 @@ class Header extends React.PureComponent {
   }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
   showReportModal() {
     this.setState({ showingReportModal: true });
   }
@@ -424,6 +431,8 @@ class Header extends React.PureComponent {
 >>>>>>> refactor progress (#16339)
   }
 
+=======
+>>>>>>> code dry (#16358)
   render() {
     const {
       dashboardTitle,

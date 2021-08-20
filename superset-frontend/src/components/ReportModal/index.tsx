@@ -83,7 +83,7 @@ interface ReportProps {
   userId: number;
   userEmail: string;
   dashboardId?: number;
-  chart?: ChartObject;
+  chart?: ChartState;
   props: any;
 }
 
@@ -159,7 +159,6 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   chart,
   userId,
   userEmail,
-  ...props
 }) => {
   const vizType = chart?.sliceFormData?.viz_type;
   const isChart = !!chart;
