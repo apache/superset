@@ -22,11 +22,7 @@ import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import { styled, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
-import {
-  fetchUISpecificReport,
-  toggleActive,
-  deleteActiveReport,
-} from 'src/reports/actions/reports';
+import { toggleActive, deleteActiveReport } from 'src/reports/actions/reports';
 import HeaderReportActionsDropdown from 'src/components/ReportModal/HeaderReportActionsDropdown';
 import { chartPropShape } from '../../dashboard/util/propShapes';
 import ExploreActionButtons from './ExploreActionButtons';
@@ -243,7 +239,7 @@ ExploreChartHeader.propTypes = propTypes;
 
 function mapDispatchToProps(dispatch) {
   return bindActionCreators(
-    { sliceUpdated, fetchUISpecificReport, toggleActive, deleteActiveReport },
+    { sliceUpdated, toggleActive, deleteActiveReport },
     dispatch,
   );
 }
