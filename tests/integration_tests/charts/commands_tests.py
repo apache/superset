@@ -192,7 +192,7 @@ class TestImportChartsCommand(SupersetTestCase):
         assert dataset.table_name == "imported_dataset"
         assert chart.table == dataset
         assert json.loads(chart.query_context) == {
-            "datasource": {"id": 1, "type": "table"},
+            "datasource": {"id": dataset.id, "type": "table"},
             "force": False,
             "queries": [
                 {
