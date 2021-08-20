@@ -29,11 +29,7 @@ import {
   t,
 } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
-import {
-  fetchUISpecificReport,
-  toggleActive,
-  deleteActiveReport,
-} from 'src/reports/actions/reports';
+import { toggleActive, deleteActiveReport } from 'src/reports/actions/reports';
 import HeaderReportActionsDropdown from 'src/components/ReportModal/HeaderReportActionsDropdown';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import EditableTitle from 'src/components/EditableTitle';
