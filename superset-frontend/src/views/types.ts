@@ -16,11 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+export type NotificationMethodOption = 'Email' | 'Slack';
+
 export interface ViewState {
   common: {
     conf: {
       SQLALCHEMY_DOCS_URL: string;
       SQLALCHEMY_DISPLAY_TEXT: string;
+      ALERT_REPORTS_ALERTS_NOTIFICATION_METHODS: NotificationMethodOption[];
     };
   };
   messageToast: Array<Object>;
