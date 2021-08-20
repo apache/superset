@@ -58,7 +58,6 @@ const createProps = () => ({
   dashboardTitle: 'Dashboard Title',
   charts: {},
   layout: {},
-  reports: {},
   expandedSlices: {},
   css: '',
   customCss: '',
