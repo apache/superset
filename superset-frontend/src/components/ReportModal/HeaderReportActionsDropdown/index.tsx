@@ -56,6 +56,7 @@ export default function HeaderReportActionsDropDown({
   >(state => state.user || state.explore?.user);
   const reportsIds = Object.keys(reports || []);
   const report: AlertObject = reports?.[reportsIds[0]];
+  console.log(report);
   const [
     currentReportDeleting,
     setCurrentReportDeleting,
