@@ -55,7 +55,6 @@ export default function HeaderReportActionsDropDown({
   >(state => state.user || state.explore?.user);
   const reportsIds = Object.keys(reports || []);
   const report: AlertObject = reports?.[reportsIds[0]];
-  console.log(report);
   const [
     currentReportDeleting,
     setCurrentReportDeleting,
@@ -102,6 +101,19 @@ export default function HeaderReportActionsDropDown({
       );
     }
   }, []);
+
+  useEffect(() => {
+    if (canAddReports()) {
+      dispatch(
+        fetchUISpecificReport({
+          userId: user.userId,
+          filterField: 'dashboard_id',
+          creationMethod: 'dashboards',
+          resourceId: dashboardId,
+        }),
+      );
+    }
+  }, [dashboardId]);
 
   const menu = () => (
     <Menu selectable={false} css={{ width: '200px' }}>
