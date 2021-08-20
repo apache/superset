@@ -58,7 +58,7 @@ update-py:
 
 update-js:
 	# Install js packages
-	cd superset-frontend; npm install
+	cd superset-frontend; npm ci
 
 venv:
 	# Create a virtual environment and activate it (recommended)
@@ -81,3 +81,9 @@ py-lint: pre-commit
 
 js-format:
 	cd superset-frontend; npm run prettier
+
+flask-app:
+	flask run -p 8088 --with-threads --reload --debugger
+
+node-app:
+	cd superset-frontend; npm run dev-server
