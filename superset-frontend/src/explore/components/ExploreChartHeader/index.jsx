@@ -28,13 +28,11 @@ import {
   t,
 } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
-import ReportModal from 'src/components/ReportModal';
 import {
   fetchUISpecificReport,
   toggleActive,
   deleteActiveReport,
 } from 'src/reports/actions/reports';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import HeaderReportActionsDropdown from 'src/components/ReportModal/HeaderReportActionsDropdown';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import EditableTitle from 'src/components/EditableTitle';
@@ -113,27 +111,14 @@ export class ExploreChartHeader extends React.PureComponent {
     super(props);
     this.state = {
       isPropertiesModalOpen: false,
-      showingReportModal: false,
     };
     this.openPropertiesModal = this.openPropertiesModal.bind(this);
     this.closePropertiesModal = this.closePropertiesModal.bind(this);
-    this.showReportModal = this.showReportModal.bind(this);
-    this.hideReportModal = this.hideReportModal.bind(this);
     this.fetchChartDashboardData = this.fetchChartDashboardData.bind(this);
   }
 
   componentDidMount() {
     const { dashboardId } = this.props;
-    if (this.canAddReports()) {
-      const { user, chart } = this.props;
-      // this is in the case that there is an anonymous user.
-      this.props.fetchUISpecificReport(
-        user.userId,
-        'chart_id',
-        'charts',
-        chart.id,
-      );
-    }
     if (dashboardId) {
       this.fetchChartDashboardData();
     }
@@ -195,32 +180,6 @@ export class ExploreChartHeader extends React.PureComponent {
     this.setState({
       isPropertiesModalOpen: false,
     });
-  }
-
-  showReportModal() {
-    this.setState({ showingReportModal: true });
-  }
-
-  hideReportModal() {
-    this.setState({ showingReportModal: false });
-  }
-
-  canAddReports() {
-    if (!isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
-      return false;
-    }
-    const { user } = this.props;
-    if (!user?.userId) {
-      // this is in the case that there is an anonymous user.
-      return false;
-    }
-    const roles = Object.keys(user.roles || []);
-    const permissions = roles.map(key =>
-      user.roles[key].filter(
-        perms => perms[0] === 'menu_access' && perms[1] === 'Manage',
-      ),
-    );
-    return permissions[0].length > 0;
   }
 
   render() {
@@ -323,19 +282,9 @@ export class ExploreChartHeader extends React.PureComponent {
             status={CHART_STATUS_MAP[chartStatus]}
           />
           <HeaderReportActionsDropdown
-            showReportModal={this.showReportModal}
+            chart={this.props.chart}
             toggleActive={this.props.toggleActive}
             deleteActiveReport={this.props.deleteActiveReport}
-          />
-          <ReportModal
-            show={this.state.showingReportModal}
-            onHide={this.hideReportModal}
-            props={{
-              userId: this.props.user.userId,
-              userEmail: this.props.user.email,
-              chart: this.props.chart,
-              creationMethod: 'charts',
-            }}
           />
           <ExploreActionButtons
             actions={{

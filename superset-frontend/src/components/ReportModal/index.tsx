@@ -37,6 +37,7 @@ import Icons from 'src/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { CronError } from 'src/components/CronPicker';
 import { RadioChangeEvent } from 'src/components';
+import { ChartState } from 'src/explore/types';
 import {
   StyledModal,
   StyledTopSection,
@@ -75,20 +76,6 @@ export interface ReportObject {
   force_screenshot: boolean;
   error?: string;
 }
-
-interface ChartObject {
-  id: number;
-  chartAlert: string;
-  chartStatus: string;
-  chartUpdateEndTime: number;
-  chartUpdateStartTime: number;
-  latestQueryFormData: object;
-  queryController: { abort: () => {} };
-  queriesResponse: object;
-  triggerQuery: boolean;
-  lastRendered: number;
-}
-
 interface ReportProps {
   addReport: (report?: ReportObject) => {};
   onHide: () => {};
@@ -97,7 +84,7 @@ interface ReportProps {
   userId: number;
   userEmail: string;
   dashboardId?: number;
-  chart?: ChartObject;
+  chart?: ChartState;
   props: any;
 }
 
@@ -185,12 +172,11 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   chart,
   userId,
   userEmail,
-  ...props
 }) => {
   const vizType = chart?.sliceFormData?.viz_type;
   const isChart = !!chart;
   const defaultNotificationFormat =
-    isChart && TEXT_BASED_VISUALIZATION_TYPES.includes(vizType)
+    vizType && TEXT_BASED_VISUALIZATION_TYPES.includes(vizType)
       ? NOTIFICATION_FORMATS.TEXT
       : NOTIFICATION_FORMATS.PNG;
   const [currentReport, setCurrentReport] = useReducer<
@@ -302,7 +288,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
           }}
           value={currentReport?.report_format || defaultNotificationFormat}
         >
-          {TEXT_BASED_VISUALIZATION_TYPES.includes(vizType) && (
+          {vizType && TEXT_BASED_VISUALIZATION_TYPES.includes(vizType) && (
             <StyledRadio value={NOTIFICATION_FORMATS.TEXT}>
               {t('Text embedded in email')}
             </StyledRadio>

@@ -28,8 +28,6 @@ import {
   LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
   LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD,
 } from 'src/logger/LogUtils';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
-
 import Icons from 'src/components/Icons';
 import Button from 'src/components/Button';
 import EditableTitle from 'src/components/EditableTitle';
@@ -166,7 +164,7 @@ class Header extends React.PureComponent {
   }
 
   componentDidMount() {
-    const { refreshFrequency, user, dashboardInfo } = this.props;
+    const { refreshFrequency } = this.props;
     this.startPeriodicRender(refreshFrequency * 1000);
     if (this.canAddReports()) {
       // this is in case there is an anonymous user.
@@ -189,7 +187,6 @@ class Header extends React.PureComponent {
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
-    const { user } = this.props;
     if (
       UNDO_LIMIT - nextProps.undoLength <= 0 &&
       !this.state.didNotifyMaxUndoHistoryToast
@@ -202,23 +199,6 @@ class Header extends React.PureComponent {
       !this.props.maxUndoHistoryExceeded
     ) {
       this.props.setMaxUndoHistoryExceeded();
-    }
-    if (
-      this.canAddReports() &&
-      nextProps.dashboardInfo.id !== this.props.dashboardInfo.id
-    ) {
-      // this is in case there is an anonymous user.
-      this.props.fetchUISpecificReport(
-        user?.userId,
-        'dashboard_id',
-        'dashboards',
-<<<<<<< HEAD
-        nextProps?.dashboardInfo?.id,
-        user?.email,
-=======
-        nextProps.dashboardInfo.id,
->>>>>>> refactor progress (#16339)
-      );
     }
   }
 
@@ -403,6 +383,7 @@ class Header extends React.PureComponent {
     this.setState({ showingPropertiesModal: false });
   }
 
+<<<<<<< HEAD
   canAddReports() {
     if (!isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
       return false;
@@ -421,6 +402,8 @@ class Header extends React.PureComponent {
     return permissions[0].length > 0;
   }
 
+=======
+>>>>>>> code dry (#16358)
   render() {
     const {
       dashboardTitle,
