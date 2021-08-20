@@ -325,14 +325,18 @@ class DatasourceEditor extends React.PureComponent {
         ...props.datasource,
         metrics: props.datasource.metrics?.map(metric => {
           const {
+            certified_by: certifiedByMetric,
+            certification_details: certificationDetails,
+          } = metric;
+          const {
             certification: { details, certified_by: certifiedBy } = {},
             warning_markdown: warningMarkdown,
           } = JSON.parse(metric.extra || '{}') || {};
           return {
             ...metric,
-            certification_details: details || '',
+            certification_details: certificationDetails || details,
             warning_markdown: warningMarkdown || '',
-            certified_by: certifiedBy,
+            certified_by: certifiedBy || certifiedByMetric,
           };
         }),
       },
@@ -935,7 +939,6 @@ class DatasourceEditor extends React.PureComponent {
     const { datasource } = this.state;
     const { metrics } = datasource;
     const sortedMetrics = metrics?.length ? this.sortMetrics(metrics) : [];
-
     return (
       <CollectionTable
         tableColumns={['metric_name', 'verbose_name', 'expression']}
