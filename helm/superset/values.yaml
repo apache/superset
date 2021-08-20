@@ -83,8 +83,20 @@ extraConfigs: {}
 extraSecrets: {}
 
 extraVolumes: {}
+ # customConfig:
+ #   configMap:
+ #     name: '{{ template "superset.fullname" . }}-custom-config'
+ # additionalSecret:
+ #   secret:
+ #     secretName: my-secret
+ #     defaultMode: 0600
 
 extraVolumeMounts: {}
+ # customConfig:
+ #   mountPath: /mnt/config
+ #   readOnly: true
+ # additionalSecret:
+ #   mountPath: /mnt/secret
 
 # A dictionary of overrides to append at the end of superset_config.py - the name does not matter
 # WARNING: the order is not guaranteed
