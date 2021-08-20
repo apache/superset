@@ -53,7 +53,7 @@ import {
   StyledRadioGroup,
 } from './styles';
 
-interface ReportObject {
+export interface ReportObject {
   id?: number;
   active: boolean;
   crontab: string;
