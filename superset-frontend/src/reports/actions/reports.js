@@ -29,23 +29,23 @@ export function setReport(report) {
   return { type: SET_REPORT, report };
 }
 
-export function fetchUISpecificReport(
+export function fetchUISpecificReport({
   userId,
-  filter_field,
-  creation_method,
+  filterField,
+  creationMethod,
   resourceId,
-) {
+}) {
   const queryParams = rison.encode({
     filters: [
       {
-        col: filter_field,
+        col: filterField,
         opr: 'eq',
         value: resourceId,
       },
       {
         col: 'creation_method',
         opr: 'eq',
-        value: creation_method,
+        value: creationMethod,
       },
       {
         col: 'created_by',
