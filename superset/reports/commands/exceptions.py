@@ -137,6 +137,18 @@ class ReportScheduleNameUniquenessValidationError(ValidationError):
         super().__init__([_("Name must be unique")], field_name="name")
 
 
+class ReportScheduleCreationMethodUniquenessValidationError(ValidationError):
+    """
+    Marshmallow validation error for Report Schedule with creation method charts
+    or dashboards already existing on a report.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            [_("Resource already has an attached report")], field_name="creation_method"
+        )
+
+
 class AlertQueryMultipleRowsError(CommandException):
 
     message = _("Alert query returned more then one row.")
