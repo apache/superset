@@ -76,6 +76,7 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   emitFilter: boolean;
   groupby: string[];
   showValue: boolean;
+  onlyTotal: boolean;
 } & EchartsLegendFormData;
 
 // @ts-ignore
@@ -108,6 +109,7 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   groupby: [],
   yAxisTitle: '',
   showValue: false,
+  onlyTotal: false,
 };
 
 export interface EchartsTimeseriesChartProps extends ChartProps {
