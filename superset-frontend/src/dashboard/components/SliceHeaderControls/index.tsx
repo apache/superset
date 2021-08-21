@@ -88,6 +88,7 @@ export interface SliceHeaderControlsProps {
     slice_name: string;
     slice_id: number;
     slice_description: string;
+    form_data?: { emit_filter?: boolean };
   };
 
   componentId: string;
@@ -229,6 +230,7 @@ class SliceHeaderControls extends React.PureComponent<
         value.behaviors?.includes(Behavior.INTERACTIVE_CHART),
       )
       .find(([key]) => key === slice.viz_type);
+    const canEmitCrossFilter = slice.form_data?.emit_filter;
 
     const cachedWhen = (cachedDttm || []).map(itemCachedDttm =>
       moment.utc(itemCachedDttm).fromNow(),
@@ -335,7 +337,8 @@ class SliceHeaderControls extends React.PureComponent<
             </Menu.Item>
           )}
         {isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
-          isCrossFilter && (
+          isCrossFilter &&
+          canEmitCrossFilter && (
             <Menu.Item key={MENU_KEYS.CROSS_FILTER_SCOPING}>
               {t('Cross-filter scoping')}
             </Menu.Item>
