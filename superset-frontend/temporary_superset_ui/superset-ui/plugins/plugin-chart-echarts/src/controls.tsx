@@ -94,7 +94,7 @@ export const legendSection = [
   [legendMarginControl],
 ];
 
-export const showValueControl = {
+const showValueControl = {
   name: 'show_value',
   config: {
     type: 'CheckboxControl',
@@ -104,3 +104,29 @@ export const showValueControl = {
     description: t('Show series values on the chart'),
   },
 };
+
+const stackControl = {
+  name: 'stack',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Stack series'),
+    renderTrigger: true,
+    default: false,
+    description: t('Stack series on top of each other'),
+  },
+};
+
+const onlyTotalControl = {
+  name: 'only_total',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Only Total'),
+    default: true,
+    renderTrigger: true,
+    description: t('Only show the total value on the stacked chart'),
+    visibility: ({ controls }: ControlPanelsContainerProps) =>
+      Boolean(controls?.show_value?.value) && Boolean(controls?.stack?.value),
+  },
+};
+
+export const showValueSection = [[showValueControl], [stackControl], [onlyTotalControl]];
