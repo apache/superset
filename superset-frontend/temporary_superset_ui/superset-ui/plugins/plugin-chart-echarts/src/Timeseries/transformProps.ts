@@ -101,6 +101,7 @@ export default function transformProps(
     emitFilter,
     groupby,
     showValue,
+    onlyTotal,
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
@@ -114,18 +115,18 @@ export default function transformProps(
   const totalStackedValues: number[] = [];
   const showValueIndexes: number[] = [];
 
-  if (stack) {
-    rebasedData.forEach(data => {
-      const values = Object.keys(data).reduce((prev, curr) => {
-        if (curr === '__timestamp') {
-          return prev;
-        }
-        const value = data[curr] || 0;
-        return prev + (value as number);
-      }, 0);
-      totalStackedValues.push(values);
-    });
+  rebasedData.forEach(data => {
+    const values = Object.keys(data).reduce((prev, curr) => {
+      if (curr === '__timestamp') {
+        return prev;
+      }
+      const value = data[curr] || 0;
+      return prev + (value as number);
+    }, 0);
+    totalStackedValues.push(values);
+  });
 
+  if (stack) {
     rawSeries.forEach((entry, seriesIndex) => {
       const { data = [] } = entry;
       (data as [Date, number][]).forEach((datum, dataIndex) => {
@@ -148,6 +149,7 @@ export default function transformProps(
       stack,
       formatter,
       showValue,
+      onlyTotal,
       totalStackedValues,
       showValueIndexes,
       richTooltip,

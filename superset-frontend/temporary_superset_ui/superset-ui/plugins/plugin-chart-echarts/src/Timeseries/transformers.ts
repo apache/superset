@@ -75,6 +75,7 @@ export function transformSeries(
     stack?: boolean;
     yAxisIndex?: number;
     showValue?: boolean;
+    onlyTotal?: boolean;
     formatter?: NumberFormatter;
     totalStackedValues?: number[];
     showValueIndexes?: number[];
@@ -93,6 +94,7 @@ export function transformSeries(
     stack,
     yAxisIndex = 0,
     showValue,
+    onlyTotal,
     formatter,
     totalStackedValues = [],
     showValueIndexes = [],
@@ -188,16 +190,14 @@ export function transformSeries(
           dataIndex,
           seriesIndex,
         } = params;
-        if (formatter) {
-          if (!stack) {
-            return formatter(numericValue);
-          }
-          if (seriesIndex === showValueIndexes[dataIndex]) {
-            return formatter(totalStackedValues[dataIndex]);
-          }
-          return '';
+        if (!formatter) return numericValue;
+        if (!stack || !onlyTotal) {
+          return formatter(numericValue);
         }
-        return numericValue;
+        if (seriesIndex === showValueIndexes[dataIndex]) {
+          return formatter(totalStackedValues[dataIndex]);
+        }
+        return '';
       },
     },
   };

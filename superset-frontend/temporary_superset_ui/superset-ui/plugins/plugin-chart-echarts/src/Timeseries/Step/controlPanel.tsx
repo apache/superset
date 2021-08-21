@@ -32,7 +32,7 @@ import {
   EchartsTimeseriesContributionType,
   EchartsTimeseriesSeriesType,
 } from '../types';
-import { legendSection, showValueControl } from '../../controls';
+import { legendSection, showValueSection } from '../../controls';
 
 const {
   area,
@@ -43,7 +43,6 @@ const {
   minorSplitLine,
   opacity,
   rowLimit,
-  stack,
   tooltipTimeFormat,
   truncateYAxis,
   yAxisBounds,
@@ -120,19 +119,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [showValueControl],
-        [
-          {
-            name: 'stack',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Stack series'),
-              renderTrigger: true,
-              default: stack,
-              description: t('Stack series on top of each other'),
-            },
-          },
-        ],
+        ...showValueSection,
         [
           {
             name: 'area',
