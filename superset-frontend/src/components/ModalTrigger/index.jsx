@@ -37,6 +37,7 @@ const propTypes = {
   responsive: PropTypes.bool,
   resizable: PropTypes.bool,
   resizableConfig: PropTypes.object,
+  draggable: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -46,6 +47,7 @@ const defaultProps = {
   className: '',
   modalTitle: '',
   resizable: false,
+  draggable: false,
 };
 
 export default class ModalTrigger extends React.Component {
@@ -84,6 +86,7 @@ export default class ModalTrigger extends React.Component {
         responsive={this.props.responsive}
         resizable={this.props.resizable}
         resizableConfig={this.props.resizableConfig}
+        draggable={this.props.draggable}
       >
         {this.props.modalBody}
       </Modal>

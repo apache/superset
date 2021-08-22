@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { isNil } from 'lodash';
 import { styled, t } from '@superset-ui/core';
 import { css } from '@emotion/react';
@@ -26,6 +26,11 @@ import {
 } from 'src/common/components';
 import Button from 'src/components/Button';
 import { Resizable, ResizableProps } from 're-resizable';
+import Draggable, {
+  DraggableBounds,
+  DraggableData,
+  DraggableEvent,
+} from 'react-draggable';
 
 export interface ModalProps {
   className?: string;
@@ -49,6 +54,7 @@ export interface ModalProps {
   closable?: boolean;
   resizable?: boolean;
   resizableConfig?: ResizableProps;
+  draggable?: boolean;
 }
 
 interface StyledModalProps {
@@ -56,10 +62,11 @@ interface StyledModalProps {
   responsive?: boolean;
   height?: string;
   hideFooter?: boolean;
+  draggable?: boolean;
   resizable?: boolean;
 }
 
-const RESIZABLE_MIN_HEIGHT = '320px';
+const RESIZABLE_MIN_HEIGHT = '55px';
 const RESIZABLE_MIN_WIDTH = '380px';
 const RESIZABLE_MAX_HEIGHT = '100vh';
 const RESIZABLE_MAX_WIDTH = '100vw';
@@ -137,11 +144,26 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     padding: 0;
   }
 
+  ${({ draggable }) =>
+    draggable &&
+    `
+    .ant-modal-header {
+      .draggable-trigger {
+          cursor: move;
+          width: 100%;
+        }
+    }
+  `};
+
   ${({ resizable }) =>
     resizable &&
     `
     .resizable {
       pointer-events: all;
+
+      .resizable-wrapper {
+        height: 100%;
+      }
 
       .ant-modal-content {
         height: 100%;
@@ -171,15 +193,29 @@ const CustomModal = ({
   footer,
   hideFooter,
   wrapProps,
+  draggable = false,
   resizable = false,
   resizableConfig = {
     maxHeight: RESIZABLE_MAX_HEIGHT,
     maxWidth: RESIZABLE_MAX_WIDTH,
     minHeight: RESIZABLE_MIN_HEIGHT,
     minWidth: RESIZABLE_MIN_WIDTH,
+    enable: {
+      bottom: true,
+      bottomLeft: true,
+      bottomRight: true,
+      left: false,
+      top: false,
+      topLeft: false,
+      topRight: false,
+      right: true,
+    },
   },
   ...rest
 }: ModalProps) => {
+  const draggableRef = useRef<HTMLDivElement>(null);
+  const [bounds, setBounds] = useState<DraggableBounds>();
+  const [dragDisabled, setDragDisabled] = useState<boolean>(true);
   const modalFooter = isNil(footer)
     ? [
         <Button key="back" onClick={onHide} cta data-test="modal-cancel-button">
@@ -199,6 +235,34 @@ const CustomModal = ({
     : footer;
 
   const modalWidth = width || (responsive ? '100vw' : '600px');
+  const shouldShowMask = !(resizable || draggable);
+
+  const onDragStart = (_: DraggableEvent, uiData: DraggableData) => {
+    const { clientWidth, clientHeight } = window?.document?.documentElement;
+    const targetRect = draggableRef?.current?.getBoundingClientRect();
+
+    if (targetRect) {
+      setBounds({
+        left: -targetRect?.left + uiData?.x,
+        right: clientWidth - (targetRect?.right - uiData?.x),
+        top: -targetRect?.top + uiData?.y,
+        bottom: clientHeight - (targetRect?.bottom - uiData?.y),
+      });
+    }
+  };
+
+  const ModalTitle = () =>
+    draggable ? (
+      <div
+        className="draggable-trigger"
+        onMouseOver={() => dragDisabled && setDragDisabled(false)}
+        onMouseOut={() => !dragDisabled && setDragDisabled(true)}
+      >
+        {title}
+      </div>
+    ) : (
+      <>{title}</>
+    );
 
   return (
     <StyledModal
@@ -209,7 +273,7 @@ const CustomModal = ({
       maxWidth={maxWidth}
       responsive={responsive}
       visible={show}
-      title={title}
+      title={<ModalTitle />}
       closeIcon={
         <span className="close" aria-hidden="true">
           ×
@@ -217,15 +281,29 @@ const CustomModal = ({
       }
       footer={!hideFooter ? modalFooter : null}
       wrapProps={{ 'data-test': `${name || title}-modal`, ...wrapProps }}
-      modalRender={node =>
-        resizable ? (
-          <Resizable className="resizable" {...resizableConfig}>
-            {node}
-          </Resizable>
+      modalRender={modal =>
+        resizable || draggable ? (
+          <Draggable
+            disabled={!draggable || dragDisabled}
+            bounds={bounds}
+            onStart={(event, uiData) => onDragStart(event, uiData)}
+          >
+            {resizable ? (
+              <Resizable className="resizable" {...resizableConfig}>
+                <div className="resizable-wrapper" ref={draggableRef}>
+                  {modal}
+                </div>
+              </Resizable>
+            ) : (
+              <div ref={draggableRef}>{modal}</div>
+            )}
+          </Draggable>
         ) : (
-          node
+          modal
         )
       }
+      mask={shouldShowMask}
+      draggable={draggable}
       resizable={resizable}
       {...rest}
     >

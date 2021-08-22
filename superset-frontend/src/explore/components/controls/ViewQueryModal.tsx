@@ -101,7 +101,7 @@ const ViewQueryModal: React.FC<Props> = props => {
     <>
       {result.map(item =>
         item.query ? (
-          <StyledSyntaxContainer>
+          <StyledSyntaxContainer key={item.query}>
             <CopyToClipboard
               text={item.query}
               shouldShowText={false}

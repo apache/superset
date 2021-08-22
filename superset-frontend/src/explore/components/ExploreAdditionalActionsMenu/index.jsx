@@ -91,8 +91,9 @@ const ExploreAdditionalActionsMenu = props => {
                   latestQueryFormData={props.latestQueryFormData}
                 />
               }
-              responsive
+              draggable
               resizable
+              responsive
             />
           </Menu.Item>
           {sqlSupported && (
