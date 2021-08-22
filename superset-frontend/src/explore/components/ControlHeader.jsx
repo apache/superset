@@ -37,6 +37,7 @@ const propTypes = {
   tooltipOnClick: PropTypes.func,
   warning: PropTypes.string,
   danger: PropTypes.string,
+  hideNativeTab: PropTypes.bool
 };
 
 const defaultProps = {
@@ -44,6 +45,7 @@ const defaultProps = {
   renderTrigger: false,
   hovered: false,
   name: undefined,
+  hideNativeTab:false
 };
 
 class ControlHeader extends React.Component {
@@ -93,8 +95,7 @@ class ControlHeader extends React.Component {
     const labelClass =
       this.props.validationErrors.length > 0 ? 'text-danger' : '';
 
-    const { theme } = this.props;
-
+    const { theme, hideNativeTab } = this.props;
     return (
       <div className="ControlHeader" data-test={`${this.props.name}-header`}>
         <div className="pull-left">
@@ -106,8 +107,8 @@ class ControlHeader extends React.Component {
           >
             {this.props.leftNode && <span>{this.props.leftNode}</span>}
             <span
-              role="button"
-              tabIndex={0}
+              role={hideNativeTab ?'':"button"}
+              tabIndex={hideNativeTab ? -1:0}
               onClick={this.props.onClick}
               className={labelClass}
               style={{ cursor: this.props.onClick ? 'pointer' : '' }}
