@@ -35,6 +35,7 @@ const propTypes = {
   width: PropTypes.string,
   maxWidth: PropTypes.string,
   responsive: PropTypes.bool,
+  resizable: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -43,6 +44,7 @@ const defaultProps = {
   isButton: false,
   className: '',
   modalTitle: '',
+  resizable: false,
 };
 
 export default class ModalTrigger extends React.Component {
@@ -79,6 +81,7 @@ export default class ModalTrigger extends React.Component {
         width={this.props.width}
         maxWidth={this.props.maxWidth}
         responsive={this.props.responsive}
+        resizable={this.props.resizable}
       >
         {this.props.modalBody}
       </Modal>

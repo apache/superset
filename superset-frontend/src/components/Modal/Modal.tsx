@@ -25,6 +25,7 @@ import {
   ModalProps as AntdModalProps,
 } from 'src/common/components';
 import Button from 'src/components/Button';
+import { Resizable } from 're-resizable';
 
 export interface ModalProps {
   className?: string;
@@ -46,6 +47,7 @@ export interface ModalProps {
   wrapProps?: object;
   height?: string;
   closable?: boolean;
+  resizable?: boolean;
 }
 
 interface StyledModalProps {
@@ -54,6 +56,11 @@ interface StyledModalProps {
   height?: string;
   hideFooter?: boolean;
 }
+
+const RESIZABLE_MIN_HEIGHT = '320px';
+const RESIZABLE_MIN_WIDTH = '380px';
+const RESIZABLE_MAX_HEIGHT = '100vh';
+const RESIZABLE_MAX_WIDTH = '100vw';
 
 const BaseModal = (props: AntdModalProps) => (
   // Removes mask animation. Fixed in 4.6.0.
@@ -128,6 +135,14 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
   &.no-content-padding .ant-modal-body {
     padding: 0;
   }
+
+  .resizable {
+    pointer-events: all;
+
+    .ant-modal-content {
+      height: 100%;
+    }
+  }
 `;
 
 const CustomModal = ({
@@ -147,6 +162,7 @@ const CustomModal = ({
   footer,
   hideFooter,
   wrapProps,
+  resizable = false,
   ...rest
 }: ModalProps) => {
   const modalFooter = isNil(footer)
@@ -168,6 +184,7 @@ const CustomModal = ({
     : footer;
 
   const modalWidth = width || (responsive ? '100vw' : '600px');
+
   return (
     <StyledModal
       centered={!!centered}
@@ -185,6 +202,21 @@ const CustomModal = ({
       }
       footer={!hideFooter ? modalFooter : null}
       wrapProps={{ 'data-test': `${name || title}-modal`, ...wrapProps }}
+      modalRender={node =>
+        resizable ? (
+          <Resizable
+            className="resizable"
+            maxHeight={RESIZABLE_MAX_HEIGHT}
+            maxWidth={maxWidth || RESIZABLE_MAX_WIDTH}
+            minHeight={RESIZABLE_MIN_HEIGHT}
+            minWidth={RESIZABLE_MIN_WIDTH}
+          >
+            {node}
+          </Resizable>
+        ) : (
+          node
+        )
+      }
       {...rest}
     >
       {children}

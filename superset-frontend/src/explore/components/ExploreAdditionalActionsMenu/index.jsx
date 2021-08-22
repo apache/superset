@@ -92,6 +92,7 @@ const ExploreAdditionalActionsMenu = props => {
                 />
               }
               responsive
+              resizable
             />
           </Menu.Item>
           {sqlSupported && (
