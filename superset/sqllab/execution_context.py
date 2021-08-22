@@ -17,6 +17,7 @@
 from __future__ import annotations
 from typing import Any, Dict, cast, Type, TYPE_CHECKING, Optional
 from flask import g
+from dataclasses import dataclass
 
 from superset.utils import core as utils
 from superset.sql_parse import CtasMethod
@@ -35,8 +36,8 @@ logger = logging.getLogger(__name__)
 SqlResults = Dict[str, Any]
 
 
+@dataclass
 class SqlJsonExecutionContext:
-    _query_model_class: Type[Query] = None
     _database_id: int
     _schema: str
     _sql: str
@@ -54,12 +55,7 @@ class SqlJsonExecutionContext:
     _query: Query
     _expand_data: bool
     _sql_result: Optional[SqlResults]
-
-    def __eq__(self, o: SqlJsonExecutionContext) -> bool:
-        return self.database_id == o._database_id and self.status == o.status and \
-                self._client_id == o._client_id and self._user_id == o._user_id and \
-                self._query == o._query and self.get_execution_result() == \
-               o.get_execution_result()
+    _query_model_class: Type[Query] = None
 
     @classmethod
     def set_query_model(cls, query_model_class: Type[Query]):
@@ -207,5 +203,11 @@ class SqlJsonExecutionContext:
 
     def set_execution_result(self, sql_result: SqlResults) -> None:
         self._sql_result = sql_result
+
+    def get_query_details(self) -> str:
+        if self._query:
+            if self._query.id:
+                return "query '{}' - '{}'".format(self._query.id, self._query.sql)
+        return "query '{}'".format(self.sql)
 
 

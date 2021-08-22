@@ -19,8 +19,10 @@ from typing import Any, Dict, Optional, TYPE_CHECKING
 from flask import g
 from flask_babel import gettext as __
 
+from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetGenericErrorException
 from superset.sqllab.limiting_factor import LimitingFactor
+from superset.sqllab.commands.exceptions import ExecuteSqlCommandException
 from superset.utils import core as utils
 from superset.sqllab.execution_context import SqlJsonExecutionContext
 from superset.sqllab.sql_json_executer import SqlJsonExecutor
@@ -28,6 +30,11 @@ from superset.commands.base import BaseCommand
 from superset.utils.sql_query_results import get_cta_schema_name
 
 import logging
+
+VALIDATE_ASSCIATED_DATABASE_FAILURE_MSG = "The database referenced in this query was not found."
+
+CONTACT_ADMIN_MSG = "Please contact an administrator for further assistance or try again."
+
 
 if TYPE_CHECKING:
     from superset.models.sql_lab import Query
@@ -71,12 +78,19 @@ class ExecuteSqlJsonCommand(BaseCommand):
         self._log_params = log_params
 
     def run(self) -> str:
-        query: Query = self._try_get_existing_query()
-        if query is not None and query.is_running():
-            self._execution_context.query = query
-        else:
-            self._run_from_scratch()
-        return self._execution_context_convertor.to_payload(self._execution_context)
+        try:
+            query: Query = self._try_get_existing_query()
+            if query is not None and query.is_running():
+                self._execution_context.query = query
+            else:
+                self._run_from_scratch()
+            return self._execution_context_convertor.to_payload(self._execution_context)
+        except ExecuteSqlCommandException as ex:
+            raise ex
+        except Exception as ex:
+            raise ExecuteSqlCommandException(self._execution_context,
+                                             SupersetErrorType.GENERIC_COMMAND_ERROR,
+                                             exception=ex)
 
     def _run_from_scratch(self) -> None:
         self._set_context_temp_schema_name()
@@ -100,12 +114,10 @@ class ExecuteSqlJsonCommand(BaseCommand):
 
     def _validate_associated_database(self, db: Optional[Database]) -> None:
         if db is None:
-            raise SupersetGenericErrorException(
-                __(
-                    "The database referenced in this query was not found. Please "
-                    "contact an administrator for further assistance or try again."
-                )
-            )
+            raise ExecuteSqlCommandException(self._execution_context,
+                                             SupersetErrorType.DATABASE_REFERENCED_NOT_FOUND,
+                                             reason_message=VALIDATE_ASSCIATED_DATABASE_FAILURE_MSG,
+                                             suggestion_help_msg=CONTACT_ADMIN_MSG)
 
     def _set_context_temp_schema_name(self) -> None:
         associated_db = self._get_associated_database()
@@ -166,3 +178,5 @@ class ExecutionContextConvertor:
 class SqlQueryRender:
     def render(self, execution_context: SqlJsonExecutionContext) -> str:
         raise NotImplementedError()
+
+

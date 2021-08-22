@@ -59,45 +59,32 @@ class SqlJsonExecutorBase(SqlJsonExecutor, ABC):
 
 
 class SynchronousSqlJsonExecutor(SqlJsonExecutorBase):
+    _timeout_duration_in_seconds: int
+    _sqllab_backend_persistence_feature_enable: bool
+
+    def __init__(self, query_dao: QueryDAO,
+                 get_sql_results_task: GetSqlResultsTask,
+                 timeout_duration_in_seconds: int,
+                 sqllab_backend_persistence_feature_enable: bool):
+        super().__init__(query_dao, get_sql_results_task)
+        self._timeout_duration_in_seconds = timeout_duration_in_seconds
+        self._sqllab_backend_persistence_feature_enable = sqllab_backend_persistence_feature_enable
+
 
     def execute(self,
                 execution_context: SqlJsonExecutionContext,
                 rendered_query: str,
                 log_params: Optional[Dict[str, Any]]) -> SqlJsonExecutionContext:
-        query_id = execution_context.query.id
         try:
-            timeout = app.config["SQLLAB_TIMEOUT"]
-            timeout_msg = f"The query exceeded the {timeout} seconds timeout."
-            store_results = (
-                is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE")
-                and not execution_context.select_as_cta
-            )
-            with utils.timeout(seconds=timeout, error_message=timeout_msg):
-                # pylint: disable=no-value-for-parameter
-                data = self._get_sql_results_task(
-                    query_id,
-                    rendered_query,
-                    return_results=True,
-                    store_results=store_results,
-                    user_name=g.user.username
-                    if g.user and hasattr(g.user, "username")
-                    else None,
-                    expand_data=execution_context.expand_data,
-                    log_params=log_params,
-                )
-            self._query_dao.update_saved_query_exec_info(query_id)
-            # payload = json.dumps(
-            #     apply_display_max_row_limit(data, app.config["DISPLAY_MAX_ROW"]),
-            #     default=utils.pessimistic_json_iso_dttm_ser,
-            #     ignore_nan=True,
-            #     encoding=None,
-            # )
+            data = self._get_sql_results_with_timeout(execution_context,
+                                                      log_params, rendered_query)
+            self._query_dao.update_saved_query_exec_info(
+                execution_context.query.id)
             execution_context.set_execution_result(data)
         except SupersetTimeoutException as ex:
-        # re-raise exception for api exception handler
             raise ex
         except Exception as ex:  # pylint: disable=broad-except
-            logger.exception("Query %i failed unexpectedly", query_id)
+            logger.exception("Query %i failed unexpectedly", execution_context.query.id)
             raise SupersetGenericDBErrorException(utils.error_msg_from_exception(ex))
 
         if data.get("status") == QueryStatus.FAILED:
@@ -110,6 +97,36 @@ class SynchronousSqlJsonExecutor(SqlJsonExecutorBase):
             raise SupersetGenericDBErrorException(data["error"])
 
         return execution_context
+
+    def _get_sql_results_with_timeout(self, execution_context, log_params,
+                                      rendered_query):
+        with utils.timeout(seconds=self._timeout_duration_in_seconds,
+                           error_message=self._get_timeout_error_msg()):
+            data = self._get_sql_results(execution_context,
+                                         rendered_query,
+                                         log_params)
+        return data
+
+    def _get_sql_results(self, execution_context, rendered_query, log_params):
+        return self._get_sql_results(
+            execution_context.query.id,
+            rendered_query,
+            return_results=True,
+            store_results=self._is_store_results(execution_context),
+            user_name=g.user.username
+            if g.user and hasattr(g.user, "username")
+            else None,
+            expand_data=execution_context.expand_data,
+            log_params=log_params,
+        )
+
+    def _is_store_results(self, execution_context: SqlJsonExecutionContext) -> bool:
+        return self._sqllab_backend_persistence_feature_enable and not \
+            execution_context.select_as_cta
+
+    def _get_timeout_error_msg(self) -> str:
+        return "The query exceeded the {timeout} seconds timeout.".format(
+            timeout=self._timeout_duration_in_seconds)
 
 
 class ASynchronousSqlJsonExecutor(SqlJsonExecutorBase):

@@ -15,18 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 from __future__ import annotations
-from typing import Callable, TYPE_CHECKING
+from typing import Callable, TYPE_CHECKING, Any, Dict, Optional
 
 from flask_babel import gettext as __, ngettext
 from jinja2 import TemplateError
 from jinja2.meta import find_undeclared_variables
 from superset import is_feature_enabled
 from superset.errors import SupersetErrorType
-from superset.exceptions import SupersetTemplateParamsErrorException
 from superset.sqllab.commands.execute_sql_json_command import SqlQueryRender
-from superset.utils.core import QueryStatus
 from superset.utils import core as utils
-
+from superset.sqllab.exceptions import SqlLabException
 if TYPE_CHECKING:
     from superset.sqllab.execution_context import SqlJsonExecutionContext
     from superset.jinja_context import BaseTemplateProcessor
@@ -53,34 +51,64 @@ class SqlQueryRenderImpl(SqlQueryRender):
             rendered_query = sql_template_processor.process_template(
                 query_model.sql, **execution_context.template_params
             )
-            if is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
-                # pylint: disable=protected-access
-                ast = sql_template_processor._env.parse(rendered_query)
-                undefined_parameters = find_undeclared_variables(ast)  # type: ignore
-                if undefined_parameters:
-                    query_model.status = QueryStatus.FAILED
-                    raise SupersetTemplateParamsErrorException(
-                        message=ngettext(
-                            "The parameter %(parameters)s in your query is undefined.",
-                            "The following parameters in your query are undefined: %(parameters)s.",
-                            len(undefined_parameters),
-                            parameters=utils.format_list(undefined_parameters),
-                        )
-                                + " "
-                                + PARAMETER_MISSING_ERR,
-                        error=SupersetErrorType.MISSING_TEMPLATE_PARAMS_ERROR,
-                        extra={
-                            "undefined_parameters": list(undefined_parameters),
-                            "template_parameters": execution_context.template_params,
-                        },
-                    )
-
+            self._validate(execution_context, rendered_query, sql_template_processor)
             return rendered_query
         except TemplateError as ex:
-            query_model.status = QueryStatus.FAILED
-            raise SupersetTemplateParamsErrorException(
-                message=__(
-                    'The query contains one or more malformed template parameters. Please check your query and confirm that all template parameters are surround by double braces, for example, "{{ ds }}". Then, try running your query again.'
-                ),
-                error=SupersetErrorType.INVALID_TEMPLATE_PARAMS_ERROR,
-            ) from ex
+            self._raise_template_exception(ex, execution_context)
+
+    def _validate(self, execution_context, rendered_query,
+                 sql_template_processor):
+        if is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
+            # pylint: disable=protected-access
+            syntax_tree = sql_template_processor._env.parse(rendered_query)
+            undefined_parameters = find_undeclared_variables(syntax_tree)  # type: ignore
+            if undefined_parameters:
+                self._raise_undefined_parameter_exception(execution_context, undefined_parameters)
+
+    def _raise_undefined_parameter_exception(self, execution_context, undefined_parameters):
+        raise SqlQueryRenderException(execution_context,
+                                      SupersetErrorType.MISSING_TEMPLATE_PARAMS_ERROR,
+                                      ngettext(
+                                          "The parameter %(parameters)s in your query is undefined.",
+                                          "The following parameters in your query are undefined: %(parameters)s.",
+                                          len(undefined_parameters),
+                                          parameters=utils.format_list(
+                                              undefined_parameters),
+                                      ),
+                                      suggestion_help_msg=PARAMETER_MISSING_ERR,
+                                      extra={
+                                          "undefined_parameters": list(
+                                              undefined_parameters),
+                                          "template_parameters": execution_context.template_params,
+                                      })
+
+    def _raise_template_exception(self, ex, execution_context):
+        raise SqlQueryRenderException(
+            execution_context,
+            error_type=SupersetErrorType.INVALID_TEMPLATE_PARAMS_ERROR,
+            reason_message=__(
+                "The query contains one or more malformed template parameters."),
+            suggestion_help_msg=__(
+                'Please check your query and confirm that all template '
+                'parameters are surround by double braces, for example, '
+                '"{{ ds }}". Then, try running your query again.')
+        ) from ex
+
+
+class SqlQueryRenderException(SqlLabException):
+    _extra: Optional[Dict[str, Any]]
+
+    def __init__(self, sql_json_execution_context: SqlJsonExecutionContext,
+                 error_type: SupersetErrorType, reason_message: str = None,
+                 exception: Optional[Exception] = None,
+                 suggestion_help_msg: str = None,
+                 extra: Optional[Dict[str, Any]] = None) -> None:
+        super().__init__(sql_json_execution_context, error_type, reason_message,
+                         exception, suggestion_help_msg)
+        self._extra = extra
+
+    @property
+    def extra(self) -> Optional[Dict[str, Any]]:
+        return self._extra
+
+
