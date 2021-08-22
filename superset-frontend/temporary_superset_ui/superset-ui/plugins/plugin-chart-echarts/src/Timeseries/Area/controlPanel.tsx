@@ -155,7 +155,7 @@ const config: ControlPanelConfig = {
               label: t('Marker Size'),
               renderTrigger: true,
               min: 0,
-              max: 100,
+              max: 20,
               default: markerSize,
               description: t('Size of marker. Also applies to forecast observations.'),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
