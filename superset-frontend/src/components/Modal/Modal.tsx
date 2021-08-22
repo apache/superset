@@ -30,6 +30,7 @@ import Draggable, {
   DraggableBounds,
   DraggableData,
   DraggableEvent,
+  DraggableProps,
 } from 'react-draggable';
 
 export interface ModalProps {
@@ -55,6 +56,7 @@ export interface ModalProps {
   resizable?: boolean;
   resizableConfig?: ResizableProps;
   draggable?: boolean;
+  draggableConfig?: DraggableProps;
 }
 
 interface StyledModalProps {
@@ -211,6 +213,7 @@ const CustomModal = ({
       right: true,
     },
   },
+  draggableConfig,
   ...rest
 }: ModalProps) => {
   const draggableRef = useRef<HTMLDivElement>(null);
@@ -287,6 +290,7 @@ const CustomModal = ({
             disabled={!draggable || dragDisabled}
             bounds={bounds}
             onStart={(event, uiData) => onDragStart(event, uiData)}
+            {...draggableConfig}
           >
             {resizable ? (
               <Resizable className="resizable" {...resizableConfig}>
