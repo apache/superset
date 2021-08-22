@@ -25,7 +25,7 @@ import {
   ModalProps as AntdModalProps,
 } from 'src/common/components';
 import Button from 'src/components/Button';
-import { Resizable } from 're-resizable';
+import { Resizable, ResizableProps } from 're-resizable';
 
 export interface ModalProps {
   className?: string;
@@ -48,6 +48,7 @@ export interface ModalProps {
   height?: string;
   closable?: boolean;
   resizable?: boolean;
+  resizableConfig?: ResizableProps;
 }
 
 interface StyledModalProps {
@@ -55,6 +56,7 @@ interface StyledModalProps {
   responsive?: boolean;
   height?: string;
   hideFooter?: boolean;
+  resizable?: boolean;
 }
 
 const RESIZABLE_MIN_HEIGHT = '320px';
@@ -107,9 +109,8 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
   .ant-modal-body {
     padding: ${({ theme }) => theme.gridUnit * 4}px;
     overflow: auto;
-    ${({ height }) => height && `height: ${height};`}
+    ${({ resizable, height }) => !resizable && height && `height: ${height};`}
   }
-
   .ant-modal-footer {
     border-top: ${({ theme }) => theme.gridUnit / 4}px solid
       ${({ theme }) => theme.colors.grayscale.light2};
@@ -136,13 +137,21 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     padding: 0;
   }
 
-  .resizable {
-    pointer-events: all;
+  ${({ resizable }) =>
+    resizable &&
+    `
+    .resizable {
+      pointer-events: all;
 
-    .ant-modal-content {
-      height: 100%;
+      .ant-modal-content {
+        height: 100%;
+
+        .ant-modal-body {
+          height: calc(100% - 55px);
+        }
+      }
     }
-  }
+  `}
 `;
 
 const CustomModal = ({
@@ -163,6 +172,12 @@ const CustomModal = ({
   hideFooter,
   wrapProps,
   resizable = false,
+  resizableConfig = {
+    maxHeight: RESIZABLE_MAX_HEIGHT,
+    maxWidth: RESIZABLE_MAX_WIDTH,
+    minHeight: RESIZABLE_MIN_HEIGHT,
+    minWidth: RESIZABLE_MIN_WIDTH,
+  },
   ...rest
 }: ModalProps) => {
   const modalFooter = isNil(footer)
@@ -204,19 +219,14 @@ const CustomModal = ({
       wrapProps={{ 'data-test': `${name || title}-modal`, ...wrapProps }}
       modalRender={node =>
         resizable ? (
-          <Resizable
-            className="resizable"
-            maxHeight={RESIZABLE_MAX_HEIGHT}
-            maxWidth={maxWidth || RESIZABLE_MAX_WIDTH}
-            minHeight={RESIZABLE_MIN_HEIGHT}
-            minWidth={RESIZABLE_MIN_WIDTH}
-          >
+          <Resizable className="resizable" {...resizableConfig}>
             {node}
           </Resizable>
         ) : (
           node
         )
       }
+      resizable={resizable}
       {...rest}
     >
       {children}
