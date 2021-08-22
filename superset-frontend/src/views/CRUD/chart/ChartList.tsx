@@ -77,42 +77,40 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
 setupPlugins();
 const registry = getChartMetadataRegistry();
 
-const createFetchDatasets = (handleError: (err: Response) => void) => async (
+const createFetchDatasets = async (
   filterValue = '',
-  pageIndex?: number,
-  pageSize?: number,
+  page: number,
+  pageSize: number,
 ) => {
   // add filters if filterValue
   const filters = filterValue
     ? { filters: [{ col: 'table_name', opr: 'sw', value: filterValue }] }
     : {};
-  try {
-    const queryParams = rison.encode({
-      columns: ['datasource_name', 'datasource_id'],
-      keys: ['none'],
-      order_column: 'table_name',
-      order_direction: 'asc',
-      ...(pageIndex ? { page: pageIndex } : {}),
-      ...(pageSize ? { page_size: pageSize } : {}),
-      ...filters,
-    });
+  const queryParams = rison.encode({
+    columns: ['datasource_name', 'datasource_id'],
+    keys: ['none'],
+    order_column: 'table_name',
+    order_direction: 'asc',
+    page,
+    page_size: pageSize,
+    ...filters,
+  });
 
-    const { json = {} } = await SupersetClient.get({
-      endpoint: `/api/v1/dataset/?q=${queryParams}`,
-    });
+  const { json = {} } = await SupersetClient.get({
+    endpoint: `/api/v1/dataset/?q=${queryParams}`,
+  });
 
-    const datasets = json?.result?.map(
-      ({ table_name: tableName, id }: { table_name: string; id: number }) => ({
-        label: tableName,
-        value: id,
-      }),
-    );
+  const datasets = json?.result?.map(
+    ({ table_name: tableName, id }: { table_name: string; id: number }) => ({
+      label: tableName,
+      value: id,
+    }),
+  );
 
-    return uniqBy<SelectOption>(datasets, 'value');
-  } catch (e) {
-    handleError(e);
-  }
-  return [];
+  return {
+    data: uniqBy<SelectOption>(datasets, 'value'),
+    totalCount: json?.count,
+  };
 };
 
 interface ChartListProps {
@@ -504,16 +502,7 @@ function ChartList(props: ChartListProps) {
       input: 'select',
       operator: FilterOperator.equals,
       unfilteredLabel: t('All'),
-      fetchSelects: createFetchDatasets(
-        createErrorHandler(errMsg =>
-          addDangerToast(
-            t(
-              'An error occurred while fetching chart dataset values: %s',
-              errMsg,
-            ),
-          ),
-        ),
-      ),
+      fetchSelects: createFetchDatasets,
       paginate: true,
     },
     ...(props.user.userId ? [favoritesFilter] : []),

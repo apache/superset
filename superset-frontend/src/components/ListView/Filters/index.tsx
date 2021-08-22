@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { styled, withTheme } from '@superset-ui/core';
+import { withTheme } from '@superset-ui/core';
 
 import {
   FilterValue,
@@ -34,17 +34,13 @@ interface UIFiltersProps {
   updateFilterValue: (id: number, value: FilterValue['value']) => void;
 }
 
-const FilterWrapper = styled.div`
-  display: inline-block;
-`;
-
 function UIFilters({
   filters,
   internalFilters = [],
   updateFilterValue,
 }: UIFiltersProps) {
   return (
-    <FilterWrapper>
+    <>
       {filters.map(
         (
           {
@@ -100,7 +96,7 @@ function UIFilters({
           return null;
         },
       )}
-    </FilterWrapper>
+    </>
   );
 }
 

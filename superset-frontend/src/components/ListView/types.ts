@@ -53,10 +53,10 @@ export interface Filter {
   selects?: SelectOption[];
   onFilterOpen?: () => void;
   fetchSelects?: (
-    filterValue?: string,
-    pageIndex?: number,
-    pageSize?: number,
-  ) => Promise<SelectOption[]>;
+    filterValue: string,
+    page: number,
+    pageSize: number,
+  ) => Promise<{ data: SelectOption[]; totalCount: number }>;
   paginate?: boolean;
 }
 

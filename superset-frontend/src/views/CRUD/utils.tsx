@@ -38,31 +38,42 @@ const createFetchResourceMethod = (method: string) => (
   relation: string,
   handleError: (error: Response) => void,
   userId?: string | number,
-) => async (filterValue = '', pageIndex?: number, pageSize?: number) => {
+) => async (filterValue = '', page: number, pageSize: number) => {
   const resourceEndpoint = `/api/v1/${resource}/${method}/${relation}`;
-  const options =
-    userId && pageIndex === 0 ? [{ label: 'me', value: userId }] : [];
-  try {
-    const queryParams = rison.encode({
-      ...(pageIndex ? { page: pageIndex } : {}),
-      ...(pageSize ? { page_size: pageSize } : {}),
-      ...(filterValue ? { filter: filterValue } : {}),
-    });
-    const { json = {} } = await SupersetClient.get({
-      endpoint: `${resourceEndpoint}?q=${queryParams}`,
-    });
-    const data = json?.result?.map(
-      ({ text: label, value }: { text: string; value: any }) => ({
+  const queryParams = rison.encode({
+    filter: filterValue,
+    page,
+    page_size: pageSize,
+  });
+  const { json = {} } = await SupersetClient.get({
+    endpoint: `${resourceEndpoint}?q=${queryParams}`,
+  });
+
+  let hasUser = false;
+  const data: { label: string; value: string | number }[] = [];
+
+  json?.result?.forEach(
+    ({ text, value }: { text: string; value: string | number }) => {
+      let label = text;
+      if (value === userId) {
+        label = t('Me');
+        hasUser = true;
+      }
+      data.push({
         label,
         value,
-      }),
-    );
+      });
+    },
+  );
 
-    return options.concat(data);
-  } catch (e) {
-    handleError(e);
+  if (!hasUser && userId && page === 0) {
+    data.push({ label: t('Me'), value: userId });
   }
-  return [];
+
+  return {
+    data,
+    totalCount: json?.count,
+  };
 };
 
 export const PAGE_SIZE = 5;

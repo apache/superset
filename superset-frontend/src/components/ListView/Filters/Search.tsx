@@ -17,14 +17,21 @@
  * under the License.
  */
 import React, { useState } from 'react';
+import { t, styled } from '@superset-ui/core';
+import { FormLabel } from 'src/components/Form';
 import SearchInput from 'src/components/SearchInput';
-import { FilterContainer, BaseFilter } from './Base';
+import { SELECT_WIDTH } from 'src/components/ListView/utils';
+import { BaseFilter } from './Base';
 
 interface SearchHeaderProps extends BaseFilter {
   Header: string;
   onSubmit: (val: string) => void;
   name: string;
 }
+
+const Container = styled.div`
+  width: ${SELECT_WIDTH}px;
+`;
 
 export default function SearchFilter({
   Header,
@@ -50,7 +57,8 @@ export default function SearchFilter({
   };
 
   return (
-    <FilterContainer>
+    <Container>
+      <FormLabel>{t('Search')}</FormLabel>
       <SearchInput
         data-test="filters-search"
         placeholder={Header}
@@ -60,6 +68,6 @@ export default function SearchFilter({
         onSubmit={handleSubmit}
         onClear={onClear}
       />
-    </FilterContainer>
+    </Container>
   );
 }

@@ -377,8 +377,8 @@ describe('ListView', () => {
     expect(wrapper.find(ListViewFilters)).toExist();
   });
 
-  it('fetched async filter values on mount', () => {
-    expect(fetchSelectsMock).toHaveBeenCalled();
+  it('does not fetch async filter values on mount', () => {
+    expect(fetchSelectsMock).not.toHaveBeenCalled();
   });
 
   it('calls fetchData on filter', () => {
@@ -462,7 +462,7 @@ describe('ListView', () => {
     });
 
     await act(async () => {
-      wrapper2.find('[data-test="card-sort-select"]').first().props().onChange({
+      wrapper2.find('[aria-label="Sort"]').first().props().onChange({
         desc: false,
         id: 'something',
         label: 'Alphabetical',
