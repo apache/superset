@@ -147,7 +147,7 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
         height: 100%;
 
         .ant-modal-body {
-          height: calc(100% - 55px);
+          height: calc(100% - 55px); /* 100% - header height */
         }
       }
     }
