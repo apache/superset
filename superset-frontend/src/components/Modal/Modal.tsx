@@ -66,7 +66,7 @@ interface StyledModalProps {
   resizable?: boolean;
 }
 
-const RESIZABLE_MIN_HEIGHT = '55px';
+const RESIZABLE_MIN_HEIGHT = '190px';
 const RESIZABLE_MIN_WIDTH = '380px';
 const RESIZABLE_MAX_HEIGHT = '100vh';
 const RESIZABLE_MAX_WIDTH = '100vw';
@@ -305,6 +305,7 @@ const CustomModal = ({
       mask={shouldShowMask}
       draggable={draggable}
       resizable={resizable}
+      destroyOnClose={resizable || draggable}
       {...rest}
     >
       {children}
