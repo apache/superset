@@ -191,6 +191,34 @@ class TestImportChartsCommand(SupersetTestCase):
         )
         assert dataset.table_name == "imported_dataset"
         assert chart.table == dataset
+        assert json.loads(chart.query_context) == {
+            "datasource": {"id": dataset.id, "type": "table"},
+            "force": False,
+            "queries": [
+                {
+                    "time_range": " : ",
+                    "filters": [],
+                    "extras": {
+                        "time_grain_sqla": None,
+                        "having": "",
+                        "having_druid": [],
+                        "where": "",
+                    },
+                    "applied_time_extras": {},
+                    "columns": [],
+                    "metrics": [],
+                    "annotation_layers": [],
+                    "row_limit": 5000,
+                    "timeseries_limit": 0,
+                    "order_desc": True,
+                    "url_params": {},
+                    "custom_params": {},
+                    "custom_form_data": {},
+                }
+            ],
+            "result_format": "json",
+            "result_type": "full",
+        }
 
         database = (
             db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()

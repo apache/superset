@@ -56,15 +56,14 @@ const EmptyWrapper = styled.div`
 `;
 
 const TableViewStyles = styled.div<{
-  hasPagination?: boolean;
   isPaginationSticky?: boolean;
   scrollTable?: boolean;
   small?: boolean;
 }>`
-  ${({ hasPagination, scrollTable, theme }) =>
+  ${({ scrollTable, theme }) =>
     scrollTable &&
     `
-    height: ${hasPagination ? '300px' : '380px'};
+    flex: 1 1 auto;
     margin-bottom: ${theme.gridUnit * 4}px;
     overflow: auto;
   `}
@@ -196,7 +195,7 @@ const TableView = ({
 
   return (
     <>
-      <TableViewStyles hasPagination={hasPagination} {...props}>
+      <TableViewStyles {...props}>
         <TableCollection
           getTableProps={getTableProps}
           getTableBodyProps={getTableBodyProps}

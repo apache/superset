@@ -502,10 +502,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         # Post-process the data so it matches the data presented in the chart.
         # This is needed for sending reports based on text charts that do the
         # post-processing of data, eg, the pivot table.
-        if (
-            result_type == ChartDataResultType.POST_PROCESSED
-            and result_format == ChartDataResultFormat.CSV
-        ):
+        if result_type == ChartDataResultType.POST_PROCESSED:
             result = apply_post_process(result, form_data)
 
         if result_format == ChartDataResultFormat.CSV:
