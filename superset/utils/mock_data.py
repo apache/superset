@@ -48,6 +48,7 @@ ColumnInfo = TypedDict(
         "default": Optional[Any],
         "autoincrement": str,
         "primary_key": int,
+        "group_by": Optional[bool],
     },
 )
 
@@ -59,6 +60,7 @@ example_column = {
     "default": None,
     "autoincrement": "auto",
     "primary_key": 1,
+    "group_by": False,
 }
 
 
@@ -68,7 +70,9 @@ days_range = (MAXIMUM_DATE - MINIMUM_DATE).days
 
 
 # pylint: disable=too-many-return-statements, too-many-branches
-def get_type_generator(sqltype: sqlalchemy.sql.sqltypes) -> Callable[[], Any]:
+def get_type_generator(
+    sqltype: sqlalchemy.sql.sqltypes, group_by: bool = False
+) -> Callable[[], Any]:
     if isinstance(sqltype, sqlalchemy.dialects.mysql.types.TINYINT):
         return lambda: random.choice([0, 1])
 
@@ -83,6 +87,9 @@ def get_type_generator(sqltype: sqlalchemy.sql.sqltypes) -> Callable[[], Any]:
     if isinstance(
         sqltype, (sqlalchemy.sql.sqltypes.VARCHAR, sqlalchemy.sql.sqltypes.String)
     ):
+        if group_by:
+            return lambda: "".join(random.choices(string.ascii_letters, k=1))
+
         length = random.randrange(sqltype.length or 255)
         length = max(8, length)  # for unique values
         length = min(100, length)  # for FAB perms
@@ -207,6 +214,7 @@ def add_data(
         engine.execute(table.delete())
 
     data = generate_data(columns, num_rows)
+
     # pylint: disable=no-value-for-parameter # sqlalchemy/issues/4656
     engine.execute(table.insert(), data)
 
@@ -222,14 +230,17 @@ def get_column_objects(columns: List[ColumnInfo]) -> List[Column]:
 
 def generate_data(columns: List[ColumnInfo], num_rows: int) -> List[Dict[str, Any]]:
     keys = [column["name"] for column in columns]
-    return [
-        dict(zip(keys, row))
-        for row in zip(*[generate_column_data(column, num_rows) for column in columns])
-    ]
+
+    data = []
+    for row in zip(*[generate_column_data(column, num_rows) for column in columns]):
+        data.append(dict(zip(keys, row)))
+
+    return data
 
 
 def generate_column_data(column: ColumnInfo, num_rows: int) -> List[Any]:
-    gen = get_type_generator(column["type"])
+    allow_groupby = cast(bool, column.get("group_by", False))
+    gen = get_type_generator(column["type"], allow_groupby)
     return [gen() for _ in range(num_rows)]
 
 
