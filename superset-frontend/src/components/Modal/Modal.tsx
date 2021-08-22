@@ -68,7 +68,11 @@ interface StyledModalProps {
   resizable?: boolean;
 }
 
-const RESIZABLE_MIN_HEIGHT = '190px';
+const MODAL_HEADER_HEIGHT = 55;
+const MODAL_MIN_CONTENT_HEIGHT = 54;
+const MODAL_FOOTER_HEIGHT = 65;
+
+const RESIZABLE_MIN_HEIGHT = MODAL_HEADER_HEIGHT + MODAL_MIN_CONTENT_HEIGHT;
 const RESIZABLE_MIN_WIDTH = '380px';
 const RESIZABLE_MAX_HEIGHT = '100vh';
 const RESIZABLE_MAX_WIDTH = '100vw';
@@ -157,7 +161,7 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     }
   `};
 
-  ${({ resizable }) =>
+  ${({ resizable, hideFooter }) =>
     resizable &&
     `
     .resizable {
@@ -171,7 +175,12 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
         height: 100%;
 
         .ant-modal-body {
-          height: calc(100% - 55px); /* 100% - header height */
+          /* 100% - header height - footer height */
+          height: ${
+            hideFooter
+              ? `calc(100% - ${MODAL_HEADER_HEIGHT}px);`
+              : `calc(100% - ${MODAL_HEADER_HEIGHT}px - ${MODAL_FOOTER_HEIGHT}px);`
+          }
         }
       }
     }
@@ -200,11 +209,13 @@ const CustomModal = ({
   resizableConfig = {
     maxHeight: RESIZABLE_MAX_HEIGHT,
     maxWidth: RESIZABLE_MAX_WIDTH,
-    minHeight: RESIZABLE_MIN_HEIGHT,
+    minHeight: hideFooter
+      ? RESIZABLE_MIN_HEIGHT
+      : RESIZABLE_MIN_HEIGHT + MODAL_FOOTER_HEIGHT,
     minWidth: RESIZABLE_MIN_WIDTH,
     enable: {
       bottom: true,
-      bottomLeft: true,
+      bottomLeft: false,
       bottomRight: true,
       left: false,
       top: false,
@@ -283,6 +294,7 @@ const CustomModal = ({
         </span>
       }
       footer={!hideFooter ? modalFooter : null}
+      hideFooter={hideFooter}
       wrapProps={{ 'data-test': `${name || title}-modal`, ...wrapProps }}
       modalRender={modal =>
         resizable || draggable ? (
