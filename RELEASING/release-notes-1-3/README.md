@@ -26,7 +26,7 @@ Superset 1.3 focus on hardening and polishing the superset user experience, with
 - [**Breaking Changes and Full Changelog**](#breaking-changes-and-full-changelog)
 
 # User Experience
-One major goal of this release is to improve and harden dashboard-native filters. These filters live at the dashboard-level instead of within a chart, and affect all charts under their scope within a dashboard. Improvments in this release include clearer visual indicators of what charts are within the scope of a selected filter.
+One major goal of this release is to improve and harden dashboard-native filters. These filters live at the dashboard level instead of within a chart and affect all charts under their scope within a dashboard. Improvements in this release include clearer visual indicators of what charts are within the scope of a selected filter.
 
 ![dashboard native filter scoping](media/dashboard_native_filters_1.jpg)
 
