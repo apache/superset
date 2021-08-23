@@ -473,7 +473,7 @@ def cast_to_boolean(value: Any) -> bool:
     >>> cast_to_boolean('False')
     False
     >>> cast_to_boolean('True')
-    False
+    True
     >>> cast_to_boolean(None)
     False
 
