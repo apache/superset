@@ -34,7 +34,7 @@ from cachelib.base import BaseCache
 from celery.schedules import crontab
 from dateutil import tz
 from flask import Blueprint
-from flask_appbuilder.security.manager import AUTH_DB, AUTH_OAUTH,AUTH_OID,AUTH_REMOTE_USER,AUTH_LDAP
+from flask_appbuilder.security.manager import AUTH_DB,AUTH_OAUTH
 from pandas.io.parsers import STR_NA_VALUES
 
 from superset.jinja_context import (  # pylint: disable=unused-import
@@ -259,14 +259,9 @@ DRUID_METADATA_LINKS_ENABLED = True
 # AUTH_DB : Is for database (username/password)
 # AUTH_LDAP : Is for LDAP
 # AUTH_REMOTE_USER : Is for using REMOTE_USER from web server
+
 #AUTH_TYPE = AUTH_DB
-#AUTH_TYPE = AUTH_OAUTH
-
-# Uncomment to setup Full admin role name
-#AUTH_ROLE_ADMIN = 'Admin'
-
-# Uncomment to setup Public role name, no authentication needed
-#AUTH_ROLE_PUBLIC = 'Public'
+AUTH_TYPE = AUTH_OAUTH
 
 # Will allow user self registration
 #AUTH_USER_REGISTRATION = True
@@ -275,29 +270,12 @@ DRUID_METADATA_LINKS_ENABLED = True
 #AUTH_USER_REGISTRATION_ROLE = "Public"
 
 # When using LDAP Auth, setup the LDAP server
-# AUTH_LDAP_SERVER = "ldap://ldapserver.new"
+#AUTH_LDAP_SERVER = "ldap://ldapserver.new"
 
 # Uncomment to setup OpenID providers example for OpenID authentication
 # OPENID_PROVIDERS = [
 #    { 'name': 'Yahoo', 'url': 'https://open.login.yahoo.com/' },
 #    { 'name': 'Flickr', 'url': 'https://www.flickr.com/<username>' },
-
-# OAUTH_PROVIDERS = [
-#     {'name': 'google', 'icon': 'fa-google',
-#      'token_key': 'access_token',
-#      'remote_app': {
-#          'client_id': '719745002707-rkconk6trg3euhvnvvme1nbbmbcd6hca.apps.googleusercontent.com',
-#          'client_secret': '7yzqk19vCiqe7xH_SrJxTRgB',
-#          'api_base_url': 'https://www.googleapis.com/oauth2/v2/',
-#          'client_kwargs': {
-#              'scope': 'email profile'
-#          },
-#          'request_token_url': None,
-#          'access_token_url': 'https://accounts.google.com/o/oauth2/token',
-#          'authorize_url': 'https://accounts.google.com/o/oauth2/auth'
-#
-#      }
-#      }]
 
 # ---------------------------------------------------
 # Roles config
@@ -1259,11 +1237,8 @@ from superset.utils import core as utils
 from superset.utils.date_parser import get_since_until
 
 #key to decrypt jwt token
-# MOBI_SECRET_KEY=None
-# MOBI_SECRET_KEY_OLD=None
-
-MOBI_SECRET_KEY='am1nsn2blip944621frejr36db0flstrk2548bqmlaio48vje026djg'
-MOBI_SECRET_KEY_OLD='am1nsn2blip944621fre'
+MOBI_SECRET_KEY=None
+MOBI_SECRET_KEY_OLD=None
 
 def time_filter(default: Optional[str] = None) -> Optional[Any]:
     form_data = json.dumps(request.get_json(force=True))
