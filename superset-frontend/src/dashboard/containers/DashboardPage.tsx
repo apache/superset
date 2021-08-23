@@ -30,7 +30,9 @@ import {
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
 import { setDatasources } from 'src/dashboard/actions/datasources';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
+import setupPlugins from 'src/setup/setupPlugins';
 
+setupPlugins();
 const DashboardContainer = React.lazy(
   () =>
     import(

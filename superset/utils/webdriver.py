@@ -21,6 +21,7 @@ from time import sleep
 from typing import Any, Dict, Optional, Tuple, TYPE_CHECKING
 
 from flask import current_app
+from requests.models import PreparedRequest
 from selenium.common.exceptions import (
     StaleElementReferenceException,
     TimeoutException,
@@ -103,9 +104,6 @@ class WebDriverProxy:
     def get_screenshot(
         self, url: str, element_name: str, user: "User",
     ) -> Optional[bytes]:
-
-        from requests.models import PreparedRequest
-
         params = {"standalone": DashboardStandaloneMode.REPORT.value}
         req = PreparedRequest()
         req.prepare_url(url, params)

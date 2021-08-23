@@ -21,8 +21,8 @@ from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
-from superset.commands.base import BaseCommand
-from superset.commands.utils import populate_owners, populate_roles
+from superset.commands.base import BaseCommand, UpdateMixin
+from superset.commands.utils import populate_roles
 from superset.dao.exceptions import DAOUpdateFailedError
 from superset.dashboards.commands.exceptions import (
     DashboardForbiddenError,
@@ -39,7 +39,7 @@ from superset.views.base import check_ownership
 logger = logging.getLogger(__name__)
 
 
-class UpdateDashboardCommand(BaseCommand):
+class UpdateDashboardCommand(UpdateMixin, BaseCommand):
     def __init__(self, user: User, model_id: int, data: Dict[str, Any]):
         self._actor = user
         self._model_id = model_id
@@ -53,7 +53,7 @@ class UpdateDashboardCommand(BaseCommand):
             dashboard = DashboardDAO.update_charts_owners(dashboard, commit=True)
         except DAOUpdateFailedError as ex:
             logger.exception(ex.exception)
-            raise DashboardUpdateFailedError()
+            raise DashboardUpdateFailedError() from ex
         return dashboard
 
     def validate(self) -> None:
@@ -69,8 +69,8 @@ class UpdateDashboardCommand(BaseCommand):
         # Check ownership
         try:
             check_ownership(self._model)
-        except SupersetSecurityException:
-            raise DashboardForbiddenError()
+        except SupersetSecurityException as ex:
+            raise DashboardForbiddenError() from ex
 
         # Validate slug uniqueness
         if not DashboardDAO.validate_update_slug_uniqueness(self._model_id, slug):
@@ -80,7 +80,7 @@ class UpdateDashboardCommand(BaseCommand):
         if owners_ids is None:
             owners_ids = [owner.id for owner in self._model.owners]
         try:
-            owners = populate_owners(self._actor, owners_ids)
+            owners = self.populate_owners(self._actor, owners_ids)
             self._properties["owners"] = owners
         except ValidationError as ex:
             exceptions.append(ex)

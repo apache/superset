@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -110,7 +111,7 @@ class ReportScheduleDAO(BaseDAO):
         except SQLAlchemyError as ex:
             if commit:
                 db.session.rollback()
-            raise DAODeleteFailedError(str(ex))
+            raise DAODeleteFailedError(str(ex)) from ex
 
     @staticmethod
     def validate_update_uniqueness(
@@ -138,7 +139,6 @@ class ReportScheduleDAO(BaseDAO):
         create a report schedule and nested recipients
         :raises: DAOCreateFailedError
         """
-        import json
 
         try:
             model = ReportSchedule()
@@ -161,7 +161,7 @@ class ReportScheduleDAO(BaseDAO):
             return model
         except SQLAlchemyError as ex:
             db.session.rollback()
-            raise DAOCreateFailedError(str(ex))
+            raise DAOCreateFailedError(str(ex)) from ex
 
     @classmethod
     def update(
@@ -171,7 +171,6 @@ class ReportScheduleDAO(BaseDAO):
         create a report schedule and nested recipients
         :raises: DAOCreateFailedError
         """
-        import json
 
         try:
             for key, value in properties.items():
@@ -195,7 +194,7 @@ class ReportScheduleDAO(BaseDAO):
             return model
         except SQLAlchemyError as ex:
             db.session.rollback()
-            raise DAOCreateFailedError(str(ex))
+            raise DAOCreateFailedError(str(ex)) from ex
 
     @staticmethod
     def find_active(session: Optional[Session] = None) -> List[ReportSchedule]:
@@ -303,4 +302,4 @@ class ReportScheduleDAO(BaseDAO):
         except SQLAlchemyError as ex:
             if commit:
                 session.rollback()
-            raise DAODeleteFailedError(str(ex))
+            raise DAODeleteFailedError(str(ex)) from ex

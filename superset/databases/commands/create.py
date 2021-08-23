@@ -48,12 +48,12 @@ class CreateDatabaseCommand(BaseCommand):
         try:
             # Test connection before starting create transaction
             TestConnectionDatabaseCommand(self._actor, self._properties).run()
-        except Exception as ex:  # pylint: disable=broad-except
+        except Exception as ex:
             event_logger.log_with_context(
                 action=f"db_creation_failed.{ex.__class__.__name__}",
                 engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
             )
-            raise DatabaseConnectionFailedError()
+            raise DatabaseConnectionFailedError() from ex
 
         try:
             database = DatabaseDAO.create(self._properties, commit=False)
@@ -73,7 +73,7 @@ class CreateDatabaseCommand(BaseCommand):
                 action=f"db_creation_failed.{ex.__class__.__name__}",
                 engine=database.db_engine_spec.__name__,
             )
-            raise DatabaseCreateFailedError()
+            raise DatabaseCreateFailedError() from ex
         return database
 
     def validate(self) -> None:

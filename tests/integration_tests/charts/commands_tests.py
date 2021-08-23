@@ -17,15 +17,18 @@
 # pylint: disable=no-self-use, invalid-name
 
 import json
+from datetime import datetime
 from unittest.mock import patch
 
 import pytest
 import yaml
+from flask import g
 
 from superset import db, security_manager
 from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.charts.commands.export import ExportChartsCommand
 from superset.charts.commands.importers.v1 import ImportChartsCommand
+from superset.charts.commands.update import UpdateChartCommand
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
@@ -188,6 +191,34 @@ class TestImportChartsCommand(SupersetTestCase):
         )
         assert dataset.table_name == "imported_dataset"
         assert chart.table == dataset
+        assert json.loads(chart.query_context) == {
+            "datasource": {"id": dataset.id, "type": "table"},
+            "force": False,
+            "queries": [
+                {
+                    "time_range": " : ",
+                    "filters": [],
+                    "extras": {
+                        "time_grain_sqla": None,
+                        "having": "",
+                        "having_druid": [],
+                        "where": "",
+                    },
+                    "applied_time_extras": {},
+                    "columns": [],
+                    "metrics": [],
+                    "annotation_layers": [],
+                    "row_limit": 5000,
+                    "timeseries_limit": 0,
+                    "order_desc": True,
+                    "url_params": {},
+                    "custom_params": {},
+                    "custom_form_data": {},
+                }
+            ],
+            "result_format": "json",
+            "result_type": "full",
+        }
 
         database = (
             db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
@@ -275,3 +306,26 @@ class TestImportChartsCommand(SupersetTestCase):
                 "database_name": ["Missing data for required field."],
             }
         }
+
+
+class TestChartsUpdateCommand(SupersetTestCase):
+    @patch("superset.views.base.g")
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_update_v1_response(self, mock_sm_g, mock_g):
+        """"Test that a chart command updates properties"""
+        pk = db.session.query(Slice).all()[0].id
+        actor = security_manager.find_user(username="admin")
+        mock_g.user = mock_sm_g.user = actor
+        model_id = pk
+        json_obj = {
+            "description": "test for update",
+            "cache_timeout": None,
+            "owners": [1],
+        }
+        command = UpdateChartCommand(actor, model_id, json_obj)
+        last_saved_before = db.session.query(Slice).get(pk).last_saved_at
+        command.run()
+        chart = db.session.query(Slice).get(pk)
+        assert chart.last_saved_at != last_saved_before
+        assert chart.last_saved_by == actor

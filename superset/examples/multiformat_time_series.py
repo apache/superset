@@ -32,7 +32,7 @@ from .helpers import (
 )
 
 
-def load_multiformat_time_series(
+def load_multiformat_time_series(  # pylint: disable=too-many-locals
     only_metadata: bool = False, force: bool = False
 ) -> None:
     """Loading time series data from a zip file in the repo"""

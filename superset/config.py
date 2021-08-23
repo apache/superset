@@ -20,7 +20,7 @@ All configuration in this file can be overridden by providing a superset_config
 in your PYTHONPATH as there is a ``from superset_config import *``
 at the end of this file.
 """
-import imp
+import imp  # pylint: disable=deprecated-module
 import importlib.util
 import json
 import logging
@@ -38,9 +38,7 @@ from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
 from pandas.io.parsers import STR_NA_VALUES
 
-from superset.jinja_context import (  # pylint: disable=unused-import
-    BaseTemplateProcessor,
-)
+from superset.jinja_context import BaseTemplateProcessor
 from superset.stats_logger import DummyStatsLogger
 from superset.typing import CacheConfig
 from superset.utils.core import is_test, parse_boolean_string
@@ -51,12 +49,9 @@ from superset.utils.logging_configurator import DefaultLoggingConfigurator
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from flask_appbuilder.security.sqla import models  # pylint: disable=unused-import
-
-    from superset.connectors.sqla.models import (  # pylint: disable=unused-import
-        SqlaTable,
-    )
-    from superset.models.core import Database  # pylint: disable=unused-import
+    from flask_appbuilder.security.sqla import models
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
 
 # Realtime stats logger, a StatsD implementation exists
 STATS_LOGGER = DummyStatsLogger()
@@ -96,9 +91,7 @@ def _try_json_readversion(filepath: str) -> Optional[str]:
         return None
 
 
-def _try_json_readsha(  # pylint: disable=unused-argument
-    filepath: str, length: int
-) -> Optional[str]:
+def _try_json_readsha(filepath: str, length: int) -> Optional[str]:
     try:
         with open(filepath, "r") as f:
             return json.load(f).get("GIT_SHA")[:length]
@@ -195,6 +188,10 @@ WTF_CSRF_EXEMPT_LIST = ["superset.views.core.log", "superset.charts.api.data"]
 # Whether to run the web server in debug mode or not
 DEBUG = os.environ.get("FLASK_ENV") == "development"
 FLASK_USE_RELOAD = True
+
+# Enable profiling of Python calls. Turn this on and append ``?_instrument=1``
+# to the page to see the call stack.
+PROFILING = False
 
 # Superset allows server-side python stacktraces to be surfaced to the
 # user when this feature is on. This may has security implications
@@ -384,6 +381,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "OMNIBAR": False,
     "DASHBOARD_RBAC": False,
     "ENABLE_EXPLORE_DRAG_AND_DROP": False,
+    "ENABLE_DND_WITH_CLICK_UX": False,
     # Enabling ALERTS_ATTACH_REPORTS, the system sends email and slack message
     # with screenshot and link
     # Disables ALERTS_ATTACH_REPORTS, the system DOES NOT generate screenshot
@@ -429,6 +427,20 @@ FEATURE_FLAGS: Dict[str, bool] = {}
 #         feature_flags_dict['some_feature'] = g.user and g.user.get_id() == 5
 #     return feature_flags_dict
 GET_FEATURE_FLAGS_FUNC: Optional[Callable[[Dict[str, bool]], Dict[str, bool]]] = None
+
+# A function that expands/overrides the frontend `bootstrap_data.common` object.
+# Can be used to implement custom frontend functionality,
+# or dynamically change certain configs.
+#
+# Values in `bootstrap_data.common` should have these characteristics:
+# - They are not specific to a page the user is visiting
+# - They do not contain secrets
+#
+# Takes as a parameter the common bootstrap payload before transformations.
+# Returns a dict containing data that should be added or overridden to the payload.
+COMMON_BOOTSTRAP_OVERRIDES_FUNC: Callable[
+    [Dict[str, Any]], Dict[str, Any]
+] = lambda data: {}  # default: empty dict
 
 # EXTRA_CATEGORICAL_COLOR_SCHEMES is used for adding custom categorical color schemes
 # example code for "My custom warm to hot" color scheme
@@ -924,7 +936,7 @@ TRACKING_URL_TRANSFORMER = lambda x: x
 HIVE_POLL_INTERVAL = int(timedelta(seconds=5).total_seconds())
 
 # Interval between consecutive polls when using Presto Engine
-# See here: https://github.com/dropbox/PyHive/blob/8eb0aeab8ca300f3024655419b93dad926c1a351/pyhive/presto.py#L93  # pylint: disable=line-too-long
+# See here: https://github.com/dropbox/PyHive/blob/8eb0aeab8ca300f3024655419b93dad926c1a351/pyhive/presto.py#L93  # pylint: disable=line-too-long,useless-suppression
 PRESTO_POLL_INTERVAL = int(timedelta(seconds=1).total_seconds())
 
 # Allow for javascript controls components
@@ -1230,6 +1242,9 @@ GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL = "ws://127.0.0.1:8080/"
 #
 DATASET_HEALTH_CHECK: Optional[Callable[["SqlaTable"], str]] = None
 
+# Do not show user info or profile in the menu
+MENU_HIDE_USER_INFO = False
+
 # SQLalchemy link doc reference
 SQLALCHEMY_DOCS_URL = "https://docs.sqlalchemy.org/en/13/core/engines.html"
 SQLALCHEMY_DISPLAY_TEXT = "SQLAlchemy docs"
@@ -1259,7 +1274,7 @@ if CONFIG_PATH_ENV_VAR in os.environ:
 elif importlib.util.find_spec("superset_config") and not is_test():
     try:
         import superset_config  # pylint: disable=import-error
-        from superset_config import *  # type: ignore # pylint: disable=import-error,wildcard-import,unused-wildcard-import
+        from superset_config import *  # type: ignore # pylint: disable=import-error,wildcard-import
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:

@@ -62,17 +62,22 @@ enum SECTIONS {
 const DEFAULT_ORDER = [
   'line',
   'big_number',
+  'big_number_total',
   'table',
+  'pivot_table_v2',
+  'echarts_timeseries_line',
+  'echarts_area',
+  'echarts_timeseries_bar',
+  'echarts_timeseries_scatter',
+  'pie',
+  'mixed_timeseries',
   'filter_box',
   'dist_bar',
   'area',
   'bar',
   'deck_polygon',
-  'pie',
   'time_table',
-  'pivot_table_v2',
   'histogram',
-  'big_number_total',
   'deck_scatter',
   'deck_hex',
   'time_pivot',
@@ -116,11 +121,7 @@ const OTHER_CATEGORY = t('Other');
 
 const ALL_CHARTS = t('All charts');
 
-const RECOMMENDED_TAGS = [
-  t('Highly-used'),
-  t('ECharts'),
-  t('Advanced-Analytics'),
-];
+const RECOMMENDED_TAGS = [t('Popular'), t('ECharts'), t('Advanced-Analytics')];
 
 export const VIZ_TYPE_CONTROL_TEST_ID = 'viz-type-control';
 

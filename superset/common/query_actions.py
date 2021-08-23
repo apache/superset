@@ -27,6 +27,7 @@ from superset.utils.core import (
     ChartDataResultType,
     extract_column_dtype,
     extract_dataframe_dtypes,
+    ExtraFiltersReasonType,
     get_time_filter_status,
     QueryStatus,
 )
@@ -100,8 +101,10 @@ def _get_full(
     status = payload["status"]
     if status != QueryStatus.FAILED:
         payload["colnames"] = list(df.columns)
+        payload["indexnames"] = list(df.index)
         payload["coltypes"] = extract_dataframe_dtypes(df)
         payload["data"] = query_context.get_data(df)
+        payload["result_format"] = query_context.result_format
     del payload["df"]
 
     filters = query_obj.filter
@@ -114,7 +117,7 @@ def _get_full(
         {"column": col} for col in filter_columns if col in columns
     ] + applied_time_columns
     payload["rejected_filters"] = [
-        {"reason": "not_in_datasource", "column": col}
+        {"reason": ExtraFiltersReasonType.COL_NOT_IN_DATASOURCE, "column": col}
         for col in filter_columns
         if col not in columns
     ] + rejected_time_columns

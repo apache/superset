@@ -19,6 +19,7 @@ import json
 from contextlib import contextmanager
 from unittest import mock
 
+import prison
 import pytest
 
 from superset import app, ConnectorRegistry, db
@@ -90,11 +91,15 @@ class TestDatasource(SupersetTestCase):
     def test_external_metadata_by_name_for_physical_table(self):
         self.login(username="admin")
         tbl = self.get_table(name="birth_names")
-        # empty schema need to be represented by undefined
-        url = (
-            f"/datasource/external_metadata_by_name/table/"
-            f"{tbl.database.database_name}/undefined/{tbl.table_name}/"
+        params = prison.dumps(
+            {
+                "datasource_type": "table",
+                "database_name": tbl.database.database_name,
+                "schema_name": tbl.schema,
+                "table_name": tbl.table_name,
+            }
         )
+        url = f"/datasource/external_metadata_by_name/?q={params}"
         resp = self.get_json_resp(url)
         col_names = {o.get("name") for o in resp}
         self.assertEqual(
@@ -112,33 +117,69 @@ class TestDatasource(SupersetTestCase):
         session.add(table)
         session.commit()
 
-        table = self.get_table(name="dummy_sql_table")
-        # empty schema need to be represented by undefined
-        url = (
-            f"/datasource/external_metadata_by_name/table/"
-            f"{table.database.database_name}/undefined/{table.table_name}/"
+        tbl = self.get_table(name="dummy_sql_table")
+        params = prison.dumps(
+            {
+                "datasource_type": "table",
+                "database_name": tbl.database.database_name,
+                "schema_name": tbl.schema,
+                "table_name": tbl.table_name,
+            }
         )
+        url = f"/datasource/external_metadata_by_name/?q={params}"
         resp = self.get_json_resp(url)
         assert {o.get("name") for o in resp} == {"intcol", "strcol"}
-        session.delete(table)
+        session.delete(tbl)
         session.commit()
 
     def test_external_metadata_by_name_from_sqla_inspector(self):
         self.login(username="admin")
         example_database = get_example_database()
         with create_test_table_context(example_database):
-            url = (
-                f"/datasource/external_metadata_by_name/table/"
-                f"{example_database.database_name}/undefined/test_table/"
+            params = prison.dumps(
+                {
+                    "datasource_type": "table",
+                    "database_name": example_database.database_name,
+                    "table_name": "test_table",
+                }
             )
+            url = f"/datasource/external_metadata_by_name/?q={params}"
             resp = self.get_json_resp(url)
             col_names = {o.get("name") for o in resp}
             self.assertEqual(col_names, {"first", "second"})
 
-        url = (
-            f"/datasource/external_metadata_by_name/table/" f"foobar/undefined/foobar/"
+        # No databases found
+        params = prison.dumps(
+            {"datasource_type": "table", "database_name": "foo", "table_name": "bar",}
         )
-        resp = self.get_json_resp(url, raise_on_error=False)
+        url = f"/datasource/external_metadata_by_name/?q={params}"
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, DatasetNotFoundError.status)
+        self.assertEqual(
+            json.loads(resp.data.decode("utf-8")).get("error"),
+            DatasetNotFoundError.message,
+        )
+
+        # No table found
+        params = prison.dumps(
+            {
+                "datasource_type": "table",
+                "database_name": example_database.database_name,
+                "table_name": "fooooooooobarrrrrr",
+            }
+        )
+        url = f"/datasource/external_metadata_by_name/?q={params}"
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, DatasetNotFoundError.status)
+        self.assertEqual(
+            json.loads(resp.data.decode("utf-8")).get("error"),
+            DatasetNotFoundError.message,
+        )
+
+        # invalid query params
+        params = prison.dumps({"datasource_type": "table",})
+        url = f"/datasource/external_metadata_by_name/?q={params}"
+        resp = self.get_json_resp(url)
         self.assertIn("error", resp)
 
     def test_external_metadata_for_virtual_table_template_params(self):

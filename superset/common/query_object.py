@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=R
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, NamedTuple, Optional
@@ -36,6 +35,7 @@ from superset.utils.core import (
     get_metric_names,
     is_adhoc_metric,
     json_int_dttm_ser,
+    QueryObjectFilterClause,
 )
 from superset.utils.date_parser import get_since_until, parse_human_timedelta
 from superset.utils.hashing import md5_sha_from_dict
@@ -65,7 +65,7 @@ DEPRECATED_EXTRAS_FIELDS = (
 )
 
 
-class QueryObject:
+class QueryObject:  # pylint: disable=too-many-instance-attributes
     """
     The query object's schema matches the interfaces of DB connectors like sqla
     and druid. The query objects are constructed on the client.
@@ -85,7 +85,7 @@ class QueryObject:
     metrics: Optional[List[Metric]]
     row_limit: int
     row_offset: int
-    filter: List[Dict[str, Any]]
+    filter: List[QueryObjectFilterClause]
     timeseries_limit: int
     timeseries_limit_metric: Optional[Metric]
     order_desc: bool
@@ -98,7 +98,7 @@ class QueryObject:
     is_rowcount: bool
     time_offsets: List[str]
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments,too-many-locals
         self,
         datasource: Optional[DatasourceDict] = None,
         result_type: Optional[ChartDataResultType] = None,
@@ -108,7 +108,7 @@ class QueryObject:
         granularity: Optional[str] = None,
         metrics: Optional[List[Metric]] = None,
         groupby: Optional[List[str]] = None,
-        filters: Optional[List[Dict[str, Any]]] = None,
+        filters: Optional[List[QueryObjectFilterClause]] = None,
         time_range: Optional[str] = None,
         time_shift: Optional[str] = None,
         is_timeseries: Optional[bool] = None,
@@ -176,7 +176,7 @@ class QueryObject:
         #   2. { label: 'label_name' }  - legacy format for a predefined metric
         #   3. { expressionType: 'SIMPLE' | 'SQL', ... } - adhoc metric
         self.metrics = metrics and [
-            x if isinstance(x, str) or is_adhoc_metric(x) else x["label"]
+            x if isinstance(x, str) or is_adhoc_metric(x) else x["label"]  # type: ignore
             for x in metrics
         ]
 

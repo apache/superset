@@ -54,7 +54,7 @@ describe('RefreshIntervalModal', () => {
   });
   it('should change refreshFrequency with edit mode', () => {
     const wrapper = getMountWrapper(mockedProps);
-    wrapper.instance().handleFrequencyChange({ value: 30 });
+    wrapper.instance().handleFrequencyChange(30);
     wrapper.instance().onSave();
     expect(mockedProps.onChange).toHaveBeenCalled();
     expect(mockedProps.onChange).toHaveBeenCalledWith(30, mockedProps.editMode);
@@ -69,11 +69,11 @@ describe('RefreshIntervalModal', () => {
     const wrapper = getMountWrapper(props);
     wrapper.find('span[role="button"]').simulate('click');
 
-    wrapper.instance().handleFrequencyChange({ value: 30 });
+    wrapper.instance().handleFrequencyChange(30);
     wrapper.update();
     expect(wrapper.find(ModalTrigger).find(Alert)).toExist();
 
-    wrapper.instance().handleFrequencyChange({ value: 3601 });
+    wrapper.instance().handleFrequencyChange(3601);
     wrapper.update();
     expect(wrapper.find(ModalTrigger).find(Alert)).not.toExist();
   });
