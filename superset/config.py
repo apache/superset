@@ -1001,8 +1001,6 @@ ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG = int(timedelta(seconds=1).total_seconds
 # If set to true no notification is sent, the worker will just log a message.
 # Useful for debugging
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = False
-# Allowed notification methods: Email, Slack
-ALERT_REPORTS_ALERTS_NOTIFICATION_METHODS = ["Email", "Slack"]
 
 # A custom prefix to use on all Alerts & Reports emails
 EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "

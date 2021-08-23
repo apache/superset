@@ -23,7 +23,7 @@ export interface ViewState {
     conf: {
       SQLALCHEMY_DOCS_URL: string;
       SQLALCHEMY_DISPLAY_TEXT: string;
-      ALERT_REPORTS_ALERTS_NOTIFICATION_METHODS: NotificationMethodOption[];
+      ALERT_REPORTS_NOTIFICATION_METHODS: NotificationMethodOption[];
     };
   };
   messageToast: Array<Object>;

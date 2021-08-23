@@ -80,10 +80,7 @@ interface AlertReportModalProps {
   show: boolean;
 }
 
-const DEFAULT_NOTIFICATION_METHODS: NotificationMethodOption[] = [
-  'Email',
-  'Slack',
-];
+const DEFAULT_NOTIFICATION_METHODS: NotificationMethodOption[] = ['Email'];
 const DEFAULT_NOTIFICATION_FORMAT = 'PNG';
 const CONDITIONS = [
   {
@@ -402,8 +399,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 }) => {
   const conf = useCommonConf();
   const allowedNotificationMethods =
-    conf?.ALERT_REPORTS_ALERTS_NOTIFICATION_METHODS ||
-    DEFAULT_NOTIFICATION_METHODS;
+    conf?.ALERT_REPORTS_NOTIFICATION_METHODS || DEFAULT_NOTIFICATION_METHODS;
 
   const [disableSave, setDisableSave] = useState<boolean>(true);
   const [
@@ -443,7 +439,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     settings.push({
       recipients: '',
-      options: allowedNotificationMethods, // TODO: Need better logic for this
+      options: allowedNotificationMethods,
     });
 
     setNotificationSettings(settings);
