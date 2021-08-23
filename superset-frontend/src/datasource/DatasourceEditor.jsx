@@ -325,14 +325,18 @@ class DatasourceEditor extends React.PureComponent {
         ...props.datasource,
         metrics: props.datasource.metrics?.map(metric => {
           const {
+            certified_by: certifiedByMetric,
+            certification_details: certificationDetails,
+          } = metric;
+          const {
             certification: { details, certified_by: certifiedBy } = {},
             warning_markdown: warningMarkdown,
           } = JSON.parse(metric.extra || '{}') || {};
           return {
             ...metric,
-            certification_details: details || '',
+            certification_details: certificationDetails || details,
             warning_markdown: warningMarkdown || '',
-            certified_by: certifiedBy,
+            certified_by: certifiedBy || certifiedByMetric,
           };
         }),
       },
@@ -493,11 +497,14 @@ class DatasourceEditor extends React.PureComponent {
       schema_name: datasource.schema,
       table_name: datasource.table_name,
     };
-    const endpoint = `/datasource/external_metadata_by_name/?q=${rison.encode(
+    Object.entries(params).forEach(([key, value]) => {
       // rison can't encode the undefined value
-      Object.keys(params).map(key =>
-        params[key] === undefined ? null : params[key],
-      ),
+      if (value === undefined) {
+        params[key] = null;
+      }
+    });
+    const endpoint = `/datasource/external_metadata_by_name/?q=${rison.encode(
+      params,
     )}`;
     this.setState({ metadataLoading: true });
 
@@ -768,41 +775,47 @@ class DatasourceEditor extends React.PureComponent {
             <div>
               {this.state.isSqla && (
                 <>
-                  <Field
-                    fieldKey="databaseSelector"
-                    label={t('virtual')}
-                    control={
-                      <DatabaseSelector
-                        dbId={datasource.database.id}
-                        schema={datasource.schema}
-                        onSchemaChange={schema =>
-                          this.state.isEditMode &&
-                          this.onDatasourcePropChange('schema', schema)
+                  <Col xs={24} md={12}>
+                    <Field
+                      fieldKey="databaseSelector"
+                      label={t('virtual')}
+                      control={
+                        <div css={{ marginTop: 8 }}>
+                          <DatabaseSelector
+                            db={datasource?.database}
+                            schema={datasource.schema}
+                            onSchemaChange={schema =>
+                              this.state.isEditMode &&
+                              this.onDatasourcePropChange('schema', schema)
+                            }
+                            onDbChange={database =>
+                              this.state.isEditMode &&
+                              this.onDatasourcePropChange('database', database)
+                            }
+                            formMode={false}
+                            handleError={this.props.addDangerToast}
+                            readOnly={!this.state.isEditMode}
+                          />
+                        </div>
+                      }
+                    />
+                    <div css={{ width: 'calc(100% - 34px)', marginTop: -16 }}>
+                      <Field
+                        fieldKey="table_name"
+                        label={t('Dataset name')}
+                        control={
+                          <TextControl
+                            controlId="table_name"
+                            onChange={table => {
+                              this.onDatasourcePropChange('table_name', table);
+                            }}
+                            placeholder={t('Dataset name')}
+                            disabled={!this.state.isEditMode}
+                          />
                         }
-                        onDbChange={database =>
-                          this.state.isEditMode &&
-                          this.onDatasourcePropChange('database', database)
-                        }
-                        formMode={false}
-                        handleError={this.props.addDangerToast}
-                        readOnly={!this.state.isEditMode}
                       />
-                    }
-                  />
-                  <Field
-                    fieldKey="table_name"
-                    label={t('Dataset name')}
-                    control={
-                      <TextControl
-                        controlId="table_name"
-                        onChange={table => {
-                          this.onDatasourcePropChange('table_name', table);
-                        }}
-                        placeholder={t('Dataset name')}
-                        disabled={!this.state.isEditMode}
-                      />
-                    }
-                  />
+                    </div>
+                  </Col>
                   <Field
                     fieldKey="sql"
                     label={t('SQL')}
@@ -846,33 +859,39 @@ class DatasourceEditor extends React.PureComponent {
                   fieldKey="tableSelector"
                   label={t('Physical')}
                   control={
-                    <TableSelector
-                      clearable={false}
-                      dbId={datasource.database.id}
-                      handleError={this.props.addDangerToast}
-                      schema={datasource.schema}
-                      sqlLabMode={false}
-                      tableName={datasource.table_name}
-                      onSchemaChange={
-                        this.state.isEditMode
-                          ? schema =>
-                              this.onDatasourcePropChange('schema', schema)
-                          : undefined
-                      }
-                      onDbChange={
-                        this.state.isEditMode
-                          ? database =>
-                              this.onDatasourcePropChange('database', database)
-                          : undefined
-                      }
-                      onTableChange={
-                        this.state.isEditMode
-                          ? table =>
-                              this.onDatasourcePropChange('table_name', table)
-                          : undefined
-                      }
-                      readOnly={!this.state.isEditMode}
-                    />
+                    <div css={{ marginTop: 8 }}>
+                      <TableSelector
+                        clearable={false}
+                        database={datasource.database}
+                        dbId={datasource.database.id}
+                        handleError={this.props.addDangerToast}
+                        schema={datasource.schema}
+                        sqlLabMode={false}
+                        tableName={datasource.table_name}
+                        onSchemaChange={
+                          this.state.isEditMode
+                            ? schema =>
+                                this.onDatasourcePropChange('schema', schema)
+                            : undefined
+                        }
+                        onDbChange={
+                          this.state.isEditMode
+                            ? database =>
+                                this.onDatasourcePropChange(
+                                  'database',
+                                  database,
+                                )
+                            : undefined
+                        }
+                        onTableChange={
+                          this.state.isEditMode
+                            ? table =>
+                                this.onDatasourcePropChange('table_name', table)
+                            : undefined
+                        }
+                        readOnly={!this.state.isEditMode}
+                      />
+                    </div>
                   }
                   description={t(
                     'The pointer to a physical table (or view). Keep in mind that the chart is ' +
@@ -932,7 +951,6 @@ class DatasourceEditor extends React.PureComponent {
     const { datasource } = this.state;
     const { metrics } = datasource;
     const sortedMetrics = metrics?.length ? this.sortMetrics(metrics) : [];
-
     return (
       <CollectionTable
         tableColumns={['metric_name', 'verbose_name', 'expression']}

@@ -217,8 +217,6 @@ class BaseDashboardSchema(Schema):
             data["slug"] = re.sub(r"[^\w\-]+", "", data["slug"])
         return data
 
-    # pylint: disable=no-self-use,unused-argument
-
 
 class DashboardPostSchema(BaseDashboardSchema):
     dashboard_title = fields.String(

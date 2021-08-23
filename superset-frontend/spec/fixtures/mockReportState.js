@@ -16,33 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { useTheme, SafeMarkdown } from '@superset-ui/core';
-import Icons, { IconType } from 'src/components/Icons';
-import { Tooltip } from 'src/components/Tooltip';
+import dashboardInfo from './mockDashboardInfo';
+import { user } from '../javascripts/sqllab/fixtures';
 
-export interface WarningIconWithTooltipProps {
-  warningMarkdown: string;
-  size?: IconType['iconSize'];
-}
-
-function WarningIconWithTooltip({
-  warningMarkdown,
-  size,
-}: WarningIconWithTooltipProps) {
-  const theme = useTheme();
-  return (
-    <Tooltip
-      id="warning-tooltip"
-      title={<SafeMarkdown source={warningMarkdown} />}
-    >
-      <Icons.AlertSolid
-        iconColor={theme.colors.alert.base}
-        iconSize={size}
-        css={{ marginRight: theme.gridUnit * 2 }}
-      />
-    </Tooltip>
-  );
-}
-
-export default WarningIconWithTooltip;
+export default {
+  active: true,
+  creation_method: 'dashboards',
+  crontab: '0 12 * * 1',
+  dashboard: dashboardInfo.id,
+  name: 'Weekly Report',
+  owners: [user.userId],
+  recipients: [
+    {
+      recipient_config_json: {
+        target: user.email,
+      },
+      type: 'Email',
+    },
+  ],
+  type: 'Report',
+};

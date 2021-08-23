@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import dataclasses  # pylint: disable=wrong-import-order
+import dataclasses
 import functools
 import logging
 import traceback
@@ -77,9 +77,7 @@ from superset.utils import core as utils
 from .utils import bootstrap_user_data
 
 if TYPE_CHECKING:
-    from superset.connectors.druid.views import (  # pylint: disable=unused-import
-        DruidClusterModelView,
-    )
+    from superset.connectors.druid.views import DruidClusterModelView
 
 FRONTEND_CONF_KEYS = (
     "SUPERSET_WEBSERVER_TIMEOUT",
@@ -180,7 +178,7 @@ def api(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
     def wraps(self: "BaseSupersetView", *args: Any, **kwargs: Any) -> FlaskResponse:
         try:
             return f(self, *args, **kwargs)
-        except NoAuthorizationError as ex:  # pylint: disable=broad-except
+        except NoAuthorizationError as ex:
             logger.warning(ex)
             return json_error_response(get_error_msg(), status=401)
         except Exception as ex:  # pylint: disable=broad-except
@@ -277,9 +275,7 @@ def is_user_admin() -> bool:
 
 class BaseSupersetView(BaseView):
     @staticmethod
-    def json_response(
-        obj: Any, status: int = 200
-    ) -> FlaskResponse:  # pylint: disable=no-self-use
+    def json_response(obj: Any, status: int = 200) -> FlaskResponse:
         return Response(
             json.dumps(obj, default=utils.json_int_dttm_ser, ignore_nan=True),
             status=status,

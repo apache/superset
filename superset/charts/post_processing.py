@@ -31,7 +31,12 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 
-from superset.utils.core import DTTM_ALIAS, extract_dataframe_dtypes, get_metric_name
+from superset.utils.core import (
+    ChartDataResultFormat,
+    DTTM_ALIAS,
+    extract_dataframe_dtypes,
+    get_metric_name,
+)
 
 
 def get_column_key(label: Tuple[str, ...], metrics: List[str]) -> Tuple[Any, ...]:
@@ -126,11 +131,13 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
         total = df.sum(axis=axis["columns"])
         df = df.astype(total.dtypes).div(total, axis=axis["rows"])
 
-    if show_rows_total:
-        # convert to a MultiIndex to simplify logic
-        if not isinstance(df.columns, pd.MultiIndex):
-            df.columns = pd.MultiIndex.from_tuples([(str(i),) for i in df.columns])
+    # convert to a MultiIndex to simplify logic
+    if not isinstance(df.index, pd.MultiIndex):
+        df.index = pd.MultiIndex.from_tuples([(str(i),) for i in df.index])
+    if not isinstance(df.columns, pd.MultiIndex):
+        df.columns = pd.MultiIndex.from_tuples([(str(i),) for i in df.columns])
 
+    if show_rows_total:
         # add subtotal for each group and overall total; we start from the
         # overall group, and iterate deeper into subgroups
         groups = df.columns
@@ -146,10 +153,6 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                 df.insert(int(slice_.stop), subtotal_name, subtotal)
 
     if rows and show_columns_total:
-        # convert to a MultiIndex to simplify logic
-        if not isinstance(df.index, pd.MultiIndex):
-            df.index = pd.MultiIndex.from_tuples([(str(i),) for i in df.index])
-
         # add subtotal for each group and overall total; we start from the
         # overall group, and iterate deeper into subgroups
         groups = df.index
@@ -207,9 +210,7 @@ pivot_v2_aggfunc_map = {
 }
 
 
-def pivot_table_v2(  # pylint: disable=too-many-branches
-    df: pd.DataFrame, form_data: Dict[str, Any]
-) -> pd.DataFrame:
+def pivot_table_v2(df: pd.DataFrame, form_data: Dict[str, Any]) -> pd.DataFrame:
     """
     Pivot table v2.
     """
@@ -279,24 +280,42 @@ def apply_post_process(
     post_processor = post_processors[viz_type]
 
     for query in result["queries"]:
-        df = pd.read_csv(StringIO(query["data"]))
+        if query["result_format"] == ChartDataResultFormat.JSON:
+            df = pd.DataFrame.from_dict(query["data"])
+        elif query["result_format"] == ChartDataResultFormat.CSV:
+            df = pd.read_csv(StringIO(query["data"]))
+        else:
+            raise Exception(f"Result format {query['result_format']} not supported")
+
         processed_df = post_processor(df, form_data)
 
-        # flatten column names
+        query["colnames"] = list(processed_df.columns)
+        query["indexnames"] = list(processed_df.index)
+        query["coltypes"] = extract_dataframe_dtypes(processed_df)
+        query["rowcount"] = len(processed_df.index)
+
+        # Flatten hierarchical columns/index since they are represented as
+        # `Tuple[str]`. Otherwise encoding to JSON later will fail because
+        # maps cannot have tuples as their keys in JSON.
         processed_df.columns = [
             " ".join(str(name) for name in column).strip()
             if isinstance(column, tuple)
             else column
             for column in processed_df.columns
         ]
+        processed_df.index = [
+            " ".join(str(name) for name in index).strip()
+            if isinstance(index, tuple)
+            else index
+            for index in processed_df.index
+        ]
 
-        buf = StringIO()
-        processed_df.to_csv(buf)
-        buf.seek(0)
-
-        query["data"] = buf.getvalue()
-        query["colnames"] = list(processed_df.columns)
-        query["coltypes"] = extract_dataframe_dtypes(processed_df)
-        query["rowcount"] = len(processed_df.index)
+        if query["result_format"] == ChartDataResultFormat.JSON:
+            query["data"] = processed_df.to_dict()
+        elif query["result_format"] == ChartDataResultFormat.CSV:
+            buf = StringIO()
+            processed_df.to_csv(buf)
+            buf.seek(0)
+            query["data"] = buf.getvalue()
 
     return result

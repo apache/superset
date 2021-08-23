@@ -82,7 +82,7 @@ def import_chart(
 
 
 def import_dashboard(
-    # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+    # pylint: disable=too-many-locals,too-many-statements
     dashboard_to_import: Dashboard,
     dataset_id_mapping: Optional[Dict[int, int]] = None,
     import_time: Optional[int] = None,

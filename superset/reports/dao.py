@@ -121,13 +121,12 @@ class ReportScheduleDAO(BaseDAO):
         Validate if the user already has a chart or dashboard
         with a report attached form the self subscribe reports
         """
-        query = db.session.query(ReportSchedule).filter(
-            ReportSchedule.created_by_fk == user_id
-        )
-        if dashboard_id is not None:
+
+        query = db.session.query(ReportSchedule).filter_by(created_by_fk=user_id)
+        if query is not None and dashboard_id is not None:
             query = query.filter(ReportSchedule.dashboard_id == dashboard_id)
 
-        if chart_id is not None:
+        if query is not None and chart_id is not None:
             query = query.filter(ReportSchedule.chart_id == chart_id)
         return query.one_or_none()
 
