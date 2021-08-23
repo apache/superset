@@ -18,7 +18,7 @@
  */
 import { t, ChartMetadata, ChartPlugin, AnnotationType, Behavior } from '@superset-ui/core';
 import buildQuery from '../../buildQuery';
-import controlPanel from '../controlPanel';
+import controlPanel from './controlPanel';
 import transformProps from '../../transformProps';
 import thumbnail from './images/thumbnail.png';
 import {
