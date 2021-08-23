@@ -43,7 +43,7 @@ jobs:
       - name: pylint
         if: steps.check.outcome == 'failure'
         # `-j 0` run Pylint in parallel
-        run: pylint -j 0 superset
+        run: pylint -j 0 --extension-pkg-allow-list=pandas._libs.parsers superset
 
   pre-commit:
     if: github.event.pull_request.draft == false
