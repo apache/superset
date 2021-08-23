@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from datetime import datetime
 from typing import Dict, Optional, Type, List, TYPE_CHECKING
 
@@ -27,6 +28,8 @@ from superset.extensions import cache_manager
 if TYPE_CHECKING:
     # prevent circular imports
     from superset.models.core import Database
+
+logger = logging.getLogger(__name__)
 
 
 class ClickHouseEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
@@ -77,7 +80,6 @@ class ClickHouseEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             return f"""toDateTime('{dttm.isoformat(sep=" ", timespec="seconds")}')"""
         return None
 
-
     @classmethod
     @cache_manager.cache.memoize()
     def get_function_names(cls, database: "Database") -> List[str]:
@@ -109,7 +111,6 @@ class ClickHouseEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
                 exc_info=True,
             )
             return []
-
 
         # otherwise, return no function names to prevent errors
         return []
