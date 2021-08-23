@@ -46,7 +46,7 @@ At the dashboard level, work has been focused on improving available information
 
 ![export full csv](media/export_full_csv.png)
 
-Continuing the on theme of making more things accessable directly from the dashboard, users can now view the SQL Query behind any chart directly from the dashboard as well.
+Continuing on the theme of making more things accessible directly from the dashboard, users can now view the SQL Query behind any chart directly from the dashboard as well.
 
 ![view query dashboard](media/view_query_dashboard.png)
 
