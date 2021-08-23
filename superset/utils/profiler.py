@@ -21,7 +21,6 @@ from unittest import mock
 from werkzeug.wrappers import Request, Response
 
 try:
-    # pylint: disable=import-error,import-outside-toplevel
     from pyinstrument import Profiler
 except ModuleNotFoundError:
     Profiler = None

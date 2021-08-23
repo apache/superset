@@ -19,7 +19,7 @@ import json
 import logging
 import re
 from collections import defaultdict, OrderedDict
-from dataclasses import dataclass, field  # pylint: disable=wrong-import-order
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import (
     Any,
@@ -471,9 +471,7 @@ sqlatable_user = Table(
 )
 
 
-class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-attributes
-    Model, BaseDatasource
-):
+class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-methods
 
     """An ORM object for SqlAlchemy table references"""
 
@@ -1290,7 +1288,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             qry = qry.offset(row_offset)
 
         if (
-            is_timeseries  # pylint: disable=too-many-boolean-expressions
+            is_timeseries
             and timeseries_limit
             and not time_groupby_inline
             and groupby_exprs_sans_timestamp

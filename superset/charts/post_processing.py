@@ -210,9 +210,7 @@ pivot_v2_aggfunc_map = {
 }
 
 
-def pivot_table_v2(  # pylint: disable=too-many-branches
-    df: pd.DataFrame, form_data: Dict[str, Any]
-) -> pd.DataFrame:
+def pivot_table_v2(df: pd.DataFrame, form_data: Dict[str, Any]) -> pd.DataFrame:
     """
     Pivot table v2.
     """

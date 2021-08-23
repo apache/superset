@@ -900,7 +900,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return pvm.permission.name in {"can_override_role_permissions", "can_approve"}
 
-    def set_perm(  # pylint: disable=no-self-use,unused-argument
+    def set_perm(  # pylint: disable=unused-argument
         self, mapper: Mapper, connection: Connection, target: "BaseDatasource"
     ) -> None:
         """
@@ -910,7 +910,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param connection: The DB-API connection
         :param target: The mapped instance being persisted
         """
-        link_table = target.__table__  # pylint: disable=no-member
+        link_table = target.__table__
         if target.perm != target.get_perm():
             connection.execute(
                 link_table.update()
@@ -974,8 +974,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 )
 
     def raise_for_access(
-        # pylint: disable=too-many-arguments,too-many-branches,
-        # pylint: disable=too-many-locals
+        # pylint: disable=too-many-arguments,too-many-locals
         self,
         database: Optional["Database"] = None,
         datasource: Optional["BaseDatasource"] = None,
