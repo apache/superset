@@ -300,7 +300,9 @@ export default class SelectControl extends React.PureComponent {
           }
         `}
       >
-        {this.props.showHeader && <ControlHeader {...this.props} hideNativeTab={true} />}
+        {this.props.showHeader && (
+          <ControlHeader {...this.props} hideNativeTab />
+        )}
         {isMulti ? (
           <OnPasteSelect {...selectProps} selectWrap={SelectComponent} />
         ) : (
