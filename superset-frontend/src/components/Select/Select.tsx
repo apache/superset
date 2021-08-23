@@ -87,12 +87,9 @@ const StyledContainer = styled.div`
   flex-direction: column;
 `;
 
-const StyledSelect = styled(AntdSelect, {
-  shouldForwardProp: prop => prop !== 'hasHeader',
-})<{ hasHeader: boolean }>`
-  ${({ theme, hasHeader }) => `
+const StyledSelect = styled(AntdSelect)`
+  ${({ theme }) => `
     width: 100%;
-    margin-top: ${hasHeader ? theme.gridUnit : 0}px;
 
     && .ant-select-selector {
       border-radius: ${theme.gridUnit}px;
@@ -190,6 +187,7 @@ const Select = ({
     : 'multiple';
 
   useEffect(() => {
+    fetchedQueries.current.clear();
     setSelectOptions(
       options && Array.isArray(options) ? options : EMPTY_OPTIONS,
     );
@@ -367,34 +365,45 @@ const Select = ({
     [options],
   );
 
-  const handleOnSearch = debounce((search: string) => {
-    const searchValue = search.trim();
-    // enables option creation
-    if (allowNewOptions && isSingleMode) {
-      const firstOption = selectOptions.length > 0 && selectOptions[0].value;
-      // replaces the last search value entered with the new one
-      // only when the value wasn't part of the original options
-      if (
-        searchValue &&
-        firstOption === searchedValue &&
-        !initialOptions.find(o => o.value === searchedValue)
-      ) {
-        selectOptions.shift();
-        setSelectOptions(selectOptions);
-      }
-      if (searchValue && !hasOption(searchValue, selectOptions)) {
-        const newOption = {
-          label: searchValue,
-          value: searchValue,
-        };
-        // adds a custom option
-        const newOptions = [...selectOptions, newOption];
-        setSelectOptions(newOptions);
-        setSelectValue(searchValue);
-      }
-    }
-    setSearchedValue(searchValue);
-  }, DEBOUNCE_TIMEOUT);
+  const handleOnSearch = useMemo(
+    () =>
+      debounce((search: string) => {
+        const searchValue = search.trim();
+        // enables option creation
+        if (allowNewOptions && isSingleMode) {
+          const firstOption =
+            selectOptions.length > 0 && selectOptions[0].value;
+          // replaces the last search value entered with the new one
+          // only when the value wasn't part of the original options
+          if (
+            searchValue &&
+            firstOption === searchedValue &&
+            !initialOptions.find(o => o.value === searchedValue)
+          ) {
+            selectOptions.shift();
+            setSelectOptions(selectOptions);
+          }
+          if (searchValue && !hasOption(searchValue, selectOptions)) {
+            const newOption = {
+              label: searchValue,
+              value: searchValue,
+            };
+            // adds a custom option
+            const newOptions = [...selectOptions, newOption];
+            setSelectOptions(newOptions);
+            setSelectValue(searchValue);
+          }
+        }
+        setSearchedValue(searchValue);
+      }, DEBOUNCE_TIMEOUT),
+    [
+      allowNewOptions,
+      initialOptions,
+      isSingleMode,
+      searchedValue,
+      selectOptions,
+    ],
+  );
 
   const handlePagination = (e: UIEvent<HTMLElement>) => {
     const vScroll = e.currentTarget;
@@ -487,7 +496,6 @@ const Select = ({
     <StyledContainer>
       {header}
       <StyledSelect
-        hasHeader={!!header}
         aria-label={ariaLabel || name}
         dropdownRender={dropdownRender}
         filterOption={handleFilterOption}

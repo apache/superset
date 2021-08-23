@@ -51,6 +51,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import FacePile from 'src/components/FacePile';
 import CertifiedIcon from 'src/components/CertifiedIcon';
+import InfoTooltip from 'src/components/InfoTooltip';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
@@ -228,6 +229,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             original: {
               extra,
               table_name: datasetTitle,
+              description,
               explore_url: exploreURL,
             },
           },
@@ -241,14 +243,19 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   <CertifiedIcon
                     certifiedBy={parsedExtra.certification.certified_by}
                     details={parsedExtra.certification.details}
+                    size="l"
                   />
                 )}
                 {parsedExtra?.warning_markdown && (
                   <WarningIconWithTooltip
                     warningMarkdown={parsedExtra.warning_markdown}
+                    size="l"
                   />
                 )}
                 {titleLink}
+                {description && (
+                  <InfoTooltip tooltip={description} viewBox="0 -1 24 24" />
+                )}
               </FlexRowContainer>
             );
           } catch {

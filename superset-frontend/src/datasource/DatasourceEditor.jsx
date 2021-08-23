@@ -775,41 +775,47 @@ class DatasourceEditor extends React.PureComponent {
             <div>
               {this.state.isSqla && (
                 <>
-                  <Field
-                    fieldKey="databaseSelector"
-                    label={t('virtual')}
-                    control={
-                      <DatabaseSelector
-                        dbId={datasource.database.id}
-                        schema={datasource.schema}
-                        onSchemaChange={schema =>
-                          this.state.isEditMode &&
-                          this.onDatasourcePropChange('schema', schema)
+                  <Col xs={24} md={12}>
+                    <Field
+                      fieldKey="databaseSelector"
+                      label={t('virtual')}
+                      control={
+                        <div css={{ marginTop: 8 }}>
+                          <DatabaseSelector
+                            db={datasource?.database}
+                            schema={datasource.schema}
+                            onSchemaChange={schema =>
+                              this.state.isEditMode &&
+                              this.onDatasourcePropChange('schema', schema)
+                            }
+                            onDbChange={database =>
+                              this.state.isEditMode &&
+                              this.onDatasourcePropChange('database', database)
+                            }
+                            formMode={false}
+                            handleError={this.props.addDangerToast}
+                            readOnly={!this.state.isEditMode}
+                          />
+                        </div>
+                      }
+                    />
+                    <div css={{ width: 'calc(100% - 34px)', marginTop: -16 }}>
+                      <Field
+                        fieldKey="table_name"
+                        label={t('Dataset name')}
+                        control={
+                          <TextControl
+                            controlId="table_name"
+                            onChange={table => {
+                              this.onDatasourcePropChange('table_name', table);
+                            }}
+                            placeholder={t('Dataset name')}
+                            disabled={!this.state.isEditMode}
+                          />
                         }
-                        onDbChange={database =>
-                          this.state.isEditMode &&
-                          this.onDatasourcePropChange('database', database)
-                        }
-                        formMode={false}
-                        handleError={this.props.addDangerToast}
-                        readOnly={!this.state.isEditMode}
                       />
-                    }
-                  />
-                  <Field
-                    fieldKey="table_name"
-                    label={t('Dataset name')}
-                    control={
-                      <TextControl
-                        controlId="table_name"
-                        onChange={table => {
-                          this.onDatasourcePropChange('table_name', table);
-                        }}
-                        placeholder={t('Dataset name')}
-                        disabled={!this.state.isEditMode}
-                      />
-                    }
-                  />
+                    </div>
+                  </Col>
                   <Field
                     fieldKey="sql"
                     label={t('SQL')}
@@ -853,33 +859,39 @@ class DatasourceEditor extends React.PureComponent {
                   fieldKey="tableSelector"
                   label={t('Physical')}
                   control={
-                    <TableSelector
-                      clearable={false}
-                      dbId={datasource.database.id}
-                      handleError={this.props.addDangerToast}
-                      schema={datasource.schema}
-                      sqlLabMode={false}
-                      tableName={datasource.table_name}
-                      onSchemaChange={
-                        this.state.isEditMode
-                          ? schema =>
-                              this.onDatasourcePropChange('schema', schema)
-                          : undefined
-                      }
-                      onDbChange={
-                        this.state.isEditMode
-                          ? database =>
-                              this.onDatasourcePropChange('database', database)
-                          : undefined
-                      }
-                      onTableChange={
-                        this.state.isEditMode
-                          ? table =>
-                              this.onDatasourcePropChange('table_name', table)
-                          : undefined
-                      }
-                      readOnly={!this.state.isEditMode}
-                    />
+                    <div css={{ marginTop: 8 }}>
+                      <TableSelector
+                        clearable={false}
+                        database={datasource.database}
+                        dbId={datasource.database.id}
+                        handleError={this.props.addDangerToast}
+                        schema={datasource.schema}
+                        sqlLabMode={false}
+                        tableName={datasource.table_name}
+                        onSchemaChange={
+                          this.state.isEditMode
+                            ? schema =>
+                                this.onDatasourcePropChange('schema', schema)
+                            : undefined
+                        }
+                        onDbChange={
+                          this.state.isEditMode
+                            ? database =>
+                                this.onDatasourcePropChange(
+                                  'database',
+                                  database,
+                                )
+                            : undefined
+                        }
+                        onTableChange={
+                          this.state.isEditMode
+                            ? table =>
+                                this.onDatasourcePropChange('table_name', table)
+                            : undefined
+                        }
+                        readOnly={!this.state.isEditMode}
+                      />
+                    </div>
                   }
                   description={t(
                     'The pointer to a physical table (or view). Keep in mind that the chart is ' +
