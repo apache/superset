@@ -16,14 +16,14 @@
 # under the License.
 import logging
 from datetime import datetime
-from typing import Dict, Optional, Type, List, TYPE_CHECKING
+from typing import Dict, List, Optional, Type, TYPE_CHECKING
 
 from urllib3.exceptions import NewConnectionError
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.exceptions import SupersetDBAPIDatabaseError
-from superset.utils import core as utils
 from superset.extensions import cache_manager
+from superset.utils import core as utils
 
 if TYPE_CHECKING:
     # prevent circular imports
