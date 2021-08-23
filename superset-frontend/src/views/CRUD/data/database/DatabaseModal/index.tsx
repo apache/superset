@@ -853,8 +853,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     const { hostname } = window.location;
     let ipAlert = connectionAlert?.REGIONAL_IPS?.default || '';
     const regionalIPs = connectionAlert?.REGIONAL_IPS || {};
-    Object.entries(regionalIPs).forEach(([regex, ipRange]) => {
-      if (regex.match(hostname)) {
+    Object.entries(regionalIPs).forEach(([ipRegion, ipRange]) => {
+      const regex = new RegExp(ipRegion);
+      console.log(regex);
+      console.log(hostname.match(regex));
+      if (hostname.match(regex)) {
         ipAlert = ipRange;
       }
     });
