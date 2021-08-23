@@ -34,7 +34,7 @@ from cachelib.base import BaseCache
 from celery.schedules import crontab
 from dateutil import tz
 from flask import Blueprint
-from flask_appbuilder.security.manager import AUTH_DB,AUTH_OAUTH
+from flask_appbuilder.security.manager import AUTH_DB,AUTH_OAUTH,AUTH_OID,AUTH_REMOTE_USER,AUTH_LDAP
 from pandas.io.parsers import STR_NA_VALUES
 
 from superset.jinja_context import (  # pylint: disable=unused-import
@@ -261,7 +261,13 @@ DRUID_METADATA_LINKS_ENABLED = True
 # AUTH_REMOTE_USER : Is for using REMOTE_USER from web server
 
 #AUTH_TYPE = AUTH_DB
-AUTH_TYPE = AUTH_OAUTH
+#AUTH_TYPE = AUTH_OAUTH
+
+# Uncomment to setup Full admin role name
+#AUTH_ROLE_ADMIN = 'Admin'
+
+# Uncomment to setup Public role name, no authentication needed
+#AUTH_ROLE_PUBLIC = 'Public'
 
 # Will allow user self registration
 #AUTH_USER_REGISTRATION = True
