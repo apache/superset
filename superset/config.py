@@ -276,29 +276,12 @@ DRUID_METADATA_LINKS_ENABLED = True
 #AUTH_USER_REGISTRATION_ROLE = "Public"
 
 # When using LDAP Auth, setup the LDAP server
-# AUTH_LDAP_SERVER = "ldap://ldapserver.new"
+#AUTH_LDAP_SERVER = "ldap://ldapserver.new"
 
 # Uncomment to setup OpenID providers example for OpenID authentication
 # OPENID_PROVIDERS = [
 #    { 'name': 'Yahoo', 'url': 'https://open.login.yahoo.com/' },
 #    { 'name': 'Flickr', 'url': 'https://www.flickr.com/<username>' },
-
-# OAUTH_PROVIDERS = [
-#     {'name': 'google', 'icon': 'fa-google',
-#      'token_key': 'access_token',
-#      'remote_app': {
-#          'client_id': '719745002707-rkconk6trg3euhvnvvme1nbbmbcd6hca.apps.googleusercontent.com',
-#          'client_secret': '7yzqk19vCiqe7xH_SrJxTRgB',
-#          'api_base_url': 'https://www.googleapis.com/oauth2/v2/',
-#          'client_kwargs': {
-#              'scope': 'email profile'
-#          },
-#          'request_token_url': None,
-#          'access_token_url': 'https://accounts.google.com/o/oauth2/token',
-#          'authorize_url': 'https://accounts.google.com/o/oauth2/auth'
-#
-#      }
-#      }]
 
 # ---------------------------------------------------
 # Roles config
