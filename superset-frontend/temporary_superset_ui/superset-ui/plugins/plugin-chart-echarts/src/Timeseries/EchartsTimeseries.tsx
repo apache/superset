@@ -71,7 +71,9 @@ export default function EchartsTimeseries({
 
   const eventHandlers: EventHandlers = {
     click: props => {
-      const { seriesName: name } = props;
+      const { seriesName: name, value } = props;
+      const xValue = value[0].getTime?.() || value[0];
+      console.log(props, name, xValue);
       const values = Object.values(selectedValues);
       if (values.includes(name)) {
         handleChange(values.filter(v => v !== name));
