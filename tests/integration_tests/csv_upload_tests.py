@@ -292,7 +292,7 @@ def test_import_csv(setup_csv_upload, create_csv_files):
     assert success_msg_f1 in resp
 
     # make sure only specified column name was read
-    table = SupersetTestCase.get_table_by_name(CSV_UPLOAD_TABLE)
+    table = SupersetTestCase.get_table(name=CSV_UPLOAD_TABLE)
     assert "b" not in table.column_names
 
     # upload again with replace mode
@@ -408,7 +408,7 @@ def test_import_parquet(setup_csv_upload, create_columnar_files):
     assert success_msg_f1 in resp
 
     # make sure only specified column name was read
-    table = SupersetTestCase.get_table_by_name(PARQUET_UPLOAD_TABLE)
+    table = SupersetTestCase.get_table(name=PARQUET_UPLOAD_TABLE)
     assert "b" not in table.column_names
 
     # upload again with replace mode
