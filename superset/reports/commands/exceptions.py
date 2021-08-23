@@ -80,6 +80,32 @@ class ReportScheduleChartOrDashboardValidationError(ValidationError):
         super().__init__(_("Choose a chart or dashboard not both"), field_name="chart")
 
 
+class ChartNotSavedValidationError(ValidationError):
+    """
+    Marshmallow validation error for charts that haven't been saved yet
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            _("Please save your chart first, then try creating a new email report."),
+            field_name="chart",
+        )
+
+
+class DashboardNotSavedValidationError(ValidationError):
+    """
+    Marshmallow validation error for dashboards that haven't been saved yet
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            _(
+                "Please save your dashboard first, then try creating a new email report."
+            ),
+            field_name="dashboard",
+        )
+
+
 class ReportScheduleInvalidError(CommandInvalidError):
     message = _("Report Schedule parameters are invalid.")
 
