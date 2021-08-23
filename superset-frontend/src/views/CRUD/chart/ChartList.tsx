@@ -57,6 +57,7 @@ import Chart from 'src/types/Chart';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
+import setupPlugins from 'src/setup/setupPlugins';
 import ChartCard from './ChartCard';
 
 const PAGE_SIZE = 25;
@@ -124,6 +125,8 @@ interface ChartListProps {
 const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
+
+setupPlugins();
 
 function ChartList(props: ChartListProps) {
   const { addDangerToast, addSuccessToast } = props;
