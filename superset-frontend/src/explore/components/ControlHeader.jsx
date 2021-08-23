@@ -37,7 +37,7 @@ const propTypes = {
   tooltipOnClick: PropTypes.func,
   warning: PropTypes.string,
   danger: PropTypes.string,
-  hideNativeTab: PropTypes.bool
+  hideNativeTab: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -45,7 +45,7 @@ const defaultProps = {
   renderTrigger: false,
   hovered: false,
   name: undefined,
-  hideNativeTab:false
+  hideNativeTab: false,
 };
 
 class ControlHeader extends React.Component {
@@ -107,11 +107,13 @@ class ControlHeader extends React.Component {
           >
             {this.props.leftNode && <span>{this.props.leftNode}</span>}
             <span
-              role={hideNativeTab ?'':"button"}
-              tabIndex={hideNativeTab ? -1:0}
-              onClick={this.props.onClick}
+              role={hideNativeTab ? 'main' : 'button'}
+              tabIndex={hideNativeTab ? -1 : 0}
+              onClick={hideNativeTab ? null : this.props.onClick}
               className={labelClass}
-              style={{ cursor: this.props.onClick ? 'pointer' : '' }}
+              style={{
+                cursor: !hideNativeTab && this.props.onClick ? 'pointer' : '',
+              }}
             >
               {this.props.label}
             </span>{' '}
