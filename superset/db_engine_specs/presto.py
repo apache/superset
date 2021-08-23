@@ -925,6 +925,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         :param schema: Schema name
         :param table: Table (view) name
         """
+        # pylint: disable=import-outside-toplevel
         from pyhive.exc import DatabaseError
 
         engine = cls.get_engine(database, schema)
@@ -1212,7 +1213,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         return super().is_readonly_query(parsed_query) or parsed_query.is_show()
 
     @classmethod
-    def get_column_spec(  # type: ignore
+    def get_column_spec(
         cls,
         native_type: Optional[str],
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
@@ -1234,3 +1235,15 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
             return column_spec
 
         return super().get_column_spec(native_type)
+
+    @classmethod
+    def has_implicit_cancel(cls) -> bool:
+        """
+        Return True if the live cursor handles the implicit cancelation of the query,
+        False otherise.
+
+        :return: Whether the live cursor implicitly cancels the query
+        :see: handle_cursor
+        """
+
+        return True

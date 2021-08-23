@@ -20,6 +20,7 @@ import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
 import { styled } from '@superset-ui/core';
+import { isEqual } from 'lodash';
 
 import { exportChart, getExploreLongUrl } from 'src/explore/exploreUtils';
 import ChartContainer from 'src/chart/ChartContainer';
@@ -126,7 +127,7 @@ export default class Chart extends React.Component {
       nextState.width !== this.state.width ||
       nextState.height !== this.state.height ||
       nextState.descriptionHeight !== this.state.descriptionHeight ||
-      nextProps.datasource !== this.props.datasource
+      !isEqual(nextProps.datasource, this.props.datasource)
     ) {
       return true;
     }

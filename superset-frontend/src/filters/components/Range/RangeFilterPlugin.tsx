@@ -27,7 +27,7 @@ import { Slider } from 'src/common/components';
 import { rgba } from 'emotion-rgba';
 import { FormItemProps } from 'antd/lib/form';
 import { PluginFilterRangeProps } from './types';
-import { StatusMessage, StyledFormItem, Styles } from '../common';
+import { StatusMessage, StyledFormItem, FilterPluginStyle } from '../common';
 import { getRangeExtraFormData } from '../../utils';
 
 const Wrapper = styled.div<{ validateStatus?: 'error' | 'warning' | 'info' }>`
@@ -169,7 +169,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     );
   }
   return (
-    <Styles height={height} width={width}>
+    <FilterPluginStyle height={height} width={width}>
       {Number.isNaN(Number(min)) || Number.isNaN(Number(max)) ? (
         <h4>{t('Chosen non-numeric column')}</h4>
       ) : (
@@ -196,6 +196,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
           </Wrapper>
         </StyledFormItem>
       )}
-    </Styles>
+    </FilterPluginStyle>
   );
 }

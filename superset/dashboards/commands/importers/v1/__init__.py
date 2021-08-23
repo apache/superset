@@ -27,6 +27,7 @@ from superset.commands.importers.v1 import ImportModelsCommand
 from superset.dashboards.commands.exceptions import DashboardImportError
 from superset.dashboards.commands.importers.v1.utils import (
     find_chart_uuids,
+    find_native_filter_datasets,
     import_dashboard,
     update_id_refs,
 )
@@ -60,14 +61,17 @@ class ImportDashboardsCommand(ImportModelsCommand):
     def _import(
         session: Session, configs: Dict[str, Any], overwrite: bool = False
     ) -> None:
-        # discover charts associated with dashboards
+        # discover charts and datasets associated with dashboards
         chart_uuids: Set[str] = set()
+        dataset_uuids: Set[str] = set()
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
                 chart_uuids.update(find_chart_uuids(config["position"]))
+                dataset_uuids.update(
+                    find_native_filter_datasets(config.get("metadata", {}))
+                )
 
         # discover datasets associated with charts
-        dataset_uuids: Set[str] = set()
         for file_name, config in configs.items():
             if file_name.startswith("charts/") and config["uuid"] in chart_uuids:
                 dataset_uuids.add(config["dataset_uuid"])
@@ -96,7 +100,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 dataset = import_dataset(session, config, overwrite=False)
                 dataset_info[str(dataset.uuid)] = {
                     "datasource_id": dataset.id,
-                    "datasource_type": "view" if dataset.is_sqllab_view else "table",
+                    "datasource_type": dataset.datasource_type,
                     "datasource_name": dataset.table_name,
                 }
 
@@ -121,7 +125,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
         dashboard_chart_ids: List[Tuple[int, int]] = []
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
-                config = update_id_refs(config, chart_ids)
+                config = update_id_refs(config, chart_ids, dataset_info)
                 dashboard = import_dashboard(session, config, overwrite=overwrite)
                 for uuid in find_chart_uuids(config["position"]):
                     if uuid not in chart_ids:
@@ -135,5 +139,5 @@ class ImportDashboardsCommand(ImportModelsCommand):
             {"dashboard_id": dashboard_id, "slice_id": chart_id}
             for (dashboard_id, chart_id) in dashboard_chart_ids
         ]
-        # pylint: disable=no-value-for-parameter (sqlalchemy/issues/4656)
+        # pylint: disable=no-value-for-parameter # sqlalchemy/issues/4656
         session.execute(dashboard_slices.insert(), values)

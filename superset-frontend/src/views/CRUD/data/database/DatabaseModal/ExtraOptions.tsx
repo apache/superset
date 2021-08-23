@@ -169,9 +169,9 @@ const ExtraOptions = ({
             <StyledInputContainer css={no_margin_bottom}>
               <div className="input-container">
                 <IndeterminateCheckbox
-                  id="cost_query_enabled"
+                  id="cost_estimate_enabled"
                   indeterminate={false}
-                  checked={!!db?.extra_json?.cost_query_enabled}
+                  checked={!!db?.extra_json?.cost_estimate_enabled}
                   onChange={onExtraInputChange}
                   labelText={t('Enable query cost estimation')}
                 />
@@ -372,13 +372,17 @@ const ExtraOptions = ({
             <input
               type="text"
               name="schemas_allowed_for_csv_upload"
-              value={db?.extra_json?.schemas_allowed_for_csv_upload || ''}
-              placeholder={t('Select one or multiple schemas')}
+              value={(
+                db?.extra_json?.schemas_allowed_for_csv_upload || []
+              ).join(',')}
+              placeholder="schema1,schema2"
               onChange={onExtraInputChange}
             />
           </div>
           <div className="helper">
-            {t('A list of schemas that CSVs are allowed to upload to.')}
+            {t(
+              'A comma-separated list of schemas that CSVs are allowed to upload to.',
+            )}
           </div>
         </StyledInputContainer>
         <StyledInputContainer css={{ no_margin_bottom }}>

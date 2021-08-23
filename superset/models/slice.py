@@ -23,7 +23,7 @@ import sqlalchemy as sqla
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from markupsafe import escape, Markup
-from sqlalchemy import Column, ForeignKey, Integer, String, Table, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Table, Text
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.mapper import Mapper
@@ -37,7 +37,7 @@ from superset.utils import core as utils
 from superset.utils.hashing import md5_sha_from_str
 from superset.utils.memoized import memoized
 from superset.utils.urls import get_url_path
-from superset.viz import BaseViz, viz_types  # type: ignore
+from superset.viz import BaseViz, viz_types
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
@@ -53,10 +53,9 @@ slice_user = Table(
 logger = logging.getLogger(__name__)
 
 
-class Slice(
+class Slice(  # pylint: disable=too-many-instance-attributes,too-many-public-methods
     Model, AuditMixinNullable, ImportExportMixin
-):  # pylint: disable=too-many-public-methods
-
+):
     """A slice is essentially a report or a view on data"""
 
     __tablename__ = "slices"
@@ -67,10 +66,18 @@ class Slice(
     datasource_name = Column(String(2000))
     viz_type = Column(String(250))
     params = Column(Text)
+    query_context = Column(Text)
     description = Column(Text)
     cache_timeout = Column(Integer)
     perm = Column(String(1000))
     schema_perm = Column(String(1000))
+    # the last time a user has saved the chart, changed_on is referencing
+    # when the database row was last written
+    last_saved_at = Column(DateTime, nullable=True)
+    last_saved_by_fk = Column(Integer, ForeignKey("ab_user.id"), nullable=True,)
+    last_saved_by = relationship(
+        security_manager.user_model, foreign_keys=[last_saved_by_fk]
+    )
     owners = relationship(security_manager.user_model, secondary=slice_user)
     table = relationship(
         "SqlaTable",
@@ -89,6 +96,7 @@ class Slice(
         "datasource_name",
         "viz_type",
         "params",
+        "query_context",
         "cache_timeout",
     ]
     export_parent = "table"
@@ -191,6 +199,7 @@ class Slice(
             "description_markeddown": self.description_markeddown,
             "edit_url": self.edit_url,
             "form_data": self.form_data,
+            "query_context": self.query_context,
             "modified": self.modified(),
             "owners": [
                 f"{owner.first_name} {owner.last_name}" for owner in self.owners

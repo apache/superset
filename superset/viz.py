@@ -71,10 +71,11 @@ from superset.utils import core as utils, csv
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import (
     DTTM_ALIAS,
+    ExtraFiltersReasonType,
     JS_MAX_INTEGER,
     merge_extra_filters,
     QueryMode,
-    to_adhoc,
+    simple_filter_to_adhoc,
 )
 from superset.utils.date_parser import get_since_until, parse_past_timedelta
 from superset.utils.dates import datetime_to_epoch
@@ -477,7 +478,7 @@ class BaseViz:
             if col in columns or col in filter_values_columns
         ] + applied_time_columns
         payload["rejected_filters"] = [
-            {"reason": "not_in_datasource", "column": col}
+            {"reason": ExtraFiltersReasonType.COL_NOT_IN_DATASOURCE, "column": col}
             for col in filter_columns
             if col not in columns and col not in filter_values_columns
         ] + rejected_time_columns
@@ -1230,7 +1231,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
         d = super().query_obj()
         sort_by = self.form_data.get(
             "timeseries_limit_metric"
-        ) or utils.get_main_metric_name(d.get("metrics") or [])
+        ) or utils.get_first_metric_name(d.get("metrics") or [])
         is_asc = not self.form_data.get("order_desc")
         if sort_by:
             sort_by_label = utils.get_metric_name(sort_by)
@@ -2475,7 +2476,9 @@ class BaseDeckGLViz(BaseViz):
             spatial_columns.add(line_column)
 
         for column in sorted(spatial_columns):
-            filter_ = to_adhoc({"col": column, "op": "IS NOT NULL", "val": ""})
+            filter_ = simple_filter_to_adhoc(
+                {"col": column, "op": "IS NOT NULL", "val": ""}
+            )
             fd["adhoc_filters"].append(filter_)
 
     def query_obj(self) -> QueryObjectDict:

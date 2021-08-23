@@ -22,7 +22,7 @@ import random
 import string
 import sys
 from datetime import date, datetime, time, timedelta
-from typing import Any, Callable, cast, Dict, List, Optional, Type
+from typing import Any, Callable, cast, Dict, Iterator, List, Optional, Type
 from uuid import uuid4
 
 import sqlalchemy.sql.sqltypes
@@ -179,6 +179,7 @@ def add_data(
     :param str table_name: name of table, will be created if it doesn't exist
     :param bool append: if the table already exists, append data or replace?
     """
+    # pylint: disable=import-outside-toplevel
     from superset.utils.core import get_example_database
 
     database = get_example_database()
@@ -202,11 +203,11 @@ def add_data(
     metadata.create_all(engine)
 
     if not append:
-        # pylint: disable=no-value-for-parameter (sqlalchemy/issues/4656)
+        # pylint: disable=no-value-for-parameter # sqlalchemy/issues/4656
         engine.execute(table.delete())
 
     data = generate_data(columns, num_rows)
-    # pylint: disable=no-value-for-parameter (sqlalchemy/issues/4656)
+    # pylint: disable=no-value-for-parameter # sqlalchemy/issues/4656
     engine.execute(table.insert(), data)
 
 
@@ -232,10 +233,11 @@ def generate_column_data(column: ColumnInfo, num_rows: int) -> List[Any]:
     return [gen() for _ in range(num_rows)]
 
 
-def add_sample_rows(session: Session, model: Type[Model], count: int) -> List[Model]:
+def add_sample_rows(
+    session: Session, model: Type[Model], count: int
+) -> Iterator[Model]:
     """
     Add entities of a given model.
-
     :param Model model: a Superset/FAB model
     :param int count: how many entities to generate and insert
     """
@@ -245,7 +247,6 @@ def add_sample_rows(session: Session, model: Type[Model], count: int) -> List[Mo
     relationships = inspector.relationships.items()
     samples = session.query(model).limit(count).all() if relationships else []
 
-    entities: List[Model] = []
     max_primary_key: Optional[int] = None
     for i in range(count):
         sample = samples[i % len(samples)] if samples else None
@@ -276,10 +277,8 @@ def add_sample_rows(session: Session, model: Type[Model], count: int) -> List[Mo
             else:
                 kwargs[column.name] = generate_value(column)
 
-        entities.append(model(**kwargs))
-
-    session.add_all(entities)
-    return entities
+        entity = model(**kwargs)
+        yield entity
 
 
 def get_valid_foreign_key(column: Column) -> Any:

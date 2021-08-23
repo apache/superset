@@ -84,40 +84,6 @@ test('Open Omnibar with ctrl + k with featureflag enabled', () => {
   ).not.toBeVisible();
 });
 
-test('Open Omnibar with ctrl + s with featureflag enabled', () => {
-  (isFeatureEnabled as jest.Mock).mockImplementation(
-    (ff: string) => ff === 'OMNIBAR',
-  );
-  const logEvent = jest.fn();
-  render(
-    <div data-test="test">
-      <OmniContainer logEvent={logEvent} />
-    </div>,
-  );
-
-  expect(
-    screen.queryByPlaceholderText('Search all dashboards'),
-  ).not.toBeInTheDocument();
-
-  // show Omnibar
-  fireEvent.keyDown(screen.getByTestId('test'), {
-    ctrlKey: true,
-    code: 'KeyS',
-  });
-  expect(
-    screen.queryByPlaceholderText('Search all dashboards'),
-  ).toBeInTheDocument();
-
-  // hide Omnibar
-  fireEvent.keyDown(screen.getByTestId('test'), {
-    ctrlKey: true,
-    code: 'KeyS',
-  });
-  expect(
-    screen.queryByPlaceholderText('Search all dashboards'),
-  ).not.toBeVisible();
-});
-
 test('Open Omnibar with Command + k with featureflag enabled', () => {
   (isFeatureEnabled as jest.Mock).mockImplementation(
     (ff: string) => ff === 'OMNIBAR',
@@ -152,7 +118,7 @@ test('Open Omnibar with Command + k with featureflag enabled', () => {
   ).not.toBeVisible();
 });
 
-test('Open Omnibar with Command + s with featureflag enabled', () => {
+test('Open Omnibar with Cmd/Ctrl-K and close with ESC', () => {
   (isFeatureEnabled as jest.Mock).mockImplementation(
     (ff: string) => ff === 'OMNIBAR',
   );
@@ -169,17 +135,17 @@ test('Open Omnibar with Command + s with featureflag enabled', () => {
 
   // show Omnibar
   fireEvent.keyDown(screen.getByTestId('test'), {
-    metaKey: true,
-    code: 'KeyS',
+    ctrlKey: true,
+    code: 'KeyK',
   });
   expect(
     screen.queryByPlaceholderText('Search all dashboards'),
   ).toBeInTheDocument();
 
-  // hide Omnibar
+  // Close Omnibar
   fireEvent.keyDown(screen.getByTestId('test'), {
-    metaKey: true,
-    code: 'KeyS',
+    key: 'Escape',
+    code: 'Escape',
   });
   expect(
     screen.queryByPlaceholderText('Search all dashboards'),

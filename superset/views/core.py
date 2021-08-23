@@ -122,6 +122,7 @@ from superset.views.base import (
     get_error_msg,
     get_user_roles,
     handle_api_exception,
+    is_user_admin,
     json_error_response,
     json_errors_response,
     json_success,
@@ -604,7 +605,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
 
         form_data = get_form_data()[0]
-
         try:
             datasource_id, datasource_type = get_datasource_info(
                 datasource_id, datasource_type, form_data
@@ -718,7 +718,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     ) -> FlaskResponse:
         user_id = g.user.get_id() if g.user else None
         form_data, slc = get_form_data(use_slice_data=True)
-
+        query_context = request.form.get("query_context")
         # Flash the SIP-15 message if the slice is owned by the current user and has not
         # been updated, i.e., is not using the [start, end) interval.
         if (
@@ -788,7 +788,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         # slc perms
         slice_add_perm = security_manager.can_access("can_write", "Chart")
-        slice_overwrite_perm = is_owner(slc, g.user) if slc else False
+        slice_overwrite_perm = (
+            is_owner(slc, g.user) or is_user_admin() if slc else False
+        )
         slice_download_perm = security_manager.can_access("can_csv", "Superset")
 
         form_data["datasource"] = str(datasource_id) + "__" + cast(str, datasource_type)
@@ -825,6 +827,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 datasource.id,
                 datasource.type,
                 datasource.name,
+                query_context,
             )
         standalone_mode = ReservedUrlParameters.is_standalone_mode()
         dummy_datasource_data: Dict[str, Any] = {
@@ -924,6 +927,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         datasource_id: int,
         datasource_type: str,
         datasource_name: str,
+        query_context: Optional[str] = None,
     ) -> FlaskResponse:
         """Save or overwrite a slice"""
         slice_name = request.args.get("slice_name")
@@ -945,7 +949,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         slc.viz_type = form_data["viz_type"]
         slc.datasource_type = datasource_type
         slc.datasource_id = datasource_id
+        slc.last_saved_by = g.user
+        slc.last_saved_at = datetime.now()
         slc.slice_name = slice_name
+        slc.query_context = query_context
 
         if action == "saveas" and slice_add_perm:
             ChartDAO.save(slc)
@@ -2036,14 +2043,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         try:
             table_name = data["datasourceName"]
             database_id = data["dbId"]
-        except KeyError:
+        except KeyError as ex:
             raise SupersetGenericErrorException(
                 __(
                     "One or more required fields are missing in the request. Please try "
                     "again, and if the problem persists conctact your administrator."
                 ),
                 status=400,
-            )
+            ) from ex
         database = db.session.query(Database).get(database_id)
         if not database:
             raise SupersetErrorException(
@@ -2476,7 +2483,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             query.error_message = message
             session.commit()
 
-            raise SupersetErrorException(error)
+            raise SupersetErrorException(error) from ex
 
         # Update saved query with execution info from the query execution
         QueryDAO.update_saved_query_exec_info(query_id)
@@ -2545,7 +2552,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             raise ex
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception("Query %i failed unexpectedly", query.id)
-            raise SupersetGenericDBErrorException(utils.error_msg_from_exception(ex))
+            raise SupersetGenericDBErrorException(
+                utils.error_msg_from_exception(ex)
+            ) from ex
 
         if data.get("status") == QueryStatus.FAILED:
             # new error payload with rich context
@@ -2681,23 +2690,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         try:
             query.raise_for_access()
         except SupersetSecurityException as ex:
-            message = __(
-                "You are not authorized to see this query. If you think this "
-                "is an error, please reach out to your administrator."
-            )
-            error = SupersetError(
-                message=message,
-                error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
-                level=ErrorLevel.ERROR,
-            )
-            error_payload = dataclasses.asdict(error)
-
-            query.set_extra_json_key("errors", [error_payload])
+            query.set_extra_json_key("errors", [dataclasses.asdict(ex.error)])
             query.status = QueryStatus.FAILED
-            query.error_message = message
+            query.error_message = ex.error.message
             session.commit()
-
-            raise SupersetErrorException(error, status=403) from ex
+            raise SupersetErrorException(ex.error, status=403) from ex
 
         try:
             template_processor = get_template_processor(

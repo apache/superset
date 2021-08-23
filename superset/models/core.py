@@ -20,6 +20,7 @@ import enum
 import json
 import logging
 import textwrap
+from ast import literal_eval
 from contextlib import closing
 from copy import deepcopy
 from datetime import datetime
@@ -166,7 +167,7 @@ class Database(
     extra_import_fields = ["password"]
     export_children = ["tables"]
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # pylint: disable=invalid-repr-returned
         return self.name
 
     @property
@@ -505,7 +506,7 @@ class Database(
         return self.db_engine_spec.get_all_datasource_names(self, "view")
 
     @cache_util.memoized_func(
-        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:table_list",  # type: ignore
+        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:table_list",
         cache=cache_manager.data_cache,
     )
     def get_all_table_names_in_schema(
@@ -535,9 +536,10 @@ class Database(
             ]
         except Exception as ex:  # pylint: disable=broad-except
             logger.warning(ex)
+            return []
 
     @cache_util.memoized_func(
-        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:view_list",  # type: ignore
+        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:view_list",
         cache=cache_manager.data_cache,
     )
     def get_all_view_names_in_schema(
@@ -565,6 +567,7 @@ class Database(
             return [utils.DatasourceName(table=view, schema=schema) for view in views]
         except Exception as ex:  # pylint: disable=broad-except
             logger.warning(ex)
+            return []
 
     @cache_util.memoized_func(
         key=lambda self, *args, **kwargs: f"db:{self.id}:schema_list",
@@ -668,6 +671,10 @@ class Database(
         self,
     ) -> List[str]:
         allowed_databases = self.get_extra().get("schemas_allowed_for_csv_upload", [])
+
+        if isinstance(allowed_databases, str):
+            allowed_databases = literal_eval(allowed_databases)
+
         if hasattr(g, "user"):
             extra_allowed_databases = config["ALLOWED_USER_CSV_SCHEMA_FUNC"](
                 self, g.user
