@@ -1232,9 +1232,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                     elif op == utils.FilterOperator.LESS_THAN_OR_EQUALS.value:
                         where_clause_and.append(sqla_col <= eq)
                     elif op == utils.FilterOperator.LIKE.value:
-                        where_clause_and.append(sqla_col.like(eq))
+                        where_clause_and.append(sqla_col.like(f"%{eq}%"))
                     elif op == utils.FilterOperator.ILIKE.value:
-                        where_clause_and.append(sqla_col.ilike(eq))
+                        where_clause_and.append(sqla_col.ilike(f"%{eq}%"))
                     else:
                         raise QueryObjectValidationError(
                             _("Invalid filter operation type: %(op)s", op=op)
