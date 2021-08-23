@@ -19,7 +19,7 @@ under the License.
 
 # Release Notes for Superset 1.3
 
-Superset 1.3 focus on hardening and polishing the superset user experience, with tons of UX improvements and bugfixes focused on charts, dashboards, and the new dashboard-native filters.
+Superset 1.3 focuses on hardening and polishing the superset user experience, with tons of UX improvements and bug fixes focused on charts, dashboards, and the new dashboard-native filters.
 
 - [**User Experience**](#user-experience)
 - [**PR Highlights**](#pr-highlights)
