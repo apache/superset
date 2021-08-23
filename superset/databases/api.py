@@ -275,9 +275,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
         log_to_statsd=False,
     )
-    def put(  # pylint: disable=too-many-return-statements, arguments-differ
-        self, pk: int
-    ) -> Response:
+    def put(self, pk: int) -> Response:
         """Changes a Database
         ---
         put:
@@ -355,7 +353,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".delete",
         log_to_statsd=False,
     )
-    def delete(self, pk: int) -> Response:  # pylint: disable=arguments-differ
+    def delete(self, pk: int) -> Response:
         """Deletes a Database
         ---
         delete:
@@ -591,9 +589,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         f".test_connection",
         log_to_statsd=False,
     )
-    def test_connection(  # pylint: disable=too-many-return-statements
-        self,
-    ) -> FlaskResponse:
+    def test_connection(self) -> FlaskResponse:
         """Tests a database connection
         ---
         post:
@@ -977,9 +973,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         f".validate_parameters",
         log_to_statsd=False,
     )
-    def validate_parameters(  # pylint: disable=too-many-return-statements
-        self,
-    ) -> FlaskResponse:
+    def validate_parameters(self) -> FlaskResponse:
         """validates database connection parameters
         ---
         post:

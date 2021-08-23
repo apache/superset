@@ -67,7 +67,7 @@ class SupersetAppInitializer:
         self.config = app.config
         self.manifest: Dict[Any, Any] = {}
 
-    @deprecated(details="use self.superset_app instead of self.flask_app")  # type: ignore   # pylint: disable=line-too-long
+    @deprecated(details="use self.superset_app instead of self.flask_app")  # type: ignore   # pylint: disable=line-too-long,useless-suppression
     @property
     def flask_app(self) -> SupersetApp:
         return self.superset_app
@@ -112,7 +112,7 @@ class SupersetAppInitializer:
         # models which in turn try to import
         # the global Flask app
         #
-        # pylint: disable=import-outside-toplevel,too-many-branches,too-many-locals,too-many-statements
+        # pylint: disable=import-outside-toplevel,too-many-locals,too-many-statements
         from superset.annotation_layers.api import AnnotationLayerRestApi
         from superset.annotation_layers.annotations.api import AnnotationRestApi
         from superset.async_events.api import AsyncEventsRestApi
