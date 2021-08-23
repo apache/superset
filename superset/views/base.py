@@ -346,7 +346,7 @@ def common_bootstrap_payload() -> Dict[str, Any]:
     messages = get_flashed_messages(with_categories=True)
     locale = str(get_locale())
 
-    return {
+    bootstrap_data = {
         "flash_messages": messages,
         "conf": {k: conf.get(k) for k in FRONTEND_CONF_KEYS},
         "locale": locale,
@@ -357,6 +357,8 @@ def common_bootstrap_payload() -> Dict[str, Any]:
         "theme_overrides": conf["THEME_OVERRIDES"],
         "menu_data": menu_data(),
     }
+    bootstrap_data.update(conf["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
+    return bootstrap_data
 
 
 # pylint: disable=invalid-name
