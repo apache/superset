@@ -51,7 +51,7 @@ Continuing the on theme of making more things accessable directly from the dashb
 ![view query dashboard](media/view_query_dashboard.png)
 
 # Developer Experience
-The API has recieved a new endpoint to allow the developer to pass DB specific paremeters instead of the full SQLAlchemy URI.
+The API has received a new endpoint to allow the developer to pass DB-specific parameters instead of the full SQLAlchemy URI.
 
 # Database Connectivity
 We have improved support for Ascend.io's engine spec and fixed a long list of bugs.
