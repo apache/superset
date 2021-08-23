@@ -125,10 +125,12 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               data-test="select-delivery-method"
               onChange={onMethodChange}
               placeholder={t('Select Delivery Method')}
-              options={(options || []).map((method: NotificationMethodOption) => ({
-                label: method,
-                value: method,
-              }))}
+              options={(options || []).map(
+                (method: NotificationMethodOption) => ({
+                  label: method,
+                  value: method,
+                }),
+              )}
               value={method}
             />
           </div>
