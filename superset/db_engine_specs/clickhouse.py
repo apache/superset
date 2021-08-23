@@ -99,7 +99,9 @@ class ClickHouseEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             logger.error(
                 "Payload from `%s` has the incorrect format. "
                 "Expected column `%s`, found: %s.",
-                system_functions_sql, cls._show_functions_column, ", ".join(columns),
+                system_functions_sql,
+                cls._show_functions_column,
+                ", ".join(columns),
                 exc_info=True,
             )
             # if the results have a single column, use that
@@ -107,7 +109,9 @@ class ClickHouseEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
                 return df[columns[0]].tolist()
         except Exception as ex:  # pylint: disable=broad-except
             logger.error(
-                "Query `%s` fire error %s. ", system_functions_sql, str(ex),
+                "Query `%s` fire error %s. ",
+                system_functions_sql,
+                str(ex),
                 exc_info=True,
             )
             return []
