@@ -37,7 +37,6 @@ class SqliteEngineSpec(BaseEngineSpec):
     engine = "sqlite"
     engine_name = "SQLite"
 
-    # pylint: disable=line-too-long
     _time_grain_expressions = {
         None: "{col}",
         "PT1S": "DATETIME(STRFTIME('%Y-%m-%dT%H:%M:%S', {col}))",

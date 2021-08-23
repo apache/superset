@@ -164,7 +164,8 @@ class BaseSupersetModelRestApi(ModelRestApi):
             "<RELATED_FIELD>": ("<RELATED_FIELD_FIELD>", "<asc|desc>"),
              ...
         }
-    """  # pylint: disable=pointless-string-statement
+    """
+
     related_field_filters: Dict[str, Union[RelatedFieldFilter, str]] = {}
     """
     Declare the filters for related fields::
@@ -172,7 +173,8 @@ class BaseSupersetModelRestApi(ModelRestApi):
         related_fields = {
             "<RELATED_FIELD>": <RelatedFieldFilter>)
         }
-    """  # pylint: disable=pointless-string-statement
+    """
+
     filter_rel_fields: Dict[str, BaseFilter] = {}
     """
     Declare the related field base filter::
@@ -180,11 +182,9 @@ class BaseSupersetModelRestApi(ModelRestApi):
         filter_rel_fields_field = {
             "<RELATED_FIELD>": "<FILTER>")
         }
-    """  # pylint: disable=pointless-string-statement
-    allowed_rel_fields: Set[str] = set()
     """
-    Declare a set of allowed related fields that the `related` endpoint supports
-    """  # pylint: disable=pointless-string-statement
+    allowed_rel_fields: Set[str] = set()
+    # Declare a set of allowed related fields that the `related` endpoint supports.
 
     text_field_rel_fields: Dict[str, str] = {}
     """
@@ -193,15 +193,12 @@ class BaseSupersetModelRestApi(ModelRestApi):
         text_field_rel_fields = {
             "<RELATED_FIELD>": "<RELATED_OBJECT_FIELD>"
         }
-    """  # pylint: disable=pointless-string-statement
+    """
 
     allowed_distinct_fields: Set[str] = set()
 
     openapi_spec_component_schemas: Tuple[Type[Schema], ...] = tuple()
-    """
-    Add extra schemas to the OpenAPI component schemas section
-    """  # pylint: disable=pointless-string-statement
-
+    # Add extra schemas to the OpenAPI component schemas section.
     add_columns: List[str]
     edit_columns: List[str]
     list_columns: List[str]

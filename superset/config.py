@@ -38,9 +38,7 @@ from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
 from pandas.io.parsers import STR_NA_VALUES
 
-from superset.jinja_context import (  # pylint: disable=unused-import
-    BaseTemplateProcessor,
-)
+from superset.jinja_context import BaseTemplateProcessor
 from superset.stats_logger import DummyStatsLogger
 from superset.typing import CacheConfig
 from superset.utils.core import is_test, parse_boolean_string
@@ -51,12 +49,9 @@ from superset.utils.logging_configurator import DefaultLoggingConfigurator
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from flask_appbuilder.security.sqla import models  # pylint: disable=unused-import
-
-    from superset.connectors.sqla.models import (  # pylint: disable=unused-import
-        SqlaTable,
-    )
-    from superset.models.core import Database  # pylint: disable=unused-import
+    from flask_appbuilder.security.sqla import models
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
 
 # Realtime stats logger, a StatsD implementation exists
 STATS_LOGGER = DummyStatsLogger()
@@ -96,9 +91,7 @@ def _try_json_readversion(filepath: str) -> Optional[str]:
         return None
 
 
-def _try_json_readsha(  # pylint: disable=unused-argument
-    filepath: str, length: int
-) -> Optional[str]:
+def _try_json_readsha(filepath: str, length: int) -> Optional[str]:
     try:
         with open(filepath, "r") as f:
             return json.load(f).get("GIT_SHA")[:length]
@@ -928,7 +921,7 @@ TRACKING_URL_TRANSFORMER = lambda x: x
 HIVE_POLL_INTERVAL = int(timedelta(seconds=5).total_seconds())
 
 # Interval between consecutive polls when using Presto Engine
-# See here: https://github.com/dropbox/PyHive/blob/8eb0aeab8ca300f3024655419b93dad926c1a351/pyhive/presto.py#L93  # pylint: disable=line-too-long
+# See here: https://github.com/dropbox/PyHive/blob/8eb0aeab8ca300f3024655419b93dad926c1a351/pyhive/presto.py#L93  # pylint: disable=line-too-long,useless-suppression
 PRESTO_POLL_INTERVAL = int(timedelta(seconds=1).total_seconds())
 
 # Allow for javascript controls components
@@ -1266,7 +1259,7 @@ if CONFIG_PATH_ENV_VAR in os.environ:
 elif importlib.util.find_spec("superset_config") and not is_test():
     try:
         import superset_config  # pylint: disable=import-error
-        from superset_config import *  # type: ignore # pylint: disable=import-error,wildcard-import,unused-wildcard-import
+        from superset_config import *  # type: ignore # pylint: disable=import-error,wildcard-import
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:

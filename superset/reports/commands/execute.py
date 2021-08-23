@@ -117,8 +117,8 @@ class BaseReportState:
         self._session.merge(self._report_schedule)
         self._session.commit()
 
-    def create_log(  # pylint: disable=too-many-arguments
-        self, state: ReportState, error_message: Optional[str] = None,
+    def create_log(
+        self, state: ReportState, error_message: Optional[str] = None
     ) -> None:
         """
         Creates a Report execution log, uses the current computed last_value for Alerts
@@ -578,7 +578,7 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
             if (self._report_schedule.last_state is None and state_cls.initial) or (
                 self._report_schedule.last_state in state_cls.current_states
             ):
-                state_cls(  # pylint: disable=not-callable
+                state_cls(
                     self._session,
                     self._report_schedule,
                     self._scheduled_dttm,

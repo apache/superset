@@ -14,8 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=too-few-public-methods,invalid-name
-from dataclasses import dataclass  # pylint: disable=wrong-import-order
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, Optional
 

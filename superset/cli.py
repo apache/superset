@@ -82,7 +82,7 @@ def superset() -> None:
     """This is a management script for the Superset application."""
 
     @app.shell_context_processor
-    def make_shell_context() -> Dict[str, Any]:  # pylint: disable=unused-variable
+    def make_shell_context() -> Dict[str, Any]:
         return dict(app=app, db=db)
 
 
@@ -297,7 +297,6 @@ if feature_flags.get("VERSIONED_EXPORT"):
                 "the exception traceback in the log"
             )
 
-    # pylint: disable=too-many-locals
     @superset.command()
     @with_appcontext
     @click.option(
@@ -419,7 +418,6 @@ else:
             with open(dashboard_file, "w") as data_stream:
                 data_stream.write(data)
 
-    # pylint: disable=too-many-locals
     @superset.command()
     @with_appcontext
     @click.option(
