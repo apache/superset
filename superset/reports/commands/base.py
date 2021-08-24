@@ -58,7 +58,6 @@ class BaseReportScheduleCommand(BaseCommand):
             return
 
         if creation_method == ReportCreationMethodType.DASHBOARDS and not dashboard_id:
-            print("I am here")
             exceptions.append(DashboardNotSavedValidationError())
             return
 

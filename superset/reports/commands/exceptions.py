@@ -175,7 +175,8 @@ class ReportScheduleCreationMethodUniquenessValidationError(ValidationError):
 
     def __init__(self) -> None:
         super().__init__(
-            [_("Resource already has an attached report")], field_name="creation_method"
+            [_("Resource already has an attached report.")],
+            field_name="creation_method",
         )
 
 

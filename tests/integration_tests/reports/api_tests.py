@@ -784,14 +784,101 @@ class TestReportSchedulesApi(SupersetTestCase):
         uri = "api/v1/report/"
         rv = self.client.post(uri, json=report_schedule_data)
         data = json.loads(rv.data.decode("utf-8"))
-        print(rv)
         assert rv.status_code == 422
-        print(data)
-        print(data["message"])
         assert (
             data["message"]["dashboard"]
             == "Please save your dashboard first, then try creating a new email report."
         )
+
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "create_report_schedules"
+    )
+    def test_create_multiple_creation_method_report_schedule_charts(self):
+        """
+        ReportSchedule Api: Test create multiple reports with the same creation method
+        """
+        self.login(username="admin")
+        chart = db.session.query(Slice).first()
+        dashboard = db.session.query(Dashboard).first()
+        example_db = get_example_database()
+        report_schedule_data = {
+            "type": ReportScheduleType.REPORT,
+            "name": "name4",
+            "description": "description",
+            "creation_method": ReportCreationMethodType.CHARTS,
+            "crontab": "0 9 * * *",
+            "working_timeout": 3600,
+            "chart": chart.id,
+        }
+        uri = "api/v1/report/"
+        rv = self.client.post(uri, json=report_schedule_data)
+        data = json.loads(rv.data.decode("utf-8"))
+        print(data)
+        assert rv.status_code == 201
+
+        # this second time it should receive an error because the chart has an attached report
+        # with the same creation method from the same user.
+        report_schedule_data = {
+            "type": ReportScheduleType.REPORT,
+            "name": "name5",
+            "description": "description",
+            "creation_method": ReportCreationMethodType.CHARTS,
+            "crontab": "0 9 * * *",
+            "working_timeout": 3600,
+            "chart": chart.id,
+        }
+        uri = "api/v1/report/"
+        rv = self.client.post(uri, json=report_schedule_data)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 422
+        assert data["message"]["creation_method"] == [
+            "Resource already has an attached report."
+        ]
+
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "create_report_schedules"
+    )
+    def test_create_multiple_creation_method_report_schedule_dashboards(self):
+        """
+        ReportSchedule Api: Test create multiple reports with the same creation method
+        """
+        self.login(username="admin")
+        chart = db.session.query(Slice).first()
+        dashboard = db.session.query(Dashboard).first()
+        example_db = get_example_database()
+        report_schedule_data = {
+            "type": ReportScheduleType.REPORT,
+            "name": "name4",
+            "description": "description",
+            "creation_method": ReportCreationMethodType.DASHBOARDS,
+            "crontab": "0 9 * * *",
+            "working_timeout": 3600,
+            "dashboard": dashboard.id,
+        }
+        uri = "api/v1/report/"
+        rv = self.client.post(uri, json=report_schedule_data)
+        data = json.loads(rv.data.decode("utf-8"))
+        print(data)
+        assert rv.status_code == 201
+
+        # this second time it should receive an error because the dashboard has an attached report
+        # with the same creation method from the same user.
+        report_schedule_data = {
+            "type": ReportScheduleType.REPORT,
+            "name": "name5",
+            "description": "description",
+            "creation_method": ReportCreationMethodType.DASHBOARDS,
+            "crontab": "0 9 * * *",
+            "working_timeout": 3600,
+            "dashboard": dashboard.id,
+        }
+        uri = "api/v1/report/"
+        rv = self.client.post(uri, json=report_schedule_data)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 422
+        assert data["message"]["creation_method"] == [
+            "Resource already has an attached report."
+        ]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_create_report_schedule_chart_dash_validation(self):
