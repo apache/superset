@@ -858,7 +858,6 @@ class TestReportSchedulesApi(SupersetTestCase):
         uri = "api/v1/report/"
         rv = self.client.post(uri, json=report_schedule_data)
         data = json.loads(rv.data.decode("utf-8"))
-        print(data)
         assert rv.status_code == 201
 
         # this second time it should receive an error because the dashboard has an attached report
