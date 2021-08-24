@@ -42,6 +42,8 @@ const DashboardContainer = React.lazy(
     ),
 );
 
+const originalDocumentTitle = document.title;
+
 const DashboardPage: FC = () => {
   const dispatch = useDispatch();
   const { addDangerToast } = useToasts();
@@ -71,6 +73,9 @@ const DashboardPage: FC = () => {
     if (dashboard_title) {
       document.title = dashboard_title;
     }
+    return () => {
+      document.title = originalDocumentTitle;
+    };
   }, [dashboard_title]);
 
   useEffect(() => {
