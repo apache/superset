@@ -46,6 +46,7 @@ export interface ModalProps {
   wrapProps?: object;
   height?: string;
   closable?: boolean;
+  destroyOnClose?: boolean;
 }
 
 interface StyledModalProps {
