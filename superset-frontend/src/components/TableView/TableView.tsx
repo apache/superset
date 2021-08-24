@@ -158,7 +158,6 @@ const TableView = ({
     useSortBy,
     usePagination,
   );
-
   useEffect(() => {
     if (serverPagination && pageIndex !== initialState.pageIndex) {
       onServerPagination({
