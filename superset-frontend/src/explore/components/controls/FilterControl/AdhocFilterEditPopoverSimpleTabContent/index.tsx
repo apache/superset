@@ -114,10 +114,10 @@ export const useSimpleTabFilterProps = (props: Props) => {
         HAVING_OPERATORS.indexOf(operator) === -1)
     );
   };
-  const onSubjectChange = (id: string | number) => {
+  const onSubjectChange = (id: string) => {
     const option = props.options.find(
       option =>
-        ('id' in option && option.id === id) ||
+        ('column_name' in option && option.column_name === id) ||
         ('optionName' in option && option.optionName === id),
     );
 
@@ -204,10 +204,6 @@ export const useSimpleTabFilterProps = (props: Props) => {
 };
 
 const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
-  const selectProps = {
-    ariaLabel: 'select-column',
-    showSearch: true,
-  };
   const {
     onSubjectChange,
     onOperatorChange,
@@ -276,14 +272,17 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
 
   let columns = props.options;
   const { subject, operator, comparator, operatorId } = props.adhocFilter;
+
   const subjectSelectProps = {
-    value: subject ?? undefined,
+    ariaLabel: 'select-column',
+    value: subject,
     onChange: onSubjectChange,
     notFoundContent: t(
       'No such column found. To filter on a metric, try the Custom SQL tab.',
     ),
     autoFocus: !subject,
     placeholder: '',
+    showSearch: true,
   };
 
   if (props.datasource.type === 'druid') {
@@ -309,10 +308,11 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
       '%s operator(s)',
       OPERATORS_OPTIONS.filter(op => isOperatorRelevant(op, subject)).length,
     ),
-    value: OPERATOR_ENUM_TO_OPERATOR_TYPE[operatorId]?.display,
+    value: operatorId,
     onChange: onOperatorChange,
     autoFocus: !!subjectSelectProps.value && !operator,
     ariaLabel: 'select-operator',
+    showSearch: true,
   };
 
   const shouldFocusComparator =
@@ -354,8 +354,6 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
           marginTop: theme.gridUnit * 4,
           marginBottom: theme.gridUnit * 4,
         })}
-        {...selectProps}
-        {...subjectSelectProps}
         filterOption={(input, option) =>
           option && option.filterBy
             ? option.filterBy.toLowerCase().indexOf(input.toLowerCase()) >= 0
@@ -363,7 +361,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
         }
         options={columns.map(column => ({
           value:
-            ('id' in column && column.id) ||
+            ('column_name' in column && column.column_name) ||
             ('optionName' in column && column.optionName) ||
             '',
           filterBy:
@@ -376,11 +374,10 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
             undefined,
           label: renderSubjectOptionLabel(column),
         }))}
+        {...subjectSelectProps}
       />
       <Select
         css={theme => ({ marginBottom: theme.gridUnit * 4 })}
-        {...selectProps}
-        {...operatorSelectProps}
         options={OPERATORS_OPTIONS.filter(op =>
           isOperatorRelevant(op, subject),
         ).map(option => ({
@@ -388,14 +385,15 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
           label: OPERATOR_ENUM_TO_OPERATOR_TYPE[option].display,
           key: option,
         }))}
+        {...operatorSelectProps}
       />
       {MULTI_OPERATORS.has(operatorId) || suggestions.length > 0 ? (
         <SelectWithLabel
-          {...comparatorSelectProps}
           options={suggestions.map((suggestion: string) => ({
             value: suggestion,
             label: suggestion,
           }))}
+          {...comparatorSelectProps}
         />
       ) : (
         <Input
