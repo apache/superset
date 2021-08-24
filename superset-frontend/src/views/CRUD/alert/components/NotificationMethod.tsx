@@ -20,8 +20,8 @@ import React, { FunctionComponent, useState } from 'react';
 import { styled, t, useTheme } from '@superset-ui/core';
 import { Select } from 'src/components';
 import Icons from 'src/components/Icons';
+import { NotificationMethodOption } from 'src/views/CRUD/alert/types';
 import { StyledInputContainer } from '../AlertReportModal';
-import { NotificationMethodOption } from '../../../types';
 
 const StyledNotificationMethod = styled.div`
   margin-bottom: 10px;

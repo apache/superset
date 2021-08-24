@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export type NotificationMethodOption = 'Email' | 'Slack';
+import { NotificationMethodOption } from './CRUD/alert/types';
 
 export interface ViewState {
   common: {

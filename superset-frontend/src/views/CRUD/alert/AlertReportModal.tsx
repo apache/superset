@@ -44,11 +44,8 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Owner from 'src/types/Owner';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/views/CRUD/data/database/state';
-import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
-import { NotificationMethod } from './components/NotificationMethod';
-import { NotificationMethodOption } from '../../types';
-
 import {
+  NotificationMethodOption,
   AlertObject,
   ChartObject,
   DashboardObject,
@@ -56,7 +53,9 @@ import {
   MetaObject,
   Operator,
   Recipient,
-} from './types';
+} from 'src/views/CRUD/alert/types';
+import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
+import { NotificationMethod } from './components/NotificationMethod';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -398,7 +397,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   isReport = false,
 }) => {
   const conf = useCommonConf();
-  const allowedNotificationMethods =
+  const allowedNotificationMethods: NotificationMethodOption[] =
     conf?.ALERT_REPORTS_NOTIFICATION_METHODS || DEFAULT_NOTIFICATION_METHODS;
 
   const [disableSave, setDisableSave] = useState<boolean>(true);
@@ -916,10 +915,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             ? JSON.parse(setting.recipient_config_json)
             : {};
         return {
-          method: setting.type as NotificationMethodOption,
+          method: setting.type,
           // @ts-ignore: Type not assignable
           recipients: config.target || setting.recipient_config_json,
-          options: allowedNotificationMethods as NotificationMethodOption[], // Need better logic for this
+          options: allowedNotificationMethods,
         };
       });
 
