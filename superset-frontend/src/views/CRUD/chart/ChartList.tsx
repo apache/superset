@@ -74,6 +74,7 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
     'sure you want to overwrite?',
 );
 
+setupPlugins();
 const registry = getChartMetadataRegistry();
 
 const createFetchDatasets = (handleError: (err: Response) => void) => async (
@@ -125,8 +126,6 @@ interface ChartListProps {
 const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
-
-setupPlugins();
 
 function ChartList(props: ChartListProps) {
   const { addDangerToast, addSuccessToast } = props;
