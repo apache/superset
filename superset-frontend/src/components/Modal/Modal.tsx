@@ -151,12 +151,14 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     padding: 0;
   }
 
-  ${({ draggable }) =>
+  ${({ draggable, theme }) =>
     draggable &&
     `
     .ant-modal-header {
+      padding: 0;
       .draggable-trigger {
           cursor: move;
+          padding: ${theme.gridUnit * 4}px;
           width: 100%;
         }
     }
