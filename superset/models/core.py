@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=line-too-long,unused-argument,ungrouped-imports
+# pylint: disable=line-too-long,unused-argument
 """A collection of ORM sqlalchemy models for Superset"""
 import enum
 import json
@@ -167,7 +167,7 @@ class Database(
     extra_import_fields = ["password"]
     export_children = ["tables"]
 
-    def __repr__(self) -> str:  # pylint: disable=invalid-repr-returned
+    def __repr__(self) -> str:
         return self.name
 
     @property
@@ -724,7 +724,7 @@ class Database(
     @memoized
     def get_dialect(self) -> Dialect:
         sqla_url = url.make_url(self.sqlalchemy_uri_decrypted)
-        return sqla_url.get_dialect()()  # pylint: disable=no-member
+        return sqla_url.get_dialect()()
 
 
 sqla.event.listen(Database, "after_insert", security_manager.set_perm)

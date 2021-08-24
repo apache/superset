@@ -282,7 +282,7 @@ def deliver_dashboard(  # pylint: disable=too-many-locals
         except WebDriverException:
             # Some webdrivers do not support screenshots for elements.
             # In such cases, take a screenshot of the entire page.
-            screenshot = driver.screenshot()  # pylint: disable=no-member
+            screenshot = driver.screenshot()
         finally:
             destroy_webdriver(driver)
 
@@ -432,7 +432,7 @@ def _get_slice_visualization(
     except WebDriverException:
         # Some webdrivers do not support screenshots for elements.
         # In such cases, take a screenshot of the entire page.
-        screenshot = driver.screenshot()  # pylint: disable=no-member
+        screenshot = driver.screenshot()
     finally:
         destroy_webdriver(driver)
 

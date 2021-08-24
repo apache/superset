@@ -378,7 +378,7 @@ def validate_template_context(
     return validate_context_types(context)
 
 
-class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
+class BaseTemplateProcessor:
     """
     Base class for database-specific jinja context
     """
@@ -442,9 +442,7 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
         )
 
 
-class NoOpTemplateProcessor(
-    BaseTemplateProcessor
-):  # pylint: disable=too-few-public-methods
+class NoOpTemplateProcessor(BaseTemplateProcessor):
     def process_template(self, sql: str, **kwargs: Any) -> str:
         """
         Makes processing a template a noop
