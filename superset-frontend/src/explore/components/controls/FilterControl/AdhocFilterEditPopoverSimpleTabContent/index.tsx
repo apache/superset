@@ -275,7 +275,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
 
   const subjectSelectProps = {
     ariaLabel: 'select-column',
-    value: subject,
+    value: subject ?? undefined,
     onChange: onSubjectChange,
     notFoundContent: t(
       'No such column found. To filter on a metric, try the Custom SQL tab.',
@@ -332,6 +332,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     disabled: DISABLE_INPUT_OPERATORS.includes(operatorId),
     placeholder: createSuggestionsPlaceholder(),
     autoFocus: shouldFocusComparator,
+    showSearch: true,
   };
 
   const labelText =
