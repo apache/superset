@@ -228,13 +228,13 @@ class ApiOwnersTestCaseMixin:
 
     def test_get_ids_related_owners_paginated(self):
         """
-        API: Test get related owners with pagination returns 400
+        API: Test get related owners with pagination returns 422
         """
         self.login(username="admin")
         argument = {"page": 1, "page_size": 1, "include_ids": [2]}
         uri = f"api/v1/{self.resource_name}/related/owners?q={prison.dumps(argument)}"
         rv = self.client.get(uri)
-        assert rv.status_code == 400
+        assert rv.status_code == 422
 
     def test_get_filter_related_owners(self):
         """

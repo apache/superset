@@ -494,7 +494,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
         ids = args.get("include_ids")
         if page and ids:
             # pagination with forced ids is not supported
-            return self.response_400()
+            return self.response_422()
 
         try:
             datamodel = self.datamodel.get_related_interface(column_name)
