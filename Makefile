@@ -69,9 +69,6 @@ venv:
 make activate:
 	source venv/bin/activate
 
-make activate:
-	source venv/bin/activate
-
 pre-commit:
 	# setup pre commit dependencies
 	pip3 install -r requirements/integration.txt
