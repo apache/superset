@@ -21,7 +21,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Tabs from 'src/components/Tabs';
 import Button from 'src/components/Button';
-import { NativeSelect as Select } from 'src/components/Select';
+import { Select } from 'src/components';
 import { t, styled } from '@superset-ui/core';
 
 import { Form, FormItem } from 'src/components/Form';
@@ -162,8 +162,10 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
     );
   }
 
-  onColumnChange(columnId) {
-    const column = this.props.columns.find(column => column.id === columnId);
+  onColumnChange(columnName) {
+    const column = this.props.columns.find(
+      column => column.column_name === columnName,
+    );
     this.setState(prevState => ({
       adhocMetric: prevState.adhocMetric.duplicateWith({
         column,
@@ -184,9 +186,9 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
     }));
   }
 
-  onSavedMetricChange(savedMetricId) {
+  onSavedMetricChange(savedMetricName) {
     const savedMetric = this.props.savedMetricsOptions.find(
-      metric => metric.id === savedMetricId,
+      metric => metric.metric_name === savedMetricName,
     );
     this.setState(prevState => ({
       savedMetric,
@@ -290,6 +292,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
 
     // autofocus on column if there's no value in column; otherwise autofocus on aggregate
     const columnSelectProps = {
+      ariaLabel: 'select-column',
       placeholder: t('%s column(s)', columns.length),
       value: columnValue,
       onChange: this.onColumnChange,
@@ -301,6 +304,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
     };
 
     const aggregateSelectProps = {
+      ariaLabel: 'select-aggregate',
       placeholder: t('%s aggregates(s)', AGGREGATES_OPTIONS.length),
       value: adhocMetric.aggregate || adhocMetric.inferSqlExpressionAggregate(),
       onChange: this.onAggregateChange,
@@ -310,8 +314,9 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
     };
 
     const savedSelectProps = {
+      ariaLabel: 'select-saved',
       placeholder: t('%s saved metric(s)', savedMetricsOptions?.length ?? 0),
-      value: savedMetric?.verbose_name || savedMetric?.metric_name,
+      value: savedMetric?.metric_name,
       onChange: this.onSavedMetricChange,
       allowClear: true,
       showSearch: true,
@@ -354,55 +359,41 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
           <Tabs.TabPane key={SAVED_TAB_KEY} tab={t('Saved')}>
             <FormItem label={t('Saved metric')}>
               <StyledSelect
+                options={
+                  Array.isArray(savedMetricsOptions)
+                    ? savedMetricsOptions.map(savedMetric => ({
+                        value: savedMetric.metric_name,
+                        label:
+                          savedMetric.verbose_name || savedMetric.metric_name,
+                        key: savedMetric.id,
+                      }))
+                    : []
+                }
                 {...savedSelectProps}
-                name="select-saved"
-                getPopupContainer={triggerNode => triggerNode.parentNode}
-              >
-                {Array.isArray(savedMetricsOptions) &&
-                  savedMetricsOptions.map(savedMetric => (
-                    <Select.Option
-                      value={savedMetric.id}
-                      filterBy={
-                        savedMetric.verbose_name || savedMetric.metric_name
-                      }
-                      key={savedMetric.id}
-                    >
-                      <StyledMetricOption metric={savedMetric} showType />
-                    </Select.Option>
-                  ))}
-              </StyledSelect>
+              />
             </FormItem>
           </Tabs.TabPane>
           <Tabs.TabPane key={EXPRESSION_TYPES.SIMPLE} tab={t('Simple')}>
             <FormItem label={t('column')}>
               <Select
+                options={columns.map(column => ({
+                  value: column.column_name,
+                  filterBy: column.verbose_name || column.column_name,
+                  key: column.id,
+                  label: this.renderColumnOption(column),
+                }))}
                 {...columnSelectProps}
-                name="select-column"
-                getPopupContainer={triggerNode => triggerNode.parentNode}
-              >
-                {columns.map(column => (
-                  <Select.Option
-                    value={column.id}
-                    filterBy={column.verbose_name || column.column_name}
-                    key={column.id}
-                  >
-                    {this.renderColumnOption(column)}
-                  </Select.Option>
-                ))}
-              </Select>
+              />
             </FormItem>
             <FormItem label={t('aggregate')}>
               <Select
+                options={AGGREGATES_OPTIONS.map(option => ({
+                  value: option,
+                  label: option,
+                  key: option,
+                }))}
                 {...aggregateSelectProps}
-                name="select-aggregate"
-                getPopupContainer={triggerNode => triggerNode.parentNode}
-              >
-                {AGGREGATES_OPTIONS.map(option => (
-                  <Select.Option value={option} key={option}>
-                    {option}
-                  </Select.Option>
-                ))}
-              </Select>
+              />
             </FormItem>
           </Tabs.TabPane>
           <Tabs.TabPane
