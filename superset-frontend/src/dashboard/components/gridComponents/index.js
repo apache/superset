@@ -28,7 +28,7 @@ import {
 } from '../../util/componentTypes';
 
 import ChartHolderConnected from './ChartHolder';
-import Markdown from './Markdown';
+import MarkdownConnected from './Markdown';
 import Column from './Column';
 import Divider from './Divider';
 import Header from './Header';
@@ -47,7 +47,7 @@ export { default as Tabs } from './Tabs';
 
 export const componentLookup = {
   [CHART_TYPE]: ChartHolderConnected,
-  [MARKDOWN_TYPE]: Markdown,
+  [MARKDOWN_TYPE]: MarkdownConnected,
   [COLUMN_TYPE]: Column,
   [DIVIDER_TYPE]: Divider,
   [HEADER_TYPE]: Header,
