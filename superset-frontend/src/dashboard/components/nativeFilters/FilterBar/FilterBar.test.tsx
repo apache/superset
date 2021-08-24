@@ -29,8 +29,6 @@ import { TimeFilterPlugin, SelectFilterPlugin } from 'src/filters/components';
 import { DATE_FILTER_CONTROL_TEST_ID } from 'src/explore/components/controls/DateFilterControl/DateFilterLabel';
 import fetchMock from 'fetch-mock';
 import { waitFor } from '@testing-library/react';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
 import FilterBar, { FILTER_BAR_TEST_ID } from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
 
@@ -221,16 +219,12 @@ describe('FilterBar', () => {
   });
 
   const renderWrapper = (props = closedBarProps, state?: object) =>
-    render(
-      <DndProvider backend={HTML5Backend}>
-        <FilterBar {...props} width={280} height={400} offset={0} />
-      </DndProvider>,
-      {
-        useRedux: true,
-        initialState: state,
-        useRouter: true,
-      },
-    );
+    render(<FilterBar {...props} width={280} height={400} offset={0} />, {
+      initialState: state,
+      useDnd: true,
+      useRedux: true,
+      useRouter: true,
+    });
 
   it('should render', () => {
     const { container } = renderWrapper();

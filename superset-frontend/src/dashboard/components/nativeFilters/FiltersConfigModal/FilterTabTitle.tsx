@@ -22,15 +22,30 @@ import { DropTargetMonitor, useDrag, useDrop, XYCoord } from 'react-dnd';
 import Icons from 'src/components/Icons';
 import { REMOVAL_DELAY_SECS } from './utils';
 
+interface TabTitleContainerProps {
+  readonly isDragging: boolean;
+}
 const FILTER_TYPE = 'FILTER';
 const StyledFilterTitle = styled.span`
   white-space: normal;
   color: ${({ theme }) => theme.colors.grayscale.dark1};
 `;
-const TabTitleContainer = styled.div`
+const TabTitleContainer = styled.div<TabTitleContainerProps>`
+  ${({ theme, isDragging }) => `
   display: flex;
   width: 100%;
-  border-radius: ${({ theme }) => theme.gridUnit}px;
+  border-radius:  ${theme.borderRadius}px;
+  opacity: ${isDragging ? 0.5 : 1};
+  padding-top: ${theme.gridUnit}px;
+  padding-bottom: ${theme.gridUnit}px;
+  padding-left: ${2 * theme.gridUnit}px;
+  &:hover {
+    transition: all 0.3s;
+    span, .anticon {
+      color: ${theme.colors.primary.dark1};
+    }
+  }
+`}
 `;
 const StyledFilterTabTitle = styled.span`
   transition: color ${({ theme }) => theme.transitionTiming}s;
@@ -67,9 +82,6 @@ const StyledSpan = styled.span`
 
 const StyledTrashIcon = styled(Icons.Trash)`
   color: ${({ theme }) => theme.colors.grayscale.light3};
-  &:hover {
-    color: ${({ theme }) => theme.colors.primary.dark2};
-  }
 `;
 
 interface FilterTabTitleProps {
@@ -156,12 +168,7 @@ export const FilterTabTitle: React.FC<FilterTabTitleProps> = ({
   });
   drag(drop(ref));
   return (
-    <TabTitleContainer
-      ref={ref}
-      style={{
-        opacity: isDragging ? 0.5 : 1,
-      }}
-    >
+    <TabTitleContainer ref={ref} isDragging={isDragging}>
       <StyledFilterTabTitle className={isRemoved ? 'removed' : ''}>
         <StyledFilterTitle>
           {isRemoved ? t('(Removed)') : getFilterTitle(id)}
@@ -177,7 +184,7 @@ export const FilterTabTitle: React.FC<FilterTabTitleProps> = ({
           </StyledSpan>
         )}
       </StyledFilterTabTitle>
-      <div style={{ alignSelf: 'flex-end' }}>
+      <div css={{ alignSelf: 'flex-end' }}>
         {isRemoved ? (
           <></>
         ) : (

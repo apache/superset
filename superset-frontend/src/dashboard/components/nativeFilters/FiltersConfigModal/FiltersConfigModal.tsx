@@ -153,7 +153,7 @@ export function FiltersConfigModal({
     setCurrentFilterId(newFilterId);
     setSaveAlertVisible(false);
     setOrderedFilters([...orderedFilters, newFilterId]);
-  }, [newFilterIds, setCurrentFilterId]);
+  }, [newFilterIds, orderedFilters, setCurrentFilterId]);
 
   useOpenModal(isOpen, addFilter, createNewOnOpen);
 
@@ -179,12 +179,21 @@ export function FiltersConfigModal({
 
   // After this, it should be as if the modal was just opened fresh.
   // Called when the modal is closed.
-  const resetForm = () => {
+  const resetForm = (isSave = true) => {
     setNewFilterIds([]);
     setCurrentFilterId(initialCurrentFilterId);
     setRemovedFilters({});
     setSaveAlertVisible(false);
     setFormValues({ filters: {} });
+    setOrderedFilters(
+      isSave
+        ? filterIds
+            .slice()
+            .sort(
+              (a, b) => orderedFilters.indexOf(a) - orderedFilters.indexOf(b),
+            )
+        : filterIds.filter(id => !removedFilters[id]),
+    );
     form.setFieldsValue({ changed: false });
   };
 
@@ -221,11 +230,14 @@ export function FiltersConfigModal({
     if (values) {
       createHandleSave(
         filterConfigMap,
-        filterIds,
+        filterIds
+          .slice()
+          .sort(
+            (a, b) => orderedFilters.indexOf(a) - orderedFilters.indexOf(b),
+          ),
         removedFilters,
         onSave,
         values,
-        orderedFilters,
       )();
       resetForm();
     } else {
@@ -234,13 +246,22 @@ export function FiltersConfigModal({
   };
 
   const handleConfirmCancel = () => {
-    resetForm();
+    resetForm(false);
     onCancel();
   };
 
   const handleCancel = () => {
     const changed = form.getFieldValue('changed');
-    if (unsavedFiltersIds.length > 0 || form.isFieldsTouched() || changed) {
+    const didChangeOrder = orderedFilters.some(
+      (filterId, index) =>
+        filterIds.filter(id => !removedFilters[id])[index] !== filterId,
+    );
+    if (
+      unsavedFiltersIds.length > 0 ||
+      form.isFieldsTouched() ||
+      changed ||
+      didChangeOrder
+    ) {
       setSaveAlertVisible(true);
     } else {
       handleConfirmCancel();
@@ -298,11 +319,15 @@ export function FiltersConfigModal({
               onChange={setCurrentFilterId}
               getFilterTitle={getFilterTitle}
               currentFilterId={currentFilterId}
-              filterIds={filterIds}
+              filterIds={filterIds
+                .slice()
+                .sort(
+                  (a, b) =>
+                    orderedFilters.indexOf(a) - orderedFilters.indexOf(b),
+                )}
               removedFilters={removedFilters}
               restoreFilter={restoreFilter}
               onRearrage={onRearrage}
-              orderedFilterIds={orderedFilters}
             >
               {(id: string) => (
                 <FiltersConfigForm

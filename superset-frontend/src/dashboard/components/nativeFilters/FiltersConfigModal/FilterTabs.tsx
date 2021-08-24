@@ -81,8 +81,7 @@ const FilterTabsContainer = styled(LineEditableTabs)`
     // extra selector specificity:
     &.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {
       margin: 0;
-      padding: ${theme.gridUnit}px;;
-      &:hover,
+      padding: 0;
       &-active {
         color: ${theme.colors.grayscale.dark1};
         margin-bottom: ${theme.gridUnit / 2}px;
@@ -95,6 +94,11 @@ const FilterTabsContainer = styled(LineEditableTabs)`
         .anticon {
           color: ${theme.colors.grayscale.base};
         }
+        :hover{
+          span {
+            color: ${theme.colors.grayscale.base} !important;
+          }
+        }
       }
     }
 
@@ -102,7 +106,7 @@ const FilterTabsContainer = styled(LineEditableTabs)`
       text-align: left;
       justify-content: space-between;
       text-transform: unset;
-      padding-left: ${theme.gridUnit}px;
+      padding-left: 0;
     }
 
     .ant-tabs-nav-more {
@@ -131,7 +135,6 @@ type FilterTabsProps = {
   currentFilterId: string;
   onEdit: (filterId: string, action: 'add' | 'remove') => void;
   filterIds: string[];
-  orderedFilterIds: string[];
   removedFilters: Record<string, FilterRemoval>;
   restoreFilter: (id: string) => void;
   children: Function;
@@ -148,7 +151,6 @@ const FilterTabs: FC<FilterTabsProps> = ({
   restoreFilter,
   children,
   onRearrage,
-  orderedFilterIds,
 }) => (
   <FilterTabsContainer
     id="native-filters-tabs"
@@ -183,31 +185,28 @@ const FilterTabs: FC<FilterTabsProps> = ({
       ),
     }}
   >
-    {filterIds
-      .slice()
-      .sort((a, b) => orderedFilterIds.indexOf(a) - orderedFilterIds.indexOf(b))
-      .map((id, index) => (
-        <LineEditableTabs.TabPane
-          tab={
-            <FilterTabTitle
-              id={id}
-              index={index}
-              isRemoved={!!removedFilters[id]}
-              restoreFilter={restoreFilter}
-              getFilterTitle={getFilterTitle}
-              onRearrage={onRearrage}
-              onRemove={(id: string) => curry(onEdit)(id)('remove')}
-            />
-          }
-          key={id}
-          closable={false}
-        >
-          {
-            /* @ts-ignore */
-            children(id)
-          }
-        </LineEditableTabs.TabPane>
-      ))}
+    {filterIds.map((id, index) => (
+      <LineEditableTabs.TabPane
+        tab={
+          <FilterTabTitle
+            id={id}
+            index={index}
+            isRemoved={!!removedFilters[id]}
+            restoreFilter={restoreFilter}
+            getFilterTitle={getFilterTitle}
+            onRearrage={onRearrage}
+            onRemove={(id: string) => curry(onEdit)(id)('remove')}
+          />
+        }
+        key={id}
+        closable={false}
+      >
+        {
+          /* @ts-ignore */
+          children(id)
+        }
+      </LineEditableTabs.TabPane>
+    ))}
   </FilterTabsContainer>
 );
 
