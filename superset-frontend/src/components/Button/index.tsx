@@ -154,6 +154,7 @@ export default function Button(props: ButtonProps) {
   } else {
     renderedChildren = Children.toArray(children);
   }
+
   const firstChildMargin = renderedChildren.length > 1 ? theme.gridUnit * 2 : 0;
 
   const button = (
