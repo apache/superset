@@ -377,7 +377,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
             <FormItem label={t('column')}>
               <Select
                 {...columnSelectProps}
-                ariaLabel="select-column"
+                aria-label="select-column"
                 getPopupContainer={triggerNode => triggerNode.parentNode}
               >
                 {columns.map(column => (
