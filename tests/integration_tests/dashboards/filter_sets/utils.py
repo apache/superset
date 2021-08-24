@@ -19,8 +19,8 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, Set, TYPE_CHECKING, Union
 
 from superset.models.filter_set import FilterSet
-from tests.dashboards.filter_sets.consts import FILTER_SET_URI
-from tests.test_app import app
+from tests.integration_tests.dashboards.filter_sets.consts import FILTER_SET_URI
+from tests.integration_tests.test_app import app
 
 if TYPE_CHECKING:
     from flask import Response
