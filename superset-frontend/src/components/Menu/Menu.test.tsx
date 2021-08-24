@@ -17,14 +17,26 @@
  * under the License.
  */
 import React from 'react';
+import * as reactRedux from 'react-redux';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { Menu } from './Menu';
 import { dropdownItems } from './MenuRight';
-import { user } from './fixtures'
+
+const user = {
+  createdOn: '2021-04-27T18:12:38.952304',
+  email: 'admin',
+  firstName: 'admin',
+  isActive: true,
+  lastName: 'admin',
+  permissions: {},
+  roles: { Admin: Array(173) },
+  userId: 1,
+  username: 'admin',
+};
 
 const mockedProps = {
-  user: { roles: [] },
+  user,
   data: {
     menu: [
       {
@@ -137,12 +149,12 @@ const notanonProps = {
   },
 };
 
-beforeAll(() => {
-  Object.defineProperty(global, 'document', { app: { user: { roles: [] } } });
-});
 
 test('should render', () => {
-  const { container } = render(<Menu {...mockedProps} />);
+  const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
+  useSelectorMock.mockReturnValue({ user });
+
+  const { container } = render(<Menu {...mockedProps} />, { useRedux: true });
   expect(container).toBeInTheDocument();
 });
 
