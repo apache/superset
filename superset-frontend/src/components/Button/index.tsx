@@ -63,7 +63,6 @@ export interface ButtonProps {
   htmlType?: 'button' | 'submit' | 'reset';
   cta?: boolean;
   loading?: boolean | { delay?: number | undefined } | undefined;
-  showMarginRight?: boolean;
 }
 
 export default function Button(props: ButtonProps) {
@@ -77,7 +76,6 @@ export default function Button(props: ButtonProps) {
     cta,
     children,
     href,
-    showMarginRight = true,
     ...restProps
   } = props;
 
@@ -156,8 +154,7 @@ export default function Button(props: ButtonProps) {
   } else {
     renderedChildren = Children.toArray(children);
   }
-  const firstChildMargin =
-    showMarginRight && renderedChildren.length > 1 ? theme.gridUnit * 2 : 0;
+  const firstChildMargin = renderedChildren.length > 1 ? theme.gridUnit * 2 : 0;
 
   const button = (
     <AntdButton
