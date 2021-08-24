@@ -51,8 +51,8 @@ annotation_json_metadata = "JSON metadata"
 def validate_json(value: Union[bytes, bytearray, str]) -> None:
     try:
         utils.validate_json(value)
-    except SupersetException:
-        raise ValidationError("JSON not valid")
+    except SupersetException as ex:
+        raise ValidationError("JSON not valid") from ex
 
 
 class AnnotationPostSchema(Schema):

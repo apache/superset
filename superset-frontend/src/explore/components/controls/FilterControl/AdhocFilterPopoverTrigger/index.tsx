@@ -29,7 +29,6 @@ interface AdhocFilterPopoverTriggerProps {
   datasource: Record<string, any>;
   onFilterEdit: (editedFilter: AdhocFilter) => void;
   partitionColumn?: string;
-  createNew?: boolean;
   isControlledComponent?: boolean;
   visible?: boolean;
   togglePopover?: (visible: boolean) => void;
@@ -104,7 +103,7 @@ class AdhocFilterPopoverTrigger extends React.PureComponent<
         defaultVisible={visible}
         visible={visible}
         onVisibleChange={togglePopover}
-        destroyTooltipOnHide={this.props.createNew}
+        destroyTooltipOnHide
       >
         {this.props.children}
       </Popover>

@@ -712,7 +712,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/explore/<datasource_type>/<int:datasource_id>/", methods=["GET", "POST"])
     @expose("/explore/", methods=["GET", "POST"])
-    def explore(  # pylint: disable=too-many-locals,too-many-return-statements,too-many-statements
+    def explore(  # pylint: disable=too-many-locals
         self, datasource_type: Optional[str] = None, datasource_id: Optional[int] = None
     ) -> FlaskResponse:
         user_id = g.user.get_id() if g.user else None
@@ -915,7 +915,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return [f for f in filters if not f.get("isExtra")]
 
     def save_or_overwrite_slice(
-        # pylint: disable=too-many-arguments,too-many-locals,no-self-use
+        # pylint: disable=too-many-arguments,too-many-locals
         self,
         slc: Optional[Slice],
         slice_add_perm: bool,
@@ -1061,8 +1061,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/tables/<int:db_id>/<schema>/<substr>/")
     @expose("/tables/<int:db_id>/<schema>/<substr>/<force_refresh>/")
-    def tables(  # pylint: disable=too-many-locals,no-self-use
-        self, db_id: int, schema: str, substr: str, force_refresh: str = "false"
+    @expose("/tables/<int:db_id>/<schema>/<substr>/<force_refresh>/<exact_match>")
+    def tables(  # pylint: disable=too-many-locals,no-self-use,too-many-arguments
+        self,
+        db_id: int,
+        schema: str,
+        substr: str,
+        force_refresh: str = "false",
+        exact_match: str = "false",
     ) -> FlaskResponse:
         """Endpoint to fetch the list of tables for given database"""
         # Guarantees database filtering by security access
@@ -1075,6 +1081,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return json_error_response("Not found", 404)
 
         force_refresh_parsed = force_refresh.lower() == "true"
+        exact_match_parsed = exact_match.lower() == "true"
         schema_parsed = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         substr_parsed = utils.parse_js_uri_path_item(substr, eval_undefined=True)
 
@@ -1116,9 +1123,15 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 ds_name.table if schema_parsed else f"{ds_name.schema}.{ds_name.table}"
             )
 
+        def is_match(src: str, target: utils.DatasourceName) -> bool:
+            target_label = get_datasource_label(target)
+            if exact_match_parsed:
+                return src == target_label
+            return src in target_label
+
         if substr_parsed:
-            tables = [tn for tn in tables if substr_parsed in get_datasource_label(tn)]
-            views = [vn for vn in views if substr_parsed in get_datasource_label(vn)]
+            tables = [tn for tn in tables if is_match(substr_parsed, tn)]
+            views = [vn for vn in views if is_match(substr_parsed, vn)]
 
         if not schema_parsed and database.default_schemas:
             user_schemas = (
@@ -1283,9 +1296,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/testconn", methods=["POST", "GET"])
-    def testconn(  # pylint: disable=too-many-return-statements,no-self-use
-        self,
-    ) -> FlaskResponse:
+    def testconn(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """Tests a sqla connection"""
         db_name = request.json.get("name")
         uri = request.json.get("uri")
@@ -1544,11 +1555,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         Dash = Dashboard
         qry = (
             db.session.query(Dash)
-            .filter(
-                or_(  # pylint: disable=comparison-with-callable
-                    Dash.created_by_fk == user_id, Dash.changed_by_fk == user_id
-                )
-            )
+            .filter(or_(Dash.created_by_fk == user_id, Dash.changed_by_fk == user_id))
             .order_by(Dash.changed_on.desc())
         )
         payload = [
@@ -1861,8 +1868,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             utils.error_msg_from_exception(ex), status=403
         )
     )
-    def dashboard(  # pylint: disable=too-many-locals
-        self,  # pylint: disable=no-self-use
+    def dashboard(
+        self,
         dashboard_id_or_slug: str,  # pylint: disable=unused-argument
         add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
         dashboard: Optional[Dashboard] = None,
@@ -2040,14 +2047,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         try:
             table_name = data["datasourceName"]
             database_id = data["dbId"]
-        except KeyError:
+        except KeyError as ex:
             raise SupersetGenericErrorException(
                 __(
                     "One or more required fields are missing in the request. Please try "
                     "again, and if the problem persists conctact your administrator."
                 ),
                 status=400,
-            )
+            ) from ex
         database = db.session.query(Database).get(database_id)
         if not database:
             raise SupersetErrorException(
@@ -2209,9 +2216,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return self.results_exec(key)
 
     @staticmethod
-    def results_exec(  # pylint: disable=too-many-return-statements
-        key: str,
-    ) -> FlaskResponse:
+    def results_exec(key: str) -> FlaskResponse:
         """Serves a key off of the results backend
 
         It is possible to pass the `rows` query argument to limit the number
@@ -2355,7 +2360,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/validate_sql_json/", methods=["POST", "GET"])
     def validate_sql_json(
-        # pylint: disable=too-many-locals,too-many-return-statements,no-self-use
+        # pylint: disable=too-many-locals,no-self-use
         self,
     ) -> FlaskResponse:
         """Validates that arbitrary sql is acceptable for the given database.
@@ -2423,7 +2428,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return json_error_response(f"{msg}")
 
     @staticmethod
-    def _sql_json_async(  # pylint: disable=too-many-arguments
+    def _sql_json_async(
         session: Session,
         rendered_query: str,
         query: Query,
@@ -2464,7 +2469,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     "Unable to forget Celery task as backend"
                     "does not support this operation"
                 )
-        except Exception as ex:  # pylint: disable=broad-except
+        except Exception as ex:
             logger.exception("Query %i: %s", query.id, str(ex))
 
             message = __("Failed to start remote query on a worker.")
@@ -2480,7 +2485,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             query.error_message = message
             session.commit()
 
-            raise SupersetErrorException(error)
+            raise SupersetErrorException(error) from ex
 
         # Update saved query with execution info from the query execution
         QueryDAO.update_saved_query_exec_info(query_id)
@@ -2547,9 +2552,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         except SupersetTimeoutException as ex:
             # re-raise exception for api exception handler
             raise ex
-        except Exception as ex:  # pylint: disable=broad-except
+        except Exception as ex:
             logger.exception("Query %i failed unexpectedly", query.id)
-            raise SupersetGenericDBErrorException(utils.error_msg_from_exception(ex))
+            raise SupersetGenericDBErrorException(
+                utils.error_msg_from_exception(ex)
+            ) from ex
 
         if data.get("status") == QueryStatus.FAILED:
             # new error payload with rich context

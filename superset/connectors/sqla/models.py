@@ -19,7 +19,7 @@ import json
 import logging
 import re
 from collections import defaultdict, OrderedDict
-from dataclasses import dataclass, field  # pylint: disable=wrong-import-order
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import (
     Any,
@@ -404,9 +404,7 @@ class SqlMetric(Model, BaseMetric):
         "extra",
         "warning_text",
     ]
-    update_from_object_fields = list(
-        [s for s in export_fields if s not in ("table_id",)]
-    )
+    update_from_object_fields = list(s for s in export_fields if s != "table_id")
     export_parent = "table"
 
     def get_sqla_col(self, label: Optional[str] = None) -> Column:
@@ -473,10 +471,9 @@ sqlatable_user = Table(
 )
 
 
-class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-attributes
+class SqlaTable(  # pylint: disable=too-many-instance-attributes,too-many-public-methods
     Model, BaseDatasource
 ):
-
     """An ORM object for SqlAlchemy table references"""
 
     type = "table"
@@ -721,7 +718,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                     "Error in jinja expression in fetch values predicate: %(msg)s",
                     msg=ex.message,
                 )
-            )
+            ) from ex
 
     def values_for_column(self, column_name: str, limit: int = 10000) -> List[Any]:
         """Runs query against sqla to retrieve some
@@ -820,7 +817,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                         "Error while rendering virtual dataset query: %(msg)s",
                         msg=ex.message,
                     )
-                )
+                ) from ex
         sql = sqlparse.format(sql.strip("\t\r\n; "), strip_comments=True)
         if not sql:
             raise QueryObjectValidationError(_("Virtual dataset query cannot be empty"))
@@ -845,7 +842,8 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         label = utils.get_metric_name(metric)
 
         if expression_type == utils.AdhocMetricExpressionType.SIMPLE:
-            column_name = cast(str, metric["column"].get("column_name"))
+            metric_column = metric.get("column") or {}
+            column_name = cast(str, metric_column.get("column_name"))
             table_column: Optional[TableColumn] = columns_by_name.get(column_name)
             if table_column:
                 sqla_column = table_column.get_sqla_col()
@@ -930,7 +928,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         except TemplateError as ex:
             raise QueryObjectValidationError(
                 _("Error in jinja expression in RLS filters: %(msg)s", msg=ex.message,)
-            )
+            ) from ex
 
     def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
         self,
@@ -1070,12 +1068,12 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             columns = groupby or columns
             for selected in columns:
                 # if groupby field/expr equals granularity field/expr
-                if selected == granularity:
-                    sqla_col = columns_by_name[selected]
-                    outer = sqla_col.get_timestamp_expression(time_grain, selected)
+                table_col = columns_by_name.get(selected)
+                if table_col and table_col.type_generic == GenericDataType.TEMPORAL:
+                    outer = table_col.get_timestamp_expression(time_grain, selected)
                 # if groupby field equals a selected column
-                elif selected in columns_by_name:
-                    outer = columns_by_name[selected].get_sqla_col()
+                elif table_col:
+                    outer = table_col.get_sqla_col()
                 else:
                     outer = literal_column(f"({selected})")
                     outer = self.make_sqla_column_compatible(outer, selected)
@@ -1150,7 +1148,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         having_clause_and = []
 
         for flt in filter:  # type: ignore
-            if not all([flt.get(s) for s in ["col", "op"]]):
+            if not all(flt.get(s) for s in ["col", "op"]):
                 continue
             col = flt["col"]
             val = flt.get("val")
@@ -1253,7 +1251,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                             "Error in jinja expression in WHERE clause: %(msg)s",
                             msg=ex.message,
                         )
-                    )
+                    ) from ex
                 where_clause_and += [sa.text("({})".format(where))]
             having = extras.get("having")
             if having:
@@ -1265,7 +1263,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                             "Error in jinja expression in HAVING clause: %(msg)s",
                             msg=ex.message,
                         )
-                    )
+                    ) from ex
                 having_clause_and += [sa.text("({})".format(having))]
         if apply_fetch_values_predicate and self.fetch_values_predicate:
             qry = qry.where(self.get_fetch_values_predicate())
@@ -1291,7 +1289,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             qry = qry.offset(row_offset)
 
         if (
-            is_timeseries  # pylint: disable=too-many-boolean-expressions
+            is_timeseries
             and timeseries_limit
             and not time_groupby_inline
             and groupby_exprs_sans_timestamp
@@ -1649,6 +1647,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         :raises Exception: If the target table is not unique
         """
 
+        # pylint: disable=import-outside-toplevel
         from superset.datasets.commands.exceptions import get_dataset_exist_error_msg
         from superset.datasets.dao import DatasetDAO
 

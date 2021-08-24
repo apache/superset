@@ -36,7 +36,7 @@ from .helpers import (
 
 def load_long_lat_data(only_metadata: bool = False, force: bool = False) -> None:
     """Loading lat/long data from a csv file in the repo"""
-    tbl_name = "Sample Geodata"
+    tbl_name = "long_lat"
     database = utils.get_example_database()
     table_exists = database.has_table_by_name(tbl_name)
 
@@ -54,7 +54,7 @@ def load_long_lat_data(only_metadata: bool = False, force: bool = False) -> None
         pdf["radius_miles"] = [random.uniform(1, 3) for _ in range(len(pdf))]
         pdf["geohash"] = pdf[["LAT", "LON"]].apply(lambda x: geohash.encode(*x), axis=1)
         pdf["delimited"] = pdf["LAT"].map(str).str.cat(pdf["LON"].map(str), sep=",")
-        pdf.to_sql(  # pylint: disable=no-member
+        pdf.to_sql(
             tbl_name,
             database.get_sqla_engine(),
             if_exists="replace",

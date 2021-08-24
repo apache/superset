@@ -53,7 +53,7 @@ import {
   StyledRadioGroup,
 } from './styles';
 
-interface ReportObject {
+export interface ReportObject {
   id?: number;
   active: boolean;
   crontab: string;
@@ -125,7 +125,6 @@ type ReportActionType =
       type: ActionType.reset;
     };
 
-const DEFAULT_NOTIFICATION_FORMAT = 'TEXT';
 const TEXT_BASED_VISUALIZATION_TYPES = [
   'pivot_table',
   'pivot_table_v2',
@@ -133,28 +132,34 @@ const TEXT_BASED_VISUALIZATION_TYPES = [
   'paired_ttest',
 ];
 
+const NOTIFICATION_FORMATS = {
+  TEXT: 'TEXT',
+  PNG: 'PNG',
+  CSV: 'CSV',
+};
+
 const reportReducer = (
   state: Partial<ReportObject> | null,
   action: ReportActionType,
 ): Partial<ReportObject> | null => {
   const initialState = {
-    name: state?.name || 'Weekly Report',
-    report_format: state?.report_format || DEFAULT_NOTIFICATION_FORMAT,
-    ...(state || {}),
+    name: 'Weekly Report',
   };
 
   switch (action.type) {
     case ActionType.inputChange:
       return {
         ...initialState,
+        ...state,
         [action.payload.name]: action.payload.value,
       };
     case ActionType.fetched:
       return {
+        ...initialState,
         ...action.payload,
       };
     case ActionType.reset:
-      return null;
+      return { ...initialState };
     default:
       return state;
   }
@@ -167,6 +172,11 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   ...props
 }) => {
   const vizType = props.props.chart?.sliceFormData?.viz_type;
+  const isChart = !!props.props.chart;
+  const defaultNotificationFormat =
+    isChart && TEXT_BASED_VISUALIZATION_TYPES.includes(vizType)
+      ? NOTIFICATION_FORMATS.TEXT
+      : NOTIFICATION_FORMATS.PNG;
   const [currentReport, setCurrentReport] = useReducer<
     Reducer<Partial<ReportObject> | null, ReportActionType>
   >(reportReducer, null);
@@ -179,6 +189,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   // Report fetch logic
   const reports = useSelector<any, AlertObject>(state => state.reports);
   const isEditMode = reports && Object.keys(reports).length;
+
   useEffect(() => {
     if (isEditMode) {
       const reportsIds = Object.keys(reports);
@@ -214,7 +225,8 @@ const ReportModal: FunctionComponent<ReportProps> = ({
       type: 'Report',
       creation_method: props.props.creationMethod,
       active: true,
-      report_format: currentReport?.report_format,
+      report_format: currentReport?.report_format || defaultNotificationFormat,
+      timezone: currentReport?.timezone,
     };
 
     if (isEditMode) {
@@ -270,17 +282,17 @@ const ReportModal: FunctionComponent<ReportProps> = ({
               value: event.target.value,
             });
           }}
-          value={currentReport?.report_format || DEFAULT_NOTIFICATION_FORMAT}
+          value={currentReport?.report_format || defaultNotificationFormat}
         >
           {TEXT_BASED_VISUALIZATION_TYPES.includes(vizType) && (
-            <StyledRadio value="TEXT">
+            <StyledRadio value={NOTIFICATION_FORMATS.TEXT}>
               {t('Text embedded in email')}
             </StyledRadio>
           )}
-          <StyledRadio value="PNG">
+          <StyledRadio value={NOTIFICATION_FORMATS.PNG}>
             {t('Image (PNG) embedded in email')}
           </StyledRadio>
-          <StyledRadio value="CSV">
+          <StyledRadio value={NOTIFICATION_FORMATS.CSV}>
             {t('Formatted CSV attached in email')}
           </StyledRadio>
         </StyledRadioGroup>
@@ -374,7 +386,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
           }}
           timezone={currentReport?.timezone}
         />
-        {props.props.chart && renderMessageContentSection}
+        {isChart && renderMessageContentSection}
       </StyledBottomSection>
     </StyledModal>
   );

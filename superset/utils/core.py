@@ -81,7 +81,7 @@ from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql.type_api import Variant
 from sqlalchemy.types import TEXT, TypeDecorator, TypeEngine
-from typing_extensions import TypedDict
+from typing_extensions import TypedDict, TypeGuard
 
 import _thread  # pylint: disable=C0411
 from superset.constants import (
@@ -96,7 +96,14 @@ from superset.exceptions import (
     SupersetException,
     SupersetTimeoutException,
 )
-from superset.typing import AdhocMetric, FilterValues, FlaskResponse, FormData, Metric
+from superset.typing import (
+    AdhocMetric,
+    AdhocMetricColumn,
+    FilterValues,
+    FlaskResponse,
+    FormData,
+    Metric,
+)
 from superset.utils.dates import datetime_to_epoch, EPOCH
 from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
 
@@ -114,6 +121,8 @@ logging.getLogger("MARKDOWN").setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
 
 DTTM_ALIAS = "__timestamp"
+
+NO_TIME_RANGE = "No filter"
 
 TIME_COMPARISION = "__"
 
@@ -216,6 +225,12 @@ class ExtraFiltersTimeColumnType(str, Enum):
     TIME_RANGE = "__time_range"
 
 
+class ExtraFiltersReasonType(str, Enum):
+    NO_TEMPORAL_COLUMN = "no_temporal_column"
+    COL_NOT_IN_DATASOURCE = "not_in_datasource"
+    NOT_DRUID_DATASOURCE = "not_druid_datasource"
+
+
 class FilterOperator(str, Enum):
     """
     Operators used filter controls
@@ -231,7 +246,7 @@ class FilterOperator(str, Enum):
     ILIKE = "ILIKE"
     IS_NULL = "IS NULL"
     IS_NOT_NULL = "IS NOT NULL"
-    IN = "IN"  # pylint: disable=invalid-name
+    IN = "IN"
     NOT_IN = "NOT IN"
     REGEX = "REGEX"
     IS_TRUE = "IS TRUE"
@@ -276,7 +291,7 @@ class QuerySource(Enum):
     SQL_LAB = 2
 
 
-class QueryStatus(str, Enum):  # pylint: disable=too-few-public-methods
+class QueryStatus(str, Enum):
     """Enum-type class for query statuses"""
 
     STOPPED: str = "stopped"
@@ -530,9 +545,7 @@ def format_timedelta(time_delta: timedelta) -> str:
     return str(time_delta)
 
 
-def base_json_conv(  # pylint: disable=inconsistent-return-statements,too-many-return-statements
-    obj: Any,
-) -> Any:
+def base_json_conv(obj: Any,) -> Any:  # pylint: disable=inconsistent-return-statements
     if isinstance(obj, memoryview):
         obj = obj.tobytes()
     if isinstance(obj, np.int64):
@@ -694,7 +707,7 @@ def generic_find_constraint_name(
     return None
 
 
-def generic_find_fk_constraint_name(  # pylint: disable=invalid-name
+def generic_find_fk_constraint_name(
     table: str, columns: Set[str], referenced: str, insp: Inspector
 ) -> Optional[str]:
     """Utility to find a foreign-key constraint name in alembic migrations"""
@@ -750,7 +763,7 @@ def validate_json(obj: Union[bytes, bytearray, str]) -> None:
             json.loads(obj)
         except Exception as ex:
             logger.error("JSON is not valid %s", str(ex), exc_info=True)
-            raise SupersetException("JSON is not valid")
+            raise SupersetException("JSON is not valid") from ex
 
 
 class SigalrmTimeout:
@@ -782,7 +795,7 @@ class SigalrmTimeout:
             logger.warning("timeout can't be used in the current context")
             logger.exception(ex)
 
-    def __exit__(  # pylint: disable=redefined-outer-name,unused-variable,redefined-builtin
+    def __exit__(  # pylint: disable=redefined-outer-name,redefined-builtin
         self, type: Any, value: Any, traceback: TracebackType
     ) -> None:
         try:
@@ -801,7 +814,7 @@ class TimerTimeout:
     def __enter__(self) -> None:
         self.timer.start()
 
-    def __exit__(  # pylint: disable=redefined-outer-name,unused-variable,redefined-builtin
+    def __exit__(  # pylint: disable=redefined-outer-name,redefined-builtin
         self, type: Any, value: Any, traceback: TracebackType
     ) -> None:
         self.timer.cancel()
@@ -822,9 +835,7 @@ timeout: Union[Type[TimerTimeout], Type[SigalrmTimeout]] = (
 
 def pessimistic_connection_handling(some_engine: Engine) -> None:
     @event.listens_for(some_engine, "engine_connect")
-    def ping_connection(  # pylint: disable=unused-variable
-        connection: Connection, branch: bool
-    ) -> None:
+    def ping_connection(connection: Connection, branch: bool) -> None:
         if branch:
             # 'branch' refers to a sub-connection of a connection,
             # we don't want to bother pinging on these.
@@ -1108,17 +1119,13 @@ def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
     )
     if append_filters:
         adhoc_filters.extend(
-            simple_filter_to_adhoc(
-                {"isExtra": True, **fltr}  # type: ignore
-            )
+            simple_filter_to_adhoc({"isExtra": True, **fltr})  # type: ignore
             for fltr in append_filters
             if fltr
         )
 
 
-def merge_extra_filters(  # pylint: disable=too-many-branches
-    form_data: Dict[str, Any],
-) -> None:
+def merge_extra_filters(form_data: Dict[str, Any]) -> None:
     # extra_filters are temporary/contextual filters (using the legacy constructs)
     # that are external to the slice definition. We use those for dynamic
     # interactive filters like the ones emitted by the "Filter Box" visualization.
@@ -1224,6 +1231,7 @@ def user_label(user: User) -> Optional[str]:
 def get_or_create_db(
     database_name: str, sqlalchemy_uri: str, always_create: Optional[bool] = True
 ) -> "Database":
+    # pylint: disable=import-outside-toplevel
     from superset import db
     from superset.models import core as models
 
@@ -1251,16 +1259,15 @@ def get_or_create_db(
 
 
 def get_example_database() -> "Database":
-    from superset import conf
-
-    db_uri = conf.get("SQLALCHEMY_EXAMPLES_URI") or conf.get("SQLALCHEMY_DATABASE_URI")
+    db_uri = (
+        current_app.config.get("SQLALCHEMY_EXAMPLES_URI")
+        or current_app.config["SQLALCHEMY_DATABASE_URI"]
+    )
     return get_or_create_db("examples", db_uri)
 
 
 def get_main_database() -> "Database":
-    from superset import conf
-
-    db_uri = conf.get("SQLALCHEMY_DATABASE_URI")
+    db_uri = current_app.config["SQLALCHEMY_DATABASE_URI"]
     return get_or_create_db("main", db_uri)
 
 
@@ -1268,12 +1275,37 @@ def backend() -> str:
     return get_example_database().backend
 
 
-def is_adhoc_metric(metric: Metric) -> bool:
+def is_adhoc_metric(metric: Metric) -> TypeGuard[AdhocMetric]:
     return isinstance(metric, dict) and "expressionType" in metric
 
 
 def get_metric_name(metric: Metric) -> str:
-    return metric["label"] if is_adhoc_metric(metric) else metric  # type: ignore
+    """
+    Extract label from metric
+
+    :param metric: object to extract label from
+    :return: String representation of metric
+    :raises ValueError: if metric object is invalid
+    """
+    if is_adhoc_metric(metric):
+        label = metric.get("label")
+        if label:
+            return label
+        expression_type = metric.get("expressionType")
+        if expression_type == "SQL":
+            sql_expression = metric.get("sqlExpression")
+            if sql_expression:
+                return sql_expression
+        elif expression_type == "SIMPLE":
+            column: AdhocMetricColumn = metric.get("column") or {}
+            column_name = column.get("column_name")
+            aggregate = metric.get("aggregate")
+            if column and aggregate:
+                return f"{aggregate}({column_name})"
+            if column_name:
+                return column_name
+        raise ValueError(__("Invalid metric object"))
+    return metric  # type: ignore
 
 
 def get_metric_names(metrics: Sequence[Metric]) -> List[str]:
@@ -1288,8 +1320,8 @@ def get_first_metric_name(metrics: Sequence[Metric]) -> Optional[str]:
 def ensure_path_exists(path: str) -> None:
     try:
         os.makedirs(path)
-    except OSError as exc:
-        if not (os.path.isdir(path) and exc.errno == errno.EEXIST):
+    except OSError as ex:
+        if not (os.path.isdir(path) and ex.errno == errno.EEXIST):
             raise
 
 
@@ -1386,8 +1418,8 @@ def parse_ssl_cert(certificate: str) -> _Certificate:
         return x509.load_pem_x509_certificate(
             certificate.encode("utf-8"), default_backend()
         )
-    except ValueError:
-        raise CertificateException("Invalid certificate")
+    except ValueError as ex:
+        raise CertificateException("Invalid certificate") from ex
 
 
 def create_ssl_cert_file(certificate: str) -> str:
@@ -1407,9 +1439,8 @@ def create_ssl_cert_file(certificate: str) -> str:
     if not os.path.exists(path):
         # Validate certificate prior to persisting to temporary directory
         parse_ssl_cert(certificate)
-        cert_file = open(path, "w")
-        cert_file.write(certificate)
-        cert_file.close()
+        with open(path, "w") as cert_file:
+            cert_file.write(certificate)
     return path
 
 
@@ -1576,7 +1607,7 @@ def is_test() -> bool:
     return strtobool(os.environ.get("SUPERSET_TESTENV", "false"))
 
 
-def get_time_filter_status(  # pylint: disable=too-many-branches
+def get_time_filter_status(
     datasource: "BaseDatasource", applied_time_extras: Dict[str, str],
 ) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
     temporal_columns = {col.column_name for col in datasource.columns if col.is_dttm}
@@ -1589,7 +1620,7 @@ def get_time_filter_status(  # pylint: disable=too-many-branches
         else:
             rejected.append(
                 {
-                    "reason": "not_in_datasource",
+                    "reason": ExtraFiltersReasonType.COL_NOT_IN_DATASOURCE,
                     "column": ExtraFiltersTimeColumnType.TIME_COL,
                 }
             )
@@ -1601,19 +1632,20 @@ def get_time_filter_status(  # pylint: disable=too-many-branches
         else:
             rejected.append(
                 {
-                    "reason": "no_temporal_column",
+                    "reason": ExtraFiltersReasonType.NO_TEMPORAL_COLUMN,
                     "column": ExtraFiltersTimeColumnType.TIME_GRAIN,
                 }
             )
 
-    if ExtraFiltersTimeColumnType.TIME_RANGE in applied_time_extras:
+    time_range = applied_time_extras.get(ExtraFiltersTimeColumnType.TIME_RANGE)
+    if time_range and time_range != NO_TIME_RANGE:
         # are there any temporal columns to assign the time grain to?
         if temporal_columns:
             applied.append({"column": ExtraFiltersTimeColumnType.TIME_RANGE})
         else:
             rejected.append(
                 {
-                    "reason": "no_temporal_column",
+                    "reason": ExtraFiltersReasonType.NO_TEMPORAL_COLUMN,
                     "column": ExtraFiltersTimeColumnType.TIME_RANGE,
                 }
             )
@@ -1624,7 +1656,7 @@ def get_time_filter_status(  # pylint: disable=too-many-branches
         else:
             rejected.append(
                 {
-                    "reason": "not_druid_datasource",
+                    "reason": ExtraFiltersReasonType.NOT_DRUID_DATASOURCE,
                     "column": ExtraFiltersTimeColumnType.TIME_ORIGIN,
                 }
             )
@@ -1635,7 +1667,7 @@ def get_time_filter_status(  # pylint: disable=too-many-branches
         else:
             rejected.append(
                 {
-                    "reason": "not_druid_datasource",
+                    "reason": ExtraFiltersReasonType.NOT_DRUID_DATASOURCE,
                     "column": ExtraFiltersTimeColumnType.GRANULARITY,
                 }
             )

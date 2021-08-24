@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-table_name: Slack Channel Combinations and Users
+table_name: users_channels-uzooNNtSRO
 main_dttm_col: null
 description: null
 default_endpoint: null
@@ -23,8 +23,8 @@ cache_timeout: null
 schema: null
 sql: >
   SELECT uc1.name as channel_1, uc2.name as channel_2, count(*) AS cnt
-  FROM "Slack Users and Channels" uc1
-  JOIN "Slack Users and Channels" uc2 ON uc1.user_id = uc2.user_id
+  FROM users_channels uc1
+  JOIN users_channels uc2 ON uc1.user_id = uc2.user_id
   GROUP BY uc1.name, uc2.name
   HAVING uc1.name <> uc2.name
 params: null

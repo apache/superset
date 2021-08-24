@@ -18,11 +18,15 @@
 from typing import Any, Callable
 from unittest import mock
 
-from pyinstrument import Profiler
 from werkzeug.wrappers import Request, Response
 
+try:
+    from pyinstrument import Profiler
+except ModuleNotFoundError:
+    Profiler = None
 
-class SupersetProfiler:
+
+class SupersetProfiler:  # pylint: disable=too-few-public-methods
     """
     WSGI middleware to instrument Superset.
 
@@ -40,6 +44,9 @@ class SupersetProfiler:
     def __call__(self, request: Request) -> Response:
         if request.args.get("_instrument") != "1":
             return Response.from_app(self.app, request.environ)
+
+        if Profiler is None:
+            raise Exception("The module pyinstrument is not installed.")
 
         profiler = Profiler(interval=self.interval)
 

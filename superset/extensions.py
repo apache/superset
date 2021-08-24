@@ -65,9 +65,7 @@ class UIManifestProcessor:
         self.parse_manifest_json()
 
         @app.context_processor
-        def get_manifest() -> Dict[  # pylint: disable=unused-variable
-            str, Callable[[str], List[str]]
-        ]:
+        def get_manifest() -> Dict[str, Callable[[str], List[str]]]:
             loaded_chunks = set()
 
             def get_files(bundle: str, asset_type: str = "js") -> List[str]:
@@ -98,7 +96,7 @@ class UIManifestProcessor:
         return self.manifest.get(bundle, {}).get(asset_type, [])
 
 
-class ProfilingExtension:
+class ProfilingExtension:  # pylint: disable=too-few-public-methods
     def __init__(self, interval: float = 1e-4) -> None:
         self.interval = interval
 

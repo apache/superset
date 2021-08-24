@@ -98,7 +98,7 @@ const structureFetchAction = (dispatch, getState) => {
 
 export const ADD_REPORT = 'ADD_REPORT';
 
-export const addReport = report => dispatch => {
+export const addReport = report => dispatch =>
   SupersetClient.post({
     endpoint: `/api/v1/report/`,
     jsonPayload: report,
@@ -111,14 +111,13 @@ export const addReport = report => dispatch => {
       const parsedError = await getClientErrorObject(e);
       const errorMessage = parsedError.message;
       const errorArr = Object.keys(errorMessage);
-      const error = errorMessage[errorArr[0]][0];
+      const error = errorMessage[errorArr[0]];
       dispatch(
         addDangerToast(
           t('An error occurred while editing this report: %s', error),
         ),
       );
     });
-};
 
 export const EDIT_REPORT = 'EDIT_REPORT';
 

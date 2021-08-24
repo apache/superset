@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
+# pylint: disable=C,R,W,useless-suppression
 """This module contains the 'Viz' objects
 
 These objects represent the backend of all the visualizations that
@@ -71,6 +71,7 @@ from superset.utils import core as utils, csv
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import (
     DTTM_ALIAS,
+    ExtraFiltersReasonType,
     JS_MAX_INTEGER,
     merge_extra_filters,
     QueryMode,
@@ -477,7 +478,7 @@ class BaseViz:
             if col in columns or col in filter_values_columns
         ] + applied_time_columns
         payload["rejected_filters"] = [
-            {"reason": "not_in_datasource", "column": col}
+            {"reason": ExtraFiltersReasonType.COL_NOT_IN_DATASOURCE, "column": col}
             for col in filter_columns
             if col not in columns and col not in filter_values_columns
         ] + rejected_time_columns

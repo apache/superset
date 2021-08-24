@@ -133,8 +133,8 @@ function DashboardTable({
     const filters = [];
     if (filterName === 'Mine') {
       filters.push({
-        id: 'owners',
-        operator: 'rel_m_m',
+        id: 'created_by',
+        operator: 'rel_o_m',
         value: `${user?.userId}`,
       });
     } else if (filterName === 'Favorite') {
@@ -142,6 +142,12 @@ function DashboardTable({
         id: 'id',
         operator: 'dashboard_is_favorite',
         value: true,
+      });
+    } else if (filterName === 'Examples') {
+      filters.push({
+        id: 'created_by',
+        operator: 'rel_o_m',
+        value: 0,
       });
     }
     return filters;

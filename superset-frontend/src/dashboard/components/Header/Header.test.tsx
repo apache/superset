@@ -19,7 +19,12 @@
 import React from 'react';
 import { render, screen, fireEvent } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
+import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
+import * as actions from 'src/reports/actions/reports';
+import * as featureFlags from 'src/featureFlags';
+import { ReportObject } from 'src/components/ReportModal';
+import mockState from 'spec/fixtures/mockStateWithoutUser';
 import { HeaderProps } from './types';
 import Header from '.';
 
@@ -40,15 +45,16 @@ const createProps = () => ({
   },
   user: {
     createdOn: '2021-04-27T18:12:38.952304',
-    email: 'admin',
+    email: 'admin@test.com',
     firstName: 'admin',
     isActive: true,
     lastName: 'admin',
     permissions: {},
-    roles: { Admin: Array(173) },
+    roles: { Admin: [['menu_access', 'Manage']] },
     userId: 1,
     username: 'admin',
   },
+  reports: {},
   dashboardTitle: 'Dashboard Title',
   charts: {},
   layout: {},
@@ -107,8 +113,10 @@ const redoProps = {
   redoLength: 1,
 };
 
+const REPORT_ENDPOINT = 'glob:*/api/v1/report*';
+
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
-fetchMock.get('glob:*/api/v1/report*', {});
+fetchMock.get(REPORT_ENDPOINT, {});
 
 function setup(props: HeaderProps) {
   return (
@@ -314,4 +322,145 @@ test('should refresh the charts', async () => {
   await openActionsDropdown();
   userEvent.click(screen.getByText('Refresh dashboard'));
   expect(mockedProps.onRefresh).toHaveBeenCalledTimes(1);
+});
+
+describe('Email Report Modal', () => {
+  let isFeatureEnabledMock: any;
+  let dispatch: any;
+
+  beforeEach(async () => {
+    isFeatureEnabledMock = jest
+      .spyOn(featureFlags, 'isFeatureEnabled')
+      .mockImplementation(() => true);
+    dispatch = sinon.spy();
+  });
+
+  afterAll(() => {
+    isFeatureEnabledMock.mockRestore();
+  });
+
+  it('creates a new email report', async () => {
+    // ---------- Render/value setup ----------
+    const mockedProps = createProps();
+    render(setup(mockedProps), { useRedux: true });
+
+    const reportValues = {
+      active: true,
+      creation_method: 'dashboards',
+      crontab: '0 12 * * 1',
+      dashboard: mockedProps.dashboardInfo.id,
+      name: 'Weekly Report',
+      owners: [mockedProps.user.userId],
+      recipients: [
+        {
+          recipient_config_json: {
+            target: mockedProps.user.email,
+          },
+          type: 'Email',
+        },
+      ],
+      type: 'Report',
+    };
+    // This is needed to structure the reportValues to match the fetchMock return
+    const stringyReportValues = `{"active":true,"creation_method":"dashboards","crontab":"0 12 * * 1","dashboard":${mockedProps.dashboardInfo.id},"name":"Weekly Report","owners":[${mockedProps.user.userId}],"recipients":[{"recipient_config_json":{"target":"${mockedProps.user.email}"},"type":"Email"}],"type":"Report"}`;
+    // Watch for report POST
+    fetchMock.post(REPORT_ENDPOINT, reportValues);
+
+    screen.logTestingPlaygroundURL();
+    // ---------- Begin tests ----------
+    // Click calendar icon to open email report modal
+    const emailReportModalButton = screen.getByRole('button', {
+      name: /schedule email report/i,
+    });
+    userEvent.click(emailReportModalButton);
+
+    // Click "Add" button to create a new email report
+    const addButton = screen.getByRole('button', { name: /add/i });
+    userEvent.click(addButton);
+
+    // Mock addReport from Redux
+    const makeRequest = () => {
+      const request = actions.addReport(reportValues as ReportObject);
+      return request(dispatch);
+    };
+
+    return makeRequest().then(() => {
+      // 🐞 ----- There are 2 POST calls at this point ----- 🐞
+
+      // addReport's mocked POST return should match the mocked values
+      expect(fetchMock.lastOptions()?.body).toEqual(stringyReportValues);
+      // Dispatch should be called once for addReport
+      expect(dispatch.callCount).toBe(2);
+      const reportCalls = fetchMock.calls(REPORT_ENDPOINT);
+      expect(reportCalls).toHaveLength(2);
+    });
+  });
+
+  it('edits an existing email report', async () => {
+    // TODO (lyndsiWilliams): This currently does not work, see TODOs below
+    //  The modal does appear with the edit title, but the PUT call is not registering
+
+    // ---------- Render/value setup ----------
+    const mockedProps = createProps();
+    const editedReportValues = {
+      active: true,
+      creation_method: 'dashboards',
+      crontab: '0 12 * * 1',
+      dashboard: mockedProps.dashboardInfo.id,
+      name: 'Weekly Report edit',
+      owners: [mockedProps.user.userId],
+      recipients: [
+        {
+          recipient_config_json: {
+            target: mockedProps.user.email,
+          },
+          type: 'Email',
+        },
+      ],
+      type: 'Report',
+    };
+
+    // getMockStore({ reports: reportValues });
+    render(setup(mockedProps), {
+      useRedux: true,
+      initialState: mockState,
+    });
+    // TODO (lyndsiWilliams): currently fetchMock detects this PUT
+    //  address as 'glob:*/api/v1/report/undefined', is not detected
+    //  on fetchMock.calls()
+    fetchMock.put(`glob:*/api/v1/report*`, editedReportValues);
+
+    // Mock fetchUISpecificReport from Redux
+    // const makeFetchRequest = () => {
+    //   const request = actions.fetchUISpecificReport(
+    //     mockedProps.user.userId,
+    //     'dashboard_id',
+    //     'dashboards',
+    //     mockedProps.dashboardInfo.id,
+    //   );
+    //   return request(dispatch);
+    // };
+
+    // makeFetchRequest();
+
+    dispatch(actions.setReport(editedReportValues));
+
+    // ---------- Begin tests ----------
+    // Click calendar icon to open email report modal
+    const emailReportModalButton = screen.getByRole('button', {
+      name: /schedule email report/i,
+    });
+    userEvent.click(emailReportModalButton);
+
+    const nameTextbox = screen.getByTestId('report-name-test');
+    userEvent.type(nameTextbox, ' edit');
+
+    const saveButton = screen.getByRole('button', { name: /save/i });
+    userEvent.click(saveButton);
+
+    // TODO (lyndsiWilliams): There should be a report in state at this porint,
+    // which would render the HeaderReportActionsDropDown under the calendar icon
+    // BLOCKER: I cannot get report to populate, as its data is handled through redux
+    expect.anything();
+  });
 });

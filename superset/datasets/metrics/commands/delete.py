@@ -51,7 +51,7 @@ class DeleteDatasetMetricCommand(BaseCommand):
             return column
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
-            raise DatasetMetricDeleteFailedError()
+            raise DatasetMetricDeleteFailedError() from ex
 
     def validate(self) -> None:
         # Validate/populate model exists
@@ -61,5 +61,5 @@ class DeleteDatasetMetricCommand(BaseCommand):
         # Check ownership
         try:
             check_ownership(self._model)
-        except SupersetSecurityException:
-            raise DatasetMetricForbiddenError()
+        except SupersetSecurityException as ex:
+            raise DatasetMetricForbiddenError() from ex

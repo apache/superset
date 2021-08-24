@@ -24,7 +24,6 @@ import backoff
 from flask_babel import gettext as __
 from slack import WebClient
 from slack.errors import SlackApiError, SlackClientError
-from tabulate import tabulate
 
 from superset import app
 from superset.models.reports import ReportRecipientType
@@ -89,6 +88,20 @@ Error: %(text)s
         # Embed data in the message
         df = self._content.embedded_data
 
+        # Flatten columns/index so they show up nicely in the table
+        df.columns = [
+            " ".join(str(name) for name in column).strip()
+            if isinstance(column, tuple)
+            else column
+            for column in df.columns
+        ]
+        df.index = [
+            " ".join(str(name) for name in index).strip()
+            if isinstance(index, tuple)
+            else index
+            for index in df.index
+        ]
+
         # Slack Markdown only works on messages shorter than 4k chars, so we might
         # need to truncate the data
         for i in range(len(df) - 1):
@@ -96,7 +109,7 @@ Error: %(text)s
             truncated_df = truncated_df.append(
                 {k: "..." for k in df.columns}, ignore_index=True
             )
-            tabulated = tabulate(truncated_df, headers="keys", showindex=False)
+            tabulated = df.to_markdown()
             table = f"```\n{tabulated}\n```\n\n(table was truncated)"
             message = self._message_template(table)
             if len(message) > MAXIMUM_MESSAGE_SIZE:
@@ -105,7 +118,7 @@ Error: %(text)s
                 truncated_df = truncated_df.append(
                     {k: "..." for k in df.columns}, ignore_index=True
                 )
-                tabulated = tabulate(truncated_df, headers="keys", showindex=False)
+                tabulated = df.to_markdown()
                 table = (
                     f"```\n{tabulated}\n```\n\n(table was truncated)"
                     if len(truncated_df) > 0
@@ -115,7 +128,7 @@ Error: %(text)s
 
         # Send full data
         else:
-            tabulated = tabulate(df, headers="keys", showindex=False)
+            tabulated = df.to_markdown()
             table = f"```\n{tabulated}\n```"
 
         return self._message_template(table)
@@ -152,4 +165,4 @@ Error: %(text)s
                 client.chat_postMessage(channel=channel, text=body)
             logger.info("Report sent to slack")
         except SlackClientError as ex:
-            raise NotificationError(ex)
+            raise NotificationError(ex) from ex

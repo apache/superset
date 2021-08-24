@@ -19,8 +19,8 @@
 
 import React, { useEffect, useRef } from 'react';
 import moment from 'moment-timezone';
-
-import { NativeGraySelect as Select } from 'src/components/Select';
+import { t } from '@superset-ui/core';
+import { Select } from 'src/components';
 
 const DEFAULT_TIMEZONE = 'GMT Standard Time';
 const MIN_SELECT_WIDTH = '400px';
@@ -92,12 +92,6 @@ const TIMEZONE_OPTIONS = TIMEZONES.sort(
   offsets: getOffsetKey(zone.name),
 }));
 
-const timezoneOptions = TIMEZONE_OPTIONS.map(option => (
-  <Select.Option key={option.value} value={option.value}>
-    {option.label}
-  </Select.Option>
-));
-
 const TimezoneSelector = ({ onTimezoneChange, timezone }: TimezoneProps) => {
   const prevTimezone = useRef(timezone);
   const matchTimezoneToOptions = (timezone: string) =>
@@ -120,12 +114,12 @@ const TimezoneSelector = ({ onTimezoneChange, timezone }: TimezoneProps) => {
 
   return (
     <Select
+      ariaLabel={t('Timezone')}
       css={{ minWidth: MIN_SELECT_WIDTH }} // smallest size for current values
       onChange={onTimezoneChange}
       value={timezone || DEFAULT_TIMEZONE}
-    >
-      {timezoneOptions}
-    </Select>
+      options={TIMEZONE_OPTIONS}
+    />
   );
 };
 

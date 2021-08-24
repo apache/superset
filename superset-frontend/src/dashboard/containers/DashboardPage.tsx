@@ -30,7 +30,9 @@ import {
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
 import { setDatasources } from 'src/dashboard/actions/datasources';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
+import setupPlugins from 'src/setup/setupPlugins';
 
+setupPlugins();
 const DashboardContainer = React.lazy(
   () =>
     import(
@@ -39,6 +41,8 @@ const DashboardContainer = React.lazy(
       'src/dashboard/containers/Dashboard'
     ),
 );
+
+const originalDocumentTitle = document.title;
 
 const DashboardPage: FC = () => {
   const dispatch = useDispatch();
@@ -69,6 +73,9 @@ const DashboardPage: FC = () => {
     if (dashboard_title) {
       document.title = dashboard_title;
     }
+    return () => {
+      document.title = originalDocumentTitle;
+    };
   }, [dashboard_title]);
 
   useEffect(() => {

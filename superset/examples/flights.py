@@ -25,7 +25,7 @@ from .helpers import get_example_data, get_table_connector_registry
 
 def load_flights(only_metadata: bool = False, force: bool = False) -> None:
     """Loading random time series data from a zip file in the repo"""
-    tbl_name = "Flights"
+    tbl_name = "flights"
     database = utils.get_example_database()
     table_exists = database.has_table_by_name(tbl_name)
 
@@ -38,14 +38,11 @@ def load_flights(only_metadata: bool = False, force: bool = False) -> None:
         airports = pd.read_csv(airports_bytes, encoding="latin-1")
         airports = airports.set_index("IATA_CODE")
 
-        pdf["ds"] = (
-            pdf.YEAR.map(str) + "-0" + pdf.MONTH.map(str) + "-0" + pdf.DAY.map(str)
-        )
+        pdf[  # pylint: disable=unsupported-assignment-operation,useless-suppression
+            "ds"
+        ] = (pdf.YEAR.map(str) + "-0" + pdf.MONTH.map(str) + "-0" + pdf.DAY.map(str))
         pdf.ds = pd.to_datetime(pdf.ds)
-        del pdf["YEAR"]
-        del pdf["MONTH"]
-        del pdf["DAY"]
-
+        pdf.drop(columns=["DAY", "MONTH", "YEAR"])
         pdf = pdf.join(airports, on="ORIGIN_AIRPORT", rsuffix="_ORIG")
         pdf = pdf.join(airports, on="DESTINATION_AIRPORT", rsuffix="_DEST")
         pdf.to_sql(
