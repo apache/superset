@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { useTheme } from '@superset-ui/core';
-import { useSelector } from 'react-redux';
+import { useSelector, connect } from 'react-redux';
 
 import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
 import Chart from '../../containers/Chart';
@@ -152,7 +152,7 @@ const FilterFocusHighlight = React.forwardRef(
   },
 );
 
-class ChartHolder extends React.Component {
+export class ChartHolder extends React.Component {
   static renderInFocusCSS(columnName) {
     return (
       <style>
@@ -381,4 +381,10 @@ class ChartHolder extends React.Component {
 ChartHolder.propTypes = propTypes;
 ChartHolder.defaultProps = defaultProps;
 
-export default ChartHolder;
+function mapStateToProps(state) {
+  return {
+    directPathToChild: state.dashboardState.directPathToChild,
+    directPathLastUpdated: state.dashboardState.directPathLastUpdated,
+  };
+}
+export default connect(mapStateToProps)(ChartHolder);
