@@ -123,7 +123,7 @@ class ReportScheduleDAO(BaseDAO):
         """
 
         query = db.session.query(ReportSchedule).filter_by(created_by_fk=user_id)
-        if query is not None and dashboard_id is not None:
+        if dashboard_id is not None:
             query = query.filter(ReportSchedule.dashboard_id == dashboard_id)
 
         if chart_id is not None:
