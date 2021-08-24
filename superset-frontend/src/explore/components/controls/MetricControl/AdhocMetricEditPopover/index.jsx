@@ -264,6 +264,10 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
     return <StyledColumnOption column={column} showType />;
   }
 
+  renderMetricOption(savedMetric) {
+    return <StyledMetricOption metric={savedMetric} showType />;
+  }
+
   render() {
     const {
       adhocMetric: propsAdhocMetric,
@@ -363,8 +367,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
                   Array.isArray(savedMetricsOptions)
                     ? savedMetricsOptions.map(savedMetric => ({
                         value: savedMetric.metric_name,
-                        label:
-                          savedMetric.verbose_name || savedMetric.metric_name,
+                        label: this.renderMetricOption(savedMetric),
                         key: savedMetric.id,
                       }))
                     : []
