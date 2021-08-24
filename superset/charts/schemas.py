@@ -77,6 +77,16 @@ params_description = (
     "or overwrite button in the explore view. "
     "This JSON object for power users who may want to alter specific parameters."
 )
+query_context_description = (
+    "The query context represents the queries that need to run "
+    "in order to generate the data the visualization, and in what "
+    "format the data should be returned."
+)
+query_context_generation_description = (
+    "The query context generation represents whether the query_context"
+    "is user generated or not so that it does not update user modfied"
+    "state."
+)
 cache_timeout_description = (
     "Duration (in seconds) of the caching timeout "
     "for this chart. Note this defaults to the datasource/table"
@@ -140,7 +150,6 @@ class ChartEntityResponseSchema(Schema):
     cache_timeout = fields.Integer(description=cache_timeout_description)
     changed_on = fields.String(description=changed_on_description)
     modified = fields.String()
-    datasource = fields.String(description=datasource_name_description)
     description = fields.String(description=description_description)
     description_markeddown = fields.String(
         description=description_markeddown_description
@@ -166,6 +175,14 @@ class ChartPostSchema(Schema):
     owners = fields.List(fields.Integer(description=owners_description))
     params = fields.String(
         description=params_description, allow_none=True, validate=utils.validate_json
+    )
+    query_context = fields.String(
+        description=query_context_description,
+        allow_none=True,
+        validate=utils.validate_json,
+    )
+    query_context_generation = fields.Boolean(
+        description=query_context_generation_description, allow_none=True
     )
     cache_timeout = fields.Integer(
         description=cache_timeout_description, allow_none=True
@@ -199,6 +216,12 @@ class ChartPutSchema(Schema):
     )
     owners = fields.List(fields.Integer(description=owners_description))
     params = fields.String(description=params_description, allow_none=True)
+    query_context = fields.String(
+        description=query_context_description, allow_none=True
+    )
+    query_context_generation = fields.Boolean(
+        description=query_context_generation_description, allow_none=True
+    )
     cache_timeout = fields.Integer(
         description=cache_timeout_description, allow_none=True
     )
@@ -280,6 +303,13 @@ class ChartDataAdhocMetricSchema(Schema):
         "metrics have a unique identifier. If undefined, a random name "
         "will be generated.",
         example="metric_aec60732-fac0-4b17-b736-93f1a5c93e30",
+    )
+    timeGrain = fields.String(
+        description="Optional time grain for temporal filters", example="PT1M",
+    )
+    isExtra = fields.Boolean(
+        description="Indicates if the filter has been added by a filter component as "
+        "opposed to being a part of the original query."
     )
 
 
@@ -717,6 +747,8 @@ class ChartDataPostProcessingOperationSchema(Schema):
                 "rolling",
                 "select",
                 "sort",
+                "diff",
+                "compare",
             )
         ),
         example="aggregate",
@@ -756,6 +788,13 @@ class ChartDataFilterSchema(Schema):
         description="The value or values to compare against. Can be a string, "
         "integer, decimal or list, depending on the operator.",
         example=["China", "France", "Japan"],
+    )
+    grain = fields.String(
+        description="Optional time grain for temporal filters", example="PT1M",
+    )
+    isExtra = fields.Boolean(
+        description="Indicates if the filter has been added by a filter component as "
+        "opposed to being a part of the original query."
     )
 
 
@@ -1007,11 +1046,21 @@ class ChartDataQueryObjectSchema(Schema):
         allow_none=True,
     )
     orderby = fields.List(
-        fields.List(fields.Raw()),
+        fields.Tuple(
+            (
+                fields.Raw(
+                    validate=[
+                        Length(min=1, error=_("orderby column must be populated"))
+                    ],
+                    allow_none=False,
+                ),
+                fields.Boolean(),
+            )
+        ),
         description="Expects a list of lists where the first element is the column "
         "name which to sort by, and the second element is a boolean.",
         allow_none=True,
-        example=[["my_col_1", False], ["my_col_2", True]],
+        example=[("my_col_1", False), ("my_col_2", True)],
     )
     where = fields.String(
         description="WHERE clause to be added to queries using AND operator."
@@ -1051,6 +1100,7 @@ class ChartDataQueryObjectSchema(Schema):
         description="Should the rowcount of the actual query be returned",
         allow_none=True,
     )
+    time_offsets = fields.List(fields.String(), allow_none=True,)
 
 
 class ChartDataQueryContextSchema(Schema):
@@ -1179,6 +1229,7 @@ class ImportV1ChartSchema(Schema):
     slice_name = fields.String(required=True)
     viz_type = fields.String(required=True)
     params = fields.Dict()
+    query_context = fields.String(allow_none=True, validate=utils.validate_json)
     cache_timeout = fields.Integer(allow_none=True)
     uuid = fields.UUID(required=True)
     version = fields.String(required=True)

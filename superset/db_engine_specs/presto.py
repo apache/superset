@@ -341,7 +341,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         )
 
     @classmethod
-    def _parse_structural_column(  # pylint: disable=too-many-locals,too-many-branches
+    def _parse_structural_column(  # pylint: disable=too-many-locals
         cls,
         parent_column_name: str,
         parent_data_type: str,
@@ -655,9 +655,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         )
 
     @classmethod
-    def estimate_statement_cost(  # pylint: disable=too-many-locals
-        cls, statement: str, cursor: Any
-    ) -> Dict[str, Any]:
+    def estimate_statement_cost(cls, statement: str, cursor: Any) -> Dict[str, Any]:
         """
         Run a SQL query that estimates the cost of a given statement.
 
@@ -749,7 +747,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         if tt == utils.TemporalType.DATE:
             return f"""from_iso8601_date('{dttm.date().isoformat()}')"""
         if tt == utils.TemporalType.TIMESTAMP:
-            return f"""from_iso8601_timestamp('{dttm.isoformat(timespec="microseconds")}')"""  # pylint: disable=line-too-long
+            return f"""from_iso8601_timestamp('{dttm.isoformat(timespec="microseconds")}')"""  # pylint: disable=line-too-long,useless-suppression
         return None
 
     @classmethod
@@ -777,7 +775,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         return datasource_names
 
     @classmethod
-    def expand_data(  # pylint: disable=too-many-locals,too-many-branches
+    def expand_data(  # pylint: disable=too-many-locals
         cls, columns: List[Dict[Any, Any]], data: List[Dict[Any, Any]]
     ) -> Tuple[List[Dict[Any, Any]], List[Dict[Any, Any]], List[Dict[Any, Any]]]:
         """
@@ -925,6 +923,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         :param schema: Schema name
         :param table: Table (view) name
         """
+        # pylint: disable=import-outside-toplevel
         from pyhive.exc import DatabaseError
 
         engine = cls.get_engine(database, schema)
@@ -1212,7 +1211,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         return super().is_readonly_query(parsed_query) or parsed_query.is_show()
 
     @classmethod
-    def get_column_spec(  # type: ignore
+    def get_column_spec(
         cls,
         native_type: Optional[str],
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
@@ -1234,3 +1233,15 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
             return column_spec
 
         return super().get_column_spec(native_type)
+
+    @classmethod
+    def has_implicit_cancel(cls) -> bool:
+        """
+        Return True if the live cursor handles the implicit cancelation of the query,
+        False otherise.
+
+        :return: Whether the live cursor implicitly cancels the query
+        :see: handle_cursor
+        """
+
+        return True

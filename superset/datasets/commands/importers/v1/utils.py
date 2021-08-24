@@ -14,8 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=too-many-branches
-
 import gzip
 import json
 import logging
@@ -98,11 +96,12 @@ def import_dataset(
             except TypeError:
                 logger.info("Unable to encode `%s` field: %s", key, config[key])
     for metric in config.get("metrics", []):
-        if metric.get("extra"):
+        if metric.get("extra") is not None:
             try:
                 metric["extra"] = json.dumps(metric["extra"])
             except TypeError:
                 logger.info("Unable to encode `extra` field: %s", metric["extra"])
+                metric["extra"] = None
 
     # should we delete columns and metrics not present in the current import?
     sync = ["columns", "metrics"] if overwrite else []
@@ -118,10 +117,12 @@ def import_dataset(
     example_database = get_example_database()
     try:
         table_exists = example_database.has_table_by_name(dataset.table_name)
-    except Exception as ex:
+    except Exception:  # pylint: disable=broad-except
         # MySQL doesn't play nice with GSheets table names
-        logger.warning("Couldn't check if table %s exists, stopping import")
-        raise ex
+        logger.warning(
+            "Couldn't check if table %s exists, assuming it does", dataset.table_name
+        )
+        table_exists = True
 
     if data_uri and (not table_exists or force_data):
         load_data(data_uri, dataset, example_database, session)
@@ -132,8 +133,7 @@ def import_dataset(
 def load_data(
     data_uri: str, dataset: SqlaTable, example_database: Database, session: Session
 ) -> None:
-
-    data = request.urlopen(data_uri)
+    data = request.urlopen(data_uri)  # pylint: disable=consider-using-with
     if data_uri.endswith(".gz"):
         data = gzip.open(data)
     df = pd.read_csv(data, encoding="utf-8")

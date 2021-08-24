@@ -38,7 +38,7 @@ const defaultProps = {
 
 test('renders with default props', () => {
   render(<DndFilterSelect {...defaultProps} />, { useDnd: true });
-  expect(screen.getByText('Drop columns or metrics')).toBeInTheDocument();
+  expect(screen.getByText('Drop columns or metrics here')).toBeInTheDocument();
 });
 
 test('renders with value', () => {
@@ -56,7 +56,7 @@ test('renders options with saved metric', () => {
   render(<DndFilterSelect {...defaultProps} formData={['saved_metric']} />, {
     useDnd: true,
   });
-  expect(screen.getByText('Drop columns or metrics')).toBeInTheDocument();
+  expect(screen.getByText('Drop columns or metrics here')).toBeInTheDocument();
 });
 
 test('renders options with column', () => {
@@ -76,7 +76,7 @@ test('renders options with column', () => {
       useDnd: true,
     },
   );
-  expect(screen.getByText('Drop columns or metrics')).toBeInTheDocument();
+  expect(screen.getByText('Drop columns or metrics here')).toBeInTheDocument();
 });
 
 test('renders options with adhoc metric', () => {
@@ -87,5 +87,5 @@ test('renders options with adhoc metric', () => {
   render(<DndFilterSelect {...defaultProps} formData={[adhocMetric]} />, {
     useDnd: true,
   });
-  expect(screen.getByText('Drop columns or metrics')).toBeInTheDocument();
+  expect(screen.getByText('Drop columns or metrics here')).toBeInTheDocument();
 });

@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { ensureIsArray, styled, t } from '@superset-ui/core';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import CopyToClipboard from 'src/components/CopyToClipboard';
@@ -45,9 +45,13 @@ interface Props {
   latestQueryFormData: object;
 }
 
+type Result = {
+  query: string;
+  language: string;
+};
+
 const ViewQueryModal: React.FC<Props> = props => {
-  const [language, setLanguage] = useState(null);
-  const [query, setQuery] = useState(null);
+  const [result, setResult] = useState<Result[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,11 +62,8 @@ const ViewQueryModal: React.FC<Props> = props => {
       resultFormat: 'json',
       resultType,
     })
-      .then(response => {
-        // Only displaying the first query is currently supported
-        const result = response.result[0];
-        setLanguage(result.language);
-        setQuery(result.query);
+      .then(({ json }) => {
+        setResult(ensureIsArray(json.result));
         setIsLoading(false);
         setError(null);
       })
@@ -80,7 +81,7 @@ const ViewQueryModal: React.FC<Props> = props => {
   };
   useEffect(() => {
     loadChartData('query');
-  }, [props.latestQueryFormData]);
+  }, [JSON.stringify(props.latestQueryFormData)]);
 
   if (isLoading) {
     return <Loading />;
@@ -88,25 +89,31 @@ const ViewQueryModal: React.FC<Props> = props => {
   if (error) {
     return <pre>{error}</pre>;
   }
-  if (query) {
-    return (
-      <div>
-        <CopyToClipboard
-          text={query}
-          shouldShowText={false}
-          copyNode={
-            <CopyButtonViewQuery buttonSize="xsmall">
-              <i className="fa fa-clipboard" />
-            </CopyButtonViewQuery>
-          }
-        />
-        <SyntaxHighlighter language={language || undefined} style={github}>
-          {query}
-        </SyntaxHighlighter>
-      </div>
-    );
-  }
-  return null;
+  return (
+    <>
+      {result.map(item =>
+        item.query ? (
+          <div>
+            <CopyToClipboard
+              text={item.query}
+              shouldShowText={false}
+              copyNode={
+                <CopyButtonViewQuery buttonSize="xsmall">
+                  <i className="fa fa-clipboard" />
+                </CopyButtonViewQuery>
+              }
+            />
+            <SyntaxHighlighter
+              language={item.language || undefined}
+              style={github}
+            >
+              {item.query}
+            </SyntaxHighlighter>
+          </div>
+        ) : null,
+      )}
+    </>
+  );
 };
 
 export default ViewQueryModal;

@@ -127,7 +127,7 @@ class DruidColumnInlineView(CompactCRUDMixin, EnsureEnabledMixin, SupersetModelV
             try:
                 dimension_spec = json.loads(item.dimension_spec_json)
             except ValueError as ex:
-                raise ValueError("Invalid Dimension Spec JSON: " + str(ex))
+                raise ValueError("Invalid Dimension Spec JSON: " + str(ex)) from ex
             if not isinstance(dimension_spec, dict):
                 raise ValueError("Dimension Spec must be a JSON object")
             if "outputName" not in dimension_spec:

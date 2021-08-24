@@ -32,6 +32,7 @@ Join our growing community!
 - [Hostnfly](https://www.hostnfly.com/) [@alexisrosuel]
 - [Lime](https://www.limebike.com/) [@cxmcc]
 - [Lyft](https://www.lyft.com/)
+- [Ontruck](https://www.ontruck.com/)
 
 ### Financial Services
 - [Aktia Bank plc](https://www.aktia.com) [@villebro]
@@ -60,6 +61,7 @@ Join our growing community!
 - [Tails.com](https://tails.com) [@alanmcruickshank]
 - [THE ICONIC](http://theiconic.com.au/) [@ksaagariconic]
 - [Utair](https://www.utair.ru) [@utair-digital]
+- [VkusVill](https://www.vkusvill.ru) [@ETselikov]
 - [Zalando](https://www.zalando.com) [@dmigo]
 - [Zalora](https://www.zalora.com) [@ksaagariconic]
 
@@ -78,6 +80,7 @@ Join our growing community!
 - [FBK - ICT center](http://ict.fbk.eu)
 - [GfK Data Lab](http://datalab.gfk.com) [@mherr]
 - [GrowthSimple](https://growthsimple.ai/)
+- [Hydrolix](https://www.hydrolix.io/)
 - [Intercom](https://www.intercom.com/) [@kate-gallo]
 - [jampp](https://jampp.com/)
 - [Konfío](http://konfio.mx) [@uis-rodriguez]
@@ -94,6 +97,7 @@ Join our growing community!
 - [Showmax](https://tech.showmax.com) [@bobek]
 - [source{d}](https://www.sourced.tech) [@marnovo]
 - [Steamroot](https://streamroot.io/)
+- [TechAudit](https://www.techaudit.info) [@ETselikov]
 - [Tenable](https://www.tenable.com) [@dflionis]
 - [timbr.ai](https://timbr.ai/) [@semantiDan]
 - [Tobii](http://www.tobii.com/) [@dwa]
@@ -102,14 +106,13 @@ Join our growing community!
 - [Windsor.ai](https://www.windsor.ai/) [@octaviancorlade]
 - [Zeta](https://www.zeta.tech/) [@shaikidris]
 
-
 ### Entertainment
 - [6play](https://www.6play.fr) [@CoryChaplin]
 - [bilibili](https://www.bilibili.com) [@Moinheart]
 - [Douban](https://www.douban.com/) [@luchuan]
 - [Kuaishou](https://www.kuaishou.com/) [@zhaoyu89730105]
 - [Netflix](https://www.netflix.com/)
-- [TME QQMUSIC/WESING](https://www.tencentmusic.com/)
+- [TME QQMUSIC/WESING](https://www.tencentmusic.com/)[@shenyuanli,@marklaw]
 - [Xite](https://xite.com/) [@shashankkoppar]
 - [Zaihang](http://www.zaih.com/)
 
@@ -117,6 +120,7 @@ Join our growing community!
 - [Brilliant.org](https://brilliant.org/)
 - [Udemy](https://www.udemy.com/) [@sungjuly]
 - [VIPKID](https://www.vipkid.com.cn/) [@illpanda]
+- [Sunbird](https://www.sunbird.org/) [@eksteporg]
 
 ### Energy
 - [Airboxlab](https://foobot.io) [@antoine-galataud]
@@ -126,6 +130,7 @@ Join our growing community!
 
 ### Healthcare
 - [Amino](https://amino.com) [@shkr]
+- [Care](https://www.getcare.io/)[@alandao2021]
 - [Living Goods](https://www.livinggoods.org) [@chelule]
 - [Maieutical Labs](https://maieuticallabs.it) [@xrmx]
 - [QPID Health](http://www.qpidhealth.com/)

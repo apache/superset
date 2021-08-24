@@ -24,9 +24,10 @@ repos:
     hooks:
       - id: isort
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v0.790
+    rev: v0.910
     hooks:
       - id: mypy
+        additional_dependencies: [types-all]
   - repo: https://github.com/peterdemin/pip-compile-multi
     rev: v2.4.1
     hooks:

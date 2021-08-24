@@ -20,7 +20,10 @@ import React from 'react';
 import { isNil } from 'lodash';
 import { styled, t } from '@superset-ui/core';
 import { css } from '@emotion/react';
-import { Modal as BaseModal } from 'src/common/components';
+import {
+  Modal as AntdModal,
+  ModalProps as AntdModalProps,
+} from 'src/common/components';
 import Button from 'src/components/Button';
 
 export interface ModalProps {
@@ -51,6 +54,12 @@ interface StyledModalProps {
   height?: string;
   hideFooter?: boolean;
 }
+
+const BaseModal = (props: AntdModalProps) => (
+  // Removes mask animation. Fixed in 4.6.0.
+  // https://github.com/ant-design/ant-design/issues/27192
+  <AntdModal {...props} maskTransitionName="" />
+);
 
 export const StyledModal = styled(BaseModal)<StyledModalProps>`
   ${({ theme, responsive, maxWidth }) =>
@@ -188,10 +197,10 @@ CustomModal.displayName = 'Modal';
 // and demote it as the default export.
 // We should start using AntD component interfaces going forward.
 const Modal = Object.assign(CustomModal, {
-  error: BaseModal.error,
-  warning: BaseModal.warning,
-  confirm: BaseModal.confirm,
-  useModal: BaseModal.useModal,
+  error: AntdModal.error,
+  warning: AntdModal.warning,
+  confirm: AntdModal.confirm,
+  useModal: AntdModal.useModal,
 });
 
 export default Modal;

@@ -50,7 +50,7 @@ class ReportScheduleType(str, enum.Enum):
 
 
 class ReportScheduleValidatorType(str, enum.Enum):
-    """ Validator types for alerts """
+    """Validator types for alerts"""
 
     NOT_NULL = "not null"
     OPERATOR = "operator"
@@ -72,6 +72,13 @@ class ReportState(str, enum.Enum):
 class ReportDataFormat(str, enum.Enum):
     VISUALIZATION = "PNG"
     DATA = "CSV"
+    TEXT = "TEXT"
+
+
+class ReportCreationMethodType(str, enum.Enum):
+    CHARTS = "charts"
+    DASHBOARDS = "dashboards"
+    ALERTS_REPORTS = "alerts_reports"
 
 
 report_schedule_user = Table(
@@ -102,6 +109,10 @@ class ReportSchedule(Model, AuditMixinNullable):
     context_markdown = Column(Text)
     active = Column(Boolean, default=True, index=True)
     crontab = Column(String(1000), nullable=False)
+    creation_method = Column(
+        String(255), server_default=ReportCreationMethodType.ALERTS_REPORTS
+    )
+    timezone = Column(String(100), default="UTC", nullable=False)
     report_format = Column(String(50), default=ReportDataFormat.VISUALIZATION)
     sql = Column(Text())
     # (Alerts/Reports) M-O to chart
@@ -142,10 +153,7 @@ class ReportSchedule(Model, AuditMixinNullable):
         return get_description(self.crontab)
 
 
-class ReportRecipients(
-    Model, AuditMixinNullable
-):  # pylint: disable=too-few-public-methods
-
+class ReportRecipients(Model, AuditMixinNullable):
     """
     Report Recipients, meant to support multiple notification types, eg: Slack, email
     """

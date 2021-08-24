@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useEffect } from 'react';
+import isEqual from 'lodash/isEqual';
 import { styled, t } from '@superset-ui/core';
 import { useFilters, usePagination, useSortBy, useTable } from 'react-table';
 import { Empty } from 'src/common/components';
 import { TableCollection, Pagination } from 'src/components/dataViewCommon';
-import { SortColumns } from './types';
+import { SortByType, ServerPagination } from './types';
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -34,8 +35,11 @@ export interface TableViewProps {
   columns: any[];
   data: any[];
   pageSize?: number;
+  totalCount?: number;
+  serverPagination?: boolean;
+  onServerPagination?: (args: ServerPagination) => void;
   initialPageIndex?: number;
-  initialSortBy?: SortColumns;
+  initialSortBy?: SortByType;
   loading?: boolean;
   withPagination?: boolean;
   emptyWrapperType?: EmptyWrapperType;
@@ -44,6 +48,7 @@ export interface TableViewProps {
   isPaginationSticky?: boolean;
   showRowCount?: boolean;
   scrollTable?: boolean;
+  small?: boolean;
 }
 
 const EmptyWrapper = styled.div`
@@ -53,34 +58,54 @@ const EmptyWrapper = styled.div`
 const TableViewStyles = styled.div<{
   isPaginationSticky?: boolean;
   scrollTable?: boolean;
+  small?: boolean;
 }>`
   ${({ scrollTable, theme }) =>
     scrollTable &&
     `
-    height: 300px;
+    flex: 1 1 auto;
     margin-bottom: ${theme.gridUnit * 4}px;
     overflow: auto;
   `}
 
-  .table-cell.table-cell {
-    vertical-align: top;
+  .table-row {
+    ${({ theme, small }) => !small && `height: ${theme.gridUnit * 11 - 1}px;`}
+
+    .table-cell {
+      ${({ theme, small }) =>
+        small &&
+        `
+        padding-top: ${theme.gridUnit + 1}px;
+        padding-bottom: ${theme.gridUnit + 1}px;
+        line-height: 1.45;
+      `}
+    }
   }
 
-  .pagination-container {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    background-color: ${({ theme }) => theme.colors.grayscale.light5};
+  th[role='columnheader'] {
+    z-index: 1;
+    border-bottom: ${({ theme }) =>
+      `${theme.gridUnit - 2}px solid ${theme.colors.grayscale.light2}`};
+    ${({ small }) => small && `padding-bottom: 0;`}
+  }
+`;
 
-    ${({ theme, isPaginationSticky }) =>
-      isPaginationSticky &&
-      `
+const PaginationStyles = styled.div<{
+  isPaginationSticky?: boolean;
+}>`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: ${({ theme }) => theme.colors.grayscale.light5};
+
+  ${({ isPaginationSticky }) =>
+    isPaginationSticky &&
+    `
         position: sticky;
         bottom: 0;
         left: 0;
     `};
-  }
 
   .row-count-container {
     margin-top: ${({ theme }) => theme.gridUnit * 2}px;
@@ -92,6 +117,7 @@ const TableView = ({
   columns,
   data,
   pageSize: initialPageSize,
+  totalCount = data.length,
   initialPageIndex,
   initialSortBy = [],
   loading = false,
@@ -99,6 +125,8 @@ const TableView = ({
   emptyWrapperType = EmptyWrapperType.Default,
   noDataText,
   showRowCount = true,
+  serverPagination = false,
+  onServerPagination = () => {},
   ...props
 }: TableViewProps) => {
   const initialState = {
@@ -116,17 +144,37 @@ const TableView = ({
     prepareRow,
     pageCount,
     gotoPage,
-    state: { pageIndex, pageSize },
+    state: { pageIndex, pageSize, sortBy },
   } = useTable(
     {
       columns,
       data,
       initialState,
+      manualPagination: serverPagination,
+      manualSortBy: serverPagination,
+      pageCount: Math.ceil(totalCount / initialState.pageSize),
     },
     useFilters,
     useSortBy,
     usePagination,
   );
+
+  useEffect(() => {
+    if (serverPagination && pageIndex !== initialState.pageIndex) {
+      onServerPagination({
+        pageIndex,
+      });
+    }
+  }, [pageIndex]);
+
+  useEffect(() => {
+    if (serverPagination && !isEqual(sortBy, initialState.sortBy)) {
+      onServerPagination({
+        pageIndex: 0,
+        sortBy,
+      });
+    }
+  }, [sortBy]);
 
   const content = withPagination ? page : rows;
 
@@ -143,32 +191,38 @@ const TableView = ({
   }
 
   const isEmpty = !loading && content.length === 0;
+  const hasPagination = pageCount > 1 && withPagination;
 
   return (
-    <TableViewStyles {...props}>
-      <TableCollection
-        getTableProps={getTableProps}
-        getTableBodyProps={getTableBodyProps}
-        prepareRow={prepareRow}
-        headerGroups={headerGroups}
-        rows={content}
-        columns={columns}
-        loading={loading}
-      />
-      {isEmpty && (
-        <EmptyWrapperComponent>
-          {noDataText ? (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={noDataText}
-            />
-          ) : (
-            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />
-          )}
-        </EmptyWrapperComponent>
-      )}
-      {pageCount > 1 && withPagination && (
-        <div className="pagination-container">
+    <>
+      <TableViewStyles {...props}>
+        <TableCollection
+          getTableProps={getTableProps}
+          getTableBodyProps={getTableBodyProps}
+          prepareRow={prepareRow}
+          headerGroups={headerGroups}
+          rows={content}
+          columns={columns}
+          loading={loading}
+        />
+        {isEmpty && (
+          <EmptyWrapperComponent>
+            {noDataText ? (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={noDataText}
+              />
+            ) : (
+              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />
+            )}
+          </EmptyWrapperComponent>
+        )}
+      </TableViewStyles>
+      {hasPagination && (
+        <PaginationStyles
+          className="pagination-container"
+          isPaginationSticky={props.isPaginationSticky}
+        >
           <Pagination
             totalPages={pageCount || 0}
             currentPage={pageCount ? pageIndex + 1 : 0}
@@ -182,13 +236,13 @@ const TableView = ({
                   '%s-%s of %s',
                   pageSize * pageIndex + (page.length && 1),
                   pageSize * pageIndex + page.length,
-                  data.length,
+                  totalCount,
                 )}
             </div>
           )}
-        </div>
+        </PaginationStyles>
       )}
-    </TableViewStyles>
+    </>
   );
 };
 

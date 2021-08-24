@@ -19,14 +19,22 @@
 import { ReactNode } from 'react';
 import { Metric } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
-import { DatasourcePanelDndItem } from '../../DatasourcePanel/types';
+import {
+  DatasourcePanelDndItem,
+  DndItemValue,
+} from '../../DatasourcePanel/types';
 import { DndItemType } from '../../DndItemType';
 
 export interface OptionProps {
-  children: ReactNode;
+  children?: ReactNode;
   index: number;
+  label?: string;
+  tooltipTitle?: string;
+  column?: ColumnMeta;
   clickClose: (index: number) => void;
   withCaret?: boolean;
+  isExtra?: boolean;
+  canDelete?: boolean;
 }
 
 export interface OptionItemInterface {
@@ -40,6 +48,9 @@ export interface LabelProps<T = string[] | string> {
   onChange: (value?: T) => void;
   options: { string: ColumnMeta };
   multi?: boolean;
+  canDelete?: boolean;
+  ghostButtonText?: string;
+  label?: string;
 }
 
 export interface DndColumnSelectProps<
@@ -48,10 +59,13 @@ export interface DndColumnSelectProps<
 > extends LabelProps<T> {
   onDrop: (item: DatasourcePanelDndItem) => void;
   canDrop: (item: DatasourcePanelDndItem) => boolean;
+  canDropValue?: (value: DndItemValue) => boolean;
+  onDropValue?: (value: DndItemValue) => void;
   valuesRenderer: () => ReactNode;
   accept: DndItemType | DndItemType[];
   ghostButtonText?: string;
   displayGhostButton?: boolean;
+  onClickGhostButton?: () => void;
 }
 
 export type OptionValueType = Record<string, any>;

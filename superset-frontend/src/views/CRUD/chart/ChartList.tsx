@@ -25,11 +25,11 @@ import {
 import React, { useMemo, useState } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
+import moment from 'moment';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
   createErrorHandler,
   createFetchRelated,
-  handleBulkChartExport,
   handleChartDelete,
 } from 'src/views/CRUD/utils';
 import {
@@ -37,6 +37,7 @@ import {
   useFavoriteStatus,
   useListViewResource,
 } from 'src/views/CRUD/hooks';
+import handleResourceExport from 'src/utils/export';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import FaveStar from 'src/components/FaveStar';
@@ -47,6 +48,7 @@ import ListView, {
   ListViewProps,
   SelectOption,
 } from 'src/components/ListView';
+import Loading from 'src/components/Loading';
 import { getFromLocalStorage } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
@@ -156,6 +158,10 @@ function ChartList(props: ChartListProps) {
 
   const [importingChart, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
+  const [preparingExport, setPreparingExport] = useState<boolean>(false);
+
+  const { userId } = props.user;
+  const userKey = getFromLocalStorage(userId.toString(), null);
 
   const openChartImportModal = () => {
     showImportModal(true);
@@ -176,6 +182,14 @@ function ChartList(props: ChartListProps) {
   const canExport =
     hasPerm('can_read') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
+
+  const handleBulkChartExport = (chartsToExport: Chart[]) => {
+    const ids = chartsToExport.map(({ id }) => id);
+    handleResourceExport('chart', ids, () => {
+      setPreparingExport(false);
+    });
+    setPreparingExport(true);
+  };
 
   function handleBulkChartDelete(chartsToDelete: Chart[]) {
     SupersetClient.delete({
@@ -259,23 +273,33 @@ function ChartList(props: ChartListProps) {
         Cell: ({
           row: {
             original: {
-              changed_by_name: changedByName,
+              last_saved_by: lastSavedBy,
               changed_by_url: changedByUrl,
             },
           },
-        }: any) => <a href={changedByUrl}>{changedByName}</a>,
+        }: any) => (
+          <a href={changedByUrl}>
+            {lastSavedBy?.first_name
+              ? `${lastSavedBy?.first_name} ${lastSavedBy?.last_name}`
+              : null}
+          </a>
+        ),
         Header: t('Modified by'),
-        accessor: 'changed_by.first_name',
+        accessor: 'last_saved_by.first_name',
         size: 'xl',
       },
       {
         Cell: ({
           row: {
-            original: { changed_on_delta_humanized: changedOn },
+            original: { last_saved_at: lastSavedAt },
           },
-        }: any) => <span className="no-wrap">{changedOn}</span>,
+        }: any) => (
+          <span className="no-wrap">
+            {lastSavedAt ? moment.utc(lastSavedAt).fromNow() : null}
+          </span>
+        ),
         Header: t('Last modified'),
-        accessor: 'changed_on_delta_humanized',
+        accessor: 'last_saved_at',
         size: 'xl',
       },
       {
@@ -488,7 +512,7 @@ function ChartList(props: ChartListProps) {
           ),
         ),
       ),
-      paginate: false,
+      paginate: true,
     },
     ...(props.user.userId ? [favoritesFilter] : []),
     {
@@ -521,8 +545,6 @@ function ChartList(props: ChartListProps) {
   ];
 
   function renderCard(chart: Chart) {
-    const { userId } = props.user;
-    const userKey = getFromLocalStorage(userId.toString(), null);
     return (
       <ChartCard
         chart={chart}
@@ -540,6 +562,7 @@ function ChartList(props: ChartListProps) {
         loading={loading}
         favoriteStatus={favoriteStatus[chart.id]}
         saveFavoriteStatus={saveFavoriteStatus}
+        handleBulkChartExport={handleBulkChartExport}
       />
     );
   }
@@ -630,6 +653,11 @@ function ChartList(props: ChartListProps) {
               loading={loading}
               pageSize={PAGE_SIZE}
               renderCard={renderCard}
+              showThumbnails={
+                userKey
+                  ? userKey.thumbnails
+                  : isFeatureEnabled(FeatureFlag.THUMBNAILS)
+              }
               defaultViewMode={
                 isFeatureEnabled(FeatureFlag.LISTVIEWS_DEFAULT_CARD_VIEW)
                   ? 'card'
@@ -653,6 +681,7 @@ function ChartList(props: ChartListProps) {
         passwordFields={passwordFields}
         setPasswordFields={setPasswordFields}
       />
+      {preparingExport && <Loading />}
     </>
   );
 }

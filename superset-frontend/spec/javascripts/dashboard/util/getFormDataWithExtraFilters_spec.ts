@@ -48,6 +48,7 @@ describe('getFormDataWithExtraFilters', () => {
           val: ['United States'],
         },
       ],
+      datasource: '123',
     },
   };
   const mockArgs: GetFormDataWithExtraFiltersArguments = {

@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
+# pylint: disable=C,R,W,useless-suppression
 """This module contains the 'Viz' objects
 
 These objects represent the backend of all the visualizations that
@@ -66,15 +66,16 @@ from superset.exceptions import (
 from superset.extensions import cache_manager, security_manager
 from superset.models.cache import CacheKey
 from superset.models.helpers import QueryResult
-from superset.typing import QueryObjectDict, VizData, VizPayload
+from superset.typing import Metric, QueryObjectDict, VizData, VizPayload
 from superset.utils import core as utils, csv
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import (
     DTTM_ALIAS,
+    ExtraFiltersReasonType,
     JS_MAX_INTEGER,
     merge_extra_filters,
     QueryMode,
-    to_adhoc,
+    simple_filter_to_adhoc,
 )
 from superset.utils.date_parser import get_since_until, parse_past_timedelta
 from superset.utils.dates import datetime_to_epoch
@@ -477,7 +478,7 @@ class BaseViz:
             if col in columns or col in filter_values_columns
         ] + applied_time_columns
         payload["rejected_filters"] = [
-            {"reason": "not_in_datasource", "column": col}
+            {"reason": ExtraFiltersReasonType.COL_NOT_IN_DATASOURCE, "column": col}
             for col in filter_columns
             if col not in columns and col not in filter_values_columns
         ] + rejected_time_columns
@@ -526,10 +527,7 @@ class BaseViz:
                     for col in (query_obj.get("columns") or [])
                     + (query_obj.get("groupby") or [])
                     + utils.get_column_names_from_metrics(
-                        cast(
-                            List[Union[str, Dict[str, Any]]],
-                            query_obj.get("metrics") or [],
-                        )
+                        cast(List[Metric], query_obj.get("metrics") or [],)
                     )
                     if col not in self.datasource.column_names
                 ]
@@ -1231,13 +1229,15 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
     def query_obj(self) -> QueryObjectDict:
         d = super().query_obj()
-        sort_by = self.form_data.get("timeseries_limit_metric")
+        sort_by = self.form_data.get(
+            "timeseries_limit_metric"
+        ) or utils.get_first_metric_name(d.get("metrics") or [])
+        is_asc = not self.form_data.get("order_desc")
         if sort_by:
             sort_by_label = utils.get_metric_name(sort_by)
             if sort_by_label not in utils.get_metric_names(d["metrics"]):
                 d["metrics"].append(sort_by)
-            if self.form_data.get("order_desc"):
-                d["orderby"] = [(sort_by, not self.form_data.get("order_desc", True))]
+            d["orderby"] = [(sort_by, is_asc)]
         return d
 
     def to_series(
@@ -1763,8 +1763,12 @@ class DistributionBarViz(BaseViz):
         df = df.copy()
         df[filled_cols] = df[filled_cols].fillna(value=NULL_STRING)
 
-        row = df.groupby(self.groupby).sum()[metrics[0]].copy()
-        row.sort_values(ascending=False, inplace=True)
+        sortby = utils.get_metric_name(
+            self.form_data.get("timeseries_limit_metric") or metrics[0]
+        )
+        row = df.groupby(self.groupby).sum()[sortby].copy()
+        is_asc = not self.form_data.get("order_desc")
+        row.sort_values(ascending=is_asc, inplace=True)
         pt = df.pivot_table(index=self.groupby, columns=columns, values=metrics)
         if fd.get("contribution"):
             pt = pt.T
@@ -2472,7 +2476,9 @@ class BaseDeckGLViz(BaseViz):
             spatial_columns.add(line_column)
 
         for column in sorted(spatial_columns):
-            filter_ = to_adhoc({"col": column, "op": "IS NOT NULL", "val": ""})
+            filter_ = simple_filter_to_adhoc(
+                {"col": column, "op": "IS NOT NULL", "val": ""}
+            )
             fd["adhoc_filters"].append(filter_)
 
     def query_obj(self) -> QueryObjectDict:

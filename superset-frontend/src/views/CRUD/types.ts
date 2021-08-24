@@ -23,10 +23,16 @@ export type FavoriteStatus = {
   [id: number]: boolean;
 };
 
+export enum TableTabTypes {
+  FAVORITE = 'Favorite',
+  MINE = 'Mine',
+  EXAMPLES = 'Examples',
+}
+
 export type Filters = {
   col: string;
   opr: string;
-  value: string;
+  value: string | number;
 };
 
 export interface DashboardTableProps {
@@ -37,6 +43,7 @@ export interface DashboardTableProps {
   mine: Array<Dashboard>;
   showThumbnails?: boolean;
   featureFlag?: boolean;
+  examples: Array<Dashboard>;
 }
 
 export interface Dashboard {

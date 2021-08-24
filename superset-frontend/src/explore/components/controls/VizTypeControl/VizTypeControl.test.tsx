@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Preset } from '@superset-ui/core';
-import { render, cleanup, screen } from 'spec/helpers/testing-library';
+import { render, cleanup, screen, act } from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
 import {
   getMockStore,
@@ -26,6 +26,7 @@ import {
 } from 'spec/fixtures/mockStore';
 import React from 'react';
 import userEvent from '@testing-library/user-event';
+import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
 import { testWithId } from 'src/utils/testUtils';
 import {
   EchartsMixedTimeseriesChartPlugin,
@@ -57,6 +58,15 @@ class MainPreset extends Preset {
 
 const getTestId = testWithId<string>(VIZ_TYPE_CONTROL_TEST_ID, true);
 
+/**
+ * AntD and/or the Icon component seems to be doing some kind of async changes,
+ * so even though the test passes, there is a warning an update to Icon was not
+ * wrapped in act(). This sufficiently act-ifies whatever side effects are going
+ * on and prevents those warnings.
+ */
+const waitForEffects = () =>
+  act(() => new Promise(resolve => setTimeout(resolve, 0)));
+
 describe('VizTypeControl', () => {
   new MainPreset().register();
   const newVizTypeControlProps = {
@@ -64,21 +74,26 @@ describe('VizTypeControl', () => {
     label: '',
     name: '',
     value: '',
-    labelType: '',
+    labelType: 'primary',
     onChange: jest.fn(),
-  };
+    isModalOpenInit: true,
+  } as const;
 
-  const renderWrapper = (
+  const renderWrapper = async (
     props = newVizTypeControlProps,
     state: object = stateWithoutNativeFilters,
-  ) =>
+  ) => {
     render(
       <Provider
         store={state ? getMockStore(stateWithoutNativeFilters) : mockStore}
       >
-        <VizTypeControl {...props} />
+        <DynamicPluginProvider>
+          <VizTypeControl {...props} />
+        </DynamicPluginProvider>
       </Provider>,
     );
+    await waitForEffects();
+  };
 
   afterEach(() => {
     cleanup();
@@ -86,14 +101,13 @@ describe('VizTypeControl', () => {
   });
 
   it('Search visualization type', async () => {
-    renderWrapper();
+    await renderWrapper();
 
     const visualizations = screen.getByTestId(getTestId('viz-row'));
 
+    userEvent.click(screen.getByRole('button', { name: 'ballot All charts' }));
+
     expect(visualizations).toHaveTextContent(/Time-series Table/);
-    expect(visualizations).toHaveTextContent(/Time-series Chart/);
-    expect(visualizations).toHaveTextContent(/Mixed timeseries chart/);
-    expect(visualizations).toHaveTextContent(/Line Chart/);
 
     const searchInputText = 'time series';
 
@@ -102,10 +116,11 @@ describe('VizTypeControl', () => {
       screen.getByTestId(getTestId('search-input')),
       searchInputText,
     );
+    await waitForEffects();
 
     expect(visualizations).toHaveTextContent(/Time-series Table/);
     expect(visualizations).toHaveTextContent(/Time-series Chart/);
-    expect(visualizations).toHaveTextContent(/Mixed timeseries chart/);
+    expect(visualizations).toHaveTextContent(/Mixed Time-Series/);
     expect(visualizations).not.toHaveTextContent(/Line Chart/);
   });
 });

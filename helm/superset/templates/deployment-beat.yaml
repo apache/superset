@@ -69,7 +69,7 @@ spec:
           env:
             - name: "SUPERSET_PORT"
               value: {{ .Values.service.port | quote}}
-          {{ if .Values.extraEnv }}
+          {{- if .Values.extraEnv }}
             {{- range $key, $value := .Values.extraEnv }}
             - name: {{ $key | quote}}
               value: {{ $value | quote }}
@@ -78,10 +78,17 @@ spec:
           envFrom:
             - secretRef:
                 name: {{ tpl .Values.envFromSecret . | quote }}
+            {{- range .Values.envFromSecrets }}
+            - secretRef:
+                name: {{ tpl . $ | quote }}
+            {{- end }}
           volumeMounts:
             - name: superset-config
               mountPath: {{ .Values.configMountPath | quote }}
               readOnly: true
+          {{- with .Values.extraVolumeMounts }}
+          {{- tpl (toYaml .) $ | nindent 12 -}}
+          {{- end }}
           resources:
 {{ toYaml .Values.resources | indent 12 }}
     {{- with .Values.nodeSelector }}
@@ -104,4 +111,7 @@ spec:
         - name: superset-config
           secret:
             secretName: {{ tpl .Values.configFromSecret . }}
+      {{- with .Values.extraVolumes }}
+      {{- tpl (toYaml .) $ | nindent 8 -}}
+      {{- end }}
 {{- end -}}

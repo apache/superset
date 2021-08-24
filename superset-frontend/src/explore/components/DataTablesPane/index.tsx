@@ -101,6 +101,10 @@ const CollapseWrapper = styled.div`
   }
 `;
 
+const Error = styled.pre`
+  margin-top: ${({ theme }) => `${theme.gridUnit * 4}px`};
+`;
+
 export const DataTablesPane = ({
   queryFormData,
   tableSectionHeight,
@@ -149,10 +153,30 @@ export const DataTablesPane = ({
         resultType,
         ownState,
       })
-        .then(response => {
+        .then(({ json }) => {
           // Only displaying the first query is currently supported
-          const result = response.result[0];
-          setData(prevData => ({ ...prevData, [resultType]: result.data }));
+          if (json.result.length > 1) {
+            const data: any[] = [];
+            json.result.forEach((item: { data: any[] }) => {
+              item.data.forEach((row, i) => {
+                if (data[i] !== undefined) {
+                  data[i] = { ...data[i], ...row };
+                } else {
+                  data[i] = row;
+                }
+              });
+            });
+            setData(prevData => ({
+              ...prevData,
+              [resultType]: data,
+            }));
+          } else {
+            setData(prevData => ({
+              ...prevData,
+              [resultType]: json.result[0].data,
+            }));
+          }
+
           setIsLoading(prevIsLoading => ({
             ...prevIsLoading,
             [resultType]: false,
@@ -263,7 +287,7 @@ export const DataTablesPane = ({
       return <Loading />;
     }
     if (error[type]) {
-      return <pre>{error[type]}</pre>;
+      return <Error>{error[type]}</Error>;
     }
     if (data[type]) {
       if (data[type]?.length === 0) {
@@ -279,11 +303,12 @@ export const DataTablesPane = ({
           className="table-condensed"
           isPaginationSticky
           showRowCount={false}
+          small
         />
       );
     }
     if (errorMessage) {
-      return <pre>{errorMessage}</pre>;
+      return <Error>{errorMessage}</Error>;
     }
     return null;
   };

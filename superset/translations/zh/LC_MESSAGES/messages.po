@@ -3058,7 +3058,7 @@ msgstr "在 SQL 编辑器中允许 CREATE TABLE AS 选项"
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:493
 #: superset/views/database/mixins.py:113
 msgid "Allow CREATE VIEW AS option in SQL Lab"
-msgstr "在 SQL 编辑器中允许 CREATE TABLE AS 选项"
+msgstr "在 SQL 编辑器中允许 CREATE VIEW AS 选项"
 
 #: superset/views/database/mixins.py:114
 msgid ""
@@ -3125,7 +3125,7 @@ msgstr "允许 CREATE TABLE AS"
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:491
 #: superset/views/database/mixins.py:187
 msgid "Allow CREATE VIEW AS"
-msgstr "允许 CREATE TABLE AS"
+msgstr "允许 CREATE VIEW AS"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:505
 #: superset/views/database/mixins.py:188
@@ -3893,7 +3893,7 @@ msgstr "允许 CREATE TABLE AS"
 
 #: superset-frontend/src/SqlLab/components/SqlEditor.jsx:610
 msgid "CREATE VIEW AS"
-msgstr "允许 CREATE TABLE AS"
+msgstr "允许 CREATE VIEW AS"
 
 #: superset-frontend/src/SqlLab/components/SqlEditor.jsx:645
 msgid "Estimate the cost before running a query"

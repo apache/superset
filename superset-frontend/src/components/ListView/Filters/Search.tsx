@@ -35,7 +35,7 @@ export default function SearchFilter({
   const [value, setValue] = useState(initialValue || '');
   const handleSubmit = () => {
     if (value) {
-      onSubmit(value);
+      onSubmit(value.trim());
     }
   };
   const onClear = () => {

@@ -28,7 +28,7 @@ from superset.utils import core as utils
 
 class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     engine = "elasticsearch"
-    engine_name = "ElasticSearch"
+    engine_name = "ElasticSearch (SQL API)"
     time_groupby_inline = True
     time_secondary_columns = True
     allows_joins = False
@@ -49,7 +49,8 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
-        import es.exceptions as es_exceptions  # pylint: disable=import-error
+        # pylint: disable=import-error,import-outside-toplevel
+        import es.exceptions as es_exceptions
 
         return {
             es_exceptions.DatabaseError: SupersetDBAPIDatabaseError,
@@ -83,7 +84,7 @@ class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     }
 
     engine = "odelasticsearch"
-    engine_name = "ElasticSearch"
+    engine_name = "ElasticSearch (OpenDistro SQL)"
 
     @classmethod
     def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:

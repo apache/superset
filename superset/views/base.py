@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import dataclasses  # pylint: disable=wrong-import-order
+import dataclasses
 import functools
 import logging
 import traceback
@@ -77,9 +77,7 @@ from superset.utils import core as utils
 from .utils import bootstrap_user_data
 
 if TYPE_CHECKING:
-    from superset.connectors.druid.views import (  # pylint: disable=unused-import
-        DruidClusterModelView,
-    )
+    from superset.connectors.druid.views import DruidClusterModelView
 
 FRONTEND_CONF_KEYS = (
     "SUPERSET_WEBSERVER_TIMEOUT",
@@ -180,7 +178,7 @@ def api(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
     def wraps(self: "BaseSupersetView", *args: Any, **kwargs: Any) -> FlaskResponse:
         try:
             return f(self, *args, **kwargs)
-        except NoAuthorizationError as ex:  # pylint: disable=broad-except
+        except NoAuthorizationError as ex:
             logger.warning(ex)
             return json_error_response(get_error_msg(), status=401)
         except Exception as ex:  # pylint: disable=broad-except
@@ -207,6 +205,9 @@ def handle_api_exception(
             return json_errors_response(
                 errors=[ex.error], status=ex.status, payload=ex.payload
             )
+        except SupersetErrorsException as ex:
+            logger.warning(ex, exc_info=True)
+            return json_errors_response(errors=ex.errors, status=ex.status)
         except SupersetErrorException as ex:
             logger.warning(ex)
             return json_errors_response(errors=[ex.error], status=ex.status)
@@ -251,7 +252,7 @@ def validate_sqlatable(table: models.SqlaTable) -> None:
                 "database connection, schema, and "
                 "table name, error: {}"
             ).format(table.name, str(ex))
-        )
+        ) from ex
 
 
 def create_table_permissions(table: models.SqlaTable) -> None:
@@ -274,9 +275,7 @@ def is_user_admin() -> bool:
 
 class BaseSupersetView(BaseView):
     @staticmethod
-    def json_response(
-        obj: Any, status: int = 200
-    ) -> FlaskResponse:  # pylint: disable=no-self-use
+    def json_response(obj: Any, status: int = 200) -> FlaskResponse:
         return Response(
             json.dumps(obj, default=utils.json_int_dttm_ser, ignore_nan=True),
             status=status,
@@ -306,6 +305,9 @@ def menu_data() -> Dict[str, Any]:
             **appbuilder.languages[lang],
             "url": appbuilder.get_url_for_locale(lang),
         }
+    brand_text = appbuilder.app.config["LOGO_RIGHT_TEXT"]
+    if callable(brand_text):
+        brand_text = brand_text()
     return {
         "menu": menu,
         "brand": {
@@ -313,8 +315,12 @@ def menu_data() -> Dict[str, Any]:
             "icon": appbuilder.app_icon,
             "alt": appbuilder.app_name,
             "width": appbuilder.app.config["APP_ICON_WIDTH"],
+            "tooltip": appbuilder.app.config["LOGO_TOOLTIP"],
+            "text": brand_text,
         },
         "navbar_right": {
+            # show the watermark if the default app icon has been overriden
+            "show_watermark": ("superset-logo-horiz" not in appbuilder.app_icon),
             "bug_report_url": appbuilder.app.config["BUG_REPORT_URL"],
             "documentation_url": appbuilder.app.config["DOCUMENTATION_URL"],
             "version_string": appbuilder.app.config["VERSION_STRING"],
@@ -322,11 +328,13 @@ def menu_data() -> Dict[str, Any]:
             "languages": languages,
             "show_language_picker": len(languages.keys()) > 1,
             "user_is_anonymous": g.user.is_anonymous,
-            "user_info_url": appbuilder.get_url_for_userinfo,
+            "user_info_url": None
+            if appbuilder.app.config["MENU_HIDE_USER_INFO"]
+            else appbuilder.get_url_for_userinfo,
             "user_logout_url": appbuilder.get_url_for_logout,
             "user_login_url": appbuilder.get_url_for_login,
             "user_profile_url": None
-            if g.user.is_anonymous
+            if g.user.is_anonymous or appbuilder.app.config["MENU_HIDE_USER_INFO"]
             else f"/superset/profile/{g.user.username}",
             "locale": session.get("locale", "en"),
         },
@@ -338,7 +346,7 @@ def common_bootstrap_payload() -> Dict[str, Any]:
     messages = get_flashed_messages(with_categories=True)
     locale = str(get_locale())
 
-    return {
+    bootstrap_data = {
         "flash_messages": messages,
         "conf": {k: conf.get(k) for k in FRONTEND_CONF_KEYS},
         "locale": locale,
@@ -349,6 +357,8 @@ def common_bootstrap_payload() -> Dict[str, Any]:
         "theme_overrides": conf["THEME_OVERRIDES"],
         "menu_data": menu_data(),
     }
+    bootstrap_data.update(conf["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
+    return bootstrap_data
 
 
 # pylint: disable=invalid-name
@@ -394,7 +404,7 @@ def show_http_exception(ex: HTTPException) -> FlaskResponse:
         and ex.code in {404, 500}
     ):
         path = resource_filename("superset", f"static/assets/{ex.code}.html")
-        return send_file(path)
+        return send_file(path), ex.code
 
     return json_errors_response(
         errors=[
@@ -402,7 +412,6 @@ def show_http_exception(ex: HTTPException) -> FlaskResponse:
                 message=utils.error_msg_from_exception(ex),
                 error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
                 level=ErrorLevel.ERROR,
-                extra={},
             ),
         ],
         status=ex.code or 500,
@@ -439,7 +448,6 @@ def show_unexpected_exception(ex: Exception) -> FlaskResponse:
                 message=utils.error_msg_from_exception(ex),
                 error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
                 level=ErrorLevel.ERROR,
-                extra={},
             ),
         ],
     )
@@ -491,7 +499,7 @@ def validate_json(form: Form, field: Field) -> None:  # pylint: disable=unused-a
         json.loads(field.data)
     except Exception as ex:
         logger.exception(ex)
-        raise Exception(_("json isn't valid"))
+        raise Exception(_("json isn't valid")) from ex
 
 
 class YamlExportMixin:  # pylint: disable=too-few-public-methods

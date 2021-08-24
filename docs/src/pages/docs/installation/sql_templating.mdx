@@ -87,3 +87,167 @@ FEATURE_FLAGS = {
 
 The available validators and names can be found in
 [sql_validators](https://github.com/apache/superset/tree/master/superset/sql_validators).
+
+### Available Macros
+
+In this section, we'll walkthrough the  pre-defined Jinja macros in Superset.
+
+**Current Username**
+
+The `{{ current_username() }}` macro returns the username of the currently logged in user.
+
+If you have caching enabled in your Superset configuration, then by defaul the the `username` value will be used
+by Superset when calculating the cache key. A cache key is a unique identifer that determines if there's a
+cache hit in the future and Superset can retrieve cached data.
+
+You can disable the inclusion of the `username` value in the calculation of the
+cache key by adding the following parameter to your Jinja code:
+
+```
+{{ current_username(add_to_cache_keys=False) }}
+```
+
+**Current User ID**
+
+The `{{ current_user_id()}}` macro returns the user_id of the currently logged in user.
+
+If you have caching enabled in your Superset configuration, then by defaul the the `user_id` value will be used
+by Superset when calculating the cache key. A cache key is a unique identifer that determines if there's a
+cache hit in the future and Superset can retrieve cached data.
+
+You can disable the inclusion of the `user_id` value in the calculation of the
+cache key by adding the following parameter to your Jinja code:
+
+```
+{{ current_user_id(add_to_cache_keys=False) }}
+```
+
+**Custom URL Parameters**
+
+The `{{ url_param('custom_variable') }}` macro lets you define arbitrary URL
+parameters and reference them in your SQL code.
+
+Here's a concrete example:
+
+- You write the following query in SQL Lab:
+
+    ```
+    SELECT count(*)
+    FROM ORDERS
+    WHERE country_code = '{{ url_param('countrycode') }}'
+    ```
+
+- You're hosting Superset at the domain www.example.com and you send your
+coworker in Spain the following SQL Lab URL `www.example.com/superset/sqllab?countrycode=ES`
+and your coworker in the USA the following SQL Lab URL `www.example.com/superset/sqllab?countrycode=US`
+- For your coworker in Spain, the SQL Lab query will be rendered as:
+
+    ```
+    SELECT count(*)
+    FROM ORDERS
+    WHERE country_code = 'ES'
+    ```
+
+- For your coworker in the USA, the SQL Lab query will be rendered as:
+
+    ```
+    SELECT count(*)
+    FROM ORDERS
+    WHERE country_code = 'US'
+    ```
+
+**Explicitly Including Values in Cache Key**
+
+The `{{ cache_key_wrapper() }}` function explicitly instructs Superset to add a value to the
+accumulated list of values used in the the calculation of the cache key.
+
+This function is only needed when you want to wrap your own custom function return values
+in the cache key. You can gain more context
+[here](https://github.com/apache/superset/blob/efd70077014cbed62e493372d33a2af5237eaadf/superset/jinja_context.py#L133-L148).
+
+Note that this function powers the caching of the `user_id` and `username` values
+in the `current_user_id()` and `current_username()` function calls (if you have caching enabled).
+
+**Filter Values**
+
+You can retrieve the value for a specific filter as a list using `{{ filter_values() }}`.
+
+This is useful if:
+- you want to use a filter component to filter a query where the name of filter component column doesn't match the one in the select statement
+- you want to have the ability for filter inside the main query for speed purposes
+
+Here's a concrete example:
+
+```
+SELECT action, count(*) as times
+FROM logs
+WHERE
+    action in ({{ "'" + "','".join(filter_values('action_type')) + "'" }})
+GROUP BY action
+```
+
+You can use thisfeature to reference the start & end datetimes from a time filter using:
+
+- `{{ from_dttm }}`: start datetime value
+- `{{ to_dttm }}`: end datetime value
+
+**Filters for a Specific Column**
+
+The `{{ get_filters() }}` macro returns the filters applied to a given column. In addition to
+returning the values (similar to how `filter_values()` does), the `get_filters()` macro
+returns the operator specified in the Explore UI.
+
+ This is useful if:
+- you want to handle more than the IN operator in your SQL clause
+- you want to handle generating custom SQL conditions for a filter
+- you want to have the ability to filter inside the main query for speed purposes
+
+Here's a concrete example:
+
+```
+ WITH RECURSIVE
+    superiors(employee_id, manager_id, full_name, level, lineage) AS (
+    SELECT
+        employee_id,
+        manager_id,
+        full_name,
+    1 as level,
+    employee_id as lineage
+    FROM
+        employees
+    WHERE
+    1=1
+
+    {# Render a blank line #}
+    {%- for filter in get_filters('full_name', remove_filter=True) -%}
+
+    {%- if filter.get('op') == 'IN' -%}
+        AND
+        full_name IN ( {{ "'" + "', '".join(filter.get('val')) + "'" }} )
+    {%- endif -%}
+
+    {%- if filter.get('op') == 'LIKE' -%}
+        AND
+        full_name LIKE {{ "'" + filter.get('val') + "'" }}
+    {%- endif -%}
+
+    {%- endfor -%}
+    UNION ALL
+        SELECT
+            e.employee_id,
+            e.manager_id,
+            e.full_name,
+    s.level + 1 as level,
+    s.lineage
+        FROM
+            employees e,
+        superiors s
+        WHERE s.manager_id = e.employee_id
+    )
+
+    SELECT
+    employee_id, manager_id, full_name, level, lineage
+    FROM
+    superiors
+    order by lineage, level
+```

@@ -16,12 +16,63 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getNumberFormatter, NumberFormats, t } from '@superset-ui/core';
+import {
+  getNumberFormatter,
+  NumberFormats,
+  styled,
+  t,
+} from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Slider } from 'src/common/components';
+import { rgba } from 'emotion-rgba';
+import { FormItemProps } from 'antd/lib/form';
 import { PluginFilterRangeProps } from './types';
-import { Styles } from '../common';
+import { StatusMessage, StyledFormItem, FilterPluginStyle } from '../common';
 import { getRangeExtraFormData } from '../../utils';
+
+const Wrapper = styled.div<{ validateStatus?: 'error' | 'warning' | 'info' }>`
+  ${({ theme, validateStatus }) => `
+    border: 1px solid transparent;
+    &:focus {
+      border: 1px solid
+        ${theme.colors[validateStatus || 'primary']?.base};
+      outline: 0;
+      box-shadow: 0 0 0 3px
+        ${rgba(theme.colors[validateStatus || 'primary']?.base, 0.2)};
+    }
+    & .ant-slider {
+      margin-top: ${theme.gridUnit}px;
+      margin-bottom: ${theme.gridUnit * 5}px;
+
+      & .ant-slider-track {
+        background-color: ${
+          validateStatus && theme.colors[validateStatus]?.light1
+        };
+      }
+      & .ant-slider-handle {
+        border: ${
+          validateStatus && `2px solid ${theme.colors[validateStatus]?.light1}`
+        };
+        &:focus {
+          box-shadow: 0 0 0 3px
+            ${rgba(theme.colors[validateStatus || 'primary']?.base, 0.2)};
+        }
+      }
+      &:hover {
+        & .ant-slider-track {
+          background-color: ${
+            validateStatus && theme.colors[validateStatus]?.base
+          };
+        }
+        & .ant-slider-handle {
+          border: ${
+            validateStatus && `2px solid ${theme.colors[validateStatus]?.base}`
+          };
+        }
+      }
+    }
+  `}
+`;
 
 export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const {
@@ -32,7 +83,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     setDataMask,
     setFocusedFilter,
     unsetFocusedFilter,
-    inputRef,
     filterState,
   } = props;
   const numberFormatter = getNumberFormatter(NumberFormats.SMART_NUMBER);
@@ -40,7 +90,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const [row] = data;
   // @ts-ignore
   const { min, max }: { min: number; max: number } = row;
-  const { groupby, defaultValue } = formData;
+  const { groupby, defaultValue, inputRef } = formData;
   const [col = ''] = groupby || [];
   const [value, setValue] = useState<[number, number]>(
     defaultValue ?? [min, max],
@@ -103,28 +153,49 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   };
 
   useEffect(() => {
+    // when switch filter type and queriesData still not updated we need ignore this case (in FilterBar)
+    if (row?.min === undefined && row?.max === undefined) {
+      return;
+    }
     handleAfterChange(filterState.value ?? [min, max]);
-  }, [JSON.stringify(filterState.value)]);
+  }, [JSON.stringify(filterState.value), JSON.stringify(data)]);
 
+  const formItemData: FormItemProps = {};
+  if (filterState.validateMessage) {
+    formItemData.extra = (
+      <StatusMessage status={filterState.validateStatus}>
+        {filterState.validateMessage}
+      </StatusMessage>
+    );
+  }
   return (
-    <Styles height={height} width={width}>
+    <FilterPluginStyle height={height} width={width}>
       {Number.isNaN(Number(min)) || Number.isNaN(Number(max)) ? (
         <h4>{t('Chosen non-numeric column')}</h4>
       ) : (
-        <div onMouseEnter={setFocusedFilter} onMouseLeave={unsetFocusedFilter}>
-          <Slider
-            range
-            min={min}
-            max={max}
-            value={value ?? [min, max]}
-            onAfterChange={handleAfterChange}
-            onChange={handleChange}
-            tipFormatter={value => numberFormatter(value)}
+        <StyledFormItem {...formItemData}>
+          <Wrapper
+            tabIndex={-1}
             ref={inputRef}
-            marks={marks}
-          />
-        </div>
+            validateStatus={filterState.validateStatus}
+            onFocus={setFocusedFilter}
+            onBlur={unsetFocusedFilter}
+            onMouseEnter={setFocusedFilter}
+            onMouseLeave={unsetFocusedFilter}
+          >
+            <Slider
+              range
+              min={min}
+              max={max}
+              value={value ?? [min, max]}
+              onAfterChange={handleAfterChange}
+              onChange={handleChange}
+              tipFormatter={value => numberFormatter(value)}
+              marks={marks}
+            />
+          </Wrapper>
+        </StyledFormItem>
       )}
-    </Styles>
+    </FilterPluginStyle>
   );
 }

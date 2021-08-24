@@ -47,7 +47,7 @@ can be altered in your local `superset_config.py`. Administrators will want to r
 to understand what can be configured locally as well as the default values in place.
 
 Since `superset_config.py` acts as a Flask configuration module, it can be used to alter the
-settings Flask itself, as well as Flask extensions like `flask-wtf`, `flask-cache`, `flask-migrate`,
+settings Flask itself, as well as Flask extensions like `flask-wtf`, `flask-caching`, `flask-migrate`,
 and `flask-appbuilder`. Flask App Builder, the web framework used by Superset, offers many
 configuration settings. Please consult the
 [Flask App Builder Documentation](https://flask-appbuilder.readthedocs.org/en/latest/config.html)
@@ -154,6 +154,7 @@ Then, create a `CustomSsoSecurityManager` that extends `SupersetSecurityManager`
 `oauth_user_info`:
 
 ```python
+import logging
 from superset.security import SupersetSecurityManager
 
 class CustomSsoSecurityManager(SupersetSecurityManager):
@@ -177,9 +178,47 @@ from custom_sso_security_manager import CustomSsoSecurityManager
 CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
 ```
 
-Notice that the redirect URL will be `https://<superset-webserver>/oauth-authorized/<provider-name>`
-When configuring an OAuth2 authorization provider if needed. For instance, the redirect URL will
-be `https://<superset-webserver>/oauth-authorized/egaSSO` for the above configuration.
+**Notes**
+
+- The redirect URL will be `https://<superset-webserver>/oauth-authorized/<provider-name>`
+  When configuring an OAuth2 authorization provider if needed. For instance, the redirect URL will
+  be `https://<superset-webserver>/oauth-authorized/egaSSO` for the above configuration.
+
+- If an OAuth2 authorization server supports OpenID Connect 1.0, you could configure its configuration
+  document URL only without providing `api_base_url`, `access_token_url`, `authorize_url` and other
+  required options like user info endpoint, jwks uri etc. For instance:
+  ```python
+  OAUTH_PROVIDERS = [
+    {   'name':'egaSSO',
+        'token_key':'access_token', # Name of the token in the response of access_token_url
+        'icon':'fa-address-card',   # Icon for the provider
+        'remote_app': {
+            'client_id':'myClientId',  # Client Id (Identify Superset application)
+            'client_secret':'MySecret', # Secret for this Client Id (Identify Superset application)
+            'server_metadata_url': 'https://myAuthorizationServer/.well-known/openid-configuration'
+        }
+    }
+  ]
+  ```
+
+### Flask app Configuration Hook
+
+`FLASK_APP_MUTATOR` is a configuration function that can be provided in your environment, receives
+the app object and can alter it in any way. For example, add `FLASK_APP_MUTATOR` into your
+`superset_config.py` to setup session cookie expiration time to 24 hours:
+
+```
+def make_session_permanent():
+    '''
+    Enable maxAge for the cookie 'session'
+    '''
+    session.permanent = True
+
+# Set up max age of session to 24 hours
+PERMANENT_SESSION_LIFETIME = timedelta(hours=24)
+def FLASK_APP_MUTATOR(app: Flask) -> None:
+    app.before_request_funcs.setdefault(None, []).append(make_session_permanent)
+```
 
 ### Feature Flags
 
