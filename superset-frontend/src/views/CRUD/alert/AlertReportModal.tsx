@@ -56,7 +56,6 @@ import {
   Recipient,
 } from './types';
 
-const SELECT_PAGE_SIZE = 2000; // temporary fix for paginated query
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
   'pivot_table',
@@ -1048,10 +1047,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <Select
                 ariaLabel={t('Owners')}
                 allowClear
-                // TODO Use default page size (100). To do that, the server
-                // needs to send the total number of results. Currently, the
-                // number of results is limited to SELECT_PAGE_SIZE
-                pageSize={SELECT_PAGE_SIZE}
                 name="owners"
                 mode="multiple"
                 value={
@@ -1099,10 +1094,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 <div className="input-container">
                   <Select
                     ariaLabel={t('Database')}
-                    // TODO Use default page size (100). To do that, the server
-                    // needs to send the total number of results. Currently, the
-                    // number of results is limited to SELECT_PAGE_SIZE
-                    pageSize={SELECT_PAGE_SIZE}
                     name="source"
                     value={
                       currentAlert?.database?.label &&
@@ -1267,10 +1258,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               css={{
                 display: contentType === 'chart' ? 'inline' : 'none',
               }}
-              // TODO Use default page size (100). To do that, the server
-              // needs to send the total number of results. Currently, the
-              // number of results is limited to SELECT_PAGE_SIZE
-              pageSize={SELECT_PAGE_SIZE}
               name="chart"
               value={
                 currentAlert?.chart?.label && currentAlert?.chart?.value
@@ -1288,10 +1275,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               css={{
                 display: contentType === 'dashboard' ? 'inline' : 'none',
               }}
-              // TODO Use default page size (100). To do that, the server
-              // needs to send the total number of results. Currently, the
-              // number of results is limited to SELECT_PAGE_SIZE
-              pageSize={SELECT_PAGE_SIZE}
               name="dashboard"
               value={
                 currentAlert?.dashboard?.label && currentAlert?.dashboard?.value
