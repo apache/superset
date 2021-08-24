@@ -64,7 +64,7 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
         chart_id = self._properties.get("chart")
         dashboard_id = self._properties.get("dashboard")
         user_id = self._actor.id
-        
+
         # Validate type is required
         if not report_type:
             exceptions.append(ReportScheduleRequiredTypeValidationError())
@@ -97,7 +97,7 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
                 user_id, dashboard_id, chart_id
             )
         ):
-            exceptions.append(ReportScheduleCreationMethodUniquenessValidationError())
+            raise ReportScheduleCreationMethodUniquenessValidationError()
 
         if "validator_config_json" in self._properties:
             self._properties["validator_config_json"] = json.dumps(

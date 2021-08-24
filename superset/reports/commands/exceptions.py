@@ -167,19 +167,9 @@ class ReportScheduleNameUniquenessValidationError(ValidationError):
         super().__init__([_("Name must be unique")], field_name="name")
 
 
-class ReportScheduleCreationMethodUniquenessValidationError(ValidationError):
-    """
-    Marshmallow validation error for Report Schedule with creation method charts
-    or dashboards already existing on a report.
-    """
-
-    def __init__(self) -> None:
-        status = 409
-        
-        super().__init__(
-            [_("Resource already has an attached report.")],
-            field_name="creation_method",
-        )
+class ReportScheduleCreationMethodUniquenessValidationError(CommandException):
+    status = 409
+    message = "Resource already has an attached report."
 
 
 class AlertQueryMultipleRowsError(CommandException):

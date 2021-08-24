@@ -829,10 +829,24 @@ class TestReportSchedulesApi(SupersetTestCase):
         uri = "api/v1/report/"
         rv = self.client.post(uri, json=report_schedule_data)
         data = json.loads(rv.data.decode("utf-8"))
-        assert rv.status_code == 422
-        assert data["message"]["creation_method"] == [
-            "Resource already has an attached report."
-        ]
+        assert rv.status_code == 409
+        assert data == {
+            "errors": [
+                {
+                    "message": "Resource already has an attached report.",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": "Issue 1010 - Superset encountered an error while running a command.",
+                            }
+                        ]
+                    },
+                }
+            ]
+        }
 
     @pytest.mark.usefixtures(
         "load_birth_names_dashboard_with_slices", "create_report_schedules"
@@ -873,10 +887,24 @@ class TestReportSchedulesApi(SupersetTestCase):
         uri = "api/v1/report/"
         rv = self.client.post(uri, json=report_schedule_data)
         data = json.loads(rv.data.decode("utf-8"))
-        assert rv.status_code == 422
-        assert data["message"]["creation_method"] == [
-            "Resource already has an attached report."
-        ]
+        assert rv.status_code == 409
+        assert data == {
+            "errors": [
+                {
+                    "message": "Resource already has an attached report.",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": "Issue 1010 - Superset encountered an error while running a command.",
+                            }
+                        ]
+                    },
+                }
+            ]
+        }
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_create_report_schedule_chart_dash_validation(self):
