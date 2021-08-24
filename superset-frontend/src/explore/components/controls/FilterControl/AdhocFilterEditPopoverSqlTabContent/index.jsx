@@ -46,9 +46,9 @@ const propTypes = {
 
 const StyledSelect = styled(Select)`
   ${({ theme }) => `
-  width: ${theme.gridUnit * 30}px;
-  marginRight: ${theme.gridUnit}px;
-`}
+    width: ${theme.gridUnit * 30}px;
+    marginRight: ${theme.gridUnit}px;
+  `}
 `;
 
 export default class AdhocFilterEditPopoverSqlTabContent extends React.Component {
