@@ -31,10 +31,9 @@ test('Do not open Omnibar with the featureflag disabled', () => {
   (isFeatureEnabled as jest.Mock).mockImplementation(
     (ff: string) => !(ff === 'OMNIBAR'),
   );
-  const logEvent = jest.fn();
   render(
     <div data-test="test">
-      <OmniContainer logEvent={logEvent} />
+      <OmniContainer />
     </div>,
   );
 
@@ -54,10 +53,9 @@ test('Open Omnibar with ctrl + k with featureflag enabled', () => {
   (isFeatureEnabled as jest.Mock).mockImplementation(
     (ff: string) => ff === 'OMNIBAR',
   );
-  const logEvent = jest.fn();
   render(
     <div data-test="test">
-      <OmniContainer logEvent={logEvent} />
+      <OmniContainer />
     </div>,
   );
 
@@ -81,17 +79,16 @@ test('Open Omnibar with ctrl + k with featureflag enabled', () => {
   });
   expect(
     screen.queryByPlaceholderText('Search all dashboards'),
-  ).not.toBeVisible();
+  ).not.toBeInTheDocument();
 });
 
 test('Open Omnibar with Command + k with featureflag enabled', () => {
   (isFeatureEnabled as jest.Mock).mockImplementation(
     (ff: string) => ff === 'OMNIBAR',
   );
-  const logEvent = jest.fn();
   render(
     <div data-test="test">
-      <OmniContainer logEvent={logEvent} />
+      <OmniContainer />
     </div>,
   );
 
@@ -115,17 +112,16 @@ test('Open Omnibar with Command + k with featureflag enabled', () => {
   });
   expect(
     screen.queryByPlaceholderText('Search all dashboards'),
-  ).not.toBeVisible();
+  ).not.toBeInTheDocument();
 });
 
 test('Open Omnibar with Cmd/Ctrl-K and close with ESC', () => {
   (isFeatureEnabled as jest.Mock).mockImplementation(
     (ff: string) => ff === 'OMNIBAR',
   );
-  const logEvent = jest.fn();
   render(
     <div data-test="test">
-      <OmniContainer logEvent={logEvent} />
+      <OmniContainer />
     </div>,
   );
 
@@ -149,5 +145,5 @@ test('Open Omnibar with Cmd/Ctrl-K and close with ESC', () => {
   });
   expect(
     screen.queryByPlaceholderText('Search all dashboards'),
-  ).not.toBeVisible();
+  ).not.toBeInTheDocument();
 });
