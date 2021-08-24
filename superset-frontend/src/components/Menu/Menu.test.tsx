@@ -21,8 +21,10 @@ import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { Menu } from './Menu';
 import { dropdownItems } from './MenuRight';
+import { user } from './fixtures'
 
 const mockedProps = {
+  user: { roles: [] },
   data: {
     menu: [
       {
@@ -134,6 +136,10 @@ const notanonProps = {
     },
   },
 };
+
+beforeAll(() => {
+  Object.defineProperty(global, 'document', { app: { user: { roles: [] } } });
+});
 
 test('should render', () => {
   const { container } = render(<Menu {...mockedProps} />);
