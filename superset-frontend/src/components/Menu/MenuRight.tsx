@@ -27,24 +27,28 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import LanguagePicker from './LanguagePicker';
 import { NavBarProps, MenuObjectProps } from './Menu';
 
+
 export const dropdownItems = [
   {
     label: t('SQL query'),
     url: '/superset/sqllab?new=true',
     icon: 'fa-fw fa-search',
-    show: canSql,
+    perm: 'can_sqllab',
+    view: 'Superset',
   },
   {
     label: t('Chart'),
     url: '/chart/add',
     icon: 'fa-fw fa-bar-chart',
-    show: canChart,
+    perm: 'can_write',
+    view: 'Dashboard',
   },
   {
     label: t('Dashboard'),
     url: '/dashboard/new',
     icon: 'fa-fw fa-dashboard',
-    show: canDashboard,
+    perm: 'can_write',
+    view: 'Chart',
   },
 ];
 
@@ -93,11 +97,11 @@ const RightMenu = ({
   const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
+
+  // if user has any of these roles the dropdown will appear
   const canSql = findPermission('can_sqllab', 'Superset', roles);
   const canDashboard = findPermission('can_write', 'Dashboard', roles);
   const canChart = findPermission('can_write', 'Chart', roles);
-
-  // if user has any of these roles the dropdown will appear
   const showActionDropdown = canChart || canSql || canDashboard;
 
   return (
@@ -114,7 +118,7 @@ const RightMenu = ({
             {showActionDropdown &&
               dropdownItems.map(
                 menu =>
-                  menu.show && (
+                  findPermission(menu.perm, menu.view, roles) && (
                     <Menu.Item key={menu.label}>
                       <a href={menu.url}>
                         <i
