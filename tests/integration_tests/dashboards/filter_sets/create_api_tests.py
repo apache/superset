@@ -27,13 +27,13 @@ from superset.dashboards.filter_sets.consts import (
     OWNER_TYPE_FIELD,
     USER_OWNER_TYPE,
 )
-from tests.base_tests import login
-from tests.dashboards.filter_sets.consts import (
+from tests.integration_tests.base_tests import login
+from tests.integration_tests.dashboards.filter_sets.consts import (
     ADMIN_USERNAME_FOR_TEST,
     DASHBOARD_OWNER_USERNAME,
     FILTER_SET_OWNER_USERNAME,
 )
-from tests.dashboards.filter_sets.utils import (
+from tests.integration_tests.dashboards.filter_sets.utils import (
     call_create_filter_set,
     get_filter_set_by_dashboard_id,
     get_filter_set_by_name,

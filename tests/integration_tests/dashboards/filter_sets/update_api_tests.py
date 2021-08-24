@@ -24,13 +24,13 @@ from superset.dashboards.filter_sets.consts import (
     NAME_FIELD,
     OWNER_TYPE_FIELD,
 )
-from tests.base_tests import login
-from tests.dashboards.filter_sets.consts import (
+from tests.integration_tests.base_tests import login
+from tests.integration_tests.dashboards.filter_sets.consts import (
     DASHBOARD_OWNER_USERNAME,
     FILTER_SET_OWNER_USERNAME,
     REGULAR_USER,
 )
-from tests.dashboards.filter_sets.utils import (
+from tests.integration_tests.dashboards.filter_sets.utils import (
     call_update_filter_set,
     collect_all_ids,
     get_filter_set_by_name,

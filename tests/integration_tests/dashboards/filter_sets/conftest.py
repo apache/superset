@@ -32,7 +32,7 @@ from superset.dashboards.filter_sets.consts import (
 )
 from superset.models.dashboard import Dashboard
 from superset.models.filter_set import FilterSet
-from tests.integration_tests.charts.filter_sets.consts import (
+from tests.integration_tests.dashboards.filter_sets.consts import (
     ADMIN_USERNAME_FOR_TEST,
     DASHBOARD_OWNER_USERNAME,
     FILTER_SET_OWNER_USERNAME,

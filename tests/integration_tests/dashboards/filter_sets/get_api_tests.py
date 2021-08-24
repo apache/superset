@@ -18,13 +18,13 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Set, TYPE_CHECKING
 
-from tests.base_tests import login
-from tests.dashboards.filter_sets.consts import (
+from tests.integration_tests.base_tests import login
+from tests.integration_tests.dashboards.filter_sets.consts import (
     DASHBOARD_OWNER_USERNAME,
     FILTER_SET_OWNER_USERNAME,
     REGULAR_USER,
 )
-from tests.dashboards.filter_sets.utils import call_get_filter_sets, collect_all_ids
+from tests.integration_tests.dashboards.filter_sets.utils import call_get_filter_sets, collect_all_ids
 
 if TYPE_CHECKING:
     from flask.testing import FlaskClient
