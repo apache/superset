@@ -17,14 +17,14 @@
 """add filter set model
 
 Revision ID: 3ebe0993c770
-Revises: 453530256cea
+Revises: 07071313dd52
 Create Date: 2021-03-29 11:15:48.831225
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "3ebe0993c770"
-down_revision = "453530256cea"
+down_revision = "07071313dd52"
 
 import sqlalchemy as sa
 from alembic import op
