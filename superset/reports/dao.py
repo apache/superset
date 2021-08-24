@@ -126,7 +126,7 @@ class ReportScheduleDAO(BaseDAO):
         if query is not None and dashboard_id is not None:
             query = query.filter(ReportSchedule.dashboard_id == dashboard_id)
 
-        if query is not None and chart_id is not None:
+        if chart_id is not None:
             query = query.filter(ReportSchedule.chart_id == chart_id)
 
         return not db.session.query(query.exists()).scalar()
