@@ -27,26 +27,6 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import LanguagePicker from './LanguagePicker';
 import { NavBarProps, MenuObjectProps } from './Menu';
 
-const appContainer = document.getElementById('app');
-const bootstrapData = JSON.parse(
-  appContainer?.getAttribute('data-bootstrap') || '{}',
-);
-
-const canChart = findPermission('can_write', 'Chart', bootstrapData.user.roles);
-const canSql = findPermission(
-  'can_sqllab',
-  'Superset',
-  bootstrapData.user.roles,
-);
-const canDashboard = findPermission(
-  'can_write',
-  'Dashboard',
-  bootstrapData.user.roles,
-);
-
-// if user has any of these roles the dropdown will appear
-const showActionDropdown = canChart || canSql || canDashboard;
-
 export const dropdownItems = [
   {
     label: t('SQL query'),
