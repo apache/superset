@@ -94,7 +94,7 @@ class ControlHeader extends React.Component {
       this.props.validationErrors.length > 0 ? 'text-danger' : '';
 
     const { theme } = this.props;
-    
+
     return (
       <div className="ControlHeader" data-test={`${this.props.name}-header`}>
         <div className="pull-left">
