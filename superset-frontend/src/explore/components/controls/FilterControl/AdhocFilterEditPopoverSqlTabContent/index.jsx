@@ -44,6 +44,13 @@ const propTypes = {
   activeKey: PropTypes.string.isRequired,
 };
 
+const StyledSelect = styled(Select)`
+  ${({ theme }) => `
+  width: ${theme.gridUnit * 30}px;
+  marginRight: ${theme.gridUnit}px;
+`}
+`;
+
 export default class AdhocFilterEditPopoverSqlTabContent extends React.Component {
   constructor(props) {
     super(props);
@@ -119,11 +126,7 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
     return (
       <span>
         <div className="filter-edit-clause-section">
-          <Select
-            css={theme => ({
-              width: theme.gridUnit * 30,
-              marginRight: theme.gridUnit,
-            })}
+          <StyledSelect
             options={selectOptions}
             {...this.selectProps}
             {...clauseSelectProps}
