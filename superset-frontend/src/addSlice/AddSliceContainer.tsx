@@ -41,6 +41,7 @@ export type AddSliceContainerProps = {};
 export type AddSliceContainerState = {
   datasource?: { label: string; value: string };
   visType: string | null;
+  search: string;
 };
 
 const ESTIMATED_NAV_HEIGHT = 56;
@@ -186,6 +187,7 @@ export default class AddSliceContainer extends React.PureComponent<
     super(props);
     this.state = {
       visType: null,
+      search: '',
     };
 
     this.changeDatasource = this.changeDatasource.bind(this);
@@ -194,6 +196,8 @@ export default class AddSliceContainer extends React.PureComponent<
     this.newLabel = this.newLabel.bind(this);
     this.loadDatasources = this.loadDatasources.bind(this);
     this.handleFilterOption = this.handleFilterOption.bind(this);
+    this.handleFilterSort = this.handleFilterSort.bind(this);
+    this.handleSearch = this.handleSearch.bind(this);
   }
 
   exploreUrl() {
@@ -241,6 +245,10 @@ export default class AddSliceContainer extends React.PureComponent<
     );
   }
 
+  handleSearch(search: string) {
+    this.setState({ search });
+  }
+
   loadDatasources(search: string, page: number, pageSize: number) {
     const query = rison.encode({
       columns: ['id', 'table_name', 'description', 'datasource_type'],
@@ -256,15 +264,12 @@ export default class AddSliceContainer extends React.PureComponent<
       const list: {
         label: string;
         value: string;
-      }[] = response.json.result
-        .map((item: Dataset) => ({
-          value: `${item.id}__${item.datasource_type}`,
-          label: this.newLabel(item),
-          labelText: item.table_name,
-        }))
-        .sort((a: { labelText: string }, b: { labelText: string }) =>
-          a.labelText.localeCompare(b.labelText),
-        );
+      }[] = response.json.result.map((item: Dataset) => ({
+        value: `${item.id}__${item.datasource_type}`,
+        label: this.newLabel(item),
+        labelText: item.table_name,
+      }));
+
       return {
         data: list,
         totalCount: response.json.count,
@@ -279,6 +284,23 @@ export default class AddSliceContainer extends React.PureComponent<
     const searchValue = search.trim().toLowerCase();
     const { labelText } = option;
     return labelText.toLowerCase().includes(searchValue);
+  }
+
+  handleFilterSort(
+    a: { label: string; value: number; labelText: string },
+    b: { label: string; value: number; labelText: string },
+  ) {
+    const optionA = a.labelText.toLowerCase();
+    const optionB = b.labelText.toLowerCase();
+    const search = this.state.search.toLowerCase();
+
+    if (optionA === search) {
+      return -1;
+    }
+    if (optionB === search) {
+      return 1;
+    }
+    return optionA.localeCompare(optionB);
   }
 
   render() {
@@ -297,11 +319,13 @@ export default class AddSliceContainer extends React.PureComponent<
                   ariaLabel={t('Dataset')}
                   name="select-datasource"
                   filterOption={this.handleFilterOption}
+                  filterSort={this.handleFilterSort}
                   onChange={this.changeDatasource}
                   options={this.loadDatasources}
                   placeholder={t('Choose a dataset')}
                   showSearch
                   value={this.state.datasource}
+                  onSearch={this.handleSearch}
                 />
                 <span>
                   {t(
