@@ -18,7 +18,7 @@
  */
 import React, { FunctionComponent, useState } from 'react';
 import { styled, t, useTheme } from '@superset-ui/core';
-import { NativeGraySelect as Select } from 'src/components/Select';
+import { Select } from 'src/components';
 import Icons from 'src/components/Icons';
 import { StyledInputContainer } from '../AlertReportModal';
 
@@ -116,26 +116,22 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     setRecipientValue(recipients);
   }
 
-  const methodOptions = (options || []).map((method: NotificationMethod) => (
-    <Select.Option key={method} value={method}>
-      {t(method)}
-    </Select.Option>
-  ));
-
   return (
     <StyledNotificationMethod>
       <div className="inline-container">
         <StyledInputContainer>
           <div className="input-container">
             <Select
+              ariaLabel={t('Delivery method')}
               data-test="select-delivery-method"
               onChange={onMethodChange}
-              placeholder="Select Delivery Method"
-              defaultValue={method}
+              placeholder={t('Select Delivery Method')}
+              options={(options || []).map((method: NotificationMethod) => ({
+                label: method,
+                value: method,
+              }))}
               value={method}
-            >
-              {methodOptions}
-            </Select>
+            />
           </div>
         </StyledInputContainer>
         {method !== undefined && !!onRemove ? (

@@ -85,7 +85,7 @@ class ImportExamplesCommand(ImportModelsCommand):
             | ImportDashboardsCommand._get_uuids()
         )
 
-    # pylint: disable=too-many-locals, arguments-differ, too-many-branches
+    # pylint: disable=too-many-locals, arguments-differ
     @staticmethod
     def _import(
         session: Session,

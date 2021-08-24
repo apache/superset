@@ -116,7 +116,7 @@ class ValidateDatabaseParametersCommand(BaseCommand):
         try:
             with closing(engine.raw_connection()) as conn:
                 alive = engine.dialect.do_ping(conn)
-        except Exception as ex:  # pylint: disable=broad-except
+        except Exception as ex:
             url = make_url(sqlalchemy_uri)
             context = {
                 "hostname": url.host,
