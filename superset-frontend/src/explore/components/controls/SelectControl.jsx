@@ -282,6 +282,7 @@ export default class SelectControl extends React.PureComponent {
       valueKey,
       valueRenderer,
     };
+
     let SelectComponent;
     if (this.props.freeForm) {
       SelectComponent = CreatableSelect;
@@ -301,7 +302,6 @@ export default class SelectControl extends React.PureComponent {
         `}
       >
         {this.props.showHeader && <ControlHeader {...this.props} />}
-
         {isMulti ? (
           <OnPasteSelect {...selectProps} selectWrap={SelectComponent} />
         ) : (
