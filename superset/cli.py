@@ -17,7 +17,6 @@
 # under the License.
 import json
 import logging
-import os
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -27,14 +26,11 @@ from zipfile import is_zipfile, ZipFile
 
 import click
 import yaml
-from apispec import APISpec
-from apispec.ext.marshmallow import MarshmallowPlugin
 from celery.utils.abstract import CallableTask
 from colorama import Fore, Style
 from flask import current_app, g
 from flask.cli import FlaskGroup, with_appcontext
 from flask_appbuilder import Model
-from flask_appbuilder.api import BaseApi
 
 from superset import app, appbuilder, config, security_manager
 from superset.app import create_app
@@ -82,7 +78,7 @@ def superset() -> None:
     """This is a management script for the Superset application."""
 
     @app.shell_context_processor
-    def make_shell_context() -> Dict[str, Any]:
+    def make_shell_context() -> Dict[str, Any]:  # pylint: disable=unused-variable
         return dict(app=app, db=db)
 
 
@@ -124,7 +120,6 @@ def load_examples_run(
         examples_db = utils.get_example_database()
         print(f"Loading examples metadata and related data into {examples_db}")
 
-    # pylint: disable=import-outside-toplevel
     from superset import examples
 
     examples.load_css_templates()
@@ -146,9 +141,6 @@ def load_examples_run(
     if not load_test_data:
         print("Loading [Random long/lat data]")
         examples.load_long_lat_data(only_metadata, force)
-
-        print("Loading [Country Map data]")
-        examples.load_country_map_data(only_metadata, force)
 
         print("Loading [San Francisco population polygons]")
         examples.load_sf_population_polygons(only_metadata, force)
@@ -173,7 +165,7 @@ def load_examples_run(
         examples.load_big_data()
 
     # load examples that are stored as YAML config files
-    examples.load_examples_from_configs(force, load_test_data)
+    examples.load_from_configs(force, load_test_data)
 
 
 @with_appcontext
@@ -192,27 +184,8 @@ def load_examples(
     only_metadata: bool = False,
     force: bool = False,
 ) -> None:
-    """Loads a set of Slices and Dashboards and a supporting dataset"""
+    """Loads a set of Slices and Dashboards and a supporting dataset """
     load_examples_run(load_test_data, load_big_data, only_metadata, force)
-
-
-@with_appcontext
-@superset.command()
-@click.argument("directory")
-@click.option(
-    "--overwrite", "-o", is_flag=True, help="Overwriting existing metadata definitions"
-)
-@click.option(
-    "--force", "-f", is_flag=True, help="Force load data even if table already exists"
-)
-def import_directory(directory: str, overwrite: bool, force: bool) -> None:
-    """Imports configs from a given directory"""
-    # pylint: disable=import-outside-toplevel
-    from superset.examples.utils import load_configs_from_directory
-
-    load_configs_from_directory(
-        root=Path(directory), overwrite=overwrite, force_data=force,
-    )
 
 
 @with_appcontext
@@ -227,7 +200,7 @@ def import_directory(directory: str, overwrite: bool, force: bool) -> None:
     help="Create the DB if it doesn't exist",
 )
 def set_database_uri(database_name: str, uri: str, skip_create: bool) -> None:
-    """Updates a database connection URI"""
+    """Updates a database connection URI """
     utils.get_or_create_db(database_name, uri, not skip_create)
 
 
@@ -248,10 +221,8 @@ def set_database_uri(database_name: str, uri: str, skip_create: bool) -> None:
 )
 def refresh_druid(datasource: str, merge: bool) -> None:
     """Refresh druid datasources"""
-    # pylint: disable=import-outside-toplevel
-    from superset.connectors.druid.models import DruidCluster
-
     session = db.session()
+    from superset.connectors.druid.models import DruidCluster
 
     for cluster in session.query(DruidCluster).all():
         try:
@@ -273,7 +244,6 @@ if feature_flags.get("VERSIONED_EXPORT"):
     )
     def export_dashboards(dashboard_file: Optional[str] = None) -> None:
         """Export dashboards to ZIP file"""
-        # pylint: disable=import-outside-toplevel
         from superset.dashboards.commands.export import ExportDashboardsCommand
         from superset.models.dashboard import Dashboard
 
@@ -297,6 +267,7 @@ if feature_flags.get("VERSIONED_EXPORT"):
                 "the exception traceback in the log"
             )
 
+    # pylint: disable=too-many-locals
     @superset.command()
     @with_appcontext
     @click.option(
@@ -304,7 +275,6 @@ if feature_flags.get("VERSIONED_EXPORT"):
     )
     def export_datasources(datasource_file: Optional[str] = None) -> None:
         """Export datasources to ZIP file"""
-        # pylint: disable=import-outside-toplevel
         from superset.connectors.sqla.models import SqlaTable
         from superset.datasets.commands.export import ExportDatasetsCommand
 
@@ -339,7 +309,6 @@ if feature_flags.get("VERSIONED_EXPORT"):
     )
     def import_dashboards(path: str, username: Optional[str]) -> None:
         """Import dashboards from ZIP file"""
-        # pylint: disable=import-outside-toplevel
         from superset.commands.importers.v1.utils import get_contents_from_bundle
         from superset.dashboards.commands.importers.dispatcher import (
             ImportDashboardsCommand,
@@ -351,8 +320,7 @@ if feature_flags.get("VERSIONED_EXPORT"):
             with ZipFile(path) as bundle:
                 contents = get_contents_from_bundle(bundle)
         else:
-            with open(path) as file:
-                contents = {path: file.read()}
+            contents = {path: open(path).read()}
         try:
             ImportDashboardsCommand(contents, overwrite=True).run()
         except Exception:  # pylint: disable=broad-except
@@ -368,7 +336,6 @@ if feature_flags.get("VERSIONED_EXPORT"):
     )
     def import_datasources(path: str) -> None:
         """Import datasources from ZIP file"""
-        # pylint: disable=import-outside-toplevel
         from superset.commands.importers.v1.utils import get_contents_from_bundle
         from superset.datasets.commands.importers.dispatcher import (
             ImportDatasetsCommand,
@@ -378,8 +345,7 @@ if feature_flags.get("VERSIONED_EXPORT"):
             with ZipFile(path) as bundle:
                 contents = get_contents_from_bundle(bundle)
         else:
-            with open(path) as file:
-                contents = {path: file.read()}
+            contents = {path: open(path).read()}
         try:
             ImportDatasetsCommand(contents, overwrite=True).run()
         except Exception:  # pylint: disable=broad-except
@@ -407,7 +373,6 @@ else:
         dashboard_file: Optional[str], print_stdout: bool = False
     ) -> None:
         """Export dashboards to JSON"""
-        # pylint: disable=import-outside-toplevel
         from superset.utils import dashboard_import_export
 
         data = dashboard_import_export.export_dashboards(db.session)
@@ -418,6 +383,7 @@ else:
             with open(dashboard_file, "w") as data_stream:
                 data_stream.write(data)
 
+    # pylint: disable=too-many-locals
     @superset.command()
     @with_appcontext
     @click.option(
@@ -454,7 +420,6 @@ else:
         include_defaults: bool = False,
     ) -> None:
         """Export datasources to YAML"""
-        # pylint: disable=import-outside-toplevel
         from superset.utils import dict_import_export
 
         data = dict_import_export.export_to_dict(
@@ -493,7 +458,6 @@ else:
     )
     def import_dashboards(path: str, recursive: bool, username: str) -> None:
         """Import dashboards from JSON file"""
-        # pylint: disable=import-outside-toplevel
         from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 
         path_object = Path(path)
@@ -506,10 +470,7 @@ else:
             files.extend(path_object.rglob("*.json"))
         if username is not None:
             g.user = security_manager.find_user(username=username)
-        contents = {}
-        for path_ in files:
-            with open(path_) as file:
-                contents[path_.name] = file.read()
+        contents = {path.name: open(path).read() for path in files}
         try:
             ImportDashboardsCommand(contents).run()
         except Exception:  # pylint: disable=broad-except
@@ -541,7 +502,6 @@ else:
     )
     def import_datasources(path: str, sync: str, recursive: bool) -> None:
         """Import datasources from YAML"""
-        # pylint: disable=import-outside-toplevel
         from superset.datasets.commands.importers.v0 import ImportDatasetsCommand
 
         sync_array = sync.split(",")
@@ -558,10 +518,7 @@ else:
         elif path_object.exists() and recursive:
             files.extend(path_object.rglob("*.yaml"))
             files.extend(path_object.rglob("*.yml"))
-        contents = {}
-        for path_ in files:
-            with open(path_) as file:
-                contents[path_.name] = file.read()
+        contents = {path.name: open(path).read() for path in files}
         try:
             ImportDatasetsCommand(contents, sync_columns, sync_metrics).run()
         except Exception:  # pylint: disable=broad-except
@@ -578,7 +535,6 @@ else:
     )
     def export_datasource_schema(back_references: bool) -> None:
         """Export datasource YAML schema to stdout"""
-        # pylint: disable=import-outside-toplevel
         from superset.utils import dict_import_export
 
         data = dict_import_export.export_schema_to_dict(back_references=back_references)
@@ -589,7 +545,6 @@ else:
 @with_appcontext
 def update_datasources_cache() -> None:
     """Refresh sqllab datasources cache"""
-    # pylint: disable=import-outside-toplevel
     from superset.models.core import Database
 
     for database in db.session.query(Database).all():
@@ -656,7 +611,7 @@ def flower(port: int, address: str) -> None:
     print(Fore.BLUE + "-=" * 40)
     print(Fore.YELLOW + cmd)
     print(Fore.BLUE + "-=" * 40)
-    Popen(cmd, shell=True).wait()  # pylint: disable=consider-using-with
+    Popen(cmd, shell=True).wait()
 
 
 @superset.command()
@@ -694,7 +649,6 @@ def compute_thumbnails(
     model_id: int,
 ) -> None:
     """Compute thumbnails"""
-    # pylint: disable=import-outside-toplevel
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
     from superset.tasks.thumbnails import (
@@ -807,7 +761,6 @@ def sync_tags() -> None:
     # pylint: disable=no-member
     metadata = Model.metadata
 
-    # pylint: disable=import-outside-toplevel
     from superset.common.tags import add_favorites, add_owners, add_types
 
     add_types(db.engine, metadata)
@@ -820,7 +773,6 @@ def sync_tags() -> None:
 def alert() -> None:
     """Run the alert scheduler loop"""
     # this command is just for testing purposes
-    # pylint: disable=import-outside-toplevel
     from superset.models.schedules import ScheduleType
     from superset.tasks.schedules import schedule_window
 
@@ -839,8 +791,13 @@ def alert() -> None:
 @with_appcontext
 def update_api_docs() -> None:
     """Regenerate the openapi.json file in docs"""
-    superset_dir = os.path.abspath(os.path.dirname(__file__))
-    openapi_json = os.path.join(
+    from apispec import APISpec
+    from apispec.ext.marshmallow import MarshmallowPlugin
+    from flask_appbuilder.api import BaseApi
+    from os import path
+
+    superset_dir = path.abspath(path.dirname(__file__))
+    openapi_json = path.join(
         superset_dir, "..", "docs", "src", "resources", "openapi.json"
     )
     api_version = "v1"
