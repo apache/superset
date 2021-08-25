@@ -107,5 +107,5 @@ class SqlJsonExecutionContext:
         except RuntimeError:
             return None
 
-    def is_should_run_asynchronous(self) -> bool:
+    def is_run_asynchronous(self) -> bool:
         return self.async_flag
