@@ -37,7 +37,7 @@ const propTypes = {
   tooltipOnClick: PropTypes.func,
   warning: PropTypes.string,
   danger: PropTypes.string,
-  hideNativeTab: PropTypes.bool,
+  skipTabFocus: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -45,7 +45,7 @@ const defaultProps = {
   renderTrigger: false,
   hovered: false,
   name: undefined,
-  hideNativeTab: false,
+  skipTabFocus: true,
 };
 
 class ControlHeader extends React.Component {
@@ -95,7 +95,7 @@ class ControlHeader extends React.Component {
     const labelClass =
       this.props.validationErrors.length > 0 ? 'text-danger' : '';
 
-    const { theme, hideNativeTab } = this.props;
+    const { theme, skipTabFocus } = this.props;
     return (
       <div className="ControlHeader" data-test={`${this.props.name}-header`}>
         <div className="pull-left">
@@ -107,12 +107,12 @@ class ControlHeader extends React.Component {
           >
             {this.props.leftNode && <span>{this.props.leftNode}</span>}
             <span
-              role={hideNativeTab ? 'main' : 'button'}
-              tabIndex={hideNativeTab ? -1 : 0}
-              onClick={hideNativeTab ? null : this.props.onClick}
+              role={skipTabFocus ? 'main' : 'button'}
+              tabIndex={skipTabFocus ? -1 : 0}
+              onClick={skipTabFocus ? null : this.props.onClick}
               className={labelClass}
               style={{
-                cursor: !hideNativeTab && this.props.onClick ? 'pointer' : '',
+                cursor: !skipTabFocus && this.props.onClick ? 'pointer' : '',
               }}
             >
               {this.props.label}
