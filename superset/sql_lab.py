@@ -273,10 +273,10 @@ def execute_sql_statement(sql_statement, query, user_name, session, cursor):
             else:
                 data = None
 
-            db_engine_spec.execute(cursor, "commit;")
-            db_engine_spec.handle_cursor(cursor, query, session)
-
-            session.commit()
+            if (db_engine_spec.engine != 'druid'):
+                db_engine_spec.execute(cursor, "commit;")
+                db_engine_spec.handle_cursor(cursor, query, session)
+                session.commit()
 
     except SoftTimeLimitExceeded as e:
         logging.exception(f"Query {query_id}: {e}")

@@ -117,7 +117,7 @@ setup(
         "postgres": ["psycopg2-binary==2.7.5"],
         "presto": ["pyhive[presto]>=0.4.0"],
         "elasticsearch": ["elasticsearch-dbapi>=0.1.0, <0.2.0"],
-        "druid": ["pydruid==0.5.2", "requests==2.22.0"],
+        "druid": ["pydruid==0.6.2", "requests==2.22.0"],
     },
     python_requires="~=3.6",
     author="Apache Software Foundation",

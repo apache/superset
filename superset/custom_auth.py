@@ -8,13 +8,20 @@ from flask_appbuilder.security.views import AuthDBView
 from flask_appbuilder.security.views import expose
 from flask_login import login_user
 import boto3
+from botocore.config import Config
 import json
 
 from superset.security import SupersetSecurityManager
 
 ALLOWED_RESOURCES = ['SEGMENT EXPLORER', 'AD OPTIMIZATION', 'RECOMMENDER', 'MERCHANDISER']
 
-lambda_client = boto3.client('lambda')
+BOTO_READ_TIMEOUT = float(environ.get('BOTO_READ_TIMEOUT', 10))
+BOTO_MAX_ATTEMPTS = int(environ.get('BOTO_MAX_ATTEMPTS', 3))
+config = Config(
+    read_timeout=BOTO_READ_TIMEOUT,
+    retries={'total_max_attempts': BOTO_MAX_ATTEMPTS})
+
+lambda_client = boto3.client('lambda', config=config)
 
 def has_resource_access(privileges):
     for config in privileges['level']['tenant']['tenants']:
