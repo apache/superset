@@ -147,9 +147,6 @@ def load_examples_run(
         print("Loading [Random long/lat data]")
         examples.load_long_lat_data(only_metadata, force)
 
-        print("Loading [Country Map data]")
-        examples.load_country_map_data(only_metadata, force)
-
         print("Loading [San Francisco population polygons]")
         examples.load_sf_population_polygons(only_metadata, force)
 
