@@ -282,6 +282,7 @@ export default class SelectControl extends React.PureComponent {
       valueKey,
       valueRenderer,
     };
+
     let SelectComponent;
     if (this.props.freeForm) {
       SelectComponent = CreatableSelect;
