@@ -25,6 +25,7 @@ import OmniContainer from './index';
 jest.mock('src/featureFlags', () => ({
   isFeatureEnabled: jest.fn(),
   FeatureFlag: { OMNIBAR: 'OMNIBAR' },
+  initFeatureFlags: jest.fn(),
 }));
 
 test('Do not open Omnibar with the featureflag disabled', () => {
