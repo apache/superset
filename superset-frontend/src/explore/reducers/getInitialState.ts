@@ -22,7 +22,10 @@ import {
   ControlStateMapping,
   DatasourceMeta,
 } from '@superset-ui/chart-controls';
-import { CommonBootstrapData, User } from 'src/types/bootstrapTypes';
+import {
+  CommonBootstrapData,
+  UserWithPermissionsAndRoles,
+} from 'src/types/bootstrapTypes';
 import getToastsFromPyFlashMessages from 'src/messageToasts/utils/getToastsFromPyFlashMessages';
 
 import { ChartState, Slice } from 'src/explore/types';
@@ -45,7 +48,7 @@ export interface ExlorePageBootstrapData extends JsonObject {
   form_data: QueryFormData;
   slice: Slice | null;
   standalone: boolean;
-  user: User;
+  user: UserWithPermissionsAndRoles;
 }
 
 export default function getInitialState(
