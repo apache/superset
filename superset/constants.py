@@ -174,3 +174,20 @@ class CacheRegion(str, Enum):
     DEFAULT = "default"
     DATA = "data"
     THUMBNAIL = "thumbnail"
+
+
+# Possible SQL literal representation for `Infinity`
+INFINITY_LITERALS = [
+    "Infinity",
+    '"Infinity"',
+    "Inf",
+    '"Inf"',
+]
+
+
+NEGATIVE_INFINITY_LITERALS = [
+    "-Infinity",
+    '"-Infinity"',
+    "-Inf",
+    '"-Inf"',
+]

@@ -34,7 +34,11 @@ from superset.common.query_object import QueryObject
 from superset.common.utils import QueryCacheManager
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.constants import CacheRegion
+from superset.constants import (
+    CacheRegion,
+    INFINITY_LITERALS,
+    NEGATIVE_INFINITY_LITERALS,
+)
 from superset.exceptions import QueryObjectValidationError, SupersetException
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
@@ -235,8 +239,6 @@ class QueryContext:
         if self.enforce_numerical_metrics:
             self.df_metrics_to_num(df, query_object)
 
-        df.replace([np.inf, -np.inf], np.nan, inplace=True)
-
         return df
 
     def get_query_result(self, query_object: QueryObject) -> QueryResult:
@@ -276,11 +278,19 @@ class QueryContext:
     @staticmethod
     def df_metrics_to_num(df: pd.DataFrame, query_object: QueryObject) -> None:
         """Converting metrics to numeric when pandas.read_sql cannot"""
+        metric_names: List[str] = query_object.metric_names
         for col, dtype in df.dtypes.items():
-            if dtype.type == np.object_ and col in query_object.metric_names:
+            if dtype.type == np.object_ and col in metric_names:
                 # soft-convert a metric column to numeric
                 # will stay as strings if conversion fails
-                df[col] = df[col].infer_objects()
+                df[col] = pd.to_numeric(
+                    df[col]
+                    .replace(INFINITY_LITERALS, np.inf)
+                    .replace(NEGATIVE_INFINITY_LITERALS, -np.inf),
+                    errors="ignore",
+                )
+                print(df[col])
+                print(df)
 
     def get_data(self, df: pd.DataFrame,) -> Union[str, List[Dict[str, Any]]]:
         if self.result_format == ChartDataResultFormat.CSV:

@@ -18,6 +18,8 @@ import copy
 import math
 from typing import Any, Callable, cast, Dict, List, Optional, TYPE_CHECKING
 
+import numpy as np
+import pandas as pd
 from flask_babel import _
 
 from superset import app
@@ -97,13 +99,18 @@ def _get_full(
     datasource = _get_datasource(query_context, query_obj)
     result_type = query_obj.result_type or query_context.result_type
     payload = query_context.get_df_payload(query_obj, force_cached=force_cached)
-    df = payload["df"]
+    df: pd.DataFrame = payload["df"]
     status = payload["status"]
     if status != QueryStatus.FAILED:
         payload["colnames"] = list(df.columns)
         payload["indexnames"] = list(df.index)
         payload["coltypes"] = extract_dataframe_dtypes(df)
         payload["data"] = query_context.get_data(df)
+        # JSON cannot represent Inf values (they will be replaced as `null`)
+        # so we pass down indexes of Infinity values in case the client wants
+        # to display them more accurately
+        payload["infs"] = np.argwhere(df.values == np.inf)
+        payload["-infs"] = np.argwhere(df.values == -np.inf)
         payload["result_format"] = query_context.result_format
     del payload["df"]
 
