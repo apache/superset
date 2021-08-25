@@ -175,7 +175,7 @@ export default function PropertiesModal({
             buttonStyle="primary"
             // @ts-ignore
             onClick={onSubmit}
-            disabled={!owners || submitting || !name}
+            disabled={submitting || !name}
             cta
           >
             {t('Save')}

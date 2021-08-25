@@ -34,11 +34,10 @@ const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
 const SELECT_PLACEHOLDER = t('**Select** a dashboard OR **create** a new one');
 
 type SaveModalProps = {
-  can_overwrite?: boolean;
   onHide: () => void;
   actions: Record<string, any>;
   form_data?: Record<string, any>;
-  userId: string;
+  userId: number;
   dashboards: Array<any>;
   alert?: string;
   sliceName?: string;
@@ -70,12 +69,16 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       saveToDashboardId: null,
       newSliceName: props.sliceName,
       alert: null,
-      action: props.can_overwrite ? 'overwrite' : 'saveas',
+      action: this.canOverwriteSlice() ? 'overwrite' : 'saveas',
     };
     this.onDashboardSelectChange = this.onDashboardSelectChange.bind(this);
     this.onSliceNameChange = this.onSliceNameChange.bind(this);
     this.changeAction = this.changeAction.bind(this);
     this.saveOrOverwrite = this.saveOrOverwrite.bind(this);
+  }
+
+  canOverwriteSlice(): boolean {
+    return this.props.slice?.owners?.includes(this.props.userId);
   }
 
   componentDidMount() {
@@ -196,7 +199,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
               disabled={!this.state.newSliceName}
               data-test="btn-modal-save"
             >
-              {!this.props.can_overwrite && this.props.slice
+              {!this.canOverwriteSlice() && this.props.slice
                 ? t('Save as new chart')
                 : t('Save')}
             </Button>
@@ -225,7 +228,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
           <FormItem data-test="radio-group">
             <Radio
               id="overwrite-radio"
-              disabled={!(this.props.can_overwrite && this.props.slice)}
+              disabled={!this.canOverwriteSlice()}
               checked={this.state.action === 'overwrite'}
               onChange={() => this.changeAction('overwrite')}
               data-test="save-overwrite-radio"
@@ -289,8 +292,7 @@ function mapStateToProps({
   return {
     datasource: explore.datasource,
     slice: explore.slice,
-    can_overwrite: explore.can_overwrite,
-    userId: explore.user_id,
+    userId: explore.user?.userId,
     dashboards: saveModal.dashboards,
     alert: saveModal.saveModalAlert,
   };

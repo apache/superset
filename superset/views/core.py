@@ -842,7 +842,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         bootstrap_data = {
             "can_add": slice_add_perm,
             "can_download": slice_download_perm,
-            "can_overwrite": slice_overwrite_perm,
             "datasource": datasource_data,
             "form_data": form_data,
             "datasource_id": datasource_id,
@@ -1019,7 +1018,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         response = {
             "can_add": slice_add_perm,
             "can_download": slice_download_perm,
-            "can_overwrite": is_owner(slc, g.user),
             "form_data": slc.form_data,
             "slice": slc.data,
             "dashboard_url": dash.url if dash else None,
