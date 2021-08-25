@@ -114,16 +114,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
     @safe
     @permission_name("get")
     @rison(get_list_schema)
-    @merge_response_func(ModelRestApi.merge_order_columns, API_ORDER_COLUMNS_RIS_KEY)
-    @merge_response_func(
-        ModelRestApi.merge_list_label_columns, API_LABEL_COLUMNS_RIS_KEY
-    )
-    @merge_response_func(
-        ModelRestApi.merge_description_columns, API_DESCRIPTION_COLUMNS_RIS_KEY
-    )
-    @merge_response_func(ModelRestApi.merge_list_columns, API_LIST_COLUMNS_RIS_KEY)
-    @merge_response_func(ModelRestApi.merge_list_title, API_LIST_TITLE_RIS_KEY)
-    def get_list(self, **kwargs: Any) -> Response:
+    def get_list(self, dashboard_id: int, **kwargs: Any) -> Response:
         """
             Gets a dashboard's Filter sets
          ---
@@ -133,7 +124,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
           parameters:
           - in: path
             schema:
-              type: int
+              type: integer
             name: dashboard_id
             description: The id of the dashboard
           responses:
@@ -172,8 +163,6 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-
-        dashboard_id: Optional[int] = kwargs.get("dashboard_id", None)
         if not DashboardDAO.find_by_id(cast(int, dashboard_id)):
             return self.response(404, message="dashboard '%s' not found" % dashboard_id)
         rison_data = kwargs.setdefault("rison", {})
@@ -201,7 +190,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
           parameters:
           - in: path
             schema:
-              type: int
+              type: integer
             name: dashboard_id
             description: The id of the dashboard
           requestBody:
@@ -258,8 +247,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def put(self, dashboard_id: int, pk: int) -> Response:
-        """
-            Changes a Dashboard's Filter set
+        """Changes a Dashboard's Filter set
         ---
         put:
           description: >-
