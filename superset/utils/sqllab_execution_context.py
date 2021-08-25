@@ -19,17 +19,13 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass
-from typing import Any, cast, Dict, Optional, Type, TYPE_CHECKING
+from typing import Any, cast, Dict, Optional
 
 from flask import g
 
 from superset import app, is_feature_enabled
 from superset.sql_parse import CtasMethod
 from superset.utils import core as utils
-from superset.utils.dates import now_as_float
-
-if TYPE_CHECKING:
-    from superset.models.sql_lab import Query
 
 QueryStatus = utils.QueryStatus
 logger = logging.getLogger(__name__)
@@ -37,7 +33,7 @@ logger = logging.getLogger(__name__)
 SqlResults = Dict[str, Any]
 
 
-@dataclass
+@dataclass  # pylint: disable=R0902
 class SqlJsonExecutionContext:
     database_id: int
     schema: str
@@ -105,7 +101,7 @@ class SqlJsonExecutionContext:
             limit = 0
         return limit
 
-    def _get_user_id(self) -> Optional[int]:
+    def _get_user_id(self) -> Optional[int]:  # pylint: disable=R0201
         try:
             return g.user.get_id() if g.user else None
         except RuntimeError:
