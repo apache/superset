@@ -43,7 +43,6 @@ export interface ExlorePageBootstrapData extends JsonObject {
   datasource_type: DatasourceType;
   slice: Slice | null;
   standalone: boolean;
-  user_id: number;
   forced_height: string | null;
   common: CommonBootstrapData;
 }

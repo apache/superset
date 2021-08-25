@@ -715,7 +715,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def explore(  # pylint: disable=too-many-locals
         self, datasource_type: Optional[str] = None, datasource_id: Optional[int] = None
     ) -> FlaskResponse:
-        user_id = g.user.get_id() if g.user else None
         form_data, slc = get_form_data(use_slice_data=True)
         query_context = request.form.get("query_context")
         # Flash the SIP-15 message if the slice is owned by the current user and has not
@@ -848,7 +847,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "datasource_type": datasource_type,
             "slice": slc.data if slc else None,
             "standalone": standalone_mode,
-            "user_id": user_id,
             "user": bootstrap_user_data(g.user, include_perms=True),
             "forced_height": request.args.get("height"),
             "common": common_bootstrap_payload(),
