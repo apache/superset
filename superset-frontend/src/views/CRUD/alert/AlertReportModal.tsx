@@ -43,10 +43,9 @@ import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Owner from 'src/types/Owner';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
-import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
-import { NotificationMethod } from './components/NotificationMethod';
-
+import { useCommonConf } from 'src/views/CRUD/data/database/state';
 import {
+  NotificationMethodOption,
   AlertObject,
   ChartObject,
   DashboardObject,
@@ -54,9 +53,10 @@ import {
   MetaObject,
   Operator,
   Recipient,
-} from './types';
+} from 'src/views/CRUD/alert/types';
+import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
+import { NotificationMethod } from './components/NotificationMethod';
 
-const SELECT_PAGE_SIZE = 2000; // temporary fix for paginated query
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
   'pivot_table',
@@ -79,7 +79,7 @@ interface AlertReportModalProps {
   show: boolean;
 }
 
-const NOTIFICATION_METHODS: NotificationMethod[] = ['Email', 'Slack'];
+const DEFAULT_NOTIFICATION_METHODS: NotificationMethodOption[] = ['Email'];
 const DEFAULT_NOTIFICATION_FORMAT = 'PNG';
 const CONDITIONS = [
   {
@@ -382,12 +382,10 @@ const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
   );
 };
 
-type NotificationMethod = 'Email' | 'Slack';
-
 type NotificationSetting = {
-  method?: NotificationMethod;
+  method?: NotificationMethodOption;
   recipients: string;
-  options: NotificationMethod[];
+  options: NotificationMethodOption[];
 };
 
 const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
@@ -398,6 +396,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   alert = null,
   isReport = false,
 }) => {
+  const conf = useCommonConf();
+  const allowedNotificationMethods: NotificationMethodOption[] =
+    conf?.ALERT_REPORTS_NOTIFICATION_METHODS || DEFAULT_NOTIFICATION_METHODS;
+
   const [disableSave, setDisableSave] = useState<boolean>(true);
   const [
     currentAlert,
@@ -436,12 +438,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     settings.push({
       recipients: '',
-      options: NOTIFICATION_METHODS, // TODO: Need better logic for this
+      options: allowedNotificationMethods,
     });
 
     setNotificationSettings(settings);
     setNotificationAddState(
-      settings.length === NOTIFICATION_METHODS.length ? 'hidden' : 'disabled',
+      settings.length === allowedNotificationMethods.length
+        ? 'hidden'
+        : 'disabled',
     );
   };
 
@@ -911,16 +915,18 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             ? JSON.parse(setting.recipient_config_json)
             : {};
         return {
-          method: setting.type as NotificationMethod,
+          method: setting.type,
           // @ts-ignore: Type not assignable
           recipients: config.target || setting.recipient_config_json,
-          options: NOTIFICATION_METHODS as NotificationMethod[], // Need better logic for this
+          options: allowedNotificationMethods,
         };
       });
 
       setNotificationSettings(settings);
       setNotificationAddState(
-        settings.length === NOTIFICATION_METHODS.length ? 'hidden' : 'active',
+        settings.length === allowedNotificationMethods.length
+          ? 'hidden'
+          : 'active',
       );
       setContentType(resource.chart ? 'chart' : 'dashboard');
       setReportFormat(
@@ -1048,10 +1054,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <Select
                 ariaLabel={t('Owners')}
                 allowClear
-                // TODO Use default page size (100). To do that, the server
-                // needs to send the total number of results. Currently, the
-                // number of results is limited to SELECT_PAGE_SIZE
-                pageSize={SELECT_PAGE_SIZE}
                 name="owners"
                 mode="multiple"
                 value={
@@ -1099,10 +1101,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 <div className="input-container">
                   <Select
                     ariaLabel={t('Database')}
-                    // TODO Use default page size (100). To do that, the server
-                    // needs to send the total number of results. Currently, the
-                    // number of results is limited to SELECT_PAGE_SIZE
-                    pageSize={SELECT_PAGE_SIZE}
                     name="source"
                     value={
                       currentAlert?.database?.label &&
@@ -1267,10 +1265,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               css={{
                 display: contentType === 'chart' ? 'inline' : 'none',
               }}
-              // TODO Use default page size (100). To do that, the server
-              // needs to send the total number of results. Currently, the
-              // number of results is limited to SELECT_PAGE_SIZE
-              pageSize={SELECT_PAGE_SIZE}
               name="chart"
               value={
                 currentAlert?.chart?.label && currentAlert?.chart?.value
@@ -1288,10 +1282,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               css={{
                 display: contentType === 'dashboard' ? 'inline' : 'none',
               }}
-              // TODO Use default page size (100). To do that, the server
-              // needs to send the total number of results. Currently, the
-              // number of results is limited to SELECT_PAGE_SIZE
-              pageSize={SELECT_PAGE_SIZE}
               name="dashboard"
               value={
                 currentAlert?.dashboard?.label && currentAlert?.dashboard?.value
@@ -1326,6 +1316,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <NotificationMethod
                 setting={notificationSetting}
                 index={i}
+                key={`NotificationMethod-${i}`}
                 onUpdate={updateNotificationSetting}
                 onRemove={removeNotificationSetting}
               />
