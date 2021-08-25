@@ -164,7 +164,7 @@ beforeEach(() => {
 
 test('should render', () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
-  const { container } = render(<Menu {...mockedProps} />, { useRedux: true });
+  const { container } = render(<Menu {...mockedProps} />);
   expect(container).toBeInTheDocument();
 });
 
