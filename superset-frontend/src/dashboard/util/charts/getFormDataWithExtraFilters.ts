@@ -25,6 +25,7 @@ import {
 import { ChartQueryPayload, Charts, LayoutItem } from 'src/dashboard/types';
 import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
 import { DataMaskStateWithId } from 'src/dataMask/types';
+import { areObjectsEqual } from 'src/reduxUtils';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 import { ChartConfiguration, NativeFiltersState } from '../../reducers/types';
 import { getAllActiveFilters } from '../activeAllDashboardFilters';
@@ -68,13 +69,15 @@ export default function getFormDataWithExtraFilters({
 
   // if dashboard metadata + filters have not changed, use cache if possible
   if (
-    (cachedFiltersByChart[sliceId] || {}) === filters &&
-    (colorScheme == null ||
-      cachedFormdataByChart[sliceId].color_scheme === colorScheme) &&
-    cachedFormdataByChart[sliceId].color_namespace === colorNamespace &&
-    isEqual(cachedFormdataByChart[sliceId].label_colors, labelColors) &&
+    cachedFiltersByChart[sliceId] === filters &&
+    (colorScheme === null ||
+      cachedFormdataByChart[sliceId]?.color_scheme === colorScheme) &&
+    cachedFormdataByChart[sliceId]?.color_namespace === colorNamespace &&
+    isEqual(cachedFormdataByChart[sliceId]?.label_colors, labelColors) &&
     !!cachedFormdataByChart[sliceId] &&
-    dataMask === undefined
+    areObjectsEqual(cachedFormdataByChart[sliceId]?.dataMask, dataMask, {
+      ignoreUndefined: true,
+    })
   ) {
     return cachedFormdataByChart[sliceId];
   }
