@@ -20,7 +20,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import Tabs from 'src/components/Tabs';
 import Button from 'src/components/Button';
-import { NativeSelect as Select } from 'src/components/Select';
+import { Select } from 'src/components';
 import { t, styled } from '@superset-ui/core';
 
 import { Form, FormItem } from 'src/components/Form';
@@ -133,11 +133,6 @@ const ColumnSelectPopover = ({
     [],
   );
 
-  const getPopupContainer = useCallback(
-    (triggerNode: any) => triggerNode.parentNode,
-    [],
-  );
-
   return (
     <Form layout="vertical" id="metrics-edit-popover">
       <Tabs
@@ -149,54 +144,44 @@ const ColumnSelectPopover = ({
         <Tabs.TabPane key="saved" tab={t('Saved')}>
           <FormItem label={t('Saved expressions')}>
             <StyledSelect
+              ariaLabel="saved-expressions"
               value={selectedCalculatedColumn?.column_name}
-              getPopupContainer={getPopupContainer}
               onChange={onCalculatedColumnChange}
               allowClear
               showSearch
               autoFocus={!selectedCalculatedColumn}
               filterOption={filterOption}
               placeholder={t('%s column(s)', calculatedColumns.length)}
-            >
-              {calculatedColumns.map(calculatedColumn => (
-                <Select.Option
-                  value={calculatedColumn.column_name}
-                  filterBy={
-                    calculatedColumn.verbose_name ||
-                    calculatedColumn.column_name
-                  }
-                  key={calculatedColumn.column_name}
-                >
+              options={calculatedColumns.map(calculatedColumn => ({
+                value: calculatedColumn.column_name,
+                filterBy:
+                  calculatedColumn.verbose_name || calculatedColumn.column_name,
+                label: (
                   <StyledColumnOption column={calculatedColumn} showType />
-                </Select.Option>
-              ))}
-            </StyledSelect>
+                ),
+                key: calculatedColumn.column_name,
+              }))}
+            />
           </FormItem>
         </Tabs.TabPane>
         <Tabs.TabPane key="simple" tab={t('Simple')}>
           <FormItem label={t('Column')}>
             <Select
+              ariaLabel="simple-columns"
               value={selectedSimpleColumn?.column_name}
-              getPopupContainer={getPopupContainer}
               onChange={onSimpleColumnChange}
               allowClear
               showSearch
               autoFocus={!selectedSimpleColumn}
               filterOption={filterOption}
               placeholder={t('%s column(s)', simpleColumns.length)}
-            >
-              {simpleColumns.map(simpleColumn => (
-                <Select.Option
-                  value={simpleColumn.column_name}
-                  filterBy={
-                    simpleColumn.verbose_name || simpleColumn.column_name
-                  }
-                  key={simpleColumn.column_name}
-                >
-                  <StyledColumnOption column={simpleColumn} showType />
-                </Select.Option>
-              ))}
-            </Select>
+              options={simpleColumns.map(simpleColumn => ({
+                value: simpleColumn.column_name,
+                filterBy: simpleColumn.verbose_name || simpleColumn.column_name,
+                label: <StyledColumnOption column={simpleColumn} showType />,
+                key: simpleColumn.column_name,
+              }))}
+            />
           </FormItem>
         </Tabs.TabPane>
       </Tabs>
