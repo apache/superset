@@ -187,6 +187,7 @@ class TableColumn(Model, BaseColumn):
     is_dttm = Column(Boolean, default=False)
     expression = Column(Text)
     python_date_format = Column(String(255))
+    extra = Column(Text)
 
     export_fields = [
         "table_id",
@@ -200,6 +201,7 @@ class TableColumn(Model, BaseColumn):
         "expression",
         "description",
         "python_date_format",
+        "extra",
     ]
 
     update_from_object_fields = [s for s in export_fields if s not in ("table_id",)]
@@ -266,6 +268,28 @@ class TableColumn(Model, BaseColumn):
     @property
     def datasource(self) -> RelationshipProperty:
         return self.table
+
+    def get_extra_dict(self) -> Dict[str, Any]:
+        try:
+            return json.loads(self.extra)
+        except (TypeError, json.JSONDecodeError):
+            return {}
+
+    @property
+    def is_certified(self) -> bool:
+        return bool(self.get_extra_dict().get("certification"))
+
+    @property
+    def certified_by(self) -> Optional[str]:
+        return self.get_extra_dict().get("certification", {}).get("certified_by")
+
+    @property
+    def certification_details(self) -> Optional[str]:
+        return self.get_extra_dict().get("certification", {}).get("details")
+
+    @property
+    def warning_markdown(self) -> Optional[str]:
+        return self.get_extra_dict().get("warning_markdown")
 
     def get_time_filter(
         self,
@@ -374,8 +398,17 @@ class TableColumn(Model, BaseColumn):
             "type",
             "type_generic",
             "python_date_format",
+            "is_certified",
+            "certified_by",
+            "certification_details",
+            "warning_markdown",
         )
-        return {s: getattr(self, s) for s in attrs if hasattr(self, s)}
+
+        attr_dict = {s: getattr(self, s) for s in attrs if hasattr(self, s)}
+
+        attr_dict.update(super().data)
+
+        return attr_dict
 
 
 class SqlMetric(Model, BaseMetric):
