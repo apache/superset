@@ -130,7 +130,7 @@ DashboardRoles = Table(
 
 
 class Dashboard(  # pylint: disable=too-many-instance-attributes
-    Model, AuditMixinNullable, ImportExportMixin
+    Model, AuditMixinNullable, ImportExportMixin,
 ):
     """The dashboard object!"""
 
