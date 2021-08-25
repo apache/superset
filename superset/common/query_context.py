@@ -125,9 +125,7 @@ class QueryContext:
         return df
 
     def processing_time_offsets(  # pylint: disable=too-many-locals
-        self,
-        df: pd.DataFrame,
-        query_object: QueryObject,
+        self, df: pd.DataFrame, query_object: QueryObject,
     ) -> CachedTimeOffset:
         # ensure query_object is immutable
         query_object_clone = copy.copy(query_object)
@@ -140,8 +138,7 @@ class QueryContext:
         for offset in time_offsets:
             try:
                 query_object_clone.from_dttm = get_past_or_future(
-                    offset,
-                    outer_from_dttm,
+                    offset, outer_from_dttm,
                 )
                 query_object_clone.to_dttm = get_past_or_future(offset, outer_to_dttm)
             except ValueError as ex:
@@ -293,10 +290,7 @@ class QueryContext:
                     errors="ignore",
                 )
 
-    def get_data(
-        self,
-        df: pd.DataFrame,
-    ) -> Union[str, List[Dict[str, Any]]]:
+    def get_data(self, df: pd.DataFrame,) -> Union[str, List[Dict[str, Any]]]:
         if self.result_format == ChartDataResultFormat.CSV:
             include_index = not isinstance(df.index, pd.RangeIndex)
             result = csv.df_to_escaped_csv(
@@ -307,9 +301,7 @@ class QueryContext:
         return df.to_dict(orient="records")
 
     def get_payload(
-        self,
-        cache_query_context: Optional[bool] = False,
-        force_cached: bool = False,
+        self, cache_query_context: Optional[bool] = False, force_cached: bool = False,
     ) -> Dict[str, Any]:
         """Returns the query results with both metadata and data"""
 
@@ -454,17 +446,12 @@ class QueryContext:
         return annotation_data
 
     def get_df_payload(
-        self,
-        query_obj: QueryObject,
-        force_cached: Optional[bool] = False,
+        self, query_obj: QueryObject, force_cached: Optional[bool] = False,
     ) -> Dict[str, Any]:
         """Handles caching around the df payload retrieval"""
         cache_key = self.query_cache_key(query_obj)
         cache = QueryCacheManager.get(
-            cache_key,
-            CacheRegion.DATA,
-            self.force,
-            force_cached,
+            cache_key, CacheRegion.DATA, self.force, force_cached,
         )
 
         if query_obj and cache_key and not cache.is_loaded:
