@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import Modal from 'src/components/Modal';
 import { Row, Col, Input, TextArea } from 'src/common/components';
 import Button from 'src/components/Button';
-import { OptionsType } from 'react-select/src/types';
-import { AsyncSelect } from 'src/components/Select';
+import { Select } from 'src/components';
+import { SelectValue } from 'antd/lib/select';
 import rison from 'rison';
 import { t, SupersetClient } from '@superset-ui/core';
 import Chart, { Slice } from 'src/types/Chart';
@@ -33,11 +33,6 @@ type PropertiesModalProps = {
   show: boolean;
   onHide: () => void;
   onSave: (chart: Chart) => void;
-};
-
-type OwnerOption = {
-  label: string;
-  value: number;
 };
 
 export default function PropertiesModal({
@@ -54,7 +49,7 @@ export default function PropertiesModal({
   const [cacheTimeout, setCacheTimeout] = useState(
     slice.cache_timeout != null ? slice.cache_timeout : '',
   );
-  const [owners, setOwners] = useState<OptionsType<OwnerOption> | null>(null);
+  const [owners, setOwners] = useState<SelectValue | null>(null);
 
   function showError({ error, statusText, message }: any) {
     let errorText = error || statusText || t('An error has occurred');
@@ -99,26 +94,23 @@ export default function PropertiesModal({
     setName(slice.slice_name || '');
   }, [slice.slice_name]);
 
-  const loadOptions = (input = '') => {
-    const query = rison.encode({
-      filter: input,
-    });
-    return SupersetClient.get({
-      endpoint: `/api/v1/chart/related/owners?q=${query}`,
-    }).then(
-      response => {
-        const { result } = response.json;
-        return result.map((item: any) => ({
-          value: item.value,
-          label: item.text,
-        }));
-      },
-      badResponse => {
-        getClientErrorObject(badResponse).then(showError);
-        return [];
-      },
-    );
-  };
+  const loadOptions = useMemo(
+    () => (input = '', page: number, pageSize: number) => {
+      const query = rison.encode({ filter: input, page, page_size: pageSize });
+      return SupersetClient.get({
+        endpoint: `/api/v1/chart/related/owners?q=${query}`,
+      }).then(response => ({
+        data: response.json.result.map(
+          (item: { value: number; text: string }) => ({
+            value: item.value,
+            label: item.text,
+          }),
+        ),
+        totalCount: response.json.count,
+      }));
+    },
+    [],
+  );
 
   const onSubmit = async (event: React.FormEvent) => {
     event.stopPropagation();
@@ -130,7 +122,9 @@ export default function PropertiesModal({
       cache_timeout: cacheTimeout || null,
     };
     if (owners) {
-      payload.owners = owners.map(o => o.value);
+      payload.owners = (owners as { value: number; label: string }[]).map(
+        o => o.value,
+      );
     }
     try {
       const res = await SupersetClient.put({
@@ -237,16 +231,15 @@ export default function PropertiesModal({
             </FormItem>
             <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
             <FormItem label={t('Owners')}>
-              <AsyncSelect
-                isMulti
+              <Select
+                ariaLabel="owners"
+                mode="multiple"
                 name="owners"
                 value={owners || []}
-                loadOptions={loadOptions}
-                defaultOptions // load options on render
-                cacheOptions
+                options={loadOptions}
                 onChange={setOwners}
                 disabled={!owners}
-                filterOption={null} // options are filtered at the api
+                filterOption={false} // options are filtered at the api
               />
               <p className="help-block">
                 {t(

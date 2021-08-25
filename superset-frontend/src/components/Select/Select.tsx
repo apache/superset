@@ -54,7 +54,6 @@ type PickedSelectProps = Pick<
   | 'onChange'
   | 'placeholder'
   | 'showSearch'
-  | 'value'
 >;
 
 export type OptionsType = Exclude<AntdSelectAllProps['options'], undefined>;
