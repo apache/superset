@@ -169,7 +169,12 @@ export default function PropertiesModal({
             buttonStyle="primary"
             // @ts-ignore
             onClick={onSubmit}
-            disabled={!owners || submitting || !name}
+            disabled={
+              !owners ||
+              (Array.isArray(owners) && !owners.length) ||
+              submitting ||
+              !name
+            }
             cta
           >
             {t('Save')}
