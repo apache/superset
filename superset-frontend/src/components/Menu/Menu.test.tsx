@@ -160,9 +160,6 @@ const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
 
 beforeEach(() => {
   // setup a DOM element as a render target
-  // useSelectorMock.mockReturnValue({ roles: user.roles });
-  useSelectorMock.mockReturnValue({ roles: [] });
-
   useSelectorMock.mockClear();
 });
 
