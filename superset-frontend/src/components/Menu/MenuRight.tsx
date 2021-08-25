@@ -102,9 +102,6 @@ const RightMenu = ({
   const canDashboard = findPermission('can_write', 'Dashboard', roles);
   const canChart = findPermission('can_write', 'Chart', roles);
   const showActionDropdown = canSql || canChart || canDashboard;
-  console.log(roles);
-  console.log(showActionDropdown);
-
   return (
     <StyledDiv align={align}>
       <Menu mode="horizontal">
