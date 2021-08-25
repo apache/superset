@@ -40,7 +40,7 @@ xdescribe('Nativefilters', () => {
       .click();
     cy.get('[data-test="query-save-button"]').click();
     cy.get('[data-test="save-chart-modal-select-dashboard-form"]')
-      .find('#dashboard-creatable-select')
+      .find('input[aria-label="dashboard-creatable-select"]')
       .type(`${dashboard}{enter}{enter}`);
     cy.get('[data-test="btn-modal-save"]').click();
   });

@@ -161,6 +161,7 @@ const Select = ({
   placeholder = t('Select ...'),
   showSearch,
   value,
+  onChange,
   ...props
 }: SelectProps) => {
   const isAsync = typeof options === 'function';
@@ -393,6 +394,10 @@ const Select = ({
             setSelectOptions(newOptions);
             setSelectValue(searchValue);
           }
+
+          if (onChange) {
+            onChange(searchValue, selectOptions);
+          }
         }
         setSearchedValue(searchValue);
       }, DEBOUNCE_TIMEOUT),
@@ -402,6 +407,7 @@ const Select = ({
       isSingleMode,
       searchedValue,
       selectOptions,
+      onChange,
     ],
   );
 
@@ -503,6 +509,7 @@ const Select = ({
         labelInValue={isAsync}
         maxTagCount={MAX_TAG_COUNT}
         mode={mappedMode}
+        onChange={onChange}
         onDeselect={handleOnDeselect}
         onDropdownVisibleChange={handleOnDropdownVisibleChange}
         onPopupScroll={isAsync ? handlePagination : undefined}

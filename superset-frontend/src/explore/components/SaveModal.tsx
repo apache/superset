@@ -26,7 +26,8 @@ import ReactMarkdown from 'react-markdown';
 import Modal from 'src/components/Modal';
 import { Radio } from 'src/components/Radio';
 import Button from 'src/components/Button';
-import { CreatableSelect } from 'src/components/Select';
+import { Select } from 'src/components';
+import { SelectValue } from 'antd/lib/select';
 import { connect } from 'react-redux';
 
 // Session storage key for recent dashboard
@@ -105,10 +106,10 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     this.setState({ newSliceName: event.target.value });
   }
 
-  onDashboardSelectChange(event: Record<string, any>) {
-    const newDashboardName = event ? event.label : null;
+  onDashboardSelectChange(selected: SelectValue) {
+    const newDashboardName = selected ? String(selected) : undefined;
     const saveToDashboardId =
-      event && typeof event.value === 'number' ? event.value : null;
+      selected && typeof selected === 'number' ? selected : null;
     this.setState({ saveToDashboardId, newDashboardName });
   }
 
@@ -160,9 +161,6 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
   render() {
     const dashboardSelectValue =
       this.state.saveToDashboardId || this.state.newDashboardName;
-    const valueObj = dashboardSelectValue
-      ? { value: dashboardSelectValue }
-      : null;
     return (
       <StyledModal
         show
@@ -257,16 +255,13 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
             label={t('Add to dashboard')}
             data-test="save-chart-modal-select-dashboard-form"
           >
-            <CreatableSelect
-              id="dashboard-creatable-select"
-              className="save-modal-selector"
-              menuPosition="fixed"
+            <Select
+              allowClear
+              allowNewOptions
+              ariaLabel="dashboard-creatable-select"
               options={this.props.dashboards}
-              clearable
-              creatable
               onChange={this.onDashboardSelectChange}
-              autoSize={false}
-              value={valueObj}
+              value={dashboardSelectValue || undefined}
               placeholder={
                 // Using markdown to allow for good i18n
                 <ReactMarkdown
