@@ -30,7 +30,13 @@ const user = {
   isActive: true,
   lastName: 'admin',
   permissions: {},
-  roles: { Admin: Array(173) },
+  roles: {
+    Admin: [
+      ['can_sqllab', 'Superset'],
+      ['can_write', 'Dashboard'],
+      ['can_write', 'Chart'],
+    ],
+  },
   userId: 1,
   username: 'admin',
 };
@@ -149,11 +155,14 @@ const notanonProps = {
   },
 };
 
+const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
+
+beforeEach(() => {
+  // setup a DOM element as a render target
+  useSelectorMock.mockReturnValue({ roles: user.roles });
+});
 
 test('should render', () => {
-  const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
-  useSelectorMock.mockReturnValue({ user });
-
   const { container } = render(<Menu {...mockedProps} />, { useRedux: true });
   expect(container).toBeInTheDocument();
 });

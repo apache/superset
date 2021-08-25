@@ -27,7 +27,6 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import LanguagePicker from './LanguagePicker';
 import { NavBarProps, MenuObjectProps } from './Menu';
 
-
 export const dropdownItems = [
   {
     label: t('SQL query'),
@@ -102,12 +101,12 @@ const RightMenu = ({
   const canSql = findPermission('can_sqllab', 'Superset', roles);
   const canDashboard = findPermission('can_write', 'Dashboard', roles);
   const canChart = findPermission('can_write', 'Chart', roles);
-  const showActionDropdown = canChart || canSql || canDashboard;
+  const showActionDropdown = canSql || canChart || canDashboard;
 
   return (
     <StyledDiv align={align}>
       <Menu mode="horizontal">
-        {!navbarRight.user_is_anonymous && (
+        {!navbarRight.user_is_anonymous && showActionDropdown && (
           <SubMenu
             data-test="new-dropdown"
             title={
@@ -115,21 +114,20 @@ const RightMenu = ({
             }
             icon={<Icons.TriangleDown />}
           >
-            {showActionDropdown &&
-              dropdownItems.map(
-                menu =>
-                  findPermission(menu.perm, menu.view, roles) && (
-                    <Menu.Item key={menu.label}>
-                      <a href={menu.url}>
-                        <i
-                          data-test={`menu-item-${menu.label}`}
-                          className={`fa ${menu.icon}`}
-                        />{' '}
-                        {menu.label}
-                      </a>
-                    </Menu.Item>
-                  ),
-              )}
+            {dropdownItems.map(
+              menu =>
+                findPermission(menu.perm, menu.view, roles) && (
+                  <Menu.Item key={menu.label}>
+                    <a href={menu.url}>
+                      <i
+                        data-test={`menu-item-${menu.label}`}
+                        className={`fa ${menu.icon}`}
+                      />{' '}
+                      {menu.label}
+                    </a>
+                  </Menu.Item>
+                ),
+            )}
           </SubMenu>
         )}
         <SubMenu title="Settings" icon={<Icons.TriangleDown iconSize="xl" />}>
