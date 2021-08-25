@@ -135,7 +135,11 @@ def get_form_data(  # pylint: disable=too-many-locals
         # chart data API requests are JSON
         request_json_data = (
             request.json["queries"][0]
-            if has_request_context() and request.is_json and "queries" in request.json  # type: ignore
+            if (
+                has_request_context()  # type: ignore
+                and request.is_json
+                and "queries" in request.json
+            )
             else None
         )
 
@@ -157,7 +161,7 @@ def get_form_data(  # pylint: disable=too-many-locals
         if request_args_data:
             form_data.update(loads_request_json(request_args_data))
 
-    # Fallback to using the Flask globals (used for cache warmup and async queries) if defined.
+    # Fallback to using the Flask globals (used for cache warmup and async queries)
     if not form_data and hasattr(g, "form_data"):
         form_data = getattr(g, "form_data")
         # chart data API requests are JSON
