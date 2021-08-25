@@ -326,9 +326,10 @@ describe('AlertReportModal', () => {
     });
     await waitForComponentToPaint(wrapper);
 
+    // use default config: only show Email as notification option.
     expect(
       wrapper.find('[data-test="notification-add"]').props().status,
-    ).toEqual('disabled');
+    ).toEqual('hidden');
     act(() => {
       wrapper
         .find('[data-test="select-delivery-method"]')
