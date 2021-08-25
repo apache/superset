@@ -2742,7 +2742,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
 
         # Async request.
-        if execution_context.is_should_run_asynchronous():
+        if execution_context.is_run_asynchronous():
             return self._sql_json_async(
                 session, rendered_query, query, expand_data, log_params
             )
