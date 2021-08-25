@@ -244,7 +244,7 @@ export default function PropertiesModal({
                 options={loadOptions}
                 onChange={setOwners}
                 disabled={!owners}
-                filterOption={false} // options are filtered at the api
+                allowClear
               />
               <p className="help-block">
                 {t(
