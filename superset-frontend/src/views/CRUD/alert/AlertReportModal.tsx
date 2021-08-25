@@ -43,10 +43,9 @@ import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Owner from 'src/types/Owner';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
-import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
-import { NotificationMethod } from './components/NotificationMethod';
-
+import { useCommonConf } from 'src/views/CRUD/data/database/state';
 import {
+  NotificationMethodOption,
   AlertObject,
   ChartObject,
   DashboardObject,
@@ -54,7 +53,9 @@ import {
   MetaObject,
   Operator,
   Recipient,
-} from './types';
+} from 'src/views/CRUD/alert/types';
+import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
+import { NotificationMethod } from './components/NotificationMethod';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -78,7 +79,7 @@ interface AlertReportModalProps {
   show: boolean;
 }
 
-const NOTIFICATION_METHODS: NotificationMethod[] = ['Email', 'Slack'];
+const DEFAULT_NOTIFICATION_METHODS: NotificationMethodOption[] = ['Email'];
 const DEFAULT_NOTIFICATION_FORMAT = 'PNG';
 const CONDITIONS = [
   {
@@ -381,12 +382,10 @@ const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
   );
 };
 
-type NotificationMethod = 'Email' | 'Slack';
-
 type NotificationSetting = {
-  method?: NotificationMethod;
+  method?: NotificationMethodOption;
   recipients: string;
-  options: NotificationMethod[];
+  options: NotificationMethodOption[];
 };
 
 const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
@@ -397,6 +396,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   alert = null,
   isReport = false,
 }) => {
+  const conf = useCommonConf();
+  const allowedNotificationMethods: NotificationMethodOption[] =
+    conf?.ALERT_REPORTS_NOTIFICATION_METHODS || DEFAULT_NOTIFICATION_METHODS;
+
   const [disableSave, setDisableSave] = useState<boolean>(true);
   const [
     currentAlert,
@@ -435,12 +438,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     settings.push({
       recipients: '',
-      options: NOTIFICATION_METHODS, // TODO: Need better logic for this
+      options: allowedNotificationMethods,
     });
 
     setNotificationSettings(settings);
     setNotificationAddState(
-      settings.length === NOTIFICATION_METHODS.length ? 'hidden' : 'disabled',
+      settings.length === allowedNotificationMethods.length
+        ? 'hidden'
+        : 'disabled',
     );
   };
 
@@ -910,16 +915,18 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             ? JSON.parse(setting.recipient_config_json)
             : {};
         return {
-          method: setting.type as NotificationMethod,
+          method: setting.type,
           // @ts-ignore: Type not assignable
           recipients: config.target || setting.recipient_config_json,
-          options: NOTIFICATION_METHODS as NotificationMethod[], // Need better logic for this
+          options: allowedNotificationMethods,
         };
       });
 
       setNotificationSettings(settings);
       setNotificationAddState(
-        settings.length === NOTIFICATION_METHODS.length ? 'hidden' : 'active',
+        settings.length === allowedNotificationMethods.length
+          ? 'hidden'
+          : 'active',
       );
       setContentType(resource.chart ? 'chart' : 'dashboard');
       setReportFormat(
@@ -1309,6 +1316,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <NotificationMethod
                 setting={notificationSetting}
                 index={i}
+                key={`NotificationMethod-${i}`}
                 onUpdate={updateNotificationSetting}
                 onRemove={removeNotificationSetting}
               />

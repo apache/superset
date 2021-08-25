@@ -70,6 +70,7 @@ from superset.exceptions import (
     SupersetSecurityException,
 )
 from superset.models.helpers import ImportExportMixin
+from superset.models.reports import ReportRecipientType
 from superset.translations.utils import get_language_pack
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
@@ -346,9 +347,21 @@ def common_bootstrap_payload() -> Dict[str, Any]:
     messages = get_flashed_messages(with_categories=True)
     locale = str(get_locale())
 
+    # should not expose API TOKEN to frontend
+    frontend_config = {k: conf.get(k) for k in FRONTEND_CONF_KEYS}
+    if conf.get("SLACK_API_TOKEN"):
+        frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
+            ReportRecipientType.EMAIL,
+            ReportRecipientType.SLACK,
+        ]
+    else:
+        frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
+            ReportRecipientType.EMAIL,
+        ]
+
     bootstrap_data = {
         "flash_messages": messages,
-        "conf": {k: conf.get(k) for k in FRONTEND_CONF_KEYS},
+        "conf": frontend_config,
         "locale": locale,
         "language_pack": get_language_pack(locale),
         "feature_flags": get_feature_flags(),
