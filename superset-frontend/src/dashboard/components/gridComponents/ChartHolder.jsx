@@ -152,7 +152,7 @@ const FilterFocusHighlight = React.forwardRef(
   },
 );
 
-export class ChartHolder extends React.Component {
+class ChartHolder extends React.Component {
   static renderInFocusCSS(columnName) {
     return (
       <style>

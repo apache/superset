@@ -78,7 +78,7 @@ Click here to edit [markdown](https://bit.ly/1dQOfRK)`;
 
 const MARKDOWN_ERROR_MESSAGE = t('This markdown component has an error.');
 
-export class Markdown extends React.PureComponent {
+class Markdown extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
