@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=comparison-with-callable, line-too-long, too-many-branches
+# pylint: disable=comparison-with-callable, line-too-long
 import dataclasses
 import logging
 import re
@@ -100,7 +100,7 @@ from superset.models.sql_lab import LimitingFactor, Query, TabState
 from superset.models.user_attributes import UserAttribute
 from superset.queries.dao import QueryDAO
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
-from superset.sql_parse import CtasMethod, ParsedQuery, Table
+from superset.sql_parse import ParsedQuery, Table
 from superset.sql_validators import get_validator_by_name
 from superset.tasks.async_queries import load_explore_json_into_cache
 from superset.typing import FlaskResponse
@@ -110,6 +110,7 @@ from superset.utils.cache import etag_cache
 from superset.utils.core import ReservedUrlParameters
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import check_dashboard_access
+from superset.utils.sqllab_execution_context import SqlJsonExecutionContext
 from superset.views.base import (
     api,
     BaseSupersetView,
@@ -2577,42 +2578,16 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         log_params = {
             "user_agent": cast(Optional[str], request.headers.get("USER_AGENT"))
         }
-        return self.sql_json_exec(request.json, log_params)
+        execution_context = SqlJsonExecutionContext(request.json)
+        return self.sql_json_exec(execution_context, request.json, log_params)
 
     def sql_json_exec(  # pylint: disable=too-many-statements,too-many-locals
-        self, query_params: Dict[str, Any], log_params: Optional[Dict[str, Any]] = None
+        self,
+        execution_context: SqlJsonExecutionContext,
+        query_params: Dict[str, Any],
+        log_params: Optional[Dict[str, Any]] = None,
     ) -> FlaskResponse:
         """Runs arbitrary sql and returns data as json"""
-        # Collect Values
-        database_id: int = cast(int, query_params.get("database_id"))
-        schema: str = cast(str, query_params.get("schema"))
-        sql: str = cast(str, query_params.get("sql"))
-        try:
-            template_params = json.loads(query_params.get("templateParams") or "{}")
-        except json.JSONDecodeError:
-            logger.warning(
-                "Invalid template parameter %s" " specified. Defaulting to empty dict",
-                str(query_params.get("templateParams")),
-            )
-            template_params = {}
-        limit: int = query_params.get("queryLimit") or app.config["SQL_MAX_ROW"]
-        async_flag: bool = cast(bool, query_params.get("runAsync"))
-        if limit < 0:
-            logger.warning(
-                "Invalid limit of %i specified. Defaulting to max limit.", limit
-            )
-            limit = 0
-        select_as_cta: bool = cast(bool, query_params.get("select_as_cta"))
-        ctas_method: CtasMethod = cast(
-            CtasMethod, query_params.get("ctas_method", CtasMethod.TABLE)
-        )
-        tmp_table_name: str = cast(str, query_params.get("tmp_table_name"))
-        client_id: str = cast(str, query_params.get("client_id"))
-        client_id_or_short_id: str = cast(str, client_id or utils.shortid()[:10])
-        sql_editor_id: str = cast(str, query_params.get("sql_editor_id"))
-        tab_name: str = cast(str, query_params.get("tab"))
-        status: str = QueryStatus.PENDING if async_flag else QueryStatus.RUNNING
-        user_id: int = g.user.get_id() if g.user else None
 
         session = db.session()
 
@@ -2620,7 +2595,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         query = (
             session.query(Query)
             .filter_by(
-                client_id=client_id, user_id=user_id, sql_editor_id=sql_editor_id
+                client_id=execution_context.client_id,
+                user_id=execution_context.user_id,
+                sql_editor_id=execution_context.sql_editor_id,
             )
             .one_or_none()
         )
@@ -2635,7 +2612,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
             return json_success(payload)
 
-        mydb = session.query(Database).get(database_id)
+        mydb = session.query(Database).get(execution_context.database_id)
         if not mydb:
             raise SupersetGenericErrorException(
                 __(
@@ -2648,27 +2625,29 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         # TODO(bkyryliuk): consider parsing, splitting tmp_schema_name from
         #  tmp_table_name if user enters
         # <schema_name>.<table_name>
-        tmp_schema_name: Optional[str] = schema
-        if select_as_cta and mydb.force_ctas_schema:
+        tmp_schema_name: Optional[str] = execution_context.schema
+        if execution_context.select_as_cta and mydb.force_ctas_schema:
             tmp_schema_name = mydb.force_ctas_schema
-        elif select_as_cta:
-            tmp_schema_name = get_cta_schema_name(mydb, g.user, schema, sql)
+        elif execution_context.select_as_cta:
+            tmp_schema_name = get_cta_schema_name(
+                mydb, g.user, execution_context.schema, execution_context.sql
+            )
 
         # Save current query
         query = Query(
-            database_id=database_id,
-            sql=sql,
-            schema=schema,
-            select_as_cta=select_as_cta,
-            ctas_method=ctas_method,
+            database_id=execution_context.database_id,
+            sql=execution_context.sql,
+            schema=execution_context.schema,
+            select_as_cta=execution_context.select_as_cta,
+            ctas_method=execution_context.ctas_method,
             start_time=now_as_float(),
-            tab_name=tab_name,
-            status=status,
-            sql_editor_id=sql_editor_id,
-            tmp_table_name=tmp_table_name,
+            tab_name=execution_context.tab_name,
+            status=execution_context.status,
+            sql_editor_id=execution_context.sql_editor_id,
+            tmp_table_name=execution_context.tmp_table_name,
             tmp_schema_name=tmp_schema_name,
-            user_id=user_id,
-            client_id=client_id_or_short_id,
+            user_id=execution_context.user_id,
+            client_id=execution_context.client_id_or_short_id,
         )
         try:
             session.add(query)
@@ -2703,7 +2682,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 database=query.database, query=query
             )
             rendered_query = template_processor.process_template(
-                query.sql, **template_params
+                query.sql, **execution_context.template_params
             )
         except TemplateError as ex:
             query.status = QueryStatus.FAILED
@@ -2734,15 +2713,18 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     error=SupersetErrorType.MISSING_TEMPLATE_PARAMS_ERROR,
                     extra={
                         "undefined_parameters": list(undefined_parameters),
-                        "template_parameters": template_params,
+                        "template_parameters": execution_context.template_params,
                     },
                 )
 
         # Limit is not applied to the CTA queries if SQLLAB_CTAS_NO_LIMIT flag is set
         # to True.
-        if not (config.get("SQLLAB_CTAS_NO_LIMIT") and select_as_cta):
+        if not (config.get("SQLLAB_CTAS_NO_LIMIT") and execution_context.select_as_cta):
             # set LIMIT after template processing
-            limits = [mydb.db_engine_spec.get_limit_from_sql(rendered_query), limit]
+            limits = [
+                mydb.db_engine_spec.get_limit_from_sql(rendered_query),
+                execution_context.limit,
+            ]
             if limits[0] is None or limits[0] > limits[1]:
                 query.limiting_factor = LimitingFactor.DROPDOWN
             elif limits[1] > limits[0]:
@@ -2760,7 +2742,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
 
         # Async request.
-        if async_flag:
+        if execution_context.is_run_asynchronous():
             return self._sql_json_async(
                 session, rendered_query, query, expand_data, log_params
             )
