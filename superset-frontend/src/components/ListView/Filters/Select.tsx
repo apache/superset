@@ -105,6 +105,7 @@ function SelectFilter({
         onChange={onChange}
         options={fetchSelects ? fetchAndFormatSelects : options}
         placeholder={emptyLabel}
+        showSearch
         value={selectedOption}
       />
     </FilterContainer>

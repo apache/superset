@@ -87,6 +87,7 @@ export const CardSortSelect = ({
         labelInValue
         onChange={(value: CardSortSelectOption) => handleOnChange(value)}
         options={formattedOptions}
+        showSearch
         value={value}
       />
     </SortContainer>
