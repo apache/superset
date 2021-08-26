@@ -224,7 +224,7 @@ export const DataTablesPane = ({
   }, [queryFormData.adhoc_filters, queryFormData.datasource]);
 
   useEffect(() => {
-    if (queriesResponse) {
+    if (queriesResponse && chartStatus === 'success') {
       const { colnames } = queriesResponse[0];
       setColumnNames([...colnames]);
     }

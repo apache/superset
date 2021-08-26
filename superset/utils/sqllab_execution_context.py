@@ -33,8 +33,8 @@ logger = logging.getLogger(__name__)
 SqlResults = Dict[str, Any]
 
 
-@dataclass  # pylint: disable=R0902
-class SqlJsonExecutionContext:
+@dataclass
+class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
     database_id: int
     schema: str
     sql: str
