@@ -76,7 +76,8 @@ class Datasource(BaseSupersetView):
         )
         orm_datasource.database_id = database_id
 
-        if "owners" in datasource_dict and orm_datasource.owner_class is not None:
+        owners = datasource_dict.get("owners")
+        if owners and orm_datasource.owner_class is not None:
             # Check ownership
             if app.config["OLD_API_CHECK_DATASET_OWNERSHIP"]:
                 try:
@@ -86,9 +87,11 @@ class Datasource(BaseSupersetView):
 
             datasource_dict["owners"] = (
                 db.session.query(orm_datasource.owner_class)
-                .filter(orm_datasource.owner_class.id.in_(datasource_dict["owners"]))
+                .filter(orm_datasource.owner_class.id.in_(owners))
                 .all()
             )
+        else:
+            datasource_dict["owners"] = []
 
         duplicates = [
             name
