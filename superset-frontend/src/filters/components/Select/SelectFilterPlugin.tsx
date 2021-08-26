@@ -20,6 +20,7 @@
 import {
   AppSection,
   DataMask,
+  DataRecordValue,
   ensureIsArray,
   ExtraFormData,
   GenericDataType,
@@ -36,7 +37,11 @@ import { useImmerReducer } from 'use-immer';
 import { FormItemProps } from 'antd/lib/form';
 import { PluginFilterSelectProps, SelectValue } from './types';
 import { StyledFormItem, FilterPluginStyle, StatusMessage } from '../common';
-import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
+import {
+  formatFilterValue,
+  getDataRecordFormatter,
+  getSelectExtraFormData,
+} from '../../utils';
 
 type DataMaskAction =
   | { type: 'ownState'; ownState: JsonObject }
@@ -119,7 +124,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         filterState: {
           ...filterState,
           label: values?.length
-            ? `${(values || []).join(', ')}${suffix}`
+            ? `${(values || []).map(formatFilterValue).join(', ')}${suffix}`
             : undefined,
           value:
             appSection === AppSection.FILTER_CONFIG_MODAL && defaultToFirstItem
@@ -249,12 +254,12 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   }
 
   const options = useMemo(() => {
-    const options: { label: string; value: string | number }[] = [];
+    const options: { label: string; value: DataRecordValue }[] = [];
     data.forEach(row => {
       const [value] = groupby.map(col => row[col]);
       options.push({
         label: labelFormatter(value, datatype),
-        value: typeof value === 'number' ? value : String(value),
+        value,
       });
     });
     return options;
@@ -286,6 +291,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           loading={isRefreshing}
           maxTagCount={5}
           invertSelection={inverseSelection}
+          // @ts-ignore
           options={options}
         />
       </StyledFormItem>
