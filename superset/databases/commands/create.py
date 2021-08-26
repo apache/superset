@@ -77,7 +77,7 @@ class CreateDatabaseCommand(BaseCommand):
         return database
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = list()
+        exceptions: List[ValidationError] = []
         sqlalchemy_uri: Optional[str] = self._properties.get("sqlalchemy_uri")
         database_name: Optional[str] = self._properties.get("database_name")
         if not sqlalchemy_uri:

@@ -36,7 +36,7 @@ def export_schema_to_dict(back_references: bool) -> Dict[str, Any]:
     clusters = [
         DruidCluster.export_schema(recursive=True, include_parent_ref=back_references)
     ]
-    data = dict()
+    data = {}
     if databases:
         data[DATABASES_KEY] = databases
     if clusters:
@@ -69,7 +69,7 @@ def export_to_dict(
         for cluster in cls
     ]
     logger.info("Exported %d %s", len(clusters), DRUID_CLUSTERS_KEY)
-    data = dict()
+    data = {}
     if databases:
         data[DATABASES_KEY] = databases
     if clusters:
