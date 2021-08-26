@@ -1251,10 +1251,13 @@ def get_or_create_db(
             database_name=database_name, uuid=uuids.get(database_name)
         )
         db.session.add(database)
+        logger.info("Created database reference for %s", database_name)
 
     if database:
+        logger.info("Setting SQL Alchemy URI for %s", database_name)
         database.set_sqlalchemy_uri(sqlalchemy_uri)
         db.session.commit()
+        logger.info("Set SQL Alchemy URI for %s", database_name)
 
     return database
 
