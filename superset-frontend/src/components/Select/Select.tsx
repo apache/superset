@@ -32,6 +32,7 @@ import AntdSelect, {
   SelectProps as AntdSelectProps,
   SelectValue as AntdSelectValue,
   LabeledValue as AntdLabeledValue,
+  SelectValue,
 } from 'antd/lib/select';
 import { DownOutlined, SearchOutlined } from '@ant-design/icons';
 import debounce from 'lodash/debounce';
@@ -54,7 +55,6 @@ type PickedSelectProps = Pick<
   | 'onChange'
   | 'placeholder'
   | 'showSearch'
-  | 'value'
 >;
 
 export type OptionsType = Exclude<AntdSelectAllProps['options'], undefined>;
@@ -80,6 +80,7 @@ export interface SelectProps extends PickedSelectProps {
   pageSize?: number;
   invertSelection?: boolean;
   fetchOnlyOnSearch?: boolean;
+  onSelect?: (value: SelectValue) => void;
 }
 
 const StyledContainer = styled.div`
@@ -161,7 +162,7 @@ const Select = ({
   placeholder = t('Select ...'),
   showSearch,
   value,
-  onChange,
+  onSelect,
   ...props
 }: SelectProps) => {
   const isAsync = typeof options === 'function';
@@ -309,6 +310,7 @@ const Select = ({
         ]);
       }
     }
+
     setSearchedValue('');
   };
 
@@ -394,10 +396,6 @@ const Select = ({
             setSelectOptions(newOptions);
             setSelectValue(searchValue);
           }
-
-          if (onChange) {
-            onChange(searchValue, selectOptions);
-          }
         }
         setSearchedValue(searchValue);
       }, DEBOUNCE_TIMEOUT),
@@ -407,7 +405,6 @@ const Select = ({
       isSingleMode,
       searchedValue,
       selectOptions,
-      onChange,
     ],
   );
 
@@ -477,7 +474,10 @@ const Select = ({
     if (isSingleMode) {
       handleTopOptions(selectValue);
     }
-  }, [handleTopOptions, isSingleMode, selectValue]);
+    if (onSelect) {
+      onSelect(selectValue || '');
+    }
+  }, [handleTopOptions, isSingleMode, selectValue, onSelect]);
 
   const dropdownRender = (
     originNode: ReactElement & { ref?: RefObject<HTMLElement> },
@@ -509,7 +509,6 @@ const Select = ({
         labelInValue={isAsync}
         maxTagCount={MAX_TAG_COUNT}
         mode={mappedMode}
-        onChange={onChange}
         onDeselect={handleOnDeselect}
         onDropdownVisibleChange={handleOnDropdownVisibleChange}
         onPopupScroll={isAsync ? handlePagination : undefined}

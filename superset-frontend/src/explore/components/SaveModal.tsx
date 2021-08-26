@@ -258,9 +258,9 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
             <Select
               allowClear
               allowNewOptions
-              ariaLabel="dashboard-creatable-select"
+              ariaLabel={t('Select a dashboard')}
               options={this.props.dashboards}
-              onChange={this.onDashboardSelectChange}
+              onSelect={this.onDashboardSelectChange}
               value={dashboardSelectValue || undefined}
               placeholder={
                 // Using markdown to allow for good i18n
