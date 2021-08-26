@@ -289,7 +289,7 @@ class Dashboard extends React.PureComponent {
     }
     return (
       <>
-        <OmniContainer logEvent={this.props.actions.logEvent} />
+        <OmniContainer />
         <DashboardBuilder />
       </>
     );

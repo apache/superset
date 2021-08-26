@@ -34,6 +34,8 @@ InteractiveModal.args = {
   primaryButtonType: 'danger',
   show: true,
   title: "I'm a modal!",
+  resizable: false,
+  draggable: false,
 };
 
 InteractiveModal.argTypes = {
