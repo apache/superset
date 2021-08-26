@@ -487,6 +487,12 @@ class BaseSupersetModelRestApi(ModelRestApi):
 
         # handle pagination
         page, page_size = self._handle_page_args(args)
+
+        ids = args.get("include_ids")
+        if page and ids:
+            # pagination with forced ids is not supported
+            return self.response_422()
+
         try:
             datamodel = self.datamodel.get_related_interface(column_name)
         except KeyError:
@@ -501,7 +507,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
         # handle filters
         filters = self._get_related_filter(datamodel, column_name, args.get("filter"))
         # Make the query
-        _, rows = datamodel.query(
+        total_rows, rows = datamodel.query(
             filters, order_column, order_direction, page=page, page_size=page_size
         )
 
@@ -509,10 +515,11 @@ class BaseSupersetModelRestApi(ModelRestApi):
         result = self._get_result_from_rows(datamodel, rows, column_name)
 
         # If ids are specified make sure we fetch and include them on the response
-        ids = args.get("include_ids")
-        self._add_extra_ids_to_result(datamodel, column_name, ids, result)
+        if ids:
+            self._add_extra_ids_to_result(datamodel, column_name, ids, result)
+            total_rows = len(result)
 
-        return self.response(200, count=len(result), result=result)
+        return self.response(200, count=total_rows, result=result)
 
     @expose("/distinct/<column_name>", methods=["GET"])
     @protect()

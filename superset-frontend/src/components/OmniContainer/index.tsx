@@ -18,10 +18,11 @@
  */
 
 import React, { useRef, useState } from 'react';
-import { styled } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import Modal from 'src/components/Modal';
 import { useComponentDidMount } from 'src/common/hooks/useComponentDidMount';
+import { logEvent } from 'src/logger/actions';
 import { Omnibar } from './Omnibar';
 import { LOG_ACTIONS_OMNIBAR_TRIGGERED } from '../../logger/LogUtils';
 import { getDashboards } from './getDashboards';
@@ -35,43 +36,55 @@ const OmniModal = styled(Modal)`
   }
 `;
 
-interface Props {
-  logEvent: (log: string, object: object) => void;
-}
-
-export default function OmniContainer({ logEvent }: Props) {
+export default function OmniContainer() {
   const showOmni = useRef<boolean>();
+  const modalRef = useRef<HTMLDivElement>(null);
   const [showModal, setShowModal] = useState(false);
+  const handleLogEvent = (show: boolean) =>
+    logEvent(LOG_ACTIONS_OMNIBAR_TRIGGERED, {
+      show_omni: show,
+    });
+  const handleClose = () => {
+    showOmni.current = false;
+    setShowModal(false);
+    handleLogEvent(false);
+  };
 
   useComponentDidMount(() => {
     showOmni.current = false;
+
     function handleKeydown(event: KeyboardEvent) {
       if (!isFeatureEnabled(FeatureFlag.OMNIBAR)) return;
       const controlOrCommand = event.ctrlKey || event.metaKey;
       const isOk = ['KeyK'].includes(event.code);
       const isEsc = event.key === 'Escape';
+
       if (isEsc && showOmni.current) {
-        logEvent(LOG_ACTIONS_OMNIBAR_TRIGGERED, {
-          show_omni: false,
-        });
-        showOmni.current = false;
-        setShowModal(false);
+        handleClose();
         return;
       }
       if (controlOrCommand && isOk) {
-        logEvent(LOG_ACTIONS_OMNIBAR_TRIGGERED, {
-          show_omni: !!showOmni.current,
-        });
         showOmni.current = !showOmni.current;
         setShowModal(showOmni.current);
-        if (showOmni.current) {
-          document.getElementById('InputOmnibar')?.focus();
-        }
+        handleLogEvent(!!showOmni.current);
       }
     }
 
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        modalRef.current &&
+        !modalRef.current.contains(event.target as Node)
+      ) {
+        handleClose();
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('keydown', handleKeydown);
-    return () => document.removeEventListener('keydown', handleKeydown);
+    return () => {
+      document.removeEventListener('keydown', handleKeydown);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   });
 
   return (
@@ -81,12 +94,15 @@ export default function OmniContainer({ logEvent }: Props) {
       hideFooter
       closable={false}
       onHide={() => {}}
+      destroyOnClose
     >
-      <Omnibar
-        id="InputOmnibar"
-        placeholder="Search all dashboards"
-        extensions={[getDashboards]}
-      />
+      <div ref={modalRef}>
+        <Omnibar
+          id="InputOmnibar"
+          placeholder={t('Search all dashboards')}
+          extensions={[getDashboards]}
+        />
+      </div>
     </OmniModal>
   );
 }

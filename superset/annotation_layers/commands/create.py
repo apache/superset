@@ -48,7 +48,7 @@ class CreateAnnotationLayerCommand(BaseCommand):
         return annotation_layer
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = list()
+        exceptions: List[ValidationError] = []
 
         name = self._properties.get("name", "")
 

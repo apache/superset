@@ -56,7 +56,7 @@ class UpdateAnnotationCommand(BaseCommand):
         return annotation
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = list()
+        exceptions: List[ValidationError] = []
         layer_id: Optional[int] = self._properties.get("layer")
         short_descr: str = self._properties.get("short_descr", "")
 
