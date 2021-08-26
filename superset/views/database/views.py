@@ -406,17 +406,17 @@ class ColumnarToDatabaseView(SimpleFormView):
     def form_get(self, form: ColumnarToDatabaseForm) -> None:
         form.if_exists.data = "fail"
 
-    def form_post(self, form: ColumnarToDatabaseForm) -> Response:
+    def form_post(self, form: ColumnarToDatabaseForm) -> Response:  # pylint: disable=too-many-locals
         database = form.con.data
         columnar_table = Table(table=form.name.data, schema=form.schema.data)
         files = form.columnar_file.data
         file_type = {file.filename.split(".")[-1] for file in files}
 
         if file_type == {"zip"}:
-            zipfile_ob = zipfile.ZipFile(form.columnar_file.data[0])
+            zipfile_ob = zipfile.ZipFile(form.columnar_file.data[0])  # pylint: disable=consider-using-with
             file_type = {filename.split(".")[-1] for filename in zipfile_ob.namelist()}
             files = [
-                io.BytesIO((zipfile_ob.open(filename).read(), filename)[0])
+                io.BytesIO((zipfile_ob.open(filename).read(), filename)[0])  # pylint: disable=consider-using-with
                 for filename in zipfile_ob.namelist()
             ]
 
