@@ -45,7 +45,7 @@ const datasource = {
   datasource_name: 'table1',
   description: 'desc',
 };
-const props = {
+const props: DatasourcePanelProps = {
   datasource,
   controls: {
     datasource: {
@@ -57,12 +57,7 @@ const props = {
     },
   },
   actions: {
-    setControlValue: () => ({
-      type: 'type',
-      controlName: 'control',
-      value: 'val',
-      validationErrors: [],
-    }),
+    setControlValue: jest.fn(),
   },
 };
 
