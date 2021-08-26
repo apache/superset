@@ -106,8 +106,8 @@ def get_object_type(class_name: str) -> ObjectTypes:
     }
     try:
         return mapping[class_name.lower()]
-    except KeyError:
-        raise Exception("No mapping found for {0}".format(class_name))
+    except KeyError as ex:
+        raise Exception("No mapping found for {0}".format(class_name)) from ex
 
 
 class ObjectUpdater:

@@ -26,6 +26,7 @@ from flask import Flask, redirect
 from flask_appbuilder import expose, IndexView
 from flask_babel import gettext as __, lazy_gettext as _
 from flask_compress import Compress
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.extensions import (
@@ -66,7 +67,7 @@ class SupersetAppInitializer:
         self.config = app.config
         self.manifest: Dict[Any, Any] = {}
 
-    @deprecated(details="use self.superset_app instead of self.flask_app")  # type: ignore   # pylint: disable=line-too-long
+    @deprecated(details="use self.superset_app instead of self.flask_app")  # type: ignore   # pylint: disable=line-too-long,useless-suppression
     @property
     def flask_app(self) -> SupersetApp:
         return self.superset_app
@@ -111,9 +112,7 @@ class SupersetAppInitializer:
         # models which in turn try to import
         # the global Flask app
         #
-        # pylint: disable=too-many-locals
-        # pylint: disable=too-many-statements
-        # pylint: disable=too-many-branches
+        # pylint: disable=import-outside-toplevel,too-many-locals,too-many-statements
         from superset.annotation_layers.api import AnnotationLayerRestApi
         from superset.annotation_layers.annotations.api import AnnotationRestApi
         from superset.async_events.api import AsyncEventsRestApi
@@ -623,6 +622,7 @@ class SupersetAppInitializer:
         # Doing local imports here as model importing causes a reference to
         # app.config to be invoked and we need the current_app to have been setup
         #
+        # pylint: disable=import-outside-toplevel
         from superset.utils.url_map_converters import (
             ObjectTypeConverter,
             RegexConverter,
@@ -633,13 +633,12 @@ class SupersetAppInitializer:
 
     def configure_middlewares(self) -> None:
         if self.config["ENABLE_CORS"]:
+            # pylint: disable=import-outside-toplevel
             from flask_cors import CORS
 
             CORS(self.superset_app, **self.config["CORS_OPTIONS"])
 
         if self.config["ENABLE_PROXY_FIX"]:
-            from werkzeug.middleware.proxy_fix import ProxyFix
-
             self.superset_app.wsgi_app = ProxyFix(  # type: ignore
                 self.superset_app.wsgi_app, **self.config["PROXY_FIX_CONFIG"]
             )

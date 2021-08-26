@@ -79,8 +79,8 @@ class AlertCommand(BaseCommand):
             ]
 
             return OPERATOR_FUNCTIONS[operator](self._result, threshold)
-        except (KeyError, json.JSONDecodeError):
-            raise AlertValidatorConfigError()
+        except (KeyError, json.JSONDecodeError) as ex:
+            raise AlertValidatorConfigError() from ex
 
     def _validate_not_null(self, rows: np.recarray) -> None:
         self._validate_result(rows)
@@ -115,8 +115,8 @@ class AlertCommand(BaseCommand):
             # Check if it's float or if we can convert it
             self._result = float(rows[0][1])
             return
-        except (AssertionError, TypeError, ValueError):
-            raise AlertQueryInvalidTypeError()
+        except (AssertionError, TypeError, ValueError) as ex:
+            raise AlertQueryInvalidTypeError() from ex
 
     @property
     def _is_validator_not_null(self) -> bool:
@@ -157,9 +157,9 @@ class AlertCommand(BaseCommand):
             return df
         except SoftTimeLimitExceeded as ex:
             logger.warning("A timeout occurred while executing the alert query: %s", ex)
-            raise AlertQueryTimeout()
+            raise AlertQueryTimeout() from ex
         except Exception as ex:
-            raise AlertQueryError(message=str(ex))
+            raise AlertQueryError(message=str(ex)) from ex
 
     def validate(self) -> None:
         """

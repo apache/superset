@@ -29,7 +29,7 @@ from typing import (
 
 from flask import Flask
 from flask_caching import Cache
-from typing_extensions import TypedDict
+from typing_extensions import Literal, TypedDict
 from werkzeug.wrappers import Response
 
 if TYPE_CHECKING:
@@ -57,7 +57,7 @@ class AdhocMetricColumn(TypedDict, total=False):
 class AdhocMetric(TypedDict, total=False):
     aggregate: str
     column: Optional[AdhocMetricColumn]
-    expressionType: str
+    expressionType: Literal["SIMPLE", "SQL"]
     label: Optional[str]
     sqlExpression: Optional[str]
 

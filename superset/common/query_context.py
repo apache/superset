@@ -120,7 +120,7 @@ class QueryContext:
         df.reset_index(level=0, inplace=True)
         return df
 
-    def processing_time_offsets(
+    def processing_time_offsets(  # pylint: disable=too-many-locals
         self, df: pd.DataFrame, query_object: QueryObject,
     ) -> CachedTimeOffset:
         # ensure query_object is immutable
@@ -138,7 +138,7 @@ class QueryContext:
                 )
                 query_object_clone.to_dttm = get_past_or_future(offset, outer_to_dttm)
             except ValueError as ex:
-                raise QueryObjectValidationError(str(ex))
+                raise QueryObjectValidationError(str(ex)) from ex
             # make sure subquery use main query where clause
             query_object_clone.inner_from_dttm = outer_from_dttm
             query_object_clone.inner_to_dttm = outer_to_dttm
@@ -417,7 +417,7 @@ class QueryContext:
             payload = viz_obj.get_payload()
             return payload["data"]
         except SupersetException as ex:
-            raise QueryObjectValidationError(error_msg_from_exception(ex))
+            raise QueryObjectValidationError(error_msg_from_exception(ex)) from ex
 
     def get_annotation_data(self, query_obj: QueryObject) -> Dict[str, Any]:
         """

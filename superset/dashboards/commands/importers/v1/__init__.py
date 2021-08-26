@@ -67,7 +67,9 @@ class ImportDashboardsCommand(ImportModelsCommand):
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
                 chart_uuids.update(find_chart_uuids(config["position"]))
-                dataset_uuids.update(find_native_filter_datasets(config["metadata"]))
+                dataset_uuids.update(
+                    find_native_filter_datasets(config.get("metadata", {}))
+                )
 
         # discover datasets associated with charts
         for file_name, config in configs.items():

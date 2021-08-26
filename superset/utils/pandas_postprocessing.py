@@ -211,7 +211,7 @@ def _append_columns(
 
 
 @validate_column_args("index", "columns")
-def pivot(  # pylint: disable=too-many-arguments
+def pivot(  # pylint: disable=too-many-arguments,too-many-locals
     df: DataFrame,
     index: List[str],
     aggregates: Dict[str, Dict[str, Any]],
@@ -397,14 +397,14 @@ def rolling(  # pylint: disable=too-many-arguments
         )
     try:
         df_rolling = getattr(df_rolling, rolling_type)(**rolling_type_options)
-    except TypeError:
+    except TypeError as ex:
         raise QueryObjectValidationError(
             _(
                 "Invalid options for %(rolling_type)s: %(options)s",
                 rolling_type=rolling_type,
                 options=rolling_type_options,
             )
-        )
+        ) from ex
     df = _append_columns(df, df_rolling, columns)
     if min_periods:
         df = df[min_periods:]
@@ -569,8 +569,8 @@ def geohash_decode(
         return _append_columns(
             df, lonlat_df, {"latitude": latitude, "longitude": longitude}
         )
-    except ValueError:
-        raise QueryObjectValidationError(_("Invalid geohash string"))
+    except ValueError as ex:
+        raise QueryObjectValidationError(_("Invalid geohash string")) from ex
 
 
 def geohash_encode(
@@ -592,8 +592,8 @@ def geohash_encode(
             lambda row: geohash_lib.encode(row["latitude"], row["longitude"]), axis=1,
         )
         return _append_columns(df, encode_df, {"geohash": geohash})
-    except ValueError:
-        raise QueryObjectValidationError(_("Invalid longitude/latitude"))
+    except ValueError as ex:
+        raise QueryObjectValidationError(_("Invalid longitude/latitude")) from ex
 
 
 def geodetic_parse(
@@ -634,8 +634,8 @@ def geodetic_parse(
         if altitude:
             columns["altitude"] = altitude
         return _append_columns(df, geodetic_df, columns)
-    except ValueError:
-        raise QueryObjectValidationError(_("Invalid geodetic string"))
+    except ValueError as ex:
+        raise QueryObjectValidationError(_("Invalid geodetic string")) from ex
 
 
 @validate_column_args("columns")
@@ -714,14 +714,14 @@ def _prophet_fit_and_predict(  # pylint: disable=too-many-arguments
     Fit a prophet model and return a DataFrame with predicted results.
     """
     try:
+        # pylint: disable=import-error,import-outside-toplevel
+        from prophet import Prophet
+
         prophet_logger = logging.getLogger("prophet.plot")
-
         prophet_logger.setLevel(logging.CRITICAL)
-        from prophet import Prophet  # pylint: disable=import-error
-
         prophet_logger.setLevel(logging.NOTSET)
-    except ModuleNotFoundError:
-        raise QueryObjectValidationError(_("`prophet` package not installed"))
+    except ModuleNotFoundError as ex:
+        raise QueryObjectValidationError(_("`prophet` package not installed")) from ex
     model = Prophet(
         interval_width=confidence_interval,
         yearly_seasonality=yearly_seasonality,

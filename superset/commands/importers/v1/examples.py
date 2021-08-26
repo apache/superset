@@ -72,9 +72,9 @@ class ImportExamplesCommand(ImportModelsCommand):
         try:
             self._import(db.session, self._configs, self.overwrite, self.force_data)
             db.session.commit()
-        except Exception:
+        except Exception as ex:
             db.session.rollback()
-            raise self.import_error()
+            raise self.import_error() from ex
 
     @classmethod
     def _get_uuids(cls) -> Set[str]:
@@ -85,7 +85,7 @@ class ImportExamplesCommand(ImportModelsCommand):
             | ImportDashboardsCommand._get_uuids()
         )
 
-    # pylint: disable=too-many-locals, arguments-differ, too-many-branches
+    # pylint: disable=too-many-locals, arguments-differ
     @staticmethod
     def _import(
         session: Session,

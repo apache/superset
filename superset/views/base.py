@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import dataclasses  # pylint: disable=wrong-import-order
+import dataclasses
 import functools
 import logging
 import traceback
@@ -70,6 +70,7 @@ from superset.exceptions import (
     SupersetSecurityException,
 )
 from superset.models.helpers import ImportExportMixin
+from superset.models.reports import ReportRecipientType
 from superset.translations.utils import get_language_pack
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
@@ -77,9 +78,7 @@ from superset.utils import core as utils
 from .utils import bootstrap_user_data
 
 if TYPE_CHECKING:
-    from superset.connectors.druid.views import (  # pylint: disable=unused-import
-        DruidClusterModelView,
-    )
+    from superset.connectors.druid.views import DruidClusterModelView
 
 FRONTEND_CONF_KEYS = (
     "SUPERSET_WEBSERVER_TIMEOUT",
@@ -180,7 +179,7 @@ def api(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
     def wraps(self: "BaseSupersetView", *args: Any, **kwargs: Any) -> FlaskResponse:
         try:
             return f(self, *args, **kwargs)
-        except NoAuthorizationError as ex:  # pylint: disable=broad-except
+        except NoAuthorizationError as ex:
             logger.warning(ex)
             return json_error_response(get_error_msg(), status=401)
         except Exception as ex:  # pylint: disable=broad-except
@@ -254,7 +253,7 @@ def validate_sqlatable(table: models.SqlaTable) -> None:
                 "database connection, schema, and "
                 "table name, error: {}"
             ).format(table.name, str(ex))
-        )
+        ) from ex
 
 
 def create_table_permissions(table: models.SqlaTable) -> None:
@@ -277,9 +276,7 @@ def is_user_admin() -> bool:
 
 class BaseSupersetView(BaseView):
     @staticmethod
-    def json_response(
-        obj: Any, status: int = 200
-    ) -> FlaskResponse:  # pylint: disable=no-self-use
+    def json_response(obj: Any, status: int = 200) -> FlaskResponse:
         return Response(
             json.dumps(obj, default=utils.json_int_dttm_ser, ignore_nan=True),
             status=status,
@@ -350,9 +347,21 @@ def common_bootstrap_payload() -> Dict[str, Any]:
     messages = get_flashed_messages(with_categories=True)
     locale = str(get_locale())
 
-    return {
+    # should not expose API TOKEN to frontend
+    frontend_config = {k: conf.get(k) for k in FRONTEND_CONF_KEYS}
+    if conf.get("SLACK_API_TOKEN"):
+        frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
+            ReportRecipientType.EMAIL,
+            ReportRecipientType.SLACK,
+        ]
+    else:
+        frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
+            ReportRecipientType.EMAIL,
+        ]
+
+    bootstrap_data = {
         "flash_messages": messages,
-        "conf": {k: conf.get(k) for k in FRONTEND_CONF_KEYS},
+        "conf": frontend_config,
         "locale": locale,
         "language_pack": get_language_pack(locale),
         "feature_flags": get_feature_flags(),
@@ -361,6 +370,8 @@ def common_bootstrap_payload() -> Dict[str, Any]:
         "theme_overrides": conf["THEME_OVERRIDES"],
         "menu_data": menu_data(),
     }
+    bootstrap_data.update(conf["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
+    return bootstrap_data
 
 
 # pylint: disable=invalid-name
@@ -501,7 +512,7 @@ def validate_json(form: Form, field: Field) -> None:  # pylint: disable=unused-a
         json.loads(field.data)
     except Exception as ex:
         logger.exception(ex)
-        raise Exception(_("json isn't valid"))
+        raise Exception(_("json isn't valid")) from ex
 
 
 class YamlExportMixin:  # pylint: disable=too-few-public-methods

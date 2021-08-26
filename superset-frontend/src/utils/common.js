@@ -87,10 +87,21 @@ export function optionFromValue(opt) {
   return { value: optionValue(opt), label: optionLabel(opt) };
 }
 
-export function prepareCopyToClipboardTabularData(data) {
+export function prepareCopyToClipboardTabularData(data, columns) {
   let result = '';
   for (let i = 0; i < data.length; i += 1) {
-    result += `${Object.values(data[i]).join('\t')}\n`;
+    const row = {};
+    for (let j = 0; j < columns.length; j += 1) {
+      // JavaScript does not mantain the order of a mixed set of keys (i.e integers and strings)
+      // the below function orders the keys based on the column names.
+      const key = columns[j].name || columns[j];
+      if (data[i][key]) {
+        row[j] = data[i][key];
+      } else {
+        row[j] = data[i][parseFloat(key)];
+      }
+    }
+    result += `${Object.values(row).join('\t')}\n`;
   }
   return result;
 }

@@ -169,6 +169,7 @@ class ExtraCache:
         :returns: The URL parameters
         """
 
+        # pylint: disable=import-outside-toplevel
         from superset.views.utils import get_form_data
 
         if request.args.get(param):
@@ -284,6 +285,7 @@ class ExtraCache:
             only apply to the inner query
         :return: returns a list of filters
         """
+        # pylint: disable=import-outside-toplevel
         from superset.utils.core import FilterOperator
         from superset.views.utils import get_form_data
 
@@ -331,10 +333,10 @@ def safe_proxy(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
     if value_type in COLLECTION_TYPES:
         try:
             return_value = json.loads(json.dumps(return_value))
-        except TypeError:
+        except TypeError as ex:
             raise SupersetTemplateException(
                 _("Unsupported return value for method %(name)s", name=func.__name__,)
-            )
+            ) from ex
 
     return return_value
 
@@ -355,10 +357,10 @@ def validate_context_types(context: Dict[str, Any]) -> Dict[str, Any]:
         if arg_type in COLLECTION_TYPES:
             try:
                 context[key] = json.loads(json.dumps(context[key]))
-            except TypeError:
+            except TypeError as ex:
                 raise SupersetTemplateException(
                     _("Unsupported template value for key %(key)s", key=key)
-                )
+                ) from ex
 
     return context
 
@@ -376,7 +378,7 @@ def validate_template_context(
     return validate_context_types(context)
 
 
-class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
+class BaseTemplateProcessor:
     """
     Base class for database-specific jinja context
     """
@@ -440,9 +442,7 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
         )
 
 
-class NoOpTemplateProcessor(
-    BaseTemplateProcessor
-):  # pylint: disable=too-few-public-methods
+class NoOpTemplateProcessor(BaseTemplateProcessor):
     def process_template(self, sql: str, **kwargs: Any) -> str:
         """
         Makes processing a template a noop
@@ -496,6 +496,7 @@ class PrestoTemplateProcessor(JinjaTemplateProcessor):
         :return: the latest partition array
         """
 
+        # pylint: disable=import-outside-toplevel
         from superset.db_engine_specs.presto import PrestoEngineSpec
 
         table_name, schema = self._schema_table(table_name, self._schema)
@@ -506,6 +507,7 @@ class PrestoTemplateProcessor(JinjaTemplateProcessor):
     def latest_sub_partition(self, table_name: str, **kwargs: Any) -> Any:
         table_name, schema = self._schema_table(table_name, self._schema)
 
+        # pylint: disable=import-outside-toplevel
         from superset.db_engine_specs.presto import PrestoEngineSpec
 
         return cast(

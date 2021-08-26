@@ -106,7 +106,7 @@ class BaseDAO:
                 db.session.commit()
         except SQLAlchemyError as ex:  # pragma: no cover
             db.session.rollback()
-            raise DAOCreateFailedError(exception=ex)
+            raise DAOCreateFailedError(exception=ex) from ex
         return model
 
     @classmethod
@@ -125,7 +125,7 @@ class BaseDAO:
                 db.session.commit()
         except SQLAlchemyError as ex:  # pragma: no cover
             db.session.rollback()
-            raise DAOUpdateFailedError(exception=ex)
+            raise DAOUpdateFailedError(exception=ex) from ex
         return model
 
     @classmethod
@@ -140,5 +140,5 @@ class BaseDAO:
                 db.session.commit()
         except SQLAlchemyError as ex:  # pragma: no cover
             db.session.rollback()
-            raise DAODeleteFailedError(exception=ex)
+            raise DAODeleteFailedError(exception=ex) from ex
         return model

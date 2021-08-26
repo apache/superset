@@ -43,7 +43,7 @@ class BaseCommand(ABC):
         """
 
 
-class CreateMixin:
+class CreateMixin:  # pylint: disable=too-few-public-methods
     @staticmethod
     def populate_owners(
         user: User, owner_ids: Optional[List[int]] = None
@@ -61,7 +61,7 @@ class CreateMixin:
         return populate_owners(user, owner_ids, default_to_user=True)
 
 
-class UpdateMixin:
+class UpdateMixin:  # pylint: disable=too-few-public-methods
     @staticmethod
     def populate_owners(
         user: User, owner_ids: Optional[List[int]] = None

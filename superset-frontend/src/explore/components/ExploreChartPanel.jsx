@@ -116,7 +116,6 @@ const ExploreChartPanel = props => {
   const theme = useTheme();
   const gutterMargin = theme.gridUnit * GUTTER_SIZE_FACTOR;
   const gutterHeight = theme.gridUnit * GUTTER_SIZE_FACTOR;
-
   const { height: hHeight, ref: headerRef } = useResizeDetector({
     refreshMode: 'debounce',
     refreshRate: 300,
@@ -128,11 +127,10 @@ const ExploreChartPanel = props => {
   const [splitSizes, setSplitSizes] = useState(
     getFromLocalStorage(STORAGE_KEYS.sizes, INITIAL_SIZES),
   );
-
   const { slice } = props;
   const updateQueryContext = useCallback(
     async function fetchChartData() {
-      if (props.can_overwrite && slice && slice.query_context === null) {
+      if (slice && slice.query_context === null) {
         const queryContext = buildV1ChartDataPayload({
           formData: slice.form_data,
           force: false,
@@ -211,7 +209,6 @@ const ExploreChartPanel = props => {
     }
     setSplitSizes(splitSizes);
   };
-
   const renderChart = useCallback(() => {
     const { chart, vizType } = props;
     const newHeight =
@@ -317,6 +314,7 @@ const ExploreChartPanel = props => {
             onCollapseChange={onCollapseChange}
             chartStatus={props.chart.chartStatus}
             errorMessage={props.errorMessage}
+            queriesResponse={props.chart.queriesResponse}
           />
         </Split>
       )}
