@@ -48,7 +48,6 @@ type PickedSelectProps = Pick<
   AntdSelectAllProps,
   | 'allowClear'
   | 'autoFocus'
-  | 'value'
   | 'disabled'
   | 'filterOption'
   | 'notFoundContent'

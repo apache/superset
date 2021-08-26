@@ -16,29 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
-import {
-  DndColumnSelect,
-  DndColumnSelectProps,
-} from 'src/explore/components/controls/DndColumnSelectControl/DndColumnSelect';
 
-const defaultProps: DndColumnSelectProps = {
-  type: 'DndColumnSelect',
-  name: 'Filter',
-  onChange: jest.fn(),
-  options: { string: { column_name: 'Column A' } },
-  actions: { setControlValue: jest.fn() },
-};
-
-test('renders with default props', () => {
-  render(<DndColumnSelect {...defaultProps} />, { useDnd: true });
-  expect(screen.getByText('Drop columns here')).toBeInTheDocument();
-});
-
-test('renders with value', () => {
-  render(<DndColumnSelect {...defaultProps} value="string" />, {
-    useDnd: true,
-  });
-  expect(screen.getByText('Column A')).toBeInTheDocument();
-});
+export default interface Database {
+  id: number;
+  allow_run_async: boolean;
+  database_name: string;
+  encrypted_extra: string;
+  extra: string;
+  impersonate_user: boolean;
+  server_cert: string;
+  sqlalchemy_uri: string;
+}
