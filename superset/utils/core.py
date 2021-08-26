@@ -442,7 +442,7 @@ def cast_to_num(value: Optional[Union[float, int, str]]) -> Optional[Union[float
         return None
 
 
-def cast_to_boolean(value: Any) -> bool:
+def cast_to_boolean(value: Any) -> Optional[bool]:
     """Casts a value to an int/float
 
     >>> cast_to_boolean(1)
@@ -458,12 +458,13 @@ def cast_to_boolean(value: Any) -> bool:
     >>> cast_to_boolean('False')
     False
     >>> cast_to_boolean(None)
-    False
 
     :param value: value to be converted to boolean representation
     :returns: value cast to `bool`. when value is 'true' or value that are not 0
-              converte into True
+              converted into True. Return `None` if value is `None`
     """
+    if value is None:
+        return None
     if isinstance(value, (int, float)):
         return value != 0
     if isinstance(value, str):
