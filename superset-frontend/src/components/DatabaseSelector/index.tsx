@@ -90,7 +90,7 @@ export default function DatabaseSelector({
   sqlLabMode = false,
 }: DatabaseSelectorProps) {
   const [currentDb, setCurrentDb] = useState(
-    db?.backend
+    db
       ? { label: `${db.backend}: ${db.database_name}`, value: db.id }
       : undefined,
   );
@@ -237,8 +237,8 @@ export default function DatabaseSelector({
         data-test="select-database"
         header={<FormLabel>{t('Database')}</FormLabel>}
         onChange={changeDataBase}
-        placeholder={t('Select a database')}
         value={currentDb}
+        placeholder={t('Select a database')}
         disabled={!isDatabaseSelectEnabled || readOnly}
         options={loadDatabases}
       />,
