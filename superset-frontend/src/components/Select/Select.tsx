@@ -166,10 +166,11 @@ const Select = ({
   invertSelection = false,
   labelInValue = false,
   lazyLoading = true,
-  loading = false,
+  loading,
   mode = 'single',
   name,
   onChange,
+  onClear,
   options,
   pageSize = DEFAULT_PAGE_SIZE,
   placeholder = t('Select ...'),
@@ -232,6 +233,8 @@ const Select = ({
     }
   }, [isAsync, selectOptions, selectValue]);
 
+  // TODO: Simplify the code. We're only accepting label, value options.
+  // TODO: Remove labelInValue prop.
   const handleTopOptions = useCallback(
     (selectedValue: AntdSelectValue | undefined) => {
       // bringing selected options to the top of the list
@@ -365,6 +368,7 @@ const Select = ({
       const cachedCount = fetchedQueries.current.get(key);
       if (cachedCount) {
         setTotalCount(cachedCount);
+        setIsLoading(false);
         setIsTyping(false);
         return;
       }
@@ -411,17 +415,17 @@ const Select = ({
             // adds a custom option
             const newOptions = [...selectOptions, newOption];
             setSelectOptions(newOptions);
-            setSelectValue(searchValue);
+            setSelectValue(newOption);
 
             if (onChange) {
               onChange(searchValue, newOptions);
             }
           }
         }
-        setSearchedValue(searchValue);
-        if (!searchValue) {
+        if (!searchValue || searchValue === searchedValue) {
           setIsTyping(false);
         }
+        setSearchedValue(searchValue);
       }, DEBOUNCE_TIMEOUT),
     [
       allowNewOptions,
@@ -432,6 +436,9 @@ const Select = ({
       selectOptions,
     ],
   );
+
+  // Stop the invocation of the debounced function after unmounting
+  useEffect(() => () => handleOnSearch.cancel(), [handleOnSearch]);
 
   const handlePagination = (e: UIEvent<HTMLElement>) => {
     const vScroll = e.currentTarget;
@@ -535,6 +542,13 @@ const Select = ({
     return <DownOutlined />;
   };
 
+  const handleClear = () => {
+    setSelectValue(undefined);
+    if (onClear) {
+      onClear();
+    }
+  };
+
   return (
     <StyledContainer>
       {header}
@@ -552,7 +566,7 @@ const Select = ({
         onPopupScroll={isAsync ? handlePagination : undefined}
         onSearch={shouldShowSearch ? handleOnSearch : undefined}
         onSelect={handleOnSelect}
-        onClear={() => setSelectValue(undefined)}
+        onClear={handleClear}
         onChange={onChange}
         options={selectOptions}
         placeholder={placeholder}
