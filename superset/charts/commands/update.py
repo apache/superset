@@ -68,7 +68,7 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         return chart
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = list()
+        exceptions: List[ValidationError] = []
         dashboard_ids = self._properties.get("dashboards")
         owner_ids: Optional[List[int]] = self._properties.get("owners")
 
