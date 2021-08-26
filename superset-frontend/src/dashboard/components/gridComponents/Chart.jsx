@@ -101,8 +101,6 @@ const ChartOverlay = styled.div`
 `;
 
 export default class Chart extends React.Component {
-  static whyDidYouRender = true;
-
   constructor(props) {
     super(props);
     this.state = {
