@@ -296,7 +296,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
 
     // autofocus on column if there's no value in column; otherwise autofocus on aggregate
     const columnSelectProps = {
-      ariaLabel: 'select-column',
+      ariaLabel: t('Select column'),
       placeholder: t('%s column(s)', columns.length),
       value: columnValue,
       onChange: this.onColumnChange,
@@ -308,7 +308,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
     };
 
     const aggregateSelectProps = {
-      ariaLabel: 'select-aggregate',
+      ariaLabel: t('Select aggregate options'),
       placeholder: t('%s aggregates(s)', AGGREGATES_OPTIONS.length),
       value: adhocMetric.aggregate || adhocMetric.inferSqlExpressionAggregate(),
       onChange: this.onAggregateChange,
@@ -318,7 +318,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
     };
 
     const savedSelectProps = {
-      ariaLabel: 'select-saved',
+      ariaLabel: t('Select saved metrics)',
       placeholder: t('%s saved metric(s)', savedMetricsOptions?.length ?? 0),
       value: savedMetric?.metric_name,
       onChange: this.onSavedMetricChange,
