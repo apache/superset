@@ -18,19 +18,19 @@
  */
 import React from 'react';
 import { t, supersetTheme } from '@superset-ui/core';
-import Icons, { IconType } from 'src/components/Icons';
+import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 
 export interface CertifiedIconProps {
   certifiedBy?: string;
   details?: string;
-  size?: IconType['iconSize'];
+  size?: number;
 }
 
 function CertifiedIcon({
   certifiedBy,
   details,
-  size = 'l',
+  size = 24,
 }: CertifiedIconProps) {
   return (
     <Tooltip
@@ -48,7 +48,8 @@ function CertifiedIcon({
     >
       <Icons.Certified
         iconColor={supersetTheme.colors.primary.base}
-        iconSize={size}
+        height={size}
+        width={size}
       />
     </Tooltip>
   );
