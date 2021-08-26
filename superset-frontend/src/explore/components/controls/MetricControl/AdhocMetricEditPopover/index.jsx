@@ -318,7 +318,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
     };
 
     const savedSelectProps = {
-      ariaLabel: t('Select saved metrics)',
+      ariaLabel: t('Select saved metrics'),
       placeholder: t('%s saved metric(s)', savedMetricsOptions?.length ?? 0),
       value: savedMetric?.metric_name,
       onChange: this.onSavedMetricChange,
