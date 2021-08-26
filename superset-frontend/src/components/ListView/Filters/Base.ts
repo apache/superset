@@ -29,8 +29,5 @@ export const FilterContainer = styled.div`
   display: inline-flex;
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
   align-items: center;
-
-  & > div {
-    width: ${SELECT_WIDTH}px;
-  }
+  width: ${SELECT_WIDTH}px;
 `;

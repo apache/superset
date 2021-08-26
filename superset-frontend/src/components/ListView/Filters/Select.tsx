@@ -17,74 +17,55 @@
  * under the License.
  */
 import React, { useState, useMemo } from 'react';
-import { withTheme, SupersetThemeProps } from '@superset-ui/core';
+import { withTheme, SupersetThemeProps, t } from '@superset-ui/core';
 import { Select } from 'src/components';
 import { FormLabel } from 'src/components/Form';
 import { Filter, SelectOption } from 'src/components/ListView/types';
 import { FilterContainer, BaseFilter } from './Base';
 
 interface SelectFilterProps extends BaseFilter {
-  emptyLabel?: string;
   fetchSelects?: Filter['fetchSelects'];
   name?: string;
-  onSelect: (selected: any) => any;
+  onSelect: (selected: SelectOption | undefined) => void;
   paginate?: boolean;
   selects: Filter['selects'];
   theme: SupersetThemeProps['theme'];
 }
 
-const CLEAR_SELECT_FILTER_VALUE = -1;
-
 function SelectFilter({
   Header,
-  emptyLabel = 'None',
+  name,
   fetchSelects,
   initialValue,
   onSelect,
   selects = [],
 }: SelectFilterProps) {
-  const clearFilterSelect = {
-    label: emptyLabel,
-    value: CLEAR_SELECT_FILTER_VALUE,
+  const [selectedOption, setSelectedOption] = useState(initialValue);
+
+  const onChange = (selected: SelectOption) => {
+    onSelect({ label: selected.label, value: selected.value });
+    setSelectedOption(selected);
   };
 
-  const options = [clearFilterSelect, ...selects];
-  let initialOption = clearFilterSelect;
-
-  // Set initial value if not async
-  if (!fetchSelects) {
-    const matchingOption = options.find(x => x.value === initialValue);
-
-    if (matchingOption) {
-      initialOption = matchingOption;
-    }
-  }
-
-  const [selectedOption, setSelectedOption] = useState(initialOption);
-  const onChange = (selected: SelectOption) => {
-    onSelect(
-      selected.value === CLEAR_SELECT_FILTER_VALUE ? undefined : selected.value,
-    );
-    setSelectedOption(selected);
+  const onClear = () => {
+    onSelect(undefined);
+    setSelectedOption(undefined);
   };
 
   const fetchAndFormatSelects = useMemo(
     () => async (inputValue: string, page: number, pageSize: number) => {
-      // only include clear filter when filter value does not exist
-      let result = inputValue || page > 0 ? [] : [clearFilterSelect];
       if (fetchSelects) {
         const selectValues = await fetchSelects(inputValue, page, pageSize);
-        const totalCount = selectValues.totalCount + result.length;
-        result = [...result, ...selectValues.data];
-
-        const matchingOption = result.find(x => x.value === initialValue);
+        const matchingOption = selectValues.data.find(
+          x => x.value === initialValue,
+        );
         if (matchingOption) {
           setSelectedOption(matchingOption);
         }
 
         return {
-          data: result,
-          totalCount,
+          data: selectValues.data,
+          totalCount: selectValues.totalCount,
         };
       }
       return {
@@ -92,19 +73,21 @@ function SelectFilter({
         totalCount: 0,
       };
     },
-    [], // eslint-disable-line react-hooks/exhaustive-deps
+    [fetchSelects, initialValue],
   );
 
   return (
     <FilterContainer>
       <Select
-        ariaLabel={typeof Header === 'string' ? Header : emptyLabel}
+        allowClear
+        ariaLabel={typeof Header === 'string' ? Header : name || t('Filter')}
         labelInValue
         data-test="filters-select"
         header={<FormLabel>{Header}</FormLabel>}
         onChange={onChange}
-        options={fetchSelects ? fetchAndFormatSelects : options}
-        placeholder={emptyLabel}
+        onClear={onClear}
+        options={fetchSelects ? fetchAndFormatSelects : selects}
+        placeholder={t('Select or type a value')}
         showSearch
         value={selectedOption}
       />

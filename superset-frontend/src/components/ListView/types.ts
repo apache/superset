@@ -68,7 +68,15 @@ export interface FilterValue {
   id: string;
   urlDisplay?: string;
   operator?: string;
-  value: string | boolean | number | null | undefined | string[] | number[];
+  value:
+    | string
+    | boolean
+    | number
+    | null
+    | undefined
+    | string[]
+    | number[]
+    | { label: string; value: string | number };
 }
 
 export interface FetchDataConfig {

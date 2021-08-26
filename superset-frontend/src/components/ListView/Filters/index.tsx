@@ -23,6 +23,7 @@ import {
   FilterValue,
   Filters,
   InternalFilter,
+  SelectOption,
 } from 'src/components/ListView/types';
 import SearchFilter from './Search';
 import SelectFilter from './Select';
@@ -42,30 +43,20 @@ function UIFilters({
   return (
     <>
       {filters.map(
-        (
-          {
-            Header,
-            fetchSelects,
-            id,
-            input,
-            paginate,
-            selects,
-            unfilteredLabel,
-          },
-          index,
-        ) => {
+        ({ Header, fetchSelects, id, input, paginate, selects }, index) => {
           const initialValue =
             internalFilters[index] && internalFilters[index].value;
           if (input === 'select') {
             return (
               <SelectFilter
                 Header={Header}
-                emptyLabel={unfilteredLabel}
                 fetchSelects={fetchSelects}
                 initialValue={initialValue}
                 key={id}
                 name={id}
-                onSelect={(value: any) => updateFilterValue(index, value)}
+                onSelect={(option: SelectOption | undefined) =>
+                  updateFilterValue(index, option)
+                }
                 paginate={paginate}
                 selects={selects}
               />
