@@ -17,9 +17,11 @@
  * under the License.
  */
 import React from 'react';
+import { styled } from '@superset-ui/core';
 import { Tooltip } from './Tooltip';
 import { ColumnTypeLabel } from './ColumnTypeLabel';
 import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
+import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
 import { ColumnMeta } from '../types';
 
 export type ColumnOptionProps = {
@@ -28,6 +30,12 @@ export type ColumnOptionProps = {
   showTooltip?: boolean;
   labelRef?: React.RefObject<any>;
 };
+
+const StyleOverrides = styled.span`
+  svg {
+    margin-right: ${({ theme }) => theme.gridUnit}px;
+  }
+`;
 
 export function ColumnOption({
   column,
@@ -40,8 +48,15 @@ export function ColumnOption({
   const type = hasExpression ? 'expression' : type_generic;
 
   return (
-    <span>
+    <StyleOverrides>
       {showType && type !== undefined && <ColumnTypeLabel type={type} />}
+      {column.is_certified && (
+        <CertifiedIconWithTooltip
+          metricName={column.metric_name}
+          certifiedBy={column.certified_by}
+          details={column.certification_details}
+        />
+      )}
       {showTooltip ? (
         <Tooltip
           id="metric-name-tooltip"
@@ -76,7 +91,7 @@ export function ColumnOption({
           placement="top"
         />
       )}
-    </span>
+    </StyleOverrides>
   );
 }
 
