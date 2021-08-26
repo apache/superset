@@ -898,16 +898,11 @@ export function updateSavedQuery(query) {
 
 export function queryEditorSetSql(queryEditor, sql) {
   return function (dispatch) {
-    const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
-      ? SupersetClient.put({
-          endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
-          postPayload: { sql, latest_query_id: queryEditor.latestQueryId },
-        })
-      : Promise.resolve();
-
-    return sync
-      .then(() => dispatch({ type: QUERY_EDITOR_SET_SQL, queryEditor, sql }))
-      .catch(() =>
+    if (isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)) {
+      return SupersetClient.put({
+        endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
+        postPayload: { sql, latest_query_id: queryEditor.latestQueryId },
+      }).catch(() =>
         dispatch(
           addDangerToast(
             t(
@@ -918,6 +913,8 @@ export function queryEditorSetSql(queryEditor, sql) {
           ),
         ),
       );
+    }
+    return dispatch({ type: QUERY_EDITOR_SET_SQL, queryEditor, sql });
   };
 }
 
