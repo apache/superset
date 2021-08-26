@@ -69,7 +69,7 @@ class UpdateDatabaseCommand(BaseCommand):
         return database
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = list()
+        exceptions: List[ValidationError] = []
         # Validate/populate model exists
         self._model = DatabaseDAO.find_by_id(self._model_id)
         if not self._model:
