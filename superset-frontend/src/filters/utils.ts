@@ -28,7 +28,7 @@ import { FALSE_STRING, NULL_STRING, TRUE_STRING } from 'src/utils/common';
 
 export const getSelectExtraFormData = (
   col: string,
-  value?: null | (string | number)[],
+  value?: null | (string | number | boolean | null)[],
   emptyFilter = false,
   inverseSelection = false,
 ): ExtraFormData => {
@@ -46,6 +46,7 @@ export const getSelectExtraFormData = (
       {
         col,
         op: inverseSelection ? ('NOT IN' as const) : ('IN' as const),
+        // @ts-ignore
         val: value,
       },
     ];
@@ -115,4 +116,19 @@ export function getDataRecordFormatter({
     }
     return String(value);
   };
+}
+
+export function formatFilterValue(
+  value: string | number | boolean | null,
+): string {
+  if (value === null) {
+    return NULL_STRING;
+  }
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (typeof value === 'number') {
+    return String(value);
+  }
+  return value ? TRUE_STRING : FALSE_STRING;
 }
