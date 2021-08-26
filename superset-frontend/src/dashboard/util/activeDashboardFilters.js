@@ -33,9 +33,7 @@ let allComponents = {};
 
 // output: { [id_column]: { values, scope } }
 export function getActiveFilters() {
-  return {
-    ...activeFilters,
-  };
+  return activeFilters;
 }
 
 // currently filter_box is a chart,

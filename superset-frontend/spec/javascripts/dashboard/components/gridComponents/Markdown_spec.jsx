@@ -26,7 +26,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 
 import { act } from 'react-dom/test-utils';
 import { MarkdownEditor } from 'src/components/AsyncAceEditor';
-import Markdown from 'src/dashboard/components/gridComponents/Markdown';
+import MarkdownConnected from 'src/dashboard/components/gridComponents/Markdown';
 import MarkdownModeDropdown from 'src/dashboard/components/menu/MarkdownModeDropdown';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
@@ -66,7 +66,7 @@ describe('Markdown', () => {
     const wrapper = mount(
       <Provider store={mockStore}>
         <DndProvider backend={HTML5Backend}>
-          <Markdown {...props} {...overrideProps} />
+          <MarkdownConnected {...props} {...overrideProps} />
         </DndProvider>
       </Provider>,
     );
