@@ -473,7 +473,6 @@ def cast_to_boolean(value: Any) -> Optional[bool]:
     >>> cast_to_boolean('False')
     False
     >>> cast_to_boolean(None)
-    None
 
     :param value: value to be converted to boolean representation
     :returns: value cast to `bool`. when value is 'true' or value that are not 0
