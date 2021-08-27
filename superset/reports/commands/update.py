@@ -59,7 +59,7 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
         return report_schedule
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = list()
+        exceptions: List[ValidationError] = []
         owner_ids: Optional[List[int]] = self._properties.get("owners")
         report_type = self._properties.get("type", ReportScheduleType.ALERT)
 

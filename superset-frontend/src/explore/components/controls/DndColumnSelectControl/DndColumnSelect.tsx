@@ -20,7 +20,6 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { FeatureFlag, isFeatureEnabled, tn } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
-import { LabelProps } from 'src/explore/components/controls/DndColumnSelectControl/types';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import OptionWrapper from 'src/explore/components/controls/DndColumnSelectControl/OptionWrapper';
 import { OptionSelector } from 'src/explore/components/controls/DndColumnSelectControl/utils';
@@ -28,8 +27,13 @@ import { DatasourcePanelDndItem } from 'src/explore/components/DatasourcePanel/t
 import { DndItemType } from 'src/explore/components/DndItemType';
 import { useComponentDidUpdate } from 'src/common/hooks/useComponentDidUpdate';
 import ColumnSelectPopoverTrigger from './ColumnSelectPopoverTrigger';
+import { DndControlProps } from './types';
 
-export const DndColumnSelect = (props: LabelProps) => {
+export type DndColumnSelectProps = DndControlProps<string> & {
+  options: Record<string, ColumnMeta>;
+};
+
+export function DndColumnSelect(props: DndColumnSelectProps) {
   const {
     value,
     options,
@@ -68,6 +72,7 @@ export const DndColumnSelect = (props: LabelProps) => {
     ) {
       onChange(optionSelectorValues);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(value), JSON.stringify(optionSelector.getValues())]);
 
   // useComponentDidUpdate to avoid running this for the first render, to avoid
@@ -203,7 +208,7 @@ export const DndColumnSelect = (props: LabelProps) => {
 
   return (
     <div>
-      <DndSelectLabel<string | string[], ColumnMeta[]>
+      <DndSelectLabel
         onDrop={onDrop}
         canDrop={canDrop}
         valuesRenderer={valuesRenderer}
@@ -229,4 +234,4 @@ export const DndColumnSelect = (props: LabelProps) => {
       </ColumnSelectPopoverTrigger>
     </div>
   );
-};
+}
