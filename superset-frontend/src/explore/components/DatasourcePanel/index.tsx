@@ -16,13 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ControlConfig, DatasourceMeta } from '@superset-ui/chart-controls';
 import { debounce } from 'lodash';
 import { matchSorter, rankings } from 'match-sorter';
@@ -193,60 +187,61 @@ export default function DataSourcePanel({
   const DEFAULT_MAX_COLUMNS_LENGTH = 50;
   const DEFAULT_MAX_METRICS_LENGTH = 50;
 
-  const search = useCallback(
-    debounce((value: string) => {
-      if (value === '') {
-        setList({ columns, metrics });
-        return;
-      }
-      setList({
-        columns: matchSorter(columns, value, {
-          keys: [
-            {
-              key: 'verbose_name',
-              threshold: rankings.CONTAINS,
-            },
-            {
-              key: 'column_name',
-              threshold: rankings.CONTAINS,
-            },
-            {
-              key: item =>
-                [item.description, item.expression].map(
-                  x => x?.replace(/[_\n\s]+/g, ' ') || '',
-                ),
-              threshold: rankings.CONTAINS,
-              maxRanking: rankings.CONTAINS,
-            },
-          ],
-          keepDiacritics: true,
-        }),
-        metrics: matchSorter(metrics, value, {
-          keys: [
-            {
-              key: 'verbose_name',
-              threshold: rankings.CONTAINS,
-            },
-            {
-              key: 'metric_name',
-              threshold: rankings.CONTAINS,
-            },
-            {
-              key: item =>
-                [item.description, item.expression].map(
-                  x => x?.replace(/[_\n\s]+/g, ' ') || '',
-                ),
-              threshold: rankings.CONTAINS,
-              maxRanking: rankings.CONTAINS,
-            },
-          ],
-          keepDiacritics: true,
-          baseSort: (a, b) =>
-            Number(b.item.is_certified) - Number(a.item.is_certified) ||
-            String(a.rankedValue).localeCompare(b.rankedValue),
-        }),
-      });
-    }, FAST_DEBOUNCE),
+  const search = useMemo(
+    () =>
+      debounce((value: string) => {
+        if (value === '') {
+          setList({ columns, metrics });
+          return;
+        }
+        setList({
+          columns: matchSorter(columns, value, {
+            keys: [
+              {
+                key: 'verbose_name',
+                threshold: rankings.CONTAINS,
+              },
+              {
+                key: 'column_name',
+                threshold: rankings.CONTAINS,
+              },
+              {
+                key: item =>
+                  [item.description, item.expression].map(
+                    x => x?.replace(/[_\n\s]+/g, ' ') || '',
+                  ),
+                threshold: rankings.CONTAINS,
+                maxRanking: rankings.CONTAINS,
+              },
+            ],
+            keepDiacritics: true,
+          }),
+          metrics: matchSorter(metrics, value, {
+            keys: [
+              {
+                key: 'verbose_name',
+                threshold: rankings.CONTAINS,
+              },
+              {
+                key: 'metric_name',
+                threshold: rankings.CONTAINS,
+              },
+              {
+                key: item =>
+                  [item.description, item.expression].map(
+                    x => x?.replace(/[_\n\s]+/g, ' ') || '',
+                  ),
+                threshold: rankings.CONTAINS,
+                maxRanking: rankings.CONTAINS,
+              },
+            ],
+            keepDiacritics: true,
+            baseSort: (a, b) =>
+              Number(b.item.is_certified) - Number(a.item.is_certified) ||
+              String(a.rankedValue).localeCompare(b.rankedValue),
+          }),
+        });
+      }, FAST_DEBOUNCE),
     [columns, metrics],
   );
 

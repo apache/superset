@@ -43,8 +43,8 @@ from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.commands.importers.v1 import ImportDatasetsCommand
 from superset.datasets.commands.importers.v1.utils import import_dataset
 from superset.datasets.schemas import ImportV1DatasetSchema
-from superset.models.core import Database
 from superset.models.dashboard import dashboard_slices
+from superset.utils.core import get_example_database
 
 
 class ImportExamplesCommand(ImportModelsCommand):
@@ -104,9 +104,7 @@ class ImportExamplesCommand(ImportModelsCommand):
         # If database_uuid is not in the list of UUIDs it means that the examples
         # database was created before its UUID was frozen, so it has a random UUID.
         # We need to determine its ID so we can point the dataset to it.
-        examples_db = (
-            db.session.query(Database).filter_by(database_name="examples").first()
-        )
+        examples_db = get_example_database()
         dataset_info: Dict[str, Dict[str, Any]] = {}
         for file_name, config in configs.items():
             if file_name.startswith("datasets/"):

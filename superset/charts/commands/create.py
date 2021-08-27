@@ -53,7 +53,7 @@ class CreateChartCommand(CreateMixin, BaseCommand):
         return chart
 
     def validate(self) -> None:
-        exceptions = list()
+        exceptions = []
         datasource_type = self._properties["datasource_type"]
         datasource_id = self._properties["datasource_id"]
         dashboard_ids = self._properties.get("dashboards", [])
