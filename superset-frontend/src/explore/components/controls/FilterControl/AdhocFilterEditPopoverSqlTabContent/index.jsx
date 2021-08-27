@@ -61,7 +61,7 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
     this.handleAceEditorRef = this.handleAceEditorRef.bind(this);
 
     this.selectProps = {
-      ariaLabel: 'select-column',
+      ariaLabel: t('Select column'),
     };
   }
 

@@ -274,7 +274,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   const { subject, operator, comparator, operatorId } = props.adhocFilter;
 
   const subjectSelectProps = {
-    ariaLabel: 'select-column',
+    ariaLabel: t('Select subject'),
     value: subject ?? undefined,
     onChange: onSubjectChange,
     notFoundContent: t(
@@ -311,7 +311,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     value: operatorId,
     onChange: onOperatorChange,
     autoFocus: !!subjectSelectProps.value && !operator,
-    ariaLabel: 'select-operator',
+    ariaLabel: t('Select operator'),
     showSearch: true,
   };
 
@@ -321,7 +321,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   const comparatorSelectProps = {
     allowClear: true,
     allowNewOptions: true,
-    ariaLabel: 'adhoc-filter-simple-value',
+    ariaLabel: t('Comparator option'),
     mode: MULTI_OPERATORS.has(operatorId)
       ? ('multiple' as const)
       : ('single' as const),
