@@ -237,7 +237,7 @@ export default function PropertiesModal({
             <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
             <FormItem label={t('Owners')}>
               <Select
-                ariaLabel="owners"
+                ariaLabel={t('Owners')}
                 mode="multiple"
                 name="owners"
                 value={owners || []}
