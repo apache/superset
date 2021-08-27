@@ -218,7 +218,6 @@ export default class TimeSeriesColumnControl extends React.Component {
           <Select
             ariaLabel={t('Type')}
             value={this.state.colType || undefined}
-            allowClear={false}
             onChange={this.onSelectChange.bind(this, 'colType')}
             options={colTypeOptions}
           />,
