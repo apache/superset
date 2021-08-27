@@ -274,9 +274,8 @@ export default class TimeSeriesColumnControl extends React.Component {
             'Type of comparison, value difference or percentage',
             'comp-type',
             <Select
-              ariaLabel="comparison-type"
+              ariaLabel={t('Type')}
               value={this.state.comparisonType || undefined}
-              allowClear={false}
               onChange={this.onSelectChange.bind(this, 'comparisonType')}
               options={comparisonTypeOptions}
             />,
