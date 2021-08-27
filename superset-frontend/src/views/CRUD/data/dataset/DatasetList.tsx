@@ -243,13 +243,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   <CertifiedIcon
                     certifiedBy={parsedExtra.certification.certified_by}
                     details={parsedExtra.certification.details}
-                    size="l"
                   />
                 )}
                 {parsedExtra?.warning_markdown && (
                   <WarningIconWithTooltip
                     warningMarkdown={parsedExtra.warning_markdown}
-                    size="l"
                   />
                 )}
                 {titleLink}
