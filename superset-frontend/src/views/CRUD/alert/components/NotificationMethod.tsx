@@ -20,6 +20,7 @@ import React, { FunctionComponent, useState } from 'react';
 import { styled, t, useTheme } from '@superset-ui/core';
 import { Select } from 'src/components';
 import Icons from 'src/components/Icons';
+import { NotificationMethodOption } from 'src/views/CRUD/alert/types';
 import { StyledInputContainer } from '../AlertReportModal';
 
 const StyledNotificationMethod = styled.div`
@@ -49,12 +50,10 @@ const StyledNotificationMethod = styled.div`
   }
 `;
 
-type NotificationMethod = 'Email' | 'Slack';
-
 type NotificationSetting = {
-  method?: NotificationMethod;
+  method?: NotificationMethodOption;
   recipients: string;
-  options: NotificationMethod[];
+  options: NotificationMethodOption[];
 };
 
 interface NotificationMethodProps {
@@ -80,7 +79,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     return null;
   }
 
-  const onMethodChange = (method: NotificationMethod) => {
+  const onMethodChange = (method: NotificationMethodOption) => {
     // Since we're swapping the method, reset the recipients
     setRecipientValue('');
     if (onUpdate) {
@@ -126,10 +125,12 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               data-test="select-delivery-method"
               onChange={onMethodChange}
               placeholder={t('Select Delivery Method')}
-              options={(options || []).map((method: NotificationMethod) => ({
-                label: method,
-                value: method,
-              }))}
+              options={(options || []).map(
+                (method: NotificationMethodOption) => ({
+                  label: method,
+                  value: method,
+                }),
+              )}
               value={method}
             />
           </div>

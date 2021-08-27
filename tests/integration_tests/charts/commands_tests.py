@@ -321,7 +321,7 @@ class TestChartsUpdateCommand(SupersetTestCase):
         json_obj = {
             "description": "test for update",
             "cache_timeout": None,
-            "owners": [1],
+            "owners": [actor.id],
         }
         command = UpdateChartCommand(actor, model_id, json_obj)
         last_saved_before = db.session.query(Slice).get(pk).last_saved_at
@@ -329,3 +329,31 @@ class TestChartsUpdateCommand(SupersetTestCase):
         chart = db.session.query(Slice).get(pk)
         assert chart.last_saved_at != last_saved_before
         assert chart.last_saved_by == actor
+
+    @patch("superset.views.base.g")
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_query_context_update_command(self, mock_sm_g, mock_g):
+        """"
+        Test that a user can generate the chart query context
+        payloadwithout affecting owners
+        """
+        chart = db.session.query(Slice).all()[0]
+        pk = chart.id
+        admin = security_manager.find_user(username="admin")
+        chart.owners = [admin]
+        db.session.commit()
+
+        actor = security_manager.find_user(username="alpha")
+        mock_g.user = mock_sm_g.user = actor
+        query_context = json.dumps({"foo": "bar"})
+        json_obj = {
+            "query_context_generation": True,
+            "query_context": query_context,
+        }
+        command = UpdateChartCommand(actor, pk, json_obj)
+        command.run()
+        chart = db.session.query(Slice).get(pk)
+        assert chart.query_context == query_context
+        assert len(chart.owners) == 1
+        assert chart.owners[0] == admin

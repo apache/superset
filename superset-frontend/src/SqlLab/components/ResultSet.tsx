@@ -448,7 +448,7 @@ export default class ResultSet extends React.PureComponent<
       if (this.props.cache && this.props.query.cached) {
         ({ data } = this.state);
       }
-
+      const { columns } = this.props.query.results;
       // Added compute logic to stop user from being able to Save & Explore
       const {
         saveDatasetRadioBtnState,
@@ -508,7 +508,7 @@ export default class ResultSet extends React.PureComponent<
             )}
 
             <CopyToClipboard
-              text={prepareCopyToClipboardTabularData(data)}
+              text={prepareCopyToClipboardTabularData(data, columns)}
               wrapped={false}
               copyNode={
                 <Button buttonSize="small">
