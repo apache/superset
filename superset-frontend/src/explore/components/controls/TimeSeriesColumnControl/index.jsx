@@ -216,7 +216,7 @@ export default class TimeSeriesColumnControl extends React.Component {
           'Type of comparison, value difference or percentage',
           'col-type',
           <Select
-            ariaLabel="col-type"
+            ariaLabel={t('Type')}
             value={this.state.colType || undefined}
             allowClear={false}
             onChange={this.onSelectChange.bind(this, 'colType')}
