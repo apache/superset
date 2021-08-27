@@ -30,10 +30,14 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
+from superset.utils.core import generic_find_constraint_name
+
 
 def upgrade():
-    op.add_column("table_columns", sa.Column("extra", sa.Text(), nullable=True))
+    with op.batch_alter_table("table_columns") as batch_op:
+        batch_op.add_column(sa.Column("extra", sa.Text(), nullable=True))
 
 
 def downgrade():
-    op.drop_column("table_columns", "extra")
+    with op.batch_alter_table("table_columns") as batch_op:
+        batch_op.drop_column("extra")
