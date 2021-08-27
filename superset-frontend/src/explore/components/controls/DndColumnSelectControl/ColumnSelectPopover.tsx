@@ -144,7 +144,7 @@ const ColumnSelectPopover = ({
         <Tabs.TabPane key="saved" tab={t('Saved')}>
           <FormItem label={t('Saved expressions')}>
             <StyledSelect
-              ariaLabel="saved-expressions"
+              ariaLabel={t('Saved expressions')}
               value={selectedCalculatedColumn?.column_name}
               onChange={onCalculatedColumnChange}
               allowClear
