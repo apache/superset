@@ -222,7 +222,6 @@ class TestDatasetApi(SupersetTestCase):
         Dataset API: Test get dataset item
         """
         table = self.get_energy_usage_dataset()
-        main_db = get_main_database()
         self.login(username="admin")
         uri = f"api/v1/dataset/{table.id}"
         rv = self.get_assert_metric(uri, "get")
@@ -230,11 +229,7 @@ class TestDatasetApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         expected_result = {
             "cache_timeout": None,
-            "database": {
-                "backend": main_db.backend,
-                "database_name": "examples",
-                "id": 1,
-            },
+            "database": {"database_name": "examples", "id": 1},
             "default_endpoint": None,
             "description": "Energy consumption",
             "extra": None,
@@ -249,10 +244,9 @@ class TestDatasetApi(SupersetTestCase):
             "table_name": "energy_usage",
             "template_params": None,
         }
-        if response["result"]["database"]["backend"] not in ("presto", "hive"):
-            assert {
-                k: v for k, v in response["result"].items() if k in expected_result
-            } == expected_result
+        assert {
+            k: v for k, v in response["result"].items() if k in expected_result
+        } == expected_result
         assert len(response["result"]["columns"]) == 3
         assert len(response["result"]["metrics"]) == 2
 
