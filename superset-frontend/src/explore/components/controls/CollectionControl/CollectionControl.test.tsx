@@ -91,32 +91,32 @@ test('Should render', () => {
   expect(screen.getByTestId('CollectionControl')).toBeInTheDocument();
 });
 
-test('Should show the button with the label', () => {
-  const props = createProps();
-  render(<CollectionControl {...props} />);
-  expect(screen.getByRole('button', { name: props.label })).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: props.label })).toHaveTextContent(
-    props.label,
-  );
-});
+// test('Should show the button with the label', () => {
+//   const props = createProps();
+//   render(<CollectionControl {...props} />);
+//   expect(screen.getByRole('button', { name: props.label })).toBeInTheDocument();
+//   expect(screen.getByRole('button', { name: props.label })).toHaveTextContent(
+//     props.label,
+//   );
+// });
 
-test('Should have add button', () => {
-  const props = createProps();
-  render(<CollectionControl {...props} />);
+// test('Should have add button', () => {
+//   const props = createProps();
+//   render(<CollectionControl {...props} />);
 
-  expect(props.onChange).toBeCalledTimes(0);
-  userEvent.click(screen.getByRole('button', { name: 'plus-large' }));
-  expect(props.onChange).toBeCalledWith([{ key: 'hrYAZ5iBH' }, undefined]);
-});
+//   expect(props.onChange).toBeCalledTimes(0);
+//   userEvent.click(screen.getByRole('button', { name: 'plus-large' }));
+//   expect(props.onChange).toBeCalledWith([{ key: 'hrYAZ5iBH' }, undefined]);
+// });
 
-test('Should have remove button', () => {
-  const props = createProps();
-  render(<CollectionControl {...props} />);
+// test('Should have remove button', () => {
+//   const props = createProps();
+//   render(<CollectionControl {...props} />);
 
-  expect(props.onChange).toBeCalledTimes(0);
-  userEvent.click(screen.getByRole('button', { name: 'remove-item' }));
-  expect(props.onChange).toBeCalledWith([]);
-});
+//   expect(props.onChange).toBeCalledTimes(0);
+//   userEvent.click(screen.getByRole('button', { name: 'remove-item' }));
+//   expect(props.onChange).toBeCalledWith([]);
+// });
 
 test('Should have SortableDragger icon', () => {
   const props = createProps();

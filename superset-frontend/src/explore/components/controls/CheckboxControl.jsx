@@ -56,6 +56,7 @@ export default class CheckboxControl extends React.Component {
           {...this.props}
           leftNode={this.renderCheckbox()}
           onClick={this.onChange.bind(this)}
+          skipTabFocus={false}
         />
       );
     }
