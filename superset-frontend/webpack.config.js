@@ -260,7 +260,6 @@ const config = {
               '@ant-design.*',
               '.*bootstrap',
               'moment',
-              'jquery',
               'core-js.*',
               '@emotion.*',
               'd3',
