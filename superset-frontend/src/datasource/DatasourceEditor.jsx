@@ -40,7 +40,6 @@ import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import TextControl from 'src/explore/components/controls/TextControl';
-import SelectControl from 'src/explore/components/controls/SelectControl';
 import { Select } from 'src/components';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import SelectAsyncControl from 'src/explore/components/controls/SelectAsyncControl';
@@ -1166,10 +1165,9 @@ class DatasourceEditor extends React.PureComponent {
           >
             <ColumnCollectionTable
               columns={this.state.calculatedColumns}
-              onChange={calculatedColumns => {
-                console.log('calculatedColumns', calculatedColumns);
-                this.setColumns({ calculatedColumns });
-              }}
+              onChange={calculatedColumns =>
+                this.setColumns({ calculatedColumns })
+              }
               editableColumnName
               showExpression
               allowAddItem
