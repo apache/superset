@@ -46,6 +46,7 @@ export interface GetFormDataWithExtraFiltersArguments {
   sliceId: number;
   dataMask: DataMaskStateWithId;
   nativeFilters: NativeFiltersState;
+  extraControls: Record<string, string | boolean | null>;
 }
 
 // this function merge chart's formData with dashboard filters value,
@@ -62,6 +63,7 @@ export default function getFormDataWithExtraFilters({
   sliceId,
   layout,
   dataMask,
+  extraControls,
 }: GetFormDataWithExtraFiltersArguments) {
   // Propagate color mapping to chart
   const scale = CategoricalColorNamespace.getScale(colorScheme, colorNamespace);
@@ -108,6 +110,7 @@ export default function getFormDataWithExtraFilters({
     label_colors: labelColors,
     extra_filters: getEffectiveExtraFilters(filters),
     ...extraData,
+    ...extraControls,
   };
   cachedFiltersByChart[sliceId] = filters;
   cachedFormdataByChart[sliceId] = formData;

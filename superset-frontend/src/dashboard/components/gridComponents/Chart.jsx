@@ -48,6 +48,8 @@ const propTypes = {
   updateSliceName: PropTypes.func.isRequired,
   isComponentVisible: PropTypes.bool,
   handleToggleFullSize: PropTypes.func.isRequired,
+  setControlValue: PropTypes.func,
+  triggerRender: PropTypes.bool,
 
   // from redux
   chart: chartPropShape.isRequired,
@@ -288,6 +290,8 @@ export default class Chart extends React.Component {
       filterState,
       handleToggleFullSize,
       isFullSize,
+      setControlValue,
+      triggerRender,
     } = this.props;
 
     const { width } = this.state;
@@ -402,6 +406,8 @@ export default class Chart extends React.Component {
             timeout={timeout}
             triggerQuery={chart.triggerQuery}
             vizType={slice.viz_type}
+            setControlValue={setControlValue}
+            triggerRender={triggerRender}
           />
         </div>
       </div>

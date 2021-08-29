@@ -191,12 +191,15 @@ class ChartHolder extends React.Component {
       outlinedComponentId: null,
       outlinedColumnName: null,
       directPathLastUpdated: 0,
+      extraControls: {},
+      triggerRender: false,
     };
 
     this.handleChangeFocus = this.handleChangeFocus.bind(this);
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleUpdateSliceName = this.handleUpdateSliceName.bind(this);
     this.handleToggleFullSize = this.handleToggleFullSize.bind(this);
+    this.handleExtraControl = this.handleExtraControl.bind(this);
   }
 
   componentDidMount() {
@@ -251,8 +254,18 @@ class ChartHolder extends React.Component {
     setFullSizeChartId(isFullSize ? null : chartId);
   }
 
+  handleExtraControl(name, value) {
+    this.setState(prevState => ({
+      extraControls: {
+        ...prevState.extraControls,
+        [name]: value,
+      },
+      triggerRender: true,
+    }));
+  }
+
   render() {
-    const { isFocused } = this.state;
+    const { isFocused, extraControls, triggerRender } = this.state;
     const {
       component,
       parentComponent,
@@ -358,6 +371,9 @@ class ChartHolder extends React.Component {
                 isComponentVisible={isComponentVisible}
                 handleToggleFullSize={this.handleToggleFullSize}
                 isFullSize={isFullSize}
+                setControlValue={this.handleExtraControl}
+                extraControls={extraControls}
+                triggerRender={triggerRender}
               />
               {editMode && (
                 <HoverMenu position="top">
