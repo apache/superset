@@ -1058,14 +1058,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/tables/<int:db_id>/<schema>/<substr>/")
     @expose("/tables/<int:db_id>/<schema>/<substr>/<force_refresh>/")
-    @expose("/tables/<int:db_id>/<schema>/<substr>/<force_refresh>/<exact_match>")
-    def tables(  # pylint: disable=too-many-locals,no-self-use,too-many-arguments
-        self,
-        db_id: int,
-        schema: str,
-        substr: str,
-        force_refresh: str = "false",
-        exact_match: str = "false",
+    def tables(  # pylint: disable=too-many-locals,no-self-use
+        self, db_id: int, schema: str, substr: str, force_refresh: str = "false"
     ) -> FlaskResponse:
         """Endpoint to fetch the list of tables for given database"""
         # Guarantees database filtering by security access
@@ -1078,7 +1072,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return json_error_response("Not found", 404)
 
         force_refresh_parsed = force_refresh.lower() == "true"
-        exact_match_parsed = exact_match.lower() == "true"
         schema_parsed = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         substr_parsed = utils.parse_js_uri_path_item(substr, eval_undefined=True)
 
@@ -1120,15 +1113,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 ds_name.table if schema_parsed else f"{ds_name.schema}.{ds_name.table}"
             )
 
-        def is_match(src: str, target: utils.DatasourceName) -> bool:
-            target_label = get_datasource_label(target)
-            if exact_match_parsed:
-                return src == target_label
-            return src in target_label
-
         if substr_parsed:
-            tables = [tn for tn in tables if is_match(substr_parsed, tn)]
-            views = [vn for vn in views if is_match(substr_parsed, vn)]
+            tables = [tn for tn in tables if substr_parsed in get_datasource_label(tn)]
+            views = [vn for vn in views if substr_parsed in get_datasource_label(vn)]
 
         if not schema_parsed and database.default_schemas:
             user_schemas = (
