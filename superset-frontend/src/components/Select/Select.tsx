@@ -163,6 +163,7 @@ const Select = ({
   placeholder = t('Select ...'),
   showSearch,
   value,
+  onChange,
   ...props
 }: SelectProps) => {
   const isAsync = typeof options === 'function';
@@ -390,6 +391,11 @@ const Select = ({
         const newOptions = [...selectOptions, newOption];
         setSelectOptions(newOptions);
         setSelectValue(searchValue);
+
+        // @TODO to reconcile with the onSelect event
+        if (onChange) {
+          onChange(searchValue, newOptions);
+        }
       }
     }
     setSearchedValue(searchValue);

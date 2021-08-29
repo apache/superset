@@ -205,7 +205,12 @@ function ColumnCollectionTable({
                 fieldKey="type"
                 label={t('Data type')}
                 control={
-                  <Select options={DATA_TYPES} name="type" allowNewOptions />
+                  <Select
+                    ariaLabel={t('Data type')}
+                    options={DATA_TYPES}
+                    name="type"
+                    allowNewOptions
+                  />
                 }
               />
             )}
@@ -1161,9 +1166,10 @@ class DatasourceEditor extends React.PureComponent {
           >
             <ColumnCollectionTable
               columns={this.state.calculatedColumns}
-              onChange={calculatedColumns =>
-                this.setColumns({ calculatedColumns })
-              }
+              onChange={calculatedColumns => {
+                console.log('calculatedColumns', calculatedColumns);
+                this.setColumns({ calculatedColumns });
+              }}
               editableColumnName
               showExpression
               allowAddItem
