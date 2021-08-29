@@ -44,7 +44,7 @@ if TYPE_CHECKING:
 
 
 def assert_filterset_was_not_created(filter_set_data: Dict[str, Any]) -> None:
-    assert get_filter_set_by_name(filter_set_data["name"]) is None
+    assert get_filter_set_by_name(str(filter_set_data["name"])) is None
 
 
 def assert_filterset_was_created(filter_set_data: Dict[str, Any]) -> None:
