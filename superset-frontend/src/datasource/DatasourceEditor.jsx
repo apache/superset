@@ -209,6 +209,7 @@ function ColumnCollectionTable({
                     options={DATA_TYPES}
                     name="type"
                     allowNewOptions
+                    allowClear
                   />
                 }
               />

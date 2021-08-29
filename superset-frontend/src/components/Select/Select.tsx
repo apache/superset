@@ -49,8 +49,10 @@ type PickedSelectProps = Pick<
   | 'autoFocus'
   | 'disabled'
   | 'filterOption'
+  | 'loading'
   | 'notFoundContent'
   | 'onChange'
+  | 'onClear'
   | 'placeholder'
   | 'showSearch'
   | 'value'
@@ -156,6 +158,7 @@ const Select = ({
   filterOption = true,
   header = null,
   invertSelection = false,
+  loading,
   mode = 'single',
   name,
   options,
@@ -164,6 +167,7 @@ const Select = ({
   showSearch,
   value,
   onChange,
+  onClear,
   ...props
 }: SelectProps) => {
   const isAsync = typeof options === 'function';
@@ -176,7 +180,9 @@ const Select = ({
   );
   const [selectValue, setSelectValue] = useState(value);
   const [searchedValue, setSearchedValue] = useState('');
-  const [isLoading, setLoading] = useState(false);
+  const [isLoading, setLoading] = useState(
+    loading !== undefined ? loading : false,
+  );
   const [error, setError] = useState('');
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [page, setPage] = useState(0);
@@ -469,6 +475,12 @@ const Select = ({
     }
   }, [handleTopOptions, isSingleMode, selectValue]);
 
+  useEffect(() => {
+    if (loading !== undefined && loading !== isLoading) {
+      setLoading(loading);
+    }
+  }, [isLoading, loading]);
+
   const dropdownRender = (
     originNode: ReactElement & { ref?: RefObject<HTMLElement> },
   ) => {
@@ -505,7 +517,13 @@ const Select = ({
         onPopupScroll={isAsync ? handlePagination : undefined}
         onSearch={shouldShowSearch ? handleOnSearch : undefined}
         onSelect={handleOnSelect}
-        onClear={() => setSelectValue(undefined)}
+        onChange={onChange}
+        onClear={() => {
+          setSelectValue(undefined);
+          if (onClear) {
+            onClear();
+          }
+        }}
         options={selectOptions}
         placeholder={placeholder}
         showSearch={shouldShowSearch}
