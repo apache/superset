@@ -48,6 +48,7 @@ export interface NativeFiltersFormItem {
 
 export interface NativeFiltersForm {
   filters: Record<string, NativeFiltersFormItem>;
+  changed?: boolean;
 }
 
 export type FilterRemoval =

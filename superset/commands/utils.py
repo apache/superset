@@ -29,17 +29,25 @@ from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.extensions import db, security_manager
 
 
-def populate_owners(user: User, owner_ids: Optional[List[int]] = None) -> List[User]:
+def populate_owners(
+    user: User, owner_ids: Optional[List[int]], default_to_user: bool,
+) -> List[User]:
     """
     Helper function for commands, will fetch all users from owners id's
-    Can raise ValidationError
-    :param user: The current user
-    :param owner_ids: A List of owners by id's
+    :param user: current user
+    :param owner_ids: list of owners by id's
+    :param default_to_user: make user the owner if `owner_ids` is None or empty
+    :raises OwnersNotFoundValidationError: if at least one owner id can't be resolved
+    :returns: Final list of owners
     """
-    owners = list()
-    if not owner_ids:
+    owner_ids = owner_ids or []
+    owners = []
+    if not owner_ids and default_to_user:
         return [user]
-    if user.id not in owner_ids:
+    if user.id not in owner_ids and "admin" not in [
+        role.name.lower() for role in user.roles
+    ]:
+        # make sure non-admins can't remove themselves as owner by mistake
         owners.append(user)
     for owner_id in owner_ids:
         owner = security_manager.get_user_by_id(owner_id)
@@ -68,5 +76,5 @@ def get_datasource_by_id(datasource_id: int, datasource_type: str) -> BaseDataso
         return ConnectorRegistry.get_datasource(
             datasource_type, datasource_id, db.session
         )
-    except DatasetNotFoundError:
-        raise DatasourceNotFoundValidationError()
+    except DatasetNotFoundError as ex:
+        raise DatasourceNotFoundValidationError() from ex

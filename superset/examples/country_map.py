@@ -46,7 +46,7 @@ def load_country_map_data(only_metadata: bool = False, force: bool = False) -> N
         )
         data = pd.read_csv(csv_bytes, encoding="utf-8")
         data["dttm"] = datetime.datetime.now().date()
-        data.to_sql(  # pylint: disable=no-member
+        data.to_sql(
             tbl_name,
             database.get_sqla_engine(),
             if_exists="replace",

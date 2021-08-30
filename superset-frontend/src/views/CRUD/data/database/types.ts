@@ -21,6 +21,11 @@ type DatabaseUser = {
   last_name: string;
 };
 
+export type CatalogObject = {
+  name: string;
+  value: string;
+};
+
 export type DatabaseObject = {
   // Connection + general
   id?: number;
@@ -40,7 +45,8 @@ export type DatabaseObject = {
     password?: string;
     encryption?: boolean;
     credentials_info?: string;
-    query?: string | object;
+    query?: Record<string, string>;
+    catalog?: Record<string, string>;
   };
   configuration_method: CONFIGURATION_METHOD;
   engine?: string;
@@ -65,20 +71,25 @@ export type DatabaseObject = {
 
   // Extra
   extra_json?: {
-    engine_params?: {} | string;
+    engine_params?: {
+      catalog: Record<any, any> | string;
+    };
     metadata_params?: {} | string;
     metadata_cache_timeout?: {
       schema_cache_timeout?: number; // in Performance
       table_cache_timeout?: number; // in Performance
     }; // No field, holds schema and table timeout
     allows_virtual_table_explore?: boolean; // in SQL Lab
-    schemas_allowed_for_csv_upload?: [] | string; // in Security
+    schemas_allowed_for_csv_upload?: string[]; // in Security
     cancel_query_on_windows_unload?: boolean; // in Performance
-    version?: string;
 
-    // todo: ask beto where this should live
-    cost_query_enabled?: boolean; // in SQL Lab
+    version?: string;
+    cost_estimate_enabled?: boolean; // in SQL Lab
   };
+
+  // Temporary storage
+  catalog?: Array<CatalogObject>;
+  query_input?: string;
   extra?: string;
 };
 

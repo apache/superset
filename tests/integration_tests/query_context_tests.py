@@ -92,7 +92,7 @@ class TestQueryContext(SupersetTestCase):
 
     def test_cache(self):
         table_name = "birth_names"
-        table = self.get_table_by_name(table_name)
+        table = self.get_table(name=table_name)
         payload = get_query_context(table.name, table.id)
         payload["force"] = True
 

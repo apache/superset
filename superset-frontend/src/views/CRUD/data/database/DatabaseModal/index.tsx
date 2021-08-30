@@ -50,6 +50,7 @@ import {
   DatabaseObject,
   DatabaseForm,
   CONFIGURATION_METHOD,
+  CatalogObject,
 } from 'src/views/CRUD/data/database/types';
 import Loading from 'src/components/Loading';
 import ExtraOptions from './ExtraOptions';
@@ -74,6 +75,18 @@ import {
   StyledStickyHeader,
 } from './styles';
 import ModalHeader, { DOCUMENTATION_LINK } from './ModalHeader';
+
+const engineSpecificAlertMapping = {
+  gsheets: {
+    message: 'Why do I need to create a database?',
+    description:
+      'To begin using your Google Sheets, you need to create a database first. ' +
+      'Databases are used as a way to identify ' +
+      'your data so that it can be queried and visualized. This ' +
+      'database will hold all of your individual Google Sheets ' +
+      'you choose to connect here.',
+  },
+};
 
 const errorAlertMapping = {
   CONNECTION_MISSING_PARAMETERS_ERROR: {
@@ -101,9 +114,14 @@ const errorAlertMapping = {
     message: 'Invalid account information',
     description: 'Either the username or password is incorrect.',
   },
-  INVALID_PAYLOAD_SCHEMA: {
+  INVALID_PAYLOAD_SCHEMA_ERROR: {
     message: 'Incorrect Fields',
     description: 'Please make sure all fields are filled out correctly',
+  },
+  TABLE_DOES_NOT_EXIST_ERROR: {
+    message: 'URL could not be identified',
+    description:
+      'The URL could not be identified. Please check for typos and make sure that "Type of google sheet allowed" selection matches the input',
   },
 };
 interface DatabaseModalProps {
@@ -126,6 +144,9 @@ enum ActionType {
   textChange,
   extraInputChange,
   extraEditorChange,
+  addTableCatalogSheet,
+  removeTableCatalogSheet,
+  queryChange,
 }
 
 interface DBReducerPayloadType {
@@ -143,6 +164,7 @@ type DBReducerActionType =
         | ActionType.extraEditorChange
         | ActionType.extraInputChange
         | ActionType.textChange
+        | ActionType.queryChange
         | ActionType.inputChange
         | ActionType.editorChange
         | ActionType.parametersChange;
@@ -161,7 +183,13 @@ type DBReducerActionType =
       };
     }
   | {
-      type: ActionType.reset;
+      type: ActionType.reset | ActionType.addTableCatalogSheet;
+    }
+  | {
+      type: ActionType.removeTableCatalogSheet;
+      payload: {
+        indexToDelete: number;
+      };
     }
   | {
       type: ActionType.configMethodChange;
@@ -179,7 +207,11 @@ function dbReducer(
   const trimmedState = {
     ...(state || {}),
   };
-  let query = '';
+  let query = {};
+  let query_input = '';
+  let deserializeExtraJSON = {};
+  let extra_json: DatabaseObject['extra_json'];
+
   switch (action.type) {
     case ActionType.extraEditorChange:
       return {
@@ -205,6 +237,17 @@ function dbReducer(
           },
         };
       }
+      if (action.payload.name === 'schemas_allowed_for_csv_upload') {
+        return {
+          ...trimmedState,
+          extra_json: {
+            ...trimmedState.extra_json,
+            schemas_allowed_for_csv_upload: (action.payload.value || '').split(
+              ',',
+            ),
+          },
+        };
+      }
       return {
         ...trimmedState,
         extra_json: {
@@ -227,6 +270,29 @@ function dbReducer(
         [action.payload.name]: action.payload.value,
       };
     case ActionType.parametersChange:
+      if (
+        trimmedState.catalog !== undefined &&
+        action.payload.type?.startsWith('catalog')
+      ) {
+        // Formatting wrapping google sheets table catalog
+        const idx = action.payload.type?.split('-')[1];
+        const catalogToUpdate = trimmedState?.catalog[idx] || {};
+        catalogToUpdate[action.payload.name] = action.payload.value;
+
+        const paramatersCatalog = {};
+        // eslint-disable-next-line array-callback-return
+        trimmedState.catalog?.map((item: CatalogObject) => {
+          paramatersCatalog[item.name] = item.value;
+        });
+
+        return {
+          ...trimmedState,
+          parameters: {
+            ...trimmedState.parameters,
+            catalog: paramatersCatalog,
+          },
+        };
+      }
       return {
         ...trimmedState,
         parameters: {
@@ -234,10 +300,35 @@ function dbReducer(
           [action.payload.name]: action.payload.value,
         },
       };
+    case ActionType.addTableCatalogSheet:
+      if (trimmedState.catalog !== undefined) {
+        return {
+          ...trimmedState,
+          catalog: [...trimmedState.catalog, { name: '', value: '' }],
+        };
+      }
+      return {
+        ...trimmedState,
+        catalog: [{ name: '', value: '' }],
+      };
+    case ActionType.removeTableCatalogSheet:
+      trimmedState.catalog?.splice(action.payload.indexToDelete, 1);
+      return {
+        ...trimmedState,
+      };
     case ActionType.editorChange:
       return {
         ...trimmedState,
         [action.payload.name]: action.payload.json,
+      };
+    case ActionType.queryChange:
+      return {
+        ...trimmedState,
+        parameters: {
+          ...trimmedState.parameters,
+          query: Object.fromEntries(new URLSearchParams(action.payload.value)),
+        },
+        query_input: action.payload.value,
       };
     case ActionType.textChange:
       return {
@@ -246,10 +337,8 @@ function dbReducer(
       };
     case ActionType.fetched:
       // convert all the keys in this payload into strings
-      // eslint-disable-next-line no-case-declarations
-      let deserializeExtraJSON = {};
       if (action.payload.extra) {
-        const extra_json = {
+        extra_json = {
           ...JSON.parse(action.payload.extra || ''),
         } as DatabaseObject['extra_json'];
 
@@ -262,12 +351,11 @@ function dbReducer(
         };
       }
 
-      if (action.payload?.parameters?.query) {
-        // convert query into URI params string
-        query = new URLSearchParams(
-          action.payload.parameters.query as string,
-        ).toString();
-      }
+      // convert query to a string and store in query_input
+      query = action.payload?.parameters?.query || {};
+      query_input = Object.entries(query)
+        .map(([key, value]) => `${key}=${value}`)
+        .join('&');
 
       if (
         action.payload.backend === 'bigquery' &&
@@ -280,12 +368,35 @@ function dbReducer(
           configuration_method: action.payload.configuration_method,
           extra_json: deserializeExtraJSON,
           parameters: {
-            query,
             credentials_info: JSON.stringify(
               action.payload?.parameters?.credentials_info || '',
             ),
+            query,
           },
+          query_input,
         };
+      }
+
+      if (
+        action.payload.backend === 'gsheets' &&
+        action.payload.configuration_method ===
+          CONFIGURATION_METHOD.DYNAMIC_FORM &&
+        extra_json?.engine_params?.catalog !== undefined
+      ) {
+        // pull catalog from engine params
+        const engineParamsCatalog = extra_json?.engine_params?.catalog;
+
+        return {
+          ...action.payload,
+          engine: action.payload.backend,
+          configuration_method: action.payload.configuration_method,
+          extra_json: deserializeExtraJSON,
+          catalog: Object.keys(engineParamsCatalog).map(e => ({
+            name: e,
+            value: engineParamsCatalog[e],
+          })),
+          query_input,
+        } as DatabaseObject;
       }
 
       return {
@@ -294,11 +405,10 @@ function dbReducer(
         engine: action.payload.backend || trimmedState.engine,
         configuration_method: action.payload.configuration_method,
         extra_json: deserializeExtraJSON,
-        parameters: {
-          ...action.payload.parameters,
-          query,
-        },
+        parameters: action.payload.parameters,
+        query_input,
       };
+
     case ActionType.dbSelected:
       return {
         ...action.payload,
@@ -319,9 +429,12 @@ const serializeExtra = (extraJson: DatabaseObject['extra_json']) =>
   JSON.stringify({
     ...extraJson,
     metadata_params: JSON.parse((extraJson?.metadata_params as string) || '{}'),
-    engine_params: JSON.parse((extraJson?.engine_params as string) || '{}'),
-    schemas_allowed_for_csv_upload:
-      (extraJson?.schemas_allowed_for_csv_upload as string) || '[]',
+    engine_params: JSON.parse(
+      ((extraJson?.engine_params as unknown) as string) || '{}',
+    ),
+    schemas_allowed_for_csv_upload: (
+      extraJson?.schemas_allowed_for_csv_upload || []
+    ).filter(schema => schema !== ''),
   });
 
 const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
@@ -353,10 +466,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const sslForced = isFeatureEnabled(
     FeatureFlag.FORCE_DATABASE_CONNECTIONS_SSL,
   );
+  const hasAlert =
+    connectionAlert || !!(db?.engine && engineSpecificAlertMapping[db.engine]);
   const useSqlAlchemyForm =
     db?.configuration_method === CONFIGURATION_METHOD.SQLALCHEMY_URI;
   const useTabLayout = isEditMode || useSqlAlchemyForm;
-
   // Database fetch logic
   const {
     state: { loading: dbLoading, resource: dbFetched, error: dbErrors },
@@ -369,11 +483,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     t('database'),
     addDangerToast,
   );
-
   const isDynamic = (engine: string | undefined) =>
-    availableDbs?.databases.filter(
+    availableDbs?.databases?.find(
       (DB: DatabaseObject) => DB.backend === engine || DB.engine === engine,
-    )[0].parameters !== undefined;
+    )?.parameters !== undefined;
   const showDBError = validationErrors || dbErrors;
   const isEmpty = (data?: Object | null) =>
     data && Object.keys(data).length === 0;
@@ -427,18 +540,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         return;
       }
 
-      if (dbToUpdate?.parameters?.query) {
-        // convert query params into dictionary
-        dbToUpdate.parameters.query = JSON.parse(
-          `{"${decodeURI((dbToUpdate?.parameters?.query as string) || '')
-            .replace(/"/g, '\\"')
-            .replace(/&/g, '","')
-            .replace(/=/g, '":"')}"}`,
-        );
-      } else if (dbToUpdate?.parameters?.query === '') {
-        dbToUpdate.parameters.query = {};
-      }
-
       const engine = dbToUpdate.backend || dbToUpdate.engine;
       if (engine === 'bigquery' && dbToUpdate.parameters?.credentials_info) {
         // wrap encrypted_extra in credentials_info only for BigQuery
@@ -464,6 +565,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           });
         }
       }
+    }
+
+    if (dbToUpdate?.parameters?.catalog) {
+      // need to stringify gsheets catalog to allow it to be seralized
+      dbToUpdate.extra_json = {
+        engine_params: JSON.stringify({
+          catalog: dbToUpdate.parameters.catalog,
+        }),
+      };
     }
 
     if (dbToUpdate?.extra_json) {
@@ -530,21 +640,35 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const setDatabaseModel = (database_name: string) => {
-    const selectedDbModel = availableDbs?.databases.filter(
-      (db: DatabaseObject) => db.name === database_name,
-    )[0];
-    const { engine, parameters } = selectedDbModel;
-    const isDynamic = parameters !== undefined;
-    setDB({
-      type: ActionType.dbSelected,
-      payload: {
-        database_name,
-        configuration_method: isDynamic
-          ? CONFIGURATION_METHOD.DYNAMIC_FORM
-          : CONFIGURATION_METHOD.SQLALCHEMY_URI,
-        engine,
-      },
-    });
+    if (database_name === 'Other') {
+      // Allow users to connect to DB via legacy SQLA form
+      setDB({
+        type: ActionType.dbSelected,
+        payload: {
+          database_name,
+          configuration_method: CONFIGURATION_METHOD.SQLALCHEMY_URI,
+          engine: undefined,
+        },
+      });
+    } else {
+      const selectedDbModel = availableDbs?.databases.filter(
+        (db: DatabaseObject) => db.name === database_name,
+      )[0];
+      const { engine, parameters } = selectedDbModel;
+      const isDynamic = parameters !== undefined;
+      setDB({
+        type: ActionType.dbSelected,
+        payload: {
+          database_name,
+          configuration_method: isDynamic
+            ? CONFIGURATION_METHOD.DYNAMIC_FORM
+            : CONFIGURATION_METHOD.SQLALCHEMY_URI,
+          engine,
+        },
+      });
+    }
+
+    setDB({ type: ActionType.addTableCatalogSheet });
   };
 
   const renderAvailableSelector = () => (
@@ -567,6 +691,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               {database.name}
             </Select.Option>
           ))}
+        {/* Allow users to connect to DB via legacy SQLA form */}
+        <Select.Option value="Other" key="Other">
+          Other
+        </Select.Option>
       </Select>
       <Alert
         showIcon
@@ -721,6 +849,38 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setTabKey(key);
   };
 
+  const renderStepTwoAlert = () => {
+    const { hostname } = window.location;
+    let ipAlert = connectionAlert?.REGIONAL_IPS?.default || '';
+    const regionalIPs = connectionAlert?.REGIONAL_IPS || {};
+    Object.entries(regionalIPs).forEach(([ipRegion, ipRange]) => {
+      const regex = new RegExp(ipRegion);
+      if (hostname.match(regex)) {
+        ipAlert = ipRange;
+      }
+    });
+    return (
+      db?.engine && (
+        <StyledAlertMargin>
+          <Alert
+            closable={false}
+            css={(theme: SupersetTheme) => antDAlertStyles(theme)}
+            type="info"
+            showIcon
+            message={
+              engineSpecificAlertMapping[db.engine]?.message ||
+              connectionAlert?.DEFAULT?.message
+            }
+            description={
+              engineSpecificAlertMapping[db.engine]?.description ||
+              connectionAlert?.DEFAULT?.description + ipAlert
+            }
+          />
+        </StyledAlertMargin>
+      )
+    );
+  };
+
   const errorAlert = () => {
     if (
       isEmpty(dbErrors) ||
@@ -814,6 +974,21 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           onChange(ActionType.textChange, {
             name: target.name,
             value: target.value,
+          })
+        }
+        onQueryChange={({ target }: { target: HTMLInputElement }) =>
+          onChange(ActionType.queryChange, {
+            name: target.name,
+            value: target.value,
+          })
+        }
+        onAddTableCatalog={() =>
+          setDB({ type: ActionType.addTableCatalogSheet })
+        }
+        onRemoveTableCatalog={(idx: number) =>
+          setDB({
+            type: ActionType.removeTableCatalogSheet,
+            payload: { indexToDelete: idx },
           })
         }
         getValidation={() => getValidation(db)}
@@ -928,6 +1103,21 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   value: target.value,
                 })
               }
+              onQueryChange={({ target }: { target: HTMLInputElement }) =>
+                onChange(ActionType.queryChange, {
+                  name: target.name,
+                  value: target.value,
+                })
+              }
+              onAddTableCatalog={() =>
+                setDB({ type: ActionType.addTableCatalogSheet })
+              }
+              onRemoveTableCatalog={(idx: number) =>
+                setDB({
+                  type: ActionType.removeTableCatalogSheet,
+                  payload: { indexToDelete: idx },
+                })
+              }
               getValidation={() => getValidation(db)}
               validationErrors={validationErrors}
             />
@@ -1030,7 +1220,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         </>
       ) : (
         <>
-          {/* Step 1 */}
+          {/* Dyanmic Form Step 1 */}
           {!isLoading &&
             (!db ? (
               <SelectDatabaseStyles>
@@ -1057,22 +1247,26 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   dbName={dbName}
                   dbModel={dbModel}
                 />
-                {connectionAlert && (
-                  <StyledAlertMargin>
-                    <Alert
-                      closable={false}
-                      css={(theme: SupersetTheme) => antDAlertStyles(theme)}
-                      type="info"
-                      showIcon
-                      message={t('IP Allowlist')}
-                      description={connectionAlert.ALLOWED_IPS}
-                    />
-                  </StyledAlertMargin>
-                )}
+                {hasAlert && renderStepTwoAlert()}
                 <DatabaseConnectionForm
                   db={db}
                   sslForced={sslForced}
                   dbModel={dbModel}
+                  onAddTableCatalog={() => {
+                    setDB({ type: ActionType.addTableCatalogSheet });
+                  }}
+                  onQueryChange={({ target }: { target: HTMLInputElement }) =>
+                    onChange(ActionType.queryChange, {
+                      name: target.name,
+                      value: target.value,
+                    })
+                  }
+                  onRemoveTableCatalog={(idx: number) => {
+                    setDB({
+                      type: ActionType.removeTableCatalogSheet,
+                      payload: { indexToDelete: idx },
+                    });
+                  }}
                   onParametersChange={({
                     target,
                   }: {

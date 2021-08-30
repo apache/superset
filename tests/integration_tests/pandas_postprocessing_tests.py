@@ -20,7 +20,8 @@ from importlib.util import find_spec
 import math
 from typing import Any, List, Optional
 
-from pandas import DataFrame, Series, Timestamp
+import numpy as np
+from pandas import DataFrame, Series, Timestamp, to_datetime
 import pytest
 
 from superset.exceptions import QueryObjectValidationError
@@ -255,6 +256,54 @@ class TestPostProcessing(SupersetTestCase):
             columns=["category"],
             aggregates={"idx_nulls": {}},
         )
+
+    def test_pivot_eliminate_cartesian_product_columns(self):
+        # single metric
+        mock_df = DataFrame(
+            {
+                "dttm": to_datetime(["2019-01-01", "2019-01-01"]),
+                "a": [0, 1],
+                "b": [0, 1],
+                "metric": [9, np.NAN],
+            }
+        )
+
+        df = proc.pivot(
+            df=mock_df,
+            index=["dttm"],
+            columns=["a", "b"],
+            aggregates={"metric": {"operator": "mean"}},
+            drop_missing_columns=False,
+        )
+        self.assertEqual(list(df.columns), ["dttm", "0, 0", "1, 1"])
+        self.assertTrue(np.isnan(df["1, 1"][0]))
+
+        # multiple metrics
+        mock_df = DataFrame(
+            {
+                "dttm": to_datetime(["2019-01-01", "2019-01-01"]),
+                "a": [0, 1],
+                "b": [0, 1],
+                "metric": [9, np.NAN],
+                "metric2": [10, 11],
+            }
+        )
+
+        df = proc.pivot(
+            df=mock_df,
+            index=["dttm"],
+            columns=["a", "b"],
+            aggregates={
+                "metric": {"operator": "mean"},
+                "metric2": {"operator": "mean"},
+            },
+            drop_missing_columns=False,
+        )
+        self.assertEqual(
+            list(df.columns),
+            ["dttm", "metric, 0, 0", "metric, 1, 1", "metric2, 0, 0", "metric2, 1, 1"],
+        )
+        self.assertTrue(np.isnan(df["metric, 1, 1"][0]))
 
     def test_aggregate(self):
         aggregates = {

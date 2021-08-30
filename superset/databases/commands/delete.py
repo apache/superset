@@ -48,7 +48,7 @@ class DeleteDatabaseCommand(BaseCommand):
             database = DatabaseDAO.delete(self._model)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
-            raise DatabaseDeleteFailedError()
+            raise DatabaseDeleteFailedError() from ex
         return database
 
     def validate(self) -> None:

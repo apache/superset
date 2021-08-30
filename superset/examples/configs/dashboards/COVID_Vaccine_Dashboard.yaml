@@ -16,7 +16,7 @@
 # under the License.
 dashboard_title: COVID Vaccine Dashboard
 description: null
-css: ''
+css: ""
 slug: null
 uuid: f4065089-110a-41fa-8dd7-9ce98a65e250
 position:
@@ -25,111 +25,63 @@ position:
     id: CHART-63bEuxjDMJ
     meta:
       chartId: 3961
-      height: 76
+      height: 72
       sliceName: Vaccine Candidates per Country
       sliceNameOverride: Map of Vaccine Candidates
       uuid: ddc91df6-fb40-4826-bdca-16b85af1c024
-      width: 7
+      width: 12
     parents:
-    - ROOT_ID
-    - TABS-wUKya7eQ0Z
-    - TAB-BCIJF4NvgQ
-    - ROW-zvw7luvEL
+      - ROOT_ID
+      - TABS-wUKya7eQ0Z
+      - TAB-BCIJF4NvgQ
+      - ROW-zvw7luvEL
     type: CHART
   CHART-F-fkth0Dnv:
     children: []
     id: CHART-F-fkth0Dnv
     meta:
       chartId: 3960
-      height: 76
+      height: 60
       sliceName: Vaccine Candidates per Country
       sliceNameOverride: Treemap of Vaccine Candidates per Country
       uuid: e2f5a8a7-feb0-4f79-bc6b-01fe55b98b3c
-      width: 5
+      width: 8
     parents:
-    - ROOT_ID
-    - TABS-wUKya7eQ0Z
-    - TAB-BCIJF4NvgQ
-    - ROW-zvw7luvEL
+      - ROOT_ID
+      - TABS-wUKya7eQ0Z
+      - TAB-BCIJF4NvgQ
+      - ROW-xSeNAspgw
     type: CHART
   CHART-RjD_ygqtwH:
     children: []
     id: CHART-RjD_ygqtwH
     meta:
       chartId: 3957
-      height: 59
+      height: 72
       sliceName: Vaccine Candidates per Phase
       sliceNameOverride: Vaccine Candidates per Phase
       uuid: 30b73c65-85e7-455f-bb24-801bb0cdc670
-      width: 2
+      width: 3
     parents:
-    - ROOT_ID
-    - TABS-wUKya7eQ0Z
-    - TAB-BCIJF4NvgQ
-    - ROW-xSeNAspgw
+      - ROOT_ID
+      - TABS-wUKya7eQ0Z
+      - TAB-BCIJF4NvgQ
+      - ROW-zvw7luvEL
     type: CHART
   CHART-aGfmWtliqA:
     children: []
     id: CHART-aGfmWtliqA
     meta:
       chartId: 3956
-      height: 59
+      height: 72
       sliceName: Vaccine Candidates per Phase
       uuid: 392f293e-0892-4316-bd41-c927b65606a4
-      width: 4
-    parents:
-    - ROOT_ID
-    - TABS-wUKya7eQ0Z
-    - TAB-BCIJF4NvgQ
-    - ROW-xSeNAspgw
-    type: CHART
-  CHART-dCUpAcPsji:
-    children: []
-    id: CHART-dCUpAcPsji
-    meta:
-      chartId: 3963
-      height: 82
-      sliceName: Vaccine Candidates per Country & Stage
-      sliceNameOverride: Heatmap of Countries & Clinical Stages
-      uuid: cd111331-d286-4258-9020-c7949a109ed2
-      width: 4
-    parents:
-    - ROOT_ID
-    - TABS-wUKya7eQ0Z
-    - TAB-BCIJF4NvgQ
-    - ROW-zhOlQLQnB
-    type: CHART
-  CHART-eirDduqb1A:
-    children: []
-    id: CHART-eirDduqb1A
-    meta:
-      chartId: 3965
-      height: 59
-      sliceName: Filtering Vaccines
-      sliceNameOverride: Filter Box of Vaccines
-      uuid: c29381ce-0e99-4cf3-bf0f-5f55d6b94176
-      width: 3
-    parents:
-    - ROOT_ID
-    - TABS-wUKya7eQ0Z
-    - TAB-BCIJF4NvgQ
-    - ROW-xSeNAspgw
-    type: CHART
-  CHART-fYo7IyvKZQ:
-    children: []
-    id: CHART-fYo7IyvKZQ
-    meta:
-      chartId: 3964
-      height: 82
-      sliceName: Vaccine Candidates per Country & Stage
-      sliceNameOverride: Sunburst of Country & Clinical Stages
-      uuid: f69c556f-15fe-4a82-a8bb-69d5b6954123
       width: 5
     parents:
-    - ROOT_ID
-    - TABS-wUKya7eQ0Z
-    - TAB-BCIJF4NvgQ
-    - ROW-zhOlQLQnB
+      - ROOT_ID
+      - TABS-wUKya7eQ0Z
+      - TAB-BCIJF4NvgQ
+      - ROW-zvw7luvEL
     type: CHART
   CHART-j4hUvP5dDD:
     children: []
@@ -140,19 +92,51 @@ position:
       sliceName: Vaccine Candidates per Approach & Stage
       sliceNameOverride: Heatmap of Aproaches & Clinical Stages
       uuid: 0c953c84-0c9a-418d-be9f-2894d2a2cee0
-      width: 3
+      width: 4
     parents:
-    - ROOT_ID
-    - TABS-wUKya7eQ0Z
-    - TAB-BCIJF4NvgQ
-    - ROW-zhOlQLQnB
+      - ROOT_ID
+      - TABS-wUKya7eQ0Z
+      - TAB-BCIJF4NvgQ
+      - ROW-dieUdkeUw
+    type: CHART
+  CHART-dCUpAcPsji:
+    children: []
+    id: CHART-dCUpAcPsji
+    meta:
+      chartId: 3963
+      height: 72
+      sliceName: Vaccine Candidates per Country & Stage
+      sliceNameOverride: Heatmap of Countries & Clinical Stages
+      uuid: cd111331-d286-4258-9020-c7949a109ed2
+      width: 4
+    parents:
+      - ROOT_ID
+      - TABS-wUKya7eQ0Z
+      - TAB-BCIJF4NvgQ
+      - ROW-dieUdkeUw
+    type: CHART
+  CHART-eirDduqb1A:
+    children: []
+    id: CHART-eirDduqb1A
+    meta:
+      chartId: 3965
+      height: 60
+      sliceName: Filtering Vaccines
+      sliceNameOverride: Filter Box of Vaccines
+      uuid: c29381ce-0e99-4cf3-bf0f-5f55d6b94176
+      width: 4
+    parents:
+      - ROOT_ID
+      - TABS-wUKya7eQ0Z
+      - TAB-BCIJF4NvgQ
+      - ROW-xSeNAspgw
     type: CHART
   DASHBOARD_VERSION_KEY: v2
   GRID_ID:
     children: []
     id: GRID_ID
     parents:
-    - ROOT_ID
+      - ROOT_ID
     type: GRID
   HEADER_ID:
     id: HEADER_ID
@@ -163,7 +147,7 @@ position:
     children: []
     id: MARKDOWN-VjQQ5SFj5v
     meta:
-      code: '# COVID-19 Vaccine Dashboard
+      code: "# COVID-19 Vaccine Dashboard
 
 
         Everywhere you look, you see negative news about COVID-19. This is to be expected;
@@ -193,129 +177,157 @@ position:
         country responsible for each vaccine effort.
 
 
-        _Note that this dataset was last updated on 12/23/2020_.
+        _Note that this dataset was last updated on 07/2021_.
 
 
-        '
-      height: 59
-      width: 3
+        "
+      height: 72
+      width: 4
     parents:
-    - ROOT_ID
-    - TABS-wUKya7eQ0Z
-    - TAB-BCIJF4NvgQ
-    - ROW-xSeNAspgw
+      - ROOT_ID
+      - TABS-wUKya7eQ0Z
+      - TAB-BCIJF4NvgQ
+      - ROW-zhOlQLQnB
     type: MARKDOWN
+  CHART-fYo7IyvKZQ:
+    children: []
+    id: CHART-fYo7IyvKZQ
+    meta:
+      chartId: 3964
+      height: 72
+      sliceName: Vaccine Candidates per Country & Stage
+      sliceNameOverride: Sunburst of Country & Clinical Stages
+      uuid: f69c556f-15fe-4a82-a8bb-69d5b6954123
+      width: 4
+    parents:
+      - ROOT_ID
+      - TABS-wUKya7eQ0Z
+      - TAB-BCIJF4NvgQ
+      - ROW-dieUdkeUw
+    type: CHART
   ROOT_ID:
     children:
-    - TABS-wUKya7eQ0Z
+      - TABS-wUKya7eQ0Z
     id: ROOT_ID
     type: ROOT
-  ROW-xSeNAspgw:
-    children:
-    - MARKDOWN-VjQQ5SFj5v
-    - CHART-aGfmWtliqA
-    - CHART-RjD_ygqtwH
-    - CHART-eirDduqb1A
-    id: ROW-xSeNAspgw
-    meta:
-      '0': ROOT_ID
-      background: BACKGROUND_TRANSPARENT
-    parents:
-    - ROOT_ID
-    - TABS-wUKya7eQ0Z
-    - TAB-BCIJF4NvgQ
-    type: ROW
   ROW-zhOlQLQnB:
     children:
-    - CHART-j4hUvP5dDD
-    - CHART-dCUpAcPsji
-    - CHART-fYo7IyvKZQ
+      - MARKDOWN-VjQQ5SFj5v
+      - CHART-RjD_ygqtwH
+      - CHART-aGfmWtliqA
     id: ROW-zhOlQLQnB
     meta:
-      '0': ROOT_ID
+      "0": ROOT_ID
       background: BACKGROUND_TRANSPARENT
     parents:
-    - ROOT_ID
-    - TABS-wUKya7eQ0Z
-    - TAB-BCIJF4NvgQ
+      - ROOT_ID
+      - TABS-wUKya7eQ0Z
+      - TAB-BCIJF4NvgQ
+    type: ROW
+  ROW-xSeNAspgw:
+    children:
+      - CHART-eirDduqb1A
+      - CHART-F-fkth0Dnv
+    id: ROW-xSeNAspgw
+    meta:
+      "0": ROOT_ID
+      background: BACKGROUND_TRANSPARENT
+    parents:
+      - ROOT_ID
+      - TABS-wUKya7eQ0Z
+      - TAB-BCIJF4NvgQ
+    type: ROW
+  ROW-dieUdkeUw:
+    children:
+      - CHART-dCUpAcPsji
+      - CHART-fYo7IyvKZQ
+      - CHART-j4hUvP5dDD
+    id: ROW-xSeNAspgw
+    meta:
+      "0": ROOT_ID
+      background: BACKGROUND_TRANSPARENT
+    parents:
+      - ROOT_ID
+      - TABS-wUKya7eQ0Z
+      - TAB-BCIJF4NvgQ
     type: ROW
   ROW-zvw7luvEL:
     children:
-    - CHART-63bEuxjDMJ
-    - CHART-F-fkth0Dnv
+      - CHART-63bEuxjDMJ
     id: ROW-zvw7luvEL
     meta:
-      '0': ROOT_ID
+      "0": ROOT_ID
       background: BACKGROUND_TRANSPARENT
     parents:
-    - ROOT_ID
-    - TABS-wUKya7eQ0Z
-    - TAB-BCIJF4NvgQ
+      - ROOT_ID
+      - TABS-wUKya7eQ0Z
+      - TAB-BCIJF4NvgQ
     type: ROW
   TAB-BCIJF4NvgQ:
     children:
-    - ROW-xSeNAspgw
-    - ROW-zvw7luvEL
-    - ROW-zhOlQLQnB
+      - ROW-zhOlQLQnB
+      - ROW-xSeNAspgw
+      - ROW-zvw7luvEL
+      - ROW-dieUdkeUw
     id: TAB-BCIJF4NvgQ
     meta:
       text: Overview
     parents:
-    - ROOT_ID
-    - TABS-wUKya7eQ0Z
+      - ROOT_ID
+      - TABS-wUKya7eQ0Z
     type: TAB
   TABS-wUKya7eQ0Z:
     children:
-    - TAB-BCIJF4NvgQ
+      - TAB-BCIJF4NvgQ
     id: TABS-wUKya7eQ0Z
     meta: {}
     parents:
-    - ROOT_ID
+      - ROOT_ID
     type: TABS
 metadata:
   timed_refresh_immune_slices: []
   expanded_slices: {}
   refresh_frequency: 0
-  default_filters: '{}'
+  default_filters: "{}"
   color_scheme: supersetColors
   label_colors:
-    '0': '#D3B3DA'
-    '1': '#9EE5E5'
-    0. Pre-clinical: '#1FA8C9'
-    2. Phase II or Combined I/II: '#454E7C'
-    1. Phase I: '#5AC189'
-    3. Phase III: '#FF7F44'
-    4. Authorized: '#666666'
-    root: '#1FA8C9'
-    Protein subunit: '#454E7C'
-    Phase II: '#5AC189'
-    Pre-clinical: '#FF7F44'
-    Phase III: '#666666'
-    Phase I: '#E04355'
-    Phase I/II: '#FCC700'
-    Inactivated virus: '#A868B7'
-    Virus-like particle: '#3CCCCB'
-    Replicating bacterial vector: '#A38F79'
-    DNA-based: '#8FD3E4'
-    RNA-based vaccine: '#A1A6BD'
-    Authorized: '#ACE1C4'
-    Non-replicating viral vector: '#FEC0A1'
-    Replicating viral vector: '#B2B2B2'
-    Unknown: '#EFA1AA'
-    Live attenuated virus: '#FDE380'
-    COUNT(*): '#D1C6BC'
+    "0": "#D3B3DA"
+    "1": "#9EE5E5"
+    0. Pre-clinical: "#1FA8C9"
+    2. Phase II or Combined I/II: "#454E7C"
+    1. Phase I: "#5AC189"
+    3. Phase III: "#FF7F44"
+    4. Authorized: "#666666"
+    root: "#1FA8C9"
+    Protein subunit: "#454E7C"
+    Phase II: "#5AC189"
+    Pre-clinical: "#FF7F44"
+    Phase III: "#666666"
+    Phase I: "#E04355"
+    Phase I/II: "#FCC700"
+    Inactivated virus: "#A868B7"
+    Virus-like particle: "#3CCCCB"
+    Replicating bacterial vector: "#A38F79"
+    DNA-based: "#8FD3E4"
+    RNA-based vaccine: "#A1A6BD"
+    Authorized: "#ACE1C4"
+    Non-replicating viral vector: "#FEC0A1"
+    Replicating viral vector: "#B2B2B2"
+    Unknown: "#EFA1AA"
+    Live attenuated virus: "#FDE380"
+    COUNT(*): "#D1C6BC"
   filter_scopes:
-    '3965':
+    "3965":
       Country_Name:
         scope:
-        - ROOT_ID
+          - ROOT_ID
         immune: []
       Product_Category:
         scope:
-        - ROOT_ID
+          - ROOT_ID
         immune: []
       Clinical Stage:
         scope:
-        - ROOT_ID
+          - ROOT_ID
         immune: []
 version: 1.0.0

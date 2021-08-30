@@ -52,6 +52,14 @@ const StyledTooltip = styled(Tooltip)`
   }
 `;
 
+const StyledTooltipTitle = styled.span`
+  display: -webkit-box;
+  -webkit-line-clamp: 20;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
 const defaultOverlayStyle = {
   fontSize: '12px',
   lineHeight: '16px',
@@ -69,7 +77,7 @@ export default function InfoTooltip({
 }: InfoTooltipProps) {
   return (
     <StyledTooltip
-      title={tooltip}
+      title={<StyledTooltipTitle>{tooltip}</StyledTooltipTitle>}
       placement={placement}
       trigger={trigger}
       overlayStyle={overlayStyle}
