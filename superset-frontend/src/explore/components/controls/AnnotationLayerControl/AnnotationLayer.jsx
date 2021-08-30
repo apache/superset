@@ -434,6 +434,7 @@ export default class AnnotationLayer extends React.PureComponent {
           }))}
           value={value}
           allowClear
+          showSearch
         />
       );
     }
@@ -508,6 +509,7 @@ export default class AnnotationLayer extends React.PureComponent {
                 onChange={v => this.setState({ timeColumn: v })}
                 options={timeColumnOptions}
                 value={timeColumn}
+                showSearch
               />
             )}
             {annotationType === ANNOTATION_TYPES.INTERVAL && (
@@ -533,6 +535,7 @@ export default class AnnotationLayer extends React.PureComponent {
                 options={columns}
                 value={intervalEndColumn}
                 allowClear
+                showSearch
               />
             )}
             <Select
@@ -554,6 +557,7 @@ export default class AnnotationLayer extends React.PureComponent {
               options={[{ value: '', label: 'None' }].concat(columns)}
               value={titleColumn}
               allowClear
+              showSearch
             />
             {annotationType !== ANNOTATION_TYPES.TIME_SERIES && (
               <Select
@@ -577,6 +581,7 @@ export default class AnnotationLayer extends React.PureComponent {
                 options={columns}
                 value={descriptionColumns}
                 allowClear
+                showSearch
               />
             )}
             <div style={{ marginTop: '1rem' }}>
@@ -680,6 +685,7 @@ export default class AnnotationLayer extends React.PureComponent {
           ]}
           onChange={v => this.setState({ style: v })}
           value={style}
+          showSearch
         />
         <Select
           ariaLabel={t('Annotation layer opacity')}
@@ -698,6 +704,7 @@ export default class AnnotationLayer extends React.PureComponent {
           onClear={this.handleOnClear}
           value={opacity}
           allowClear
+          showSearch
         />
         <div>
           <ControlHeader label={t('Color')} />
@@ -799,6 +806,7 @@ export default class AnnotationLayer extends React.PureComponent {
                 value={annotationType}
                 onChange={this.handleAnnotationType}
                 allowClear
+                showSearch
               />
               {supportedSourceTypes.length > 0 && (
                 <Select
@@ -819,6 +827,7 @@ export default class AnnotationLayer extends React.PureComponent {
                   }
                   onClear={this.handleOnClear}
                   allowClear
+                  showSearch
                 />
               )}
               {this.renderValueConfiguration()}

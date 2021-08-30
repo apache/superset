@@ -147,6 +147,7 @@ export default class SpatialControl extends React.Component {
         onChange={value => {
           this.setState({ [name]: value }, this.onChange);
         }}
+        showSearch
       />
     );
   }
