@@ -669,7 +669,7 @@ export default class AnnotationLayer extends React.PureComponent {
       >
         <Select
           ariaLabel={t('Annotation layer stroke')}
-          header={ <ControlHeader label={t('Style')} />}
+          header={<ControlHeader label={t('Style')} />}
           name="annotation-layer-stroke"
           // see '../../../visualizations/nvd3_vis.css'
           options={[
