@@ -173,6 +173,7 @@ export default class AnnotationLayer extends React.PureComponent {
     this.handleValue = this.handleValue.bind(this);
     this.isValidForm = this.isValidForm.bind(this);
     this.handleOnChange = this.handleOnChange.bind(this);
+    this.handleOnClear = this.handleOnClear.bind(this);
   }
 
   componentDidMount() {
