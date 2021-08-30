@@ -178,7 +178,12 @@ class Chart extends React.PureComponent {
     const message = chartAlert || queryResponse?.message;
 
     // if datasource is still loading, don't render JS errors
-    if (chartAlert && datasource === PLACEHOLDER_DATASOURCE) {
+    if (
+      chartAlert !== undefined &&
+      chartAlert !==
+        'The dataset associated with this chart no longer exists' &&
+      datasource === PLACEHOLDER_DATASOURCE
+    ) {
       return (
         <Styles
           data-ui-anchor="chart"
