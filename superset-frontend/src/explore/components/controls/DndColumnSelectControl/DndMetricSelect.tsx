@@ -186,9 +186,7 @@ export const DndMetricSelect = (props: any) => {
 
   const onNewMetric = useCallback(
     (newMetric: Metric) => {
-      const newValue = props.multi
-        ? [...value, newMetric.metric_name]
-        : [newMetric.metric_name];
+      const newValue = props.multi ? [...value, newMetric] : [newMetric];
       setValue(newValue);
       handleChange(newValue);
     },

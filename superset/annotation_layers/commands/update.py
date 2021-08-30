@@ -52,7 +52,7 @@ class UpdateAnnotationLayerCommand(BaseCommand):
         return annotation_layer
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = list()
+        exceptions: List[ValidationError] = []
         name = self._properties.get("name", "")
         self._model = AnnotationLayerDAO.find_by_id(self._model_id)
 
