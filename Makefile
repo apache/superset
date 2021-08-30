@@ -66,7 +66,7 @@ venv:
 	test -d venv || ${PYTHON} -m venv venv # setup a python3 virtualenv
 	. venv/bin/activate
 
-make activate:
+activate:
 	source venv/bin/activate
 
 pre-commit:
