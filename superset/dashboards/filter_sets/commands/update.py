@@ -49,7 +49,7 @@ class UpdateFilterSetCommand(BaseFilterSetCommand):
                 self._properties[OWNER_ID_FIELD] = self._dashboard_id
             return FilterSetDAO.update(self._filter_set, self._properties, commit=True)
         except DAOUpdateFailedError as err:
-            raise FilterSetUpdateFailedError(str(self._filter_set_id), "", err)
+            raise FilterSetUpdateFailedError(str(self._filter_set_id), "") from err
 
     def validate(self) -> None:
         super().validate()

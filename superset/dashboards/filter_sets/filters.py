@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from sqlalchemy.orm.query import Query
 
 
-class FilterSetFilter(BaseFilter):
+class FilterSetFilter(BaseFilter):  # pylint: disable=too-few-public-methods)
     def apply(self, query: Query, value: Any) -> Query:
         if is_user_admin():
             return query

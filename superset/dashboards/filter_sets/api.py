@@ -15,19 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, cast, Optional
+from typing import Any, cast
 
 from flask import g, request, Response
 from flask_appbuilder.api import (
-    API_DESCRIPTION_COLUMNS_RIS_KEY,
-    API_LABEL_COLUMNS_RIS_KEY,
-    API_LIST_COLUMNS_RIS_KEY,
-    API_LIST_TITLE_RIS_KEY,
-    API_ORDER_COLUMNS_RIS_KEY,
     expose,
     get_list_schema,
-    merge_response_func,
-    ModelRestApi,
     permission_name,
     protect,
     rison,
@@ -74,7 +67,7 @@ logger = logging.getLogger(__name__)
 
 
 class FilterSetRestApi(BaseSupersetModelRestApi):
-    # pylint: disable=W0221
+    # pylint: disable=arguments-differ
     include_route_methods = {"get_list", "put", "post", "delete"}
     datamodel = SQLAInterface(FilterSet)
     resource_name = "dashboard"
@@ -180,7 +173,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
     )
-    def post(self, dashboard_id: int) -> Response:  # pylint: disable=W0221
+    def post(self, dashboard_id: int) -> Response:
         """
             Creates a new Dashboard's Filter Set
         ---
@@ -317,7 +310,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
         log_to_statsd=False,
     )
-    def delete(self, dashboard_id: int, pk: int) -> Response:  # pylint: disable=W0221
+    def delete(self, dashboard_id: int, pk: int) -> Response:
         """
             Deletes a Dashboard's FilterSet
         ---

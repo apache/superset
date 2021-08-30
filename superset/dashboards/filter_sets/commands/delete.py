@@ -41,7 +41,7 @@ class DeleteFilterSetCommand(BaseFilterSetCommand):
             self.validate()
             return FilterSetDAO.delete(self._filter_set, commit=True)
         except DAODeleteFailedError as err:
-            raise FilterSetDeleteFailedError(str(self._filter_set_id), "", err)
+            raise FilterSetDeleteFailedError(str(self._filter_set_id), "") from err
 
     def validate(self) -> None:
         super().validate()
@@ -52,5 +52,5 @@ class DeleteFilterSetCommand(BaseFilterSetCommand):
                 raise FilterSetForbiddenError(
                     'the filter-set does not related to dashboard "%s"'
                     % str(self._dashboard_id)
-                )
+                ) from err
             raise err

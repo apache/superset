@@ -27,16 +27,12 @@ from sqlalchemy_utils import generic_relationship
 from superset import app, db
 from superset.models.helpers import AuditMixinNullable
 
-# pylint: disable=too-many-public-methods
-
 metadata = Model.metadata  # pylint: disable=no-member
 config = app.config
 logger = logging.getLogger(__name__)
 
 
-class FilterSet(  # pylint: disable=too-many-instance-attributes
-    Model, AuditMixinNullable
-):
+class FilterSet(Model, AuditMixinNullable):
     __tablename__ = "filter_sets"
     id = Column(Integer, primary_key=True)
     name = Column(String(500), nullable=False, unique=True)

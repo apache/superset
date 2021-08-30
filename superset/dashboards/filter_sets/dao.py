@@ -43,7 +43,7 @@ class FilterSetDAO(BaseDAO):
     def create(cls, properties: Dict[str, Any], commit: bool = True) -> Model:
         if cls.model_cls is None:
             raise DAOConfigError()
-        model = FilterSet()  # pylint: disable=not-callable
+        model = FilterSet()
         setattr(model, NAME_FIELD, properties[NAME_FIELD])
         setattr(model, JSON_METADATA_FIELD, properties[JSON_METADATA_FIELD])
         setattr(model, DESCRIPTION_FIELD, properties.get(DESCRIPTION_FIELD, None))
@@ -60,5 +60,5 @@ class FilterSetDAO(BaseDAO):
                 db.session.commit()
         except SQLAlchemyError as ex:  # pragma: no cover
             db.session.rollback()
-            raise DAOCreateFailedError(exception=ex)
+            raise DAOCreateFailedError() from ex
         return model
