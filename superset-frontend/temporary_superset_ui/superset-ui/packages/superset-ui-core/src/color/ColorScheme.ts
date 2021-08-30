@@ -3,6 +3,7 @@ export interface ColorSchemeConfig {
   description?: string;
   id: string;
   label?: string;
+  isDefault?: boolean;
 }
 
 export default class ColorScheme {
@@ -14,11 +15,13 @@ export default class ColorScheme {
 
   label: string;
 
-  constructor(config: ColorSchemeConfig) {
-    const { colors, description = '', id, label } = config;
+  isDefault?: boolean;
+
+  constructor({ colors, description = '', id, label, isDefault }: ColorSchemeConfig) {
     this.id = id;
     this.label = label ?? id;
     this.colors = colors;
     this.description = description;
+    this.isDefault = isDefault;
   }
 }
