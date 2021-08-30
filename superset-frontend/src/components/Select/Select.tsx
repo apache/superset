@@ -53,6 +53,7 @@ type PickedSelectProps = Pick<
   | 'notFoundContent'
   | 'onChange'
   | 'onClear'
+  | 'onFocus'
   | 'placeholder'
   | 'showSearch'
   | 'value'
