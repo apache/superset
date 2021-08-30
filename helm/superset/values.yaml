@@ -209,8 +209,12 @@ supersetNode:
       command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
   ## Annotations to be added to supersetNode deployment
   deploymentAnnotations: {}
+  ## Labels to be added to supersetNode deployment
+  deploymentLabels: {}
   ## Annotations to be added to supersetNode pods
   podAnnotations: {}
+  ## Labels to be added to supersetNode pods
+  podLabels: {}
 
 ##
 ## Superset worker configuration
@@ -230,8 +234,12 @@ supersetWorker:
       command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
   ## Annotations to be added to supersetWorker deployment
   deploymentAnnotations: {}
+  ## Labels to be added to supersetWorker deployment
+  deploymentLabels: {}
   ## Annotations to be added to supersetWorker pods
   podAnnotations: {}
+  ## Labels to be added to supersetWorker pods
+  podLabels: {}
 
 ##
 ## Superset beat configuration (to trigger scheduled jobs like reports)
@@ -253,8 +261,12 @@ supersetCeleryBeat:
       command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
   ## Annotations to be added to supersetCeleryBeat deployment
   deploymentAnnotations: {}
+  ## Labels to be added to supersetCeleryBeat deployment
+  deploymentLabels: {}
   ## Annotations to be added to supersetCeleryBeat pods
   podAnnotations: {}
+  ## Labels to be added to supersetCeleryBeat pods
+  podLabels: {}
 
 ##
 ## Init job configuration
