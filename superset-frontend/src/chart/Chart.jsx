@@ -68,8 +68,9 @@ const propTypes = {
 };
 
 const BLANK = {};
-const NONEXISTENT_DATASET =
-  'The dataset associated with this chart no longer exists';
+const NONEXISTENT_DATASET = t(
+  'The dataset associated with this chart no longer exists',
+);
 
 const defaultProps = {
   addFilter: () => BLANK,
