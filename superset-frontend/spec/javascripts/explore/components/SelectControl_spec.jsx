@@ -66,22 +66,6 @@ describe('SelectControl', () => {
     expect(defaultProps.onChange.calledWith(50)).toBe(true);
   });
 
-  it('returns all options on select all', () => {
-    const expectedValues = ['one', 'two'];
-    const selectAllProps = {
-      multi: true,
-      allowAll: true,
-      choices: expectedValues,
-      name: 'row_limit',
-      label: 'Row Limit',
-      valueKey: 'value',
-      onChange: sinon.spy(),
-    };
-    wrapper.setProps(selectAllProps);
-    wrapper.instance().onChange([{ meta: true, value: 'Select all' }]);
-    expect(selectAllProps.onChange.calledWith(expectedValues)).toBe(true);
-  });
-
   describe('render', () => {
     it('renders with Select by default', () => {
       expect(wrapper.find(OnPasteSelect)).not.toExist();
@@ -207,37 +191,12 @@ describe('SelectControl', () => {
         expect(wrapper.instance().optionsRemaining()).toEqual(2);
       });
     });
-    describe('with Select all', () => {
-      it('does not count it', () => {
-        const props = { ...defaultProps, multi: true, allowAll: true };
-        const wrapper = mount(<SelectControl {...props} />);
-        expect(wrapper.instance().getOptions(props).length).toEqual(3);
-        expect(wrapper.instance().optionsRemaining()).toEqual(2);
-      });
-    });
   });
 
   describe('getOptions', () => {
     it('returns the correct options', () => {
       wrapper.setProps(defaultProps);
       expect(wrapper.instance().getOptions(defaultProps)).toEqual(options);
-    });
-
-    it('shows Select-All when enabled', () => {
-      const selectAllProps = {
-        choices: ['one', 'two'],
-        name: 'name',
-        freeForm: true,
-        allowAll: true,
-        multi: true,
-        valueKey: 'value',
-      };
-      wrapper.setProps(selectAllProps);
-      expect(wrapper.instance().getOptions(selectAllProps)).toContainEqual({
-        label: 'Select all',
-        meta: true,
-        value: 'Select all',
-      });
     });
 
     it('returns the correct options when freeform is set to true', () => {

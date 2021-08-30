@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { t, css } from '@superset-ui/core';
-import { Select, CreatableSelect, OnPasteSelect } from 'src/components/Select';
+import { Select } from 'src/components/Select';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
 const propTypes = {
@@ -33,7 +33,6 @@ const propTypes = {
   label: PropTypes.string,
   multi: PropTypes.bool,
   isMulti: PropTypes.bool,
-  allowAll: PropTypes.bool,
   name: PropTypes.string.isRequired,
   onChange: PropTypes.func,
   onFocus: PropTypes.func,
@@ -48,15 +47,18 @@ const propTypes = {
   valueKey: PropTypes.string,
   options: PropTypes.array,
   placeholder: PropTypes.string,
-  noResultsText: PropTypes.string,
-  selectRef: PropTypes.func,
   filterOption: PropTypes.func,
-  promptTextCreator: PropTypes.func,
-  commaChoosesOption: PropTypes.bool,
-  menuPortalTarget: PropTypes.element,
-  menuPosition: PropTypes.string,
-  menuPlacement: PropTypes.string,
-  forceOverflow: PropTypes.bool,
+
+  // ControlHeader props
+  renderTrigger: PropTypes.bool,
+  validationErrors: PropTypes.array,
+  rightNode: PropTypes.node,
+  leftNode: PropTypes.node,
+  onClick: PropTypes.func,
+  hovered: PropTypes.bool,
+  tooltipOnClick: PropTypes.func,
+  warning: PropTypes.string,
+  danger: PropTypes.string,
 };
 
 const defaultProps = {
@@ -73,10 +75,6 @@ const defaultProps = {
   onFocus: () => {},
   showHeader: true,
   valueKey: 'value',
-  noResultsText: t('No results found'),
-  promptTextCreator: label => `Create Option ${label}`,
-  commaChoosesOption: true,
-  allowAll: false,
 };
 
 export default class SelectControl extends React.PureComponent {
@@ -87,10 +85,6 @@ export default class SelectControl extends React.PureComponent {
       value: this.props.value,
     };
     this.onChange = this.onChange.bind(this);
-    this.createMetaSelectAllOption = this.createMetaSelectAllOption.bind(this);
-    this.select = null; // pointer to the react-select instance
-    this.getSelectRef = this.getSelectRef.bind(this);
-    this.handleKeyDownForCreate = this.handleKeyDownForCreate.bind(this);
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
@@ -100,39 +94,6 @@ export default class SelectControl extends React.PureComponent {
     ) {
       const options = this.getOptions(nextProps);
       this.setState({ options });
-    }
-  }
-
-  // Beware: This is acting like an on-click instead of an on-change
-  // (firing every time user chooses vs firing only if a new option is chosen).
-  onChange(opt, actionMeta) {
-    let optionValue = this.props.multi ? [] : null;
-    if (opt) {
-      if (this.props.multi) {
-        opt.forEach(o => {
-          // select all options
-          if (o.meta === true) {
-            optionValue = this.getOptions(this.props)
-              .filter(x => !x.meta)
-              .map(x => x[this.props.valueKey]);
-            return;
-          }
-          optionValue.push(o[this.props.valueKey] || o);
-        });
-      } else if (opt.meta === true) {
-        return;
-      } else {
-        optionValue = opt[this.props.valueKey];
-      }
-    }
-    // will eventually call `exploreReducer`: SET_FIELD_VALUE
-    this.props.onChange(optionValue, [], actionMeta);
-  }
-
-  getSelectRef(instance) {
-    this.select = instance;
-    if (this.props.selectRef) {
-      this.props.selectRef(instance);
     }
   }
 
@@ -153,64 +114,7 @@ export default class SelectControl extends React.PureComponent {
         return { label: c, [props.valueKey]: c };
       });
     }
-    // For FreeFormSelect, insert newly created values into options
-    if (props.freeForm && props.value) {
-      const existingOptionValues = new Set(options.map(c => c[props.valueKey]));
-      const selectedValues = Array.isArray(props.value)
-        ? props.value
-        : [props.value];
-      selectedValues.forEach(v => {
-        if (!existingOptionValues.has(v)) {
-          // place the newly created options at the top
-          options.unshift({ label: v, [props.valueKey]: v });
-        }
-      });
-    }
-    if (props.allowAll === true && props.multi === true) {
-      if (!this.optionsIncludesSelectAll(options)) {
-        options.unshift(this.createMetaSelectAllOption());
-      }
-    } else {
-      options = options.filter(o => !this.isMetaSelectAllOption(o));
-    }
     return options;
-  }
-
-  handleKeyDownForCreate(event) {
-    const { key } = event;
-    if (key === 'Tab' || (this.props.commaChoosesOption && key === ',')) {
-      // simulate an Enter event
-      if (this.select) {
-        this.select.onKeyDown({ ...event, key: 'Enter' });
-      }
-    }
-  }
-
-  isMetaSelectAllOption(o) {
-    return o.meta && o.meta === true && o.label === 'Select all';
-  }
-
-  optionsIncludesSelectAll(o) {
-    return o.findIndex(o => this.isMetaSelectAllOption(o)) >= 0;
-  }
-
-  optionsRemaining() {
-    const { options } = this.state;
-    const { value } = this.props;
-    // if select is multi/value is array, we show the options not selected
-    let remainingOptions = Array.isArray(value)
-      ? options.length - value.length
-      : options.length;
-    if (this.optionsIncludesSelectAll(options)) {
-      remainingOptions -= 1;
-    }
-    return remainingOptions < 0 ? 0 : remainingOptions;
-  }
-
-  createMetaSelectAllOption() {
-    const option = { label: 'Select all', meta: true };
-    option[this.props.valueKey] = 'Select all';
-    return option;
   }
 
   render() {
@@ -221,77 +125,66 @@ export default class SelectControl extends React.PureComponent {
       disabled,
       filterOption,
       isLoading,
+      isMulti,
       label,
-      menuPlacement,
+      multi,
       name,
-      noResultsText,
+      placeholder,
+      onChange,
       onFocus,
       optionRenderer,
-      promptTextCreator,
+      showHeader,
       value,
       valueKey,
       valueRenderer,
-      forceOverflow,
-      menuPortalTarget,
-      menuPosition,
+      // ControlHeader props
+      description,
+      renderTrigger,
+      rightNode,
+      leftNode,
+      validationErrors,
+      onClick,
+      hovered,
+      tooltipOnClick,
+      warning,
+      danger,
     } = this.props;
 
-    const optionsRemaining = this.optionsRemaining();
-    const optionRemaingText = optionsRemaining
-      ? t('%s option(s)', optionsRemaining)
-      : '';
-    const placeholder = this.props.placeholder || optionRemaingText;
-    const isMulti = this.props.isMulti || this.props.multi;
-
-    let assistiveText;
-    if (
-      isMulti &&
-      optionsRemaining &&
-      Array.isArray(this.state.value) &&
-      Array.isArray(value) &&
-      !!value.length
-    ) {
-      assistiveText = optionRemaingText;
-    }
+    const headerProps = {
+      name,
+      label,
+      description,
+      renderTrigger,
+      rightNode,
+      leftNode,
+      validationErrors,
+      onClick,
+      hovered,
+      tooltipOnClick,
+      warning,
+      danger,
+    };
 
     const selectProps = {
+      allowNewOptions: this.props.freeForm,
       autoFocus,
-      'aria-label': label,
-      clearable,
+      ariaLabel: label,
+      allowClear: clearable,
       disabled,
       filterOption,
-      ignoreAccents: false,
-      isLoading,
-      isMulti,
-      labelKey: 'label',
-      menuPlacement,
-      forceOverflow,
-      menuPortalTarget,
-      menuPosition,
+      header: showHeader && <ControlHeader {...headerProps} />,
+      loading: isLoading,
+      mode: isMulti || multi ? 'multiple' : 'single',
       name: `select-${name}`,
-      noResultsText,
-      onChange: this.onChange,
+      onChange,
       onFocus,
       optionRenderer,
       value,
       options: this.state.options,
       placeholder,
-      assistiveText,
-      promptTextCreator,
-      selectRef: this.getSelectRef,
       valueKey,
       valueRenderer,
     };
-
-    let SelectComponent;
-    if (this.props.freeForm) {
-      SelectComponent = CreatableSelect;
-      // Don't create functions in `render` because React relies on shallow
-      // compare to decide weathere to rerender child components.
-      selectProps.onKeyDown = this.handleKeyDownForCreate;
-    } else {
-      SelectComponent = Select;
-    }
 
     return (
       <div
@@ -301,12 +194,7 @@ export default class SelectControl extends React.PureComponent {
           }
         `}
       >
-        {this.props.showHeader && <ControlHeader {...this.props} />}
-        {isMulti ? (
-          <OnPasteSelect {...selectProps} selectWrap={SelectComponent} />
-        ) : (
-          <SelectComponent {...selectProps} />
-        )}
+        <Select {...selectProps} />
       </div>
     );
   }

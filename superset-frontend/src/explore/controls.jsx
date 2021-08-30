@@ -127,13 +127,11 @@ const groupByControl = {
   optionRenderer: c => <StyledColumnOption column={c} showType />,
   valueRenderer: c => <StyledColumnOption column={c} />,
   valueKey: 'column_name',
-  allowAll: true,
   filterOption: ({ data: opt }, text) =>
     (opt.column_name &&
       opt.column_name.toLowerCase().indexOf(text.toLowerCase()) >= 0) ||
     (opt.verbose_name &&
       opt.verbose_name.toLowerCase().indexOf(text.toLowerCase()) >= 0),
-  promptTextCreator: label => label,
   mapStateToProps: (state, control) => {
     const newState = {};
     if (state.datasource) {
@@ -144,7 +142,6 @@ const groupByControl = {
     }
     return newState;
   },
-  commaChoosesOption: false,
 };
 
 const metrics = {
