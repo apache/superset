@@ -685,7 +685,6 @@ export default class AnnotationLayer extends React.PureComponent {
           ]}
           onChange={v => this.setState({ style: v })}
           value={style}
-          showSearch
         />
         <Select
           ariaLabel={t('Annotation layer opacity')}
@@ -704,7 +703,6 @@ export default class AnnotationLayer extends React.PureComponent {
           onClear={this.handleOnClear}
           value={opacity}
           allowClear
-          showSearch
         />
         <div>
           <ControlHeader label={t('Color')} />
@@ -806,7 +804,6 @@ export default class AnnotationLayer extends React.PureComponent {
                 value={annotationType}
                 onChange={this.handleAnnotationType}
                 allowClear
-                showSearch
               />
               {supportedSourceTypes.length > 0 && (
                 <Select

@@ -210,7 +210,6 @@ function ColumnCollectionTable({
                     name="type"
                     allowNewOptions
                     allowClear
-                    showSearch
                   />
                 }
               />
