@@ -1693,17 +1693,6 @@
     "@emotion/utils" "0.11.3"
     "@emotion/weak-memoize" "0.2.5"
 
-"@emotion/cache@^11.1.3", "@emotion/cache@^11.4.0":
-  version "11.4.0"
-  resolved "https://registry.yarnpkg.com/@emotion/cache/-/cache-11.4.0.tgz#293fc9d9a7a38b9aad8e9337e5014366c3b09ac0"
-  integrity sha512-Zx70bjE7LErRO9OaZrhf22Qye1y4F7iDl+ITjet0J+i+B88PrAOBkKvaAWhxsZf72tDLajwCgfCjJ2dvH77C3g==
-  dependencies:
-    "@emotion/memoize" "^0.7.4"
-    "@emotion/sheet" "^1.0.0"
-    "@emotion/utils" "^1.0.0"
-    "@emotion/weak-memoize" "^0.2.5"
-    stylis "^4.0.3"
-
 "@emotion/core@^10.0.20", "@emotion/core@^10.0.9":
   version "10.0.27"
   resolved "https://registry.yarnpkg.com/@emotion/core/-/core-10.0.27.tgz#7c3f78be681ab2273f3bf11ca3e2edc4a9dd1fdc"
@@ -1759,19 +1748,6 @@
   resolved "https://registry.yarnpkg.com/@emotion/memoize/-/memoize-0.7.5.tgz#2c40f81449a4e554e9fc6396910ed4843ec2be50"
   integrity sha512-igX9a37DR2ZPGYtV6suZ6whr8pTFtyHL3K/oLUotxpSVO2ASaprmAe2Dkq7tBo7CRY7MMDrAa9nuQP9/YG8FxQ==
 
-"@emotion/react@^11.1.5":
-  version "11.4.0"
-  resolved "https://registry.yarnpkg.com/@emotion/react/-/react-11.4.0.tgz#2465ad7b073a691409b88dfd96dc17097ddad9b7"
-  integrity sha512-4XklWsl9BdtatLoJpSjusXhpKv9YVteYKh9hPKP1Sxl+mswEFoUe0WtmtWjxEjkA51DQ2QRMCNOvKcSlCQ7ivg==
-  dependencies:
-    "@babel/runtime" "^7.13.10"
-    "@emotion/cache" "^11.4.0"
-    "@emotion/serialize" "^1.0.2"
-    "@emotion/sheet" "^1.0.1"
-    "@emotion/utils" "^1.0.0"
-    "@emotion/weak-memoize" "^0.2.5"
-    hoist-non-react-statics "^3.3.1"
-
 "@emotion/serialize@^0.11.15":
   version "0.11.15"
   resolved "https://registry.yarnpkg.com/@emotion/serialize/-/serialize-0.11.15.tgz#9a0f5873fb458d87d4f23e034413c12ed60a705a"
@@ -1798,11 +1774,6 @@
   version "0.9.4"
   resolved "https://registry.yarnpkg.com/@emotion/sheet/-/sheet-0.9.4.tgz#894374bea39ec30f489bbfc3438192b9774d32e5"
   integrity sha512-zM9PFmgVSqBw4zL101Q0HrBVTGmpAxFZH/pYx/cjJT5advXguvcgjHFTCaIO3enL/xr89vK2bh0Mfyj9aa0ANA==
-
-"@emotion/sheet@^1.0.0", "@emotion/sheet@^1.0.1":
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/@emotion/sheet/-/sheet-1.0.1.tgz#245f54abb02dfd82326e28689f34c27aa9b2a698"
-  integrity sha512-GbIvVMe4U+Zc+929N1V7nW6YYJtidj31lidSmdYcWozwoBIObXBnaJkKNDjZrLm9Nc0BR+ZyHNaRZxqNZbof5g==
 
 "@emotion/styled-base@^10.0.27":
   version "10.0.27"
@@ -1853,7 +1824,7 @@
   resolved "https://registry.yarnpkg.com/@emotion/utils/-/utils-1.0.0.tgz#abe06a83160b10570816c913990245813a2fd6af"
   integrity sha512-mQC2b3XLDs6QCW+pDQDiyO/EdGZYOygE8s5N5rrzjSI4M3IejPE/JPndCBwRT9z982aqQNi6beWs1UeayrQxxA==
 
-"@emotion/weak-memoize@0.2.5", "@emotion/weak-memoize@^0.2.5":
+"@emotion/weak-memoize@0.2.5":
   version "0.2.5"
   resolved "https://registry.yarnpkg.com/@emotion/weak-memoize/-/weak-memoize-0.2.5.tgz#8eed982e2ee6f7f4e44c253e12962980791efd46"
   integrity sha512-6U71C2Wp7r5XtFtQzYrW5iKFT67OixrSxjI4MptCHzdSVlgabczzqLe0ZSgnub/5Kp4hSbpDB1tMytZY9pwxxA==
@@ -3418,6 +3389,11 @@
     prop-types "^15.6.1"
     react-lifecycles-compat "^3.0.4"
 
+"@react-icons/all-files@^4.1.0":
+  version "4.1.0"
+  resolved "https://registry.yarnpkg.com/@react-icons/all-files/-/all-files-4.1.0.tgz#477284873a0821928224b6fc84c62d2534d6650b"
+  integrity sha512-hxBI2UOuVaI3O/BhQfhtb4kcGn9ft12RWAFVMUeNjqqhLsHvFtzIkFaptBJpFDANTKoDfdVoHTKZDlwKCACbMQ==
+
 "@samverschueren/stream-to-observable@^0.3.0":
   version "0.3.0"
   resolved "https://registry.yarnpkg.com/@samverschueren/stream-to-observable/-/stream-to-observable-0.3.0.tgz#ecdf48d532c58ea477acfcab80348424f8d0662f"
@@ -3811,12 +3787,13 @@
     telejson "^3.2.0"
     util-deprecate "^1.0.2"
 
-"@superset-ui/chart-controls@^0.17.49":
-  version "0.17.49"
-  resolved "https://registry.yarnpkg.com/@superset-ui/chart-controls/-/chart-controls-0.17.49.tgz#ee4f8c5a0deb8a5b5584690403bc289dba34ec66"
-  integrity sha512-er6hVO3zp7KDDHA6eaXc4t6+XuopfIE0Inys3PTEyfRXASRvdVFaaJlcBB3cGUShi6DzF0ri3fe0C8AhbtcPWw==
+"@superset-ui/chart-controls@0.x.x":
+  version "0.18.0"
+  resolved "https://registry.yarnpkg.com/@superset-ui/chart-controls/-/chart-controls-0.18.0.tgz#26813cb04a50771cd44de94373ad9bb7339e0ab9"
+  integrity sha512-FLSRN0uJW0W5p+oy+0qxDVaAxtpU/nyHzsfP3EIcUfhPFEtlEeZ4H2Uk6ZdMaVh7x/66jR8SwwlqI0k9vBMz1w==
   dependencies:
-    "@superset-ui/core" "0.17.49"
+    "@react-icons/all-files" "^4.1.0"
+    "@superset-ui/core" "0.18.0"
     lodash "^4.17.15"
     prop-types "^15.7.2"
 
@@ -3833,14 +3810,12 @@
     conventional-changelog-cli "^2.0.12"
     cz-conventional-changelog "^2.1.0"
 
-"@superset-ui/core@0.17.49", "@superset-ui/core@^0.17.49":
-  version "0.17.49"
-  resolved "https://registry.yarnpkg.com/@superset-ui/core/-/core-0.17.49.tgz#d73db2a4b33a9e7a9241e145600d84adb47a1346"
-  integrity sha512-joGH8vZXG6zy0YUGGjCrA5eY3MI5p/aISHCWIb6xk6+jYXruTjFTDSZqnMWl20NlnCmcy9xgX0KOLPEoMXAuYA==
+"@superset-ui/core@0.18.0", "@superset-ui/core@0.x.x":
+  version "0.18.0"
+  resolved "https://registry.yarnpkg.com/@superset-ui/core/-/core-0.18.0.tgz#1c1449f1d27b09287488f09a1e8f604abf5e37bb"
+  integrity sha512-VD1bC5odnD+fyKydPjXomuwJZ983Gjwcc1LY+bi24/I+AfW+7Xd20iARXxkhjOF7ezbWb4I+X1vxsDbgLStpKQ==
   dependencies:
     "@babel/runtime" "^7.1.2"
-    "@emotion/cache" "^11.1.3"
-    "@emotion/react" "^11.1.5"
     "@emotion/styled" "^11.3.0"
     "@types/d3-format" "^1.3.0"
     "@types/d3-interpolate" "^1.3.1"
@@ -10224,7 +10199,7 @@ hoist-non-react-statics@^1.0.0, hoist-non-react-statics@^1.2.0:
   resolved "https://registry.yarnpkg.com/hoist-non-react-statics/-/hoist-non-react-statics-1.2.0.tgz#aa448cf0986d55cc40773b17174b7dd066cb7cfb"
   integrity sha1-qkSM8JhtVcxAdzsXF0t90GbLfPs=
 
-hoist-non-react-statics@^3.3.0, hoist-non-react-statics@^3.3.1:
+hoist-non-react-statics@^3.3.0:
   version "3.3.2"
   resolved "https://registry.yarnpkg.com/hoist-non-react-statics/-/hoist-non-react-statics-3.3.2.tgz#ece0acaf71d62c2969c2ec59feff42a4b1a85b45"
   integrity sha512-/gGivxi8JPKWNm/W0jSmzcMPpfpPLc3dY/6GxhX2hQ9iGj3aDfklV4ET7NjKpSinLpJ5vafa9iiGIEZg10SfBw==
