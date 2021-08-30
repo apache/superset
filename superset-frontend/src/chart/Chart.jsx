@@ -68,6 +68,8 @@ const propTypes = {
 };
 
 const BLANK = {};
+const NONEXISTENT_DATASET =
+  'The dataset associated with this chart no longer exists';
 
 const defaultProps = {
   addFilter: () => BLANK,
@@ -180,8 +182,7 @@ class Chart extends React.PureComponent {
     // if datasource is still loading, don't render JS errors
     if (
       chartAlert !== undefined &&
-      chartAlert !==
-        'The dataset associated with this chart no longer exists' &&
+      chartAlert !== NONEXISTENT_DATASET &&
       datasource === PLACEHOLDER_DATASOURCE
     ) {
       return (
