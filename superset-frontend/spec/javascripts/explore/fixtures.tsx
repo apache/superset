@@ -93,7 +93,6 @@ export const controlPanelSectionsChartOptionsTable: ControlPanelSectionConfig[] 
             default: [],
             description: t('Columns to display'),
             optionRenderer: c => <ColumnOption column={c} showType />,
-            valueRenderer: c => <ColumnOption column={c} />,
             valueKey: 'column_name',
             mapStateToProps: stateRef => ({
               options: stateRef.datasource ? stateRef.datasource.columns : [],
