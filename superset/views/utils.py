@@ -135,11 +135,7 @@ def get_form_data(  # pylint: disable=too-many-locals
         # chart data API requests are JSON
         request_json_data = (
             request.json["queries"][0]
-            if (
-                has_request_context()  # type: ignore
-                and request.is_json
-                and "queries" in request.json
-            )
+            if request.is_json and "queries" in request.json
             else None
         )
 
