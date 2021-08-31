@@ -143,10 +143,7 @@ export default class SelectControl extends React.PureComponent {
 
   handleFilterOptions(text, option) {
     const { filterOption } = this.props;
-    if (filterOption) {
-      return this.props.filterOption({ data: option }, text);
-    }
-    return undefined;
+    return filterOption({ data: option }, text);
   }
 
   render() {
@@ -155,6 +152,7 @@ export default class SelectControl extends React.PureComponent {
       autoFocus,
       clearable,
       disabled,
+      filterOption,
       freeForm,
       isLoading,
       isMulti,
@@ -201,7 +199,10 @@ export default class SelectControl extends React.PureComponent {
       allowClear: clearable,
       defaultValue: this.props.default || undefined,
       disabled,
-      filterOption: this.handleFilterOptions,
+      filterOption:
+        filterOption && typeof filterOption === 'function'
+          ? this.handleFilterOptions
+          : true,
       header: showHeader && <ControlHeader {...headerProps} />,
       loading: isLoading,
       mode: isMulti || multi ? 'multiple' : 'single',
