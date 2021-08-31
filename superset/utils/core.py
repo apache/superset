@@ -246,7 +246,7 @@ class FilterOperator(str, Enum):
     ILIKE = "ILIKE"
     IS_NULL = "IS NULL"
     IS_NOT_NULL = "IS NOT NULL"
-    IN = "IN"  # pylint: disable=invalid-name
+    IN = "IN"
     NOT_IN = "NOT IN"
     REGEX = "REGEX"
     IS_TRUE = "IS TRUE"
@@ -291,7 +291,7 @@ class QuerySource(Enum):
     SQL_LAB = 2
 
 
-class QueryStatus(str, Enum):  # pylint: disable=too-few-public-methods
+class QueryStatus(str, Enum):
     """Enum-type class for query statuses"""
 
     STOPPED: str = "stopped"
@@ -457,7 +457,7 @@ def cast_to_num(value: Optional[Union[float, int, str]]) -> Optional[Union[float
         return None
 
 
-def cast_to_boolean(value: Any) -> bool:
+def cast_to_boolean(value: Any) -> Optional[bool]:
     """Casts a value to an int/float
 
     >>> cast_to_boolean(1)
@@ -473,12 +473,13 @@ def cast_to_boolean(value: Any) -> bool:
     >>> cast_to_boolean('False')
     False
     >>> cast_to_boolean(None)
-    False
 
     :param value: value to be converted to boolean representation
     :returns: value cast to `bool`. when value is 'true' or value that are not 0
-              converte into True
+              converted into True. Return `None` if value is `None`
     """
+    if value is None:
+        return None
     if isinstance(value, (int, float)):
         return value != 0
     if isinstance(value, str):
@@ -545,9 +546,7 @@ def format_timedelta(time_delta: timedelta) -> str:
     return str(time_delta)
 
 
-def base_json_conv(  # pylint: disable=inconsistent-return-statements,too-many-return-statements
-    obj: Any,
-) -> Any:
+def base_json_conv(obj: Any,) -> Any:  # pylint: disable=inconsistent-return-statements
     if isinstance(obj, memoryview):
         obj = obj.tobytes()
     if isinstance(obj, np.int64):
@@ -709,7 +708,7 @@ def generic_find_constraint_name(
     return None
 
 
-def generic_find_fk_constraint_name(  # pylint: disable=invalid-name
+def generic_find_fk_constraint_name(
     table: str, columns: Set[str], referenced: str, insp: Inspector
 ) -> Optional[str]:
     """Utility to find a foreign-key constraint name in alembic migrations"""
@@ -797,7 +796,7 @@ class SigalrmTimeout:
             logger.warning("timeout can't be used in the current context")
             logger.exception(ex)
 
-    def __exit__(  # pylint: disable=redefined-outer-name,unused-variable,redefined-builtin
+    def __exit__(  # pylint: disable=redefined-outer-name,redefined-builtin
         self, type: Any, value: Any, traceback: TracebackType
     ) -> None:
         try:
@@ -816,7 +815,7 @@ class TimerTimeout:
     def __enter__(self) -> None:
         self.timer.start()
 
-    def __exit__(  # pylint: disable=redefined-outer-name,unused-variable,redefined-builtin
+    def __exit__(  # pylint: disable=redefined-outer-name,redefined-builtin
         self, type: Any, value: Any, traceback: TracebackType
     ) -> None:
         self.timer.cancel()
@@ -837,9 +836,7 @@ timeout: Union[Type[TimerTimeout], Type[SigalrmTimeout]] = (
 
 def pessimistic_connection_handling(some_engine: Engine) -> None:
     @event.listens_for(some_engine, "engine_connect")
-    def ping_connection(  # pylint: disable=unused-variable
-        connection: Connection, branch: bool
-    ) -> None:
+    def ping_connection(connection: Connection, branch: bool) -> None:
         if branch:
             # 'branch' refers to a sub-connection of a connection,
             # we don't want to bother pinging on these.
@@ -1129,9 +1126,7 @@ def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
         )
 
 
-def merge_extra_filters(  # pylint: disable=too-many-branches
-    form_data: Dict[str, Any],
-) -> None:
+def merge_extra_filters(form_data: Dict[str, Any]) -> None:
     # extra_filters are temporary/contextual filters (using the legacy constructs)
     # that are external to the slice definition. We use those for dynamic
     # interactive filters like the ones emitted by the "Filter Box" visualization.
@@ -1613,7 +1608,7 @@ def is_test() -> bool:
     return strtobool(os.environ.get("SUPERSET_TESTENV", "false"))
 
 
-def get_time_filter_status(  # pylint: disable=too-many-branches
+def get_time_filter_status(
     datasource: "BaseDatasource", applied_time_extras: Dict[str, str],
 ) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
     temporal_columns = {col.column_name for col in datasource.columns if col.is_dttm}

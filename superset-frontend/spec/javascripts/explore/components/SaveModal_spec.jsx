@@ -42,14 +42,16 @@ describe('SaveModal', () => {
       dashboards: [],
     },
     explore: {
-      can_overwrite: true,
-      user_id: '1',
       datasource: {},
       slice: {
         slice_id: 1,
         slice_name: 'title',
+        owners: [1],
       },
       alert: null,
+      user: {
+        userId: 1,
+      },
     },
   };
   const store = mockStore(initialState);
@@ -104,7 +106,7 @@ describe('SaveModal', () => {
 
   it('disable overwrite option for non-owner', () => {
     const wrapperForNonOwner = getWrapper();
-    wrapperForNonOwner.setProps({ can_overwrite: false });
+    wrapperForNonOwner.setProps({ userId: 2 });
     const overwriteRadio = wrapperForNonOwner.find('#overwrite-radio');
     expect(overwriteRadio).toHaveLength(1);
     expect(overwriteRadio.prop('disabled')).toBe(true);

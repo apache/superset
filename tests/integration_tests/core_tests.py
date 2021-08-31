@@ -1184,7 +1184,7 @@ class TestCore(SupersetTestCase):
         mock_can_access_database.return_value = False
         mock_schemas_accessible.return_value = ["this_schema_is_allowed_too"]
         data = self.get_json_resp(
-            url="/superset/schemas_access_for_csv_upload?db_id={db_id}".format(
+            url="/superset/schemas_access_for_file_upload?db_id={db_id}".format(
                 db_id=dbobj.id
             )
         )

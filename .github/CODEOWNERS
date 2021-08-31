@@ -3,6 +3,6 @@
 /superset/migrations/ @apache/superset-committers
 
 # Notify Preset team when ephemeral env settings are changed
-.github/workflows/ecs-task-definition.json @robdiciuccio @craig-rueda @willbarrett @rusackas @eschutho @dpgaspar @nytai @mistercrunch
-.github/workflows/docker-ephemeral-env.yml @robdiciuccio @craig-rueda @willbarrett @rusackas @eschutho @dpgaspar @nytai @mistercrunch
-.github/workflows/ephemeral*.yml @robdiciuccio @craig-rueda @willbarrett @rusackas @eschutho @dpgaspar @nytai @mistercrunch
+.github/workflows/ecs-task-definition.json @robdiciuccio @craig-rueda @rusackas @eschutho @dpgaspar @nytai @mistercrunch
+.github/workflows/docker-ephemeral-env.yml @robdiciuccio @craig-rueda @rusackas @eschutho @dpgaspar @nytai @mistercrunch
+.github/workflows/ephemeral*.yml @robdiciuccio @craig-rueda @rusackas @eschutho @dpgaspar @nytai @mistercrunch

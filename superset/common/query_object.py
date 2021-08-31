@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=R
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, NamedTuple, Optional
@@ -66,7 +65,7 @@ DEPRECATED_EXTRAS_FIELDS = (
 )
 
 
-class QueryObject:
+class QueryObject:  # pylint: disable=too-many-instance-attributes
     """
     The query object's schema matches the interfaces of DB connectors like sqla
     and druid. The query objects are constructed on the client.
@@ -99,7 +98,7 @@ class QueryObject:
     is_rowcount: bool
     time_offsets: List[str]
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments,too-many-locals
         self,
         datasource: Optional[DatasourceDict] = None,
         result_type: Optional[ChartDataResultType] = None,

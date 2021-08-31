@@ -22,25 +22,25 @@ import { ensureIsArray } from '@superset-ui/core';
 export class OptionSelector {
   values: ColumnMeta[];
 
-  options: { string: ColumnMeta };
+  options: Record<string, ColumnMeta>;
 
   multi: boolean;
 
   constructor(
-    options: { string: ColumnMeta },
+    options: Record<string, ColumnMeta>,
     multi: boolean,
-    initialValues?: string[] | string,
+    initialValues?: string[] | string | null,
   ) {
     this.options = options;
     this.multi = multi;
     this.values = ensureIsArray(initialValues)
       .map(value => {
-        if (value in options) {
+        if (value && value in options) {
           return options[value];
         }
         return null;
       })
-      .filter(Boolean);
+      .filter(Boolean) as ColumnMeta[];
   }
 
   add(value: string) {

@@ -67,7 +67,7 @@ class SupersetAppInitializer:
         self.config = app.config
         self.manifest: Dict[Any, Any] = {}
 
-    @deprecated(details="use self.superset_app instead of self.flask_app")  # type: ignore   # pylint: disable=line-too-long
+    @deprecated(details="use self.superset_app instead of self.flask_app")  # type: ignore   # pylint: disable=line-too-long,useless-suppression
     @property
     def flask_app(self) -> SupersetApp:
         return self.superset_app
@@ -112,7 +112,7 @@ class SupersetAppInitializer:
         # models which in turn try to import
         # the global Flask app
         #
-        # pylint: disable=import-outside-toplevel,too-many-branches,too-many-locals,too-many-statements
+        # pylint: disable=import-outside-toplevel,too-many-locals,too-many-statements
         from superset.annotation_layers.api import AnnotationLayerRestApi
         from superset.annotation_layers.annotations.api import AnnotationRestApi
         from superset.async_events.api import AsyncEventsRestApi
@@ -167,6 +167,7 @@ class SupersetAppInitializer:
             DashboardModelViewAsync,
         )
         from superset.views.database.views import (
+            ColumnarToDatabaseView,
             CsvToDatabaseView,
             DatabaseView,
             ExcelToDatabaseView,
@@ -281,6 +282,7 @@ class SupersetAppInitializer:
         appbuilder.add_view_no_menu(CssTemplateAsyncModelView)
         appbuilder.add_view_no_menu(CsvToDatabaseView)
         appbuilder.add_view_no_menu(ExcelToDatabaseView)
+        appbuilder.add_view_no_menu(ColumnarToDatabaseView)
         appbuilder.add_view_no_menu(Dashboard)
         appbuilder.add_view_no_menu(DashboardModelViewAsync)
         appbuilder.add_view_no_menu(Datasource)
@@ -371,7 +373,20 @@ class SupersetAppInitializer:
                 )
             ),
         )
-
+        appbuilder.add_link(
+            "Upload a Columnar file",
+            label=__("Upload a Columnar file"),
+            href="/columnartodatabaseview/form",
+            icon="fa-upload",
+            category="Data",
+            category_label=__("Data"),
+            category_icon="fa-wrench",
+            cond=lambda: bool(
+                self.config["COLUMNAR_EXTENSIONS"].intersection(
+                    self.config["ALLOWED_EXTENSIONS"]
+                )
+            ),
+        )
         try:
             import xlrd  # pylint: disable=unused-import
 
