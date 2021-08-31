@@ -132,6 +132,11 @@ class Dashboard extends React.PureComponent {
     const currentChartIds = getChartIdsFromLayout(this.props.layout);
     const nextChartIds = getChartIdsFromLayout(nextProps.layout);
 
+    if (this.props.dashboardInfo.id !== nextProps.dashboardInfo.id) {
+      // single-page-app navigation check
+      return;
+    }
+
     if (currentChartIds.length < nextChartIds.length) {
       const newChartIds = nextChartIds.filter(
         key => currentChartIds.indexOf(key) === -1,
@@ -284,7 +289,7 @@ class Dashboard extends React.PureComponent {
     }
     return (
       <>
-        <OmniContainer logEvent={this.props.actions.logEvent} />
+        <OmniContainer />
         <DashboardBuilder />
       </>
     );

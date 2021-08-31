@@ -16,16 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { FilterBoxChartProps } from './types';
+
 const NOOP = () => {};
 
-export default function transformProps(chartProps) {
+export default function transformProps(chartProps: FilterBoxChartProps) {
   const {
     datasource,
     formData,
     hooks,
     initialValues,
     queriesData,
-    rawDatasource,
+    rawDatasource = {},
     rawFormData,
     width,
     height,
@@ -44,7 +46,7 @@ export default function transformProps(chartProps) {
     showSqlaTimeColumn,
     showSqlaTimeGranularity,
   } = formData;
-  const { verboseMap } = datasource;
+  const { verboseMap = {} } = datasource;
   const filterConfigs = formData.filterConfigs || [];
 
   const filtersFields = filterConfigs.map(flt => ({

@@ -92,12 +92,15 @@ const TitleContainer = styled.div`
   .card-actions {
     margin-left: auto;
     align-self: flex-end;
-    padding-left: ${({ theme }) => theme.gridUnit * 8}px;
+    padding-left: ${({ theme }) => theme.gridUnit}px;
+    span[role='img'] {
+      display: flex;
+      align-items: center;
+    }
   }
 `;
 
 const TitleLink = styled.span`
-  max-width: 50%;
   overflow: hidden;
   text-overflow: ellipsis;
   & a {
@@ -106,7 +109,9 @@ const TitleLink = styled.span`
 `;
 
 const TitleRight = styled.span`
-  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+  position: absolute;
+  right: -1px;
+  bottom: ${({ theme }) => theme.gridUnit}px;
 `;
 
 const CoverFooter = styled.div`

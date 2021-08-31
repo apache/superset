@@ -22,8 +22,7 @@ from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
-from superset.commands.base import BaseCommand
-from superset.commands.utils import populate_owners
+from superset.commands.base import BaseCommand, UpdateMixin
 from superset.connectors.sqla.models import SqlaTable
 from superset.dao.exceptions import DAOUpdateFailedError
 from superset.datasets.commands.exceptions import (
@@ -47,7 +46,7 @@ from superset.views.base import check_ownership
 logger = logging.getLogger(__name__)
 
 
-class UpdateDatasetCommand(BaseCommand):
+class UpdateDatasetCommand(UpdateMixin, BaseCommand):
     def __init__(
         self,
         user: User,
@@ -73,11 +72,11 @@ class UpdateDatasetCommand(BaseCommand):
                 return dataset
             except DAOUpdateFailedError as ex:
                 logger.exception(ex.exception)
-                raise DatasetUpdateFailedError()
+                raise DatasetUpdateFailedError() from ex
         raise DatasetUpdateFailedError()
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = list()
+        exceptions: List[ValidationError] = []
         owner_ids: Optional[List[int]] = self._properties.get("owners")
         # Validate/populate model exists
         self._model = DatasetDAO.find_by_id(self._model_id)
@@ -86,8 +85,8 @@ class UpdateDatasetCommand(BaseCommand):
         # Check ownership
         try:
             check_ownership(self._model)
-        except SupersetSecurityException:
-            raise DatasetForbiddenError()
+        except SupersetSecurityException as ex:
+            raise DatasetForbiddenError() from ex
 
         database_id = self._properties.get("database", None)
         table_name = self._properties.get("table_name", None)
@@ -101,7 +100,7 @@ class UpdateDatasetCommand(BaseCommand):
             exceptions.append(DatabaseChangeValidationError())
         # Validate/Populate owner
         try:
-            owners = populate_owners(self._actor, owner_ids)
+            owners = self.populate_owners(self._actor, owner_ids)
             self._properties["owners"] = owners
         except ValidationError as ex:
             exceptions.append(ex)

@@ -70,7 +70,8 @@ confidence=
 # either give multiple identifier separated by comma (,) or put this option
 # multiple time (only on the command line, not in the configuration file where
 # it should appear only once). See also the "--disable" option for examples.
-#enable=
+enable=
+    useless-suppression,
 
 # Disable the message, report, category or checker with the given id(s). You
 # can either give multiple identifiers separated by comma (,) or put this
@@ -84,13 +85,10 @@ confidence=
 disable=
     missing-docstring,
     too-many-lines,
-    ungrouped-imports,
-    import-outside-toplevel,
-    raise-missing-from,
-    super-with-arguments,
-    too-few-public-methods,
-    too-many-locals,
-
+    duplicate-code,
+    unspecified-encoding,
+    # re-enable once this no longer raises false positives
+    too-many-instance-attributes
 
 [REPORTS]
 
@@ -217,7 +215,7 @@ max-nested-blocks=5
 [FORMAT]
 
 # Maximum number of characters on a single line.
-max-line-length=88
+max-line-length=90
 
 # Regexp for a line that is allowed to be longer than the limit.
 ignore-long-lines=^\s*(# )?<?https?://\S+>?$
@@ -373,7 +371,7 @@ max-locals=15
 max-returns=10
 
 # Maximum number of branch for function / method body
-max-branches=12
+max-branches=15
 
 # Maximum number of statements in function / method body
 max-statements=50
@@ -382,7 +380,7 @@ max-statements=50
 max-parents=7
 
 # Maximum number of attributes for a class (see R0902).
-max-attributes=7
+max-attributes=8
 
 # Minimum number of public methods for a class (see R0903).
 min-public-methods=2

@@ -14,31 +14,37 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=protected-access
 
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Set, Tuple
 
 from marshmallow import Schema
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.sql import select
 
 from superset import db
+from superset.charts.commands.importers.v1 import ImportChartsCommand
 from superset.charts.commands.importers.v1.utils import import_chart
 from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.exceptions import CommandException
 from superset.commands.importers.v1 import ImportModelsCommand
 from superset.dao.base import BaseDAO
+from superset.dashboards.commands.importers.v1 import ImportDashboardsCommand
 from superset.dashboards.commands.importers.v1.utils import (
     find_chart_uuids,
     import_dashboard,
     update_id_refs,
 )
 from superset.dashboards.schemas import ImportV1DashboardSchema
+from superset.databases.commands.importers.v1 import ImportDatabasesCommand
 from superset.databases.commands.importers.v1.utils import import_database
 from superset.databases.schemas import ImportV1DatabaseSchema
+from superset.datasets.commands.importers.v1 import ImportDatasetsCommand
 from superset.datasets.commands.importers.v1.utils import import_dataset
 from superset.datasets.schemas import ImportV1DatasetSchema
-from superset.models.core import Database
 from superset.models.dashboard import dashboard_slices
+from superset.utils.core import get_example_database
 
 
 class ImportExamplesCommand(ImportModelsCommand):
@@ -66,11 +72,20 @@ class ImportExamplesCommand(ImportModelsCommand):
         try:
             self._import(db.session, self._configs, self.overwrite, self.force_data)
             db.session.commit()
-        except Exception:
+        except Exception as ex:
             db.session.rollback()
-            raise self.import_error()
+            raise self.import_error() from ex
 
-    # pylint: disable=too-many-locals, arguments-differ, too-many-branches
+    @classmethod
+    def _get_uuids(cls) -> Set[str]:
+        return (
+            ImportDatabasesCommand._get_uuids()
+            | ImportDatasetsCommand._get_uuids()
+            | ImportChartsCommand._get_uuids()
+            | ImportDashboardsCommand._get_uuids()
+        )
+
+    # pylint: disable=too-many-locals, arguments-differ
     @staticmethod
     def _import(
         session: Session,
@@ -89,9 +104,7 @@ class ImportExamplesCommand(ImportModelsCommand):
         # If database_uuid is not in the list of UUIDs it means that the examples
         # database was created before its UUID was frozen, so it has a random UUID.
         # We need to determine its ID so we can point the dataset to it.
-        examples_db = (
-            db.session.query(Database).filter_by(database_name="examples").first()
-        )
+        examples_db = get_example_database()
         dataset_info: Dict[str, Dict[str, Any]] = {}
         for file_name, config in configs.items():
             if file_name.startswith("datasets/"):
@@ -106,6 +119,20 @@ class ImportExamplesCommand(ImportModelsCommand):
                 dataset = import_dataset(
                     session, config, overwrite=overwrite, force_data=force_data
                 )
+
+                try:
+                    dataset = import_dataset(
+                        session, config, overwrite=overwrite, force_data=force_data
+                    )
+                except MultipleResultsFound:
+                    # Multiple result can be found for datasets. There was a bug in
+                    # load-examples that resulted in datasets being loaded with a NULL
+                    # schema. Users could then add a new dataset with the same name in
+                    # the correct schema, resulting in duplicates, since the uniqueness
+                    # constraint was not enforced correctly in the application logic.
+                    # See https://github.com/apache/superset/issues/16051.
+                    continue
+
                 dataset_info[str(dataset.uuid)] = {
                     "datasource_id": dataset.id,
                     "datasource_type": "view" if dataset.is_sqllab_view else "table",
@@ -115,7 +142,10 @@ class ImportExamplesCommand(ImportModelsCommand):
         # import charts
         chart_ids: Dict[str, int] = {}
         for file_name, config in configs.items():
-            if file_name.startswith("charts/"):
+            if (
+                file_name.startswith("charts/")
+                and config["dataset_uuid"] in dataset_info
+            ):
                 # update datasource id, type, and name
                 config.update(dataset_info[config["dataset_uuid"]])
                 chart = import_chart(session, config, overwrite=overwrite)
@@ -130,7 +160,11 @@ class ImportExamplesCommand(ImportModelsCommand):
         dashboard_chart_ids: List[Tuple[int, int]] = []
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
-                config = update_id_refs(config, chart_ids)
+                try:
+                    config = update_id_refs(config, chart_ids, dataset_info)
+                except KeyError:
+                    continue
+
                 dashboard = import_dashboard(session, config, overwrite=overwrite)
                 dashboard.published = True
 

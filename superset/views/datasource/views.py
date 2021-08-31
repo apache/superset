@@ -16,20 +16,39 @@
 # under the License.
 import json
 from collections import Counter
+from typing import Any
 
 from flask import request
 from flask_appbuilder import expose
+from flask_appbuilder.api import rison
 from flask_appbuilder.security.decorators import has_access_api
 from flask_babel import _
+from marshmallow import ValidationError
+from sqlalchemy.exc import NoSuchTableError
+from sqlalchemy.orm.exc import NoResultFound
 
 from superset import app, db, event_logger
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.datasets.commands.exceptions import DatasetForbiddenError
+from superset.connectors.sqla.utils import get_physical_table_metadata
+from superset.datasets.commands.exceptions import (
+    DatasetForbiddenError,
+    DatasetNotFoundError,
+)
 from superset.exceptions import SupersetException, SupersetSecurityException
+from superset.models.core import Database
 from superset.typing import FlaskResponse
-from superset.views.base import check_ownership
-
-from .base import api, BaseSupersetView, handle_api_exception, json_error_response
+from superset.views.base import (
+    api,
+    BaseSupersetView,
+    check_ownership,
+    handle_api_exception,
+    json_error_response,
+)
+from superset.views.datasource.schemas import (
+    ExternalMetadataParams,
+    ExternalMetadataSchema,
+    get_external_metadata_schema,
+)
 
 
 class Datasource(BaseSupersetView):
@@ -62,8 +81,8 @@ class Datasource(BaseSupersetView):
             if app.config["OLD_API_CHECK_DATASET_OWNERSHIP"]:
                 try:
                     check_ownership(orm_datasource)
-                except SupersetSecurityException:
-                    raise DatasetForbiddenError()
+                except SupersetSecurityException as ex:
+                    raise DatasetForbiddenError() from ex
 
             datasource_dict["owners"] = (
                 db.session.query(orm_datasource.owner_class)
@@ -117,4 +136,45 @@ class Datasource(BaseSupersetView):
             external_metadata = datasource.external_metadata()
         except SupersetException as ex:
             return json_error_response(str(ex), status=400)
+        return self.json_response(external_metadata)
+
+    @expose("/external_metadata_by_name/")
+    @has_access_api
+    @api
+    @handle_api_exception
+    @rison(get_external_metadata_schema)
+    def external_metadata_by_name(self, **kwargs: Any) -> FlaskResponse:
+        """Gets table metadata from the source system and SQLAlchemy inspector"""
+        try:
+            params: ExternalMetadataParams = (
+                ExternalMetadataSchema().load(kwargs.get("rison"))
+            )
+        except ValidationError as err:
+            return json_error_response(str(err), status=400)
+
+        datasource = ConnectorRegistry.get_datasource_by_name(
+            session=db.session,
+            datasource_type=params["datasource_type"],
+            database_name=params["database_name"],
+            schema=params["schema_name"],
+            datasource_name=params["table_name"],
+        )
+        try:
+            if datasource is not None:
+                # Get columns from Superset metadata
+                external_metadata = datasource.external_metadata()
+            else:
+                # Use the SQLAlchemy inspector to get columns
+                database = (
+                    db.session.query(Database)
+                    .filter_by(database_name=params["database_name"])
+                    .one()
+                )
+                external_metadata = get_physical_table_metadata(
+                    database=database,
+                    table_name=params["table_name"],
+                    schema_name=params["schema_name"],
+                )
+        except (NoResultFound, NoSuchTableError) as ex:
+            raise DatasetNotFoundError() from ex
         return self.json_response(external_metadata)

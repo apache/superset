@@ -46,15 +46,18 @@ describe('utils/common', () => {
   describe('prepareCopyToClipboardTabularData', () => {
     it('converts empty array', () => {
       const array = [];
-      expect(prepareCopyToClipboardTabularData(array)).toEqual('');
+      const column = [];
+      expect(prepareCopyToClipboardTabularData(array, column)).toEqual('');
     });
     it('converts non empty array', () => {
       const array = [
         { column1: 'lorem', column2: 'ipsum' },
         { column1: 'dolor', column2: 'sit', column3: 'amet' },
       ];
-      expect(prepareCopyToClipboardTabularData(array)).toEqual(
-        'lorem\tipsum\ndolor\tsit\tamet\n',
+      const column = ['column1', 'column2', 'column3'];
+      console.log(prepareCopyToClipboardTabularData(array, column));
+      expect(prepareCopyToClipboardTabularData(array, column)).toEqual(
+        'lorem\tipsum\t\ndolor\tsit\tamet\n',
       );
     });
   });

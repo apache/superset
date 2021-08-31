@@ -399,7 +399,7 @@ describe('async actions', () => {
 
     let isFeatureEnabledMock;
 
-    beforeAll(() => {
+    beforeEach(() => {
       isFeatureEnabledMock = jest
         .spyOn(featureFlags, 'isFeatureEnabled')
         .mockImplementation(
@@ -407,7 +407,7 @@ describe('async actions', () => {
         );
     });
 
-    afterAll(() => {
+    afterEach(() => {
       isFeatureEnabledMock.mockRestore();
     });
 
@@ -612,9 +612,29 @@ describe('async actions', () => {
     });
 
     describe('queryEditorSetSql', () => {
-      it('updates the tab state in the backend', () => {
-        expect.assertions(2);
+      describe('with backend persistence flag on', () => {
+        it('does not update the tab state in the backend', () => {
+          expect.assertions(2);
 
+          const sql = 'SELECT * ';
+          const store = mockStore({});
+
+          return store
+            .dispatch(actions.queryEditorSetSql(queryEditor, sql))
+            .then(() => {
+              expect(store.getActions()).toHaveLength(0);
+              expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(1);
+            });
+        });
+      });
+    });
+    describe('with backend persistence flag off', () => {
+      it('updates the tab state in the backend', () => {
+        const backendPersistenceOffMock = jest
+          .spyOn(featureFlags, 'isFeatureEnabled')
+          .mockImplementation(
+            feature => !(feature === 'SQLLAB_BACKEND_PERSISTENCE'),
+          );
         const sql = 'SELECT * ';
         const store = mockStore({});
         const expectedActions = [
@@ -624,12 +644,12 @@ describe('async actions', () => {
             sql,
           },
         ];
-        return store
-          .dispatch(actions.queryEditorSetSql(queryEditor, sql))
-          .then(() => {
-            expect(store.getActions()).toEqual(expectedActions);
-            expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(1);
-          });
+
+        store.dispatch(actions.queryEditorSetSql(queryEditor, sql));
+
+        expect(store.getActions()).toEqual(expectedActions);
+        expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(0);
+        backendPersistenceOffMock.mockRestore();
       });
     });
 

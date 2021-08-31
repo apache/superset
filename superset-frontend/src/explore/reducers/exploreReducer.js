@@ -219,6 +219,7 @@ export default function exploreReducer(state = {}, action) {
         slice: {
           ...state.slice,
           ...action.slice,
+          owners: action.slice.owners ?? null,
         },
         sliceName: action.slice.slice_name ?? state.sliceName,
       };

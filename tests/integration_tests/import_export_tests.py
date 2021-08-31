@@ -89,19 +89,20 @@ class TestImportExport(SupersetTestCase):
         id=None,
         db_name="examples",
         table_name="wb_health_population",
+        schema=None,
     ):
         params = {
             "num_period_compare": "10",
             "remote_id": id,
             "datasource_name": table_name,
             "database_name": db_name,
-            "schema": "",
+            "schema": schema,
             # Test for trailing commas
             "metrics": ["sum__signup_attempt_email", "sum__signup_attempt_facebook"],
         }
 
         if table_name and not ds_id:
-            table = self.get_table_by_name(table_name)
+            table = self.get_table(schema=schema, name=table_name)
             if table:
                 ds_id = table.id
 
@@ -166,9 +167,6 @@ class TestImportExport(SupersetTestCase):
 
     def get_datasource(self, datasource_id):
         return db.session.query(DruidDatasource).filter_by(id=datasource_id).first()
-
-    def get_table_by_name(self, name):
-        return db.session.query(SqlaTable).filter_by(table_name=name).first()
 
     def assert_dash_equals(
         self, expected_dash, actual_dash, check_position=True, check_slugs=True
@@ -273,9 +271,7 @@ class TestImportExport(SupersetTestCase):
             resp.data.decode("utf-8"), object_hook=decode_dashboards
         )["datasources"]
         self.assertEqual(1, len(exported_tables))
-        self.assert_table_equals(
-            self.get_table_by_name("birth_names"), exported_tables[0]
-        )
+        self.assert_table_equals(self.get_table(name="birth_names"), exported_tables[0])
 
     @pytest.mark.usefixtures(
         "load_world_bank_dashboard_with_slices",
@@ -314,11 +310,9 @@ class TestImportExport(SupersetTestCase):
             resp_data.get("datasources"), key=lambda t: t.table_name
         )
         self.assertEqual(2, len(exported_tables))
+        self.assert_table_equals(self.get_table(name="birth_names"), exported_tables[0])
         self.assert_table_equals(
-            self.get_table_by_name("birth_names"), exported_tables[0]
-        )
-        self.assert_table_equals(
-            self.get_table_by_name("wb_health_population"), exported_tables[1]
+            self.get_table(name="wb_health_population"), exported_tables[1]
         )
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
@@ -329,16 +323,15 @@ class TestImportExport(SupersetTestCase):
         self.assertEqual(slc.datasource.perm, slc.perm)
         self.assert_slice_equals(expected_slice, slc)
 
-        table_id = self.get_table_by_name("wb_health_population").id
+        table_id = self.get_table(name="wb_health_population").id
         self.assertEqual(table_id, self.get_slice(slc_id).datasource_id)
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_import_2_slices_for_same_table(self):
-        table_id = self.get_table_by_name("wb_health_population").id
-        # table_id != 666, import func will have to find the table
-        slc_1 = self.create_slice("Import Me 1", ds_id=666, id=10002)
+        table_id = self.get_table(name="wb_health_population").id
+        slc_1 = self.create_slice("Import Me 1", ds_id=table_id, id=10002)
         slc_id_1 = import_chart(slc_1, None)
-        slc_2 = self.create_slice("Import Me 2", ds_id=666, id=10003)
+        slc_2 = self.create_slice("Import Me 2", ds_id=table_id, id=10003)
         slc_id_2 = import_chart(slc_2, None)
 
         imported_slc_1 = self.get_slice(slc_id_1)
@@ -350,13 +343,6 @@ class TestImportExport(SupersetTestCase):
         self.assertEqual(table_id, imported_slc_2.datasource_id)
         self.assert_slice_equals(slc_2, imported_slc_2)
         self.assertEqual(imported_slc_2.datasource.perm, imported_slc_2.perm)
-
-    def test_import_slices_for_non_existent_table(self):
-        with self.assertRaises(AttributeError):
-            import_chart(
-                self.create_slice("Import Me 3", id=10004, table_name="non_existent"),
-                None,
-            )
 
     def test_import_slices_override(self):
         slc = self.create_slice("Import Me New", id=10005)

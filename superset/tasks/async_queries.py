@@ -50,6 +50,7 @@ def ensure_user_is_set(user_id: Optional[int]) -> None:
 def load_chart_data_into_cache(
     job_metadata: Dict[str, Any], form_data: Dict[str, Any],
 ) -> None:
+    # pylint: disable=import-outside-toplevel
     from superset.charts.commands.data import ChartDataCommand
 
     try:
@@ -67,7 +68,7 @@ def load_chart_data_into_cache(
         raise exc
     except Exception as exc:
         # TODO: QueryContext should support SIP-40 style errors
-        error = exc.message if hasattr(exc, "message") else str(exc)  # type: ignore # pylint: disable=no-member
+        error = exc.message if hasattr(exc, "message") else str(exc)  # type: ignore
         errors = [{"message": error}]
         async_query_manager.update_job(
             job_metadata, async_query_manager.STATUS_ERROR, errors=errors
@@ -121,11 +122,9 @@ def load_explore_json_into_cache(  # pylint: disable=too-many-locals
         raise ex
     except Exception as exc:
         if isinstance(exc, SupersetVizException):
-            errors = exc.errors  # pylint: disable=no-member
+            errors = exc.errors
         else:
-            error = (
-                exc.message if hasattr(exc, "message") else str(exc)  # type: ignore # pylint: disable=no-member
-            )
+            error = exc.message if hasattr(exc, "message") else str(exc)  # type: ignore
             errors = [error]
 
         async_query_manager.update_job(
