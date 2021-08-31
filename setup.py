@@ -114,6 +114,7 @@ setup(
     ],
     extras_require={
         "athena": ["pyathena>=1.10.8, <1.11"],
+        "aurora-data-api": ["preset-sqlalchemy-aurora-data-api>=0.2.8,<0.3"],
         "bigquery": [
             "pandas_gbq>=0.10.0",
             "pybigquery>=0.4.10",
