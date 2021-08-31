@@ -18,8 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t, css } from '@superset-ui/core';
-import { Select } from 'src/components/Select';
+import { css } from '@superset-ui/core';
+import { Select } from 'src/components';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
 const propTypes = {
@@ -30,7 +30,6 @@ const propTypes = {
   disabled: PropTypes.bool,
   freeForm: PropTypes.bool,
   isLoading: PropTypes.bool,
-  label: PropTypes.string,
   multi: PropTypes.bool,
   isMulti: PropTypes.bool,
   name: PropTypes.string.isRequired,
@@ -41,15 +40,20 @@ const propTypes = {
     PropTypes.number,
     PropTypes.array,
   ]),
+  default: PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.number,
+    PropTypes.array,
+  ]),
   showHeader: PropTypes.bool,
   optionRenderer: PropTypes.func,
-  valueRenderer: PropTypes.func,
   valueKey: PropTypes.string,
   options: PropTypes.array,
   placeholder: PropTypes.string,
   filterOption: PropTypes.func,
 
   // ControlHeader props
+  label: PropTypes.string,
   renderTrigger: PropTypes.bool,
   validationErrors: PropTypes.array,
   rightNode: PropTypes.node,
@@ -82,7 +86,6 @@ export default class SelectControl extends React.PureComponent {
     super(props);
     this.state = {
       options: this.getOptions(props),
-      value: this.props.value,
     };
     this.onChange = this.onChange.bind(this);
   }
@@ -97,46 +100,65 @@ export default class SelectControl extends React.PureComponent {
     }
   }
 
+  // Beware: This is acting like an on-click instead of an on-change
+  // (firing every time user chooses vs firing only if a new option is chosen).
+  onChange(opt) {
+    // will eventually call `exploreReducer`: SET_FIELD_VALUE
+    this.props.onChange(opt, []);
+  }
+
   getOptions(props) {
+    const { choices, optionRenderer, valueKey } = props;
     let options = [];
     if (props.options) {
-      options = props.options.map(x => x);
-    } else if (props.choices) {
+      options = props.options.map(o => ({
+        value: o[valueKey],
+        label: o.label || o[valueKey],
+        ...o,
+      }));
+    } else if (choices) {
       // Accepts different formats of input
-      options = props.choices.map(c => {
+      options = choices.map(c => {
         if (Array.isArray(c)) {
           const [value, label] = c.length > 1 ? c : [c[0], c[0]];
-          return { label, [props.valueKey]: value };
+          return { value, label };
         }
         if (Object.is(c)) {
-          return c;
+          return {
+            value: c[valueKey],
+            label: c.label || c[valueKey],
+            ...c,
+          };
         }
-        return { label: c, [props.valueKey]: c };
+        return { value: c, label: c };
       });
     }
-    return options;
+    return optionRenderer
+      ? options.map(o => ({
+          value: o.value,
+          label: optionRenderer(o),
+          ...o,
+        }))
+      : options;
   }
 
   render() {
-    //  Tab, comma or Enter will trigger a new option created for FreeFormSelect
     const {
       autoFocus,
       clearable,
       disabled,
       filterOption,
+      freeForm,
       isLoading,
       isMulti,
       label,
       multi,
       name,
       placeholder,
-      onChange,
       onFocus,
       optionRenderer,
       showHeader,
       value,
-      valueKey,
-      valueRenderer,
       // ControlHeader props
       description,
       renderTrigger,
@@ -166,24 +188,23 @@ export default class SelectControl extends React.PureComponent {
     };
 
     const selectProps = {
-      allowNewOptions: this.props.freeForm,
+      allowNewOptions: freeForm,
       autoFocus,
       ariaLabel: label,
       allowClear: clearable,
+      defaultValue: this.props.default || undefined,
       disabled,
       filterOption,
       header: showHeader && <ControlHeader {...headerProps} />,
       loading: isLoading,
       mode: isMulti || multi ? 'multiple' : 'single',
       name: `select-${name}`,
-      onChange,
+      onChange: this.onChange,
       onFocus,
       optionRenderer,
       value,
       options: this.state.options,
       placeholder,
-      valueKey,
-      valueRenderer,
     };
 
     return (

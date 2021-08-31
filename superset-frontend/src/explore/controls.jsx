@@ -125,9 +125,8 @@ const groupByControl = {
   includeTime: false,
   description: t('One or many controls to group by'),
   optionRenderer: c => <StyledColumnOption column={c} showType />,
-  valueRenderer: c => <StyledColumnOption column={c} />,
   valueKey: 'column_name',
-  filterOption: ({ data: opt }, text) =>
+  filterOption: (text, opt) =>
     (opt.column_name &&
       opt.column_name.toLowerCase().indexOf(text.toLowerCase()) >= 0) ||
     (opt.verbose_name &&
@@ -263,7 +262,7 @@ export const controls = {
     type: 'SelectControl',
     freeForm: true,
     label: TIME_FILTER_LABELS.granularity,
-    default: 'one day',
+    default: 'P1D',
     choices: [
       [null, 'all'],
       ['PT5S', '5 seconds'],
@@ -301,7 +300,6 @@ export const controls = {
     ),
     clearable: false,
     optionRenderer: c => <StyledColumnOption column={c} showType />,
-    valueRenderer: c => <StyledColumnOption column={c} />,
     valueKey: 'column_name',
     mapStateToProps: state => {
       const props = {};
