@@ -110,7 +110,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 engine=database.db_engine_spec.__name__,
             )
             raise DatabaseSecurityUnsafeError(message=str(ex)) from ex
-        except Exception as ex:  # pylint: disable=broad-except
+        except Exception as ex:
             event_logger.log_with_context(
                 action=f"test_connection_error.{ex.__class__.__name__}",
                 engine=database.db_engine_spec.__name__,

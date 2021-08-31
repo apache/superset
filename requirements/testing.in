@@ -28,7 +28,7 @@ openpyxl
 parameterized
 pyfakefs
 pyhive[presto]>=0.6.3
-pylint==2.6.0
+pylint==2.10.2
 pytest
 pytest-cov
 statsd

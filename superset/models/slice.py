@@ -53,7 +53,7 @@ slice_user = Table(
 logger = logging.getLogger(__name__)
 
 
-class Slice(  # pylint: disable=too-many-instance-attributes,too-many-public-methods
+class Slice(  # pylint: disable=too-many-public-methods, too-many-instance-attributes
     Model, AuditMixinNullable, ImportExportMixin
 ):
     """A slice is essentially a report or a view on data"""
@@ -201,9 +201,7 @@ class Slice(  # pylint: disable=too-many-instance-attributes,too-many-public-met
             "form_data": self.form_data,
             "query_context": self.query_context,
             "modified": self.modified(),
-            "owners": [
-                f"{owner.first_name} {owner.last_name}" for owner in self.owners
-            ],
+            "owners": [owner.id for owner in self.owners],
             "slice_id": self.id,
             "slice_name": self.slice_name,
             "slice_url": self.slice_url,

@@ -57,6 +57,7 @@ import Chart from 'src/types/Chart';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
+import setupPlugins from 'src/setup/setupPlugins';
 import ChartCard from './ChartCard';
 
 const PAGE_SIZE = 25;
@@ -73,6 +74,7 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
     'sure you want to overwrite?',
 );
 
+setupPlugins();
 const registry = getChartMetadataRegistry();
 
 const createFetchDatasets = (handleError: (err: Response) => void) => async (

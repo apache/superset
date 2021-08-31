@@ -50,9 +50,7 @@ from superset.views.core import json_success
 from .base import DeleteMixin, SupersetModelView
 
 
-class EmailScheduleView(
-    SupersetModelView, DeleteMixin
-):  # pylint: disable=too-many-ancestors
+class EmailScheduleView(SupersetModelView, DeleteMixin):
     include_route_methods = RouteMethod.CRUD_SET
     _extra_data = {"test_email": False, "test_email_recipients": None}
 

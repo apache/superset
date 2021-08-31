@@ -45,7 +45,7 @@ class R(BaseSupersetView):  # pylint: disable=invalid-name
 
     @event_logger.log_this
     @expose("/<int:url_id>")
-    def index(self, url_id: int) -> FlaskResponse:  # pylint: disable=no-self-use
+    def index(self, url_id: int) -> FlaskResponse:
         url = db.session.query(models.Url).get(url_id)
         if url and url.url:
             explore_url = "//superset/explore/?"
@@ -62,7 +62,7 @@ class R(BaseSupersetView):  # pylint: disable=invalid-name
     @event_logger.log_this
     @has_access_api
     @expose("/shortner/", methods=["POST"])
-    def shortner(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    def shortner(self) -> FlaskResponse:
         url = request.form.get("data")
         if not self._validate_url(url):
             logger.warning("Invalid URL: %s", url)

@@ -18,13 +18,17 @@
  */
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
-import { LabelProps } from 'src/explore/components/controls/DndColumnSelectControl/types';
-import { DndColumnSelect } from 'src/explore/components/controls/DndColumnSelectControl/DndColumnSelect';
+import {
+  DndColumnSelect,
+  DndColumnSelectProps,
+} from 'src/explore/components/controls/DndColumnSelectControl/DndColumnSelect';
 
-const defaultProps: LabelProps = {
+const defaultProps: DndColumnSelectProps = {
+  type: 'DndColumnSelect',
   name: 'Filter',
   onChange: jest.fn(),
   options: { string: { column_name: 'Column A' } },
+  actions: { setControlValue: jest.fn() },
 };
 
 test('renders with default props', () => {
