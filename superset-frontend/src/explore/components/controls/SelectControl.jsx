@@ -113,34 +113,31 @@ export default class SelectControl extends React.PureComponent {
     let options = [];
     if (props.options) {
       options = props.options.map(o => ({
-        value: o[valueKey],
-        label: o.label || o[valueKey],
         ...o,
+        value: o[valueKey],
+        label: optionRenderer ? optionRenderer(o) : o.label || o[valueKey],
       }));
     } else if (choices) {
       // Accepts different formats of input
       options = choices.map(c => {
         if (Array.isArray(c)) {
           const [value, label] = c.length > 1 ? c : [c[0], c[0]];
-          return { value, label };
+          return {
+            value,
+            label,
+          };
         }
         if (Object.is(c)) {
           return {
+            ...c,
             value: c[valueKey],
             label: c.label || c[valueKey],
-            ...c,
           };
         }
         return { value: c, label: c };
       });
     }
-    return optionRenderer
-      ? options.map(o => ({
-          value: o.value,
-          label: optionRenderer(o),
-          ...o,
-        }))
-      : options;
+    return options;
   }
 
   render() {
