@@ -61,6 +61,7 @@ export interface MenuProps {
     brand: BrandProps;
     navbar_right: NavBarProps;
     settings: MenuObjectProps[];
+    user: object;
   };
   isFrontendRoute?: (path?: string) => boolean;
 }
@@ -171,7 +172,7 @@ const { SubMenu } = DropdownMenu;
 const { useBreakpoint } = Grid;
 
 export function Menu({
-  data: { menu, brand, navbar_right: navbarRight, settings },
+  data: { menu, brand, navbar_right: navbarRight, settings, user },
   isFrontendRoute = () => false,
 }: MenuProps) {
   const [showMenu, setMenu] = useState<MenuMode>('horizontal');
@@ -283,7 +284,6 @@ export function Menu({
                   if (typeof c === 'string') {
                     return c;
                   }
-
                   return {
                     ...c,
                     isFrontendRoute: isFrontendRoute(c.url),
@@ -301,6 +301,7 @@ export function Menu({
             settings={settings}
             navbarRight={navbarRight}
             isFrontendRoute={isFrontendRoute}
+            user={user}
           />
         </Col>
       </Row>
