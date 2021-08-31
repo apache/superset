@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Best Fit Line Graph</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
+    <style>
+    body {
+
+      background-attachment: fixed;  
+      background-size: cover;
+    }
+    </style>
+
+  </head>
+  <body>
+    <div>
+      <h1>Best Fit line</h1>
+        <img src="{{ image }}" alt="">
+    </div> 
+   
+   <br>
+   <br>
+   
+   <canvas id="lineChart" width="900" height="400"></canvas>
+    <script>
+      var ctx = document.getElementById("lineChart").getContext("2d");
+      var lineChart = new Chart(ctx, {
+        type:"line",
+        data: {
+          labels: [{% for item in labels %}
+                   "{{item}}",
+                  {% endfor %}],
+
+          datasets: [
+            {
+              label: "Best Fit line",
+              data: [{% for item in regression_line %}
+                      {{item}},
+                    {% endfor %}],
+              fill: false,
+              borderColor: "rgb(75, 192, 192)"
+            }
+          ]
+        },
+        options: {
+          responsive: false
+        }
+      });
+    </script>
+
+    <canvas id="scatterChart" width="900" height="400"></canvas>
+    <script>
+      new Chart.Scatter(document.getElementById("scatterChart"), {
+      type: 'scatter',
+      data: {
+        datasets: [{
+          label: 'Scatter Dataset',
+          data: {{ data }},
+          showLine: false,
+          borderColor: "blue",
+          backgroundColor: "blue"
+        }]
+      }
+    });
+    </script>
+    <br>
+    <br>
+
+
+  </body>
+</html>
+
