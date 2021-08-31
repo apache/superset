@@ -40,11 +40,13 @@ export type DatabaseObject = {
   id: number;
 };
 
+export type NotificationMethodOption = 'Email' | 'Slack';
+
 export type Recipient = {
   recipient_config_json: {
     target: string;
   };
-  type: string;
+  type: NotificationMethodOption;
 };
 
 export type MetaObject = {

@@ -167,6 +167,7 @@ class SupersetAppInitializer:
             DashboardModelViewAsync,
         )
         from superset.views.database.views import (
+            ColumnarToDatabaseView,
             CsvToDatabaseView,
             DatabaseView,
             ExcelToDatabaseView,
@@ -281,6 +282,7 @@ class SupersetAppInitializer:
         appbuilder.add_view_no_menu(CssTemplateAsyncModelView)
         appbuilder.add_view_no_menu(CsvToDatabaseView)
         appbuilder.add_view_no_menu(ExcelToDatabaseView)
+        appbuilder.add_view_no_menu(ColumnarToDatabaseView)
         appbuilder.add_view_no_menu(Dashboard)
         appbuilder.add_view_no_menu(DashboardModelViewAsync)
         appbuilder.add_view_no_menu(Datasource)
@@ -371,7 +373,20 @@ class SupersetAppInitializer:
                 )
             ),
         )
-
+        appbuilder.add_link(
+            "Upload a Columnar file",
+            label=__("Upload a Columnar file"),
+            href="/columnartodatabaseview/form",
+            icon="fa-upload",
+            category="Data",
+            category_label=__("Data"),
+            category_icon="fa-wrench",
+            cond=lambda: bool(
+                self.config["COLUMNAR_EXTENSIONS"].intersection(
+                    self.config["ALLOWED_EXTENSIONS"]
+                )
+            ),
+        )
         try:
             import xlrd  # pylint: disable=unused-import
 

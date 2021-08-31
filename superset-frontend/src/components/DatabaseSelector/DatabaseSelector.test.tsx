@@ -26,11 +26,11 @@ import DatabaseSelector from '.';
 const SupersetClientGet = jest.spyOn(SupersetClient, 'get');
 
 const createProps = () => ({
-  db: { id: 1, database_name: 'test', backend: 'postgresql' },
+  dbId: 1,
   formMode: false,
   isDatabaseSelectEnabled: true,
   readOnly: false,
-  schema: undefined,
+  schema: 'public',
   sqlLabMode: true,
   getDbList: jest.fn(),
   getTableList: jest.fn(),
@@ -129,7 +129,7 @@ beforeEach(() => {
               changed_on: '2021-03-09T19:02:07.141095',
               changed_on_delta_humanized: 'a day ago',
               created_by: null,
-              database_name: 'test',
+              database_name: 'examples',
               explore_database_id: 1,
               expose_in_sqllab: true,
               force_ctas_schema: null,
@@ -153,62 +153,50 @@ test('Refresh should work', async () => {
 
   render(<DatabaseSelector {...props} />);
 
-  const select = screen.getByRole('combobox', {
-    name: 'Select a schema',
-  });
-
-  userEvent.click(select);
-
-  await waitFor(() => {
-    expect(SupersetClientGet).toBeCalledTimes(1);
-    expect(props.getDbList).toBeCalledTimes(0);
-    expect(props.getTableList).toBeCalledTimes(0);
-    expect(props.handleError).toBeCalledTimes(0);
-    expect(props.onDbChange).toBeCalledTimes(0);
-    expect(props.onSchemaChange).toBeCalledTimes(0);
-    expect(props.onSchemasLoad).toBeCalledTimes(0);
-    expect(props.onUpdate).toBeCalledTimes(0);
-  });
-
-  userEvent.click(screen.getByRole('button', { name: 'refresh' }));
-
   await waitFor(() => {
     expect(SupersetClientGet).toBeCalledTimes(2);
-    expect(props.getDbList).toBeCalledTimes(0);
+    expect(props.getDbList).toBeCalledTimes(1);
     expect(props.getTableList).toBeCalledTimes(0);
     expect(props.handleError).toBeCalledTimes(0);
     expect(props.onDbChange).toBeCalledTimes(0);
     expect(props.onSchemaChange).toBeCalledTimes(0);
-    expect(props.onSchemasLoad).toBeCalledTimes(2);
+    expect(props.onSchemasLoad).toBeCalledTimes(1);
     expect(props.onUpdate).toBeCalledTimes(0);
+  });
+
+  userEvent.click(screen.getByRole('button'));
+
+  await waitFor(() => {
+    expect(SupersetClientGet).toBeCalledTimes(3);
+    expect(props.getDbList).toBeCalledTimes(1);
+    expect(props.getTableList).toBeCalledTimes(0);
+    expect(props.handleError).toBeCalledTimes(0);
+    expect(props.onDbChange).toBeCalledTimes(1);
+    expect(props.onSchemaChange).toBeCalledTimes(1);
+    expect(props.onSchemasLoad).toBeCalledTimes(2);
+    expect(props.onUpdate).toBeCalledTimes(1);
   });
 });
 
 test('Should database select display options', async () => {
   const props = createProps();
   render(<DatabaseSelector {...props} />);
-  const select = screen.getByRole('combobox', {
-    name: 'Select a database',
-  });
-  expect(select).toBeInTheDocument();
-  userEvent.click(select);
-  expect(
-    await screen.findByRole('option', { name: 'postgresql: test' }),
-  ).toBeInTheDocument();
+  const selector = await screen.findByText('Database:');
+  expect(selector).toBeInTheDocument();
+  expect(selector.parentElement).toHaveTextContent(
+    'Database:postgresql examples',
+  );
 });
 
 test('Should schema select display options', async () => {
   const props = createProps();
   render(<DatabaseSelector {...props} />);
-  const select = screen.getByRole('combobox', {
-    name: 'Select a schema',
-  });
-  expect(select).toBeInTheDocument();
-  userEvent.click(select);
-  expect(
-    await screen.findByRole('option', { name: 'public' }),
-  ).toBeInTheDocument();
-  expect(
-    await screen.findByRole('option', { name: 'information_schema' }),
-  ).toBeInTheDocument();
+
+  const selector = await screen.findByText('Schema:');
+  expect(selector).toBeInTheDocument();
+  expect(selector.parentElement).toHaveTextContent('Schema: public');
+
+  userEvent.click(screen.getByRole('button'));
+
+  expect(await screen.findByText('Select a schema (2)')).toBeInTheDocument();
 });
