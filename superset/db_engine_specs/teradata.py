@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import logging
 from dataclasses import dataclass  # pylint: disable=wrong-import-order
 from enum import Enum
 from typing import List, Optional, Set
@@ -156,3 +155,9 @@ class TeradataEngineSpec(BaseEngineSpec):
         :param database: Database instance
         :return: SQL query with limit clause
         """
+        
+        parsed_query = ParsedQuery_td(sql)
+        sql = parsed_query.set_or_update_query_limit_td(limit)
+        
+        return sql
+

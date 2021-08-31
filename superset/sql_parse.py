@@ -344,7 +344,7 @@ class ParsedQuery:
             str_res += str(i.value)
         return str_res
         
-        def set_or_update_query_limit_top(self, new_limit: int) -> str:
+    def set_or_update_query_limit_top(self, new_limit: int) -> str:
         top_sel_keywork = set(["SELECT", "SEL"])
         top_limit_keywork = set(["TOP", "SAMPLE"])
         statement = self._parsed[0]
