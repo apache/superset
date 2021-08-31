@@ -3004,12 +3004,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             .first()
         )
 
-        databases: Dict[int, Any] = {
-            database.id: {
+        databases: Dict[int, Any] = {}
+        for database in DatabaseDAO.find_all():
+            databases[database.id] = {
                 k: v for k, v in database.to_json().items() if k in DATABASE_KEYS
             }
-            for database in DatabaseDAO.find_all()
-        }
+            databases[database.id]["backend"] = database.backend
         queries: Dict[str, Any] = {}
 
         # These are unnecessary if sqllab backend persistence is disabled
@@ -3072,11 +3072,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @event_logger.log_this
-    @expose("/schemas_access_for_csv_upload")
-    def schemas_access_for_csv_upload(self) -> FlaskResponse:
+    @expose("/schemas_access_for_file_upload")
+    def schemas_access_for_file_upload(self) -> FlaskResponse:
         """
         This method exposes an API endpoint to
-        get the schema access control settings for csv upload in this database
+        get the schema access control settings for file upload in this database
         """
         if not request.args.get("db_id"):
             return json_error_response("No database is allowed for your csv upload")
