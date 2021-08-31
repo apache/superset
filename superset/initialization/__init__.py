@@ -718,8 +718,7 @@ class SupersetAppInitializer:
                 csrf.exempt(ex)
 
     def configure_async_queries(self) -> None:
-        if feature_flag_manager.is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
-            async_query_manager.init_app(self.superset_app)
+        async_query_manager.init_app(self.superset_app)
 
     def register_blueprints(self) -> None:
         for bp in self.config["BLUEPRINTS"]:

@@ -21,7 +21,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import jwt
 import redis
-from flask import Flask, g, request, Request, Response, session
+from flask import current_app, Flask, g, request, Request, Response, session
 
 logger = logging.getLogger(__name__)
 
@@ -79,28 +79,20 @@ class AsyncQueryManager:
         self._jwt_cookie_secure: bool = False
         self._jwt_cookie_domain: Optional[str]
         self._jwt_secret: str
+        self._config_valid: bool = False
+
+    def ensure_config_valid(self) -> None:
+        if not self._config_valid:
+            self.validate_config(current_app)
+
+        if not getattr(self, "_redis", None):
+            self.connect_redis(current_app)
 
     def init_app(self, app: Flask) -> None:
+        # pylint: disable=import-outside-toplevel
+        from superset import is_feature_enabled
+
         config = app.config
-        if (
-            config["CACHE_CONFIG"]["CACHE_TYPE"] == "null"
-            or config["DATA_CACHE_CONFIG"]["CACHE_TYPE"] == "null"
-        ):
-            raise Exception(
-                """
-                Cache backends (CACHE_CONFIG, DATA_CACHE_CONFIG) must be configured
-                and non-null in order to enable async queries
-                """
-            )
-
-        if len(config["GLOBAL_ASYNC_QUERIES_JWT_SECRET"]) < 32:
-            raise AsyncQueryTokenException(
-                "Please provide a JWT secret at least 32 bytes long"
-            )
-
-        self._redis = redis.Redis(
-            **config["GLOBAL_ASYNC_QUERIES_REDIS_CONFIG"], decode_responses=True
-        )
         self._stream_prefix = config["GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX"]
         self._stream_limit = config["GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT"]
         self._stream_limit_firehose = config[
@@ -113,6 +105,10 @@ class AsyncQueryManager:
 
         @app.after_request
         def validate_session(response: Response) -> Response:
+            if not is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
+                return response
+
+            self.ensure_config_valid()
             user_id = None
 
             try:
@@ -146,6 +142,30 @@ class AsyncQueryManager:
 
             return response
 
+    def validate_config(self, app: Flask) -> None:
+        config = app.config
+        if (
+            config["CACHE_CONFIG"]["CACHE_TYPE"] == "null"
+            or config["DATA_CACHE_CONFIG"]["CACHE_TYPE"] == "null"
+        ):
+            raise Exception(
+                """
+                Cache backends (CACHE_CONFIG, DATA_CACHE_CONFIG) must be configured
+                and non-null in order to enable async queries
+                """
+            )
+
+        if len(config["GLOBAL_ASYNC_QUERIES_JWT_SECRET"]) < 32:
+            raise AsyncQueryTokenException(
+                "Please provide a JWT secret at least 32 bytes long"
+            )
+        self._config_valid = True
+
+    def connect_redis(self, app: Flask) -> None:
+        self._redis = redis.Redis(
+            **app.config["GLOBAL_ASYNC_QUERIES_REDIS_CONFIG"], decode_responses=True
+        )
+
     def generate_jwt(self, data: Dict[str, Any]) -> str:
         encoded_jwt = jwt.encode(data, self._jwt_secret, algorithm="HS256")
         return encoded_jwt.decode("utf-8")
@@ -174,6 +194,7 @@ class AsyncQueryManager:
     def read_events(
         self, channel: str, last_id: Optional[str]
     ) -> List[Optional[Dict[str, Any]]]:
+        self.ensure_config_valid()
         stream_name = f"{self._stream_prefix}{channel}"
         start_id = increment_id(last_id) if last_id else "-"
         results = self._redis.xrange(  # type: ignore
@@ -184,6 +205,7 @@ class AsyncQueryManager:
     def update_job(
         self, job_metadata: Dict[str, Any], status: str, **kwargs: Any
     ) -> None:
+        self.ensure_config_valid()
         if "channel_id" not in job_metadata:
             raise AsyncQueryJobException("No channel ID specified")
 
