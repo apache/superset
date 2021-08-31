@@ -126,7 +126,7 @@ const groupByControl = {
   description: t('One or many controls to group by'),
   optionRenderer: c => <StyledColumnOption column={c} showType />,
   valueKey: 'column_name',
-  filterOption: (text, opt) =>
+  filterOption: ({ data: opt }, text) =>
     (opt.column_name &&
       opt.column_name.toLowerCase().indexOf(text.toLowerCase()) >= 0) ||
     (opt.verbose_name &&

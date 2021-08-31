@@ -89,6 +89,7 @@ export default class SelectControl extends React.PureComponent {
       options: this.getOptions(props),
     };
     this.onChange = this.onChange.bind(this);
+    this.handleFilterOptions = this.handleFilterOptions.bind(this);
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
@@ -140,13 +141,20 @@ export default class SelectControl extends React.PureComponent {
     return options;
   }
 
+  handleFilterOptions(text, option) {
+    const { filterOption } = this.props;
+    if (filterOption) {
+      return this.props.filterOption({ data: option }, text);
+    }
+    return undefined;
+  }
+
   render() {
     const {
       ariaLabel,
       autoFocus,
       clearable,
       disabled,
-      filterOption,
       freeForm,
       isLoading,
       isMulti,
@@ -193,7 +201,7 @@ export default class SelectControl extends React.PureComponent {
       allowClear: clearable,
       defaultValue: this.props.default || undefined,
       disabled,
-      filterOption,
+      filterOption: this.handleFilterOptions,
       header: showHeader && <ControlHeader {...headerProps} />,
       loading: isLoading,
       mode: isMulti || multi ? 'multiple' : 'single',
