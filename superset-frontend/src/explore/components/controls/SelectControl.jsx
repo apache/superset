@@ -23,6 +23,7 @@ import { Select } from 'src/components';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
 const propTypes = {
+  ariaLabel: PropTypes.string,
   autoFocus: PropTypes.bool,
   choices: PropTypes.array,
   clearable: PropTypes.bool,
@@ -144,6 +145,7 @@ export default class SelectControl extends React.PureComponent {
 
   render() {
     const {
+      ariaLabel,
       autoFocus,
       clearable,
       disabled,
@@ -190,7 +192,7 @@ export default class SelectControl extends React.PureComponent {
     const selectProps = {
       allowNewOptions: freeForm,
       autoFocus,
-      ariaLabel: label,
+      ariaLabel: ariaLabel || label,
       allowClear: clearable,
       defaultValue: this.props.default || undefined,
       disabled,
