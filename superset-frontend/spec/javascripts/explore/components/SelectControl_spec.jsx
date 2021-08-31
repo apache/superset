@@ -21,7 +21,6 @@ import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
 import { Select as SelectComponent } from 'src/components';
-import OnPasteSelect from 'src/components/Select/OnPasteSelect';
 import SelectControl from 'src/explore/components/controls/SelectControl';
 import { styledMount as mount } from 'spec/helpers/theming';
 
@@ -70,6 +69,13 @@ describe('SelectControl', () => {
       expect(wrapper.find(SelectComponent)).toExist();
       expect(wrapper.find(SelectComponent).prop('allowNewOptions')).toBe(true);
     });
+
+    it('renders with allowNewOptions=false when freeForm=false', () => {
+      wrapper.setProps({ freeForm: false });
+      expect(wrapper.find(SelectComponent)).toExist();
+      expect(wrapper.find(SelectComponent).prop('allowNewOptions')).toBe(false);
+    });
+
     describe('empty placeholder', () => {
       describe('withMulti', () => {
         it('does not show a placeholder if there are no choices', () => {
