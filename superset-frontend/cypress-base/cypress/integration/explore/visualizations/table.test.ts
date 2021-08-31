@@ -54,7 +54,7 @@ describe('Visualization > Table', () => {
       granularity_sqla: undefined,
       metrics: ['count'],
     });
-    cy.get('input[name="select-granularity_sqla"]').should('have.value', 'ds');
+    cy.get('input[aria-label="Time Column"]').should('have.value', 'ds');
   });
 
   it('Format non-numeric metrics correctly', () => {
