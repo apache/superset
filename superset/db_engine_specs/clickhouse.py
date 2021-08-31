@@ -14,12 +14,22 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from datetime import datetime
-from typing import Dict, Optional, Type
+from typing import Dict, List, Optional, Type, TYPE_CHECKING
+
+from urllib3.exceptions import NewConnectionError
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.exceptions import SupersetDBAPIDatabaseError
+from superset.extensions import cache_manager
 from superset.utils import core as utils
+
+if TYPE_CHECKING:
+    # prevent circular imports
+    from superset.models.core import Database
+
+logger = logging.getLogger(__name__)
 
 
 class ClickHouseEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
@@ -46,10 +56,10 @@ class ClickHouseEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         "P1Y": "toStartOfYear(toDateTime({col}))",
     }
 
+    _show_functions_column = "name"
+
     @classmethod
     def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
-        from urllib3.exceptions import NewConnectionError
-
         return {NewConnectionError: SupersetDBAPIDatabaseError}
 
     @classmethod
@@ -69,3 +79,42 @@ class ClickHouseEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         if tt == utils.TemporalType.DATETIME:
             return f"""toDateTime('{dttm.isoformat(sep=" ", timespec="seconds")}')"""
         return None
+
+    @classmethod
+    @cache_manager.cache.memoize()
+    def get_function_names(cls, database: "Database") -> List[str]:
+        """
+        Get a list of function names that are able to be called on the database.
+        Used for SQL Lab autocomplete.
+
+        :param database: The database to get functions for
+        :return: A list of function names usable in the database
+        """
+        system_functions_sql = "SELECT name FROM system.functions"
+        try:
+            df = database.get_df(system_functions_sql)
+            if cls._show_functions_column in df:
+                return df[cls._show_functions_column].tolist()
+            columns = df.columns.values.tolist()
+            logger.error(
+                "Payload from `%s` has the incorrect format. "
+                "Expected column `%s`, found: %s.",
+                system_functions_sql,
+                cls._show_functions_column,
+                ", ".join(columns),
+                exc_info=True,
+            )
+            # if the results have a single column, use that
+            if len(columns) == 1:
+                return df[columns[0]].tolist()
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.error(
+                "Query `%s` fire error %s. ",
+                system_functions_sql,
+                str(ex),
+                exc_info=True,
+            )
+            return []
+
+        # otherwise, return no function names to prevent errors
+        return []

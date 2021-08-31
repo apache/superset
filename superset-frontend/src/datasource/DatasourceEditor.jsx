@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import rison from 'rison';
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Row, Col } from 'src/common/components';
@@ -87,6 +88,14 @@ const StyledTableTabs = styled(Tabs)`
   }
 `;
 
+const StyledBadge = styled(Badge)`
+  .ant-badge-count {
+    line-height: ${({ theme }) => theme.gridUnit * 4}px;
+    height: ${({ theme }) => theme.gridUnit * 4}px;
+    margin-left: ${({ theme }) => theme.gridUnit}px;
+  }
+`;
+
 const EditLockContainer = styled.div`
   font-size: ${supersetTheme.typography.sizes.s}px;
   display: flex;
@@ -104,7 +113,7 @@ const ColumnButtonWrapper = styled.div`
 const checkboxGenerator = (d, onChange) => (
   <CheckboxControl value={d} onChange={onChange} />
 );
-const DATA_TYPES = ['STRING', 'NUMERIC', 'DATETIME'];
+const DATA_TYPES = ['STRING', 'NUMERIC', 'DATETIME', 'BOOLEAN'];
 
 const DATASOURCE_TYPES_ARR = [
   { key: 'physical', label: t('Physical (table or view)') },
@@ -117,8 +126,12 @@ DATASOURCE_TYPES_ARR.forEach(o => {
 
 function CollectionTabTitle({ title, collection }) {
   return (
-    <div data-test={`collection-tab-${title}`}>
-      {title} <Badge count={collection ? collection.length : 0} showZero />
+    <div
+      css={{ display: 'flex', alignItems: 'center' }}
+      data-test={`collection-tab-${title}`}
+    >
+      {title}{' '}
+      <StyledBadge count={collection ? collection.length : 0} showZero />
     </div>
   );
 }
@@ -312,14 +325,18 @@ class DatasourceEditor extends React.PureComponent {
         ...props.datasource,
         metrics: props.datasource.metrics?.map(metric => {
           const {
+            certified_by: certifiedByMetric,
+            certification_details: certificationDetails,
+          } = metric;
+          const {
             certification: { details, certified_by: certifiedBy } = {},
             warning_markdown: warningMarkdown,
           } = JSON.parse(metric.extra || '{}') || {};
           return {
             ...metric,
-            certification_details: details || '',
+            certification_details: certificationDetails || details,
             warning_markdown: warningMarkdown || '',
-            certified_by: certifiedBy,
+            certified_by: certifiedBy || certifiedByMetric,
           };
         }),
       },
@@ -346,6 +363,9 @@ class DatasourceEditor extends React.PureComponent {
     this.onChangeEditMode = this.onChangeEditMode.bind(this);
     this.onDatasourcePropChange = this.onDatasourcePropChange.bind(this);
     this.onDatasourceChange = this.onDatasourceChange.bind(this);
+    this.tableChangeAndSyncMetadata = this.tableChangeAndSyncMetadata.bind(
+      this,
+    );
     this.syncMetadata = this.syncMetadata.bind(this);
     this.setColumns = this.setColumns.bind(this);
     this.validateAndChange = this.validateAndChange.bind(this);
@@ -375,8 +395,8 @@ class DatasourceEditor extends React.PureComponent {
     this.setState(prevState => ({ isEditMode: !prevState.isEditMode }));
   }
 
-  onDatasourceChange(datasource) {
-    this.setState({ datasource }, this.validateAndChange);
+  onDatasourceChange(datasource, callback = this.validateAndChange) {
+    this.setState({ datasource }, callback);
   }
 
   onDatasourcePropChange(attr, value) {
@@ -385,7 +405,9 @@ class DatasourceEditor extends React.PureComponent {
       prevState => ({
         datasource: { ...prevState.datasource, [attr]: value },
       }),
-      this.onDatasourceChange(datasource),
+      attr === 'table_name'
+        ? this.onDatasourceChange(datasource, this.tableChangeAndSyncMetadata)
+        : this.onDatasourceChange(datasource, this.validateAndChange),
     );
   }
 
@@ -400,6 +422,13 @@ class DatasourceEditor extends React.PureComponent {
 
   validateAndChange() {
     this.validate(this.onChange);
+  }
+
+  tableChangeAndSyncMetadata() {
+    this.validate(() => {
+      this.syncMetadata();
+      this.onChange();
+    });
   }
 
   updateColumns(cols) {
@@ -461,9 +490,22 @@ class DatasourceEditor extends React.PureComponent {
 
   syncMetadata() {
     const { datasource } = this.state;
-    const endpoint = `/datasource/external_metadata/${
-      datasource.type || datasource.datasource_type
-    }/${datasource.id}/`;
+    const params = {
+      datasource_type: datasource.type || datasource.datasource_type,
+      database_name:
+        datasource.database.database_name || datasource.database.name,
+      schema_name: datasource.schema,
+      table_name: datasource.table_name,
+    };
+    Object.entries(params).forEach(([key, value]) => {
+      // rison can't encode the undefined value
+      if (value === undefined) {
+        params[key] = null;
+      }
+    });
+    const endpoint = `/datasource/external_metadata_by_name/?q=${rison.encode(
+      params,
+    )}`;
     this.setState({ metadataLoading: true });
 
     SupersetClient.get({ endpoint })
@@ -545,6 +587,10 @@ class DatasourceEditor extends React.PureComponent {
     this.setState({ activeTabKey });
   }
 
+  sortMetrics(metrics) {
+    return metrics.sort(({ id: a }, { id: b }) => b - a);
+  }
+
   renderSettingsFieldset() {
     const { datasource } = this.state;
     return (
@@ -586,7 +632,13 @@ class DatasourceEditor extends React.PureComponent {
                 'values from the table. Typically the intent would be to limit the scan ' +
                 'by applying a relative time filter on a partitioned or indexed time-related field.',
             )}
-            control={<TextControl controlId="fetch_values_predicate" />}
+            control={
+              <TextAreaControl
+                language="sql"
+                controlId="fetch_values_predicate"
+                minLines={5}
+              />
+            }
           />
         )}
         {this.state.isSqla && (
@@ -884,6 +936,9 @@ class DatasourceEditor extends React.PureComponent {
   }
 
   renderMetricCollection() {
+    const { datasource } = this.state;
+    const { metrics } = datasource;
+    const sortedMetrics = metrics?.length ? this.sortMetrics(metrics) : [];
     return (
       <CollectionTable
         tableColumns={['metric_name', 'verbose_name', 'expression']}
@@ -957,7 +1012,7 @@ class DatasourceEditor extends React.PureComponent {
             </Fieldset>
           </FormContainer>
         }
-        collection={this.state.datasource.metrics}
+        collection={sortedMetrics}
         allowAddItem
         onChange={this.onDatasourcePropChange.bind(this, 'metrics')}
         itemGenerator={() => ({
@@ -1015,6 +1070,9 @@ class DatasourceEditor extends React.PureComponent {
 
   render() {
     const { datasource, activeTabKey } = this.state;
+    const { metrics } = datasource;
+    const sortedMetrics = metrics?.length ? this.sortMetrics(metrics) : [];
+
     return (
       <DatasourceContainer>
         {this.renderErrors()}
@@ -1044,7 +1102,7 @@ class DatasourceEditor extends React.PureComponent {
           <Tabs.TabPane
             tab={
               <CollectionTabTitle
-                collection={datasource.metrics}
+                collection={sortedMetrics}
                 title={t('Metrics')}
               />
             }
@@ -1066,9 +1124,10 @@ class DatasourceEditor extends React.PureComponent {
                 <span className="m-t-10 m-r-10">
                   <Button
                     buttonSize="small"
-                    buttonStyle="primary"
+                    buttonStyle="tertiary"
                     onClick={this.syncMetadata}
                     className="sync-from-source"
+                    disabled={this.state.isEditMode}
                   >
                     <i className="fa fa-database" />{' '}
                     {t('Sync columns from source')}

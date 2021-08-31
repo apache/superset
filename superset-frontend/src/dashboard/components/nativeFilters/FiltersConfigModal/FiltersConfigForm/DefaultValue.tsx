@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC, useEffect, useState } from 'react';
+import React, { FC } from 'react';
 import {
   Behavior,
   SetDataMaskHook,
@@ -30,6 +30,7 @@ import { NativeFiltersForm } from '../types';
 import { getFormData } from '../../utils';
 
 type DefaultValueProps = {
+  hasDefaultValue: boolean;
   filterId: string;
   setDataMask: SetDataMaskHook;
   hasDataset: boolean;
@@ -39,6 +40,7 @@ type DefaultValueProps = {
 };
 
 const DefaultValue: FC<DefaultValueProps> = ({
+  hasDefaultValue,
   filterId,
   hasDataset,
   form,
@@ -46,21 +48,12 @@ const DefaultValue: FC<DefaultValueProps> = ({
   formData,
   enableNoResults,
 }) => {
-  const [loading, setLoading] = useState(hasDataset);
   const formFilter = (form.getFieldValue('filters') || {})[filterId];
   const queriesData = formFilter?.defaultValueQueriesData;
-
-  useEffect(() => {
-    if (!hasDataset || queriesData !== null) {
-      setLoading(false);
-    } else {
-      setLoading(true);
-    }
-  }, [hasDataset, queriesData]);
+  const loading = hasDataset && queriesData === null;
   const value = formFilter.defaultDataMask?.filterState.value;
   const isMissingRequiredValue =
-    (value === null || value === undefined) &&
-    formFilter?.controlValues?.enableEmptyFilter;
+    hasDefaultValue && (value === null || value === undefined);
   return loading ? (
     <Loading position="inline-centered" />
   ) : (
@@ -80,6 +73,7 @@ const DefaultValue: FC<DefaultValueProps> = ({
       filterState={{
         ...formFilter.defaultDataMask?.filterState,
         validateMessage: isMissingRequiredValue && t('Value is required'),
+        validateStatus: isMissingRequiredValue && 'error',
       }}
     />
   );

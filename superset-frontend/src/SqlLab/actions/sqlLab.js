@@ -250,18 +250,22 @@ export function queryFailed(query, msg, link, errors) {
           })
         : Promise.resolve();
 
-    return sync
-      .then(() => dispatch({ type: QUERY_FAILED, query, msg, link, errors }))
-      .catch(() =>
-        dispatch(
-          addDangerToast(
-            t(
-              'An error occurred while storing the latest query id in the backend. ' +
-                'Please contact your administrator if this problem persists.',
+    return (
+      sync
+        .catch(() =>
+          dispatch(
+            addDangerToast(
+              t(
+                'An error occurred while storing the latest query id in the backend. ' +
+                  'Please contact your administrator if this problem persists.',
+              ),
             ),
           ),
-        ),
-      );
+        )
+        // We should always show the error message, even if we couldn't sync the
+        // state to the backend
+        .then(() => dispatch({ type: QUERY_FAILED, query, msg, link, errors }))
+    );
   };
 }
 
@@ -894,16 +898,11 @@ export function updateSavedQuery(query) {
 
 export function queryEditorSetSql(queryEditor, sql) {
   return function (dispatch) {
-    const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
-      ? SupersetClient.put({
-          endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
-          postPayload: { sql, latest_query_id: queryEditor.latestQueryId },
-        })
-      : Promise.resolve();
-
-    return sync
-      .then(() => dispatch({ type: QUERY_EDITOR_SET_SQL, queryEditor, sql }))
-      .catch(() =>
+    if (isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)) {
+      return SupersetClient.put({
+        endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
+        postPayload: { sql, latest_query_id: queryEditor.latestQueryId },
+      }).catch(() =>
         dispatch(
           addDangerToast(
             t(
@@ -914,6 +913,8 @@ export function queryEditorSetSql(queryEditor, sql) {
           ),
         ),
       );
+    }
+    return dispatch({ type: QUERY_EDITOR_SET_SQL, queryEditor, sql });
   };
 }
 

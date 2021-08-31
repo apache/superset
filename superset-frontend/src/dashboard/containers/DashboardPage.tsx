@@ -16,19 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState, FC } from 'react';
+import React, { useEffect, FC } from 'react';
+import { t } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
 import { useParams } from 'react-router-dom';
+import { useToasts } from 'src/messageToasts/enhancers/withToasts';
 import Loading from 'src/components/Loading';
 import {
   useDashboard,
   useDashboardCharts,
   useDashboardDatasets,
 } from 'src/common/hooks/apiResources';
-import { ResourceStatus } from 'src/common/hooks/apiResources/apiResources';
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
+import { setDatasources } from 'src/dashboard/actions/datasources';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
+import setupPlugins from 'src/setup/setupPlugins';
 
+setupPlugins();
 const DashboardContainer = React.lazy(
   () =>
     import(
@@ -38,50 +42,64 @@ const DashboardContainer = React.lazy(
     ),
 );
 
+const originalDocumentTitle = document.title;
+
 const DashboardPage: FC = () => {
   const dispatch = useDispatch();
+  const { addDangerToast } = useToasts();
   const { idOrSlug } = useParams<{ idOrSlug: string }>();
-  const [isHydrated, setHydrated] = useState(false);
-  const dashboardResource = useDashboard(idOrSlug);
-  const chartsResource = useDashboardCharts(idOrSlug);
-  const datasetsResource = useDashboardDatasets(idOrSlug);
-  const error = [dashboardResource, chartsResource, datasetsResource].find(
-    resource => resource.status === ResourceStatus.ERROR,
-  )?.error;
+  const { result: dashboard, error: dashboardApiError } = useDashboard(
+    idOrSlug,
+  );
+  const { result: charts, error: chartsApiError } = useDashboardCharts(
+    idOrSlug,
+  );
+  const { result: datasets, error: datasetsApiError } = useDashboardDatasets(
+    idOrSlug,
+  );
+
+  const error = dashboardApiError || chartsApiError;
+  const readyToRender = Boolean(dashboard && charts);
+  const { dashboard_title, css } = dashboard || {};
 
   useEffect(() => {
-    if (dashboardResource.result) {
-      document.title = dashboardResource.result.dashboard_title;
-      if (dashboardResource.result.css) {
-        // returning will clean up custom css
-        // when dashboard unmounts or changes
-        return injectCustomCss(dashboardResource.result.css);
-      }
-    }
-    return () => {};
-  }, [dashboardResource.result]);
-
-  const shouldBeHydrated =
-    dashboardResource.status === ResourceStatus.COMPLETE &&
-    chartsResource.status === ResourceStatus.COMPLETE &&
-    datasetsResource.status === ResourceStatus.COMPLETE;
-
-  useEffect(() => {
-    if (shouldBeHydrated) {
-      dispatch(
-        hydrateDashboard(
-          dashboardResource.result,
-          chartsResource.result,
-          datasetsResource.result,
-        ),
-      );
-      setHydrated(true);
+    if (readyToRender) {
+      dispatch(hydrateDashboard(dashboard, charts));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shouldBeHydrated]);
+  }, [readyToRender]);
+
+  useEffect(() => {
+    if (dashboard_title) {
+      document.title = dashboard_title;
+    }
+    return () => {
+      document.title = originalDocumentTitle;
+    };
+  }, [dashboard_title]);
+
+  useEffect(() => {
+    if (css) {
+      // returning will clean up custom css
+      // when dashboard unmounts or changes
+      return injectCustomCss(css);
+    }
+    return () => {};
+  }, [css]);
+
+  useEffect(() => {
+    if (datasetsApiError) {
+      addDangerToast(
+        t('Error loading chart datasources. Filters may not work correctly.'),
+      );
+    } else {
+      dispatch(setDatasources(datasets));
+    }
+  }, [addDangerToast, datasets, datasetsApiError, dispatch]);
 
   if (error) throw error; // caught in error boundary
-  if (!isHydrated) return <Loading />;
+  if (!readyToRender) return <Loading />;
+
   return <DashboardContainer />;
 };
 

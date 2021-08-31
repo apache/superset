@@ -27,6 +27,7 @@ type user = {
 export type ChartObject = {
   id: number;
   slice_name: string;
+  viz_type: string;
 };
 
 export type DashboardObject = {
@@ -39,11 +40,13 @@ export type DatabaseObject = {
   id: number;
 };
 
+export type NotificationMethodOption = 'Email' | 'Slack';
+
 export type Recipient = {
   recipient_config_json: {
     target: string;
   };
-  type: string;
+  type: NotificationMethodOption;
 };
 
 export type MetaObject = {
@@ -73,8 +76,9 @@ export type AlertObject = {
   name?: string;
   owners?: Array<Owner | MetaObject>;
   sql?: string;
+  timezone?: string;
   recipients?: Array<Recipient>;
-  report_format?: 'PNG' | 'CSV';
+  report_format?: 'PNG' | 'CSV' | 'TEXT';
   type?: string;
   validator_config_json?: {
     op?: Operator;

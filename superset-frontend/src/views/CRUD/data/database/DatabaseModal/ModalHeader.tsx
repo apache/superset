@@ -27,14 +27,16 @@ import {
 } from './styles';
 import { DatabaseForm, DatabaseObject } from '../types';
 
-export const DOCUMENTATION_LINK =
-  'https://superset.apache.org/docs/databases/installing-database-drivers';
-
 const supersetTextDocs = getDatabaseDocumentationLinks();
+
+export const DOCUMENTATION_LINK = supersetTextDocs
+  ? supersetTextDocs.support
+  : 'https://superset.apache.org/docs/databases/installing-database-drivers';
 
 const irregularDocumentationLinks = {
   postgresql: 'https://superset.apache.org/docs/databases/postgres',
   mssql: 'https://superset.apache.org/docs/databases/sql-server',
+  gsheets: 'https://superset.apache.org/docs/databases/google-sheets',
 };
 
 const documentationLink = (engine: string | undefined) => {

@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 
 
 class ConnectorRegistry:
-    """ Central Registry for all available datasource engines"""
+    """Central Registry for all available datasource engines"""
 
     sources: Dict[str, Type["BaseDatasource"]] = {}
 
@@ -68,16 +68,15 @@ class ConnectorRegistry:
     @classmethod
     def get_all_datasources(cls, session: Session) -> List["BaseDatasource"]:
         datasources: List["BaseDatasource"] = []
-        for source_type in ConnectorRegistry.sources:
-            source_class = ConnectorRegistry.sources[source_type]
+        for source_class in ConnectorRegistry.sources.values():
             qry = session.query(source_class)
             qry = source_class.default_query(qry)
             datasources.extend(qry.all())
         return datasources
 
     @classmethod
-    def get_datasource_by_id(  # pylint: disable=too-many-arguments
-        cls, session: Session, datasource_id: int,
+    def get_datasource_by_id(
+        cls, session: Session, datasource_id: int
     ) -> "BaseDatasource":
         """
         Find a datasource instance based on the unique id.

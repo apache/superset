@@ -39,6 +39,7 @@ import {
   setMaxUndoHistoryExceeded,
   maxUndoHistoryToast,
   setRefreshFrequency,
+  onRefresh,
 } from '../actions/dashboardState';
 
 import {
@@ -56,13 +57,20 @@ import {
 
 import { logEvent } from '../../logger/actions';
 import { DASHBOARD_HEADER_ID } from '../util/constants';
+import {
+  fetchUISpecificReport,
+  toggleActive,
+  deleteActiveReport,
+} from '../../reports/actions/reports';
 
 function mapStateToProps({
   dashboardLayout: undoableLayout,
   dashboardState,
+  reports,
   dashboardInfo,
   charts,
   dataMask,
+  user,
 }) {
   return {
     dashboardInfo,
@@ -80,7 +88,7 @@ function mapStateToProps({
     colorScheme: dashboardState.colorScheme,
     charts,
     dataMask,
-    userId: dashboardInfo.userId,
+    user,
     isStarred: !!dashboardState.isStarred,
     isPublished: !!dashboardState.isPublished,
     isLoading: isDashboardLoading(charts),
@@ -93,6 +101,7 @@ function mapStateToProps({
     editMode: !!dashboardState.editMode,
     slug: dashboardInfo.slug,
     metadata: dashboardInfo.metadata,
+    reports,
   };
 }
 
@@ -119,9 +128,13 @@ function mapDispatchToProps(dispatch) {
       maxUndoHistoryToast,
       logEvent,
       setRefreshFrequency,
+      onRefresh,
       dashboardInfoChanged,
       dashboardTitleChanged,
       updateDataMask,
+      fetchUISpecificReport,
+      toggleActive,
+      deleteActiveReport,
     },
     dispatch,
   );

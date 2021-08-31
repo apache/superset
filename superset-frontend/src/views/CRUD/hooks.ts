@@ -631,7 +631,7 @@ export function useAvailableDatabases() {
 
   const getAvailable = useCallback(() => {
     SupersetClient.get({
-      endpoint: `/api/v1/database/available`,
+      endpoint: `/api/v1/database/available/`,
     }).then(({ json }) => {
       setAvailableDbs(json);
     });
@@ -674,10 +674,48 @@ export function useDatabaseValidation() {
                       message,
                     }: {
                       error_type: string;
-                      extra: { invalid?: string[]; missing?: string[] };
+                      extra: {
+                        invalid?: string[];
+                        missing?: string[];
+                        name: string;
+                        catalog: {
+                          name: string;
+                          url: string;
+                          idx: number;
+                        };
+                      };
                       message: string;
                     },
                   ) => {
+                    if (extra.catalog) {
+                      if (extra.catalog.name) {
+                        return {
+                          ...obj,
+                          error_type,
+                          [extra.catalog.idx]: {
+                            name: message,
+                          },
+                        };
+                      }
+                      if (extra.catalog.url) {
+                        return {
+                          ...obj,
+                          error_type,
+                          [extra.catalog.idx]: {
+                            url: message,
+                          },
+                        };
+                      }
+
+                      return {
+                        ...obj,
+                        error_type,
+                        [extra.catalog.idx]: {
+                          name: message,
+                          url: message,
+                        },
+                      };
+                    }
                     // if extra.invalid doesn't exist then the
                     // error can't be mapped to a parameter
                     // so leave it alone

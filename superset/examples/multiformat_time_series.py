@@ -32,7 +32,7 @@ from .helpers import (
 )
 
 
-def load_multiformat_time_series(
+def load_multiformat_time_series(  # pylint: disable=too-many-locals
     only_metadata: bool = False, force: bool = False
 ) -> None:
     """Loading time series data from a zip file in the repo"""
@@ -80,6 +80,7 @@ def load_multiformat_time_series(
         obj = table(table_name=tbl_name)
     obj.main_dttm_col = "ds"
     obj.database = database
+    obj.filter_select_enabled = True
     dttm_and_expr_dict: Dict[str, Tuple[Optional[str], None]] = {
         "ds": (None, None),
         "ds2": (None, None),

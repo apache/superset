@@ -67,15 +67,20 @@ function createCollectionArray(collection: object) {
 }
 
 function createKeyedCollection(arr: Array<object>) {
-  const newArr = arr.map((o: any) => ({
+  const collectionArray = arr.map((o: any) => ({
     ...o,
     id: o.id || shortid.generate(),
   }));
-  const map = {};
-  newArr.forEach((o: any) => {
-    map[o.id] = o;
+
+  const collection = {};
+  collectionArray.forEach((o: any) => {
+    collection[o.id] = o;
   });
-  return map;
+
+  return {
+    collection,
+    collectionArray,
+  };
 }
 
 const CrudTableWrapper = styled.div<{ stickyHeader?: boolean }>`
@@ -114,11 +119,13 @@ export default class CRUDCollection extends React.PureComponent<
   constructor(props: CRUDCollectionProps) {
     super(props);
 
-    const collection = createKeyedCollection(props.collection);
+    const { collection, collectionArray } = createKeyedCollection(
+      props.collection,
+    );
     this.state = {
       expandedColumns: {},
       collection,
-      collectionArray: createCollectionArray(collection),
+      collectionArray,
       sortColumn: '',
       sort: 0,
     };
@@ -135,10 +142,12 @@ export default class CRUDCollection extends React.PureComponent<
 
   UNSAFE_componentWillReceiveProps(nextProps: CRUDCollectionProps) {
     if (nextProps.collection !== this.props.collection) {
-      const collection = createKeyedCollection(nextProps.collection);
+      const { collection, collectionArray } = createKeyedCollection(
+        nextProps.collection,
+      );
       this.setState({
         collection,
-        collectionArray: createCollectionArray(collection),
+        collectionArray,
       });
     }
   }
@@ -159,10 +168,7 @@ export default class CRUDCollection extends React.PureComponent<
       if (!newItem.id) {
         newItem = { ...newItem, id: shortid.generate() };
       }
-      this.changeCollection({
-        ...this.state.collection,
-        [newItem.id]: newItem,
-      });
+      this.changeCollection(this.state.collection, newItem);
     }
   }
 
@@ -183,10 +189,18 @@ export default class CRUDCollection extends React.PureComponent<
     return label;
   }
 
-  changeCollection(collection: any) {
+  changeCollection(collection: any, newItem?: object) {
     this.setState({ collection });
     if (this.props.onChange) {
-      this.props.onChange(Object.keys(collection).map(k => collection[k]));
+      const collectionArray = this.state.collectionArray
+        .map((c: { id: number }) => collection[c.id])
+        // filter out removed items
+        .filter(c => c !== undefined);
+
+      if (newItem) {
+        collectionArray.unshift(newItem);
+      }
+      this.props.onChange(collectionArray);
     }
   }
 
@@ -227,29 +241,29 @@ export default class CRUDCollection extends React.PureComponent<
       if (sortColumns?.includes(col)) {
         // display in unsorted order if no sort specified
         if (sort === SortOrder.unsort) {
-          const collection = createKeyedCollection(this.props.collection);
+          const { collection } = createKeyedCollection(this.props.collection);
+          const collectionArray = createCollectionArray(collection);
           this.setState({
-            collectionArray: createCollectionArray(collection),
+            collectionArray,
             sortColumn: '',
             sort,
           });
           return;
         }
 
-        this.setState(prevState => {
-          // newly ordered collection
-          const sorted = [
-            ...prevState.collectionArray,
-          ].sort((a: object, b: object) => compareSort(a[col], b[col]));
-          const newCollection =
-            sort === SortOrder.asc ? sorted : sorted.reverse();
-          return {
-            ...prevState,
-            collectionArray: newCollection,
-            sortColumn: col,
-            sort,
-          };
-        });
+        // newly ordered collection
+        const sorted = [
+          ...this.state.collectionArray,
+        ].sort((a: object, b: object) => compareSort(a[col], b[col]));
+        const newCollection =
+          sort === SortOrder.asc ? sorted : sorted.reverse();
+
+        this.setState(prevState => ({
+          ...prevState,
+          collectionArray: newCollection,
+          sortColumn: col,
+          sort,
+        }));
       }
     };
   }
@@ -352,7 +366,6 @@ export default class CRUDCollection extends React.PureComponent<
             aria-label="Delete item"
             className="pointer"
             data-test="crud-delete-icon"
-            css={{ fontSize: '18px' }}
             role="button"
             tabIndex={0}
             onClick={this.deleteItem.bind(this, record.id)}
@@ -404,7 +417,7 @@ export default class CRUDCollection extends React.PureComponent<
             <span className="m-t-10 m-r-10">
               <Button
                 buttonSize="small"
-                buttonStyle="primary"
+                buttonStyle="tertiary"
                 onClick={this.onAddItem}
                 data-test="add-item-button"
               >

@@ -15,30 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
-
-from sqlalchemy import column
+from unittest import mock
 
 from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.core import Database
+from superset.models.sql_lab import Query
 from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
 class TestSnowflakeDbEngineSpec(TestDbEngineSpec):
-    def test_snowflake_sqla_column_label(self):
-        """
-        DB Eng Specs (snowflake): Test column label
-        """
-        test_cases = {
-            "Col": "Col",
-            "SUM(x)": "SUM(x)",
-            "SUM[x]": "SUM[x]",
-            "12345_col": "12345_col",
-        }
-        for original, expected in test_cases.items():
-            actual = SnowflakeEngineSpec.make_label_compatible(column(original).name)
-            self.assertEqual(actual, expected)
-
     def test_convert_dttm(self):
         dttm = self.get_dttm()
 
@@ -99,3 +85,22 @@ class TestSnowflakeDbEngineSpec(TestDbEngineSpec):
                 },
             )
         ]
+
+    @mock.patch("sqlalchemy.engine.Engine.connect")
+    def test_get_cancel_query_id(self, engine_mock):
+        query = Query()
+        cursor_mock = engine_mock.return_value.__enter__.return_value
+        cursor_mock.fetchone.return_value = [123]
+        assert SnowflakeEngineSpec.get_cancel_query_id(cursor_mock, query) == 123
+
+    @mock.patch("sqlalchemy.engine.Engine.connect")
+    def test_cancel_query(self, engine_mock):
+        query = Query()
+        cursor_mock = engine_mock.return_value.__enter__.return_value
+        assert SnowflakeEngineSpec.cancel_query(cursor_mock, query, 123) is True
+
+    @mock.patch("sqlalchemy.engine.Engine.connect")
+    def test_cancel_query_failed(self, engine_mock):
+        query = Query()
+        cursor_mock = engine_mock.raiseError.side_effect = Exception()
+        assert SnowflakeEngineSpec.cancel_query(cursor_mock, query, 123) is False

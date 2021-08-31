@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useCallback, useState } from 'react';
 import { ControlType } from '@superset-ui/chart-controls';
+import { ControlComponentProps as BaseControlComponentProps } from '@superset-ui/chart-controls/lib/shared-controls/components/types';
 import { JsonValue, QueryFormData } from '@superset-ui/core';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
@@ -43,53 +44,45 @@ export type ControlProps = {
   renderTrigger?: boolean;
 };
 
-export default class Control extends React.PureComponent<
-  ControlProps,
-  { hovered: boolean }
-> {
-  onMouseEnter: () => void;
+/**
+ *
+ */
+export type ControlComponentProps<
+  ValueType extends JsonValue = JsonValue
+> = Omit<ControlProps, 'value'> & BaseControlComponentProps<ValueType>;
 
-  onMouseLeave: () => void;
+export default function Control(props: ControlProps) {
+  const {
+    actions: { setControlValue },
+    name,
+    type,
+    hidden,
+  } = props;
 
-  constructor(props: ControlProps) {
-    super(props);
-    this.state = { hovered: false };
-    this.onChange = this.onChange.bind(this);
-    this.onMouseEnter = this.setHover.bind(this, true);
-    this.onMouseLeave = this.setHover.bind(this, false);
+  const [hovered, setHovered] = useState(false);
+  const onChange = useCallback(
+    (value: any, errors: any[]) => setControlValue(name, value, errors),
+    [name, setControlValue],
+  );
+
+  if (!type) return null;
+
+  const ControlComponent = typeof type === 'string' ? controlMap[type] : type;
+  if (!ControlComponent) {
+    return <>Unknown controlType: {type}</>;
   }
 
-  onChange(value: any, errors: any[]) {
-    this.props.actions.setControlValue(this.props.name, value, errors);
-  }
-
-  setHover(hovered: boolean) {
-    this.setState({ hovered });
-  }
-
-  render() {
-    const { type, hidden } = this.props;
-    if (!type) return null;
-    const ControlComponent = typeof type === 'string' ? controlMap[type] : type;
-    if (!ControlComponent) {
-      return `Unknown controlType: ${type}`;
-    }
-    return (
-      <div
-        className="Control"
-        data-test={this.props.name}
-        style={hidden ? { display: 'none' } : undefined}
-        onMouseEnter={this.onMouseEnter}
-        onMouseLeave={this.onMouseLeave}
-      >
-        <ErrorBoundary>
-          <ControlComponent
-            onChange={this.onChange}
-            hovered={this.state.hovered}
-            {...this.props}
-          />
-        </ErrorBoundary>
-      </div>
-    );
-  }
+  return (
+    <div
+      className="Control"
+      data-test={name}
+      style={hidden ? { display: 'none' } : undefined}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <ErrorBoundary>
+        <ControlComponent onChange={onChange} hovered={hovered} {...props} />
+      </ErrorBoundary>
+    </div>
+  );
 }

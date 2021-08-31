@@ -16,17 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray, ExtraFormData, styled, t, tn } from '@superset-ui/core';
+import { ensureIsArray, ExtraFormData, t, tn } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
-import { Select } from 'src/common/components';
-import { Styles, StyledSelect, StyledFormItem } from '../common';
+import { FormItemProps } from 'antd/lib/form';
+import { Select } from 'src/components';
+import { FilterPluginStyle, StyledFormItem, StatusMessage } from '../common';
 import { PluginFilterGroupByProps } from './types';
-
-const { Option } = Select;
-
-const Error = styled.div`
-  color: ${({ theme }) => theme.colors.error.base};
-`;
 
 export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
   const {
@@ -84,13 +79,31 @@ export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
     columns.length === 0
       ? t('No columns')
       : tn('%s option', '%s options', columns.length, columns.length);
+
+  const formItemData: FormItemProps = {};
+  if (filterState.validateMessage) {
+    formItemData.extra = (
+      <StatusMessage status={filterState.validateStatus}>
+        {filterState.validateMessage}
+      </StatusMessage>
+    );
+  }
+  const options = columns.map(
+    (row: { column_name: string; verbose_name: string | null }) => {
+      const { column_name: columnName, verbose_name: verboseName } = row;
+      return {
+        label: verboseName ?? columnName,
+        value: columnName,
+      };
+    },
+  );
   return (
-    <Styles height={height} width={width}>
+    <FilterPluginStyle height={height} width={width}>
       <StyledFormItem
-        validateStatus={filterState.validateMessage && 'error'}
-        extra={<Error>{filterState.validateMessage}</Error>}
+        validateStatus={filterState.validateStatus}
+        {...formItemData}
       >
-        <StyledSelect
+        <Select
           allowClear
           value={value}
           placeholder={placeholderText}
@@ -100,22 +113,9 @@ export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
           onBlur={unsetFocusedFilter}
           onFocus={setFocusedFilter}
           ref={inputRef}
-        >
-          {columns.map(
-            (row: { column_name: string; verbose_name: string | null }) => {
-              const {
-                column_name: columnName,
-                verbose_name: verboseName,
-              } = row;
-              return (
-                <Option key={columnName} value={columnName}>
-                  {verboseName ?? columnName}
-                </Option>
-              );
-            },
-          )}
-        </StyledSelect>
+          options={options}
+        />
       </StyledFormItem>
-    </Styles>
+    </FilterPluginStyle>
   );
 }

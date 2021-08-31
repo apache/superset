@@ -124,7 +124,6 @@ export const antDModalNoPaddingStyles = css`
 export const infoTooltip = (theme: SupersetTheme) => css`
   margin-bottom: ${theme.gridUnit * 5}px;
   svg {
-    vertical-align: bottom;
     margin-bottom: ${theme.gridUnit * 0.25}px;
   }
 `;
@@ -537,4 +536,45 @@ export const StyledStickyHeader = styled.div`
   top: 0;
   z-index: ${({ theme }) => theme.zIndex.max};
   background: ${({ theme }) => theme.colors.grayscale.light5};
+`;
+
+export const StyledCatalogTable = styled.div`
+  margin-bottom: 16px;
+
+  .catalog-type-select {
+    margin: 0 0 40px;
+  }
+
+  .gsheet-title {
+    font-size: ${({ theme }) => theme.typography.sizes.l * 1.1}px;
+    font-weight: bold;
+    margin: ${({ theme }) => theme.gridUnit * 6}px 0 16px;
+  }
+
+  .catalog-label {
+    margin: 0 0 7px;
+  }
+
+  .catalog-name {
+    display: flex;
+    .catalog-name-input {
+      width: 95%;
+      margin-bottom: 0px;
+    }
+  }
+
+  .catalog-name-url {
+    margin: 4px 0;
+    width: 95%;
+  }
+
+  .catalog-delete {
+    align-self: center;
+    background: ${({ theme }) => theme.colors.grayscale.light4};
+    margin: 5px 5px 8px 5px;
+  }
+
+  .catalog-add-btn {
+    width: 95%;
+  }
 `;

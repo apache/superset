@@ -38,14 +38,11 @@ def load_flights(only_metadata: bool = False, force: bool = False) -> None:
         airports = pd.read_csv(airports_bytes, encoding="latin-1")
         airports = airports.set_index("IATA_CODE")
 
-        pdf["ds"] = (
-            pdf.YEAR.map(str) + "-0" + pdf.MONTH.map(str) + "-0" + pdf.DAY.map(str)
-        )
+        pdf[  # pylint: disable=unsupported-assignment-operation,useless-suppression
+            "ds"
+        ] = (pdf.YEAR.map(str) + "-0" + pdf.MONTH.map(str) + "-0" + pdf.DAY.map(str))
         pdf.ds = pd.to_datetime(pdf.ds)
-        del pdf["YEAR"]
-        del pdf["MONTH"]
-        del pdf["DAY"]
-
+        pdf.drop(columns=["DAY", "MONTH", "YEAR"])
         pdf = pdf.join(airports, on="ORIGIN_AIRPORT", rsuffix="_ORIG")
         pdf = pdf.join(airports, on="DESTINATION_AIRPORT", rsuffix="_DEST")
         pdf.to_sql(
@@ -63,6 +60,7 @@ def load_flights(only_metadata: bool = False, force: bool = False) -> None:
         tbl = table(table_name=tbl_name)
     tbl.description = "Random set of flights in the US"
     tbl.database = database
+    tbl.filter_select_enabled = True
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()

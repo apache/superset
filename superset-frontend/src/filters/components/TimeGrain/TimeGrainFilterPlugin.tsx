@@ -19,21 +19,15 @@
 import {
   ensureIsArray,
   ExtraFormData,
-  styled,
   t,
   TimeGranularity,
   tn,
 } from '@superset-ui/core';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Select } from 'src/common/components';
-import { Styles, StyledSelect, StyledFormItem } from '../common';
+import { Select } from 'src/components';
+import { FormItemProps } from 'antd/lib/form';
+import { FilterPluginStyle, StyledFormItem, StatusMessage } from '../common';
 import { PluginFilterTimeGrainProps } from './types';
-
-const { Option } = Select;
-
-const Error = styled.div`
-  color: ${({ theme }) => theme.colors.error.base};
-`;
 
 export default function PluginFilterTimegrain(
   props: PluginFilterTimeGrainProps,
@@ -83,45 +77,57 @@ export default function PluginFilterTimegrain(
   };
 
   useEffect(() => {
-    handleChange(filterState.value ?? []);
-  }, [JSON.stringify(filterState.value)]);
-
-  useEffect(() => {
     handleChange(defaultValue ?? []);
     // I think after Config Modal update some filter it re-creates default value for all other filters
     // so we can process it like this `JSON.stringify` or start to use `Immer`
   }, [JSON.stringify(defaultValue)]);
 
+  useEffect(() => {
+    handleChange(filterState.value ?? []);
+  }, [JSON.stringify(filterState.value)]);
+
   const placeholderText =
     (data || []).length === 0
       ? t('No data')
       : tn('%s option', '%s options', data.length, data.length);
+
+  const formItemData: FormItemProps = {};
+  if (filterState.validateMessage) {
+    formItemData.extra = (
+      <StatusMessage status={filterState.validateStatus}>
+        {filterState.validateMessage}
+      </StatusMessage>
+    );
+  }
+
+  const options = (data || []).map(
+    (row: { name: string; duration: string }) => {
+      const { name, duration } = row;
+      return {
+        label: name,
+        value: duration,
+      };
+    },
+  );
+
   return (
-    <Styles height={height} width={width}>
+    <FilterPluginStyle height={height} width={width}>
       <StyledFormItem
-        validateStatus={filterState.validateMessage && 'error'}
-        extra={<Error>{filterState.validateMessage}</Error>}
+        validateStatus={filterState.validateStatus}
+        {...formItemData}
       >
-        <StyledSelect
+        <Select
           allowClear
           value={value}
           placeholder={placeholderText}
           // @ts-ignore
           onChange={handleChange}
-          onBlur={unsetFocusedFilter}
-          onFocus={setFocusedFilter}
+          onMouseEnter={setFocusedFilter}
+          onMouseLeave={unsetFocusedFilter}
           ref={inputRef}
-        >
-          {(data || []).map((row: { name: string; duration: string }) => {
-            const { name, duration } = row;
-            return (
-              <Option key={duration} value={duration}>
-                {name}
-              </Option>
-            );
-          })}
-        </StyledSelect>
+          options={options}
+        />
       </StyledFormItem>
-    </Styles>
+    </FilterPluginStyle>
   );
 }

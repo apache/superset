@@ -54,6 +54,9 @@ export const dragConfig = [
 export const dropConfig = [
   TYPE,
   {
+    canDrop(props) {
+      return !props.disableDragDrop;
+    },
     hover(props, monitor, component) {
       if (component && component.mounted) {
         handleHover(props, monitor, component);

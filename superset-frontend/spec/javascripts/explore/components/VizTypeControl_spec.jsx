@@ -18,22 +18,31 @@
  */
 import React from 'react';
 import sinon from 'sinon';
-import { shallow } from 'enzyme';
+import userEvent from '@testing-library/user-event';
 import { getChartMetadataRegistry, ChartMetadata } from '@superset-ui/core';
+import { render, screen } from 'spec/helpers/testing-library';
 import VizTypeControl from 'src/explore/components/controls/VizTypeControl';
-import Modal from 'src/components/Modal';
-import { Input } from 'src/common/components';
+import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
+import { act } from 'react-dom/test-utils';
 
 const defaultProps = {
   name: 'viz_type',
   label: 'Visualization Type',
   value: 'vis1',
   onChange: sinon.spy(),
+  isModalOpenInit: true,
 };
 
-describe('VizTypeControl', () => {
-  let wrapper;
+/**
+ * AntD and/or the Icon component seems to be doing some kind of async changes,
+ * so even though the test passes, there is a warning an update to Icon was not
+ * wrapped in act(). This sufficiently act-ifies whatever side effects are going
+ * on and prevents those warnings.
+ */
+const waitForEffects = () =>
+  act(() => new Promise(resolve => setTimeout(resolve, 0)));
 
+describe('VizTypeControl', () => {
   const registry = getChartMetadataRegistry();
   registry
     .registerValue(
@@ -41,6 +50,7 @@ describe('VizTypeControl', () => {
       new ChartMetadata({
         name: 'vis1',
         thumbnail: '',
+        tags: ['Popular'],
       }),
     )
     .registerValue(
@@ -48,29 +58,37 @@ describe('VizTypeControl', () => {
       new ChartMetadata({
         name: 'vis2',
         thumbnail: '',
+        tags: ['foobar'],
       }),
     );
 
-  beforeEach(() => {
-    wrapper = shallow(<VizTypeControl {...defaultProps} />);
+  beforeEach(async () => {
+    render(
+      <DynamicPluginProvider>
+        <VizTypeControl {...defaultProps} />
+      </DynamicPluginProvider>,
+    );
+    await waitForEffects();
   });
 
-  it('renders a Modal', () => {
-    expect(wrapper.find(Modal)).toExist();
-  });
-
-  it('calls onChange when toggled', () => {
-    const select = wrapper.find('.viztype-selector-container').first();
-    select.simulate('click');
+  it('calls onChange when submitted', () => {
+    const thumbnail = screen.getAllByTestId('viztype-selector-container')[0];
+    const submit = screen.getByText('Select');
+    userEvent.click(thumbnail);
+    expect(defaultProps.onChange.called).toBe(false);
+    userEvent.click(submit);
     expect(defaultProps.onChange.called).toBe(true);
   });
-  it('filters images based on text input', () => {
-    expect(wrapper.find('img')).toHaveLength(2);
-    wrapper.find(Input).simulate('change', {
-      target: {
-        value: 'vis2',
-      },
-    });
-    expect(wrapper.find('img')).toExist();
+
+  it('filters images based on text input', async () => {
+    const thumbnails = screen.getByTestId('viztype-selector-container');
+    expect(thumbnails).toBeInTheDocument();
+
+    const searchInput = screen.getByPlaceholderText('Search all charts');
+    userEvent.type(searchInput, 'foo');
+    await waitForEffects();
+
+    const thumbnail = screen.getByTestId('viztype-selector-container');
+    expect(thumbnail).toBeInTheDocument();
   });
 });

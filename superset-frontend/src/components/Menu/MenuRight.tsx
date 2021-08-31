@@ -20,7 +20,7 @@ import React from 'react';
 import { MainNav as Menu } from 'src/common/components';
 import { t, styled, css, SupersetTheme } from '@superset-ui/core';
 import { Link } from 'react-router-dom';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import LanguagePicker from './LanguagePicker';
 import { NavBarProps, MenuObjectProps } from './Menu';
 
@@ -92,7 +92,7 @@ const RightMenu = ({
           title={
             <StyledI data-test="new-dropdown-icon" className="fa fa-plus" />
           }
-          icon={<Icon name="triangle-down" />}
+          icon={<Icons.TriangleDown />}
         >
           {dropdownItems.map(menu => (
             <Menu.Item key={menu.label}>
@@ -107,7 +107,7 @@ const RightMenu = ({
           ))}
         </SubMenu>
       )}
-      <SubMenu title="Settings" icon={<Icon name="triangle-down" />}>
+      <SubMenu title="Settings" icon={<Icons.TriangleDown iconSize="xl" />}>
         {settings.map((section, index) => [
           <Menu.ItemGroup key={`${section.label}`} title={section.label}>
             {section.childs?.map(child => {
@@ -136,9 +136,11 @@ const RightMenu = ({
                 <a href={navbarRight.user_profile_url}>{t('Profile')}</a>
               </Menu.Item>
             )}
-            <Menu.Item key="info">
-              <a href={navbarRight.user_info_url}>{t('Info')}</a>
-            </Menu.Item>
+            {navbarRight.user_info_url && (
+              <Menu.Item key="info">
+                <a href={navbarRight.user_info_url}>{t('Info')}</a>
+              </Menu.Item>
+            )}
             <Menu.Item key="logout">
               <a href={navbarRight.user_logout_url}>{t('Logout')}</a>
             </Menu.Item>
@@ -148,6 +150,11 @@ const RightMenu = ({
           <Menu.Divider key="version-info-divider" />,
           <Menu.ItemGroup key="about-section" title={t('About')}>
             <div className="about-section">
+              {navbarRight.show_watermark && (
+                <div css={versionInfoStyles}>
+                  {t('Powered by Apache Superset')}
+                </div>
+              )}
               {navbarRight.version_string && (
                 <div css={versionInfoStyles}>
                   Version: {navbarRight.version_string}

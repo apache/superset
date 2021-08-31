@@ -19,6 +19,7 @@
 import rison from 'rison';
 import { JsonObject } from '@superset-ui/core';
 import { URL_PARAMS } from 'src/constants';
+import replaceUndefinedByNull from './replaceUndefinedByNull';
 import serializeActiveFilterValues from './serializeActiveFilterValues';
 import { DataMaskState } from '../../dataMask/types';
 
@@ -49,19 +50,9 @@ export default function getDashboardUrl({
   }
 
   if (dataMask) {
-    const filterStates = Object.entries(dataMask).reduce(
-      (agg, [key, value]) => {
-        const filterState = value?.filterState?.value;
-        return {
-          ...agg,
-          [key]: filterState || null,
-        };
-      },
-      {},
-    );
     newSearchParams.set(
       URL_PARAMS.nativeFilters.name,
-      rison.encode(filterStates),
+      rison.encode(replaceUndefinedByNull(dataMask)),
     );
   }
 

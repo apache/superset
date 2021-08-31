@@ -28,22 +28,19 @@ import {
   JsonObject,
   getChartMetadataRegistry,
 } from '@superset-ui/core';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { getChartDataRequest } from 'src/chart/chartAction';
 import Loading from 'src/components/Loading';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
-import {
-  setFocusedNativeFilter,
-  unsetFocusedNativeFilter,
-} from 'src/dashboard/actions/nativeFilters';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
+import { RootState } from 'src/dashboard/types';
+import { dispatchFocusAction } from './utils';
 import { FilterProps } from './types';
 import { getFormData } from '../../utils';
 import { useCascadingFilters } from './state';
-import { usePreselectNativeFilter } from '../../state';
 import { checkIsMissingRequiredValue } from '../utils';
 
 const HEIGHT = 32;
@@ -66,6 +63,9 @@ const FilterValue: React.FC<FilterProps> = ({
   const { id, targets, filterType, adhoc_filters, time_range } = filter;
   const metadata = getChartMetadataRegistry().get(filterType);
   const cascadingFilters = useCascadingFilters(id, dataMaskSelected);
+  const isDashboardRefreshing = useSelector<RootState, boolean>(
+    state => state.dashboardState.isRefreshing,
+  );
   const [state, setState] = useState<ChartDataResponseResult[]>([]);
   const [error, setError] = useState<string>('');
   const [formData, setFormData] = useState<Partial<QueryFormData>>({
@@ -82,8 +82,7 @@ const FilterValue: React.FC<FilterProps> = ({
   const { name: groupby } = column;
   const hasDataSource = !!datasetId;
   const [isLoading, setIsLoading] = useState<boolean>(hasDataSource);
-  const [isRefreshing, setIsRefreshing] = useState(true);
-  const preselection = usePreselectNativeFilter(filter.id);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -107,8 +106,10 @@ const FilterValue: React.FC<FilterProps> = ({
     });
     const filterOwnState = filter.dataMask?.ownState || {};
     if (
-      !areObjectsEqual(formData, newFormData) ||
-      !areObjectsEqual(ownState, filterOwnState)
+      !isRefreshing &&
+      (!areObjectsEqual(formData, newFormData) ||
+        !areObjectsEqual(ownState, filterOwnState) ||
+        isDashboardRefreshing)
     ) {
       setFormData(newFormData);
       setOwnState(filterOwnState);
@@ -170,6 +171,8 @@ const FilterValue: React.FC<FilterProps> = ({
     groupby,
     JSON.stringify(filter),
     hasDataSource,
+    isRefreshing,
+    isDashboardRefreshing,
   ]);
 
   useEffect(() => {
@@ -186,8 +189,8 @@ const FilterValue: React.FC<FilterProps> = ({
   const setDataMask = (dataMask: DataMask) =>
     onFilterSelectionChange(filter, dataMask);
 
-  const setFocusedFilter = () => dispatch(setFocusedNativeFilter(id));
-  const unsetFocusedFilter = () => dispatch(unsetFocusedNativeFilter());
+  const setFocusedFilter = () => dispatchFocusAction(dispatch, id);
+  const unsetFocusedFilter = () => dispatchFocusAction(dispatch);
 
   if (error) {
     return (
@@ -204,11 +207,8 @@ const FilterValue: React.FC<FilterProps> = ({
   );
   const filterState = {
     ...filter.dataMask?.filterState,
-    validateMessage: isMissingRequiredValue && t('Value is required'),
+    validateStatus: isMissingRequiredValue && 'error',
   };
-  if (filterState.value === undefined && preselection) {
-    filterState.value = preselection;
-  }
 
   return (
     <StyledDiv data-test="form-item-value">

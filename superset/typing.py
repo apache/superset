@@ -15,24 +15,50 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    TYPE_CHECKING,
+    Union,
+)
 
 from flask import Flask
 from flask_caching import Cache
-from typing_extensions import TypedDict
+from typing_extensions import Literal, TypedDict
 from werkzeug.wrappers import Response
 
+if TYPE_CHECKING:
+    from superset.utils.core import GenericDataType
 
-class AdhocMetricColumn(TypedDict):
+
+class LegacyMetric(TypedDict):
+    label: Optional[str]
+
+
+class AdhocMetricColumn(TypedDict, total=False):
     column_name: Optional[str]
+    description: Optional[str]
+    expression: Optional[str]
+    filterable: bool
+    groupby: bool
+    id: int
+    is_dttm: bool
+    python_date_format: Optional[str]
     type: str
+    type_generic: "GenericDataType"
+    verbose_name: Optional[str]
 
 
-class AdhocMetric(TypedDict):
+class AdhocMetric(TypedDict, total=False):
     aggregate: str
-    column: AdhocMetricColumn
-    expressionType: str
-    label: str
+    column: Optional[AdhocMetricColumn]
+    expressionType: Literal["SIMPLE", "SQL"]
+    label: Optional[str]
     sqlExpression: Optional[str]
 
 
@@ -42,7 +68,7 @@ DbapiDescriptionRow = Tuple[
 ]
 DbapiDescription = Union[List[DbapiDescriptionRow], Tuple[DbapiDescriptionRow, ...]]
 DbapiResult = Sequence[Union[List[Any], Tuple[Any, ...]]]
-FilterValue = Union[datetime, float, int, str]
+FilterValue = Union[bool, datetime, float, int, str]
 FilterValues = Union[FilterValue, List[FilterValue], Tuple[FilterValue]]
 FormData = Dict[str, Any]
 Granularity = Union[str, Dict[str, Union[str, float]]]
@@ -57,5 +83,9 @@ Base = Union[bytes, str]
 Status = Union[int, str]
 Headers = Dict[str, Any]
 FlaskResponse = Union[
-    Response, Base, Tuple[Base, Status], Tuple[Base, Status, Headers],
+    Response,
+    Base,
+    Tuple[Base, Status],
+    Tuple[Base, Status, Headers],
+    Tuple[Response, Status],
 ]

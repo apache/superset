@@ -20,39 +20,28 @@
 import {
   AppSection,
   DataMask,
-  DataRecord,
+  DataRecordValue,
   ensureIsArray,
   ExtraFormData,
   GenericDataType,
   JsonObject,
   smartDateDetailedFormatter,
-  styled,
   t,
   tn,
 } from '@superset-ui/core';
-import React, {
-  RefObject,
-  ReactElement,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
-import { Select } from 'src/common/components';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
+import { Select } from 'src/components';
 import debounce from 'lodash/debounce';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { useImmerReducer } from 'use-immer';
-import Icons from 'src/components/Icons';
-import { usePrevious } from 'src/common/hooks/usePrevious';
+import { FormItemProps } from 'antd/lib/form';
 import { PluginFilterSelectProps, SelectValue } from './types';
-import { StyledFormItem, StyledSelect, Styles } from '../common';
-import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
-
-const { Option } = Select;
-
-const Error = styled.div`
-  color: ${({ theme }) => theme.colors.error.base};
-`;
+import { StyledFormItem, FilterPluginStyle, StatusMessage } from '../common';
+import {
+  formatFilterValue,
+  getDataRecordFormatter,
+  getSelectExtraFormData,
+} from '../../utils';
 
 type DataMaskAction =
   | { type: 'ownState'; ownState: JsonObject }
@@ -111,25 +100,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const groupby = ensureIsArray<string>(formData.groupby);
   const [col] = groupby;
   const [initialColtypeMap] = useState(coltypeMap);
-  const [selectedValues, setSelectedValues] = useState<SelectValue>(
-    filterState.value,
-  );
-  const sortedData = useMemo(() => {
-    const firstData: DataRecord[] = [];
-    const restData: DataRecord[] = [];
-    data.forEach(row => {
-      // @ts-ignore
-      if (selectedValues?.includes(row[col])) {
-        firstData.push(row);
-      } else {
-        restData.push(row);
-      }
-    });
-    return [...firstData, ...restData];
-  }, [col, selectedValues, data]);
-  const [isDropdownVisible, setIsDropdownVisible] = useState(false);
-  const wasDropdownVisible = usePrevious(isDropdownVisible);
-  const [currentSuggestionSearch, setCurrentSuggestionSearch] = useState('');
   const [dataMask, dispatchDataMask] = useImmerReducer(reducer, {
     extraFormData: {},
     filterState,
@@ -152,8 +122,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           inverseSelection,
         ),
         filterState: {
+          ...filterState,
           label: values?.length
-            ? `${(values || []).join(', ')}${suffix}`
+            ? `${(values || []).map(formatFilterValue).join(', ')}${suffix}`
             : undefined,
           value:
             appSection === AppSection.FILTER_CONFIG_MODAL && defaultToFirstItem
@@ -174,9 +145,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   );
 
   useEffect(() => {
-    if (!isDropdownVisible) {
-      setSelectedValues(filterState.value);
-    }
     updateDataMask(filterState.value);
   }, [JSON.stringify(filterState.value)]);
 
@@ -200,11 +168,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     if (searchAllOptions) {
       debouncedOwnStateFunc(val);
     }
-    setCurrentSuggestionSearch(val);
   };
 
   const clearSuggestionSearch = () => {
-    setCurrentSuggestionSearch('');
     if (searchAllOptions) {
       dispatchDataMask({
         type: 'ownState',
@@ -219,13 +185,16 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const handleBlur = () => {
     clearSuggestionSearch();
     unsetFocusedFilter();
-    setSelectedValues(filterState.value);
   };
 
   const datatype: GenericDataType = coltypeMap[col];
-  const labelFormatter = getDataRecordFormatter({
-    timeFormatter: smartDateDetailedFormatter,
-  });
+  const labelFormatter = useMemo(
+    () =>
+      getDataRecordFormatter({
+        timeFormatter: smartDateDetailedFormatter,
+      }),
+    [],
+  );
 
   const handleChange = (value?: SelectValue | number | string) => {
     const values = ensureIsArray(value);
@@ -274,61 +243,58 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     data.length === 0
       ? t('No data')
       : tn('%s option', '%s options', data.length, data.length);
-  const Icon = inverseSelection ? Icons.StopOutlined : Icons.CheckOutlined;
+
+  const formItemData: FormItemProps = {};
+  if (filterState.validateMessage) {
+    formItemData.extra = (
+      <StatusMessage status={filterState.validateStatus}>
+        {filterState.validateMessage}
+      </StatusMessage>
+    );
+  }
+
+  const options = useMemo(() => {
+    const options: { label: string; value: DataRecordValue }[] = [];
+    data.forEach(row => {
+      const [value] = groupby.map(col => row[col]);
+      options.push({
+        label: labelFormatter(value, datatype),
+        value,
+      });
+    });
+    return options;
+  }, [data, datatype, groupby, labelFormatter]);
 
   return (
-    <Styles height={height} width={width}>
+    <FilterPluginStyle height={height} width={width}>
       <StyledFormItem
-        validateStatus={filterState.validateMessage && 'error'}
-        extra={<Error>{filterState.validateMessage}</Error>}
+        validateStatus={filterState.validateStatus}
+        {...formItemData}
       >
-        <StyledSelect
+        <Select
           allowClear
+          allowNewOptions
           // @ts-ignore
           value={filterState.value || []}
           disabled={isDisabled}
           showSearch={showSearch}
-          mode={multiSelect ? 'multiple' : undefined}
+          mode={multiSelect ? 'multiple' : 'single'}
           placeholder={placeholderText}
           onSearch={searchWrapper}
           onSelect={clearSuggestionSearch}
           onBlur={handleBlur}
-          onDropdownVisibleChange={setIsDropdownVisible}
-          dropdownRender={(
-            originNode: ReactElement & { ref?: RefObject<HTMLElement> },
-          ) => {
-            if (isDropdownVisible && !wasDropdownVisible) {
-              originNode.ref?.current?.scrollTo({ top: 0 });
-            }
-            return originNode;
-          }}
-          onFocus={setFocusedFilter}
+          onMouseEnter={setFocusedFilter}
+          onMouseLeave={unsetFocusedFilter}
           // @ts-ignore
           onChange={handleChange}
           ref={inputRef}
           loading={isRefreshing}
           maxTagCount={5}
-          menuItemSelectedIcon={<Icon iconSize="m" />}
-        >
-          {sortedData.map(row => {
-            const [value] = groupby.map(col => row[col]);
-            return (
-              // @ts-ignore
-              <Option key={`${value}`} value={value}>
-                {labelFormatter(value, datatype)}
-              </Option>
-            );
-          })}
-          {currentSuggestionSearch &&
-            !ensureIsArray(filterState.value).some(
-              suggestion => suggestion === currentSuggestionSearch,
-            ) && (
-              <Option value={currentSuggestionSearch}>
-                {`${t('Create "%s"', currentSuggestionSearch)}`}
-              </Option>
-            )}
-        </StyledSelect>
+          invertSelection={inverseSelection}
+          // @ts-ignore
+          options={options}
+        />
       </StyledFormItem>
-    </Styles>
+    </FilterPluginStyle>
   );
 }

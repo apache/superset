@@ -14,12 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=line-too-long,unused-argument,ungrouped-imports
+# pylint: disable=line-too-long,unused-argument
 """A collection of ORM sqlalchemy models for Superset"""
 import enum
 import json
 import logging
 import textwrap
+from ast import literal_eval
 from contextlib import closing
 from copy import deepcopy
 from datetime import datetime
@@ -60,6 +61,7 @@ from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.tags import FavStarUpdater
 from superset.result_set import SupersetResultSet
 from superset.utils import cache as cache_util, core as utils
+from superset.utils.memoized import memoized
 
 config = app.config
 custom_password_store = config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
@@ -320,7 +322,7 @@ class Database(
                 effective_username = g.user.username
         return effective_username
 
-    @utils.memoized(watch=("impersonate_user", "sqlalchemy_uri_decrypted", "extra"))
+    @memoized(watch=("impersonate_user", "sqlalchemy_uri_decrypted", "extra"))
     def get_sqla_engine(
         self,
         schema: Optional[str] = None,
@@ -504,7 +506,7 @@ class Database(
         return self.db_engine_spec.get_all_datasource_names(self, "view")
 
     @cache_util.memoized_func(
-        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:table_list",  # type: ignore
+        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:table_list",
         cache=cache_manager.data_cache,
     )
     def get_all_table_names_in_schema(
@@ -534,9 +536,10 @@ class Database(
             ]
         except Exception as ex:  # pylint: disable=broad-except
             logger.warning(ex)
+            return []
 
     @cache_util.memoized_func(
-        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:view_list",  # type: ignore
+        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:view_list",
         cache=cache_manager.data_cache,
     )
     def get_all_view_names_in_schema(
@@ -564,6 +567,7 @@ class Database(
             return [utils.DatasourceName(table=view, schema=schema) for view in views]
         except Exception as ex:  # pylint: disable=broad-except
             logger.warning(ex)
+            return []
 
     @cache_util.memoized_func(
         key=lambda self, *args, **kwargs: f"db:{self.id}:schema_list",
@@ -592,7 +596,7 @@ class Database(
         return self.get_db_engine_spec_for_backend(self.backend)
 
     @classmethod
-    @utils.memoized
+    @memoized
     def get_db_engine_spec_for_backend(
         cls, backend: str
     ) -> Type[db_engine_specs.BaseEngineSpec]:
@@ -667,6 +671,10 @@ class Database(
         self,
     ) -> List[str]:
         allowed_databases = self.get_extra().get("schemas_allowed_for_csv_upload", [])
+
+        if isinstance(allowed_databases, str):
+            allowed_databases = literal_eval(allowed_databases)
+
         if hasattr(g, "user"):
             extra_allowed_databases = config["ALLOWED_USER_CSV_SCHEMA_FUNC"](
                 self, g.user
@@ -713,10 +721,10 @@ class Database(
         engine = self.get_sqla_engine()
         return engine.has_table(table_name, schema)
 
-    @utils.memoized
+    @memoized
     def get_dialect(self) -> Dialect:
         sqla_url = url.make_url(self.sqlalchemy_uri_decrypted)
-        return sqla_url.get_dialect()()  # pylint: disable=no-member
+        return sqla_url.get_dialect()()
 
 
 sqla.event.listen(Database, "after_insert", security_manager.set_perm)

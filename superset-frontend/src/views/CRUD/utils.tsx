@@ -23,6 +23,8 @@ import {
   SupersetClientResponse,
   logging,
   styled,
+  SupersetTheme,
+  css,
 } from '@superset-ui/core';
 import Chart from 'src/types/Chart';
 import rison from 'rison';
@@ -63,12 +65,13 @@ const createFetchResourceMethod = (method: string) => (
   return [];
 };
 
+export const PAGE_SIZE = 5;
 const getParams = (filters?: Array<Filters>) => {
   const params = {
     order_column: 'changed_on_delta_humanized',
     order_direction: 'desc',
     page: 0,
-    page_size: 3,
+    page_size: PAGE_SIZE,
     filters,
   };
   if (!filters) delete params.filters;
@@ -129,27 +132,33 @@ export const getRecentAcitivtyObjs = (
 ) =>
   SupersetClient.get({ endpoint: recent }).then(recentsRes => {
     const res: any = {};
-    if (recentsRes.json.length === 0) {
-      const newBatch = [
-        SupersetClient.get({ endpoint: `/api/v1/chart/?q=${getParams()}` }),
-        SupersetClient.get({
-          endpoint: `/api/v1/dashboard/?q=${getParams()}`,
-        }),
-      ];
-      return Promise.all(newBatch)
-        .then(([chartRes, dashboardRes]) => {
-          res.examples = [...chartRes.json.result, ...dashboardRes.json.result];
-          return res;
-        })
-        .catch(errMsg =>
-          addDangerToast(
-            t('There was an error fetching your recent activity:'),
-            errMsg,
-          ),
-        );
-    }
-    res.viewed = recentsRes.json;
-    return res;
+    const filters = [
+      {
+        col: 'created_by',
+        opr: 'rel_o_m',
+        value: 0,
+      },
+    ];
+    const newBatch = [
+      SupersetClient.get({
+        endpoint: `/api/v1/chart/?q=${getParams(filters)}`,
+      }),
+      SupersetClient.get({
+        endpoint: `/api/v1/dashboard/?q=${getParams(filters)}`,
+      }),
+    ];
+    return Promise.all(newBatch)
+      .then(([chartRes, dashboardRes]) => {
+        res.examples = [...chartRes.json.result, ...dashboardRes.json.result];
+        res.viewed = recentsRes.json;
+        return res;
+      })
+      .catch(errMsg =>
+        addDangerToast(
+          t('There was an error fetching your recent activity:'),
+          errMsg,
+        ),
+      );
   });
 
 export const createFetchRelated = createFetchResourceMethod('related');
@@ -190,7 +199,7 @@ export function handleChartDelete(
 ) {
   const filters = {
     pageIndex: 0,
-    pageSize: 3,
+    pageSize: PAGE_SIZE,
     sortBy: [
       {
         id: 'changed_on_delta_humanized',
@@ -233,7 +242,7 @@ export function handleDashboardDelete(
     () => {
       const filters = {
         pageIndex: 0,
-        pageSize: 3,
+        pageSize: PAGE_SIZE,
         sortBy: [
           {
             id: 'changed_on_delta_humanized',
@@ -269,25 +278,28 @@ export function shortenSQL(sql: string, maxLines: number) {
   return lines.join('\n');
 }
 
+// loading card count for homepage
+export const loadingCardCount = 5;
+
 const breakpoints = [576, 768, 992, 1200];
 export const mq = breakpoints.map(bp => `@media (max-width: ${bp}px)`);
 
-export const CardContainer = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(31%, 31%));
-  ${mq[3]} {
-    grid-template-columns: repeat(auto-fit, minmax(31%, 31%));
-  }
-  ${mq[2]} {
-    grid-template-columns: repeat(auto-fit, minmax(48%, 48%));
-  }
-  ${mq[1]} {
-    grid-template-columns: repeat(auto-fit, minmax(50%, 80%));
-  }
-  grid-gap: ${({ theme }) => theme.gridUnit * 8}px;
-  justify-content: left;
-  padding: ${({ theme }) => theme.gridUnit * 6}px;
-  padding-top: ${({ theme }) => theme.gridUnit * 2}px;
+export const CardContainer = styled.div<{
+  showThumbnails?: boolean | undefined;
+}>`
+  ${({ showThumbnails, theme }) => `
+    overflow: hidden;
+    display: grid;
+    grid-gap: ${theme.gridUnit * 12}px ${theme.gridUnit * 4}px;
+    grid-template-columns: repeat(auto-fit, 300px);
+    max-height: ${showThumbnails ? '314' : '148'}px;
+    margin-top: ${theme.gridUnit * -6}px;
+    padding: ${
+      showThumbnails
+        ? `${theme.gridUnit * 8 + 3}px ${theme.gridUnit * 9}px`
+        : `${theme.gridUnit * 8 + 1}px ${theme.gridUnit * 9}px`
+    };
+  `}
 `;
 
 export const CardStyles = styled.div`
@@ -295,6 +307,15 @@ export const CardStyles = styled.div`
   a {
     text-decoration: none;
   }
+  .ant-card-cover > div {
+    /* Height is calculated based on 300px width, to keep the same aspect ratio as the 800*450 thumbnails */
+    height: 168px;
+  }
+`;
+
+export const StyledIcon = (theme: SupersetTheme) => css`
+  margin: auto ${theme.gridUnit * 2}px auto 0;
+  color: ${theme.colors.grayscale.base};
 `;
 
 export /* eslint-disable no-underscore-dangle */

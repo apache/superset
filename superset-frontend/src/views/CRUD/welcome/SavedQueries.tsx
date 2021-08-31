@@ -17,24 +17,27 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { t, SupersetClient, styled } from '@superset-ui/core';
+import { t, SupersetClient, styled, useTheme } from '@superset-ui/core';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import Loading from 'src/components/Loading';
+import { LoadingCards } from 'src/views/CRUD/welcome/Welcome';
 import { Dropdown, Menu } from 'src/common/components';
 import { useListViewResource, copyQueryLink } from 'src/views/CRUD/hooks';
 import ListViewCard from 'src/components/ListViewCard';
 import DeleteModal from 'src/components/DeleteModal';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import SubMenu from 'src/components/Menu/SubMenu';
 import EmptyState from './EmptyState';
-import { CardContainer, createErrorHandler, shortenSQL } from '../utils';
+import {
+  CardContainer,
+  createErrorHandler,
+  shortenSQL,
+  PAGE_SIZE,
+} from '../utils';
 
 SyntaxHighlighter.registerLanguage('sql', sql);
-
-const PAGE_SIZE = 3;
 
 interface Query {
   id?: number;
@@ -136,6 +139,8 @@ const SavedQueries = ({
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
 
+  const theme = useTheme();
+
   const handleQueryDelete = ({ id, label }: Query) => {
     SupersetClient.delete({
       endpoint: `/api/v1/saved_query/${id}`,
@@ -235,7 +240,7 @@ const SavedQueries = ({
     </Menu>
   );
 
-  if (loading) return <Loading position="inline" />;
+  if (loading) return <LoadingCards cover={showThumbnails} />;
   return (
     <>
       {queryDeleteModal && (
@@ -296,7 +301,7 @@ const SavedQueries = ({
         ]}
       />
       {queries.length > 0 ? (
-        <CardContainer>
+        <CardContainer showThumbnails={showThumbnails}>
           {queries.map(q => (
             <CardStyles
               onClick={() => {
@@ -309,7 +314,7 @@ const SavedQueries = ({
                 url={`/superset/sqllab?savedQueryId=${q.id}`}
                 title={q.label}
                 imgFallbackURL="/static/assets/images/empty-query.svg"
-                description={t('Last run %s', q.changed_on_delta_humanized)}
+                description={t('Ran %s', q.changed_on_delta_humanized)}
                 cover={
                   q?.sql?.length && showThumbnails && featureFlag ? (
                     <QueryContainer>
@@ -347,7 +352,9 @@ const SavedQueries = ({
                       }}
                     >
                       <Dropdown overlay={renderMenu(q)}>
-                        <Icon name="more-horiz" />
+                        <Icons.MoreVert
+                          iconColor={theme.colors.grayscale.base}
+                        />
                       </Dropdown>
                     </ListViewCard.Actions>
                   </QueryData>

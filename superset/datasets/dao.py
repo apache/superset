@@ -143,7 +143,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         return len(dataset_query) == 0
 
     @classmethod
-    def update(  # pylint: disable=W:279
+    def update(  # pylint: disable=arguments-differ
         cls,
         model: SqlaTable,
         properties: Dict[str, Any],
@@ -219,7 +219,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         - If there are extra metrics on the metadata db that are not defined on the List
         then we delete.
         """
-        new_metrics = list()
+        new_metrics = []
         for metric in property_metrics:
             metric_id = metric.get("id")
             if metric.get("id"):

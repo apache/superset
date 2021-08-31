@@ -17,9 +17,10 @@
  * under the License.
  */
 import React, { FunctionComponent, useState } from 'react';
-import { styled, t } from '@superset-ui/core';
-import { NativeGraySelect as Select } from 'src/components/Select';
-import Icon from 'src/components/Icon';
+import { styled, t, useTheme } from '@superset-ui/core';
+import { Select } from 'src/components';
+import Icons from 'src/components/Icons';
+import { NotificationMethodOption } from 'src/views/CRUD/alert/types';
 import { StyledInputContainer } from '../AlertReportModal';
 
 const StyledNotificationMethod = styled.div`
@@ -49,12 +50,10 @@ const StyledNotificationMethod = styled.div`
   }
 `;
 
-type NotificationMethod = 'Email' | 'Slack';
-
 type NotificationSetting = {
-  method?: NotificationMethod;
+  method?: NotificationMethodOption;
   recipients: string;
-  options: NotificationMethod[];
+  options: NotificationMethodOption[];
 };
 
 interface NotificationMethodProps {
@@ -74,12 +73,13 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   const [recipientValue, setRecipientValue] = useState<string>(
     recipients || '',
   );
+  const theme = useTheme();
 
   if (!setting) {
     return null;
   }
 
-  const onMethodChange = (method: NotificationMethod) => {
+  const onMethodChange = (method: NotificationMethodOption) => {
     // Since we're swapping the method, reset the recipients
     setRecipientValue('');
     if (onUpdate) {
@@ -115,26 +115,24 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     setRecipientValue(recipients);
   }
 
-  const methodOptions = (options || []).map((method: NotificationMethod) => (
-    <Select.Option key={method} value={method}>
-      {t(method)}
-    </Select.Option>
-  ));
-
   return (
     <StyledNotificationMethod>
       <div className="inline-container">
         <StyledInputContainer>
           <div className="input-container">
             <Select
+              ariaLabel={t('Delivery method')}
               data-test="select-delivery-method"
               onChange={onMethodChange}
-              placeholder="Select Delivery Method"
-              defaultValue={method}
+              placeholder={t('Select Delivery Method')}
+              options={(options || []).map(
+                (method: NotificationMethodOption) => ({
+                  label: method,
+                  value: method,
+                }),
+              )}
               value={method}
-            >
-              {methodOptions}
-            </Select>
+            />
           </div>
         </StyledInputContainer>
         {method !== undefined && !!onRemove ? (
@@ -144,7 +142,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
             className="delete-button"
             onClick={() => onRemove(index)}
           >
-            <Icon name="trash" />
+            <Icons.Trash iconColor={theme.colors.grayscale.base} />
           </span>
         ) : null}
       </div>

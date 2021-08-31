@@ -24,7 +24,7 @@ import fetchMock from 'fetch-mock';
 import { act } from 'react-dom/test-utils';
 import AlertReportModal from 'src/views/CRUD/alert/AlertReportModal';
 import Modal from 'src/components/Modal';
-import { AsyncSelect, NativeGraySelect as Select } from 'src/components/Select';
+import { Select } from 'src/components';
 import { Switch } from 'src/components/Switch';
 import { Radio } from 'src/components/Radio';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
@@ -36,7 +36,7 @@ const mockData = {
   id: 1,
   name: 'test report',
   description: 'test report description',
-  chart: { id: 1, slice_name: 'test chart' },
+  chart: { id: 1, slice_name: 'test chart', viz_type: 'table' },
   database: { id: 1, database_name: 'test database' },
   sql: 'SELECT NaN',
 };
@@ -76,7 +76,7 @@ fetchMock.get(dashboardEndpoint, {
 });
 
 fetchMock.get(chartEndpoint, {
-  result: [],
+  result: [{ text: 'table chart', value: 1 }],
 });
 
 async function mountAndWait(props = mockedProps) {
@@ -161,11 +161,15 @@ describe('AlertReportModal', () => {
     };
 
     const editWrapper = await mountAndWait(props);
-    expect(editWrapper.find(AsyncSelect).at(1).props().value).toEqual({
+    expect(
+      editWrapper.find('[aria-label="Database"]').at(0).props().value,
+    ).toEqual({
       value: 1,
       label: 'test database',
     });
-    expect(editWrapper.find(AsyncSelect).at(2).props().value).toEqual({
+    expect(
+      editWrapper.find('[aria-label="Chart"]').at(0).props().value,
+    ).toEqual({
       value: 1,
       label: 'test chart',
     });
@@ -176,21 +180,9 @@ describe('AlertReportModal', () => {
     expect(wrapper.find('input[name="name"]')).toExist();
   });
 
-  it('renders three async select elements when in report mode', () => {
-    expect(wrapper.find(AsyncSelect)).toExist();
-    expect(wrapper.find(AsyncSelect)).toHaveLength(3);
-  });
-
-  it('renders four async select elements when in alert mode', async () => {
-    const props = {
-      ...mockedProps,
-      isReport: false,
-    };
-
-    const addWrapper = await mountAndWait(props);
-
-    expect(addWrapper.find(AsyncSelect)).toExist();
-    expect(addWrapper.find(AsyncSelect)).toHaveLength(4);
+  it('renders five select elements when in report mode', () => {
+    expect(wrapper.find(Select)).toExist();
+    expect(wrapper.find(Select)).toHaveLength(5);
   });
 
   it('renders Switch element', () => {
@@ -226,12 +218,12 @@ describe('AlertReportModal', () => {
     expect(input.props().value).toEqual('SELECT NaN');
   });
 
-  it('renders one select element when in report mode', () => {
+  it('renders five select element when in report mode', () => {
     expect(wrapper.find(Select)).toExist();
-    expect(wrapper.find(Select)).toHaveLength(1);
+    expect(wrapper.find(Select)).toHaveLength(5);
   });
 
-  it('renders two select elements when in alert mode', async () => {
+  it('renders seven select elements when in alert mode', async () => {
     const props = {
       ...mockedProps,
       isReport: false,
@@ -240,7 +232,7 @@ describe('AlertReportModal', () => {
     const addWrapper = await mountAndWait(props);
 
     expect(addWrapper.find(Select)).toExist();
-    expect(addWrapper.find(Select)).toHaveLength(2);
+    expect(addWrapper.find(Select)).toHaveLength(7);
   });
 
   it('renders value input element when in alert mode', async () => {
@@ -258,6 +250,22 @@ describe('AlertReportModal', () => {
   it('renders two radio buttons', () => {
     expect(wrapper.find(Radio)).toExist();
     expect(wrapper.find(Radio)).toHaveLength(2);
+  });
+
+  it('renders text option for text-based charts', async () => {
+    const props = {
+      ...mockedProps,
+      alert: mockData,
+    };
+    const textWrapper = await mountAndWait(props);
+
+    const chartOption = textWrapper.find('input[value="chart"]');
+    act(() => {
+      chartOption.props().onChange({ target: { value: 'chart' } });
+    });
+    await waitForComponentToPaint(textWrapper);
+
+    expect(textWrapper.find('input[value="TEXT"]')).toExist();
   });
 
   it('renders input element for working timeout', () => {
@@ -318,9 +326,10 @@ describe('AlertReportModal', () => {
     });
     await waitForComponentToPaint(wrapper);
 
+    // use default config: only show Email as notification option.
     expect(
       wrapper.find('[data-test="notification-add"]').props().status,
-    ).toEqual('disabled');
+    ).toEqual('hidden');
     act(() => {
       wrapper
         .find('[data-test="select-delivery-method"]')

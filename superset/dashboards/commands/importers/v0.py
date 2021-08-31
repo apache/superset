@@ -82,7 +82,7 @@ def import_chart(
 
 
 def import_dashboard(
-    # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+    # pylint: disable=too-many-locals,too-many-statements
     dashboard_to_import: Dashboard,
     dataset_id_mapping: Optional[Dict[int, int]] = None,
     import_time: Optional[int] = None,
@@ -275,6 +275,7 @@ def decode_dashboards(  # pylint: disable=too-many-return-statements
     Function to be passed into json.loads obj_hook parameter
     Recreates the dashboard object from a json representation.
     """
+    # pylint: disable=import-outside-toplevel
     from superset.connectors.druid.models import (
         DruidCluster,
         DruidColumn,

@@ -89,6 +89,10 @@ export function getURIDirectory(endpointType = 'base') {
   return '/superset/explore/';
 }
 
+/**
+ * This gets the url of the explore page, with all the form data included explicitly.
+ * This includes any form data overrides from the dashboard.
+ */
 export function getExploreLongUrl(
   formData,
   endpointType,
@@ -138,6 +142,11 @@ export function getChartDataUri({ path, qs, allowDomainSharding = false }) {
   return uri;
 }
 
+/**
+ * This gets the minimal url for the given form data.
+ * If there are dashboard overrides present in the form data,
+ * they will not be included in the url.
+ */
 export function getExploreUrl({
   formData,
   endpointType = 'base',
@@ -303,7 +312,7 @@ export const exploreChart = formData => {
     endpointType: 'base',
     allowDomainSharding: false,
   });
-  postForm(url, formData, '_self');
+  postForm(url, formData);
 };
 
 export const useDebouncedEffect = (effect, delay, deps) => {

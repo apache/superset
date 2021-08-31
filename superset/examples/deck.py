@@ -287,6 +287,7 @@ def load_deck_dash() -> None:
     slices.append(slc)
 
     slice_data = {
+        "autozoom": False,
         "spatial": {"type": "latlong", "lonCol": "LON", "latCol": "LAT"},
         "row_limit": 5000,
         "mapbox_style": "mapbox://styles/mapbox/satellite-streets-v9",

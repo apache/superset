@@ -35,7 +35,6 @@ export type AdhocMetricPopoverTriggerProps = {
   savedMetric: savedMetricType;
   datasourceType: string;
   children: ReactNode;
-  createNew?: boolean;
   isControlledComponent?: boolean;
   visible?: boolean;
   togglePopover?: (visible: boolean) => void;
@@ -43,6 +42,7 @@ export type AdhocMetricPopoverTriggerProps = {
 };
 
 export type AdhocMetricPopoverTriggerState = {
+  adhocMetric: AdhocMetric;
   popoverVisible: boolean;
   title: { label: string; hasCustomLabel: boolean };
   currentLabel: string;
@@ -65,6 +65,7 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
     this.onChange = this.onChange.bind(this);
 
     this.state = {
+      adhocMetric: props.adhocMetric,
       popoverVisible: false,
       title: {
         label: props.adhocMetric.label,
@@ -73,6 +74,26 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
       currentLabel: '',
       labelModified: false,
       isTitleEditDisabled: false,
+    };
+  }
+
+  static getDerivedStateFromProps(
+    nextProps: AdhocMetricPopoverTriggerProps,
+    prevState: AdhocMetricPopoverTriggerState,
+  ) {
+    if (prevState.adhocMetric.optionName !== nextProps.adhocMetric.optionName) {
+      return {
+        adhocMetric: nextProps.adhocMetric,
+        title: {
+          label: nextProps.adhocMetric.label,
+          hasCustomLabel: nextProps.adhocMetric.hasCustomLabel,
+        },
+        currentLabel: '',
+        labelModified: false,
+      };
+    }
+    return {
+      adhocMetric: nextProps.adhocMetric,
     };
   }
 
@@ -180,7 +201,6 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
       <ExplorePopoverContent>
         <AdhocMetricEditPopover
           adhocMetric={adhocMetric}
-          title={title}
           columns={columns}
           savedMetricsOptions={savedMetricsOptions}
           savedMetric={savedMetric}
@@ -211,7 +231,7 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
         visible={visible}
         onVisibleChange={togglePopover}
         title={popoverTitle}
-        destroyTooltipOnHide={this.props.createNew}
+        destroyTooltipOnHide
       >
         {this.props.children}
       </Popover>

@@ -89,8 +89,8 @@ openapi_spec_methods_override = {
 def validate_json(value: Union[bytes, bytearray, str]) -> None:
     try:
         utils.validate_json(value)
-    except SupersetException:
-        raise ValidationError("JSON not valid")
+    except SupersetException as ex:
+        raise ValidationError("JSON not valid") from ex
 
 
 def validate_json_metadata(value: Union[bytes, bytearray, str]) -> None:
@@ -98,8 +98,8 @@ def validate_json_metadata(value: Union[bytes, bytearray, str]) -> None:
         return
     try:
         value_obj = json.loads(value)
-    except json.decoder.JSONDecodeError:
-        raise ValidationError("JSON not valid")
+    except json.decoder.JSONDecodeError as ex:
+        raise ValidationError("JSON not valid") from ex
     errors = DashboardJSONMetadataSchema().validate(value_obj, partial=False)
     if errors:
         raise ValidationError(errors)
@@ -158,7 +158,7 @@ class DashboardGetResponseSchema(Schema):
     charts = fields.List(fields.String(description=charts_description))
     owners = fields.List(fields.Nested(UserSchema))
     roles = fields.List(fields.Nested(RolesSchema))
-    table_names = fields.String()  # legacy nonsense
+    changed_on_humanized = fields.String(data_key="changed_on_delta_humanized")
 
 
 class DatabaseSchema(Schema):
@@ -216,8 +216,6 @@ class BaseDashboardSchema(Schema):
             data["slug"] = data["slug"].replace(" ", "-")
             data["slug"] = re.sub(r"[^\w\-]+", "", data["slug"])
         return data
-
-    # pylint: disable=no-self-use,unused-argument
 
 
 class DashboardPostSchema(BaseDashboardSchema):

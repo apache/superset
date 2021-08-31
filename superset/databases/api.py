@@ -136,6 +136,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "database_name",
         "explore_database_id",
         "expose_in_sqllab",
+        "extra",
         "force_ctas_schema",
         "id",
     ]
@@ -246,6 +247,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             new_model = CreateDatabaseCommand(g.user, item).run()
             # Return censored version for sqlalchemy URI
             item["sqlalchemy_uri"] = new_model.sqlalchemy_uri
+            item["expose_in_sqllab"] = new_model.expose_in_sqllab
 
             # If parameters are available return them in the payload
             if new_model.parameters:
@@ -273,9 +275,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
         log_to_statsd=False,
     )
-    def put(  # pylint: disable=too-many-return-statements, arguments-differ
-        self, pk: int
-    ) -> Response:
+    def put(self, pk: int) -> Response:
         """Changes a Database
         ---
         put:
@@ -353,7 +353,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".delete",
         log_to_statsd=False,
     )
-    def delete(self, pk: int) -> Response:  # pylint: disable=arguments-differ
+    def delete(self, pk: int) -> Response:
         """Deletes a Database
         ---
         delete:
@@ -589,9 +589,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         f".test_connection",
         log_to_statsd=False,
     )
-    def test_connection(  # pylint: disable=too-many-return-statements
-        self,
-    ) -> FlaskResponse:
+    def test_connection(self) -> FlaskResponse:
         """Tests a database connection
         ---
         post:
@@ -919,6 +917,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         preferred_databases: List[str] = app.config.get("PREFERRED_DATABASES", [])
         available_databases = []
         for engine_spec, drivers in get_available_engine_specs().items():
+            if not drivers:
+                continue
+
             payload: Dict[str, Any] = {
                 "name": engine_spec.engine_name,
                 "engine": engine_spec.engine,
@@ -972,9 +973,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         f".validate_parameters",
         log_to_statsd=False,
     )
-    def validate_parameters(  # pylint: disable=too-many-return-statements
-        self,
-    ) -> FlaskResponse:
+    def validate_parameters(self) -> FlaskResponse:
         """validates database connection parameters
         ---
         post:
@@ -1009,7 +1008,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
         try:
             payload = DatabaseValidateParametersSchema().load(request.json)
-        except ValidationError as error:
+        except ValidationError as ex:
             errors = [
                 SupersetError(
                     message="\n".join(messages),
@@ -1017,9 +1016,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                     level=ErrorLevel.ERROR,
                     extra={"invalid": [attribute]},
                 )
-                for attribute, messages in error.messages.items()
+                for attribute, messages in ex.messages.items()
             ]
-            raise InvalidParametersError(errors)
+            raise InvalidParametersError(errors) from ex
 
         command = ValidateDatabaseParametersCommand(g.user, payload)
         command.run()

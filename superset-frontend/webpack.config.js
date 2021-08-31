@@ -27,7 +27,6 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
-const TerserPlugin = require('terser-webpack-plugin');
 const ManifestPlugin = require('webpack-manifest-plugin');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const parsedArgs = require('yargs').argv;
@@ -279,7 +278,7 @@ const config = {
         // viz thumbnails are used in `addSlice` and `explore` page
         thumbnail: {
           name: 'thumbnail',
-          test: /thumbnail(Large)?\.png/i,
+          test: /thumbnail(Large)?\.(png|jpg)/i,
           priority: 20,
           enforce: true,
         },
@@ -348,6 +347,7 @@ const config = {
           new RegExp(`${APP_DIR}/src`),
           /superset-ui.*\/src/,
           new RegExp(`${APP_DIR}/.storybook`),
+          /@encodable/,
         ],
         use: [babelLoader],
       },
@@ -507,14 +507,6 @@ if (isDevMode) {
   if (hasSymlink) {
     console.log(''); // pure cosmetic new line
   }
-} else {
-  config.optimization.minimizer = [
-    new TerserPlugin({
-      cache: '.terser-plugin-cache/',
-      parallel: true,
-      extractComments: true,
-    }),
-  ];
 }
 
 // Bundle analyzer is disabled by default

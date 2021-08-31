@@ -73,6 +73,7 @@ SQLLAB_CTAS_NO_LIMIT = config["SQLLAB_CTAS_NO_LIMIT"]
 SQL_QUERY_MUTATOR = config.get("SQL_QUERY_MUTATOR") or dummy_sql_query_mutator
 log_query = config["QUERY_LOGGER"]
 logger = logging.getLogger(__name__)
+cancel_query_key = "cancel_query"
 
 
 class SqlLabException(Exception):
@@ -80,6 +81,10 @@ class SqlLabException(Exception):
 
 
 class SqlLabSecurityException(SqlLabException):
+    pass
+
+
+class SqlLabQueryStoppedException(SqlLabException):
     pass
 
 
@@ -144,8 +149,8 @@ def get_query(query_id: int, session: Session) -> Query:
     """attempts to get the query and retry if it cannot"""
     try:
         return session.query(Query).filter_by(id=query_id).one()
-    except Exception:
-        raise SqlLabException("Failed at getting query")
+    except Exception as ex:
+        raise SqlLabException("Failed at getting query") from ex
 
 
 @celery_app.task(
@@ -187,7 +192,7 @@ def get_sql_results(  # pylint: disable=too-many-arguments
             return handle_query_error(ex, query, session)
 
 
-# pylint: disable=too-many-arguments, too-many-locals
+# pylint: disable=too-many-arguments, too-many-locals, too-many-statements
 def execute_sql_statement(
     sql_statement: str,
     query: Query,
@@ -286,11 +291,17 @@ def execute_sql_statement(
                 error_type=SupersetErrorType.SQLLAB_TIMEOUT_ERROR,
                 level=ErrorLevel.ERROR,
             )
-        )
+        ) from ex
     except Exception as ex:
+        # query is stopped in another thread/worker
+        # stopping raises expected exceptions which we should skip
+        session.refresh(query)
+        if query.status == QueryStatus.STOPPED:
+            raise SqlLabQueryStoppedException() from ex
+
         logger.error("Query %d: %s", query.id, type(ex), exc_info=True)
         logger.debug("Query %d: %s", query.id, ex)
-        raise SqlLabException(db_engine_spec.extract_error_message(ex))
+        raise SqlLabException(db_engine_spec.extract_error_message(ex)) from ex
 
     logger.debug("Query %d: Fetching cursor description", query.id)
     cursor_description = cursor.description
@@ -438,12 +449,17 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
     with closing(engine.raw_connection()) as conn:
         # closing the connection closes the cursor as well
         cursor = conn.cursor()
+        cancel_query_id = db_engine_spec.get_cancel_query_id(cursor, query)
+        if cancel_query_id is not None:
+            query.set_extra_json_key(cancel_query_key, cancel_query_id)
+            session.commit()
         statement_count = len(statements)
         for i, statement in enumerate(statements):
             # Check if stopped
-            query = get_query(query_id, session)
+            session.refresh(query)
             if query.status == QueryStatus.STOPPED:
-                return None
+                payload.update({"status": query.status})
+                return payload
 
             # For CTAS we create the table only on the last statement
             apply_ctas = query.select_as_cta and (
@@ -466,6 +482,9 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
                     log_params,
                     apply_ctas,
                 )
+            except SqlLabQueryStoppedException:
+                payload.update({"status": QueryStatus.STOPPED})
+                return payload
             except Exception as ex:  # pylint: disable=broad-except
                 msg = str(ex)
                 prefix_message = (
@@ -562,3 +581,36 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
         return payload
 
     return None
+
+
+def cancel_query(query: Query, user_name: Optional[str] = None) -> bool:
+    """
+    Cancel a running query.
+
+    Note some engines implicitly handle the cancelation of a query and thus no expliicit
+    action is required.
+
+    :param query: Query to cancel
+    :param user_name: Default username
+    :return: True if query cancelled successfully, False otherwise
+    """
+
+    if query.database.db_engine_spec.has_implicit_cancel():
+        return True
+
+    cancel_query_id = query.extra.get(cancel_query_key)
+    if cancel_query_id is None:
+        return False
+
+    engine = query.database.get_sqla_engine(
+        schema=query.schema,
+        nullpool=True,
+        user_name=user_name,
+        source=QuerySource.SQL_LAB,
+    )
+
+    with closing(engine.raw_connection()) as conn:
+        with closing(conn.cursor()) as cursor:
+            return query.database.db_engine_spec.cancel_query(
+                cursor, query, cancel_query_id
+            )

@@ -21,15 +21,20 @@ import moment from 'moment';
 import { styled, t } from '@superset-ui/core';
 import { setInLocalStorage } from 'src/utils/localStorageHelpers';
 
-import Loading from 'src/components/Loading';
 import ListViewCard from 'src/components/ListViewCard';
 import SubMenu from 'src/components/Menu/SubMenu';
-import { mq, CardStyles, getEditedObjects } from 'src/views/CRUD/utils';
+import { LoadingCards, ActivityData } from 'src/views/CRUD/welcome/Welcome';
+import {
+  CardStyles,
+  getEditedObjects,
+  CardContainer,
+} from 'src/views/CRUD/utils';
 import { HOMEPAGE_ACTIVITY_FILTER } from 'src/views/CRUD/storageKeys';
 import { Chart } from 'src/types/Chart';
 import { Dashboard, SavedQueryObject } from 'src/views/CRUD/types';
 
-import { ActivityData } from './Welcome';
+import Icons from 'src/components/Icons';
+
 import EmptyState from './EmptyState';
 
 /**
@@ -78,31 +83,10 @@ interface ActivityProps {
   loadedCount: number;
 }
 
-const ActivityContainer = styled.div`
-  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
-  margin-top: ${({ theme }) => theme.gridUnit * -4}px;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(31%, max-content));
-
-  grid-gap: ${({ theme }) => theme.gridUnit * 8}px;
-  justify-content: left;
-  padding: ${({ theme }) => theme.gridUnit * 6}px;
-  padding-top: ${({ theme }) => theme.gridUnit * 2}px;
-  .ant-card-meta-avatar {
-    margin-top: ${({ theme }) => theme.gridUnit * 3}px;
-    margin-left: ${({ theme }) => theme.gridUnit * 2}px;
-  }
-  .ant-card-meta-title {
-    font-weight: ${({ theme }) => theme.typography.weights.bold};
-  }
-  ${mq[3]} {
-    grid-template-columns: repeat(auto-fit, minmax(31%, max-content));
-  }
-  ${mq[2]} {
-    grid-template-columns: repeat(auto-fit, minmax(42%, max-content));
-  }
-  ${mq[1]} {
-    grid-template-columns: repeat(auto-fit, minmax(80%, max-content));
+const Styles = styled.div`
+  .recentCards {
+    max-height: none;
+    grid-gap: ${({ theme }) => `${theme.gridUnit * 4}px`};
   }
 `;
 
@@ -116,16 +100,16 @@ const getEntityTitle = (entity: ActivityObject) => {
   return entity.item_title || UNTITLED;
 };
 
-const getEntityIconName = (entity: ActivityObject) => {
-  if ('sql' in entity) return 'sql';
+const getEntityIcon = (entity: ActivityObject) => {
+  if ('sql' in entity) return <Icons.Sql />;
   const url = 'item_url' in entity ? entity.item_url : entity.url;
   if (url?.includes('dashboard')) {
-    return 'nav-dashboard';
+    return <Icons.NavDashboard />;
   }
   if (url?.includes('explore')) {
-    return 'nav-charts';
+    return <Icons.NavCharts />;
   }
-  return '';
+  return null;
 };
 
 const getEntityUrl = (entity: ActivityObject) => {
@@ -136,8 +120,8 @@ const getEntityUrl = (entity: ActivityObject) => {
 
 const getEntityLastActionOn = (entity: ActivityObject) => {
   // translation keys for last action on
-  const LAST_VIEWED = `Last viewed %s`;
-  const LAST_MODIFIED = `Last modified %s`;
+  const LAST_VIEWED = `Viewed %s`;
+  const LAST_MODIFIED = `Modified %s`;
 
   // for Recent viewed items
   if ('time_delta_humanized' in entity) {
@@ -217,17 +201,7 @@ export default function ActivityTable({
         setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, SetTabType.VIEWED);
       },
     });
-  } else {
-    tabs.unshift({
-      name: 'Examples',
-      label: t('Examples'),
-      onClick: () => {
-        setActiveChild('Examples');
-        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, SetTabType.EXAMPLE);
-      },
-    });
   }
-
   const renderActivity = () =>
     (activeChild !== 'Edited' ? activityData[activeChild] : editedObjs).map(
       (entity: ActivityObject) => {
@@ -245,7 +219,7 @@ export default function ActivityTable({
               url={url}
               title={getEntityTitle(entity)}
               description={lastActionOn}
-              avatar={getEntityIconName(entity)}
+              avatar={getEntityIcon(entity)}
               actions={null}
             />
           </CardStyles>
@@ -256,17 +230,19 @@ export default function ActivityTable({
   const doneFetching = loadedCount < 3;
 
   if ((loadingState && !editedObjs) || doneFetching) {
-    return <Loading position="inline" />;
+    return <LoadingCards />;
   }
   return (
-    <>
+    <Styles>
       <SubMenu activeChild={activeChild} tabs={tabs} />
       {activityData[activeChild]?.length > 0 ||
       (activeChild === 'Edited' && editedObjs && editedObjs.length > 0) ? (
-        <ActivityContainer>{renderActivity()}</ActivityContainer>
+        <CardContainer className="recentCards">
+          {renderActivity()}
+        </CardContainer>
       ) : (
         <EmptyState tableName="RECENTS" tab={activeChild} />
       )}
-    </>
+    </Styles>
   );
 }

@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { Global, css } from '@emotion/react';
 import { t, useTheme } from '@superset-ui/core';
 import {
@@ -26,7 +27,7 @@ import {
 } from '@ant-design/icons';
 import Popover from 'src/components/Popover';
 import Collapse from 'src/components/Collapse';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import {
   Indent,
   Panel,
@@ -35,6 +36,7 @@ import {
 } from 'src/dashboard/components/FiltersBadge/Styles';
 import { Indicator } from 'src/dashboard/components/FiltersBadge/selectors';
 import FilterIndicator from 'src/dashboard/components/FiltersBadge/FilterIndicator';
+import { RootState } from 'src/dashboard/types';
 
 export interface DetailsPanelProps {
   appliedCrossFilterIndicators: Indicator[];
@@ -55,6 +57,9 @@ const DetailsPanelPopover = ({
 }: DetailsPanelProps) => {
   const [visible, setVisible] = useState(false);
   const theme = useTheme();
+  const activeTabs = useSelector<RootState>(
+    state => state.dashboardState?.activeTabs,
+  );
 
   // we don't need to clean up useEffect, setting { once: true } removes the event listener after handle function is called
   useEffect(() => {
@@ -64,6 +69,11 @@ const DetailsPanelPopover = ({
       });
     }
   }, [visible]);
+
+  // if tabs change, popover doesn't close automatically
+  useEffect(() => {
+    setVisible(false);
+  }, [activeTabs]);
 
   const getDefaultActivePanel = () => {
     const result = [];
@@ -169,9 +179,9 @@ const DetailsPanelPopover = ({
               key="appliedCrossFilters"
               header={
                 <Title bold color={theme.colors.primary.light1}>
-                  <Icon
-                    name="cross-filter-badge"
+                  <Icons.CursorTarget
                     css={{ fill: theme.colors.primary.light1 }}
+                    iconSize="xl"
                   />
                   {t(
                     'Applied Cross Filters (%d)',
