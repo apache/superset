@@ -36,6 +36,7 @@ import ExploreCtasResultsButton from './ExploreCtasResultsButton';
 import ExploreResultsButton from './ExploreResultsButton';
 import HighlightedSql from './HighlightedSql';
 import FilterableTable from '../../components/FilterableTable/FilterableTable';
+import GlobalFilter from '../../components/FilterableTable/GlobalFilter'
 import QueryStateLabel from './QueryStateLabel';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import { prepareCopyToClipboardTabularData } from '../../utils/common';
@@ -69,7 +70,7 @@ interface DatasetOptionAutocomplete {
   datasetId: number;
 }
 
-interface ResultSetProps {
+export interface ResultSetProps {
   showControls?: boolean;
   actions: Record<string, any>;
   cache?: boolean;
@@ -85,7 +86,7 @@ interface ResultSetProps {
   defaultQueryLimit: number;
 }
 
-interface ResultSetState {
+export interface ResultSetState {
   searchText: string;
   showExploreResultsButton: boolean;
   data: Record<string, any>[];
@@ -729,10 +730,8 @@ export default class ResultSet extends React.PureComponent<
             {sql}
             <FilterableTable
               data={data}
-              orderedColumnKeys={results.columns.map(col => col.name)}
-              height={height}
+                columns={results.columns.map(col => col.name)}
               filterText={this.state.searchText}
-              expandedColumns={expandedColumns}
             />
           </>
         );

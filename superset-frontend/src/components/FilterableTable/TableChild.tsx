@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+
 import cx from 'classnames';
 import { TableInstance } from 'react-table';
 import { styled } from '@superset-ui/core';
@@ -38,9 +39,9 @@ export const Table = styled.table`
   border-collapse: separate;
   border-radius: ${({ theme }) => theme.borderRadius}px;
 
-  thead > tr > th {
+  {/*thead > tr > th {
     border: 0;
-  }
+  }*/}
 
   tbody {
     tr:first-of-type > td {
@@ -187,7 +188,6 @@ export const Table = styled.table`
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
-    max-width: 320px;
     line-height: 1;
     vertical-align: middle;
     &:first-of-type {
@@ -248,6 +248,12 @@ export default React.memo(
                     {column.render('Header')}
                     {column.canSort && sortIcon}
                   </span>
+                    <div
+                        {...column.getResizerProps()}
+                        className={`resizer ${
+                            column.isResizing ? 'isResizing' : ''
+                        }`}
+                    />
                 </th>
               );
             })}

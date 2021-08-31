@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, Dispatch, SetStateAction } from 'react';
-import isEqual from 'lodash/isEqual';
-import { styled, t } from '@superset-ui/core';
+import React, { useEffect } from 'react';
+//import isEqual from 'lodash/isEqual';
+import { styled } from '@superset-ui/core';
+import GlobalFilter from "./GlobalFilter";
 import {
   useFilters,
   useGlobalFilter,
@@ -29,11 +30,11 @@ import {
   useBlockLayout,
 } from 'react-table';
 import { Empty } from 'src/common/components';
-import { TableCollection, Pagination } from 'src/components/dataViewCommon';
+//import { TableCollection, Pagination } from 'src/components/dataViewCommon';
 import TableChild from './TableChild';
-import { SortByType, ServerPagination } from './types';
+import { SortByType } from './types';
 
-const DEFAULT_PAGE_SIZE = 100;
+const DEFAULT_PAGE_SIZE = 10;
 
 export enum EmptyWrapperType {
   Default = 'Default',
@@ -44,19 +45,13 @@ export interface FilterableTableProps {
   columns: any[];
   data: any[];
   filterText?: string;
-  setFilterText: Dispatch<SetStateAction<string>>;
   pageSize?: number;
   totalCount?: number;
-  serverPagination?: boolean;
-  onServerPagination?: (args: ServerPagination) => void;
-  initialPageIndex?: number;
   initialSortBy?: SortByType;
   loading?: boolean;
-  withPagination?: boolean;
   emptyWrapperType?: EmptyWrapperType;
   noDataText?: string;
   className?: string;
-  isPaginationSticky?: boolean;
   showRowCount?: boolean;
   scrollTable?: boolean;
   small?: boolean;
@@ -83,24 +78,25 @@ const FilterableTableStyles = styled.div<{
   width: 100%;
   }
   .table-row {
-    ${({ theme, small }) => !small && `height: ${theme.gridUnit * 11 - 1}px;`}
+    }
 
     .table-cell {
-      ${({ theme, small }) =>
+      ${({ small }) =>
         small &&
         `
-        padding-top: ${theme.gridUnit + 1}px;
-        padding-bottom: ${theme.gridUnit + 1}px;
-        line-height: 1.45;
       `}
     }
   }
 
   th[role='columnheader'] {
     z-index: 1;
-    border-bottom: ${({ theme }) =>
-      `${theme.gridUnit - 2}px solid ${theme.colors.grayscale.light2}`};
-    ${({ small }) => small && `padding-bottom: 0;`}
+ border-bottom: 1px solid black;
+ {/*border-bottom: ${({ theme }) =>
+   `${theme.gridUnit - 2}px solid ${theme.colors.grayscale.light2}`};
+    ${({ small }) => small && `padding-bottom: 0;`}*/}
+    border-right: 1px solid black;
+    text-overflow: elipsis; 
+    overflow: hidden;
   }
 
   tr.table-row:nth-child(odd) {
@@ -109,13 +105,11 @@ const FilterableTableStyles = styled.div<{
   tr,
   td {
     margin: 0;
-    padding: 0.5rem;
     border-bottom: 1px solid black;
     border-right: 1px solid black;
 
     .resizer {
       display: inline-block;
-      background: blue;
       width: 10px;
       height: 100%;
       position: absolute;
@@ -133,50 +127,22 @@ const FilterableTableStyles = styled.div<{
   }
 `;
 
-const PaginationStyles = styled.div<{
-  isPaginationSticky?: boolean;
-}>`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  background-color: ${({ theme }) => theme.colors.grayscale.light5};
-
-  ${({ isPaginationSticky }) =>
-    isPaginationSticky &&
-    `
-        position: sticky;
-        bottom: 0;
-        left: 0;
-    `};
-
-  .row-count-container {
-    margin-top: ${({ theme }) => theme.gridUnit * 2}px;
-    color: ${({ theme }) => theme.colors.grayscale.base};
-  }
-`;
-
 const FilterableTable = ({
   columns,
   data,
   filterText = '',
   pageSize: initialPageSize,
   totalCount = data.length,
-  initialPageIndex,
   initialSortBy = [],
   loading = false,
-  withPagination = true,
   scrollTable = true,
   emptyWrapperType = EmptyWrapperType.Default,
   noDataText,
   showRowCount = true,
-  serverPagination = false,
-  onServerPagination = () => {},
   ...props
 }: FilterableTableProps) => {
   const initialState = {
     pageSize: initialPageSize ?? DEFAULT_PAGE_SIZE,
-    pageIndex: initialPageIndex ?? 0,
     sortBy: initialSortBy,
   };
 
@@ -190,15 +156,12 @@ const FilterableTable = ({
     pageCount,
     gotoPage,
     setGlobalFilter,
-    state: { pageIndex, pageSize, sortBy },
+    ...state
   } = useTable(
     {
       columns,
       data,
       initialState,
-      manualPagination: serverPagination,
-      manualSortBy: serverPagination,
-      pageCount: Math.ceil(totalCount / initialState.pageSize),
     },
     useFilters,
     useGlobalFilter,
@@ -208,30 +171,11 @@ const FilterableTable = ({
     useBlockLayout,
   );
 
-  useEffect(() => {
-    if (serverPagination && pageIndex !== initialState.pageIndex) {
-      onServerPagination({
-        pageIndex,
-      });
-    }
-  }, [pageIndex]);
-
-  useEffect(() => {
-    if (serverPagination && !isEqual(sortBy, initialState.sortBy)) {
-      onServerPagination({
-        pageIndex: 0,
-        sortBy,
-      });
-    }
-  }, [sortBy]);
-
   //const [filterText, setFilterText] = useState('');
 
   useEffect(() => {
     setGlobalFilter(filterText);
   }, [filterText, setGlobalFilter]);
-
-  const content = withPagination ? page : rows;
 
   let EmptyWrapperComponent;
   switch (emptyWrapperType) {
@@ -245,18 +189,21 @@ const FilterableTable = ({
       );
   }
 
-  const isEmpty = !loading && content.length === 0;
-  const hasPagination = pageCount > 1 && withPagination;
+  const isEmpty = !loading && rows.length === 0;
 
   return (
     <>
+      {/*<GlobalFilter
+        globalFilter={state.globalFilter}
+        setGlobalFilter={setGlobalFilter}
+      />*/}
       <FilterableTableStyles {...props}>
         <TableChild
           getTableProps={getTableProps}
           getTableBodyProps={getTableBodyProps}
           prepareRow={prepareRow}
           headerGroups={headerGroups}
-          rows={content}
+          rows={rows}
           columns={columns}
           loading={loading}
         />
@@ -273,30 +220,6 @@ const FilterableTable = ({
           </EmptyWrapperComponent>
         )}
       </FilterableTableStyles>
-      {hasPagination && (
-        <PaginationStyles
-          className="pagination-container"
-          isPaginationSticky={props.isPaginationSticky}
-        >
-          <Pagination
-            totalPages={pageCount || 0}
-            currentPage={pageCount ? pageIndex + 1 : 0}
-            onChange={(p: number) => gotoPage(p - 1)}
-            hideFirstAndLastPageLinks
-          />
-          {showRowCount && (
-            <div className="row-count-container">
-              {!loading &&
-                t(
-                  '%s-%s of %s',
-                  pageSize * pageIndex + (page.length && 1),
-                  pageSize * pageIndex + page.length,
-                  totalCount,
-                )}
-            </div>
-          )}
-        </PaginationStyles>
-      )}
     </>
   );
 };
