@@ -61,7 +61,9 @@ export interface MenuProps {
     brand: BrandProps;
     navbar_right: NavBarProps;
     settings: MenuObjectProps[];
-    user: object;
+    user: {
+      roles: { [key: string]: string[][] };
+    };
   };
   isFrontendRoute?: (path?: string) => boolean;
 }

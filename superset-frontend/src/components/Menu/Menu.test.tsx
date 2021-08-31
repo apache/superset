@@ -24,6 +24,15 @@ import { dropdownItems } from './MenuRight';
 
 const mockedProps = {
   data: {
+    user: {
+      roles: {
+        Admin: [
+          ['can_sqllab', 'Superset'],
+          ['can_write', 'Chart'],
+          ['can_write', 'Dashboard'],
+        ],
+      },
+    },
     menu: [
       {
         name: 'Home',
