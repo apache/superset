@@ -52,7 +52,6 @@ type PickedSelectProps = Pick<
   | 'loading'
   | 'notFoundContent'
   | 'onChange'
-  | 'onClear'
   | 'onFocus'
   | 'placeholder'
   | 'showSearch'
@@ -169,7 +168,6 @@ const Select = ({
   showSearch,
   value,
   onChange,
-  onClear,
   ...props
 }: SelectProps) => {
   const isAsync = typeof options === 'function';
@@ -400,7 +398,6 @@ const Select = ({
         setSelectOptions(newOptions);
         setSelectValue(searchValue);
 
-        // @TODO to reconcile with the onSelect event
         if (onChange) {
           onChange(searchValue, newOptions);
         }
@@ -520,12 +517,7 @@ const Select = ({
         onSearch={shouldShowSearch ? handleOnSearch : undefined}
         onSelect={handleOnSelect}
         onChange={onChange}
-        onClear={() => {
-          setSelectValue(undefined);
-          if (onClear) {
-            onClear();
-          }
-        }}
+        onClear={() => setSelectValue(undefined)}
         options={selectOptions}
         placeholder={placeholder}
         showSearch={shouldShowSearch}
