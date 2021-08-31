@@ -908,14 +908,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         />
       );
     }
-
-    const message: Array<string> = Object.values(dbErrors);
+    const message: Array<string> | null =
+      typeof dbErrors === 'object' ? Object.values(dbErrors) : null;
     return (
       <Alert
         type="error"
         css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
         message="Database Creation Error"
-        description={message[0]}
+        description={message?.[0] || dbErrors}
       />
     );
   };
