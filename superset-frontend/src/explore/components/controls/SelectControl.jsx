@@ -201,9 +201,10 @@ export default class SelectControl extends React.PureComponent {
       onChange: this.onChange,
       onFocus,
       optionRenderer,
-      value,
       options: this.state.options,
       placeholder,
+      showSearch: true,
+      value,
     };
 
     return (
