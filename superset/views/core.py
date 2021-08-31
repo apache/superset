@@ -3004,12 +3004,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             .first()
         )
 
-        databases: Dict[int, Any] = {
-            database.id: {
+        databases: Dict[int, Any] = {}
+        for database in DatabaseDAO.find_all():
+            databases[database.id] = {
                 k: v for k, v in database.to_json().items() if k in DATABASE_KEYS
             }
-            for database in DatabaseDAO.find_all()
-        }
+            databases[database.id]["backend"] = database.backend
         queries: Dict[str, Any] = {}
 
         # These are unnecessary if sqllab backend persistence is disabled
