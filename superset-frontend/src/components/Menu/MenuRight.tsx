@@ -146,7 +146,9 @@ const RightMenu = ({
             </Menu.Item>
           </Menu.ItemGroup>,
         ]}
-        {(navbarRight.version_string || navbarRight.version_sha || navbarRight.build_number) && [
+        {(navbarRight.version_string ||
+          navbarRight.version_sha ||
+          navbarRight.build_number) && [
           <Menu.Divider key="version-info-divider" />,
           <Menu.ItemGroup key="about-section" title={t('About')}>
             <div className="about-section">
