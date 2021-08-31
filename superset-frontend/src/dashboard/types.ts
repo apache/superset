@@ -57,12 +57,15 @@ export type DashboardLayoutState = { present: DashboardLayout };
 export type DashboardState = {
   preselectNativeFilters?: JsonObject;
   editMode: boolean;
+  isPublished: boolean;
   directPathToChild: string[];
   activeTabs: ActiveTabs;
   fullSizeChartId: number | null;
   isRefreshing: boolean;
+  hasUnsavedChanges: boolean;
 };
 export type DashboardInfo = {
+  id: number;
   common: {
     flash_messages: string[];
     conf: JsonObject;

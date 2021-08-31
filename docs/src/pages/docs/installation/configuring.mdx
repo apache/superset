@@ -207,7 +207,11 @@ CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
 the app object and can alter it in any way. For example, add `FLASK_APP_MUTATOR` into your
 `superset_config.py` to setup session cookie expiration time to 24 hours:
 
-```
+```python
+from flask import session
+from flask import Flask
+
+
 def make_session_permanent():
     '''
     Enable maxAge for the cookie 'session'
