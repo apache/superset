@@ -25,8 +25,8 @@ import Label from 'src/components/Label';
 import Popover from 'src/components/Popover';
 import PopoverSection from 'src/components/PopoverSection';
 import Checkbox from 'src/components/Checkbox';
-import { Select } from 'src/components';
 import ControlHeader from '../ControlHeader';
+import SelectControl from './SelectControl';
 
 const spatialTypes = {
   latlong: 'latlong',
@@ -133,21 +133,18 @@ export default class SpatialControl extends React.Component {
 
   renderSelect(name, type) {
     return (
-      <Select
+      <SelectControl
         ariaLabel={name}
         name={name}
-        options={this.props.choices.map(o => ({
-          value: o[0],
-          label: o[1],
-        }))}
+        choices={this.props.choices}
         value={this.state[name]}
+        clearable={false}
         onFocus={() => {
           this.setType(type);
         }}
         onChange={value => {
           this.setState({ [name]: value }, this.onChange);
         }}
-        showSearch
       />
     );
   }
