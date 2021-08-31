@@ -908,8 +908,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         />
       );
     }
-    const message: Array<string> | null =
-      typeof dbErrors === 'object' ? Object.values(dbErrors) : null;
+    const message: Array<string> =
+      typeof dbErrors === 'object' ? Object.values(dbErrors) : [];
     return (
       <Alert
         type="error"
