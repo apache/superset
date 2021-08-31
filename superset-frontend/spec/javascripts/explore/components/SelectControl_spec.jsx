@@ -20,7 +20,7 @@
 import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
-import { Select, CreatableSelect } from 'src/components/Select';
+import { Select as SelectComponent } from 'src/components';
 import OnPasteSelect from 'src/components/Select/OnPasteSelect';
 import SelectControl from 'src/explore/components/controls/SelectControl';
 import { styledMount as mount } from 'spec/helpers/theming';
@@ -48,42 +48,27 @@ describe('SelectControl', () => {
     wrapper = shallow(<SelectControl {...defaultProps} />);
   });
 
-  it('uses Select in onPasteSelect when freeForm=false', () => {
-    wrapper = shallow(<SelectControl {...defaultProps} multi />);
-    const select = wrapper.find(OnPasteSelect);
-    expect(select.props().selectWrap).toBe(Select);
-  });
-
-  it('uses Creatable in onPasteSelect when freeForm=true', () => {
-    wrapper = shallow(<SelectControl {...defaultProps} multi freeForm />);
-    const select = wrapper.find(OnPasteSelect);
-    expect(select.props().selectWrap).toBe(CreatableSelect);
-  });
-
   it('calls props.onChange when select', () => {
     const select = wrapper.instance();
-    select.onChange({ value: 50 });
+    select.onChange(50);
     expect(defaultProps.onChange.calledWith(50)).toBe(true);
   });
 
   describe('render', () => {
     it('renders with Select by default', () => {
-      expect(wrapper.find(OnPasteSelect)).not.toExist();
-      expect(wrapper.findWhere(x => x.type() === Select)).toHaveLength(1);
+      expect(wrapper.find(SelectComponent)).toExist();
     });
 
-    it('renders with OnPasteSelect when multi', () => {
+    it('renders as mode multiple', () => {
       wrapper.setProps({ multi: true });
-      expect(wrapper.find(OnPasteSelect)).toExist();
-      expect(wrapper.findWhere(x => x.type() === Select)).toHaveLength(0);
+      expect(wrapper.find(SelectComponent)).toExist();
+      expect(wrapper.find(SelectComponent).prop('mode')).toBe('multiple');
     });
 
-    it('renders with Creatable when freeForm', () => {
+    it('renders with allowNewOptions when freeForm', () => {
       wrapper.setProps({ freeForm: true });
-      expect(wrapper.find(OnPasteSelect)).not.toExist();
-      expect(wrapper.findWhere(x => x.type() === CreatableSelect)).toHaveLength(
-        1,
-      );
+      expect(wrapper.find(SelectComponent)).toExist();
+      expect(wrapper.find(SelectComponent).prop('allowNewOptions')).toBe(true);
     });
     describe('empty placeholder', () => {
       describe('withMulti', () => {
@@ -145,16 +130,6 @@ describe('SelectControl', () => {
         );
         expect(wrapper.html()).not.toContain('add something');
       });
-      it('shows numbers of options as a placeholder by default', () => {
-        wrapper = mount(<SelectControl {...defaultProps} multi />);
-        expect(wrapper.html()).toContain('2 option(s');
-      });
-      it('reduces the number of options in the placeholder by the value length', () => {
-        wrapper = mount(
-          <SelectControl {...defaultProps} multi value={['today']} />,
-        );
-        expect(wrapper.html()).toContain('1 option(s');
-      });
     });
     describe('when select is single', () => {
       it('does not render the placeholder when a selection has been made', () => {
@@ -170,57 +145,12 @@ describe('SelectControl', () => {
     });
   });
 
-  describe('optionsRemaining', () => {
-    describe('isMulti', () => {
-      it('returns the options minus selected values', () => {
-        const wrapper = mount(
-          <SelectControl {...defaultProps} multi value={['today']} />,
-        );
-        expect(wrapper.instance().optionsRemaining()).toEqual(1);
-      });
-    });
-    describe('is not multi', () => {
-      it('returns the length of all options', () => {
-        wrapper = mount(
-          <SelectControl
-            {...defaultProps}
-            value={50}
-            placeholder="add something"
-          />,
-        );
-        expect(wrapper.instance().optionsRemaining()).toEqual(2);
-      });
-    });
-  });
-
   describe('getOptions', () => {
     it('returns the correct options', () => {
       wrapper.setProps(defaultProps);
       expect(wrapper.instance().getOptions(defaultProps)).toEqual(options);
     });
-
-    it('returns the correct options when freeform is set to true', () => {
-      const freeFormProps = {
-        choices: [],
-        freeForm: true,
-        value: ['one', 'two'],
-        name: 'row_limit',
-        label: 'Row Limit',
-        valueKey: 'custom_value_key',
-        onChange: sinon.spy(),
-      };
-      // the last added option is at the top
-      const expectedNewOptions = [
-        { custom_value_key: 'two', label: 'two' },
-        { custom_value_key: 'one', label: 'one' },
-      ];
-      wrapper.setProps(freeFormProps);
-      expect(wrapper.instance().getOptions(freeFormProps)).toEqual(
-        expectedNewOptions,
-      );
-    });
   });
-
   describe('UNSAFE_componentWillReceiveProps', () => {
     it('sets state.options if props.choices has changed', () => {
       const updatedOptions = [
