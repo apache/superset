@@ -31,47 +31,44 @@ import {
   SequentialScheme,
 } from '@superset-ui/core';
 import superset from '@superset-ui/core/lib/color/colorSchemes/categorical/superset';
+import ColorSchemeRegistry from '@superset-ui/core/lib/color/ColorSchemeRegistry';
+
+function registerColorSchemes(
+  registry: ColorSchemeRegistry<unknown>,
+  colorSchemes: (CategoricalScheme | SequentialScheme)[],
+  standardDefaultKey: string,
+) {
+  colorSchemes.forEach(scheme => {
+    registry.registerValue(scheme.id, scheme);
+  });
+
+  const defaultKey =
+    colorSchemes.find(scheme => scheme.isDefault)?.id || standardDefaultKey;
+  console.log({ defaultKey });
+  registry.setDefaultKey(defaultKey);
+}
 
 export default function setupColors(
   extraCategoricalColorSchemes: CategoricalScheme[] = [],
   extraSequentialColorSchemes: SequentialScheme[] = [],
 ) {
-  // Register color schemes
-  const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
-
-  if (extraCategoricalColorSchemes?.length > 0) {
-    extraCategoricalColorSchemes.forEach(scheme => {
-      categoricalSchemeRegistry.registerValue(scheme.id, scheme);
-    });
-  }
-
-  [superset, airbnb, categoricalD3, echarts, google, lyft, preset].forEach(
-    group => {
-      group.forEach(scheme => {
-        categoricalSchemeRegistry.registerValue(scheme.id, scheme);
-      });
-    },
+  registerColorSchemes(
+    getCategoricalSchemeRegistry(),
+    [
+      ...superset,
+      ...airbnb,
+      ...categoricalD3,
+      ...echarts,
+      ...google,
+      ...lyft,
+      ...preset,
+      ...extraCategoricalColorSchemes,
+    ],
+    'supersetColors',
   );
-  const defaultKey =
-    extraCategoricalColorSchemes.find(scheme => scheme.isDefault)?.id ||
-    'supersetColors';
-  categoricalSchemeRegistry.setDefaultKey(defaultKey);
-
-  const sequentialSchemeRegistry = getSequentialSchemeRegistry();
-
-  if (extraSequentialColorSchemes?.length > 0) {
-    extraSequentialColorSchemes.forEach(scheme => {
-      sequentialSchemeRegistry.registerValue(
-        scheme.id,
-        new SequentialScheme(scheme),
-      );
-    });
-  }
-
-  [sequentialCommon, sequentialD3].forEach(group => {
-    group.forEach(scheme => {
-      sequentialSchemeRegistry.registerValue(scheme.id, scheme);
-    });
-  });
-  sequentialSchemeRegistry.setDefaultKey('superset_seq_1');
+  registerColorSchemes(
+    getSequentialSchemeRegistry(),
+    [...sequentialCommon, ...sequentialD3, ...extraSequentialColorSchemes],
+    'superset_seq_1',
+  );
 }
