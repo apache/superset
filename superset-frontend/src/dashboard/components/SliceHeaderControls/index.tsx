@@ -299,6 +299,8 @@ class SliceHeaderControls extends React.PureComponent<
               modalBody={
                 <ViewQueryModal latestQueryFormData={this.props.formData} />
               }
+              draggable
+              resizable
               responsive
             />
           </Menu.Item>
