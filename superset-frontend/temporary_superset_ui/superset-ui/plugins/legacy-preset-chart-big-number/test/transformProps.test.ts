@@ -135,7 +135,7 @@ describe('BigNumber', () => {
         },
       };
       const transformed = transformProps(propsWithDatasource);
-      expect(transformed.formatNumber(transformed.bigNumber)).toStrictEqual('1.23');
+      expect(transformed.headerFormatter(transformed.bigNumber)).toStrictEqual('1.23');
     });
   });
 });
