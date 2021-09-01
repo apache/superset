@@ -94,25 +94,45 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   );
 
   const chart = charts[chartId];
-  const prevChartStatus = usePrevious(chart?.chartStatus);
-
+  const prevChart = usePrevious(chart);
+  const prevChartStatus = prevChart?.chartStatus;
+  const prevDashboardFilters = usePrevious(dashboardFilters);
+  const prevDatasources = usePrevious(datasources);
   const showIndicators =
     chart?.chartStatus && ['rendered', 'success'].includes(chart.chartStatus);
 
   useEffect(() => {
-    if (!showIndicators) {
+    if (!showIndicators && dashboardIndicators.length > 0) {
       setDashboardIndicators(indicatorsInitialState);
     } else if (prevChartStatus !== 'success') {
-      setDashboardIndicators(
-        selectIndicatorsForChart(chartId, dashboardFilters, datasources, chart),
-      );
+      if (
+        chart?.queriesResponse?.[0]?.rejected_filters !==
+          prevChart?.queriesResponse?.[0]?.rejected_filters ||
+        chart?.queriesResponse?.[0]?.applied_filters !==
+          prevChart?.queriesResponse?.[0]?.applied_filters ||
+        dashboardFilters !== prevDashboardFilters ||
+        datasources !== prevDatasources
+      ) {
+        setDashboardIndicators(
+          selectIndicatorsForChart(
+            chartId,
+            dashboardFilters,
+            datasources,
+            chart,
+          ),
+        );
+      }
     }
   }, [
     chart,
     chartId,
     dashboardFilters,
+    dashboardIndicators.length,
     datasources,
+    prevChart?.queriesResponse,
     prevChartStatus,
+    prevDashboardFilters,
+    prevDatasources,
     showIndicators,
   ]);
 
