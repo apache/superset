@@ -211,17 +211,32 @@ export const selectIndicatorsForChart = (
   return indicators;
 };
 
+const cachedNativeIndicatorsForChart = {};
+let cachedNativeFilterDataForChart: any = {};
+const defaultChartConfig = {};
 export const selectNativeIndicatorsForChart = (
   nativeFilters: Filters,
   dataMask: DataMaskStateWithId,
   chartId: number,
   chart: any,
   dashboardLayout: Layout,
-  chartConfiguration: ChartConfiguration = {},
+  chartConfiguration: ChartConfiguration = defaultChartConfig,
 ): Indicator[] => {
   const appliedColumns = getAppliedColumns(chart);
   const rejectedColumns = getRejectedColumns(chart);
 
+  const cachedFilterData = cachedNativeFilterDataForChart[chartId];
+  if (
+    cachedNativeIndicatorsForChart[chartId] &&
+    areObjectsEqual(cachedFilterData?.appliedColumns, appliedColumns) &&
+    areObjectsEqual(cachedFilterData?.rejectedColumns, rejectedColumns) &&
+    cachedNativeFilterDataForChart?.nativeFilters === nativeFilters &&
+    cachedNativeFilterDataForChart?.dashboardLayout === dashboardLayout &&
+    cachedNativeFilterDataForChart?.chartConfiguration === chartConfiguration &&
+    cachedNativeFilterDataForChart?.dataMask === dataMask
+  ) {
+    return cachedNativeIndicatorsForChart[chartId];
+  }
   const getStatus = ({
     label,
     column,
@@ -309,5 +324,18 @@ export const selectNativeIndicatorsForChart = (
       })
       .filter(filter => filter.status === IndicatorStatus.CrossFilterApplied);
   }
-  return crossFilterIndicators.concat(nativeFilterIndicators);
+  const indicators = crossFilterIndicators.concat(nativeFilterIndicators);
+  cachedNativeIndicatorsForChart[chartId] = indicators;
+  cachedNativeFilterDataForChart = {
+    ...cachedNativeFilterDataForChart,
+    nativeFilters,
+    dashboardLayout,
+    chartConfiguration,
+    dataMask,
+  };
+  cachedNativeFilterDataForChart[chartId] = {
+    appliedColumns,
+    rejectedColumns,
+  };
+  return indicators;
 };

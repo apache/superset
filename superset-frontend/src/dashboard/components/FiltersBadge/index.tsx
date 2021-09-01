@@ -136,20 +136,37 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     showIndicators,
   ]);
 
+  const prevNativeFilters = usePrevious(nativeFilters);
+  const prevDashboardLayout = usePrevious(present);
+  const prevDataMask = usePrevious(dataMask);
+  const prevChartConfig = usePrevious(
+    dashboardInfo.metadata?.chart_configuration,
+  );
   useEffect(() => {
-    if (!showIndicators) {
+    if (!showIndicators && nativeIndicators.length > 0) {
       setNativeIndicators(indicatorsInitialState);
     } else if (prevChartStatus !== 'success') {
-      setNativeIndicators(
-        selectNativeIndicatorsForChart(
-          nativeFilters,
-          dataMask,
-          chartId,
-          chart,
-          present,
-          dashboardInfo.metadata?.chart_configuration,
-        ),
-      );
+      if (
+        chart?.queriesResponse?.[0]?.rejected_filters !==
+          prevChart?.queriesResponse?.[0]?.rejected_filters ||
+        chart?.queriesResponse?.[0]?.applied_filters !==
+          prevChart?.queriesResponse?.[0]?.applied_filters ||
+        nativeFilters !== prevNativeFilters ||
+        present !== prevDashboardLayout ||
+        dataMask !== prevDataMask ||
+        prevChartConfig !== dashboardInfo.metadata?.chart_configuration
+      ) {
+        setNativeIndicators(
+          selectNativeIndicatorsForChart(
+            nativeFilters,
+            dataMask,
+            chartId,
+            chart,
+            present,
+            dashboardInfo.metadata?.chart_configuration,
+          ),
+        );
+      }
     }
   }, [
     chart,
@@ -157,8 +174,14 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     dashboardInfo.metadata?.chart_configuration,
     dataMask,
     nativeFilters,
+    nativeIndicators.length,
     present,
+    prevChart?.queriesResponse,
+    prevChartConfig,
     prevChartStatus,
+    prevDashboardLayout,
+    prevDataMask,
+    prevNativeFilters,
     showIndicators,
   ]);
 
