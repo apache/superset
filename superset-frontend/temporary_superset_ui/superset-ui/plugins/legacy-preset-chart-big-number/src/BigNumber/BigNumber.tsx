@@ -76,7 +76,7 @@ type BigNumberVisProps = {
   height: number;
   bigNumber?: number | null;
   bigNumberFallback?: TimeSeriesDatum;
-  formatNumber: NumberFormatter;
+  headerFormatter: NumberFormatter | TimeFormatter;
   formatTime: TimeFormatter;
   fromDatetime?: number;
   toDatetime?: number;
@@ -98,7 +98,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps, {}> {
 
   static defaultProps = {
     className: '',
-    formatNumber: defaultNumberFormatter,
+    headerFormatter: defaultNumberFormatter,
     formatTime: smartDateVerboseFormatter,
     headerFontSize: PROPORTION.HEADER,
     kickerFontSize: PROPORTION.KICKER,
@@ -173,8 +173,8 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps, {}> {
   }
 
   renderHeader(maxHeight: number) {
-    const { bigNumber, formatNumber, width } = this.props;
-    const text = bigNumber === null ? t('No data') : formatNumber(bigNumber);
+    const { bigNumber, headerFormatter, width } = this.props;
+    const text = bigNumber === null ? t('No data') : headerFormatter(bigNumber);
 
     const container = this.createTemporaryContainer();
     document.body.append(container);
@@ -246,7 +246,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps, {}> {
       mainColor,
       subheader,
       startYAxisAtZero,
-      formatNumber,
+      headerFormatter,
       formatTime,
       fromDatetime,
       timeRangeFixed,
@@ -283,7 +283,8 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps, {}> {
       <XYChart
         snapTooltipToDataX
         ariaLabel={`Big number visualization ${subheader}`}
-        renderTooltip={renderTooltipFactory(formatTime, formatNumber)}
+        // headerFormatter always NumberFormatter in BigNumber with treadline
+        renderTooltip={renderTooltipFactory(formatTime, headerFormatter as NumberFormatter)}
         xScale={xScale}
         yScale={{
           type: 'linear',

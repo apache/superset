@@ -78,6 +78,7 @@ export default function transformProps(chartProps: BigNumberChartProps) {
   } = formData;
   const granularity = extractTimegrain(rawFormData as QueryFormData);
   let { yAxisFormat } = formData;
+  const { headerFormatSelector, headerTimestampFormat } = formData;
   const { data = [], from_dttm: fromDatetime, to_dttm: toDatetime } = queriesData[0];
   const metricName = typeof metric === 'string' ? metric : metric.label;
   const compareLag = Number(compareLag_) || 0;
@@ -146,7 +147,9 @@ export default function transformProps(chartProps: BigNumberChartProps) {
     });
   }
 
-  const formatNumber = getNumberFormatter(yAxisFormat);
+  const headerFormatter = headerFormatSelector
+    ? getTimeFormatter(headerTimestampFormat)
+    : getNumberFormatter(yAxisFormat);
   const formatTime =
     timeFormat === smartDateFormatter.id
       ? getTimeFormatterForGranularity(granularity)
@@ -158,7 +161,7 @@ export default function transformProps(chartProps: BigNumberChartProps) {
     bigNumber,
     bigNumberFallback,
     className,
-    formatNumber,
+    headerFormatter,
     formatTime,
     headerFontSize,
     subheaderFontSize,

@@ -17,7 +17,12 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  D3_FORMAT_DOCS,
+  D3_TIME_FORMAT_OPTIONS,
+  sections,
+} from '@superset-ui/chart-controls';
 import { headerFontSize, subheaderFontSize } from '../sharedControls';
 
 export default {
@@ -43,6 +48,36 @@ export default {
           },
         ],
         ['y_axis_format'],
+        [
+          {
+            name: 'header_format_selector',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Timestamp Format'),
+              renderTrigger: true,
+              default: false,
+              description: t('Whether to format the timestamp'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'header_timestamp_format',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Date format'),
+              renderTrigger: true,
+              choices: D3_TIME_FORMAT_OPTIONS,
+              default: '%d-%m-%Y %H:%M:%S',
+              description: D3_FORMAT_DOCS,
+              visibility(props) {
+                const { header_format_selector } = props.form_data;
+                return !!header_format_selector;
+              },
+            },
+          },
+        ],
       ],
     },
     {
