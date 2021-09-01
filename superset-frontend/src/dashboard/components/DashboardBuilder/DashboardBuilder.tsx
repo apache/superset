@@ -245,8 +245,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
             ]}
             editMode={editMode}
           >
-            {/*
-                      // @ts-ignore */}
+            {/* @ts-ignore */}
             <DashboardComponent
               id={topLevelTabs?.id}
               parentId={DASHBOARD_ROOT_ID}
