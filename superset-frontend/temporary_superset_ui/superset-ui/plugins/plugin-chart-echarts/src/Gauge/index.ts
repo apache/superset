@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { t, ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
@@ -33,6 +33,7 @@ export default class EchartsGaugeChartPlugin extends ChartPlugin<
       controlPanel,
       loadChart: () => import('./EchartsGauge'),
       metadata: new ChartMetadata({
+        behaviors: [Behavior.INTERACTIVE_CHART],
         category: t('KPI'),
         credits: ['https://echarts.apache.org'],
         description: t(
