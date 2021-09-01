@@ -66,7 +66,8 @@ import { TIMESERIES_CONSTANTS } from '../constants';
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
 ): TimeseriesChartTransformedProps {
-  const { width, height, filterState, formData, hooks, queriesData } = chartProps;
+  const { width, height, filterState, formData, hooks, queriesData, datasource } = chartProps;
+  const { verboseMap = {} } = datasource;
   const {
     annotation_data: annotationData_,
     data = [],
@@ -105,7 +106,7 @@ export default function transformProps(
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
-  const rebasedData = rebaseTimeseriesDatum(data);
+  const rebasedData = rebaseTimeseriesDatum(data, verboseMap);
   const rawSeries = extractTimeseriesSeries(rebasedData, {
     fillNeighborValue: stack && !forecastEnabled ? 0 : undefined,
   });
