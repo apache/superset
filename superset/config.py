@@ -449,6 +449,7 @@ COMMON_BOOTSTRAP_OVERRIDES_FUNC: Callable[
 #         "id": 'myVisualizationColors',
 #         "description": '',
 #         "label": 'My Visualization Colors',
+#         "isDefault": True,
 #         "colors":
 #          ['#006699', '#009DD9', '#5AAA46', '#44AAAA', '#DDAA77', '#7799BB', '#88AA77',
 #          '#552288', '#5AAA46', '#CC7788', '#EEDD55', '#9977BB', '#BBAA44', '#DDCCDD']
@@ -483,6 +484,7 @@ THEME_OVERRIDES: Dict[str, Any] = {}
 #         "description": '',
 #         "isDiverging": True,
 #         "label": 'My custom warm to hot',
+#         "isDefault": True,
 #         "colors":
 #          ['#552288', '#5AAA46', '#CC7788', '#EEDD55', '#9977BB', '#BBAA44', '#DDCCDD',
 #          '#006699', '#009DD9', '#5AAA46', '#44AAAA', '#DDAA77', '#7799BB', '#88AA77']
@@ -1273,7 +1275,7 @@ if CONFIG_PATH_ENV_VAR in os.environ:
 elif importlib.util.find_spec("superset_config") and not is_test():
     try:
         import superset_config  # pylint: disable=import-error
-        from superset_config import *  # type: ignore # pylint: disable=import-error,wildcard-import
+        from superset_config import *  # pylint: disable=import-error,wildcard-import
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:
