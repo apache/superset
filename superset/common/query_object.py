@@ -26,7 +26,7 @@ from superset import app, db
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import QueryObjectValidationError
-from superset.typing import Metric, OrderBy
+from superset.typing import Column, Metric, OrderBy
 from superset.utils import pandas_postprocessing
 from superset.utils.core import (
     apply_max_row_limit,
@@ -34,6 +34,7 @@ from superset.utils.core import (
     DatasourceDict,
     DTTM_ALIAS,
     find_duplicates,
+    get_column_names,
     get_metric_names,
     is_adhoc_metric,
     json_int_dttm_ser,
@@ -83,7 +84,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     annotation_layers: List[Dict[str, Any]]
     applied_time_extras: Dict[str, str]
     apply_fetch_values_predicate: bool
-    columns: List[str]
+    columns: List[Column]
     datasource: Optional[BaseDatasource]
     extras: Dict[str, Any]
     filter: List[QueryObjectFilterClause]
@@ -113,7 +114,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         annotation_layers: Optional[List[Dict[str, Any]]] = None,
         applied_time_extras: Optional[Dict[str, str]] = None,
         apply_fetch_values_predicate: bool = False,
-        columns: Optional[List[str]] = None,
+        columns: Optional[List[Column]] = None,
         datasource: Optional[DatasourceDict] = None,
         extras: Optional[Dict[str, Any]] = None,
         filters: Optional[List[QueryObjectFilterClause]] = None,
@@ -268,7 +269,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     def column_names(self) -> List[str]:
         """Return column names (labels). Reserved for future adhoc calculated
         columns."""
-        return self.columns
+        return get_column_names((self.columns or []) + (self.groupby or []))
 
     def validate(
         self, raise_exceptions: Optional[bool] = True

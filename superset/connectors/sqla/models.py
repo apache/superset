@@ -88,7 +88,7 @@ from superset.models.annotations import Annotation
 from superset.models.core import Database
 from superset.models.helpers import AuditMixinNullable, CertificationMixin, QueryResult
 from superset.sql_parse import ParsedQuery
-from superset.typing import AdhocMetric, Metric, OrderBy, QueryObjectDict
+from superset.typing import AdhocColumn, AdhocMetric, Metric, OrderBy, QueryObjectDict
 from superset.utils import core as utils
 from superset.utils.core import (
     GenericDataType,
@@ -869,6 +869,20 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         return self.make_sqla_column_compatible(sqla_metric, label)
 
+    def adhoc_column_to_sqla(self, column: AdhocColumn) -> ColumnElement:
+        """
+        Turn an adhoc metric into a sqlalchemy column.
+
+        :param dict column: Adhoc column definition
+        :returns: The metric defined as a sqlalchemy column
+        :rtype: sqlalchemy.sql.column
+        """
+        label = utils.get_column_name(column)
+        tp = self.get_template_processor()
+        expression = tp.process_template(cast(str, column["sqlExpression"]))
+        sqla_metric = literal_column(expression)
+        return self.make_sqla_column_compatible(sqla_metric, label)
+
     def make_sqla_column_compatible(
         self, sqla_col: ColumnElement, label: Optional[str] = None
     ) -> ColumnElement:
@@ -1105,6 +1119,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     outer = columns_by_name[selected].get_sqla_col()
                 else:
                     outer = literal_column(f"({selected})")
+                    outer = self.adhoc_column_to_sqla(outer)
                     outer = self.make_sqla_column_compatible(outer, selected)
                 groupby_all_columns[outer.name] = outer
                 if not series_columns or outer.name in series_columns:

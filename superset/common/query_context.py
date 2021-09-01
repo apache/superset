@@ -47,6 +47,7 @@ from superset.utils.core import (
     DatasourceDict,
     DTTM_ALIAS,
     error_msg_from_exception,
+    get_column_names_from_columns,
     get_column_names_from_metrics,
     get_metric_names,
     normalize_dttm_col,
@@ -454,7 +455,7 @@ class QueryContext:
             try:
                 invalid_columns = [
                     col
-                    for col in query_obj.columns
+                    for col in get_column_names_from_columns(query_obj).columns
                     + get_column_names_from_metrics(query_obj.metrics or [])
                     if col not in self.datasource.column_names and col != DTTM_ALIAS
                 ]
