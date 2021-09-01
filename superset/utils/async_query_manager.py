@@ -71,7 +71,7 @@ class AsyncQueryManager:
 
     def __init__(self) -> None:
         super().__init__()
-        self._redis: redis.Redis  # type: ignore
+        self._redis: redis.Redis = None  # type: ignore
         self._stream_prefix: str = ""
         self._stream_limit: Optional[int]
         self._stream_limit_firehose: Optional[int]
@@ -85,7 +85,7 @@ class AsyncQueryManager:
         if not self._config_valid:
             self.validate_config(current_app)
 
-        if not getattr(self, "_redis", None):
+        if not self._redis:
             self.connect_redis(current_app)
 
     def init_app(self, app: Flask) -> None:
@@ -103,14 +103,17 @@ class AsyncQueryManager:
         self._jwt_cookie_domain = config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN"]
         self._jwt_secret = config["GLOBAL_ASYNC_QUERIES_JWT_SECRET"]
 
+        if is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
+            self.ensure_config_valid()
+
         @app.after_request
         def validate_session(response: Response) -> Response:
             if not is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
                 return response
 
             self.ensure_config_valid()
-            user_id = None
 
+            user_id = None
             try:
                 user_id = g.user.get_id()
                 user_id = int(user_id)

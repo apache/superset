@@ -20,6 +20,7 @@ from unittest import mock
 
 from superset.extensions import async_query_manager
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.test_app import app
 
 
@@ -31,6 +32,7 @@ class TestAsyncEventApi(SupersetTestCase):
         uri = f"{base_uri}?last_id={last_id}" if last_id else base_uri
         return self.client.get(uri)
 
+    @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     @mock.patch("uuid.uuid4", return_value=UUID)
     def test_events(self, mock_uuid4):
         async_query_manager.init_app(app)
@@ -44,6 +46,7 @@ class TestAsyncEventApi(SupersetTestCase):
         mock_xrange.assert_called_with(channel_id, "-", "+", 100)
         self.assertEqual(response, {"result": []})
 
+    @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     @mock.patch("uuid.uuid4", return_value=UUID)
     def test_events_last_id(self, mock_uuid4):
         async_query_manager.init_app(app)
@@ -57,6 +60,7 @@ class TestAsyncEventApi(SupersetTestCase):
         mock_xrange.assert_called_with(channel_id, "1607471525180-1", "+", 100)
         self.assertEqual(response, {"result": []})
 
+    @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     @mock.patch("uuid.uuid4", return_value=UUID)
     def test_events_results(self, mock_uuid4):
         async_query_manager.init_app(app)
@@ -106,11 +110,13 @@ class TestAsyncEventApi(SupersetTestCase):
         }
         self.assertEqual(response, expected)
 
+    @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     def test_events_no_login(self):
         async_query_manager.init_app(app)
         rv = self.fetch_events()
         assert rv.status_code == 401
 
+    @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     def test_events_no_token(self):
         self.login(username="admin")
         self.client.set_cookie(
