@@ -97,8 +97,10 @@ from superset.exceptions import (
     SupersetTimeoutException,
 )
 from superset.typing import (
+    AdhocColumn,
     AdhocMetric,
     AdhocMetricColumn,
+    Column,
     FilterValues,
     FlaskResponse,
     FormData,
@@ -1280,6 +1282,29 @@ def is_adhoc_metric(metric: Metric) -> TypeGuard[AdhocMetric]:
     return isinstance(metric, dict) and "expressionType" in metric
 
 
+def is_adhoc_column(column: Metric) -> TypeGuard[AdhocColumn]:
+    return isinstance(column, dict)
+
+
+def get_column_name(column: Column) -> str:
+    """
+    Extract label from column
+
+    :param column: object to extract label from
+    :return: String representation of column
+    :raises ValueError: if metric object is invalid
+    """
+    if isinstance(column, dict):
+        label = column.get("label")
+        if label:
+            return label
+        expr = column.get("sqlExpression")
+        if expr:
+            return expr
+        raise Exception("Missing label")
+    return column
+
+
 def get_metric_name(metric: Metric) -> str:
     """
     Extract label from metric
@@ -1307,6 +1332,10 @@ def get_metric_name(metric: Metric) -> str:
                 return column_name
         raise ValueError(__("Invalid metric object"))
     return metric  # type: ignore
+
+
+def get_column_names(columns: Sequence[Column]) -> List[str]:
+    return [column for column in map(get_column_name, columns) if column]
 
 
 def get_metric_names(metrics: Sequence[Metric]) -> List[str]:
@@ -1531,6 +1560,30 @@ def get_form_data_token(form_data: Dict[str, Any]) -> str:
     :return: original token if predefined, otherwise new uuid4 based token
     """
     return form_data.get("token") or "token_" + uuid.uuid4().hex[:8]
+
+
+def get_column_name_from_column(column: Column) -> Optional[str]:
+    """
+    Extract the column that a metric is referencing. If the metric isn't
+    a simple metric, always returns `None`.
+
+    :param column: Ad-hoc metric
+    :return: column name if simple metric, otherwise None
+    """
+    if isinstance(column, str):
+        return column
+    return None
+
+
+def get_column_names_from_columns(columns: List[Column]) -> List[str]:
+    """
+    Extract the column that a metric is referencing. If the metric isn't
+    a simple metric, always returns `None`.
+
+    :param columns: Ad-hoc metric
+    :return: column name if simple metric, otherwise None
+    """
+    return [col for col in map(get_column_name_from_column, columns) if col]
 
 
 def get_column_name_from_metric(metric: Metric) -> Optional[str]:

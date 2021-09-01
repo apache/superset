@@ -25,13 +25,14 @@ from superset import app, db
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import QueryObjectValidationError
-from superset.typing import Metric, OrderBy
+from superset.typing import Column, Metric, OrderBy
 from superset.utils import pandas_postprocessing
 from superset.utils.core import (
     ChartDataResultType,
     DatasourceDict,
     DTTM_ALIAS,
     find_duplicates,
+    get_column_names,
     get_metric_names,
     is_adhoc_metric,
     json_int_dttm_ser,
@@ -81,7 +82,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     inner_to_dttm: Optional[datetime]
     is_timeseries: bool
     time_shift: Optional[timedelta]
-    groupby: List[str]
+    groupby: List[Column]
     metrics: Optional[List[Metric]]
     row_limit: int
     row_offset: int
@@ -90,7 +91,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     timeseries_limit_metric: Optional[Metric]
     order_desc: bool
     extras: Dict[str, Any]
-    columns: List[str]
+    columns: List[Column]
     orderby: List[OrderBy]
     post_processing: List[Dict[str, Any]]
     datasource: Optional[BaseDatasource]
@@ -107,7 +108,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         apply_fetch_values_predicate: bool = False,
         granularity: Optional[str] = None,
         metrics: Optional[List[Metric]] = None,
-        groupby: Optional[List[str]] = None,
+        groupby: Optional[List[Column]] = None,
         filters: Optional[List[QueryObjectFilterClause]] = None,
         time_range: Optional[str] = None,
         time_shift: Optional[str] = None,
@@ -118,7 +119,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         timeseries_limit_metric: Optional[Metric] = None,
         order_desc: bool = True,
         extras: Optional[Dict[str, Any]] = None,
-        columns: Optional[List[str]] = None,
+        columns: Optional[List[Column]] = None,
         orderby: Optional[List[OrderBy]] = None,
         post_processing: Optional[List[Optional[Dict[str, Any]]]] = None,
         is_rowcount: bool = False,
@@ -246,7 +247,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     def column_names(self) -> List[str]:
         """Return column names (labels). Reserved for future adhoc calculated
         columns."""
-        return self.columns
+        return get_column_names((self.columns or []) + (self.groupby or []))
 
     def validate(
         self, raise_exceptions: Optional[bool] = True
