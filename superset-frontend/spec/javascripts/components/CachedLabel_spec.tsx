@@ -17,22 +17,26 @@
  * under the License.
  */
 import React from 'react';
-import { shallow } from 'enzyme';
+import { render, screen } from 'spec/helpers/testing-library';
 
-import Label from 'src/components/Label';
-import CachedLabel from 'src/components/CachedLabel';
+import CachedLabel, { CacheLabelProps } from 'src/components/CachedLabel';
+
+const defaultProps = {
+  onClick: () => {},
+  cachedTimestamp: '2017-01-01',
+};
+
+const setup = (props: CacheLabelProps) => <CachedLabel {...props} />;
 
 describe('CachedLabel', () => {
-  const defaultProps = {
-    onClick: () => {},
-    cachedTimestamp: '2017-01-01',
-  };
-
   it('is valid', () => {
     expect(React.isValidElement(<CachedLabel {...defaultProps} />)).toBe(true);
   });
+
   it('renders', () => {
-    const wrapper = shallow(<CachedLabel {...defaultProps} />);
-    expect(wrapper.find(Label)).toExist();
+    render(setup(defaultProps));
+
+    const label = screen.getByText(/cached/i);
+    expect(label).toBeVisible();
   });
 });
