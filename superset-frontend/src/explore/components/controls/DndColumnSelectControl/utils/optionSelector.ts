@@ -64,7 +64,7 @@ export class OptionSelector {
   }
 
   has(value: string): boolean {
-    return !!this.getValues()?.includes(value);
+    return ensureIsArray(this.getValues()).includes(value);
   }
 
   getValues(): string[] | string | undefined {
