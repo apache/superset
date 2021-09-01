@@ -57,6 +57,8 @@ const sortByStatus = (indicators: Indicator[]): Indicator[] => {
   );
 };
 
+const indicatorsInitialState: Indicator[] = [];
+
 export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   const dispatch = useDispatch();
   const datasources = useSelector<RootState, any>(state => state.datasources);
@@ -77,9 +79,11 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     state => state.dataMask,
   );
 
-  const [nativeIndicators, setNativeIndicators] = useState<Indicator[]>([]);
+  const [nativeIndicators, setNativeIndicators] = useState<Indicator[]>(
+    indicatorsInitialState,
+  );
   const [dashboardIndicators, setDashboardIndicators] = useState<Indicator[]>(
-    [],
+    indicatorsInitialState,
   );
 
   const onHighlightFilterSource = useCallback(
@@ -92,16 +96,13 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   const chart = charts[chartId];
   const prevChartStatus = usePrevious(chart?.chartStatus);
 
-  const showIndicators = useCallback(
-    () =>
-      chart?.chartStatus && ['rendered', 'success'].includes(chart.chartStatus),
-    [chart.chartStatus],
-  );
+  const showIndicators =
+    chart?.chartStatus && ['rendered', 'success'].includes(chart.chartStatus);
+
   useEffect(() => {
     if (!showIndicators) {
-      setDashboardIndicators([]);
-    }
-    if (prevChartStatus !== 'success') {
+      setDashboardIndicators(indicatorsInitialState);
+    } else if (prevChartStatus !== 'success') {
       setDashboardIndicators(
         selectIndicatorsForChart(chartId, dashboardFilters, datasources, chart),
       );
@@ -117,9 +118,8 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
 
   useEffect(() => {
     if (!showIndicators) {
-      setNativeIndicators([]);
-    }
-    if (prevChartStatus !== 'success') {
+      setNativeIndicators(indicatorsInitialState);
+    } else if (prevChartStatus !== 'success') {
       setNativeIndicators(
         selectNativeIndicatorsForChart(
           nativeFilters,
@@ -155,17 +155,33 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     [dashboardIndicators, nativeIndicators],
   );
 
-  const appliedCrossFilterIndicators = indicators.filter(
-    indicator => indicator.status === IndicatorStatus.CrossFilterApplied,
+  const appliedCrossFilterIndicators = useMemo(
+    () =>
+      indicators.filter(
+        indicator => indicator.status === IndicatorStatus.CrossFilterApplied,
+      ),
+    [indicators],
   );
-  const appliedIndicators = indicators.filter(
-    indicator => indicator.status === IndicatorStatus.Applied,
+  const appliedIndicators = useMemo(
+    () =>
+      indicators.filter(
+        indicator => indicator.status === IndicatorStatus.Applied,
+      ),
+    [indicators],
   );
-  const unsetIndicators = indicators.filter(
-    indicator => indicator.status === IndicatorStatus.Unset,
+  const unsetIndicators = useMemo(
+    () =>
+      indicators.filter(
+        indicator => indicator.status === IndicatorStatus.Unset,
+      ),
+    [indicators],
   );
-  const incompatibleIndicators = indicators.filter(
-    indicator => indicator.status === IndicatorStatus.Incompatible,
+  const incompatibleIndicators = useMemo(
+    () =>
+      indicators.filter(
+        indicator => indicator.status === IndicatorStatus.Incompatible,
+      ),
+    [indicators],
   );
 
   if (
