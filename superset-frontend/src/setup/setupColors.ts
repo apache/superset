@@ -33,14 +33,14 @@ import {
 import superset from '@superset-ui/core/lib/color/colorSchemes/categorical/superset';
 
 export default function setupColors(
-  extraCategoricalColorSchemas: CategoricalScheme[] = [],
+  extraCategoricalColorSchemes: CategoricalScheme[] = [],
   extraSequentialColorSchemes: SequentialScheme[] = [],
 ) {
   // Register color schemes
   const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 
-  if (extraCategoricalColorSchemas?.length > 0) {
-    extraCategoricalColorSchemas.forEach(scheme => {
+  if (extraCategoricalColorSchemes?.length > 0) {
+    extraCategoricalColorSchemes.forEach(scheme => {
       categoricalSchemeRegistry.registerValue(scheme.id, scheme);
     });
   }
@@ -52,7 +52,10 @@ export default function setupColors(
       });
     },
   );
-  categoricalSchemeRegistry.setDefaultKey('supersetColors');
+  const defaultKey =
+    extraCategoricalColorSchemes.find(scheme => scheme.isDefault)?.id ||
+    'supersetColors';
+  categoricalSchemeRegistry.setDefaultKey(defaultKey);
 
   const sequentialSchemeRegistry = getSequentialSchemeRegistry();
 
