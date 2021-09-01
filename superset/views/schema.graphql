@@ -1,0 +1,22 @@
+schema {
+    query: Query
+}
+
+type Database {
+    id: ID!
+    name: String
+    backend: String
+    configuration_method: String
+
+}
+
+type DatabaseResult {
+    success: Boolean!
+    errors: [String]
+    database: Database
+}
+
+type Query {
+    databases: DatabaseResult!
+    database(databaseId: ID!): DatabaseResult!
+}

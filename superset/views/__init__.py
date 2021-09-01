@@ -25,6 +25,7 @@ from . import (
     dashboard,
     datasource,
     dynamic_plugins,
+    graphql,
     health,
     redirects,
     schedules,
