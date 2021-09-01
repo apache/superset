@@ -90,7 +90,10 @@ export const formatProphetTooltipSeries = ({
   return `${row.trim()}`;
 };
 
-export function rebaseTimeseriesDatum(data: TimeseriesDataRecord[]) {
+export function rebaseTimeseriesDatum(
+  data: TimeseriesDataRecord[],
+  verboseMap: Record<string, string> = {},
+) {
   const keys = data.length > 0 ? Object.keys(data[0]) : [];
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
@@ -108,7 +111,8 @@ export function rebaseTimeseriesDatum(data: TimeseriesDataRecord[]) {
       ) {
         value -= row[lowerKey] as number;
       }
-      newRow[key] = value;
+      const newKey = key !== '__timestamp' && verboseMap[key] ? verboseMap[key] : key;
+      newRow[newKey] = value;
     });
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return newRow;
