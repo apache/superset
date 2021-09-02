@@ -118,6 +118,8 @@ interface ChartListProps {
   addSuccessToast: (msg: string) => void;
   user: {
     userId: string | number;
+    firstName: string;
+    lastName: string;
   };
 }
 
@@ -446,7 +448,7 @@ function ChartList(props: ChartListProps) {
             ),
           ),
         ),
-        props.user.userId,
+        props.user,
       ),
       paginate: true,
     },
@@ -467,7 +469,7 @@ function ChartList(props: ChartListProps) {
             ),
           ),
         ),
-        props.user.userId,
+        props.user,
       ),
       paginate: true,
     },

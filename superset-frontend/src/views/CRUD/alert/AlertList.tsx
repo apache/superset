@@ -56,6 +56,8 @@ interface AlertListProps {
   isReportEnabled: boolean;
   user: {
     userId: string | number;
+    firstName: string;
+    lastName: string;
   };
 }
 const deleteAlerts = makeApi<number[], { message: string }>({
@@ -381,7 +383,7 @@ function AlertList({
           createErrorHandler(errMsg =>
             t('An error occurred while fetching created by values: %s', errMsg),
           ),
-          user.userId,
+          user,
         ),
         paginate: true,
       },

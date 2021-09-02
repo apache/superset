@@ -71,6 +71,8 @@ interface DashboardListProps {
   addSuccessToast: (msg: string) => void;
   user: {
     userId: string | number;
+    firstName: string;
+    lastName: string;
   };
 }
 
@@ -435,7 +437,7 @@ function DashboardList(props: DashboardListProps) {
             ),
           ),
         ),
-        props.user.userId,
+        props.user,
       ),
       paginate: true,
     },
@@ -456,7 +458,7 @@ function DashboardList(props: DashboardListProps) {
             ),
           ),
         ),
-        props.user.userId,
+        props.user,
       ),
       paginate: true,
     },

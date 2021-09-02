@@ -46,6 +46,8 @@ interface AnnotationLayersListProps {
   addSuccessToast: (msg: string) => void;
   user: {
     userId: string | number;
+    firstName: string;
+    lastName: string;
   };
 }
 
@@ -301,7 +303,7 @@ function AnnotationLayersList({
               errMsg,
             ),
           ),
-          user.userId,
+          user,
         ),
         paginate: true,
       },

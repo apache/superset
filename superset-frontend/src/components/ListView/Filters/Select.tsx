@@ -57,7 +57,7 @@ function SelectFilter({
       if (fetchSelects) {
         const selectValues = await fetchSelects(inputValue, page, pageSize);
         const matchingOption = selectValues.data.find(
-          x => x.value === initialValue,
+          option => option.value === initialValue,
         );
         if (matchingOption) {
           setSelectedOption(matchingOption);

@@ -37,7 +37,7 @@ const createFetchResourceMethod = (method: string) => (
   resource: string,
   relation: string,
   handleError: (error: Response) => void,
-  userId?: string | number,
+  user?: { userId: string | number; firstName: string; lastName: string },
 ) => async (filterValue = '', page: number, pageSize: number) => {
   const resourceEndpoint = `/api/v1/${resource}/${method}/${relation}`;
   const queryParams = rison.encode({
@@ -49,25 +49,34 @@ const createFetchResourceMethod = (method: string) => (
     endpoint: `${resourceEndpoint}?q=${queryParams}`,
   });
 
-  let hasUser = false;
-  const data: { label: string; value: string | number }[] = [];
+  let fetchedLoggedUser = false;
+  const loggedUser = user
+    ? {
+        label: `${user.firstName} ${user.lastName}`,
+        value: user.userId,
+      }
+    : undefined;
 
+  const data: { label: string; value: string | number }[] = [];
   json?.result?.forEach(
     ({ text, value }: { text: string; value: string | number }) => {
-      let label = text;
-      if (value === userId) {
-        label = t('Me');
-        hasUser = true;
+      if (
+        loggedUser &&
+        value === loggedUser.value &&
+        text === loggedUser.label
+      ) {
+        fetchedLoggedUser = true;
+      } else {
+        data.push({
+          label: text,
+          value,
+        });
       }
-      data.push({
-        label,
-        value,
-      });
     },
   );
 
-  if (!hasUser && userId && page === 0) {
-    data.push({ label: t('Me'), value: userId });
+  if (loggedUser && (!filterValue || fetchedLoggedUser)) {
+    data.unshift(loggedUser);
   }
 
   return {
