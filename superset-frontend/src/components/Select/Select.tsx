@@ -137,6 +137,13 @@ const StyledSpin = styled(Spin)`
   margin-top: ${({ theme }) => -theme.gridUnit}px;
 `;
 
+const StyledLoadingText = styled.span`
+  ${({ theme }) => `
+    margin-left: ${theme.gridUnit * 3}px;
+    color: ${theme.colors.grayscale.light1};
+  `}
+`;
+
 const MAX_TAG_COUNT = 4;
 const TOKEN_SEPARATORS = [',', '\n', '\t', ';'];
 const DEBOUNCE_TIMEOUT = 500;
@@ -175,7 +182,8 @@ const Select = ({
   );
   const [selectValue, setSelectValue] = useState(value);
   const [searchedValue, setSearchedValue] = useState('');
-  const [isLoading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const [error, setError] = useState('');
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [page, setPage] = useState(0);
@@ -350,9 +358,10 @@ const Select = ({
       const cachedCount = fetchedQueries.current.get(key);
       if (cachedCount) {
         setTotalCount(cachedCount);
+        setIsTyping(false);
         return;
       }
-      setLoading(true);
+      setIsLoading(true);
       const fetchOptions = options as OptionsPagePromise;
       fetchOptions(value, page, pageSize)
         .then(({ data, totalCount }: OptionsTypePage) => {
@@ -361,39 +370,56 @@ const Select = ({
           setTotalCount(totalCount);
         })
         .catch(onError)
-        .finally(() => setLoading(false));
+        .finally(() => {
+          setIsLoading(false);
+          setIsTyping(false);
+        });
     },
     [options],
   );
 
-  const handleOnSearch = debounce((search: string) => {
-    const searchValue = search.trim();
-    // enables option creation
-    if (allowNewOptions && isSingleMode) {
-      const firstOption = selectOptions.length > 0 && selectOptions[0].value;
-      // replaces the last search value entered with the new one
-      // only when the value wasn't part of the original options
-      if (
-        searchValue &&
-        firstOption === searchedValue &&
-        !initialOptions.find(o => o.value === searchedValue)
-      ) {
-        selectOptions.shift();
-        setSelectOptions(selectOptions);
-      }
-      if (searchValue && !hasOption(searchValue, selectOptions)) {
-        const newOption = {
-          label: searchValue,
-          value: searchValue,
-        };
-        // adds a custom option
-        const newOptions = [...selectOptions, newOption];
-        setSelectOptions(newOptions);
-        setSelectValue(searchValue);
-      }
-    }
-    setSearchedValue(searchValue);
-  }, DEBOUNCE_TIMEOUT);
+  const handleOnSearch = useMemo(
+    () =>
+      debounce((search: string) => {
+        const searchValue = search.trim();
+        // enables option creation
+        if (allowNewOptions && isSingleMode) {
+          const firstOption =
+            selectOptions.length > 0 && selectOptions[0].value;
+          // replaces the last search value entered with the new one
+          // only when the value wasn't part of the original options
+          if (
+            searchValue &&
+            firstOption === searchedValue &&
+            !initialOptions.find(o => o.value === searchedValue)
+          ) {
+            selectOptions.shift();
+            setSelectOptions(selectOptions);
+          }
+          if (searchValue && !hasOption(searchValue, selectOptions)) {
+            const newOption = {
+              label: searchValue,
+              value: searchValue,
+            };
+            // adds a custom option
+            const newOptions = [...selectOptions, newOption];
+            setSelectOptions(newOptions);
+            setSelectValue(searchValue);
+          }
+        }
+        setSearchedValue(searchValue);
+        if (!searchValue) {
+          setIsTyping(false);
+        }
+      }, DEBOUNCE_TIMEOUT),
+    [
+      allowNewOptions,
+      initialOptions,
+      isSingleMode,
+      searchedValue,
+      selectOptions,
+    ],
+  );
 
   const handlePagination = (e: UIEvent<HTMLElement>) => {
     const vScroll = e.currentTarget;
@@ -469,7 +495,16 @@ const Select = ({
     if (!isDropdownVisible) {
       originNode.ref?.current?.scrollTo({ top: 0 });
     }
+    if ((isLoading && selectOptions.length === 0) || isTyping) {
+      return <StyledLoadingText>{t('Loading...')}</StyledLoadingText>;
+    }
     return error ? <Error error={error} /> : originNode;
+  };
+
+  const onInputKeyDown = () => {
+    if (isAsync && !isTyping) {
+      setIsTyping(true);
+    }
   };
 
   const SuffixIcon = () => {
@@ -496,6 +531,7 @@ const Select = ({
         mode={mappedMode}
         onDeselect={handleOnDeselect}
         onDropdownVisibleChange={handleOnDropdownVisibleChange}
+        onInputKeyDown={onInputKeyDown}
         onPopupScroll={isAsync ? handlePagination : undefined}
         onSearch={shouldShowSearch ? handleOnSearch : undefined}
         onSelect={handleOnSelect}
