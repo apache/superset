@@ -247,7 +247,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     def column_names(self) -> List[str]:
         """Return column names (labels). Reserved for future adhoc calculated
         columns."""
-        return get_column_names((self.columns or []) + (self.groupby or []))
+        return get_column_names(list(set((self.columns or []) + (self.groupby or []))))
 
     def validate(
         self, raise_exceptions: Optional[bool] = True
