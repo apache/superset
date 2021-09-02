@@ -965,7 +965,8 @@ class ChartDataQueryObjectSchema(Schema):
         deprecated=True,
     )
     groupby = fields.List(
-        fields.String(description="Columns by which to group the query.",),
+        fields.Raw(),
+        description="Columns by which to group the query.",
         allow_none=True,
     )
     metrics = fields.List(
