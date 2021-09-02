@@ -19,6 +19,7 @@
 import {
   buildQueryContext,
   GenericDataType,
+  getColumnLabel,
   QueryObject,
   QueryObjectFilterClause,
 } from '@superset-ui/core';
@@ -36,14 +37,15 @@ const buildQuery: BuildQuery<PluginFilterSelectQueryFormData> = (
     const extraFilters: QueryObjectFilterClause[] = [];
     if (search) {
       columns.forEach(column => {
-        if (coltypeMap[column] === GenericDataType.STRING) {
+        const label = getColumnLabel(column);
+        if (coltypeMap[label] === GenericDataType.STRING) {
           extraFilters.push({
             col: column,
             op: 'ILIKE',
             val: `%${search}%`,
           });
         } else if (
-          coltypeMap[column] === GenericDataType.NUMERIC &&
+          coltypeMap[label] === GenericDataType.NUMERIC &&
           !Number.isNaN(Number(search))
         ) {
           // for numeric columns we apply a >= where clause
