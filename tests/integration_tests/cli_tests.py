@@ -33,6 +33,11 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
 
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@mock.patch.dict(
+    "superset.extensions.feature_flag_manager._feature_flags",
+    VERSIONED_EXPORT=False,
+    clear=True,
+)
 def test_export_dashboards_original(app_context, fs):
     """
     Test that a JSON file is exported.
