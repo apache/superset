@@ -33,29 +33,36 @@ type DatabaseResult {
 }
 
 type Slice {
-    slice_id: ID!
+    id: ID!
     slice_name: String
     datasource: String
     description: String
     owners: [Float]
+    slice_url: String
 }
 
-type DashboardInfo {
+type Dashboard {
     id: ID!
     dashboard_title: String
     owners: [Float]
     slices: [Slice]
     published: Boolean
 }
-type DashboardInfoResult {
+type DashboardResult {
     success: Boolean!
     errors: [String]
-    dashboard: DashboardInfo
+    dashboard: Dashboard
 }
 
+type ChartResult {
+    success: Boolean!
+    errors: [String]
+    chart: Slice
+}
 
 type Query {
     databases: DatabaseResult!
     database(databaseId: ID!): DatabaseResult!
-    dashboardInfo(dashboard_id: ID!): DashboardInfoResult!
+    dashboard(dashboardId: ID!): DashboardResult!
+    chart(chartId: ID!): ChartResult!
 }
