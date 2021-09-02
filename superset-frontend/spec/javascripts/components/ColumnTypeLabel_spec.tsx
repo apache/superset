@@ -78,9 +78,9 @@ describe('ColumnOption RTL', () => {
   });
 
   it('datetime type displays', () => {
-    const renderFunc = render(setup({ type: GenericDataType.TEMPORAL }));
+    const rendered = render(setup({ type: GenericDataType.TEMPORAL }));
 
-    const clockIcon = renderFunc.container.querySelector('.fa-clock-o');
+    const clockIcon = rendered.container.querySelector('.fa-clock-o');
     expect(clockIcon).toBeVisible();
   });
 });
