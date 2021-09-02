@@ -42,11 +42,10 @@ These features are **finished** but currently being tested. They are usable, but
 - DASHBOARD_NATIVE_FILTERS
 - GLOBAL_ASYNC_QUERIES [(docs)](https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries)
 - OMNIBAR
-- VERSIONED_EXPORT
 
 ## Stable
 These features flags are **safe for production** and have been tested.
-
+- VERSIONED_EXPORT - import_export capabilities for dashboards data objects , charts and more to come
 - DASHBOARD_CROSS_FILTERS
 - DASHBOARD_RBAC [(docs)](https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard#manage-access-to-dashboards)
 - ESCAPE_MARKDOWN_HTML
