@@ -33,7 +33,7 @@ import { Empty } from 'src/common/components';
 //import { TableCollection, Pagination } from 'src/components/dataViewCommon';
 import TableChild from './TableChild';
 import { SortByType } from './types';
-
+import { GlobalFilter } from "./GlobalFilter";
 const DEFAULT_PAGE_SIZE = 10;
 
 export enum EmptyWrapperType {
@@ -42,8 +42,8 @@ export enum EmptyWrapperType {
 }
 
 export interface FilterableTableProps {
-  columns: any[];
-  data: any[];
+  columns: string[];
+    data: Record<string, unknown>[];
   filterText?: string;
   pageSize?: number;
   totalCount?: number;
@@ -193,10 +193,10 @@ const FilterableTable = ({
 
   return (
     <>
-      {/*<GlobalFilter
+      <GlobalFilter
         globalFilter={state.globalFilter}
         setGlobalFilter={setGlobalFilter}
-      />*/}
+      />
       <FilterableTableStyles {...props}>
         <TableChild
           getTableProps={getTableProps}

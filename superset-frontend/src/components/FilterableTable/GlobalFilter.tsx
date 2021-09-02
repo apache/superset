@@ -16,16 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, Dispatch, SetStateAction } from 'react';
+import React, { useState } from 'react';
 import { useAsyncDebounce } from 'react-table';
 
 export interface GlobalFilterProps {
     globalFilter: string;
-    setGlobalFilter: Dispatch<SetStateAction<string>>;
+    setGlobalFilter: (value:string)=>{}
 }
 function GlobalFilter({ globalFilter, setGlobalFilter }: GlobalFilterProps) {
   const [value, setValue] = useState(globalFilter);
-  const onChange = useAsyncDebounce(value => {
+    const onChange = useAsyncDebounce(value => {
     setGlobalFilter(value);
   }, 200);
   return (
@@ -34,7 +34,7 @@ function GlobalFilter({ globalFilter, setGlobalFilter }: GlobalFilterProps) {
         value={value || ''}
         onChange={e => {
           setValue(e.target.value);
-          onChange(e.target.value);
+            onChange(e.target.value)
         }}
       />
     </div>
