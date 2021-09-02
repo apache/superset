@@ -32,19 +32,19 @@ const StyledFilterTitle = styled.span`
 `;
 const TabTitleContainer = styled.div<TabTitleContainerProps>`
   ${({ theme, isDragging }) => `
-  display: flex;
-  width: 100%;
-  border-radius:  ${theme.borderRadius}px;
-  opacity: ${isDragging ? 0.5 : 1};
-  padding-top: ${theme.gridUnit}px;
-  padding-bottom: ${theme.gridUnit}px;
-  padding-left: ${2 * theme.gridUnit}px;
-  &:hover {
-    transition: all 0.3s;
-    span, .anticon {
-      color: ${theme.colors.primary.dark1};
+    display: flex;
+    width: 100%;
+    border-radius:  ${theme.borderRadius}px;
+    opacity: ${isDragging ? 0.5 : 1};
+    padding-top: ${theme.gridUnit}px;
+    padding-bottom: ${theme.gridUnit}px;
+    padding-left: ${2 * theme.gridUnit}px;
+    &:hover {
+      transition: all 0.3s;
+      span, .anticon {
+        color: ${theme.colors.primary.dark1};
+      }
     }
-  }
 `}
 `;
 const StyledFilterTabTitle = styled.span`
