@@ -1015,9 +1015,6 @@ class ChartDataQueryObjectSchema(Schema):
         description="Maximum row count for timeseries queries. Default: `0`",
         allow_none=True,
     )
-    timeseries_limit_metric = fields.Raw(
-        description="Metric used to limit timeseries queries by.", allow_none=True,
-    )
     row_limit = fields.Integer(
         description='Maximum row count (0=disabled). Default: `config["ROW_LIMIT"]`',
         allow_none=True,
@@ -1031,9 +1028,6 @@ class ChartDataQueryObjectSchema(Schema):
         validate=[
             Range(min=0, error=_("`row_offset` must be greater than or equal to 0"))
         ],
-    )
-    order_desc = fields.Boolean(
-        description="Reverse order. Default: `false`", allow_none=True,
     )
     extras = fields.Nested(
         ChartDataExtrasSchema,

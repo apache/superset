@@ -87,8 +87,6 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     row_offset: int
     filter: List[QueryObjectFilterClause]
     timeseries_limit: int
-    timeseries_limit_metric: Optional[Metric]
-    order_desc: bool
     extras: Dict[str, Any]
     columns: List[str]
     orderby: List[OrderBy]
@@ -115,8 +113,6 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         timeseries_limit: int = 0,
         row_limit: Optional[int] = None,
         row_offset: Optional[int] = None,
-        timeseries_limit_metric: Optional[Metric] = None,
-        order_desc: bool = True,
         extras: Optional[Dict[str, Any]] = None,
         columns: Optional[List[str]] = None,
         orderby: Optional[List[OrderBy]] = None,
@@ -184,8 +180,6 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self.row_offset = row_offset or 0
         self.filter = filters or []
         self.timeseries_limit = timeseries_limit
-        self.timeseries_limit_metric = timeseries_limit_metric
-        self.order_desc = order_desc
         self.extras = extras
 
         if config["SIP_15_ENABLED"]:
@@ -283,8 +277,6 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             "row_offset": self.row_offset,
             "filter": self.filter,
             "timeseries_limit": self.timeseries_limit,
-            "timeseries_limit_metric": self.timeseries_limit_metric,
-            "order_desc": self.order_desc,
             "extras": self.extras,
             "columns": self.columns,
             "orderby": self.orderby,
