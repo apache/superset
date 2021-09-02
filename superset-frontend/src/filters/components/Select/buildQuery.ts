@@ -20,6 +20,7 @@ import {
   buildQueryContext,
   GenericDataType,
   getColumnLabel,
+  isPhysicalColumn,
   QueryObject,
   QueryObjectFilterClause,
 } from '@superset-ui/core';
@@ -36,7 +37,7 @@ const buildQuery: BuildQuery<PluginFilterSelectQueryFormData> = (
     const { columns = [], filters = [] } = baseQueryObject;
     const extraFilters: QueryObjectFilterClause[] = [];
     if (search) {
-      columns.forEach(column => {
+      columns.filter(isPhysicalColumn).forEach(column => {
         const label = getColumnLabel(column);
         if (coltypeMap[label] === GenericDataType.STRING) {
           extraFilters.push({
