@@ -75,9 +75,9 @@ class ImportModelsCommand(BaseCommand):
 
         # load existing databases so we can apply the password validation
         db_passwords = {
-            str(uuid): password
-            for uuid, password in db.session.query(
-                Database.uuid, Database.password
+            database_name: password
+            for database_name, password in db.session.query(
+                Database.database_name, Database.password
             ).all()
         }
 
@@ -112,8 +112,11 @@ class ImportModelsCommand(BaseCommand):
                     # populate passwords from the request or from existing DBs
                     if file_name in self.passwords:
                         config["password"] = self.passwords[file_name]
-                    elif prefix == "databases" and config["uuid"] in db_passwords:
-                        config["password"] = db_passwords[config["uuid"]]
+                    elif (
+                        prefix == "databases"
+                        and config["database_name"] in db_passwords
+                    ):
+                        config["password"] = db_passwords[config["database_name"]]
 
                     schema.load(config)
                     self._configs[file_name] = config
