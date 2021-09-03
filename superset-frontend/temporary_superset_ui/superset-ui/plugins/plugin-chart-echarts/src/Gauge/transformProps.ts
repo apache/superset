@@ -223,11 +223,13 @@ export default function transformProps(
     axisLine.lineStyle.color = intervalBoundsAndColors;
     pointer = {
       show: showPointer,
+      showAbove: false,
       itemStyle: INTERVAL_GAUGE_SERIES_OPTION.pointer?.itemStyle,
     };
   } else {
     pointer = {
       show: showPointer,
+      showAbove: false,
     };
   }
 
