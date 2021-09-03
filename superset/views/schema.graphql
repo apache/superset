@@ -32,6 +32,11 @@ type DatabaseResult {
     database: Database
 }
 
+type DatabasesResult {
+    success: Boolean!
+    errors: [String]
+    databases: [Database]
+}
 type Slice {
     id: ID!
     slice_name: String
@@ -48,6 +53,19 @@ type Dashboard {
     slices: [Slice]
     published: Boolean
 }
+
+type Report {
+    id: ID!
+    name: String
+    description: String
+    active: Boolean
+    sql: String
+    dashboard_id: Float
+    database_id: Float
+    owners: [Float]
+    creation_method: String
+}
+
 type DashboardResult {
     success: Boolean!
     errors: [String]
@@ -60,9 +78,16 @@ type ChartResult {
     chart: Slice
 }
 
+type ReportResult {
+    success: Boolean!
+    errors: [String]
+    report: Report
+}
+
 type Query {
-    databases: DatabaseResult!
+    databases: DatabasesResult
     database(databaseId: ID!): DatabaseResult!
     dashboard(dashboardId: ID!): DashboardResult!
     chart(chartId: ID!): ChartResult!
+    report(reportId: ID!): ReportResult!
 }

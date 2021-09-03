@@ -30,6 +30,7 @@ from flask import jsonify, request
 from superset import app, db
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
+from superset.models.reports import ReportSchedule
 from superset.models.slice import Slice
 from superset.typing import FlaskResponse
 
@@ -41,6 +42,18 @@ def resolve_database(obj: Any, info: Any, database_id: int) -> Dict[str, Any]:
         payload = {
             "success": True,
             "database": database.data,
+        }
+    except Exception as error:
+        payload = {"success": False, "errors": [str(error)]}
+    return payload
+
+
+def resolve_databases(obj: Any, info: Any) -> Dict[str, Any]:
+    databases = db.session.query(Database).all()
+    try:
+        payload = {
+            "success": True,
+            "databases": [d.data for d in databases],
         }
     except Exception as error:
         payload = {"success": False, "errors": [str(error)]}
@@ -75,13 +88,32 @@ def resolve_chart(obj: Any, info: Any, chart_id: int) -> Dict[str, Any]:
     return payload
 
 
+@convert_kwargs_to_snake_case
+def resolve_report(obj: Any, info: Any, report_id: int) -> Dict[str, Any]:
+    report = db.session.query(ReportSchedule).filter_by(id=report_id).one()
+    try:
+        payload = {
+            "success": True,
+            "report": report,
+        }
+
+    except Exception as error:
+        payload = {"success": False, "errors": [str(error)]}
+    return payload
+
+
 query = ObjectType("Query")
 
 query.set_field("database", resolve_database)
 
+query.set_field("databases", resolve_databases)
+
 query.set_field("dashboard", resolve_dashboard)
 
 query.set_field("chart", resolve_chart)
+
+query.set_field("report", resolve_report)
+
 
 type_defs = load_schema_from_path("superset/views/schema.graphql")
 schema = make_executable_schema(type_defs, query, snake_case_fallback_resolvers)
