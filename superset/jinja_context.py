@@ -30,7 +30,7 @@ from typing import (
     Union,
 )
 
-from flask import current_app, g, request
+from flask import current_app, g, has_request_context, request
 from flask_babel import gettext as _
 from jinja2 import DebugUndefined
 from jinja2.sandbox import SandboxedEnvironment
@@ -172,8 +172,9 @@ class ExtraCache:
         # pylint: disable=import-outside-toplevel
         from superset.views.utils import get_form_data
 
-        if request.args.get(param):
+        if has_request_context() and request.args.get(param):  # type: ignore
             return request.args.get(param, default)
+
         form_data, _ = get_form_data()
         url_params = form_data.get("url_params") or {}
         result = url_params.get(param, default)
