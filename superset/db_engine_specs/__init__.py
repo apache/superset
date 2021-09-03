@@ -138,8 +138,7 @@ def get_available_engine_specs() -> Dict[Type[BaseEngineSpec], Set[str]]:
             backend = dialect.name
             if isinstance(backend, bytes):
                 backend = backend.decode()
-            if backend in backend_replacements:
-                backend = backend_replacements[backend]
+            backend = backend_replacements.get(backend, backend)
 
             driver = getattr(dialect, "driver", dialect.name)
             if isinstance(driver, bytes):
