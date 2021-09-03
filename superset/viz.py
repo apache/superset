@@ -66,13 +66,18 @@ from superset.exceptions import (
 )
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
-from superset.typing import Metric, QueryObjectDict, VizData, VizPayload
+from superset.typing import Column, Metric, QueryObjectDict, VizData, VizPayload
 from superset.utils import core as utils, csv
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import (
     apply_max_row_limit,
     DTTM_ALIAS,
     ExtraFiltersReasonType,
+    get_column_name,
+    get_column_names,
+    get_column_names_from_columns,
+    get_metric_names,
+    is_adhoc_column,
     JS_MAX_INTEGER,
     merge_extra_filters,
     QueryMode,
@@ -132,7 +137,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         self.query = ""
         self.token = utils.get_form_data_token(form_data)
 
-        self.groupby: List[str] = self.form_data.get("groupby") or []
+        self.groupby: List[Column] = self.form_data.get("groupby") or []
         self.time_shift = timedelta()
 
         self.status: Optional[str] = None
@@ -307,15 +312,17 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         """Building a query object"""
         self.process_query_filters()
 
-        gb = self.groupby
         metrics = self.all_metrics or []
         columns = self.form_data.get("columns") or []
         # merge list and dedup while preserving order
         groupby = list(OrderedDict.fromkeys(gb + columns))
 
+        groupby = self.dedup_columns(self.groupby, form_data.get("columns"))
+        groupby_labels = get_column_names(groupby)
+
         is_timeseries = self.is_timeseries
-        if DTTM_ALIAS in groupby:
-            groupby.remove(DTTM_ALIAS)
+        if DTTM_ALIAS in groupby_labels:
+            del groupby[groupby_labels.index(DTTM_ALIAS)]
             is_timeseries = True
 
         granularity = self.form_data.get("granularity") or self.form_data.get(
@@ -519,10 +526,12 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             try:
                 invalid_columns = [
                     col
-                    for col in (query_obj.get("columns") or [])
-                    + (query_obj.get("groupby") or [])
+                    for col in get_column_names_from_columns(
+                        query_obj.get("columns") or []
+                    )
+                    + get_column_names_from_columns(query_obj.get("groupby") or [])
                     + utils.get_column_names_from_metrics(
-                        cast(List[Metric], query_obj.get("metrics") or [],)
+                        cast(List[Metric], query_obj.get("metrics") or [])
                     )
                     if col not in self.datasource.column_names
                 ]
@@ -866,7 +875,9 @@ class PivotTableViz(BaseViz):
             )
         if not metrics:
             raise QueryObjectValidationError(_("Please choose at least one metric"))
-        if set(groupby) & set(columns):
+        deduped_cols = self.dedup_columns(groupby, columns)
+
+        if len(deduped_cols) < (len(groupby) + len(columns)):
             raise QueryObjectValidationError(_("Group By' and 'Columns' can't overlap"))
         sort_by = self.form_data.get("timeseries_limit_metric")
         if sort_by:
@@ -931,18 +942,22 @@ class PivotTableViz(BaseViz):
         groupby = self.form_data.get("groupby") or []
         columns = self.form_data.get("columns") or []
 
-        for column_name in groupby + columns:
-            column = self.datasource.get_column(column_name)
-            if column and column.is_temporal:
-                ts = df[column_name].apply(self._format_datetime)
-                df[column_name] = ts
+        for column in groupby + columns:
+            if is_adhoc_column(column):
+                # TODO: check data type
+                pass
+            else:
+                column_obj = self.datasource.get_column(column)
+                if column_obj and column_obj.is_temporal:
+                    ts = df[column].apply(self._format_datetime)
+                    df[column] = ts
 
         if self.form_data.get("transpose_pivot"):
             groupby, columns = columns, groupby
 
         df = df.pivot_table(
-            index=groupby,
-            columns=columns,
+            index=get_column_names(groupby),
+            columns=get_column_names(columns),
             values=metrics,
             aggfunc=aggfuncs,
             margins=self.form_data.get("pivot_margins"),
@@ -1003,7 +1018,7 @@ class TreemapViz(BaseViz):
         if df.empty:
             return None
 
-        df = df.set_index(self.form_data.get("groupby"))
+        df = df.set_index(get_column_names(self.form_data.get("groupby")))
         chart_data = [
             {"name": metric, "children": self._nest(metric, df)}
             for metric in df.columns
@@ -1142,7 +1157,7 @@ class BubbleViz(NVD3Viz):
         df["y"] = df[[utils.get_metric_name(self.y_metric)]]
         df["size"] = df[[utils.get_metric_name(self.z_metric)]]
         df["shape"] = "circle"
-        df["group"] = df[[self.series]]
+        df["group"] = df[[get_column_name(self.series)]]  # type: ignore
 
         series: Dict[Any, List[Any]] = defaultdict(list)
         for row in df.to_dict(orient="records"):
@@ -1714,15 +1729,15 @@ class HistogramViz(BaseViz):
 
         chart_data = []
         if len(self.groupby) > 0:
-            groups = df.groupby(self.groupby)
+            groups = df.groupby(get_column_names(self.groupby))
         else:
             groups = [((), df)]
         for keys, data in groups:
             chart_data.extend(
                 [
                     {
-                        "key": self.labelify(keys, column),
-                        "values": data[column].tolist(),
+                        "key": self.labelify(keys, get_column_name(column)),
+                        "values": data[get_column_name(column)].tolist(),
                     }
                     for column in self.columns
                 ]
@@ -1777,14 +1792,14 @@ class DistributionBarViz(BaseViz):
 
         # pandas will throw away nulls when grouping/pivoting,
         # so we substitute NULL_STRING for any nulls in the necessary columns
-        filled_cols = self.groupby + columns
+        filled_cols = groupby + columns
         df = df.copy()
         df[filled_cols] = df[filled_cols].fillna(value=NULL_STRING)
 
         sortby = utils.get_metric_name(
             self.form_data.get("timeseries_limit_metric") or metrics[0]
         )
-        row = df.groupby(self.groupby).sum()[sortby].copy()
+        row = df.groupby(groupby).sum()[sortby].copy()
         is_asc = not self.form_data.get("order_desc")
         row.sort_values(ascending=is_asc, inplace=True)
         pt = df.pivot_table(index=self.groupby, columns=columns, values=metrics)
@@ -1797,7 +1812,7 @@ class DistributionBarViz(BaseViz):
         pt = pt[metrics]
         chart_data = []
         for name, ys in pt.items():
-            if pt[name].dtype.kind not in "biufc" or name in self.groupby:
+            if pt[name].dtype.kind not in "biufc" or name in groupby:
                 continue
             if isinstance(name, str):
                 series_title = name
@@ -1886,7 +1901,7 @@ class SankeyViz(BaseViz):
     def get_data(self, df: pd.DataFrame) -> VizData:
         if df.empty:
             return None
-        source, target = self.groupby
+        source, target = get_column_names(self.groupby)
         (value,) = self.metric_labels
         df.rename(
             columns={source: "source", target: "target", value: "value",}, inplace=True,
