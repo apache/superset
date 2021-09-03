@@ -392,11 +392,13 @@ const ExtraOptions = ({
               indeterminate={false}
               checked={!!db?.impersonate_user}
               onChange={onInputChange}
-              labelText={t('Impersonate logged in user (Presto & Hive)')}
+              labelText={t(
+                'Impersonate logged in user (Presto, Trino, Hive, and GSheets)',
+              )}
             />
             <InfoTooltip
               tooltip={t(
-                'If Presto, all the queries in SQL Lab are going to be executed as the ' +
+                'If Presto or Trino, all the queries in SQL Lab are going to be executed as the ' +
                   'currently logged on user who must have permission to run them. If Hive ' +
                   'and hive.server2.enable.doAs is enabled, will run the queries as ' +
                   'service account, but impersonate the currently logged on user via ' +
@@ -490,8 +492,8 @@ const ExtraOptions = ({
           </div>
           <div className="helper">
             {t(
-              'Specify this database’s version. This should be used with ' +
-                'Presto databases so that the syntax is correct.',
+              'Specify the database version. This should be used with ' +
+                'Presto in order to enable query cost estimation.',
             )}
           </div>
         </StyledInputContainer>
