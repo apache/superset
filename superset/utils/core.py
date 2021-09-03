@@ -1282,7 +1282,7 @@ def is_adhoc_metric(metric: Metric) -> TypeGuard[AdhocMetric]:
     return isinstance(metric, dict) and "expressionType" in metric
 
 
-def is_adhoc_column(column: Metric) -> TypeGuard[AdhocColumn]:
+def is_adhoc_column(column: Column) -> TypeGuard[AdhocColumn]:
     return isinstance(column, dict)
 
 
@@ -1334,15 +1334,15 @@ def get_metric_name(metric: Metric) -> str:
     return metric  # type: ignore
 
 
-def get_column_names(columns: Sequence[Column]) -> List[str]:
-    return [column for column in map(get_column_name, columns) if column]
+def get_column_names(columns: Optional[Sequence[Column]]) -> List[str]:
+    return [column for column in map(get_column_name, columns or []) if column]
 
 
-def get_metric_names(metrics: Sequence[Metric]) -> List[str]:
-    return [metric for metric in map(get_metric_name, metrics) if metric]
+def get_metric_names(metrics: Optional[Sequence[Metric]]) -> List[str]:
+    return [metric for metric in map(get_metric_name, metrics or []) if metric]
 
 
-def get_first_metric_name(metrics: Sequence[Metric]) -> Optional[str]:
+def get_first_metric_name(metrics: Optional[Sequence[Metric]]) -> Optional[str]:
     metric_labels = get_metric_names(metrics)
     return metric_labels[0] if metric_labels else None
 
@@ -1564,24 +1564,24 @@ def get_form_data_token(form_data: Dict[str, Any]) -> str:
 
 def get_column_name_from_column(column: Column) -> Optional[str]:
     """
-    Extract the column that a metric is referencing. If the metric isn't
-    a simple metric, always returns `None`.
+    Extract the physical column that a column is referencing. If the column is
+    an adhoc column, always returns `None`.
 
-    :param column: Ad-hoc metric
-    :return: column name if simple metric, otherwise None
+    :param column: Physical and ad-hoc column
+    :return: column name if physical column, otherwise None
     """
-    if isinstance(column, str):
-        return column
-    return None
+    if is_adhoc_column(column):
+        return None
+    return column  # type: ignore
 
 
 def get_column_names_from_columns(columns: List[Column]) -> List[str]:
     """
-    Extract the column that a metric is referencing. If the metric isn't
-    a simple metric, always returns `None`.
+    Extract the physical columns that a list of columns are referencing. Ignore
+    adhoc columns
 
-    :param columns: Ad-hoc metric
-    :return: column name if simple metric, otherwise None
+    :param columns: Physical and adhoc columns
+    :return: column names of all physical columns
     """
     return [col for col in map(get_column_name_from_column, columns) if col]
 
