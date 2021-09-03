@@ -56,13 +56,6 @@ function SelectFilter({
     () => async (inputValue: string, page: number, pageSize: number) => {
       if (fetchSelects) {
         const selectValues = await fetchSelects(inputValue, page, pageSize);
-        const matchingOption = selectValues.data.find(
-          option => option.value === initialValue,
-        );
-        if (matchingOption) {
-          setSelectedOption(matchingOption);
-        }
-
         return {
           data: selectValues.data,
           totalCount: selectValues.totalCount,
@@ -73,7 +66,7 @@ function SelectFilter({
         totalCount: 0,
       };
     },
-    [fetchSelects, initialValue],
+    [fetchSelects],
   );
 
   return (

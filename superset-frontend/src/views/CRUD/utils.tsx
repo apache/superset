@@ -26,6 +26,7 @@ import {
   SupersetTheme,
   css,
 } from '@superset-ui/core';
+import { memoize } from 'lodash';
 import Chart from 'src/types/Chart';
 import rison from 'rison';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
@@ -181,8 +182,10 @@ export const getRecentAcitivtyObjs = (
       );
   });
 
-export const createFetchRelated = createFetchResourceMethod('related');
-export const createFetchDistinct = createFetchResourceMethod('distinct');
+export const createFetchRelated = memoize(createFetchResourceMethod('related'));
+export const createFetchDistinct = memoize(
+  createFetchResourceMethod('distinct'),
+);
 
 export function createErrorHandler(
   handleErrorFunc: (

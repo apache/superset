@@ -387,7 +387,7 @@ describe('ListView', () => {
         .find('[data-test="filters-select"]')
         .first()
         .props()
-        .onChange({ value: 'bar' });
+        .onChange({ label: 'bar', value: 'bar' });
     });
 
     act(() => {
@@ -395,7 +395,9 @@ describe('ListView', () => {
         .find('[data-test="filters-search"]')
         .first()
         .props()
-        .onChange({ currentTarget: { value: 'something' } });
+        .onChange({
+          currentTarget: { label: 'something', value: 'something' },
+        });
     });
 
     wrapper.update();
@@ -411,7 +413,10 @@ describe('ListView', () => {
             Object {
               "id": "id",
               "operator": "eq",
-              "value": "bar",
+              "value": Object {
+                "label": "bar",
+                "value": "bar",
+              },
             },
           ],
           "pageIndex": 0,
@@ -433,7 +438,10 @@ describe('ListView', () => {
             Object {
               "id": "id",
               "operator": "eq",
-              "value": "bar",
+              "value": Object {
+                "label": "bar",
+                "value": "bar",
+              },
             },
             Object {
               "id": "name",

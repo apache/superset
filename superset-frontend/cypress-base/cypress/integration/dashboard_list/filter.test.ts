@@ -28,39 +28,27 @@ describe('dashboard filters card view', () => {
   it('should filter by owners correctly', () => {
     // filter by owners
     cy.get('[data-test="filters-select"]').first().click();
-    cy.get('.ant-select-dropdown').contains('alpha user').click();
+    cy.get('.rc-virtual-list').contains('alpha user').click();
     cy.get('[data-test="styled-card"]').should('not.exist');
     cy.get('[data-test="filters-select"]').first().click();
-    cy.get('.ant-select-dropdown').contains('gamma user').click();
+    cy.get('.rc-virtual-list').contains('gamma user').click();
     cy.get('[data-test="styled-card"]').should('not.exist');
-  });
-
-  it('should filter by Me correctly', () => {
-    // filter by Me
-    cy.get('[data-test="filters-select"]').first().click();
-    cy.get('.ant-select-dropdown').contains('Me').click();
-    cy.get('[data-test="styled-card"]').its('length').should('be.gt', 0);
-    cy.get('[data-test="filters-select"]').eq(1).click();
-    cy.get('.ant-select-dropdown').contains('Me').click({ force: true });
-    cy.get('[data-test="styled-card"]').its('length').should('be.gt', 0);
   });
 
   it('should filter by created by correctly', () => {
     // filter by created by
     cy.get('[data-test="filters-select"]').eq(1).click();
-    cy.get('.ant-select-dropdown').contains('alpha user').click();
+    cy.get('.rc-virtual-list').contains('alpha user').click();
     cy.get('.ant-card').should('not.exist');
     cy.get('[data-test="filters-select"]').eq(1).click();
-    cy.get('.ant-select-dropdown').contains('gamma user').click();
+    cy.get('.rc-virtual-list').contains('gamma user').click();
     cy.get('.ant-card').should('not.exist');
   });
 
   it('should filter by published correctly', () => {
     // filter by published
     cy.get('[data-test="filters-select"]').eq(2).click();
-    cy.get('.ant-select-dropdown')
-      .contains('Published')
-      .click({ timeout: 5000 });
+    cy.get('.rc-virtual-list').contains('Published').click({ timeout: 5000 });
     cy.get('[data-test="styled-card"]').should('have.length', 3);
     cy.get('[data-test="styled-card"]')
       .contains('USA Births Names')
@@ -81,37 +69,27 @@ describe('dashboard filters list view', () => {
   it('should filter by owners correctly', () => {
     // filter by owners
     cy.get('[data-test="filters-select"]').first().click();
-    cy.get('.ant-select-dropdown').contains('alpha user').click();
+    cy.get('.rc-virtual-list').contains('alpha user').click();
     cy.get('[data-test="table-row"]').should('not.exist');
     cy.get('[data-test="filters-select"]').first().click();
-    cy.get('.ant-select-dropdown').contains('gamma user').click();
+    cy.get('.rc-virtual-list').contains('gamma user').click();
     cy.get('[data-test="table-row"]').should('not.exist');
-  });
-
-  it('should filter by Me correctly', () => {
-    // filter by Me
-    cy.get('[data-test="filters-select"]').first().click();
-    cy.get('.ant-select-dropdown').contains('Me').click();
-    cy.get('[data-test="table-row"]').its('length').should('be.gt', 0);
-    cy.get('[data-test="filters-select"]').eq(1).click();
-    cy.get('.ant-select-dropdown').contains('Me').click({ force: true });
-    cy.get('[data-test="table-row"]').its('length').should('be.gt', 0);
   });
 
   it('should filter by created by correctly', () => {
     // filter by created by
     cy.get('[data-test="filters-select"]').eq(1).click();
-    cy.get('.ant-select-dropdown').contains('alpha user').click();
+    cy.get('.rc-virtual-list').contains('alpha user').click();
     cy.get('[data-test="table-row"]').should('not.exist');
     cy.get('[data-test="filters-select"]').eq(1).click();
-    cy.get('.ant-select-dropdown').contains('gamma user').click();
+    cy.get('.rc-virtual-list').contains('gamma user').click();
     cy.get('[data-test="table-row"]').should('not.exist');
   });
 
   it('should filter by published correctly', () => {
     // filter by published
     cy.get('[data-test="filters-select"]').eq(2).click();
-    cy.get('.ant-select-dropdown').contains('Published').click();
+    cy.get('.rc-virtual-list').contains('Published').click();
     cy.get('[data-test="table-row"]').should('have.length', 3);
     cy.get('[data-test="table-row"]')
       .contains('USA Births Names')

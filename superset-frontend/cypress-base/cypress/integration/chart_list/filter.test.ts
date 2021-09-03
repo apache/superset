@@ -28,37 +28,27 @@ describe('chart card view filters', () => {
   it('should filter by owners correctly', () => {
     // filter by owners
     cy.get('[data-test="filters-select"]').first().click();
-    cy.get('.ant-select-dropdown').contains('alpha user').click();
+    cy.get('.rc-virtual-list').contains('alpha user').click();
     cy.get('[data-test="styled-card"]').should('not.exist');
     cy.get('[data-test="filters-select"]').first().click();
-    cy.get('.ant-select-dropdown').contains('gamma user').click();
+    cy.get('.rc-virtual-list').contains('gamma user').click();
     cy.get('[data-test="styled-card"]').should('not.exist');
-  });
-
-  it('should filter by Me correctly', () => {
-    // filter by Me
-    cy.get('[data-test="filters-select"]').first().click();
-    cy.get('.ant-select-dropdown').contains('Me').click();
-    cy.get('[data-test="styled-card"]').its('length').should('be.gt', 0);
-    cy.get('[data-test="filters-select"]').eq(1).click();
-    cy.get('.ant-select-dropdown').contains('Me').click({ force: true });
-    cy.get('[data-test="styled-card"]').its('length').should('be.gt', 0);
   });
 
   it('should filter by created by correctly', () => {
     // filter by created by
     cy.get('[data-test="filters-select"]').eq(1).click();
-    cy.get('.ant-select-dropdown').contains('alpha user').click();
+    cy.get('.rc-virtual-list').contains('alpha user').click();
     cy.get('.ant-card').should('not.exist');
     cy.get('[data-test="filters-select"]').eq(1).click();
-    cy.get('.ant-select-dropdown').contains('gamma user').click();
+    cy.get('.rc-virtual-list').contains('gamma user').click();
     cy.get('[data-test="styled-card"]').should('not.exist');
   });
 
   xit('should filter by viz type correctly', () => {
     // filter by viz type
     cy.get('[data-test="filters-select"]').eq(2).click();
-    cy.get('.ant-select-dropdown').contains('area').click({ timeout: 5000 });
+    cy.get('.rc-virtual-list').contains('area').click({ timeout: 5000 });
     cy.get('[data-test="styled-card"]').its('length').should('be.gt', 0);
     cy.get('[data-test="styled-card"]')
       .contains("World's Pop Growth")
@@ -74,7 +64,7 @@ describe('chart card view filters', () => {
   it('should filter by datasource correctly', () => {
     // filter by datasource
     cy.get('[data-test="filters-select"]').eq(3).click();
-    cy.get('.ant-select-dropdown').contains('unicode_test').click();
+    cy.get('.rc-virtual-list').contains('unicode_test').click();
     cy.get('[data-test="styled-card"]').should('have.length', 1);
     cy.get('[data-test="styled-card"]')
       .contains('Unicode Cloud')
@@ -97,30 +87,20 @@ describe('chart list view filters', () => {
   it('should filter by owners correctly', () => {
     // filter by owners
     cy.get('[data-test="filters-select"]').first().click();
-    cy.get('.ant-select-dropdown').contains('alpha user').click();
+    cy.get('.rc-virtual-list').contains('alpha user').click();
     cy.get('[data-test="table-row"]').should('not.exist');
     cy.get('[data-test="filters-select"]').first().click();
-    cy.get('.ant-select-dropdown').contains('gamma user').click();
+    cy.get('.rc-virtual-list').contains('gamma user').click();
     cy.get('[data-test="table-row"]').should('not.exist');
-  });
-
-  it('should filter by Me correctly', () => {
-    // filter by Me
-    cy.get('[data-test="filters-select"]').first().click();
-    cy.get('.ant-select-dropdown').contains('Me').click();
-    cy.get('[data-test="table-row"]').its('length').should('be.gt', 0);
-    cy.get('[data-test="filters-select"]').eq(1).click();
-    cy.get('.ant-select-dropdown').contains('Me').click({ force: true });
-    cy.get('[data-test="table-row"]').its('length').should('be.gt', 0);
   });
 
   it('should filter by created by correctly', () => {
     // filter by created by
     cy.get('[data-test="filters-select"]').eq(1).click();
-    cy.get('.ant-select-dropdown').contains('alpha user').click();
+    cy.get('.rc-virtual-list').contains('alpha user').click();
     cy.get('[data-test="table-row"]').should('not.exist');
     cy.get('[data-test="filters-select"]').eq(1).click();
-    cy.get('.ant-select-dropdown').contains('gamma user').click();
+    cy.get('.rc-virtual-list').contains('gamma user').click();
     cy.get('[data-test="table-row"]').should('not.exist');
   });
 
@@ -128,7 +108,7 @@ describe('chart list view filters', () => {
   xit('should filter by viz type correctly', () => {
     // filter by viz type
     cy.get('[data-test="filters-select"]').eq(2).click();
-    cy.get('.ant-select-dropdown').contains('area').click({ timeout: 5000 });
+    cy.get('.rc-virtual-list').contains('area').click({ timeout: 5000 });
     cy.get('[data-test="table-row"]').its('length').should('be.gt', 0);
     cy.get('[data-test="table-row"]')
       .contains("World's Pop Growth")
@@ -142,7 +122,7 @@ describe('chart list view filters', () => {
   it('should filter by datasource correctly', () => {
     // filter by datasource
     cy.get('[data-test="filters-select"]').eq(3).click();
-    cy.get('.ant-select-dropdown').contains('unicode_test').click();
+    cy.get('.rc-virtual-list').contains('unicode_test').click();
     cy.get('[data-test="table-row"]').should('have.length', 1);
     cy.get('[data-test="table-row"]').contains('Unicode Cloud').should('exist');
     cy.get('[data-test="filters-select"]').eq(3).click();
