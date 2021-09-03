@@ -2411,8 +2411,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 return json_error_response(f"{msg}", status=400)
             return json_error_response(f"{msg}")
 
-    @staticmethod
-    def _sql_json_async(
+    @classmethod
+    def _sql_json_async(  # pylint: disable=too-many-arguments
+        cls,
         session: Session,
         rendered_query: str,
         query: Query,
@@ -2474,19 +2475,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         # Update saved query with execution info from the query execution
         QueryDAO.update_saved_query_exec_info(query_id)
 
-        resp = json_success(
-            json.dumps(
-                {"query": query.to_dict()},
-                default=utils.json_int_dttm_ser,
-                ignore_nan=True,
-            ),
-            status=202,
-        )
+        resp = json_success(cls._convert_query_to_payload(query), status=202,)
         session.commit()
         return resp
 
-    @staticmethod
+    @classmethod
     def _sql_json_sync(
+        cls,
         _session: Session,
         rendered_query: str,
         query: Query,
@@ -2721,6 +2716,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         # Sync request.
         return self._sql_json_sync(
             session, rendered_query, query, expand_data, log_params
+        )
+
+    @staticmethod
+    def _convert_query_to_payload(query: Query) -> str:
+        return json.dumps(
+            {"query": query.to_dict()},
+            default=utils.json_int_dttm_ser,
+            ignore_nan=True,
         )
 
     @classmethod
