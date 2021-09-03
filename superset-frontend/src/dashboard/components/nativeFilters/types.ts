@@ -62,3 +62,8 @@ export interface Filter {
 }
 
 export type FilterConfiguration = Filter[];
+
+export enum NativeFilterType {
+  NATIVE_FILTER = 'NATIVE_FILTER',
+  SECTION = 'SECTION',
+}

@@ -80,7 +80,7 @@ import {
 } from './utils';
 import { useBackendFormUpdate, useDefaultValue } from './state';
 import { getFormData } from '../../utils';
-import { Filter } from '../../types';
+import { Filter, NativeFilterType } from '../../types';
 import getControlItemsMap from './getControlItemsMap';
 import FilterScope from './FilterScope/FilterScope';
 import RemovedFilter from './RemovedFilter';
@@ -322,6 +322,8 @@ const FiltersConfigForm = (
   const formFilter =
     form.getFieldValue('filters')?.[filterId] || defaultFormFilter;
 
+  // Defaulting to NATIVE_FILTER.
+  formFilter.type = NativeFilterType.NATIVE_FILTER;
   const nativeFilterItems = getChartMetadataRegistry().items;
   const nativeFilterVizTypes = Object.entries(nativeFilterItems)
     // @ts-ignore

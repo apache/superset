@@ -59,10 +59,21 @@ def upgrade():
                 "[AddTypeToNativeFilter] Skipping Dashboard<pk:%s> ", dashboard.id
             )
             continue
+        try:
+            json_meta = json.loads(dashboard.json_metadata)
+        except:
+            logger.exception("[AddTypeToNativeFilter] Error loading json_metadata")
+            continue
 
-        json_meta = json.loads(dashboard.json_metadata)
+        if "native_filter_configuration" not in json_meta:
+            logger.info(
+                "[AddTypeToNativeFilter] Skipping Dashboard<pk:%s>."
+                " native_filter_configuration not found.",
+                dashboard.id,
+            )
+            continue
 
-        for native_filter in json_meta.get("native_filter_configuration", []):
+        for native_filter in json_meta["native_filter_configuration"]:
             native_filter.setdefault("type", "NATIVE_FILTER")
         dashboard.json_metadata = json.dumps(json_meta)
 
@@ -78,15 +89,28 @@ def downgrade():
 
     for dashboard in session.query(Dashboard).all():
         logger.info(
-            "[RemoveTypeToNativeFilter] Updating Dashobard<pk:%s>", dashboard.id,
+            "[RemoveTypeToNativeFilter] Updating Dashobard<pk:%s>",
+            dashboard.id,
         )
         if not dashboard.json_metadata:
             logger.info(
                 "[RemoveTypeToNativeFilter] Skipping Dashboard<pk:%s> ", dashboard.id
             )
             continue
-        json_meta = json.loads(dashboard.json_metadata)
-        for native_filter in json_meta.get("native_filter_configuration", []):
+        try:
+            json_meta = json.loads(dashboard.json_metadata)
+        except:
+            logger.exception("[RemoveTypeToNativeFilter] Error loading json_metadata")
+            continue
+
+        if "native_filter_configuration" not in json_meta:
+            logger.info(
+                "[RemoveTypeToNativeFilter] Skipping Dashboard<pk:%s>."
+                " native_filter_configuration not found.",
+                dashboard.id,
+            )
+            continue
+        for native_filter in json_meta["native_filter_configuration"]:
             native_filter.pop("type", None)
         dashboard.json_metadata = json.dumps(json_meta)
     session.commit()
