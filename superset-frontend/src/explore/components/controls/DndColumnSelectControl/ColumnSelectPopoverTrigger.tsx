@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useMemo, useState } from 'react';
-import { AdhocColumn } from '@superset-ui/core';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { AdhocColumn, isAdhocColumn, isColumnMeta, t } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import Popover from 'src/components/Popover';
 import { ExplorePopoverContent } from 'src/explore/components/ExploreContentPopover';
 import ColumnSelectPopover from './ColumnSelectPopover';
+import { DndColumnSelectPopoverTitle } from './DndColumnSelectPopoverTitle';
 
 interface ColumnSelectPopoverTriggerProps {
   columns: ColumnMeta[];
@@ -34,6 +35,7 @@ interface ColumnSelectPopoverTriggerProps {
   children: React.ReactNode;
 }
 
+const defaultPopoverLabel = t('My column');
 const ColumnSelectPopoverTrigger = ({
   columns,
   editedColumn,
@@ -42,7 +44,22 @@ const ColumnSelectPopoverTrigger = ({
   children,
   ...props
 }: ColumnSelectPopoverTriggerProps) => {
+  const [popoverLabel, setPopoverLabel] = useState(defaultPopoverLabel);
   const [popoverVisible, setPopoverVisible] = useState(false);
+  const [isTitleEditDisabled, setIsTitleEditDisabled] = useState(true);
+
+  useEffect(() => {
+    let initialPopoverLabel;
+    if (!editedColumn) {
+      initialPopoverLabel = defaultPopoverLabel;
+    } else if (isColumnMeta(editedColumn)) {
+      initialPopoverLabel =
+        editedColumn.verbose_name || editedColumn.column_name;
+    } else if (isAdhocColumn(editedColumn)) {
+      initialPopoverLabel = editedColumn.label || defaultPopoverLabel;
+    }
+    setPopoverLabel(initialPopoverLabel);
+  }, [editedColumn, popoverVisible]);
 
   const togglePopover = useCallback((visible: boolean) => {
     setPopoverVisible(visible);
@@ -68,6 +85,11 @@ const ColumnSelectPopoverTrigger = ({
         handleClosePopover: closePopover,
       };
 
+  const getCurrentTab = useCallback((tab: string) => {
+    setIsTitleEditDisabled(tab !== 'sqlExpression');
+  }, []);
+
+  const handleColumnChange = () => {};
   const overlayContent = useMemo(
     () => (
       <ExplorePopoverContent>
@@ -76,10 +98,35 @@ const ColumnSelectPopoverTrigger = ({
           columns={columns}
           onClose={handleClosePopover}
           onChange={onColumnEdit}
+          label={popoverLabel}
+          setLabel={setPopoverLabel}
+          getCurrentTab={getCurrentTab}
         />
       </ExplorePopoverContent>
     ),
-    [columns, editedColumn, handleClosePopover, onColumnEdit],
+    [
+      columns,
+      editedColumn,
+      getCurrentTab,
+      handleClosePopover,
+      onColumnEdit,
+      popoverLabel,
+    ],
+  );
+
+  const onLabelChange = useCallback((e: any) => {
+    setPopoverLabel(e.target.value);
+  }, []);
+
+  const popoverTitle = useMemo(
+    () => (
+      <DndColumnSelectPopoverTitle
+        title={popoverLabel}
+        onChange={onLabelChange}
+        isEditDisabled={isTitleEditDisabled}
+      />
+    ),
+    [isTitleEditDisabled, onLabelChange, popoverLabel],
   );
 
   return (
@@ -90,6 +137,7 @@ const ColumnSelectPopoverTrigger = ({
       defaultVisible={visible}
       visible={visible}
       onVisibleChange={handleTogglePopover}
+      title={popoverTitle}
       destroyTooltipOnHide
     >
       {children}
