@@ -30,7 +30,7 @@ import {
 } from 'src/explore/components/controls/DndColumnSelectControl/types';
 import { Tooltip } from 'src/components/Tooltip';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
-import { styled } from '@superset-ui/core';
+import { styled, isAdhocColumn } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import Option from './Option';
 
@@ -135,14 +135,20 @@ export default function OptionWrapper(
     );
   };
 
-  const ColumnOption = () => (
-    <StyledColumnOption
-      column={column as ColumnMeta}
-      labelRef={labelRef}
-      showTooltip={!!shouldShowTooltip}
-      showType
-    />
-  );
+  const ColumnOption = () => {
+    const transformedCol =
+      column && isAdhocColumn(column)
+        ? { verbose_name: column.label, expression: column.sqlExpression }
+        : column;
+    return (
+      <StyledColumnOption
+        column={transformedCol as ColumnMeta}
+        labelRef={labelRef}
+        showTooltip={!!shouldShowTooltip}
+        showType
+      />
+    );
+  };
 
   const Label = () => {
     if (label) {
