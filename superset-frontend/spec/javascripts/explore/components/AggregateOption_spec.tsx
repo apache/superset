@@ -16,17 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-unused-expressions */
 import React from 'react';
-import { shallow } from 'enzyme';
+import { render, screen } from 'spec/helpers/testing-library';
 
 import AggregateOption from 'src/explore/components/controls/MetricControl/AggregateOption';
 
 describe('AggregateOption', () => {
   it('renders the aggregate', () => {
-    const wrapper = shallow(
-      <AggregateOption aggregate={{ aggregate_name: 'SUM' }} />,
-    );
-    expect(wrapper.text()).toBe('SUM');
+    render(<AggregateOption aggregate={{ aggregate_name: 'SUM' }} />);
+
+    const aggregateOption = screen.getByText(/sum/i);
+    expect(aggregateOption).toBeVisible();
   });
 });
