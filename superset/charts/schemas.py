@@ -573,8 +573,7 @@ class ChartDataBoxplotOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
     """
 
     groupby = fields.List(
-        fields.Raw(),
-        description="Columns by which to group the query.",
+        fields.String(description="Columns by which to group the query.",),
         allow_none=True,
     )
 
