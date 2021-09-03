@@ -24,6 +24,7 @@ import {
   isSavedExpression,
   t,
   styled,
+  css,
 } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import Tabs from 'src/components/Tabs';
@@ -56,6 +57,7 @@ interface ColumnSelectPopoverProps {
   label: string;
 }
 
+const height = 240;
 const ColumnSelectPopover = ({
   columns,
   editedColumn,
@@ -204,6 +206,9 @@ const ColumnSelectPopover = ({
         onChange={getCurrentTab}
         className="adhoc-metric-edit-tabs"
         allowOverflow
+        css={css`
+          height: ${height}px;
+        `}
       >
         <Tabs.TabPane key="saved" tab={t('Saved')}>
           <FormItem label={savedExpressionsLabel}>
@@ -252,7 +257,7 @@ const ColumnSelectPopover = ({
             showLoadingForImport
             onChange={onSqlExpressionChange}
             width="100%"
-            height={160}
+            height={`${height - 80}px`}
             showGutter={false}
             editorProps={{ $blockScrolling: true }}
             enableLiveAutocompletion
