@@ -17,29 +17,33 @@
  * under the License.
  */
 import React from 'react';
-import { shallow } from 'enzyme';
+import { render } from 'spec/helpers/testing-library';
 
 import ResizableHandle from 'src/dashboard/components/resizable/ResizableHandle';
 
 /* eslint-disable react/jsx-pascal-case */
 describe('ResizableHandle', () => {
   it('should render a right resize handle', () => {
-    const wrapper = shallow(<ResizableHandle.right />);
-    expect(wrapper.find('.resize-handle.resize-handle--right')).toExist();
+    const rendered = render(<ResizableHandle.right />);
+    expect(
+      rendered.container.querySelector('.resize-handle.resize-handle--right'),
+    ).toBeVisible();
   });
 
   it('should render a bottom resize handle', () => {
-    const wrapper = shallow(<ResizableHandle.bottom />);
-    expect(wrapper.find('.resize-handle.resize-handle--bottom')).toHaveLength(
-      1,
-    );
+    const rendered = render(<ResizableHandle.bottom />);
+    expect(
+      rendered.container.querySelector('.resize-handle.resize-handle--bottom'),
+    ).toBeVisible();
   });
 
   it('should render a bottomRight resize handle', () => {
-    const wrapper = shallow(<ResizableHandle.bottomRight />);
+    const rendered = render(<ResizableHandle.bottomRight />);
     expect(
-      wrapper.find('.resize-handle.resize-handle--bottom-right'),
-    ).toHaveLength(1);
+      rendered.container.querySelector(
+        '.resize-handle.resize-handle--bottom-right',
+      ),
+    ).toBeVisible();
   });
 });
 /* eslint-enable react/jsx-pascal-case */
