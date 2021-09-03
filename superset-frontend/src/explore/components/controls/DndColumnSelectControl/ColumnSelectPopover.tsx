@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AdhocColumn,
   isAdhocColumn,
@@ -50,6 +50,9 @@ interface ColumnSelectPopoverProps {
   editedColumn?: ColumnMeta | AdhocColumn;
   onChange: (column: ColumnMeta | AdhocColumn) => void;
   onClose: () => void;
+  setLabel: (title: string) => void;
+  getCurrentTab: (tab: string) => void;
+  label: string;
 }
 
 const ColumnSelectPopover = ({
@@ -57,12 +60,18 @@ const ColumnSelectPopover = ({
   editedColumn,
   onChange,
   onClose,
+  setLabel,
+  getCurrentTab,
+  label,
 }: ColumnSelectPopoverProps) => {
+  const [initialLabel] = useState(label);
   const [initialAdhocColumn, initialCalculatedColumn, initialSimpleColumn]: [
     AdhocColumn?,
     ColumnMeta?,
     ColumnMeta?,
-  ] = isAdhocColumn(editedColumn)
+  ] = !editedColumn
+    ? [undefined, undefined, undefined]
+    : isAdhocColumn(editedColumn)
     ? [editedColumn, undefined, undefined]
     : isSavedExpression(editedColumn)
     ? [undefined, editedColumn, undefined]
@@ -93,11 +102,14 @@ const ColumnSelectPopover = ({
     [columns],
   );
 
-  const onSqlExpressionChange = useCallback(sqlExpression => {
-    setAdhocColumn({ label: 'test', sqlExpression });
-    setSelectedSimpleColumn(undefined);
-    setSelectedCalculatedColumn(undefined);
-  }, []);
+  const onSqlExpressionChange = useCallback(
+    sqlExpression => {
+      setAdhocColumn({ label, sqlExpression });
+      setSelectedSimpleColumn(undefined);
+      setSelectedCalculatedColumn(undefined);
+    },
+    [label],
+  );
 
   const onCalculatedColumnChange = useCallback(
     selectedColumnName => {
@@ -107,8 +119,11 @@ const ColumnSelectPopover = ({
       setSelectedCalculatedColumn(selectedColumn);
       setSelectedSimpleColumn(undefined);
       setAdhocColumn(undefined);
+      setLabel(
+        selectedColumn?.verbose_name || selectedColumn?.column_name || '',
+      );
     },
-    [calculatedColumns],
+    [calculatedColumns, setLabel],
   );
 
   const onSimpleColumnChange = useCallback(
@@ -119,8 +134,11 @@ const ColumnSelectPopover = ({
       setSelectedCalculatedColumn(undefined);
       setSelectedSimpleColumn(selectedColumn);
       setAdhocColumn(undefined);
+      setLabel(
+        selectedColumn?.verbose_name || selectedColumn?.column_name || '',
+      );
     },
-    [simpleColumns],
+    [setLabel, simpleColumns],
   );
 
   const defaultActiveTabKey = initialAdhocColumn
@@ -129,7 +147,14 @@ const ColumnSelectPopover = ({
     ? 'simple'
     : 'saved';
 
+  useEffect(() => {
+    getCurrentTab(defaultActiveTabKey);
+  }, [defaultActiveTabKey, getCurrentTab]);
+
   const onSave = useCallback(() => {
+    if (adhocColumn && adhocColumn.label !== label) {
+      adhocColumn.label = label;
+    }
     const selectedColumn =
       adhocColumn || selectedCalculatedColumn || selectedSimpleColumn;
     if (!selectedColumn) {
@@ -139,6 +164,7 @@ const ColumnSelectPopover = ({
     onClose();
   }, [
     adhocColumn,
+    label,
     onChange,
     onClose,
     selectedCalculatedColumn,
@@ -160,6 +186,7 @@ const ColumnSelectPopover = ({
   const stateIsValid =
     adhocColumn || selectedCalculatedColumn || selectedSimpleColumn;
   const hasUnsavedChanges =
+    initialLabel !== label ||
     selectedCalculatedColumn?.column_name !==
       initialCalculatedColumn?.column_name ||
     selectedSimpleColumn?.column_name !== initialSimpleColumn?.column_name ||
@@ -181,6 +208,7 @@ const ColumnSelectPopover = ({
       <Tabs
         id="adhoc-metric-edit-tabs"
         defaultActiveKey={defaultActiveTabKey}
+        onChange={getCurrentTab}
         className="adhoc-metric-edit-tabs"
         allowOverflow
       >
