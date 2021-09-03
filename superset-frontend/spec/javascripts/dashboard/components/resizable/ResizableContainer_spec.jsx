@@ -17,20 +17,22 @@
  * under the License.
  */
 import React from 'react';
-import { Resizable } from 're-resizable';
-import { shallow } from 'enzyme';
+import { render } from 'spec/helpers/testing-library';
 
 import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
 
 describe('ResizableContainer', () => {
   const props = { editMode: false, id: 'id' };
 
-  function setup(propOverrides) {
-    return shallow(<ResizableContainer {...props} {...propOverrides} />);
-  }
+  const setup = propOverrides => (
+    <ResizableContainer {...props} {...propOverrides} />
+  );
 
-  it('should render a Resizable', () => {
-    const wrapper = setup();
-    expect(wrapper.find(Resizable)).toExist();
+  it('should render a Resizable container', () => {
+    const rendered = render(setup());
+    const resizableContainer = rendered.container.querySelector(
+      '.resizable-container',
+    );
+    expect(resizableContainer).toBeVisible();
   });
 });
