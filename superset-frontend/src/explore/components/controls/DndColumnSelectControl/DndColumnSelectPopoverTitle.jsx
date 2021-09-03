@@ -26,6 +26,7 @@ export const DndColumnSelectPopoverTitle = ({
   title,
   onChange,
   isEditDisabled,
+  hasCustomLabel,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -67,7 +68,7 @@ export const DndColumnSelectPopoverTitle = ({
       className="metric-edit-popover-label-input"
       type="text"
       placeholder={title}
-      value={title}
+      value={hasCustomLabel ? title : ''}
       autoFocus
       onChange={onChange}
       onBlur={onInputBlur}

@@ -36,6 +36,8 @@ interface ColumnSelectPopoverTriggerProps {
 }
 
 const defaultPopoverLabel = t('My column');
+const editableTitleTab = 'sqlExpression';
+
 const ColumnSelectPopoverTrigger = ({
   columns,
   editedColumn,
@@ -47,19 +49,19 @@ const ColumnSelectPopoverTrigger = ({
   const [popoverLabel, setPopoverLabel] = useState(defaultPopoverLabel);
   const [popoverVisible, setPopoverVisible] = useState(false);
   const [isTitleEditDisabled, setIsTitleEditDisabled] = useState(true);
+  const [hasCustomLabel, setHasCustomLabel] = useState(false);
+  const [currentTab, setCurrentTab] = useState('');
+
+  let initialPopoverLabel = defaultPopoverLabel;
+  if (editedColumn && isColumnMeta(editedColumn)) {
+    initialPopoverLabel = editedColumn.verbose_name || editedColumn.column_name;
+  } else if (editedColumn && isAdhocColumn(editedColumn)) {
+    initialPopoverLabel = editedColumn.label || defaultPopoverLabel;
+  }
 
   useEffect(() => {
-    let initialPopoverLabel;
-    if (!editedColumn) {
-      initialPopoverLabel = defaultPopoverLabel;
-    } else if (isColumnMeta(editedColumn)) {
-      initialPopoverLabel =
-        editedColumn.verbose_name || editedColumn.column_name;
-    } else if (isAdhocColumn(editedColumn)) {
-      initialPopoverLabel = editedColumn.label || defaultPopoverLabel;
-    }
     setPopoverLabel(initialPopoverLabel);
-  }, [editedColumn, popoverVisible]);
+  }, [initialPopoverLabel, popoverVisible]);
 
   const togglePopover = useCallback((visible: boolean) => {
     setPopoverVisible(visible);
@@ -86,10 +88,10 @@ const ColumnSelectPopoverTrigger = ({
       };
 
   const getCurrentTab = useCallback((tab: string) => {
-    setIsTitleEditDisabled(tab !== 'sqlExpression');
+    setCurrentTab(tab);
+    setIsTitleEditDisabled(tab !== editableTitleTab);
   }, []);
 
-  const handleColumnChange = () => {};
   const overlayContent = useMemo(
     () => (
       <ExplorePopoverContent>
@@ -114,8 +116,16 @@ const ColumnSelectPopoverTrigger = ({
     ],
   );
 
+  useEffect(() => {
+    if (currentTab !== editableTitleTab) {
+      setHasCustomLabel(false);
+      setPopoverLabel(initialPopoverLabel);
+    }
+  }, [currentTab, initialPopoverLabel]);
+
   const onLabelChange = useCallback((e: any) => {
     setPopoverLabel(e.target.value);
+    setHasCustomLabel(true);
   }, []);
 
   const popoverTitle = useMemo(
@@ -124,9 +134,10 @@ const ColumnSelectPopoverTrigger = ({
         title={popoverLabel}
         onChange={onLabelChange}
         isEditDisabled={isTitleEditDisabled}
+        hasCustomLabel={hasCustomLabel}
       />
     ),
-    [isTitleEditDisabled, onLabelChange, popoverLabel],
+    [hasCustomLabel, isTitleEditDisabled, onLabelChange, popoverLabel],
   );
 
   return (
