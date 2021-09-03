@@ -18,14 +18,20 @@
  */
 /* eslint-disable camelcase */
 import React, { useCallback, useMemo, useState } from 'react';
+import {
+  AdhocColumn,
+  isAdhocColumn,
+  isSavedExpression,
+  t,
+  styled,
+} from '@superset-ui/core';
+import { ColumnMeta } from '@superset-ui/chart-controls';
 import Tabs from 'src/components/Tabs';
 import Button from 'src/components/Button';
 import { NativeSelect as Select } from 'src/components/Select';
-import { t, styled } from '@superset-ui/core';
-
 import { Form, FormItem } from 'src/components/Form';
+import { SQLEditor } from 'src/components/AsyncAceEditor';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
-import { ColumnMeta } from '@superset-ui/chart-controls';
 
 const StyledSelect = styled(Select)`
   .metric-option {
@@ -41,8 +47,8 @@ const StyledSelect = styled(Select)`
 
 interface ColumnSelectPopoverProps {
   columns: ColumnMeta[];
-  editedColumn?: ColumnMeta;
-  onChange: (column: ColumnMeta) => void;
+  editedColumn?: ColumnMeta | AdhocColumn;
+  onChange: (column: ColumnMeta | AdhocColumn) => void;
   onClose: () => void;
 }
 
@@ -52,18 +58,24 @@ const ColumnSelectPopover = ({
   onChange,
   onClose,
 }: ColumnSelectPopoverProps) => {
-  const [
-    initialCalculatedColumn,
-    initialSimpleColumn,
-  ] = editedColumn?.expression
-    ? [editedColumn, undefined]
-    : [undefined, editedColumn];
-  const [selectedCalculatedColumn, setSelectedCalculatedColumn] = useState(
-    initialCalculatedColumn,
+  const [initialAdhocColumn, initialCalculatedColumn, initialSimpleColumn]: [
+    AdhocColumn?,
+    ColumnMeta?,
+    ColumnMeta?,
+  ] = isAdhocColumn(editedColumn)
+    ? [editedColumn, undefined, undefined]
+    : isSavedExpression(editedColumn)
+    ? [undefined, editedColumn, undefined]
+    : [undefined, undefined, editedColumn as ColumnMeta];
+  const [adhocColumn, setAdhocColumn] = useState<AdhocColumn | undefined>(
+    initialAdhocColumn,
   );
-  const [selectedSimpleColumn, setSelectedSimpleColumn] = useState(
-    initialSimpleColumn,
-  );
+  const [selectedCalculatedColumn, setSelectedCalculatedColumn] = useState<
+    ColumnMeta | undefined
+  >(initialCalculatedColumn);
+  const [selectedSimpleColumn, setSelectedSimpleColumn] = useState<
+    ColumnMeta | undefined
+  >(initialSimpleColumn);
 
   const [calculatedColumns, simpleColumns] = useMemo(
     () =>
@@ -81,6 +93,12 @@ const ColumnSelectPopover = ({
     [columns],
   );
 
+  const onSqlExpressionChange = useCallback(sqlExpression => {
+    setAdhocColumn({ label: 'test', sqlExpression });
+    setSelectedSimpleColumn(undefined);
+    setSelectedCalculatedColumn(undefined);
+  }, []);
+
   const onCalculatedColumnChange = useCallback(
     selectedColumnName => {
       const selectedColumn = calculatedColumns.find(
@@ -88,6 +106,7 @@ const ColumnSelectPopover = ({
       );
       setSelectedCalculatedColumn(selectedColumn);
       setSelectedSimpleColumn(undefined);
+      setAdhocColumn(undefined);
     },
     [calculatedColumns],
   );
@@ -99,33 +118,52 @@ const ColumnSelectPopover = ({
       );
       setSelectedCalculatedColumn(undefined);
       setSelectedSimpleColumn(selectedColumn);
+      setAdhocColumn(undefined);
     },
     [simpleColumns],
   );
 
-  const defaultActiveTabKey =
-    initialSimpleColumn || calculatedColumns.length === 0 ? 'simple' : 'saved';
+  const defaultActiveTabKey = initialAdhocColumn
+    ? 'sqlExpression'
+    : initialSimpleColumn || calculatedColumns.length === 0
+    ? 'simple'
+    : 'saved';
 
   const onSave = useCallback(() => {
-    const selectedColumn = selectedCalculatedColumn || selectedSimpleColumn;
+    const selectedColumn =
+      adhocColumn || selectedCalculatedColumn || selectedSimpleColumn;
     if (!selectedColumn) {
       return;
     }
     onChange(selectedColumn);
     onClose();
-  }, [onChange, onClose, selectedCalculatedColumn, selectedSimpleColumn]);
+  }, [
+    adhocColumn,
+    onChange,
+    onClose,
+    selectedCalculatedColumn,
+    selectedSimpleColumn,
+  ]);
 
   const onResetStateAndClose = useCallback(() => {
     setSelectedCalculatedColumn(initialCalculatedColumn);
     setSelectedSimpleColumn(initialSimpleColumn);
+    setAdhocColumn(initialAdhocColumn);
     onClose();
-  }, [initialCalculatedColumn, initialSimpleColumn, onClose]);
+  }, [
+    initialAdhocColumn,
+    initialCalculatedColumn,
+    initialSimpleColumn,
+    onClose,
+  ]);
 
-  const stateIsValid = selectedCalculatedColumn || selectedSimpleColumn;
+  const stateIsValid =
+    adhocColumn || selectedCalculatedColumn || selectedSimpleColumn;
   const hasUnsavedChanges =
     selectedCalculatedColumn?.column_name !==
       initialCalculatedColumn?.column_name ||
-    selectedSimpleColumn?.column_name !== initialSimpleColumn?.column_name;
+    selectedSimpleColumn?.column_name !== initialSimpleColumn?.column_name ||
+    adhocColumn?.sqlExpression !== initialAdhocColumn?.sqlExpression;
 
   const filterOption = useCallback(
     (input, option) =>
@@ -198,6 +236,20 @@ const ColumnSelectPopover = ({
               ))}
             </Select>
           </FormItem>
+        </Tabs.TabPane>
+        <Tabs.TabPane key="sqlExpression" tab={t('Custom SQL')}>
+          <SQLEditor
+            value={adhocColumn?.sqlExpression}
+            showLoadingForImport
+            onChange={onSqlExpressionChange}
+            width="100%"
+            height={160}
+            showGutter={false}
+            editorProps={{ $blockScrolling: true }}
+            enableLiveAutocompletion
+            className="filter-sql-editor"
+            wrapEnabled
+          />
         </Tabs.TabPane>
       </Tabs>
       <div>

@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { useCallback, useMemo, useState } from 'react';
+import { AdhocColumn } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import Popover from 'src/components/Popover';
 import { ExplorePopoverContent } from 'src/explore/components/ExploreContentPopover';
@@ -24,8 +25,8 @@ import ColumnSelectPopover from './ColumnSelectPopover';
 
 interface ColumnSelectPopoverTriggerProps {
   columns: ColumnMeta[];
-  editedColumn?: ColumnMeta;
-  onColumnEdit: (editedColumn: ColumnMeta) => void;
+  editedColumn?: ColumnMeta | AdhocColumn;
+  onColumnEdit: (editedColumn: ColumnMeta | AdhocColumn) => void;
   isControlledComponent?: boolean;
   visible?: boolean;
   togglePopover?: (visible: boolean) => void;
