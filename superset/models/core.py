@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=line-too-long,unused-argument
 """A collection of ORM sqlalchemy models for Superset"""
 import enum
 import json
@@ -244,7 +243,7 @@ class Database(
         uri = make_url(self.sqlalchemy_uri_decrypted)
         encrypted_extra = self.get_encrypted_extra()
         try:
-            parameters = self.db_engine_spec.get_parameters_from_uri(uri, encrypted_extra=encrypted_extra)  # type: ignore
+            parameters = self.db_engine_spec.get_parameters_from_uri(uri, encrypted_extra=encrypted_extra)  # type: ignore # pylint: disable=line-too-long,useless-suppression
         except Exception:  # pylint: disable=broad-except
             parameters = {}
 
@@ -479,7 +478,7 @@ class Database(
         key=lambda self, *args, **kwargs: f"db:{self.id}:schema:None:table_list",
         cache=cache_manager.data_cache,
     )
-    def get_all_table_names_in_database(
+    def get_all_table_names_in_database(  # pylint: disable=unused-argument
         self,
         cache: bool = False,
         cache_timeout: Optional[bool] = None,
@@ -494,7 +493,7 @@ class Database(
         key=lambda self, *args, **kwargs: f"db:{self.id}:schema:None:view_list",
         cache=cache_manager.data_cache,
     )
-    def get_all_view_names_in_database(
+    def get_all_view_names_in_database(  # pylint: disable=unused-argument
         self,
         cache: bool = False,
         cache_timeout: Optional[bool] = None,
@@ -506,10 +505,10 @@ class Database(
         return self.db_engine_spec.get_all_datasource_names(self, "view")
 
     @cache_util.memoized_func(
-        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:table_list",
+        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:table_list",  # pylint: disable=line-too-long,useless-suppression
         cache=cache_manager.data_cache,
     )
-    def get_all_table_names_in_schema(
+    def get_all_table_names_in_schema(  # pylint: disable=unused-argument
         self,
         schema: str,
         cache: bool = False,
@@ -539,10 +538,10 @@ class Database(
             return []
 
     @cache_util.memoized_func(
-        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:view_list",
+        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:view_list",  # pylint: disable=line-too-long,useless-suppression
         cache=cache_manager.data_cache,
     )
-    def get_all_view_names_in_schema(
+    def get_all_view_names_in_schema(  # pylint: disable=unused-argument
         self,
         schema: str,
         cache: bool = False,
@@ -573,7 +572,7 @@ class Database(
         key=lambda self, *args, **kwargs: f"db:{self.id}:schema_list",
         cache=cache_manager.data_cache,
     )
-    def get_all_schema_names(
+    def get_all_schema_names(  # pylint: disable=unused-argument
         self,
         cache: bool = False,
         cache_timeout: Optional[int] = None,
