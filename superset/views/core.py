@@ -136,7 +136,6 @@ from superset.views.utils import (
     check_explore_cache_perms,
     check_resource_permissions,
     check_slice_perms,
-    get_cta_schema_name,
     get_dashboard_extra_filters,
     get_datasource_info,
     get_form_data,
@@ -2567,7 +2566,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             QueryStatus.TIMED_OUT,
         ]
 
-    def sql_json_exec(  # pylint: disable=too-many-statements,too-many-locals
+    def sql_json_exec(  # pylint: disable=too-many-statements
         self,
         execution_context: SqlJsonExecutionContext,
         query_params: Dict[str, Any],
@@ -2580,42 +2579,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         query = self._get_existing_query(execution_context, session)
 
         if self.is_query_handled(query):
-            # return the existing query
-            payload = json.dumps(
-                {"query": query.to_dict()}, default=utils.json_int_dttm_ser  # type: ignore
-            )
+            payload = self._convert_query_to_payload(cast(Query, query))
             return json_success(payload)
 
-        mydb = self._get_the_query_db(execution_context, session)
-
-        # Set tmp_schema_name for CTA
-        # TODO(bkyryliuk): consider parsing, splitting tmp_schema_name from
-        #  tmp_table_name if user enters
-        # <schema_name>.<table_name>
-        tmp_schema_name: Optional[str] = execution_context.schema
-        if execution_context.select_as_cta and mydb.force_ctas_schema:
-            tmp_schema_name = mydb.force_ctas_schema
-        elif execution_context.select_as_cta:
-            tmp_schema_name = get_cta_schema_name(
-                mydb, g.user, execution_context.schema, execution_context.sql
-            )
-
-        # Save current query
-        query = Query(
-            database_id=execution_context.database_id,
-            sql=execution_context.sql,
-            schema=execution_context.schema,
-            select_as_cta=execution_context.select_as_cta,
-            ctas_method=execution_context.ctas_method,
-            start_time=now_as_float(),
-            tab_name=execution_context.tab_name,
-            status=execution_context.status,
-            sql_editor_id=execution_context.sql_editor_id,
-            tmp_table_name=execution_context.tmp_table_name,
-            tmp_schema_name=tmp_schema_name,
-            user_id=execution_context.user_id,
-            client_id=execution_context.client_id_or_short_id,
+        execution_context.set_database(
+            self._get_the_query_db(execution_context, session)
         )
+        query = execution_context.create_query()
         try:
             session.add(query)
             session.flush()
@@ -2684,12 +2654,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     },
                 )
 
-        # Limit is not applied to the CTA queries if SQLLAB_CTAS_NO_LIMIT flag is set
-        # to True.
         if not (config.get("SQLLAB_CTAS_NO_LIMIT") and execution_context.select_as_cta):
             # set LIMIT after template processing
             limits = [
-                mydb.db_engine_spec.get_limit_from_sql(rendered_query),
+                execution_context.database.db_engine_spec.get_limit_from_sql(  # type: ignore
+                    rendered_query
+                ),
                 execution_context.limit,
             ]
             if limits[0] is None or limits[0] > limits[1]:  # type: ignore

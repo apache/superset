@@ -63,6 +63,7 @@ QUERY_2 = "SELECT * FROM NO_TABLE"
 QUERY_3 = "SELECT * FROM birth_names LIMIT 10"
 
 
+@pytest.mark.sqllab
 class TestSqlLab(SupersetTestCase):
     """Testings for Sql Lab"""
 
@@ -188,7 +189,7 @@ class TestSqlLab(SupersetTestCase):
             return
 
         with mock.patch(
-            "superset.views.core.get_cta_schema_name",
+            "superset.utils.sqllab_execution_context.get_cta_schema_name",
             lambda d, u, s, sql: f"{u.username}_database",
         ):
             old_allow_ctas = examples_db.allow_ctas
