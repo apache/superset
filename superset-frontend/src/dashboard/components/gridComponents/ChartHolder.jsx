@@ -269,7 +269,7 @@ class ChartHolder extends React.Component {
       isComponentVisible,
       dashboardId,
       fullSizeChartId,
-      getComponentById,
+      getComponentById = () => undefined,
     } = this.props;
 
     const { chartId } = component.meta;
