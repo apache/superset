@@ -48,7 +48,7 @@ import {
 import { DASHBOARD_ROOT_DEPTH as rootDepth } from './constants';
 
 const depthOne = rootDepth + 1;
-const depthTwo = rootDepth + 2;
+// const depthTwo = rootDepth + 2; // Meantime no need
 const depthThree = rootDepth + 3;
 const depthFour = rootDepth + 4;
 const depthFive = rootDepth + 5;
