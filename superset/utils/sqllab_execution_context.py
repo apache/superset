@@ -118,25 +118,24 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
     def select_as_cta(self) -> bool:
         return self.create_table_as_select is not None
 
-    def set_database(self, db: Database) -> None:
-        self._validate_db(db)
-        self.database = db
+    def set_database(self, database: Database) -> None:
+        self._validate_db(database)
+        self.database = database
         if self.select_as_cta:
-            self.create_table_as_select.target_schema_name = self._get_ctas_target_schema_name(  # type: ignore
-                db
-            )
+            schema_name = self._get_ctas_target_schema_name(database)
+            self.create_table_as_select.target_schema_name = schema_name  # type: ignore
 
-    def _get_ctas_target_schema_name(self, db: Database) -> Optional[str]:
-        if db.force_ctas_schema:
-            return db.force_ctas_schema
-        else:
-            return get_cta_schema_name(db, g.user, self.schema, self.sql)
+    def _get_ctas_target_schema_name(self, database: Database) -> Optional[str]:
+        if database.force_ctas_schema:
+            return database.force_ctas_schema
+        return get_cta_schema_name(database, g.user, self.schema, self.sql)
 
-    def _validate_db(self, db: Database) -> None:
+    def _validate_db(self, database: Database) -> None:
         # TODO validate db.id is equal to self.database_id
         pass
 
     def create_query(self) -> Query:
+        # pylint: disable=C0301
         start_time = now_as_float()
         if self.select_as_cta:
             return Query(
@@ -154,22 +153,21 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
                 user_id=self.user_id,
                 client_id=self.client_id_or_short_id,
             )
-        else:
-            return Query(
-                database_id=self.database_id,
-                sql=self.sql,
-                schema=self.schema,
-                select_as_cta=False,
-                start_time=start_time,
-                tab_name=self.tab_name,
-                status=self.status,
-                sql_editor_id=self.sql_editor_id,
-                user_id=self.user_id,
-                client_id=self.client_id_or_short_id,
-            )
+        return Query(
+            database_id=self.database_id,
+            sql=self.sql,
+            schema=self.schema,
+            select_as_cta=False,
+            start_time=start_time,
+            tab_name=self.tab_name,
+            status=self.status,
+            sql_editor_id=self.sql_editor_id,
+            user_id=self.user_id,
+            client_id=self.client_id_or_short_id,
+        )
 
 
-class CreateTableAsSelect:
+class CreateTableAsSelect:  # pylint: disable=R0903
     ctas_method: CtasMethod
     target_schema_name: Optional[str]
     target_table_name: str
