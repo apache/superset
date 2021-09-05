@@ -25,7 +25,6 @@ from flask import current_app, Response
 
 from superset import is_feature_enabled
 from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
-from superset.utils import core as utils
 from superset.utils.dates import now_as_float
 
 if TYPE_CHECKING:
@@ -81,7 +80,10 @@ def debounce(duration: Union[float, int] = 0.1) -> Callable[..., Any]:
 
 
 def on_security_exception(self: Any, ex: Exception) -> Response:
-    return self.response(403, **{"message": utils.error_msg_from_exception(ex)})
+    """
+    Superset app will handle exception and render 403 page
+    """
+    raise ex
 
 
 # noinspection PyPackageRequirements
