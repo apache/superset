@@ -105,7 +105,7 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
             limit = 0
         return limit
 
-    def _get_user_id(self) -> Optional[int]:  # pylint: disable=R0201
+    def _get_user_id(self) -> Optional[int]:  # pylint: disable=no-self-use
         try:
             return g.user.get_id() if g.user else None
         except RuntimeError:
@@ -135,7 +135,7 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
         pass
 
     def create_query(self) -> Query:
-        # pylint: disable=C0301
+        # pylint: disable=line-too-long
         start_time = now_as_float()
         if self.select_as_cta:
             return Query(
@@ -167,7 +167,7 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
         )
 
 
-class CreateTableAsSelect:  # pylint: disable=R0903
+class CreateTableAsSelect:  # pylint: disable=too-few-public-methods
     ctas_method: CtasMethod
     target_schema_name: Optional[str]
     target_table_name: str
