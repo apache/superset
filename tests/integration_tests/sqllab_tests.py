@@ -63,7 +63,6 @@ QUERY_2 = "SELECT * FROM NO_TABLE"
 QUERY_3 = "SELECT * FROM birth_names LIMIT 10"
 
 
-@pytest.mark.sqllab
 class TestSqlLab(SupersetTestCase):
     """Testings for Sql Lab"""
 
