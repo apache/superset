@@ -41,6 +41,7 @@ interface SelectAsyncControlProps extends SelectAsyncProps {
 
 const SelectAsyncControl = ({
   addDangerToast,
+  allowClear = true,
   ariaLabel,
   dataEndpoint,
   multi = true,
