@@ -272,7 +272,11 @@ const ColumnSelectPopover = ({
         </Tabs.TabPane>
         <Tabs.TabPane key="sqlExpression" tab={t('Custom SQL')}>
           <SQLEditor
-            value={adhocColumn?.sqlExpression}
+            value={
+              adhocColumn?.sqlExpression ||
+              selectedCalculatedColumn?.column_name ||
+              selectedSimpleColumn?.column_name
+            }
             showLoadingForImport
             onChange={onSqlExpressionChange}
             width="100%"
