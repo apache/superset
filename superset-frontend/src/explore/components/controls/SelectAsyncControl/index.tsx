@@ -27,6 +27,7 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 type SelectAsyncProps = Omit<SelectProps, 'options' | 'ariaLabel'>;
 
 interface SelectAsyncControlProps extends SelectAsyncProps {
+  addDangerToast: (error: string) => void;
   ariaLabel?: string;
   dataEndpoint: string;
   default?: SelectValue;
@@ -39,6 +40,7 @@ interface SelectAsyncControlProps extends SelectAsyncProps {
 }
 
 const SelectAsyncControl = ({
+  addDangerToast,
   ariaLabel,
   dataEndpoint,
   multi = true,
@@ -63,6 +65,9 @@ const SelectAsyncControl = ({
         value={value || props.default || undefined}
         header={<ControlHeader {...props} />}
         mode={multi ? 'multiple' : 'single'}
+        onError={error =>
+          addDangerToast(`${t('Error while fetching data')}: ${error}`)
+        }
         options={loadOptions}
         {...props}
       />
