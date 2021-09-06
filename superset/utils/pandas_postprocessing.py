@@ -916,3 +916,22 @@ def boxplot(
         for metric in metrics
     }
     return aggregate(df, groupby=groupby, aggregates=aggregates)
+
+
+def resample(
+    df: DataFrame, resample_rule: str, resample_method: str, time_column: str,
+) -> DataFrame:
+    """
+    resample a timeseries dataframe.
+
+    :param df: DataFrame to resample.
+    :param resample_rule: The offset string representing target conversion.
+    :param resample_method: How to fill the NaN value after resample.
+    :param time_column: existing columns in DataFrame.
+    :return: DataFrame after resample
+    :raises QueryObjectValidationError: If the request in incorrect
+    """
+    df.set_index(time_column, inplace=True)
+    df = getattr(df.resample(resample_rule), resample_method)()
+    df.reset_index(inplace=True)
+    return df
