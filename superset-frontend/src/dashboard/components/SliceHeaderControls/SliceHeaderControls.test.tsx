@@ -36,7 +36,7 @@ jest.mock('src/common/components', () => {
   };
 });
 
-const createProps = () => ({
+const createProps = (viz_type = 'sunburst') => ({
   addDangerToast: jest.fn(),
   addSuccessToast: jest.fn(),
   exploreChart: jest.fn(),
@@ -67,9 +67,9 @@ const createProps = () => ({
       time_range: 'No filter',
       time_range_endpoints: ['inclusive', 'exclusive'],
       url_params: {},
-      viz_type: 'sunburst',
+      viz_type,
     },
-    viz_type: 'sunburst',
+    viz_type,
     datasource: '58__table',
     description: 'test-description',
     description_markeddown: '',
@@ -152,25 +152,30 @@ test('Should "export to CSV"', () => {
   expect(props.exportCSV).toBeCalledWith(371);
 });
 
+test('Should not show "Export to CSV" if slice is filter box', () => {
+  const props = createProps('filter_box');
+  render(<SliceHeaderControls {...props} />, { useRedux: true });
+  expect(screen.queryByRole('menuitem', { name: 'Export CSV' })).toBe(null);
+});
+
 test('Export full CSV is under featureflag', () => {
   // @ts-ignore
   global.featureFlags = {
     [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: false,
   };
-  const props = createProps();
-  props.slice.viz_type = 'table';
+  const props = createProps('table');
   render(<SliceHeaderControls {...props} />, { useRedux: true });
   expect(screen.queryByRole('menuitem', { name: 'Export full CSV' })).toBe(
     null,
   );
 });
+
 test('Should "export full CSV"', () => {
   // @ts-ignore
   global.featureFlags = {
     [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
   };
-  const props = createProps();
-  props.slice.viz_type = 'table';
+  const props = createProps('table');
   render(<SliceHeaderControls {...props} />, { useRedux: true });
   expect(screen.queryByRole('menuitem', { name: 'Export full CSV' })).not.toBe(
     null,
@@ -187,6 +192,18 @@ test('Should not show export full CSV if report is not table', () => {
     [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
   };
   const props = createProps();
+  render(<SliceHeaderControls {...props} />, { useRedux: true });
+  expect(screen.queryByRole('menuitem', { name: 'Export full CSV' })).toBe(
+    null,
+  );
+});
+
+test('Should not show export full CSV if slice is filter box', () => {
+  // @ts-ignore
+  global.featureFlags = {
+    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
+  };
+  const props = createProps('filter_box');
   render(<SliceHeaderControls {...props} />, { useRedux: true });
   expect(screen.queryByRole('menuitem', { name: 'Export full CSV' })).toBe(
     null,
