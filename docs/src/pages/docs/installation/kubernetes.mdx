@@ -99,14 +99,11 @@ You can specify pip packages to be installed before startup. The following examp
 ```yaml
 bootstrapScript: |
   #!/bin/bash
-  apt-get update -y &&\
-  apt-get install -y --no-install-recommends nano &&\
-  rm -rf /var/lib/apt/lists/*
   pip install psycopg2==2.8.5 \
     redis==3.2.1 \
-    pybigquery \
-    elasticsearch-dbapi
-  if [ ! -f ~/bootstrap ]; then echo "Running Superset with uid {{ .Values.runAsUser }}" > ~/bootstrap; fi 
+    pybigquery==2.26.0 \
+    elasticsearch-dbapi==0.2.5 &&\
+  if [ ! -f ~/bootstrap ]; then echo "Running Superset with uid {{ .Values.runAsUser }}" > ~/bootstrap; fi
 ```
 
 #### superset_config.py
