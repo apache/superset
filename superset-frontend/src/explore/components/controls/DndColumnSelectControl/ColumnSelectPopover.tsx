@@ -18,7 +18,7 @@
  */
 /* eslint-disable camelcase */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { AdhocColumn, t, styled } from '@superset-ui/core';
+import { AdhocColumn, css, t, styled } from '@superset-ui/core';
 import {
   ColumnMeta,
   isAdhocColumn,
