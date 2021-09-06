@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { t, SupersetClient } from '@superset-ui/core';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Select } from 'src/components';
@@ -48,16 +48,19 @@ const SelectAsyncControl = ({
   value,
   ...props
 }: SelectAsyncControlProps) => {
-  const loadOptions = useMemo(
-    () => () =>
+  const [options, setOptions] = useState<any>([]);
+  const loadOptions = () =>
       SupersetClient.get({
         endpoint: dataEndpoint,
-      }).then(response => ({
-        data: mutator ? mutator(response.json) : response.json.result,
-        totalCount: response.json.count,
-      })),
-    [],
-  );
+      }).then(response => {
+        const data = mutator ? mutator(response.json) : response.json.result;
+        setOptions(data);
+      });
+
+  useEffect(() => {
+    loadOptions();
+  }, []);
+
   return (
     <div data-test="SelectAsyncControl">
       <Select
@@ -68,7 +71,7 @@ const SelectAsyncControl = ({
         onError={error =>
           addDangerToast(`${t('Error while fetching data')}: ${error}`)
         }
-        options={loadOptions}
+        options={options}
         {...props}
       />
     </div>
