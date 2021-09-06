@@ -50,12 +50,12 @@ const SelectAsyncControl = ({
 }: SelectAsyncControlProps) => {
   const [options, setOptions] = useState<any>([]);
   const loadOptions = () =>
-      SupersetClient.get({
-        endpoint: dataEndpoint,
-      }).then(response => {
-        const data = mutator ? mutator(response.json) : response.json.result;
-        setOptions(data);
-      });
+    SupersetClient.get({
+      endpoint: dataEndpoint,
+    }).then(response => {
+      const data = mutator ? mutator(response.json) : response.json.result;
+      setOptions(data);
+    });
 
   useEffect(() => {
     loadOptions();
