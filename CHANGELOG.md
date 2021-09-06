@@ -17,6 +17,32 @@ specific language governing permissions and limitations
 under the License.
 -->
 ## Change Log
+### 1.3 (Mon Sep 6 18:40:24 2021 +0700)
+**Database Migrations**
+
+**Features**
+- [#16594](https://github.com/apache/superset/pull/16594) feat: Experimental cross-filter plugins (@simcha90)
+- [#16416](https://github.com/apache/superset/pull/16416) feat: add Shillelagh DB engine spec (@betodealmeida)
+- [#16167](https://github.com/apache/superset/pull/16167) feat: Adding Rockset db engine spec (@srinify)
+
+**Fixes**
+- [#16592](https://github.com/apache/superset/pull/16592) fix: Remove export CSV in old filter box (@duynguyenhoang)
+- [#16573](https://github.com/apache/superset/pull/16573) fix: impersonate user label/tooltip (@betodealmeida)
+- [#16412](https://github.com/apache/superset/pull/16412) fix: Support Jinja template functions in global async queries (@robdiciuccio)
+- [#16482](https://github.com/apache/superset/pull/16482) fix: can't drop column when name overlap (@zhaoyongjie)
+- [#16526](https://github.com/apache/superset/pull/16526) fix: Set correct comparison operator for snowflake-sqlalchemy pinning (@danielewood)
+- [#16372](https://github.com/apache/superset/pull/16372) fix: ensure setting operator to `None` (#16371) (@grumpy-miner)
+- [#16515](https://github.com/apache/superset/pull/16515) fix: Pin snowflake-sqlalchemy to 1.2.4 (@danielewood)
+- [#16468](https://github.com/apache/superset/pull/16468) fix(native-filters): handle undefined control value gracefully (@villebro)
+- [#16464](https://github.com/apache/superset/pull/16464) fix: prevent page crash when chart can't render (@zhaoyongjie)
+- [#16460](https://github.com/apache/superset/pull/16460) fix(native-filters): handle null values in value filter (@villebro)
+- [#16299](https://github.com/apache/superset/pull/16299) fix: copy to Clipboard order (@AAfghahi)
+- [#16369](https://github.com/apache/superset/pull/16369) fix: call external metadata endpoint with correct rison object (@villebro)
+- [#16293](https://github.com/apache/superset/pull/16293) fix(sqlite): week grain refer to day of week (@villebro)
+
+**Others**
+- [#16193](https://github.com/apache/superset/pull/16193) refactor: external metadata fetch API (@zhaoyongjie)
+
 ### 1.3.0 (Fri Aug 13 20:41:03 2021 -0700)
 **Database Migrations**
 - [#16160](https://github.com/apache/superset/pull/16160) feat: change query predicate to text (@eschutho)
