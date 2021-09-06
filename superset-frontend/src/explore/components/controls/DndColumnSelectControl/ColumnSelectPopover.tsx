@@ -18,15 +18,12 @@
  */
 /* eslint-disable camelcase */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { AdhocColumn, t, styled } from '@superset-ui/core';
 import {
-  AdhocColumn,
+  ColumnMeta,
   isAdhocColumn,
   isSavedExpression,
-  t,
-  styled,
-  css,
-} from '@superset-ui/core';
-import { ColumnMeta } from '@superset-ui/chart-controls';
+} from '@superset-ui/chart-controls';
 import Tabs from 'src/components/Tabs';
 import Button from 'src/components/Button';
 import { NativeSelect as Select } from 'src/components/Select';

@@ -23,9 +23,8 @@ import {
   isFeatureEnabled,
   tn,
   QueryFormColumn,
-  isColumnMeta,
 } from '@superset-ui/core';
-import { ColumnMeta } from '@superset-ui/chart-controls';
+import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import OptionWrapper from 'src/explore/components/controls/DndColumnSelectControl/OptionWrapper';

@@ -16,13 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ColumnMeta } from '@superset-ui/chart-controls';
+import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
 import {
   AdhocColumn,
   ensureIsArray,
   QueryFormColumn,
   isPhysicalColumn,
-  isColumnMeta,
 } from '@superset-ui/core';
 
 const getColumnNameOrAdhocColumn = (
