@@ -16,7 +16,7 @@
 # under the License.
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, Optional
 
 from flask import Flask
 
