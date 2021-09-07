@@ -19,13 +19,19 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass
-from typing import Any, cast, Dict, Optional
+from typing import Any, cast, Dict, Optional, TYPE_CHECKING
 
 from flask import g
 
 from superset import app, is_feature_enabled
+from superset.models.sql_lab import Query
 from superset.sql_parse import CtasMethod
 from superset.utils import core as utils
+from superset.utils.dates import now_as_float
+from superset.views.utils import get_cta_schema_name
+
+if TYPE_CHECKING:
+    from superset.connectors.sqla.models import Database
 
 QueryStatus = utils.QueryStatus
 logger = logging.getLogger(__name__)
@@ -42,17 +48,18 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
     async_flag: bool
     limit: int
     status: str
-    select_as_cta: bool
-    ctas_method: CtasMethod
-    tmp_table_name: str
     client_id: str
     client_id_or_short_id: str
     sql_editor_id: str
     tab_name: str
     user_id: Optional[int]
     expand_data: bool
+    create_table_as_select: Optional[CreateTableAsSelect]
+    database: Optional[Database]
 
     def __init__(self, query_params: Dict[str, Any]):
+        self.create_table_as_select = None
+        self.database = None
         self._init_from_query_params(query_params)
         self.user_id = self._get_user_id()
         self.client_id_or_short_id = cast(str, self.client_id or utils.shortid()[:10])
@@ -65,11 +72,8 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
         self.async_flag = cast(bool, query_params.get("runAsync"))
         self.limit = self._get_limit_param(query_params)
         self.status = cast(str, query_params.get("status"))
-        self.select_as_cta = cast(bool, query_params.get("select_as_cta"))
-        self.ctas_method = cast(
-            CtasMethod, query_params.get("ctas_method", CtasMethod.TABLE)
-        )
-        self.tmp_table_name = cast(str, query_params.get("tmp_table_name"))
+        if cast(bool, query_params.get("select_as_cta")):
+            self.create_table_as_select = CreateTableAsSelect.create_from(query_params)
         self.client_id = cast(str, query_params.get("client_id"))
         self.sql_editor_id = cast(str, query_params.get("sql_editor_id"))
         self.tab_name = cast(str, query_params.get("tab"))
@@ -101,7 +105,7 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
             limit = 0
         return limit
 
-    def _get_user_id(self) -> Optional[int]:  # pylint: disable=R0201
+    def _get_user_id(self) -> Optional[int]:  # pylint: disable=no-self-use
         try:
             return g.user.get_id() if g.user else None
         except RuntimeError:
@@ -109,3 +113,75 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
 
     def is_run_asynchronous(self) -> bool:
         return self.async_flag
+
+    @property
+    def select_as_cta(self) -> bool:
+        return self.create_table_as_select is not None
+
+    def set_database(self, database: Database) -> None:
+        self._validate_db(database)
+        self.database = database
+        if self.select_as_cta:
+            schema_name = self._get_ctas_target_schema_name(database)
+            self.create_table_as_select.target_schema_name = schema_name  # type: ignore
+
+    def _get_ctas_target_schema_name(self, database: Database) -> Optional[str]:
+        if database.force_ctas_schema:
+            return database.force_ctas_schema
+        return get_cta_schema_name(database, g.user, self.schema, self.sql)
+
+    def _validate_db(self, database: Database) -> None:
+        # TODO validate db.id is equal to self.database_id
+        pass
+
+    def create_query(self) -> Query:
+        # pylint: disable=line-too-long
+        start_time = now_as_float()
+        if self.select_as_cta:
+            return Query(
+                database_id=self.database_id,
+                sql=self.sql,
+                schema=self.schema,
+                select_as_cta=True,
+                ctas_method=self.create_table_as_select.ctas_method,  # type: ignore
+                start_time=start_time,
+                tab_name=self.tab_name,
+                status=self.status,
+                sql_editor_id=self.sql_editor_id,
+                tmp_table_name=self.create_table_as_select.target_table_name,  # type: ignore
+                tmp_schema_name=self.create_table_as_select.target_schema_name,  # type: ignore
+                user_id=self.user_id,
+                client_id=self.client_id_or_short_id,
+            )
+        return Query(
+            database_id=self.database_id,
+            sql=self.sql,
+            schema=self.schema,
+            select_as_cta=False,
+            start_time=start_time,
+            tab_name=self.tab_name,
+            status=self.status,
+            sql_editor_id=self.sql_editor_id,
+            user_id=self.user_id,
+            client_id=self.client_id_or_short_id,
+        )
+
+
+class CreateTableAsSelect:  # pylint: disable=too-few-public-methods
+    ctas_method: CtasMethod
+    target_schema_name: Optional[str]
+    target_table_name: str
+
+    def __init__(
+        self, ctas_method: CtasMethod, target_schema_name: str, target_table_name: str
+    ):
+        self.ctas_method = ctas_method
+        self.target_schema_name = target_schema_name
+        self.target_table_name = target_table_name
+
+    @staticmethod
+    def create_from(query_params: Dict[str, Any]) -> CreateTableAsSelect:
+        ctas_method = query_params.get("ctas_method", CtasMethod.TABLE)
+        schema = cast(str, query_params.get("schema"))
+        tmp_table_name = cast(str, query_params.get("tmp_table_name"))
+        return CreateTableAsSelect(ctas_method, schema, tmp_table_name)
