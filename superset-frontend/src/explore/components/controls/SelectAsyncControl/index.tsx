@@ -49,7 +49,7 @@ const SelectAsyncControl = ({
   value,
   ...props
 }: SelectAsyncControlProps) => {
-  const [options, setOptions] = useState<any>([]);
+  const [options, setOptions] = useState<OptionsType>([]);
   const loadOptions = () =>
     SupersetClient.get({
       endpoint: dataEndpoint,
