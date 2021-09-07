@@ -300,6 +300,7 @@ const USERS = [
 ];
 
 export const AsyncSelect = ({
+  fetchOnlyOnSearch,
   withError,
   withInitialValue,
   responseTime,
@@ -381,7 +382,9 @@ export const AsyncSelect = ({
       >
         <Select
           {...rest}
+          fetchOnlyOnSearch={fetchOnlyOnSearch}
           options={withError ? fetchUserListError : fetchUserListPage}
+          placeholder={fetchOnlyOnSearch ? 'Type anything' : 'Select...'}
           value={
             withInitialValue
               ? { label: 'Valentina', value: 'Valentina' }

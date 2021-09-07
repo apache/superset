@@ -46,6 +46,10 @@ def ensure_user_is_set(user_id: Optional[int]) -> None:
         g.user = security_manager.get_anonymous_user()
 
 
+def set_form_data(form_data: Dict[str, Any]) -> None:
+    g.form_data = form_data
+
+
 @celery_app.task(name="load_chart_data_into_cache", soft_time_limit=query_timeout)
 def load_chart_data_into_cache(
     job_metadata: Dict[str, Any], form_data: Dict[str, Any],
@@ -55,6 +59,7 @@ def load_chart_data_into_cache(
 
     try:
         ensure_user_is_set(job_metadata.get("user_id"))
+        set_form_data(form_data)
         command = ChartDataCommand()
         command.set_query_context(form_data)
         result = command.run(cache=True)
@@ -68,7 +73,7 @@ def load_chart_data_into_cache(
         raise exc
     except Exception as exc:
         # TODO: QueryContext should support SIP-40 style errors
-        error = exc.message if hasattr(exc, "message") else str(exc)  # type: ignore # pylint: disable=no-member
+        error = exc.message if hasattr(exc, "message") else str(exc)  # type: ignore
         errors = [{"message": error}]
         async_query_manager.update_job(
             job_metadata, async_query_manager.STATUS_ERROR, errors=errors
@@ -86,6 +91,7 @@ def load_explore_json_into_cache(  # pylint: disable=too-many-locals
     cache_key_prefix = "ejr-"  # ejr: explore_json request
     try:
         ensure_user_is_set(job_metadata.get("user_id"))
+        set_form_data(form_data)
         datasource_id, datasource_type = get_datasource_info(None, None, form_data)
 
         # Perform a deep copy here so that below we can cache the original
@@ -122,11 +128,9 @@ def load_explore_json_into_cache(  # pylint: disable=too-many-locals
         raise ex
     except Exception as exc:
         if isinstance(exc, SupersetVizException):
-            errors = exc.errors  # pylint: disable=no-member
+            errors = exc.errors
         else:
-            error = (
-                exc.message if hasattr(exc, "message") else str(exc)  # type: ignore # pylint: disable=no-member
-            )
+            error = exc.message if hasattr(exc, "message") else str(exc)  # type: ignore
             errors = [error]
 
         async_query_manager.update_job(

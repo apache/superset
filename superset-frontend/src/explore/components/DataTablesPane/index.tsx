@@ -112,6 +112,7 @@ export const DataTablesPane = ({
   chartStatus,
   ownState,
   errorMessage,
+  queriesResponse,
 }: {
   queryFormData: Record<string, any>;
   tableSectionHeight: number;
@@ -119,6 +120,7 @@ export const DataTablesPane = ({
   ownState?: JsonObject;
   onCollapseChange: (openPanelName: string) => void;
   errorMessage?: JSX.Element;
+  queriesResponse: Record<string, any>;
 }) => {
   const [data, setData] = useState<{
     [RESULT_TYPES.results]?: Record<string, any>[];
@@ -128,6 +130,7 @@ export const DataTablesPane = ({
     [RESULT_TYPES.results]: true,
     [RESULT_TYPES.samples]: true,
   });
+  const [columnNames, setColumnNames] = useState<string[]>([]);
   const [error, setError] = useState(NULLISH_RESULTS_STATE);
   const [filterText, setFilterText] = useState('');
   const [activeTabKey, setActiveTabKey] = useState<string>(
@@ -221,6 +224,13 @@ export const DataTablesPane = ({
   }, [queryFormData.adhoc_filters, queryFormData.datasource]);
 
   useEffect(() => {
+    if (queriesResponse && chartStatus === 'success') {
+      const { colnames } = queriesResponse[0];
+      setColumnNames([...colnames]);
+    }
+  }, [queriesResponse]);
+
+  useEffect(() => {
     if (panelOpen && isRequestPending[RESULT_TYPES.results]) {
       if (errorMessage) {
         setIsRequestPending(prevState => ({
@@ -277,9 +287,17 @@ export const DataTablesPane = ({
     ),
   };
 
+  // this is to preserve the order of the columns, even if there are integer values,
+  // while also only grabbing the first column's keys
   const columns = {
-    [RESULT_TYPES.results]: useTableColumns(data[RESULT_TYPES.results]),
-    [RESULT_TYPES.samples]: useTableColumns(data[RESULT_TYPES.samples]),
+    [RESULT_TYPES.results]: useTableColumns(
+      columnNames,
+      data[RESULT_TYPES.results],
+    ),
+    [RESULT_TYPES.samples]: useTableColumns(
+      columnNames,
+      data[RESULT_TYPES.samples],
+    ),
   };
 
   const renderDataTable = (type: string) => {
@@ -316,7 +334,7 @@ export const DataTablesPane = ({
   const TableControls = (
     <TableControlsWrapper>
       <RowCount data={data[activeTabKey]} loading={isLoading[activeTabKey]} />
-      <CopyToClipboardButton data={data[activeTabKey]} />
+      <CopyToClipboardButton data={data[activeTabKey]} columns={columnNames} />
       <FilterInput onChangeHandler={setFilterText} />
     </TableControlsWrapper>
   );

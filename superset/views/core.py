@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=comparison-with-callable, line-too-long, too-many-branches
+# pylint: disable=comparison-with-callable, line-too-long
 import dataclasses
 import logging
 import re
@@ -100,7 +100,7 @@ from superset.models.sql_lab import LimitingFactor, Query, TabState
 from superset.models.user_attributes import UserAttribute
 from superset.queries.dao import QueryDAO
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
-from superset.sql_parse import CtasMethod, ParsedQuery, Table
+from superset.sql_parse import ParsedQuery, Table
 from superset.sql_validators import get_validator_by_name
 from superset.tasks.async_queries import load_explore_json_into_cache
 from superset.typing import FlaskResponse
@@ -110,6 +110,7 @@ from superset.utils.cache import etag_cache
 from superset.utils.core import ReservedUrlParameters
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import check_dashboard_access
+from superset.utils.sqllab_execution_context import SqlJsonExecutionContext
 from superset.views.base import (
     api,
     BaseSupersetView,
@@ -135,7 +136,6 @@ from superset.views.utils import (
     check_explore_cache_perms,
     check_resource_permissions,
     check_slice_perms,
-    get_cta_schema_name,
     get_dashboard_extra_filters,
     get_datasource_info,
     get_form_data,
@@ -715,7 +715,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def explore(  # pylint: disable=too-many-locals
         self, datasource_type: Optional[str] = None, datasource_id: Optional[int] = None
     ) -> FlaskResponse:
-        user_id = g.user.get_id() if g.user else None
         form_data, slc = get_form_data(use_slice_data=True)
         query_context = request.form.get("query_context")
         # Flash the SIP-15 message if the slice is owned by the current user and has not
@@ -842,14 +841,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         bootstrap_data = {
             "can_add": slice_add_perm,
             "can_download": slice_download_perm,
-            "can_overwrite": slice_overwrite_perm,
             "datasource": datasource_data,
             "form_data": form_data,
             "datasource_id": datasource_id,
             "datasource_type": datasource_type,
             "slice": slc.data if slc else None,
             "standalone": standalone_mode,
-            "user_id": user_id,
             "user": bootstrap_user_data(g.user, include_perms=True),
             "forced_height": request.args.get("height"),
             "common": common_bootstrap_payload(),
@@ -1019,7 +1016,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         response = {
             "can_add": slice_add_perm,
             "can_download": slice_download_perm,
-            "can_overwrite": is_owner(slc, g.user),
             "form_data": slc.form_data,
             "slice": slc.data,
             "dashboard_url": dash.url if dash else None,
@@ -1061,14 +1057,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/tables/<int:db_id>/<schema>/<substr>/")
     @expose("/tables/<int:db_id>/<schema>/<substr>/<force_refresh>/")
-    @expose("/tables/<int:db_id>/<schema>/<substr>/<force_refresh>/<exact_match>")
-    def tables(  # pylint: disable=too-many-locals,no-self-use,too-many-arguments
-        self,
-        db_id: int,
-        schema: str,
-        substr: str,
-        force_refresh: str = "false",
-        exact_match: str = "false",
+    def tables(  # pylint: disable=too-many-locals,no-self-use
+        self, db_id: int, schema: str, substr: str, force_refresh: str = "false"
     ) -> FlaskResponse:
         """Endpoint to fetch the list of tables for given database"""
         # Guarantees database filtering by security access
@@ -1081,7 +1071,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return json_error_response("Not found", 404)
 
         force_refresh_parsed = force_refresh.lower() == "true"
-        exact_match_parsed = exact_match.lower() == "true"
         schema_parsed = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         substr_parsed = utils.parse_js_uri_path_item(substr, eval_undefined=True)
 
@@ -1123,15 +1112,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 ds_name.table if schema_parsed else f"{ds_name.schema}.{ds_name.table}"
             )
 
-        def is_match(src: str, target: utils.DatasourceName) -> bool:
-            target_label = get_datasource_label(target)
-            if exact_match_parsed:
-                return src == target_label
-            return src in target_label
-
         if substr_parsed:
-            tables = [tn for tn in tables if is_match(substr_parsed, tn)]
-            views = [vn for vn in views if is_match(substr_parsed, vn)]
+            tables = [tn for tn in tables if substr_parsed in get_datasource_label(tn)]
+            views = [vn for vn in views if substr_parsed in get_datasource_label(vn)]
 
         if not schema_parsed and database.default_schemas:
             user_schemas = (
@@ -2427,8 +2410,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 return json_error_response(f"{msg}", status=400)
             return json_error_response(f"{msg}")
 
-    @staticmethod
-    def _sql_json_async(
+    @classmethod
+    def _sql_json_async(  # pylint: disable=too-many-arguments
+        cls,
         session: Session,
         rendered_query: str,
         query: Query,
@@ -2490,19 +2474,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         # Update saved query with execution info from the query execution
         QueryDAO.update_saved_query_exec_info(query_id)
 
-        resp = json_success(
-            json.dumps(
-                {"query": query.to_dict()},
-                default=utils.json_int_dttm_ser,
-                ignore_nan=True,
-            ),
-            status=202,
-        )
+        resp = json_success(cls._convert_query_to_payload(query), status=202,)
         session.commit()
         return resp
 
-    @staticmethod
+    @classmethod
     def _sql_json_sync(
+        cls,
         _session: Session,
         rendered_query: str,
         query: Query,
@@ -2577,99 +2555,46 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         log_params = {
             "user_agent": cast(Optional[str], request.headers.get("USER_AGENT"))
         }
-        return self.sql_json_exec(request.json, log_params)
+        execution_context = SqlJsonExecutionContext(request.json)
+        return self.sql_json_exec(execution_context, log_params)
 
-    def sql_json_exec(  # pylint: disable=too-many-statements,too-many-locals
-        self, query_params: Dict[str, Any], log_params: Optional[Dict[str, Any]] = None
-    ) -> FlaskResponse:
-        """Runs arbitrary sql and returns data as json"""
-        # Collect Values
-        database_id: int = cast(int, query_params.get("database_id"))
-        schema: str = cast(str, query_params.get("schema"))
-        sql: str = cast(str, query_params.get("sql"))
-        try:
-            template_params = json.loads(query_params.get("templateParams") or "{}")
-        except json.JSONDecodeError:
-            logger.warning(
-                "Invalid template parameter %s" " specified. Defaulting to empty dict",
-                str(query_params.get("templateParams")),
-            )
-            template_params = {}
-        limit: int = query_params.get("queryLimit") or app.config["SQL_MAX_ROW"]
-        async_flag: bool = cast(bool, query_params.get("runAsync"))
-        if limit < 0:
-            logger.warning(
-                "Invalid limit of %i specified. Defaulting to max limit.", limit
-            )
-            limit = 0
-        select_as_cta: bool = cast(bool, query_params.get("select_as_cta"))
-        ctas_method: CtasMethod = cast(
-            CtasMethod, query_params.get("ctas_method", CtasMethod.TABLE)
-        )
-        tmp_table_name: str = cast(str, query_params.get("tmp_table_name"))
-        client_id: str = cast(str, query_params.get("client_id"))
-        client_id_or_short_id: str = cast(str, client_id or utils.shortid()[:10])
-        sql_editor_id: str = cast(str, query_params.get("sql_editor_id"))
-        tab_name: str = cast(str, query_params.get("tab"))
-        status: str = QueryStatus.PENDING if async_flag else QueryStatus.RUNNING
-        user_id: int = g.user.get_id() if g.user else None
-
-        session = db.session()
-
-        # check to see if this query is already running
-        query = (
-            session.query(Query)
-            .filter_by(
-                client_id=client_id, user_id=user_id, sql_editor_id=sql_editor_id
-            )
-            .one_or_none()
-        )
-        if query is not None and query.status in [
+    @classmethod
+    def is_query_handled(cls, query: Optional[Query]) -> bool:
+        return query is not None and query.status in [
             QueryStatus.RUNNING,
             QueryStatus.PENDING,
             QueryStatus.TIMED_OUT,
-        ]:
-            # return the existing query
-            payload = json.dumps(
-                {"query": query.to_dict()}, default=utils.json_int_dttm_ser
-            )
+        ]
+
+    def sql_json_exec(  # pylint: disable=too-many-statements
+        self,
+        execution_context: SqlJsonExecutionContext,
+        log_params: Optional[Dict[str, Any]] = None,
+    ) -> FlaskResponse:
+        """Runs arbitrary sql and returns data as json"""
+
+        session = db.session()
+
+        query = self._get_existing_query(execution_context, session)
+
+        if self.is_query_handled(query):
+            payload = self._convert_query_to_payload(cast(Query, query))
             return json_success(payload)
 
-        mydb = session.query(Database).get(database_id)
-        if not mydb:
-            raise SupersetGenericErrorException(
-                __(
-                    "The database referenced in this query was not found. Please "
-                    "contact an administrator for further assistance or try again."
-                )
-            )
-
-        # Set tmp_schema_name for CTA
-        # TODO(bkyryliuk): consider parsing, splitting tmp_schema_name from
-        #  tmp_table_name if user enters
-        # <schema_name>.<table_name>
-        tmp_schema_name: Optional[str] = schema
-        if select_as_cta and mydb.force_ctas_schema:
-            tmp_schema_name = mydb.force_ctas_schema
-        elif select_as_cta:
-            tmp_schema_name = get_cta_schema_name(mydb, g.user, schema, sql)
-
-        # Save current query
-        query = Query(
-            database_id=database_id,
-            sql=sql,
-            schema=schema,
-            select_as_cta=select_as_cta,
-            ctas_method=ctas_method,
-            start_time=now_as_float(),
-            tab_name=tab_name,
-            status=status,
-            sql_editor_id=sql_editor_id,
-            tmp_table_name=tmp_table_name,
-            tmp_schema_name=tmp_schema_name,
-            user_id=user_id,
-            client_id=client_id_or_short_id,
+        return self._run_sql_json_exec_from_scratch(
+            execution_context, session, log_params
         )
+
+    def _run_sql_json_exec_from_scratch(
+        self,
+        execution_context: SqlJsonExecutionContext,
+        session: Session,
+        log_params: Optional[Dict[str, Any]] = None,
+    ) -> FlaskResponse:
+        execution_context.set_database(
+            self._get_the_query_db(execution_context, session)
+        )
+        query = execution_context.create_query()
         try:
             session.add(query)
             session.flush()
@@ -2703,7 +2628,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 database=query.database, query=query
             )
             rendered_query = template_processor.process_template(
-                query.sql, **template_params
+                query.sql, **execution_context.template_params
             )
         except TemplateError as ex:
             query.status = QueryStatus.FAILED
@@ -2734,18 +2659,20 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     error=SupersetErrorType.MISSING_TEMPLATE_PARAMS_ERROR,
                     extra={
                         "undefined_parameters": list(undefined_parameters),
-                        "template_parameters": template_params,
+                        "template_parameters": execution_context.template_params,
                     },
                 )
 
-        # Limit is not applied to the CTA queries if SQLLAB_CTAS_NO_LIMIT flag is set
-        # to True.
-        if not (config.get("SQLLAB_CTAS_NO_LIMIT") and select_as_cta):
+        if not (config.get("SQLLAB_CTAS_NO_LIMIT") and execution_context.select_as_cta):
             # set LIMIT after template processing
-            limits = [mydb.db_engine_spec.get_limit_from_sql(rendered_query), limit]
-            if limits[0] is None or limits[0] > limits[1]:
+            db_engine_spec = execution_context.database.db_engine_spec  # type: ignore
+            limits = [
+                db_engine_spec.get_limit_from_sql(rendered_query),
+                execution_context.limit,
+            ]
+            if limits[0] is None or limits[0] > limits[1]:  # type: ignore
                 query.limiting_factor = LimitingFactor.DROPDOWN
-            elif limits[1] > limits[0]:
+            elif limits[1] > limits[0]:  # type: ignore
                 query.limiting_factor = LimitingFactor.QUERY
             else:  # limits[0] == limits[1]
                 query.limiting_factor = LimitingFactor.QUERY_AND_DROPDOWN
@@ -2753,14 +2680,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         # Flag for whether or not to expand data
         # (feature that will expand Presto row objects and arrays)
-        expand_data: bool = cast(
-            bool,
-            is_feature_enabled("PRESTO_EXPAND_DATA")
-            and query_params.get("expand_data"),
-        )
+        expand_data: bool = execution_context.expand_data
 
         # Async request.
-        if async_flag:
+        if execution_context.is_run_asynchronous():
             return self._sql_json_async(
                 session, rendered_query, query, expand_data, log_params
             )
@@ -2768,6 +2691,47 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return self._sql_json_sync(
             session, rendered_query, query, expand_data, log_params
         )
+
+    @staticmethod
+    def _convert_query_to_payload(query: Query) -> str:
+        return json.dumps(
+            {"query": query.to_dict()},
+            default=utils.json_int_dttm_ser,
+            ignore_nan=True,
+        )
+
+    @classmethod
+    def _get_the_query_db(
+        cls, execution_context: SqlJsonExecutionContext, session: Session
+    ) -> Database:
+        mydb = session.query(Database).get(execution_context.database_id)
+        cls._validate_query_db(mydb)
+        return mydb
+
+    @classmethod
+    def _validate_query_db(cls, database: Optional[Database]) -> None:
+        if not database:
+            raise SupersetGenericErrorException(
+                __(
+                    "The database referenced in this query was not found. Please "
+                    "contact an administrator for further assistance or try again."
+                )
+            )
+
+    @classmethod
+    def _get_existing_query(
+        cls, execution_context: SqlJsonExecutionContext, session: Session
+    ) -> Optional[Query]:
+        query = (
+            session.query(Query)
+            .filter_by(
+                client_id=execution_context.client_id,
+                user_id=execution_context.user_id,
+                sql_editor_id=execution_context.sql_editor_id,
+            )
+            .one_or_none()
+        )
+        return query
 
     @has_access
     @event_logger.log_this
@@ -3039,12 +3003,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             .first()
         )
 
-        databases: Dict[int, Any] = {
-            database.id: {
+        databases: Dict[int, Any] = {}
+        for database in DatabaseDAO.find_all():
+            databases[database.id] = {
                 k: v for k, v in database.to_json().items() if k in DATABASE_KEYS
             }
-            for database in DatabaseDAO.find_all()
-        }
+            databases[database.id]["backend"] = database.backend
         queries: Dict[str, Any] = {}
 
         # These are unnecessary if sqllab backend persistence is disabled
@@ -3107,11 +3071,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @event_logger.log_this
-    @expose("/schemas_access_for_csv_upload")
-    def schemas_access_for_csv_upload(self) -> FlaskResponse:
+    @expose("/schemas_access_for_file_upload")
+    def schemas_access_for_file_upload(self) -> FlaskResponse:
         """
         This method exposes an API endpoint to
-        get the schema access control settings for csv upload in this database
+        get the schema access control settings for file upload in this database
         """
         if not request.args.get("db_id"):
             return json_error_response("No database is allowed for your csv upload")
