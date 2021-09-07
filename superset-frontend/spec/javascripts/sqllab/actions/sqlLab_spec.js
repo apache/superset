@@ -613,7 +613,7 @@ describe('async actions', () => {
 
     describe('queryEditorSetSql', () => {
       describe('with backend persistence flag on', () => {
-        it('does not update the tab state in the backend', () => {
+        it('updates the tab state in the backend', () => {
           expect.assertions(2);
 
           const sql = 'SELECT * ';
@@ -629,7 +629,7 @@ describe('async actions', () => {
       });
     });
     describe('with backend persistence flag off', () => {
-      it('updates the tab state in the backend', () => {
+      it('does not update the tab state in the backend', () => {
         const backendPersistenceOffMock = jest
           .spyOn(featureFlags, 'isFeatureEnabled')
           .mockImplementation(
