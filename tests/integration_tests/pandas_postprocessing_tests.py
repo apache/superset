@@ -872,11 +872,12 @@ class TestPostProcessing(SupersetTestCase):
             )
 
     def test_resample(self):
-        timeseries_df.index.name = "time_column"
-        timeseries_df.reset_index(inplace=True)
+        df = timeseries_df.copy()
+        df.index.name = "time_column"
+        df.reset_index(inplace=True)
 
         post_df = proc.resample(
-            df=timeseries_df,
+            df=df,
             resample_rule="1D",
             resample_method="ffill",
             time_column="time_column",
