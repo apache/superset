@@ -49,8 +49,12 @@ type PickedSelectProps = Pick<
   | 'autoFocus'
   | 'disabled'
   | 'filterOption'
+  | 'labelInValue'
+  | 'loading'
   | 'notFoundContent'
   | 'onChange'
+  | 'onClear'
+  | 'onFocus'
   | 'placeholder'
   | 'showSearch'
   | 'value'
@@ -73,6 +77,7 @@ export interface SelectProps extends PickedSelectProps {
   allowNewOptions?: boolean;
   ariaLabel: string;
   header?: ReactNode;
+  lazyLoading?: boolean;
   mode?: 'single' | 'multiple';
   name?: string; // discourage usage
   options: OptionsType | OptionsPagePromise;
@@ -84,15 +89,11 @@ export interface SelectProps extends PickedSelectProps {
 const StyledContainer = styled.div`
   display: flex;
   flex-direction: column;
+  width: 100%;
 `;
 
-const StyledSelect = styled(AntdSelect, {
-  shouldForwardProp: prop => prop !== 'hasHeader',
-})<{ hasHeader: boolean }>`
-  ${({ theme, hasHeader }) => `
-    width: 100%;
-    margin-top: ${hasHeader ? theme.gridUnit : 0}px;
-
+const StyledSelect = styled(AntdSelect)`
+  ${({ theme }) => `
     && .ant-select-selector {
       border-radius: ${theme.gridUnit}px;
     }
@@ -137,6 +138,13 @@ const StyledSpin = styled(Spin)`
   margin-top: ${({ theme }) => -theme.gridUnit}px;
 `;
 
+const StyledLoadingText = styled.span`
+  ${({ theme }) => `
+    margin-left: ${theme.gridUnit * 3}px;
+    color: ${theme.colors.grayscale.light1};
+  `}
+`;
+
 const MAX_TAG_COUNT = 4;
 const TOKEN_SEPARATORS = [',', '\n', '\t', ';'];
 const DEBOUNCE_TIMEOUT = 500;
@@ -156,8 +164,12 @@ const Select = ({
   filterOption = true,
   header = null,
   invertSelection = false,
+  labelInValue = false,
+  lazyLoading = true,
+  loading = false,
   mode = 'single',
   name,
+  onChange,
   options,
   pageSize = DEFAULT_PAGE_SIZE,
   placeholder = t('Select ...'),
@@ -175,12 +187,13 @@ const Select = ({
   );
   const [selectValue, setSelectValue] = useState(value);
   const [searchedValue, setSearchedValue] = useState('');
-  const [isLoading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(loading);
+  const [isTyping, setIsTyping] = useState(false);
   const [error, setError] = useState('');
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
-  const [loadingEnabled, setLoadingEnabled] = useState(false);
+  const [loadingEnabled, setLoadingEnabled] = useState(!lazyLoading);
   const fetchedQueries = useRef(new Map<string, number>());
   const mappedMode = isSingleMode
     ? undefined
@@ -189,16 +202,21 @@ const Select = ({
     : 'multiple';
 
   useEffect(() => {
+    fetchedQueries.current.clear();
     setSelectOptions(
       options && Array.isArray(options) ? options : EMPTY_OPTIONS,
     );
   }, [options]);
 
   useEffect(() => {
-    if (isAsync && value) {
-      const array: AntdLabeledValue[] = Array.isArray(value)
-        ? (value as AntdLabeledValue[])
-        : [value as AntdLabeledValue];
+    setSelectValue(value);
+  }, [value]);
+
+  useEffect(() => {
+    if (isAsync && selectValue) {
+      const array: AntdLabeledValue[] = Array.isArray(selectValue)
+        ? (selectValue as AntdLabeledValue[])
+        : [selectValue as AntdLabeledValue];
       const options: AntdLabeledValue[] = [];
       array.forEach(element => {
         const found = selectOptions.find(
@@ -212,23 +230,20 @@ const Select = ({
         setSelectOptions([...selectOptions, ...options]);
       }
     }
-  }, [isAsync, selectOptions, value]);
-
-  useEffect(() => {
-    setSelectValue(value);
-  }, [value]);
+  }, [isAsync, selectOptions, selectValue]);
 
   const handleTopOptions = useCallback(
     (selectedValue: AntdSelectValue | undefined) => {
       // bringing selected options to the top of the list
       if (selectedValue !== undefined && selectedValue !== null) {
+        const isLabeledValue = isAsync || labelInValue;
         const topOptions: OptionsType = [];
         const otherOptions: OptionsType = [];
 
         selectOptions.forEach(opt => {
           let found = false;
           if (Array.isArray(selectedValue)) {
-            if (isAsync) {
+            if (isLabeledValue) {
               found =
                 (selectedValue as AntdLabeledValue[]).find(
                   element => element.value === opt.value,
@@ -237,7 +252,7 @@ const Select = ({
               found = selectedValue.includes(opt.value);
             }
           } else {
-            found = isAsync
+            found = isLabeledValue
               ? (selectedValue as AntdLabeledValue).value === opt.value
               : selectedValue === opt.value;
           }
@@ -257,10 +272,10 @@ const Select = ({
               !topOptions.find(
                 tOpt =>
                   tOpt.value ===
-                  (isAsync ? (val as AntdLabeledValue)?.value : val),
+                  (isLabeledValue ? (val as AntdLabeledValue)?.value : val),
               )
             ) {
-              if (isAsync) {
+              if (isLabeledValue) {
                 const labelValue = val as AntdLabeledValue;
                 topOptions.push({
                   label: labelValue.label,
@@ -280,7 +295,7 @@ const Select = ({
         }
       }
     },
-    [isAsync, isSingleMode, selectOptions],
+    [isAsync, isSingleMode, labelInValue, selectOptions],
   );
 
   const handleOnSelect = (
@@ -350,9 +365,10 @@ const Select = ({
       const cachedCount = fetchedQueries.current.get(key);
       if (cachedCount) {
         setTotalCount(cachedCount);
+        setIsTyping(false);
         return;
       }
-      setLoading(true);
+      setIsLoading(true);
       const fetchOptions = options as OptionsPagePromise;
       fetchOptions(value, page, pageSize)
         .then(({ data, totalCount }: OptionsTypePage) => {
@@ -361,39 +377,61 @@ const Select = ({
           setTotalCount(totalCount);
         })
         .catch(onError)
-        .finally(() => setLoading(false));
+        .finally(() => {
+          setIsLoading(false);
+          setIsTyping(false);
+        });
     },
     [options],
   );
 
-  const handleOnSearch = debounce((search: string) => {
-    const searchValue = search.trim();
-    // enables option creation
-    if (allowNewOptions && isSingleMode) {
-      const firstOption = selectOptions.length > 0 && selectOptions[0].value;
-      // replaces the last search value entered with the new one
-      // only when the value wasn't part of the original options
-      if (
-        searchValue &&
-        firstOption === searchedValue &&
-        !initialOptions.find(o => o.value === searchedValue)
-      ) {
-        selectOptions.shift();
-        setSelectOptions(selectOptions);
-      }
-      if (searchValue && !hasOption(searchValue, selectOptions)) {
-        const newOption = {
-          label: searchValue,
-          value: searchValue,
-        };
-        // adds a custom option
-        const newOptions = [...selectOptions, newOption];
-        setSelectOptions(newOptions);
-        setSelectValue(searchValue);
-      }
-    }
-    setSearchedValue(searchValue);
-  }, DEBOUNCE_TIMEOUT);
+  const handleOnSearch = useMemo(
+    () =>
+      debounce((search: string) => {
+        const searchValue = search.trim();
+        // enables option creation
+        if (allowNewOptions && isSingleMode) {
+          const firstOption =
+            selectOptions.length > 0 && selectOptions[0].value;
+          // replaces the last search value entered with the new one
+          // only when the value wasn't part of the original options
+          if (
+            searchValue &&
+            firstOption === searchedValue &&
+            !initialOptions.find(o => o.value === searchedValue)
+          ) {
+            selectOptions.shift();
+            setSelectOptions(selectOptions);
+          }
+          if (searchValue && !hasOption(searchValue, selectOptions)) {
+            const newOption = {
+              label: searchValue,
+              value: searchValue,
+            };
+            // adds a custom option
+            const newOptions = [...selectOptions, newOption];
+            setSelectOptions(newOptions);
+            setSelectValue(searchValue);
+
+            if (onChange) {
+              onChange(searchValue, newOptions);
+            }
+          }
+        }
+        setSearchedValue(searchValue);
+        if (!searchValue) {
+          setIsTyping(false);
+        }
+      }, DEBOUNCE_TIMEOUT),
+    [
+      allowNewOptions,
+      initialOptions,
+      isSingleMode,
+      onChange,
+      searchedValue,
+      selectOptions,
+    ],
+  );
 
   const handlePagination = (e: UIEvent<HTMLElement>) => {
     const vScroll = e.currentTarget;
@@ -463,13 +501,28 @@ const Select = ({
     }
   }, [handleTopOptions, isSingleMode, selectValue]);
 
+  useEffect(() => {
+    if (loading !== undefined && loading !== isLoading) {
+      setIsLoading(loading);
+    }
+  }, [isLoading, loading]);
+
   const dropdownRender = (
     originNode: ReactElement & { ref?: RefObject<HTMLElement> },
   ) => {
     if (!isDropdownVisible) {
       originNode.ref?.current?.scrollTo({ top: 0 });
     }
+    if ((isLoading && selectOptions.length === 0) || isTyping) {
+      return <StyledLoadingText>{t('Loading...')}</StyledLoadingText>;
+    }
     return error ? <Error error={error} /> : originNode;
+  };
+
+  const onInputKeyDown = () => {
+    if (isAsync && !isTyping) {
+      setIsTyping(true);
+    }
   };
 
   const SuffixIcon = () => {
@@ -486,20 +539,21 @@ const Select = ({
     <StyledContainer>
       {header}
       <StyledSelect
-        hasHeader={!!header}
         aria-label={ariaLabel || name}
         dropdownRender={dropdownRender}
         filterOption={handleFilterOption}
         getPopupContainer={triggerNode => triggerNode.parentNode}
-        labelInValue={isAsync}
+        labelInValue={isAsync || labelInValue}
         maxTagCount={MAX_TAG_COUNT}
         mode={mappedMode}
         onDeselect={handleOnDeselect}
         onDropdownVisibleChange={handleOnDropdownVisibleChange}
+        onInputKeyDown={onInputKeyDown}
         onPopupScroll={isAsync ? handlePagination : undefined}
         onSearch={shouldShowSearch ? handleOnSearch : undefined}
         onSelect={handleOnSelect}
         onClear={() => setSelectValue(undefined)}
+        onChange={onChange}
         options={selectOptions}
         placeholder={placeholder}
         showSearch={shouldShowSearch}
