@@ -14,16 +14,25 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 """Unit tests for Superset"""
 import json
 import unittest
 from unittest import mock
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
-from superset import app, db, security_manager
+import pytest
+from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
+
+from tests.fixtures.energy_dashboard import load_energy_table_with_slice
+from tests.test_app import app  # isort:skip
+from superset import db, security_manager
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.druid.models import DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
+from superset.models.datasource_access_request import DatasourceAccessRequest
+
 from .base_tests import SupersetTestCase
 
 ROLE_TABLES_PERM_DATA = {
@@ -80,7 +89,7 @@ def create_access_request(session, ds_type, ds_name, role_name, user_name):
     security_manager.add_permission_role(
         security_manager.find_role(role_name), ds_perm_view
     )
-    access_request = models.DatasourceAccessRequest(
+    access_request = DatasourceAccessRequest(
         datasource_id=ds.id,
         datasource_type=ds_type,
         created_by_fk=security_manager.find_user(username=user_name).id,
@@ -90,25 +99,29 @@ def create_access_request(session, ds_type, ds_name, role_name, user_name):
     return access_request
 
 
-class RequestAccessTests(SupersetTestCase):
+class TestRequestAccess(SupersetTestCase):
     @classmethod
     def setUpClass(cls):
-        security_manager.add_role("override_me")
-        security_manager.add_role(TEST_ROLE_1)
-        security_manager.add_role(TEST_ROLE_2)
-        security_manager.add_role(DB_ACCESS_ROLE)
-        security_manager.add_role(SCHEMA_ACCESS_ROLE)
-        db.session.commit()
+        with app.app_context():
+            cls.create_druid_test_objects()
+
+            security_manager.add_role("override_me")
+            security_manager.add_role(TEST_ROLE_1)
+            security_manager.add_role(TEST_ROLE_2)
+            security_manager.add_role(DB_ACCESS_ROLE)
+            security_manager.add_role(SCHEMA_ACCESS_ROLE)
+            db.session.commit()
 
     @classmethod
     def tearDownClass(cls):
-        override_me = security_manager.find_role("override_me")
-        db.session.delete(override_me)
-        db.session.delete(security_manager.find_role(TEST_ROLE_1))
-        db.session.delete(security_manager.find_role(TEST_ROLE_2))
-        db.session.delete(security_manager.find_role(DB_ACCESS_ROLE))
-        db.session.delete(security_manager.find_role(SCHEMA_ACCESS_ROLE))
-        db.session.commit()
+        with app.app_context():
+            override_me = security_manager.find_role("override_me")
+            db.session.delete(override_me)
+            db.session.delete(security_manager.find_role(TEST_ROLE_1))
+            db.session.delete(security_manager.find_role(TEST_ROLE_2))
+            db.session.delete(security_manager.find_role(DB_ACCESS_ROLE))
+            db.session.delete(security_manager.find_role(SCHEMA_ACCESS_ROLE))
+            db.session.commit()
 
     def setUp(self):
         self.login("admin")
@@ -129,53 +142,58 @@ class RequestAccessTests(SupersetTestCase):
             content_type="application/json",
             follow_redirects=True,
         )
-        self.assertNotEquals(405, response.status_code)
+        self.assertNotEqual(405, response.status_code)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_override_role_permissions_1_table(self):
         response = self.client.post(
             "/superset/override_role_permissions/",
             data=json.dumps(ROLE_TABLES_PERM_DATA),
             content_type="application/json",
         )
-        self.assertEquals(201, response.status_code)
+        self.assertEqual(201, response.status_code)
 
         updated_override_me = security_manager.find_role("override_me")
-        self.assertEquals(1, len(updated_override_me.permissions))
+        self.assertEqual(1, len(updated_override_me.permissions))
         birth_names = self.get_table_by_name("birth_names")
-        self.assertEquals(
+        self.assertEqual(
             birth_names.perm, updated_override_me.permissions[0].view_menu.name
         )
-        self.assertEquals(
+        self.assertEqual(
             "datasource_access", updated_override_me.permissions[0].permission.name
         )
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_override_role_permissions_druid_and_table(self):
         response = self.client.post(
             "/superset/override_role_permissions/",
             data=json.dumps(ROLE_ALL_PERM_DATA),
             content_type="application/json",
         )
-        self.assertEquals(201, response.status_code)
+        self.assertEqual(201, response.status_code)
 
         updated_role = security_manager.find_role("override_me")
         perms = sorted(updated_role.permissions, key=lambda p: p.view_menu.name)
         druid_ds_1 = self.get_druid_ds_by_name("druid_ds_1")
-        self.assertEquals(druid_ds_1.perm, perms[0].view_menu.name)
-        self.assertEquals("datasource_access", perms[0].permission.name)
+        self.assertEqual(druid_ds_1.perm, perms[0].view_menu.name)
+        self.assertEqual("datasource_access", perms[0].permission.name)
 
         druid_ds_2 = self.get_druid_ds_by_name("druid_ds_2")
-        self.assertEquals(druid_ds_2.perm, perms[1].view_menu.name)
-        self.assertEquals(
+        self.assertEqual(druid_ds_2.perm, perms[1].view_menu.name)
+        self.assertEqual(
             "datasource_access", updated_role.permissions[1].permission.name
         )
 
         birth_names = self.get_table_by_name("birth_names")
-        self.assertEquals(birth_names.perm, perms[2].view_menu.name)
-        self.assertEquals(
+        self.assertEqual(birth_names.perm, perms[2].view_menu.name)
+        self.assertEqual(
             "datasource_access", updated_role.permissions[2].permission.name
         )
-        self.assertEquals(3, len(perms))
+        self.assertEqual(3, len(perms))
 
+    @pytest.mark.usefixtures(
+        "load_energy_table_with_slice", "load_birth_names_dashboard_with_slices"
+    )
     def test_override_role_permissions_drops_absent_perms(self):
         override_me = security_manager.find_role("override_me")
         override_me.permissions.append(
@@ -191,14 +209,14 @@ class RequestAccessTests(SupersetTestCase):
             data=json.dumps(ROLE_TABLES_PERM_DATA),
             content_type="application/json",
         )
-        self.assertEquals(201, response.status_code)
+        self.assertEqual(201, response.status_code)
         updated_override_me = security_manager.find_role("override_me")
-        self.assertEquals(1, len(updated_override_me.permissions))
+        self.assertEqual(1, len(updated_override_me.permissions))
         birth_names = self.get_table_by_name("birth_names")
-        self.assertEquals(
+        self.assertEqual(
             birth_names.perm, updated_override_me.permissions[0].view_menu.name
         )
-        self.assertEquals(
+        self.assertEqual(
             "datasource_access", updated_override_me.permissions[0].permission.name
         )
 
@@ -211,7 +229,7 @@ class RequestAccessTests(SupersetTestCase):
         # Check if access request for gamma at energy_usage was deleted
 
         # gamma2 and gamma request table_role on energy usage
-        if app.config.get("ENABLE_ACCESS_REQUEST"):
+        if app.config["ENABLE_ACCESS_REQUEST"]:
             access_request1 = create_access_request(
                 session, "table", "random_time_series", TEST_ROLE_1, "gamma2"
             )
@@ -235,6 +253,7 @@ class RequestAccessTests(SupersetTestCase):
             gamma_user = security_manager.find_user(username="gamma")
             gamma_user.roles.remove(security_manager.find_role("test_role1"))
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_clean_requests_after_alpha_grant(self):
         session = db.session
 
@@ -264,6 +283,7 @@ class RequestAccessTests(SupersetTestCase):
         gamma_user.roles.remove(security_manager.find_role("Alpha"))
         session.commit()
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_clean_requests_after_db_grant(self):
         session = db.session
 
@@ -302,6 +322,7 @@ class RequestAccessTests(SupersetTestCase):
         gamma_user.roles.remove(security_manager.find_role(DB_ACCESS_ROLE))
         session.commit()
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_clean_requests_after_schema_grant(self):
         session = db.session
 
@@ -351,9 +372,9 @@ class RequestAccessTests(SupersetTestCase):
 
         session.commit()
 
-    @mock.patch("superset.utils.core.send_MIME_email")
+    @mock.patch("superset.utils.core.send_mime_email")
     def test_approve(self, mock_send_mime):
-        if app.config.get("ENABLE_ACCESS_REQUEST"):
+        if app.config["ENABLE_ACCESS_REQUEST"]:
             session = db.session
             TEST_ROLE_NAME = "table_role"
             security_manager.add_role(TEST_ROLE_NAME)
@@ -379,7 +400,7 @@ class RequestAccessTests(SupersetTestCase):
             )
             self.assertEqual(
                 "[Superset] Access to the datasource {} was granted".format(
-                    self.get_table(ds_1_id).full_name
+                    self.get_table_by_id(ds_1_id).full_name
                 ),
                 call_args[2]["Subject"],
             )
@@ -420,7 +441,7 @@ class RequestAccessTests(SupersetTestCase):
             )
             self.assertEqual(
                 "[Superset] Access to the datasource {} was granted".format(
-                    self.get_table(ds_2_id).full_name
+                    self.get_table_by_id(ds_2_id).full_name
                 ),
                 call_args[2]["Subject"],
             )
@@ -480,7 +501,7 @@ class RequestAccessTests(SupersetTestCase):
             session.commit()
 
     def test_request_access(self):
-        if app.config.get("ENABLE_ACCESS_REQUEST"):
+        if app.config["ENABLE_ACCESS_REQUEST"]:
             session = db.session
             self.logout()
             self.login(username="gamma")
@@ -561,10 +582,7 @@ class RequestAccessTests(SupersetTestCase):
             self.get_resp(ACCESS_REQUEST.format("druid", druid_ds_4_id, "go"))
             access_request4 = self.get_access_requests("gamma", "druid", druid_ds_4_id)
 
-            self.assertEqual(
-                access_request4.roles_with_datasource,
-                "<ul></ul>".format(access_request4.id),
-            )
+            self.assertEqual(access_request4.roles_with_datasource, "<ul></ul>")
 
             # Case 5. Roles exist that contains the druid datasource.
             # add druid ds to the existing roles

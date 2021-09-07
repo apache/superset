@@ -24,9 +24,7 @@
     {% include 'appbuilder/general/alert.html' %}
 
     {% block navbar %}
-        <header class="top" role="header">
-        {% include 'appbuilder/navbar.html' %}
-        </header>
+      {% include 'appbuilder/navbar.html' %}
     {% endblock %}
 
     {% block uncontained %}{% endblock %}
@@ -44,6 +42,7 @@
         {% block content_fluid %}
         {% endblock %}
     </div>
+    <div id="app" data-bootstrap="{{ bootstrap_data() }}"></div>
 
     {% block footer %}
         <footer>
@@ -55,4 +54,3 @@
         </footer>
     {% endblock %}
 {% endblock %}
-

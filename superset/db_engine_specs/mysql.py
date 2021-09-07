@@ -14,22 +14,79 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
+import re
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Match, Optional, Pattern, Tuple, Union
 from urllib import parse
 
-from sqlalchemy.engine.interfaces import Dialect
+from flask_babel import gettext as __
+from sqlalchemy.dialects.mysql import (
+    BIT,
+    DECIMAL,
+    DOUBLE,
+    FLOAT,
+    INTEGER,
+    LONGTEXT,
+    MEDIUMINT,
+    MEDIUMTEXT,
+    TINYINT,
+    TINYTEXT,
+)
+from sqlalchemy.engine.url import URL
 from sqlalchemy.types import TypeEngine
 
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.errors import SupersetErrorType
+from superset.utils import core as utils
+from superset.utils.core import ColumnSpec, GenericDataType
+
+# Regular expressions to catch custom errors
+CONNECTION_ACCESS_DENIED_REGEX = re.compile(
+    "Access denied for user '(?P<username>.*?)'@'(?P<hostname>.*?)'. "
+)
+CONNECTION_INVALID_HOSTNAME_REGEX = re.compile(
+    "Unknown MySQL server host '(?P<hostname>.*?)'."
+)
+CONNECTION_HOST_DOWN_REGEX = re.compile(
+    "Can't connect to MySQL server on '(?P<hostname>.*?)'."
+)
+CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile("Unknown database '(?P<database>.*?)'.")
 
 
 class MySQLEngineSpec(BaseEngineSpec):
     engine = "mysql"
+    engine_name = "MySQL"
     max_column_name_length = 64
 
-    _time_grain_functions = {
+    column_type_mappings: Tuple[
+        Tuple[
+            Pattern[str],
+            Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
+            GenericDataType,
+        ],
+        ...,
+    ] = (
+        (re.compile(r"^int.*", re.IGNORECASE), INTEGER(), GenericDataType.NUMERIC,),
+        (re.compile(r"^tinyint", re.IGNORECASE), TINYINT(), GenericDataType.NUMERIC,),
+        (
+            re.compile(r"^mediumint", re.IGNORECASE),
+            MEDIUMINT(),
+            GenericDataType.NUMERIC,
+        ),
+        (re.compile(r"^decimal", re.IGNORECASE), DECIMAL(), GenericDataType.NUMERIC,),
+        (re.compile(r"^float", re.IGNORECASE), FLOAT(), GenericDataType.NUMERIC,),
+        (re.compile(r"^double", re.IGNORECASE), DOUBLE(), GenericDataType.NUMERIC,),
+        (re.compile(r"^bit", re.IGNORECASE), BIT(), GenericDataType.NUMERIC,),
+        (re.compile(r"^tinytext", re.IGNORECASE), TINYTEXT(), GenericDataType.STRING,),
+        (
+            re.compile(r"^mediumtext", re.IGNORECASE),
+            MEDIUMTEXT(),
+            GenericDataType.STRING,
+        ),
+        (re.compile(r"^longtext", re.IGNORECASE), LONGTEXT(), GenericDataType.STRING,),
+    )
+
+    _time_grain_expressions = {
         None: "{col}",
         "PT1S": "DATE_ADD(DATE({col}), "
         "INTERVAL (HOUR({col})*60*60 + MINUTE({col})*60"
@@ -50,25 +107,47 @@ class MySQLEngineSpec(BaseEngineSpec):
 
     type_code_map: Dict[int, str] = {}  # loaded from get_datatype only if needed
 
-    @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
-        if target_type.upper() in ("DATETIME", "DATE"):
-            return "STR_TO_DATE('{}', '%Y-%m-%d %H:%i:%s')".format(
-                dttm.strftime("%Y-%m-%d %H:%M:%S")
-            )
-        return "'{}'".format(dttm.strftime("%Y-%m-%d %H:%M:%S"))
+    custom_errors = {
+        CONNECTION_ACCESS_DENIED_REGEX: (
+            __('Either the username "%(username)s" or the password is incorrect.'),
+            SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+        ),
+        CONNECTION_INVALID_HOSTNAME_REGEX: (
+            __('Unknown MySQL server host "%(hostname)s".'),
+            SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
+        ),
+        CONNECTION_HOST_DOWN_REGEX: (
+            __('The host "%(hostname)s" might be down and can\'t be reached.'),
+            SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
+        ),
+        CONNECTION_UNKNOWN_DATABASE_REGEX: (
+            __('Unable to connect to database "%(database)s".'),
+            SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
+        ),
+    }
 
     @classmethod
-    def adjust_database_uri(cls, uri, selected_schema=None):
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+        tt = target_type.upper()
+        if tt == utils.TemporalType.DATE:
+            return f"STR_TO_DATE('{dttm.date().isoformat()}', '%Y-%m-%d')"
+        if tt == utils.TemporalType.DATETIME:
+            datetime_formatted = dttm.isoformat(sep=" ", timespec="microseconds")
+            return f"""STR_TO_DATE('{datetime_formatted}', '%Y-%m-%d %H:%i:%s.%f')"""
+        return None
+
+    @classmethod
+    def adjust_database_uri(
+        cls, uri: URL, selected_schema: Optional[str] = None
+    ) -> None:
         if selected_schema:
             uri.database = parse.quote(selected_schema, safe="")
-        return uri
 
     @classmethod
     def get_datatype(cls, type_code: Any) -> Optional[str]:
         if not cls.type_code_map:
             # only import and store if needed at least once
-            import MySQLdb  # pylint: disable=import-error
+            import MySQLdb
 
             ft = MySQLdb.constants.FIELD_TYPE
             cls.type_code_map = {
@@ -77,7 +156,7 @@ class MySQLEngineSpec(BaseEngineSpec):
         datatype = type_code
         if isinstance(type_code, int):
             datatype = cls.type_code_map.get(type_code)
-        if datatype and isinstance(datatype, str) and len(datatype):
+        if datatype and isinstance(datatype, str) and datatype:
             return datatype
         return None
 
@@ -86,25 +165,35 @@ class MySQLEngineSpec(BaseEngineSpec):
         return "from_unixtime({col})"
 
     @classmethod
-    def _extract_error_message(cls, e):
+    def _extract_error_message(cls, ex: Exception) -> str:
         """Extract error message for queries"""
-        message = str(e)
+        message = str(ex)
         try:
-            if isinstance(e.args, tuple) and len(e.args) > 1:
-                message = e.args[1]
-        except Exception:
+            if isinstance(ex.args, tuple) and len(ex.args) > 1:
+                message = ex.args[1]
+        except (AttributeError, KeyError):
             pass
         return message
 
     @classmethod
-    def column_datatype_to_string(
-        cls, sqla_column_type: TypeEngine, dialect: Dialect
-    ) -> str:
-        datatype = super().column_datatype_to_string(sqla_column_type, dialect)
-        # MySQL dialect started returning long overflowing datatype
-        # as in 'VARCHAR(255) COLLATE UTF8MB4_GENERAL_CI'
-        # and we don't need the verbose collation type
-        str_cutoff = " COLLATE "
-        if str_cutoff in datatype:
-            datatype = datatype.split(str_cutoff)[0]
-        return datatype
+    def get_column_spec(  # type: ignore
+        cls,
+        native_type: Optional[str],
+        source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
+        column_type_mappings: Tuple[
+            Tuple[
+                Pattern[str],
+                Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
+                GenericDataType,
+            ],
+            ...,
+        ] = column_type_mappings,
+    ) -> Union[ColumnSpec, None]:
+
+        column_spec = super().get_column_spec(native_type)
+        if column_spec:
+            return column_spec
+
+        return super().get_column_spec(
+            native_type, column_type_mappings=column_type_mappings
+        )

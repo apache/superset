@@ -23,8 +23,8 @@ Create Date: 2018-08-13 11:30:07.101702
 """
 
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 from superset.utils.core import MediumText
 

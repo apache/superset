@@ -1,11 +1,15 @@
+# Note: these patterns are applied to single files or directories, not full paths
 .gitignore
+docs/README.md
 .gitattributes
+.gitkeep
 .coverage
 .coveragerc
 .codecov.yml
 .eslintrc
 .eslintignore
 .flake8
+.nvmrc
 .prettierrc
 .rat-excludes
 .*log
@@ -18,6 +22,7 @@ node_modules/*
 rat-results.txt
 babel-node
 dist
+superset/static/*
 build
 superset.egg-info
 apache_superset.egg-info
@@ -29,14 +34,17 @@ apache_superset.egg-info
 .*json
 .*csv
 # Generated doc files
-docs/_build/*
+env/*
+docs/README.md
+docs/.htaccess*
 _build/*
 _static/*
 .buildinfo
 searchindex.js
 # auto generated
-requirements.txt
+requirements/*
 # vendorized
 vendor/*
 # github configuration
 .github/*
+.*mdx

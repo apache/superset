@@ -14,26 +14,31 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
+from typing import Any, Dict
+
+from flask_appbuilder import CompactCRUDMixin
+from flask_appbuilder.api import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_babel import gettext as __
+from flask_appbuilder.security.decorators import has_access
 from flask_babel import lazy_gettext as _
 from wtforms.validators import StopValidation
 
-from superset import appbuilder
+from superset import is_feature_enabled
+from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models.annotations import Annotation, AnnotationLayer
-from .base import DeleteMixin, SupersetModelView
+from superset.typing import FlaskResponse
+from superset.views.base import SupersetModelView
 
 
-class StartEndDttmValidator(object):
+class StartEndDttmValidator:  # pylint: disable=too-few-public-methods
     """
     Validates dttm fields.
     """
 
-    def __call__(self, form, field):
+    def __call__(self, form: Dict[str, Any], field: Any) -> None:
         if not form["start_dttm"].data and not form["end_dttm"].data:
             raise StopValidation(_("annotation start time or end time is required."))
-        elif (
+        if (
             form["end_dttm"].data
             and form["start_dttm"].data
             and form["end_dttm"].data < form["start_dttm"].data
@@ -43,15 +48,21 @@ class StartEndDttmValidator(object):
             )
 
 
-class AnnotationModelView(SupersetModelView, DeleteMixin):  # noqa
+class AnnotationModelView(
+    SupersetModelView, CompactCRUDMixin
+):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(Annotation)
+    include_route_methods = RouteMethod.CRUD_SET | {"annotation"}
 
-    list_title = _("List Annotation")
+    class_permission_name = "Annotation"
+    method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
+
+    list_title = _("Annotations")
     show_title = _("Show Annotation")
     add_title = _("Add Annotation")
     edit_title = _("Edit Annotation")
 
-    list_columns = ["layer", "short_descr", "start_dttm", "end_dttm"]
+    list_columns = ["short_descr", "start_dttm", "end_dttm"]
     edit_columns = [
         "layer",
         "short_descr",
@@ -65,10 +76,10 @@ class AnnotationModelView(SupersetModelView, DeleteMixin):  # noqa
 
     label_columns = {
         "layer": _("Layer"),
-        "short_descr": _("Short Descr"),
-        "start_dttm": _("Start Dttm"),
-        "end_dttm": _("End Dttm"),
-        "long_descr": _("Long Descr"),
+        "short_descr": _("Label"),
+        "long_descr": _("Description"),
+        "start_dttm": _("Start"),
+        "end_dttm": _("End"),
         "json_metadata": _("JSON Metadata"),
     }
 
@@ -79,46 +90,47 @@ class AnnotationModelView(SupersetModelView, DeleteMixin):  # noqa
 
     validators_columns = {"start_dttm": [StartEndDttmValidator()]}
 
-    def pre_add(self, obj):
-        if not obj.start_dttm:
-            obj.start_dttm = obj.end_dttm
-        elif not obj.end_dttm:
-            obj.end_dttm = obj.start_dttm
+    def pre_add(self, item: "AnnotationModelView") -> None:
+        if not item.start_dttm:
+            item.start_dttm = item.end_dttm
+        elif not item.end_dttm:
+            item.end_dttm = item.start_dttm
 
-    def pre_update(self, obj):
-        self.pre_add(obj)
+    def pre_update(self, item: "AnnotationModelView") -> None:
+        self.pre_add(item)
+
+    @expose("/<pk>/annotation/", methods=["GET"])
+    @has_access
+    def annotation(self, pk: int) -> FlaskResponse:  # pylint: disable=unused-argument
+        if not is_feature_enabled("ENABLE_REACT_CRUD_VIEWS"):
+            return super().list()
+
+        return super().render_app_template()
 
 
-class AnnotationLayerModelView(SupersetModelView, DeleteMixin):
+class AnnotationLayerModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(AnnotationLayer)
+    include_route_methods = RouteMethod.CRUD_SET | {RouteMethod.API_READ}
+    related_views = [AnnotationModelView]
 
-    list_title = _("List Annotation Layer")
+    class_permission_name = "Annotation"
+    method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
+
+    list_title = _("Annotation Layers")
     show_title = _("Show Annotation Layer")
     add_title = _("Add Annotation Layer")
     edit_title = _("Edit Annotation Layer")
 
-    list_columns = ["id", "name"]
+    list_columns = ["id", "name", "descr"]
     edit_columns = ["name", "descr"]
     add_columns = edit_columns
 
     label_columns = {"name": _("Name"), "descr": _("Description")}
 
+    @expose("/list/")
+    @has_access
+    def list(self) -> FlaskResponse:
+        if not is_feature_enabled("ENABLE_REACT_CRUD_VIEWS"):
+            return super().list()
 
-appbuilder.add_view(
-    AnnotationLayerModelView,
-    "Annotation Layers",
-    label=__("Annotation Layers"),
-    icon="fa-comment",
-    category="Manage",
-    category_label=__("Manage"),
-    category_icon="",
-)
-appbuilder.add_view(
-    AnnotationModelView,
-    "Annotations",
-    label=__("Annotations"),
-    icon="fa-comments",
-    category="Manage",
-    category_label=__("Manage"),
-    category_icon="",
-)
+        return super().render_app_template()

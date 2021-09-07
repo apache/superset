@@ -27,12 +27,11 @@ revision = "c82ee8a39623"
 down_revision = "c617da68de7d"
 
 from alembic import op
-from sqlalchemy import Column, Enum, Integer, ForeignKey, String
+from sqlalchemy import Column, Enum, ForeignKey, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset.models.helpers import AuditMixinNullable
 from superset.models.tags import ObjectTypes, TagTypes
-
 
 Base = declarative_base()
 

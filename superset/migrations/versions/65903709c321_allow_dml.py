@@ -24,12 +24,12 @@ Create Date: 2016-09-15 08:48:27.284752
 
 import logging
 
+import sqlalchemy as sa
+from alembic import op
+
 # revision identifiers, used by Alembic.
 revision = "65903709c321"
 down_revision = "4500485bde7d"
-
-from alembic import op
-import sqlalchemy as sa
 
 
 def upgrade():
@@ -39,6 +39,6 @@ def upgrade():
 def downgrade():
     try:
         op.drop_column("dbs", "allow_dml")
-    except Exception as e:
-        logging.exception(e)
+    except Exception as ex:
+        logging.exception(ex)
         pass

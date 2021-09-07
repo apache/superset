@@ -19,18 +19,29 @@
 import logging
 from os import environ
 from flask import request, g
-from flask_appbuilder import expose
-from flask_appbuilder.security.decorators import has_access_api
+from typing import Any
 import simplejson as json
 
-from superset import appbuilder, db, event_logger, security_manager
+from flask_appbuilder import expose
+from flask_appbuilder.api import rison
+from flask_appbuilder.security.decorators import has_access_api
+from superset import db, event_logger, security_manager
 from superset.custom_auth import use_ip_auth
 from superset.common.query_context import QueryContext
-from superset.legacy import update_time_range
-import superset.models.core as models
+from superset.models.slice import Slice
+from superset.typing import FlaskResponse
+from superset.dashboards.commands.importers.v0 import import_dashboards
 from superset.utils import core as utils, s3_utils, dashboard_import_export
-from superset import app
 from .base import api, BaseSupersetView, handle_api_exception, json_error_response, json_success
+from superset.utils.date_parser import get_since_until
+from superset.charts.commands.exceptions import (
+    TimeRangeParseFailError,
+    TimeRangeUnclearError,
+)
+
+import superset.models.core as models
+from superset import app
+get_time_range_schema = {"type": "string"}
 
 
 class Api(BaseSupersetView):
@@ -40,15 +51,17 @@ class Api(BaseSupersetView):
     @handle_api_exception
     @has_access_api
     @expose("/v1/query/", methods=["POST"])
-    def query(self):
+    def query(self) -> FlaskResponse:
         """
         Takes a query_obj constructed in the client and returns payload data response
         for the given query_obj.
-        params: query_context: json_blob
+
+        raises SupersetSecurityException: If the user cannot access the resource
         """
-        query_context = QueryContext(**json.loads(request.form.get("query_context")))
-        security_manager.assert_datasource_permission(query_context.datasource)
-        payload_json = query_context.get_payload()
+        query_context = QueryContext(**json.loads(request.form["query_context"]))
+        query_context.raise_for_access()
+        result = query_context.get_payload()
+        payload_json = result["queries"]
         return json.dumps(
             payload_json, default=utils.json_int_dttm_ser, ignore_nan=True
         )
@@ -58,7 +71,7 @@ class Api(BaseSupersetView):
     @handle_api_exception
     @has_access_api
     @expose("/v1/form_data/", methods=["GET"])
-    def query_form_data(self):
+    def query_form_data(self) -> FlaskResponse:
         """
         Get the formdata stored in the database for existing slice.
         params: slice_id: integer
@@ -66,7 +79,7 @@ class Api(BaseSupersetView):
         form_data = {}
         slice_id = request.args.get("slice_id")
         if slice_id:
-            slc = db.session.query(models.Slice).filter_by(id=slice_id).one_or_none()
+            slc = db.session.query(Slice).filter_by(id=slice_id).one_or_none()
             if slc:
                 form_data = slc.form_data.copy()
 
@@ -90,11 +103,12 @@ class Api(BaseSupersetView):
         if slug:
             #get file from common bucket
             file_name = slug+".json"
-            s3_utils.get_file_data(environ['COMMON_CONFIG_DATA_BUCKET'], app.config["DASHBOARD_OBJECT_PATH"] + slug + ".json", file_name)
+            #  TODO: temp changes
+            #s3_utils.get_file_data(environ['COMMON_CONFIG_DATA_BUCKET'], app.config["DASHBOARD_OBJECT_PATH"] + slug + ".json", file_name)
             try:
               with open(file_name, 'r') as data_stream:
               #call import dashboard function
-                dashboard_ids = dashboard_import_export.import_dashboards(db.session, data_stream)
+                dashboard_ids = import_dashboards(db.session, data_stream)
                 if isPublished:
                   if dashboard_ids and len(dashboard_ids) > 0:
                     for dashboard_id in dashboard_ids:
@@ -113,5 +127,22 @@ class Api(BaseSupersetView):
         return json_error_response(
               "ERROR: cannot find slug name", status=404
           )
-
-appbuilder.add_view_no_menu(Api)
+    @api
+    @handle_api_exception
+    @has_access_api
+    @rison(get_time_range_schema)
+    @expose("/v1/time_range/", methods=["GET"])
+    def time_range(self, **kwargs: Any) -> FlaskResponse:
+        """Get actually time range from human readable string or datetime expression"""
+        time_range = kwargs["rison"]
+        try:
+            since, until = get_since_until(time_range)
+            result = {
+                "since": since.isoformat() if since else "",
+                "until": until.isoformat() if until else "",
+                "timeRange": time_range,
+            }
+            return self.json_response({"result": result})
+        except (ValueError, TimeRangeParseFailError, TimeRangeUnclearError) as error:
+            error_msg = {"message": f"Unexpected time range: {error}"}
+            return self.json_response(error_msg, 400)

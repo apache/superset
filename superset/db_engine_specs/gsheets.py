@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 
 
@@ -22,5 +21,6 @@ class GSheetsEngineSpec(SqliteEngineSpec):
     """Engine for Google spreadsheets"""
 
     engine = "gsheets"
+    engine_name = "Google Sheets"
     allows_joins = False
-    allows_subqueries = False
+    allows_subqueries = True

@@ -1,0 +1,29 @@
+---
+name: Teradata
+menu: Connecting to Databases
+route: /docs/databases/teradata
+index: 25
+version: 1
+---
+
+## Teradata
+
+The recommended connector library is
+[sqlalchemy-teradata](https://github.com/Teradata/sqlalchemy-teradata).
+
+The connection string for Teradata looks like this:
+
+```
+teradata://{user}:{password}@{host}
+```
+
+Note: Its required to have Teradata ODBC drivers installed and environment variables configured for
+proper work of sqlalchemy dialect. Teradata ODBC Drivers available here:
+https://downloads.teradata.com/download/connectivity/odbc-driver/linux
+
+Required environment variables:
+
+```
+export ODBCINI=/.../teradata/client/ODBC_64/odbc.ini
+export ODBCINST=/.../teradata/client/ODBC_64/odbcinst.ini
+```

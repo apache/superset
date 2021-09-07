@@ -14,5 +14,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-FLASK_APP=superset:app
-FLASK_ENV=development
+FLASK_APP="superset.app:create_app()"
+FLASK_ENV="development"

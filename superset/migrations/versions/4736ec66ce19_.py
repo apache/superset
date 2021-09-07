@@ -24,8 +24,8 @@ Create Date: 2017-10-03 14:37:01.376578
 
 import logging
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 from superset.utils.core import (
     generic_find_fk_constraint_name,
@@ -120,14 +120,14 @@ def upgrade():
                 or "uq_datasources_datasource_name",
                 type_="unique",
             )
-    except Exception as e:
+    except Exception as ex:
         logging.warning(
             "Constraint drop failed, you may want to do this "
             "manually on your database. For context, this is a known "
             "issue around undeterministic contraint names on Postgres "
             "and perhaps more databases through SQLAlchemy."
         )
-        logging.exception(e)
+        logging.exception(ex)
 
 
 def downgrade():

@@ -14,19 +14,23 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 from datetime import datetime
+from typing import Optional
 from urllib import parse
 
+from sqlalchemy.engine.url import URL
+
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.utils import core as utils
 
 
 class DrillEngineSpec(BaseEngineSpec):
     """Engine spec for Apache Drill"""
 
     engine = "drill"
+    engine_name = "Apache Drill"
 
-    _time_grain_functions = {
+    _time_grain_expressions = {
         None: "{col}",
         "PT1S": "NEARESTDATE({col}, 'SECOND')",
         "PT1M": "NEARESTDATE({col}, 'MINUTE')",
@@ -50,16 +54,16 @@ class DrillEngineSpec(BaseEngineSpec):
         return "TO_DATE({col})"
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
         tt = target_type.upper()
-        if tt == "DATE":
-            return "CAST('{}' AS DATE)".format(dttm.isoformat()[:10])
-        elif tt == "TIMESTAMP":
-            return "CAST('{}' AS TIMESTAMP)".format(dttm.strftime("%Y-%m-%d %H:%M:%S"))
-        return "'{}'".format(dttm.strftime("%Y-%m-%d %H:%M:%S"))
+        if tt == utils.TemporalType.DATE:
+            return f"TO_DATE('{dttm.date().isoformat()}', 'yyyy-MM-dd')"
+        if tt == utils.TemporalType.TIMESTAMP:
+            datetime_formatted = dttm.isoformat(sep=" ", timespec="seconds")
+            return f"""TO_TIMESTAMP('{datetime_formatted}', 'yyyy-MM-dd HH:mm:ss')"""
+        return None
 
     @classmethod
-    def adjust_database_uri(cls, uri, selected_schema):
+    def adjust_database_uri(cls, uri: URL, selected_schema: Optional[str]) -> None:
         if selected_schema:
             uri.database = parse.quote(selected_schema, safe="")
-        return uri

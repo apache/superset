@@ -26,12 +26,14 @@ Create Date: 2017-02-08 14:16:34.948793
 revision = "a99f2f7c195a"
 down_revision = "db0c65b146bd"
 
-from alembic import op
 import json
-import sqlalchemy as sa
-from superset import db
-from sqlalchemy.ext.declarative import declarative_base
 from urllib import parse
+
+import sqlalchemy as sa
+from alembic import op
+from sqlalchemy.ext.declarative import declarative_base
+
+from superset import db
 
 Base = declarative_base()
 

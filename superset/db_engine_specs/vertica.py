@@ -14,9 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 
 
 class VerticaEngineSpec(PostgresBaseEngineSpec):
     engine = "vertica"
+    engine_name = "Vertica"

@@ -16,14 +16,18 @@
 # under the License.
 
 import pandas as pd
-from sqlalchemy import DateTime
+from sqlalchemy import DateTime, String
 
 from superset import db
+from superset.models.slice import Slice
 from superset.utils import core as utils
-from .helpers import config, get_example_data, get_slice_json, merge_slice, Slice, TBL
+
+from .helpers import config, get_example_data, get_slice_json, merge_slice, TBL
 
 
-def load_random_time_series_data(only_metadata=False, force=False):
+def load_random_time_series_data(
+    only_metadata: bool = False, force: bool = False
+) -> None:
     """Loading random time series data from a zip file in the repo"""
     tbl_name = "random_time_series"
     database = utils.get_example_database()
@@ -32,13 +36,18 @@ def load_random_time_series_data(only_metadata=False, force=False):
     if not only_metadata and (not table_exists or force):
         data = get_example_data("random_time_series.json.gz")
         pdf = pd.read_json(data)
-        pdf.ds = pd.to_datetime(pdf.ds, unit="s")
+        if database.backend == "presto":
+            pdf.ds = pd.to_datetime(pdf.ds, unit="s")
+            pdf.ds = pdf.ds.dt.strftime("%Y-%m-%d %H:%M%:%S")
+        else:
+            pdf.ds = pd.to_datetime(pdf.ds, unit="s")
+
         pdf.to_sql(
             tbl_name,
             database.get_sqla_engine(),
             if_exists="replace",
             chunksize=500,
-            dtype={"ds": DateTime},
+            dtype={"ds": DateTime if database.backend != "presto" else String(255)},
             index=False,
         )
         print("Done loading table!")
@@ -57,11 +66,10 @@ def load_random_time_series_data(only_metadata=False, force=False):
 
     slice_data = {
         "granularity_sqla": "day",
-        "row_limit": config.get("ROW_LIMIT"),
-        "since": "1 year ago",
-        "until": "now",
+        "row_limit": config["ROW_LIMIT"],
+        "since": "2019-01-01",
+        "until": "2019-02-01",
         "metric": "count",
-        "where": "",
         "viz_type": "cal_heatmap",
         "domain_granularity": "month",
         "subdomain_granularity": "day",

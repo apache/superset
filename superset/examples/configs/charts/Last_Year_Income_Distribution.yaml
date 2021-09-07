@@ -1,0 +1,59 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+slice_name: Last Year Income Distribution
+viz_type: histogram
+params:
+  adhoc_filters:
+  - clause: WHERE
+    comparator: Currently A Developer
+    expressionType: SIMPLE
+    filterOptionName: filter_fvi0jg9aii_2lekqrhy7qk
+    isExtra: false
+    isNew: false
+    operator: ==
+    sqlExpression: null
+    subject: developer_type
+  - clause: WHERE
+    comparator: '100000'
+    expressionType: SIMPLE
+    filterOptionName: filter_khdc3iypzjg_3g6h02b4f2p
+    isExtra: false
+    isNew: false
+    operator: <=
+    sqlExpression: null
+    subject: last_yr_income
+  all_columns_x:
+  - last_yr_income
+  color_scheme: supersetColors
+  datasource: 42__table
+  granularity_sqla: time_start
+  groupby: []
+  label_colors: {}
+  link_length: '10'
+  queryFields:
+    groupby: groupby
+  row_limit: null
+  time_range: No filter
+  time_range_endpoints:
+  - inclusive
+  - exclusive
+  url_params: {}
+  viz_type: histogram
+cache_timeout: null
+uuid: a2ec5256-94b4-43c4-b8c7-b83f70c5d4df
+version: 1.0.0
+dataset_uuid: d95a2865-53ce-1f82-a53d-8e3c89331469

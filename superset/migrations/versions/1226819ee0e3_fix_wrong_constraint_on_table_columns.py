@@ -21,10 +21,12 @@ Revises: 956a063c52b3
 Create Date: 2016-05-27 15:03:32.980343
 
 """
+import logging
+
 from alembic import op
+
 from superset import db
 from superset.utils.core import generic_find_constraint_name
-import logging
 
 # revision identifiers, used by Alembic.
 revision = "1226819ee0e3"
@@ -39,7 +41,7 @@ naming_convention = {
 def find_constraint_name(upgrade=True):
     cols = {"column_name"} if upgrade else {"datasource_name"}
     return generic_find_constraint_name(
-        table="columns", columns=cols, referenced="datasources", db=db
+        table="columns", columns=cols, referenced="datasources", database=db
     )
 
 

@@ -19,6 +19,7 @@
 import json
 import logging
 import os
+from typing import Any, Dict, List, Optional, Union
 from urllib import request
 from urllib.error import URLError
 
@@ -29,11 +30,13 @@ from flask_login import login_user
 from werkzeug.http import parse_cookie
 
 from superset import app, db, security_manager
-from superset.models.core import Dashboard, Log, Slice
+from superset.extensions import celery_app
+from superset.models.core import Log
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
 from superset.models.tags import Tag, TaggedObject
-from superset.tasks.celery_app import app as celery_app
-from superset.utils.core import parse_human_datetime
-
+from superset.utils.date_parser import parse_human_datetime
+from superset.views.utils import build_extra_filters
 
 logger = get_task_logger(__name__)
 logger.setLevel(logging.INFO)
@@ -44,7 +47,9 @@ STAGE = os.environ['STAGE']
 CELERY_QUEUE = '{}-{}'.format(STAGE, TENANT)
 
 
-def get_form_data(chart_id, dashboard=None):
+def get_form_data(
+    chart_id: int, dashboard: Optional[Dashboard] = None
+) -> Dict[str, Any]:
     """
     Build `form_data` for chart GET request from dashboard's `default_filters`.
 
@@ -52,43 +57,41 @@ def get_form_data(chart_id, dashboard=None):
     filters in the GET request for charts.
 
     """
-    form_data = {"slice_id": chart_id}
+    form_data: Dict[str, Any] = {"slice_id": chart_id}
 
     if dashboard is None or not dashboard.json_metadata:
         return form_data
 
     json_metadata = json.loads(dashboard.json_metadata)
-
-    # do not apply filters if chart is immune to them
-    if chart_id in json_metadata.get("filter_immune_slices", []):
-        return form_data
-
     default_filters = json.loads(json_metadata.get("default_filters", "null"))
     if not default_filters:
         return form_data
 
-    # are some of the fields in the chart immune to filters?
-    filter_immune_slice_fields = json_metadata.get("filter_immune_slice_fields", {})
-    immune_fields = filter_immune_slice_fields.get(str(chart_id), [])
-
-    extra_filters = []
-    for filters in default_filters.values():
-        for col, val in filters.items():
-            if col not in immune_fields:
-                extra_filters.append({"col": col, "op": "in", "val": val})
-    if extra_filters:
-        form_data["extra_filters"] = extra_filters
+    filter_scopes = json_metadata.get("filter_scopes", {})
+    layout = json.loads(dashboard.position_json or "{}")
+    if (
+        isinstance(layout, dict)
+        and isinstance(filter_scopes, dict)
+        and isinstance(default_filters, dict)
+    ):
+        extra_filters = build_extra_filters(
+            layout, filter_scopes, default_filters, chart_id
+        )
+        if extra_filters:
+            form_data["extra_filters"] = extra_filters
 
     return form_data
 
 
-def get_url(chart):
+def get_url(chart: Slice, extra_filters: Optional[Dict[str, Any]] = None) -> str:
     """Return external URL for warming up a given chart/table cache."""
     with app.test_request_context():
-        baseurl = "{SUPERSET_WEBSERVER_ADDRESS}:{SUPERSET_WEBSERVER_PORT}".format(
-            **app.config
+        baseurl = (
+            "{SUPERSET_WEBSERVER_PROTOCOL}://"
+            "{SUPERSET_WEBSERVER_ADDRESS}:"
+            "{SUPERSET_WEBSERVER_PORT}".format(**app.config)
         )
-        return f"{baseurl}{chart.explore_json_url}"
+        return f"{baseurl}{chart.get_explore_url(overrides=extra_filters)}"
 
 
 class Strategy:
@@ -114,10 +117,10 @@ class Strategy:
 
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
-    def get_urls(self):
+    def get_urls(self) -> List[str]:
         raise NotImplementedError("Subclasses must implement get_urls!")
 
 
@@ -139,7 +142,7 @@ class DummyStrategy(Strategy):
 
     name = "dummy"
 
-    def get_urls(self):
+    def get_urls(self) -> List[str]:
         session = db.create_scoped_session()
         charts = session.query(Slice).all()
 
@@ -166,12 +169,12 @@ class TopNDashboardsStrategy(Strategy):
 
     name = "top_n_dashboards"
 
-    def __init__(self, top_n=5, since="7 days ago"):
+    def __init__(self, top_n: int = 5, since: str = "7 days ago") -> None:
         super(TopNDashboardsStrategy, self).__init__()
         self.top_n = top_n
-        self.since = parse_human_datetime(since)
+        self.since = parse_human_datetime(since) if since else None
 
-    def get_urls(self):
+    def get_urls(self) -> List[str]:
         urls = []
         session = db.create_scoped_session()
 
@@ -187,7 +190,8 @@ class TopNDashboardsStrategy(Strategy):
         dashboards = session.query(Dashboard).filter(Dashboard.id.in_(dash_ids)).all()
         for dashboard in dashboards:
             for chart in dashboard.slices:
-                urls.append(get_url(chart))
+                form_data_with_filters = get_form_data(chart.id, dashboard)
+                urls.append(get_url(chart, form_data_with_filters))
 
         return urls
 
@@ -210,11 +214,11 @@ class DashboardTagsStrategy(Strategy):
 
     name = "dashboard_tags"
 
-    def __init__(self, tags=None):
+    def __init__(self, tags: Optional[List[str]] = None) -> None:
         super(DashboardTagsStrategy, self).__init__()
         self.tags = tags or []
 
-    def get_urls(self):
+    def get_urls(self) -> List[str]:
         urls = []
         session = db.create_scoped_session()
 
@@ -280,10 +284,12 @@ def get_auth_cookies():
 
 
 @celery_app.task(
- name="cache-warmup",
- queue=CELERY_QUEUE,
+    name="cache-warmup",
+    queue=CELERY_QUEUE,
 )
-def cache_warmup(strategy_name, *args, **kwargs):
+def cache_warmup(
+    strategy_name: str, *args: Any, **kwargs: Any
+) -> Union[Dict[str, List[str]], str]:
     """
     Warm up cache.
 
@@ -293,14 +299,14 @@ def cache_warmup(strategy_name, *args, **kwargs):
     logger.info("Loading strategy")
     class_ = None
     for class_ in strategies:
-        if class_.name == strategy_name:
+        if class_.name == strategy_name:  # type: ignore
             break
     else:
         message = f"No strategy {strategy_name} found!"
         logger.error(message)
         return message
 
-    logger.info(f"Loading {class_.__name__}")
+    logger.info("Loading %s", class_.__name__)
     try:
         strategy = class_(*args, **kwargs)
         logger.info("Success!")
@@ -309,7 +315,7 @@ def cache_warmup(strategy_name, *args, **kwargs):
         logger.exception(message)
         return message
 
-    results = {"success": [], "errors": []}
+    results: Dict[str, List[str]] = {"success": [], "errors": []}
     cookies = get_auth_cookies()
     opener = request.build_opener()
     opener.addheaders.append(("Cookie", "session={}".format(cookies[0])))

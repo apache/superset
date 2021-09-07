@@ -18,6 +18,15 @@
 #}
 {% extends "superset/basic.html" %}
 
+{% block head_css %}
+  {{ super() }}
+  {% if custom_css %}
+    <style class="CssEditor-css" type="text/css">
+      {{ custom_css }}
+    </style>
+  {% endif %}
+{% endblock %}
+
 {% block body %}
   <div id="app" data-bootstrap="{{ bootstrap_data }}" />
 {% endblock %}
