@@ -43,7 +43,7 @@ def get_physical_table_metadata(
     # ensure empty schema
     _schema_name = schema_name if schema_name else None
     # Table does not exist or is not visible to a connection.
-    if not database.has_table_by_name(table_name, schema=_schema_name):
+    if not database.has_table_or_view_by_name(table_name, schema=_schema_name):
         raise NoSuchTableError
 
     cols = database.get_columns(table_name, schema=_schema_name)
