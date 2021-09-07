@@ -92,7 +92,6 @@ export default function HeaderReportActionsDropDown({
 
   useEffect(() => {
     if (canAddReports()) {
-      console.log('FETCH 1', 'dashboardId', dashboardId);
       dispatch(
         fetchUISpecificReport({
           userId: user.userId,
@@ -110,13 +109,6 @@ export default function HeaderReportActionsDropDown({
       dashboardId &&
       dashboardId !== dashboardIdRef.current
     ) {
-      console.log(
-        'dashboardIdRef.current',
-        dashboardIdRef.current,
-        'dashboardId',
-        dashboardId,
-        'FETCH 2',
-      );
       dashboardIdRef.current = dashboardId;
       dispatch(
         fetchUISpecificReport({
