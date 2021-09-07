@@ -29,7 +29,7 @@ import Alert from 'src/components/Alert';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
 describe('RefreshIntervalModal - Enzyme', () => {
-  const getMountWrapper = props =>
+  const getMountWrapper = (props: any) =>
     mount(<RefreshIntervalModal {...props} />, {
       wrappingComponent: ThemeProvider,
       wrappingComponentProps: {
@@ -52,10 +52,12 @@ describe('RefreshIntervalModal - Enzyme', () => {
     const wrapper = getMountWrapper(props);
     wrapper.find('span[role="button"]').simulate('click');
 
+    // @ts-ignore (for handleFrequencyChange)
     wrapper.instance().handleFrequencyChange(30);
     wrapper.update();
     expect(wrapper.find(ModalTrigger).find(Alert)).toExist();
 
+    // @ts-ignore (for handleFrequencyChange)
     wrapper.instance().handleFrequencyChange(3601);
     wrapper.update();
     expect(wrapper.find(ModalTrigger).find(Alert)).not.toExist();
@@ -105,9 +107,9 @@ const editModeOnProps = {
   editMode: true,
 };
 
-const setup = () => (
+const setup = (overrides?: any) => (
   <div className="dashboard-header">
-    <HeaderActionsDropdown {...editModeOnProps} />
+    <HeaderActionsDropdown {...editModeOnProps} {...overrides} />
   </div>
 );
 

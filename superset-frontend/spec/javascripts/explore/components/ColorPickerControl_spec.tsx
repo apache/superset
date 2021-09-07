@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render } from 'spec/helpers/testing-library';
 import {
   CategoricalScheme,
   getCategoricalSchemeRegistry,
@@ -42,20 +42,31 @@ describe('ColorPickerControl', () => {
     render(<ColorPickerControl {...defaultProps} />);
   });
 
-  it('renders a OverlayTrigger', () => {
-    // const controlHeader = wrapper.find(ControlHeader);
-    // expect(controlHeader).toHaveLength(1);
-    // expect(wrapper.find(Popover)).toExist();
+  it('renders an OverlayTrigger', () => {
+    const rendered = render(<ColorPickerControl {...defaultProps} />);
 
-    screen.debug();
-    expect.anything();
+    // This is the div wrapping the OverlayTrigger and SketchPicker
+    const controlWrapper = rendered.container.querySelectorAll('div')[1];
+    expect(controlWrapper.childElementCount).toBe(2);
+
+    // This is the div containing the OverlayTrigger
+    const overlayTrigger = rendered.container.querySelectorAll('div')[2];
+    expect(overlayTrigger).toHaveStyle(
+      'position: absolute; width: 50px; height: 20px; top: 0px; left: 0px; right: 0px; bottom: 0px; background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uCTZhw1gGGYhAGBZIA/nYDCgBDAm9BGDWAAJyRCgLaBCAAgXwixzAS0pgAAAABJRU5ErkJggg==) center;',
+    );
   });
 
   it('renders a Popover with a SketchPicker', () => {
-    // const popOver = shallow(inst.renderPopover());
-    // expect(popOver.find(SketchPicker)).toHaveLength(1);
+    const rendered = render(<ColorPickerControl {...defaultProps} />);
 
-    // screen.logTestingPlaygroundURL();
-    expect.anything();
+    // This is the div wrapping the OverlayTrigger and SketchPicker
+    const controlWrapper = rendered.container.querySelectorAll('div')[1];
+    expect(controlWrapper.childElementCount).toBe(2);
+
+    // This is the div containing the SketchPicker
+    const sketchPicker = rendered.container.querySelectorAll('div')[3];
+    expect(sketchPicker).toHaveStyle(
+      'position: absolute; width: 50px; height: 20px; top: 0px; left: 0px; right: 0px; bottom: 0px; border-radius: 2px;',
+    );
   });
 });
