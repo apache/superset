@@ -175,7 +175,6 @@ const Select = ({
   placeholder = t('Select ...'),
   showSearch,
   value,
-  onChange,
   ...props
 }: SelectProps) => {
   const isAsync = typeof options === 'function';
@@ -554,7 +553,6 @@ const Select = ({
         onPopupScroll={isAsync ? handlePagination : undefined}
         onSearch={shouldShowSearch ? handleOnSearch : undefined}
         onSelect={handleOnSelect}
-        onChange={onChange}
         onClear={() => setSelectValue(undefined)}
         onChange={onChange}
         options={selectOptions}
