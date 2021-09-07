@@ -32,7 +32,6 @@ import AntdSelect, {
   SelectProps as AntdSelectProps,
   SelectValue as AntdSelectValue,
   LabeledValue as AntdLabeledValue,
-  SelectValue,
 } from 'antd/lib/select';
 import { DownOutlined, SearchOutlined } from '@ant-design/icons';
 import debounce from 'lodash/debounce';
@@ -80,7 +79,6 @@ export interface SelectProps extends PickedSelectProps {
   pageSize?: number;
   invertSelection?: boolean;
   fetchOnlyOnSearch?: boolean;
-  onSelect?: (value: SelectValue) => void;
 }
 
 const StyledContainer = styled.div`
@@ -172,7 +170,7 @@ const Select = ({
   placeholder = t('Select ...'),
   showSearch,
   value,
-  onSelect,
+  onChange,
   ...props
 }: SelectProps) => {
   const isAsync = typeof options === 'function';
@@ -409,6 +407,10 @@ const Select = ({
             const newOptions = [...selectOptions, newOption];
             setSelectOptions(newOptions);
             setSelectValue(searchValue);
+
+            if (onChange) {
+              onChange(searchValue, newOptions);
+            }
           }
         }
         setSearchedValue(searchValue);
@@ -420,6 +422,7 @@ const Select = ({
       allowNewOptions,
       initialOptions,
       isSingleMode,
+      onChange,
       searchedValue,
       selectOptions,
     ],
@@ -491,10 +494,7 @@ const Select = ({
     if (isSingleMode) {
       handleTopOptions(selectValue);
     }
-    if (onSelect) {
-      onSelect(selectValue || '');
-    }
-  }, [handleTopOptions, isSingleMode, selectValue, onSelect]);
+  }, [handleTopOptions, isSingleMode, selectValue]);
 
   const dropdownRender = (
     originNode: ReactElement & { ref?: RefObject<HTMLElement> },
@@ -542,6 +542,7 @@ const Select = ({
         onPopupScroll={isAsync ? handlePagination : undefined}
         onSearch={shouldShowSearch ? handleOnSearch : undefined}
         onSelect={handleOnSelect}
+        onChange={onChange}
         onClear={() => setSelectValue(undefined)}
         options={selectOptions}
         placeholder={placeholder}

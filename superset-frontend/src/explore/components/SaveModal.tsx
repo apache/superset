@@ -263,7 +263,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
               allowNewOptions
               ariaLabel={t('Select a dashboard')}
               options={this.props.dashboards}
-              onSelect={this.onDashboardSelectChange}
+              onChange={this.onDashboardSelectChange}
               value={dashboardSelectValue || undefined}
               placeholder={
                 // Using markdown to allow for good i18n
