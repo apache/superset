@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { css } from '@superset-ui/core';
+import { css, t } from '@superset-ui/core';
 import { Select } from 'src/components';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
@@ -195,9 +195,9 @@ export default class SelectControl extends React.PureComponent {
     const selectProps = {
       allowNewOptions: freeForm,
       autoFocus,
-      ariaLabel: ariaLabel || label || name,
+      ariaLabel:
+        ariaLabel || (typeof label === 'string' ? label : t('Select ...')),
       allowClear: clearable,
-      defaultValue: this.props.default || undefined,
       disabled,
       filterOption:
         filterOption && typeof filterOption === 'function'
@@ -213,7 +213,7 @@ export default class SelectControl extends React.PureComponent {
       options: this.state.options,
       placeholder,
       showSearch: true,
-      value,
+      value: value || this.props.default || undefined,
     };
 
     return (
