@@ -49,8 +49,12 @@ type PickedSelectProps = Pick<
   | 'autoFocus'
   | 'disabled'
   | 'filterOption'
+  | 'labelInValue'
+  | 'loading'
   | 'notFoundContent'
   | 'onChange'
+  | 'onClear'
+  | 'onFocus'
   | 'placeholder'
   | 'showSearch'
   | 'value'
@@ -73,6 +77,7 @@ export interface SelectProps extends PickedSelectProps {
   allowNewOptions?: boolean;
   ariaLabel: string;
   header?: ReactNode;
+  lazyLoading?: boolean;
   mode?: 'single' | 'multiple';
   name?: string; // discourage usage
   options: OptionsType | OptionsPagePromise;
@@ -84,15 +89,11 @@ export interface SelectProps extends PickedSelectProps {
 const StyledContainer = styled.div`
   display: flex;
   flex-direction: column;
+  width: 100%;
 `;
 
-const StyledSelect = styled(AntdSelect, {
-  shouldForwardProp: prop => prop !== 'hasHeader',
-})<{ hasHeader: boolean }>`
-  ${({ theme, hasHeader }) => `
-    width: 100%;
-    margin-top: ${hasHeader ? theme.gridUnit : 0}px;
-
+const StyledSelect = styled(AntdSelect)`
+  ${({ theme }) => `
     && .ant-select-selector {
       border-radius: ${theme.gridUnit}px;
     }
@@ -163,8 +164,12 @@ const Select = ({
   filterOption = true,
   header = null,
   invertSelection = false,
+  labelInValue = false,
+  lazyLoading = true,
+  loading = false,
   mode = 'single',
   name,
+  onChange,
   options,
   pageSize = DEFAULT_PAGE_SIZE,
   placeholder = t('Select ...'),
@@ -183,13 +188,13 @@ const Select = ({
   );
   const [selectValue, setSelectValue] = useState(value);
   const [searchedValue, setSearchedValue] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(loading);
   const [isTyping, setIsTyping] = useState(false);
   const [error, setError] = useState('');
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
-  const [loadingEnabled, setLoadingEnabled] = useState(false);
+  const [loadingEnabled, setLoadingEnabled] = useState(!lazyLoading);
   const fetchedQueries = useRef(new Map<string, number>());
   const mappedMode = isSingleMode
     ? undefined
@@ -198,16 +203,21 @@ const Select = ({
     : 'multiple';
 
   useEffect(() => {
+    fetchedQueries.current.clear();
     setSelectOptions(
       options && Array.isArray(options) ? options : EMPTY_OPTIONS,
     );
   }, [options]);
 
   useEffect(() => {
-    if (isAsync && value) {
-      const array: AntdLabeledValue[] = Array.isArray(value)
-        ? (value as AntdLabeledValue[])
-        : [value as AntdLabeledValue];
+    setSelectValue(value);
+  }, [value]);
+
+  useEffect(() => {
+    if (isAsync && selectValue) {
+      const array: AntdLabeledValue[] = Array.isArray(selectValue)
+        ? (selectValue as AntdLabeledValue[])
+        : [selectValue as AntdLabeledValue];
       const options: AntdLabeledValue[] = [];
       array.forEach(element => {
         const found = selectOptions.find(
@@ -221,23 +231,20 @@ const Select = ({
         setSelectOptions([...selectOptions, ...options]);
       }
     }
-  }, [isAsync, selectOptions, value]);
-
-  useEffect(() => {
-    setSelectValue(value);
-  }, [value]);
+  }, [isAsync, selectOptions, selectValue]);
 
   const handleTopOptions = useCallback(
     (selectedValue: AntdSelectValue | undefined) => {
       // bringing selected options to the top of the list
       if (selectedValue !== undefined && selectedValue !== null) {
+        const isLabeledValue = isAsync || labelInValue;
         const topOptions: OptionsType = [];
         const otherOptions: OptionsType = [];
 
         selectOptions.forEach(opt => {
           let found = false;
           if (Array.isArray(selectedValue)) {
-            if (isAsync) {
+            if (isLabeledValue) {
               found =
                 (selectedValue as AntdLabeledValue[]).find(
                   element => element.value === opt.value,
@@ -246,7 +253,7 @@ const Select = ({
               found = selectedValue.includes(opt.value);
             }
           } else {
-            found = isAsync
+            found = isLabeledValue
               ? (selectedValue as AntdLabeledValue).value === opt.value
               : selectedValue === opt.value;
           }
@@ -266,10 +273,10 @@ const Select = ({
               !topOptions.find(
                 tOpt =>
                   tOpt.value ===
-                  (isAsync ? (val as AntdLabeledValue)?.value : val),
+                  (isLabeledValue ? (val as AntdLabeledValue)?.value : val),
               )
             ) {
-              if (isAsync) {
+              if (isLabeledValue) {
                 const labelValue = val as AntdLabeledValue;
                 topOptions.push({
                   label: labelValue.label,
@@ -289,7 +296,7 @@ const Select = ({
         }
       }
     },
-    [isAsync, isSingleMode, selectOptions],
+    [isAsync, isSingleMode, labelInValue, selectOptions],
   );
 
   const handleOnSelect = (
@@ -496,6 +503,12 @@ const Select = ({
     }
   }, [handleTopOptions, isSingleMode, selectValue]);
 
+  useEffect(() => {
+    if (loading !== undefined && loading !== isLoading) {
+      setIsLoading(loading);
+    }
+  }, [isLoading, loading]);
+
   const dropdownRender = (
     originNode: ReactElement & { ref?: RefObject<HTMLElement> },
   ) => {
@@ -528,12 +541,11 @@ const Select = ({
     <StyledContainer>
       {header}
       <StyledSelect
-        hasHeader={!!header}
         aria-label={ariaLabel || name}
         dropdownRender={dropdownRender}
         filterOption={handleFilterOption}
         getPopupContainer={triggerNode => triggerNode.parentNode}
-        labelInValue={isAsync}
+        labelInValue={isAsync || labelInValue}
         maxTagCount={MAX_TAG_COUNT}
         mode={mappedMode}
         onDeselect={handleOnDeselect}
@@ -544,6 +556,7 @@ const Select = ({
         onSelect={handleOnSelect}
         onChange={onChange}
         onClear={() => setSelectValue(undefined)}
+        onChange={onChange}
         options={selectOptions}
         placeholder={placeholder}
         showSearch={shouldShowSearch}
