@@ -56,7 +56,9 @@ def upgrade():
 
         if not dashboard.json_metadata:
             logger.info(
-                "[AddTypeToNativeFilter] Skipping Dashboard<pk:%s> ", dashboard.id
+                "[AddTypeToNativeFilter] Skipping Dashboard<pk:%s> json_metadata is %s",
+                dashboard.id,
+                dashboard.json_metadata,
             )
             continue
         try:
@@ -74,7 +76,7 @@ def upgrade():
             continue
 
         for native_filter in json_meta["native_filter_configuration"]:
-            native_filter.setdefault("type", "NATIVE_FILTER")
+            native_filter["type"] = "NATIVE_FILTER"
         dashboard.json_metadata = json.dumps(json_meta)
 
     session.commit()
@@ -93,7 +95,9 @@ def downgrade():
         )
         if not dashboard.json_metadata:
             logger.info(
-                "[RemoveTypeToNativeFilter] Skipping Dashboard<pk:%s> ", dashboard.id
+                "[RemoveTypeToNativeFilter] Skipping Dashboard<pk:%s> json_metadata is %s",
+                dashboard.id,
+                dashboard.json_metadata,
             )
             continue
         try:
