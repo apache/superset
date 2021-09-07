@@ -322,8 +322,6 @@ const FiltersConfigForm = (
   const formFilter =
     form.getFieldValue('filters')?.[filterId] || defaultFormFilter;
 
-  // Defaulting to NATIVE_FILTER.
-  formFilter.type = NativeFilterType.NATIVE_FILTER;
   const nativeFilterItems = getChartMetadataRegistry().items;
   const nativeFilterVizTypes = Object.entries(nativeFilterItems)
     // @ts-ignore
@@ -686,6 +684,13 @@ const FiltersConfigForm = (
         forceRender
       >
         <StyledContainer>
+          <StyledFormItem
+            name={['filters', filterId, 'type']}
+            hidden
+            initialValue={NativeFilterType.NATIVE_FILTER}
+          >
+            <Input />
+          </StyledFormItem>
           <StyledFormItem
             name={['filters', filterId, 'name']}
             label={<StyledLabel>{t('Filter name')}</StyledLabel>}

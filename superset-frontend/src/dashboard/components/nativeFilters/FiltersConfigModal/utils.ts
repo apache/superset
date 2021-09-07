@@ -140,7 +140,7 @@ export const createHandleSave = (
           : [],
         scope: formInputs.scope,
         sortMetric: formInputs.sortMetric,
-        type: 'NATIVE_FILTER',
+        type: formInputs.type,
       };
     });
 
