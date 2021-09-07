@@ -886,3 +886,13 @@ class TestPostProcessing(SupersetTestCase):
             post_df["label"].tolist(), ["x", "y", "y", "y", "z", "z", "q"]
         )
         self.assertListEqual(post_df["y"].tolist(), [1.0, 2.0, 2.0, 2.0, 3.0, 3.0, 4.0])
+
+        post_df = proc.resample(
+            df=df,
+            resample_rule="1D",
+            resample_method="asfreq",
+            time_column="time_column",
+            resample_fill_zero=True,
+        )
+        self.assertListEqual(post_df["label"].tolist(), ["x", "y", 0, 0, "z", 0, "q"])
+        self.assertListEqual(post_df["y"].tolist(), [1.0, 2.0, 0, 0, 3.0, 0, 4.0])
