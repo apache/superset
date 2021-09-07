@@ -24,11 +24,14 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
 
 import pytest
 from sqlalchemy.engine.url import make_url
+from sqlalchemy.types import DateTime
 
 import tests.integration_tests.test_app
 from superset import app, db as metadata_db
+from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.models.core import Database
 from superset.models.slice import Slice
+from superset.models.sql_types.base import literal_dttm_type_factory
 from superset.utils.core import get_example_database, QueryStatus
 
 from .base_tests import SupersetTestCase
@@ -516,3 +519,10 @@ class TestSqlaTableModel(SupersetTestCase):
         assert set(data_for_slices["verbose_map"].keys()) == set(
             ["__timestamp", "sum__num", "gender",]
         )
+
+
+def test_literal_dttm_type_factory():
+    orig_type = DateTime()
+    new_type = literal_dttm_type_factory(orig_type, PostgresEngineSpec, "TIMESTAMP")
+    assert type(new_type).__name__ == "TemporalWrapperType"
+    assert str(new_type) == str(orig_type)
