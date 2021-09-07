@@ -164,13 +164,9 @@ const Select = ({
   filterOption = true,
   header = null,
   invertSelection = false,
-<<<<<<< HEAD
-  loading,
-=======
   labelInValue = false,
   lazyLoading = true,
   loading = false,
->>>>>>> 37c2020035b2c4a3121a0afbc2e2312a3d348ac0
   mode = 'single',
   name,
   onChange,
@@ -179,7 +175,6 @@ const Select = ({
   placeholder = t('Select ...'),
   showSearch,
   value,
-  onChange,
   ...props
 }: SelectProps) => {
   const isAsync = typeof options === 'function';
@@ -192,14 +187,8 @@ const Select = ({
   );
   const [selectValue, setSelectValue] = useState(value);
   const [searchedValue, setSearchedValue] = useState('');
-<<<<<<< HEAD
-  const [isLoading, setLoading] = useState(
-    loading !== undefined ? loading : false,
-  );
-=======
   const [isLoading, setIsLoading] = useState(loading);
   const [isTyping, setIsTyping] = useState(false);
->>>>>>> 37c2020035b2c4a3121a0afbc2e2312a3d348ac0
   const [error, setError] = useState('');
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [page, setPage] = useState(0);
@@ -396,40 +385,6 @@ const Select = ({
     [options],
   );
 
-<<<<<<< HEAD
-  const handleOnSearch = debounce((search: string) => {
-    const searchValue = search.trim();
-    // enables option creation
-    if (allowNewOptions && isSingleMode) {
-      const firstOption = selectOptions.length > 0 && selectOptions[0].value;
-      // replaces the last search value entered with the new one
-      // only when the value wasn't part of the original options
-      if (
-        searchValue &&
-        firstOption === searchedValue &&
-        !initialOptions.find(o => o.value === searchedValue)
-      ) {
-        selectOptions.shift();
-        setSelectOptions(selectOptions);
-      }
-      if (searchValue && !hasOption(searchValue, selectOptions)) {
-        const newOption = {
-          label: searchValue,
-          value: searchValue,
-        };
-        // adds a custom option
-        const newOptions = [...selectOptions, newOption];
-        setSelectOptions(newOptions);
-        setSelectValue(searchValue);
-
-        if (onChange) {
-          onChange(searchValue, newOptions);
-        }
-      }
-    }
-    setSearchedValue(searchValue);
-  }, DEBOUNCE_TIMEOUT);
-=======
   const handleOnSearch = useMemo(
     () =>
       debounce((search: string) => {
@@ -477,7 +432,6 @@ const Select = ({
       selectOptions,
     ],
   );
->>>>>>> 37c2020035b2c4a3121a0afbc2e2312a3d348ac0
 
   const handlePagination = (e: UIEvent<HTMLElement>) => {
     const vScroll = e.currentTarget;
@@ -549,11 +503,7 @@ const Select = ({
 
   useEffect(() => {
     if (loading !== undefined && loading !== isLoading) {
-<<<<<<< HEAD
-      setLoading(loading);
-=======
       setIsLoading(loading);
->>>>>>> 37c2020035b2c4a3121a0afbc2e2312a3d348ac0
     }
   }, [isLoading, loading]);
 
@@ -602,7 +552,6 @@ const Select = ({
         onPopupScroll={isAsync ? handlePagination : undefined}
         onSearch={shouldShowSearch ? handleOnSearch : undefined}
         onSelect={handleOnSelect}
-        onChange={onChange}
         onClear={() => setSelectValue(undefined)}
         onChange={onChange}
         options={selectOptions}
