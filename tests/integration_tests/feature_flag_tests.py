@@ -16,8 +16,19 @@
 # under the License.
 from unittest.mock import patch
 
+from flask import Flask
+
 from superset import is_feature_enabled
+from superset.utils.feature_flag_manager import BaseFeatureFlagBackend
 from tests.integration_tests.base_tests import SupersetTestCase
+
+
+class DummyFeatureFlagBackend(BaseFeatureFlagBackend):
+    def init_app(self, app: Flask) -> None:
+        ...
+
+    def is_feature_enabled(self, feature_flag_name: str, default=False):
+        return True if feature_flag_name == "ALERT_REPORTS" else False
 
 
 class TestFeatureFlag(SupersetTestCase):
@@ -38,3 +49,12 @@ class TestFeatureFlag(SupersetTestCase):
     def test_feature_flags(self):
         self.assertEqual(is_feature_enabled("foo"), "bar")
         self.assertEqual(is_feature_enabled("super"), "set")
+
+
+class TestFeatureFlagBackend(SupersetTestCase):
+    def setUp(self) -> None:
+        self.app.config["FEATURE_FLAG_BACKEND"] = DummyFeatureFlagBackend
+        super().setUp()
+
+    def test_feature_flags(self):
+        self.assertEqual(is_feature_enabled("ALERT_REPORTS"), True)
