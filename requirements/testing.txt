@@ -71,7 +71,7 @@ pyhive[hive,presto]==0.6.4
     # via
     #   -r requirements/development.in
     #   -r requirements/testing.in
-pylint==2.10.2
+pylint==2.9.6
     # via -r requirements/testing.in
 pytest==6.2.4
     # via
