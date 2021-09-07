@@ -136,7 +136,6 @@ from superset.views.utils import (
     check_explore_cache_perms,
     check_resource_permissions,
     check_slice_perms,
-    get_cta_schema_name,
     get_dashboard_extra_filters,
     get_datasource_info,
     get_form_data,
@@ -2411,8 +2410,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 return json_error_response(f"{msg}", status=400)
             return json_error_response(f"{msg}")
 
-    @staticmethod
-    def _sql_json_async(
+    @classmethod
+    def _sql_json_async(  # pylint: disable=too-many-arguments
+        cls,
         session: Session,
         rendered_query: str,
         query: Query,
@@ -2474,19 +2474,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         # Update saved query with execution info from the query execution
         QueryDAO.update_saved_query_exec_info(query_id)
 
-        resp = json_success(
-            json.dumps(
-                {"query": query.to_dict()},
-                default=utils.json_int_dttm_ser,
-                ignore_nan=True,
-            ),
-            status=202,
-        )
+        resp = json_success(cls._convert_query_to_payload(query), status=202,)
         session.commit()
         return resp
 
-    @staticmethod
+    @classmethod
     def _sql_json_sync(
+        cls,
         _session: Session,
         rendered_query: str,
         query: Query,
@@ -2562,76 +2556,45 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "user_agent": cast(Optional[str], request.headers.get("USER_AGENT"))
         }
         execution_context = SqlJsonExecutionContext(request.json)
-        return self.sql_json_exec(execution_context, request.json, log_params)
+        return self.sql_json_exec(execution_context, log_params)
 
-    def sql_json_exec(  # pylint: disable=too-many-statements,too-many-locals
+    @classmethod
+    def is_query_handled(cls, query: Optional[Query]) -> bool:
+        return query is not None and query.status in [
+            QueryStatus.RUNNING,
+            QueryStatus.PENDING,
+            QueryStatus.TIMED_OUT,
+        ]
+
+    def sql_json_exec(  # pylint: disable=too-many-statements
         self,
         execution_context: SqlJsonExecutionContext,
-        query_params: Dict[str, Any],
         log_params: Optional[Dict[str, Any]] = None,
     ) -> FlaskResponse:
         """Runs arbitrary sql and returns data as json"""
 
         session = db.session()
 
-        # check to see if this query is already running
-        query = (
-            session.query(Query)
-            .filter_by(
-                client_id=execution_context.client_id,
-                user_id=execution_context.user_id,
-                sql_editor_id=execution_context.sql_editor_id,
-            )
-            .one_or_none()
-        )
-        if query is not None and query.status in [
-            QueryStatus.RUNNING,
-            QueryStatus.PENDING,
-            QueryStatus.TIMED_OUT,
-        ]:
-            # return the existing query
-            payload = json.dumps(
-                {"query": query.to_dict()}, default=utils.json_int_dttm_ser
-            )
+        query = self._get_existing_query(execution_context, session)
+
+        if self.is_query_handled(query):
+            payload = self._convert_query_to_payload(cast(Query, query))
             return json_success(payload)
 
-        mydb = session.query(Database).get(execution_context.database_id)
-        if not mydb:
-            raise SupersetGenericErrorException(
-                __(
-                    "The database referenced in this query was not found. Please "
-                    "contact an administrator for further assistance or try again."
-                )
-            )
-
-        # Set tmp_schema_name for CTA
-        # TODO(bkyryliuk): consider parsing, splitting tmp_schema_name from
-        #  tmp_table_name if user enters
-        # <schema_name>.<table_name>
-        tmp_schema_name: Optional[str] = execution_context.schema
-        if execution_context.select_as_cta and mydb.force_ctas_schema:
-            tmp_schema_name = mydb.force_ctas_schema
-        elif execution_context.select_as_cta:
-            tmp_schema_name = get_cta_schema_name(
-                mydb, g.user, execution_context.schema, execution_context.sql
-            )
-
-        # Save current query
-        query = Query(
-            database_id=execution_context.database_id,
-            sql=execution_context.sql,
-            schema=execution_context.schema,
-            select_as_cta=execution_context.select_as_cta,
-            ctas_method=execution_context.ctas_method,
-            start_time=now_as_float(),
-            tab_name=execution_context.tab_name,
-            status=execution_context.status,
-            sql_editor_id=execution_context.sql_editor_id,
-            tmp_table_name=execution_context.tmp_table_name,
-            tmp_schema_name=tmp_schema_name,
-            user_id=execution_context.user_id,
-            client_id=execution_context.client_id_or_short_id,
+        return self._run_sql_json_exec_from_scratch(
+            execution_context, session, log_params
         )
+
+    def _run_sql_json_exec_from_scratch(
+        self,
+        execution_context: SqlJsonExecutionContext,
+        session: Session,
+        log_params: Optional[Dict[str, Any]] = None,
+    ) -> FlaskResponse:
+        execution_context.set_database(
+            self._get_the_query_db(execution_context, session)
+        )
+        query = execution_context.create_query()
         try:
             session.add(query)
             session.flush()
@@ -2700,17 +2663,16 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     },
                 )
 
-        # Limit is not applied to the CTA queries if SQLLAB_CTAS_NO_LIMIT flag is set
-        # to True.
         if not (config.get("SQLLAB_CTAS_NO_LIMIT") and execution_context.select_as_cta):
             # set LIMIT after template processing
+            db_engine_spec = execution_context.database.db_engine_spec  # type: ignore
             limits = [
-                mydb.db_engine_spec.get_limit_from_sql(rendered_query),
+                db_engine_spec.get_limit_from_sql(rendered_query),
                 execution_context.limit,
             ]
-            if limits[0] is None or limits[0] > limits[1]:
+            if limits[0] is None or limits[0] > limits[1]:  # type: ignore
                 query.limiting_factor = LimitingFactor.DROPDOWN
-            elif limits[1] > limits[0]:
+            elif limits[1] > limits[0]:  # type: ignore
                 query.limiting_factor = LimitingFactor.QUERY
             else:  # limits[0] == limits[1]
                 query.limiting_factor = LimitingFactor.QUERY_AND_DROPDOWN
@@ -2718,11 +2680,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         # Flag for whether or not to expand data
         # (feature that will expand Presto row objects and arrays)
-        expand_data: bool = cast(
-            bool,
-            is_feature_enabled("PRESTO_EXPAND_DATA")
-            and query_params.get("expand_data"),
-        )
+        expand_data: bool = execution_context.expand_data
 
         # Async request.
         if execution_context.is_run_asynchronous():
@@ -2733,6 +2691,47 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return self._sql_json_sync(
             session, rendered_query, query, expand_data, log_params
         )
+
+    @staticmethod
+    def _convert_query_to_payload(query: Query) -> str:
+        return json.dumps(
+            {"query": query.to_dict()},
+            default=utils.json_int_dttm_ser,
+            ignore_nan=True,
+        )
+
+    @classmethod
+    def _get_the_query_db(
+        cls, execution_context: SqlJsonExecutionContext, session: Session
+    ) -> Database:
+        mydb = session.query(Database).get(execution_context.database_id)
+        cls._validate_query_db(mydb)
+        return mydb
+
+    @classmethod
+    def _validate_query_db(cls, database: Optional[Database]) -> None:
+        if not database:
+            raise SupersetGenericErrorException(
+                __(
+                    "The database referenced in this query was not found. Please "
+                    "contact an administrator for further assistance or try again."
+                )
+            )
+
+    @classmethod
+    def _get_existing_query(
+        cls, execution_context: SqlJsonExecutionContext, session: Session
+    ) -> Optional[Query]:
+        query = (
+            session.query(Query)
+            .filter_by(
+                client_id=execution_context.client_id,
+                user_id=execution_context.user_id,
+                sql_editor_id=execution_context.sql_editor_id,
+            )
+            .one_or_none()
+        )
+        return query
 
     @has_access
     @event_logger.log_this
@@ -3004,12 +3003,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             .first()
         )
 
-        databases: Dict[int, Any] = {
-            database.id: {
+        databases: Dict[int, Any] = {}
+        for database in DatabaseDAO.find_all():
+            databases[database.id] = {
                 k: v for k, v in database.to_json().items() if k in DATABASE_KEYS
             }
-            for database in DatabaseDAO.find_all()
-        }
+            databases[database.id]["backend"] = database.backend
         queries: Dict[str, Any] = {}
 
         # These are unnecessary if sqllab backend persistence is disabled
@@ -3072,11 +3071,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @event_logger.log_this
-    @expose("/schemas_access_for_csv_upload")
-    def schemas_access_for_csv_upload(self) -> FlaskResponse:
+    @expose("/schemas_access_for_file_upload")
+    def schemas_access_for_file_upload(self) -> FlaskResponse:
         """
         This method exposes an API endpoint to
-        get the schema access control settings for csv upload in this database
+        get the schema access control settings for file upload in this database
         """
         if not request.args.get("db_id"):
             return json_error_response("No database is allowed for your csv upload")

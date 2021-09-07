@@ -299,6 +299,8 @@ class SliceHeaderControls extends React.PureComponent<
               modalBody={
                 <ViewQueryModal latestQueryFormData={this.props.formData} />
               }
+              draggable
+              resizable
               responsive
             />
           </Menu.Item>
@@ -326,16 +328,20 @@ class SliceHeaderControls extends React.PureComponent<
           {t('Download as image')}
         </Menu.Item>
 
-        {this.props.supersetCanCSV && (
-          <Menu.Item key={MENU_KEYS.EXPORT_CSV}>{t('Export CSV')}</Menu.Item>
-        )}
-        {isFeatureEnabled(FeatureFlag.ALLOW_FULL_CSV_EXPORT) &&
+        {this.props.slice.viz_type !== 'filter_box' &&
+          this.props.supersetCanCSV && (
+            <Menu.Item key={MENU_KEYS.EXPORT_CSV}>{t('Export CSV')}</Menu.Item>
+          )}
+
+        {this.props.slice.viz_type !== 'filter_box' &&
+          isFeatureEnabled(FeatureFlag.ALLOW_FULL_CSV_EXPORT) &&
           this.props.supersetCanCSV &&
           isTable && (
             <Menu.Item key={MENU_KEYS.EXPORT_FULL_CSV}>
               {t('Export full CSV')}
             </Menu.Item>
           )}
+
         {isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
           isCrossFilter &&
           canEmitCrossFilter && (
