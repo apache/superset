@@ -19,7 +19,6 @@
 import React, { useEffect } from 'react';
 //import isEqual from 'lodash/isEqual';
 import { styled } from '@superset-ui/core';
-import GlobalFilter from "./GlobalFilter";
 import {
   useFilters,
   useGlobalFilter,
@@ -31,10 +30,9 @@ import {
 } from 'react-table';
 import { Empty } from 'src/common/components';
 //import { TableCollection, Pagination } from 'src/components/dataViewCommon';
-import TableChild from './TableChild';
+import TableDisplay from './TableDisplay';
 import { SortByType } from './types';
-import { GlobalFilter } from "./GlobalFilter";
-const DEFAULT_PAGE_SIZE = 10;
+
 
 export enum EmptyWrapperType {
   Default = 'Default',
@@ -42,10 +40,9 @@ export enum EmptyWrapperType {
 }
 
 export interface FilterableTableProps {
-  columns: string[];
-    data: Record<string, unknown>[];
+  columns: any[];
+    data: any[];
   filterText?: string;
-  pageSize?: number;
   totalCount?: number;
   initialSortBy?: SortByType;
   loading?: boolean;
@@ -131,7 +128,6 @@ const FilterableTable = ({
   columns,
   data,
   filterText = '',
-  pageSize: initialPageSize,
   totalCount = data.length,
   initialSortBy = [],
   loading = false,
@@ -141,27 +137,23 @@ const FilterableTable = ({
   showRowCount = true,
   ...props
 }: FilterableTableProps) => {
-  const initialState = {
+  {/*const initialState = {
     pageSize: initialPageSize ?? DEFAULT_PAGE_SIZE,
     sortBy: initialSortBy,
-  };
+  };*/}
 
   const {
     getTableProps,
     getTableBodyProps,
     headerGroups,
-    page,
     rows,
     prepareRow,
-    pageCount,
-    gotoPage,
     setGlobalFilter,
     ...state
   } = useTable(
     {
       columns,
       data,
-      initialState,
     },
     useFilters,
     useGlobalFilter,
@@ -191,14 +183,25 @@ const FilterableTable = ({
 
   const isEmpty = !loading && rows.length === 0;
 
+
+
+console.log("STATE_FILLTBL", state)
+
+console.log("PROPS_FILLTBL", getTableProps(props))
+console.log("PROPS_FILLTBL_BDYPROPS", getTableBodyProps(props))
+
+console.log("HEADER_GROUP", headerGroups)
+console.log("COLUMNS", columns)
+console.log("ROWS", rows)
+
+
+
+
+
   return (
     <>
-      <GlobalFilter
-        globalFilter={state.globalFilter}
-        setGlobalFilter={setGlobalFilter}
-      />
       <FilterableTableStyles {...props}>
-        <TableChild
+        <TableDisplay
           getTableProps={getTableProps}
           getTableBodyProps={getTableBodyProps}
           prepareRow={prepareRow}

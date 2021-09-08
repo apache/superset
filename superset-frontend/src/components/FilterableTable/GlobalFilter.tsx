@@ -29,7 +29,6 @@ function GlobalFilter({ globalFilter, setGlobalFilter }: GlobalFilterProps) {
     setGlobalFilter(value);
   }, 200);
   return (
-    <div>
       <input
         value={value || ''}
         onChange={e => {
@@ -37,7 +36,6 @@ function GlobalFilter({ globalFilter, setGlobalFilter }: GlobalFilterProps) {
             onChange(e.target.value)
         }}
       />
-    </div>
   );
 }
 

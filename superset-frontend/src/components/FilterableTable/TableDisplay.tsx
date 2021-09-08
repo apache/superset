@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, {useEffect} from 'react';
 
 import cx from 'classnames';
 import { TableInstance } from 'react-table';
@@ -52,7 +52,6 @@ export const Table = styled.table`
     background: ${({ theme }) => theme.colors.grayscale.light5};
     position: sticky;
     top: 0;
-
     &:first-of-type {
       padding-left: ${({ theme }) => theme.gridUnit * 4}px;
     }
@@ -208,8 +207,7 @@ export const Table = styled.table`
 
 Table.displayName = 'table';
 
-export default React.memo(
-  ({
+const TableDisplay =({
     getTableProps,
     getTableBodyProps,
     prepareRow,
@@ -267,6 +265,7 @@ export default React.memo(
             <tr key={i}>
               {columns.map((column, i2) => {
                 if (column.hidden) return null;
+                  
                 return (
                   <td
                     key={i2}
@@ -326,5 +325,5 @@ export default React.memo(
           })}
       </tbody>
     </Table>
-  ),
-);
+  )
+export default React.memo(TableDisplay)
