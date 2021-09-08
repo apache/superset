@@ -118,7 +118,7 @@ def test_scheduler_celery_no_timeout_utc(execute_mock):
 
 @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
 @patch("superset.tasks.scheduler.execute.apply_async")
-def test_scheduler_celery_no_timeout_utc(execute_mock, is_feature_enabled):
+def test_scheduler_feature_flag_off(execute_mock, is_feature_enabled):
     """
     Reports scheduler: Test scheduler with feature flag off
     """
