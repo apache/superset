@@ -14,54 +14,46 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from abc import ABC, abstractmethod
 from copy import deepcopy
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from flask import Flask
-
-
-class BaseFeatureFlagBackend(ABC):
-    @abstractmethod
-    def init_app(self, app: Flask) -> None:
-        ...
-
-    @abstractmethod
-    def is_feature_enabled(self, feature_flag_name: str, default: bool = False) -> bool:
-        ...
 
 
 class FeatureFlagManager:
     def __init__(self) -> None:
         super().__init__()
         self._get_feature_flags_func = None
+        self._is_feature_enabled_func = None
         self._feature_flags: Dict[str, Any] = {}
-        self._feature_flag_backend: Optional[BaseFeatureFlagBackend] = None
 
     def init_app(self, app: Flask) -> None:
         self._get_feature_flags_func = app.config["GET_FEATURE_FLAGS_FUNC"]
+        self._is_feature_enabled_func = app.config["IS_FEATURE_ENABLED_FUNC"]
         self._feature_flags = app.config["DEFAULT_FEATURE_FLAGS"]
         self._feature_flags.update(app.config["FEATURE_FLAGS"])
-        _feature_flag_backend_class = app.config["FEATURE_FLAG_BACKEND"]
-        if _feature_flag_backend_class is not None:
-            self._feature_flag_backend = _feature_flag_backend_class()
-            if self._feature_flag_backend:
-                self._feature_flag_backend.init_app(app)
 
     def get_feature_flags(self) -> Dict[str, Any]:
         if self._get_feature_flags_func:
             return self._get_feature_flags_func(deepcopy(self._feature_flags))
-
+        if self._is_feature_enabled_func:
+            return dict(
+                map(
+                    lambda kv: (kv[0], self._is_feature_enabled_func(kv[0], kv[1])),
+                    self._feature_flags.items(),
+                )
+            )
         return self._feature_flags
 
-    def is_feature_enabled(self, feature_flag_name: str) -> bool:
+    def is_feature_enabled(self, feature: str) -> bool:
         """Utility function for checking whether a feature is turned on"""
+        if self._is_feature_enabled_func:
+            return (
+                self._is_feature_enabled_func(feature, self._feature_flags[feature])
+                if feature in self._feature_flags
+                else False
+            )
         feature_flags = self.get_feature_flags()
-        if feature_flags and feature_flag_name in feature_flags:
-            feature_flag_value = feature_flags[feature_flag_name]
-            if self._feature_flag_backend is not None:
-                return self._feature_flag_backend.is_feature_enabled(
-                    feature_flag_name, feature_flag_value
-                )
-            return feature_flag_value
+        if feature_flags and feature in feature_flags:
+            return feature_flags[feature]
         return False

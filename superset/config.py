@@ -43,7 +43,6 @@ from superset.stats_logger import DummyStatsLogger
 from superset.typing import CacheConfig
 from superset.utils.core import is_test, parse_boolean_string
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
-from superset.utils.feature_flag_manager import BaseFeatureFlagBackend
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
 
@@ -428,20 +427,14 @@ FEATURE_FLAGS: Dict[str, bool] = {}
 #         feature_flags_dict['some_feature'] = g.user and g.user.get_id() == 5
 #     return feature_flags_dict
 GET_FEATURE_FLAGS_FUNC: Optional[Callable[[Dict[str, bool]], Dict[str, bool]]] = None
-# Introduce your own feature flag backend, for example a key value store or
-# a feature flag management system.
+# A function that receives a feature flag name and a optional default value.
+# Has a similar utility to GET_FEATURE_FLAGS_FUNC but it's useful to not force the
+# evaluation of all feature flags when just evaluating a single one.
 #
-# class ExternalFeatureFlagBackend(BaseFeatureFlagBackend):
-#     def init_app(self, app: Flask):
-#         # init your backend here
-#         ...
-#
-#     def is_feature_enabled(self, feature_flag_name: str, default=False):
-#         # evaluate the flag with your backend here
-#         ...
-#
-#
-FEATURE_FLAG_BACKEND: Optional[Type[BaseFeatureFlagBackend]] = None
+# Note that the default `get_feature_flags` will evaluate each feature with this
+# callable when the config key is set, so don't use both GET_FEATURE_FLAGS_FUNC
+# and IS_FEATURE_ENABLED_FUNC in conjunction.
+IS_FEATURE_ENABLED_FUNC: Optional[Callable[[str, Optional[bool]], bool]] = None
 # A function that expands/overrides the frontend `bootstrap_data.common` object.
 # Can be used to implement custom frontend functionality,
 # or dynamically change certain configs.
