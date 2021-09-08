@@ -115,3 +115,25 @@ def test_scheduler_celery_no_timeout_utc(execute_mock):
         db.session.delete(report_schedule)
         db.session.commit()
         app.config["ALERT_REPORTS_WORKING_TIME_OUT_KILL"] = True
+
+@patch("superset.extensions.feature_flag_manager.is_feature_enabled")
+@patch("superset.tasks.scheduler.execute.apply_async")
+def test_scheduler_celery_no_timeout_utc(execute_mock, is_feature_enabled):
+    """
+    Reports scheduler: Test scheduler with feature flag off
+    """
+    is_feature_enabled("ALERT_REPORTS") = False
+    with app.app_context():
+        report_schedule = insert_report_schedule(
+            type=ReportScheduleType.ALERT,
+            name="report",
+            crontab="0 9 * * *",
+            timezone="UTC",
+        )
+
+        with freeze_time("2020-01-01T09:00:00Z"):
+            scheduler()
+            assert len(execute_mock.call_args) == 0
+        db.session.delete(report_schedule)
+        db.session.commit()
+        app.config["ALERT_REPORTS_WORKING_TIME_OUT_KILL"] = True
