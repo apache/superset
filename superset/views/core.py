@@ -2566,7 +2566,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             QueryStatus.TIMED_OUT,
         ]
 
-    def sql_json_exec(  # pylint: disable=too-many-statements
+    def sql_json_exec(  # pylint: disable=too-many-statements,useless-suppression
         self,
         execution_context: SqlJsonExecutionContext,
         log_params: Optional[Dict[str, Any]] = None,
