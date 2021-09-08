@@ -136,4 +136,3 @@ def test_scheduler_feature_flag_off(execute_mock, is_feature_enabled):
             assert len(execute_mock.call_args) == 0
         db.session.delete(report_schedule)
         db.session.commit()
-        app.config["ALERT_REPORTS_WORKING_TIME_OUT_KILL"] = True
