@@ -45,7 +45,7 @@ from flask_babel import gettext as __, lazy_gettext as _
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
 from sqlalchemy import column, select, types
-from sqlalchemy.engine.base import Engine
+from sqlalchemy.engine.base import Connection, Engine
 from sqlalchemy.engine.interfaces import Compiled, Dialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url, URL
@@ -1342,6 +1342,21 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
 
         return False
+
+    @classmethod
+    def _has_view(
+        cls,
+        conn: Connection,
+        dialect: Dialect,
+        view_name: str,
+        schema: Optional[str] = None,
+    ):
+        view_names = dialect.get_view_names(connection=conn, schema=schema)
+        return view_name in view_names
+
+    @classmethod
+    def has_view(cls, engine: Engine, view_name: str, schema: Optional[str] = None):
+        return engine.run_callable(cls._has_view, engine.dialect, view_name, schema)
 
 
 # schema for adding a database by providing parameters instead of the

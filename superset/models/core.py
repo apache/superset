@@ -721,26 +721,19 @@ class Database(
         engine = self.get_sqla_engine()
         return engine.has_table(table_name, schema)
 
+    def has_view_by_name(self, view_name: str, schema: Optional[str] = None) -> bool:
+        engine = self.get_sqla_engine()
+        return db_engine_specs.BaseEngineSpec.has_view(
+            engine=engine, view_name=view_name, schema=schema
+        )
+
     def has_table_or_view_by_name(
         self, name: str, schema: Optional[str] = None
     ) -> bool:
-
-        table_names: List[str]
-        view_names: List[str]
-        if schema:
-            table_names = [
-                ds.table for ds in self.get_all_table_names_in_schema(schema=schema)
-            ]
-            view_names = [
-                ds.table for ds in self.get_all_view_names_in_schema(schema=schema)
-            ]
-        else:
-            table_names = [ds.table for ds in self.get_all_table_names_in_database()]
-            view_names = [ds.table for ds in self.get_all_view_names_in_database()]
-
-        all_datasource_names: List[str] = table_names + view_names
-
-        return name in all_datasource_names
+        result = self.has_table_by_name(
+            table_name=name, schema=schema
+        ) or self.has_view_by_name(view_name=name, schema=schema)
+        return result
 
     @memoized
     def get_dialect(self) -> Dialect:
