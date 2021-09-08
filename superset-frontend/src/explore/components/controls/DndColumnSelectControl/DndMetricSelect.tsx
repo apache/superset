@@ -32,8 +32,11 @@ import { usePrevious } from 'src/common/hooks/usePrevious';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocMetricPopoverTrigger from 'src/explore/components/controls/MetricControl/AdhocMetricPopoverTrigger';
 import MetricDefinitionValue from 'src/explore/components/controls/MetricControl/MetricDefinitionValue';
+import {
+  DatasourcePanelDndItem,
+  isDatasourcePanelDndItem,
+} from 'src/explore/components/DatasourcePanel/types';
 import { OptionValueType } from 'src/explore/components/controls/DndColumnSelectControl/types';
-import { DatasourcePanelDndItem } from 'src/explore/components/DatasourcePanel/types';
 import { DndItemType } from 'src/explore/components/DndItemType';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
@@ -133,9 +136,9 @@ export const DndMetricSelect = (props: any) => {
   const [value, setValue] = useState<(AdhocMetric | Metric | string)[]>(
     coerceAdhocMetrics(props.value),
   );
-  const [droppedItem, setDroppedItem] = useState<DatasourcePanelDndItem | null>(
-    null,
-  );
+  const [droppedItem, setDroppedItem] = useState<
+    DatasourcePanelDndItem | typeof EMPTY_OBJECT
+  >({});
   const [newMetricPopoverVisible, setNewMetricPopoverVisible] = useState(false);
   const prevColumns = usePrevious(columns);
   const prevSavedMetrics = usePrevious(savedMetrics);
@@ -313,13 +316,16 @@ export const DndMetricSelect = (props: any) => {
   );
 
   const handleClickGhostButton = useCallback(() => {
-    setDroppedItem(null);
+    setDroppedItem({});
     togglePopover(true);
   }, [togglePopover]);
 
   const adhocMetric = useMemo(() => {
-    if (droppedItem?.type === DndItemType.Column) {
-      const itemValue = droppedItem?.value as ColumnMeta;
+    if (
+      isDatasourcePanelDndItem(droppedItem) &&
+      droppedItem.type === DndItemType.Column
+    ) {
+      const itemValue = droppedItem.value as ColumnMeta;
       const config: Partial<AdhocMetric> = {
         column: { column_name: itemValue?.column_name },
       };
