@@ -45,7 +45,7 @@ export interface GetFormDataWithExtraFiltersArguments {
   sliceId: number;
   dataMask: DataMaskStateWithId;
   nativeFilters: NativeFiltersState;
-  labelColors: Record<string, string>;
+  labelColors?: Record<string, string>;
 }
 
 // this function merge chart's formData with dashboard filters value,
@@ -64,6 +64,8 @@ export default function getFormDataWithExtraFilters({
   dataMask,
   labelColors,
 }: GetFormDataWithExtraFiltersArguments) {
+  const scale = CategoricalColorNamespace.getScale(colorScheme, colorNamespace);
+  const scaleLabelColors = labelColors || scale.getColorMap();
   // if dashboard metadata + filters have not changed, use cache if possible
   const cachedFormData = cachedFormdataByChart[sliceId];
   if (
@@ -108,7 +110,7 @@ export default function getFormDataWithExtraFilters({
   const formData = {
     ...chart.formData,
     ...(colorScheme && { color_scheme: colorScheme }),
-    label_colors: labelColors,
+    label_colors: scaleLabelColors,
     extra_filters: getEffectiveExtraFilters(filters),
     ...extraData,
   };
