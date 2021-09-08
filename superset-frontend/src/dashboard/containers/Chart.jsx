@@ -81,9 +81,6 @@ function mapStateToProps(
         : scaleLabelColors,
   });
 
-  console.log('dashboardInfo', dashboardInfo);
-  console.log('formData', formData);
-
   formData.dashboardId = dashboardInfo.id;
 
   return {
