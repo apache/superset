@@ -225,7 +225,7 @@ export const DataTablesPane = ({
 
   useEffect(() => {
     if (queriesResponse && chartStatus === 'success') {
-      const { colnames } = queriesResponse[0];
+      const { colnames = [] } = queriesResponse[0];
       setColumnNames([...colnames]);
     }
   }, [queriesResponse]);
