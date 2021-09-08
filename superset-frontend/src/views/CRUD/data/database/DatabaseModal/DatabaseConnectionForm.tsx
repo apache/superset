@@ -139,7 +139,7 @@ const CredentialsInfo = ({
       {showCredentialsInfo && (
         <>
           <FormLabel required>
-            {t('How do you want to enter service account credentials?')}
+            {t('How∂ do you want to enter service account credentials?')}
           </FormLabel>
           <Select
             defaultValue={uploadOption}
