@@ -117,14 +117,14 @@ def test_scheduler_celery_no_timeout_utc(execute_mock):
         app.config["ALERT_REPORTS_WORKING_TIME_OUT_KILL"] = True
 
 
-@patch("superset.extensions.feature_flag_manager.is_feature_enabled")
+@patch("superset.tasks.scheduler.is_feature_enabled")
 @patch("superset.tasks.scheduler.execute.apply_async")
 def test_scheduler_feature_flag_off(execute_mock, is_feature_enabled):
     """
     Reports scheduler: Test scheduler with feature flag off
     """
-    is_feature_enabled("ALERT_REPORTS").return_value = False
     with app.app_context():
+        is_feature_enabled.return_value = False
         report_schedule = insert_report_schedule(
             type=ReportScheduleType.ALERT,
             name="report",
