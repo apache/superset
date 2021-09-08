@@ -133,6 +133,6 @@ def test_scheduler_feature_flag_off(execute_mock, is_feature_enabled):
 
         with freeze_time("2020-01-01T09:00:00Z"):
             scheduler()
-            assert len(execute_mock.call_args) == 0
+            execute_mock.assert_not_called()
         db.session.delete(report_schedule)
         db.session.commit()
