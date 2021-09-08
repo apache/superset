@@ -1295,7 +1295,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             # using datetimes
             if generic_type == GenericDataType.TEMPORAL:
                 column_type = literal_dttm_type_factory(
-                    type(column_type), cls, native_type or ""
+                    column_type, cls, native_type or ""
                 )
             is_dttm = generic_type == GenericDataType.TEMPORAL
             return ColumnSpec(
