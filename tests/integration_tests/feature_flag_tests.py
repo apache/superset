@@ -72,6 +72,9 @@ class TestFeatureFlagBackend(SupersetTestCase):
         "superset.extensions.feature_flag_manager._is_feature_enabled_func",
         dummy_is_feature_enabled,
     )
+    @patch(
+        "superset.extensions.feature_flag_manager._get_feature_flags_func", None,
+    )
     def test_get_feature_flags(self):
         feature_flags = get_feature_flags()
         self.assertEqual(
