@@ -19,6 +19,7 @@
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
+import { CategoricalColorNamespace } from '@superset-ui/core';
 import {
   toggleExpandSlice,
   setFocusedFilterField,
@@ -59,7 +60,8 @@ function mapStateToProps(
     (chart && chart.form_data && datasources[chart.form_data.datasource]) ||
     PLACEHOLDER_DATASOURCE;
   const { colorScheme, colorNamespace } = dashboardState;
-
+  const scale = CategoricalColorNamespace.getScale(colorScheme, colorNamespace);
+  const scaleLabelColors = scale.getColorMap();
   // note: this method caches filters if possible to prevent render cascades
   const formData = getFormDataWithExtraFilters({
     layout: dashboardLayout.present,
@@ -73,7 +75,14 @@ function mapStateToProps(
     sliceId: id,
     nativeFilters,
     dataMask,
+    labelColors:
+      Object.keys(dashboardInfo.metadata.label_colors).length > 0
+        ? dashboardInfo.metadata.label_colors
+        : scaleLabelColors,
   });
+
+  console.log('dashboardInfo', dashboardInfo);
+  console.log('formData', formData);
 
   formData.dashboardId = dashboardInfo.id;
 

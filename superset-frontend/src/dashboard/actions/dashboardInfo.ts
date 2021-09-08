@@ -17,13 +17,30 @@
  * under the License.
  */
 import { Dispatch } from 'redux';
-import { makeApi } from '@superset-ui/core';
+import { makeApi, CategoricalColorNamespace } from '@superset-ui/core';
+import { isString } from 'lodash';
 import { ChartConfiguration, DashboardInfo } from '../reducers/types';
 
 export const DASHBOARD_INFO_UPDATED = 'DASHBOARD_INFO_UPDATED';
 
 // updates partially changed dashboard info
 export function dashboardInfoChanged(newInfo: { metadata: any }) {
+  const { metadata } = newInfo;
+
+  if (metadata?.label_colors) {
+    const scheme = metadata.color_scheme;
+    const namespace = metadata.color_namespace;
+    const colorMap = isString(metadata.label_colors)
+      ? JSON.parse(metadata.label_colors)
+      : metadata.label_colors;
+    Object.keys(colorMap).forEach(label => {
+      CategoricalColorNamespace.getScale(scheme, namespace).setColor(
+        label,
+        colorMap[label],
+      );
+    });
+  }
+
   return { type: DASHBOARD_INFO_UPDATED, newInfo };
 }
 export const SET_CHART_CONFIG_BEGIN = 'SET_CHART_CONFIG_BEGIN';
