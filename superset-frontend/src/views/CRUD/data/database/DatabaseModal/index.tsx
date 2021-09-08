@@ -180,6 +180,7 @@ type DBReducerActionType =
         database_name?: string;
         engine?: string;
         configuration_method: CONFIGURATION_METHOD;
+        parameters?: Record<string, any>;
       };
     }
   | {
@@ -513,7 +514,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       encrypted_extra: db?.encrypted_extra || '',
       server_cert: db?.server_cert || undefined,
     };
-
     testDatabaseConnection(connection, addDangerToast, addSuccessToast);
   };
 
@@ -541,6 +541,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
 
       const engine = dbToUpdate.backend || dbToUpdate.engine;
+      console.log('this is', dbModel);
       if (engine === 'bigquery' && dbToUpdate.parameters?.credentials_info) {
         // wrap encrypted_extra in credentials_info only for BigQuery
         if (
@@ -654,6 +655,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       const selectedDbModel = availableDbs?.databases.filter(
         (db: DatabaseObject) => db.name === database_name,
       )[0];
+      console.log(selectedDbModel);
       const { engine, parameters } = selectedDbModel;
       const isDynamic = parameters !== undefined;
       setDB({
@@ -664,6 +666,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             ? CONFIGURATION_METHOD.DYNAMIC_FORM
             : CONFIGURATION_METHOD.SQLALCHEMY_URI,
           engine,
+          parameters,
         },
       });
     }
@@ -737,6 +740,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       />
     </div>
   );
+
+  console.log(db);
 
   const renderPreferredSelector = () => (
     <div className="preferred">

@@ -920,7 +920,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         for engine_spec, drivers in get_available_engine_specs().items():
             if not drivers:
                 continue
-
             payload: Dict[str, Any] = {
                 "name": engine_spec.engine_name,
                 "engine": engine_spec.engine,
@@ -943,7 +942,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 payload[
                     "sqlalchemy_uri_placeholder"
                 ] = engine_spec.sqlalchemy_uri_placeholder  # type: ignore
-
             available_databases.append(payload)
 
         # sort preferred first

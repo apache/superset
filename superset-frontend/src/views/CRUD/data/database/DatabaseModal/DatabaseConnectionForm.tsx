@@ -32,6 +32,7 @@ import {
   infoTooltip,
   StyledFooterButton,
   StyledCatalogTable,
+  labelMarginBotton,
 } from './styles';
 import { CatalogObject, DatabaseForm, DatabaseObject } from '../types';
 
@@ -39,6 +40,13 @@ enum CredentialInfoOptions {
   jsonUpload,
   copyPaste,
 }
+
+const setStringToBoolean = (optionValue: string) => {
+  if (optionValue === 'true') {
+    return true;
+  }
+  return false;
+};
 
 export const FormFieldOrder = [
   'host',
@@ -56,7 +64,7 @@ export const FormFieldOrder = [
 interface FieldPropTypes {
   required: boolean;
   hasTooltip?: boolean;
-  tooltipText?: (valuse: any) => string;
+  tooltipText?: (value: any) => string;
   onParametersChange: (value: any) => string;
   onParametersUploadFileChange: (value: any) => string;
   changeMethods: { onParametersChange: (value: any) => string } & {
@@ -88,9 +96,35 @@ const CredentialsInfo = ({
   const [fileToUpload, setFileToUpload] = useState<string | null | undefined>(
     null,
   );
+  const [isPublic, setIsPublic] = useState<boolean>(true);
+  const showCredentialsInfo =
+    db?.engine === 'gsheets' ? !isEditMode && !isPublic : !isEditMode;
+
   return (
     <CredentialInfoForm>
-      {!isEditMode && (
+      {db?.engine === 'gsheets' && (
+        <div className="catalog-type-select">
+          <FormLabel
+            css={(theme: SupersetTheme) => labelMarginBotton(theme)}
+            required
+          >
+            {t('Type of Google Sheets Allowed')}
+          </FormLabel>
+          <Select
+            style={{ width: '100%' }}
+            defaultValue="true"
+            onChange={(value: string) => setIsPublic(setStringToBoolean(value))}
+          >
+            <Select.Option value="true" key={1}>
+              {t('Publicly shared sheets only')}
+            </Select.Option>
+            <Select.Option value="false" key={2}>
+              {t('Public and privately shared sheets')}
+            </Select.Option>
+          </Select>
+        </div>
+      )}
+      {showCredentialsInfo && (
         <>
           <FormLabel required>
             {t('How do you want to enter service account credentials?')}
@@ -127,69 +161,73 @@ const CredentialsInfo = ({
           </span>
         </div>
       ) : (
-        <div
-          className="input-container"
-          css={(theme: SupersetTheme) => infoTooltip(theme)}
-        >
-          <div css={{ display: 'flex', alignItems: 'center' }}>
-            <FormLabel required>{t('Upload Credentials')}</FormLabel>
-            <InfoTooltip
-              tooltip={t(
-                'Use the JSON file you automatically downloaded when creating your service account in Google BigQuery.',
-              )}
-              viewBox="0 0 24 24"
-            />
-          </div>
-
-          {!fileToUpload && (
-            <Button
-              className="input-upload-btn"
-              onClick={() => document?.getElementById('selectedFile')?.click()}
-            >
-              {t('Choose File')}
-            </Button>
-          )}
-          {fileToUpload && (
-            <div className="input-upload-current">
-              {fileToUpload}
-              <DeleteFilled
-                onClick={() => {
-                  setFileToUpload(null);
-                  changeMethods.onParametersChange({
-                    target: {
-                      name: 'credentials_info',
-                      value: '',
-                    },
-                  });
-                }}
+        showCredentialsInfo && (
+          <div
+            className="input-container"
+            css={(theme: SupersetTheme) => infoTooltip(theme)}
+          >
+            <div css={{ display: 'flex', alignItems: 'center' }}>
+              <FormLabel required>{t('Upload Credentials')}</FormLabel>
+              <InfoTooltip
+                tooltip={t(
+                  'Use the JSON file you automatically downloaded when creating your service account in Google BigQuery.',
+                )}
+                viewBox="0 0 24 24"
               />
             </div>
-          )}
 
-          <input
-            id="selectedFile"
-            className="input-upload"
-            type="file"
-            onChange={async event => {
-              let file;
-              if (event.target.files) {
-                file = event.target.files[0];
-              }
-              setFileToUpload(file?.name);
-              changeMethods.onParametersChange({
-                target: {
-                  type: null,
-                  name: 'credentials_info',
-                  value: await file?.text(),
-                  checked: false,
-                },
-              });
-              (document.getElementById(
-                'selectedFile',
-              ) as HTMLInputElement).value = null as any;
-            }}
-          />
-        </div>
+            {!fileToUpload && (
+              <Button
+                className="input-upload-btn"
+                onClick={() =>
+                  document?.getElementById('selectedFile')?.click()
+                }
+              >
+                {t('Choose File')}
+              </Button>
+            )}
+            {fileToUpload && (
+              <div className="input-upload-current">
+                {fileToUpload}
+                <DeleteFilled
+                  onClick={() => {
+                    setFileToUpload(null);
+                    changeMethods.onParametersChange({
+                      target: {
+                        name: 'credentials_info',
+                        value: '',
+                      },
+                    });
+                  }}
+                />
+              </div>
+            )}
+
+            <input
+              id="selectedFile"
+              className="input-upload"
+              type="file"
+              onChange={async event => {
+                let file;
+                if (event.target.files) {
+                  file = event.target.files[0];
+                }
+                setFileToUpload(file?.name);
+                changeMethods.onParametersChange({
+                  target: {
+                    type: null,
+                    name: 'credentials_info',
+                    value: await file?.text(),
+                    checked: false,
+                  },
+                });
+                (document.getElementById(
+                  'selectedFile',
+                ) as HTMLInputElement).value = null as any;
+              }}
+            />
+          </div>
+        )
       )}
     </CredentialInfoForm>
   );
@@ -204,16 +242,9 @@ const TableCatalog = ({
 }: FieldPropTypes) => {
   const tableCatalog = db?.catalog || [];
   const catalogError = validationErrors || {};
+
   return (
     <StyledCatalogTable>
-      <div className="catalog-type-select">
-        <FormLabel required>{t('Type of Google Sheets Allowed')}</FormLabel>
-        <Select style={{ width: '100%' }} defaultValue="true" disabled>
-          <Select.Option value="true" key={1}>
-            {t('Publicly shared sheets only')}
-          </Select.Option>
-        </Select>
-      </div>
       <h4 className="gsheet-title">
         {t('Connect Google Sheets as tables to this database')}
       </h4>
