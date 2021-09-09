@@ -91,7 +91,7 @@ from superset.exceptions import (
     SupersetTimeoutException,
 )
 from superset.extensions import async_query_manager, cache_manager
-from superset.jinja_context import get_template_processor
+from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.models.core import Database, FavStar, Log
 from superset.models.dashboard import Dashboard
 from superset.models.datasource_access_request import DatasourceAccessRequest
@@ -2598,46 +2598,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         self._save_new_query(query, session)
         logger.info("Triggering query_id: %i", query.id)
         self._validate_access(query, session)
-
-        try:
-            template_processor = get_template_processor(
-                database=query.database, query=query
-            )
-            rendered_query = template_processor.process_template(
-                query.sql, **execution_context.template_params
-            )
-        except TemplateError as ex:
-            query.status = QueryStatus.FAILED
-            session.commit()
-            raise SupersetTemplateParamsErrorException(
-                message=__(
-                    'The query contains one or more malformed template parameters. Please check your query and confirm that all template parameters are surround by double braces, for example, "{{ ds }}". Then, try running your query again.'
-                ),
-                error=SupersetErrorType.INVALID_TEMPLATE_PARAMS_ERROR,
-            ) from ex
-
-        if is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
-            # pylint: disable=protected-access
-            ast = template_processor._env.parse(rendered_query)
-            undefined_parameters = find_undeclared_variables(ast)  # type: ignore
-            if undefined_parameters:
-                query.status = QueryStatus.FAILED
-                session.commit()
-                raise SupersetTemplateParamsErrorException(
-                    message=ngettext(
-                        "The parameter %(parameters)s in your query is undefined.",
-                        "The following parameters in your query are undefined: %(parameters)s.",
-                        len(undefined_parameters),
-                        parameters=utils.format_list(undefined_parameters),
-                    )
-                    + " "
-                    + PARAMETER_MISSING_ERR,
-                    error=SupersetErrorType.MISSING_TEMPLATE_PARAMS_ERROR,
-                    extra={
-                        "undefined_parameters": list(undefined_parameters),
-                        "template_parameters": execution_context.template_params,
-                    },
-                )
+        rendered_query = self._render_query(execution_context, query, session)
 
         if not (config.get("SQLLAB_CTAS_NO_LIMIT") and execution_context.select_as_cta):
             # set LIMIT after template processing
@@ -2667,6 +2628,55 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return self._sql_json_sync(
             session, rendered_query, query, expand_data, log_params
         )
+
+    def _render_query(  # pylint: disable=no-self-use
+        self, execution_context: SqlJsonExecutionContext, query: Query, session: Session
+    ) -> str:
+        def validate(
+            rendered_query: str, template_processor: BaseTemplateProcessor
+        ) -> None:
+            if is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
+                # pylint: disable=protected-access
+                ast = template_processor._env.parse(rendered_query)
+                undefined_parameters = find_undeclared_variables(ast)  # type: ignore
+                if undefined_parameters:
+                    query.status = QueryStatus.FAILED
+                    session.commit()
+                    raise SupersetTemplateParamsErrorException(
+                        message=ngettext(
+                            "The parameter %(parameters)s in your query is undefined.",
+                            "The following parameters in your query are undefined: %(parameters)s.",
+                            len(undefined_parameters),
+                            parameters=utils.format_list(undefined_parameters),
+                        )
+                        + " "
+                        + PARAMETER_MISSING_ERR,
+                        error=SupersetErrorType.MISSING_TEMPLATE_PARAMS_ERROR,
+                        extra={
+                            "undefined_parameters": list(undefined_parameters),
+                            "template_parameters": execution_context.template_params,
+                        },
+                    )
+
+        try:
+            template_processor = get_template_processor(
+                database=query.database, query=query
+            )
+            rendered_query = template_processor.process_template(
+                query.sql, **execution_context.template_params
+            )
+            validate(rendered_query, template_processor)
+        except TemplateError as ex:
+            query.status = QueryStatus.FAILED
+            session.commit()
+            raise SupersetTemplateParamsErrorException(
+                message=__(
+                    'The query contains one or more malformed template parameters. Please check your query and confirm that all template parameters are surround by double braces, for example, "{{ ds }}". Then, try running your query again.'
+                ),
+                error=SupersetErrorType.INVALID_TEMPLATE_PARAMS_ERROR,
+            ) from ex
+
+        return rendered_query
 
     def _validate_access(  # pylint: disable=no-self-use
         self, query: Query, session: Session
