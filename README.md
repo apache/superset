@@ -17,6 +17,25 @@ specific language governing permissions and limitations
 under the License.
 -->
 
+# Development Guideline
+To update translations
+```shell
+$ pybabel extract -F superset/translations/babel.cfg -o superset/translations/messages.pot -k _ -k __ -k t -k tn -k tct .
+$ pybabel update -i superset/translations/messages.pot -d superset/translations --ignore-obsolete
+$ pybabel compile -d superset/translations
+```
+
+To start the backend server
+```shell
+$ superset run -p 8088 --with-threads --reload --debugger
+```
+
+To start frontend dev server
+```shell
+# in superset-frontend folder
+npm run dev-server
+```
+
 # Superset
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)

@@ -53,6 +53,8 @@ if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
 
+TESTING = True
+
 # Realtime stats logger, a StatsD implementation exists
 STATS_LOGGER = DummyStatsLogger()
 EVENT_LOGGER = DBEventLogger()
@@ -310,7 +312,11 @@ LANGUAGES = {
 }
 # Turning off i18n by default as translation in most languages are
 # incomplete and not well maintained.
-LANGUAGES = {}
+# LANGUAGES = {}
+LANGUAGES = {
+    "zh": {"flag": "cn", "name": "中文"},
+    "en": {"flag": "us", "name": "English"},
+}
 
 # ---------------------------------------------------
 # Feature flags
@@ -1274,7 +1280,7 @@ if CONFIG_PATH_ENV_VAR in os.environ:
 elif importlib.util.find_spec("superset_config") and not is_test():
     try:
         import superset_config  # pylint: disable=import-error
-        from superset_config import *  # type: ignore # pylint: disable=import-error,wildcard-import
+        from superset_config import *  # pylint: disable=import-error,wildcard-import
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:
