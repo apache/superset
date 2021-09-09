@@ -82,8 +82,6 @@ import {
   IframeDemoChartPlugin,
   CccsGridChartPlugin,
   StatusIndicatorChartPlugin,
-  BigNumberCurrencySelectionChartPlugin,
-  BigNumberChartPlugin,
 } from 'src/cccs-viz/plugins/';
 import { FeatureFlag } from '../../featureFlags';
 

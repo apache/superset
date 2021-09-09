@@ -187,7 +187,7 @@ export const getDateFilterControlTestId = testWithId(
 );
 
 export default function DateFilterLabel(props: DateFilterControlProps) {
-  const { value = DEFAULT_TIME_RANGE, endpoints, onChange, type } = props;
+  const { value = DEFAULT_TIME_RANGE, endpoints, onChange,} = props;
   const [actualTimeRange, setActualTimeRange] = useState<string>(value);
 
   const [show, setShow] = useState<boolean>(false);
