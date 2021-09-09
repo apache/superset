@@ -91,7 +91,7 @@ flask-login==0.4.1
     # via flask-appbuilder
 flask-migrate==2.5.3
     # via apache-superset
-flask-openid==1.2.5
+flask-openid==1.3.0
     # via flask-appbuilder
 flask-sqlalchemy==2.4.4
     # via
