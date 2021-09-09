@@ -64,7 +64,7 @@ interface DatasourceModalProps {
   show: boolean;
 }
 
-function buildExtraJsonObjects(item: Record<string, unknown>) {
+function buildExtraJsonObject(item: Record<string, unknown>) {
   const certification =
     item?.certified_by || item?.certification_details
       ? {
@@ -109,13 +109,13 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           metrics: currentDatasource?.metrics?.map(
             (metric: Record<string, unknown>) => ({
               ...metric,
-              extra: buildExtraJsonObjects(metric),
+              extra: buildExtraJsonObject(metric),
             }),
           ),
           columns: currentDatasource?.columns?.map(
             (column: Record<string, unknown>) => ({
               ...column,
-              extra: buildExtraJsonObjects(column),
+              extra: buildExtraJsonObject(column),
             }),
           ),
           type: currentDatasource.type || currentDatasource.datasource_type,
