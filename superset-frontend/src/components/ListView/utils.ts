@@ -17,6 +17,8 @@
  * under the License.
  */
 import { useEffect, useMemo, useState } from 'react';
+import { styled } from '@superset-ui/core';
+import { FormLabel } from 'src/components/Form';
 import {
   useFilters,
   usePagination,
@@ -56,6 +58,10 @@ const RisonParam: QueryParamConfig<string, any> = {
 };
 
 export const SELECT_WIDTH = 200;
+
+export const StyledHeader = styled(FormLabel)`
+  margin-left: ${({ theme }) => theme.gridUnit * 3}px;
+`;
 
 export class ListViewError extends Error {
   name = 'ListViewError';

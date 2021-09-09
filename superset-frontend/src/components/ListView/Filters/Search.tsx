@@ -18,9 +18,9 @@
  */
 import React, { useState } from 'react';
 import { t, styled } from '@superset-ui/core';
-import { FormLabel } from 'src/components/Form';
-import SearchInput from 'src/components/SearchInput';
-import { SELECT_WIDTH } from 'src/components/ListView/utils';
+import Icons from 'src/components/Icons';
+import { AntdInput as Input } from 'src/common/components';
+import { SELECT_WIDTH, StyledHeader } from 'src/components/ListView/utils';
 import { BaseFilter } from './Base';
 
 interface SearchHeaderProps extends BaseFilter {
@@ -31,6 +31,10 @@ interface SearchHeaderProps extends BaseFilter {
 
 const Container = styled.div`
   width: ${SELECT_WIDTH}px;
+`;
+
+const SearchIcon = styled(Icons.Search)`
+  color: ${({ theme }) => theme.colors.grayscale.light1};
 `;
 
 export default function SearchFilter({
@@ -45,28 +49,27 @@ export default function SearchFilter({
       onSubmit(value.trim());
     }
   };
-  const onClear = () => {
-    setValue('');
-    onSubmit('');
-  };
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setValue(e.currentTarget.value);
     if (e.currentTarget.value === '') {
-      onClear();
+      onSubmit('');
     }
   };
 
   return (
     <Container>
-      <FormLabel>{t('Search')}</FormLabel>
-      <SearchInput
+      <StyledHeader>{Header}</StyledHeader>
+      <Input
+        allowClear
+        bordered={false}
         data-test="filters-search"
-        placeholder={Header}
+        placeholder={t('Type a value')}
         name={name}
         value={value}
         onChange={handleChange}
-        onSubmit={handleSubmit}
-        onClear={onClear}
+        onPressEnter={handleSubmit}
+        onBlur={handleSubmit}
+        prefix={<SearchIcon iconSize="l" />}
       />
     </Container>
   );
