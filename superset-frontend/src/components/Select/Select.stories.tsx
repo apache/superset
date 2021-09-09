@@ -79,6 +79,12 @@ const ARG_TYPES = {
       disable: true,
     },
   },
+  labelInValue: {
+    defaultValue: true,
+    table: {
+      disable: true,
+    },
+  },
   name: {
     table: {
       disable: true,
@@ -171,7 +177,11 @@ export const AtEveryCorner = () => (
           position: 'absolute',
         }}
       >
-        <Select ariaLabel={`gallery-${position.id}`} options={options} />
+        <Select
+          ariaLabel={`gallery-${position.id}`}
+          options={options}
+          labelInValue
+        />
       </div>
     ))}
     <p style={{ position: 'absolute', top: '40%', left: '33%', width: 500 }}>
@@ -206,7 +216,7 @@ export const PageScroll = () => (
         right: 30,
       }}
     >
-      <Select ariaLabel="page-scroll-select-1" options={options} />
+      <Select ariaLabel="page-scroll-select-1" options={options} labelInValue />
     </div>
     <div
       style={{
