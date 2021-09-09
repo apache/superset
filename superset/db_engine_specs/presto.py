@@ -508,7 +508,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         ),
         (
             re.compile(r"^date.*", re.IGNORECASE),
-            types.DATE(),
+            types.DATETIME(),
             utils.GenericDataType.TEMPORAL,
         ),
         (
