@@ -186,8 +186,7 @@ test('static - makes a selection in single mode', async () => {
 test('static - multiple selections in multiple mode', async () => {
   render(<Select {...defaultProps} mode="multiple" />);
   await open();
-  const firstOption = OPTIONS[0];
-  const secondOption = OPTIONS[1];
+  const [firstOption, secondOption] = OPTIONS;
   userEvent.click(await findSelectOption(firstOption.label));
   userEvent.click(await findSelectOption(secondOption.label));
   const values = await findAllSelectValues();
@@ -199,14 +198,13 @@ test('static - changes the selected item in single mode', async () => {
   const onChange = jest.fn();
   render(<Select {...defaultProps} onChange={onChange} />);
   await open();
-  const firstOption = OPTIONS[0];
+  const [firstOption, secondOption] = OPTIONS;
   userEvent.click(await findSelectOption(firstOption.label));
   expect(await findSelectValue()).toHaveTextContent(firstOption.label);
   expect(onChange).toHaveBeenCalledWith(
     expect.objectContaining(firstOption),
     firstOption,
   );
-  const secondOption = OPTIONS[1];
   userEvent.click(await findSelectOption(secondOption.label));
   expect(onChange).toHaveBeenCalledWith(
     expect.objectContaining(secondOption),
@@ -218,8 +216,7 @@ test('static - changes the selected item in single mode', async () => {
 test('static - deselects an item in multiple mode', async () => {
   render(<Select {...defaultProps} mode="multiple" />);
   await open();
-  const firstOption = OPTIONS[0];
-  const secondOption = OPTIONS[1];
+  const [firstOption, secondOption] = OPTIONS;
   userEvent.click(await findSelectOption(firstOption.label));
   userEvent.click(await findSelectOption(secondOption.label));
   let values = await findAllSelectValues();
@@ -320,8 +317,7 @@ test('async - makes a selection in single mode', async () => {
 test('async - multiple selections in multiple mode', async () => {
   render(<Select {...defaultProps} options={loadOptions} mode="multiple" />);
   await open();
-  const firstOption = OPTIONS[0];
-  const secondOption = OPTIONS[1];
+  const [firstOption, secondOption] = OPTIONS;
   userEvent.click(await findSelectOption(firstOption.label));
   userEvent.click(await findSelectOption(secondOption.label));
   const values = await findAllSelectValues();
@@ -335,14 +331,13 @@ test('async - changes the selected item in single mode', async () => {
     <Select {...defaultProps} options={loadOptions} onChange={onChange} />,
   );
   await open();
-  const firstOption = OPTIONS[0];
+  const [firstOption, secondOption] = OPTIONS;
   userEvent.click(await findSelectOption(firstOption.label));
   expect(onChange).toHaveBeenCalledWith(
     expect.objectContaining(firstOption),
     firstOption,
   );
   expect(await findSelectValue()).toHaveTextContent(firstOption.label);
-  const secondOption = OPTIONS[1];
   userEvent.click(await findSelectOption(secondOption.label));
   expect(onChange).toHaveBeenCalledWith(
     expect.objectContaining(secondOption),
@@ -354,8 +349,7 @@ test('async - changes the selected item in single mode', async () => {
 test('async - deselects an item in multiple mode', async () => {
   render(<Select {...defaultProps} options={loadOptions} mode="multiple" />);
   await open();
-  const firstOption = OPTIONS[0];
-  const secondOption = OPTIONS[1];
+  const [firstOption, secondOption] = OPTIONS;
   userEvent.click(await findSelectOption(firstOption.label));
   userEvent.click(await findSelectOption(secondOption.label));
   let values = await findAllSelectValues();
