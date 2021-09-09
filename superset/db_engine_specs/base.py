@@ -250,7 +250,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             types.DateTime(),
             GenericDataType.TEMPORAL,
         ),
-        (re.compile(r"^date", re.IGNORECASE), types.Date(), GenericDataType.TEMPORAL,),
+        (
+            re.compile(r"^date", re.IGNORECASE),
+            types.DateTime(),
+            GenericDataType.TEMPORAL,
+        ),
         (
             re.compile(r"^timestamp", re.IGNORECASE),
             types.TIMESTAMP(),
