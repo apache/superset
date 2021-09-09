@@ -44,7 +44,7 @@ from sqlalchemy import (
     Table,
     Text,
 )
-from sqlalchemy.engine import Dialect, Engine, url
+from sqlalchemy.engine import Connection, Dialect, Engine, url
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.exc import ArgumentError
@@ -721,19 +721,27 @@ class Database(
         engine = self.get_sqla_engine()
         return engine.has_table(table_name, schema)
 
-    def has_view_by_name(self, view_name: str, schema: Optional[str] = None) -> bool:
-        engine = self.get_sqla_engine()
-        return db_engine_specs.BaseEngineSpec.has_view(
-            engine=engine, view_name=view_name, schema=schema
-        )
-
-    def has_table_or_view_by_name(
-        self, name: str, schema: Optional[str] = None
+    @classmethod
+    def _has_view(
+        cls,
+        conn: Connection,
+        dialect: Dialect,
+        view_name: str,
+        schema: Optional[str] = None,
     ) -> bool:
-        result = self.has_table_by_name(
-            table_name=name, schema=schema
-        ) or self.has_view_by_name(view_name=name, schema=schema)
-        return result
+        view_names: List[str] = []
+        try:
+            view_names = dialect.get_view_names(connection=conn, schema=schema)
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.warning(ex)
+        return view_name in view_names
+
+    def has_view(self, view_name: str, schema: Optional[str] = None) -> bool:
+        engine = self.get_sqla_engine()
+        return engine.run_callable(self._has_view, engine.dialect, view_name, schema)
+
+    def has_view_by_name(self, view_name: str, schema: Optional[str] = None) -> bool:
+        return self.has_view(view_name=view_name, schema=schema)
 
     @memoized
     def get_dialect(self) -> Dialect:

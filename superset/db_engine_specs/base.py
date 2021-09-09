@@ -1343,21 +1343,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         return False
 
-    @classmethod
-    def _has_view(
-        cls,
-        conn: Connection,
-        dialect: Dialect,
-        view_name: str,
-        schema: Optional[str] = None,
-    ):
-        view_names = dialect.get_view_names(connection=conn, schema=schema)
-        return view_name in view_names
-
-    @classmethod
-    def has_view(cls, engine: Engine, view_name: str, schema: Optional[str] = None):
-        return engine.run_callable(cls._has_view, engine.dialect, view_name, schema)
-
 
 # schema for adding a database by providing parameters instead of the
 # full SQLAlchemy URI
