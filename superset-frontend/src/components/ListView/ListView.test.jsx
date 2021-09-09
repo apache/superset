@@ -403,7 +403,7 @@ describe('ListView', () => {
     wrapper.update();
 
     act(() => {
-      wrapper.find('[data-test="search-input"]').last().props().onBlur();
+      wrapper.find('[data-test="filters-search"]').last().props().onBlur();
     });
 
     expect(mockedProps.fetchData.mock.calls[0]).toMatchInlineSnapshot(`

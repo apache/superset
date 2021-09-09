@@ -271,7 +271,7 @@ describe('RTL', () => {
 
   it('renders an export button in the actions bar', async () => {
     // Grab Export action button and mock mouse hovering over it
-    const exportActionButton = screen.getAllByRole('button')[18];
+    const exportActionButton = screen.getAllByTestId('export-action')[0];
     userEvent.hover(exportActionButton);
 
     // Wait for the tooltip to pop up
