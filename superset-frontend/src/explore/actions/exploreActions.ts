@@ -155,6 +155,7 @@ export const exploreActions = {
   updateChartTitle,
   createNewSlice,
   sliceUpdated,
+  updateDataMask,
 };
 
 export type ExploreActions = typeof exploreActions;
