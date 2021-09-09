@@ -285,8 +285,9 @@ def execute_sql_statement(
         raise SupersetErrorException(
             SupersetError(
                 message=__(
-                    f"The query was killed after {SQLLAB_TIMEOUT} seconds. It might "
-                    "be too complex, or the database might be under heavy load."
+                    "The query was killed after %(sqllab_timeout)s seconds. It might "
+                    "be too complex, or the database might be under heavy load.",
+                    sqllab_timeout=SQLLAB_TIMEOUT,
                 ),
                 error_type=SupersetErrorType.SQLLAB_TIMEOUT_ERROR,
                 level=ErrorLevel.ERROR,
