@@ -2596,17 +2596,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
         query = execution_context.create_query()
         self._save_new_query(query, session)
-
         logger.info("Triggering query_id: %i", query.id)
-
-        try:
-            query.raise_for_access()
-        except SupersetSecurityException as ex:
-            query.set_extra_json_key("errors", [dataclasses.asdict(ex.error)])
-            query.status = QueryStatus.FAILED
-            query.error_message = ex.error.message
-            session.commit()
-            raise SupersetErrorException(ex.error, status=403) from ex
+        self._validate_access(query, session)
 
         try:
             template_processor = get_template_processor(
@@ -2676,6 +2667,18 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return self._sql_json_sync(
             session, rendered_query, query, expand_data, log_params
         )
+
+    def _validate_access(  # pylint: disable=no-self-use
+        self, query: Query, session: Session
+    ) -> None:
+        try:
+            query.raise_for_access()
+        except SupersetSecurityException as ex:
+            query.set_extra_json_key("errors", [dataclasses.asdict(ex.error)])
+            query.status = QueryStatus.FAILED
+            query.error_message = ex.error.message
+            session.commit()
+            raise SupersetErrorException(ex.error, status=403) from ex
 
     def _save_new_query(  # pylint: disable=no-self-use
         self, query: Query, session: Session
