@@ -2600,20 +2600,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         self._validate_access(query, session)
         rendered_query = self._render_query(execution_context, query, session)
 
-        if not (config.get("SQLLAB_CTAS_NO_LIMIT") and execution_context.select_as_cta):
-            # set LIMIT after template processing
-            db_engine_spec = execution_context.database.db_engine_spec  # type: ignore
-            limits = [
-                db_engine_spec.get_limit_from_sql(rendered_query),
-                execution_context.limit,
-            ]
-            if limits[0] is None or limits[0] > limits[1]:  # type: ignore
-                query.limiting_factor = LimitingFactor.DROPDOWN
-            elif limits[1] > limits[0]:  # type: ignore
-                query.limiting_factor = LimitingFactor.QUERY
-            else:  # limits[0] == limits[1]
-                query.limiting_factor = LimitingFactor.QUERY_AND_DROPDOWN
-            query.limit = min(lim for lim in limits if lim is not None)
+        self._set_query_limit_if_required(execution_context, query, rendered_query)
 
         # Flag for whether or not to expand data
         # (feature that will expand Presto row objects and arrays)
@@ -2627,6 +2614,41 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         # Sync request.
         return self._sql_json_sync(
             session, rendered_query, query, expand_data, log_params
+        )
+
+    def _set_query_limit_if_required(
+        self,
+        execution_context: SqlJsonExecutionContext,
+        query: Query,
+        rendered_query: str,
+    ) -> None:
+        if self._is_required_to_set_limit(execution_context):
+            self._set_query_limit(execution_context, query, rendered_query)
+
+    def _set_query_limit(  # pylint: disable=no-self-use
+        self,
+        execution_context: SqlJsonExecutionContext,
+        query: Query,
+        rendered_query: str,
+    ) -> None:
+        db_engine_spec = execution_context.database.db_engine_spec  # type: ignore
+        limits = [
+            db_engine_spec.get_limit_from_sql(rendered_query),
+            execution_context.limit,
+        ]
+        if limits[0] is None or limits[0] > limits[1]:  # type: ignore
+            query.limiting_factor = LimitingFactor.DROPDOWN
+        elif limits[1] > limits[0]:  # type: ignore
+            query.limiting_factor = LimitingFactor.QUERY
+        else:  # limits[0] == limits[1]
+            query.limiting_factor = LimitingFactor.QUERY_AND_DROPDOWN
+        query.limit = min(lim for lim in limits if lim is not None)
+
+    def _is_required_to_set_limit(  # pylint: disable=no-self-use
+        self, execution_context: SqlJsonExecutionContext
+    ) -> bool:
+        return not (
+            config.get("SQLLAB_CTAS_NO_LIMIT") and execution_context.select_as_cta
         )
 
     def _render_query(  # pylint: disable=no-self-use
