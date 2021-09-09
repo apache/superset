@@ -51,6 +51,8 @@ openapi-schema-validator==0.1.5
     # via openapi-spec-validator
 openapi-spec-validator==0.3.1
     # via -r requirements/testing.in
+parameterized==0.8.1
+    # via -r requirements/testing.in
 parso==0.8.2
     # via jedi
 pexpect==4.8.0
@@ -86,8 +88,6 @@ traitlets==5.0.5
     # via
     #   ipython
     #   matplotlib-inline
-typed-ast==1.4.3
-    # via astroid
 wcwidth==0.2.5
     # via prompt-toolkit
 websocket-client==1.2.0

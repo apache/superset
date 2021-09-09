@@ -22,14 +22,6 @@ filelock==3.0.12
     #   virtualenv
 identify==2.2.13
     # via pre-commit
-importlib-metadata==4.8.1
-    # via
-    #   backports.entry-points-selectable
-    #   pep517
-    #   pluggy
-    #   pre-commit
-    #   tox
-    #   virtualenv
 nodeenv==1.6.0
     # via pre-commit
 packaging==21.0
@@ -70,18 +62,12 @@ toposort==1.6
     # via pip-compile-multi
 tox==3.24.1
     # via -r requirements/integration.in
-typing-extensions==3.10.0.2
-    # via importlib-metadata
 virtualenv==20.7.2
     # via
     #   pre-commit
     #   tox
 wheel==0.37.0
     # via pip-tools
-zipp==3.5.0
-    # via
-    #   importlib-metadata
-    #   pep517
 
 # The following packages are considered to be unsafe in a requirements file:
 # pip
