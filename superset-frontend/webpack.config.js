@@ -295,7 +295,6 @@ const config = {
       // Both `@emotion/core` and `@superset-ui/core` remember some globals within
       // module after imported, which will not be available everywhere if two
       // different copies of the same module are imported in different places.
-      '@emotion/core': path.resolve(APP_DIR, './node_modules/@emotion/core'),
       '@superset-ui/core': path.resolve(
         APP_DIR,
         './node_modules/@superset-ui/core',
@@ -483,6 +482,15 @@ if (isDevMode) {
     ],
     contentBase: path.join(process.cwd(), '../static/assets'),
   };
+
+  // make sure to use @emotion/* modules in the root directory
+  fs.readdirSync(path.resolve(APP_DIR, './node_modules/@emotion'), pkg => {
+    config.resolve.alias[pkg] = path.resolve(
+      APP_DIR,
+      './node_modules/@emotion',
+      pkg,
+    );
+  });
 
   // find all the symlinked plugins and use their source code for imports
   let hasSymlink = false;

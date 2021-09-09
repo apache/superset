@@ -166,9 +166,8 @@ const config: ControlPanelConfig = {
 
         [
           {
-            name: 'metrics',
+            name: 'groupby',
             override: {
-              validators: [],
               visibility: isAggMode,
             },
           },
@@ -176,8 +175,9 @@ const config: ControlPanelConfig = {
 
         [
           {
-            name: 'groupby',
+            name: 'metrics',
             override: {
+              validators: [],
               visibility: isAggMode,
             },
           },
@@ -229,75 +229,81 @@ const config: ControlPanelConfig = {
       ],
 
     },
-    {
-      label: t('Hello Controls!'),
-      expanded: true,
-      controlSetRows: [
-        [
-          {
-            name: 'header_text',
-            config: {
-              type: 'TextControl',
-              default: 'Hello, World!',
-              renderTrigger: true,
-              // ^ this makes it apply instantaneously, without triggering a "run query" button
-              label: t('Header Text'),
-              description: t('The text you want to see in the header'),
-            },
-          },
-        ],
-        [
-          {
-            name: 'bold_text',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Bold Text'),
-              renderTrigger: true,
-              default: true,
-              description: t('A checkbox to make the '),
-            },
-          },
-        ],
-        isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)
-        ? [
-            {
-              name: 'emit_filter',
-              config: {
-                type: 'CheckboxControl',
-                label: t('Enable emitting filters'),
-                default: true,
-                renderTrigger: true,
-                description: t('Enable emmiting filters.'),
-              },
-            },
-          ] : []
-        ,
-        [
-          {
-            name: 'header_font_size',
-            config: {
-              type: 'SelectControl',
-              label: t('Font Size'),
-              default: 'xl',
-              choices: [
-                // [value, label]
-                ['xxs', 'xx-small'],
-                ['xs', 'x-small'],
-                ['s', 'small'],
-                ['m', 'medium'],
-                ['l', 'large'],
-                ['xl', 'x-large'],
-                ['xxl', 'xx-large'],
-              ],
-              renderTrigger: true,
-              description: t('The size of your header font'),
-            },
-          },
-        ],
-      ],
-    },
+    // For CLDN-941: hiding away options that are not hooked up to the ag-grid, moving all to a block that
+    // will hide / show the tab based on DASHBOARD_CROSS_FILTERS being enabled since that's the only option
+    // that is working.
+    // {
+    //   label: t('CCCS Grid Options'),
+    //   expanded: true,
+    //   controlSetRows: [
+    //     [
+    //       {
+    //         name: 'bold_text',
+    //         config: {
+    //           type: 'CheckboxControl',
+    //           label: t('Bold Text'),
+    //           renderTrigger: true,
+    //           default: true,
+    //           description: t('A checkbox to make the '),
+    //         },
+    //       },
+    //     ],
+    //     isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)
+    //     ? [
+    //         {
+    //           name: 'table_filter',
+    //           config: {
+    //             type: 'CheckboxControl',
+    //             label: t('Enable emitting filters'),
+    //             default: false,
+    //             renderTrigger: true,
+    //             description: t('Whether to apply filter to dashboards when grid cells are clicked.'),
+    //           },
+    //         },
+    //       ] : []
+    //     ,
+    //     [
+    //       {
+    //         name: 'column_config',
+    //         config: {
+    //           type: 'ColumnConfigControl',
+    //           label: t('Customize columns'),
+    //           description: t('Further customize how to display each column'),
+    //           renderTrigger: true,
+    //           mapStateToProps(explore, control, chart) {
+    //             return {
+    //               queryResponse: chart?.queriesResponse?.[0] as ChartDataResponseResult | undefined,
+    //               emitFilter: explore?.controls?.table_filter?.value,
+    //             };
+    //           },
+    //         },
+    //       },
+    //     ],
+    //     [
+    //       {
+    //         name: 'header_font_size',
+    //         config: {
+    //           type: 'SelectControl',
+    //           label: t('Font Size'),
+    //           default: 'xl',
+    //           choices: [
+    //             // [value, label]
+    //             ['xxs', 'xx-small'],
+    //             ['xs', 'x-small'],
+    //             ['s', 'small'],
+    //             ['m', 'medium'],
+    //             ['l', 'large'],
+    //             ['xl', 'x-large'],
+    //             ['xxl', 'xx-large'],
+    //           ],
+    //           renderTrigger: true,
+    //           description: t('The size of your header font'),
+    //         },
+    //       },
+    //     ],
+    //   ],
+    // },
   ],
-
   // override controls that are inherited by the default configuration
   controlOverrides: {
     series: {
@@ -312,5 +318,29 @@ const config: ControlPanelConfig = {
     },
   },
 };
+
+// CLDN-941: Only show the CUSTOMIZE tab if DASHBOARD_CROSS_FILTERS are enabled in the system.
+// When more customization is added in the future this code can be removed and the code above
+// can be re-enabled.
+if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+  config.controlPanelSections.push({
+    label: t('CCCS Grid Options'),
+    expanded: true,
+    controlSetRows: [
+      [
+        {
+          name: 'table_filter',
+          config: {
+            type: 'CheckboxControl',
+            label: t('Enable emitting filters'),
+            default: false,
+            renderTrigger: true,
+            description: t('Whether to apply filter to dashboards when grid cells are clicked.'),
+          },
+        },
+      ],
+    ]
+  });
+}
 
 export default config;

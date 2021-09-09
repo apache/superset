@@ -47,6 +47,7 @@ export type CccsGridProps = CccsGridStylesProps &
     modules: any;
     defaultColDef: any;
     rowSelection: any;
+    filters: any;
     // add typing here for the props you pass in from transformProps.ts!
   };
 

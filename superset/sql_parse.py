@@ -311,7 +311,7 @@ class ParsedQuery:
                 if any(not self._is_identifier(token2) for token2 in item.tokens):
                     self._extract_from_token(item)
 
-    def set_or_update_query_limit(self, new_limit: int) -> str:
+    def set_or_update_query_limit(self, new_limit: int, force: bool = False) -> str:
         """Returns the query with the specified limit.
 
         Does not change the underlying query if user did not apply the limit,
@@ -332,8 +332,8 @@ class ParsedQuery:
                 break
         _, limit = statement.token_next(idx=limit_pos)
         # Override the limit only when it exceeds the configured value.
-        if limit.ttype == sqlparse.tokens.Literal.Number.Integer and new_limit < int(
-            limit.value
+        if limit.ttype == sqlparse.tokens.Literal.Number.Integer and (
+            force or new_limit < int(limit.value)
         ):
             limit.value = new_limit
         elif limit.is_group:

@@ -1,0 +1,57 @@
+trigger:
+  batch: true
+  branches:
+    include:
+      - cccs-*
+      - feature/CLDN-*
+  paths:
+    include:
+      - cccs-build/superset
+
+variables:
+  containerRegistry: uchimera
+  imageRepository: cccs/superset
+  dockerfile: $(Build.SourcesDirectory)/cccs-build/superset/Dockerfile
+  buildTimestamp: $[format('{0:yyyyMMddHHmmss}', pipeline.startTime)]
+  DOCKER_BUILDKIT: 1
+
+steps:
+  - bash: |
+      BRANCH_NAME=$(echo "$SYSTEM_PULLREQUEST_SOURCEBRANCH $BUILD_SOURCEBRANCH" | sed -r 's/^\s*(refs\/heads\/)?(\S*).*$/\2/' | sed 's/\//_/g')
+      echo "##vso[task.setvariable variable=BRANCH_NAME]$BRANCH_NAME"
+    displayName: Parse Source Control Branch Name
+
+  - task: Docker@2
+    displayName: Login to $(containerRegistry)
+    inputs:
+      command: login
+      containerRegistry: $(containerRegistry)
+
+  - task: Docker@2
+    displayName: Build the image
+    inputs:
+      command: build
+      containerRegistry: $(containerRegistry)
+      repository: $(imageRepository)
+      dockerfile: $(dockerfile)
+      arguments: --build-arg BUILD_NUMBER=$(Build.BuildNumber)
+      tags: |
+        $(BRANCH_NAME)
+        $(BRANCH_NAME)_$(buildTimestamp)_b$(Build.BuildId)
+
+  - task: Docker@2
+    displayName: Push the image to $(containerRegistry)
+    inputs:
+      command: push
+      containerRegistry: $(containerRegistry)
+      repository: $(imageRepository)
+      tags: |
+        $(BRANCH_NAME)
+        $(BRANCH_NAME)_$(buildTimestamp)_b$(Build.BuildId)
+
+  - task: Docker@2
+    displayName: Logout of $(containerRegistry)
+    inputs:
+      command: logout
+      containerRegistry: $(containerRegistry)
+    condition: always()

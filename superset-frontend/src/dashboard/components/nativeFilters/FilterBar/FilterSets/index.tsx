@@ -26,7 +26,7 @@ import { Filters, FilterSet, FilterSets } from 'src/dashboard/reducers/types';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { findExistingFilterSet, generateFiltersSetId } from './utils';
 import { Filter } from '../../types';
-import { useFilters, useDataMask, useFilterSets } from '../state';
+import { useFilters, useNativeFiltersDataMask, useFilterSets } from '../state';
 import Footer from './Footer';
 import FilterSetUnit from './FilterSetUnit';
 import { getFilterBarTestId } from '..';
@@ -85,7 +85,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
   const dispatch = useDispatch();
   const [filterSetName, setFilterSetName] = useState(DEFAULT_FILTER_SET_NAME);
   const [editMode, setEditMode] = useState(false);
-  const dataMaskApplied = useDataMask();
+  const dataMaskApplied = useNativeFiltersDataMask();
   const filterSets = useFilterSets();
   const filterSetFilterValues = Object.values(filterSets);
   const filters = useFilters();
@@ -111,7 +111,9 @@ const FilterSets: React.FC<FilterSetsProps> = ({
     filterSet?: FilterSet,
   ) =>
     !filterValues.find(filter => filter?.id === id) ||
-    !areObjectsEqual(filters[id], filterSet?.nativeFilters?.[id]);
+    !areObjectsEqual(filters[id], filterSet?.nativeFilters?.[id], {
+      ignoreUndefined: true,
+    });
 
   const takeFilterSet = (id: string, target?: HTMLElement) => {
     const ignoreSelectorHeader = 'ant-collapse-header';
@@ -137,13 +139,15 @@ const FilterSets: React.FC<FilterSetsProps> = ({
 
     const filterSet = filterSets[id];
 
-    Object.values(filterSet?.dataMask ?? []).forEach(dataMask => {
-      const { extraFormData, filterState, id } = dataMask as DataMaskWithId;
-      if (isFilterMissingOrContainsInvalidMetadata(id, filterSet)) {
-        return;
-      }
-      onFilterSelectionChange({ id }, { extraFormData, filterState });
-    });
+    (Object.values(filterSet?.dataMask) ?? []).forEach(
+      (dataMask: DataMaskWithId) => {
+        const { extraFormData, filterState, id } = dataMask;
+        if (isFilterMissingOrContainsInvalidMetadata(id, filterSet)) {
+          return;
+        }
+        onFilterSelectionChange({ id }, { extraFormData, filterState });
+      },
+    );
   };
 
   const handleRebuild = (id: string) => {
@@ -168,7 +172,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
       dataMask: Object.keys(newFilters).reduce(
         (prev, nextFilterId) => ({
           ...prev,
-          [nextFilterId]: filterSet.dataMask?.nativeFilters?.[nextFilterId],
+          [nextFilterId]: filterSet.dataMask?.[nextFilterId],
         }),
         {},
       ),

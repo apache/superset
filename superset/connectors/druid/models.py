@@ -331,6 +331,7 @@ class DruidColumn(Model, BaseColumn):
         "description",
         "dimension_spec_json",
         "verbose_name",
+        "business_type",
     ]
     update_from_object_fields = export_fields
     export_parent = "datasource"

@@ -29,7 +29,7 @@ export default {
     chartUpdateStartTime: 1525852454838,
     latestQueryFormData: {},
     queryRequest: {},
-    queryResponse: {},
+    queriesResponse: [{}],
     triggerQuery: false,
     lastRendered: 0,
     form_data: {

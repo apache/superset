@@ -1,0 +1,38 @@
+trigger:
+  batch: true
+  branches:
+    include:
+      - cccs-*
+      - feature/CLDN-*
+  paths:
+    include:
+      - '*'
+    exclude:
+      - cccs-build/superset
+
+variables:
+  containerRegistry: uchimera
+  imageRepository: cccs/superset-base
+  dockerfile: $(Build.SourcesDirectory)/Dockerfile
+  buildTimestamp: $[format('{0:yyyyMMddHHmmss}', pipeline.startTime)]
+  DOCKER_BUILDKIT: 1
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - bash: |
+      BRANCH_NAME=$(echo "$SYSTEM_PULLREQUEST_SOURCEBRANCH $BUILD_SOURCEBRANCH" | sed -r 's/^\s*(refs\/heads\/)?(\S*).*$/\2/' | sed 's/\//_/g')
+      echo "##vso[task.setvariable variable=BRANCH_NAME]$BRANCH_NAME"
+    displayName: Parse Source Control Branch Name
+
+  - task: Docker@2
+    displayName: Build and push an image to container registry
+    inputs:
+      command: buildAndPush
+      containerRegistry: $(containerRegistry)
+      repository: $(imageRepository)
+      dockerfile: $(dockerfile)
+      tags: |
+        $(BRANCH_NAME)
+        $(BRANCH_NAME)_$(buildTimestamp)_b$(Build.BuildId)

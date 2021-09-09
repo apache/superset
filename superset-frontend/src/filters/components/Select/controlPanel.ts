@@ -61,6 +61,7 @@ const config: ControlPanelConfig = {
               label: t('Multiple select'),
               default: multiSelect,
               resetConfig: true,
+              affectsDataMask: true,
               renderTrigger: true,
               description: t('Allow selecting multiple values'),
             },
@@ -89,6 +90,7 @@ const config: ControlPanelConfig = {
               label: t('Default to first item'),
               default: defaultToFirstItem,
               resetConfig: true,
+              affectsDataMask: true,
               renderTrigger: true,
               description: t('Select first item by default'),
             },
@@ -100,6 +102,7 @@ const config: ControlPanelConfig = {
             config: {
               type: 'CheckboxControl',
               renderTrigger: true,
+              affectsDataMask: true,
               label: t('Inverse selection'),
               default: inverseSelection,
               description: t('Exclude selected values'),

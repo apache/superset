@@ -62,6 +62,7 @@ export interface FiltersConfigModalProps {
   onSave: (filterConfig: FilterConfiguration) => Promise<void>;
   onCancel: () => void;
 }
+export const CASCADING_FILTERS = ['filter_select'];
 
 /**
  * This is the modal to configure all the dashboard-native filters.
@@ -170,6 +171,9 @@ export function FiltersConfigModal({
   const getParentFilters = (id: string) =>
     filterIds
       .filter(filterId => filterId !== id && !removedFilters[filterId])
+      .filter(filterId =>
+        CASCADING_FILTERS.includes(formValues.filters[filterId]?.filterType),
+      )
       .map(id => ({
         id,
         title: getFilterTitle(id),

@@ -59,6 +59,12 @@ const guessFrame = (timeRange: string): FrameType => {
   if (COMMON_RANGE_VALUES_SET.has(timeRange)) {
     return 'Common';
   }
+  if (timeRange === 'today : tomorrow') {
+    return 'Today';
+  }
+  if (timeRange === 'yesterday : today') {
+    return 'Yesterday';
+  }
   if (CALENDAR_RANGE_VALUES_SET.has(timeRange)) {
     return 'Calendar';
   }
@@ -217,6 +223,12 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         ) {
           setActualTimeRange(value);
           setTooltipTitle(actualRange || '');
+        } else if (
+          guessedFrame === 'Today' ||
+          guessedFrame === 'Yesterday'
+        ) {
+          setActualTimeRange(guessedFrame);
+          setTooltipTitle(actualRange || '');
         } else {
           setActualTimeRange(actualRange || '');
           setTooltipTitle(value || '');
@@ -271,6 +283,12 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     if (option.value === 'No filter') {
       setTimeRangeValue('No filter');
     }
+    if (option.value === 'Today') {
+      setTimeRangeValue('today : tomorrow');
+    }
+    if (option.value === 'Yesterday') {
+      setTimeRangeValue('yesterday : today');
+    }
     setFrame(option.value as FrameType);
   }
 
@@ -283,10 +301,12 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         onChange={onChangeFrame}
         className="frame-dropdown"
       />
-      {frame !== 'No filter' && <Divider />}
+      {!['No filter', 'Today', 'Yesterday'].includes(frame) && <Divider />}
       {frame === 'Common' && (
         <CommonFrame value={timeRangeValue} onChange={setTimeRangeValue} />
       )}
+      {frame === 'Today' && <div data-test="today" />}
+      {frame === 'Yesterday' && <div data-test="yesterday" />}
       {frame === 'Calendar' && (
         <CalendarFrame value={timeRangeValue} onChange={setTimeRangeValue} />
       )}

@@ -334,6 +334,7 @@ export default function sqlLabReducer(state = {}, action) {
         results: action.results,
         rows: action?.results?.data?.length,
         state: 'success',
+        limitingFactor: action?.results?.query?.limitingFactor,
         tempSchema: action?.results?.query?.tempSchema,
         tempTable: action?.results?.query?.tempTable,
         errorMessage: null,

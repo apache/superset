@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 //import { styled } from '@superset-ui/core';
 import { CccsGridProps } from './types';
 
@@ -39,6 +39,11 @@ import '@ag-grid-community/core/dist/styles/ag-grid.css';
 import '@ag-grid-community/core/dist/styles/ag-theme-balham.css';
 
 import { AllModules } from "@ag-grid-enterprise/all-modules";
+import { NULL_STRING } from 'src/utils/common';
+
+import {
+  ensureIsArray
+} from '@superset-ui/core';
 
 const DEFAULT_COLUMN_DEF = {
   flex: 1,
@@ -62,18 +67,42 @@ export default function CccsGrid({
   selectedValues,
   tooltipShowDelay,
   rowSelection,
+  emitFilter = false,
+  filters: initialFilters = {},
 }: CccsGridProps) {
 
+  const [, setFilters] = useState(initialFilters);
 
-  const frameworkComponents = {
-    countryValueRenderer: CountryValueRenderer,
-    ipv4ValueRenderer: Ipv4ValueRenderer,
-    ipv6ValueRenderer: Ipv6ValueRenderer,
-    domainValueRenderer: DomainValueRenderer,
-    customTooltip: CustomTooltip,
+  const [prevRow, setPrevRow] = useState(-1);
+  const [prevColumn, setPrevColumn] = useState('');
 
-  };
+  const handleChange = useCallback(filters => {
+    if (!emitFilter) {
+      return;
+    }
 
+    const groupBy = Object.keys(filters);
+    const groupByValues = Object.values(filters);
+    setDataMask({
+      extraFormData: {
+        filters: groupBy.length === 0 ? [] : groupBy.map(col => {
+          const val = ensureIsArray(filters?.[col]);
+          if (val === null || val === undefined) return {
+            col,
+            op: 'IS NULL'
+          };
+          return {
+            col,
+            op: 'IN',
+            val: val
+          };
+        })
+      },
+      filterState: {
+        value: groupByValues.length ? groupByValues : null
+      }
+    });
+  }, [emitFilter, setDataMask]); // only take relevant page size options
 
   // getContextMenuItems = (params) => {
   //   var result = [
@@ -97,40 +126,15 @@ export default function CccsGrid({
 
 
 
-
-  // What is ownFilters used for???
-
-  const handleChange = useCallback(
-    (values: string[]) => {
-
-      if (!formData.emitFilter) {
-        return;
-      }
-
-      setDataMask({
-        extraFormData: {
-          filters:
-            values.length === 0
-              ? []
-              : [{
-                col: "ip_string",
-                op: 'IN',
-                val: values,
-                }],
-        },
-        filterState: {
-          value: values.length ? values : null,
-        },
-        ownState: {
-          selectedValues: values.length ? values : null,
-        },
-      },);
-    },
-    [setDataMask, selectedValues],
-  );
+  const frameworkComponents = {
+    countryValueRenderer: CountryValueRenderer,
+    ipv4ValueRenderer: Ipv4ValueRenderer,
+    ipv6ValueRenderer: Ipv6ValueRenderer,
+    domainValueRenderer: DomainValueRenderer,
+    customTooltip: CustomTooltip,
+  };
 
   const onGridReady = (params: any) => {
-    //const { name } = props;
     console.log('onGridReady called');
     params.api.forceUpdate();
   };
@@ -138,57 +142,111 @@ export default function CccsGrid({
   const onSelectionChanged = (params: any) => {
     const gridApi = params.api;
     var selectedRows = gridApi.getSelectedRows();
-    const ranges = gridApi.getCellRanges();
-    ranges.startRow
-    ranges.endRow
-    ranges.columns
     gridApi.document.querySelector('#selectedRows').innerHTML =
       selectedRows.length === 1 ? selectedRows[0].athlete : '';
   };
 
-  const onRangeSelectionChanged = (params: any) => {
-    const gridApi = params.api;
-    var cellRanges = gridApi.getCellRanges();
-
-    cellRanges.forEach( (range: any) => {
-      // get starting and ending row, remember rowEnd could be before rowStart
-      var startRow = Math.min(range.startRow.rowIndex, range.endRow.rowIndex);
-      var endRow = Math.max(range.startRow.rowIndex, range.endRow.rowIndex);
-
-      for (var rowIndex = startRow; rowIndex <= endRow; rowIndex++) {
-        range.columns.forEach( (column: any) => {
-          const cellRenderer = column.colDef?.cellRenderer;
-          if (cellRenderer == 'ipv4ValueRenderer') {
-            var rowModel = gridApi.getModel();
-            var rowNode = rowModel.getRow(rowIndex);
-            var value = gridApi.getValue(column, rowNode);
-            const values = [value];
-            handleChange([...values]);
-          }
-        });
-      }
-    });
-
+  function isSingleCellSelection(cellRanges: any): boolean {
+    if (cellRanges.length != 1) {
+      return false;
+    }
+    const range = cellRanges[0];
+    return range.startRow.rowIndex == range.endRow.rowIndex && range.columns.length == 1;
   }
 
+  function isSameSingleSelection(range: any): boolean {
+    const singleRow = Math.min(range.startRow.rowIndex, range.endRow.rowIndex);
+    return prevRow == singleRow && prevColumn == range.columns[0].colId;
+  }
+
+  function cacheSingleSelection(range: any) {
+    const singleRow = Math.min(range.startRow.rowIndex, range.endRow.rowIndex);
+    setPrevRow(singleRow);
+    setPrevColumn(range.columns[0].colId);
+  }
+
+  function clearSingleSelection() {
+    setPrevRow(-1);
+    setPrevColumn(NULL_STRING);
+  }
+
+  const onRangeSelectionChanged = (params: any) => {
+    if (params.finished == false) {
+      return;
+    }
+
+    const gridApi = params.api;
+    let cellRanges = gridApi.getCellRanges();
+    if (isSingleCellSelection(cellRanges)) {
+      // Did user re-select the same single cell
+      if (isSameSingleSelection(cellRanges[0])) {
+        // clear selection in ag-grid
+        gridApi.clearRangeSelection();
+        // new cell ranges should be empty now
+        cellRanges = gridApi.getCellRanges();
+        // Clear previous selection
+        clearSingleSelection();
+      }
+      else {
+        // remember the single cell selection
+        cacheSingleSelection(cellRanges[0]);
+      }
+    }
+
+    const updatedFilters = {};
+    cellRanges.forEach((range: any) => {
+      range.columns.forEach((column: any) => {
+        const col = getEmitTarget(column.colDef?.field)
+        updatedFilters[col] = updatedFilters[col] || [];
+        const startRow = Math.min(range.startRow.rowIndex, range.endRow.rowIndex);
+        const endRow = Math.max(range.startRow.rowIndex, range.endRow.rowIndex);
+        for (let rowIndex = startRow; rowIndex <= endRow; rowIndex++) {
+          const value = gridApi.getValue(column, gridApi.getModel().getRow(rowIndex));
+          if (!updatedFilters[col].includes(value)) {
+            updatedFilters[col].push(value);
+          }
+        }
+      });
+    });
+
+    setFilters(updatedFilters);
+    handleChange(updatedFilters);
+  }
+
+  function getEmitTarget(col: string) {
+    return formData.column_config?.[col]?.emitTarget || col;
+  }
+
+  function autoSizeFirst100Columns(params: any){
+    // Autosizes only the first 100 Columns in Ag-Grid
+    const allColumnIds = params.columnApi.getAllColumns().map((col: any) => {return col.getColId()});
+    params.columnApi.autoSizeColumns(allColumnIds.slice(0,100), false);
+  }
+
+  const gridOptions = {
+    suppressColumnVirtualisation: true
+    // Disables a Key performance feature for Ag-Grid to enable autosizing of multiple columns
+    // if not disabled, only the first 10-15 columns will autosize
+    // This change will make initial load up of Ag-Grid slower than before
+  };
 
   return (
-
-    <div style={{ width, height}}  className="ag-theme-balham" >
-        <AgGridReact
-          modules={AllModules}
-          columnDefs={columnDefs}
-          defaultColDef={DEFAULT_COLUMN_DEF}
-          frameworkComponents={frameworkComponents}
-          enableRangeSelection={true}
-          allowContextMenuWithControlKey={true}
-          //getContextMenuItems={getContextMenuItems}
-          onGridReady={onGridReady}
-          onRangeSelectionChanged={onRangeSelectionChanged}
-          onSelectionChanged={onSelectionChanged}
-          rowData={rowData}
-        />
-      </div>
-
+    <div style={{ width, height }} className="ag-theme-balham" >
+      <AgGridReact
+        modules={AllModules}
+        columnDefs={columnDefs}
+        defaultColDef={DEFAULT_COLUMN_DEF}
+        frameworkComponents={frameworkComponents}
+        enableRangeSelection={true}
+        allowContextMenuWithControlKey={true}
+        gridOptions={gridOptions}
+        onGridColumnsChanged={autoSizeFirst100Columns}
+        //getContextMenuItems={getContextMenuItems}
+        onGridReady={onGridReady}
+        onRangeSelectionChanged={onRangeSelectionChanged}
+        onSelectionChanged={onSelectionChanged}
+        rowData={rowData}
+      />
+    </div>
   );
 }

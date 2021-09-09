@@ -23,6 +23,8 @@ export type SelectOptionType = {
 
 export type FrameType =
   | 'Common'
+  | 'Today'
+  | 'Yesterday'
   | 'Calendar'
   | 'Custom'
   | 'Advanced'
@@ -30,7 +32,7 @@ export type FrameType =
 
 export type DateTimeGrainType =
   | 'second'
-  | 'minite'
+  | 'minute'
   | 'hour'
   | 'day'
   | 'week'

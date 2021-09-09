@@ -206,3 +206,27 @@ def test_import_datasets_versioned_export(import_datasets_command, app_context, 
     assert response.exit_code == 0
     expected_contents = {"dataset.yaml": "hello: world"}
     import_datasets_command.assert_called_with(expected_contents, overwrite=True)
+
+@mock.patch.dict(
+    "superset.config.DEFAULT_FEATURE_FLAGS", {"VERSIONED_EXPORT": False}, clear=True
+)
+@mock.patch("superset.datasets.commands.importers.v0.ImportDatasetsCommand")
+def test_import_datasets_sync_argument(import_datasets_command, app_context, fs):
+    """
+    Test that the --sync command line argument syncs dataset in superset
+    with YAML file.
+    """
+    import superset.cli
+
+    importlib.reload(superset.cli)
+
+    with open("dataset.yaml", "w") as fp:
+        fp.write("hello: world")
+
+    runner = app.test_cli_runner()
+    response = runner.invoke(superset.cli.import_datasources, ["-p", "dataset.yaml", "-s", "metrics,columns"])
+    
+    assert response.exit_code == 0
+
+    expected_contents = { "dataset.yaml": "hello: world" }
+    import_datasets_command.assert_called_with(expected_contents, kwargs=['metrics', 'columns'])

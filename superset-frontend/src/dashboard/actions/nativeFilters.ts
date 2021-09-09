@@ -22,8 +22,8 @@ import { Dispatch } from 'redux';
 import { FilterConfiguration } from 'src/dashboard/components/nativeFilters/types';
 import { DataMaskType, DataMaskStateWithId } from 'src/dataMask/types';
 import {
-  SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE,
   SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL,
+  setDataMaskForFilterConfigComplete,
 } from 'src/dataMask/actions';
 import { HYDRATE_DASHBOARD } from './hydrate';
 import { dashboardInfoChanged } from './dashboardInfo';
@@ -65,14 +65,6 @@ export interface SetFilterSetsConfigFail {
   type: typeof SET_FILTER_SETS_CONFIG_FAIL;
   filterSetsConfig: FilterSet[];
 }
-export const SET_FILTERS_INITIALIZED = 'SET_FILTERS_INITIALIZED';
-export interface SetFiltersInitialized {
-  type: typeof SET_FILTERS_INITIALIZED;
-}
-
-export const setFiltersInitialized = (): SetFiltersInitialized => ({
-  type: SET_FILTERS_INITIALIZED,
-});
 
 export const setFilterConfiguration = (
   filterConfig: FilterConfiguration,
@@ -82,6 +74,7 @@ export const setFilterConfiguration = (
     filterConfig,
   });
   const { id, metadata } = getState().dashboardInfo;
+  const oldFilters = getState().nativeFilters?.filters;
 
   // TODO extract this out when makeApi supports url parameters
   const updateDashboard = makeApi<
@@ -108,11 +101,7 @@ export const setFilterConfiguration = (
       type: SET_FILTER_CONFIG_COMPLETE,
       filterConfig,
     });
-    dispatch({
-      type: SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE,
-      unitName: DataMaskType.NativeFilters,
-      filterConfig,
-    });
+    dispatch(setDataMaskForFilterConfigComplete(filterConfig, oldFilters));
   } catch (err) {
     dispatch({ type: SET_FILTER_CONFIG_FAIL, filterConfig });
     dispatch({ type: SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL, filterConfig });
@@ -200,6 +189,5 @@ export type AnyFilterAction =
   | SetFilterSetsConfigBegin
   | SetFilterSetsConfigComplete
   | SetFilterSetsConfigFail
-  | SetFiltersInitialized
   | SaveFilterSets
   | SetBooststapData;

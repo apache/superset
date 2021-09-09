@@ -121,13 +121,6 @@ class Chart extends React.PureComponent {
   }
 
   runQuery() {
-    if (
-      this.props.dashboardId && // we on dashboard screen
-      isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
-      !this.props.isFiltersInitialized
-    ) {
-      return;
-    }
     if (this.props.chartId > 0 && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)) {
       // Load saved chart with a GET request
       this.props.actions.getSavedChart(
@@ -221,6 +214,7 @@ class Chart extends React.PureComponent {
         showMessage={false}
       >
         <Styles
+          data-ui-anchor="chart"
           className="chart-container"
           data-test="chart-container"
           height={height}

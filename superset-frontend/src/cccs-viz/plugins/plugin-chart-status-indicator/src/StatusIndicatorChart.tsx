@@ -6,14 +6,15 @@ import { ChartProps } from './types';
 const Container = styled.div`
   display: flex;
   justify-content: space-between;
+  overflow-y: auto;
 `;
 
 const Chart = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  align-items: left;
+  justify-content: left;
 `;
 
 export default function StatusIndicatorChart(chartProps: ChartProps) {

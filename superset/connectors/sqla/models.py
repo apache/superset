@@ -181,6 +181,7 @@ class TableColumn(Model, BaseColumn):
         "is_dttm",
         "is_active",
         "type",
+        "business_type",
         "groupby",
         "filterable",
         "expression",
@@ -349,6 +350,7 @@ class TableColumn(Model, BaseColumn):
             "groupby",
             "is_dttm",
             "type",
+            "business_type",
             "python_date_format",
         )
         return {s: getattr(self, s) for s in attrs if hasattr(self, s)}
@@ -978,6 +980,8 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         template_kwargs.update(self.template_params_dict)
         extra_cache_keys: List[Any] = []
         template_kwargs["extra_cache_keys"] = extra_cache_keys
+        removed_filters: List[str] = []
+        template_kwargs["removed_filters"] = removed_filters
         template_processor = self.get_template_processor(**template_kwargs)
         db_engine_spec = self.database.db_engine_spec
         prequeries: List[str] = []
@@ -1161,6 +1165,12 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             val = flt.get("val")
             op = flt["op"].upper()
             col_obj = columns_by_name.get(col)
+
+            if is_feature_enabled("ENABLE_TEMPLATE_REMOVE_FILTERS"):
+                if col in removed_filters:
+                    # Skip generating SQLA filter when the jinja template handles it.
+                    continue
+
             if col_obj:
                 col_spec = db_engine_spec.get_column_spec(col_obj.type)
                 is_list_target = op in (
