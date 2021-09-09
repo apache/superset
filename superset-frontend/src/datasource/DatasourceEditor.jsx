@@ -255,7 +255,7 @@ function ColumnCollectionTable({
             />
             <Field
               fieldKey="certification_details"
-              label={t('Certification Details')}
+              label={t('Certification details')}
               control={
                 <TextControl
                   controlId="certificationDetails"
