@@ -2595,24 +2595,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             self._get_the_query_db(execution_context, session)
         )
         query = execution_context.create_query()
-        try:
-            session.add(query)
-            session.flush()
-            query_id = query.id
-            session.commit()  # shouldn't be necessary
-        except SQLAlchemyError as ex:
-            logger.error("Errors saving query details %s", str(ex), exc_info=True)
-            session.rollback()
-            query_id = None
-        if not query_id:
-            raise SupersetGenericErrorException(
-                __(
-                    "The query record was not created as expected. Please "
-                    "contact an administrator for further assistance or try again."
-                )
-            )
+        self._save_new_query(query, session)
 
-        logger.info("Triggering query_id: %i", query_id)
+        logger.info("Triggering query_id: %i", query.id)
 
         try:
             query.raise_for_access()
@@ -2691,6 +2676,24 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return self._sql_json_sync(
             session, rendered_query, query, expand_data, log_params
         )
+
+    def _save_new_query(  # pylint: disable=no-self-use
+        self, query: Query, session: Session
+    ) -> None:
+        try:
+            session.add(query)
+            session.flush()
+            session.commit()  # shouldn't be necessary
+        except SQLAlchemyError as ex:
+            logger.error("Errors saving query details %s", str(ex), exc_info=True)
+            session.rollback()
+        if not query.id:
+            raise SupersetGenericErrorException(
+                __(
+                    "The query record was not created as expected. Please "
+                    "contact an administrator for further assistance or try again."
+                )
+            )
 
     @staticmethod
     def _convert_query_to_payload(query: Query) -> str:
