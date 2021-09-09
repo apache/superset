@@ -259,7 +259,7 @@ function ColumnCollectionTable({
               control={
                 <TextControl
                   controlId="certificationDetails"
-                  placeholder={t('Certification Details')}
+                  placeholder={t('Certification details')}
                 />
               }
             />
