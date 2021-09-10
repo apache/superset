@@ -59,14 +59,14 @@ export const LOG_EVENT_TYPE_USER = new Set([
 ]);
 
 export const Logger = {
-  softNavigationStart: 0,
+  timeOriginOffset: 0,
 
-  resetStartTime() {
-    this.softNavigationStart = window.performance.now();
+  markTimeOrigin() {
+    this.timeOriginOffset = window.performance.now();
   },
 
   // note that this returns ms since last navigation, NOT ms since epoch
   getTimestamp() {
-    return Math.round(window.performance.now() - this.softNavigationStart);
+    return Math.round(window.performance.now() - this.timeOriginOffset);
   },
 };

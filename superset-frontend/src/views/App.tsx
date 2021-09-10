@@ -58,7 +58,7 @@ const RootContextProviders: React.FC = ({ children }) => {
     // reset performance logger timer start point to avoid soft navigation
     // cause dashboard perf measurement problem
     if (lastLocationPathname && lastLocationPathname !== location.pathname) {
-      Logger.resetStartTime();
+      Logger.markTimeOrigin();
     }
     lastLocationPathname = location.pathname;
   }, [location.pathname]);
