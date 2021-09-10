@@ -80,6 +80,7 @@ export interface SelectProps extends PickedSelectProps {
   lazyLoading?: boolean;
   mode?: 'single' | 'multiple';
   name?: string; // discourage usage
+  optionFilterProps?: string[];
   options: OptionsType | OptionsPagePromise;
   pageSize?: number;
   invertSelection?: boolean;
@@ -171,6 +172,7 @@ const Select = ({
   name,
   onChange,
   onClear,
+  optionFilterProps = ['label', 'value'],
   options,
   pageSize = DEFAULT_PAGE_SIZE,
   placeholder = t('Select ...'),
@@ -424,18 +426,24 @@ const Select = ({
       return filterOption(search, option);
     }
 
+    let found = false;
+
     if (filterOption) {
       const searchValue = search.trim().toLowerCase();
-      const { value, label } = option;
-      const valueText = String(value);
-      const labelText = String(label);
-      return (
-        valueText.toLowerCase().includes(searchValue) ||
-        labelText.toLowerCase().includes(searchValue)
-      );
+
+      if (optionFilterProps && optionFilterProps.length) {
+        optionFilterProps.forEach(prop => {
+          const optionProp = option?.[prop]
+            ? String(option[prop]).trim().toLowerCase()
+            : '';
+          if (optionProp.includes(searchValue)) {
+            found = true;
+          }
+        });
+      }
     }
 
-    return false;
+    return found;
   };
 
   const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
