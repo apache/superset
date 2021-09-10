@@ -417,9 +417,7 @@ class TestTableViz(SupersetTestCase):
                 "label": "adhoc_metric",
                 "expressionType": "SIMPLE",
                 "aggregate": "SUM",
-                "column": {
-                    "column_name": "sort_column",
-                },
+                "column": {"column_name": "sort_column",},
             }
         )
 
