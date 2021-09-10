@@ -41,6 +41,8 @@ import Icons from 'src/components/Icons';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { hasOption } from './utils';
 
+const { Option } = AntdSelect;
+
 type AntdSelectAllProps = AntdSelectProps<AntdSelectValue>;
 
 type PickedSelectProps = Pick<
@@ -60,7 +62,12 @@ type PickedSelectProps = Pick<
   | 'value'
 >;
 
-export type OptionsType = Exclude<AntdSelectAllProps['options'], undefined>;
+type OptionsProps = Exclude<AntdSelectAllProps['options'], undefined>;
+
+export interface OptionsType extends Omit<OptionsProps, 'label'> {
+  label?: string;
+  customLabel?: ReactNode;
+}
 
 export type OptionsTypePage = {
   data: OptionsType;
@@ -187,6 +194,9 @@ const Select = ({
     options && Array.isArray(options) ? options : EMPTY_OPTIONS;
   const [selectOptions, setSelectOptions] = useState<OptionsType>(
     initialOptions,
+  );
+  const shouldUseChildrenOptions = !!selectOptions.find(
+    opt => opt?.customLabel,
   );
   const [selectValue, setSelectValue] = useState(value);
   const [searchedValue, setSearchedValue] = useState('');
@@ -432,13 +442,15 @@ const Select = ({
       const searchValue = search.trim().toLowerCase();
 
       if (optionFilterProps && optionFilterProps.length) {
-        optionFilterProps.forEach(prop => {
+        optionFilterProps.every(prop => {
           const optionProp = option?.[prop]
             ? String(option[prop]).trim().toLowerCase()
             : '';
           if (optionProp.includes(searchValue)) {
             found = true;
+            return false;
           }
+          return true;
         });
       }
     }
@@ -576,7 +588,7 @@ const Select = ({
         onSelect={handleOnSelect}
         onClear={handleClear}
         onChange={onChange}
-        options={selectOptions}
+        options={(!shouldUseChildrenOptions && selectOptions) || undefined}
         placeholder={placeholder}
         showSearch={shouldShowSearch}
         showArrow
@@ -591,7 +603,35 @@ const Select = ({
           )
         }
         {...props}
-      />
+      >
+        {shouldUseChildrenOptions &&
+          selectOptions.map(opt => {
+            const isOptObject = !!Object.keys(opt).length;
+            const label = isOptObject ? opt?.label || opt.value : opt;
+            const value = (isOptObject && opt.value) || opt;
+            const otherFilterableProps = {};
+
+            if (isOptObject && optionFilterProps) {
+              // only pass filterable props to Option
+              Object.keys(opt).forEach(prop => {
+                if (optionFilterProps.includes(prop)) {
+                  otherFilterableProps[prop] = opt[prop];
+                }
+              });
+            }
+
+            return (
+              <Option
+                {...otherFilterableProps}
+                key={value}
+                label={label}
+                value={value}
+              >
+                {(isOptObject && opt?.customLabel) || label}
+              </Option>
+            );
+          })}
+      </StyledSelect>
     </StyledContainer>
   );
 };
