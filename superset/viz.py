@@ -2108,7 +2108,7 @@ class FilterBoxViz(BaseViz):
                         for row in df.itertuples(index=False)
                     ]
             else:
-                df[col] = []
+                d[col] = []
         return d
 
 
