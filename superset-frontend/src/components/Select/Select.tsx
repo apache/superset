@@ -583,8 +583,8 @@ const Select = ({
         onDeselect={handleOnDeselect}
         onDropdownVisibleChange={handleOnDropdownVisibleChange}
         onInputKeyDown={onInputKeyDown}
-        onPopupScroll={isAsync ? handlePagination : undefined}
-        onSearch={shouldShowSearch ? handleOnSearch : undefined}
+        onPopupScroll={(isAsync && handlePagination) || undefined}
+        onSearch={(shouldShowSearch && handleOnSearch) || undefined}
         onSelect={handleOnSelect}
         onClear={handleClear}
         onChange={onChange}
@@ -609,24 +609,9 @@ const Select = ({
             const isOptObject = !!Object.keys(opt).length;
             const label = isOptObject ? opt?.label || opt.value : opt;
             const value = (isOptObject && opt.value) || opt;
-            const otherFilterableProps = {};
-
-            if (isOptObject && optionFilterProps) {
-              // only pass filterable props to Option
-              Object.keys(opt).forEach(prop => {
-                if (optionFilterProps.includes(prop)) {
-                  otherFilterableProps[prop] = opt[prop];
-                }
-              });
-            }
 
             return (
-              <Option
-                {...otherFilterableProps}
-                key={value}
-                label={label}
-                value={value}
-              >
+              <Option {...opt} key={value} label={label} value={value}>
                 {(isOptObject && opt?.customLabel) || label}
               </Option>
             );
