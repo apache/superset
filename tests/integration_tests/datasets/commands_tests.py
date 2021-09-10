@@ -292,8 +292,11 @@ class TestImportDatasetsCommand(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
-    def test_import_v1_dataset(self):
+    @patch("superset.datasets.commands.importers.v1.utils.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_import_v1_dataset(self, mock_g):
         """Test that we can import a dataset"""
+        mock_g.user = security_manager.find_user("admin")
         contents = {
             "metadata.yaml": yaml.safe_dump(dataset_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
@@ -318,6 +321,9 @@ class TestImportDatasetsCommand(SupersetTestCase):
         assert dataset.filter_select_enabled
         assert dataset.fetch_values_predicate is None
         assert dataset.extra == "dttm > sysdate() -10 "
+
+        # user should be included as one of the owners
+        assert dataset.owners == [mock_g.user]
 
         # database is also imported
         assert str(dataset.database.uuid) == "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89"

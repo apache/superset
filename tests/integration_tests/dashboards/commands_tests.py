@@ -463,8 +463,10 @@ class TestImportDashboardsCommand(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
-    def test_import_v1_dashboard(self):
+    @patch("superset.dashboards.commands.importers.v1.utils.g")
+    def test_import_v1_dashboard(self, mock_g):
         """Test that we can import a dashboard"""
+        mock_g.user = security_manager.find_user("admin")
         contents = {
             "metadata.yaml": yaml.safe_dump(dashboard_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
@@ -543,6 +545,10 @@ class TestImportDashboardsCommand(SupersetTestCase):
 
         database = dataset.database
         assert str(database.uuid) == database_config["uuid"]
+
+        assert dataset.owners == [mock_g.user]
+        assert chart.owners == [mock_g.user]
+        assert dashboard.owners == [mock_g.user]
 
         db.session.delete(dashboard)
         db.session.delete(chart)
