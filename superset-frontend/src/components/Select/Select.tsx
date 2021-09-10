@@ -374,48 +374,28 @@ const Select = ({
     () =>
       debounce((search: string) => {
         const searchValue = search.trim();
-        // enables option creation
         if (allowNewOptions && isSingleMode) {
-          const firstOption =
-            selectOptions.length > 0 && selectOptions[0].value;
-          // replaces the last search value entered with the new one
-          // only when the value wasn't part of the original options
-          if (
-            searchValue &&
-            firstOption === searchedValue &&
-            !initialOptions.find(o => o.value === searchedValue)
-          ) {
-            selectOptions.shift();
-            setSelectOptions(selectOptions);
-          }
-          if (searchValue && !hasOption(searchValue, selectOptions)) {
-            const newOption = {
+          const newOption = searchValue &&
+            !hasOption(searchValue, selectOptions) && {
               label: searchValue,
               value: searchValue,
             };
-            // adds a custom option
-            const newOptions = [...selectOptions, newOption];
-            setSelectOptions(newOptions);
-            setSelectValue(newOption);
+          const newOptions = newOption
+            ? [
+                newOption,
+                ...selectOptions.filter(opt => opt.value !== searchedValue),
+              ]
+            : [...selectOptions.filter(opt => opt.value !== searchedValue)];
 
-            if (onChange) {
-              onChange(searchValue, newOptions);
-            }
-          }
+          setSelectOptions(newOptions);
         }
+
         if (!searchValue || searchValue === searchedValue) {
           setIsTyping(false);
         }
         setSearchedValue(searchValue);
       }, DEBOUNCE_TIMEOUT),
-    [
-      allowNewOptions,
-      initialOptions,
-      isSingleMode,
-      onChange,
-      searchedValue,
-      selectOptions,
-    ],
+    [allowNewOptions, isSingleMode, searchedValue, selectOptions],
   );
 
   const handlePagination = (e: UIEvent<HTMLElement>) => {
