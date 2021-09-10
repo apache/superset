@@ -66,7 +66,7 @@ WORKDIR /home/superset
 
 COPY . /home/superset
 
-RUN pip install --upgrade setuptools pip \
+RUN pip install --upgrade "setuptools<58" pip \
   && pip install -r requirements.txt -r requirements-dev.txt  \
   && pip install -e . \
   && pip install eventlet \
