@@ -202,37 +202,6 @@ const Select = ({
     ? 'tags'
     : 'multiple';
 
-  useEffect(() => {
-    fetchedQueries.current.clear();
-    setSelectOptions(
-      options && Array.isArray(options) ? options : EMPTY_OPTIONS,
-    );
-  }, [options]);
-
-  useEffect(() => {
-    setSelectValue(value);
-  }, [value]);
-
-  useEffect(() => {
-    if (isAsync && selectValue) {
-      const array: AntdLabeledValue[] = Array.isArray(selectValue)
-        ? (selectValue as AntdLabeledValue[])
-        : [selectValue as AntdLabeledValue];
-      const options: AntdLabeledValue[] = [];
-      array.forEach(element => {
-        const found = selectOptions.find(
-          option => option.value === element.value,
-        );
-        if (!found) {
-          options.push(element);
-        }
-      });
-      if (options.length > 0) {
-        setSelectOptions([...selectOptions, ...options]);
-      }
-    }
-  }, [isAsync, selectOptions, selectValue]);
-
   // TODO: Simplify the code. We're only accepting label, value options.
   // TODO: Remove labelInValue prop.
   const handleTopOptions = useCallback(
@@ -437,9 +406,6 @@ const Select = ({
     ],
   );
 
-  // Stop the invocation of the debounced function after unmounting
-  useEffect(() => () => handleOnSearch.cancel(), [handleOnSearch]);
-
   const handlePagination = (e: UIEvent<HTMLElement>) => {
     const vScroll = e.currentTarget;
     const thresholdReached =
@@ -486,34 +452,6 @@ const Select = ({
     }
   };
 
-  useEffect(() => {
-    const allowFetch = !fetchOnlyOnSearch || searchedValue;
-    if (isAsync && loadingEnabled && allowFetch) {
-      const page = 0;
-      handlePaginatedFetch(searchedValue, page, pageSize);
-      setPage(page);
-    }
-  }, [
-    isAsync,
-    searchedValue,
-    pageSize,
-    handlePaginatedFetch,
-    loadingEnabled,
-    fetchOnlyOnSearch,
-  ]);
-
-  useEffect(() => {
-    if (isSingleMode) {
-      handleTopOptions(selectValue);
-    }
-  }, [handleTopOptions, isSingleMode, selectValue]);
-
-  useEffect(() => {
-    if (loading !== undefined && loading !== isLoading) {
-      setIsLoading(loading);
-    }
-  }, [isLoading, loading]);
-
   const dropdownRender = (
     originNode: ReactElement & { ref?: RefObject<HTMLElement> },
   ) => {
@@ -548,6 +486,68 @@ const Select = ({
       onClear();
     }
   };
+
+  useEffect(() => {
+    fetchedQueries.current.clear();
+    setSelectOptions(
+      options && Array.isArray(options) ? options : EMPTY_OPTIONS,
+    );
+  }, [options]);
+
+  useEffect(() => {
+    setSelectValue(value);
+  }, [value]);
+
+  useEffect(() => {
+    if (isAsync && selectValue) {
+      const array: AntdLabeledValue[] = Array.isArray(selectValue)
+        ? (selectValue as AntdLabeledValue[])
+        : [selectValue as AntdLabeledValue];
+      const options: AntdLabeledValue[] = [];
+      array.forEach(element => {
+        const found = selectOptions.find(
+          option => option.value === element.value,
+        );
+        if (!found) {
+          options.push(element);
+        }
+      });
+      if (options.length > 0) {
+        setSelectOptions([...selectOptions, ...options]);
+      }
+    }
+  }, [isAsync, selectOptions, selectValue]);
+
+  // Stop the invocation of the debounced function after unmounting
+  useEffect(() => () => handleOnSearch.cancel(), [handleOnSearch]);
+
+  useEffect(() => {
+    const allowFetch = !fetchOnlyOnSearch || searchedValue;
+    if (isAsync && loadingEnabled && allowFetch) {
+      const page = 0;
+      handlePaginatedFetch(searchedValue, page, pageSize);
+      setPage(page);
+    }
+  }, [
+    isAsync,
+    searchedValue,
+    pageSize,
+    handlePaginatedFetch,
+    loadingEnabled,
+    fetchOnlyOnSearch,
+  ]);
+
+  useEffect(() => {
+    if (isSingleMode) {
+      handleTopOptions(selectValue);
+    }
+  }, [handleTopOptions, isSingleMode, selectValue]);
+
+  useEffect(() => {
+    if (loading !== undefined && loading !== isLoading) {
+      setIsLoading(loading);
+    }
+  }, [isLoading, loading]);
 
   return (
     <StyledContainer>
