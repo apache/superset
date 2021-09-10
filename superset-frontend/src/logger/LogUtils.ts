@@ -65,7 +65,7 @@ export const Logger = {
     this.softNavigationStart = window.performance.now();
   },
 
-  // note that this returns ms since page load, NOT ms since epoch
+  // note that this returns ms since last navigation, NOT ms since epoch
   getTimestamp() {
     return Math.round(window.performance.now() - this.softNavigationStart);
   },

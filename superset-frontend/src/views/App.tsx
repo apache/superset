@@ -39,7 +39,7 @@ import { theme } from 'src/preamble';
 import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
 import setupApp from 'src/setup/setupApp';
 import { routes, isFrontendRoute } from 'src/views/routes';
-import { Logger } from '../logger/LogUtils';
+import { Logger } from 'src/logger/LogUtils';
 import { store } from './store';
 
 setupApp();
@@ -49,7 +49,7 @@ const bootstrap = JSON.parse(container?.getAttribute('data-bootstrap') ?? '{}');
 const user = { ...bootstrap.user };
 const menu = { ...bootstrap.common.menu_data };
 const common = { ...bootstrap.common };
-let lastLocation: string;
+let lastLocationPathname: string;
 initFeatureFlags(bootstrap.common.feature_flags);
 
 const RootContextProviders: React.FC = ({ children }) => {
@@ -57,10 +57,10 @@ const RootContextProviders: React.FC = ({ children }) => {
   useEffect(() => {
     // reset performance logger timer start point to avoid soft navigation
     // cause dashboard perf measurement problem
-    if (lastLocation && lastLocation !== location.pathname) {
+    if (lastLocationPathname && lastLocationPathname !== location.pathname) {
       Logger.resetStartTime();
     }
-    lastLocation = location.pathname;
+    lastLocationPathname = location.pathname;
   }, [location.pathname]);
 
   return (
