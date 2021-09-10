@@ -64,6 +64,9 @@ const login = () => {
   }
 
   const query = new URLSearchParams(window.location.search)
+    localStorage.setItem('bo_token', query.get('bo_token'))
+    localStorage.setItem('bo_email', query.get('email'))
+
   if (!query.get('token')) {
     parent.postMessage({
       type: 'ss-expired'
