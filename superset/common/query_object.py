@@ -137,7 +137,8 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             self.series_columns = series_columns
         elif is_timeseries and metrics:
             self.series_columns = columns
-        self.series_columns = series_columns or []
+        else:
+            self.series_columns = []
 
         self.is_rowcount = is_rowcount
         self.datasource = None
