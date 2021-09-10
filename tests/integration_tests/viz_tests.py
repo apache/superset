@@ -417,7 +417,9 @@ class TestTableViz(SupersetTestCase):
                 "label": "adhoc_metric",
                 "expressionType": "SIMPLE",
                 "aggregate": "SUM",
-                "column": {"column_name": "sort_column",},
+                "column": {
+                    "column_name": "sort_column",
+                },
             }
         )
 
@@ -1481,6 +1483,7 @@ class TestPivotTableViz(SupersetTestCase):
         assert viz.PivotTableViz._format_datetime(123) == 123
         assert viz.PivotTableViz._format_datetime(123.0) == 123.0
 
+
 class TestFilterBoxViz(SupersetTestCase):
     def test_get_data(self):
         form_data = {
@@ -1490,7 +1493,7 @@ class TestFilterBoxViz(SupersetTestCase):
                 {"column": "value3"},
                 {"column": "value4", "asc": True},
                 {"column": "value5"},
-                {"column": "value6",},
+                {"column": "value6"},
             ],
         }
         datasource = self.get_datasource_mock()
@@ -1522,7 +1525,6 @@ class TestFilterBoxViz(SupersetTestCase):
             ),
             "value5": pd.DataFrame(),
         }
-
 
         df = pd.DataFrame()
         data = test_viz.get_data(df)
