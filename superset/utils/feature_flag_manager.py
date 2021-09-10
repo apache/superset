@@ -36,7 +36,7 @@ class FeatureFlagManager:
     def get_feature_flags(self) -> Dict[str, Any]:
         if self._get_feature_flags_func:
             return self._get_feature_flags_func(deepcopy(self._feature_flags))
-        if self._is_feature_enabled_func:
+        if callable(self._is_feature_enabled_func):
             return dict(
                 map(
                     lambda kv: (kv[0], self._is_feature_enabled_func(kv[0], kv[1])),
