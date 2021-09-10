@@ -44,7 +44,6 @@ function registerColorSchemes(
 
   const defaultKey =
     colorSchemes.find(scheme => scheme.isDefault)?.id || standardDefaultKey;
-  console.log({ defaultKey });
   registry.setDefaultKey(defaultKey);
 }
 
