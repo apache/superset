@@ -59,8 +59,14 @@ export const LOG_EVENT_TYPE_USER = new Set([
 ]);
 
 export const Logger = {
+  softNavigationStart: 0,
+
+  resetStartTime() {
+    this.softNavigationStart = window.performance.now();
+  },
+
   // note that this returns ms since page load, NOT ms since epoch
   getTimestamp() {
-    return Math.round(window.performance.now());
+    return Math.round(window.performance.now() - this.softNavigationStart);
   },
 };
