@@ -427,7 +427,7 @@ FEATURE_FLAGS: Dict[str, bool] = {}
 #         feature_flags_dict['some_feature'] = g.user and g.user.get_id() == 5
 #     return feature_flags_dict
 GET_FEATURE_FLAGS_FUNC: Optional[Callable[[Dict[str, bool]], Dict[str, bool]]] = None
-# A function that receives a feature flag name and a optional default value.
+# A function that receives a feature flag name and an optional default value.
 # Has a similar utility to GET_FEATURE_FLAGS_FUNC but it's useful to not force the
 # evaluation of all feature flags when just evaluating a single one.
 #
