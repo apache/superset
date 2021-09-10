@@ -44,6 +44,7 @@ import React, {
   useState,
 } from 'react';
 import { useSelector } from 'react-redux';
+import { isEqual } from 'lodash';
 import { FormItem } from 'src/components/Form';
 import { Input } from 'src/common/components';
 import { Select } from 'src/components';
@@ -79,7 +80,7 @@ import {
 } from './utils';
 import { useBackendFormUpdate, useDefaultValue } from './state';
 import { getFormData } from '../../utils';
-import { Filter } from '../../types';
+import { Filter, NativeFilterType } from '../../types';
 import getControlItemsMap from './getControlItemsMap';
 import FilterScope from './FilterScope/FilterScope';
 import RemovedFilter from './RemovedFilter';
@@ -509,7 +510,8 @@ const FiltersConfigForm = (
     setHasDefaultValue,
   ] = useDefaultValue(formFilter, filterToEdit);
 
-  const showDataset = !datasetId || datasetDetails;
+  const showDataset =
+    !datasetId || datasetDetails || formFilter?.dataset?.label;
 
   useEffect(() => {
     if (hasDataset && hasFilledDataset && hasDefaultValue && isDataDirty) {
@@ -525,9 +527,21 @@ const FiltersConfigForm = (
     showDataset,
   ]);
 
+  const formChanged = useCallback(() => {
+    form.setFields([
+      {
+        name: 'changed',
+        value: true,
+      },
+    ]);
+  }, [form]);
+
   const updateFormValues = useCallback(
-    (values: any) => setNativeFilterFieldValues(form, filterId, values),
-    [filterId, form],
+    (values: any) => {
+      setNativeFilterFieldValues(form, filterId, values);
+      formChanged();
+    },
+    [filterId, form, formChanged],
   );
 
   const parentFilterOptions = parentFilters.map(filter => ({
@@ -588,6 +602,11 @@ const FiltersConfigForm = (
   const hasAdvancedSection =
     formFilter?.filterType === 'filter_select' ||
     formFilter?.filterType === 'filter_range';
+
+  const initialDefaultValue =
+    formFilter.filterType === filterToEdit?.filterType
+      ? filterToEdit?.defaultDataMask
+      : null;
 
   const preFilterValidator = () => {
     if (hasTimeRange || hasAdhoc) {
@@ -665,6 +684,13 @@ const FiltersConfigForm = (
         forceRender
       >
         <StyledContainer>
+          <StyledFormItem
+            name={['filters', filterId, 'type']}
+            hidden
+            initialValue={NativeFilterType.NATIVE_FILTER}
+          >
+            <Input />
+          </StyledFormItem>
           <StyledFormItem
             name={['filters', filterId, 'name']}
             label={<StyledLabel>{t('Filter name')}</StyledLabel>}
@@ -784,16 +810,15 @@ const FiltersConfigForm = (
               disabled={isRequired || defaultToFirstItem}
               tooltip={defaultValueTooltip}
               checked={hasDefaultValue}
-              onChange={value => setHasDefaultValue(value)}
+              onChange={value => {
+                setHasDefaultValue(value);
+                formChanged();
+              }}
             >
               {formFilter.filterType && (
                 <StyledRowSubFormItem
                   name={['filters', filterId, 'defaultDataMask']}
-                  initialValue={
-                    formFilter.filterType === filterToEdit?.filterType
-                      ? filterToEdit?.defaultDataMask
-                      : null
-                  }
+                  initialValue={initialDefaultValue}
                   data-test="default-input"
                   label={<StyledLabel>{t('Default Value')}</StyledLabel>}
                   required={hasDefaultValue}
@@ -820,6 +845,14 @@ const FiltersConfigForm = (
                     <DefaultValueContainer>
                       <DefaultValue
                         setDataMask={dataMask => {
+                          if (
+                            !isEqual(
+                              initialDefaultValue?.filterState?.value,
+                              dataMask?.filterState?.value,
+                            )
+                          ) {
+                            formChanged();
+                          }
                           setNativeFilterFieldValues(form, filterId, {
                             defaultDataMask: dataMask,
                           });
@@ -862,6 +895,7 @@ const FiltersConfigForm = (
                   title={t('Filter is hierarchical')}
                   initialValue={hasParentFilter}
                   onChange={checked => {
+                    formChanged();
                     if (checked) {
                       // execute after render
                       setTimeout(
@@ -900,6 +934,7 @@ const FiltersConfigForm = (
                   title={t('Pre-filter available values')}
                   initialValue={hasPreFilter}
                   onChange={checked => {
+                    formChanged();
                     if (checked) {
                       validatePreFilter();
                     }
@@ -1000,7 +1035,10 @@ const FiltersConfigForm = (
               {formFilter?.filterType !== 'filter_range' && (
                 <CollapsibleControl
                   title={t('Sort filter values')}
-                  onChange={checked => onSortChanged(checked || undefined)}
+                  onChange={checked => {
+                    onSortChanged(checked || undefined);
+                    formChanged();
+                  }}
                   initialValue={hasSorting}
                 >
                   <StyledRowFormItem

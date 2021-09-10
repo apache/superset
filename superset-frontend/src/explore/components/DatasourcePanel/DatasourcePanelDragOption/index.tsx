@@ -16,9 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode } from 'react';
+import React from 'react';
 import { useDrag } from 'react-dnd';
-import { styled } from '@superset-ui/core';
+import { Metric, styled } from '@superset-ui/core';
+import { DndItemType } from 'src/explore/components/DndItemType';
+import {
+  StyledColumnOption,
+  StyledMetricOption,
+} from 'src/explore/components/optionRenderers';
+import { ColumnMeta } from '@superset-ui/chart-controls';
 import { DatasourcePanelDndItem } from '../types';
 
 const DatasourceItemContainer = styled.div`
@@ -37,23 +43,42 @@ const DatasourceItemContainer = styled.div`
   }
 `;
 
-interface DatasourcePanelDragWrapperProps extends DatasourcePanelDndItem {
-  children?: ReactNode;
+interface DatasourcePanelDragOptionProps extends DatasourcePanelDndItem {
+  labelRef?: React.RefObject<any>;
+  showTooltip?: boolean;
 }
 
-export default function DatasourcePanelDragWrapper(
-  props: DatasourcePanelDragWrapperProps,
+type MetricOption = Omit<Metric, 'id'> & {
+  label?: string;
+};
+
+export default function DatasourcePanelDragOption(
+  props: DatasourcePanelDragOptionProps,
 ) {
-  const [, drag] = useDrag({
+  const { labelRef, showTooltip, type, value } = props;
+  const [{ isDragging }, drag] = useDrag({
     item: {
       value: props.value,
       type: props.type,
     },
+    collect: monitor => ({
+      isDragging: monitor.isDragging(),
+    }),
   });
 
+  const optionProps = {
+    labelRef,
+    showTooltip: !isDragging && showTooltip,
+    showType: true,
+  };
+
   return (
-    <DatasourceItemContainer data-test="DatasourcePanelDragWrapper" ref={drag}>
-      {props.children}
+    <DatasourceItemContainer data-test="DatasourcePanelDragOption" ref={drag}>
+      {type === DndItemType.Column ? (
+        <StyledColumnOption column={value as ColumnMeta} {...optionProps} />
+      ) : (
+        <StyledMetricOption metric={value as MetricOption} {...optionProps} />
+      )}
     </DatasourceItemContainer>
   );
 }

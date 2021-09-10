@@ -82,5 +82,8 @@ module.exports = {
         ],
       ],
     },
+    testableProduction: {
+      plugins: [],
+    },
   },
 };

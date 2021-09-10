@@ -22,14 +22,16 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
 )
 
-import pandas
 import pytest
 from sqlalchemy.engine.url import make_url
+from sqlalchemy.types import DateTime
 
 import tests.integration_tests.test_app
 from superset import app, db as metadata_db
+from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.models.core import Database
 from superset.models.slice import Slice
+from superset.models.sql_types.base import literal_dttm_type_factory
 from superset.utils.core import get_example_database, QueryStatus
 
 from .base_tests import SupersetTestCase
@@ -339,12 +341,19 @@ class TestDatabaseModel(SupersetTestCase):
 class TestSqlaTableModel(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_timestamp_expression(self):
-        tbl = self.get_table_by_name("birth_names")
+        col_type = (
+            "VARCHAR"
+            if get_example_database().backend == "presto"
+            else "TemporalWrapperType"
+        )
+        tbl = self.get_table(name="birth_names")
         ds_col = tbl.get_column("ds")
         sqla_literal = ds_col.get_timestamp_expression(None)
         self.assertEqual(str(sqla_literal.compile()), "ds")
+        assert type(sqla_literal.type).__name__ == col_type
 
         sqla_literal = ds_col.get_timestamp_expression("P1D")
+        assert type(sqla_literal.type).__name__ == col_type
         compiled = "{}".format(sqla_literal.compile())
         if tbl.database.backend == "mysql":
             self.assertEqual(compiled, "DATE(ds)")
@@ -352,6 +361,7 @@ class TestSqlaTableModel(SupersetTestCase):
         prev_ds_expr = ds_col.expression
         ds_col.expression = "DATE_ADD(ds, 1)"
         sqla_literal = ds_col.get_timestamp_expression("P1D")
+        assert type(sqla_literal.type).__name__ == col_type
         compiled = "{}".format(sqla_literal.compile())
         if tbl.database.backend == "mysql":
             self.assertEqual(compiled, "DATE(DATE_ADD(ds, 1))")
@@ -359,7 +369,7 @@ class TestSqlaTableModel(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_timestamp_expression_epoch(self):
-        tbl = self.get_table_by_name("birth_names")
+        tbl = self.get_table(name="birth_names")
         ds_col = tbl.get_column("ds")
 
         ds_col.expression = None
@@ -384,7 +394,7 @@ class TestSqlaTableModel(SupersetTestCase):
         ds_col.expression = prev_ds_expr
 
     def query_with_expr_helper(self, is_timeseries, inner_join=True):
-        tbl = self.get_table_by_name("birth_names")
+        tbl = self.get_table(name="birth_names")
         ds_col = tbl.get_column("ds")
         ds_col.expression = None
         ds_col.python_date_format = None
@@ -447,7 +457,7 @@ class TestSqlaTableModel(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_sql_mutator(self):
-        tbl = self.get_table_by_name("birth_names")
+        tbl = self.get_table(name="birth_names")
         query_obj = dict(
             groupby=[],
             metrics=None,
@@ -472,7 +482,7 @@ class TestSqlaTableModel(SupersetTestCase):
         app.config["SQL_QUERY_MUTATOR"] = None
 
     def test_query_with_non_existent_metrics(self):
-        tbl = self.get_table_by_name("birth_names")
+        tbl = self.get_table(name="birth_names")
 
         query_obj = dict(
             groupby=[],
@@ -493,17 +503,26 @@ class TestSqlaTableModel(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_data_for_slices(self):
-        tbl = self.get_table_by_name("birth_names")
+        tbl = self.get_table(name="birth_names")
         slc = (
             metadata_db.session.query(Slice)
             .filter_by(
-                datasource_id=tbl.id,
-                datasource_type=tbl.type,
-                slice_name="Participants",
+                datasource_id=tbl.id, datasource_type=tbl.type, slice_name="Genders",
             )
             .first()
         )
         data_for_slices = tbl.data_for_slices([slc])
-        self.assertEqual(len(data_for_slices["columns"]), 0)
-        self.assertEqual(len(data_for_slices["metrics"]), 1)
-        self.assertEqual(len(data_for_slices["verbose_map"].keys()), 2)
+        assert len(data_for_slices["metrics"]) == 1
+        assert len(data_for_slices["columns"]) == 1
+        assert data_for_slices["metrics"][0]["metric_name"] == "sum__num"
+        assert data_for_slices["columns"][0]["column_name"] == "gender"
+        assert set(data_for_slices["verbose_map"].keys()) == set(
+            ["__timestamp", "sum__num", "gender",]
+        )
+
+
+def test_literal_dttm_type_factory():
+    orig_type = DateTime()
+    new_type = literal_dttm_type_factory(orig_type, PostgresEngineSpec, "TIMESTAMP")
+    assert type(new_type).__name__ == "TemporalWrapperType"
+    assert str(new_type) == str(orig_type)

@@ -142,7 +142,7 @@ def sqlalchemy_uri_validator(value: str) -> str:
     """
     try:
         uri = make_url(value.strip())
-    except (ArgumentError, AttributeError, ValueError):
+    except (ArgumentError, AttributeError, ValueError) as ex:
         raise ValidationError(
             [
                 _(
@@ -150,12 +150,12 @@ def sqlalchemy_uri_validator(value: str) -> str:
                     "driver://user:password@database-host/database-name"
                 )
             ]
-        )
+        ) from ex
     if current_app.config.get("PREVENT_UNSAFE_DB_CONNECTIONS", True):
         try:
             check_sqlalchemy_uri(uri)
         except SupersetSecurityException as ex:
-            raise ValidationError([str(ex)])
+            raise ValidationError([str(ex)]) from ex
     return value
 
 
@@ -166,8 +166,8 @@ def server_cert_validator(value: str) -> str:
     if value:
         try:
             parse_ssl_cert(value)
-        except CertificateException:
-            raise ValidationError([_("Invalid certificate")])
+        except CertificateException as ex:
+            raise ValidationError([_("Invalid certificate")]) from ex
     return value
 
 
@@ -181,7 +181,7 @@ def encrypted_extra_validator(value: str) -> str:
         except json.JSONDecodeError as ex:
             raise ValidationError(
                 [_("Field cannot be decoded by JSON. %(msg)s", msg=str(ex))]
-            )
+            ) from ex
     return value
 
 
@@ -196,7 +196,7 @@ def extra_validator(value: str) -> str:
         except json.JSONDecodeError as ex:
             raise ValidationError(
                 [_("Field cannot be decoded by JSON. %(msg)s", msg=str(ex))]
-            )
+            ) from ex
         else:
             metadata_signature = inspect.signature(MetaData)
             for key in extra_.get("metadata_params", {}):
@@ -214,7 +214,7 @@ def extra_validator(value: str) -> str:
     return value
 
 
-class DatabaseParametersSchemaMixin:
+class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
     """
     Allow SQLAlchemy URI to be passed as separate parameters.
 
@@ -552,6 +552,25 @@ class DatabaseFunctionNamesResponse(Schema):
 
 
 class ImportV1DatabaseExtraSchema(Schema):
+    # pylint: disable=no-self-use, unused-argument
+    @pre_load
+    def fix_schemas_allowed_for_csv_upload(
+        self, data: Dict[str, Any], **kwargs: Any
+    ) -> Dict[str, Any]:
+        """
+        Fix ``schemas_allowed_for_csv_upload`` being a string.
+
+        Due to a bug in the database modal, some databases might have been
+        saved and exported with a string for ``schemas_allowed_for_csv_upload``.
+        """
+        schemas_allowed_for_csv_upload = data.get("schemas_allowed_for_csv_upload")
+        if isinstance(schemas_allowed_for_csv_upload, str):
+            data["schemas_allowed_for_csv_upload"] = json.loads(
+                schemas_allowed_for_csv_upload
+            )
+
+        return data
+
     metadata_params = fields.Dict(keys=fields.Str(), values=fields.Raw())
     engine_params = fields.Dict(keys=fields.Str(), values=fields.Raw())
     metadata_cache_timeout = fields.Dict(keys=fields.Str(), values=fields.Integer())

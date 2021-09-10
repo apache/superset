@@ -324,14 +324,15 @@ class BigQueryEngineSpec(BaseEngineSpec):
         """
 
         try:
+            # pylint: disable=import-outside-toplevel
             import pandas_gbq
             from google.oauth2 import service_account
-        except ImportError:
+        except ImportError as ex:
             raise Exception(
                 "Could not import libraries `pandas_gbq` or `google.oauth2`, which are "
                 "required to be installed in your environment in order "
                 "to upload data to BigQuery"
-            )
+            ) from ex
 
         if not table.schema:
             raise Exception("The table schema must be defined")

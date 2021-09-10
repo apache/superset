@@ -20,6 +20,7 @@ import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
 import { styled } from '@superset-ui/core';
+import { isEqual } from 'lodash';
 
 import { exportChart, getExploreLongUrl } from 'src/explore/exploreUtils';
 import ChartContainer from 'src/chart/ChartContainer';
@@ -86,7 +87,8 @@ const defaultProps = {
 // resizing across all slices on a dashboard on every update
 const RESIZE_TIMEOUT = 350;
 const SHOULD_UPDATE_ON_PROP_CHANGES = Object.keys(propTypes).filter(
-  prop => prop !== 'width' && prop !== 'height',
+  prop =>
+    prop !== 'width' && prop !== 'height' && prop !== 'isComponentVisible',
 );
 const OVERFLOWABLE_VIZ_TYPES = new Set(['filter_box']);
 const DEFAULT_HEADER_HEIGHT = 22;
@@ -126,7 +128,7 @@ export default class Chart extends React.Component {
       nextState.width !== this.state.width ||
       nextState.height !== this.state.height ||
       nextState.descriptionHeight !== this.state.descriptionHeight ||
-      nextProps.datasource !== this.props.datasource
+      !isEqual(nextProps.datasource, this.props.datasource)
     ) {
       return true;
     }

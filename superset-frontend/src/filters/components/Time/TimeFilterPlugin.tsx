@@ -31,7 +31,8 @@ const ControlContainer = styled.div<{
   validateStatus?: 'error' | 'warning' | 'info';
 }>`
   padding: 2px;
-  & > span {
+  & > span,
+  & > span:hover {
     border: 2px solid transparent;
     display: inline-block;
     border: ${({ theme, validateStatus }) =>
@@ -99,6 +100,7 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
           value={filterState.value || NO_TIME_RANGE}
           name="time_range"
           onChange={handleTimeRangeChange}
+          type={filterState.validateStatus}
         />
       </ControlContainer>
     </TimeFilterStyles>

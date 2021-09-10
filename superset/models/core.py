@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=line-too-long,unused-argument,ungrouped-imports
+# pylint: disable=line-too-long,unused-argument
 """A collection of ORM sqlalchemy models for Superset"""
 import enum
 import json
@@ -506,7 +506,7 @@ class Database(
         return self.db_engine_spec.get_all_datasource_names(self, "view")
 
     @cache_util.memoized_func(
-        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:table_list",  # type: ignore
+        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:table_list",
         cache=cache_manager.data_cache,
     )
     def get_all_table_names_in_schema(
@@ -536,9 +536,10 @@ class Database(
             ]
         except Exception as ex:  # pylint: disable=broad-except
             logger.warning(ex)
+            return []
 
     @cache_util.memoized_func(
-        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:view_list",  # type: ignore
+        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:view_list",
         cache=cache_manager.data_cache,
     )
     def get_all_view_names_in_schema(
@@ -566,6 +567,7 @@ class Database(
             return [utils.DatasourceName(table=view, schema=schema) for view in views]
         except Exception as ex:  # pylint: disable=broad-except
             logger.warning(ex)
+            return []
 
     @cache_util.memoized_func(
         key=lambda self, *args, **kwargs: f"db:{self.id}:schema_list",
@@ -722,7 +724,7 @@ class Database(
     @memoized
     def get_dialect(self) -> Dialect:
         sqla_url = url.make_url(self.sqlalchemy_uri_decrypted)
-        return sqla_url.get_dialect()()  # pylint: disable=no-member
+        return sqla_url.get_dialect()()
 
 
 sqla.event.listen(Database, "after_insert", security_manager.set_perm)

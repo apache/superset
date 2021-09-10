@@ -25,7 +25,7 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 
 import Chart from 'src/dashboard/containers/Chart';
-import ChartHolder from 'src/dashboard/components/gridComponents/ChartHolder';
+import ChartHolderConnected from 'src/dashboard/components/gridComponents/ChartHolder';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
@@ -71,7 +71,7 @@ describe('ChartHolder', () => {
     const wrapper = mount(
       <Provider store={mockStore}>
         <DndProvider backend={HTML5Backend}>
-          <ChartHolder {...props} {...overrideProps} />
+          <ChartHolderConnected {...props} {...overrideProps} />
         </DndProvider>
       </Provider>,
       {

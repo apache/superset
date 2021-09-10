@@ -116,7 +116,6 @@ const ExploreChartPanel = props => {
   const theme = useTheme();
   const gutterMargin = theme.gridUnit * GUTTER_SIZE_FACTOR;
   const gutterHeight = theme.gridUnit * GUTTER_SIZE_FACTOR;
-
   const { height: hHeight, ref: headerRef } = useResizeDetector({
     refreshMode: 'debounce',
     refreshRate: 300,
@@ -128,7 +127,6 @@ const ExploreChartPanel = props => {
   const [splitSizes, setSplitSizes] = useState(
     getFromLocalStorage(STORAGE_KEYS.sizes, INITIAL_SIZES),
   );
-
   const { slice } = props;
   const updateQueryContext = useCallback(
     async function fetchChartData() {
@@ -147,6 +145,7 @@ const ExploreChartPanel = props => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             query_context: JSON.stringify(queryContext),
+            query_context_generation: true,
           }),
         });
       }
@@ -210,7 +209,6 @@ const ExploreChartPanel = props => {
     }
     setSplitSizes(splitSizes);
   };
-
   const renderChart = useCallback(() => {
     const { chart, vizType } = props;
     const newHeight =
@@ -283,7 +281,8 @@ const ExploreChartPanel = props => {
       form_data={props.form_data}
       timeout={props.timeout}
       chart={props.chart}
-      userId={props.userId}
+      user={props.user}
+      reports={props.reports}
     />
   );
 
@@ -315,6 +314,7 @@ const ExploreChartPanel = props => {
             onCollapseChange={onCollapseChange}
             chartStatus={props.chart.chartStatus}
             errorMessage={props.errorMessage}
+            queriesResponse={props.chart.queriesResponse}
           />
         </Split>
       )}

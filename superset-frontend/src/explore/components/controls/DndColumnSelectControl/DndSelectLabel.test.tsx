@@ -19,21 +19,21 @@
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import { DndItemType } from 'src/explore/components/DndItemType';
-import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
+import DndSelectLabel, {
+  DndSelectLabelProps,
+} from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 
-const defaultProps = {
+const defaultProps: DndSelectLabelProps = {
   name: 'Column',
   accept: 'Column' as DndItemType,
   onDrop: jest.fn(),
   canDrop: () => false,
   valuesRenderer: () => <span />,
-  onChange: jest.fn(),
-  options: { string: { column_name: 'Column' } },
 };
 
 test('renders with default props', async () => {
   render(<DndSelectLabel {...defaultProps} />, { useDnd: true });
-  expect(await screen.findByText('Drop columns')).toBeInTheDocument();
+  expect(await screen.findByText('Drop columns here')).toBeInTheDocument();
 });
 
 test('renders ghost button when empty', async () => {

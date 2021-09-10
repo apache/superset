@@ -97,7 +97,7 @@ const Styles = styled.div`
   span[aria-label='dataset-physical'] {
     color: ${({ theme }) => theme.colors.grayscale.base};
   }
-  span[aria-label='more-horiz'] {
+  span[aria-label='more-vert'] {
     color: ${({ theme }) => theme.colors.primary.base};
   }
 `;
@@ -238,7 +238,7 @@ class DatasourceControl extends React.PureComponent {
             data-test="datasource-menu"
           >
             <Tooltip title={t('More dataset related options')}>
-              <Icons.MoreHoriz
+              <Icons.MoreVert
                 className="datasource-modal-trigger"
                 data-test="datasource-menu-trigger"
               />

@@ -33,8 +33,9 @@ import { useHistory } from 'react-router-dom';
 import { TableTabTypes } from 'src/views/CRUD/types';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { User } from 'src/types/bootstrapTypes';
-import { CardContainer } from 'src/views/CRUD/utils';
+import { CardContainer, PAGE_SIZE } from 'src/views/CRUD/utils';
 import { HOMEPAGE_CHART_FILTER } from 'src/views/CRUD/storageKeys';
+import { LoadingCards } from 'src/views/CRUD/welcome/Welcome';
 import ChartCard from 'src/views/CRUD/chart/ChartCard';
 import Chart from 'src/types/Chart';
 import handleResourceExport from 'src/utils/export';
@@ -42,8 +43,6 @@ import Loading from 'src/components/Loading';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import SubMenu from 'src/components/Menu/SubMenu';
 import EmptyState from './EmptyState';
-
-const PAGE_SIZE = 3;
 
 interface ChartTableProps {
   addDangerToast: (message: string) => void;
@@ -66,11 +65,7 @@ function ChartTable({
 }: ChartTableProps) {
   const history = useHistory();
   const filterStore = getFromLocalStorage(HOMEPAGE_CHART_FILTER, null);
-  let initialFilter = filterStore || TableTabTypes.EXAMPLES;
-
-  if (!examples && filterStore === TableTabTypes.EXAMPLES) {
-    initialFilter = TableTabTypes.MINE;
-  }
+  const initialFilter = filterStore || TableTabTypes.EXAMPLES;
 
   const filteredExamples = filter(examples, obj => 'viz_type' in obj);
 
@@ -137,9 +132,28 @@ function ChartTable({
         operator: 'chart_is_favorite',
         value: true,
       });
+    } else if (filterName === 'Examples') {
+      filters.push({
+        id: 'created_by',
+        operator: 'rel_o_m',
+        value: 0,
+      });
     }
     return filters;
   };
+
+  const getData = (filter: string) =>
+    fetchData({
+      pageIndex: 0,
+      pageSize: PAGE_SIZE,
+      sortBy: [
+        {
+          id: 'changed_on_delta_humanized',
+          desc: true,
+        },
+      ],
+      filters: getFilters(filter),
+    });
 
   const menuTabs = [
     {
@@ -159,7 +173,6 @@ function ChartTable({
       },
     },
   ];
-
   if (examples) {
     menuTabs.push({
       name: 'Examples',
@@ -171,20 +184,7 @@ function ChartTable({
     });
   }
 
-  const getData = (filter: string) =>
-    fetchData({
-      pageIndex: 0,
-      pageSize: PAGE_SIZE,
-      sortBy: [
-        {
-          id: 'changed_on_delta_humanized',
-          desc: true,
-        },
-      ],
-      filters: getFilters(filter),
-    });
-
-  if (loading) return <Loading position="inline" />;
+  if (loading) return <LoadingCards cover={showThumbnails} />;
   return (
     <ErrorBoundary>
       {sliceCurrentlyEditing && (
@@ -198,7 +198,6 @@ function ChartTable({
 
       <SubMenu
         activeChild={chartFilter}
-        // eslint-disable-next-line react/no-children-prop
         tabs={menuTabs}
         buttons={[
           {
@@ -227,7 +226,7 @@ function ChartTable({
         ]}
       />
       {charts?.length ? (
-        <CardContainer>
+        <CardContainer showThumbnails={showThumbnails}>
           {charts.map(e => (
             <ChartCard
               key={`${e.id}`}

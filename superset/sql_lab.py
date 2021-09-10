@@ -149,8 +149,8 @@ def get_query(query_id: int, session: Session) -> Query:
     """attempts to get the query and retry if it cannot"""
     try:
         return session.query(Query).filter_by(id=query_id).one()
-    except Exception:
-        raise SqlLabException("Failed at getting query")
+    except Exception as ex:
+        raise SqlLabException("Failed at getting query") from ex
 
 
 @celery_app.task(
@@ -285,23 +285,24 @@ def execute_sql_statement(
         raise SupersetErrorException(
             SupersetError(
                 message=__(
-                    f"The query was killed after {SQLLAB_TIMEOUT} seconds. It might "
-                    "be too complex, or the database might be under heavy load."
+                    "The query was killed after %(sqllab_timeout)s seconds. It might "
+                    "be too complex, or the database might be under heavy load.",
+                    sqllab_timeout=SQLLAB_TIMEOUT,
                 ),
                 error_type=SupersetErrorType.SQLLAB_TIMEOUT_ERROR,
                 level=ErrorLevel.ERROR,
             )
-        )
+        ) from ex
     except Exception as ex:
         # query is stopped in another thread/worker
         # stopping raises expected exceptions which we should skip
         session.refresh(query)
         if query.status == QueryStatus.STOPPED:
-            raise SqlLabQueryStoppedException()
+            raise SqlLabQueryStoppedException() from ex
 
         logger.error("Query %d: %s", query.id, type(ex), exc_info=True)
         logger.debug("Query %d: %s", query.id, ex)
-        raise SqlLabException(db_engine_spec.extract_error_message(ex))
+        raise SqlLabException(db_engine_spec.extract_error_message(ex)) from ex
 
     logger.debug("Query %d: Fetching cursor description", query.id)
     cursor_description = cursor.description

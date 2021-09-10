@@ -34,7 +34,7 @@ import getLeafComponentIdFromPath from '../../util/getLeafComponentIdFromPath';
 import { componentShape } from '../../util/propShapes';
 import { NEW_TAB_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
 import { RENDER_TAB, RENDER_TAB_CONTENT } from './Tab';
-import { TAB_TYPE } from '../../util/componentTypes';
+import { TABS_TYPE, TAB_TYPE } from '../../util/componentTypes';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -129,6 +129,7 @@ export class Tabs extends React.PureComponent {
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleDeleteTab = this.handleDeleteTab.bind(this);
     this.handleDropOnTab = this.handleDropOnTab.bind(this);
+    this.handleDrop = this.handleDrop.bind(this);
   }
 
   componentDidMount() {
@@ -281,6 +282,12 @@ export class Tabs extends React.PureComponent {
     }
   }
 
+  handleDrop(dropResult) {
+    if (dropResult.dragging.type !== TABS_TYPE) {
+      this.props.handleComponentDrop(dropResult);
+    }
+  }
+
   render() {
     const {
       depth,
@@ -292,7 +299,6 @@ export class Tabs extends React.PureComponent {
       onResizeStart,
       onResize,
       onResizeStop,
-      handleComponentDrop,
       renderTabContent,
       renderHoverMenu,
       isComponentVisible: isCurrentTabVisible,
@@ -315,7 +321,7 @@ export class Tabs extends React.PureComponent {
         orientation="row"
         index={index}
         depth={depth}
-        onDrop={handleComponentDrop}
+        onDrop={this.handleDrop}
         editMode={editMode}
       >
         {({
@@ -401,6 +407,10 @@ Tabs.propTypes = propTypes;
 Tabs.defaultProps = defaultProps;
 
 function mapStateToProps(state) {
-  return { nativeFilters: state.nativeFilters };
+  return {
+    nativeFilters: state.nativeFilters,
+    directPathToChild: state.dashboardState.directPathToChild,
+    activeTabs: state.dashboardState.activeTabs,
+  };
 }
 export default connect(mapStateToProps)(Tabs);
