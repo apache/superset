@@ -3314,6 +3314,8 @@
           "owners": {
             "$ref": "#/components/schemas/Meta20"
           },
+          "type": "array"
+          },
           "schema": {
             "maxLength": 255,
             "nullable": true,
@@ -10934,7 +10936,7 @@
                     "ids": {
                       "description": "A list of item ids, useful when you don't know the column id",
                       "items": {
-                        "type": "string"
+                        "type": "integer"
                       },
                       "type": "array"
                     },
