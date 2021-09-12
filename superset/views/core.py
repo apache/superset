@@ -2486,7 +2486,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             logger.info("Triggering query_id: %i", query.id)
             self._validate_access(query, session)
             execution_context.set_query(query)
-            rendered_query = self._render_query(execution_context, session)
+            rendered_query = self._render_query(execution_context)
 
             self._set_query_limit_if_required(execution_context, rendered_query)
 
