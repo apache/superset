@@ -2442,7 +2442,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         if self.is_query_handled(query):
             execution_context.set_query(query)  # type: ignore
-            return SqlJsonExecutionStatus.QUERY_ALREADY_WAS_CREATED
+            return SqlJsonExecutionStatus.QUERY_ALREADY_CREATED
 
         return self._run_sql_json_exec_from_scratch(
             execution_context, session, log_params
@@ -2757,7 +2757,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 )
             # old string-only error message
             raise SupersetGenericDBErrorException(data["error"])
-        return SqlJsonExecutionStatus.THERE_ARE_RESULTS
+        return SqlJsonExecutionStatus.HAS_RESULTS
 
     @classmethod
     def _get_sql_results_with_timeout(  # pylint: disable=too-many-arguments
@@ -2812,7 +2812,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
 
         status_code = 200
-        if status == SqlJsonExecutionStatus.THERE_ARE_RESULTS:
+        if status == SqlJsonExecutionStatus.HAS_RESULTS:
             payload = _to_payload_results_based(
                 execution_context.get_execution_result() or {}
             )
@@ -3193,7 +3193,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
 
 class SqlJsonExecutionStatus(Enum):
-    QUERY_ALREADY_WAS_CREATED = 1
-    THERE_ARE_RESULTS = 2
+    QUERY_ALREADY_CREATED = 1
+    HAS_RESULTS = 2
     QUERY_IS_RUNNING = 3
     FAILED = 4
