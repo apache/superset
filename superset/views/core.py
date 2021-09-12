@@ -23,7 +23,7 @@ import re
 from contextlib import closing
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, cast, Dict, List, Optional, Union
 from urllib import parse
 
 import backoff
@@ -2547,7 +2547,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             raise SupersetErrorException(ex.error, status=403) from ex
 
     def _render_query(  # pylint: disable=no-self-use
-        self, execution_context: SqlJsonExecutionContext, session: Session
+        self, execution_context: SqlJsonExecutionContext
     ) -> str:
         def validate(
             rendered_query: str, template_processor: BaseTemplateProcessor
@@ -2622,7 +2622,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             execution_context.query.limiting_factor = LimitingFactor.QUERY_AND_DROPDOWN
         execution_context.query.limit = min(lim for lim in limits if lim is not None)
 
-    def _execute_query(  # pylint: disable=too-many-arguments
+    def _execute_query(
         self,
         execution_context: SqlJsonExecutionContext,
         rendered_query: str,
@@ -2642,7 +2642,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
 
     @classmethod
-    def _sql_json_async(  # pylint: disable=too-many-arguments
+    def _sql_json_async(
         cls,
         execution_context: SqlJsonExecutionContext,
         rendered_query: str,
@@ -2757,7 +2757,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 )
             # old string-only error message
             raise SupersetGenericDBErrorException(data["error"])
-        return SqlJsonExecutionStatus.QUERY_IS_RUNNING
+        return SqlJsonExecutionStatus.THERE_ARE_RESULTS
 
     @classmethod
     def _get_sql_results_with_timeout(  # pylint: disable=too-many-arguments
@@ -2790,7 +2790,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
 
     def _create_response_from_execution_context(
-        self,  # pylint: disable=no-self-use
+        # pylint: disable=invalid-name, no-self-use
+        self,
         execution_context: SqlJsonExecutionContext,
         status: SqlJsonExecutionStatus,
     ) -> FlaskResponse:
