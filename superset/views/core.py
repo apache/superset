@@ -22,7 +22,7 @@ import logging
 import re
 from contextlib import closing
 from datetime import datetime, timedelta
-from typing import Any, Callable, cast, Dict, List, Optional, Union
+from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Union
 from urllib import parse
 
 import backoff
@@ -2423,13 +2423,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "user_agent": cast(Optional[str], request.headers.get("USER_AGENT"))
         }
         execution_context = SqlJsonExecutionContext(request.json)
-        return self.sql_json_exec(execution_context, log_params)
+        return json_success(*self.sql_json_exec(execution_context, log_params))
 
     def sql_json_exec(  # pylint: disable=too-many-statements,useless-suppression
         self,
         execution_context: SqlJsonExecutionContext,
         log_params: Optional[Dict[str, Any]] = None,
-    ) -> FlaskResponse:
+    ) -> Tuple[str, int]:
         """Runs arbitrary sql and returns data as json"""
 
         session = db.session()
@@ -2437,8 +2437,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         query = self._get_existing_query(execution_context, session)
 
         if self.is_query_handled(query):
-            payload = self._convert_query_to_payload(cast(Query, query))
-            return json_success(payload)
+            return self._convert_query_to_payload(cast(Query, query)), 200
 
         return self._run_sql_json_exec_from_scratch(
             execution_context, session, log_params
@@ -2480,7 +2479,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         execution_context: SqlJsonExecutionContext,
         session: Session,
         log_params: Optional[Dict[str, Any]] = None,
-    ) -> FlaskResponse:
+    ) -> Tuple[str, int]:
         execution_context.set_database(
             self._get_the_query_db(execution_context, session)
         )
@@ -2635,18 +2634,24 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         rendered_query: str,
         session: Session,
         log_params: Optional[Dict[str, Any]],
-    ) -> FlaskResponse:
+    ) -> Tuple[str, int]:
         # Flag for whether or not to expand data
         # (feature that will expand Presto row objects and arrays)
         expand_data: bool = execution_context.expand_data
         # Async request.
         if execution_context.is_run_asynchronous():
-            return self._sql_json_async(
-                query, rendered_query, expand_data, session, log_params
+            return (
+                self._sql_json_async(
+                    query, rendered_query, expand_data, session, log_params
+                ),
+                202,
             )
         # Sync request.
-        return self._sql_json_sync(
-            query, rendered_query, expand_data, session, log_params
+        return (
+            self._sql_json_sync(
+                query, rendered_query, expand_data, session, log_params
+            ),
+            200,
         )
 
     @classmethod
@@ -2657,7 +2662,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         expand_data: bool,
         session: Session,
         log_params: Optional[Dict[str, Any]],
-    ) -> FlaskResponse:
+    ) -> str:
         """
         Send SQL JSON query to celery workers.
 
@@ -2713,9 +2718,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         # Update saved query with execution info from the query execution
         QueryDAO.update_saved_query_exec_info(query_id)
 
-        resp = json_success(cls._convert_query_to_payload(query), status=202,)
         session.commit()
-        return resp
+        return cls._convert_query_to_payload(query)
 
     @classmethod
     def _sql_json_sync(
@@ -2725,7 +2729,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         expand_data: bool,
         _session: Session,
         log_params: Optional[Dict[str, Any]],
-    ) -> FlaskResponse:
+    ) -> str:
         """
         Execute SQL query (sql json).
 
@@ -2764,7 +2768,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             # old string-only error message
             raise SupersetGenericDBErrorException(data["error"])
 
-        return json_success(payload)
+        return payload
 
     @classmethod
     def _get_sql_results_with_timeout(  # pylint: disable=too-many-arguments
