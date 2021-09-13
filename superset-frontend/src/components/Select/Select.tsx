@@ -419,15 +419,11 @@ const Select = ({
       const searchValue = search.trim().toLowerCase();
 
       if (optionFilterProps && optionFilterProps.length) {
-        optionFilterProps.every(prop => {
+        return optionFilterProps.some(prop => {
           const optionProp = option?.[prop]
             ? String(option[prop]).trim().toLowerCase()
             : '';
-          if (optionProp.includes(searchValue)) {
-            found = true;
-            return false;
-          }
-          return true;
+          return optionProp.includes(searchValue);
         });
       }
     }
