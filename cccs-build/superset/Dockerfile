@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 FROM uchimera.azurecr.io/cccs/superset-base:cccs-1.3_20210909191324_b1940
+=======
+FROM uchimera.azurecr.io/cccs/superset-base:fix_CLDN-983_20210913164041_b1958
+>>>>>>> 18697f28f... [CLDN-983] updating base image
 
 USER root
 
