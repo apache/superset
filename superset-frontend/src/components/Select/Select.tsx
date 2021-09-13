@@ -428,7 +428,7 @@ const Select = ({
       }
     }
 
-    return found;
+    return false;
   };
 
   const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
