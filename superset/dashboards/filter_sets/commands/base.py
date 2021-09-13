@@ -59,7 +59,7 @@ class BaseFilterSetCommand(BaseCommand):
             raise DashboardNotFoundError()
 
     def is_user_dashboard_owner(self) -> bool:
-        return self._is_actor_admin or self._dashboard.am_i_owner()
+        return self._is_actor_admin or self._dashboard.is_actor_owner()
 
     def validate_exist_filter_use_cases_set(self) -> None:  # pylint: disable=C0103
         self._validate_filter_set_exists_and_set_when_exists()

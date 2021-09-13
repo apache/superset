@@ -427,7 +427,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         qry = session.query(Dashboard).filter(id_or_slug_filter(id_or_slug))
         return qry.one_or_none()
 
-    def am_i_owner(self) -> bool:
+    def is_actor_owner(self) -> bool:
         if g.user is None or g.user.is_anonymous or not g.user.is_authenticated:
             return False
         return g.user.id in set(map(lambda user: user.id, self.owners))

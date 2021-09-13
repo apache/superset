@@ -37,7 +37,7 @@ class FilterSet(Model, AuditMixinNullable):
     id = Column(Integer, primary_key=True)
     name = Column(String(500), nullable=False, unique=True)
     description = Column(Text, nullable=True)
-    json_metadata = Column(JSON, nullable=False)
+    json_metadata = Column(Text, nullable=False)
     dashboard_id = Column(Integer, ForeignKey("dashboards.id"))
     dashboard = relationship("Dashboard", back_populates="_filter_sets")
     owner_id = Column(Integer, nullable=False)

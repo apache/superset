@@ -33,7 +33,7 @@ METADATA_FILE_NAME = "metadata.yaml"
 
 class ExportModelsCommand(BaseCommand):
 
-    dao = BaseDAO
+    dao: Type[BaseDAO] = BaseDAO
     not_found: Type[CommandException] = CommandException
 
     def __init__(self, model_ids: List[int]):
