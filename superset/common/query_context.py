@@ -100,7 +100,10 @@ class QueryContext:
         self.datasource = ConnectorRegistry.get_datasource(
             str(datasource["type"]), int(datasource["id"]), db.session
         )
-        self.queries = [QueryObject(**query_obj) for query_obj in queries]
+        self.queries = [
+            QueryObject(**query_obj, result_type_qc=result_type)
+            for query_obj in queries
+        ]
         self.force = force
         self.custom_cache_timeout = custom_cache_timeout
         self.result_type = result_type or ChartDataResultType.FULL

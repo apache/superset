@@ -1232,7 +1232,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
     )
     def test_chart_data_sample_default_limit(self):
         """
-        Chart data API: Ensure sample response row count doesn't max global row limit
+        Chart data API: Ensure sample response row count defaults to config defaults
         """
         self.login(username="admin")
         request_payload = get_query_context("birth_names")

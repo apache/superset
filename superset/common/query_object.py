@@ -123,6 +123,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         orderby: Optional[List[OrderBy]] = None,
         post_processing: Optional[List[Optional[Dict[str, Any]]]] = None,
         is_rowcount: bool = False,
+        result_type_qc: Optional[ChartDataResultType] = None,
         **kwargs: Any,
     ):
         columns = columns or []
@@ -139,7 +140,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             self.datasource = ConnectorRegistry.get_datasource(
                 str(datasource["type"]), int(datasource["id"]), db.session
             )
-        self.result_type = result_type
+        self.result_type = result_type or result_type_qc
         self.apply_fetch_values_predicate = apply_fetch_values_predicate or False
         self.annotation_layers = [
             layer
@@ -183,7 +184,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
 
         default_row_limit = (
             config["SAMPLES_ROW_LIMIT"]
-            if result_type == ChartDataResultType.SAMPLES
+            if self.result_type == ChartDataResultType.SAMPLES
             else config["ROW_LIMIT"]
         )
         self.row_limit = apply_max_row_limit(
