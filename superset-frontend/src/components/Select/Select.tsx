@@ -214,8 +214,7 @@ const Select = ({
     ? 'tags'
     : 'multiple';
 
-  // TODO: Simplify the code. We're only accepting label, value options.
-  // TODO: Remove labelInValue prop.
+  // TODO: Don't assume that isAsync is always labelInValue
   const handleTopOptions = useCallback(
     (selectedValue: AntdSelectValue | undefined) => {
       // bringing selected options to the top of the list
@@ -499,24 +498,30 @@ const Select = ({
   }, [value]);
 
   useEffect(() => {
-    if (isAsync && selectValue) {
-      const array: AntdLabeledValue[] = Array.isArray(selectValue)
+    if (selectValue) {
+      const array = Array.isArray(selectValue)
         ? (selectValue as AntdLabeledValue[])
-        : [selectValue as AntdLabeledValue];
+        : [selectValue as AntdLabeledValue | string | number];
       const options: AntdLabeledValue[] = [];
       array.forEach(element => {
-        const found = selectOptions.find(
-          option => option.value === element.value,
+        const found = selectOptions.find((option: { value: string | number }) =>
+          labelInValue
+            ? option.value === (element as AntdLabeledValue).value
+            : option.value === element,
         );
         if (!found) {
-          options.push(element);
+          options.push(
+            labelInValue
+              ? (element as AntdLabeledValue)
+              : ({ value: element, label: element } as AntdLabeledValue),
+          );
         }
       });
       if (options.length > 0) {
-        setSelectOptions([...selectOptions, ...options]);
+        setSelectOptions([...options, ...selectOptions]);
       }
     }
-  }, [isAsync, selectOptions, selectValue]);
+  }, [labelInValue, isAsync, selectOptions, selectValue]);
 
   // Stop the invocation of the debounced function after unmounting
   useEffect(() => () => handleOnSearch.cancel(), [handleOnSearch]);
