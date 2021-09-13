@@ -246,6 +246,7 @@ function ColumnCollectionTable({
             <Field
               fieldKey="certified_by"
               label={t('Certified By')}
+              description={t('Person or group that has certified this metric')}
               control={
                 <TextControl
                   controlId="certified"
@@ -256,6 +257,7 @@ function ColumnCollectionTable({
             <Field
               fieldKey="certification_details"
               label={t('Certification details')}
+              description={t('Details of the certification')}
               control={
                 <TextControl
                   controlId="certificationDetails"
