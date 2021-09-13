@@ -415,8 +415,6 @@ const Select = ({
       return filterOption(search, option);
     }
 
-    let found = false;
-
     if (filterOption) {
       const searchValue = search.trim().toLowerCase();
 
