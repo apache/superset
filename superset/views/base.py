@@ -312,6 +312,7 @@ def menu_data() -> Dict[str, Any]:
     brand_text = appbuilder.app.config["LOGO_RIGHT_TEXT"]
     if callable(brand_text):
         brand_text = brand_text()
+    build_number = appbuilder.app.config["BUILD_NUMBER"]
     return {
         "menu": menu,
         "brand": {
@@ -329,6 +330,7 @@ def menu_data() -> Dict[str, Any]:
             "documentation_url": appbuilder.app.config["DOCUMENTATION_URL"],
             "version_string": appbuilder.app.config["VERSION_STRING"],
             "version_sha": appbuilder.app.config["VERSION_SHA"],
+            "build_number": build_number,
             "languages": languages,
             "show_language_picker": len(languages.keys()) > 1,
             "user_is_anonymous": g.user.is_anonymous,

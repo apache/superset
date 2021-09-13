@@ -119,6 +119,10 @@ VERSION_STRING = _try_json_readversion(VERSION_INFO_FILE) or _try_json_readversi
 VERSION_SHA_LENGTH = 8
 VERSION_SHA = _try_json_readsha(VERSION_INFO_FILE, VERSION_SHA_LENGTH)
 
+# Build number is shown in the About section if available. This
+# can be replaced at build time to expose build information.
+BUILD_NUMBER = None
+
 # default viz used in chart explorer
 DEFAULT_VIZ_TYPE = "table"
 
