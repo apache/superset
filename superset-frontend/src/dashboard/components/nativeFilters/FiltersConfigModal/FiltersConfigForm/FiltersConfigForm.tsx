@@ -80,7 +80,7 @@ import {
 } from './utils';
 import { useBackendFormUpdate, useDefaultValue } from './state';
 import { getFormData } from '../../utils';
-import { Filter } from '../../types';
+import { Filter, NativeFilterType } from '../../types';
 import getControlItemsMap from './getControlItemsMap';
 import FilterScope from './FilterScope/FilterScope';
 import RemovedFilter from './RemovedFilter';
@@ -684,6 +684,13 @@ const FiltersConfigForm = (
         forceRender
       >
         <StyledContainer>
+          <StyledFormItem
+            name={['filters', filterId, 'type']}
+            hidden
+            initialValue={NativeFilterType.NATIVE_FILTER}
+          >
+            <Input />
+          </StyledFormItem>
           <StyledFormItem
             name={['filters', filterId, 'name']}
             label={<StyledLabel>{t('Filter name')}</StyledLabel>}

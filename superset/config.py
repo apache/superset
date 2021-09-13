@@ -20,6 +20,7 @@ All configuration in this file can be overridden by providing a superset_config
 in your PYTHONPATH as there is a ``from superset_config import *``
 at the end of this file.
 """
+# pylint: disable=too-many-lines
 import imp  # pylint: disable=deprecated-module
 import importlib.util
 import json
@@ -111,6 +112,10 @@ VERSION_STRING = _try_json_readversion(VERSION_INFO_FILE) or _try_json_readversi
 
 VERSION_SHA_LENGTH = 8
 VERSION_SHA = _try_json_readsha(VERSION_INFO_FILE, VERSION_SHA_LENGTH)
+
+# Build number is shown in the About section if available. This
+# can be replaced at build time to expose build information.
+BUILD_NUMBER = None
 
 # default viz used in chart explorer
 DEFAULT_VIZ_TYPE = "table"
@@ -427,7 +432,14 @@ FEATURE_FLAGS: Dict[str, bool] = {}
 #         feature_flags_dict['some_feature'] = g.user and g.user.get_id() == 5
 #     return feature_flags_dict
 GET_FEATURE_FLAGS_FUNC: Optional[Callable[[Dict[str, bool]], Dict[str, bool]]] = None
-
+# A function that receives a feature flag name and an optional default value.
+# Has a similar utility to GET_FEATURE_FLAGS_FUNC but it's useful to not force the
+# evaluation of all feature flags when just evaluating a single one.
+#
+# Note that the default `get_feature_flags` will evaluate each feature with this
+# callable when the config key is set, so don't use both GET_FEATURE_FLAGS_FUNC
+# and IS_FEATURE_ENABLED_FUNC in conjunction.
+IS_FEATURE_ENABLED_FUNC: Optional[Callable[[str, Optional[bool]], bool]] = None
 # A function that expands/overrides the frontend `bootstrap_data.common` object.
 # Can be used to implement custom frontend functionality,
 # or dynamically change certain configs.

@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=unused-argument
+# pylint: disable=too-many-lines,unused-argument
 import json
 import logging
 import re
@@ -250,7 +250,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             types.DateTime(),
             GenericDataType.TEMPORAL,
         ),
-        (re.compile(r"^date", re.IGNORECASE), types.Date(), GenericDataType.TEMPORAL,),
+        (
+            re.compile(r"^date", re.IGNORECASE),
+            types.DateTime(),
+            GenericDataType.TEMPORAL,
+        ),
         (
             re.compile(r"^timestamp", re.IGNORECASE),
             types.TIMESTAMP(),
@@ -1295,7 +1299,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             # using datetimes
             if generic_type == GenericDataType.TEMPORAL:
                 column_type = literal_dttm_type_factory(
-                    type(column_type), cls, native_type or ""
+                    column_type, cls, native_type or ""
                 )
             is_dttm = generic_type == GenericDataType.TEMPORAL
             return ColumnSpec(

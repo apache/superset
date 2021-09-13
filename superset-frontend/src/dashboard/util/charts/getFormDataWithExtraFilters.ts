@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isEqual } from 'lodash';
 import {
   CategoricalColorNamespace,
   DataRecordFilters,
@@ -71,9 +70,15 @@ export default function getFormDataWithExtraFilters({
   const cachedFormData = cachedFormdataByChart[sliceId];
   if (
     cachedFiltersByChart[sliceId] === filters &&
-    cachedFormData?.color_scheme === colorScheme &&
-    cachedFormData?.color_namespace === colorNamespace &&
-    isEqual(cachedFormData?.label_colors, labelColors) &&
+    areObjectsEqual(cachedFormData?.color_scheme, colorScheme, {
+      ignoreUndefined: true,
+    }) &&
+    areObjectsEqual(cachedFormData?.color_namespace, colorNamespace, {
+      ignoreUndefined: true,
+    }) &&
+    areObjectsEqual(cachedFormData?.label_colors, labelColors, {
+      ignoreUndefined: true,
+    }) &&
     !!cachedFormData &&
     areObjectsEqual(cachedFormData?.dataMask, dataMask, {
       ignoreUndefined: true,
@@ -110,7 +115,7 @@ export default function getFormDataWithExtraFilters({
     ...extraData,
   };
   cachedFiltersByChart[sliceId] = filters;
-  cachedFormdataByChart[sliceId] = formData;
+  cachedFormdataByChart[sliceId] = { ...formData, dataMask };
 
   return formData;
 }

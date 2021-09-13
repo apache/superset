@@ -75,7 +75,7 @@ setup(
         "cryptography>=3.3.2",
         "deprecation>=2.1.0, <2.2.0",
         "flask>=1.1.0, <2.0.0",
-        "flask-appbuilder>=3.3.0, <4.0.0",
+        "flask-appbuilder>=3.3.2, <4.0.0",
         "flask-caching>=1.10.0",
         "flask-compress",
         "flask-talisman",
@@ -114,6 +114,7 @@ setup(
     ],
     extras_require={
         "athena": ["pyathena>=1.10.8, <1.11"],
+        "aurora-data-api": ["preset-sqlalchemy-aurora-data-api>=0.2.8,<0.3"],
         "bigquery": [
             "pandas_gbq>=0.10.0",
             "pybigquery>=0.4.10",
