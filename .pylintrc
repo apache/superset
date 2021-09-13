@@ -84,7 +84,6 @@ enable=
 # --disable=W"
 disable=
     missing-docstring,
-    too-many-lines,
     duplicate-code,
     unspecified-encoding,
     # re-enable once this no longer raises false positives
