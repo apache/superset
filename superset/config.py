@@ -126,7 +126,7 @@ MAX_GLOBAL_ROW_LIMIT: Optional[int] = None
 # default row limit to apply to queries unless set in the query object
 ROW_LIMIT = 50000
 # default row limit when requesting samples from datasource in explore view
-SAMPLES_ROW_LIMIT = 100
+SAMPLES_ROW_LIMIT = 1000
 # max rows retrieved by filter select auto complete
 FILTER_SELECT_ROW_LIMIT = 10000
 SUPERSET_WORKERS = 2  # deprecated
