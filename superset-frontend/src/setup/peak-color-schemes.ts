@@ -4,13 +4,13 @@
  * There are 10 colors used in each color scheme. Each color scheme start with a different color and
  * followed by matching or contrast color. So that users gets an option to use each brand color.
  */
-import { CategoricalScheme } from '@superset-ui/color';
+import { CategoricalScheme } from '@superset-ui/core';
 
 const schemes = [
     {
         id: 'peakColorSchemeOne',
         label: 'Peak Scheme - Start Dark Blue',
-        colors: ['#041537', '#2a44d4', '#9659da', '#ff3c82', '#ffdb21', '#73f692', '#4a90e2', '#f5a623', '#d0021b', '#417505'],
+        colors: ['#041537','#2a44d4','#9659da','#ff3c82','#ffdb21','#73f692','#4a90e2','#f5a623','#d0021b','#417505'],
     },
     {
         id: 'peakColorSchemeTwo',
@@ -54,7 +54,7 @@ const schemes = [
     },
     {
         id: 'peakColorSchemeTen',
-        label: 'Peak Scheme - Start Yellow',
+        label: 'Peak Scheme - Start Blue',
         colors: ['#ffdb21', '#73f692', '#9659da', '#ff3c82', '#2a44d4', '#4a90e2', '#041537', '#417505', '#d0021b', '#f5a623'],
     },
 

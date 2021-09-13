@@ -31,6 +31,7 @@ import {
   SequentialScheme,
 } from '@superset-ui/core';
 import superset from '@superset-ui/core/lib/color/colorSchemes/categorical/superset';
+import peakColorSchemes from './peak-color-schemes';
 
 export default function setupColors(
   extraCategoricalColorSchemas: CategoricalScheme[] = [],
@@ -45,7 +46,7 @@ export default function setupColors(
     });
   }
 
-  [superset, airbnb, categoricalD3, echarts, google, lyft, preset].forEach(
+  [superset, airbnb, categoricalD3, echarts, google, lyft, preset, peakColorSchemes].forEach(
     group => {
       group.forEach(scheme => {
         categoricalSchemeRegistry.registerValue(scheme.id, scheme);

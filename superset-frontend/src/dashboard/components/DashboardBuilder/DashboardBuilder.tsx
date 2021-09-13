@@ -150,9 +150,13 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
       ? dashboardLayout[rootChildId]
       : undefined;
 
-  const hideDashboardHeader =
+  let hideDashboardHeader =
     getUrlParam(URL_PARAMS.standalone, 'number') ===
     DashboardStandaloneMode.HIDE_NAV_AND_TITLE;
+
+  const chartsOnly = getUrlParam('chartsOnly', 'number') ===
+  DashboardStandaloneMode.HIDE_NAV;
+  hideDashboardHeader = chartsOnly || hideDashboardHeader;
 
   const barTopOffset =
     (hideDashboardHeader ? 0 : HEADER_HEIGHT) +
