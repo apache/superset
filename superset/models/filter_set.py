@@ -20,7 +20,7 @@ import logging
 from typing import Any, Dict
 
 from flask_appbuilder import Model
-from sqlalchemy import Column, ForeignKey, Integer, JSON, MetaData, String, Text
+from sqlalchemy import Column, ForeignKey, Integer, MetaData, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy_utils import generic_relationship
 
