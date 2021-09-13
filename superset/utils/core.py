@@ -1762,3 +1762,29 @@ def parse_boolean_string(bool_str: Optional[str]) -> bool:
         return bool(strtobool(bool_str.lower()))
     except ValueError:
         return False
+
+
+def apply_max_row_limit(max_limit: Optional[int], limit: int) -> int:
+    """
+    Override row limit if max global limit is defined
+
+    :param max_limit: Maximum allowed row limit
+    :param limit: requested row limit
+    :return: Capped row limit
+
+    apply_max_row_limit(None, 10000)
+    >>> 10000
+    apply_max_row_limit(100000, 10)
+    >>> 10
+    apply_max_row_limit(10, 100000)
+    >>> 10
+    apply_max_row_limit(10, 0)
+    >>> 10
+    apply_max_row_limit(0, 0)
+    >>> 0
+    """
+    if max_limit is not None and max_limit != 0:
+        if limit != 0:
+            return min(max_limit, limit)
+        return max_limit
+    return limit

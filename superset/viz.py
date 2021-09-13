@@ -64,12 +64,12 @@ from superset.exceptions import (
     SupersetSecurityException,
 )
 from superset.extensions import cache_manager, security_manager
-from superset.models.cache import CacheKey
 from superset.models.helpers import QueryResult
 from superset.typing import Metric, QueryObjectDict, VizData, VizPayload
 from superset.utils import core as utils, csv
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import (
+    apply_max_row_limit,
     DTTM_ALIAS,
     ExtraFiltersReasonType,
     JS_MAX_INTEGER,
@@ -331,7 +331,10 @@ class BaseViz:
         granularity = form_data.get("granularity") or form_data.get("granularity_sqla")
         limit = int(form_data.get("limit") or 0)
         timeseries_limit_metric = form_data.get("timeseries_limit_metric")
-        row_limit = int(form_data.get("row_limit") or config["ROW_LIMIT"])
+
+        # apply row limit to query
+        row_limit = form_data.get("row_limit") or config["ROW_LIMIT"]
+        row_limit = apply_max_row_limit(config["MAX_GLOBAL_ROW_LIMIT"], row_limit)
 
         # default order direction
         order_desc = form_data.get("order_desc", True)
@@ -1670,7 +1673,6 @@ class HistogramViz(BaseViz):
     def query_obj(self) -> QueryObjectDict:
         """Returns the query object for this visualization"""
         d = super().query_obj()
-        d["row_limit"] = self.form_data.get("row_limit", int(config["VIZ_ROW_LIMIT"]))
         numeric_columns = self.form_data.get("all_columns_x")
         if numeric_columns is None:
             raise QueryObjectValidationError(

@@ -27,6 +27,7 @@ from superset import app, is_feature_enabled
 from superset.models.sql_lab import Query
 from superset.sql_parse import CtasMethod
 from superset.utils import core as utils
+from superset.utils.core import apply_max_row_limit
 from superset.utils.dates import now_as_float
 from superset.views.utils import get_cta_schema_name
 
@@ -103,6 +104,7 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
     @staticmethod
     def _get_limit_param(query_params: Dict[str, Any]) -> int:
         limit: int = query_params.get("queryLimit") or app.config["SQL_MAX_ROW"]
+        limit = apply_max_row_limit(app.config["MAX_GLOBAL_ROW_LIMIT"], limit)
         if limit < 0:
             logger.warning(
                 "Invalid limit of %i specified. Defaulting to max limit.", limit

@@ -28,6 +28,7 @@ from superset.exceptions import QueryObjectValidationError
 from superset.typing import Metric, OrderBy
 from superset.utils import pandas_postprocessing
 from superset.utils.core import (
+    apply_max_row_limit,
     ChartDataResultType,
     DatasourceDict,
     DTTM_ALIAS,
@@ -180,7 +181,14 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             for x in metrics
         ]
 
-        self.row_limit = config["ROW_LIMIT"] if row_limit is None else row_limit
+        default_row_limit = (
+            config["SAMPLES_ROW_LIMIT"]
+            if result_type == ChartDataResultType.SAMPLES
+            else config["ROW_LIMIT"]
+        )
+        self.row_limit = apply_max_row_limit(
+            config["MAX_GLOBAL_ROW_LIMIT"], row_limit or default_row_limit,
+        )
         self.row_offset = row_offset or 0
         self.filter = filters or []
         self.timeseries_limit = timeseries_limit

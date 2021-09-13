@@ -1203,6 +1203,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.login(username="admin")
         request_payload = get_query_context("birth_names")
         del request_payload["queries"][0]["row_limit"]
+
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
         response_payload = json.loads(rv.data.decode("utf-8"))
         result = response_payload["result"][0]
@@ -1210,16 +1211,71 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
-        "superset.common.query_actions.config", {**app.config, "SAMPLES_ROW_LIMIT": 5},
+        "superset.common.query_object.config",
+        {**app.config, "MAX_GLOBAL_ROW_LIMIT": 10},
     )
-    def test_chart_data_default_sample_limit(self):
+    def test_chart_data_max_global_row_limit(self):
         """
-        Chart data API: Ensure sample response row count doesn't exceed default limit
+        Chart data API: Ensure row count doesn't exceed max global row limit
+        """
+        self.login(username="admin")
+        request_payload = get_query_context("birth_names")
+        request_payload["queries"][0]["row_limit"] = 10000000
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        response_payload = json.loads(rv.data.decode("utf-8"))
+        result = response_payload["result"][0]
+        self.assertEqual(result["rowcount"], 10)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch(
+        "superset.common.query_object.config", {**app.config, "SAMPLES_ROW_LIMIT": 5},
+    )
+    def test_chart_data_sample_default_limit(self):
+        """
+        Chart data API: Ensure sample response row count doesn't max global row limit
+        """
+        self.login(username="admin")
+        request_payload = get_query_context("birth_names")
+        request_payload["result_type"] = utils.ChartDataResultType.SAMPLES
+        del request_payload["queries"][0]["row_limit"]
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        response_payload = json.loads(rv.data.decode("utf-8"))
+        result = response_payload["result"][0]
+        self.assertEqual(result["rowcount"], 5)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch(
+        "superset.common.query_actions.config",
+        {**app.config, "SAMPLES_ROW_LIMIT": 5, "MAX_GLOBAL_ROW_LIMIT": 15},
+    )
+    def test_chart_data_sample_custom_limit(self):
+        """
+        Chart data API: Ensure requested sample response row count is between
+        default and max global limit
         """
         self.login(username="admin")
         request_payload = get_query_context("birth_names")
         request_payload["result_type"] = utils.ChartDataResultType.SAMPLES
         request_payload["queries"][0]["row_limit"] = 10
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        response_payload = json.loads(rv.data.decode("utf-8"))
+        result = response_payload["result"][0]
+        self.assertEqual(result["rowcount"], 10)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch(
+        "superset.common.query_object.config",
+        {**app.config, "MAX_GLOBAL_ROW_LIMIT": 5},
+    )
+    def test_chart_data_max_global_sample_limit(self):
+        """
+        Chart data API: Ensure requested sample response row count doesn't
+        exceed max global row limit
+        """
+        self.login(username="admin")
+        request_payload = get_query_context("birth_names")
+        request_payload["result_type"] = utils.ChartDataResultType.SAMPLES
+        request_payload["queries"][0]["row_limit"] = 10000000
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
         response_payload = json.loads(rv.data.decode("utf-8"))
         result = response_payload["result"][0]

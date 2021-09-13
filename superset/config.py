@@ -120,10 +120,13 @@ BUILD_NUMBER = None
 # default viz used in chart explorer
 DEFAULT_VIZ_TYPE = "table"
 
+# maximum row limit that can be set on a query. Will override the row limit defined
+# in all queries (both SQL Lab and chart data queries)
+MAX_GLOBAL_ROW_LIMIT: Optional[int] = None
+# default row limit to apply to queries unless set in the query object
 ROW_LIMIT = 50000
-VIZ_ROW_LIMIT = 10000
-# max rows retreieved when requesting samples from datasource in explore view
-SAMPLES_ROW_LIMIT = 1000
+# default row limit when requesting samples from datasource in explore view
+SAMPLES_ROW_LIMIT = 100
 # max rows retrieved by filter select auto complete
 FILTER_SELECT_ROW_LIMIT = 10000
 SUPERSET_WORKERS = 2  # deprecated
