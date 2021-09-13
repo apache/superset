@@ -562,8 +562,8 @@ const Select = ({
         onDeselect={handleOnDeselect}
         onDropdownVisibleChange={handleOnDropdownVisibleChange}
         onInputKeyDown={onInputKeyDown}
-        onPopupScroll={(isAsync && handlePagination) || undefined}
-        onSearch={(shouldShowSearch && handleOnSearch) || undefined}
+        onPopupScroll={isAsync ? handlePagination : undefined}
+        onSearch={shouldShowSearch ? handleOnSearch : undefined}
         onSelect={handleOnSelect}
         onClear={handleClear}
         onChange={onChange}
@@ -585,7 +585,7 @@ const Select = ({
       >
         {shouldUseChildrenOptions &&
           selectOptions.map(opt => {
-            const isOptObject = !!Object.keys(opt).length;
+            const isOptObject = typeof opt === 'object';
             const label = isOptObject ? opt?.label || opt.value : opt;
             const value = (isOptObject && opt.value) || opt;
 
