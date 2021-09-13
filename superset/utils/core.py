@@ -1772,16 +1772,16 @@ def apply_max_row_limit(max_limit: Optional[int], limit: int) -> int:
     :param limit: requested row limit
     :return: Capped row limit
 
-    apply_max_row_limit(None, 10000)
-    >>> 10000
-    apply_max_row_limit(100000, 10)
-    >>> 10
-    apply_max_row_limit(10, 100000)
-    >>> 10
-    apply_max_row_limit(10, 0)
-    >>> 10
-    apply_max_row_limit(0, 0)
-    >>> 0
+    >>> apply_max_row_limit(None, 10000)
+    10000
+    >>> apply_max_row_limit(100000, 10)
+    10
+    >>> apply_max_row_limit(10, 100000)
+    10
+    >>> apply_max_row_limit(10, 0)
+    10
+    >>> apply_max_row_limit(0, 0)
+    0
     """
     if max_limit is not None and max_limit != 0:
         if limit != 0:

@@ -23,7 +23,6 @@ from superset import app
 from superset.connectors.base.models import BaseDatasource
 from superset.exceptions import QueryObjectValidationError
 from superset.utils.core import (
-    apply_max_row_limit,
     ChartDataResultType,
     extract_column_dtype,
     extract_dataframe_dtypes,
