@@ -20,14 +20,13 @@ import { List } from 'immutable';
 import JSONbig from 'json-bigint';
 import React, { PureComponent } from 'react';
 import JSONTree from 'react-json-tree';
+import ResizableTable from './ResizableTable';
 import {
-  Column,
   Grid,
   ScrollSync,
   SortDirection,
   SortDirectionType,
   SortIndicator,
-  Table,
 } from 'react-virtualized';
 import { getMultipleTextDimensions, t, styled } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
@@ -524,10 +523,8 @@ export default class FilterableTable extends PureComponent<
     const { sortBy, sortDirection } = this.state;
     const {
       filterText,
-      headerHeight,
+        data,
       orderedColumnKeys,
-      overscanRowCount,
-      rowHeight,
     } = this.props;
 
     let sortedAndFilteredList: List<Datum> = this.list;
@@ -544,54 +541,33 @@ export default class FilterableTable extends PureComponent<
       ) as List<Datum>;
     }
 
-    let { height } = this.props;
-    let totalTableHeight = height;
-    if (
-      this.container.current &&
-      this.totalTableWidth > this.container.current.clientWidth
-    ) {
-      // exclude the height of the horizontal scroll bar from the height of the table
-      // and the height of the table container if the content overflows
-      height -= SCROLL_BAR_HEIGHT;
-      totalTableHeight -= SCROLL_BAR_HEIGHT;
-    }
+    //let { height } = this.props;
+    //let totalTableHeight = height;
+    //if (
+    //  this.container.current &&
+    //  this.totalTableWidth > this.container.current.clientWidth
+    //) {
+    //  // exclude the height of the horizontal scroll bar from the height of the table
+    //  // and the height of the table container if the content overflows
+    //  height -= SCROLL_BAR_HEIGHT;
+    //  totalTableHeight -= SCROLL_BAR_HEIGHT;
+    //}
 
-    const rowGetter = ({ index }: { index: number }) =>
-      this.getDatum(sortedAndFilteredList, index);
+    //const rowGetter = ({ index }: { index: number }) =>
+    //  this.getDatum(sortedAndFilteredList, index);
+
     return (
       <StyledFilterableTable
         className="filterable-table-container"
         ref={this.container}
       >
         {this.state.fitted && (
-          <Table
-            ref="Table"
-            headerHeight={headerHeight}
-            height={totalTableHeight}
-            overscanRowCount={overscanRowCount}
-            rowClassName={this.rowClassName}
-            rowHeight={rowHeight}
-            rowGetter={rowGetter}
-            rowCount={sortedAndFilteredList.size}
-            sort={this.sort}
-            sortBy={sortBy}
-            sortDirection={sortDirection}
-            width={this.totalTableWidth}
-          >
-            {orderedColumnKeys.map(columnKey => (
-              <Column
-                cellRenderer={({ cellData }) =>
-                  this.renderTableCell({ cellData, columnKey })
-                }
-                dataKey={columnKey}
-                disableSort={false}
-                headerRenderer={this.renderTableHeader}
-                width={this.widthsForColumnsByKey[columnKey]}
-                label={columnKey}
-                key={columnKey}
-              />
-            ))}
-          </Table>
+            <ResizableTable
+                columns={orderedColumnKeys}
+                data={data}
+                filterText={filterText}
+            /> 
+          
         )}
       </StyledFilterableTable>
     );

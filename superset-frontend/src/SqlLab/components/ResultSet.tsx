@@ -36,7 +36,7 @@ import ExploreCtasResultsButton from './ExploreCtasResultsButton';
 import ExploreResultsButton from './ExploreResultsButton';
 import HighlightedSql from './HighlightedSql';
 import FilterableTable from '../../components/FilterableTable/FilterableTable';
-import GlobalFilter from '../../components/FilterableTable/GlobalFilter'
+//import GlobalFilter from '../../components/FilterableTable/GlobalFilter';
 import QueryStateLabel from './QueryStateLabel';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import { prepareCopyToClipboardTabularData } from '../../utils/common';
@@ -730,7 +730,9 @@ export default class ResultSet extends React.PureComponent<
             {sql}
             <FilterableTable
               data={data}
-                columns={results.columns.map(col => col.name)}
+              orderedColumnKeys={results.columns.map(col => col.name)}
+              height={height}
+              expandedColumns={expandedColumns}
               filterText={this.state.searchText}
             />
           </>

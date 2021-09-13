@@ -17,24 +17,24 @@
  * under the License.
  */
 import React from 'react';
-import FilterableTable, {
-  FilterableTableProps,
+import ResizableTable, {
+  ResizableTableProps,
   EmptyWrapperType,
-} from './FilterableTable';
+} from './ResizableTable';
 
 export default {
-  title: 'FilterableTable',
-  component: FilterableTable,
+  title: 'ResizableTable',
+  component: ResizableTable,
 };
 
-export const InteractiveFilterableTable = (args: FilterableTableProps) => (
+export const InteractiveResizableTable = (args: ResizableTableProps) => (
   <>
       <span>SEARCH:</span> 
-    <FilterableTable {...args} />
+    <ResizableTable {...args} />
   </>
 );
 
-InteractiveFilterableTable.args = {
+InteractiveResizableTable.args = {
   columns: [
     {
       accessor: 'id',
@@ -74,7 +74,7 @@ InteractiveFilterableTable.args = {
     scrollTable: true,
 };
 
-InteractiveFilterableTable.argTypes = {
+InteractiveResizableTable.argTypes = {
   emptyWrapperType: {
     control: {
       type: 'select',
@@ -95,7 +95,7 @@ InteractiveFilterableTable.argTypes = {
   },
 };
 
-InteractiveFilterableTable.story = {
+InteractiveResizableTable.story = {
   parameters: {
     knobs: {
       disable: true,
