@@ -16,8 +16,14 @@
 # under the License.
 from unittest.mock import patch
 
-from superset import is_feature_enabled
+from parameterized import parameterized
+
+from superset import get_feature_flags, is_feature_enabled
 from tests.integration_tests.base_tests import SupersetTestCase
+
+
+def dummy_is_feature_enabled(feature_flag_name: str, default: bool = True) -> bool:
+    return True if feature_flag_name.startswith("True_") else default
 
 
 class TestFeatureFlag(SupersetTestCase):
@@ -38,3 +44,40 @@ class TestFeatureFlag(SupersetTestCase):
     def test_feature_flags(self):
         self.assertEqual(is_feature_enabled("foo"), "bar")
         self.assertEqual(is_feature_enabled("super"), "set")
+
+
+@patch.dict(
+    "superset.extensions.feature_flag_manager._feature_flags",
+    {"True_Flag1": False, "True_Flag2": True, "Flag3": False, "Flag4": True},
+    clear=True,
+)
+class TestFeatureFlagBackend(SupersetTestCase):
+    @parameterized.expand(
+        [
+            ("True_Flag1", True),
+            ("True_Flag2", True),
+            ("Flag3", False),
+            ("Flag4", True),
+            ("True_DoesNotExist", False),
+        ]
+    )
+    @patch(
+        "superset.extensions.feature_flag_manager._is_feature_enabled_func",
+        dummy_is_feature_enabled,
+    )
+    def test_feature_flags_override(self, feature_flag_name, expected):
+        self.assertEqual(is_feature_enabled(feature_flag_name), expected)
+
+    @patch(
+        "superset.extensions.feature_flag_manager._is_feature_enabled_func",
+        dummy_is_feature_enabled,
+    )
+    @patch(
+        "superset.extensions.feature_flag_manager._get_feature_flags_func", None,
+    )
+    def test_get_feature_flags(self):
+        feature_flags = get_feature_flags()
+        self.assertEqual(
+            feature_flags,
+            {"True_Flag1": True, "True_Flag2": True, "Flag3": False, "Flag4": True},
+        )
