@@ -183,7 +183,7 @@ const Select = ({
   options,
   pageSize = DEFAULT_PAGE_SIZE,
   placeholder = t('Select ...'),
-  showSearch,
+  showSearch = true,
   value,
   ...props
 }: SelectProps) => {
