@@ -32,7 +32,6 @@
     "@superset-ui/core": "0.18.2",
     "d3": "^3.5.17",
     "datatables.net-bs": "^1.10.15",
-    "jquery": "^3.6.0",
     "prop-types": "^15.6.2"
   }
 }
