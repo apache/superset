@@ -561,11 +561,13 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         self.assertEqual(column_spec.generic_type, GenericDataType.NUMERIC)
 
         column_spec = PrestoEngineSpec.get_column_spec("time")
-        assert issubclass(column_spec.sqla_type, types.Time)
+        assert isinstance(column_spec.sqla_type, types.Time)
+        assert type(column_spec.sqla_type).__name__ == "TemporalWrapperType"
         self.assertEqual(column_spec.generic_type, GenericDataType.TEMPORAL)
 
         column_spec = PrestoEngineSpec.get_column_spec("timestamp")
-        assert issubclass(column_spec.sqla_type, types.TIMESTAMP)
+        assert isinstance(column_spec.sqla_type, types.TIMESTAMP)
+        assert type(column_spec.sqla_type).__name__ == "TemporalWrapperType"
         self.assertEqual(column_spec.generic_type, GenericDataType.TEMPORAL)
 
         sqla_type = PrestoEngineSpec.get_sqla_column_type(None)

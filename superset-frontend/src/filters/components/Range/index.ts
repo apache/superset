@@ -28,6 +28,7 @@ export default class RangeFilterPlugin extends ChartPlugin {
       name: t('Range filter'),
       description: t('Range filter plugin using AntD'),
       behaviors: [Behavior.INTERACTIVE_CHART, Behavior.NATIVE_FILTER],
+      tags: [t('Experimental')],
       thumbnail,
     });
 

@@ -28,12 +28,12 @@
     // copy it here so it can be reused later
     var any_schema_is_allowed = schema.clone();
 
-    update_schemas_allowed_for_csv_upload(db.val());
+    update_schemas_allowed_for_columnar_upload(db.val());
     db.change(function(){
-        update_schemas_allowed_for_csv_upload(db.val());
+        update_schemas_allowed_for_columnar_upload(db.val());
     });
 
-    function update_schemas_allowed_for_csv_upload(db_id) {
+    function update_schemas_allowed_for_columnar_upload(db_id) {
         $.ajax({
           method: "GET",
           url: "/superset/schemas_access_for_file_upload",
