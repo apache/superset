@@ -17,14 +17,14 @@
 """add_save_form_column_to_db_model
 
 Revision ID: 453530256cea
-Revises: f1410ed7ec95
+Revises: 6f139c533bea
 Create Date: 2021-04-30 10:55:07.009994
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "453530256cea"
-down_revision = "f1410ed7ec95"
+down_revision = "6f139c533bea"
 
 import sqlalchemy as sa
 from alembic import op

@@ -17,7 +17,7 @@
 """adding_business_type.py
 
 Revision ID: 6f139c533bea
-Revises: 07071313dd52
+Revises: f1410ed7ec95
 Create Date: 2021-05-27 16:10:59.567684
 
 """
@@ -28,7 +28,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = '6f139c533bea'
-down_revision = '07071313dd52'
+down_revision = 'f1410ed7ec95'
 
 def upgrade():
     with op.batch_alter_table("table_columns") as batch_op:
