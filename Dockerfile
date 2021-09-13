@@ -167,6 +167,7 @@ ARG PY_VER=3.7.9
 FROM python:${PY_VER} AS lean
 
 ENV LANG=C.UTF-8 \
+<<<<<<< HEAD
     LC_ALL=C.UTF-8 \
     FLASK_ENV=production \
     FLASK_APP="superset.app:create_app()" \
@@ -258,3 +259,85 @@ ENV AWS_REGION=eu-west-1
 
 CMD /app/docker/docker-ci.sh
 # >>>>>>> f506bad12589b849e0fabf7f757f6edb2d50c9ab
+=======
+  LC_ALL=C.UTF-8
+
+RUN apt-get update -y
+
+# Install dependencies to fix `curl https support error` and `elaying package configuration warning`
+RUN apt-get install -y apt-transport-https apt-utils
+
+
+# Install superset dependencies
+# https://superset.incubator.apache.org/installation.html#os-dependencies
+RUN apt-get install -y build-essential libssl-dev \
+  libffi-dev python3-dev libsasl2-dev libldap2-dev libxi-dev
+
+# Install extra useful tool for development
+RUN apt-get install -y vim less postgresql-client redis-tools
+
+# Install nodejs for custom build
+# https://superset.incubator.apache.org/installation.html#making-your-own-build
+# https://nodejs.org/en/download/package-manager/
+RUN curl -sL https://deb.nodesource.com/setup_10.x | bash - \
+  && apt-get --force-yes install -y nodejs
+
+ARG SUPERSET_ENV=$SUPERSET_ENV
+ARG SQLALCHEMY_DATABASE_URI=$SQLALCHEMY_DATABASE_URI
+ARG TENANT=$TENANT
+ARG STAGE=$STAGE
+ARG REDIS_ENDPOINT=$REDIS_ENDPOINT
+ARG NO_OF_WORKERS=$NO_OF_WORKERS
+ARG ADMIN_EMAIL=$ADMIN_EMAIL
+ARG ADMIN_PASSWORD=$ADMIN_PASSWORD
+ARG GUEST_EMAIL=$GUEST_EMAIL
+ARG GUEST_PASSWORD=$GUEST_PASSWORD
+ARG PEAK_USER_EMAIL=$PEAK_USER_EMAIL
+ARG PEAK_USER_PASSWORD=$PEAK_USER_PASSWORD
+ARG AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
+ARG COMMON_CONFIG_DATA_BUCKET=$COMMON_CONFIG_DATA_BUCKET
+ARG REDSHIFT_DATABASE_URI=$REDSHIFT_DATABASE_URI
+ARG PEAK_ADMIN_EMAIL=$PEAK_ADMIN_EMAIL
+ARG PEAK_ADMIN_PASSWORD=$PEAK_ADMIN_PASSWORD
+
+ENV SUPERSET_ENV=${SUPERSET_ENV} \
+  SQLALCHEMY_DATABASE_URI=${SQLALCHEMY_DATABASE_URI} \
+  TENANT=${TENANT} \
+  STAGE=$STAGE \
+  REDIS_ENDPOINT=${REDIS_ENDPOINT} \
+  NO_OF_WORKERS=${NO_OF_WORKERS} \
+  ADMIN_EMAIL=${ADMIN_EMAIL} \
+  ADMIN_PASSWORD=${ADMIN_PASSWORD} \
+  GUEST_EMAIL=${GUEST_EMAIL} \
+  GUEST_PASSWORD=${GUEST_PASSWORD} \
+  PEAK_USER_EMAIL=${PEAK_USER_EMAIL} \
+  PEAK_USER_PASSWORD=${PEAK_USER_PASSWORD} \
+  PEAK_ADMIN_EMAIL=${PEAK_ADMIN_EMAIL} \
+  PEAK_ADMIN_PASSWORD=${PEAK_ADMIN_PASSWORD} \
+  AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION} \
+  COMMON_CONFIG_DATA_BUCKET=${COMMON_CONFIG_DATA_BUCKET} \
+  REDSHIFT_DATABASE_URI=${REDSHIFT_DATABASE_URI}
+
+WORKDIR /home/superset
+
+COPY . /home/superset
+
+RUN pip install --upgrade "setuptools<58" pip \
+  && pip install -r requirements.txt -r requirements-dev.txt  \
+  && pip install -e . \
+  && pip install eventlet \
+  && rm -rf /root/.cache/pip
+
+RUN cd superset/assets \
+  && npm ci \
+  && npm run build \
+  && rm -rf node_modules
+
+RUN chmod +x docker_init.sh && ./docker_init.sh
+
+RUN chmod +x docker_entrypoint.sh
+
+EXPOSE 8088
+
+CMD ["./docker_entrypoint.sh"]
+>>>>>>> e6b57f4ae29f51989971def86f4bc89b70d798ff

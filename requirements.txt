@@ -82,3 +82,4 @@ webencodings==0.5.1       # via bleach
 werkzeug==0.15.5          # via flask, flask-jwt-extended
 wtforms-json==0.3.3
 wtforms==2.2.1            # via flask-wtf, wtforms-json
+supervisor==4.2.0

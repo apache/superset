@@ -20,9 +20,11 @@ import re
 from contextlib import closing
 from datetime import datetime, timedelta
 from typing import Any, Callable, cast, Dict, List, Optional, Union
+import os
 from urllib import parse
 
 from superset.custom_auth import use_ip_auth
+from json import loads
 
 import backoff
 import humanize
@@ -46,6 +48,7 @@ from sqlalchemy.exc import ArgumentError, DBAPIError, NoSuchModuleError, SQLAlch
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import functions as func
 from werkzeug.urls import Href
+import boto3
 
 from superset import (
     app,
@@ -140,6 +143,8 @@ from superset.views.utils import (
 )
 from superset.viz import BaseViz
 
+STAGE = os.environ['STAGE']
+TENANT = os.environ['TENANT']
 config = app.config
 SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
 stats_logger = config["STATS_LOGGER"]
@@ -162,6 +167,11 @@ DATABASE_KEYS = [
     "id",
 ]
 
+lambda_client = boto3.client('lambda')
+
+ALL_DATASOURCE_ACCESS_ERR = __(
+    "This endpoint requires the `all_datasource_access` permission"
+)
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
 USER_MISSING_ERR = __("The user seems to have been deleted")
 PARAMETER_MISSING_ERR = (
@@ -2704,7 +2714,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 "Invalid limit of {} specified. Defaulting to max limit.".format(limit)
             )
             limit = 0
-        limit = limit or app.config.get("SQL_MAX_ROW")
 
         session = db.session()
         mydb = session.query(models.Database).filter_by(id=database_id).first()
@@ -2766,6 +2775,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         # set LIMIT after template processing
         limits = [mydb.db_engine_spec.get_limit_from_sql(rendered_query), limit]
         query.limit = min(lim for lim in limits if lim is not None)
+
+        logging.info("Query Limit to run async query: {}".format(query.limit))
         logging.info("Triggering async: {}".format(async_))
         # Async request.
         if async_:
@@ -2781,15 +2792,28 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     start_time=now_as_float(),
                 )
             except Exception as e:
-                logging.exception(f"Query {query_id}: {e}")
-                msg = _(
-                    "Failed to start remote query on a worker. "
-                    "Tell your administrator to verify the availability of "
-                    "the message queue."
-                )
+                logging.info(f"Query {query_id}: {e}")
+                msg = "Failed to run Query. Contact support to verify the availability of the message queue"
                 query.status = QueryStatus.FAILED
                 query.error_message = msg
                 session.commit()
+
+                logging.info(
+                 f"calling sql editor lambda function for query_id: {query_id}"
+                )
+                lambda_client.invoke(
+                    FunctionName='ais-service-sql-editor-{}-getSupersetResponse'.format(os.environ['STAGE']),
+                    InvocationType='Event',
+                    Payload=json.dumps({
+                              'error': msg,
+                              'status': 'failed',
+                              'queryId': query_id,
+                              'tenant': TENANT,
+                        }))
+                logging.info(
+                  f"sql editor lambda function called successfully for query_id: {query_id}"
+                )
+
                 return json_error_response("{}".format(msg))
 
             resp = json_success(
@@ -2925,6 +2949,73 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         db.session.commit()
 
         return self.json_response("OK")
+
+    # @use_ip_auth
+    # @api
+    # @handle_api_exception
+    # @expose("/validate_sql_query/", methods=["POST", "GET"])
+    # @event_logger.log_this
+    # def validate_sql_query(self):
+    #     """Validates that arbitrary sql is acceptable for the given database.
+    #     Returns a list of error/warning annotations as json.
+    #     """
+    #     logging.info("Request Received to validate query")
+    #     g.user = security_manager.find_user(username="admin")
+    #     sql = request.form.get("sql")
+    #     database_id = request.form.get("database_id")
+    #     schema = request.form.get("schema") or None
+    #     template_params = json.loads(request.form.get("templateParams") or "{}")
+    #
+    #     if len(template_params) > 0:
+    #         # TODO: factor the Database object out of template rendering
+    #         #       or provide it as mydb so we can render template params
+    #         #       without having to also persist a Query ORM object.
+    #         return json_error_response(
+    #             "SQL validation does not support template parameters", status=400
+    #         )
+    #
+    #     session = db.session()
+    #     mydb = session.query(models.Database).filter_by(id=database_id).first()
+    #     if not mydb:
+    #         json_error_response(
+    #             "Database with id {} is missing.".format(database_id), status=400
+    #         )
+    #
+    #     spec = mydb.db_engine_spec
+    #     validators_by_engine = get_feature_flags().get("SQL_VALIDATORS_BY_ENGINE")
+    #     if not validators_by_engine or spec.engine not in validators_by_engine:
+    #         return json_error_response(
+    #             "no SQL validator is configured for {}".format(spec.engine), status=400
+    #         )
+    #     validator_name = validators_by_engine[spec.engine]
+    #     validator = get_validator_by_name(validator_name)
+    #     if not validator:
+    #         return json_error_response(
+    #             "No validator named {} found (configured for the {} engine)".format(
+    #                 validator_name, spec.engine
+    #             )
+    #         )
+    #
+    #     try:
+    #         timeout = config.get("SQLLAB_VALIDATION_TIMEOUT")
+    #         timeout_msg = f"The query exceeded the {timeout} seconds timeout."
+    #         with utils.timeout(seconds=timeout, error_message=timeout_msg):
+    #             errors = validator.validate(sql, schema, mydb)
+    #         payload = json.dumps(
+    #             [err.to_dict() for err in errors],
+    #             default=utils.pessimistic_json_iso_dttm_ser,
+    #             ignore_nan=True,
+    #             encoding=None,
+    #         )
+    #         return json_success(payload)
+    #     except Exception as e:
+    #         logging.exception(e)
+    #         msg = _(
+    #             f"{validator.name} was unable to check your query.\nPlease "
+    #             "make sure that any services it depends on are available\n"
+    #             f"Exception: {e}"
+    #         )
+    #         return json_error_response(f"{msg}")
 
 # -----------------------------------------------------------------------------------------
     @api

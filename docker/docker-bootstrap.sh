@@ -38,7 +38,7 @@ fi
 
 if [[ "${1}" == "worker" ]]; then
   echo "Starting Celery worker..."
-  celery worker --app=superset.tasks.celery_app:app -Ofair -l INFO
+  celery worker --app=superset.tasks.celery_app:app -l INFO -P eventlet -c 100 -Q "$STAGE-$TENANT" -Ofair
 elif [[ "${1}" == "beat" ]]; then
   echo "Starting Celery beat..."
   celery beat --app=superset.tasks.celery_app:app --pidfile /tmp/celerybeat.pid -l INFO

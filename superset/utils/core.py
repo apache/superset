@@ -1222,10 +1222,11 @@ def get_or_create_db(
     database = (
         db.session.query(models.Database).filter_by(database_name=database_name).first()
     )
-
     if not database and always_create:
-        logger.info("Creating database reference for %s", database_name)
-        database = models.Database(database_name=database_name)
+        logging.info(f"Creating database reference for {database_name}")
+        database = models.Database(database_name=database_name, *args, **kwargs)
+        if(database_name == 'RedshiftDB'):
+            database.allow_dml = True
         db.session.add(database)
 
     if database:

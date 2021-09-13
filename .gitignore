@@ -69,6 +69,7 @@ npm-debug.log*
 superset/static/assets
 superset/static/version_info.json
 yarn-error.log
+credstash.log
 
 # IntelliJ
 *.iml

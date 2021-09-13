@@ -7,15 +7,27 @@ from flask import redirect, g, flash, request, make_response, jsonify
 from flask_appbuilder.security.views import AuthDBView
 from flask_appbuilder.security.views import expose
 from flask_login import login_user
-from ais_service_discovery import call
+import boto3
+from botocore.config import Config
+import json
 
 from superset.security import SupersetSecurityManager
+
+ALLOWED_RESOURCES = ['SEGMENT EXPLORER', 'AD OPTIMIZATION', 'RECOMMENDER', 'MERCHANDISER']
+
+BOTO_READ_TIMEOUT = float(environ.get('BOTO_READ_TIMEOUT', 10))
+BOTO_MAX_ATTEMPTS = int(environ.get('BOTO_MAX_ATTEMPTS', 3))
+config = Config(
+    read_timeout=BOTO_READ_TIMEOUT,
+    retries={'total_max_attempts': BOTO_MAX_ATTEMPTS})
+
+lambda_client = boto3.client('lambda', config=config)
 
 def has_resource_access(privileges):
     for config in privileges['level']['tenant']['tenants']:
         if config['tenant'] == environ['TENANT']:
             for resource in config['resources']:
-                if ('appId' in resource) and (resource['appId'] in ['customerAi', 'demandAi']):
+                if ('name' in resource) and (resource['name'] in ALLOWED_RESOURCES):
                     return True
     return False
 
@@ -37,12 +49,17 @@ def use_ip_auth(f):
     def wraps(self, *args, **kwargs):
         client_ip = request.headers['x-forwarded-for'] if request.headers.get('x-forwarded-for') else request.remote_addr
         try:
-            loads(call(
-                'ais-{}'.format(environ['STAGE']),
-                'authentication',
-                'ipAuth', {
-                    'clientIp': client_ip,
-                }))
+            lambda_payload = json.dumps({
+                    'clientIp': client_ip
+                })
+            response = lambda_client.invoke(
+                FunctionName='ais-service-authentication-{}-ipAuth'.format(environ['STAGE']),
+                Payload=lambda_payload)
+            result = json.loads(response['Payload'].read())
+
+            if result is not True:
+                raise Exception('Ip Address mismatch in token')
+
             return f(self, *args, **kwargs)
         except Exception as e:
             logging.info(e)
@@ -70,12 +87,14 @@ class CustomAuthDBView(AuthDBView):
 
             if request.args.get('authToken') is not None:
                 token = 'Bearer {}'.format(request.args.get('authToken'))
-                auth_response = loads(call(
-                    'ais-{}'.format(environ['STAGE']),
-                    'authentication',
-                    'auth', {
+                lambda_payload = json.dumps({
                         'authorizationToken': token
-                    }))['context']
+                    })
+                response = lambda_client.invoke(
+                    FunctionName='ais-service-authentication-{}-auth'.format(environ['STAGE']),
+                    Payload=lambda_payload)
+                result = json.loads(response['Payload'].read())
+                auth_response = result['context']
                 if not auth_response['tenant'] == environ['TENANT']:
                     raise Exception('Tenant mismatch in token')
                 if (auth_response['role'] == 'tenantManager'):

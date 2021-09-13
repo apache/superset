@@ -511,9 +511,7 @@ IMG_UPLOAD_URL = "/static/uploads/"
 # Setup image size default is (300, 200, True)
 # IMG_SIZE = (300, 200, True)
 
-# Default cache timeout (in seconds), applies to all cache backends unless
-# specifically overridden in each cache config.
-CACHE_DEFAULT_TIMEOUT = 60 * 60 * 5
+CACHE_DEFAULT_TIMEOUT = int(60 * 60 * 5.9)
 CACHE_CONFIG = {
     'CACHE_TYPE': 'redis',
     'CACHE_DEFAULT_TIMEOUT': CACHE_DEFAULT_TIMEOUT,
@@ -650,7 +648,7 @@ MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
 # Maximum number of rows returned from a database
 # in async mode, no more than SQL_MAX_ROW will be returned and stored
 # in the results backend. This also becomes the limit when exporting CSVs
-SQL_MAX_ROW = 100000
+SQL_MAX_ROW = 10000
 
 # Maximum number of rows displayed in SQL Lab UI
 # Is set to avoid out of memory/localstorage issues in browsers. Does not affect
@@ -679,11 +677,16 @@ class CeleryConfig(object):
     CELERY_IMPORTS = ('superset.sql_lab', 'superset.tasks')
     CELERY_RESULT_BACKEND = 'redis://{}/0'.format(REDIS_ENDPOINT)
     CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
+    CELERYD_PREFETCH_MULTIPLIER = 1
+    CELERYD_CONCURRENCY = 10
+    CELERY_ACKS_LATE = True
+    CELERYD_POOL_RESTARTS = True
+    CELERY_IGNORE_RESULT = True
     CELERY_DEFAULT_QUEUE = '{}-{}'.format(STAGE, TENANT)
     CELERYBEAT_SCHEDULE = {
         'cache-warmup-hourly': {
             'task': 'cache-warmup',
-            'schedule': crontab(hour='*/6'),  # every 6 hour
+            'schedule': crontab(hour='*/6'),  # every 7 hour
             'kwargs': {
                 'strategy_name': 'dummy',
             },

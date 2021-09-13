@@ -64,7 +64,7 @@ setup(
     zip_safe=False,
     entry_points={"console_scripts": ["superset=superset.cli:superset"]},
     install_requires=[
-        "ais-service-discovery~=0.0.9",
+        "ais-service-discovery==0.2.0",
         "backoff>=1.8.0",
         "bleach>=3.0.2, <4.0.0",
         "cachelib>=0.1.1,<0.2",
@@ -128,7 +128,7 @@ setup(
         "db2": ["ibm-db-sa>=0.3.5, <0.4"],
         "dremio": ["sqlalchemy-dremio>=1.1.5, <1.2"],
         "drill": ["sqlalchemy-drill==0.1.dev"],
-        "druid": ["pydruid>=0.6.1,<0.7"],
+        "druid": ["pydruid>=0.6.1,<0.7", "requests==2.22.0"],
         "solr": ["sqlalchemy-solr >= 0.2.0"],
         "elasticsearch": ["elasticsearch-dbapi>=0.2.0, <0.3.0"],
         "exasol": ["sqlalchemy-exasol>=2.1.0, <2.2"],

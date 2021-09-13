@@ -19,11 +19,10 @@ import uuid
 from contextlib import closing
 from datetime import datetime
 import os
-from ais_service_discovery import call
 from json import loads
 from typing import Any, cast, Dict, List, Optional, Tuple, Union
 from sys import getsizeof
-
+import boto3
 import backoff
 import msgpack
 import pyarrow as pa
@@ -78,7 +77,7 @@ logger = logging.getLogger(__name__)
 TENANT = os.environ['TENANT']
 STAGE = os.environ['STAGE']
 CELERY_QUEUE = '{}-{}'.format(STAGE, TENANT)
-
+lambda_client = boto3.client('lambda')
 
 class SqlLabException(Exception):
     pass
@@ -139,6 +138,7 @@ def get_query(query_id: int, session: Session) -> Query:
     name="sql_lab.get_sql_results",
     bind=True,
     queue=CELERY_QUEUE,
+    priority=9,
     time_limit=SQLLAB_HARD_TIMEOUT,
     soft_time_limit=SQLLAB_TIMEOUT,
 )
@@ -177,26 +177,26 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                     "after {} seconds.".format(SQLLAB_TIMEOUT)
                 )
             )
-        except Exception as ex:  # pylint: disable=broad-except
-            logger.debug("Query %d: %s", query_id, ex)
+        except Exception as e:
+            msg = str(e)
+            logging.exception(f"Query {query_id}: {e}")
             stats_logger.incr("error_sqllab_unhandled")
             query = get_query(query_id, session)
             logging.info(
-             f"calling service disovery function for query_id: {query_id}"
+             f"calling sql editor lambda function for query_id: {query_id}"
             )
-            loads(call(
-                'ais-{}'.format(STAGE),
-                'sql-editor',
-                'superset-async-response',
-                {
-                  'status': 'failed',
-                  'queryId': query_id,
-                  'tenant': TENANT,
-                  },
-                {'InvocationType': 'Event'}))
+            lambda_client.invoke(
+                FunctionName='ais-service-sql-editor-{}-getSupersetResponse'.format(os.environ['STAGE']),
+                InvocationType='Event',
+                Payload=json.dumps({
+                      'error': msg,
+                      'status': 'failed',
+                      'queryId': query_id,
+                      'tenant': TENANT,
+                      }))
             logging.info(
-              f"service disovery function called successfully for query_id: {query_id}"
-            )
+                 f"sql editor lambda function called successfully for query_id: {query_id}"
+             )
             return handle_query_error(str(e), query, session)
 
 
@@ -241,7 +241,7 @@ def execute_sql_statement(
     if parsed_query.is_select() and not (
         query.select_as_cta_used and SQLLAB_CTAS_NO_LIMIT
     ):
-        if SQL_MAX_ROW and (not query.limit or query.limit > SQL_MAX_ROW):
+        if SQL_MAX_ROW and (query.limit > SQL_MAX_ROW):
             query.limit = SQL_MAX_ROW
         if query.limit:
             # We are fetching one more than the requested limit in order
@@ -254,6 +254,7 @@ def execute_sql_statement(
     sql = SQL_QUERY_MUTATOR(sql, user_name, security_manager, database)
     try:
         query.executed_sql = sql
+        logging.info("Parsed SQL: {}".format(sql))
         if log_query:
             log_query(
                 query.database.sqlalchemy_uri,
@@ -268,29 +269,52 @@ def execute_sql_statement(
         with stats_timing("sqllab.query.time_executing_query", stats_logger):
             logger.debug("Query %d: Running query: %s", query.id, sql)
             db_engine_spec.execute(cursor, sql, async_=True)
-            logger.debug("Query %d: Handling cursor", query.id)
+            session.commit()
+            logging.info(f"Query {query_id}: Handling cursor")
             db_engine_spec.handle_cursor(cursor, query, session)
-
+            session.commit()
         with stats_timing("sqllab.query.time_fetching_results", stats_logger):
             logger.debug(
                 "Query %d: Fetching data for query object: %s",
                 query.id,
                 str(query.to_dict()),
             )
-            data = db_engine_spec.fetch_data(cursor, increased_limit)
+            descr = cursor.description
+            if not query.limit:
+                logging.info("Set maximum limit to fetch data for redis {}:".format(SQL_MAX_ROW))
+                query.limit = SQL_MAX_ROW
+                db_engine_spec.limit_method = "fetch_many"
+
+            if cursor.description is not None:
+                data = db_engine_spec.fetch_data(cursor, increased_limit)
+            else:
+                data = None
+
             if query.limit is None or len(data) <= query.limit:
                 query.limiting_factor = LimitingFactor.NOT_LIMITED
-            else:
+            elif data is not None:
                 # return 1 row less than increased_query
                 data = data[:-1]
+
+            if (db_engine_spec.engine != 'druid'):
+                db_engine_spec.execute(cursor, "commit;")
+                db_engine_spec.handle_cursor(cursor, query, session)
+                session.commit()
+
+    except SoftTimeLimitExceeded as e:
+        logging.exception(f"Query {query_id}: {e}")
+        raise SqlLabTimeoutException(
+            "SQL Lab timeout. This environment's policy is to kill queries "
+            "after {} seconds.".format(SQLLAB_TIMEOUT)
+        )
     except Exception as ex:
         logger.error("Query %d: %s", query.id, type(ex))
         logger.debug("Query %d: %s", query.id, ex)
         raise SqlLabException(db_engine_spec.extract_error_message(ex))
 
-    logger.debug("Query %d: Fetching cursor description", query.id)
+    logging.debug(f"Query {query_id}: Fetching cursor description")
     cursor_description = cursor.description
-    return SupersetResultSet(data, cursor_description, db_engine_spec)
+    return SupersetResultSet(data, descr, db_engine_spec)
 
 
 def _serialize_payload(
@@ -452,6 +476,21 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
                 if statement_count > 1:
                     msg = f"[Statement {i+1} out of {statement_count}] " + msg
                 payload = handle_query_error(msg, query, session, payload)
+                logging.info(
+                    f"calling sql editor lambda function for query_id: {query_id}"
+                )
+                lambda_client.invoke(
+                    FunctionName='ais-service-sql-editor-{}-getSupersetResponse'.format(os.environ['STAGE']),
+                    InvocationType='Event',
+                    Payload=json.dumps({
+                            'error': msg,
+                            'status': 'failed',
+                            'queryId': query_id,
+                            'tenant': TENANT,
+                            }))
+                logging.info(
+                    f"sql editor lambda function called successfully for query_id: {query_id}"
+                )
                 return payload
 
         # Commit the connection so CTA queries will create the table.
@@ -459,6 +498,7 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
 
     # Success, updating the query entry in database
     query.rows = result_set.size
+    logging.info("Number of fetched rows to store in redis cache {}:".format(query.rows))
     query.progress = 100
     query.set_extra_json_key("progress", None)
     if query.select_as_cta:
@@ -514,22 +554,20 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
         query.results_key = key
 
         logging.info(
-         f"calling service disovery function for query_id: {query_id}"
+         f"calling sql editor lambda function for query_id: {query_id}"
         )
-        loads(call(
-            'ais-{}'.format(STAGE),
-            'sql-editor',
-            'superset-async-response',
-            {
-              'status': 'success',
-              'resultKey': key,
-              'queryId': query_id,
-              'tenant': TENANT,
-              },
-            {'InvocationType': 'Event'}))
+        lambda_client.invoke(
+            FunctionName='ais-service-sql-editor-{}-getSupersetResponse'.format(os.environ['STAGE']),
+            InvocationType='Event',
+            Payload=json.dumps({
+                  'status': 'success',
+                  'resultKey': key,
+                  'queryId': query_id,
+                  'tenant': TENANT,
+                  }))
         logging.info(
-          f"service disovery function called successfully for query_id: {query_id}"
-        )
+             f"sql editor lambda function called successfully for query_id: {query_id}"
+         )
 
     query.status = QueryStatus.SUCCESS
     session.commit()
