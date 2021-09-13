@@ -427,7 +427,14 @@ FEATURE_FLAGS: Dict[str, bool] = {}
 #         feature_flags_dict['some_feature'] = g.user and g.user.get_id() == 5
 #     return feature_flags_dict
 GET_FEATURE_FLAGS_FUNC: Optional[Callable[[Dict[str, bool]], Dict[str, bool]]] = None
-
+# A function that receives a feature flag name and an optional default value.
+# Has a similar utility to GET_FEATURE_FLAGS_FUNC but it's useful to not force the
+# evaluation of all feature flags when just evaluating a single one.
+#
+# Note that the default `get_feature_flags` will evaluate each feature with this
+# callable when the config key is set, so don't use both GET_FEATURE_FLAGS_FUNC
+# and IS_FEATURE_ENABLED_FUNC in conjunction.
+IS_FEATURE_ENABLED_FUNC: Optional[Callable[[str, Optional[bool]], bool]] = None
 # A function that expands/overrides the frontend `bootstrap_data.common` object.
 # Can be used to implement custom frontend functionality,
 # or dynamically change certain configs.
