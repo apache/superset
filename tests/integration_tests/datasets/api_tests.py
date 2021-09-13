@@ -542,6 +542,34 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.post_assert_metric(uri, table_data, "post")
         assert rv.status_code == 422
 
+    def test_create_dataset_validate_view_exists(self):
+        """
+        Dataset API: Test create dataset validate view exists
+        """
+
+        example_db = get_example_database()
+        example_db.get_sqla_engine().execute(
+            "CREATE VIEW test_view AS SELECT 2 AS col1"
+        )
+
+        self.login(username="admin")
+        table_data = {
+            "database": example_db.id,
+            "schema": "",
+            "table_name": "test_view",
+        }
+
+        uri = "api/v1/dataset/"
+        rv = self.post_assert_metric(uri, table_data, "post")
+        assert rv.status_code == 201
+
+        # cleanup
+        data = json.loads(rv.data.decode("utf-8"))
+        uri = f'api/v1/dataset/{data.get("id")}'
+        rv = self.client.delete(uri)
+        assert rv.status_code == 200
+        example_db.get_sqla_engine().execute(f"DROP VIEW test_view")
+
     @patch("superset.datasets.dao.DatasetDAO.create")
     def test_create_dataset_sqlalchemy_error(self, mock_dao_create):
         """
