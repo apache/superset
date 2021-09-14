@@ -78,7 +78,7 @@ class FilterSetPutSchema(FilterSetSchema):
     )
 
     @post_load
-    def validate(
+    def validate(  # pylint: disable=unused-argument
         self, data: Mapping[Any, Any], *, many: Any, partial: Any
     ) -> Dict[str, Any]:
         if JSON_METADATA_FIELD in data:
