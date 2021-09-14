@@ -31,3 +31,7 @@ export function isDatasourcePanelDndItem(
 ): item is DatasourcePanelDndItem {
   return item?.value && item?.type;
 }
+
+export function isDndItemValue(item: any): item is DndItemValue {
+  return item?.value && item?.type;
+}
