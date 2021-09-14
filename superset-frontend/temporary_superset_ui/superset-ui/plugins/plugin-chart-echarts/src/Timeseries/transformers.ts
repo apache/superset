@@ -372,22 +372,33 @@ export function transformTimeseriesAnnotation(
 export function getPadding(
   showLegend: boolean,
   legendOrientation: LegendOrientation,
-  addYAxisLabelOffset: boolean,
+  addYAxisTitleOffset: boolean,
   zoomable: boolean,
   margin?: string | number | null,
+  addXAxisTitleOffset?: boolean,
+  yAxisTitlePosition?: string,
+  yAxisTitleMargin?: number,
+  xAxisTitleMargin?: number,
 ): {
   bottom: number;
   left: number;
   right: number;
   top: number;
 } {
-  const yAxisOffset = addYAxisLabelOffset ? TIMESERIES_CONSTANTS.yAxisLabelTopOffset : 0;
+  const yAxisOffset = addYAxisTitleOffset ? TIMESERIES_CONSTANTS.yAxisLabelTopOffset : 0;
+  const xAxisOffset = addXAxisTitleOffset ? xAxisTitleMargin || 0 : 0;
   return getChartPadding(showLegend, legendOrientation, margin, {
-    top: TIMESERIES_CONSTANTS.gridOffsetTop + yAxisOffset,
+    top:
+      yAxisTitlePosition && yAxisTitlePosition === 'Top'
+        ? TIMESERIES_CONSTANTS.gridOffsetTop + (yAxisTitleMargin || 0)
+        : TIMESERIES_CONSTANTS.gridOffsetTop + yAxisOffset,
     bottom: zoomable
-      ? TIMESERIES_CONSTANTS.gridOffsetBottomZoomable
-      : TIMESERIES_CONSTANTS.gridOffsetBottom,
-    left: TIMESERIES_CONSTANTS.gridOffsetLeft,
+      ? TIMESERIES_CONSTANTS.gridOffsetBottomZoomable + xAxisOffset
+      : TIMESERIES_CONSTANTS.gridOffsetBottom + xAxisOffset,
+    left:
+      yAxisTitlePosition === 'Left'
+        ? TIMESERIES_CONSTANTS.gridOffsetLeft + (yAxisTitleMargin || 0)
+        : TIMESERIES_CONSTANTS.gridOffsetLeft,
     right:
       showLegend && legendOrientation === LegendOrientation.Right
         ? 0

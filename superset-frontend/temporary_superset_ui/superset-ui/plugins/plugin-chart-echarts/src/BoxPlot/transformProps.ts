@@ -32,6 +32,7 @@ import {
 } from './types';
 import { extractGroupbyLabel, getColtypesMapping, sanitizeHtml } from '../utils/series';
 import { defaultGrid, defaultTooltip, defaultYAxis } from '../defaults';
+import { getPadding } from '../Timeseries/transformers';
 import { OpacityEnum } from '../constants';
 
 export default function transformProps(
@@ -49,11 +50,16 @@ export default function transformProps(
     dateFormat,
     xTicksLayout,
     emitFilter,
+    legendOrientation = 'top',
+    xAxisTitle,
+    yAxisTitle,
+    xAxisTitleMargin,
+    yAxisTitleMargin,
+    yAxisTitlePosition,
   } = formData as BoxPlotQueryFormData;
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
   const metricLabels = formdataMetrics.map(getMetricLabel);
-
   const transformedData = data
     .map((datum: any) => {
       const groupbyLabel = extractGroupbyLabel({
@@ -187,24 +193,39 @@ export default function transformProps(
     // @ts-ignore
     ...outlierData,
   ];
-
+  const addYAxisTitleOffset = !!yAxisTitle;
+  const addXAxisTitleOffset = !!xAxisTitle;
+  const chartPadding = getPadding(
+    true,
+    legendOrientation,
+    addYAxisTitleOffset,
+    false,
+    null,
+    addXAxisTitleOffset,
+    yAxisTitlePosition,
+    yAxisTitleMargin,
+    xAxisTitleMargin,
+  );
   const echartOptions: EChartsOption = {
     grid: {
       ...defaultGrid,
-      top: 30,
-      bottom: 30,
-      left: 20,
-      right: 20,
+      ...chartPadding,
     },
     xAxis: {
       type: 'category',
       data: transformedData.map(row => row.name),
       axisLabel,
+      name: xAxisTitle,
+      nameGap: xAxisTitleMargin,
+      nameLocation: 'middle',
     },
     yAxis: {
       ...defaultYAxis,
       type: 'value',
       axisLabel: { formatter: numberFormatter },
+      name: yAxisTitle,
+      nameGap: yAxisTitleMargin,
+      nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
     },
     tooltip: {
       ...defaultTooltip,
