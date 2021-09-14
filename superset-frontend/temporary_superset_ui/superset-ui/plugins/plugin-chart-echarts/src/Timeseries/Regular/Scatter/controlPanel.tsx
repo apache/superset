@@ -72,6 +72,7 @@ const config: ControlPanelConfig = {
     sections.advancedAnalyticsControls,
     sections.annotationsAndLayersControls,
     sections.forecastIntervalControls,
+    sections.titleControls,
     {
       label: t('Chart Options'),
       expanded: true,
@@ -120,6 +121,7 @@ const config: ControlPanelConfig = {
         ],
         ...legendSection,
         [<h1 className="section-header">{t('X Axis')}</h1>],
+
         [
           {
             name: 'x_axis_time_format',
@@ -199,18 +201,6 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: minorSplitLine,
               description: t('Draw split lines for minor y-axis ticks'),
-            },
-          },
-        ],
-        [
-          {
-            name: 'yAxisTitle',
-            config: {
-              type: 'TextControl',
-              label: t('Primary y-axis title'),
-              renderTrigger: true,
-              default: '',
-              description: t('Title for y-axis'),
             },
           },
         ],
