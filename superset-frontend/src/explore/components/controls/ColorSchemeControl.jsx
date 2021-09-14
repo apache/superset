@@ -21,6 +21,7 @@ import PropTypes from 'prop-types';
 import { isFunction } from 'lodash';
 import { Select } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
+import { t } from '@superset-ui/core';
 import ControlHeader from '../ControlHeader';
 
 const propTypes = {
@@ -112,10 +113,12 @@ export default class ColorSchemeControl extends React.PureComponent {
     const options = (isFunction(choices) ? choices() : choices).map(
       ([value]) => ({
         value,
-        label: this.renderOption(value),
+        label: this.schemes?.[value]?.label || value,
+        customLabel: this.renderOption(value),
       }),
     );
     const selectProps = {
+      ariaLabel: t('Select color scheme'),
       allowClear: this.props.clearable,
       defaultValue: this.props.default,
       name: `select-${this.props.name}`,
