@@ -263,9 +263,15 @@ const ExploreChartPanel = props => {
   );
 
   useEffect(() => {
+    // only update when `latestQueryFormData` changes AND `triggerRender`
+    // is false. No update should be done when only `triggerRender` changes,
+    // as this can trigger a query downstream based on incomplete form data.
+    // (`latestQueryFormData` is only updated when a a valid request has been
+    // triggered).
     if (!props.triggerRender) {
       setQueryFormData(props.chart.latestQueryFormData);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.chart.latestQueryFormData]);
 
   if (props.standalone) {
