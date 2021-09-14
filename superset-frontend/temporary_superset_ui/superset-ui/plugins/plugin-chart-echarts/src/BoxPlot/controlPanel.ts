@@ -24,9 +24,10 @@ import {
   formatSelectOptions,
   sections,
   emitFilterControl,
+  ControlPanelConfig,
 } from '@superset-ui/chart-controls';
 
-export default {
+const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.legacyTimeseriesTime,
     {
@@ -59,6 +60,7 @@ export default {
         ],
       ],
     },
+    sections.titleControls,
     {
       label: t('Chart Options'),
       expanded: true,
@@ -125,3 +127,4 @@ export default {
     },
   },
 };
+export default config;

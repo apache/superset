@@ -109,3 +109,19 @@ export interface EChartTransformedProps<F> {
   groupby: string[];
   selectedValues: Record<number, string>;
 }
+
+export interface EchartsTitleFormData {
+  xAxisTitle: string;
+  xAxisTitleMargin: number;
+  yAxisTitle: string;
+  yAxisTitleMargin: number;
+  yAxisTitlePosition: string;
+}
+
+export const DEFAULT_TITLE_FORM_DATA: EchartsTitleFormData = {
+  xAxisTitle: '',
+  xAxisTitleMargin: 0,
+  yAxisTitle: '',
+  yAxisTitleMargin: 0,
+  yAxisTitlePosition: 'Top',
+};
