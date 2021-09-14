@@ -146,9 +146,10 @@ const StyledSpin = styled(Spin)`
   margin-top: ${({ theme }) => -theme.gridUnit}px;
 `;
 
-const StyledLoadingText = styled.span`
+const StyledLoadingText = styled.div`
   ${({ theme }) => `
     margin-left: ${theme.gridUnit * 3}px;
+    line-height: ${theme.gridUnit * 8}px;
     color: ${theme.colors.grayscale.light1};
   `}
 `;
