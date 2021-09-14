@@ -542,6 +542,49 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.post_assert_metric(uri, table_data, "post")
         assert rv.status_code == 422
 
+    @patch("superset.models.core.Database.get_columns")
+    @patch("superset.models.core.Database.has_table_by_name")
+    @patch("superset.models.core.Database.get_table")
+    def test_create_dataset_validate_view_exists(
+        self, mock_get_table, mock_has_table_by_name, mock_get_columns
+    ):
+        """
+        Dataset API: Test create dataset validate view exists
+        """
+
+        mock_get_columns.return_value = [
+            {"name": "col", "type": "VARCHAR", "type_generic": None, "is_dttm": None,}
+        ]
+
+        mock_has_table_by_name.return_value = False
+        mock_get_table.return_value = None
+
+        example_db = get_example_database()
+        engine = example_db.get_sqla_engine()
+        dialect = engine.dialect
+
+        with patch.object(
+            dialect, "get_view_names", wraps=dialect.get_view_names
+        ) as patch_get_view_names:
+            patch_get_view_names.return_value = ["test_case_view"]
+
+            self.login(username="admin")
+            table_data = {
+                "database": example_db.id,
+                "schema": "",
+                "table_name": "test_case_view",
+            }
+
+            uri = "api/v1/dataset/"
+            rv = self.post_assert_metric(uri, table_data, "post")
+            assert rv.status_code == 201
+
+            # cleanup
+            data = json.loads(rv.data.decode("utf-8"))
+            uri = f'api/v1/dataset/{data.get("id")}'
+            rv = self.client.delete(uri)
+            assert rv.status_code == 200
+
     @patch("superset.datasets.dao.DatasetDAO.create")
     def test_create_dataset_sqlalchemy_error(self, mock_dao_create):
         """

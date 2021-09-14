@@ -31,12 +31,17 @@ const options = [
   {
     label: 'Such an incredibly awesome long long label',
     value: 'Such an incredibly awesome long long label',
+    custom: 'Secret custom prop',
   },
   {
     label: 'Another incredibly awesome long long label',
     value: 'Another incredibly awesome long long label',
   },
-  { label: 'Just a label', value: 'Just a label' },
+  {
+    label: 'JSX Label',
+    customLabel: <div style={{ color: 'red' }}>JSX Label</div>,
+    value: 'JSX Label',
+  },
   { label: 'A', value: 'A' },
   { label: 'B', value: 'B' },
   { label: 'C', value: 'C' },
@@ -137,6 +142,7 @@ InteractiveSelect.args = {
   disabled: false,
   invertSelection: false,
   placeholder: 'Select ...',
+  optionFilterProps: ['value', 'label', 'custom'],
 };
 
 InteractiveSelect.argTypes = {

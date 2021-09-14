@@ -32,26 +32,26 @@ const NEW_OPTION = 'Kyle';
 const NO_DATA = 'No Data';
 const LOADING = 'Loading...';
 const OPTIONS = [
-  { label: 'John', value: 1 },
-  { label: 'Liam', value: 2 },
-  { label: 'Olivia', value: 3 },
-  { label: 'Emma', value: 4 },
-  { label: 'Noah', value: 5 },
-  { label: 'Ava', value: 6 },
-  { label: 'Oliver', value: 7 },
-  { label: 'ElijahH', value: 8 },
-  { label: 'Charlotte', value: 9 },
-  { label: 'Giovanni', value: 10 },
-  { label: 'Franco', value: 11 },
-  { label: 'Sandro', value: 12 },
-  { label: 'Alehandro', value: 13 },
-  { label: 'Johnny', value: 14 },
-  { label: 'Nikole', value: 15 },
-  { label: 'Igor', value: 16 },
-  { label: 'Guilherme', value: 17 },
-  { label: 'Irfan', value: 18 },
-  { label: 'George', value: 19 },
-  { label: 'Ashfaq', value: 20 },
+  { label: 'John', value: 1, gender: 'Male' },
+  { label: 'Liam', value: 2, gender: 'Male' },
+  { label: 'Olivia', value: 3, gender: 'Female' },
+  { label: 'Emma', value: 4, gender: 'Female' },
+  { label: 'Noah', value: 5, gender: 'Male' },
+  { label: 'Ava', value: 6, gender: 'Female' },
+  { label: 'Oliver', value: 7, gender: 'Male' },
+  { label: 'ElijahH', value: 8, gender: 'Male' },
+  { label: 'Charlotte', value: 9, gender: 'Female' },
+  { label: 'Giovanni', value: 10, gender: 'Male' },
+  { label: 'Franco', value: 11, gender: 'Male' },
+  { label: 'Sandro', value: 12, gender: 'Male' },
+  { label: 'Alehandro', value: 13, gender: 'Male' },
+  { label: 'Johnny', value: 14, gender: 'Male' },
+  { label: 'Nikole', value: 15, gender: 'Female' },
+  { label: 'Igor', value: 16, gender: 'Male' },
+  { label: 'Guilherme', value: 17, gender: 'Male' },
+  { label: 'Irfan', value: 18, gender: 'Male' },
+  { label: 'George', value: 19, gender: 'Male' },
+  { label: 'Ashfaq', value: 20, gender: 'Male' },
 ];
 
 const loadOptions = async (search: string, page: number, pageSize: number) => {
@@ -100,7 +100,11 @@ const findSelectValue = () =>
 const findAllSelectValues = () =>
   waitFor(() => getElementsByClassName('.ant-select-selection-item'));
 
-const type = (text: string) => userEvent.type(getSelect(), text, { delay: 10 });
+const type = (text: string) => {
+  const select = getSelect();
+  userEvent.clear(select);
+  return userEvent.type(select, text, { delay: 10 });
+};
 
 const open = () => waitFor(() => userEvent.click(getSelect()));
 
@@ -108,6 +112,12 @@ test('displays a header', async () => {
   const headerText = 'Header';
   render(<Select {...defaultProps} header={headerText} />);
   expect(screen.getByText(headerText)).toBeInTheDocument();
+});
+
+test('adds a new option if the value is not in the options', async () => {
+  render(<Select {...defaultProps} options={[]} value={OPTIONS[0]} />);
+  await open();
+  expect(await findSelectOption(OPTIONS[0].label)).toBeInTheDocument();
 });
 
 test('inverts the selection', async () => {
@@ -141,6 +151,60 @@ test('searches for label or value', async () => {
   expect(options[0]).toHaveTextContent(option.label);
 });
 
+test('searches for custom fields', async () => {
+  render(<Select {...defaultProps} optionFilterProps={['label', 'gender']} />);
+  await type('Liam');
+  let options = await findAllSelectOptions();
+  expect(options.length).toBe(1);
+  expect(options[0]).toHaveTextContent('Liam');
+  await type('Female');
+  options = await findAllSelectOptions();
+  expect(options.length).toBe(5);
+  expect(options[0]).toHaveTextContent('Olivia');
+  expect(options[1]).toHaveTextContent('Emma');
+  expect(options[2]).toHaveTextContent('Ava');
+  expect(options[3]).toHaveTextContent('Charlotte');
+  expect(options[4]).toHaveTextContent('Nikole');
+  await type('1');
+  expect(screen.getByText(NO_DATA)).toBeInTheDocument();
+});
+
+test('renders a custom label', async () => {
+  const options = [
+    { label: 'John', value: 1, customLabel: <h1>John</h1> },
+    { label: 'Liam', value: 2, customLabel: <h1>Liam</h1> },
+    { label: 'Olivia', value: 3, customLabel: <h1>Olivia</h1> },
+  ];
+  render(<Select {...defaultProps} options={options} />);
+  await open();
+  expect(screen.getByRole('heading', { name: 'John' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Liam' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Olivia' })).toBeInTheDocument();
+});
+
+test('searches for a word with a custom label', async () => {
+  const options = [
+    { label: 'John', value: 1, customLabel: <h1>John</h1> },
+    { label: 'Liam', value: 2, customLabel: <h1>Liam</h1> },
+    { label: 'Olivia', value: 3, customLabel: <h1>Olivia</h1> },
+  ];
+  render(<Select {...defaultProps} options={options} />);
+  await type('Liam');
+  const selectOptions = await findAllSelectOptions();
+  expect(selectOptions.length).toBe(1);
+  expect(selectOptions[0]).toHaveTextContent('Liam');
+});
+
+test('removes a new option if the user does not select it', async () => {
+  render(<Select {...defaultProps} allowNewOptions />);
+  await type(NEW_OPTION);
+  expect(await findSelectOption(NEW_OPTION)).toBeInTheDocument();
+  await type('k');
+  await waitFor(() =>
+    expect(screen.queryByText(NEW_OPTION)).not.toBeInTheDocument(),
+  );
+});
+
 test('clear all the values', async () => {
   const onClear = jest.fn();
   render(
@@ -157,7 +221,7 @@ test('clear all the values', async () => {
   expect(values.length).toBe(0);
 });
 
-test('does not add a new option if allowNewValue is false', async () => {
+test('does not add a new option if allowNewOptions is false', async () => {
   render(<Select {...defaultProps} options={loadOptions} />);
   await open();
   await type(NEW_OPTION);
@@ -202,12 +266,18 @@ test('static - changes the selected item in single mode', async () => {
   userEvent.click(await findSelectOption(firstOption.label));
   expect(await findSelectValue()).toHaveTextContent(firstOption.label);
   expect(onChange).toHaveBeenCalledWith(
-    expect.objectContaining(firstOption),
+    expect.objectContaining({
+      label: firstOption.label,
+      value: firstOption.value,
+    }),
     firstOption,
   );
   userEvent.click(await findSelectOption(secondOption.label));
   expect(onChange).toHaveBeenCalledWith(
-    expect.objectContaining(secondOption),
+    expect.objectContaining({
+      label: secondOption.label,
+      value: secondOption.value,
+    }),
     secondOption,
   );
   expect(await findSelectValue()).toHaveTextContent(secondOption.label);
@@ -234,6 +304,34 @@ test('static - adds a new option if none is available and allowNewOptions is tru
   await open();
   await type(NEW_OPTION);
   expect(await findSelectOption(NEW_OPTION)).toBeInTheDocument();
+});
+
+test('static - shows "No data" when allowNewOptions is false and a new option is entered', async () => {
+  render(<Select {...defaultProps} allowNewOptions={false} />);
+  await open();
+  await type(NEW_OPTION);
+  expect(await screen.findByText(NO_DATA)).toBeInTheDocument();
+});
+
+test('static - does not show "No data" when allowNewOptions is true and a new option is entered', async () => {
+  render(<Select {...defaultProps} allowNewOptions />);
+  await open();
+  await type(NEW_OPTION);
+  expect(screen.queryByText(NO_DATA)).not.toBeInTheDocument();
+});
+
+test('static - does not show "Loading..." when allowNewOptions is false and a new option is entered', async () => {
+  render(<Select {...defaultProps} allowNewOptions={false} />);
+  await open();
+  await type(NEW_OPTION);
+  expect(screen.queryByText(LOADING)).not.toBeInTheDocument();
+});
+
+test('static - shows "Loading..." when allowNewOptions is true and a new option is entered', async () => {
+  render(<Select {...defaultProps} allowNewOptions />);
+  await open();
+  await type(NEW_OPTION);
+  expect(await screen.findByText(LOADING)).toBeInTheDocument();
 });
 
 test('static - does not add a new option if the option already exists', async () => {
@@ -334,13 +432,19 @@ test('async - changes the selected item in single mode', async () => {
   const [firstOption, secondOption] = OPTIONS;
   userEvent.click(await findSelectOption(firstOption.label));
   expect(onChange).toHaveBeenCalledWith(
-    expect.objectContaining(firstOption),
+    expect.objectContaining({
+      label: firstOption.label,
+      value: firstOption.value,
+    }),
     firstOption,
   );
   expect(await findSelectValue()).toHaveTextContent(firstOption.label);
   userEvent.click(await findSelectOption(secondOption.label));
   expect(onChange).toHaveBeenCalledWith(
-    expect.objectContaining(secondOption),
+    expect.objectContaining({
+      label: secondOption.label,
+      value: secondOption.value,
+    }),
     secondOption,
   );
   expect(await findSelectValue()).toHaveTextContent(secondOption.label);
@@ -380,6 +484,27 @@ test('async - does not add a new option if the option already exists', async () 
     ).getAllByText(option);
     expect(array.length).toBe(1);
   });
+});
+
+test('async - shows "No data" when allowNewOptions is false and a new option is entered', async () => {
+  render(
+    <Select
+      {...defaultProps}
+      options={loadOptions}
+      allowNewOptions={false}
+      showSearch
+    />,
+  );
+  await open();
+  await type(NEW_OPTION);
+  expect(await screen.findByText(NO_DATA)).toBeInTheDocument();
+});
+
+test('async - does not show "No data" when allowNewOptions is true and a new option is entered', async () => {
+  render(<Select {...defaultProps} options={loadOptions} allowNewOptions />);
+  await open();
+  await type(NEW_OPTION);
+  expect(screen.queryByText(NO_DATA)).not.toBeInTheDocument();
 });
 
 test('async - sets a initial value in single mode', async () => {
@@ -469,9 +594,9 @@ test('async - does not fire a new request for the same search input', async () =
 });
 
 /*
-TODO: Add tests that require scroll interaction. Needs further investigation.
-- Fetches more data when scrolling and more data is available
-- Doesn't fetch more data when no more data is available
-- Requests the correct page and page size
-- Sets the page to zero when a new search is made
-*/
+ TODO: Add tests that require scroll interaction. Needs further investigation.
+ - Fetches more data when scrolling and more data is available
+ - Doesn't fetch more data when no more data is available
+ - Requests the correct page and page size
+ - Sets the page to zero when a new search is made
+ */
