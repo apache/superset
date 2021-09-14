@@ -41,6 +41,8 @@ import Icons from 'src/components/Icons';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { hasOption } from './utils';
 
+const { Option } = AntdSelect;
+
 type AntdSelectAllProps = AntdSelectProps<AntdSelectValue>;
 
 type PickedSelectProps = Pick<
@@ -60,7 +62,12 @@ type PickedSelectProps = Pick<
   | 'value'
 >;
 
-export type OptionsType = Exclude<AntdSelectAllProps['options'], undefined>;
+type OptionsProps = Exclude<AntdSelectAllProps['options'], undefined>;
+
+export interface OptionsType extends Omit<OptionsProps, 'label'> {
+  label?: string;
+  customLabel?: ReactNode;
+}
 
 export type OptionsTypePage = {
   data: OptionsType;
@@ -80,6 +87,7 @@ export interface SelectProps extends PickedSelectProps {
   lazyLoading?: boolean;
   mode?: 'single' | 'multiple';
   name?: string; // discourage usage
+  optionFilterProps?: string[];
   options: OptionsType | OptionsPagePromise;
   pageSize?: number;
   invertSelection?: boolean;
@@ -138,9 +146,10 @@ const StyledSpin = styled(Spin)`
   margin-top: ${({ theme }) => -theme.gridUnit}px;
 `;
 
-const StyledLoadingText = styled.span`
+const StyledLoadingText = styled.div`
   ${({ theme }) => `
     margin-left: ${theme.gridUnit * 3}px;
+    line-height: ${theme.gridUnit * 8}px;
     color: ${theme.colors.grayscale.light1};
   `}
 `;
@@ -169,12 +178,14 @@ const Select = ({
   loading,
   mode = 'single',
   name,
+  notFoundContent,
   onChange,
   onClear,
+  optionFilterProps = ['label', 'value'],
   options,
   pageSize = DEFAULT_PAGE_SIZE,
   placeholder = t('Select ...'),
-  showSearch,
+  showSearch = true,
   value,
   ...props
 }: SelectProps) => {
@@ -185,6 +196,9 @@ const Select = ({
     options && Array.isArray(options) ? options : EMPTY_OPTIONS;
   const [selectOptions, setSelectOptions] = useState<OptionsType>(
     initialOptions,
+  );
+  const shouldUseChildrenOptions = !!selectOptions.find(
+    opt => opt?.customLabel,
   );
   const [selectValue, setSelectValue] = useState(value);
   const [searchedValue, setSearchedValue] = useState('');
@@ -202,39 +216,7 @@ const Select = ({
     ? 'tags'
     : 'multiple';
 
-  useEffect(() => {
-    fetchedQueries.current.clear();
-    setSelectOptions(
-      options && Array.isArray(options) ? options : EMPTY_OPTIONS,
-    );
-  }, [options]);
-
-  useEffect(() => {
-    setSelectValue(value);
-  }, [value]);
-
-  useEffect(() => {
-    if (isAsync && selectValue) {
-      const array: AntdLabeledValue[] = Array.isArray(selectValue)
-        ? (selectValue as AntdLabeledValue[])
-        : [selectValue as AntdLabeledValue];
-      const options: AntdLabeledValue[] = [];
-      array.forEach(element => {
-        const found = selectOptions.find(
-          option => option.value === element.value,
-        );
-        if (!found) {
-          options.push(element);
-        }
-      });
-      if (options.length > 0) {
-        setSelectOptions([...selectOptions, ...options]);
-      }
-    }
-  }, [isAsync, selectOptions, selectValue]);
-
-  // TODO: Simplify the code. We're only accepting label, value options.
-  // TODO: Remove labelInValue prop.
+  // TODO: Don't assume that isAsync is always labelInValue
   const handleTopOptions = useCallback(
     (selectedValue: AntdSelectValue | undefined) => {
       // bringing selected options to the top of the list
@@ -393,52 +375,29 @@ const Select = ({
     () =>
       debounce((search: string) => {
         const searchValue = search.trim();
-        // enables option creation
         if (allowNewOptions && isSingleMode) {
-          const firstOption =
-            selectOptions.length > 0 && selectOptions[0].value;
-          // replaces the last search value entered with the new one
-          // only when the value wasn't part of the original options
-          if (
-            searchValue &&
-            firstOption === searchedValue &&
-            !initialOptions.find(o => o.value === searchedValue)
-          ) {
-            selectOptions.shift();
-            setSelectOptions(selectOptions);
-          }
-          if (searchValue && !hasOption(searchValue, selectOptions)) {
-            const newOption = {
+          const newOption = searchValue &&
+            !hasOption(searchValue, selectOptions) && {
               label: searchValue,
               value: searchValue,
             };
-            // adds a custom option
-            const newOptions = [...selectOptions, newOption];
-            setSelectOptions(newOptions);
-            setSelectValue(newOption);
+          const newOptions = newOption
+            ? [
+                newOption,
+                ...selectOptions.filter(opt => opt.value !== searchedValue),
+              ]
+            : [...selectOptions.filter(opt => opt.value !== searchedValue)];
 
-            if (onChange) {
-              onChange(searchValue, newOptions);
-            }
-          }
+          setSelectOptions(newOptions);
         }
+
         if (!searchValue || searchValue === searchedValue) {
           setIsTyping(false);
         }
         setSearchedValue(searchValue);
       }, DEBOUNCE_TIMEOUT),
-    [
-      allowNewOptions,
-      initialOptions,
-      isSingleMode,
-      onChange,
-      searchedValue,
-      selectOptions,
-    ],
+    [allowNewOptions, isSingleMode, searchedValue, selectOptions],
   );
-
-  // Stop the invocation of the debounced function after unmounting
-  useEffect(() => () => handleOnSearch.cancel(), [handleOnSearch]);
 
   const handlePagination = (e: UIEvent<HTMLElement>) => {
     const vScroll = e.currentTarget;
@@ -460,13 +419,15 @@ const Select = ({
 
     if (filterOption) {
       const searchValue = search.trim().toLowerCase();
-      const { value, label } = option;
-      const valueText = String(value);
-      const labelText = String(label);
-      return (
-        valueText.toLowerCase().includes(searchValue) ||
-        labelText.toLowerCase().includes(searchValue)
-      );
+
+      if (optionFilterProps && optionFilterProps.length) {
+        return optionFilterProps.some(prop => {
+          const optionProp = option?.[prop]
+            ? String(option[prop]).trim().toLowerCase()
+            : '';
+          return optionProp.includes(searchValue);
+        });
+      }
     }
 
     return false;
@@ -485,34 +446,6 @@ const Select = ({
       handleTopOptions(selectValue);
     }
   };
-
-  useEffect(() => {
-    const allowFetch = !fetchOnlyOnSearch || searchedValue;
-    if (isAsync && loadingEnabled && allowFetch) {
-      const page = 0;
-      handlePaginatedFetch(searchedValue, page, pageSize);
-      setPage(page);
-    }
-  }, [
-    isAsync,
-    searchedValue,
-    pageSize,
-    handlePaginatedFetch,
-    loadingEnabled,
-    fetchOnlyOnSearch,
-  ]);
-
-  useEffect(() => {
-    if (isSingleMode) {
-      handleTopOptions(selectValue);
-    }
-  }, [handleTopOptions, isSingleMode, selectValue]);
-
-  useEffect(() => {
-    if (loading !== undefined && loading !== isLoading) {
-      setIsLoading(loading);
-    }
-  }, [isLoading, loading]);
 
   const dropdownRender = (
     originNode: ReactElement & { ref?: RefObject<HTMLElement> },
@@ -549,6 +482,75 @@ const Select = ({
     }
   };
 
+  useEffect(() => {
+    fetchedQueries.current.clear();
+    setSelectOptions(
+      options && Array.isArray(options) ? options : EMPTY_OPTIONS,
+    );
+  }, [options]);
+
+  useEffect(() => {
+    setSelectValue(value);
+  }, [value]);
+
+  useEffect(() => {
+    if (selectValue) {
+      const array = Array.isArray(selectValue)
+        ? (selectValue as AntdLabeledValue[])
+        : [selectValue as AntdLabeledValue | string | number];
+      const options: AntdLabeledValue[] = [];
+      const isLabeledValue = isAsync || labelInValue;
+      array.forEach(element => {
+        const found = selectOptions.find((option: { value: string | number }) =>
+          isLabeledValue
+            ? option.value === (element as AntdLabeledValue).value
+            : option.value === element,
+        );
+        if (!found) {
+          options.push(
+            isLabeledValue
+              ? (element as AntdLabeledValue)
+              : ({ value: element, label: element } as AntdLabeledValue),
+          );
+        }
+      });
+      if (options.length > 0) {
+        setSelectOptions([...options, ...selectOptions]);
+      }
+    }
+  }, [labelInValue, isAsync, selectOptions, selectValue]);
+
+  // Stop the invocation of the debounced function after unmounting
+  useEffect(() => () => handleOnSearch.cancel(), [handleOnSearch]);
+
+  useEffect(() => {
+    const allowFetch = !fetchOnlyOnSearch || searchedValue;
+    if (isAsync && loadingEnabled && allowFetch) {
+      const page = 0;
+      handlePaginatedFetch(searchedValue, page, pageSize);
+      setPage(page);
+    }
+  }, [
+    isAsync,
+    searchedValue,
+    pageSize,
+    handlePaginatedFetch,
+    loadingEnabled,
+    fetchOnlyOnSearch,
+  ]);
+
+  useEffect(() => {
+    if (isSingleMode) {
+      handleTopOptions(selectValue);
+    }
+  }, [handleTopOptions, isSingleMode, selectValue]);
+
+  useEffect(() => {
+    if (loading !== undefined && loading !== isLoading) {
+      setIsLoading(loading);
+    }
+  }, [isLoading, loading]);
+
   return (
     <StyledContainer>
       {header}
@@ -560,6 +562,13 @@ const Select = ({
         labelInValue={isAsync || labelInValue}
         maxTagCount={MAX_TAG_COUNT}
         mode={mappedMode}
+        notFoundContent={
+          allowNewOptions && !fetchOnlyOnSearch ? (
+            <StyledLoadingText>{t('Loading...')}</StyledLoadingText>
+          ) : (
+            notFoundContent
+          )
+        }
         onDeselect={handleOnDeselect}
         onDropdownVisibleChange={handleOnDropdownVisibleChange}
         onInputKeyDown={onInputKeyDown}
@@ -568,7 +577,7 @@ const Select = ({
         onSelect={handleOnSelect}
         onClear={handleClear}
         onChange={onChange}
-        options={selectOptions}
+        options={shouldUseChildrenOptions ? undefined : selectOptions}
         placeholder={placeholder}
         showSearch={shouldShowSearch}
         showArrow
@@ -583,7 +592,21 @@ const Select = ({
           )
         }
         {...props}
-      />
+      >
+        {shouldUseChildrenOptions &&
+          selectOptions.map(opt => {
+            const isOptObject = typeof opt === 'object';
+            const label = isOptObject ? opt?.label || opt.value : opt;
+            const value = (isOptObject && opt.value) || opt;
+            const { customLabel, ...optProps } = opt;
+
+            return (
+              <Option {...optProps} key={value} label={label} value={value}>
+                {isOptObject && customLabel ? customLabel : label}
+              </Option>
+            );
+          })}
+      </StyledSelect>
     </StyledContainer>
   );
 };
