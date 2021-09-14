@@ -497,15 +497,16 @@ const Select = ({
         ? (selectValue as AntdLabeledValue[])
         : [selectValue as AntdLabeledValue | string | number];
       const options: AntdLabeledValue[] = [];
+      const isLabeledValue = isAsync || labelInValue;
       array.forEach(element => {
         const found = selectOptions.find((option: { value: string | number }) =>
-          labelInValue
+          isLabeledValue
             ? option.value === (element as AntdLabeledValue).value
             : option.value === element,
         );
         if (!found) {
           options.push(
-            labelInValue
+            isLabeledValue
               ? (element as AntdLabeledValue)
               : ({ value: element, label: element } as AntdLabeledValue),
           );
@@ -567,7 +568,7 @@ const Select = ({
         onSelect={handleOnSelect}
         onClear={handleClear}
         onChange={onChange}
-        options={(!shouldUseChildrenOptions && selectOptions) || undefined}
+        options={shouldUseChildrenOptions ? undefined : selectOptions}
         placeholder={placeholder}
         showSearch={shouldShowSearch}
         showArrow

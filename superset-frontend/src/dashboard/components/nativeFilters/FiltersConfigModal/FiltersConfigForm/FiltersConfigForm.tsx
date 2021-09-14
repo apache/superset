@@ -729,9 +729,7 @@ const FiltersConfigForm = (
                     >
                       {mappedName || name}
                     </Tooltip>
-                  ) : (
-                    mappedName || name
-                  ),
+                  ) : undefined,
                   disabled: isDisabled,
                 };
               })}
