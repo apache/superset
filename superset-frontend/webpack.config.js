@@ -58,8 +58,8 @@ const output = {
   publicPath: `${ASSET_BASE_URL}/static/assets/`,
 };
 if (isDevMode) {
-  output.filename = '[name].[hash:8].entry.js';
-  output.chunkFilename = '[name].[hash:8].chunk.js';
+  output.filename = '[name].[contenthash:8].entry.js';
+  output.chunkFilename = '[name].[contenthash:8].chunk.js';
 } else if (nameChunks) {
   output.filename = '[name].[chunkhash].entry.js';
   output.chunkFilename = '[name].[chunkhash].chunk.js';
@@ -386,19 +386,15 @@ const config = {
         issuer: {
           not: [/\/src\/assets\/staticPages\//],
         },
-        loader: 'url-loader',
-        options: {
-          limit: 10000,
-          name: '[name].[hash:8].[ext]',
+        type: 'asset',
+        generator: {
+          filename: '[name].[contenthash:8].[ext]',
         },
       },
       {
         test: /\.png$/,
         issuer: /\/src\/assets\/staticPages\//,
-        loader: 'url-loader',
-        options: {
-          limit: 150000, // Convert images < 150kb to base64 strings
-        },
+        type: 'asset',
       },
       {
         test: /\.svg(\?v=\d+\.\d+\.\d+)?$/,
@@ -407,20 +403,15 @@ const config = {
       },
       {
         test: /\.(jpg|gif)$/,
-        loader: 'file-loader',
-        options: {
-          name: '[name].[hash:8].[ext]',
+        type: 'asset/resource',
+        generator: {
+          filename: '[name].[contenthash:8].[ext]',
         },
       },
       /* for font-awesome */
       {
-        test: /\.woff(2)?(\?v=[0-9]\.[0-9]\.[0-9])?$/,
-        loader: 'url-loader',
-        options: {
-          esModule: false,
-          limit: 10000,
-          mimetype: 'application/font-woff',
-        },
+        test: /\.(woff|woff2|eot|ttf|otf)$/i,
+        type: 'asset/resource',
       },
       {
         test: /\.(ttf|eot|svg)(\?v=[0-9]\.[0-9]\.[0-9])?$/,
@@ -428,6 +419,7 @@ const config = {
         options: {
           esModule: false,
         },
+        type: 'javascript/auto',
       },
       {
         test: /\.ya?ml$/,
