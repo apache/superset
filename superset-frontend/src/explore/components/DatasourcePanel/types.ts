@@ -31,3 +31,7 @@ export function isDatasourcePanelDndItem(
 ): item is DatasourcePanelDndItem {
   return item?.value && item?.type;
 }
+
+export function isSavedMetric(item: any): item is Metric {
+  return item?.metric_name;
+}
