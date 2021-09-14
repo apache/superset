@@ -307,7 +307,7 @@ test('static - adds a new option if none is available and allowNewOptions is tru
 });
 
 test('static - shows "No data" when allowNewOptions is false and a new option is entered', async () => {
-  render(<Select {...defaultProps} allowNewOptions={false} showSearch />);
+  render(<Select {...defaultProps} allowNewOptions={false} />);
   await open();
   await type(NEW_OPTION);
   expect(await screen.findByText(NO_DATA)).toBeInTheDocument();
@@ -321,7 +321,7 @@ test('static - does not show "No data" when allowNewOptions is true and a new op
 });
 
 test('static - does not show "Loading..." when allowNewOptions is false and a new option is entered', async () => {
-  render(<Select {...defaultProps} allowNewOptions={false} showSearch />);
+  render(<Select {...defaultProps} allowNewOptions={false} />);
   await open();
   await type(NEW_OPTION);
   expect(screen.queryByText(LOADING)).not.toBeInTheDocument();
