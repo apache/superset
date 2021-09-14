@@ -439,6 +439,10 @@ def show_http_exception(ex: HTTPException) -> FlaskResponse:
 @superset_app.errorhandler(CommandException)
 def show_command_errors(ex: CommandException) -> FlaskResponse:
     logger.warning(ex)
+    if "text/html" in request.accept_mimetypes and not config["DEBUG"]:
+        path = resource_filename("superset", "static/assets/500.html")
+        return send_file(path), 500
+
     extra = ex.normalized_messages() if isinstance(ex, CommandInvalidError) else {}
     return json_errors_response(
         errors=[
@@ -457,6 +461,10 @@ def show_command_errors(ex: CommandException) -> FlaskResponse:
 @superset_app.errorhandler(Exception)
 def show_unexpected_exception(ex: Exception) -> FlaskResponse:
     logger.exception(ex)
+    if "text/html" in request.accept_mimetypes and not config["DEBUG"]:
+        path = resource_filename("superset", "static/assets/500.html")
+        return send_file(path), 500
+
     return json_errors_response(
         errors=[
             SupersetError(
