@@ -25,5 +25,6 @@ OWNER_TYPE_FIELD = "owner_type"
 DASHBOARD_ID_FIELD = "dashboard_id"
 OWNER_OBJECT_FIELD = "owner_object"
 DASHBOARD_FIELD = "dashboard"
+PARAMS_PROPERTY = "params"
 
 FILTER_SET_API_PERMISSIONS_NAME = "FilterSets"

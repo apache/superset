@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any, Dict
 
@@ -74,7 +75,7 @@ class FilterSet(Model, AuditMixinNullable):
             "id": self.id,
             "name": self.name,
             "description": self.description,
-            "json_metadata": self.json_metadata,
+            "params": self.params,
             "dashboard_id": self.dashboard_id,
             "owner_type": self.owner_type,
             "owner_id": self.owner_id,
@@ -97,3 +98,9 @@ class FilterSet(Model, AuditMixinNullable):
         session = db.session()
         qry = session.query(FilterSet).filter(FilterSet.dashboard_id == dashboard_id)
         return qry.all()
+
+    @property
+    def params(self) -> Dict[str, Any]:
+        if self.json_metadata:
+            return json.loads(self.json_metadata)
+        return {}

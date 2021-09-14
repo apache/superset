@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import json
 from typing import Any, Dict, List, TYPE_CHECKING
 
 from superset.dashboards.filter_sets.consts import (
@@ -23,6 +24,7 @@ from superset.dashboards.filter_sets.consts import (
     JSON_METADATA_FIELD,
     NAME_FIELD,
     OWNER_TYPE_FIELD,
+    PARAMS_PROPERTY,
 )
 from tests.integration_tests.base_tests import login
 from tests.integration_tests.dashboards.filter_sets.consts import (
@@ -41,7 +43,14 @@ if TYPE_CHECKING:
     from superset.models.filter_set import FilterSet
 
 
-def merge_two_filter_set_dict(first, second) -> Dict[Any, Any]:
+def merge_two_filter_set_dict(
+    first: Dict[Any, Any], second: Dict[Any, Any]
+) -> Dict[Any, Any]:
+    for d in [first, second]:
+        if JSON_METADATA_FIELD in d:
+            if PARAMS_PROPERTY not in d:
+                d.setdefault(PARAMS_PROPERTY, json.loads(d[JSON_METADATA_FIELD]))
+            d.pop(JSON_METADATA_FIELD)
     return {**first, **second}
 
 
@@ -293,7 +302,9 @@ class TestUpdateFilterSet:
         # arrange
         login(client, "admin")
         valid_json_metadata["nativeFilters"] = {"changed": "changed"}
-        valid_filter_set_data_for_update[JSON_METADATA_FIELD] = valid_json_metadata
+        valid_filter_set_data_for_update[JSON_METADATA_FIELD] = json.dumps(
+            valid_json_metadata
+        )
 
         # act
         response = call_update_filter_set(

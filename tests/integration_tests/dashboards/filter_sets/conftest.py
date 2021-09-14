@@ -121,6 +121,10 @@ def build_user(username: str, filter_set_role: Role, admin_role: Role) -> User:
     user: User = security_manager.add_user(
         username, "test", "test", username, roles_to_add, password="general"
     )
+    if not user:
+        user = security_manager.find_user(username)
+        if user is None:
+            raise Exception("Failed to build the user {}".format(username))
     return user
 
 
@@ -173,6 +177,7 @@ def dashboard() -> Generator[Dashboard, None, None]:
         yield dashboard
     except Exception as ex:
         print(str(ex))
+        yield Dashboard.get(dashboard.slug)
     finally:
         with app.app_context() as ctx:
             session = ctx.app.appbuilder.get_session
@@ -200,7 +205,7 @@ def dashboard_id(dashboard) -> int:
 
 @pytest.fixture
 def filtersets(
-    dashboard_id: int, test_users: Dict[str, int], valid_json_metadata: Dict[str, Any]
+    dashboard_id: int, test_users: Dict[str, int], dumped_valid_json_metadata: str
 ) -> Generator[Dict[str, List[FilterSet]], None, None]:
     try:
         with app.app_context() as ctx:
@@ -208,27 +213,27 @@ def filtersets(
             first_filter_set = FilterSet(
                 name="filter_set_1_of_" + str(dashboard_id),
                 dashboard_id=dashboard_id,
-                json_metadata=json.dumps(valid_json_metadata),
+                json_metadata=dumped_valid_json_metadata,
                 owner_id=dashboard_id,
                 owner_type="Dashboard",
             )
             second_filter_set = FilterSet(
                 name="filter_set_2_of_" + str(dashboard_id),
-                json_metadata=json.dumps(valid_json_metadata),
+                json_metadata=dumped_valid_json_metadata,
                 dashboard_id=dashboard_id,
                 owner_id=dashboard_id,
                 owner_type="Dashboard",
             )
             third_filter_set = FilterSet(
                 name="filter_set_3_of_" + str(dashboard_id),
-                json_metadata=json.dumps(valid_json_metadata),
+                json_metadata=dumped_valid_json_metadata,
                 dashboard_id=dashboard_id,
                 owner_id=test_users[FILTER_SET_OWNER_USERNAME],
                 owner_type="User",
             )
             forth_filter_set = FilterSet(
                 name="filter_set_4_of_" + str(dashboard_id),
-                json_metadata=json.dumps(valid_json_metadata),
+                json_metadata=dumped_valid_json_metadata,
                 dashboard_id=dashboard_id,
                 owner_id=test_users[FILTER_SET_OWNER_USERNAME],
                 owner_type="User",
@@ -253,8 +258,13 @@ def filterset_id(filtersets: Dict[str, List[FilterSet]]) -> int:
 
 
 @pytest.fixture
-def valid_json_metadata() -> Dict[Any, Any]:
+def valid_json_metadata() -> Dict[str, Any]:
     return {"nativeFilters": {}}
+
+
+@pytest.fixture
+def dumped_valid_json_metadata(valid_json_metadata: Dict[str, Any]) -> str:
+    return json.dumps(valid_json_metadata)
 
 
 @pytest.fixture
@@ -264,13 +274,13 @@ def exists_user_id() -> int:
 
 @pytest.fixture
 def valid_filter_set_data_for_create(
-    dashboard_id: int, valid_json_metadata: Dict[Any, Any], exists_user_id: int
+    dashboard_id: int, dumped_valid_json_metadata: str, exists_user_id: int
 ) -> Dict[str, Any]:
     name = "test_filter_set_of_dashboard_" + str(dashboard_id)
     return {
         NAME_FIELD: name,
         DESCRIPTION_FIELD: "description of " + name,
-        JSON_METADATA_FIELD: valid_json_metadata,
+        JSON_METADATA_FIELD: dumped_valid_json_metadata,
         OWNER_TYPE_FIELD: USER_OWNER_TYPE,
         OWNER_ID_FIELD: exists_user_id,
     }
@@ -278,13 +288,13 @@ def valid_filter_set_data_for_create(
 
 @pytest.fixture
 def valid_filter_set_data_for_update(
-    dashboard_id: int, valid_json_metadata: Dict[Any, Any], exists_user_id: int
+    dashboard_id: int, dumped_valid_json_metadata: str, exists_user_id: int
 ) -> Dict[str, Any]:
     name = "name_changed_test_filter_set_of_dashboard_" + str(dashboard_id)
     return {
         NAME_FIELD: name,
         DESCRIPTION_FIELD: "changed description of " + name,
-        JSON_METADATA_FIELD: valid_json_metadata,
+        JSON_METADATA_FIELD: dumped_valid_json_metadata,
     }
 
 

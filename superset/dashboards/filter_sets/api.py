@@ -53,6 +53,7 @@ from superset.dashboards.filter_sets.consts import (
     OWNER_ID_FIELD,
     OWNER_OBJECT_FIELD,
     OWNER_TYPE_FIELD,
+    PARAMS_PROPERTY,
 )
 from superset.dashboards.filter_sets.filters import FilterSetFilter
 from superset.dashboards.filter_sets.schemas import (
@@ -74,10 +75,20 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
     class_permission_name = FILTER_SET_API_PERMISSIONS_NAME
     allow_browser_login = True
     csrf_exempt = False
-    add_exclude_columns = ["id", OWNER_OBJECT_FIELD, DASHBOARD_FIELD]
+    add_exclude_columns = [
+        "id",
+        OWNER_OBJECT_FIELD,
+        DASHBOARD_FIELD,
+        JSON_METADATA_FIELD,
+    ]
     add_model_schema = FilterSetPostSchema()
     edit_model_schema = FilterSetPutSchema()
-    edit_exclude_columns = ["id", OWNER_OBJECT_FIELD, DASHBOARD_FIELD]
+    edit_exclude_columns = [
+        "id",
+        OWNER_OBJECT_FIELD,
+        DASHBOARD_FIELD,
+        JSON_METADATA_FIELD,
+    ]
     list_columns = [
         "created_on",
         "changed_on",
@@ -88,9 +99,9 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         OWNER_TYPE_FIELD,
         OWNER_ID_FIELD,
         DASHBOARD_ID_FIELD,
-        JSON_METADATA_FIELD,
+        PARAMS_PROPERTY,
     ]
-    show_exclude_columns = [OWNER_OBJECT_FIELD, DASHBOARD_FIELD]
+    show_exclude_columns = [OWNER_OBJECT_FIELD, DASHBOARD_FIELD, JSON_METADATA_FIELD]
     search_columns = ["id", NAME_FIELD, OWNER_ID_FIELD, DASHBOARD_ID_FIELD]
     base_filters = [[OWNER_ID_FIELD, FilterSetFilter, ""]]
 
