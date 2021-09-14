@@ -19,7 +19,8 @@
 import React, { useState, useMemo } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { Select } from 'src/components';
-import { SELECT_WIDTH, StyledHeader } from './utils';
+import { FormLabel } from 'src/components/Form';
+import { SELECT_WIDTH } from './utils';
 import { CardSortSelectOption, FetchDataConfig, SortColumn } from './types';
 
 const SortContainer = styled.div`
@@ -79,8 +80,7 @@ export const CardSortSelect = ({
     <SortContainer>
       <Select
         ariaLabel={t('Sort')}
-        bordered={false}
-        header={<StyledHeader>{t('Sort')}</StyledHeader>}
+        header={<FormLabel>{t('Sort')}</FormLabel>}
         labelInValue
         onChange={(value: CardSortSelectOption) => handleOnChange(value)}
         options={formattedOptions}

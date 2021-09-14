@@ -20,7 +20,7 @@ import React, { useState, useMemo } from 'react';
 import { withTheme, SupersetThemeProps, t } from '@superset-ui/core';
 import { Select } from 'src/components';
 import { Filter, SelectOption } from 'src/components/ListView/types';
-import { StyledHeader } from 'src/components/ListView/utils';
+import { FormLabel } from 'src/components/Form';
 import { FilterContainer, BaseFilter } from './Base';
 
 interface SelectFilterProps extends BaseFilter {
@@ -74,10 +74,9 @@ function SelectFilter({
       <Select
         allowClear
         ariaLabel={typeof Header === 'string' ? Header : name || t('Filter')}
-        bordered={false}
         labelInValue
         data-test="filters-select"
-        header={<StyledHeader>{Header}</StyledHeader>}
+        header={<FormLabel>{Header}</FormLabel>}
         onChange={onChange}
         onClear={onClear}
         options={fetchSelects ? fetchAndFormatSelects : selects}

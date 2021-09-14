@@ -20,7 +20,8 @@ import React, { useState } from 'react';
 import { t, styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { AntdInput as Input } from 'src/common/components';
-import { SELECT_WIDTH, StyledHeader } from 'src/components/ListView/utils';
+import { SELECT_WIDTH } from 'src/components/ListView/utils';
+import { FormLabel } from 'src/components/Form';
 import { BaseFilter } from './Base';
 
 interface SearchHeaderProps extends BaseFilter {
@@ -35,6 +36,10 @@ const Container = styled.div`
 
 const SearchIcon = styled(Icons.Search)`
   color: ${({ theme }) => theme.colors.grayscale.light1};
+`;
+
+const StyledInput = styled(Input)`
+  border-radius: ${({ theme }) => theme.gridUnit}px;
 `;
 
 export default function SearchFilter({
@@ -58,10 +63,9 @@ export default function SearchFilter({
 
   return (
     <Container>
-      <StyledHeader>{Header}</StyledHeader>
-      <Input
+      <FormLabel>{Header}</FormLabel>
+      <StyledInput
         allowClear
-        bordered={false}
         data-test="filters-search"
         placeholder={t('Type a value')}
         name={name}

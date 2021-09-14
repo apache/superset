@@ -20,7 +20,7 @@ import React, { useState, useMemo } from 'react';
 import moment, { Moment } from 'moment';
 import { styled } from '@superset-ui/core';
 import { RangePicker } from 'src/components/DatePicker';
-import { StyledHeader } from 'src/components/ListView/utils';
+import { FormLabel } from 'src/components/Form';
 import { BaseFilter } from './Base';
 
 interface DateRangeFilterProps extends BaseFilter {
@@ -51,9 +51,8 @@ export default function DateRangeFilter({
 
   return (
     <RangeFilterContainer>
-      <StyledHeader>{Header}</StyledHeader>
+      <FormLabel>{Header}</FormLabel>
       <RangePicker
-        bordered={false}
         showTime
         value={momentValue}
         onChange={momentRange => {

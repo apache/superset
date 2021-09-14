@@ -50,7 +50,6 @@ type PickedSelectProps = Pick<
   AntdSelectAllProps,
   | 'allowClear'
   | 'autoFocus'
-  | 'bordered'
   | 'disabled'
   | 'filterOption'
   | 'labelInValue'
@@ -171,7 +170,6 @@ const Error = ({ error }: { error: string }) => (
 const Select = ({
   allowNewOptions = false,
   ariaLabel,
-  bordered = true,
   fetchOnlyOnSearch,
   filterOption = true,
   header = null,
@@ -564,7 +562,6 @@ const Select = ({
       {header}
       <StyledSelect
         aria-label={ariaLabel || name}
-        bordered={bordered}
         dropdownRender={dropdownRender}
         filterOption={handleFilterOption}
         getPopupContainer={triggerNode => triggerNode.parentNode}
