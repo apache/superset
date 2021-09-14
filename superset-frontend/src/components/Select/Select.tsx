@@ -177,6 +177,7 @@ const Select = ({
   loading,
   mode = 'single',
   name,
+  notFoundContent,
   onChange,
   onClear,
   optionFilterProps = ['label', 'value'],
@@ -560,6 +561,13 @@ const Select = ({
         labelInValue={isAsync || labelInValue}
         maxTagCount={MAX_TAG_COUNT}
         mode={mappedMode}
+        notFoundContent={
+          allowNewOptions ? (
+            <StyledLoadingText>{t('Loading...')}</StyledLoadingText>
+          ) : (
+            notFoundContent
+          )
+        }
         onDeselect={handleOnDeselect}
         onDropdownVisibleChange={handleOnDropdownVisibleChange}
         onInputKeyDown={onInputKeyDown}

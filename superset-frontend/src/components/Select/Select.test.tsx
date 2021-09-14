@@ -306,6 +306,34 @@ test('static - adds a new option if none is available and allowNewOptions is tru
   expect(await findSelectOption(NEW_OPTION)).toBeInTheDocument();
 });
 
+test('static - shows "No data" when allowNewOptions is false and a new option is entered', async () => {
+  render(<Select {...defaultProps} allowNewOptions={false} showSearch />);
+  await open();
+  await type(NEW_OPTION);
+  expect(await screen.findByText(NO_DATA)).toBeInTheDocument();
+});
+
+test('static - does not show "No data" when allowNewOptions is true and a new option is entered', async () => {
+  render(<Select {...defaultProps} allowNewOptions />);
+  await open();
+  await type(NEW_OPTION);
+  expect(screen.queryByText(NO_DATA)).not.toBeInTheDocument();
+});
+
+test('static - does not show "Loading..." when allowNewOptions is false and a new option is entered', async () => {
+  render(<Select {...defaultProps} allowNewOptions={false} showSearch />);
+  await open();
+  await type(NEW_OPTION);
+  expect(screen.queryByText(LOADING)).not.toBeInTheDocument();
+});
+
+test('static - shows "Loading..." when allowNewOptions is true and a new option is entered', async () => {
+  render(<Select {...defaultProps} allowNewOptions />);
+  await open();
+  await type(NEW_OPTION);
+  expect(await screen.findByText(LOADING)).toBeInTheDocument();
+});
+
 test('static - does not add a new option if the option already exists', async () => {
   render(<Select {...defaultProps} allowNewOptions />);
   const option = OPTIONS[0].label;
@@ -456,6 +484,27 @@ test('async - does not add a new option if the option already exists', async () 
     ).getAllByText(option);
     expect(array.length).toBe(1);
   });
+});
+
+test('async - shows "No data" when allowNewOptions is false and a new option is entered', async () => {
+  render(
+    <Select
+      {...defaultProps}
+      options={loadOptions}
+      allowNewOptions={false}
+      showSearch
+    />,
+  );
+  await open();
+  await type(NEW_OPTION);
+  expect(await screen.findByText(NO_DATA)).toBeInTheDocument();
+});
+
+test('async - does not show "No data" when allowNewOptions is true and a new option is entered', async () => {
+  render(<Select {...defaultProps} options={loadOptions} allowNewOptions />);
+  await open();
+  await type(NEW_OPTION);
+  expect(screen.queryByText(NO_DATA)).not.toBeInTheDocument();
 });
 
 test('async - sets a initial value in single mode', async () => {
