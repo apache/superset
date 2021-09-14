@@ -589,10 +589,11 @@ const Select = ({
             const isOptObject = typeof opt === 'object';
             const label = isOptObject ? opt?.label || opt.value : opt;
             const value = (isOptObject && opt.value) || opt;
+            const { customLabel, ...optProps } = opt;
 
             return (
-              <Option {...opt} key={value} label={label} value={value}>
-                {(isOptObject && opt?.customLabel) || label}
+              <Option {...optProps} key={value} label={label} value={value}>
+                {isOptObject && customLabel ? customLabel : label}
               </Option>
             );
           })}
