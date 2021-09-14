@@ -414,14 +414,6 @@ const config = {
         type: 'asset/resource',
       },
       {
-        test: /\.(ttf|eot|svg)(\?v=[0-9]\.[0-9]\.[0-9])?$/,
-        loader: 'file-loader',
-        options: {
-          esModule: false,
-        },
-        type: 'javascript/auto',
-      },
-      {
         test: /\.ya?ml$/,
         include: ROOT_DIR,
         loader: 'js-yaml-loader',
