@@ -247,6 +247,7 @@ const config: ControlPanelConfig = {
         ],
       ],
     },
+    sections.titleControls,
     {
       label: t('Chart Options'),
       expanded: true,
@@ -376,18 +377,6 @@ const config: ControlPanelConfig = {
             config: {
               ...sharedControls.y_axis_format,
               label: t('Primary y-axis format'),
-            },
-          },
-        ],
-        [
-          {
-            name: 'yAxisTitle',
-            config: {
-              type: 'TextControl',
-              label: t('Primary y-axis title'),
-              renderTrigger: true,
-              default: '',
-              description: t('Title for y-axis'),
             },
           },
         ],

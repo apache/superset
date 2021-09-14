@@ -89,6 +89,7 @@ const config: ControlPanelConfig = {
     sections.advancedAnalyticsControls,
     sections.annotationsAndLayersControls,
     sections.forecastIntervalControls,
+    sections.titleControls,
     {
       label: t('Chart Options'),
       expanded: true,
@@ -194,6 +195,7 @@ const config: ControlPanelConfig = {
         ],
         // eslint-disable-next-line react/jsx-key
         [<h1 className="section-header">{t('Y Axis')}</h1>],
+
         ['y_axis_format'],
         [
           {
@@ -216,18 +218,6 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: minorSplitLine,
               description: t('Draw split lines for minor y-axis ticks'),
-            },
-          },
-        ],
-        [
-          {
-            name: 'yAxisTitle',
-            config: {
-              type: 'TextControl',
-              label: t('Primary y-axis title'),
-              renderTrigger: true,
-              default: '',
-              description: t('Title for y-axis'),
             },
           },
         ],
