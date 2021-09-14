@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=comparison-with-callable, line-too-long, too-many-branches
 import dataclasses
+import functools
 import logging
 import re
 from contextlib import closing
@@ -27,7 +28,8 @@ import backoff
 import humanize
 import pandas as pd
 import simplejson as json
-from flask import abort, flash, g, Markup, redirect, render_template, request, Response
+from flask import abort, flash, g, Markup, redirect, render_template, request, Response, \
+    current_app
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import (
@@ -37,8 +39,10 @@ from flask_appbuilder.security.decorators import (
 )
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __, lazy_gettext as _, ngettext
+from flask_login import login_user
 from jinja2.exceptions import TemplateError
 from jinja2.meta import find_undeclared_variables
+from requests import session
 from sqlalchemy import and_, or_
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError, DBAPIError, NoSuchModuleError, SQLAlchemyError
@@ -69,6 +73,7 @@ from superset.connectors.sqla.models import (
     SqlMetric,
     TableColumn,
 )
+#from superset.custom_sso_security_manager import create_session_from_jwt_token
 from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 from superset.dashboards.dao import DashboardDAO
 from superset.databases.dao import DatabaseDAO
@@ -143,6 +148,7 @@ from superset.views.utils import (
     is_owner,
 )
 from superset.viz import BaseViz
+from superset.additional_authentication_layer import create_session_from_jwt_token
 
 config = app.config
 SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
@@ -173,6 +179,18 @@ PARAMETER_MISSING_ERR = (
     "they match across your SQL query and Set Parameters. Then, try running "
     "your query again."
 )
+
+def check_jwt(f):
+    def wraps(self, *args, **kwargs):
+      try:
+          session = current_app.appbuilder.get_session
+          create_session_from_jwt_token()
+          return f(self, *args, **kwargs)
+      except Exception as ex:  # pylint: disable=broad-except
+          logging.warning(ex)
+          return f(self, *args, **kwargs)
+
+    return functools.update_wrapper(wraps, f)
 
 
 class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
@@ -1810,6 +1828,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         session.commit()
         return json_success(json.dumps({"count": count}))
 
+    @check_jwt
     @api
     @has_access_api
     @event_logger.log_this
@@ -1849,6 +1868,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         session.commit()
         return json_success(json.dumps({"published": dash.published}))
 
+    @check_jwt
     @has_access
     @expose("/dashboard/<dashboard_id_or_slug>/")
     @event_logger.log_this_with_extra_payload
