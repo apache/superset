@@ -45,7 +45,7 @@ import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetr
 import {
   DatasourcePanelDndItem,
   DndItemValue,
-  isDndItemValue,
+  isSavedMetric,
 } from 'src/explore/components/DatasourcePanel/types';
 import { DndItemType } from 'src/explore/components/DndItemType';
 import { ControlComponentProps } from 'src/explore/components/Control';
@@ -351,7 +351,7 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
   }, [togglePopover]);
 
   const adhocFilter = useMemo(() => {
-    if (isDndItemValue(droppedItem) && droppedItem?.metric_name) {
+    if (isSavedMetric(droppedItem)) {
       return new AdhocFilter({
         expressionType: EXPRESSION_TYPES.SQL,
         clause: CLAUSES.HAVING,

@@ -32,6 +32,6 @@ export function isDatasourcePanelDndItem(
   return item?.value && item?.type;
 }
 
-export function isDndItemValue(item: any): item is DndItemValue {
-  return item?.value && item?.type;
+export function isSavedMetric(item: any): item is Metric {
+  return item?.metric_name;
 }
