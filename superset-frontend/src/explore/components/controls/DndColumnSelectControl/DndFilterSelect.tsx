@@ -46,9 +46,11 @@ import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetr
 import {
   DatasourcePanelDndItem,
   DndItemValue,
+  isSavedMetric,
 } from 'src/explore/components/DatasourcePanel/types';
 import { DndItemType } from 'src/explore/components/DndItemType';
 
+const EMPTY_OBJECT = {};
 const DND_ACCEPTED_TYPES = [
   DndItemType.Column,
   DndItemType.Metric,
@@ -70,7 +72,9 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
   );
   const [partitionColumn, setPartitionColumn] = useState(undefined);
   const [newFilterPopoverVisible, setNewFilterPopoverVisible] = useState(false);
-  const [droppedItem, setDroppedItem] = useState<DndItemValue | null>(null);
+  const [droppedItem, setDroppedItem] = useState<
+    DndItemValue | typeof EMPTY_OBJECT
+  >({});
 
   const optionsForSelect = (
     columns: ColumnMeta[],
@@ -334,12 +338,12 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
   );
 
   const handleClickGhostButton = useCallback(() => {
-    setDroppedItem(null);
+    setDroppedItem({});
     togglePopover(true);
   }, [togglePopover]);
 
   const adhocFilter = useMemo(() => {
-    if (droppedItem?.metric_name) {
+    if (isSavedMetric(droppedItem)) {
       return new AdhocFilter({
         expressionType: EXPRESSION_TYPES.SQL,
         clause: CLAUSES.HAVING,
