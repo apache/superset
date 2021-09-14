@@ -78,6 +78,13 @@ else:
 VERSION_INFO_FILE = os.path.join(BASE_DIR, "static", "version_info.json")
 PACKAGE_JSON_FILE = os.path.join(BASE_DIR, "static", "assets", "package.json")
 
+
+
+#-------------------------------------------------------------------------------------------------
+#NOTE: A defaul mobi_user is created in UI, this role is given to user when logged in with jwt token
+#-------------------------------------------------------------------------------------------------
+DEFAULT_MOBI_USER = "mobi_user"
+
 # Multiple favicons can be specified here. The "href" property
 # is mandatory, but "sizes," "type," and "rel" are optional.
 # For example:
@@ -263,8 +270,6 @@ DRUID_METADATA_LINKS_ENABLED = True
 # AUTH_LDAP : Is for LDAP
 # AUTH_REMOTE_USER : Is for using REMOTE_USER from web server
 
-#AUTH_TYPE = AUTH_DB
-
 #sets up Google Authentication
 AUTH_TYPE = AUTH_OAUTH
 
@@ -365,7 +370,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # make GET request to explore_json. explore_json accepts both GET and POST request.
     # See `PR 7935 <https://github.com/apache/superset/pull/7935>`_ for more details.
     "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,
-    "ENABLE_TEMPLATE_PROCESSING": False,
+    "ENABLE_TEMPLATE_PROCESSING": True,
     "ENABLE_TEMPLATE_REMOVE_FILTERS": False,
     "KV_STORE": False,
     # When this feature is enabled, nested types in Presto will be
@@ -1260,6 +1265,8 @@ SQLALCHEMY_DISPLAY_TEXT = "SQLAlchemy docs"
 MOBI_SECRET_KEY=None
 MOBI_SECRET_KEY_OLD=None
 
+MOBI_SECRET_KEY='am1nsn2blip944621frejr36db0flstrk2548bqmlaio48vje026djg'
+MOBI_SECRET_KEY_OLD='am1nsn2blip944621fre'
 
 def time_filter(default: Optional[str] = None) -> Optional[Any]:
     form_data = json.dumps(request.get_json(force=True))
@@ -1400,7 +1407,7 @@ def uri_filter(cond="none", default="") -> Optional[Any]:
 
     if ((dashboard_id != None) and (jwt_dashboard_id != dashboard_id)):
         pass
-            #Exception("dashboard_id has manipulated")
+
 
     if cond not in mobi_filter_dict and cond == 'merchants':
         default="select merchant_code from process"
@@ -1412,16 +1419,12 @@ def uri_filter(cond="none", default="") -> Optional[Any]:
     else:
         return param
 
-
 JINJA_CONTEXT_ADDONS = {
     'time_filter': time_filter,
     'end_date_filter': end_date_filter,
     'start_date_filter': start_date_filter,
     'uri_filter': uri_filter
-
 }
-
-
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *

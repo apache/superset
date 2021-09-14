@@ -73,7 +73,6 @@ from superset.connectors.sqla.models import (
     SqlMetric,
     TableColumn,
 )
-
 from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 from superset.dashboards.dao import DashboardDAO
 from superset.databases.dao import DatabaseDAO
