@@ -383,7 +383,8 @@ class ExecuteSqlCommand(BaseCommand):
         )
 
     def _create_payload_from_execution_context(  # pylint: disable=invalid-name
-        self, status: SqlJsonExecutionStatus,
+        self, 
+        status: SqlJsonExecutionStatus,
     ) -> str:
 
         if status == SqlJsonExecutionStatus.HAS_RESULTS:
