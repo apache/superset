@@ -563,7 +563,7 @@ const Select = ({
         maxTagCount={MAX_TAG_COUNT}
         mode={mappedMode}
         notFoundContent={
-          allowNewOptions ? (
+          allowNewOptions && !fetchOnlyOnSearch ? (
             <StyledLoadingText>{t('Loading...')}</StyledLoadingText>
           ) : (
             notFoundContent
