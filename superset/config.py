@@ -370,7 +370,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # make GET request to explore_json. explore_json accepts both GET and POST request.
     # See `PR 7935 <https://github.com/apache/superset/pull/7935>`_ for more details.
     "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,
-    "ENABLE_TEMPLATE_PROCESSING": True,
+    "ENABLE_TEMPLATE_PROCESSING": False,
     "ENABLE_TEMPLATE_REMOVE_FILTERS": False,
     "KV_STORE": False,
     # When this feature is enabled, nested types in Presto will be
@@ -1264,9 +1264,6 @@ SQLALCHEMY_DISPLAY_TEXT = "SQLAlchemy docs"
 #key to decrypt jwt token
 MOBI_SECRET_KEY=None
 MOBI_SECRET_KEY_OLD=None
-
-MOBI_SECRET_KEY='am1nsn2blip944621frejr36db0flstrk2548bqmlaio48vje026djg'
-MOBI_SECRET_KEY_OLD='am1nsn2blip944621fre'
 
 def time_filter(default: Optional[str] = None) -> Optional[Any]:
     form_data = json.dumps(request.get_json(force=True))
