@@ -152,6 +152,7 @@ const ExploreChartPanel = props => {
     },
     [slice],
   );
+
   useEffect(() => {
     updateQueryContext();
   }, [updateQueryContext]);
@@ -257,6 +258,16 @@ const ExploreChartPanel = props => {
     [chartPanelRef, renderChart],
   );
 
+  const [queryFormData, setQueryFormData] = useState(
+    props.chart.latestQueryFormData,
+  );
+
+  useEffect(() => {
+    if (!props.triggerRender) {
+      setQueryFormData(props.chart.latestQueryFormData);
+    }
+  }, [props.chart.latestQueryFormData]);
+
   if (props.standalone) {
     // dom manipulation hack to get rid of the boostrap theme's body background
     const standaloneClass = 'background-transparent';
@@ -309,7 +320,7 @@ const ExploreChartPanel = props => {
           {panelBody}
           <DataTablesPane
             ownState={props.ownState}
-            queryFormData={props.chart.latestQueryFormData}
+            queryFormData={queryFormData}
             tableSectionHeight={tableSectionHeight}
             onCollapseChange={onCollapseChange}
             chartStatus={props.chart.chartStatus}
