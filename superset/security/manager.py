@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=too-few-public-methods
+# pylint: disable=too-few-public-methods,too-many-lines
 """A set of constants and methods to manage permissions and security"""
 import logging
 import re

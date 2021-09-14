@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=too-many-lines
 import dataclasses
 import json
 import logging
@@ -942,12 +943,20 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         apply_fetch_values_predicate: bool = False,
     ) -> SqlaQuery:
         """Querying any sqla table from this common interface"""
+        if granularity not in self.dttm_cols and granularity is not None:
+            granularity = self.main_dttm_col
+
+        extras = extras or {}
+        time_grain = extras.get("time_grain_sqla")
+
         template_kwargs = {
             "from_dttm": from_dttm.isoformat() if from_dttm else None,
             "groupby": groupby,
             "metrics": metrics,
             "row_limit": row_limit,
             "row_offset": row_offset,
+            "time_column": granularity,
+            "time_grain": time_grain,
             "to_dttm": to_dttm.isoformat() if to_dttm else None,
             "filter": filter,
             "columns": [col.column_name for col in self.columns],
@@ -961,13 +970,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         db_engine_spec = self.db_engine_spec
         prequeries: List[str] = []
         orderby = orderby or []
-        extras = extras or {}
         need_groupby = bool(metrics is not None or groupby)
         metrics = metrics or []
-
-        # For backward compatibility
-        if granularity not in self.dttm_cols and granularity is not None:
-            granularity = self.main_dttm_col
 
         # Database spec supports join-free timeslot grouping
         time_groupby_inline = db_engine_spec.time_groupby_inline
@@ -1047,7 +1051,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         # filter out the pseudo column  __timestamp from columns
         columns = columns or []
         columns = [col for col in columns if col != utils.DTTM_ALIAS]
-        time_grain = extras.get("time_grain_sqla")
         dttm_col = columns_by_name.get(granularity) if granularity else None
 
         if need_groupby:

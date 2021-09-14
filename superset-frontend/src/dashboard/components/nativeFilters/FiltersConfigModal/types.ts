@@ -17,7 +17,7 @@
  * under the License.
  */
 import { AdhocFilter, DataMask } from '@superset-ui/core';
-import { Scope } from '../types';
+import { NativeFilterType, Scope } from '../types';
 
 export interface NativeFiltersFormItem {
   scope: Scope;
@@ -44,6 +44,7 @@ export interface NativeFiltersFormItem {
   adhoc_filters?: AdhocFilter[];
   time_range?: string;
   granularity_sqla?: string;
+  type: NativeFilterType;
 }
 
 export interface NativeFiltersForm {

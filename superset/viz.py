@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W,useless-suppression
+# pylint: disable=C,R,W,too-many-lines,useless-suppression
 """This module contains the 'Viz' objects
 
 These objects represent the backend of all the visualizations that
@@ -2109,7 +2109,7 @@ class FilterBoxViz(BaseViz):
                         for row in df.itertuples(index=False)
                     ]
             else:
-                df[col] = []
+                d[col] = []
         return d
 
 
