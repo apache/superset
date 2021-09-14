@@ -301,9 +301,6 @@ const config = {
   },
   context: APP_DIR, // to automatically find tsconfig.json
   module: {
-    // Uglifying mapbox-gl results in undefined errors, see
-    // https://github.com/mapbox/mapbox-gl-js/issues/4359#issuecomment-288001933
-    noParse: /(mapbox-gl)\.js$/,
     rules: [
       {
         test: /datatables\.net.*/,
