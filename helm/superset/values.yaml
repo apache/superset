@@ -184,6 +184,15 @@ resources: {}
   #   memory: 128Mi
 
 ##
+## Custom hostAliases for all superset pods
+## https://kubernetes.io/docs/tasks/network/customize-hosts-file-for-pods/
+hostAliases: []
+# - hostnames:
+#   - nodns.my.lan
+#   ip: 18.27.36.45
+
+
+##
 ## Superset node configuration
 supersetNode:
   command:
