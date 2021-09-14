@@ -27,14 +27,13 @@ import os
 import re
 import sys
 from collections import OrderedDict
-from datetime import date, timedelta
+from datetime import date
 from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
-
 from cachelib.base import BaseCache
 from celery.schedules import crontab
 from dateutil import tz
 from flask import Blueprint
-from flask_appbuilder.security.manager import AUTH_DB,AUTH_OAUTH,AUTH_OID,AUTH_REMOTE_USER,AUTH_LDAP
+from flask_appbuilder.security.manager import AUTH_DB,AUTH_OAUTH
 from pandas.io.parsers import STR_NA_VALUES
 
 from superset.jinja_context import (  # pylint: disable=unused-import
@@ -46,11 +45,9 @@ from superset.utils.core import is_test, parse_boolean_string
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
-from flask import session,app
 import logging
 from flask import request
 import jwt
-from superset.utils import core as utils
 from superset.utils.date_parser import get_since_until
 
 logger = logging.getLogger(__name__)
@@ -140,7 +137,6 @@ SUPERSET_WEBSERVER_PROTOCOL = "http"
 SUPERSET_WEBSERVER_ADDRESS = "0.0.0.0"
 SUPERSET_WEBSERVER_PORT = 8088
 
-DEFAULT_MOBI_USER="mobi_user"
 # This is an important setting, and should be lower than your
 # [load balancer / proxy / envoy / kong / ...] timeout settings.
 # You should also make sure to configure your WSGI server
@@ -369,7 +365,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # make GET request to explore_json. explore_json accepts both GET and POST request.
     # See `PR 7935 <https://github.com/apache/superset/pull/7935>`_ for more details.
     "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,
-    "ENABLE_TEMPLATE_PROCESSING": True,
+    "ENABLE_TEMPLATE_PROCESSING": False,
     "ENABLE_TEMPLATE_REMOVE_FILTERS": False,
     "KV_STORE": False,
     # When this feature is enabled, nested types in Presto will be
@@ -901,8 +897,8 @@ CONFIG_PATH_ENV_VAR = "SUPERSET_CONFIG_PATH"
 # a reference to the Flask app. This can be used to alter the Flask app
 # in whatever way.
 # example: FLASK_APP_MUTATOR = lambda x: x.before_request = f
-#FLASK_APP_MUTATOR = lambda app: app.before_request_funcs.setdefault(None, []).append(make_session_permanent)
 FLASK_APP_MUTATOR=None
+#FLASK_APP_MUTATOR = lambda app: app.before_request_funcs.setdefault(None, []).append(make_session_permanent)
 
 # Set this to false if you don't want users to be able to request/grant
 # datasource access requests from/to other users.
@@ -1153,13 +1149,6 @@ TALISMAN_CONFIG = {
 # }
 RLS_FORM_QUERY_REL_FIELDS: Optional[Dict[str, List[List[Any]]]] = None
 
-#
-# Flask session cookie options# class CustomSecurityManager(SupersetSecurityManager):
-#     authdbview = CustomAuthDBView
-#     def __init__(self, appbuilder):
-#         super(CustomSecurityManager, self).__init__(appbuilder)
-
-#
 # See https://flask.palletsprojects.com/en/1.1.x/security/#set-cookie-options
 # for details
 #
@@ -1268,18 +1257,12 @@ SQLALCHEMY_DOCS_URL = "https://docs.sqlalchemy.org/en/13/core/engines.html"
 SQLALCHEMY_DISPLAY_TEXT = "SQLAlchemy docs"
 
 #key to decrypt jwt token
-#MOBI_SECRET_KEY=None
-#MOBI_SECRET_KEY_OLD=None
-MOBI_SECRET_KEY='am1nsn2blip944621frejr36db0flstrk2548bqmlaio48vje026djg'
-MOBI_SECRET_KEY_OLD='am1nsn2blip944621fre'
+MOBI_SECRET_KEY=None
+MOBI_SECRET_KEY_OLD=None
 
 
 def time_filter(default: Optional[str] = None) -> Optional[Any]:
     form_data = json.dumps(request.get_json(force=True))
-    # form_dict = json.loads(form_data)
-    # time_range_dict = form_dict["queries"][0]
-    # logger.info("time_range_dict: {}".format(str(time_range_dict)))
-    # time_range = time_range_dict.get("time_range")
 
     if isinstance(form_data, str):
         form_dict = json.loads(form_data)

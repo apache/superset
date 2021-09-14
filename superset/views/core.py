@@ -73,7 +73,7 @@ from superset.connectors.sqla.models import (
     SqlMetric,
     TableColumn,
 )
-#from superset.custom_sso_security_manager import create_session_from_jwt_token
+
 from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 from superset.dashboards.dao import DashboardDAO
 from superset.databases.dao import DatabaseDAO
