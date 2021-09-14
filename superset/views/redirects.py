@@ -66,7 +66,7 @@ class R(BaseSupersetView):  # pylint: disable=invalid-name
         url = request.form.get("data")
         if not self._validate_url(url):
             logger.warning("Invalid URL: %s", url)
-            return Response(f"Invalid URL: {url}", 400)
+            return Response("Invalid URL", 400)
         obj = models.Url(url=url)
         db.session.add(obj)
         db.session.commit()
