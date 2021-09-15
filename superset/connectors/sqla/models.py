@@ -953,7 +953,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         series_limit_metric: Optional[Metric] = None,
         row_limit: Optional[int] = None,
         row_offset: Optional[int] = None,
-        timeseries_limit: int = 15,
+        timeseries_limit: Optional[int] = None,
         timeseries_limit_metric: Optional[Metric] = None,
     ) -> SqlaQuery:
         """Querying any sqla table from this common interface"""
