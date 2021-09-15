@@ -49,11 +49,6 @@ describe('Dashboard edit markdown', () => {
     drag('[data-test="new-component"]', 'Markdown').to(
       '@component-background-first',
     );
-    cy.get('script').then(nodes => {
-      // load more scripts for markdown editor
-      expect(nodes.length).to.greaterThan(numScripts);
-      numScripts = nodes.length;
-    });
     cy.get('[data-test="dashboard-markdown-editor"]')
       .should(
         'have.text',

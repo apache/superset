@@ -20,7 +20,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import AntdIcon from '@ant-design/icons';
 import { styled } from '@superset-ui/core';
-import { ReactComponent as TransparentIcon } from 'images/icons/transparent.svg';
+import TransparentIcon from 'images/icons/transparent.svg';
 import IconType from './IconType';
 
 const AntdIconComponent = ({

@@ -20,7 +20,7 @@ import { t, styled } from '@superset-ui/core';
 import React, { useEffect } from 'react';
 import { Empty } from 'src/common/components';
 import Alert from 'src/components/Alert';
-import { ReactComponent as EmptyImage } from 'images/empty.svg';
+import EmptyImage from 'images/empty.svg';
 import cx from 'classnames';
 import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
