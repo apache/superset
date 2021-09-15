@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-world-map",
-  "version": "0.18.2",
+  "version": "0.18.4",
   "description": "Superset Legacy Chart - World Map",
   "sideEffects": [
     "*.css"
@@ -28,8 +28,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/chart-controls": "0.18.2",
-    "@superset-ui/core": "0.18.2",
+    "@superset-ui/chart-controls": "0.18.4",
+    "@superset-ui/core": "0.18.4",
     "d3": "^3.5.17",
     "d3-array": "^2.4.0",
     "d3-color": "^1.4.1",

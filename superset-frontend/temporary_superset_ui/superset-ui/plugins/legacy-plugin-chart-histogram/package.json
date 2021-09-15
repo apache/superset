@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-histogram",
-  "version": "0.18.2",
+  "version": "0.18.4",
   "description": "Superset Legacy Chart - Histogram",
   "sideEffects": [
     "*.css"
@@ -30,8 +30,8 @@
   "dependencies": {
     "@data-ui/histogram": "^0.0.84",
     "@data-ui/theme": "^0.0.84",
-    "@superset-ui/chart-controls": "0.18.2",
-    "@superset-ui/core": "0.18.2",
+    "@superset-ui/chart-controls": "0.18.4",
+    "@superset-ui/core": "0.18.4",
     "@vx/legend": "^0.0.198",
     "@vx/responsive": "^0.0.199",
     "@vx/scale": "^0.0.197",

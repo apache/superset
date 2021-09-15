@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-country-map",
-  "version": "0.18.3",
+  "version": "0.18.4",
   "description": "Superset Legacy Chart - Country Map",
   "sideEffects": [
     "*.css"
@@ -28,8 +28,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/chart-controls": "0.18.2",
-    "@superset-ui/core": "0.18.2",
+    "@superset-ui/chart-controls": "0.18.4",
+    "@superset-ui/core": "0.18.4",
     "d3": "^3.5.17",
     "d3-array": "^2.0.3",
     "prop-types": "^15.6.2"
