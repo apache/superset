@@ -25,6 +25,9 @@ assists people when migrating to a new version.
 ## Next
 
 ### Breaking Changes
+
+- [16660](https://github.com/apache/incubator-superset/pull/16660): The `columns` Jinja parameter has been renamed `table_columns` to make the `columns` query object parameter available in the Jinja context.
+
 ### Potential Downtime
 ### Deprecations
 ### Other
