@@ -243,11 +243,16 @@ class Database(
     def parameters(self) -> Dict[str, Any]:
         uri = make_url(self.sqlalchemy_uri_decrypted)
         encrypted_extra = self.get_encrypted_extra()
+        print("********************************")
+        print(encrypted_extra)
+        print(type(encrypted_extra))
+        print(uri)
         try:
             parameters = self.db_engine_spec.get_parameters_from_uri(uri, encrypted_extra=encrypted_extra)  # type: ignore # pylint: disable=line-too-long,useless-suppression
         except Exception:  # pylint: disable=broad-except
+            logger.exception("Error fetching paramerters from URI")
             parameters = {}
-
+        print(parameters)
         return parameters
 
     @property

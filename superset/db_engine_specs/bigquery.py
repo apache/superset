@@ -77,7 +77,7 @@ class BigQueryParametersSchema(Schema):
 
 
 class BigQueryParametersType(TypedDict):
-    credentials_info: Dict[str, Any]
+    encrypted_credentials: Dict[str, Any]
     query: Dict[str, Any]
 
 
@@ -363,7 +363,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
     def build_sqlalchemy_uri(
         cls,
         parameters: BigQueryParametersType,
-        encrypted_extra: Optional[Dict[str, Any]] = None,
+        encrypted_extra: Optional[Dict[str, str]] = None,
     ) -> str:
         query = parameters.get("query", {})
         query_params = urllib.parse.urlencode(query)
@@ -386,7 +386,6 @@ class BigQueryEngineSpec(BaseEngineSpec):
         cls, uri: str, encrypted_extra: Optional[Dict[str, str]] = None
     ) -> Any:
         value = make_url(uri)
-
         # Building parameters from encrypted_extra and uri
         if encrypted_extra:
             return {**encrypted_extra, "query": value.query}
