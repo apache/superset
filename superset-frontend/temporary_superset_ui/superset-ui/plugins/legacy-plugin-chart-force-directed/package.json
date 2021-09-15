@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-force-directed",
-  "version": "0.18.2",
+  "version": "0.18.4",
   "description": "Superset Legacy Chart - Force-directed Graph",
   "sideEffects": [
     "*.css"
@@ -28,8 +28,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/chart-controls": "0.18.2",
-    "@superset-ui/core": "0.18.2",
+    "@superset-ui/chart-controls": "0.18.4",
+    "@superset-ui/core": "0.18.4",
     "d3": "^3.5.17",
     "prop-types": "^15.7.2"
   },
