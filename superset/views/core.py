@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=comparison-with-callable,line-too-long,too-many-lines
+# pylint: disable=too-many-lines
 from __future__ import annotations
 
 import logging
@@ -326,7 +326,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         requests = (
             session.query(DAR)
-            .filter(
+            .filter(  # pylint: disable=comparison-with-callable
                 DAR.datasource_id == datasource_id,
                 DAR.datasource_type == datasource_type,
                 DAR.created_by_fk == requested_by.id,
@@ -1537,7 +1537,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         Dash = Dashboard
         qry = (
             db.session.query(Dash)
-            .filter(or_(Dash.created_by_fk == user_id, Dash.changed_by_fk == user_id))
+            .filter(  # pylint: disable=comparison-with-callable
+                or_(Dash.created_by_fk == user_id, Dash.changed_by_fk == user_id)
+            )
             .order_by(Dash.changed_on.desc())
         )
         payload = [
@@ -1581,7 +1583,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 ),
                 isouter=True,
             )
-            .filter(
+            .filter(  # pylint: disable=comparison-with-callable
                 or_(
                     Slice.id.in_(owner_ids_query),
                     Slice.created_by_fk == user_id,
@@ -1617,7 +1619,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             user_id = g.user.get_id()
         qry = (
             db.session.query(Slice)
-            .filter(or_(Slice.created_by_fk == user_id, Slice.changed_by_fk == user_id))
+            .filter(  # pylint: disable=comparison-with-callable
+                or_(Slice.created_by_fk == user_id, Slice.changed_by_fk == user_id)
+            )
             .order_by(Slice.changed_on.desc())
         )
         payload = [
@@ -1859,7 +1863,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         """
         Server side rendering for a dashboard
         :param dashboard_id_or_slug: identifier for dashboard. used in the decorators
-        :param add_extra_log_payload: added by `log_this_with_manual_updates`, set a default value to appease pylint
+        :param add_extra_log_payload: added by `log_this_with_manual_updates`, set a
+            default value to appease pylint
         :param dashboard: added by `check_dashboard_access`
         """
         if not dashboard:
@@ -2422,10 +2427,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         command_result: CommandResult = command.run()
         return self._create_response_from_execution_context(command_result)
 
-    def _create_response_from_execution_context(
-        # pylint: disable=invalid-name, no-self-use
-        self,
-        command_result: CommandResult,
+    def _create_response_from_execution_context(  # pylint: disable=invalid-name, no-self-use
+        self, command_result: CommandResult,
     ) -> FlaskResponse:
 
         status_code = 200
