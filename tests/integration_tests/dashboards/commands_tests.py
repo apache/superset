@@ -546,10 +546,12 @@ class TestImportDashboardsCommand(SupersetTestCase):
         database = dataset.database
         assert str(database.uuid) == database_config["uuid"]
 
-        assert dataset.owners == [mock_g.user]
-        assert chart.owners == [mock_g.user]
         assert dashboard.owners == [mock_g.user]
 
+        dashboard.owners = []
+        chart.owners = []
+        dataset.owners = []
+        database.owners = []
         db.session.delete(dashboard)
         db.session.delete(chart)
         db.session.delete(dataset)

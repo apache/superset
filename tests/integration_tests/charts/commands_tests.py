@@ -226,9 +226,11 @@ class TestImportChartsCommand(SupersetTestCase):
         assert database.database_name == "imported_database"
         assert chart.table.database == database
 
-        assert dataset.owners == [mock_g.user]
         assert chart.owners == [mock_g.user]
 
+        chart.owners = []
+        dataset.owners = []
+        database.owners = []
         db.session.delete(chart)
         db.session.delete(dataset)
         db.session.delete(database)

@@ -1188,6 +1188,8 @@ class TestDatabaseApi(SupersetTestCase):
         assert dataset.table_name == "imported_dataset"
         assert str(dataset.uuid) == dataset_config["uuid"]
 
+        dataset.owners = []
+        database.owners = []
         db.session.delete(dataset)
         db.session.delete(database)
         db.session.commit()
@@ -1257,6 +1259,8 @@ class TestDatabaseApi(SupersetTestCase):
             db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
         )
         dataset = database.tables[0]
+        dataset.owners = []
+        database.owners = []
         db.session.delete(dataset)
         db.session.delete(database)
         db.session.commit()
