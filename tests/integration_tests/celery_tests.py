@@ -72,6 +72,7 @@ def get_query_by_id(id: int):
 
 @pytest.fixture(autouse=True, scope="module")
 def setup_sqllab():
+
     with app.app_context():
         yield
 
@@ -216,7 +217,8 @@ def test_run_sync_query_cta_no_data(setup_sqllab):
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
 @mock.patch(
-    "superset.views.core.get_cta_schema_name", lambda d, u, s, sql: CTAS_SCHEMA_NAME
+    "superset.utils.sqllab_execution_context.get_cta_schema_name",
+    lambda d, u, s, sql: CTAS_SCHEMA_NAME,
 )
 def test_run_sync_query_cta_config(setup_sqllab, ctas_method):
     if backend() == "sqlite":
@@ -243,7 +245,8 @@ def test_run_sync_query_cta_config(setup_sqllab, ctas_method):
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
 @mock.patch(
-    "superset.views.core.get_cta_schema_name", lambda d, u, s, sql: CTAS_SCHEMA_NAME
+    "superset.utils.sqllab_execution_context.get_cta_schema_name",
+    lambda d, u, s, sql: CTAS_SCHEMA_NAME,
 )
 def test_run_async_query_cta_config(setup_sqllab, ctas_method):
     if backend() == "sqlite":

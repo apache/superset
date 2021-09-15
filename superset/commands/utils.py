@@ -41,7 +41,7 @@ def populate_owners(
     :returns: Final list of owners
     """
     owner_ids = owner_ids or []
-    owners = list()
+    owners = []
     if not owner_ids and default_to_user:
         return [user]
     if user.id not in owner_ids and "admin" not in [

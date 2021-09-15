@@ -50,7 +50,7 @@ class CreateDashboardCommand(CreateMixin, BaseCommand):
         return dashboard
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = list()
+        exceptions: List[ValidationError] = []
         owner_ids: Optional[List[int]] = self._properties.get("owners")
         role_ids: Optional[List[int]] = self._properties.get("roles")
         slug: str = self._properties.get("slug", "")

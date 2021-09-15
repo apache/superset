@@ -36,7 +36,7 @@
     function update_schemas_allowed_for_csv_upload(db_id) {
         $.ajax({
           method: "GET",
-          url: "/superset/schemas_access_for_csv_upload",
+          url: "/superset/schemas_access_for_file_upload",
           data: {db_id: db_id},
           dataType: 'json',
           contentType: "application/json; charset=utf-8"

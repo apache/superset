@@ -16,51 +16,58 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, useState, useMemo } from 'react';
+import React, { ReactNode, useEffect, useState } from 'react';
 import { styled, SupersetClient, t } from '@superset-ui/core';
 import rison from 'rison';
-import { Select } from 'src/components';
-import { FormLabel } from 'src/components/Form';
+import { Select } from 'src/components/Select';
+import Label from 'src/components/Label';
 import RefreshLabel from 'src/components/RefreshLabel';
+import SupersetAsyncSelect from 'src/components/AsyncSelect';
 
-const DatabaseSelectorWrapper = styled.div`
-  ${({ theme }) => `
-    .refresh {
-      display: flex;
-      align-items: center;
-      width: 30px;
-      margin-left: ${theme.gridUnit}px;
-      margin-top: ${theme.gridUnit * 5}px;
-    }
-
-    .section {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-    }
-
-    .select {
-      flex: 1;
-    }
-
-    & > div {
-      margin-bottom: ${theme.gridUnit * 4}px;
-    }
-  `}
+const FieldTitle = styled.p`
+  color: ${({ theme }) => theme.colors.secondary.light2};
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  margin: 20px 0 10px 0;
+  text-transform: uppercase;
 `;
 
-type DatabaseValue = { label: string; value: number };
+const DatabaseSelectorWrapper = styled.div`
+  .fa-refresh {
+    padding-left: 9px;
+  }
 
-type SchemaValue = { label: string; value: string };
+  .refresh-col {
+    display: flex;
+    align-items: center;
+    width: 30px;
+    margin-left: ${({ theme }) => theme.gridUnit}px;
+  }
+
+  .section {
+    padding-bottom: 5px;
+    display: flex;
+    flex-direction: row;
+  }
+
+  .select {
+    flex-grow: 1;
+  }
+`;
+
+const DatabaseOption = styled.span`
+  display: inline-flex;
+  align-items: center;
+`;
 
 interface DatabaseSelectorProps {
-  db?: { id: number; database_name: string; backend: string };
+  dbId: number;
   formMode?: boolean;
   getDbList?: (arg0: any) => {};
+  getTableList?: (dbId: number, schema: string, force: boolean) => {};
   handleError: (msg: string) => void;
   isDatabaseSelectEnabled?: boolean;
   onDbChange?: (db: any) => void;
-  onSchemaChange?: (schema?: string) => void;
+  onSchemaChange?: (arg0?: any) => {};
   onSchemasLoad?: (schemas: Array<object>) => void;
   readOnly?: boolean;
   schema?: string;
@@ -76,9 +83,10 @@ interface DatabaseSelectorProps {
 }
 
 export default function DatabaseSelector({
-  db,
+  dbId,
   formMode = false,
   getDbList,
+  getTableList,
   handleError,
   isDatabaseSelectEnabled = true,
   onUpdate,
@@ -89,189 +97,193 @@ export default function DatabaseSelector({
   schema,
   sqlLabMode = false,
 }: DatabaseSelectorProps) {
-  const [currentDb, setCurrentDb] = useState(
-    db
-      ? { label: `${db.backend}: ${db.database_name}`, value: db.id }
-      : undefined,
+  const [currentDbId, setCurrentDbId] = useState(dbId);
+  const [currentSchema, setCurrentSchema] = useState<string | undefined>(
+    schema,
   );
-  const [currentSchema, setCurrentSchema] = useState<SchemaValue | undefined>(
-    schema ? { label: schema, value: schema } : undefined,
-  );
-  const [refresh, setRefresh] = useState(0);
+  const [schemaLoading, setSchemaLoading] = useState(false);
+  const [schemaOptions, setSchemaOptions] = useState([]);
 
-  const loadSchemas = useMemo(
-    () => async (): Promise<{
-      data: SchemaValue[];
-      totalCount: number;
-    }> => {
-      if (currentDb) {
-        const queryParams = rison.encode({ force: refresh > 0 });
-        const endpoint = `/api/v1/database/${currentDb.value}/schemas/?q=${queryParams}`;
-
-        // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
-        return SupersetClient.get({ endpoint }).then(({ json }) => {
+  function fetchSchemas(databaseId: number, forceRefresh = false) {
+    const actualDbId = databaseId || dbId;
+    if (actualDbId) {
+      setSchemaLoading(true);
+      const queryParams = rison.encode({
+        force: Boolean(forceRefresh),
+      });
+      const endpoint = `/api/v1/database/${actualDbId}/schemas/?q=${queryParams}`;
+      return SupersetClient.get({ endpoint })
+        .then(({ json }) => {
           const options = json.result.map((s: string) => ({
             value: s,
             label: s,
             title: s,
           }));
+          setSchemaOptions(options);
+          setSchemaLoading(false);
           if (onSchemasLoad) {
             onSchemasLoad(options);
           }
-          return {
-            data: options,
-            totalCount: options.length,
-          };
+        })
+        .catch(() => {
+          setSchemaOptions([]);
+          setSchemaLoading(false);
+          handleError(t('Error while fetching schema list'));
         });
-      }
-      return {
-        data: [],
-        totalCount: 0,
-      };
-    },
-    [currentDb, refresh, onSchemasLoad],
-  );
+    }
+    return Promise.resolve();
+  }
 
-  function onSelectChange({
-    db,
-    schema,
-  }: {
-    db: DatabaseValue;
-    schema?: SchemaValue;
-  }) {
-    setCurrentDb(db);
+  useEffect(() => {
+    if (currentDbId) {
+      fetchSchemas(currentDbId);
+    }
+  }, [currentDbId]);
+
+  function onSelectChange({ dbId, schema }: { dbId: number; schema?: string }) {
+    setCurrentDbId(dbId);
     setCurrentSchema(schema);
     if (onUpdate) {
-      onUpdate({
-        dbId: db.value,
-        schema: schema?.value,
-        tableName: undefined,
-      });
+      onUpdate({ dbId, schema, tableName: undefined });
     }
   }
 
-  function changeDataBase(selectedValue: DatabaseValue) {
-    const actualDb = selectedValue || db;
+  function dbMutator(data: any) {
+    if (getDbList) {
+      getDbList(data.result);
+    }
+    if (data.result.length === 0) {
+      handleError(t("It seems you don't have access to any database"));
+    }
+    return data.result.map((row: any) => ({
+      ...row,
+      // label is used for the typeahead
+      label: `${row.backend} ${row.database_name}`,
+    }));
+  }
+
+  function changeDataBase(db: any, force = false) {
+    const dbId = db ? db.id : null;
+    setSchemaOptions([]);
     if (onSchemaChange) {
-      onSchemaChange(undefined);
+      onSchemaChange(null);
     }
     if (onDbChange) {
       onDbChange(db);
     }
-    onSelectChange({ db: actualDb, schema: undefined });
+    fetchSchemas(dbId, force);
+    onSelectChange({ dbId, schema: undefined });
   }
 
-  function changeSchema(schema: SchemaValue) {
+  function changeSchema(schemaOpt: any, force = false) {
+    const schema = schemaOpt ? schemaOpt.value : null;
     if (onSchemaChange) {
-      onSchemaChange(schema.value);
+      onSchemaChange(schema);
     }
-    if (currentDb) {
-      onSelectChange({ db: currentDb, schema });
+    setCurrentSchema(schema);
+    onSelectChange({ dbId: currentDbId, schema });
+    if (getTableList) {
+      getTableList(currentDbId, schema, force);
     }
+  }
+
+  function renderDatabaseOption(db: any) {
+    return (
+      <DatabaseOption title={db.database_name}>
+        <Label type="default">{db.backend}</Label> {db.database_name}
+      </DatabaseOption>
+    );
   }
 
   function renderSelectRow(select: ReactNode, refreshBtn: ReactNode) {
     return (
       <div className="section">
         <span className="select">{select}</span>
-        <span className="refresh">{refreshBtn}</span>
+        <span className="refresh-col">{refreshBtn}</span>
       </div>
     );
   }
 
-  const loadDatabases = useMemo(
-    () => async (
-      search: string,
-      page: number,
-      pageSize: number,
-    ): Promise<{
-      data: DatabaseValue[];
-      totalCount: number;
-    }> => {
-      const queryParams = rison.encode({
-        order_columns: 'database_name',
-        order_direction: 'asc',
-        page,
-        page_size: pageSize,
-        ...(formMode || !sqlLabMode
-          ? { filters: [{ col: 'database_name', opr: 'ct', value: search }] }
-          : {
-              filters: [
-                { col: 'database_name', opr: 'ct', value: search },
-                {
-                  col: 'expose_in_sqllab',
-                  opr: 'eq',
-                  value: true,
-                },
-              ],
-            }),
-      });
-      const endpoint = `/api/v1/database/?q=${queryParams}`;
-      return SupersetClient.get({ endpoint }).then(({ json }) => {
-        const { result } = json;
-        if (getDbList) {
-          getDbList(result);
-        }
-        if (result.length === 0) {
-          handleError(t("It seems you don't have access to any database"));
-        }
-        const options = result.map(
-          (row: { backend: string; database_name: string; id: number }) => ({
-            label: `${row.backend}: ${row.database_name}`,
-            value: row.id,
-          }),
-        );
-        return {
-          data: options,
-          totalCount: options.length,
-        };
-      });
-    },
-    [formMode, getDbList, handleError, sqlLabMode],
-  );
-
   function renderDatabaseSelect() {
+    const queryParams = rison.encode({
+      order_columns: 'database_name',
+      order_direction: 'asc',
+      page: 0,
+      page_size: -1,
+      ...(formMode || !sqlLabMode
+        ? {}
+        : {
+            filters: [
+              {
+                col: 'expose_in_sqllab',
+                opr: 'eq',
+                value: true,
+              },
+            ],
+          }),
+    });
+
     return renderSelectRow(
-      <Select
-        ariaLabel={t('Select a database')}
+      <SupersetAsyncSelect
         data-test="select-database"
-        header={<FormLabel>{t('Database')}</FormLabel>}
-        onChange={changeDataBase}
-        value={currentDb}
+        dataEndpoint={`/api/v1/database/?q=${queryParams}`}
+        onChange={(db: any) => changeDataBase(db)}
+        onAsyncError={() =>
+          handleError(t('Error while fetching database list'))
+        }
+        clearable={false}
+        value={currentDbId}
+        valueKey="id"
+        valueRenderer={(db: any) => (
+          <div>
+            <span className="text-muted m-r-5">{t('Database:')}</span>
+            {renderDatabaseOption(db)}
+          </div>
+        )}
+        optionRenderer={renderDatabaseOption}
+        mutator={dbMutator}
         placeholder={t('Select a database')}
-        disabled={!isDatabaseSelectEnabled || readOnly}
-        options={loadDatabases}
+        autoSelect
+        isDisabled={!isDatabaseSelectEnabled || readOnly}
       />,
       null,
     );
   }
 
   function renderSchemaSelect() {
-    const refreshIcon = !formMode && !readOnly && (
+    const value = schemaOptions.filter(({ value }) => currentSchema === value);
+    const refresh = !formMode && !readOnly && (
       <RefreshLabel
-        onClick={() => setRefresh(refresh + 1)}
+        onClick={() => changeDataBase({ id: dbId }, true)}
         tooltipContent={t('Force refresh schema list')}
       />
     );
 
     return renderSelectRow(
       <Select
-        ariaLabel={t('Select a schema')}
-        disabled={readOnly}
-        header={<FormLabel>{t('Schema')}</FormLabel>}
         name="select-schema"
-        placeholder={t('Select a schema')}
-        onChange={item => changeSchema(item as SchemaValue)}
-        options={loadSchemas}
-        value={currentSchema}
+        placeholder={t('Select a schema (%s)', schemaOptions.length)}
+        options={schemaOptions}
+        value={value}
+        valueRenderer={o => (
+          <div>
+            <span className="text-muted">{t('Schema:')}</span> {o.label}
+          </div>
+        )}
+        isLoading={schemaLoading}
+        autosize={false}
+        onChange={item => changeSchema(item)}
+        isDisabled={readOnly}
       />,
-      refreshIcon,
+      refresh,
     );
   }
 
   return (
     <DatabaseSelectorWrapper data-test="DatabaseSelector">
+      {formMode && <FieldTitle>{t('datasource')}</FieldTitle>}
       {renderDatabaseSelect()}
+      {formMode && <FieldTitle>{t('schema')}</FieldTitle>}
       {renderSchemaSelect()}
     </DatabaseSelectorWrapper>
   );

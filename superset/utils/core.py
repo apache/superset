@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Utility functions used across Superset"""
+# pylint: disable=too-many-lines
 import collections
 import decimal
 import errno
