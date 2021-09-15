@@ -29,11 +29,12 @@ import sys
 from collections import OrderedDict
 from datetime import date
 from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
+
 from cachelib.base import BaseCache
 from celery.schedules import crontab
 from dateutil import tz
 from flask import Blueprint
-from flask_appbuilder.security.manager import AUTH_DB,AUTH_OAUTH
+from flask_appbuilder.security.manager import AUTH_DB,AUTH_OAUTH,AUTH_OID,AUTH_REMOTE_USER,AUTH_LDAP
 from pandas.io.parsers import STR_NA_VALUES
 
 from superset.jinja_context import (  # pylint: disable=unused-import
@@ -269,29 +270,20 @@ DRUID_METADATA_LINKS_ENABLED = True
 # AUTH_DB : Is for database (username/password)
 # AUTH_LDAP : Is for LDAP
 # AUTH_REMOTE_USER : Is for using REMOTE_USER from web server
-# AUTH_REMOTE_USER : Is for using REMOTE_USER from web server
-#AUTH_TYPE = AUTH_DB
+
+#AUTH_TYPE = AUTH_OAUTH
 
 # Uncomment to setup Full admin role name
-# AUTH_ROLE_ADMIN = 'Admin'
+#AUTH_ROLE_ADMIN = 'Admin'
 
 # Uncomment to setup Public role name, no authentication needed
-# AUTH_ROLE_PUBLIC = 'Public'
+#AUTH_ROLE_PUBLIC = 'Public'
 
 # Will allow user self registration
-# AUTH_USER_REGISTRATION = True
+#AUTH_USER_REGISTRATION = True
 
 # The default user self registration role
-# AUTH_USER_REGISTRATION_ROLE = "Public"
-
-# When using LDAP Auth, setup the LDAP server
-# AUTH_LDAP_SERVER = "ldap://ldapserver.new"
-
-# Uncomment to setup OpenID providers example for OpenID authentication
-# OPENID_PROVIDERS = [
-#    { 'name': 'Yahoo', 'url': 'https://open.login.yahoo.com/' },
-#    { 'name': 'Flickr', 'url': 'https://www.flickr.com/<username>' },
-
+#AUTH_USER_REGISTRATION_ROLE = "Public"
 
 # When using LDAP Auth, setup the LDAP server
 #AUTH_LDAP_SERVER = "ldap://ldapserver.new"
@@ -895,7 +887,7 @@ CONFIG_PATH_ENV_VAR = "SUPERSET_CONFIG_PATH"
 FLASK_APP_MUTATOR = None
 
 # Set this to false if you don't want users to be able to request/grant
-# datasource access requests from/to other users
+# datasource access requests from/to other users.
 ENABLE_ACCESS_REQUEST = False
 
 # smtp server configuration
