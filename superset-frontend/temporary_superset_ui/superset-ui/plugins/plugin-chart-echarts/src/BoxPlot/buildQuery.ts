@@ -22,14 +22,14 @@ import { BoxPlotQueryFormData, BoxPlotQueryObjectWhiskerType } from './types';
 const PERCENTILE_REGEX = /(\d+)\/(\d+) percentiles/;
 
 export default function buildQuery(formData: BoxPlotQueryFormData) {
-  const { whiskerOptions, columns: distributionColumns = [] } = formData;
+  const { columns = [], granularity_sqla, groupby = [], whiskerOptions } = formData;
   return buildQueryContext(formData, baseQueryObject => {
     let whiskerType: BoxPlotQueryObjectWhiskerType;
     let percentiles: [number, number] | undefined;
-    const { columns = [], metrics = [] } = baseQueryObject;
+    const { metrics = [] } = baseQueryObject;
     const percentileMatch = PERCENTILE_REGEX.exec(whiskerOptions as string);
 
-    if (whiskerOptions === 'Tukey') {
+    if (whiskerOptions === 'Tukey' || !whiskerOptions) {
       whiskerType = 'tukey';
     } else if (whiskerOptions === 'Min/max (no outliers)') {
       whiskerType = 'min/max';
@@ -39,17 +39,25 @@ export default function buildQuery(formData: BoxPlotQueryFormData) {
     } else {
       throw new Error(`Unsupported whisker type: ${whiskerOptions}`);
     }
+    const distributionColumns: string[] = [];
+
+    // For now default to using the temporal column as distribution column.
+    // In the future this control should be made mandatory.
+    if (!columns.length && granularity_sqla) {
+      distributionColumns.push(granularity_sqla);
+    }
     return [
       {
         ...baseQueryObject,
-        is_timeseries: distributionColumns.length === 0,
+        columns: [...distributionColumns, ...columns, ...groupby],
+        series_columns: groupby,
         post_processing: [
           {
             operation: 'boxplot',
             options: {
               whisker_type: whiskerType,
               percentiles,
-              groupby: columns.filter(x => !distributionColumns.includes(x)),
+              groupby,
               metrics: metrics.map(getMetricLabel),
             },
           },

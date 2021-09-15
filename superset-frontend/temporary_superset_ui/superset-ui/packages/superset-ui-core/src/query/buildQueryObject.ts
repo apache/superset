@@ -32,6 +32,9 @@ export default function buildQueryObject<T extends QueryFormData>(
     granularity,
     url_params = {},
     custom_params = {},
+    series_columns,
+    series_limit,
+    series_limit_metric,
     ...residualFormData
   } = formData;
   const {
@@ -76,6 +79,9 @@ export default function buildQueryObject<T extends QueryFormData>(
     annotation_layers,
     row_limit: row_limit == null || Number.isNaN(numericRowLimit) ? undefined : numericRowLimit,
     row_offset: row_offset == null || Number.isNaN(numericRowOffset) ? undefined : numericRowOffset,
+    series_columns,
+    series_limit,
+    series_limit_metric,
     timeseries_limit: limit ? Number(limit) : 0,
     timeseries_limit_metric: timeseries_limit_metric || undefined,
     order_desc: typeof order_desc === 'undefined' ? true : order_desc,

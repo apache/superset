@@ -38,12 +38,14 @@ const config: ControlPanelConfig = {
         ['adhoc_filters'],
         emitFilterControl,
         ['groupby'],
-        ['columns'],
-        ['limit'],
+        ['columns'], // TODO: this should be migrated to `series_columns`
+        ['series_limit'],
+        ['series_limit_metric'],
         [
           {
             name: 'whiskerOptions',
             config: {
+              clearable: false,
               type: 'SelectControl',
               freeForm: true,
               label: t('Whisker/outlier options'),

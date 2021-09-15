@@ -21,30 +21,31 @@ import { BoxPlotQueryFormData } from '../../src/BoxPlot/types';
 
 describe('BoxPlot buildQuery', () => {
   const formData: BoxPlotQueryFormData = {
+    emitFilter: false,
+    columns: [],
     datasource: '5__table',
     granularity_sqla: 'ds',
-    time_grain_sqla: 'P1Y',
-    columns: [],
-    metrics: ['foo'],
     groupby: ['bar'],
+    metrics: ['foo'],
+    time_grain_sqla: 'P1Y',
+    viz_type: 'my_chart',
     whiskerOptions: 'Tukey',
     yAxisFormat: 'SMART_NUMBER',
-    viz_type: 'my_chart',
   };
 
-  it('should build timeseries when columns is empty', () => {
+  it('should build timeseries when series columns is empty', () => {
     const queryContext = buildQuery(formData);
     const [query] = queryContext.queries;
-    expect(query.is_timeseries).toEqual(true);
     expect(query.metrics).toEqual(['foo']);
-    expect(query.columns).toEqual(['bar']);
+    expect(query.columns).toEqual(['ds', 'bar']);
+    expect(query.series_columns).toEqual(['bar']);
   });
 
   it('should build non-timeseries query object when columns is defined', () => {
     const queryContext = buildQuery({ ...formData, columns: ['qwerty'] });
     const [query] = queryContext.queries;
-    expect(query.is_timeseries).toEqual(false);
     expect(query.metrics).toEqual(['foo']);
     expect(query.columns).toEqual(['qwerty', 'bar']);
+    expect(query.series_columns).toEqual(['bar']);
   });
 });
