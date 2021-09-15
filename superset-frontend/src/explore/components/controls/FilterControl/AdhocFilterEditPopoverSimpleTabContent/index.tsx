@@ -282,7 +282,6 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     ),
     autoFocus: !subject,
     placeholder: '',
-    showSearch: true,
   };
 
   if (props.datasource.type === 'druid') {
@@ -312,7 +311,6 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     onChange: onOperatorChange,
     autoFocus: !!subjectSelectProps.value && !operator,
     ariaLabel: t('Select operator'),
-    showSearch: true,
   };
 
   const shouldFocusComparator =
@@ -332,7 +330,6 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     disabled: DISABLE_INPUT_OPERATORS.includes(operatorId),
     placeholder: createSuggestionsPlaceholder(),
     autoFocus: shouldFocusComparator,
-    showSearch: true,
   };
 
   const labelText =
@@ -355,17 +352,12 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
           marginTop: theme.gridUnit * 4,
           marginBottom: theme.gridUnit * 4,
         })}
-        filterOption={(input, option) =>
-          option && option.filterBy
-            ? option.filterBy.toLowerCase().indexOf(input.toLowerCase()) >= 0
-            : false
-        }
         options={columns.map(column => ({
           value:
             ('column_name' in column && column.column_name) ||
             ('optionName' in column && column.optionName) ||
             '',
-          filterBy:
+          label:
             ('saved_metric_name' in column && column.saved_metric_name) ||
             ('column_name' in column && column.column_name) ||
             ('label' in column && column.label),
@@ -373,7 +365,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
             ('id' in column && column.id) ||
             ('optionName' in column && column.optionName) ||
             undefined,
-          label: renderSubjectOptionLabel(column),
+          customLabel: renderSubjectOptionLabel(column),
         }))}
         {...subjectSelectProps}
       />
