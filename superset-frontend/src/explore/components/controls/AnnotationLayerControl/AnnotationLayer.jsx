@@ -204,7 +204,7 @@ export default class AnnotationLayer extends React.PureComponent {
     return sources;
   }
 
-  isValidFormula(value, annotationType) {
+  isValidFormula(expression, annotationType) {
     if (annotationType === ANNOTATION_TYPES.FORMULA) {
       try {
         const token = {
@@ -213,7 +213,16 @@ export default class AnnotationLayer extends React.PureComponent {
           show: 'x',
           value: 'x',
         };
-        mexp.eval(value, [token], { x: 0 });
+
+        // handle input like "y = x+1" instead of just "x+1"
+        const subexpressions = expression.split('=');
+        if (
+          subexpressions.length > 2 ||
+          (subexpressions[1] && !subexpressions[0].match(/^[a-zA-Z]\w*$/))
+        ) {
+          return true;
+        }
+        mexp.eval(subexpressions[1] ?? subexpressions[0], [token], { x: 0 });
       } catch (err) {
         return true;
       }
