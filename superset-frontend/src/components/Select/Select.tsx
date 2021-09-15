@@ -334,6 +334,7 @@ const Select = ({
     });
 
   const handleData = (data: OptionsType) => {
+    let mergedData: OptionsType = [];
     if (data && Array.isArray(data) && data.length) {
       const dataValues = new Set();
       data.forEach(option =>
@@ -341,14 +342,18 @@ const Select = ({
       );
 
       // merges with existing and creates unique options
-      setSelectOptions(prevOptions => [
-        ...prevOptions.filter(
-          previousOption =>
-            !dataValues.has(String(previousOption.value).toLocaleLowerCase()),
-        ),
-        ...data,
-      ]);
+      setSelectOptions(prevOptions => {
+        mergedData = [
+          ...prevOptions.filter(
+            previousOption =>
+              !dataValues.has(String(previousOption.value).toLocaleLowerCase()),
+          ),
+          ...data,
+        ];
+        return mergedData;
+      });
     }
+    return mergedData;
   };
 
   const handlePaginatedFetch = useMemo(
@@ -370,9 +375,16 @@ const Select = ({
       const fetchOptions = options as OptionsPagePromise;
       fetchOptions(value, page, pageSize)
         .then(({ data, totalCount }: OptionsTypePage) => {
-          handleData(data);
+          const mergedData = handleData(data);
           fetchedQueries.current.set(key, totalCount);
           setTotalCount(totalCount);
+          if (
+            !fetchOnlyOnSearch &&
+            value === '' &&
+            mergedData.length >= totalCount
+          ) {
+            setAllValuesLoaded(true);
+          }
         })
         .catch(onError)
         .finally(() => {
@@ -380,7 +392,7 @@ const Select = ({
           setIsTyping(false);
         });
     },
-    [allValuesLoaded, options],
+    [allValuesLoaded, fetchOnlyOnSearch, options],
   );
 
   const handleOnSearch = useMemo(
@@ -563,12 +575,6 @@ const Select = ({
       setIsLoading(loading);
     }
   }, [isLoading, loading]);
-
-  useEffect(() => {
-    if (!fetchOnlyOnSearch && searchedValue === '' && totalCount > 0) {
-      setAllValuesLoaded(selectOptions.length >= totalCount);
-    }
-  }, [fetchOnlyOnSearch, searchedValue, selectOptions.length, totalCount]);
 
   return (
     <StyledContainer>
