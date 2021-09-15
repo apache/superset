@@ -21,7 +21,7 @@ import { DatasourceType } from './Datasource';
 import { BinaryOperator, SetOperator, UnaryOperator } from './Operator';
 import { AppliedTimeExtras, TimeRange, TimeRangeEndpoints } from './Time';
 import { AnnotationLayer } from './AnnotationLayer';
-import { QueryFields, QueryFormMetric } from './QueryFormData';
+import { QueryFields, QueryFormColumn, QueryFormMetric } from './QueryFormData';
 import { Maybe } from '../../types';
 import { PostProcessingRule } from './PostProcessing';
 import { JsonObject } from '../../connection';
@@ -121,7 +121,7 @@ export interface QueryObject extends QueryFields, TimeRange, ResidualQueryObject
   /** The size of bucket by which to group timeseries data (forthcoming) */
   time_grain?: string;
 
-  /** Maximum number of series */
+  /** Maximum number of timeseries */
   timeseries_limit?: number;
 
   /** The metric used to sort the returned result. */
@@ -136,6 +136,11 @@ export interface QueryObject extends QueryFields, TimeRange, ResidualQueryObject
 
   /** Free-form WHERE SQL: multiple clauses are concatenated by AND */
   where?: string;
+
+  /** Limit number of series */
+  series_columns?: QueryFormColumn[];
+  series_limit?: number;
+  series_limit_metric?: Maybe<QueryFormMetric>;
 }
 
 export interface QueryContext {
