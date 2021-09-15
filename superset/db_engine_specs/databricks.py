@@ -17,7 +17,8 @@
 
 from superset.db_engine_specs.hive import HiveEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
-
+from datetime import datetime
+from typing import Optional
 
 class DatabricksHiveEngineSpec(MssqlEngineSpec):
     engine = "databricks"
@@ -36,3 +37,13 @@ class DatabricksHiveEngineSpec(MssqlEngineSpec):
         "P0.25Y": "date_format(add_months(trunc({col}, 'MM'), -(month({col})-1)%3), 'yyyy-MM-dd 00:00:00')",
         "P1Y": "from_unixtime(unix_timestamp({col}), 'yyyy-01-01 00:00:00')"
         }
+
+    @classmethod
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+        """
+        Convert Python datetime object to a SQL expression
+        :param target_type: The target type of expression
+        :param dttm: The datetime object
+        :return: The SQL expression
+        """
+        return None
