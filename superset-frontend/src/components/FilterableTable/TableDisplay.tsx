@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {useEffect} from 'react';
+import React from 'react';
 
 import cx from 'classnames';
 import { TableInstance } from 'react-table';
@@ -274,6 +274,7 @@ const TableDisplay =({
                       [column.size || '']: column.size,
                     })}
                   >
+                      {column.accessor('id')}
                     <span className="loading-bar" role="progressbar">
                       <span>LOADING</span>
                     </span>
@@ -326,4 +327,5 @@ const TableDisplay =({
       </tbody>
     </Table>
   )
+          console.dir("TABLE_DISPLAY", React.memo(TableDisplay))
 export default React.memo(TableDisplay)

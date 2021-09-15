@@ -95,6 +95,7 @@ type CellDataType = string | number | null;
 type Datum = Record<string, CellDataType>;
 
 interface FilterableTableProps {
+    columns: any;
   orderedColumnKeys: string[];
   data: Record<string, unknown>[];
   height: number;
@@ -342,32 +343,7 @@ export default class FilterableTable extends PureComponent<
     };
   }
 
-  renderTableHeader({
-    dataKey,
-    label,
-    sortBy,
-    sortDirection,
-  }: {
-    dataKey: string;
-    label: string;
-    sortBy: string;
-    sortDirection: SortDirectionType;
-  }) {
-    const className =
-      this.props.expandedColumns.indexOf(label) > -1
-        ? 'header-style-disabled'
-        : 'header-style';
-    return (
-      <Tooltip id="header-tooltip" title={label}>
-        <div className={className}>
-          {label}
-          {sortBy === dataKey && (
-            <SortIndicator sortDirection={sortDirection} />
-          )}
-        </div>
-      </Tooltip>
-    );
-  }
+  
 
   renderGridCellHeader({
     columnIndex,
@@ -518,12 +494,38 @@ export default class FilterableTable extends PureComponent<
     }
     return cellNode;
   }
-
+renderTableHeader({
+    dataKey,
+    label,
+    sortBy,
+    sortDirection,
+  }: {
+    dataKey: string;
+    label: string;
+    sortBy: string;
+    sortDirection: SortDirectionType;
+  }) {
+    const className =
+      this.props.expandedColumns.indexOf(label) > -1
+        ? 'header-style-disabled'
+        : 'header-style';
+    return (
+      <Tooltip id="header-tooltip" title={label}>
+        <div className={className}>
+          {label}
+          {sortBy === dataKey && (
+            <SortIndicator sortDirection={sortDirection} />
+          )}
+        </div>
+      </Tooltip>
+    );
+  }
   renderTable() {
     const { sortBy, sortDirection } = this.state;
     const {
       filterText,
         data,
+        columns,
       orderedColumnKeys,
     } = this.props;
 
@@ -561,9 +563,12 @@ export default class FilterableTable extends PureComponent<
         className="filterable-table-container"
         ref={this.container}
       >
+      
+          {console.log('columns:',orderedColumnKeys )}
+          {console.log('data:',data )}
         {this.state.fitted && (
             <ResizableTable
-                columns={orderedColumnKeys}
+                columns={columns}
                 data={data}
                 filterText={filterText}
             /> 

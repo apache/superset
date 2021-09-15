@@ -65,6 +65,11 @@ enum LIMITING_FACTOR {
 
 const LOADING_STYLES: CSSProperties = { position: 'relative', minHeight: 100 };
 
+interface ReactTableColumns{
+    Header: string;
+    accessor?: string;
+    id?: string
+}
 interface DatasetOptionAutocomplete {
   value: string;
   datasetId: number;
@@ -450,6 +455,7 @@ export default class ResultSet extends React.PureComponent<
         ({ data } = this.state);
       }
       const { columns } = this.props.query.results;
+        console.log('RESULT_COL:', columns)
       // Added compute logic to stop user from being able to Save & Explore
       const {
         saveDatasetRadioBtnState,
@@ -536,6 +542,16 @@ export default class ResultSet extends React.PureComponent<
   onAlertClose = () => {
     this.setState({ alertIsOpen: false });
   };
+
+
+    renderReactTableColumns(){
+        let {results} =this.props.query
+        results.columns.map(col => ({
+            Header: col.name,
+            accessor: col.name
+        }as ReactTableColumns))
+    }
+
 
   renderRowsReturned() {
     const { results, rows, queryLimit, limitingFactor } = this.props.query;
@@ -723,6 +739,7 @@ export default class ResultSet extends React.PureComponent<
         const expandedColumns = results.expanded_columns
           ? results.expanded_columns.map(col => col.name)
           : [];
+          console.log('this.renderReactTableColumns():', this.renderReactTableColumns())
         return (
           <>
             {this.renderControls()}
@@ -730,6 +747,7 @@ export default class ResultSet extends React.PureComponent<
             {sql}
             <FilterableTable
               data={data}
+                columns={this.renderReactTableColumns()}
               orderedColumnKeys={results.columns.map(col => col.name)}
               height={height}
               expandedColumns={expandedColumns}
