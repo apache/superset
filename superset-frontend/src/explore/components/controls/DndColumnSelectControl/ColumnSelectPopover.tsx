@@ -148,15 +148,13 @@ const ColumnSelectPopover = ({
               value={selectedCalculatedColumn?.column_name}
               onChange={onCalculatedColumnChange}
               allowClear
-              showSearch
               autoFocus={!selectedCalculatedColumn}
-              filterOption={filterOption}
               placeholder={t('%s column(s)', calculatedColumns.length)}
               options={calculatedColumns.map(calculatedColumn => ({
                 value: calculatedColumn.column_name,
-                filterBy:
+                label:
                   calculatedColumn.verbose_name || calculatedColumn.column_name,
-                label: (
+                customLabel: (
                   <StyledColumnOption column={calculatedColumn} showType />
                 ),
                 key: calculatedColumn.column_name,
@@ -171,14 +169,14 @@ const ColumnSelectPopover = ({
               value={selectedSimpleColumn?.column_name}
               onChange={onSimpleColumnChange}
               allowClear
-              showSearch
               autoFocus={!selectedSimpleColumn}
-              filterOption={filterOption}
               placeholder={t('%s column(s)', simpleColumns.length)}
               options={simpleColumns.map(simpleColumn => ({
                 value: simpleColumn.column_name,
-                filterBy: simpleColumn.verbose_name || simpleColumn.column_name,
-                label: <StyledColumnOption column={simpleColumn} showType />,
+                label: simpleColumn.verbose_name || simpleColumn.column_name,
+                customLabel: (
+                  <StyledColumnOption column={simpleColumn} showType />
+                ),
                 key: simpleColumn.column_name,
               }))}
             />
