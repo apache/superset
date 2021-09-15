@@ -43,7 +43,9 @@ function SelectFilter({
   const [selectedOption, setSelectedOption] = useState(initialValue);
 
   const onChange = (selected: SelectOption) => {
-    onSelect({ label: selected.label, value: selected.value });
+    onSelect(
+      selected ? { label: selected.label, value: selected.value } : undefined,
+    );
     setSelectedOption(selected);
   };
 
