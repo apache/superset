@@ -46,6 +46,10 @@ from superset.utils.core import is_test, parse_boolean_string
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
+import logging
+from flask import request
+import jwt
+from superset.utils.date_parser import get_since_until
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +78,13 @@ else:
 # ---------------------------------------------------------
 VERSION_INFO_FILE = os.path.join(BASE_DIR, "static", "version_info.json")
 PACKAGE_JSON_FILE = os.path.join(BASE_DIR, "static", "assets", "package.json")
+
+
+
+#-------------------------------------------------------------------------------------------------
+#NOTE: A defaul mobi_user is created in UI, this role is given to user when logged in with jwt token
+#-------------------------------------------------------------------------------------------------
+DEFAULT_MOBI_USER = "mobi_user"
 
 # Multiple favicons can be specified here. The "href" property
 # is mandatory, but "sizes," "type," and "rel" are optional.
@@ -261,7 +272,6 @@ DRUID_METADATA_LINKS_ENABLED = True
 # AUTH_REMOTE_USER : Is for using REMOTE_USER from web server
 
 #AUTH_TYPE = AUTH_DB
-#AUTH_TYPE = AUTH_OAUTH
 
 # Uncomment to setup Full admin role name
 #AUTH_ROLE_ADMIN = 'Admin'
@@ -1235,23 +1245,12 @@ DATASET_HEALTH_CHECK: Optional[Callable[["SqlaTable"], str]] = None
 SQLALCHEMY_DOCS_URL = "https://docs.sqlalchemy.org/en/13/core/engines.html"
 SQLALCHEMY_DISPLAY_TEXT = "SQLAlchemy docs"
 
-
-
-from flask import  request
-import jwt
-from superset.utils import core as utils
-from superset.utils.date_parser import get_since_until
-
 #key to decrypt jwt token
 MOBI_SECRET_KEY=None
 MOBI_SECRET_KEY_OLD=None
 
 def time_filter(default: Optional[str] = None) -> Optional[Any]:
     form_data = json.dumps(request.get_json(force=True))
-    # form_dict = json.loads(form_data)
-    # time_range_dict = form_dict["queries"][0]
-    # logger.info("time_range_dict: {}".format(str(time_range_dict)))
-    # time_range = time_range_dict.get("time_range")
 
     if isinstance(form_data, str):
         form_dict = json.loads(form_data)
@@ -1333,7 +1332,7 @@ def uri_filter(cond="none", default="") -> Optional[Any]:
     logger.info("Request json: {}".format(str(request.get_json(force=True))))
 
     # fetching form data
-   # form_data = request.form.get("form_data")
+    #form_data = request.form.get("form_data")
     form_data=json.dumps(request.get_json(force=True))
     logger.info("form_data: {}".format(str(form_data)))
 
@@ -1388,7 +1387,8 @@ def uri_filter(cond="none", default="") -> Optional[Any]:
     jwt_dashboard_id=str(mobi_resource_dict.get("dashboard"))
 
     if ((dashboard_id != None) and (jwt_dashboard_id != dashboard_id)):
-        raise Exception("dashboard_id has manipulated")
+        pass
+
 
     if cond not in mobi_filter_dict and cond == 'merchants':
         default="select merchant_code from process"
@@ -1408,6 +1408,7 @@ JINJA_CONTEXT_ADDONS = {
     'uri_filter': uri_filter
 
 }
+
 
 
 
