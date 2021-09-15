@@ -20,6 +20,7 @@ import React, {
   ReactElement,
   ReactNode,
   RefObject,
+  KeyboardEvent,
   UIEvent,
   useEffect,
   useMemo,
@@ -333,13 +334,18 @@ const Select = ({
 
   const handleData = (data: OptionsType) => {
     if (data && Array.isArray(data) && data.length) {
+      const dataValues = new Set();
+      data.forEach(option =>
+        dataValues.add(String(option.value).toLocaleLowerCase()),
+      );
+
       // merges with existing and creates unique options
       setSelectOptions(prevOptions => [
-        ...prevOptions,
-        ...data.filter(
-          newOpt =>
-            !prevOptions.find(prevOpt => prevOpt.value === newOpt.value),
+        ...prevOptions.filter(
+          previousOption =>
+            !dataValues.has(String(previousOption.value).toLocaleLowerCase()),
         ),
+        ...data,
       ]);
     }
   };
@@ -459,8 +465,8 @@ const Select = ({
     return error ? <Error error={error} /> : originNode;
   };
 
-  const onInputKeyDown = () => {
-    if (isAsync && !isTyping) {
+  const onInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key.length === 1 && isAsync && !isTyping) {
       setIsTyping(true);
     }
   };
