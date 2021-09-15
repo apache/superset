@@ -605,6 +605,30 @@ test('async - does not fire a new request for the same search input', async () =
   expect(loadOptions).toHaveBeenCalledTimes(1);
 });
 
+test('async - does not fire a new request if all values have been fetched', async () => {
+  const mock = jest.fn(loadOptions);
+  const search = 'George';
+  const pageSize = OPTIONS.length;
+  render(<Select {...defaultProps} options={mock} pageSize={pageSize} />);
+  await open();
+  expect(mock).toHaveBeenCalledTimes(1);
+  await type(search);
+  expect(await findSelectOption(search)).toBeInTheDocument();
+  expect(mock).toHaveBeenCalledTimes(1);
+});
+
+test('async - fires a new request if all values have not been fetched', async () => {
+  const mock = jest.fn(loadOptions);
+  const search = 'George';
+  const pageSize = OPTIONS.length / 2;
+  render(<Select {...defaultProps} options={mock} pageSize={pageSize} />);
+  await open();
+  expect(mock).toHaveBeenCalledTimes(1);
+  await type(search);
+  expect(await findSelectOption(search)).toBeInTheDocument();
+  expect(mock).toHaveBeenCalledTimes(2);
+});
+
 /*
  TODO: Add tests that require scroll interaction. Needs further investigation.
  - Fetches more data when scrolling and more data is available
