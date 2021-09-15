@@ -210,6 +210,7 @@ const Select = ({
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [loadingEnabled, setLoadingEnabled] = useState(!lazyLoading);
+  const [allValuesLoaded, setAllValuesLoaded] = useState(false);
   const fetchedQueries = useRef(new Map<string, number>());
   const mappedMode = isSingleMode
     ? undefined
@@ -352,6 +353,11 @@ const Select = ({
 
   const handlePaginatedFetch = useMemo(
     () => (value: string, page: number, pageSize: number) => {
+      if (allValuesLoaded) {
+        setIsLoading(false);
+        setIsTyping(false);
+        return;
+      }
       const key = `${value};${page};${pageSize}`;
       const cachedCount = fetchedQueries.current.get(key);
       if (cachedCount) {
@@ -374,7 +380,7 @@ const Select = ({
           setIsTyping(false);
         });
     },
-    [options],
+    [allValuesLoaded, options],
   );
 
   const handleOnSearch = useMemo(
@@ -493,6 +499,7 @@ const Select = ({
     setSelectOptions(
       options && Array.isArray(options) ? options : EMPTY_OPTIONS,
     );
+    setAllValuesLoaded(false);
   }, [options]);
 
   useEffect(() => {
@@ -556,6 +563,12 @@ const Select = ({
       setIsLoading(loading);
     }
   }, [isLoading, loading]);
+
+  useEffect(() => {
+    if (!fetchOnlyOnSearch && searchedValue === '' && totalCount > 0) {
+      setAllValuesLoaded(selectOptions.length >= totalCount);
+    }
+  }, [fetchOnlyOnSearch, searchedValue, selectOptions.length, totalCount]);
 
   return (
     <StyledContainer>
