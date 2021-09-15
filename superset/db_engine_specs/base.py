@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=too-many-lines,unused-argument
+# pylint: disable=too-many-lines
 import json
 import logging
 import re
@@ -328,7 +328,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return new_exception(str(exception))
 
     @classmethod
-    def get_allow_cost_estimate(cls, extra: Dict[str, Any]) -> bool:
+    def get_allow_cost_estimate(  # pylint: disable=unused-argument
+        cls, extra: Dict[str, Any],
+    ) -> bool:
         return False
 
     @classmethod
@@ -581,8 +583,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return indexes
 
     @classmethod
-    def extra_table_metadata(
-        cls, database: "Database", table_name: str, schema_name: str
+    def extra_table_metadata(  # pylint: disable=unused-argument
+        cls, database: "Database", table_name: str, schema_name: str,
     ) -> Dict[str, Any]:
         """
         Returns engine-specific table metadata
@@ -683,7 +685,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         df.to_sql(con=engine, **to_sql_kwargs)
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(  # pylint: disable=unused-argument
+        cls, target_type: str, dttm: datetime,
+    ) -> Optional[str]:
         """
         Convert Python datetime object to a SQL expression
 
@@ -815,8 +819,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return sorted(inspector.get_schema_names())
 
     @classmethod
-    def get_table_names(
-        cls, database: "Database", inspector: Inspector, schema: Optional[str]
+    def get_table_names(  # pylint: disable=unused-argument
+        cls, database: "Database", inspector: Inspector, schema: Optional[str],
     ) -> List[str]:
         """
         Get all tables from schema
@@ -831,8 +835,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return sorted(tables)
 
     @classmethod
-    def get_view_names(
-        cls, database: "Database", inspector: Inspector, schema: Optional[str]
+    def get_view_names(  # pylint: disable=unused-argument
+        cls, database: "Database", inspector: Inspector, schema: Optional[str],
     ) -> List[str]:
         """
         Get all views from schema
@@ -885,7 +889,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return inspector.get_columns(table_name, schema)
 
     @classmethod
-    def where_latest_partition(  # pylint: disable=too-many-arguments
+    def where_latest_partition(  # pylint: disable=too-many-arguments,unused-argument
         cls,
         table_name: str,
         schema: Optional[str],
@@ -1072,7 +1076,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
 
     @classmethod
-    def execute(cls, cursor: Any, query: str, **kwargs: Any) -> None:
+    def execute(  # pylint: disable=unused-argument
+        cls, cursor: Any, query: str, **kwargs: Any,
+    ) -> None:
         """
         Execute a SQL query
 
@@ -1201,7 +1207,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return sqla_column_type.compile(dialect=dialect).upper()
 
     @classmethod
-    def get_function_names(cls, database: "Database") -> List[str]:
+    def get_function_names(  # pylint: disable=unused-argument
+        cls, database: "Database",
+    ) -> List[str]:
         """
         Get a list of function names that are able to be called on the database.
         Used for SQL Lab autocomplete.
@@ -1224,7 +1232,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return data
 
     @staticmethod
-    def mutate_db_for_connection_test(database: "Database") -> None:
+    def mutate_db_for_connection_test(  # pylint: disable=unused-argument
+        database: "Database",
+    ) -> None:
         """
         Some databases require passing additional parameters for validating database
         connections. This method makes it possible to mutate the database instance prior
@@ -1271,7 +1281,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     @memoized
-    def get_column_spec(
+    def get_column_spec(  # pylint: disable=unused-argument
         cls,
         native_type: Optional[str],
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
@@ -1320,7 +1330,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return False
 
     @classmethod
-    def get_cancel_query_id(cls, cursor: Any, query: Query) -> Optional[str]:
+    def get_cancel_query_id(  # pylint: disable=unused-argument
+        cls, cursor: Any, query: Query,
+    ) -> Optional[str]:
         """
         Select identifiers from the database engine that uniquely identifies the
         queries to cancel. The identifier is typically a session id, process id
@@ -1334,7 +1346,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return None
 
     @classmethod
-    def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
+    def cancel_query(  # pylint: disable=unused-argument
+        cls, cursor: Any, query: Query, cancel_query_id: str,
+    ) -> bool:
         """
         Cancel query in the underlying database.
 
@@ -1407,7 +1421,7 @@ class BasicParametersMixin:
     encryption_parameters: Dict[str, str] = {}
 
     @classmethod
-    def build_sqlalchemy_uri(
+    def build_sqlalchemy_uri(  # pylint: disable=unused-argument
         cls,
         parameters: BasicParametersType,
         encryted_extra: Optional[Dict[str, str]] = None,
@@ -1432,7 +1446,7 @@ class BasicParametersMixin:
         )
 
     @classmethod
-    def get_parameters_from_uri(
+    def get_parameters_from_uri(  # pylint: disable=unused-argument
         cls, uri: str, encrypted_extra: Optional[Dict[str, Any]] = None
     ) -> BasicParametersType:
         url = make_url(uri)

@@ -38,6 +38,7 @@ from dateutil import tz
 from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
 from pandas.io.parsers import STR_NA_VALUES
+from werkzeug.local import LocalProxy
 
 from superset.jinja_context import BaseTemplateProcessor
 from superset.stats_logger import DummyStatsLogger
@@ -178,9 +179,9 @@ SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
 # Note: the default impl leverages SqlAlchemyUtils' EncryptedType, which defaults
 #  to AES-128 under the covers using the app's SECRET_KEY as key material.
 #
-# pylint: disable=C0103
-SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = SQLAlchemyUtilsAdapter
-
+SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = (  # pylint: disable=invalid-name
+    SQLAlchemyUtilsAdapter
+)
 # The limit of queries fetched for query search
 QUERY_SEARCH_LIMIT = 1000
 
@@ -841,7 +842,7 @@ CSV_TO_HIVE_UPLOAD_S3_BUCKET = None
 CSV_TO_HIVE_UPLOAD_DIRECTORY = "EXTERNAL_HIVE_TABLES/"
 # Function that creates upload directory dynamically based on the
 # database used, user and schema provided.
-def CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC(
+def CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC(  # pylint: disable=invalid-name
     database: "Database",
     user: "models.User",  # pylint: disable=unused-argument
     schema: Optional[str],
@@ -986,7 +987,14 @@ DB_CONNECTION_MUTATOR = None
 #    def SQL_QUERY_MUTATOR(sql, user_name, security_manager, database):
 #        dttm = datetime.now().isoformat()
 #        return f"-- [SQL LAB] {username} {dttm}\n{sql}"
-SQL_QUERY_MUTATOR = None
+def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument
+    sql: str,
+    user_name: Optional[str],
+    security_manager: LocalProxy,
+    database: "Database",
+) -> str:
+    return sql
+
 
 # Enable / disable scheduled email reports
 #
