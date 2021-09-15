@@ -16,17 +16,19 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
-from typing import Any, Dict, Tuple
+from unittest import mock
 
 from marshmallow import ValidationError
 from tests.integration_tests.test_app import app
 from superset.charts.schemas import ChartDataQueryContextSchema
-from superset.common.query_context import QueryContext
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.query_context import get_query_context
 
 
 class TestSchema(SupersetTestCase):
+    @mock.patch(
+        "superset.common.query_object.config", {**app.config, "SQL_MAX_ROW": 100000},
+    )
     def test_query_context_limit_and_offset(self):
         self.login(username="admin")
         payload = get_query_context("birth_names")

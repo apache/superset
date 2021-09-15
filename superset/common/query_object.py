@@ -16,7 +16,7 @@
 # under the License.
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, NamedTuple, Optional
+from typing import Any, Dict, List, NamedTuple, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as _
 from pandas import DataFrame
@@ -41,6 +41,10 @@ from superset.utils.core import (
 from superset.utils.date_parser import get_since_until, parse_human_timedelta
 from superset.utils.hashing import md5_sha_from_dict
 from superset.views.utils import get_time_range_endpoints
+
+if TYPE_CHECKING:
+    from superset.common.query_context import QueryContext
+
 
 config = app.config
 logger = logging.getLogger(__name__)
@@ -101,6 +105,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
 
     def __init__(  # pylint: disable=too-many-arguments,too-many-locals
         self,
+        query_context: "QueryContext",
         datasource: Optional[DatasourceDict] = None,
         result_type: Optional[ChartDataResultType] = None,
         annotation_layers: Optional[List[Dict[str, Any]]] = None,
@@ -123,7 +128,6 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         orderby: Optional[List[OrderBy]] = None,
         post_processing: Optional[List[Optional[Dict[str, Any]]]] = None,
         is_rowcount: bool = False,
-        result_type_qc: Optional[ChartDataResultType] = None,
         **kwargs: Any,
     ):
         columns = columns or []
@@ -140,7 +144,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             self.datasource = ConnectorRegistry.get_datasource(
                 str(datasource["type"]), int(datasource["id"]), db.session
             )
-        self.result_type = result_type or result_type_qc
+        self.result_type = result_type or query_context.result_type
         self.apply_fetch_values_predicate = apply_fetch_values_predicate or False
         self.annotation_layers = [
             layer

@@ -333,7 +333,7 @@ class BaseViz:
         timeseries_limit_metric = form_data.get("timeseries_limit_metric")
 
         # apply row limit to query
-        row_limit = form_data.get("row_limit") or config["ROW_LIMIT"]
+        row_limit = int(form_data.get("row_limit") or config["ROW_LIMIT"])
         row_limit = apply_max_row_limit(config["SQL_MAX_ROW"], row_limit)
 
         # default order direction
