@@ -37,7 +37,7 @@ import getFormDataWithExtraFilters from '../util/charts/getFormDataWithExtraFilt
 import Chart from '../components/gridComponents/Chart';
 import { PLACEHOLDER_DATASOURCE } from '../constants';
 
-const EMPTY_FILTERS = {};
+const EMPTY_OBJECT = {};
 
 function mapStateToProps(
   {
@@ -54,7 +54,7 @@ function mapStateToProps(
   ownProps,
 ) {
   const { id } = ownProps;
-  const chart = chartQueries[id] || {};
+  const chart = chartQueries[id] || EMPTY_OBJECT;
   const datasource =
     (chart && chart.form_data && datasources[chart.form_data.datasource]) ||
     PLACEHOLDER_DATASOURCE;
@@ -82,7 +82,7 @@ function mapStateToProps(
     datasource,
     slice: sliceEntities.slices[id],
     timeout: dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
-    filters: getActiveFilters() || EMPTY_FILTERS,
+    filters: getActiveFilters() || EMPTY_OBJECT,
     formData,
     editMode: dashboardState.editMode,
     isExpanded: !!dashboardState.expandedSlices[id],

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isEqual } from 'lodash';
 import {
   CategoricalColorNamespace,
   DataRecordFilters,
@@ -25,6 +24,7 @@ import {
 import { ChartQueryPayload, Charts, LayoutItem } from 'src/dashboard/types';
 import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
 import { DataMaskStateWithId } from 'src/dataMask/types';
+import { areObjectsEqual } from 'src/reduxUtils';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 import { ChartConfiguration, NativeFiltersState } from '../../reducers/types';
 import { getAllActiveFilters } from '../activeAllDashboardFilters';
@@ -67,16 +67,24 @@ export default function getFormDataWithExtraFilters({
   const labelColors = scale.getColorMap();
 
   // if dashboard metadata + filters have not changed, use cache if possible
+  const cachedFormData = cachedFormdataByChart[sliceId];
   if (
-    (cachedFiltersByChart[sliceId] || {}) === filters &&
-    (colorScheme == null ||
-      cachedFormdataByChart[sliceId].color_scheme === colorScheme) &&
-    cachedFormdataByChart[sliceId].color_namespace === colorNamespace &&
-    isEqual(cachedFormdataByChart[sliceId].label_colors, labelColors) &&
-    !!cachedFormdataByChart[sliceId] &&
-    dataMask === undefined
+    cachedFiltersByChart[sliceId] === filters &&
+    areObjectsEqual(cachedFormData?.color_scheme, colorScheme, {
+      ignoreUndefined: true,
+    }) &&
+    areObjectsEqual(cachedFormData?.color_namespace, colorNamespace, {
+      ignoreUndefined: true,
+    }) &&
+    areObjectsEqual(cachedFormData?.label_colors, labelColors, {
+      ignoreUndefined: true,
+    }) &&
+    !!cachedFormData &&
+    areObjectsEqual(cachedFormData?.dataMask, dataMask, {
+      ignoreUndefined: true,
+    })
   ) {
-    return cachedFormdataByChart[sliceId];
+    return cachedFormData;
   }
 
   let extraData: { extra_form_data?: JsonObject } = {};
@@ -107,7 +115,7 @@ export default function getFormDataWithExtraFilters({
     ...extraData,
   };
   cachedFiltersByChart[sliceId] = filters;
-  cachedFormdataByChart[sliceId] = formData;
+  cachedFormdataByChart[sliceId] = { ...formData, dataMask };
 
   return formData;
 }
