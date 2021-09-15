@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import re
 import urllib
 from datetime import datetime
@@ -30,7 +31,7 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql.expression import ColumnClause
 from typing_extensions import TypedDict
 
-from superset.databases.schemas import encrypted_field_properties, EncryptedField
+from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.exceptions import SupersetDBAPIDisconnectionError
 from superset.errors import SupersetError, SupersetErrorType
@@ -69,14 +70,14 @@ ma_plugin = MarshmallowPlugin()
 
 
 class BigQueryParametersSchema(Schema):
-    credentials_info = EncryptedField(
+    credentials_info = EncryptedString(
         required=False, description="Contents of BigQuery JSON credentials.",
     )
     query = fields.Dict(required=False)
 
 
 class BigQueryParametersType(TypedDict):
-    credentials_info: Dict[str, Any]
+    encrypted_credentials: Dict[str, Any]
     query: Dict[str, Any]
 
 
@@ -362,15 +363,17 @@ class BigQueryEngineSpec(BaseEngineSpec):
     def build_sqlalchemy_uri(
         cls,
         parameters: BigQueryParametersType,
-        encrypted_extra: Optional[Dict[str, Any]] = None,
+        encrypted_extra: Optional[Dict[str, str]] = None,
     ) -> str:
         query = parameters.get("query", {})
         query_params = urllib.parse.urlencode(query)
-
+        if encrypted_extra:
+            credentials_info = json.loads(
+                encrypted_extra.get("credentials_info") or "{}"
+            )
+            project_id = credentials_info.get("project_id")
         if not encrypted_extra:
             raise ValidationError("Missing service credentials")
-
-        project_id = encrypted_extra.get("credentials_info", {}).get("project_id")
 
         if project_id:
             return f"{cls.default_driver}://{project_id}/?{query_params}"
@@ -382,7 +385,6 @@ class BigQueryEngineSpec(BaseEngineSpec):
         cls, uri: str, encrypted_extra: Optional[Dict[str, str]] = None
     ) -> Any:
         value = make_url(uri)
-
         # Building parameters from encrypted_extra and uri
         if encrypted_extra:
             return {**encrypted_extra, "query": value.query}

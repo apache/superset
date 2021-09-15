@@ -36,6 +36,14 @@ import {
 } from './styles';
 import { CatalogObject, DatabaseForm, DatabaseObject } from '../types';
 
+// These are the columns that are going to be added to encrypted extra, they differ in name based
+// on the engine, however we want to use the same component for each of them. Make sure to add the
+// the engine specific name here.
+export const encryptedCredentialsMap = {
+  gsheets: 'service_account_info',
+  bigquery: 'credentials_info',
+};
+
 enum CredentialInfoOptions {
   jsonUpload,
   copyPaste,
@@ -56,6 +64,7 @@ export const FormFieldOrder = [
   'password',
   'database_name',
   'credentials_info',
+  'service_account_info',
   'catalog',
   'query',
   'encryption',
@@ -99,7 +108,12 @@ const CredentialsInfo = ({
   const [isPublic, setIsPublic] = useState<boolean>(true);
   const showCredentialsInfo =
     db?.engine === 'gsheets' ? !isEditMode && !isPublic : !isEditMode;
-
+  const isEncrypted = db?.encrypted_extra?.length;
+  const encryptedField = db?.engine && encryptedCredentialsMap[db.engine];
+  const encryptedValue =
+    typeof db?.parameters?.[encryptedField] === 'object'
+      ? JSON.stringify(db?.parameters?.[encryptedField])
+      : db?.parameters?.[encryptedField];
   return (
     <CredentialInfoForm>
       {db?.engine === 'gsheets' && (
@@ -112,7 +126,7 @@ const CredentialsInfo = ({
           </FormLabel>
           <Select
             style={{ width: '100%' }}
-            defaultValue="true"
+            defaultValue={isEncrypted ? 'false' : 'true'}
             onChange={(value: string) => setIsPublic(setStringToBoolean(value))}
           >
             <Select.Option value="true" key={1}>
@@ -151,8 +165,8 @@ const CredentialsInfo = ({
           <FormLabel required>{t('Service Account')}</FormLabel>
           <textarea
             className="input-form"
-            name="credentials_info"
-            value={db?.parameters?.credentials_info}
+            name={encryptedField}
+            value={encryptedValue}
             onChange={changeMethods.onParametersChange}
             placeholder="Paste content of service credentials JSON file here"
           />
@@ -194,7 +208,7 @@ const CredentialsInfo = ({
                     setFileToUpload(null);
                     changeMethods.onParametersChange({
                       target: {
-                        name: 'credentials_info',
+                        name: encryptedField,
                         value: '',
                       },
                     });
@@ -216,7 +230,7 @@ const CredentialsInfo = ({
                 changeMethods.onParametersChange({
                   target: {
                     type: null,
-                    name: 'credentials_info',
+                    name: encryptedField,
                     value: await file?.text(),
                     checked: false,
                   },
@@ -503,6 +517,7 @@ const FORM_FIELD_MAP = {
   query: queryField,
   encryption: forceSSLField,
   credentials_info: CredentialsInfo,
+  service_account_info: CredentialsInfo,
   catalog: TableCatalog,
 };
 

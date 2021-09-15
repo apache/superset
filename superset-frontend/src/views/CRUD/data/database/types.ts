@@ -44,12 +44,14 @@ export type DatabaseObject = {
     username?: string;
     password?: string;
     encryption?: boolean;
-    credentials_info?: string;
+    encrypted_credentials?: string;
     query?: Record<string, string>;
     catalog?: Record<string, string>;
+    properties?: Record<string, any>;
   };
   configuration_method: CONFIGURATION_METHOD;
   engine?: string;
+  paramProperties?: Record<string, any>;
 
   // Performance
   cache_timeout?: string;
@@ -127,6 +129,11 @@ export type DatabaseForm = {
         type: string;
       };
       credentials_info: {
+        description: string;
+        nullable: boolean;
+        type: string;
+      };
+      service_account_info: {
         description: string;
         nullable: boolean;
         type: string;

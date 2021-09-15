@@ -180,7 +180,7 @@ type DBReducerActionType =
         database_name?: string;
         engine?: string;
         configuration_method: CONFIGURATION_METHOD;
-        parameters?: Record<string, any>;
+        paramProperties?: Record<string, any>;
       };
     }
   | {
@@ -359,45 +359,28 @@ function dbReducer(
         .join('&');
 
       if (
-        action.payload.backend === 'bigquery' &&
+        action.payload.encrypted_extra &&
         action.payload.configuration_method ===
           CONFIGURATION_METHOD.DYNAMIC_FORM
       ) {
+        const engineParamsCatalog = Object.keys(
+          extra_json?.engine_params?.catalog || {},
+        ).map(e => ({
+          name: e,
+          value: extra_json?.engine_params?.catalog[e],
+        }));
+
         return {
           ...action.payload,
           engine: action.payload.backend,
           configuration_method: action.payload.configuration_method,
           extra_json: deserializeExtraJSON,
+          catalog: engineParamsCatalog,
           parameters: {
-            credentials_info: JSON.stringify(
-              action.payload?.parameters?.credentials_info || '',
-            ),
-            query,
+            ...action.payload.parameters,
           },
           query_input,
         };
-      }
-
-      if (
-        action.payload.backend === 'gsheets' &&
-        action.payload.configuration_method ===
-          CONFIGURATION_METHOD.DYNAMIC_FORM &&
-        extra_json?.engine_params?.catalog !== undefined
-      ) {
-        // pull catalog from engine params
-        const engineParamsCatalog = extra_json?.engine_params?.catalog;
-
-        return {
-          ...action.payload,
-          engine: action.payload.backend,
-          configuration_method: action.payload.configuration_method,
-          extra_json: deserializeExtraJSON,
-          catalog: Object.keys(engineParamsCatalog).map(e => ({
-            name: e,
-            value: engineParamsCatalog[e],
-          })),
-          query_input,
-        } as DatabaseObject;
       }
 
       return {
@@ -529,7 +512,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const onSave = async () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...update } = db || {};
-
     // Clone DB object
     const dbToUpdate = JSON.parse(JSON.stringify(update));
 
@@ -539,33 +521,34 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       if (validationErrors && !isEmpty(validationErrors)) {
         return;
       }
+      const paramConfigArray = Object.keys(db?.paramProperties || {});
+      const additionalEncryptedExtra = JSON.parse(
+        dbToUpdate.encrypted_extra || '{}',
+      );
 
-      const engine = dbToUpdate.backend || dbToUpdate.engine;
-      console.log('this is', dbModel);
-      if (engine === 'bigquery' && dbToUpdate.parameters?.credentials_info) {
-        // wrap encrypted_extra in credentials_info only for BigQuery
-        if (
-          dbToUpdate.parameters?.credentials_info &&
-          typeof dbToUpdate.parameters?.credentials_info === 'object' &&
-          dbToUpdate.parameters?.credentials_info.constructor === Object
-        ) {
-          // Don't cast if object
-          dbToUpdate.encrypted_extra = JSON.stringify({
-            credentials_info: dbToUpdate.parameters?.credentials_info,
-          });
-
-          // Convert credentials info string before updating
-          dbToUpdate.parameters.credentials_info = JSON.stringify(
-            dbToUpdate.parameters.credentials_info,
-          );
-        } else {
-          dbToUpdate.encrypted_extra = JSON.stringify({
-            credentials_info: JSON.parse(
-              dbToUpdate.parameters?.credentials_info,
-            ),
-          });
+      paramConfigArray.forEach(paramConfig => {
+        // we are going through the parameter configuration and seeing if this is an encrypted field
+        if (db?.paramProperties?.[paramConfig]['x-encrypted-extra']) {
+          if (
+            typeof dbToUpdate.parameters?.[paramConfig] === 'object' &&
+            dbToUpdate.parameters?.[paramConfig].constructor === Object
+          ) {
+            // add new encrypted extra to encrypted_extra object
+            additionalEncryptedExtra[paramConfig] = JSON.stringify(
+              dbToUpdate.parameters?.[paramConfig],
+            );
+            // cast the encrypted field as a string in parameters
+            dbToUpdate.parameters[paramConfig] = JSON.stringify(
+              dbToUpdate.parameters[paramConfig],
+            );
+          } else {
+            additionalEncryptedExtra[paramConfig] =
+              dbToUpdate.parameters?.[paramConfig];
+          }
         }
-      }
+      });
+      // cast the new encrypted extra object into a string
+      dbToUpdate.encrypted_extra = JSON.stringify(additionalEncryptedExtra);
     }
 
     if (dbToUpdate?.parameters?.catalog) {
@@ -628,6 +611,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const fetchDB = () => {
     if (isEditMode && databaseId) {
       if (!dbLoading) {
+        getAvailableDbs();
         fetchResource(databaseId).catch(e =>
           addDangerToast(
             t(
@@ -655,7 +639,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       const selectedDbModel = availableDbs?.databases.filter(
         (db: DatabaseObject) => db.name === database_name,
       )[0];
-      console.log(selectedDbModel);
       const { engine, parameters } = selectedDbModel;
       const isDynamic = parameters !== undefined;
       setDB({
@@ -666,7 +649,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             ? CONFIGURATION_METHOD.DYNAMIC_FORM
             : CONFIGURATION_METHOD.SQLALCHEMY_URI,
           engine,
-          parameters,
+          paramProperties: parameters?.properties,
         },
       });
     }
@@ -740,8 +723,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       />
     </div>
   );
-
-  console.log(db);
 
   const renderPreferredSelector = () => (
     <div className="preferred">
@@ -834,9 +815,17 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   useEffect(() => {
     if (dbFetched) {
+      getAvailableDbs();
+      // const dbModel = availableDbs?.find(
+      //   (db: DatabaseForm) =>
+      //     db.engine === dbFetched.backend || dbFetched.engine,
+      // );
       setDB({
         type: ActionType.fetched,
-        payload: dbFetched,
+        payload: {
+          ...dbFetched,
+          paramProperties: dbModel?.parameters?.properties,
+        },
       });
       // keep a copy of the name separate for display purposes
       // because it shouldn't change when the form is updated
