@@ -75,6 +75,7 @@ describe('ColumnOption RTL', () => {
 
     const labelIcon = screen.getByText('?');
     expect(labelIcon.innerHTML).toMatch('?');
+    expect(labelIcon).not.toMatch('ƒ');
   });
 
   it('datetime type displays', () => {
