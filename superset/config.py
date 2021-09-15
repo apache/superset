@@ -1400,12 +1400,17 @@ def uri_filter(cond="none", default="") -> Optional[Any]:
     else:
         return param
 
+
 JINJA_CONTEXT_ADDONS = {
     'time_filter': time_filter,
     'end_date_filter': end_date_filter,
     'start_date_filter': start_date_filter,
     'uri_filter': uri_filter
+
 }
+
+
+
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
