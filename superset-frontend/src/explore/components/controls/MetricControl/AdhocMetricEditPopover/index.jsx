@@ -301,10 +301,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
       value: columnValue,
       onChange: this.onColumnChange,
       allowClear: true,
-      showSearch: true,
       autoFocus: !columnValue,
-      filterOption: (input, option) =>
-        option.filterBy.toLowerCase().indexOf(input.toLowerCase()) >= 0,
     };
 
     const aggregateSelectProps = {
@@ -314,7 +311,6 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
       onChange: this.onAggregateChange,
       allowClear: true,
       autoFocus: !!columnValue,
-      showSearch: true,
     };
 
     const savedSelectProps = {
@@ -323,10 +319,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
       value: savedMetric?.metric_name,
       onChange: this.onSavedMetricChange,
       allowClear: true,
-      showSearch: true,
       autoFocus: true,
-      filterOption: (input, option) =>
-        option.filterBy.toLowerCase().indexOf(input.toLowerCase()) >= 0,
     };
 
     if (this.props.datasourceType === 'druid' && aggregateSelectProps.options) {
@@ -367,7 +360,8 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
                   Array.isArray(savedMetricsOptions)
                     ? savedMetricsOptions.map(savedMetric => ({
                         value: savedMetric.metric_name,
-                        label: this.renderMetricOption(savedMetric),
+                        label: savedMetric.metric_name,
+                        customLabel: this.renderMetricOption(savedMetric),
                         key: savedMetric.id,
                       }))
                     : []
@@ -381,9 +375,9 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
               <Select
                 options={columns.map(column => ({
                   value: column.column_name,
-                  filterBy: column.verbose_name || column.column_name,
+                  label: column.verbose_name || column.column_name,
                   key: column.id,
-                  label: this.renderColumnOption(column),
+                  customLabel: this.renderColumnOption(column),
                 }))}
                 {...columnSelectProps}
               />
