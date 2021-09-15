@@ -26,6 +26,7 @@ import urllib.request
 from collections import namedtuple
 from datetime import datetime, timedelta
 from email.utils import make_msgid, parseaddr
+from enum import Enum
 from typing import (
     Any,
     Callable,
@@ -71,8 +72,6 @@ from superset.utils.core import get_email_address_list, send_email_smtp
 from superset.utils.retries import retry_call
 from superset.utils.screenshots import ChartScreenshot, WebDriverProxy
 from superset.utils.urls import get_url_path
-
-# pylint: disable=too-few-public-methods
 
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla.models import User
@@ -571,7 +570,7 @@ def schedule_alert_query(
             raise RuntimeError("Unknown report type")
 
 
-class AlertState:
+class AlertState(str, Enum):
     ERROR = "error"
     TRIGGER = "trigger"
     PASS = "pass"

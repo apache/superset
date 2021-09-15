@@ -14,8 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=no-self-use, invalid-name
-
 import json
 from datetime import datetime
 from unittest.mock import patch
@@ -313,7 +311,7 @@ class TestChartsUpdateCommand(SupersetTestCase):
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_update_v1_response(self, mock_sm_g, mock_g):
-        """"Test that a chart command updates properties"""
+        """Test that a chart command updates properties"""
         pk = db.session.query(Slice).all()[0].id
         actor = security_manager.find_user(username="admin")
         mock_g.user = mock_sm_g.user = actor
@@ -334,7 +332,7 @@ class TestChartsUpdateCommand(SupersetTestCase):
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_query_context_update_command(self, mock_sm_g, mock_g):
-        """"
+        """ "
         Test that a user can generate the chart query context
         payloadwithout affecting owners
         """
