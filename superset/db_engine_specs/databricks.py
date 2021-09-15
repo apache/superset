@@ -33,7 +33,7 @@ class DatabricksHiveEngineSpec(MssqlEngineSpec):
         "PT1M": "from_unixtime(unix_timestamp({col}), 'yyyy-MM-dd HH:mm:00')",
         "PT1H": "from_unixtime(unix_timestamp({col}), 'yyyy-MM-dd HH:00:00')",
         "P1D": "from_unixtime(unix_timestamp({col}), 'yyyy-MM-dd 00:00:00')",
-        "P1W": "date_format(date_sub({col}, CAST(7-from_unixtime(unix_timestamp({col}),'u') as int)), 'yyyy-MM-dd 00:00:00')",
+        "P1W": "date_sub(from_unixtime(unix_timestamp({col}, 'yyyy-MM-dd 00:00:00')), 7)",
         "P1M": "from_unixtime(unix_timestamp({col}), 'yyyy-MM-01 00:00:00')",
         "P0.25Y": "date_format(add_months(trunc({col}, 'MM'), -(month({col})-1)%3), 'yyyy-MM-dd 00:00:00')",
         "P1Y": "from_unixtime(unix_timestamp({col}), 'yyyy-01-01 00:00:00')"}
