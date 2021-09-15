@@ -264,7 +264,6 @@ const config = {
             ].join('|')})/`,
           ),
         },
-        // // bundle large libraries separately
         // viz thumbnails are used in `addSlice` and `explore` page
         thumbnail: {
           name: 'thumbnail',
