@@ -1480,3 +1480,48 @@ class TestPivotTableViz(SupersetTestCase):
     def test_format_datetime_from_int(self):
         assert viz.PivotTableViz._format_datetime(123) == 123
         assert viz.PivotTableViz._format_datetime(123.0) == 123.0
+
+
+class TestFilterBoxViz(SupersetTestCase):
+    def test_get_data(self):
+        form_data = {
+            "filter_configs": [
+                {"column": "value1", "metric": "metric1"},
+                {"column": "value2", "metric": "metric2", "asc": True},
+                {"column": "value3"},
+                {"column": "value4", "asc": True},
+                {"column": "value5"},
+                {"column": "value6"},
+            ],
+        }
+        datasource = self.get_datasource_mock()
+        test_viz = viz.FilterBoxViz(datasource, form_data)
+        test_viz.dataframes = {
+            "value1": pd.DataFrame(
+                data=[{"value1": "v1", "metric1": 1}, {"value1": "v2", "metric1": 2},]
+            ),
+            "value2": pd.DataFrame(
+                data=[{"value2": "v3", "metric2": 3}, {"value2": "v4", "metric2": 4},]
+            ),
+            "value3": pd.DataFrame(data=[{"value3": "v5"}, {"value3": "v6"},]),
+            "value4": pd.DataFrame(data=[{"value4": "v7"}, {"value4": "v8"},]),
+            "value5": pd.DataFrame(),
+        }
+
+        df = pd.DataFrame()
+        data = test_viz.get_data(df)
+        expected = {
+            "value1": [
+                {"id": "v2", "text": "v2", "metric": 2},
+                {"id": "v1", "text": "v1", "metric": 1},
+            ],
+            "value2": [
+                {"id": "v3", "text": "v3", "metric": 3},
+                {"id": "v4", "text": "v4", "metric": 4},
+            ],
+            "value3": [{"id": "v6", "text": "v6"}, {"id": "v5", "text": "v5"},],
+            "value4": [{"id": "v7", "text": "v7"}, {"id": "v8", "text": "v8"},],
+            "value5": [],
+            "value6": [],
+        }
+        self.assertEqual(expected, data)
