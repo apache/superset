@@ -151,6 +151,18 @@ test('searches for label or value', async () => {
   expect(options[0]).toHaveTextContent(option.label);
 });
 
+test('ignores case when searching', async () => {
+  render(<Select {...defaultProps} />);
+  await type('george');
+  expect(await findSelectOption('George')).toBeInTheDocument();
+});
+
+test('ignores special keys when searching', async () => {
+  render(<Select {...defaultProps} />);
+  await type('{shift}');
+  expect(screen.queryByText(LOADING)).not.toBeInTheDocument();
+});
+
 test('searches for custom fields', async () => {
   render(<Select {...defaultProps} optionFilterProps={['label', 'gender']} />);
   await type('Liam');
