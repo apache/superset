@@ -898,7 +898,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         datasource.raise_for_access()
         row_limit = apply_max_row_limit(
-            config["MAX_GLOBAL_ROW_LIMIT"], config["FILTER_SELECT_ROW_LIMIT"]
+            config["SQL_MAX_ROW"], config["FILTER_SELECT_ROW_LIMIT"]
         )
         payload = json.dumps(
             datasource.values_for_column(column, row_limit),

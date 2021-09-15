@@ -188,7 +188,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             else config["ROW_LIMIT"]
         )
         self.row_limit = apply_max_row_limit(
-            config["MAX_GLOBAL_ROW_LIMIT"], row_limit or default_row_limit,
+            config["SQL_MAX_ROW"], row_limit or default_row_limit,
         )
         self.row_offset = row_offset or 0
         self.filter = filters or []

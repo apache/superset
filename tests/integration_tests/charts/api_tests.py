@@ -1211,10 +1211,9 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
-        "superset.common.query_object.config",
-        {**app.config, "MAX_GLOBAL_ROW_LIMIT": 10},
+        "superset.common.query_object.config", {**app.config, "SQL_MAX_ROW": 10},
     )
-    def test_chart_data_max_global_row_limit(self):
+    def test_chart_data_sql_max_row_limit(self):
         """
         Chart data API: Ensure row count doesn't exceed max global row limit
         """
@@ -1246,12 +1245,12 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
         "superset.common.query_actions.config",
-        {**app.config, "SAMPLES_ROW_LIMIT": 5, "MAX_GLOBAL_ROW_LIMIT": 15},
+        {**app.config, "SAMPLES_ROW_LIMIT": 5, "SQL_MAX_ROW": 15},
     )
     def test_chart_data_sample_custom_limit(self):
         """
         Chart data API: Ensure requested sample response row count is between
-        default and max global limit
+        default and SQL max row limit
         """
         self.login(username="admin")
         request_payload = get_query_context("birth_names")
@@ -1264,13 +1263,12 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
-        "superset.common.query_object.config",
-        {**app.config, "MAX_GLOBAL_ROW_LIMIT": 5},
+        "superset.common.query_object.config", {**app.config, "SQL_MAX_ROW": 5},
     )
-    def test_chart_data_max_global_sample_limit(self):
+    def test_chart_data_sql_max_row_sample_limit(self):
         """
         Chart data API: Ensure requested sample response row count doesn't
-        exceed max global row limit
+        exceed SQL max row limit
         """
         self.login(username="admin")
         request_payload = get_query_context("birth_names")

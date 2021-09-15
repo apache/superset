@@ -334,7 +334,7 @@ class BaseViz:
 
         # apply row limit to query
         row_limit = form_data.get("row_limit") or config["ROW_LIMIT"]
-        row_limit = apply_max_row_limit(config["MAX_GLOBAL_ROW_LIMIT"], row_limit)
+        row_limit = apply_max_row_limit(config["SQL_MAX_ROW"], row_limit)
 
         # default order direction
         order_desc = form_data.get("order_desc", True)

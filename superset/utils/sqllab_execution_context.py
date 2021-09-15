@@ -103,8 +103,9 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
 
     @staticmethod
     def _get_limit_param(query_params: Dict[str, Any]) -> int:
-        limit: int = query_params.get("queryLimit") or app.config["SQL_MAX_ROW"]
-        limit = apply_max_row_limit(app.config["MAX_GLOBAL_ROW_LIMIT"], limit)
+        limit = apply_max_row_limit(
+            app.config["SQL_MAX_ROW"], query_params.get("queryLimit", 0)
+        )
         if limit < 0:
             logger.warning(
                 "Invalid limit of %i specified. Defaulting to max limit.", limit

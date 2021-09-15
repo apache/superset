@@ -120,10 +120,7 @@ BUILD_NUMBER = None
 # default viz used in chart explorer
 DEFAULT_VIZ_TYPE = "table"
 
-# maximum row limit that can be set on a query. Will override the row limit defined
-# in all queries (both SQL Lab and chart data queries)
-MAX_GLOBAL_ROW_LIMIT: Optional[int] = None
-# default row limit to apply to queries unless set in the query object
+# default row limit to apply to chart data requests unless if unset
 ROW_LIMIT = 50000
 # default row limit when requesting samples from datasource in explore view
 SAMPLES_ROW_LIMIT = 1000
@@ -673,9 +670,8 @@ QUERY_LOGGER = None
 # Set this API key to enable Mapbox visualizations
 MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
 
-# Maximum number of rows returned from a database
-# in async mode, no more than SQL_MAX_ROW will be returned and stored
-# in the results backend. This also becomes the limit when exporting CSVs
+# Maximum number of rows returned from a database, both SQL Lab, chart data
+# requests and CSV exports
 SQL_MAX_ROW = 100000
 
 # Maximum number of rows displayed in SQL Lab UI
