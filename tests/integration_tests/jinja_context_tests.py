@@ -20,6 +20,7 @@ from typing import Any
 from unittest import mock
 
 import pytest
+from sqlalchemy.dialects.postgresql import dialect
 
 import tests.integration_tests.test_app
 from superset import app
@@ -198,6 +199,20 @@ class TestJinja2Context(SupersetTestCase):
         ):
             cache = ExtraCache()
             self.assertEqual(cache.url_param("foo"), "bar")
+
+    def test_unsafe_url_param_quoted_form_data(self) -> None:
+        with app.test_request_context(
+            query_string={"form_data": json.dumps({"url_params": {"foo": "O'Brien"}})}
+        ):
+            cache = ExtraCache(dialect=dialect())
+            self.assertEqual(cache.url_param("foo"), "O''Brien")
+
+    def test_unsafe_url_param_unquoted_form_data(self) -> None:
+        with app.test_request_context(
+            query_string={"form_data": json.dumps({"url_params": {"foo": "O'Brien"}})}
+        ):
+            cache = ExtraCache(dialect=dialect())
+            self.assertEqual(cache.url_param("foo", escape_result=False), "O'Brien")
 
     def test_safe_proxy_primitive(self) -> None:
         def func(input: Any) -> Any:
