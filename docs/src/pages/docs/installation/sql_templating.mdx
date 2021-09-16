@@ -16,14 +16,15 @@ To enable templating, the `ENABLE_TEMPLATE_PROCESSING` feature flag needs to be 
 in Custom SQL in the filter and metric controls in Explore. By default, the following variables are
 made available in the Jinja context:
 
-- `columns`: columns available in the dataset
+- `columns`: columns which to group by in the query
 - `filter`: filters applied in the query
 - `from_dttm`: start `datetime` value from the selected time range (`None` if undefined)
 - `to_dttm`: end `datetime` value from the selected time range (`None` if undefined)
-- `groupby`: columns which to group by in the query
+- `groupby`: columns which to group by in the query (deprecated)
 - `metrics`: aggregate expressions in the query
 - `row_limit`: row limit of the query
 - `row_offset`: row offset of the query
+- `table_columns`: columns available in the dataset
 - `time_column`: temporal column of the query (`None` if undefined)
 - `time_grain`: selected time grain (`None` if undefined)
 
