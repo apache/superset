@@ -35,7 +35,7 @@ import humanize
 import prison
 import pytest
 import yaml
-from sqlalchemy import and_, or_
+from sqlalchemy import and_
 from sqlalchemy.sql import func
 
 from tests.integration_tests.fixtures.world_bank_dashboard import (
@@ -1956,3 +1956,24 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             "verbose_name",
             "dtype",
         ]
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_chart_data_series_limit(self):
+        """
+        Chart data API: Query total rows
+        """
+        SERIES_LIMIT = 5
+        self.login(username="admin")
+        request_payload = get_query_context("birth_names")
+        request_payload["queries"][0]["columns"] = ["state", "name"]
+        request_payload["queries"][0]["series_columns"] = ["name"]
+        request_payload["queries"][0]["series_limit"] = SERIES_LIMIT
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        response_payload = json.loads(rv.data.decode("utf-8"))
+        data = response_payload["result"][0]["data"]
+        unique_names = set(row["name"] for row in data)
+        self.maxDiff = None
+        self.assertEqual(len(unique_names), SERIES_LIMIT)
+        self.assertEqual(
+            set(column for column in data[0].keys()), {"state", "name", "sum__num"}
+        )

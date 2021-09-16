@@ -19,7 +19,7 @@ import dataclasses
 import json
 import logging
 import re
-from collections import defaultdict, OrderedDict
+from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import (
@@ -931,27 +931,30 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
     def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
         self,
-        metrics: Optional[List[Metric]] = None,
-        granularity: Optional[str] = None,
-        from_dttm: Optional[datetime] = None,
-        to_dttm: Optional[datetime] = None,
+        apply_fetch_values_predicate: bool = False,
         columns: Optional[List[str]] = None,
-        groupby: Optional[List[str]] = None,
+        extras: Optional[Dict[str, Any]] = None,
         filter: Optional[  # pylint: disable=redefined-builtin
             List[QueryObjectFilterClause]
         ] = None,
-        is_timeseries: bool = True,
-        timeseries_limit: int = 15,
-        timeseries_limit_metric: Optional[Metric] = None,
-        row_limit: Optional[int] = None,
-        row_offset: Optional[int] = None,
+        from_dttm: Optional[datetime] = None,
+        granularity: Optional[str] = None,
+        groupby: Optional[List[str]] = None,
         inner_from_dttm: Optional[datetime] = None,
         inner_to_dttm: Optional[datetime] = None,
-        orderby: Optional[List[OrderBy]] = None,
-        extras: Optional[Dict[str, Any]] = None,
-        order_desc: bool = True,
         is_rowcount: bool = False,
-        apply_fetch_values_predicate: bool = False,
+        is_timeseries: bool = True,
+        metrics: Optional[List[Metric]] = None,
+        orderby: Optional[List[OrderBy]] = None,
+        order_desc: bool = True,
+        to_dttm: Optional[datetime] = None,
+        series_columns: Optional[List[str]] = None,
+        series_limit: Optional[int] = None,
+        series_limit_metric: Optional[Metric] = None,
+        row_limit: Optional[int] = None,
+        row_offset: Optional[int] = None,
+        timeseries_limit: Optional[int] = None,
+        timeseries_limit_metric: Optional[Metric] = None,
     ) -> SqlaQuery:
         """Querying any sqla table from this common interface"""
         if granularity not in self.dttm_cols and granularity is not None:
@@ -961,6 +964,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         time_grain = extras.get("time_grain_sqla")
 
         template_kwargs = {
+            "columns": columns,
             "from_dttm": from_dttm.isoformat() if from_dttm else None,
             "groupby": groupby,
             "metrics": metrics,
@@ -969,9 +973,14 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             "time_column": granularity,
             "time_grain": time_grain,
             "to_dttm": to_dttm.isoformat() if to_dttm else None,
+            "table_columns": [col.column_name for col in self.columns],
             "filter": filter,
-            "columns": [col.column_name for col in self.columns],
         }
+        series_columns = series_columns or []
+        # deprecated, to be removed in 2.0
+        if is_timeseries and timeseries_limit:
+            series_limit = timeseries_limit
+        series_limit_metric = series_limit_metric or timeseries_limit_metric
         template_kwargs.update(self.template_params_dict)
         extra_cache_keys: List[Any] = []
         template_kwargs["extra_cache_keys"] = extra_cache_keys
@@ -984,8 +993,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         need_groupby = bool(metrics is not None or groupby)
         metrics = metrics or []
 
-        # Database spec supports join-free timeslot grouping
-        time_groupby_inline = db_engine_spec.time_groupby_inline
+        # For backward compatibility
+        if granularity not in self.dttm_cols and granularity is not None:
+            granularity = self.main_dttm_col
 
         columns_by_name: Dict[str, TableColumn] = {
             col.column_name: col for col in self.columns
@@ -1057,7 +1067,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 )
 
         select_exprs: List[Union[Column, Label]] = []
-        groupby_exprs_sans_timestamp = OrderedDict()
+        groupby_all_columns = {}
+        groupby_series_columns = {}
 
         # filter out the pseudo column  __timestamp from columns
         columns = columns or []
@@ -1078,7 +1089,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 else:
                     outer = literal_column(f"({selected})")
                     outer = self.make_sqla_column_compatible(outer, selected)
-                groupby_exprs_sans_timestamp[outer.name] = outer
+                groupby_all_columns[outer.name] = outer
+                if not series_columns or outer.name in series_columns:
+                    groupby_series_columns[outer.name] = outer
                 select_exprs.append(outer)
         elif columns:
             for selected in columns:
@@ -1090,7 +1103,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             metrics_exprs = []
 
         time_range_endpoints = extras.get("time_range_endpoints")
-        groupby_exprs_with_timestamp = OrderedDict(groupby_exprs_sans_timestamp.items())
 
         if granularity:
             if granularity not in columns_by_name or not dttm_col:
@@ -1106,7 +1118,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 timestamp = dttm_col.get_timestamp_expression(time_grain)
                 # always put timestamp as the first column
                 select_exprs.insert(0, timestamp)
-                groupby_exprs_with_timestamp[timestamp.name] = timestamp
+                groupby_all_columns[timestamp.name] = timestamp
 
             # Use main dttm column to support index with secondary dttm columns.
             if (
@@ -1142,8 +1154,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         tbl = self.get_from_clause(template_processor)
 
-        if groupby_exprs_with_timestamp:
-            qry = qry.group_by(*groupby_exprs_with_timestamp.values())
+        if groupby_all_columns:
+            qry = qry.group_by(*groupby_all_columns.values())
 
         where_clause_and = []
         having_clause_and = []
@@ -1289,13 +1301,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         if row_offset:
             qry = qry.offset(row_offset)
 
-        if (
-            is_timeseries
-            and timeseries_limit
-            and not time_groupby_inline
-            and groupby_exprs_sans_timestamp
-            and dttm_col
-        ):
+        if db_engine_spec.allows_subqueries and series_limit and groupby_series_columns:
             if db_engine_spec.allows_joins:
                 # some sql dialects require for order by expressions
                 # to also be in the select clause -- others, e.g. vertica,
@@ -1305,32 +1311,37 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 )
                 inner_groupby_exprs = []
                 inner_select_exprs = []
-                for gby_name, gby_obj in groupby_exprs_sans_timestamp.items():
+                for gby_name, gby_obj in groupby_series_columns.items():
                     inner = self.make_sqla_column_compatible(gby_obj, gby_name + "__")
                     inner_groupby_exprs.append(inner)
                     inner_select_exprs.append(inner)
 
                 inner_select_exprs += [inner_main_metric_expr]
                 subq = select(inner_select_exprs).select_from(tbl)
-                inner_time_filter = dttm_col.get_time_filter(
-                    inner_from_dttm or from_dttm,
-                    inner_to_dttm or to_dttm,
-                    time_range_endpoints,
-                )
-                subq = subq.where(and_(*(where_clause_and + [inner_time_filter])))
+                inner_time_filter = []
+
+                if dttm_col and not db_engine_spec.time_groupby_inline:
+                    inner_time_filter = [
+                        dttm_col.get_time_filter(
+                            inner_from_dttm or from_dttm,
+                            inner_to_dttm or to_dttm,
+                            time_range_endpoints,
+                        )
+                    ]
+                subq = subq.where(and_(*(where_clause_and + inner_time_filter)))
                 subq = subq.group_by(*inner_groupby_exprs)
 
                 ob = inner_main_metric_expr
-                if timeseries_limit_metric:
-                    ob = self._get_timeseries_orderby(
-                        timeseries_limit_metric, metrics_by_name, columns_by_name
+                if series_limit_metric:
+                    ob = self._get_series_orderby(
+                        series_limit_metric, metrics_by_name, columns_by_name
                     )
                 direction = desc if order_desc else asc
                 subq = subq.order_by(direction(ob))
-                subq = subq.limit(timeseries_limit)
+                subq = subq.limit(series_limit)
 
                 on_clause = []
-                for gby_name, gby_obj in groupby_exprs_sans_timestamp.items():
+                for gby_name, gby_obj in groupby_series_columns.items():
                     # in this case the column name, not the alias, needs to be
                     # conditionally mutated, as it refers to the column alias in
                     # the inner query
@@ -1339,13 +1350,11 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
                 tbl = tbl.join(subq.alias(), and_(*on_clause))
             else:
-                if timeseries_limit_metric:
+                if series_limit_metric:
                     orderby = [
                         (
-                            self._get_timeseries_orderby(
-                                timeseries_limit_metric,
-                                metrics_by_name,
-                                columns_by_name,
+                            self._get_series_orderby(
+                                series_limit_metric, metrics_by_name, columns_by_name,
                             ),
                             False,
                         )
@@ -1354,7 +1363,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 # run prequery to get top groups
                 prequery_obj = {
                     "is_timeseries": False,
-                    "row_limit": timeseries_limit,
+                    "row_limit": series_limit,
                     "metrics": metrics,
                     "granularity": granularity,
                     "groupby": groupby,
@@ -1372,10 +1381,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 dimensions = [
                     c
                     for c in result.df.columns
-                    if c not in metrics and c in groupby_exprs_sans_timestamp
+                    if c not in metrics and c in groupby_series_columns
                 ]
                 top_groups = self._get_top_groups(
-                    result.df, dimensions, groupby_exprs_sans_timestamp
+                    result.df, dimensions, groupby_series_columns
                 )
                 qry = qry.where(top_groups)
 
@@ -1398,31 +1407,29 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             prequeries=prequeries,
         )
 
-    def _get_timeseries_orderby(
+    def _get_series_orderby(
         self,
-        timeseries_limit_metric: Metric,
+        series_limit_metric: Metric,
         metrics_by_name: Dict[str, SqlMetric],
         columns_by_name: Dict[str, TableColumn],
     ) -> Column:
-        if utils.is_adhoc_metric(timeseries_limit_metric):
-            assert isinstance(timeseries_limit_metric, dict)
-            ob = self.adhoc_metric_to_sqla(timeseries_limit_metric, columns_by_name)
+        if utils.is_adhoc_metric(series_limit_metric):
+            assert isinstance(series_limit_metric, dict)
+            ob = self.adhoc_metric_to_sqla(series_limit_metric, columns_by_name)
         elif (
-            isinstance(timeseries_limit_metric, str)
-            and timeseries_limit_metric in metrics_by_name
+            isinstance(series_limit_metric, str)
+            and series_limit_metric in metrics_by_name
         ):
-            ob = metrics_by_name[timeseries_limit_metric].get_sqla_col()
+            ob = metrics_by_name[series_limit_metric].get_sqla_col()
         else:
             raise QueryObjectValidationError(
-                _("Metric '%(metric)s' does not exist", metric=timeseries_limit_metric)
+                _("Metric '%(metric)s' does not exist", metric=series_limit_metric)
             )
         return ob
 
-    def _get_top_groups(  # pylint: disable=no-self-use
-        self,
-        df: pd.DataFrame,
-        dimensions: List[str],
-        groupby_exprs: "OrderedDict[str, Any]",
+    @staticmethod
+    def _get_top_groups(
+        df: pd.DataFrame, dimensions: List[str], groupby_exprs: Dict[str, Any],
     ) -> ColumnElement:
         groups = []
         for _unused, row in df.iterrows():
