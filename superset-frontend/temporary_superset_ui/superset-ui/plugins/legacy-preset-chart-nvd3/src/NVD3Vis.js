@@ -19,9 +19,9 @@
  */
 import { kebabCase, throttle } from 'lodash';
 import d3 from 'd3';
-import nv from 'nvd3-fork';
-import { parse as mathjsParse } from 'mathjs';
 import moment from 'moment';
+import mexp from 'math-expression-evaluator';
+import nv from 'nvd3-fork';
 import PropTypes from 'prop-types';
 import {
   t,
@@ -919,9 +919,9 @@ function nvd3Vis(element, props) {
       // The below code should be run AFTER rendering because chart is updated in call()
       if (isTimeSeries && activeAnnotationLayers.length > 0) {
         // Formula annotations
-        const formulas = activeAnnotationLayers
-          .filter(a => a.annotationType === ANNOTATION_TYPES.FORMULA)
-          .map(a => ({ ...a, formula: mathjsParse(a.value) }));
+        const formulas = activeAnnotationLayers.filter(
+          a => a.annotationType === ANNOTATION_TYPES.FORMULA,
+        );
 
         let xMax;
         let xMin;
@@ -946,6 +946,13 @@ function nvd3Vis(element, props) {
         }
 
         if (formulas.length > 0) {
+          const token = {
+            type: 3,
+            token: 'x',
+            show: 'x',
+            value: 'x',
+          };
+
           const xValues = [];
           if (vizType === 'bar') {
             // For bar-charts we want one data point evaluated for every
@@ -973,13 +980,21 @@ function nvd3Vis(element, props) {
             }
             xValues.push(xMax);
           }
-          const formulaData = formulas.map(fo => ({
-            key: fo.name,
-            values: xValues.map(x => ({ y: fo.formula.evaluate({ x }), x })),
-            color: fo.color,
-            strokeWidth: fo.width,
-            classed: `${fo.opacity} ${fo.style}`,
-          }));
+          const formulaData = formulas.map(fo => {
+            const { value: expression } = fo;
+            const subExpressions = String(expression).split('=');
+
+            return {
+              key: fo.name,
+              values: xValues.map(x => ({
+                x,
+                y: mexp.eval(subExpressions[1] ?? subExpressions[0], [token], { x }),
+              })),
+              color: fo.color,
+              strokeWidth: fo.width,
+              classed: `${fo.opacity} ${fo.style}`,
+            };
+          });
           data.push(...formulaData);
         }
         const xAxis = chart.xAxis1 ? chart.xAxis1 : chart.xAxis;
