@@ -18,6 +18,8 @@
 import textwrap
 import unittest
 from unittest import mock
+
+from superset.exceptions import SupersetException
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
 )
@@ -336,6 +338,18 @@ class TestDatabaseModel(SupersetTestCase):
 
             df = main_db.get_df("USE superset; SELECT ';';", None)
             self.assertEqual(df.iat[0, 0], ";")
+
+    @mock.patch("superset.models.core.create_engine")
+    def test_get_sqla_engine(self, mocked_create_engine):
+        model = Database(
+            database_name="test_database", sqlalchemy_uri="mysql://root@localhost",
+        )
+        model.db_engine_spec.get_dbapi_exception_mapping = mock.Mock(
+            return_value={Exception: SupersetException}
+        )
+        mocked_create_engine.side_effect = Exception()
+        with self.assertRaises(SupersetException):
+            model.get_sqla_engine()
 
 
 class TestSqlaTableModel(SupersetTestCase):
