@@ -104,7 +104,7 @@ from superset.typing import FlaskResponse
 from superset.utils import core as utils, csv
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
-from superset.utils.core import ReservedUrlParameters
+from superset.utils.core import apply_max_row_limit, ReservedUrlParameters
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import check_dashboard_access
 from superset.utils.sqllab_execution_context import SqlJsonExecutionContext
@@ -897,8 +897,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return json_error_response(DATASOURCE_MISSING_ERR)
 
         datasource.raise_for_access()
+        row_limit = apply_max_row_limit(config["FILTER_SELECT_ROW_LIMIT"])
         payload = json.dumps(
-            datasource.values_for_column(column, config["FILTER_SELECT_ROW_LIMIT"]),
+            datasource.values_for_column(column, row_limit),
             default=utils.json_int_dttm_ser,
             ignore_nan=True,
         )
