@@ -224,7 +224,6 @@ export function transformFormulaAnnotation(
     smooth: true,
     data: evalFormula(layer, data),
     symbolSize: 0,
-    z: 0,
   };
 }
 

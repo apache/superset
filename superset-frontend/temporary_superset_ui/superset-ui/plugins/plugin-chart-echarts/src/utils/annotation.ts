@@ -28,18 +28,24 @@ import {
   isTimeseriesAnnotationResult,
   TimeseriesDataRecord,
 } from '@superset-ui/core';
-import { parse as mathjsParse } from 'mathjs';
+import mexp from 'math-expression-evaluator';
 
 export function evalFormula(
   formula: AnnotationLayer,
   data: TimeseriesDataRecord[],
 ): [Date, number][] {
-  const { value } = formula;
-  const node = mathjsParse(value as string);
-  const func = node.compile();
+  const token = {
+    type: 3,
+    token: 'x',
+    show: 'x',
+    value: 'x',
+  };
+  const { value: expression } = formula;
+  const subExpressions = String(expression).split('=');
+
   return data.map(row => [
     new Date(Number(row.__timestamp)),
-    func.evaluate({ x: row.__timestamp }) as number,
+    Number(mexp.eval(subExpressions[1] ?? subExpressions[0], [token], { x: row.__timestamp })),
   ]);
 }
 

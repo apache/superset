@@ -16,8 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AnnotationLayer, AnnotationResult } from '@superset-ui/core';
 import {
+  AnnotationLayer,
+  AnnotationOpacity,
+  AnnotationResult,
+  AnnotationSourceType,
+  AnnotationStyle,
+  AnnotationType,
+  FormulaAnnotationLayer,
+  TimeseriesDataRecord,
+} from '@superset-ui/core';
+import {
+  evalFormula,
   extractAnnotationLabels,
   formatAnnotationLabel,
   parseAnnotationOpacity,
@@ -53,10 +63,10 @@ describe('formatAnnotationLabel', () => {
 
 describe('extractForecastSeriesContext', () => {
   it('should extract the correct series name and type', () => {
-    expect(parseAnnotationOpacity('opacityLow')).toEqual(0.2);
-    expect(parseAnnotationOpacity('opacityMedium')).toEqual(0.5);
-    expect(parseAnnotationOpacity('opacityHigh')).toEqual(0.8);
-    expect(parseAnnotationOpacity('')).toEqual(1);
+    expect(parseAnnotationOpacity(AnnotationOpacity.Low)).toEqual(0.2);
+    expect(parseAnnotationOpacity(AnnotationOpacity.Medium)).toEqual(0.5);
+    expect(parseAnnotationOpacity(AnnotationOpacity.High)).toEqual(0.8);
+    expect(parseAnnotationOpacity(AnnotationOpacity.Undefined)).toEqual(1);
     expect(parseAnnotationOpacity(undefined)).toEqual(1);
   });
 });
@@ -65,41 +75,41 @@ describe('extractAnnotationLabels', () => {
   it('should extract all annotations that can be added to the legend', () => {
     const layers: AnnotationLayer[] = [
       {
-        annotationType: 'FORMULA',
+        annotationType: AnnotationType.Formula,
         name: 'My Formula',
         show: true,
-        style: 'solid',
+        style: AnnotationStyle.Solid,
         value: 'sin(x)',
       },
       {
-        annotationType: 'FORMULA',
+        annotationType: AnnotationType.Formula,
         name: 'My Hidden Formula',
         show: false,
-        style: 'solid',
+        style: AnnotationStyle.Solid,
         value: 'sin(2x)',
       },
       {
-        annotationType: 'INTERVAL',
+        annotationType: AnnotationType.Interval,
         name: 'My Interval',
-        sourceType: 'table',
+        sourceType: AnnotationSourceType.Table,
         show: true,
-        style: 'solid',
+        style: AnnotationStyle.Solid,
         value: 1,
       },
       {
-        annotationType: 'TIME_SERIES',
+        annotationType: AnnotationType.Timeseries,
         name: 'My Line',
         show: true,
-        style: 'dashed',
-        sourceType: 'line',
+        style: AnnotationStyle.Dashed,
+        sourceType: AnnotationSourceType.Line,
         value: 1,
       },
       {
-        annotationType: 'TIME_SERIES',
+        annotationType: AnnotationType.Timeseries,
         name: 'My Hidden Line',
         show: false,
-        style: 'dashed',
-        sourceType: 'line',
+        style: AnnotationStyle.Dashed,
+        sourceType: AnnotationSourceType.Line,
         value: 1,
       },
     ];
@@ -115,5 +125,32 @@ describe('extractAnnotationLabels', () => {
     };
 
     expect(extractAnnotationLabels(layers, results)).toEqual(['My Formula', 'Line 1', 'Line 2']);
+  });
+});
+
+describe('evalFormula', () => {
+  const layer: FormulaAnnotationLayer = {
+    annotationType: AnnotationType.Formula,
+    name: 'My Formula',
+    show: true,
+    style: AnnotationStyle.Solid,
+    value: 'x+1',
+  };
+  it('Should evaluate a regular formula', () => {
+    const data: TimeseriesDataRecord[] = [{ __timestamp: 0 }, { __timestamp: 10 }];
+
+    expect(evalFormula(layer, data)).toEqual([
+      [new Date(0), 1],
+      [new Date(10), 11],
+    ]);
+  });
+
+  it('Should evaluate a formula containing redundant characters', () => {
+    const data: TimeseriesDataRecord[] = [{ __timestamp: 0 }, { __timestamp: 10 }];
+
+    expect(evalFormula({ ...layer, value: 'y  = x* 2   -1' }, data)).toEqual([
+      [new Date(0), -1],
+      [new Date(10), 19],
+    ]);
   });
 });
