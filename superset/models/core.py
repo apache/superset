@@ -372,7 +372,10 @@ class Database(
                 sqlalchemy_url, params, effective_username, security_manager, source
             )
 
-        return create_engine(sqlalchemy_url, **params)
+        try:
+            return create_engine(sqlalchemy_url, **params)
+        except Exception as ex:
+            raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
 
     def get_reserved_words(self) -> Set[str]:
         return self.get_dialect().preparer.reserved_words
