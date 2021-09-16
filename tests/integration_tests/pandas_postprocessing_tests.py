@@ -513,7 +513,7 @@ class TestPostProcessing(SupersetTestCase):
             post_df.columns.tolist(), ["label", "y", "z", "percentage__y__z",]
         )
         self.assertListEqual(
-            series_to_list(post_df["percentage__y__z"]), [0.0, -1.0, -4.0, -3],
+            series_to_list(post_df["percentage__y__z"]), [0.0, -0.5, -0.8, -0.75],
         )
 
         # `ratio` comparison

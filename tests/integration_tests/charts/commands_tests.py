@@ -14,8 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=no-self-use, invalid-name
-
 import json
 from datetime import datetime
 from unittest.mock import patch
@@ -136,8 +134,10 @@ class TestExportChartsCommand(SupersetTestCase):
 
 
 class TestImportChartsCommand(SupersetTestCase):
-    def test_import_v1_chart(self):
+    @patch("superset.charts.commands.importers.v1.utils.g")
+    def test_import_v1_chart(self, mock_g):
         """Test that we can import a chart"""
+        mock_g.user = security_manager.find_user("admin")
         contents = {
             "metadata.yaml": yaml.safe_dump(chart_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
@@ -226,6 +226,11 @@ class TestImportChartsCommand(SupersetTestCase):
         assert database.database_name == "imported_database"
         assert chart.table.database == database
 
+        assert chart.owners == [mock_g.user]
+
+        chart.owners = []
+        dataset.owners = []
+        database.owners = []
         db.session.delete(chart)
         db.session.delete(dataset)
         db.session.delete(database)
@@ -313,7 +318,7 @@ class TestChartsUpdateCommand(SupersetTestCase):
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_update_v1_response(self, mock_sm_g, mock_g):
-        """"Test that a chart command updates properties"""
+        """Test that a chart command updates properties"""
         pk = db.session.query(Slice).all()[0].id
         actor = security_manager.find_user(username="admin")
         mock_g.user = mock_sm_g.user = actor
@@ -334,7 +339,7 @@ class TestChartsUpdateCommand(SupersetTestCase):
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_query_context_update_command(self, mock_sm_g, mock_g):
-        """"
+        """
         Test that a user can generate the chart query context
         payloadwithout affecting owners
         """

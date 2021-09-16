@@ -470,9 +470,8 @@ def diff(
     return _append_columns(df, df_diff, columns)
 
 
-# pylint: disable=too-many-arguments
 @validate_column_args("source_columns", "compare_columns")
-def compare(
+def compare(  # pylint: disable=too-many-arguments
     df: DataFrame,
     source_columns: List[str],
     compare_columns: List[str],
@@ -509,7 +508,7 @@ def compare(
             diff_series = df[s_col] - df[c_col]
         elif compare_type == PandasPostprocessingCompare.PCT:
             diff_series = (
-                ((df[s_col] - df[c_col]) / df[s_col]).astype(float).round(precision)
+                ((df[s_col] - df[c_col]) / df[c_col]).astype(float).round(precision)
             )
         else:
             # compare_type == "ratio"
