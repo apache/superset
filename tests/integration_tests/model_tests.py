@@ -432,6 +432,7 @@ class TestSqlaTableModel(SupersetTestCase):
             from_dttm=None,
             to_dttm=None,
             extras=dict(time_grain_sqla="P1Y"),
+            series_limit=15 if inner_join and is_timeseries else None,
         )
         qr = tbl.query(query_obj)
         self.assertEqual(qr.status, QueryStatus.SUCCESS)
