@@ -3,12 +3,6 @@ trigger:
   branches:
     include:
       - cccs-*
-      - feature/CLDN-*
-  paths:
-    include:
-      - '*'
-    exclude:
-      - cccs-build/superset
 
 variables:
   containerRegistry: uchimera
