@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-# pylint: disable=too-many-public-methods, no-self-use, invalid-name, too-many-arguments
 """Unit tests for Superset"""
 import json
 

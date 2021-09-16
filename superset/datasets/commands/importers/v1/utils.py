@@ -22,7 +22,7 @@ from typing import Any, Dict
 from urllib import request
 
 import pandas as pd
-from flask import current_app
+from flask import current_app, g
 from sqlalchemy import BigInteger, Boolean, Date, DateTime, Float, String, Text
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.visitors import VisitableType
@@ -126,6 +126,9 @@ def import_dataset(
 
     if data_uri and (not table_exists or force_data):
         load_data(data_uri, dataset, example_database, session)
+
+    if hasattr(g, "user") and g.user:
+        dataset.owners.append(g.user)
 
     return dataset
 

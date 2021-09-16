@@ -25,6 +25,9 @@ assists people when migrating to a new version.
 ## Next
 
 ### Breaking Changes
+
+- [16711](https://github.com/apache/incubator-superset/pull/16711): The `url_param` Jinja function will now by default escape the result. For instance, the value `O'Brien` will now be changed to `O''Brien`. To disable this behavior, call `url_param` with `escape_result` set to `False`: `url_param("my_key", "my default", escape_result=False)`.
+
 ### Potential Downtime
 ### Deprecations
 ### Other
