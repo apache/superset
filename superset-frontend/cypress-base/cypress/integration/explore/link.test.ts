@@ -129,6 +129,8 @@ describe('Test explore links', () => {
       .find('input[aria-label="Select a dashboard"]')
       .type(`${dashboardTitle}`, { force: true });
 
+    cy.get(`.ant-select-item[label="${dashboardTitle}"]`).click();
+
     cy.get('[data-test="btn-modal-save"]').click();
     cy.verifySliceSuccess({ waitAlias: '@chartData' });
     let query = {
@@ -154,7 +156,9 @@ describe('Test explore links', () => {
     // will select the existing one
     cy.get('[data-test="save-chart-modal-select-dashboard-form"]')
       .find('input[aria-label="Select a dashboard"]')
-      .type(`${dashboardTitle}`, { force: true });
+      .type(`${dashboardTitle}{enter}`, { force: true });
+
+    cy.get(`.ant-select-item[label="${dashboardTitle}"]`).click();
 
     cy.get('[data-test="btn-modal-save"]').click();
     cy.verifySliceSuccess({ waitAlias: '@chartData' });
