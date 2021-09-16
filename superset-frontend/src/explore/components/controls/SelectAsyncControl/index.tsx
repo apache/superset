@@ -21,7 +21,7 @@ import { t, SupersetClient } from '@superset-ui/core';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Select } from 'src/components';
 import { SelectProps, OptionsType } from 'src/components/Select/Select';
-import { SelectValue } from 'antd/lib/select';
+import { SelectValue, LabeledValue } from 'antd/lib/select';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 
 type SelectAsyncProps = Omit<SelectProps, 'options' | 'ariaLabel'>;
@@ -46,34 +46,49 @@ const SelectAsyncControl = ({
   dataEndpoint,
   multi = true,
   mutator,
+  onChange,
   value,
   ...props
 }: SelectAsyncControlProps) => {
   const [options, setOptions] = useState<OptionsType>([]);
-  const loadOptions = () =>
-    SupersetClient.get({
-      endpoint: dataEndpoint,
-    }).then(response => {
-      const data = mutator ? mutator(response.json) : response.json.result;
-      setOptions(data);
-    });
+
+  const handleOnChange = (val: SelectValue) => {
+    let onChangeVal = val;
+    if (Array.isArray(val)) {
+      const values = val.map(v => (v as LabeledValue).value || v);
+      onChangeVal = values as string[] | number[];
+    }
+    if (typeof val === 'object') {
+      onChangeVal = (val as LabeledValue).value;
+    }
+    onChange?.(onChangeVal, options);
+  };
 
   useEffect(() => {
+    const loadOptions = () =>
+      SupersetClient.get({
+        endpoint: dataEndpoint,
+      }).then(response => {
+        const data = mutator ? mutator(response.json) : response.json.result;
+        setOptions(data);
+      });
     loadOptions();
-  }, []);
+  }, [dataEndpoint, mutator]);
 
   return (
     <div data-test="SelectAsyncControl">
       <Select
+        {...props}
+        allowClear={allowClear}
         ariaLabel={ariaLabel || t('Select ...')}
         value={value || props.default || undefined}
         header={<ControlHeader {...props} />}
         mode={multi ? 'multiple' : 'single'}
+        onChange={handleOnChange}
         onError={error =>
           addDangerToast(`${t('Error while fetching data')}: ${error}`)
         }
         options={options}
-        {...props}
       />
     </div>
   );
