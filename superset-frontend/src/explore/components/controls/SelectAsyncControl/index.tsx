@@ -33,11 +33,11 @@ interface SelectAsyncControlProps extends SelectAsyncProps {
   default?: SelectValue;
   mutator?: (response: Record<string, any>) => OptionsType;
   multi?: boolean;
+  onChange: (val: SelectValue) => void;
   // ControlHeader related props
   description?: string;
   hovered?: boolean;
   label?: string;
-  onChange: (val: SelectValue) => void;
 }
 
 const SelectAsyncControl = ({
@@ -79,7 +79,6 @@ const SelectAsyncControl = ({
   return (
     <div data-test="SelectAsyncControl">
       <Select
-        {...props}
         allowClear={allowClear}
         ariaLabel={ariaLabel || t('Select ...')}
         value={value || props.default || undefined}
