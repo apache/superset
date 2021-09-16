@@ -24,7 +24,7 @@ import { SelectProps, OptionsType } from 'src/components/Select/Select';
 import { SelectValue, LabeledValue } from 'antd/lib/select';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 
-type SelectAsyncProps = Omit<SelectProps, 'options' | 'ariaLabel'>;
+type SelectAsyncProps = Omit<SelectProps, 'options' | 'ariaLabel' | 'onChange'>;
 
 interface SelectAsyncControlProps extends SelectAsyncProps {
   addDangerToast: (error: string) => void;
@@ -37,6 +37,7 @@ interface SelectAsyncControlProps extends SelectAsyncProps {
   description?: string;
   hovered?: boolean;
   label?: string;
+  onChange: (val: SelectValue) => void;
 }
 
 const SelectAsyncControl = ({
@@ -55,13 +56,13 @@ const SelectAsyncControl = ({
   const handleOnChange = (val: SelectValue) => {
     let onChangeVal = val;
     if (Array.isArray(val)) {
-      const values = val.map(v => (v as LabeledValue).value || v);
+      const values = val.map(v => (v as LabeledValue)?.value || v);
       onChangeVal = values as string[] | number[];
     }
-    if (typeof val === 'object') {
+    if (typeof val === 'object' && (val as LabeledValue)?.value) {
       onChangeVal = (val as LabeledValue).value;
     }
-    onChange?.(onChangeVal, options);
+    onChange(onChangeVal);
   };
 
   useEffect(() => {
