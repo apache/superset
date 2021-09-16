@@ -43,7 +43,7 @@ from superset.utils.hashing import md5_sha_from_dict
 from superset.views.utils import get_time_range_endpoints
 
 if TYPE_CHECKING:
-    from superset.common.query_context import QueryContext
+    from superset.common.query_context import QueryContext  # pragma: no cover
 
 
 config = app.config

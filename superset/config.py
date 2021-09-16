@@ -121,7 +121,7 @@ BUILD_NUMBER = None
 # default viz used in chart explorer
 DEFAULT_VIZ_TYPE = "table"
 
-# default row limit to apply to chart data requests unless if unset
+# default row limit when requesting chart data
 ROW_LIMIT = 50000
 # default row limit when requesting samples from datasource in explore view
 SAMPLES_ROW_LIMIT = 1000
@@ -671,8 +671,7 @@ QUERY_LOGGER = None
 # Set this API key to enable Mapbox visualizations
 MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
 
-# Maximum number of rows returned from a database, both SQL Lab, chart data
-# requests and CSV exports
+# Maximum number of rows returned for any analytical database query
 SQL_MAX_ROW = 100000
 
 # Maximum number of rows displayed in SQL Lab UI
@@ -1295,7 +1294,7 @@ if CONFIG_PATH_ENV_VAR in os.environ:
 elif importlib.util.find_spec("superset_config") and not is_test():
     try:
         import superset_config  # pylint: disable=import-error
-        from superset_config import *  # pylint: disable=import-error,wildcard-import
+        from superset_config import *  # type: ignore # pylint: disable=import-error,wildcard-import
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:
