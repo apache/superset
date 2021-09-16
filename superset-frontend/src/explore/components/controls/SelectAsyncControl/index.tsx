@@ -82,7 +82,9 @@ const SelectAsyncControl = ({
       <Select
         allowClear={allowClear}
         ariaLabel={ariaLabel || t('Select ...')}
-        value={value || props.default || undefined}
+        value={
+          value || (props.default !== undefined ? props.default : undefined)
+        }
         header={<ControlHeader {...props} />}
         mode={multi ? 'multiple' : 'single'}
         onChange={handleOnChange}
