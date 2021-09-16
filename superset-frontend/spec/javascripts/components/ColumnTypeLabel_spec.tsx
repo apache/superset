@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, cleanup } from 'spec/helpers/testing-library';
 
 import {
   ColumnTypeLabel,
@@ -36,6 +36,7 @@ const setup = (overrides?: ColumnTypeLabelProps) => (
 );
 
 describe('ColumnOption RTL', () => {
+  afterEach(cleanup);
   it('is a valid element', () => {
     expect(React.isValidElement(<ColumnTypeLabel {...defaultProps} />)).toBe(
       true,
@@ -71,11 +72,10 @@ describe('ColumnOption RTL', () => {
   });
 
   it('unknown type shows question mark', () => {
-    render(setup({ type: 'unknown' }));
+    render(setup({ type: undefined }));
 
     const labelIcon = screen.getByText('?');
     expect(labelIcon.innerHTML).toMatch('?');
-    expect(labelIcon).not.toMatch('ƒ');
   });
 
   it('datetime type displays', () => {
