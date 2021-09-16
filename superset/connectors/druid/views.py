@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=too-many-ancestors
 import json
 import logging
 from datetime import datetime
@@ -62,7 +61,9 @@ class EnsureEnabledMixin:
             raise NotFound()
 
 
-class DruidColumnInlineView(CompactCRUDMixin, EnsureEnabledMixin, SupersetModelView):
+class DruidColumnInlineView(  # pylint: disable=too-many-ancestors
+    CompactCRUDMixin, EnsureEnabledMixin, SupersetModelView,
+):
     datamodel = SQLAInterface(models.DruidColumn)
     include_route_methods = RouteMethod.RELATED_VIEW_SET
 
@@ -149,7 +150,9 @@ class DruidColumnInlineView(CompactCRUDMixin, EnsureEnabledMixin, SupersetModelV
         self.post_update(item)
 
 
-class DruidMetricInlineView(CompactCRUDMixin, EnsureEnabledMixin, SupersetModelView):
+class DruidMetricInlineView(  # pylint: disable=too-many-ancestors
+    CompactCRUDMixin, EnsureEnabledMixin, SupersetModelView,
+):
     datamodel = SQLAInterface(models.DruidMetric)
     include_route_methods = RouteMethod.RELATED_VIEW_SET
 
@@ -202,7 +205,7 @@ class DruidMetricInlineView(CompactCRUDMixin, EnsureEnabledMixin, SupersetModelV
     edit_form_extra_fields = add_form_extra_fields
 
 
-class DruidClusterModelView(
+class DruidClusterModelView(  # pylint: disable=too-many-ancestors
     EnsureEnabledMixin, SupersetModelView, DeleteMixin, YamlExportMixin,
 ):
     datamodel = SQLAInterface(models.DruidCluster)
@@ -266,7 +269,7 @@ class DruidClusterModelView(
         DeleteMixin._delete(self, pk)
 
 
-class DruidDatasourceModelView(
+class DruidDatasourceModelView(  # pylint: disable=too-many-ancestors
     EnsureEnabledMixin, DatasourceModelView, DeleteMixin, YamlExportMixin,
 ):
     datamodel = SQLAInterface(models.DruidDatasource)

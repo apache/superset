@@ -371,8 +371,8 @@ export const hydrateDashboard = (dashboardData, chartData) => (
         // only persistent refreshFrequency will be saved to backend
         shouldPersistRefreshFrequency: false,
         css: dashboardData.css || '',
-        colorNamespace: metadata?.color_namespace,
-        colorScheme: metadata?.color_scheme,
+        colorNamespace: metadata?.color_namespace || null,
+        colorScheme: metadata?.color_scheme || null,
         editMode: canEdit && editMode,
         isPublished: dashboardData.published,
         hasUnsavedChanges: false,
