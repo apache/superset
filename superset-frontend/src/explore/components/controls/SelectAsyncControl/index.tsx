@@ -48,6 +48,7 @@ const SelectAsyncControl = ({
   multi = true,
   mutator,
   onChange,
+  placeholder,
   value,
   ...props
 }: SelectAsyncControlProps) => {
@@ -89,6 +90,7 @@ const SelectAsyncControl = ({
           addDangerToast(`${t('Error while fetching data')}: ${error}`)
         }
         options={options}
+        placeholder={placeholder}
       />
     </div>
   );
