@@ -18,7 +18,7 @@
 """Unit tests for Superset"""
 import json
 import unittest
-from datetime import datetime, timedelta
+from datetime import datetime
 from io import BytesIO
 from typing import Optional
 from unittest import mock
@@ -35,7 +35,7 @@ import humanize
 import prison
 import pytest
 import yaml
-from sqlalchemy import and_, or_
+from sqlalchemy import and_
 from sqlalchemy.sql import func
 
 from tests.integration_tests.fixtures.world_bank_dashboard import (
@@ -1211,7 +1211,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
-        "superset.common.query_object.config", {**app.config, "SQL_MAX_ROW": 10},
+        "superset.utils.core.current_app.config", {**app.config, "SQL_MAX_ROW": 10},
     )
     def test_chart_data_sql_max_row_limit(self):
         """
@@ -1263,7 +1263,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
-        "superset.common.query_object.config", {**app.config, "SQL_MAX_ROW": 5},
+        "superset.utils.core.current_app.config", {**app.config, "SQL_MAX_ROW": 5},
     )
     def test_chart_data_sql_max_row_sample_limit(self):
         """

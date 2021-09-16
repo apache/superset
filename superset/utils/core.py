@@ -1764,27 +1764,23 @@ def parse_boolean_string(bool_str: Optional[str]) -> bool:
         return False
 
 
-def apply_max_row_limit(max_limit: Optional[int], limit: int) -> int:
+def apply_max_row_limit(limit: int, max_limit: Optional[int] = None,) -> int:
     """
     Override row limit if max global limit is defined
 
-    :param max_limit: Maximum allowed row limit
     :param limit: requested row limit
+    :param max_limit: Maximum allowed row limit
     :return: Capped row limit
 
-    >>> apply_max_row_limit(None, 10000)
-    10000
     >>> apply_max_row_limit(100000, 10)
     10
     >>> apply_max_row_limit(10, 100000)
     10
-    >>> apply_max_row_limit(10, 0)
-    10
-    >>> apply_max_row_limit(0, 0)
-    0
+    >>> apply_max_row_limit(0, 10000)
+    10000
     """
-    if max_limit is not None and max_limit != 0:
-        if limit != 0:
-            return min(max_limit, limit)
-        return max_limit
-    return limit
+    if max_limit is None:
+        max_limit = current_app.config["SQL_MAX_ROW"]
+    if limit != 0:
+        return min(max_limit, limit)
+    return max_limit

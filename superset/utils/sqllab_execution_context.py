@@ -23,7 +23,7 @@ from typing import Any, cast, Dict, Optional, TYPE_CHECKING
 
 from flask import g
 
-from superset import app, is_feature_enabled
+from superset import is_feature_enabled
 from superset.models.sql_lab import Query
 from superset.sql_parse import CtasMethod
 from superset.utils import core as utils
@@ -103,9 +103,7 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
 
     @staticmethod
     def _get_limit_param(query_params: Dict[str, Any]) -> int:
-        limit = apply_max_row_limit(
-            app.config["SQL_MAX_ROW"], query_params.get("queryLimit") or 0
-        )
+        limit = apply_max_row_limit(query_params.get("queryLimit") or 0)
         if limit < 0:
             logger.warning(
                 "Invalid limit of %i specified. Defaulting to max limit.", limit

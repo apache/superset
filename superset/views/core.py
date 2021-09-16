@@ -897,9 +897,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return json_error_response(DATASOURCE_MISSING_ERR)
 
         datasource.raise_for_access()
-        row_limit = apply_max_row_limit(
-            config["SQL_MAX_ROW"], config["FILTER_SELECT_ROW_LIMIT"]
-        )
+        row_limit = apply_max_row_limit(config["FILTER_SELECT_ROW_LIMIT"])
         payload = json.dumps(
             datasource.values_for_column(column, row_limit),
             default=utils.json_int_dttm_ser,
