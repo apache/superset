@@ -4,7 +4,7 @@ authlib==0.15.4
 # Required for our custom logger
 python-json-logger==2.0.2
 
-# Additional drivers for Superset (or SQLAlchemy) to use 
+# Additional drivers for Superset (or SQLAlchemy) to use
 git+https://github.com/cccs-tom/sqlalchemy-trino.git@feature/fix-timestamp-datatype
 mysql-connector-python==8.0.26
 elasticsearch-dbapi==0.2.4
