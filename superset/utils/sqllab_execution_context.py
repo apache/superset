@@ -56,6 +56,8 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
     expand_data: bool
     create_table_as_select: Optional[CreateTableAsSelect]
     database: Optional[Database]
+    query: Query
+    _sql_result: Optional[SqlResults]
 
     def __init__(self, query_params: Dict[str, Any]):
         self.create_table_as_select = None
@@ -63,6 +65,9 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
         self._init_from_query_params(query_params)
         self.user_id = self._get_user_id()
         self.client_id_or_short_id = cast(str, self.client_id or utils.shortid()[:10])
+
+    def set_query(self, query: Query) -> None:
+        self.query = query
 
     def _init_from_query_params(self, query_params: Dict[str, Any]) -> None:
         self.database_id = cast(int, query_params.get("database_id"))
@@ -133,6 +138,12 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
     def _validate_db(self, database: Database) -> None:
         # TODO validate db.id is equal to self.database_id
         pass
+
+    def get_execution_result(self) -> Optional[SqlResults]:
+        return self._sql_result
+
+    def set_execution_result(self, sql_result: Optional[SqlResults]) -> None:
+        self._sql_result = sql_result
 
     def create_query(self) -> Query:
         # pylint: disable=line-too-long

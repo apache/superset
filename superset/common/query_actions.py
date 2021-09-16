@@ -135,7 +135,6 @@ def _get_samples(
     query_obj = copy.copy(query_obj)
     query_obj.is_timeseries = False
     query_obj.orderby = []
-    query_obj.groupby = []
     query_obj.metrics = []
     query_obj.post_processing = []
     query_obj.row_limit = min(row_limit, config["SAMPLES_ROW_LIMIT"])
