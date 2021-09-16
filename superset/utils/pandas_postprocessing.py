@@ -508,7 +508,7 @@ def compare(  # pylint: disable=too-many-arguments
             diff_series = df[s_col] - df[c_col]
         elif compare_type == PandasPostprocessingCompare.PCT:
             diff_series = (
-                ((df[s_col] - df[c_col]) / df[s_col]).astype(float).round(precision)
+                ((df[s_col] - df[c_col]) / df[c_col]).astype(float).round(precision)
             )
         else:
             # compare_type == "ratio"
