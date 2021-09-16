@@ -90,6 +90,7 @@ class TestQueryContext(SupersetTestCase):
                 self.assertEqual(post_proc["operation"], payload_post_proc["operation"])
                 self.assertEqual(post_proc["options"], payload_post_proc["options"])
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_cache(self):
         table_name = "birth_names"
         table = self.get_table(name=table_name)

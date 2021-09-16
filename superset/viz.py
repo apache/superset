@@ -21,7 +21,7 @@ These objects represent the backend of all the visualizations that
 Superset can render.
 """
 import copy
-import inspect
+import dataclasses
 import logging
 import math
 import re
@@ -70,6 +70,7 @@ from superset.typing import Metric, QueryObjectDict, VizData, VizPayload
 from superset.utils import core as utils, csv
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import (
+    apply_max_row_limit,
     DTTM_ALIAS,
     ExtraFiltersReasonType,
     JS_MAX_INTEGER,
@@ -80,9 +81,6 @@ from superset.utils.core import (
 from superset.utils.date_parser import get_since_until, parse_past_timedelta
 from superset.utils.dates import datetime_to_epoch
 from superset.utils.hashing import md5_sha_from_str
-
-import dataclasses  # isort:skip
-
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
@@ -110,7 +108,7 @@ METRIC_KEYS = [
 FILTER_VALUES_REGEX = re.compile(r"filter_values\(['\"](\w+)['\"]\,")
 
 
-class BaseViz:
+class BaseViz:  # pylint: disable=too-many-public-methods
 
     """All visualizations derive this base class"""
 
@@ -332,6 +330,7 @@ class BaseViz:
         limit = int(form_data.get("limit") or 0)
         timeseries_limit_metric = form_data.get("timeseries_limit_metric")
         row_limit = int(form_data.get("row_limit") or config["ROW_LIMIT"])
+        row_limit = apply_max_row_limit(row_limit)
 
         # default order direction
         order_desc = form_data.get("order_desc", True)
@@ -556,7 +555,7 @@ class BaseViz:
                 )
                 self.errors.append(error)
                 self.status = utils.QueryStatus.FAILED
-            except Exception as ex:
+            except Exception as ex:  # pylint: disable=broad-except
                 logger.exception(ex)
 
                 error = dataclasses.asdict(
@@ -625,7 +624,7 @@ class BaseViz:
         include_index = not isinstance(df.index, pd.RangeIndex)
         return csv.df_to_escaped_csv(df, index=include_index, **config["CSV_EXPORT"])
 
-    def get_data(self, df: pd.DataFrame) -> VizData:
+    def get_data(self, df: pd.DataFrame) -> VizData:  # pylint: disable=no-self-use
         return df.to_dict(orient="records")
 
     @property
@@ -1242,7 +1241,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
             d["orderby"] = [(sort_by, is_asc)]
         return d
 
-    def to_series(
+    def to_series(  # pylint: disable=too-many-branches
         self, df: pd.DataFrame, classed: str = "", title_suffix: str = ""
     ) -> List[Dict[str, Any]]:
         cols = []
@@ -1446,6 +1445,7 @@ class MultiLineViz(NVD3Viz):
         return {}
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        # pylint: disable=import-outside-toplevel,too-many-locals
         multiline_fd = self.form_data
         # Late import to avoid circular import issues
         from superset.charts.dao import ChartDAO
@@ -1669,19 +1669,20 @@ class HistogramViz(BaseViz):
 
     def query_obj(self) -> QueryObjectDict:
         """Returns the query object for this visualization"""
-        d = super().query_obj()
-        d["row_limit"] = self.form_data.get("row_limit", int(config["VIZ_ROW_LIMIT"]))
+        query_obj = super().query_obj()
         numeric_columns = self.form_data.get("all_columns_x")
         if numeric_columns is None:
             raise QueryObjectValidationError(
                 _("Must have at least one numeric column specified")
             )
-        self.columns = numeric_columns
-        d["columns"] = numeric_columns + self.groupby
+        self.columns = (  #  pylint: disable=attribute-defined-outside-init
+            numeric_columns
+        )
+        query_obj["columns"] = numeric_columns + self.groupby
         # override groupby entry to avoid aggregation
-        d["groupby"] = None
-        d["metrics"] = None
-        return d
+        query_obj["groupby"] = None
+        query_obj["metrics"] = None
+        return query_obj
 
     def labelify(self, keys: Union[List[str], str], column: str) -> str:
         if isinstance(keys, str):
@@ -1751,7 +1752,7 @@ class DistributionBarViz(BaseViz):
 
         return d
 
-    def get_data(self, df: pd.DataFrame) -> VizData:
+    def get_data(self, df: pd.DataFrame) -> VizData:  # pylint: disable=too-many-locals
         if df.empty:
             return None
 
@@ -2061,6 +2062,7 @@ class FilterBoxViz(BaseViz):
         return {}
 
     def run_extra_queries(self) -> None:
+        # pylint: disable=import-outside-toplevel
         from superset.common.query_context import QueryContext
 
         qry = super().query_obj()
@@ -2373,6 +2375,7 @@ class DeckGLMultiLayer(BaseViz):
     def get_data(self, df: pd.DataFrame) -> VizData:
         fd = self.form_data
         # Late imports to avoid circular import issues
+        # pylint: disable=import-outside-toplevel
         from superset import db
         from superset.models.slice import Slice
 
@@ -2393,6 +2396,7 @@ class BaseDeckGLViz(BaseViz):
     spatial_control_keys: List[str] = []
 
     def get_metrics(self) -> List[str]:
+        # pylint: disable=attribute-defined-outside-init
         self.metric = self.form_data.get("size")
         return [self.metric] if self.metric else []
 
@@ -2557,15 +2561,18 @@ class DeckScatterViz(BaseDeckGLViz):
     is_timeseries = True
 
     def query_obj(self) -> QueryObjectDict:
-        fd = self.form_data
-        self.is_timeseries = bool(fd.get("time_grain_sqla") or fd.get("granularity"))
-        self.point_radius_fixed = fd.get("point_radius_fixed") or {
+        # pylint: disable=attribute-defined-outside-init
+        self.is_timeseries = bool(
+            self.form_data.get("time_grain_sqla") or self.form_data.get("granularity")
+        )
+        self.point_radius_fixed = self.form_data.get("point_radius_fixed") or {
             "type": "fix",
             "value": 500,
         }
         return super().query_obj()
 
     def get_metrics(self) -> List[str]:
+        # pylint: disable=attribute-defined-outside-init
         self.metric = None
         if self.point_radius_fixed.get("type") == "metric":
             self.metric = self.point_radius_fixed["value"]
