@@ -150,7 +150,6 @@ export default class FilterBoxItemControl extends React.Component {
                   { value: this.state.column, label: this.state.column },
                 ])}
               onChange={v => this.onControlChange('column', v)}
-              showSearch
             />
           }
         />
@@ -199,7 +198,6 @@ export default class FilterBoxItemControl extends React.Component {
                   { value: this.state.metric, label: this.state.metric },
                 ])}
               onChange={v => this.onControlChange('metric', v)}
-              showSearch
             />
           }
         />

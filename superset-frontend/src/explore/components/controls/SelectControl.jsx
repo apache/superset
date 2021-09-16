@@ -104,9 +104,19 @@ export default class SelectControl extends React.PureComponent {
 
   // Beware: This is acting like an on-click instead of an on-change
   // (firing every time user chooses vs firing only if a new option is chosen).
-  onChange(opt) {
+  onChange(val) {
     // will eventually call `exploreReducer`: SET_FIELD_VALUE
-    this.props.onChange(opt, []);
+    const { valueKey } = this.props;
+    let onChangeVal = val;
+
+    if (Array.isArray(val)) {
+      const values = val.map(v => v?.[valueKey] || v);
+      onChangeVal = values;
+    }
+    if (typeof val === 'object' && val?.[valueKey]) {
+      onChangeVal = val[valueKey];
+    }
+    this.props.onChange(onChangeVal, []);
   }
 
   getOptions(props) {
@@ -116,7 +126,8 @@ export default class SelectControl extends React.PureComponent {
       options = props.options.map(o => ({
         ...o,
         value: o[valueKey],
-        label: optionRenderer ? optionRenderer(o) : o.label || o[valueKey],
+        label: o.label || o[valueKey],
+        customLabel: optionRenderer ? optionRenderer(o) : undefined,
       }));
     } else if (choices) {
       // Accepts different formats of input
@@ -212,8 +223,9 @@ export default class SelectControl extends React.PureComponent {
       optionRenderer,
       options: this.state.options,
       placeholder,
-      showSearch: true,
-      value: value || this.props.default || undefined,
+      value:
+        value ||
+        (this.props.default !== undefined ? this.props.default : undefined),
     };
 
     return (
