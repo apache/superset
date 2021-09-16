@@ -127,12 +127,6 @@ const ColumnSelectPopover = ({
       initialCalculatedColumn?.column_name ||
     selectedSimpleColumn?.column_name !== initialSimpleColumn?.column_name;
 
-  const filterOption = useCallback(
-    (input, option) =>
-      option?.filterBy.toLowerCase().indexOf(input.toLowerCase()) >= 0,
-    [],
-  );
-
   return (
     <Form layout="vertical" id="metrics-edit-popover">
       <Tabs
