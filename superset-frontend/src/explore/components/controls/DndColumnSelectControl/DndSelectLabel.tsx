@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { useDrop } from 'react-dnd';
 import { t, useTheme } from '@superset-ui/core';
 import ControlHeader from 'src/explore/components/ControlHeader';
@@ -25,18 +25,35 @@ import {
   DndLabelsContainer,
   HeaderContainer,
 } from 'src/explore/components/controls/OptionControls';
-import { DatasourcePanelDndItem } from 'src/explore/components/DatasourcePanel/types';
+import {
+  DatasourcePanelDndItem,
+  DndItemValue,
+} from 'src/explore/components/DatasourcePanel/types';
 import Icons from 'src/components/Icons';
-import { DndColumnSelectProps } from './types';
+import { DndItemType } from '../../DndItemType';
 
-export default function DndSelectLabel<T, O>({
+export type DndSelectLabelProps = {
+  name: string;
+  accept: DndItemType | DndItemType[];
+  ghostButtonText?: string;
+  onDrop: (item: DatasourcePanelDndItem) => void;
+  canDrop: (item: DatasourcePanelDndItem) => boolean;
+  canDropValue?: (value: DndItemValue) => boolean;
+  onDropValue?: (value: DndItemValue) => void;
+  valuesRenderer: () => ReactNode;
+  displayGhostButton?: boolean;
+  onClickGhostButton?: () => void;
+};
+
+export default function DndSelectLabel({
   displayGhostButton = true,
+  accept,
   ...props
-}: DndColumnSelectProps<T, O>) {
+}: DndSelectLabelProps) {
   const theme = useTheme();
 
   const [{ isOver, canDrop }, datasourcePanelDrop] = useDrop({
-    accept: props.accept,
+    accept,
 
     drop: (item: DatasourcePanelDndItem) => {
       props.onDrop(item);
@@ -55,7 +72,10 @@ export default function DndSelectLabel<T, O>({
 
   function renderGhostButton() {
     return (
-      <AddControlLabel cancelHover>
+      <AddControlLabel
+        cancelHover={!props.onClickGhostButton}
+        onClick={props.onClickGhostButton}
+      >
         <Icons.PlusSmall iconColor={theme.colors.grayscale.light1} />
         {t(props.ghostButtonText || 'Drop columns here')}
       </AddControlLabel>

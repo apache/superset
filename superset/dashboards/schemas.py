@@ -89,8 +89,8 @@ openapi_spec_methods_override = {
 def validate_json(value: Union[bytes, bytearray, str]) -> None:
     try:
         utils.validate_json(value)
-    except SupersetException:
-        raise ValidationError("JSON not valid")
+    except SupersetException as ex:
+        raise ValidationError("JSON not valid") from ex
 
 
 def validate_json_metadata(value: Union[bytes, bytearray, str]) -> None:
@@ -98,8 +98,8 @@ def validate_json_metadata(value: Union[bytes, bytearray, str]) -> None:
         return
     try:
         value_obj = json.loads(value)
-    except json.decoder.JSONDecodeError:
-        raise ValidationError("JSON not valid")
+    except json.decoder.JSONDecodeError as ex:
+        raise ValidationError("JSON not valid") from ex
     errors = DashboardJSONMetadataSchema().validate(value_obj, partial=False)
     if errors:
         raise ValidationError(errors)
@@ -216,8 +216,6 @@ class BaseDashboardSchema(Schema):
             data["slug"] = data["slug"].replace(" ", "-")
             data["slug"] = re.sub(r"[^\w\-]+", "", data["slug"])
         return data
-
-    # pylint: disable=no-self-use,unused-argument
 
 
 class DashboardPostSchema(BaseDashboardSchema):

@@ -88,6 +88,7 @@ export interface SliceHeaderControlsProps {
     slice_name: string;
     slice_id: number;
     slice_description: string;
+    form_data?: { emit_filter?: boolean };
   };
 
   componentId: string;
@@ -229,6 +230,7 @@ class SliceHeaderControls extends React.PureComponent<
         value.behaviors?.includes(Behavior.INTERACTIVE_CHART),
       )
       .find(([key]) => key === slice.viz_type);
+    const canEmitCrossFilter = slice.form_data?.emit_filter;
 
     const cachedWhen = (cachedDttm || []).map(itemCachedDttm =>
       moment.utc(itemCachedDttm).fromNow(),
@@ -297,6 +299,8 @@ class SliceHeaderControls extends React.PureComponent<
               modalBody={
                 <ViewQueryModal latestQueryFormData={this.props.formData} />
               }
+              draggable
+              resizable
               responsive
             />
           </Menu.Item>
@@ -324,18 +328,23 @@ class SliceHeaderControls extends React.PureComponent<
           {t('Download as image')}
         </Menu.Item>
 
-        {this.props.supersetCanCSV && (
-          <Menu.Item key={MENU_KEYS.EXPORT_CSV}>{t('Export CSV')}</Menu.Item>
-        )}
-        {isFeatureEnabled(FeatureFlag.ALLOW_FULL_CSV_EXPORT) &&
+        {this.props.slice.viz_type !== 'filter_box' &&
+          this.props.supersetCanCSV && (
+            <Menu.Item key={MENU_KEYS.EXPORT_CSV}>{t('Export CSV')}</Menu.Item>
+          )}
+
+        {this.props.slice.viz_type !== 'filter_box' &&
+          isFeatureEnabled(FeatureFlag.ALLOW_FULL_CSV_EXPORT) &&
           this.props.supersetCanCSV &&
           isTable && (
             <Menu.Item key={MENU_KEYS.EXPORT_FULL_CSV}>
               {t('Export full CSV')}
             </Menu.Item>
           )}
+
         {isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
-          isCrossFilter && (
+          isCrossFilter &&
+          canEmitCrossFilter && (
             <Menu.Item key={MENU_KEYS.CROSS_FILTER_SCOPING}>
               {t('Cross-filter scoping')}
             </Menu.Item>

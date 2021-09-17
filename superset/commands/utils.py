@@ -41,7 +41,7 @@ def populate_owners(
     :returns: Final list of owners
     """
     owner_ids = owner_ids or []
-    owners = list()
+    owners = []
     if not owner_ids and default_to_user:
         return [user]
     if user.id not in owner_ids and "admin" not in [
@@ -76,5 +76,5 @@ def get_datasource_by_id(datasource_id: int, datasource_type: str) -> BaseDataso
         return ConnectorRegistry.get_datasource(
             datasource_type, datasource_id, db.session
         )
-    except DatasetNotFoundError:
-        raise DatasourceNotFoundValidationError()
+    except DatasetNotFoundError as ex:
+        raise DatasourceNotFoundValidationError() from ex

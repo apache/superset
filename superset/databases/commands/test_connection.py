@@ -72,6 +72,10 @@ class TestConnectionDatabaseCommand(BaseCommand):
             database.db_engine_spec.mutate_db_for_connection_test(database)
             username = self._actor.username if self._actor is not None else None
             engine = database.get_sqla_engine(user_name=username)
+            event_logger.log_with_context(
+                action="test_connection_attempt",
+                engine=database.db_engine_spec.__name__,
+            )
             with closing(engine.raw_connection()) as conn:
                 try:
                     alive = engine.dialect.do_ping(conn)
@@ -95,7 +99,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 message=_("Could not load database driver: {}").format(
                     database.db_engine_spec.__name__
                 ),
-            )
+            ) from ex
         except DBAPIError as ex:
             event_logger.log_with_context(
                 action=f"test_connection_error.{ex.__class__.__name__}",
@@ -103,20 +107,20 @@ class TestConnectionDatabaseCommand(BaseCommand):
             )
             # check for custom errors (wrong username, wrong password, etc)
             errors = database.db_engine_spec.extract_errors(ex, context)
-            raise DatabaseTestConnectionFailedError(errors)
+            raise DatabaseTestConnectionFailedError(errors) from ex
         except SupersetSecurityException as ex:
             event_logger.log_with_context(
                 action=f"test_connection_error.{ex.__class__.__name__}",
                 engine=database.db_engine_spec.__name__,
             )
-            raise DatabaseSecurityUnsafeError(message=str(ex))
-        except Exception as ex:  # pylint: disable=broad-except
+            raise DatabaseSecurityUnsafeError(message=str(ex)) from ex
+        except Exception as ex:
             event_logger.log_with_context(
                 action=f"test_connection_error.{ex.__class__.__name__}",
                 engine=database.db_engine_spec.__name__,
             )
             errors = database.db_engine_spec.extract_errors(ex, context)
-            raise DatabaseTestConnectionUnexpectedError(errors)
+            raise DatabaseTestConnectionUnexpectedError(errors) from ex
 
     def validate(self) -> None:
         database_name = self._properties.get("database_name")

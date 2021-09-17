@@ -122,9 +122,7 @@ class ReportView(BaseAlertReportView):
     class_permission_name = "ReportSchedule"
 
 
-class AlertModelView(
-    EnsureEnabledMixin, SupersetModelView
-):  # pylint: disable=too-many-ancestors
+class AlertModelView(EnsureEnabledMixin, SupersetModelView):
     datamodel = SQLAInterface(Alert)
     route_base = "/alerts"
     include_route_methods = RouteMethod.CRUD_SET | {"log"}

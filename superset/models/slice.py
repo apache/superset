@@ -53,7 +53,7 @@ slice_user = Table(
 logger = logging.getLogger(__name__)
 
 
-class Slice(  # pylint: disable=too-many-instance-attributes,too-many-public-methods
+class Slice(  # pylint: disable=too-many-public-methods
     Model, AuditMixinNullable, ImportExportMixin
 ):
     """A slice is essentially a report or a view on data"""
@@ -74,7 +74,7 @@ class Slice(  # pylint: disable=too-many-instance-attributes,too-many-public-met
     # the last time a user has saved the chart, changed_on is referencing
     # when the database row was last written
     last_saved_at = Column(DateTime, nullable=True)
-    last_saved_by_fk = Column(Integer, ForeignKey("ab_user.id"), nullable=True,)
+    last_saved_by_fk = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
     last_saved_by = relationship(
         security_manager.user_model, foreign_keys=[last_saved_by_fk]
     )
@@ -201,9 +201,7 @@ class Slice(  # pylint: disable=too-many-instance-attributes,too-many-public-met
             "form_data": self.form_data,
             "query_context": self.query_context,
             "modified": self.modified(),
-            "owners": [
-                f"{owner.first_name} {owner.last_name}" for owner in self.owners
-            ],
+            "owners": [owner.id for owner in self.owners],
             "slice_id": self.id,
             "slice_name": self.slice_name,
             "slice_url": self.slice_url,

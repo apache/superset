@@ -853,8 +853,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     const { hostname } = window.location;
     let ipAlert = connectionAlert?.REGIONAL_IPS?.default || '';
     const regionalIPs = connectionAlert?.REGIONAL_IPS || {};
-    Object.entries(regionalIPs).forEach(([regex, ipRange]) => {
-      if (regex.match(hostname)) {
+    Object.entries(regionalIPs).forEach(([ipRegion, ipRange]) => {
+      const regex = new RegExp(ipRegion);
+      if (hostname.match(regex)) {
         ipAlert = ipRange;
       }
     });
@@ -907,14 +908,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         />
       );
     }
-
-    const message: Array<string> = Object.values(dbErrors);
+    const message: Array<string> =
+      typeof dbErrors === 'object' ? Object.values(dbErrors) : [];
     return (
       <Alert
         type="error"
         css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
         message="Database Creation Error"
-        description={message[0]}
+        description={message?.[0] || dbErrors}
       />
     );
   };

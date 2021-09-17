@@ -23,20 +23,30 @@ This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
 ## Next
+
+### Breaking Changes
+
+- [16660](https://github.com/apache/incubator-superset/pull/16660): The `columns` Jinja parameter has been renamed `table_columns` to make the `columns` query object parameter available in the Jinja context.
+- [16711](https://github.com/apache/incubator-superset/pull/16711): The `url_param` Jinja function will now by default escape the result. For instance, the value `O'Brien` will now be changed to `O''Brien`. To disable this behavior, call `url_param` with `escape_result` set to `False`: `url_param("my_key", "my default", escape_result=False)`.
+
+### Potential Downtime
+### Deprecations
+### Other
+
+## 1.3.0
+
+### Breaking Changes
+
 - [15909](https://github.com/apache/incubator-superset/pull/15909): a change which
 drops a uniqueness criterion (which may or may not have existed) to the tables table. This constraint was obsolete as it is handled by the ORM due to differences in how MySQL, PostgreSQL, etc. handle uniqueness for NULL values.
 
-- [13772](https://github.com/apache/superset/pull/13772): Row level security (RLS) is now enabled by default. To activate the feature, please run `superset init` to expose the RLS menus to Admin users.
-
-- [13980](https://github.com/apache/superset/pull/13980): Data health checks no longer use the metadata database as an interim cache. Though non-breaking, deployments which implement complex logic should likely memoize the callback function. Refer to documentation in the confg.py file for more detail.
-
-- [14255](https://github.com/apache/superset/pull/14255): The default `CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC` callable logic has been updated to leverage the specified database and schema to ensure the upload S3 key prefix is unique. Previously tables generated via upload from CSV with the same name but differ schema and/or cluster would use the same S3 key prefix. Note this change does not impact previously imported tables.
-
-### Breaking Changes
 ### Potential Downtime
 - [14234](https://github.com/apache/superset/pull/14234): Adds the `limiting_factor` column to the `query` table. Give the migration includes a DDL operation on a heavily trafficed table, potential service downtime may be required.
 
+## 1.2.0
+
 ### Deprecations
+
 - [13440](https://github.com/apache/superset/pull/13440): Dashboard/Charts reports and old Alerts is deprecated. The following config keys are deprecated:
     - ENABLE_ALERTS
     - SCHEDULED_EMAIL_DEBUG_MODE
@@ -44,7 +54,12 @@ drops a uniqueness criterion (which may or may not have existed) to the tables t
     - EMAIL_ASYNC_TIME_LIMIT_SEC
     - EMAIL_REPORT_BCC_ADDRESS
     - EMAIL_REPORTS_USER
+
 ### Other
+
+- [13772](https://github.com/apache/superset/pull/13772): Row level security (RLS) is now enabled by default. To activate the feature, please run `superset init` to expose the RLS menus to Admin users.
+- [13980](https://github.com/apache/superset/pull/13980): Data health checks no longer use the metadata database as an interim cache. Though non-breaking, deployments which implement complex logic should likely memoize the callback function. Refer to documentation in the confg.py file for more detail.
+- [14255](https://github.com/apache/superset/pull/14255): The default `CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC` callable logic has been updated to leverage the specified database and schema to ensure the upload S3 key prefix is unique. Previously tables generated via upload from CSV with the same name but differ schema and/or cluster would use the same S3 key prefix. Note this change does not impact previously imported tables.
 
 ## 1.1.0
 

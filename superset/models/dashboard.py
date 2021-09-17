@@ -60,8 +60,6 @@ from superset.utils.decorators import debounce
 from superset.utils.hashing import md5_sha_from_str
 from superset.utils.urls import get_url_path
 
-# pylint: disable=too-many-public-methods
-
 metadata = Model.metadata  # pylint: disable=no-member
 config = app.config
 logger = logging.getLogger(__name__)
@@ -131,10 +129,7 @@ DashboardRoles = Table(
 )
 
 
-class Dashboard(  # pylint: disable=too-many-instance-attributes
-    Model, AuditMixinNullable, ImportExportMixin
-):
-
+class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     """The dashboard object!"""
 
     __tablename__ = "dashboards"

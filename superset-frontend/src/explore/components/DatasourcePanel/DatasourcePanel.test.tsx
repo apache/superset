@@ -45,7 +45,7 @@ const datasource = {
   datasource_name: 'table1',
   description: 'desc',
 };
-const props = {
+const props: DatasourcePanelProps = {
   datasource,
   controls: {
     datasource: {
@@ -57,12 +57,7 @@ const props = {
     },
   },
   actions: {
-    setControlValue: () => ({
-      type: 'type',
-      controlName: 'control',
-      value: 'val',
-      validationErrors: [],
-    }),
+    setControlValue: jest.fn(),
   },
 };
 
@@ -116,7 +111,7 @@ test('should render 0 search results', async () => {
   const searchInput = screen.getByPlaceholderText('Search Metrics & Columns');
 
   search('nothing', searchInput);
-  expect(await screen.findByText('Showing 0 of 0')).toBeInTheDocument();
+  expect(await screen.findAllByText('Showing 0 of 0')).toHaveLength(2);
 });
 
 test('should search and render matching columns', async () => {

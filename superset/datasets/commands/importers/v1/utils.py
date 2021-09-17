@@ -14,8 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=too-many-branches
-
 import gzip
 import json
 import logging
@@ -24,7 +22,7 @@ from typing import Any, Dict
 from urllib import request
 
 import pandas as pd
-from flask import current_app
+from flask import current_app, g
 from sqlalchemy import BigInteger, Boolean, Date, DateTime, Float, String, Text
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.visitors import VisitableType
@@ -129,14 +127,16 @@ def import_dataset(
     if data_uri and (not table_exists or force_data):
         load_data(data_uri, dataset, example_database, session)
 
+    if hasattr(g, "user") and g.user:
+        dataset.owners.append(g.user)
+
     return dataset
 
 
 def load_data(
     data_uri: str, dataset: SqlaTable, example_database: Database, session: Session
 ) -> None:
-
-    data = request.urlopen(data_uri)
+    data = request.urlopen(data_uri)  # pylint: disable=consider-using-with
     if data_uri.endswith(".gz"):
         data = gzip.open(data)
     df = pd.read_csv(data, encoding="utf-8")

@@ -46,11 +46,11 @@ class CreateDashboardCommand(CreateMixin, BaseCommand):
             dashboard = DashboardDAO.update_charts_owners(dashboard, commit=True)
         except DAOCreateFailedError as ex:
             logger.exception(ex.exception)
-            raise DashboardCreateFailedError()
+            raise DashboardCreateFailedError() from ex
         return dashboard
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = list()
+        exceptions: List[ValidationError] = []
         owner_ids: Optional[List[int]] = self._properties.get("owners")
         role_ids: Optional[List[int]] = self._properties.get("roles")
         slug: str = self._properties.get("slug", "")

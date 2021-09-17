@@ -30,10 +30,12 @@ from typing import (
     Union,
 )
 
-from flask import current_app, g, request
+from flask import current_app, g, has_request_context, request
 from flask_babel import gettext as _
 from jinja2 import DebugUndefined
 from jinja2.sandbox import SandboxedEnvironment
+from sqlalchemy.engine.interfaces import Dialect
+from sqlalchemy.types import String
 from typing_extensions import TypedDict
 
 from superset.exceptions import SupersetTemplateException
@@ -95,9 +97,11 @@ class ExtraCache:
         self,
         extra_cache_keys: Optional[List[Any]] = None,
         removed_filters: Optional[List[str]] = None,
+        dialect: Optional[Dialect] = None,
     ):
         self.extra_cache_keys = extra_cache_keys
         self.removed_filters = removed_filters if removed_filters is not None else []
+        self.dialect = dialect
 
     def current_user_id(self, add_to_cache_keys: bool = True) -> Optional[int]:
         """
@@ -145,7 +149,11 @@ class ExtraCache:
         return key
 
     def url_param(
-        self, param: str, default: Optional[str] = None, add_to_cache_keys: bool = True
+        self,
+        param: str,
+        default: Optional[str] = None,
+        add_to_cache_keys: bool = True,
+        escape_result: bool = True,
     ) -> Optional[str]:
         """
         Read a url or post parameter and use it in your SQL Lab query.
@@ -166,16 +174,24 @@ class ExtraCache:
         :param param: the parameter to lookup
         :param default: the value to return in the absence of the parameter
         :param add_to_cache_keys: Whether the value should be included in the cache key
+        :param escape_result: Should special characters in the result be escaped
         :returns: The URL parameters
         """
 
+        # pylint: disable=import-outside-toplevel
         from superset.views.utils import get_form_data
 
-        if request.args.get(param):
+        if has_request_context() and request.args.get(param):  # type: ignore
             return request.args.get(param, default)
+
         form_data, _ = get_form_data()
         url_params = form_data.get("url_params") or {}
         result = url_params.get(param, default)
+        if result and escape_result and self.dialect:
+            # use the dialect specific quoting logic to escape string
+            result = String().literal_processor(dialect=self.dialect)(value=result)[
+                1:-1
+            ]
         if add_to_cache_keys:
             self.cache_key_wrapper(result)
         return result
@@ -284,6 +300,7 @@ class ExtraCache:
             only apply to the inner query
         :return: returns a list of filters
         """
+        # pylint: disable=import-outside-toplevel
         from superset.utils.core import FilterOperator
         from superset.views.utils import get_form_data
 
@@ -295,7 +312,7 @@ class ExtraCache:
 
         for flt in form_data.get("adhoc_filters", []):
             val: Union[Any, List[Any]] = flt.get("comparator")
-            op: str = flt["operator"].upper() if "operator" in flt else None
+            op: str = flt["operator"].upper() if flt.get("operator") else None
             # fltOpName: str = flt.get("filterOptionName")
             if (
                 flt.get("expressionType") == "SIMPLE"
@@ -331,10 +348,10 @@ def safe_proxy(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
     if value_type in COLLECTION_TYPES:
         try:
             return_value = json.loads(json.dumps(return_value))
-        except TypeError:
+        except TypeError as ex:
             raise SupersetTemplateException(
                 _("Unsupported return value for method %(name)s", name=func.__name__,)
-            )
+            ) from ex
 
     return return_value
 
@@ -355,10 +372,10 @@ def validate_context_types(context: Dict[str, Any]) -> Dict[str, Any]:
         if arg_type in COLLECTION_TYPES:
             try:
                 context[key] = json.loads(json.dumps(context[key]))
-            except TypeError:
+            except TypeError as ex:
                 raise SupersetTemplateException(
                     _("Unsupported template value for key %(key)s", key=key)
-                )
+                ) from ex
 
     return context
 
@@ -376,7 +393,7 @@ def validate_template_context(
     return validate_context_types(context)
 
 
-class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
+class BaseTemplateProcessor:
     """
     Base class for database-specific jinja context
     """
@@ -427,7 +444,11 @@ class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
 class JinjaTemplateProcessor(BaseTemplateProcessor):
     def set_context(self, **kwargs: Any) -> None:
         super().set_context(**kwargs)
-        extra_cache = ExtraCache(self._extra_cache_keys, self._removed_filters)
+        extra_cache = ExtraCache(
+            extra_cache_keys=self._extra_cache_keys,
+            removed_filters=self._removed_filters,
+            dialect=self._database.get_dialect(),
+        )
         self._context.update(
             {
                 "url_param": partial(safe_proxy, extra_cache.url_param),
@@ -440,9 +461,7 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
         )
 
 
-class NoOpTemplateProcessor(
-    BaseTemplateProcessor
-):  # pylint: disable=too-few-public-methods
+class NoOpTemplateProcessor(BaseTemplateProcessor):
     def process_template(self, sql: str, **kwargs: Any) -> str:
         """
         Makes processing a template a noop
@@ -496,6 +515,7 @@ class PrestoTemplateProcessor(JinjaTemplateProcessor):
         :return: the latest partition array
         """
 
+        # pylint: disable=import-outside-toplevel
         from superset.db_engine_specs.presto import PrestoEngineSpec
 
         table_name, schema = self._schema_table(table_name, self._schema)
@@ -506,6 +526,7 @@ class PrestoTemplateProcessor(JinjaTemplateProcessor):
     def latest_sub_partition(self, table_name: str, **kwargs: Any) -> Any:
         table_name, schema = self._schema_table(table_name, self._schema)
 
+        # pylint: disable=import-outside-toplevel
         from superset.db_engine_specs.presto import PrestoEngineSpec
 
         return cast(
@@ -527,10 +548,10 @@ DEFAULT_PROCESSORS = {"presto": PrestoTemplateProcessor, "hive": HiveTemplatePro
 @memoized
 def get_template_processors() -> Dict[str, Any]:
     processors = current_app.config.get("CUSTOM_TEMPLATE_PROCESSORS", {})
-    for engine in DEFAULT_PROCESSORS:
+    for engine, processor in DEFAULT_PROCESSORS.items():
         # do not overwrite engine-specific CUSTOM_TEMPLATE_PROCESSORS
         if not engine in processors:
-            processors[engine] = DEFAULT_PROCESSORS[engine]
+            processors[engine] = processor
 
     return processors
 

@@ -116,7 +116,6 @@ const ExploreChartPanel = props => {
   const theme = useTheme();
   const gutterMargin = theme.gridUnit * GUTTER_SIZE_FACTOR;
   const gutterHeight = theme.gridUnit * GUTTER_SIZE_FACTOR;
-
   const { height: hHeight, ref: headerRef } = useResizeDetector({
     refreshMode: 'debounce',
     refreshRate: 300,
@@ -128,11 +127,10 @@ const ExploreChartPanel = props => {
   const [splitSizes, setSplitSizes] = useState(
     getFromLocalStorage(STORAGE_KEYS.sizes, INITIAL_SIZES),
   );
-
   const { slice } = props;
   const updateQueryContext = useCallback(
     async function fetchChartData() {
-      if (props.can_overwrite && slice && slice.query_context === null) {
+      if (slice && slice.query_context === null) {
         const queryContext = buildV1ChartDataPayload({
           formData: slice.form_data,
           force: false,
@@ -154,6 +152,7 @@ const ExploreChartPanel = props => {
     },
     [slice],
   );
+
   useEffect(() => {
     updateQueryContext();
   }, [updateQueryContext]);
@@ -211,7 +210,6 @@ const ExploreChartPanel = props => {
     }
     setSplitSizes(splitSizes);
   };
-
   const renderChart = useCallback(() => {
     const { chart, vizType } = props;
     const newHeight =
@@ -259,6 +257,22 @@ const ExploreChartPanel = props => {
     () => <div ref={chartPanelRef}>{renderChart()}</div>,
     [chartPanelRef, renderChart],
   );
+
+  const [queryFormData, setQueryFormData] = useState(
+    props.chart.latestQueryFormData,
+  );
+
+  useEffect(() => {
+    // only update when `latestQueryFormData` changes AND `triggerRender`
+    // is false. No update should be done when only `triggerRender` changes,
+    // as this can trigger a query downstream based on incomplete form data.
+    // (`latestQueryFormData` is only updated when a a valid request has been
+    // triggered).
+    if (!props.triggerRender) {
+      setQueryFormData(props.chart.latestQueryFormData);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.chart.latestQueryFormData]);
 
   if (props.standalone) {
     // dom manipulation hack to get rid of the boostrap theme's body background
@@ -312,11 +326,12 @@ const ExploreChartPanel = props => {
           {panelBody}
           <DataTablesPane
             ownState={props.ownState}
-            queryFormData={props.chart.latestQueryFormData}
+            queryFormData={queryFormData}
             tableSectionHeight={tableSectionHeight}
             onCollapseChange={onCollapseChange}
             chartStatus={props.chart.chartStatus}
             errorMessage={props.errorMessage}
+            queriesResponse={props.chart.queriesResponse}
           />
         </Split>
       )}

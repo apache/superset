@@ -41,11 +41,11 @@ from .helpers import (
 )
 
 
-def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-statements
+def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals
     only_metadata: bool = False, force: bool = False, sample: bool = False,
 ) -> None:
     """Loads the world bank health dataset, slices and a dashboard"""
-    tbl_name = "World Bank Health Data"
+    tbl_name = "wb_health_population"
     database = utils.get_example_database()
     table_exists = database.has_table_by_name(tbl_name)
 
@@ -76,7 +76,7 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
             index=False,
         )
 
-    print("Creating table [World Bank Health Data] reference")
+    print("Creating table [wb_health_population] reference")
     table = get_table_connector_registry()
     tbl = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not tbl:

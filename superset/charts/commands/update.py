@@ -64,11 +64,11 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
             chart = ChartDAO.update(self._model, self._properties)
         except DAOUpdateFailedError as ex:
             logger.exception(ex.exception)
-            raise ChartUpdateFailedError()
+            raise ChartUpdateFailedError() from ex
         return chart
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = list()
+        exceptions: List[ValidationError] = []
         dashboard_ids = self._properties.get("dashboards")
         owner_ids: Optional[List[int]] = self._properties.get("owners")
 
@@ -84,13 +84,17 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         if not self._model:
             raise ChartNotFoundError()
 
-        # Check ownership; when only updating query context we ignore
+        # Check and update ownership; when only updating query context we ignore
         # ownership so the update can be performed by report workers
         if not is_query_context_update(self._properties):
             try:
                 check_ownership(self._model)
-            except SupersetSecurityException:
-                raise ChartForbiddenError()
+                owners = self.populate_owners(self._actor, owner_ids)
+                self._properties["owners"] = owners
+            except SupersetSecurityException as ex:
+                raise ChartForbiddenError() from ex
+            except ValidationError as ex:
+                exceptions.append(ex)
 
         # Validate/Populate datasource
         if datasource_id is not None:
@@ -107,12 +111,6 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
                 exceptions.append(DashboardsNotFoundValidationError())
             self._properties["dashboards"] = dashboards
 
-        # Validate/Populate owner
-        try:
-            owners = self.populate_owners(self._actor, owner_ids)
-            self._properties["owners"] = owners
-        except ValidationError as ex:
-            exceptions.append(ex)
         if exceptions:
             exception = ChartInvalidError()
             exception.add_list(exceptions)

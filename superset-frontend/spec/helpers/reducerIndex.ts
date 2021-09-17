@@ -30,6 +30,7 @@ import saveModal from 'src/explore/reducers/saveModalReducer';
 import explore from 'src/explore/reducers/exploreReducer';
 import sqlLab from 'src/SqlLab/reducers/sqlLab';
 import localStorageUsageInKilobytes from 'src/SqlLab/reducers/localStorageUsage';
+import reports from 'src/reports/reducers/reports';
 
 const impressionId = (state = '') => state;
 
@@ -53,5 +54,6 @@ export default {
   explore,
   sqlLab,
   localStorageUsageInKilobytes,
+  reports,
   common: () => common,
 };

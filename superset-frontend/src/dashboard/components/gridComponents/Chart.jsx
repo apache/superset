@@ -87,7 +87,8 @@ const defaultProps = {
 // resizing across all slices on a dashboard on every update
 const RESIZE_TIMEOUT = 350;
 const SHOULD_UPDATE_ON_PROP_CHANGES = Object.keys(propTypes).filter(
-  prop => prop !== 'width' && prop !== 'height',
+  prop =>
+    prop !== 'width' && prop !== 'height' && prop !== 'isComponentVisible',
 );
 const OVERFLOWABLE_VIZ_TYPES = new Set(['filter_box']);
 const DEFAULT_HEADER_HEIGHT = 22;

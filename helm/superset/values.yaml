@@ -82,6 +82,22 @@ extraConfigs: {}
 
 extraSecrets: {}
 
+extraVolumes: []
+ # - name: customConfig
+ #   configMap:
+ #     name: '{{ template "superset.fullname" . }}-custom-config'
+ # - name: additionalSecret
+ #   secret:
+ #     secretName: my-secret
+ #     defaultMode: 0600
+
+extraVolumeMounts: []
+ # - name: customConfig
+ #   mountPath: /mnt/config
+ #   readOnly: true
+ # - name: additionalSecret:
+ #   mountPath: /mnt/secret
+
 # A dictionary of overrides to append at the end of superset_config.py - the name does not matter
 # WARNING: the order is not guaranteed
 configOverrides: {}
@@ -166,6 +182,15 @@ resources: {}
   # requests:
   #   cpu: 100m
   #   memory: 128Mi
+
+##
+## Custom hostAliases for all superset pods
+## https://kubernetes.io/docs/tasks/network/customize-hosts-file-for-pods/
+hostAliases: []
+# - hostnames:
+#   - nodns.my.lan
+#   ip: 18.27.36.45
+
 
 ##
 ## Superset node configuration

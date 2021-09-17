@@ -80,7 +80,7 @@ import {
 } from './utils';
 import { useBackendFormUpdate, useDefaultValue } from './state';
 import { getFormData } from '../../utils';
-import { Filter } from '../../types';
+import { Filter, NativeFilterType } from '../../types';
 import getControlItemsMap from './getControlItemsMap';
 import FilterScope from './FilterScope/FilterScope';
 import RemovedFilter from './RemovedFilter';
@@ -685,6 +685,13 @@ const FiltersConfigForm = (
       >
         <StyledContainer>
           <StyledFormItem
+            name={['filters', filterId, 'type']}
+            hidden
+            initialValue={NativeFilterType.NATIVE_FILTER}
+          >
+            <Input />
+          </StyledFormItem>
+          <StyledFormItem
             name={['filters', filterId, 'name']}
             label={<StyledLabel>{t('Filter name')}</StyledLabel>}
             initialValue={filterToEdit?.name}
@@ -715,15 +722,14 @@ const FiltersConfigForm = (
                   !doLoadedDatasetsHaveTemporalColumns;
                 return {
                   value: filterType,
-                  label: isDisabled ? (
+                  label: mappedName || name,
+                  customLabel: isDisabled ? (
                     <Tooltip
                       title={t('Datasets do not contain a temporal column')}
                     >
                       {mappedName || name}
                     </Tooltip>
-                  ) : (
-                    mappedName || name
-                  ),
+                  ) : undefined,
                   disabled: isDisabled,
                 };
               })}

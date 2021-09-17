@@ -33,6 +33,7 @@ from superset.databases.dao import DatabaseDAO
 from superset.db_engine_specs import get_engine_specs
 from superset.db_engine_specs.base import BasicParametersMixin
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.extensions import event_logger
 from superset.models.core import Database
 
 BYPASS_VALIDATION_ENGINES = {"bigquery"}
@@ -89,6 +90,7 @@ class ValidateDatabaseParametersCommand(BaseCommand):
             self._properties.get("parameters", {})
         )
         if errors:
+            event_logger.log_with_context(action="validation_error", engine=engine)
             raise InvalidParametersError(errors)
 
         serialized_encrypted_extra = self._properties.get("encrypted_extra", "{}")
@@ -116,7 +118,7 @@ class ValidateDatabaseParametersCommand(BaseCommand):
         try:
             with closing(engine.raw_connection()) as conn:
                 alive = engine.dialect.do_ping(conn)
-        except Exception as ex:  # pylint: disable=broad-except
+        except Exception as ex:
             url = make_url(sqlalchemy_uri)
             context = {
                 "hostname": url.host,
@@ -126,7 +128,7 @@ class ValidateDatabaseParametersCommand(BaseCommand):
                 "database": url.database,
             }
             errors = database.db_engine_spec.extract_errors(ex, context)
-            raise DatabaseTestConnectionFailedError(errors)
+            raise DatabaseTestConnectionFailedError(errors) from ex
 
         if not alive:
             raise DatabaseOfflineError(

@@ -67,6 +67,13 @@ interface ChangeDatasourceModalProps {
   show: boolean;
 }
 
+const Modal = styled(StyledModal)`
+  .ant-modal-body {
+    display: flex;
+    flex-direction: column;
+  }
+`;
+
 const ConfirmModalStyled = styled.div`
   .btn-container {
     display: flex;
@@ -239,7 +246,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   };
 
   return (
-    <StyledModal
+    <Modal
       show={show}
       onHide={onHide}
       responsive
@@ -307,7 +314,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         )}
         {confirmChange && <>{CONFIRM_WARNING_MESSAGE}</>}
       </>
-    </StyledModal>
+    </Modal>
   );
 };
 

@@ -63,8 +63,6 @@ const propTypes = {
 };
 
 const defaultProps = {
-  directPathToChild: [],
-  directPathLastUpdated: 0,
   isComponentVisible: true,
 };
 
@@ -77,15 +75,10 @@ function mapStateToProps(
   const component = dashboardLayout[id];
   const props = {
     component,
-    dashboardLayout,
+    getComponentById: id => dashboardLayout[id],
     parentComponent: dashboardLayout[parentId],
     editMode: dashboardState.editMode,
-    undoLength: undoableLayout.past.length,
-    redoLength: undoableLayout.future.length,
     filters: getActiveFilters(),
-    directPathToChild: dashboardState.directPathToChild,
-    activeTabs: dashboardState.activeTabs,
-    directPathLastUpdated: dashboardState.directPathLastUpdated,
     dashboardId: dashboardInfo.id,
     fullSizeChartId: dashboardState.fullSizeChartId,
   };

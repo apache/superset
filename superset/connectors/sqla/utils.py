@@ -43,7 +43,11 @@ def get_physical_table_metadata(
     # ensure empty schema
     _schema_name = schema_name if schema_name else None
     # Table does not exist or is not visible to a connection.
-    if not database.has_table_by_name(table_name, schema=_schema_name):
+
+    if not (
+        database.has_table_by_name(table_name=table_name, schema=_schema_name)
+        or database.has_view_by_name(view_name=table_name, schema=_schema_name)
+    ):
         raise NoSuchTableError
 
     cols = database.get_columns(table_name, schema=_schema_name)
@@ -110,6 +114,6 @@ def get_virtual_table_metadata(dataset: "SqlaTable") -> List[Dict[str, str]]:
             result = db_engine_spec.fetch_data(cursor, limit=1)
             result_set = SupersetResultSet(result, cursor.description, db_engine_spec)
             cols = result_set.columns
-    except Exception as exc:
-        raise SupersetGenericDBErrorException(message=str(exc))
+    except Exception as ex:
+        raise SupersetGenericDBErrorException(message=str(ex)) from ex
     return cols

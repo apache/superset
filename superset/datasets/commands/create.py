@@ -62,11 +62,11 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         except (SQLAlchemyError, DAOCreateFailedError) as ex:
             logger.warning(ex, exc_info=True)
             db.session.rollback()
-            raise DatasetCreateFailedError()
+            raise DatasetCreateFailedError() from ex
         return dataset
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = list()
+        exceptions: List[ValidationError] = []
         database_id = self._properties["database"]
         table_name = self._properties["table_name"]
         schema = self._properties.get("schema", None)
