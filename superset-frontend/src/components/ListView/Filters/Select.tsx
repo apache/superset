@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState, useMemo } from 'react';
-import { withTheme, SupersetThemeProps, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import { Select } from 'src/components';
 import { Filter, SelectOption } from 'src/components/ListView/types';
 import { FormLabel } from 'src/components/Form';
@@ -29,7 +29,6 @@ interface SelectFilterProps extends BaseFilter {
   onSelect: (selected: SelectOption | undefined) => void;
   paginate?: boolean;
   selects: Filter['selects'];
-  theme: SupersetThemeProps['theme'];
 }
 
 function SelectFilter({
@@ -89,4 +88,4 @@ function SelectFilter({
     </FilterContainer>
   );
 }
-export default withTheme(SelectFilter);
+export default SelectFilter;
