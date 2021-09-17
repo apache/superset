@@ -920,25 +920,25 @@ def boxplot(
 
 def resample(
     df: DataFrame,
-    resample_rule: str,
-    resample_method: str,
+    rule: str,
+    method: str,
     time_column: str,
-    resample_fill_zero: bool = False,
+    fill_value: Optional[Union[float, int]],
 ) -> DataFrame:
     """
     resample a timeseries dataframe.
 
     :param df: DataFrame to resample.
-    :param resample_rule: The offset string representing target conversion.
-    :param resample_method: How to fill the NaN value after resample.
+    :param rule: The offset string representing target conversion.
+    :param method: How to fill the NaN value after resample.
     :param time_column: existing columns in DataFrame.
-    :param resample_fill_zero: fill missing values with zero.
+    :param fill_value: What values do fill missing.
     :return: DataFrame after resample
     :raises QueryObjectValidationError: If the request in incorrect
     """
     df = df.set_index(time_column)
-    if resample_method == "asfreq" and resample_fill_zero:
-        df = df.resample(resample_rule).asfreq(fill_value=0)
+    if method == "asfreq" and fill_value is not None:
+        df = df.resample(rule).asfreq(fill_value=fill_value)
     else:
-        df = getattr(df.resample(resample_rule), resample_method)()
+        df = getattr(df.resample(rule), method)()
     return df.reset_index()
