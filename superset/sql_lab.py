@@ -270,7 +270,7 @@ def execute_sql_statement(
             logger.debug("Query %d: Running query: %s", query.id, sql)
             db_engine_spec.execute(cursor, sql, async_=True)
             session.commit()
-            logging.info(f"Query {query_id}: Handling cursor")
+            logging.info(f"Query {query.id}: Handling cursor")
             db_engine_spec.handle_cursor(cursor, query, session)
             session.commit()
         with stats_timing("sqllab.query.time_fetching_results", stats_logger):
@@ -302,7 +302,7 @@ def execute_sql_statement(
                 session.commit()
 
     except SoftTimeLimitExceeded as e:
-        logging.exception(f"Query {query_id}: {e}")
+        logging.exception(f"Query {query.id}: {e}")
         raise SqlLabTimeoutException(
             "SQL Lab timeout. This environment's policy is to kill queries "
             "after {} seconds.".format(SQLLAB_TIMEOUT)
@@ -312,7 +312,7 @@ def execute_sql_statement(
         logger.debug("Query %d: %s", query.id, ex)
         raise SqlLabException(db_engine_spec.extract_error_message(ex))
 
-    logging.debug(f"Query {query_id}: Fetching cursor description")
+    logging.debug(f"Query {query.id}: Fetching cursor description")
     cursor_description = cursor.description
     return SupersetResultSet(data, descr, db_engine_spec)
 
