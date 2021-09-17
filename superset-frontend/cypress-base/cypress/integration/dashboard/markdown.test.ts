@@ -24,7 +24,7 @@ describe('Dashboard edit markdown', () => {
     cy.visit(TABBED_DASHBOARD);
   });
 
-  it('should load AceEditor on demand', () => {
+  it('should add markdown component to dashboard', () => {
     cy.get('[data-test="dashboard-header"]')
       .find('[aria-label="edit-alt"]')
       .click();

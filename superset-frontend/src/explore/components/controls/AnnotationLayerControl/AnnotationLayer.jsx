@@ -220,14 +220,14 @@ export default class AnnotationLayer extends React.PureComponent {
           subexpressions.length > 2 ||
           (subexpressions[1] && !subexpressions[0].match(/^[a-zA-Z]\w*$/))
         ) {
-          return true;
+          return false;
         }
         mexp.eval(subexpressions[1] ?? subexpressions[0], [token], { x: 0 });
       } catch (err) {
-        return true;
+        return false;
       }
     }
-    return false;
+    return true;
   }
 
   isValidForm() {
@@ -253,7 +253,7 @@ export default class AnnotationLayer extends React.PureComponent {
         errors.push(validateNonEmpty(intervalEndColumn));
       }
     }
-    errors.push(this.isValidFormula(value, annotationType));
+    errors.push(!this.isValidFormula(value, annotationType));
     return !errors.filter(x => x).length;
   }
 
@@ -457,7 +457,7 @@ export default class AnnotationLayer extends React.PureComponent {
           value={value}
           onChange={this.handleValue}
           validationErrors={
-            this.isValidFormula(value, annotationType) ? ['Bad formula.'] : []
+            !this.isValidFormula(value, annotationType) ? ['Bad formula.'] : []
           }
         />
       );
