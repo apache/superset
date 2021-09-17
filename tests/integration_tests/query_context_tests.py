@@ -69,7 +69,7 @@ class TestQueryContext(SupersetTestCase):
             # check basic properies
             self.assertEqual(query.extras, payload_query["extras"])
             self.assertEqual(query.filter, payload_query["filters"])
-            self.assertEqual(query.groupby, payload_query["groupby"])
+            self.assertEqual(query.columns, payload_query["columns"])
 
             # metrics are mutated during creation
             for metric_idx, metric in enumerate(query.metrics):
@@ -90,6 +90,7 @@ class TestQueryContext(SupersetTestCase):
                 self.assertEqual(post_proc["operation"], payload_post_proc["operation"])
                 self.assertEqual(post_proc["options"], payload_post_proc["options"])
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_cache(self):
         table_name = "birth_names"
         table = self.get_table(name=table_name)
@@ -277,12 +278,20 @@ class TestQueryContext(SupersetTestCase):
         """
         self.login(username="admin")
         payload = get_query_context("birth_names")
+        columns = payload["queries"][0]["columns"]
+        payload["queries"][0]["groupby"] = columns
+        payload["queries"][0]["timeseries_limit"] = 99
+        payload["queries"][0]["timeseries_limit_metric"] = "sum__num"
+        del payload["queries"][0]["columns"]
         payload["queries"][0]["granularity_sqla"] = "timecol"
         payload["queries"][0]["having_filters"] = [{"col": "a", "op": "==", "val": "b"}]
         query_context = ChartDataQueryContextSchema().load(payload)
         self.assertEqual(len(query_context.queries), 1)
         query_object = query_context.queries[0]
         self.assertEqual(query_object.granularity, "timecol")
+        self.assertEqual(query_object.columns, columns)
+        self.assertEqual(query_object.series_limit, 99)
+        self.assertEqual(query_object.series_limit_metric, "sum__num")
         self.assertIn("having_druid", query_object.extras)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")

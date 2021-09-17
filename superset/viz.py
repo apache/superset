@@ -69,6 +69,7 @@ from superset.typing import Metric, QueryObjectDict, VizData, VizPayload
 from superset.utils import core as utils, csv
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import (
+    apply_max_row_limit,
     DTTM_ALIAS,
     ExtraFiltersReasonType,
     JS_MAX_INTEGER,
@@ -324,7 +325,10 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         )
         limit = int(self.form_data.get("limit") or 0)
         timeseries_limit_metric = self.form_data.get("timeseries_limit_metric")
+
+        # apply row limit to query
         row_limit = int(self.form_data.get("row_limit") or config["ROW_LIMIT"])
+        row_limit = apply_max_row_limit(row_limit)
 
         # default order direction
         order_desc = self.form_data.get("order_desc", True)
@@ -1687,9 +1691,6 @@ class HistogramViz(BaseViz):
     def query_obj(self) -> QueryObjectDict:
         """Returns the query object for this visualization"""
         query_obj = super().query_obj()
-        query_obj["row_limit"] = self.form_data.get(
-            "row_limit", int(config["VIZ_ROW_LIMIT"])
-        )
         numeric_columns = self.form_data.get("all_columns_x")
         if numeric_columns is None:
             raise QueryObjectValidationError(

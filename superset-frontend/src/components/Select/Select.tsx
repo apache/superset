@@ -210,6 +210,7 @@ const Select = ({
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [loadingEnabled, setLoadingEnabled] = useState(!lazyLoading);
+  const [allValuesLoaded, setAllValuesLoaded] = useState(false);
   const fetchedQueries = useRef(new Map<string, number>());
   const mappedMode = isSingleMode
     ? undefined
@@ -333,6 +334,7 @@ const Select = ({
     });
 
   const handleData = (data: OptionsType) => {
+    let mergedData: OptionsType = [];
     if (data && Array.isArray(data) && data.length) {
       const dataValues = new Set();
       data.forEach(option =>
@@ -340,18 +342,27 @@ const Select = ({
       );
 
       // merges with existing and creates unique options
-      setSelectOptions(prevOptions => [
-        ...prevOptions.filter(
-          previousOption =>
-            !dataValues.has(String(previousOption.value).toLocaleLowerCase()),
-        ),
-        ...data,
-      ]);
+      setSelectOptions(prevOptions => {
+        mergedData = [
+          ...prevOptions.filter(
+            previousOption =>
+              !dataValues.has(String(previousOption.value).toLocaleLowerCase()),
+          ),
+          ...data,
+        ];
+        return mergedData;
+      });
     }
+    return mergedData;
   };
 
   const handlePaginatedFetch = useMemo(
     () => (value: string, page: number, pageSize: number) => {
+      if (allValuesLoaded) {
+        setIsLoading(false);
+        setIsTyping(false);
+        return;
+      }
       const key = `${value};${page};${pageSize}`;
       const cachedCount = fetchedQueries.current.get(key);
       if (cachedCount) {
@@ -364,9 +375,16 @@ const Select = ({
       const fetchOptions = options as OptionsPagePromise;
       fetchOptions(value, page, pageSize)
         .then(({ data, totalCount }: OptionsTypePage) => {
-          handleData(data);
+          const mergedData = handleData(data);
           fetchedQueries.current.set(key, totalCount);
           setTotalCount(totalCount);
+          if (
+            !fetchOnlyOnSearch &&
+            value === '' &&
+            mergedData.length >= totalCount
+          ) {
+            setAllValuesLoaded(true);
+          }
         })
         .catch(onError)
         .finally(() => {
@@ -374,7 +392,7 @@ const Select = ({
           setIsTyping(false);
         });
     },
-    [options],
+    [allValuesLoaded, fetchOnlyOnSearch, options],
   );
 
   const handleOnSearch = useMemo(
@@ -493,6 +511,7 @@ const Select = ({
     setSelectOptions(
       options && Array.isArray(options) ? options : EMPTY_OPTIONS,
     );
+    setAllValuesLoaded(false);
   }, [options]);
 
   useEffect(() => {
