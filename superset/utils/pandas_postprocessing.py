@@ -923,7 +923,7 @@ def resample(
     rule: str,
     method: str,
     time_column: str,
-    fill_value: Optional[Union[float, int]],
+    fill_value: Optional[Union[float, int]] = None,
 ) -> DataFrame:
     """
     resample a timeseries dataframe.
