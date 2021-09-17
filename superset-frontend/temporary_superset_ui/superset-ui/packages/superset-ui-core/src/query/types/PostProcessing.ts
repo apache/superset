@@ -156,6 +156,16 @@ export interface PostProcessingSort {
   };
 }
 
+export interface PostProcessingResample {
+  operation: 'resample';
+  options: {
+    method: string;
+    rule: string;
+    fill_value?: number | null;
+    time_column: string;
+  };
+}
+
 /**
  * Parameters for chart data postprocessing.
  * See superset/utils/pandas_processing.py.
@@ -170,4 +180,5 @@ export type PostProcessingRule =
   | PostProcessingRolling
   | PostProcessingCum
   | PostProcessingCompare
-  | PostProcessingSort;
+  | PostProcessingSort
+  | PostProcessingResample;
