@@ -408,9 +408,9 @@ const ExtraOptions = ({
         <StyledInputContainer css={{ ...no_margin_bottom }}>
           <div className="input-container">
             <IndeterminateCheckbox
-              id="allow_csv_upload"
+              id="allow_file_upload"
               indeterminate={false}
-              checked={!!db?.allow_csv_upload}
+              checked={!!db?.allow_file_upload}
               onChange={onInputChange}
               labelText={t('Allow data upload')}
             />

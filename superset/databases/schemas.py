@@ -54,7 +54,7 @@ allow_run_async_description = (
     "as a results backend. Refer to the installation docs "
     "for more information."
 )
-allow_csv_upload_description = (
+allow_file_upload_description = (
     "Allow to upload CSV file data into this database"
     "If selected, please set the schemas allowed for csv upload in Extra."
 )
@@ -355,7 +355,7 @@ class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
     )
     expose_in_sqllab = fields.Boolean(description=expose_in_sqllab_description)
     allow_run_async = fields.Boolean(description=allow_run_async_description)
-    allow_csv_upload = fields.Boolean(description=allow_csv_upload_description)
+    allow_file_upload = fields.Boolean(description=allow_file_upload_description)
     allow_ctas = fields.Boolean(description=allow_ctas_description)
     allow_cvas = fields.Boolean(description=allow_cvas_description)
     allow_dml = fields.Boolean(description=allow_dml_description)
@@ -397,7 +397,7 @@ class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
     )
     expose_in_sqllab = fields.Boolean(description=expose_in_sqllab_description)
     allow_run_async = fields.Boolean(description=allow_run_async_description)
-    allow_csv_upload = fields.Boolean(description=allow_csv_upload_description)
+    allow_file_upload = fields.Boolean(description=allow_file_upload_description)
     allow_ctas = fields.Boolean(description=allow_ctas_description)
     allow_cvas = fields.Boolean(description=allow_cvas_description)
     allow_dml = fields.Boolean(description=allow_dml_description)
@@ -587,7 +587,7 @@ class ImportV1DatabaseSchema(Schema):
     allow_run_async = fields.Boolean()
     allow_ctas = fields.Boolean()
     allow_cvas = fields.Boolean()
-    allow_csv_upload = fields.Boolean()
+    allow_file_upload = fields.Boolean()
     extra = fields.Nested(ImportV1DatabaseExtraSchema)
     uuid = fields.UUID(required=True)
     version = fields.String(required=True)

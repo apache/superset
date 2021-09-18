@@ -70,7 +70,7 @@ extraSecretEnv: {}
 extraConfigs: {}
   # datasources-init.yaml: |
   #     databases:
-  #     - allow_csv_upload: true
+  #     - allow_file_upload: true
   #       allow_ctas: true
   #       allow_cvas: true
   #       database_name: example-db

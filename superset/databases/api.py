@@ -103,7 +103,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "cache_timeout",
         "expose_in_sqllab",
         "allow_run_async",
-        "allow_csv_upload",
+        "allow_file_upload",
         "configuration_method",
         "allow_ctas",
         "allow_cvas",
@@ -119,7 +119,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "sqlalchemy_uri",
     ]
     list_columns = [
-        "allow_csv_upload",
+        "allow_file_upload",
         "allow_ctas",
         "allow_cvas",
         "allow_dml",
@@ -146,7 +146,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "cache_timeout",
         "expose_in_sqllab",
         "allow_run_async",
-        "allow_csv_upload",
+        "allow_file_upload",
         "allow_ctas",
         "allow_cvas",
         "allow_dml",
@@ -162,7 +162,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     list_select_columns = list_columns + ["extra", "sqlalchemy_uri", "password"]
     order_columns = [
-        "allow_csv_upload",
+        "allow_file_upload",
         "allow_dml",
         "allow_run_async",
         "changed_on",

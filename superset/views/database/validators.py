@@ -49,7 +49,7 @@ def sqlalchemy_uri_validator(
 
 
 def schema_allows_csv_upload(database: Database, schema: Optional[str]) -> bool:
-    if not database.allow_csv_upload:
+    if not database.allow_file_upload:
         return False
     schemas = database.get_schema_access_for_csv_upload()
     if schemas:

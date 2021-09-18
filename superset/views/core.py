@@ -153,7 +153,7 @@ QueryStatus = utils.QueryStatus
 logger = logging.getLogger(__name__)
 
 DATABASE_KEYS = [
-    "allow_csv_upload",
+    "allow_file_upload",
     "allow_ctas",
     "allow_cvas",
     "allow_dml",

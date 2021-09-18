@@ -54,7 +54,7 @@ const mockdatabases = [...new Array(3)].map((_, i) => ({
   backend: 'postgresql',
   allow_run_async: true,
   allow_dml: false,
-  allow_csv_upload: true,
+  allow_file_upload: true,
   expose_in_sqllab: false,
   changed_on_delta_humanized: `${i} day(s) ago`,
   changed_on: new Date().toISOString,

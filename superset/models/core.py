@@ -129,7 +129,7 @@ class Database(
         String(255), server_default=ConfigurationMethod.SQLALCHEMY_FORM.value
     )
     allow_run_async = Column(Boolean, default=False)
-    allow_csv_upload = Column(Boolean, default=False)
+    allow_file_upload = Column(Boolean, default=False)
     allow_ctas = Column(Boolean, default=False)
     allow_cvas = Column(Boolean, default=False)
     allow_dml = Column(Boolean, default=False)
@@ -161,7 +161,7 @@ class Database(
         "allow_run_async",
         "allow_ctas",
         "allow_cvas",
-        "allow_csv_upload",
+        "allow_file_upload",
         "extra",
     ]
     extra_import_fields = ["password"]
