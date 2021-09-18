@@ -19,7 +19,7 @@
 /* eslint no-undef: 'error' */
 /* eslint no-param-reassign: ["error", { "props": false }] */
 import moment from 'moment';
-import { t, SupersetClient } from '@superset-ui/core';
+import { t, SupersetClient, DrillDown } from '@superset-ui/core';
 import { getControlsState } from 'src/explore/store';
 import { isFeatureEnabled, FeatureFlag } from '../featureFlags';
 import {
@@ -120,6 +120,7 @@ const legacyChartDataRequest = async (
   force,
   method = 'POST',
   requestParams = {},
+  ownState,
 ) => {
   const endpointType = getLegacyEndpointType({ resultFormat, resultType });
   const allowDomainSharding =
@@ -135,10 +136,21 @@ const legacyChartDataRequest = async (
       ? { dashboard_id: requestParams.dashboard_id }
       : {},
   });
+
+  const drillPayload = formData.drillDown ? {
+    groupby: [DrillDown.getColumn(ownState.drilldown, formData.groupby)],
+    filters: [...formData.filters || [], ...DrillDown.getFilters(ownState.drilldown, formData.groupby)],
+  }: {};
+
   const querySettings = {
     ...requestParams,
     url,
-    postPayload: { form_data: formData },
+    postPayload: {
+      form_data: {
+        ...formData,
+        ...drillPayload,
+      },
+    }
   };
 
   const clientMethod =
@@ -231,6 +243,7 @@ export async function getChartDataRequest({
       force,
       method,
       querySettings,
+      ownState,
     );
   }
   return v1ChartDataRequest(
