@@ -79,6 +79,7 @@ from superset.views.base_api import (
     statsd_metrics,
 )
 from superset.views.filters import FilterRelatedOwners
+from superset.utils.custom_decorators import authenticate_permissions_request
 
 logger = logging.getLogger(__name__)
 
@@ -230,6 +231,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_charts",
         log_to_statsd=False,
     )
+    @authenticate_permissions_request(is_sql_query=False)
     def get_charts(self, pk: int) -> Response:
         """Gets the chart definitions for a given dashboard
         ---
@@ -277,6 +279,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
     )
+    @authenticate_permissions_request(is_sql_query=False)
     def post(self) -> Response:
         """Creates a new Dashboard
         ---

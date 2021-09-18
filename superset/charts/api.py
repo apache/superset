@@ -84,6 +84,7 @@ from superset.views.base_api import (
 )
 from superset.views.core import CsvResponse, generate_download_headers
 from superset.views.filters import FilterRelatedOwners
+from superset.utils.custom_decorators import authenticate_permissions_request
 
 logger = logging.getLogger(__name__)
 
@@ -229,6 +230,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
     )
+    @authenticate_permissions_request(is_sql_query=False)
     def post(self) -> Response:
         """Creates a new Chart
         ---
@@ -506,6 +508,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
         log_to_statsd=False,
     )
+    @authenticate_permissions_request(is_sql_query=False)
     def data(self) -> Response:
         """
         Takes a query context constructed in the client and returns payload

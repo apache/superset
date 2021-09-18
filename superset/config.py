@@ -778,29 +778,7 @@ CONFIG_PATH_ENV_VAR = "SUPERSET_CONFIG_PATH"
 # a reference to the Flask app. This can be used to alter the Flask app
 # in whatever way.
 # example: FLASK_APP_MUTATOR = lambda x: x.before_request = f
-
-def attach_handler(app):
-
-    @app.before_request
-    def beforerequest():
-        print("before_request!")
-        print(request.endpoint)
-        print(request.headers)
-        print(request.data)
-        g.user = current_user
-        print(g.user)
-        print(current_user)
-        if g.user.is_authenticated:
-            print("Yes Authenticated")
-            g.search_form = None
-
-    @app.after_request
-    def afterrequest(response):
-        print("after_request is running!")
-        logging.info("after_request is running!")
-        return response
-
-FLASK_APP_MUTATOR = lambda app: attach_handler(app)
+FLASK_APP_MUTATOR = None
 
 # Set this to false if you don't want users to be able to request/grant
 # datasource access requests from/to other users.

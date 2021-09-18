@@ -138,6 +138,7 @@ from superset.views.utils import (
 )
 from superset.viz import BaseViz
 from flask_wtf.csrf import CSRFError
+from superset.utils.custom_decorators import authenticate_permissions_request
 
 config = app.config
 SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
@@ -511,6 +512,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @permission_name("explore_json")
     @expose("/explore_json/data/<cache_key>", methods=["GET"])
     @check_resource_permissions(check_explore_cache_perms)
+    @authenticate_permissions_request(is_sql_query=False)
     def explore_json_data(self, cache_key: str) -> FlaskResponse:
         """Serves cached result data for async explore_json calls
 
@@ -556,6 +558,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/explore_json/", methods=EXPLORE_JSON_METHODS)
     @etag_cache()
     @check_resource_permissions(check_datasource_perms)
+    @authenticate_permissions_request(is_sql_query=False)
     def explore_json(
         self, datasource_type: Optional[str] = None, datasource_id: Optional[int] = None
     ) -> FlaskResponse:
@@ -664,6 +667,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/explore/<datasource_type>/<int:datasource_id>/", methods=["GET", "POST"])
     @expose("/explore/", methods=["GET", "POST"])
+    @authenticate_permissions_request(is_sql_query=False)
     def explore(  # pylint: disable=too-many-locals,too-many-return-statements
         self, datasource_type: Optional[str] = None, datasource_id: Optional[int] = None
     ) -> FlaskResponse:
@@ -1753,6 +1757,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/dashboard/<int:dashboard_id>/published/", methods=("GET", "POST"))
+    @authenticate_permissions_request(is_sql_query=False)
     def publish(  # pylint: disable=no-self-use
         self, dashboard_id: int
     ) -> FlaskResponse:
@@ -1795,6 +1800,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             utils.error_msg_from_exception(ex), status=403
         )
     )
+    @authenticate_permissions_request(is_sql_query=False)
     def dashboard(  # pylint: disable=too-many-locals
         self,  # pylint: disable=no-self-use
         dashboard_id_or_slug: str,  # pylint: disable=unused-argument
@@ -2437,6 +2443,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @handle_api_exception
     @event_logger.log_this
     @expose("/sql_json/", methods=["POST"])
+    @authenticate_permissions_request(is_sql_query=True)
     def sql_json(self) -> FlaskResponse:
         log_params = {
             "user_agent": cast(Optional[str], request.headers.get("USER_AGENT"))
