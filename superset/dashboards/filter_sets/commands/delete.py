@@ -44,7 +44,7 @@ class DeleteFilterSetCommand(BaseFilterSetCommand):
             raise FilterSetDeleteFailedError(str(self._filter_set_id), "") from err
 
     def validate(self) -> None:
-        super().validate()
+        self._validate_filterset_dashboard_exists()
         try:
             self.validate_exist_filter_use_cases_set()
         except FilterSetNotFoundError as err:

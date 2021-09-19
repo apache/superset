@@ -36,7 +36,7 @@ from superset.models.filter_set import FilterSet
 logger = logging.getLogger(__name__)
 
 
-class BaseFilterSetCommand(BaseCommand):
+class BaseFilterSetCommand:
     # pylint: disable=C0103
     _dashboard: Dashboard
     _filter_set_id: Optional[int]
@@ -49,9 +49,6 @@ class BaseFilterSetCommand(BaseCommand):
 
     def run(self) -> Model:
         pass
-
-    def validate(self) -> None:
-        self._validate_filterset_dashboard_exists()
 
     def _validate_filterset_dashboard_exists(self) -> None:
         self._dashboard = DashboardDAO.get_by_id_or_slug(str(self._dashboard_id))

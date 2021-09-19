@@ -52,7 +52,7 @@ class CreateFilterSetCommand(BaseFilterSetCommand):
         return filter_set
 
     def validate(self) -> None:
-        super().validate()
+        self.validate_exist_filter_use_cases_set()
         if self._properties[OWNER_TYPE_FIELD] == DASHBOARD_OWNER_TYPE:
             self._validate_owner_id_is_dashboard_id()
             self._validate_user_is_the_dashboard_owner()

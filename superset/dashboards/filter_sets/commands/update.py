@@ -52,5 +52,5 @@ class UpdateFilterSetCommand(BaseFilterSetCommand):
             raise FilterSetUpdateFailedError(str(self._filter_set_id), "") from err
 
     def validate(self) -> None:
-        super().validate()
+        self._validate_filterset_dashboard_exists()
         self.validate_exist_filter_use_cases_set()
