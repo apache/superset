@@ -50,7 +50,9 @@ def assert_filterset_was_not_created(filter_set_data: Dict[str, Any]) -> None:
 def assert_filterset_was_created(filter_set_data: Dict[str, Any]) -> None:
     assert get_filter_set_by_name(filter_set_data["name"]) is not None
 
+import pytest
 
+@pytest.mark.ofek
 class TestCreateFilterSetsApi:
     def test_with_extra_field__400(
         self,
