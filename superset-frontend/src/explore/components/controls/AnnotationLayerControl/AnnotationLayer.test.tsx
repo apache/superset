@@ -29,7 +29,6 @@ const defaultProps = {
   value: '',
   vizType: 'table',
   annotationType: ANNOTATION_TYPES_METADATA.FORMULA.value,
-  name: 'test',
 };
 
 beforeAll(() => {
@@ -210,7 +209,8 @@ test('Disable apply button if formula is incorrect', async () => {
     });
   };
 
-  render(<AnnotationLayer {...defaultProps} />);
+  const props = { ...defaultProps, name: 'test' };
+  render(<AnnotationLayer {...props} />);
 
   await testFormulaInput('x+1');
   await testFormulaInput('y = x*2+1');
