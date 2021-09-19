@@ -190,31 +190,46 @@ test('keeps apply disabled when missing required fields', async () => {
 });
 
 test('Disable apply button if formula is incorrect', async () => {
-  const testFormulaInput = async (
-    input: string,
-    expectCorrectFormula = true,
-  ) => {
-    userEvent.clear(screen.getByLabelText('Formula'));
-    userEvent.type(screen.getByLabelText('Formula'), input);
-    await waitFor(() => {
-      expect(screen.getByLabelText('Formula')).toHaveValue(input);
-      if (expectCorrectFormula) {
-        /* eslint-disable jest/no-conditional-expect */
-        expect(screen.getByRole('button', { name: 'OK' })).toBeEnabled();
-        expect(screen.getByRole('button', { name: 'Apply' })).toBeEnabled();
-      } else {
-        expect(screen.getByRole('button', { name: 'OK' })).toBeDisabled();
-        expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
-      }
-    });
-  };
-
   const props = { ...defaultProps, name: 'test' };
   render(<AnnotationLayer {...props} />);
 
-  await testFormulaInput('x+1');
-  await testFormulaInput('y = x*2+1');
-  await testFormulaInput('y+1', false);
-  await testFormulaInput('x+', false);
-  await testFormulaInput('y = z+1', false);
+  userEvent.clear(screen.getByLabelText('Formula'));
+  userEvent.type(screen.getByLabelText('Formula'), 'x+1');
+  await waitFor(() => {
+    expect(screen.getByLabelText('Formula')).toHaveValue('x+1');
+    expect(screen.getByRole('button', { name: 'OK' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Apply' })).toBeEnabled();
+  });
+
+  userEvent.clear(screen.getByLabelText('Formula'));
+  userEvent.type(screen.getByLabelText('Formula'), 'y = x*2+1');
+  await waitFor(() => {
+    expect(screen.getByLabelText('Formula')).toHaveValue('y = x*2+1');
+    expect(screen.getByRole('button', { name: 'OK' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Apply' })).toBeEnabled();
+  });
+
+  userEvent.clear(screen.getByLabelText('Formula'));
+  userEvent.type(screen.getByLabelText('Formula'), 'y+1');
+  await waitFor(() => {
+    expect(screen.getByLabelText('Formula')).toHaveValue('y+1');
+    expect(screen.getByRole('button', { name: 'OK' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
+  });
+
+  userEvent.clear(screen.getByLabelText('Formula'));
+  userEvent.type(screen.getByLabelText('Formula'), 'x+');
+  await waitFor(() => {
+    expect(screen.getByLabelText('Formula')).toHaveValue('x+');
+    expect(screen.getByRole('button', { name: 'OK' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
+  });
+
+  userEvent.clear(screen.getByLabelText('Formula'));
+  userEvent.type(screen.getByLabelText('Formula'), 'y = z+1');
+  await waitFor(() => {
+    expect(screen.getByLabelText('Formula')).toHaveValue('y = z+1');
+    expect(screen.getByRole('button', { name: 'OK' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
+  });
 });
