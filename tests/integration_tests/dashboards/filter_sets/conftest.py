@@ -177,7 +177,6 @@ def dashboard() -> Generator[Dashboard, None, None]:
         yield dashboard
     except Exception as ex:
         print(str(ex))
-        yield Dashboard.get(dashboard.slug)
     finally:
         with app.app_context() as ctx:
             session = ctx.app.appbuilder.get_session
