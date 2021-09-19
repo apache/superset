@@ -75,7 +75,7 @@ setup(
         "cryptography>=3.3.2",
         "deprecation>=2.1.0, <2.2.0",
         "flask>=1.1.0, <2.0.0",
-        "flask-appbuilder>=3.3.0, <4.0.0",
+        "flask-appbuilder>=3.3.2, <4.0.0",
         "flask-caching>=1.10.0",
         "flask-compress",
         "flask-talisman",
@@ -114,6 +114,7 @@ setup(
     ],
     extras_require={
         "athena": ["pyathena>=1.10.8, <1.11"],
+        "aurora-data-api": ["preset-sqlalchemy-aurora-data-api>=0.2.8,<0.3"],
         "bigquery": [
             "pandas_gbq>=0.10.0",
             "pybigquery>=0.4.10",
@@ -152,7 +153,7 @@ setup(
             "shillelagh[datasetteapi,gsheetsapi,socrata,weatherapi]>=1.0.3, <2"
         ],
         "snowflake": [
-            "snowflake-sqlalchemy>=1.2.4"
+            "snowflake-sqlalchemy==1.2.4"
         ],  # PINNED! 1.2.5 introduced breaking changes requiring sqlalchemy>=1.4.0
         "teradata": ["sqlalchemy-teradata==0.9.0.dev0"],
         "thumbnails": ["Pillow>=7.0.0, <8.0.0"],

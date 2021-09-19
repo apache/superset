@@ -18,17 +18,22 @@
 import textwrap
 import unittest
 from unittest import mock
+
+from superset.exceptions import SupersetException
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
 )
 
 import pytest
 from sqlalchemy.engine.url import make_url
+from sqlalchemy.types import DateTime
 
 import tests.integration_tests.test_app
 from superset import app, db as metadata_db
+from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.models.core import Database
 from superset.models.slice import Slice
+from superset.models.sql_types.base import literal_dttm_type_factory
 from superset.utils.core import get_example_database, QueryStatus
 
 from .base_tests import SupersetTestCase
@@ -334,6 +339,18 @@ class TestDatabaseModel(SupersetTestCase):
             df = main_db.get_df("USE superset; SELECT ';';", None)
             self.assertEqual(df.iat[0, 0], ";")
 
+    @mock.patch("superset.models.core.create_engine")
+    def test_get_sqla_engine(self, mocked_create_engine):
+        model = Database(
+            database_name="test_database", sqlalchemy_uri="mysql://root@localhost",
+        )
+        model.db_engine_spec.get_dbapi_exception_mapping = mock.Mock(
+            return_value={Exception: SupersetException}
+        )
+        mocked_create_engine.side_effect = Exception()
+        with self.assertRaises(SupersetException):
+            model.get_sqla_engine()
+
 
 class TestSqlaTableModel(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -415,6 +432,7 @@ class TestSqlaTableModel(SupersetTestCase):
             from_dttm=None,
             to_dttm=None,
             extras=dict(time_grain_sqla="P1Y"),
+            series_limit=15 if inner_join and is_timeseries else None,
         )
         qr = tbl.query(query_obj)
         self.assertEqual(qr.status, QueryStatus.SUCCESS)
@@ -516,3 +534,10 @@ class TestSqlaTableModel(SupersetTestCase):
         assert set(data_for_slices["verbose_map"].keys()) == set(
             ["__timestamp", "sum__num", "gender",]
         )
+
+
+def test_literal_dttm_type_factory():
+    orig_type = DateTime()
+    new_type = literal_dttm_type_factory(orig_type, PostgresEngineSpec, "TIMESTAMP")
+    assert type(new_type).__name__ == "TemporalWrapperType"
+    assert str(new_type) == str(orig_type)
