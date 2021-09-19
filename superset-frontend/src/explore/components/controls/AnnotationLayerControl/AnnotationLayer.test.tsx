@@ -29,6 +29,7 @@ const defaultProps = {
   value: '',
   vizType: 'table',
   annotationType: ANNOTATION_TYPES_METADATA.FORMULA.value,
+  name: 'test',
 };
 
 beforeAll(() => {
@@ -187,4 +188,33 @@ test('keeps apply disabled when missing required fields', async () => {
   checkboxes.forEach(checkbox => userEvent.click(checkbox));
 
   expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
+});
+
+test('Disable apply button if formula is incorrect', async () => {
+  const testFormulaInput = async (
+    input: string,
+    expectCorrectFormula = true,
+  ) => {
+    userEvent.clear(screen.getByLabelText('Formula'));
+    userEvent.type(screen.getByLabelText('Formula'), input);
+    await waitFor(() => {
+      expect(screen.getByLabelText('Formula')).toHaveValue(input);
+      if (expectCorrectFormula) {
+        /* eslint-disable jest/no-conditional-expect */
+        expect(screen.getByRole('button', { name: 'OK' })).toBeEnabled();
+        expect(screen.getByRole('button', { name: 'Apply' })).toBeEnabled();
+      } else {
+        expect(screen.getByRole('button', { name: 'OK' })).toBeDisabled();
+        expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
+      }
+    });
+  };
+
+  render(<AnnotationLayer {...defaultProps} />);
+
+  await testFormulaInput('x+1');
+  await testFormulaInput('y = x*2+1');
+  await testFormulaInput('y+1', false);
+  await testFormulaInput('x+', false);
+  await testFormulaInput('y = z+1', false);
 });

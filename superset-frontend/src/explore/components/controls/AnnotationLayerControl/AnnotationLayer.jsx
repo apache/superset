@@ -218,7 +218,7 @@ export default class AnnotationLayer extends React.PureComponent {
         const subexpressions = expression.split('=');
         if (
           subexpressions.length > 2 ||
-          (subexpressions[1] && !subexpressions[0].match(/^[a-zA-Z]\w*$/))
+          (subexpressions[1] && !subexpressions[0].match(/^\s*[a-zA-Z]\w*\s*$/))
         ) {
           return false;
         }
