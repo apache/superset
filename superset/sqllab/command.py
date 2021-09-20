@@ -23,9 +23,7 @@ from typing import Any, Dict, Optional, TYPE_CHECKING
 
 import simplejson as json
 from flask import g
-from flask_babel import gettext as __, ngettext
-from jinja2.exceptions import TemplateError
-from jinja2.meta import find_undeclared_variables
+from flask_babel import gettext as __
 from sqlalchemy.orm.session import Session
 
 from superset import app, db, is_feature_enabled, sql_lab
@@ -38,10 +36,8 @@ from superset.exceptions import (
     SupersetErrorsException,
     SupersetGenericDBErrorException,
     SupersetGenericErrorException,
-    SupersetTemplateParamsErrorException,
     SupersetTimeoutException,
 )
-from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.sqllab.command_status import SqlJsonExecutionStatus
@@ -78,6 +74,7 @@ class ExecuteSqlCommand(BaseCommand):
     _query_dao: QueryDAO
     _database_dao: DatabaseDAO
     _access_validator: CanAccessQueryValidator
+    _sql_query_render: SqlQueryRender
     _log_params: Optional[Dict[str, Any]] = None
     _session: Session
 
@@ -87,12 +84,14 @@ class ExecuteSqlCommand(BaseCommand):
         query_dao: QueryDAO,
         database_dao: DatabaseDAO,
         access_validator: CanAccessQueryValidator,
+        sql_query_render: SqlQueryRender,
         log_params: Optional[Dict[str, Any]] = None,
     ) -> None:
         self._execution_context = execution_context
         self._query_dao = query_dao
         self._database_dao = database_dao
         self._access_validator = access_validator
+        self._sql_query_render = sql_query_render
         self._log_params = log_params
         self._session = db.session()
 
@@ -142,7 +141,7 @@ class ExecuteSqlCommand(BaseCommand):
             logger.info("Triggering query_id: %i", query.id)
             self._validate_access(query)
             self._execution_context.set_query(query)
-            rendered_query = self._render_query()
+            rendered_query = self._sql_query_render.render(self._execution_context)
             self._set_query_limit_if_required(rendered_query)
             return self._execute_query(rendered_query)
         except Exception as ex:
@@ -181,51 +180,6 @@ class ExecuteSqlCommand(BaseCommand):
             self._access_validator.validate(query)
         except Exception as ex:
             raise QueryIsForbiddenToAccessException(self._execution_context, ex) from ex
-
-    def _render_query(self) -> str:
-        def validate(
-            rendered_query: str, template_processor: BaseTemplateProcessor
-        ) -> None:
-            if is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
-                # pylint: disable=protected-access
-                ast = template_processor._env.parse(rendered_query)
-                undefined_parameters = find_undeclared_variables(ast)  # type: ignore
-                if undefined_parameters:
-                    raise SupersetTemplateParamsErrorException(
-                        message=ngettext(
-                            "The parameter %(parameters)s in your query is undefined.",
-                            "The following parameters in your query are undefined: %(parameters)s.",
-                            len(undefined_parameters),
-                            parameters=utils.format_list(undefined_parameters),
-                        )
-                        + " "
-                        + PARAMETER_MISSING_ERR,
-                        error=SupersetErrorType.MISSING_TEMPLATE_PARAMS_ERROR,
-                        extra={
-                            "undefined_parameters": list(undefined_parameters),
-                            "template_parameters": self._execution_context.template_params,
-                        },
-                    )
-
-        query = self._execution_context.query
-
-        try:
-            template_processor = get_template_processor(
-                database=query.database, query=query
-            )
-            rendered_query = template_processor.process_template(
-                query.sql, **self._execution_context.template_params
-            )
-            validate(rendered_query, template_processor)
-        except TemplateError as ex:
-            raise SupersetTemplateParamsErrorException(
-                message=__(
-                    'The query contains one or more malformed template parameters. Please check your query and confirm that all template parameters are surround by double braces, for example, "{{ ds }}". Then, try running your query again.'
-                ),
-                error=SupersetErrorType.INVALID_TEMPLATE_PARAMS_ERROR,
-            ) from ex
-
-        return rendered_query
 
     def _set_query_limit_if_required(self, rendered_query: str,) -> None:
         if self._is_required_to_set_limit():
@@ -416,4 +370,9 @@ class ExecuteSqlCommand(BaseCommand):
 
 class CanAccessQueryValidator:
     def validate(self, query: Query) -> None:
+        raise NotImplementedError()
+
+
+class SqlQueryRender:
+    def render(self, execution_context: SqlJsonExecutionContext) -> str:
         raise NotImplementedError()
