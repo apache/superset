@@ -365,30 +365,47 @@ def create_alert_slack_chart_success():
         cleanup_report_schedule(report_schedule)
 
 
-@pytest.fixture()
-def create_alert_slack_chart_grace():
+@pytest.fixture(
+    params=["alert1",]
+)
+def create_alert_slack_chart_grace(request):
+    param_config = {
+        "alert1": {
+            "sql": "SELECT count(*) from test_table",
+            "validator_type": ReportScheduleValidatorType.OPERATOR,
+            "validator_config_json": '{"op": "<", "threshold": 10}',
+        },
+    }
     with app.app_context():
         chart = db.session.query(Slice).first()
-        report_schedule = create_report_notification(
-            slack_channel="slack_channel",
-            chart=chart,
-            report_type=ReportScheduleType.ALERT,
-        )
-        report_schedule.last_state = ReportState.GRACE
-        report_schedule.last_eval_dttm = datetime(2020, 1, 1, 0, 0)
+        example_database = get_example_database()
+        with create_test_table_context(example_database):
+            report_schedule = create_report_notification(
+                slack_channel="slack_channel",
+                chart=chart,
+                report_type=ReportScheduleType.ALERT,
+                database=example_database,
+                sql=param_config[request.param]["sql"],
+                validator_type=param_config[request.param]["validator_type"],
+                validator_config_json=param_config[request.param][
+                    "validator_config_json"
+                ],
+            )
+            report_schedule.last_state = ReportState.GRACE
+            report_schedule.last_eval_dttm = datetime(2020, 1, 1, 0, 0)
 
-        log = ReportExecutionLog(
-            report_schedule=report_schedule,
-            state=ReportState.SUCCESS,
-            start_dttm=report_schedule.last_eval_dttm,
-            end_dttm=report_schedule.last_eval_dttm,
-            scheduled_dttm=report_schedule.last_eval_dttm,
-        )
-        db.session.add(log)
-        db.session.commit()
-        yield report_schedule
+            log = ReportExecutionLog(
+                report_schedule=report_schedule,
+                state=ReportState.SUCCESS,
+                start_dttm=report_schedule.last_eval_dttm,
+                end_dttm=report_schedule.last_eval_dttm,
+                scheduled_dttm=report_schedule.last_eval_dttm,
+            )
+            db.session.add(log)
+            db.session.commit()
+            yield report_schedule
 
-        cleanup_report_schedule(report_schedule)
+            cleanup_report_schedule(report_schedule)
 
 
 @pytest.fixture(
@@ -1051,11 +1068,18 @@ def test_report_schedule_success_grace(create_alert_slack_chart_success):
 
 
 @pytest.mark.usefixtures("create_alert_slack_chart_grace")
-def test_report_schedule_success_grace_end(create_alert_slack_chart_grace):
+@patch("superset.reports.notifications.slack.WebClient.files_upload")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_report_schedule_success_grace_end(
+    screenshot_mock, file_upload_mock, create_alert_slack_chart_grace
+):
     """
     ExecuteReport Command: Test report schedule on grace to noop
     """
-    # set current time to within the grace period
+
+    screenshot_mock.return_value = SCREENSHOT_FILE
+
+    # set current time to after the grace period
     current_time = create_alert_slack_chart_grace.last_eval_dttm + timedelta(
         seconds=create_alert_slack_chart_grace.grace_period + 1
     )
@@ -1066,7 +1090,7 @@ def test_report_schedule_success_grace_end(create_alert_slack_chart_grace):
         ).run()
 
     db.session.commit()
-    assert create_alert_slack_chart_grace.last_state == ReportState.NOOP
+    assert create_alert_slack_chart_grace.last_state == ReportState.SUCCESS
 
 
 @pytest.mark.usefixtures("create_alert_email_chart")
