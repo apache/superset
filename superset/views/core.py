@@ -104,6 +104,7 @@ from superset.sqllab.exceptions import (
     QueryIsForbiddenToAccessException,
     SqlLabException,
 )
+from superset.sqllab.query_render import SqlQueryRenderImpl
 from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 from superset.sqllab.validators import CanAccessQueryValidatorImpl
 from superset.tasks.async_queries import load_explore_json_into_cache
@@ -2436,6 +2437,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 QueryDAO(),
                 DatabaseDAO(),
                 CanAccessQueryValidatorImpl(),
+                SqlQueryRenderImpl(get_template_processor),
                 log_params,
             )
             command_result: CommandResult = command.run()
