@@ -70,7 +70,9 @@ A modern, enterprise-ready business intelligence web application.
 
 **Choose from a wide array of visualizations**
 
-<kbd><img title="Visualizations" src="superset-frontend/images/screenshots/explore_visualizations.jpg"/></kbd><br/>
+<kbd><img width="1091" alt="Screen Shot 2021-09-20 at 2 58 47 PM" src="https://user-images.githubusercontent.com/67837651/134081597-3fc1228a-fc64-4793-ba7a-2f0373b2d8dd.png"></kbd><br/>
+
+
 
 ## Why Superset?
 
