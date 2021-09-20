@@ -150,6 +150,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "columns.groupby",
         "columns.id",
         "columns.is_active",
+        "columns.extra",
         "columns.is_dttm",
         "columns.python_date_format",
         "columns.type",
