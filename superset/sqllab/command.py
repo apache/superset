@@ -44,7 +44,10 @@ from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.models.core import Database
 from superset.models.sql_lab import LimitingFactor, Query
 from superset.sqllab.command_status import SqlJsonExecutionStatus
-from superset.sqllab.exceptions import SqlLabException
+from superset.sqllab.exceptions import (
+    QueryIsForbiddenToAccessException,
+    SqlLabException,
+)
 from superset.utils import core as utils
 from superset.utils.dates import now_as_float
 from superset.views.utils import apply_display_max_row_limit
@@ -71,6 +74,7 @@ CommandResult = Dict[str, Any]
 class ExecuteSqlCommand(BaseCommand):
     _execution_context: SqlJsonExecutionContext
     _query_dao: QueryDAO
+    _access_validator: CanAccessQueryValidator
     log_params: Optional[Dict[str, Any]] = None
     session: Session
 
@@ -78,10 +82,12 @@ class ExecuteSqlCommand(BaseCommand):
         self,
         execution_context: SqlJsonExecutionContext,
         query_dao: QueryDAO,
+        access_validator: CanAccessQueryValidator,
         log_params: Optional[Dict[str, Any]] = None,
     ) -> None:
         self._execution_context = execution_context
         self._query_dao = query_dao
+        self._access_validator = access_validator
         self.log_params = log_params
         self.session = db.session()
 
@@ -167,13 +173,9 @@ class ExecuteSqlCommand(BaseCommand):
 
     def _validate_access(self, query: Query) -> None:
         try:
-            query.raise_for_access()
-        except SupersetSecurityException as ex:
-            query.set_extra_json_key("errors", [dataclasses.asdict(ex.error)])
-            query.status = QueryStatus.FAILED
-            query.error_message = ex.error.message
-            self.session.commit()
-            raise SupersetErrorException(ex.error, status=403) from ex
+            self._access_validator.validate(query)
+        except Exception as ex:
+            raise QueryIsForbiddenToAccessException(self._execution_context, ex) from ex
 
     def _render_query(self) -> str:
         def validate(
@@ -403,3 +405,8 @@ class ExecuteSqlCommand(BaseCommand):
             default=utils.json_int_dttm_ser,
             ignore_nan=True,
         )
+
+
+class CanAccessQueryValidator:
+    def validate(self, query: Query) -> None:
+        raise NotImplementedError()

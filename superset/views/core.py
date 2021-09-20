@@ -100,7 +100,10 @@ from superset.sql_parse import ParsedQuery, Table
 from superset.sql_validators import get_validator_by_name
 from superset.sqllab.command import CommandResult, ExecuteSqlCommand
 from superset.sqllab.command_status import SqlJsonExecutionStatus
+from superset.sqllab.exceptions import QueryIsForbiddenToAccessException, \
+    SqlLabException
 from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
+from superset.sqllab.validators import CanAccessQueryValidatorImpl
 from superset.tasks.async_queries import load_explore_json_into_cache
 from superset.typing import FlaskResponse
 from superset.utils import core as utils, csv
@@ -2421,13 +2424,25 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/sql_json/", methods=["POST"])
     def sql_json(self) -> FlaskResponse:
-        log_params = {
-            "user_agent": cast(Optional[str], request.headers.get("USER_AGENT"))
-        }
-        execution_context = SqlJsonExecutionContext(request.json)
-        command = ExecuteSqlCommand(execution_context, QueryDAO(), log_params)
-        command_result: CommandResult = command.run()
-        return self._create_response_from_execution_context(command_result)
+        try:
+            log_params = {
+                "user_agent": cast(Optional[str], request.headers.get("USER_AGENT"))
+            }
+            execution_context = SqlJsonExecutionContext(request.json)
+            command = ExecuteSqlCommand(
+                execution_context, QueryDAO(), CanAccessQueryValidatorImpl(), log_params
+            )
+            command_result: CommandResult = command.run()
+            return self._create_response_from_execution_context(command_result)
+        except SqlLabException as ex:
+            logger.error(ex.message)
+            self._set_http_status_into_Sql_lab_exception(ex)
+            raise ex
+
+    @staticmethod
+    def _set_http_status_into_Sql_lab_exception(ex: SqlLabException) -> None:
+        if isinstance(ex, QueryIsForbiddenToAccessException):
+            ex.status = 403
 
     def _create_response_from_execution_context(  # pylint: disable=invalid-name, no-self-use
         self, command_result: CommandResult,
