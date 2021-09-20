@@ -17,70 +17,48 @@
  * under the License.
  */
 import { QueryObject, SqlaFormData } from '@superset-ui/core';
-import { resampleOperator } from '../../../src';
+import { prophetOperator } from '../../../src';
 
 const formData: SqlaFormData = {
   metrics: ['count(*)', { label: 'sum(val)', expressionType: 'SQL', sqlExpression: 'sum(val)' }],
   time_range: '2015 : 2016',
-  granularity: 'month',
+  time_grain_sqla: 'P1Y',
   datasource: 'foo',
   viz_type: 'table',
 };
 const queryObject: QueryObject = {
   metrics: ['count(*)', { label: 'sum(val)', expressionType: 'SQL', sqlExpression: 'sum(val)' }],
   time_range: '2015 : 2016',
-  granularity: 'month',
-  post_processing: [
-    {
-      operation: 'pivot',
-      options: {
-        index: ['__timestamp'],
-        columns: ['nation'],
-        aggregates: {
-          'count(*)': {
-            operator: 'sum',
-          },
-        },
-      },
-    },
-  ],
+  granularity: 'P1Y',
 };
 
-test('should skip resampleOperator', () => {
-  expect(resampleOperator(formData, queryObject)).toEqual(undefined);
-  expect(resampleOperator({ ...formData, resample_method: 'ffill' }, queryObject)).toEqual(
-    undefined,
-  );
-  expect(resampleOperator({ ...formData, resample_rule: '1D' }, queryObject)).toEqual(undefined);
+test('should skip prophetOperator', () => {
+  expect(prophetOperator(formData, queryObject)).toEqual(undefined);
 });
 
-test('should do resample', () => {
+test('should do prophetOperator', () => {
   expect(
-    resampleOperator({ ...formData, resample_method: 'ffill', resample_rule: '1D' }, queryObject),
-  ).toEqual({
-    operation: 'resample',
-    options: {
-      method: 'ffill',
-      rule: '1D',
-      fill_value: null,
-      time_column: '__timestamp',
-    },
-  });
-});
-
-test('should do zerofill resample', () => {
-  expect(
-    resampleOperator(
-      { ...formData, resample_method: 'zerofill', resample_rule: '1D' },
+    prophetOperator(
+      {
+        ...formData,
+        forecastEnabled: true,
+        forecastPeriods: '3',
+        forecastInterval: '5',
+        forecastSeasonalityYearly: true,
+        forecastSeasonalityWeekly: false,
+        forecastSeasonalityDaily: false,
+      },
       queryObject,
     ),
   ).toEqual({
-    operation: 'resample',
+    operation: 'prophet',
     options: {
-      method: 'asfreq',
-      rule: '1D',
-      fill_value: 0,
-      time_column: '__timestamp',
+      time_grain: 'P1Y',
+      periods: 3.0,
+      confidence_interval: 5.0,
+      yearly_seasonality: true,
+      weekly_seasonality: false,
+      daily_seasonality: false,
     },
   });
 });

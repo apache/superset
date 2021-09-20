@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,13 +16,25 @@
  * specific language governing permissions and limitationsxw
  * under the License.
  */
-export { rollingWindowOperator } from './rollingWindowOperator';
-export { timeCompareOperator } from './timeCompareOperator';
-export { timeComparePivotOperator } from './timeComparePivotOperator';
-export { sortOperator } from './sortOperator';
-export { pivotOperator } from './pivotOperator';
-export { resampleOperator } from './resampleOperator';
-export { contributionOperator } from './contributionOperator';
-export { prophetOperator } from './prophetOperator';
-export { boxplotOperator } from './boxplotOperator';
-export * from './utils';
+import { PostProcessingProphet } from '@superset-ui/core';
+import { PostProcessingFactory } from './types';
+
+export const prophetOperator: PostProcessingFactory<PostProcessingProphet | undefined> = (
+  formData,
+  queryObject,
+) => {
+  if (formData.forecastEnabled) {
+    return {
+      operation: 'prophet',
+      options: {
+        time_grain: formData.time_grain_sqla,
+        periods: parseInt(formData.forecastPeriods, 10),
+        confidence_interval: parseFloat(formData.forecastInterval),
+        yearly_seasonality: formData.forecastSeasonalityYearly,
+        weekly_seasonality: formData.forecastSeasonalityWeekly,
+        daily_seasonality: formData.forecastSeasonalityDaily,
+      },
+    };
+  }
+  return undefined;
+};

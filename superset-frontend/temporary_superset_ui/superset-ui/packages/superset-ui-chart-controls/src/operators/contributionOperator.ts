@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,13 +16,20 @@
  * specific language governing permissions and limitationsxw
  * under the License.
  */
-export { rollingWindowOperator } from './rollingWindowOperator';
-export { timeCompareOperator } from './timeCompareOperator';
-export { timeComparePivotOperator } from './timeComparePivotOperator';
-export { sortOperator } from './sortOperator';
-export { pivotOperator } from './pivotOperator';
-export { resampleOperator } from './resampleOperator';
-export { contributionOperator } from './contributionOperator';
-export { prophetOperator } from './prophetOperator';
-export { boxplotOperator } from './boxplotOperator';
-export * from './utils';
+import { PostProcessingContribution } from '@superset-ui/core';
+import { PostProcessingFactory } from './types';
+
+export const contributionOperator: PostProcessingFactory<PostProcessingContribution | undefined> = (
+  formData,
+  queryObject,
+) => {
+  if (formData.contributionMode) {
+    return {
+      operation: 'contribution',
+      options: {
+        orientation: formData.contributionMode,
+      },
+    };
+  }
+  return undefined;
+};
