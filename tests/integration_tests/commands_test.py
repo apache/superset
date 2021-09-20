@@ -14,8 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=no-self-use
-
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.v1.utils import is_valid_config
 from tests.integration_tests.base_tests import SupersetTestCase

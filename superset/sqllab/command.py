@@ -124,7 +124,7 @@ class ExecuteSqlCommand(BaseCommand):
             QueryStatus.TIMED_OUT,
         ]
 
-    def _run_sql_json_exec_from_scratch(self,) -> SqlJsonExecutionStatus:
+    def _run_sql_json_exec_from_scratch(self) -> SqlJsonExecutionStatus:
         self.execution_context.set_database(self._get_the_query_db())
         query = self.execution_context.create_query()
         try:
@@ -183,7 +183,7 @@ class ExecuteSqlCommand(BaseCommand):
             self.session.commit()
             raise SupersetErrorException(ex.error, status=403) from ex
 
-    def _render_query(self,) -> str:
+    def _render_query(self) -> str:
         def validate(
             rendered_query: str, template_processor: BaseTemplateProcessor
         ) -> None:
@@ -232,7 +232,7 @@ class ExecuteSqlCommand(BaseCommand):
         if self._is_required_to_set_limit():
             self._set_query_limit(rendered_query)
 
-    def _is_required_to_set_limit(self,) -> bool:
+    def _is_required_to_set_limit(self) -> bool:
         return not (
             config.get("SQLLAB_CTAS_NO_LIMIT") and self.execution_context.select_as_cta
         )
@@ -382,10 +382,8 @@ class ExecuteSqlCommand(BaseCommand):
             is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE") and not query.select_as_cta
         )
 
-    def _create_payload_from_execution_context(
-        # pylint: disable=invalid-name
-        self,
-        status: SqlJsonExecutionStatus,
+    def _create_payload_from_execution_context(  # pylint: disable=invalid-name
+        self, status: SqlJsonExecutionStatus,
     ) -> str:
 
         if status == SqlJsonExecutionStatus.HAS_RESULTS:

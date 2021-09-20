@@ -470,9 +470,8 @@ def diff(
     return _append_columns(df, df_diff, columns)
 
 
-# pylint: disable=too-many-arguments
 @validate_column_args("source_columns", "compare_columns")
-def compare(
+def compare(  # pylint: disable=too-many-arguments
     df: DataFrame,
     source_columns: List[str],
     compare_columns: List[str],
