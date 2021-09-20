@@ -26,25 +26,23 @@ from flask import g
 from flask_babel import gettext as __, ngettext
 from jinja2.exceptions import TemplateError
 from jinja2.meta import find_undeclared_variables
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm.session import Session
 
 from superset import app, db, is_feature_enabled, sql_lab
 from superset.commands.base import BaseCommand
+from superset.dao.exceptions import DAOCreateFailedError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetErrorException,
     SupersetErrorsException,
     SupersetGenericDBErrorException,
     SupersetGenericErrorException,
-    SupersetSecurityException,
     SupersetTemplateParamsErrorException,
     SupersetTimeoutException,
 )
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.models.core import Database
 from superset.models.sql_lab import LimitingFactor, Query
-from superset.queries.dao import QueryDAO
 from superset.sqllab.command_status import SqlJsonExecutionStatus
 from superset.sqllab.exceptions import SqlLabException
 from superset.utils import core as utils
@@ -53,6 +51,7 @@ from superset.views.utils import apply_display_max_row_limit
 
 if TYPE_CHECKING:
     from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
+    from superset.queries.dao import QueryDAO
 
 config = app.config
 QueryStatus = utils.QueryStatus
@@ -71,15 +70,18 @@ CommandResult = Dict[str, Any]
 
 class ExecuteSqlCommand(BaseCommand):
     _execution_context: SqlJsonExecutionContext
+    _query_dao: QueryDAO
     log_params: Optional[Dict[str, Any]] = None
     session: Session
 
     def __init__(
         self,
         execution_context: SqlJsonExecutionContext,
+        query_dao: QueryDAO,
         log_params: Optional[Dict[str, Any]] = None,
     ) -> None:
         self._execution_context = execution_context
+        self._query_dao = query_dao
         self.log_params = log_params
         self.session = db.session()
 
@@ -91,7 +93,7 @@ class ExecuteSqlCommand(BaseCommand):
     ) -> CommandResult:
         """Runs arbitrary sql and returns data as json"""
         try:
-            query = self._get_existing_query()
+            query = self._try_get_existing_query()
             if self.is_query_handled(query):
                 self._execution_context.set_query(query)  # type: ignore
                 status = SqlJsonExecutionStatus.QUERY_ALREADY_CREATED
@@ -106,17 +108,12 @@ class ExecuteSqlCommand(BaseCommand):
         except Exception as ex:
             raise SqlLabException(self._execution_context, exception=ex) from ex
 
-    def _get_existing_query(self) -> Optional[Query]:
-        query = (
-            self.session.query(Query)
-            .filter_by(
-                client_id=self._execution_context.client_id,
-                user_id=self._execution_context.user_id,
-                sql_editor_id=self._execution_context.sql_editor_id,
-            )
-            .one_or_none()
+    def _try_get_existing_query(self) -> Optional[Query]:
+        return self._query_dao.find_one_or_none(
+            client_id=self._execution_context.client_id,
+            user_id=self._execution_context.user_id,
+            sql_editor_id=self._execution_context.sql_editor_id,
         )
-        return query
 
     @classmethod
     def is_query_handled(cls, query: Optional[Query]) -> bool:
@@ -138,8 +135,7 @@ class ExecuteSqlCommand(BaseCommand):
             self._set_query_limit_if_required(rendered_query)
             return self._execute_query(rendered_query)
         except Exception as ex:
-            query.status = QueryStatus.FAILED
-            self.session.commit()
+            self._query_dao.update(query, {"status": QueryStatus.FAILED})
             raise ex
 
     def _get_the_query_db(self) -> Database:
@@ -159,19 +155,15 @@ class ExecuteSqlCommand(BaseCommand):
 
     def _save_new_query(self, query: Query) -> None:
         try:
-            self.session.add(query)
-            self.session.flush()
-            self.session.commit()  # shouldn't be necessary
-        except SQLAlchemyError as ex:
-            logger.error("Errors saving query details %s", str(ex), exc_info=True)
-            self.session.rollback()
-        if not query.id:
-            raise SupersetGenericErrorException(
-                __(
-                    "The query record was not created as expected. Please "
-                    "contact an administrator for further assistance or try again."
-                )
-            )
+            self._query_dao.save(query)
+        except DAOCreateFailedError as ex:
+            raise SqlLabException(
+                self._execution_context,
+                SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                "The query record was not created as expected",
+                ex,
+                "Please contact an administrator for further assistance or try again.",
+            ) from ex
 
     def _validate_access(self, query: Query) -> None:
         try:
@@ -316,7 +308,7 @@ class ExecuteSqlCommand(BaseCommand):
             raise SupersetErrorException(error) from ex
 
         # Update saved query with execution info from the query execution
-        QueryDAO.update_saved_query_exec_info(query_id)
+        self._query_dao.update_saved_query_exec_info(query_id)
 
         self.session.commit()
         return SqlJsonExecutionStatus.QUERY_IS_RUNNING
@@ -337,7 +329,7 @@ class ExecuteSqlCommand(BaseCommand):
                 timeout, rendered_query, timeout_msg,
             )
             # Update saved query if needed
-            QueryDAO.update_saved_query_exec_info(query_id)
+            self._query_dao.update_saved_query_exec_info(query_id)
             self._execution_context.set_execution_result(data)
         except SupersetTimeoutException as ex:
             # re-raise exception for api exception handler
