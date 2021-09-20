@@ -47,82 +47,80 @@ const queryObject: QueryObject = {
   ],
 };
 
-describe('pivotOperator', () => {
-  it('skip pivot', () => {
-    expect(pivotOperator(formData, queryObject)).toEqual(undefined);
-    expect(pivotOperator(formData, { ...queryObject, is_timeseries: false })).toEqual(undefined);
-    expect(pivotOperator(formData, { ...queryObject, is_timeseries: true, metrics: [] })).toEqual(
-      undefined,
-    );
-  });
+test('skip pivot', () => {
+  expect(pivotOperator(formData, queryObject)).toEqual(undefined);
+  expect(pivotOperator(formData, { ...queryObject, is_timeseries: false })).toEqual(undefined);
+  expect(pivotOperator(formData, { ...queryObject, is_timeseries: true, metrics: [] })).toEqual(
+    undefined,
+  );
+});
 
-  it('pivot by __timestamp without groupby', () => {
-    expect(pivotOperator(formData, { ...queryObject, is_timeseries: true })).toEqual({
-      operation: 'pivot',
-      options: {
-        index: ['__timestamp'],
-        columns: [],
-        aggregates: {
-          'count(*)': { operator: 'mean' },
-          'sum(val)': { operator: 'mean' },
-        },
-        drop_missing_columns: false,
+test('pivot by __timestamp without groupby', () => {
+  expect(pivotOperator(formData, { ...queryObject, is_timeseries: true })).toEqual({
+    operation: 'pivot',
+    options: {
+      index: ['__timestamp'],
+      columns: [],
+      aggregates: {
+        'count(*)': { operator: 'mean' },
+        'sum(val)': { operator: 'mean' },
       },
-    });
+      drop_missing_columns: false,
+    },
   });
+});
 
-  it('pivot by __timestamp with groupby', () => {
-    expect(
-      pivotOperator(formData, { ...queryObject, columns: ['foo', 'bar'], is_timeseries: true }),
-    ).toEqual({
-      operation: 'pivot',
-      options: {
-        index: ['__timestamp'],
+test('pivot by __timestamp with groupby', () => {
+  expect(
+    pivotOperator(formData, { ...queryObject, columns: ['foo', 'bar'], is_timeseries: true }),
+  ).toEqual({
+    operation: 'pivot',
+    options: {
+      index: ['__timestamp'],
+      columns: ['foo', 'bar'],
+      aggregates: {
+        'count(*)': { operator: 'mean' },
+        'sum(val)': { operator: 'mean' },
+      },
+      drop_missing_columns: false,
+    },
+  });
+});
+
+test('timecompare in formdata', () => {
+  expect(
+    pivotOperator(
+      {
+        ...formData,
+        comparison_type: 'values',
+        time_compare: ['1 year ago', '1 year later'],
+      },
+      {
+        ...queryObject,
         columns: ['foo', 'bar'],
-        aggregates: {
-          'count(*)': { operator: 'mean' },
-          'sum(val)': { operator: 'mean' },
-        },
-        drop_missing_columns: false,
+        is_timeseries: true,
       },
-    });
-  });
-
-  it('timecompare in formdata', () => {
-    expect(
-      pivotOperator(
-        {
-          ...formData,
-          comparison_type: 'values',
-          time_compare: ['1 year ago', '1 year later'],
+    ),
+  ).toEqual({
+    operation: 'pivot',
+    options: {
+      aggregates: {
+        'count(*)': { operator: 'mean' },
+        'count(*)__1 year ago': { operator: 'mean' },
+        'count(*)__1 year later': { operator: 'mean' },
+        'sum(val)': {
+          operator: 'mean',
         },
-        {
-          ...queryObject,
-          columns: ['foo', 'bar'],
-          is_timeseries: true,
+        'sum(val)__1 year ago': {
+          operator: 'mean',
         },
-      ),
-    ).toEqual({
-      operation: 'pivot',
-      options: {
-        aggregates: {
-          'count(*)': { operator: 'mean' },
-          'count(*)__1 year ago': { operator: 'mean' },
-          'count(*)__1 year later': { operator: 'mean' },
-          'sum(val)': {
-            operator: 'mean',
-          },
-          'sum(val)__1 year ago': {
-            operator: 'mean',
-          },
-          'sum(val)__1 year later': {
-            operator: 'mean',
-          },
+        'sum(val)__1 year later': {
+          operator: 'mean',
         },
-        drop_missing_columns: false,
-        columns: ['foo', 'bar'],
-        index: ['__timestamp'],
       },
-    });
+      drop_missing_columns: false,
+      columns: ['foo', 'bar'],
+      index: ['__timestamp'],
+    },
   });
 });

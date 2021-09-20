@@ -54,98 +54,96 @@ const queryObject: QueryObject = {
   ],
 };
 
-describe('timeCompare', () => {
-  it('time compare: skip transformation', () => {
-    expect(timeCompareOperator(formData, queryObject)).toEqual(undefined);
-    expect(timeCompareOperator({ ...formData, time_compare: [] }, queryObject)).toEqual(undefined);
-    expect(timeCompareOperator({ ...formData, comparison_type: null }, queryObject)).toEqual(
-      undefined,
-    );
-    expect(timeCompareOperator({ ...formData, comparison_type: 'foobar' }, queryObject)).toEqual(
-      undefined,
-    );
+test('time compare: skip transformation', () => {
+  expect(timeCompareOperator(formData, queryObject)).toEqual(undefined);
+  expect(timeCompareOperator({ ...formData, time_compare: [] }, queryObject)).toEqual(undefined);
+  expect(timeCompareOperator({ ...formData, comparison_type: null }, queryObject)).toEqual(
+    undefined,
+  );
+  expect(timeCompareOperator({ ...formData, comparison_type: 'foobar' }, queryObject)).toEqual(
+    undefined,
+  );
+  expect(
+    timeCompareOperator(
+      { ...formData, comparison_type: 'values', time_compare: ['1 year ago', '1 year later'] },
+      queryObject,
+    ),
+  ).toEqual(undefined);
+});
+
+test('time compare: absolute/percentage/ratio', () => {
+  const comparisionTypes = ['absolute', 'percentage', 'ratio'];
+  comparisionTypes.forEach(cType => {
     expect(
       timeCompareOperator(
-        { ...formData, comparison_type: 'values', time_compare: ['1 year ago', '1 year later'] },
+        { ...formData, comparison_type: cType, time_compare: ['1 year ago', '1 year later'] },
         queryObject,
       ),
-    ).toEqual(undefined);
-  });
-
-  it('time compare: absolute/percentage/ratio', () => {
-    const comparisionTypes = ['absolute', 'percentage', 'ratio'];
-    comparisionTypes.forEach(cType => {
-      expect(
-        timeCompareOperator(
-          { ...formData, comparison_type: cType, time_compare: ['1 year ago', '1 year later'] },
-          queryObject,
-        ),
-      ).toEqual({
-        operation: 'compare',
-        options: {
-          source_columns: ['count(*)', 'count(*)'],
-          compare_columns: ['count(*)__1 year ago', 'count(*)__1 year later'],
-          compare_type: cType,
-          drop_original_columns: true,
-        },
-      });
+    ).toEqual({
+      operation: 'compare',
+      options: {
+        source_columns: ['count(*)', 'count(*)'],
+        compare_columns: ['count(*)__1 year ago', 'count(*)__1 year later'],
+        compare_type: cType,
+        drop_original_columns: true,
+      },
     });
   });
+});
 
-  it('time compare pivot: skip transformation', () => {
-    expect(timeComparePivotOperator(formData, queryObject)).toEqual(undefined);
-    expect(timeComparePivotOperator({ ...formData, time_compare: [] }, queryObject)).toEqual(
-      undefined,
-    );
-    expect(timeComparePivotOperator({ ...formData, comparison_type: null }, queryObject)).toEqual(
-      undefined,
-    );
-    expect(timeCompareOperator({ ...formData, comparison_type: 'foobar' }, queryObject)).toEqual(
-      undefined,
-    );
+test('time compare pivot: skip transformation', () => {
+  expect(timeComparePivotOperator(formData, queryObject)).toEqual(undefined);
+  expect(timeComparePivotOperator({ ...formData, time_compare: [] }, queryObject)).toEqual(
+    undefined,
+  );
+  expect(timeComparePivotOperator({ ...formData, comparison_type: null }, queryObject)).toEqual(
+    undefined,
+  );
+  expect(timeCompareOperator({ ...formData, comparison_type: 'foobar' }, queryObject)).toEqual(
+    undefined,
+  );
+});
+
+test('time compare pivot: values', () => {
+  expect(
+    timeComparePivotOperator(
+      { ...formData, comparison_type: 'values', time_compare: ['1 year ago', '1 year later'] },
+      queryObject,
+    ),
+  ).toEqual({
+    operation: 'pivot',
+    options: {
+      aggregates: {
+        'count(*)': { operator: 'mean' },
+        'count(*)__1 year ago': { operator: 'mean' },
+        'count(*)__1 year later': { operator: 'mean' },
+      },
+      drop_missing_columns: false,
+      columns: [],
+      index: ['__timestamp'],
+    },
   });
+});
 
-  it('time compare pivot: values', () => {
+test('time compare pivot: absolute/percentage/ratio', () => {
+  const comparisionTypes = ['absolute', 'percentage', 'ratio'];
+  comparisionTypes.forEach(cType => {
     expect(
       timeComparePivotOperator(
-        { ...formData, comparison_type: 'values', time_compare: ['1 year ago', '1 year later'] },
+        { ...formData, comparison_type: cType, time_compare: ['1 year ago', '1 year later'] },
         queryObject,
       ),
     ).toEqual({
       operation: 'pivot',
       options: {
         aggregates: {
-          'count(*)': { operator: 'mean' },
-          'count(*)__1 year ago': { operator: 'mean' },
-          'count(*)__1 year later': { operator: 'mean' },
+          [`${cType}__count(*)__count(*)__1 year ago`]: { operator: 'mean' },
+          [`${cType}__count(*)__count(*)__1 year later`]: { operator: 'mean' },
         },
         drop_missing_columns: false,
         columns: [],
         index: ['__timestamp'],
       },
-    });
-  });
-
-  it('time compare pivot: absolute/percentage/ratio', () => {
-    const comparisionTypes = ['absolute', 'percentage', 'ratio'];
-    comparisionTypes.forEach(cType => {
-      expect(
-        timeComparePivotOperator(
-          { ...formData, comparison_type: cType, time_compare: ['1 year ago', '1 year later'] },
-          queryObject,
-        ),
-      ).toEqual({
-        operation: 'pivot',
-        options: {
-          aggregates: {
-            [`${cType}__count(*)__count(*)__1 year ago`]: { operator: 'mean' },
-            [`${cType}__count(*)__count(*)__1 year later`]: { operator: 'mean' },
-          },
-          drop_missing_columns: false,
-          columns: [],
-          index: ['__timestamp'],
-        },
-      });
     });
   });
 });
