@@ -299,7 +299,9 @@ export default class SelectControl extends React.PureComponent {
           .type-label {
             margin-right: ${theme.gridUnit * 2}px;
           }
-          .Select__multi-value__label > span {
+          .Select__multi-value__label > span,
+          .Select__option > span,
+          .Select__single-value > span {
             display: flex;
             align-items: center;
           }
