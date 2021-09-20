@@ -66,7 +66,7 @@ export type DatabaseObject = {
   // Security
   encrypted_extra?: string;
   server_cert?: string;
-  allow_csv_upload?: boolean;
+  allow_file_upload?: boolean;
   impersonate_user?: boolean;
 
   // Extra

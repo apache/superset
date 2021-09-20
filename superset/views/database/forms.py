@@ -89,6 +89,7 @@ class UploadToDatabaseForm(DynamicForm):
             return True
         return False
 
+
 class CsvToDatabaseForm(UploadToDatabaseForm):
     name = StringField(
         _("Table Name"),

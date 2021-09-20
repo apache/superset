@@ -162,10 +162,10 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
         expected_columns = [
-            "allow_file_upload",
             "allow_ctas",
             "allow_cvas",
             "allow_dml",
+            "allow_file_upload",
             "allow_multi_schema_metadata_fetch",
             "allow_run_async",
             "allows_cost_estimate",
