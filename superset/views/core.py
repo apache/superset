@@ -100,8 +100,10 @@ from superset.sql_parse import ParsedQuery, Table
 from superset.sql_validators import get_validator_by_name
 from superset.sqllab.command import CommandResult, ExecuteSqlCommand
 from superset.sqllab.command_status import SqlJsonExecutionStatus
-from superset.sqllab.exceptions import QueryIsForbiddenToAccessException, \
-    SqlLabException
+from superset.sqllab.exceptions import (
+    QueryIsForbiddenToAccessException,
+    SqlLabException,
+)
 from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 from superset.sqllab.validators import CanAccessQueryValidatorImpl
 from superset.tasks.async_queries import load_explore_json_into_cache
@@ -2430,7 +2432,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             }
             execution_context = SqlJsonExecutionContext(request.json)
             command = ExecuteSqlCommand(
-                execution_context, QueryDAO(), CanAccessQueryValidatorImpl(), log_params
+                execution_context,
+                QueryDAO(),
+                DatabaseDAO(),
+                CanAccessQueryValidatorImpl(),
+                log_params,
             )
             command_result: CommandResult = command.run()
             return self._create_response_from_execution_context(command_result)
