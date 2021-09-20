@@ -127,7 +127,7 @@ class TestDatabaseModel(SupersetTestCase):
                                }
                     },
                     "metadata_cache_timeout": {},
-                    "schemas_allowed_for_csv_upload": []
+                    "schemas_allowed_for_file_upload": []
                 }
                 """
 
@@ -200,7 +200,7 @@ class TestDatabaseModel(SupersetTestCase):
                                }
                     },
                     "metadata_cache_timeout": {},
-                    "schemas_allowed_for_csv_upload": []
+                    "schemas_allowed_for_file_upload": []
                 }
                 """
 

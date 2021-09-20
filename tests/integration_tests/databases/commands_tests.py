@@ -84,7 +84,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
             "engine_params": {},
             "metadata_cache_timeout": {},
             "metadata_params": {},
-            "schemas_allowed_for_csv_upload": [],
+            "schemas_allowed_for_file_upload": [],
         }
         if backend() == "presto":
             expected_extra = {

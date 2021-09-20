@@ -58,31 +58,31 @@ class UploadToDatabaseForm(DynamicForm):
     def at_least_one_schema_is_allowed(database: Database) -> bool:
         """
         If the user has access to the database or all datasource
-            1. if schemas_allowed_for_csv_upload is empty
+            1. if schemas_allowed_for_file_upload is empty
                 a) if database does not support schema
                     user is able to upload csv without specifying schema name
                 b) if database supports schema
                     user is able to upload csv to any schema
-            2. if schemas_allowed_for_csv_upload is not empty
+            2. if schemas_allowed_for_file_upload is not empty
                 a) if database does not support schema
                     This situation is impossible and upload will fail
                 b) if database supports schema
-                    user is able to upload to schema in schemas_allowed_for_csv_upload
+                    user is able to upload to schema in schemas_allowed_for_file_upload
         elif the user does not access to the database or all datasource
-            1. if schemas_allowed_for_csv_upload is empty
+            1. if schemas_allowed_for_file_upload is empty
                 a) if database does not support schema
                     user is unable to upload csv
                 b) if database supports schema
                     user is unable to upload csv
-            2. if schemas_allowed_for_csv_upload is not empty
+            2. if schemas_allowed_for_file_upload is not empty
                 a) if database does not support schema
                     This situation is impossible and user is unable to upload csv
                 b) if database supports schema
-                    user is able to upload to schema in schemas_allowed_for_csv_upload
+                    user is able to upload to schema in schemas_allowed_for_file_upload
         """
         if security_manager.can_access_database(database):
             return True
-        schemas = database.get_schema_access_for_csv_upload()
+        schemas = database.get_schema_access_for_file_upload()
         if schemas and security_manager.get_schemas_accessible_by_user(
             database, schemas, False
         ):

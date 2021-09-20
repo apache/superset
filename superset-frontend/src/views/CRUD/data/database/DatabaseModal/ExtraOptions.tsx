@@ -371,9 +371,9 @@ const ExtraOptions = ({
           <div className="input-container">
             <input
               type="text"
-              name="schemas_allowed_for_csv_upload"
+              name="schemas_allowed_for_file_upload"
               value={(
-                db?.extra_json?.schemas_allowed_for_csv_upload || []
+                db?.extra_json?.schemas_allowed_for_file_upload || []
               ).join(',')}
               placeholder="schema1,schema2"
               onChange={onExtraInputChange}

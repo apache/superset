@@ -233,7 +233,7 @@ class TestDatabaseApi(SupersetTestCase):
             "metadata_params": {},
             "engine_params": {},
             "metadata_cache_timeout": {},
-            "schemas_allowed_for_csv_upload": [],
+            "schemas_allowed_for_file_upload": [],
         }
 
         self.login(username="admin")
@@ -266,7 +266,7 @@ class TestDatabaseApi(SupersetTestCase):
             "metadata_params": {},
             "engine_params": {},
             "metadata_cache_timeout": {},
-            "schemas_allowed_for_csv_upload": [],
+            "schemas_allowed_for_file_upload": [],
         }
 
         self.login(username="admin")
@@ -297,7 +297,7 @@ class TestDatabaseApi(SupersetTestCase):
             "metadata_params": {},
             "engine_params": {},
             "metadata_cache_timeout": {},
-            "schemas_allowed_for_csv_upload": [],
+            "schemas_allowed_for_file_upload": [],
         }
 
         self.login(username="admin")
@@ -387,7 +387,7 @@ class TestDatabaseApi(SupersetTestCase):
             "metadata_params": {"wrong_param": "some_value"},
             "engine_params": {},
             "metadata_cache_timeout": {},
-            "schemas_allowed_for_csv_upload": [],
+            "schemas_allowed_for_file_upload": [],
         }
         self.login(username="admin")
         database_data = {
@@ -907,7 +907,7 @@ class TestDatabaseApi(SupersetTestCase):
             "metadata_params": {},
             "engine_params": {},
             "metadata_cache_timeout": {},
-            "schemas_allowed_for_csv_upload": [],
+            "schemas_allowed_for_file_upload": [],
         }
         # need to temporarily allow sqlite dbs, teardown will undo this
         app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
