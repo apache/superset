@@ -31,12 +31,17 @@ const options = [
   {
     label: 'Such an incredibly awesome long long label',
     value: 'Such an incredibly awesome long long label',
+    custom: 'Secret custom prop',
   },
   {
     label: 'Another incredibly awesome long long label',
     value: 'Another incredibly awesome long long label',
   },
-  { label: 'Just a label', value: 'Just a label' },
+  {
+    label: 'JSX Label',
+    customLabel: <div style={{ color: 'red' }}>JSX Label</div>,
+    value: 'JSX Label',
+  },
   { label: 'A', value: 'A' },
   { label: 'B', value: 'B' },
   { label: 'C', value: 'C' },
@@ -75,6 +80,12 @@ const ARG_TYPES = {
     },
   },
   ariaLabel: {
+    table: {
+      disable: true,
+    },
+  },
+  labelInValue: {
+    defaultValue: true,
     table: {
       disable: true,
     },
@@ -131,6 +142,7 @@ InteractiveSelect.args = {
   disabled: false,
   invertSelection: false,
   placeholder: 'Select ...',
+  optionFilterProps: ['value', 'label', 'custom'],
 };
 
 InteractiveSelect.argTypes = {
@@ -171,7 +183,11 @@ export const AtEveryCorner = () => (
           position: 'absolute',
         }}
       >
-        <Select ariaLabel={`gallery-${position.id}`} options={options} />
+        <Select
+          ariaLabel={`gallery-${position.id}`}
+          options={options}
+          labelInValue
+        />
       </div>
     ))}
     <p style={{ position: 'absolute', top: '40%', left: '33%', width: 500 }}>
@@ -206,7 +222,7 @@ export const PageScroll = () => (
         right: 30,
       }}
     >
-      <Select ariaLabel="page-scroll-select-1" options={options} />
+      <Select ariaLabel="page-scroll-select-1" options={options} labelInValue />
     </div>
     <div
       style={{

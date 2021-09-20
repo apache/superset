@@ -51,7 +51,6 @@ class RocksetEngineSpec(BaseEngineSpec):
 
     @classmethod
     def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
-        print(cls)
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
             return f"DATE '{dttm.date().isoformat()}'"
