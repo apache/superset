@@ -217,7 +217,7 @@ def test_run_sync_query_cta_no_data(setup_sqllab):
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
 @mock.patch(
-    "superset.utils.sqllab_execution_context.get_cta_schema_name",
+    "superset.sqllab.sqllab_execution_context.get_cta_schema_name",
     lambda d, u, s, sql: CTAS_SCHEMA_NAME,
 )
 def test_run_sync_query_cta_config(setup_sqllab, ctas_method):
@@ -245,7 +245,7 @@ def test_run_sync_query_cta_config(setup_sqllab, ctas_method):
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
 @mock.patch(
-    "superset.utils.sqllab_execution_context.get_cta_schema_name",
+    "superset.sqllab.sqllab_execution_context.get_cta_schema_name",
     lambda d, u, s, sql: CTAS_SCHEMA_NAME,
 )
 def test_run_async_query_cta_config(setup_sqllab, ctas_method):

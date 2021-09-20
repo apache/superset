@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, TYPE_CHECKING
 
 import simplejson as json
 from flask import g
@@ -48,8 +48,10 @@ from superset.queries.dao import QueryDAO
 from superset.sqllab.command_status import SqlJsonExecutionStatus
 from superset.utils import core as utils
 from superset.utils.dates import now_as_float
-from superset.utils.sqllab_execution_context import SqlJsonExecutionContext
 from superset.views.utils import apply_display_max_row_limit
+
+if TYPE_CHECKING:
+    from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 
 config = app.config
 QueryStatus = utils.QueryStatus
@@ -67,7 +69,7 @@ CommandResult = Dict[str, Any]
 
 
 class ExecuteSqlCommand(BaseCommand):
-    execution_context: SqlJsonExecutionContext
+    _execution_context: SqlJsonExecutionContext
     log_params: Optional[Dict[str, Any]] = None
     session: Session
 
@@ -76,7 +78,7 @@ class ExecuteSqlCommand(BaseCommand):
         execution_context: SqlJsonExecutionContext,
         log_params: Optional[Dict[str, Any]] = None,
     ) -> None:
-        self.execution_context = execution_context
+        self._execution_context = execution_context
         self.log_params = log_params
         self.session = db.session()
 
@@ -87,30 +89,24 @@ class ExecuteSqlCommand(BaseCommand):
         self,
     ) -> CommandResult:
         """Runs arbitrary sql and returns data as json"""
-
-        query = self._get_existing_query(self.execution_context, self.session)
-
+        query = self._get_existing_query()
         if self.is_query_handled(query):
-            self.execution_context.set_query(query)  # type: ignore
+            self._execution_context.set_query(query)  # type: ignore
             status = SqlJsonExecutionStatus.QUERY_ALREADY_CREATED
         else:
             status = self._run_sql_json_exec_from_scratch()
-
         return {
             "status": status,
             "payload": self._create_payload_from_execution_context(status),
         }
 
-    @classmethod
-    def _get_existing_query(
-        cls, execution_context: SqlJsonExecutionContext, session: Session
-    ) -> Optional[Query]:
+    def _get_existing_query(self) -> Optional[Query]:
         query = (
-            session.query(Query)
+            self.session.query(Query)
             .filter_by(
-                client_id=execution_context.client_id,
-                user_id=execution_context.user_id,
-                sql_editor_id=execution_context.sql_editor_id,
+                client_id=self._execution_context.client_id,
+                user_id=self._execution_context.user_id,
+                sql_editor_id=self._execution_context.sql_editor_id,
             )
             .one_or_none()
         )
@@ -125,17 +121,15 @@ class ExecuteSqlCommand(BaseCommand):
         ]
 
     def _run_sql_json_exec_from_scratch(self) -> SqlJsonExecutionStatus:
-        self.execution_context.set_database(self._get_the_query_db())
-        query = self.execution_context.create_query()
+        self._execution_context.set_database(self._get_the_query_db())
+        query = self._execution_context.create_query()
         try:
             self._save_new_query(query)
             logger.info("Triggering query_id: %i", query.id)
             self._validate_access(query)
-            self.execution_context.set_query(query)
+            self._execution_context.set_query(query)
             rendered_query = self._render_query()
-
             self._set_query_limit_if_required(rendered_query)
-
             return self._execute_query(rendered_query)
         except Exception as ex:
             query.status = QueryStatus.FAILED
@@ -143,7 +137,7 @@ class ExecuteSqlCommand(BaseCommand):
             raise ex
 
     def _get_the_query_db(self) -> Database:
-        mydb = self.session.query(Database).get(self.execution_context.database_id)
+        mydb = self.session.query(Database).get(self._execution_context.database_id)
         self._validate_query_db(mydb)
         return mydb
 
@@ -204,18 +198,18 @@ class ExecuteSqlCommand(BaseCommand):
                         error=SupersetErrorType.MISSING_TEMPLATE_PARAMS_ERROR,
                         extra={
                             "undefined_parameters": list(undefined_parameters),
-                            "template_parameters": self.execution_context.template_params,
+                            "template_parameters": self._execution_context.template_params,
                         },
                     )
 
-        query = self.execution_context.query
+        query = self._execution_context.query
 
         try:
             template_processor = get_template_processor(
                 database=query.database, query=query
             )
             rendered_query = template_processor.process_template(
-                query.sql, **self.execution_context.template_params
+                query.sql, **self._execution_context.template_params
             )
             validate(rendered_query, template_processor)
         except TemplateError as ex:
@@ -234,24 +228,24 @@ class ExecuteSqlCommand(BaseCommand):
 
     def _is_required_to_set_limit(self) -> bool:
         return not (
-            config.get("SQLLAB_CTAS_NO_LIMIT") and self.execution_context.select_as_cta
+            config.get("SQLLAB_CTAS_NO_LIMIT") and self._execution_context.select_as_cta
         )
 
     def _set_query_limit(self, rendered_query: str) -> None:
-        db_engine_spec = self.execution_context.database.db_engine_spec  # type: ignore
+        db_engine_spec = self._execution_context.database.db_engine_spec  # type: ignore
         limits = [
             db_engine_spec.get_limit_from_sql(rendered_query),
-            self.execution_context.limit,
+            self._execution_context.limit,
         ]
         if limits[0] is None or limits[0] > limits[1]:  # type: ignore
-            self.execution_context.query.limiting_factor = LimitingFactor.DROPDOWN
+            self._execution_context.query.limiting_factor = LimitingFactor.DROPDOWN
         elif limits[1] > limits[0]:  # type: ignore
-            self.execution_context.query.limiting_factor = LimitingFactor.QUERY
+            self._execution_context.query.limiting_factor = LimitingFactor.QUERY
         else:  # limits[0] == limits[1]
-            self.execution_context.query.limiting_factor = (
+            self._execution_context.query.limiting_factor = (
                 LimitingFactor.QUERY_AND_DROPDOWN
             )
-        self.execution_context.query.limit = min(
+        self._execution_context.query.limit = min(
             lim for lim in limits if lim is not None
         )
 
@@ -259,7 +253,7 @@ class ExecuteSqlCommand(BaseCommand):
         # Flag for whether or not to expand data
         # (feature that will expand Presto row objects and arrays)
         # Async request.
-        if self.execution_context.is_run_asynchronous():
+        if self._execution_context.is_run_asynchronous():
             return self._sql_json_async(rendered_query)
 
         return self._sql_json_sync(rendered_query)
@@ -270,7 +264,7 @@ class ExecuteSqlCommand(BaseCommand):
         :param rendered_query: the rendered query to perform by workers
         :return: A Flask Response
         """
-        query = self.execution_context.query
+        query = self._execution_context.query
         logger.info("Query %i: Running query on a Celery worker", query.id)
         # Ignore the celery future object and the request may time out.
         query_id = query.id
@@ -284,7 +278,7 @@ class ExecuteSqlCommand(BaseCommand):
                 if g.user and hasattr(g.user, "username")
                 else None,
                 start_time=now_as_float(),
-                expand_data=self.execution_context.expand_data,
+                expand_data=self._execution_context.expand_data,
                 log_params=self.log_params,
             )
 
@@ -328,7 +322,7 @@ class ExecuteSqlCommand(BaseCommand):
         :param rendered_query: The rendered query (included templates)
         :raises: SupersetTimeoutException
         """
-        query = self.execution_context.query
+        query = self._execution_context.query
         try:
             timeout = config["SQLLAB_TIMEOUT"]
             timeout_msg = f"The query exceeded the {timeout} seconds timeout."
@@ -338,7 +332,7 @@ class ExecuteSqlCommand(BaseCommand):
             )
             # Update saved query if needed
             QueryDAO.update_saved_query_exec_info(query_id)
-            self.execution_context.set_execution_result(data)
+            self._execution_context.set_execution_result(data)
         except SupersetTimeoutException as ex:
             # re-raise exception for api exception handler
             raise ex
@@ -361,7 +355,7 @@ class ExecuteSqlCommand(BaseCommand):
     def _get_sql_results_with_timeout(
         self, timeout: int, rendered_query: str, timeout_msg: str,
     ) -> Optional[SqlResults]:
-        query = self.execution_context.query
+        query = self._execution_context.query
         with utils.timeout(seconds=timeout, error_message=timeout_msg):
             # pylint: disable=no-value-for-parameter
             return sql_lab.get_sql_results(
@@ -372,7 +366,7 @@ class ExecuteSqlCommand(BaseCommand):
                 user_name=g.user.username
                 if g.user and hasattr(g.user, "username")
                 else None,
-                expand_data=self.execution_context.expand_data,
+                expand_data=self._execution_context.expand_data,
                 log_params=self.log_params,
             )
 
@@ -388,9 +382,9 @@ class ExecuteSqlCommand(BaseCommand):
 
         if status == SqlJsonExecutionStatus.HAS_RESULTS:
             return self._to_payload_results_based(
-                self.execution_context.get_execution_result() or {}
+                self._execution_context.get_execution_result() or {}
             )
-        return self._to_payload_query_based(self.execution_context.query)
+        return self._to_payload_query_based(self._execution_context.query)
 
     def _to_payload_results_based(  # pylint: disable=no-self-use
         self, execution_result: SqlResults
