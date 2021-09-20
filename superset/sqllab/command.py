@@ -46,6 +46,7 @@ from superset.models.core import Database
 from superset.models.sql_lab import LimitingFactor, Query
 from superset.queries.dao import QueryDAO
 from superset.sqllab.command_status import SqlJsonExecutionStatus
+from superset.sqllab.exceptions import SqlLabException
 from superset.utils import core as utils
 from superset.utils.dates import now_as_float
 from superset.views.utils import apply_display_max_row_limit
@@ -89,16 +90,21 @@ class ExecuteSqlCommand(BaseCommand):
         self,
     ) -> CommandResult:
         """Runs arbitrary sql and returns data as json"""
-        query = self._get_existing_query()
-        if self.is_query_handled(query):
-            self._execution_context.set_query(query)  # type: ignore
-            status = SqlJsonExecutionStatus.QUERY_ALREADY_CREATED
-        else:
-            status = self._run_sql_json_exec_from_scratch()
-        return {
-            "status": status,
-            "payload": self._create_payload_from_execution_context(status),
-        }
+        try:
+            query = self._get_existing_query()
+            if self.is_query_handled(query):
+                self._execution_context.set_query(query)  # type: ignore
+                status = SqlJsonExecutionStatus.QUERY_ALREADY_CREATED
+            else:
+                status = self._run_sql_json_exec_from_scratch()
+            return {
+                "status": status,
+                "payload": self._create_payload_from_execution_context(status),
+            }
+        except (SqlLabException, SupersetErrorsException) as ex:
+            raise ex
+        except Exception as ex:
+            raise SqlLabException(self._execution_context, exception=ex) from ex
 
     def _get_existing_query(self) -> Optional[Query]:
         query = (
@@ -123,8 +129,8 @@ class ExecuteSqlCommand(BaseCommand):
     def _run_sql_json_exec_from_scratch(self) -> SqlJsonExecutionStatus:
         self._execution_context.set_database(self._get_the_query_db())
         query = self._execution_context.create_query()
+        self._save_new_query(query)
         try:
-            self._save_new_query(query)
             logger.info("Triggering query_id: %i", query.id)
             self._validate_access(query)
             self._execution_context.set_query(query)
