@@ -100,11 +100,11 @@ class QueryContext:
         self.datasource = ConnectorRegistry.get_datasource(
             str(datasource["type"]), int(datasource["id"]), db.session
         )
-        self.queries = [QueryObject(**query_obj) for query_obj in queries]
         self.force = force
         self.custom_cache_timeout = custom_cache_timeout
         self.result_type = result_type or ChartDataResultType.FULL
         self.result_format = result_format or ChartDataResultFormat.JSON
+        self.queries = [QueryObject(self, **query_obj) for query_obj in queries]
         self.cache_values = {
             "datasource": datasource,
             "queries": queries,
@@ -451,7 +451,6 @@ class QueryContext:
                 invalid_columns = [
                     col
                     for col in query_obj.columns
-                    + query_obj.groupby
                     + get_column_names_from_metrics(query_obj.metrics or [])
                     if col not in self.datasource.column_names and col != DTTM_ALIAS
                 ]
