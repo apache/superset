@@ -28,16 +28,24 @@ class SupersetException(Exception):
     message = ""
 
     def __init__(
-        self, message: str = "", exception: Optional[Exception] = None,
+        self,
+        message: str = "",
+        exception: Optional[Exception] = None,
+        error_type: Optional[SupersetErrorType] = None,
     ) -> None:
         if message:
             self.message = message
         self._exception = exception
+        self._error_type = error_type
         super().__init__(self.message)
 
     @property
     def exception(self) -> Optional[Exception]:
         return self._exception
+
+    @property
+    def error_type(self) -> Optional[SupersetErrorType]:
+        return self._error_type
 
 
 class SupersetErrorException(SupersetException):
