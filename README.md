@@ -70,7 +70,7 @@ A modern, enterprise-ready business intelligence web application.
 
 **Choose from a wide array of visualizations**
 
-<kbd><img title="Visualizations" src="superset-frontend/images/screenshots/explore_visualizations.jpg"/></kbd><br/>
+<kbd><img title="Visualizations" src="superset-frontend/images/screenshots/explore_visualizations.png"/></kbd><br/>
 
 ## Why Superset?
 
