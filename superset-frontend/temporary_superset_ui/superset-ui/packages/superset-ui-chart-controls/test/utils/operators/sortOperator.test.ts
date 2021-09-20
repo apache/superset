@@ -46,62 +46,57 @@ const queryObject: QueryObject = {
   ],
 };
 
-describe('sortOperator', () => {
-  it('skip sort', () => {
-    expect(sortOperator(formData, queryObject)).toEqual(undefined);
-    expect(sortOperator(formData, { ...queryObject, is_timeseries: false })).toEqual(undefined);
-    expect(
-      sortOperator({ ...formData, rolling_type: 'xxxx' }, { ...queryObject, is_timeseries: true }),
-    ).toEqual(undefined);
-    expect(sortOperator(formData, { ...queryObject, is_timeseries: true })).toEqual(undefined);
+test('skip sort', () => {
+  expect(sortOperator(formData, queryObject)).toEqual(undefined);
+  expect(sortOperator(formData, { ...queryObject, is_timeseries: false })).toEqual(undefined);
+  expect(
+    sortOperator({ ...formData, rolling_type: 'xxxx' }, { ...queryObject, is_timeseries: true }),
+  ).toEqual(undefined);
+  expect(sortOperator(formData, { ...queryObject, is_timeseries: true })).toEqual(undefined);
+});
+
+test('sort by __timestamp', () => {
+  expect(
+    sortOperator({ ...formData, rolling_type: 'cumsum' }, { ...queryObject, is_timeseries: true }),
+  ).toEqual({
+    operation: 'sort',
+    options: {
+      columns: {
+        __timestamp: true,
+      },
+    },
   });
 
-  it('sort by __timestamp', () => {
-    expect(
-      sortOperator(
-        { ...formData, rolling_type: 'cumsum' },
-        { ...queryObject, is_timeseries: true },
-      ),
-    ).toEqual({
-      operation: 'sort',
-      options: {
-        columns: {
-          __timestamp: true,
-        },
+  expect(
+    sortOperator({ ...formData, rolling_type: 'sum' }, { ...queryObject, is_timeseries: true }),
+  ).toEqual({
+    operation: 'sort',
+    options: {
+      columns: {
+        __timestamp: true,
       },
-    });
+    },
+  });
 
-    expect(
-      sortOperator({ ...formData, rolling_type: 'sum' }, { ...queryObject, is_timeseries: true }),
-    ).toEqual({
-      operation: 'sort',
-      options: {
-        columns: {
-          __timestamp: true,
-        },
+  expect(
+    sortOperator({ ...formData, rolling_type: 'mean' }, { ...queryObject, is_timeseries: true }),
+  ).toEqual({
+    operation: 'sort',
+    options: {
+      columns: {
+        __timestamp: true,
       },
-    });
+    },
+  });
 
-    expect(
-      sortOperator({ ...formData, rolling_type: 'mean' }, { ...queryObject, is_timeseries: true }),
-    ).toEqual({
-      operation: 'sort',
-      options: {
-        columns: {
-          __timestamp: true,
-        },
+  expect(
+    sortOperator({ ...formData, rolling_type: 'std' }, { ...queryObject, is_timeseries: true }),
+  ).toEqual({
+    operation: 'sort',
+    options: {
+      columns: {
+        __timestamp: true,
       },
-    });
-
-    expect(
-      sortOperator({ ...formData, rolling_type: 'std' }, { ...queryObject, is_timeseries: true }),
-    ).toEqual({
-      operation: 'sort',
-      options: {
-        columns: {
-          __timestamp: true,
-        },
-      },
-    });
+    },
   });
 });

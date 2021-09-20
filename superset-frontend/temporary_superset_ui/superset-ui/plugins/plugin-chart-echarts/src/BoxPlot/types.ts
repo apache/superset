@@ -23,7 +23,6 @@ import {
   QueryFormData,
   SetDataMaskHook,
 } from '@superset-ui/core';
-import { PostProcessingBoxplot } from '@superset-ui/core/lib/query/types/PostProcessing';
 import { EChartsOption } from 'echarts';
 import { EchartsTitleFormData, DEFAULT_TITLE_FORM_DATA } from '../types';
 
@@ -52,8 +51,6 @@ export interface EchartsBoxPlotChartProps extends ChartProps {
   formData: BoxPlotQueryFormData;
   queriesData: ChartDataResponseResult[];
 }
-
-export type BoxPlotQueryObjectWhiskerType = PostProcessingBoxplot['options']['whisker_type'];
 
 export interface BoxPlotChartTransformedProps {
   formData: BoxPlotQueryFormData;
