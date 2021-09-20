@@ -26,6 +26,7 @@ interface CollapsibleControlProps {
   disabled?: boolean;
   checked?: boolean;
   title: string;
+  name?: string | number | (string | number)[];
   tooltip?: string;
   children: ReactNode;
   onChange?: (checked: boolean) => void;
@@ -55,6 +56,7 @@ const CollapsibleControl = (props: CollapsibleControlProps) => {
     title,
     tooltip,
     children,
+    name,
     onChange = () => {},
     initialValue = false,
   } = props;

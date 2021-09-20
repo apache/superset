@@ -25,8 +25,8 @@ import { StyledModal } from 'src/components/Modal';
 import { testWithId } from 'src/utils/testUtils';
 import { useFilterConfigMap, useFilterConfiguration } from '../state';
 import { FilterConfiguration } from '../types';
+import FiltureConfigurePane from './FilterConfigurePane';
 import FiltersConfigForm from './FiltersConfigForm/FiltersConfigForm';
-import FilterTabs from './FilterTabs';
 import Footer from './Footer/Footer';
 import { useOpenModal, useRemoveCurrentFilter } from './state';
 import { FilterRemoval, NativeFiltersForm } from './types';
@@ -146,6 +146,23 @@ export function FiltersConfigModal({
     setRemovedFilters(current => ({ ...current, [id]: null }));
   };
 
+  const [filterHierarchy, setFilterHierarchy] = useState<
+    Array<{
+      id: string;
+      parentId: string | null;
+    }>
+  >(() =>
+    filterConfig
+      .filter(f => {
+        const isRemoved = removedFilters[f.id];
+        return !isRemoved || isRemoved.isPending;
+      })
+      .map(filter => ({
+        id: filter.id,
+        parentId: filter.cascadeParentIds[0] || null,
+      })),
+  );
+
   // generates a new filter id and appends it to the newFilterIds
   const addFilter = useCallback(() => {
     const newFilterId = generateFilterId();
@@ -153,7 +170,17 @@ export function FiltersConfigModal({
     setCurrentFilterId(newFilterId);
     setSaveAlertVisible(false);
     setOrderedFilters([...orderedFilters, newFilterId]);
-  }, [newFilterIds, orderedFilters, setCurrentFilterId]);
+    setFilterHierarchy([
+      ...filterHierarchy,
+      { id: newFilterId, parentId: null },
+    ]);
+  }, [
+    newFilterIds,
+    orderedFilters,
+    setCurrentFilterId,
+    setFilterHierarchy,
+    filterHierarchy,
+  ]);
 
   useOpenModal(isOpen, addFilter, createNewOnOpen);
 
@@ -274,6 +301,22 @@ export function FiltersConfigModal({
     newOrderedFilter.splice(targetIndex, 0, filterId);
     setOrderedFilters(newOrderedFilter);
   };
+  const handleFilterHierarchyChange = (
+    filterId: string,
+    parentFilter?: { value: string; label: string },
+  ) => {
+    // This is required because onValue changes doesn't trigger it
+    setFilterHierarchy(previous => {
+      const index = previous.findIndex(item => item.id === filterId);
+      const newState = [...previous];
+      newState.splice(index, 1, {
+        id: filterId,
+        parentId: parentFilter ? parentFilter.value : null,
+      });
+      return newState;
+    });
+  };
+
   return (
     <StyledModalWrapper
       visible={isOpen}
@@ -301,20 +344,32 @@ export function FiltersConfigModal({
             preserve={false}
             form={form}
             onValuesChange={(changes, values: NativeFiltersForm) => {
-              if (
-                changes.filters &&
-                Object.values(changes.filters).some(
-                  (filter: any) => filter.name != null,
-                )
-              ) {
+              if (changes.filters) {
                 // we only need to set this if a name changed
-                setFormValues(values);
+                const filterNameChanged = Object.values(changes.filters).some(
+                  (filter: any) => filter.name != null,
+                );
+                const changedFilterHierarchies = Object.keys(changes.filters)
+                  .filter(key => changes.filters[key].parentFilter)
+                  .map(key => ({
+                    id: key,
+                    parentFilter: changes.filters[key].parentFilter,
+                  }));
+                if (filterNameChanged) {
+                  setFormValues(values);
+                } else if (changedFilterHierarchies.length) {
+                  const changedFilterId = changedFilterHierarchies[0];
+                  handleFilterHierarchyChange(
+                    changedFilterId.id,
+                    changedFilterId.parentFilter,
+                  );
+                }
               }
               setSaveAlertVisible(false);
             }}
             layout="vertical"
           >
-            <FilterTabs
+            <FiltureConfigurePane
               onEdit={handleTabEdit}
               onChange={setCurrentFilterId}
               getFilterTitle={getFilterTitle}
@@ -327,7 +382,8 @@ export function FiltersConfigModal({
                 )}
               removedFilters={removedFilters}
               restoreFilter={restoreFilter}
-              onRearrage={onRearrage}
+              onRearrange={onRearrage}
+              filterHierarchy={filterHierarchy}
             >
               {(id: string) => (
                 <FiltersConfigForm
@@ -338,9 +394,10 @@ export function FiltersConfigModal({
                   removed={!!removedFilters[id]}
                   restoreFilter={restoreFilter}
                   parentFilters={getParentFilters(id)}
+                  onFilterHierarchyChange={handleFilterHierarchyChange}
                 />
               )}
-            </FilterTabs>
+            </FiltureConfigurePane>
           </StyledForm>
         </StyledModalBody>
       </ErrorBoundary>

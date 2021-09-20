@@ -72,6 +72,7 @@ const StyledFilterTabTitle = styled.span`
     animation-duration: ${REMOVAL_DELAY_SECS}s;
   }
 `;
+
 const StyledSpan = styled.span`
   cursor: pointer;
   color: ${({ theme }) => theme.colors.primary.dark1};

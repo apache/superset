@@ -184,8 +184,6 @@ const RefreshIcon = styled(Icons.Refresh)`
 `;
 
 const StyledCollapse = styled(Collapse)`
-  margin-left: ${({ theme }) => theme.gridUnit * -4 - 1}px;
-  margin-right: ${({ theme }) => theme.gridUnit * -4}px;
   border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   border-radius: 0;
@@ -214,8 +212,6 @@ const StyledCollapse = styled(Collapse)`
 const StyledTabs = styled(Tabs)`
   .ant-tabs-nav {
     position: sticky;
-    margin-left: ${({ theme }) => theme.gridUnit * -4}px;
-    margin-right: ${({ theme }) => theme.gridUnit * -4}px;
     top: 0;
     background: white;
     z-index: 1;
@@ -268,6 +264,10 @@ export interface FiltersConfigFormProps {
   restoreFilter: (filterId: string) => void;
   form: FormInstance<NativeFiltersForm>;
   parentFilters: { id: string; title: string }[];
+  onFilterHierarchyChange: (
+    filterId: string,
+    parentFilter: { label: string; value: string },
+  ) => void;
 }
 
 const FILTERS_WITH_ADHOC_FILTERS = ['filter_select', 'filter_range'];
@@ -304,6 +304,7 @@ const FiltersConfigForm = (
     restoreFilter,
     form,
     parentFilters,
+    onFilterHierarchyChange,
   }: FiltersConfigFormProps,
   ref: React.RefObject<any>,
 ) => {
@@ -894,18 +895,21 @@ const FiltersConfigForm = (
                 <CollapsibleControl
                   title={t('Filter is hierarchical')}
                   initialValue={hasParentFilter}
+                  name={['filters', filterId, 'hasParent']}
                   onChange={checked => {
                     formChanged();
-                    if (checked) {
-                      // execute after render
-                      setTimeout(
-                        () =>
-                          form.validateFields([
-                            ['filters', filterId, 'parentFilter'],
-                          ]),
-                        0,
+                    // execute after render
+                    setTimeout(() => {
+                      if (checked) {
+                        form.validateFields([
+                          ['filters', filterId, 'parentFilter'],
+                        ]);
+                      }
+                      onFilterHierarchyChange(
+                        filterId,
+                        form.getFieldValue('filters')[filterId].parentFilter,
                       );
-                    }
+                    }, 0);
                   }}
                 >
                   <StyledRowSubFormItem
