@@ -118,7 +118,7 @@
     "geolib": "^2.0.24",
     "global-box": "^1.2.0",
     "html-webpack-plugin": "^4.5.1",
-    "immer": "^8.0.1",
+    "immer": "^9.0.6",
     "immutable": "^4.0.0-rc.12",
     "interweave": "^11.2.0",
     "jquery": "^3.5.1",
@@ -184,7 +184,7 @@
     "scroll-into-view-if-needed": "^2.2.28",
     "shortid": "^2.2.6",
     "urijs": "^1.19.6",
-    "use-immer": "^0.4.2",
+    "use-immer": "^0.6.0",
     "use-query-params": "^1.1.9"
   },
   "devDependencies": {
