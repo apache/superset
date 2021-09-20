@@ -103,6 +103,7 @@ from superset.sqllab.command_status import SqlJsonExecutionStatus
 from superset.sqllab.exceptions import SqlLabException
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sqllab.utils import apply_display_max_row_configuration_if_require
+from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 from superset.tasks.async_queries import load_explore_json_into_cache
 from superset.typing import FlaskResponse
 from superset.utils import core as utils, csv
@@ -111,7 +112,6 @@ from superset.utils.cache import etag_cache
 from superset.utils.core import apply_max_row_limit, ReservedUrlParameters
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import check_dashboard_access
-from superset.utils.sqllab_execution_context import SqlJsonExecutionContext
 from superset.views.base import (
     api,
     BaseSupersetView,

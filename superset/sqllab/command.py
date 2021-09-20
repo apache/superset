@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, TYPE_CHECKING
 
 import simplejson as json
 from flask import g
@@ -52,7 +52,9 @@ from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sqllab.utils import apply_display_max_row_configuration_if_require
 from superset.utils import core as utils
 from superset.utils.dates import now_as_float
-from superset.utils.sqllab_execution_context import SqlJsonExecutionContext
+
+if TYPE_CHECKING:
+    from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 
 config = app.config
 logger = logging.getLogger(__name__)
