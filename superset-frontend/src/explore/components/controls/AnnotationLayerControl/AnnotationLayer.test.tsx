@@ -97,7 +97,7 @@ test('enables apply and ok buttons', async () => {
   userEvent.type(nameInput, 'Name');
   userEvent.type(formulaInput, '2x');
 
-  waitFor(() => {
+  await waitFor(() => {
     expect(screen.getByRole('button', { name: 'Apply' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'OK' })).toBeEnabled();
   });
