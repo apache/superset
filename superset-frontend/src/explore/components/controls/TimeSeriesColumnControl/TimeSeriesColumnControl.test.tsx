@@ -21,8 +21,6 @@ import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import TimeSeriesColumnControl from '.';
 
-jest.mock('lodash/debounce', () => jest.fn(fn => fn));
-
 test('renders with default props', () => {
   render(<TimeSeriesColumnControl />);
   expect(screen.getByText('Time series columns')).toBeInTheDocument();
