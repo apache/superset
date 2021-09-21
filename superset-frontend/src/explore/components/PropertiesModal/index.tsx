@@ -49,7 +49,9 @@ export default function PropertiesModal({
   const [cacheTimeout, setCacheTimeout] = useState(
     slice.cache_timeout != null ? slice.cache_timeout : '',
   );
-  const [selectedOwners, setSelectedOwners] = useState<SelectValue | null>(null);
+  const [selectedOwners, setSelectedOwners] = useState<SelectValue | null>(
+    null,
+  );
 
   function showError({ error, statusText, message }: any) {
     let errorText = error || statusText || t('An error has occurred');
@@ -112,9 +114,10 @@ export default function PropertiesModal({
       cache_timeout: cacheTimeout || null,
     };
     if (selectedOwners) {
-      payload.owners = (selectedOwners as { value: number; label: string }[]).map(
-        o => o.value,
-      );
+      payload.owners = (selectedOwners as {
+        value: number;
+        label: string;
+      }[]).map(o => o.value);
     }
     try {
       const res = await SupersetClient.put({
