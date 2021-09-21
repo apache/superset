@@ -84,7 +84,7 @@ test('renders extra checkboxes when type is time series', () => {
 test('enables apply and ok buttons', async () => {
   const { container } = render(<AnnotationLayer {...defaultProps} />);
 
-  waitFor(() => {
+  await waitFor(() => {
     expect(container).toBeInTheDocument();
   });
 
