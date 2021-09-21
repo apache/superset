@@ -40,6 +40,10 @@ interface SelectAsyncControlProps extends SelectAsyncProps {
   label?: string;
 }
 
+function isLabeledValue(arg: any): arg is LabeledValue {
+    return arg.value !== undefined;
+}
+
 const SelectAsyncControl = ({
   addDangerToast,
   allowClear = true,
@@ -58,12 +62,12 @@ const SelectAsyncControl = ({
     let onChangeVal = val;
     if (Array.isArray(val)) {
       const values = val.map(v =>
-        typeof v === 'object' && 'value' in v ? v.value : v,
+        isLabeledValue(v) ? v.value : v,
       );
-      onChangeVal = values as string[] | number[];
+      onChangeVal = values;
     }
-    if (typeof val === 'object' && (val as LabeledValue)?.value) {
-      onChangeVal = (val as LabeledValue).value;
+    if (isLabeledValue(val)) {
+      onChangeVal = val.value;
     }
     onChange(onChangeVal);
   };
