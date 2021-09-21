@@ -26,16 +26,10 @@ import CopyToClipboard from 'src/components/CopyToClipboard';
 import { storeQuery } from 'src/utils/common';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
+import { QueryEditor } from '../types';
 
 interface ShareSqlLabQueryPropTypes {
-  queryEditor: {
-    dbId: number;
-    title: string;
-    schema: string;
-    autorun: boolean;
-    sql: string;
-    remoteId: number | null;
-  };
+  queryEditor: QueryEditor;
   addDangerToast: (msg: string) => void;
 }
 
