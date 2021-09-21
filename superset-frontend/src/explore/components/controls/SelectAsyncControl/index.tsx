@@ -57,7 +57,7 @@ const SelectAsyncControl = ({
   const handleOnChange = (val: SelectValue) => {
     let onChangeVal = val;
     if (Array.isArray(val)) {
-      const values = val.map(v => (v as LabeledValue)?.value || v);
+      const values = val.map(v => 'value' in v ? v.value : v);
       onChangeVal = values as string[] | number[];
     }
     if (typeof val === 'object' && (val as LabeledValue)?.value) {
