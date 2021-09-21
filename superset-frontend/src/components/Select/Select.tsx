@@ -311,7 +311,6 @@ const Select = ({
         ]);
       }
     }
-
     setSearchedValue('');
   };
 
