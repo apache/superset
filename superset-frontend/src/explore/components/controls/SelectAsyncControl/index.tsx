@@ -41,7 +41,7 @@ interface SelectAsyncControlProps extends SelectAsyncProps {
 }
 
 function isLabeledValue(arg: any): arg is LabeledValue {
-    return arg.value !== undefined;
+  return arg.value !== undefined;
 }
 
 const SelectAsyncControl = ({
@@ -61,9 +61,7 @@ const SelectAsyncControl = ({
   const handleOnChange = (val: SelectValue) => {
     let onChangeVal = val;
     if (Array.isArray(val)) {
-      const values = val.map(v =>
-        isLabeledValue(v) ? v.value : v,
-      );
+      const values = val.map(v => (isLabeledValue(v) ? v.value : v));
       onChangeVal = values;
     }
     if (isLabeledValue(val)) {
