@@ -131,13 +131,17 @@ class ParsedQuery:
         return self._limit
 
     def is_select(self) -> bool:
-        return self._parsed[0].get_type() == "SELECT"
+        # make sure we strip comments; prevents a bug with coments in the CTE
+        parsed = sqlparse.parse(self.strip_comments())
+        return parsed[0].get_type() == "SELECT"
 
     def is_valid_ctas(self) -> bool:
-        return self._parsed[-1].get_type() == "SELECT"
+        parsed = sqlparse.parse(self.strip_comments())
+        return parsed[-1].get_type() == "SELECT"
 
     def is_valid_cvas(self) -> bool:
-        return len(self._parsed) == 1 and self._parsed[0].get_type() == "SELECT"
+        parsed = sqlparse.parse(self.strip_comments())
+        return len(parsed) == 1 and parsed[0].get_type() == "SELECT"
 
     def is_explain(self) -> bool:
         # Remove comments
