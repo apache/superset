@@ -84,7 +84,7 @@ test('renders extra checkboxes when type is time series', () => {
 test('enables apply and ok buttons', async () => {
   const { container } = render(<AnnotationLayer {...defaultProps} />);
 
-  await waitFor(() => {
+  waitFor(() => {
     expect(container).toBeInTheDocument();
   });
 
@@ -97,7 +97,7 @@ test('enables apply and ok buttons', async () => {
   userEvent.type(nameInput, 'Name');
   userEvent.type(formulaInput, '2x');
 
-  await waitFor(() => {
+  waitFor(() => {
     expect(screen.getByRole('button', { name: 'Apply' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'OK' })).toBeEnabled();
   });
