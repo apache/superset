@@ -49,7 +49,7 @@ export default function PropertiesModal({
   const [cacheTimeout, setCacheTimeout] = useState(
     slice.cache_timeout != null ? slice.cache_timeout : '',
   );
-  const [owners, setOwners] = useState<SelectValue | null>(null);
+  const [selectedOwners, setSelectedOwners] = useState<SelectValue | null>(null);
 
   function showError({ error, statusText, message }: any) {
     let errorText = error || statusText || t('An error has occurred');
@@ -70,7 +70,7 @@ export default function PropertiesModal({
           endpoint: `/api/v1/chart/${slice.slice_id}`,
         });
         const chart = response.json.result;
-        setOwners(
+        setSelectedOwners(
           chart.owners.map((owner: any) => ({
             value: owner.id,
             label: `${owner.first_name} ${owner.last_name}`,
@@ -83,16 +83,6 @@ export default function PropertiesModal({
     },
     [slice.slice_id],
   );
-
-  // get the owners of this slice
-  useEffect(() => {
-    fetchChartData();
-  }, [fetchChartData]);
-
-  // update name after it's changed in another modal
-  useEffect(() => {
-    setName(slice.slice_name || '');
-  }, [slice.slice_name]);
 
   const loadOptions = useMemo(
     () => (input = '', page: number, pageSize: number) => {
@@ -121,8 +111,8 @@ export default function PropertiesModal({
       description: description || null,
       cache_timeout: cacheTimeout || null,
     };
-    if (owners) {
-      payload.owners = (owners as { value: number; label: string }[]).map(
+    if (selectedOwners) {
+      payload.owners = (selectedOwners as { value: number; label: string }[]).map(
         o => o.value,
       );
     }
@@ -145,6 +135,18 @@ export default function PropertiesModal({
     }
     setSubmitting(false);
   };
+
+  const ownersLabel = t('Owners');
+
+  // get the owners of this slice
+  useEffect(() => {
+    fetchChartData();
+  }, [fetchChartData]);
+
+  // update name after it's changed in another modal
+  useEffect(() => {
+    setName(slice.slice_name || '');
+  }, [slice.slice_name]);
 
   return (
     <Modal
@@ -230,15 +232,15 @@ export default function PropertiesModal({
               </p>
             </FormItem>
             <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
-            <FormItem label={t('Owners')}>
+            <FormItem label={ownersLabel}>
               <Select
-                ariaLabel={t('Owners')}
+                ariaLabel={ownersLabel}
                 mode="multiple"
                 name="owners"
-                value={owners || []}
+                value={selectedOwners || []}
                 options={loadOptions}
-                onChange={setOwners}
-                disabled={!owners}
+                onChange={setSelectedOwners}
+                disabled={!selectedOwners}
                 allowClear
               />
               <p className="help-block">
