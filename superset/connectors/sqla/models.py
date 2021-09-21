@@ -35,6 +35,7 @@ from typing import (
     Union,
 )
 
+import dateutil.parser
 import pandas as pd
 import sqlalchemy as sa
 import sqlparse
@@ -650,7 +651,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         if self.sql:
             return get_virtual_table_metadata(dataset=self)
         return get_physical_table_metadata(
-            database=self.database, table_name=self.table_name, schema_name=self.schema,
+            database=self.database,
+            table_name=self.table_name,
+            schema_name=self.schema,
         )
 
     @property
@@ -915,7 +918,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             return [or_(*clauses) for clauses in filters_grouped.values()]
         except TemplateError as ex:
             raise QueryObjectValidationError(
-                _("Error in jinja expression in RLS filters: %(msg)s", msg=ex.message,)
+                _(
+                    "Error in jinja expression in RLS filters: %(msg)s",
+                    msg=ex.message,
+                )
             ) from ex
 
     def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
@@ -1343,7 +1349,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     orderby = [
                         (
                             self._get_series_orderby(
-                                series_limit_metric, metrics_by_name, columns_by_name,
+                                series_limit_metric,
+                                metrics_by_name,
+                                columns_by_name,
                             ),
                             False,
                         )
@@ -1416,15 +1424,28 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             )
         return ob
 
-    @staticmethod
     def _get_top_groups(
-        df: pd.DataFrame, dimensions: List[str], groupby_exprs: Dict[str, Any],
+        self,
+        df: pd.DataFrame,
+        dimensions: List[str],
+        groupby_exprs: Dict[str, Any],
     ) -> ColumnElement:
+        column_map = {column.column_name: column for column in self.columns}
         groups = []
         for _unused, row in df.iterrows():
             group = []
             for dimension in dimensions:
-                group.append(groupby_exprs[dimension] == row[dimension])
+                value = row[dimension]
+
+                # Some databases like Druid will return timestamps as strings, but
+                # do not perform automatic casting when comparing these strings to
+                # a timestamp. For cases like this we convert the value from a
+                # string into a timestamp.
+                if column_map[dimension].is_temporal and isinstance(value, str):
+                    dttm = dateutil.parser.parse(value)
+                    value = text(self.db_engine_spec.convert_dttm("TIMESTAMP", dttm))
+
+                group.append(groupby_exprs[dimension] == value)
             groups.append(and_(*group))
 
         return or_(*groups)
