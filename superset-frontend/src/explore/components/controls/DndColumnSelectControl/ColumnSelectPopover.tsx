@@ -126,6 +126,8 @@ const ColumnSelectPopover = ({
     selectedCalculatedColumn?.column_name !==
       initialCalculatedColumn?.column_name ||
     selectedSimpleColumn?.column_name !== initialSimpleColumn?.column_name;
+  const savedExpressionsLabel = t('Saved expressions');
+  const simpleColumnsLabel = t('Column');
 
   return (
     <Form layout="vertical" id="metrics-edit-popover">
@@ -136,9 +138,9 @@ const ColumnSelectPopover = ({
         allowOverflow
       >
         <Tabs.TabPane key="saved" tab={t('Saved')}>
-          <FormItem label={t('Saved expressions')}>
+          <FormItem label={savedExpressionsLabel}>
             <StyledSelect
-              ariaLabel={t('Saved expressions')}
+              ariaLabel={savedExpressionsLabel}
               value={selectedCalculatedColumn?.column_name}
               onChange={onCalculatedColumnChange}
               allowClear
@@ -157,9 +159,9 @@ const ColumnSelectPopover = ({
           </FormItem>
         </Tabs.TabPane>
         <Tabs.TabPane key="simple" tab={t('Simple')}>
-          <FormItem label={t('Column')}>
+          <FormItem label={simpleColumnsLabel}>
             <Select
-              ariaLabel="simple-columns"
+              ariaLabel={simpleColumnsLabel}
               value={selectedSimpleColumn?.column_name}
               onChange={onSimpleColumnChange}
               allowClear
