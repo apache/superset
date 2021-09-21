@@ -129,7 +129,9 @@ describe('Test explore links', () => {
       .find('input[aria-label="Select a dashboard"]')
       .type(`${dashboardTitle}`, { force: true });
 
-    cy.get(`.ant-select-item[label="${dashboardTitle}"]`).click({force: true});
+    cy.get(`.ant-select-item[label="${dashboardTitle}"]`).click({
+      force: true,
+    });
 
     cy.get('[data-test="btn-modal-save"]').click();
     cy.verifySliceSuccess({ waitAlias: '@chartData' });
@@ -158,7 +160,9 @@ describe('Test explore links', () => {
       .find('input[aria-label="Select a dashboard"]')
       .type(`${dashboardTitle}{enter}`, { force: true });
 
-    cy.get(`.ant-select-item[label="${dashboardTitle}"]`).click({force: true});
+    cy.get(`.ant-select-item[label="${dashboardTitle}"]`).click({
+      force: true,
+    });
 
     cy.get('[data-test="btn-modal-save"]').click();
     cy.verifySliceSuccess({ waitAlias: '@chartData' });
