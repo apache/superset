@@ -716,6 +716,26 @@ class DatasourceEditor extends React.PureComponent {
             control={<TextControl controlId="template_params" />}
           />
         )}
+        {isFeatureEnabled(FeatureFlag.DATASET_RBAC) && (
+          <Field
+            fieldKey="roles"
+            label={t('Roles')}
+            description={t('Roles defines access to the dataset')}
+            control={
+              <SelectAsyncControl
+                dataEndpoint="/api/v1/dashboard/related/roles"
+                multi
+                mutator={data =>
+                  data.result.map(pk => ({
+                    value: pk.value,
+                    label: `${pk.text}`,
+                  }))
+                }
+              />
+            }
+            controlProps={{}}
+          />
+        )}
       </Fieldset>
     );
   }
