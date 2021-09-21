@@ -92,6 +92,7 @@ export default function HeaderReportActionsDropDown({
 
   useEffect(() => {
     if (canAddReports()) {
+      dashboardIdRef.current = dashboardId;
       dispatch(
         fetchUISpecificReport({
           userId: user.userId,
@@ -101,25 +102,26 @@ export default function HeaderReportActionsDropDown({
         }),
       );
     }
-  }, []);
-
-  useEffect(() => {
-    if (
-      canAddReports() &&
-      dashboardId &&
-      dashboardId !== dashboardIdRef.current
-    ) {
-      dashboardIdRef.current = dashboardId;
-      dispatch(
-        fetchUISpecificReport({
-          userId: user.userId,
-          filterField: 'dashboard_id',
-          creationMethod: 'dashboards',
-          resourceId: dashboardId,
-        }),
-      );
-    }
   }, [dashboardId]);
+
+  // (TODO: lyndsiWilliams): Leaving this in case we decide we need it after all
+  // useEffect(() => {
+  //   if (
+  //     canAddReports() &&
+  //     dashboardId &&
+  //     dashboardId !== dashboardIdRef.current
+  //   ) {
+  //     dashboardIdRef.current = dashboardId;
+  //     dispatch(
+  //       fetchUISpecificReport({
+  //         userId: user.userId,
+  //         filterField: 'dashboard_id',
+  //         creationMethod: 'dashboards',
+  //         resourceId: dashboardId,
+  //       }),
+  //     );
+  //   }
+  // }, [dashboardId]);
 
   const menu = () => (
     <Menu selectable={false} css={{ width: '200px' }}>
