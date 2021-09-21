@@ -46,6 +46,7 @@ class DatasetColumnsPutSchema(Schema):
     verbose_name = fields.String(allow_none=True, Length=(1, 1024))
     description = fields.String(allow_none=True)
     expression = fields.String(allow_none=True)
+    extra = fields.Dict(allow_none=True)
     filterable = fields.Boolean()
     groupby = fields.Boolean()
     is_active = fields.Boolean()
