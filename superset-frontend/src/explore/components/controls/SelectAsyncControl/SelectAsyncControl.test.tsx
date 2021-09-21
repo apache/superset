@@ -44,6 +44,7 @@ jest.mock('src/components/Select/Select', () => ({
 }));
 
 const createProps = () => ({
+  ariaLabel: 'SelectAsyncControl',
   value: [],
   dataEndpoint: 'api/v1/dataset/related/owners',
   multi: true,
@@ -59,7 +60,7 @@ beforeEach(() => {
 test('Should render', () => {
   const props = createProps();
   render(<SelectAsyncControl {...props} />, { useRedux: true });
-  expect(screen.getByTestId('SelectAsyncControl')).toBeInTheDocument();
+  expect(screen.getByTestId('select-test')).toBeInTheDocument();
 });
 
 test('Should send correct props to Select component - value props', () => {

@@ -57,7 +57,9 @@ const SelectAsyncControl = ({
   const handleOnChange = (val: SelectValue) => {
     let onChangeVal = val;
     if (Array.isArray(val)) {
-      const values = val.map(v => 'value' in v ? v.value : v);
+      const values = val.map(v =>
+        typeof v === 'object' && 'value' in v ? v.value : v,
+      );
       onChangeVal = values as string[] | number[];
     }
     if (typeof val === 'object' && (val as LabeledValue)?.value) {
@@ -78,23 +80,19 @@ const SelectAsyncControl = ({
   }, [dataEndpoint, mutator]);
 
   return (
-    <div data-test="SelectAsyncControl">
-      <Select
-        allowClear={allowClear}
-        ariaLabel={ariaLabel || t('Select ...')}
-        value={
-          value || (props.default !== undefined ? props.default : undefined)
-        }
-        header={<ControlHeader {...props} />}
-        mode={multi ? 'multiple' : 'single'}
-        onChange={handleOnChange}
-        onError={error =>
-          addDangerToast(`${t('Error while fetching data')}: ${error}`)
-        }
-        options={options}
-        placeholder={placeholder}
-      />
-    </div>
+    <Select
+      allowClear={allowClear}
+      ariaLabel={ariaLabel || t('Select ...')}
+      value={value || (props.default !== undefined ? props.default : undefined)}
+      header={<ControlHeader {...props} />}
+      mode={multi ? 'multiple' : 'single'}
+      onChange={handleOnChange}
+      onError={error =>
+        addDangerToast(`${t('Error while fetching data')}: ${error}`)
+      }
+      options={options}
+      placeholder={placeholder}
+    />
   );
 };
 
