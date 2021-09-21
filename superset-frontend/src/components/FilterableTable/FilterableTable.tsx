@@ -95,7 +95,7 @@ type CellDataType = string | number | null;
 type Datum = Record<string, CellDataType>;
 
 interface FilterableTableProps {
-    columns: any;
+  columns: string[];
   orderedColumnKeys: string[];
   data: Record<string, unknown>[];
   height: number;
@@ -186,6 +186,17 @@ export default class FilterableTable extends PureComponent<
     return list.get(index % list.size);
   }
 
+  getColumnsWithAccessor(arr: string[]) {
+    let res = [];
+    res = arr.map(name => {
+      let colObj = {
+        Header: name,
+        accessor: name,
+      };
+      return colObj;
+    });
+    return res;
+  }
   getWidthsForColumns() {
     const PADDING = 40; // accounts for cell padding and width of sorting icon
     const widthsByColumnKey = {};
@@ -343,8 +354,6 @@ export default class FilterableTable extends PureComponent<
     };
   }
 
-  
-
   renderGridCellHeader({
     columnIndex,
     key,
@@ -494,7 +503,7 @@ export default class FilterableTable extends PureComponent<
     }
     return cellNode;
   }
-renderTableHeader({
+  renderTableHeader({
     dataKey,
     label,
     sortBy,
@@ -522,12 +531,7 @@ renderTableHeader({
   }
   renderTable() {
     const { sortBy, sortDirection } = this.state;
-    const {
-      filterText,
-        data,
-        columns,
-      orderedColumnKeys,
-    } = this.props;
+    const { filterText, data, orderedColumnKeys } = this.props;
 
     let sortedAndFilteredList: List<Datum> = this.list;
     // filter list
@@ -563,16 +567,12 @@ renderTableHeader({
         className="filterable-table-container"
         ref={this.container}
       >
-      
-          {console.log('columns:',orderedColumnKeys )}
-          {console.log('data:',data )}
         {this.state.fitted && (
-            <ResizableTable
-                columns={columns}
-                data={data}
-                filterText={filterText}
-            /> 
-          
+          <ResizableTable
+            columns={this.getColumnsWithAccessor(orderedColumnKeys)}
+            data={data}
+            filterText={filterText}
+          />
         )}
       </StyledFilterableTable>
     );

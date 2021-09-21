@@ -327,5 +327,4 @@ const TableDisplay =({
       </tbody>
     </Table>
   )
-          console.dir("TABLE_DISPLAY", React.memo(TableDisplay))
 export default React.memo(TableDisplay)

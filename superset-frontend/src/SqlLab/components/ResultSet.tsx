@@ -543,16 +543,6 @@ export default class ResultSet extends React.PureComponent<
     this.setState({ alertIsOpen: false });
   };
 
-
-    renderReactTableColumns(){
-        let {results} =this.props.query
-        results.columns.map(col => ({
-            Header: col.name,
-            accessor: col.name
-        }as ReactTableColumns))
-    }
-
-
   renderRowsReturned() {
     const { results, rows, queryLimit, limitingFactor } = this.props.query;
     let limitMessage;
@@ -739,7 +729,6 @@ export default class ResultSet extends React.PureComponent<
         const expandedColumns = results.expanded_columns
           ? results.expanded_columns.map(col => col.name)
           : [];
-          console.log('this.renderReactTableColumns():', this.renderReactTableColumns())
         return (
           <>
             {this.renderControls()}
@@ -747,7 +736,6 @@ export default class ResultSet extends React.PureComponent<
             {sql}
             <FilterableTable
               data={data}
-                columns={this.renderReactTableColumns()}
               orderedColumnKeys={results.columns.map(col => col.name)}
               height={height}
               expandedColumns={expandedColumns}
