@@ -35,7 +35,6 @@ from superset.views.utils import get_cta_schema_name
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import Database
 
-QueryStatus = utils.QueryStatus
 logger = logging.getLogger(__name__)
 
 SqlResults = Dict[str, Any]

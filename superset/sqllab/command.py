@@ -26,6 +26,7 @@ from sqlalchemy.orm.session import Session
 
 from superset import app, db
 from superset.commands.base import BaseCommand
+from superset.common.db_query_status import QueryStatus
 from superset.dao.exceptions import DAOCreateFailedError
 from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetErrorsException, SupersetGenericErrorException
@@ -46,7 +47,6 @@ if TYPE_CHECKING:
     from superset.databases.dao import DatabaseDAO
 
 config = app.config
-QueryStatus = utils.QueryStatus
 logger = logging.getLogger(__name__)
 
 SqlResults = Dict[str, Any]
@@ -80,6 +80,7 @@ class ExecuteSqlCommand(BaseCommand):
         self._access_validator = access_validator
         self._sql_query_render = sql_query_render
         self._sql_json_executor = sql_json_executor
+        self._execution_context_convertor = execution_context_convertor
         self.log_params = log_params
         self.session = db.session()
 

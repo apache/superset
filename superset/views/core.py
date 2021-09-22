@@ -60,6 +60,7 @@ from superset import (
     viz,
 )
 from superset.charts.dao import ChartDAO
+from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import (
@@ -158,7 +159,6 @@ config = app.config
 SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
 stats_logger = config["STATS_LOGGER"]
 DAR = DatasourceAccessRequest
-QueryStatus = utils.QueryStatus
 logger = logging.getLogger(__name__)
 
 DATABASE_KEYS = [

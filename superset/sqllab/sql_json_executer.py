@@ -24,6 +24,7 @@ from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
 from flask import g
 from flask_babel import gettext as __
 
+from superset.common.db_query_status import QueryStatus
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetErrorException,
@@ -39,7 +40,6 @@ if TYPE_CHECKING:
     from superset.queries.dao import QueryDAO
     from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 
-QueryStatus = utils.QueryStatus
 logger = logging.getLogger(__name__)
 
 SqlResults = Dict[str, Any]
