@@ -374,7 +374,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
           'user',
           createErrorHandler(errMsg =>
             addDangerToast(
-              t('An error occurred while fetching database values: %s', errMsg),
+              t('An error occurred while fetching user values: %s', errMsg),
             ),
           ),
         ),
