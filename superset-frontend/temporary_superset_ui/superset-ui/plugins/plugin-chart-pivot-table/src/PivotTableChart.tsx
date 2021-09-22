@@ -43,7 +43,7 @@ const Styles = styled.div<PivotTableStylesProps>`
   ${({ height, width, margin }) => `
       margin: ${margin}px;
       height: ${height - margin * 2}px;
-      width: ${width - margin * 2}px;
+      width: ${typeof width === 'string' ? parseInt(width, 10) : width - margin * 2}px;
  `}
 `;
 

@@ -110,6 +110,10 @@ function PivotTable(element, props) {
       });
   });
 
+  $container.find('table').each(function fullWidth() {
+    this.style = 'width: 100%';
+  });
+
   if (numGroups === 1) {
     // When there is only 1 group by column,
     // we use the DataTable plugin to make the header fixed.
