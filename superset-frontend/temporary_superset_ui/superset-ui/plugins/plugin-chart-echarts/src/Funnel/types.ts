@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { EChartsOption } from 'echarts';
+import { EChartsCoreOption } from 'echarts';
 import {
   ChartDataResponseResult,
   ChartProps,
@@ -80,7 +80,7 @@ export interface FunnelChartTransformedProps {
   formData: EchartsFunnelFormData;
   height: number;
   width: number;
-  echartOptions: EChartsOption;
+  echartOptions: EChartsCoreOption;
   emitFilter: boolean;
   setDataMask: SetDataMaskHook;
   labelMap: Record<string, DataRecordValue[]>;

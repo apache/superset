@@ -24,7 +24,7 @@ import {
   QueryFormMetric,
   SetDataMaskHook,
 } from '@superset-ui/core';
-import { EChartsOption } from 'echarts';
+import { EChartsCoreOption } from 'echarts';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
 import { LabelPositionEnum } from '../types';
 
@@ -77,7 +77,7 @@ export interface TreemapTransformedProps {
   formData: EchartsTreemapFormData;
   height: number;
   width: number;
-  echartOptions: EChartsOption;
+  echartOptions: EChartsCoreOption;
   emitFilter: boolean;
   setDataMask: SetDataMaskHook;
   labelMap: Record<string, DataRecordValue[]>;

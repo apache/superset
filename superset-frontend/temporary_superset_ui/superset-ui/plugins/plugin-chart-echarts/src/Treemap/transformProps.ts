@@ -28,7 +28,7 @@ import {
 } from '@superset-ui/core';
 import { groupBy, isNumber, transform } from 'lodash';
 import { TreemapSeriesNodeItemOption } from 'echarts/types/src/chart/treemap/TreemapSeries';
-import { EChartsOption, TreemapSeriesOption } from 'echarts';
+import { EChartsCoreOption, TreemapSeriesOption } from 'echarts';
 import {
   DEFAULT_FORM_DATA as DEFAULT_TREEMAP_FORM_DATA,
   EchartsTreemapChartProps,
@@ -279,7 +279,7 @@ export default function transformProps(
     },
   ];
 
-  const echartOptions: EChartsOption = {
+  const echartOptions: EChartsCoreOption = {
     tooltip: {
       ...defaultTooltip,
       trigger: 'item',
