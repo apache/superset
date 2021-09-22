@@ -51,7 +51,8 @@ export default function SearchFilter({
   const [value, setValue] = useState(initialValue || '');
   const handleSubmit = () => {
     if (value) {
-      onSubmit(value.trim());
+      // encode plus signs to prevent them from being converted into a space
+      onSubmit(value.trim().replace(/\+/g, '%2B'));
     }
   };
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
