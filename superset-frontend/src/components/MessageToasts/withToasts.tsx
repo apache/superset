@@ -26,7 +26,7 @@ import {
   addInfoToast,
   addSuccessToast,
   addWarningToast,
-} from '../actions';
+} from './actions';
 
 export interface ToastProps {
   addDangerToast: typeof addDangerToast;

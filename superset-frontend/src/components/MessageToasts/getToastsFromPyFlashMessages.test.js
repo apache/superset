@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ToastType } from 'src/messageToasts/constants';
-
-import getToastsFromPyFlashMessages from 'src/messageToasts/utils/getToastsFromPyFlashMessages';
+import { ToastType } from 'src/components/MessageToasts/types';
+import getToastsFromPyFlashMessages from 'src/components/MessageToasts/getToastsFromPyFlashMessages';
 
 describe('getToastsFromPyFlashMessages', () => {
   it('should return an info toast', () => {
