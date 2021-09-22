@@ -116,6 +116,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "encrypted_extra",
         "extra",
         "parameters",
+        "parameters_schema",
         "server_cert",
         "sqlalchemy_uri",
     ]
@@ -328,6 +329,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
         try:
             changed_model = UpdateDatabaseCommand(g.user, pk, item).run()
+            print(changed_model)
             # Return censored version for sqlalchemy URI
             item["sqlalchemy_uri"] = changed_model.sqlalchemy_uri
             return self.response(200, id=changed_model.id, result=item)

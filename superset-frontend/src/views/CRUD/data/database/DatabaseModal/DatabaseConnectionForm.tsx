@@ -108,7 +108,7 @@ const CredentialsInfo = ({
   const [isPublic, setIsPublic] = useState<boolean>(true);
   const showCredentialsInfo =
     db?.engine === 'gsheets' ? !isEditMode && !isPublic : !isEditMode;
-  const isEncrypted = db?.encrypted_extra?.length;
+  const isEncrypted = db?.encrypted_extra && db?.encrypted_extra?.length > 2;
   const encryptedField = db?.engine && encryptedCredentialsMap[db.engine];
   const encryptedValue =
     typeof db?.parameters?.[encryptedField] === 'object'

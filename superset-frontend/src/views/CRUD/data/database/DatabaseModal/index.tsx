@@ -369,16 +369,13 @@ function dbReducer(
           name: e,
           value: extra_json?.engine_params?.catalog[e],
         }));
-
         return {
           ...action.payload,
-          engine: action.payload.backend,
+          engine: action.payload.backend || trimmedState.engine,
           configuration_method: action.payload.configuration_method,
           extra_json: deserializeExtraJSON,
           catalog: engineParamsCatalog,
-          parameters: {
-            ...action.payload.parameters,
-          },
+          parameters: action.payload.parameters,
           query_input,
         };
       }
@@ -521,14 +518,17 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       if (validationErrors && !isEmpty(validationErrors)) {
         return;
       }
-      const paramConfigArray = Object.keys(db?.paramProperties || {});
+      const parameters_schema = isEditMode
+        ? dbToUpdate.parameters_schema.properties
+        : db?.paramProperties;
+      const paramConfigArray = Object.keys(parameters_schema || {});
       const additionalEncryptedExtra = JSON.parse(
         dbToUpdate.encrypted_extra || '{}',
       );
 
       paramConfigArray.forEach(paramConfig => {
         // we are going through the parameter configuration and seeing if this is an encrypted field
-        if (db?.paramProperties?.[paramConfig]['x-encrypted-extra']) {
+        if (parameters_schema[paramConfig]['x-encrypted-extra']) {
           if (
             typeof dbToUpdate.parameters?.[paramConfig] === 'object' &&
             dbToUpdate.parameters?.[paramConfig].constructor === Object
@@ -611,7 +611,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const fetchDB = () => {
     if (isEditMode && databaseId) {
       if (!dbLoading) {
-        getAvailableDbs();
         fetchResource(databaseId).catch(e =>
           addDangerToast(
             t(
@@ -645,10 +644,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         type: ActionType.dbSelected,
         payload: {
           database_name,
+          engine,
           configuration_method: isDynamic
             ? CONFIGURATION_METHOD.DYNAMIC_FORM
             : CONFIGURATION_METHOD.SQLALCHEMY_URI,
-          engine,
           paramProperties: parameters?.properties,
         },
       });
@@ -815,17 +814,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   useEffect(() => {
     if (dbFetched) {
-      getAvailableDbs();
-      // const dbModel = availableDbs?.find(
-      //   (db: DatabaseForm) =>
-      //     db.engine === dbFetched.backend || dbFetched.engine,
-      // );
       setDB({
         type: ActionType.fetched,
-        payload: {
-          ...dbFetched,
-          paramProperties: dbModel?.parameters?.properties,
-        },
+        payload: dbFetched,
       });
       // keep a copy of the name separate for display purposes
       // because it shouldn't change when the form is updated

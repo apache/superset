@@ -121,8 +121,6 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         cls, uri: str, encrypted_extra: Optional[Dict[str, str]] = None,
     ) -> Any:
         # Building parameters from encrypted_extra and uri
-        print("********************")
-        print(encrypted_extra)
         if encrypted_extra:
             return {**encrypted_extra}
 

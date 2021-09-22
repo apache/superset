@@ -67,10 +67,11 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 impersonate_user=self._properties.get("impersonate_user", False),
                 encrypted_extra=self._properties.get("encrypted_extra", "{}"),
             )
-
             database.set_sqlalchemy_uri(uri)
+            print(uri)
             database.db_engine_spec.mutate_db_for_connection_test(database)
             username = self._actor.username if self._actor is not None else None
+            print(username)
             engine = database.get_sqla_engine(user_name=username)
             event_logger.log_with_context(
                 action="test_connection_attempt",

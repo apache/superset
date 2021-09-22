@@ -70,6 +70,7 @@ export type DatabaseObject = {
   server_cert?: string;
   allow_csv_upload?: boolean;
   impersonate_user?: boolean;
+  parameters_schema?: Record<string, any>;
 
   // Extra
   extra_json?: {
