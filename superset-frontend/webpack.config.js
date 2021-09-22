@@ -128,7 +128,7 @@ const plugins = [
   new CopyPlugin({
     patterns: [
       'package.json',
-      { from: 'images', to: 'images' },
+      { from: 'src/assets/images', to: 'images' },
       { from: 'stylesheets', to: 'stylesheets' },
     ],
   }),
