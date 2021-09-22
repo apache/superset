@@ -38,7 +38,6 @@ from superset.sqllab.exceptions import (
     SqlLabException,
 )
 from superset.utils import core as utils
-from superset.views.utils import apply_display_max_row_limit
 
 if TYPE_CHECKING:
     from superset.sqllab.sql_json_executer import SqlJsonExecutor

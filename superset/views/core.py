@@ -113,6 +113,7 @@ from superset.sqllab.sql_json_executer import (
     SynchronousSqlJsonExecutor,
 )
 from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
+from superset.sqllab.utils import apply_display_max_row_configuration_if_require
 from superset.sqllab.validators import CanAccessQueryValidatorImpl
 from superset.tasks.async_queries import load_explore_json_into_cache
 from superset.typing import FlaskResponse
@@ -141,7 +142,6 @@ from superset.views.base import (
 )
 from superset.views.utils import (
     _deserialize_results_payload,
-    apply_display_max_row_limit,
     bootstrap_user_data,
     check_datasource_perms,
     check_explore_cache_perms,
@@ -2314,7 +2314,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     status=400,
                 ) from ex
 
-            obj = apply_display_max_row_limit(obj, rows)
+            obj = apply_display_max_row_configuration_if_require(obj, rows)
 
         return json_success(
             json.dumps(
