@@ -19,6 +19,7 @@
 import { styled, t } from '@superset-ui/core';
 import { uniq } from 'lodash';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { filterId } from 'spec/fixtures/mockSliceEntities';
 import { Form } from 'src/common/components';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { StyledModal } from 'src/components/Modal';
@@ -29,7 +30,12 @@ import FiltureConfigurePane from './FilterConfigurePane';
 import FiltersConfigForm from './FiltersConfigForm/FiltersConfigForm';
 import Footer from './Footer/Footer';
 import { useOpenModal, useRemoveCurrentFilter } from './state';
-import { FilterRemoval, NativeFiltersForm } from './types';
+import {
+  FilterRemoval,
+  NativeFiltersForm,
+  FilterHierarchyNode,
+  FilterHierarchy,
+} from './types';
 import {
   createHandleSave,
   createHandleTabEdit,
@@ -146,12 +152,7 @@ export function FiltersConfigModal({
     setRemovedFilters(current => ({ ...current, [id]: null }));
   };
 
-  const [filterHierarchy, setFilterHierarchy] = useState<
-    Array<{
-      id: string;
-      parentId: string | null;
-    }>
-  >(() =>
+  const [filterHierarchy, setFilterHierarchy] = useState<FilterHierarchy>(() =>
     filterConfig
       .filter(f => {
         const isRemoved = removedFilters[f.id];
@@ -191,16 +192,11 @@ export function FiltersConfigModal({
     setCurrentFilterId,
   );
 
-  const removeFilterFromOrderedFilters = (removedFilterId: string) => {
-    setOrderedFilters(
-      orderedFilters.filter(filterId => filterId !== removedFilterId),
-    );
-  };
-
   const handleTabEdit = createHandleTabEdit(
     setRemovedFilters,
     setSaveAlertVisible,
-    removeFilterFromOrderedFilters,
+    setOrderedFilters,
+    setFilterHierarchy,
     addFilter,
   );
 
@@ -294,11 +290,19 @@ export function FiltersConfigModal({
       handleConfirmCancel();
     }
   };
-  const onRearrage = (filterId: string, targetIndex: number) => {
-    const currentIndex = orderedFilters.indexOf(filterId);
+  const onRearrage = (
+    dragIndex: number,
+    targetIndex: number,
+    numberOfelements: number,
+  ) => {
     const newOrderedFilter = [...orderedFilters];
-    newOrderedFilter.splice(currentIndex, 1);
-    newOrderedFilter.splice(targetIndex, 0, filterId);
+    for (let index = 0; index < numberOfelements; index += 1) {
+      newOrderedFilter.splice(
+        targetIndex,
+        0,
+        newOrderedFilter.splice(dragIndex, 1)[0],
+      );
+    }
     setOrderedFilters(newOrderedFilter);
   };
   const handleFilterHierarchyChange = (
@@ -383,7 +387,12 @@ export function FiltersConfigModal({
               removedFilters={removedFilters}
               restoreFilter={restoreFilter}
               onRearrange={onRearrage}
-              filterHierarchy={filterHierarchy}
+              filterHierarchy={filterHierarchy
+                .slice()
+                .sort(
+                  (a, b) =>
+                    orderedFilters.indexOf(a.id) - orderedFilters.indexOf(b.id),
+                )}
             >
               {(id: string) => (
                 <FiltersConfigForm

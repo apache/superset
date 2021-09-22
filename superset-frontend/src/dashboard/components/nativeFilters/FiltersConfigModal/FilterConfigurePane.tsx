@@ -13,7 +13,11 @@ interface Props {
   removedFilters: Record<string, FilterRemoval>;
   restoreFilter: (id: string) => void;
   children: (filterId: string) => React.ReactNode;
-  onRearrange: (filterId: string, targetIndex: number) => void;
+  onRearrange: (
+    dragIndex: number,
+    targetIndex: number,
+    numberOfelements: number,
+  ) => void;
   filterHierarchy: Array<{ id: string; parentId: string | null }>;
 }
 

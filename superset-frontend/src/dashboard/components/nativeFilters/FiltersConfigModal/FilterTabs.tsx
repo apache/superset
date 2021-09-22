@@ -22,7 +22,7 @@ import { curry } from 'lodash/fp';
 import React, { FC } from 'react';
 import Icons from 'src/components/Icons';
 import { LineEditableTabs } from 'src/components/Tabs';
-import { FilterTabTitle } from './FilterTabTitle';
+import { FilterTabTitle } from './DraggableFilter';
 import { FilterRemoval } from './types';
 
 export const FILTER_WIDTH = 180;

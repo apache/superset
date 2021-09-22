@@ -59,3 +59,6 @@ export type FilterRemoval =
       timerId: number; // id of the timer that finally removes the filter
     }
   | { isPending: false };
+
+export type FilterHierarchyNode = { id: string; parentId: string | null };
+export type FilterHierarchy = FilterHierarchyNode[];

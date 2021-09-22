@@ -2,9 +2,10 @@ import React from 'react';
 import { styled, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { FilterRemoval } from './types';
+import DraggableFilter from './DraggableFilter';
 
 const FilterTitle = styled.div`
-  ${({ theme }) => ` 
+  ${({ theme }) => `
       display: flex;
       padding: ${theme.gridUnit * 2}px;
       cursor: pointer;
@@ -30,42 +31,12 @@ interface Props {
   removedFilters: Record<string, FilterRemoval>;
   onRemove: (id: string) => void;
   restoreFilter: (id: string) => void;
-  onRearrage: (itemId: string, targetIndex: number) => void;
+  onRearrage: (
+    dragIndex: number,
+    targetIndex: number,
+    numberOfelements: number,
+  ) => void;
 }
-
-const buildFlatTree = (
-  nodeList: Array<{ id: string; parentId: string | null }>,
-) => {
-  const buildTree = (
-    elementId: string,
-    elementTree: Map<string, { children: Array<string> }>,
-  ) => {
-    const filterNode = nodeList.filter(el => el.id === elementId)[0];
-    const parentId = filterNode ? filterNode.parentId : undefined;
-    if (elementTree.get(elementId)) {
-      return elementTree;
-    }
-    const setChildren = (id: string) => {
-      elementTree.set(id, {
-        children: nodeList
-          .filter(child => child.parentId !== null && child.parentId === id)
-          .map(node => node.id),
-      });
-    };
-    if (!parentId) {
-      setChildren(elementId);
-    } else {
-      buildTree(parentId, elementTree);
-      setChildren(elementId);
-    }
-    return elementTree;
-  };
-  const tree = new Map<string, { children: Array<string> }>();
-  nodeList.forEach(element => {
-    buildTree(element.id, tree);
-  });
-  return tree;
-};
 
 const TabTitleContainer: React.FC<Props> = ({
   filterHierarchy,
@@ -75,6 +46,7 @@ const TabTitleContainer: React.FC<Props> = ({
   removedFilters,
   onRemove,
   restoreFilter,
+  onRearrage,
 }) => {
   const renderComponent = (id: string) => {
     const isRemoved = !!removedFilters[id];
@@ -111,35 +83,59 @@ const TabTitleContainer: React.FC<Props> = ({
       </FilterTitle>
     );
   };
-  const tree = buildFlatTree(filterHierarchy);
   const recursivelyRender = (
-    flatMap: Map<string, { children: Array<string> }>,
-    element: string,
-    renderedElements: Array<string>,
-  ) => {
-    const childFilters = flatMap.get(element)?.children;
-    const didAlreadyRender = renderedElements.indexOf(element) >= 0;
+    elementId: string,
+    nodeList: Array<{ id: string; parentId: string | null }>,
+    rendered: Array<string>,
+  ): React.ReactNode => {
+    const didAlreadyRender = rendered.indexOf(elementId) >= 0;
     if (didAlreadyRender) {
       return null;
     }
-    const node = (
-      <div>
-        {renderedElements.push(element) && renderComponent(element)}
-        {childFilters?.map(el =>
-          recursivelyRender(flatMap, el, renderedElements),
-        )}
-      </div>
+    let parent = null;
+    const element = nodeList.filter(el => el.id === elementId)[0];
+    if (!element) {
+      // eslint-disable-next-line no-console
+      console.warn(`Could not find filter with ID ${elementId}`);
+      return null;
+    }
+
+    rendered.push(elementId);
+    if (element.parentId) {
+      parent = recursivelyRender(element.parentId, nodeList, rendered);
+    }
+    const children = nodeList
+      .filter(item => item.parentId === elementId)
+      .map(item => recursivelyRender(item.id, nodeList, rendered));
+    return (
+      <>
+        {parent}
+        {renderComponent(elementId)}
+        {children}
+      </>
     );
-    return node;
   };
+
   const renderTree = () => {
-    const items: any[] = [];
-    const rendered: string[] = [];
-    tree.forEach((val, key) => {
-      const node = recursivelyRender(tree, key, rendered);
-      if (node !== null) {
-        items.push(node);
+    const rendered: Array<string> = [];
+    const items: Array<React.ReactNode> = [];
+    filterHierarchy.forEach((item, index) => {
+      const filterIdsInGroup = [...rendered];
+      const element = recursivelyRender(item.id, filterHierarchy, rendered);
+      if (!element) {
+        return;
       }
+      items.push(
+        <DraggableFilter
+          onRearrage={onRearrage}
+          index={index}
+          filterIds={rendered.filter(
+            element => element && !filterIdsInGroup.includes(element),
+          )}
+        >
+          {element}
+        </DraggableFilter>,
+      );
     });
     return items;
   };

@@ -16,29 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, t } from '@superset-ui/core';
+import { styled } from '@superset-ui/core';
 import React, { useRef } from 'react';
-import { DropTargetMonitor, useDrag, useDrop, XYCoord } from 'react-dnd';
-import Icons from 'src/components/Icons';
-import { REMOVAL_DELAY_SECS } from './utils';
+import {
+  DragSourceMonitor,
+  DropTargetMonitor,
+  useDrag,
+  useDrop,
+  XYCoord,
+} from 'react-dnd';
 
 interface TabTitleContainerProps {
   readonly isDragging: boolean;
 }
 const FILTER_TYPE = 'FILTER';
-const StyledFilterTitle = styled.span`
-  white-space: normal;
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
-`;
-const TabTitleContainer = styled.div<TabTitleContainerProps>`
+
+const Container = styled.div<TabTitleContainerProps>`
   ${({ theme, isDragging }) => `
-    display: flex;
+    opacity: ${isDragging ? 0 : 1};
     width: 100%;
-    border-radius:  ${theme.borderRadius}px;
-    opacity: ${isDragging ? 0.5 : 1};
-    padding-top: ${theme.gridUnit}px;
-    padding-bottom: ${theme.gridUnit}px;
-    padding-left: ${2 * theme.gridUnit}px;
     &:hover {
       transition: all 0.3s;
       span, .anticon {
@@ -47,73 +43,33 @@ const TabTitleContainer = styled.div<TabTitleContainerProps>`
     }
 `}
 `;
-const StyledFilterTabTitle = styled.span`
-  transition: color ${({ theme }) => theme.transitionTiming}s;
-  width: 100%;
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-
-  @keyframes tabTitleRemovalAnimation {
-    0%,
-    90% {
-      opacity: 1;
-    }
-    95%,
-    100% {
-      opacity: 0;
-    }
-  }
-
-  &.removed {
-    color: ${({ theme }) => theme.colors.warning.dark1};
-    transform-origin: top;
-    animation-name: tabTitleRemovalAnimation;
-    animation-duration: ${REMOVAL_DELAY_SECS}s;
-  }
-`;
-
-const StyledSpan = styled.span`
-  cursor: pointer;
-  color: ${({ theme }) => theme.colors.primary.dark1};
-  &:hover {
-    color: ${({ theme }) => theme.colors.primary.dark2};
-  }
-`;
-
-const StyledTrashIcon = styled(Icons.Trash)`
-  color: ${({ theme }) => theme.colors.grayscale.light3};
-`;
 
 interface FilterTabTitleProps {
-  id: string;
-  isRemoved: boolean;
   index: number;
-  getFilterTitle: (id: string) => string;
-  restoreFilter: (id: string) => void;
-  onRearrage: (itemId: string, targetIndex: number) => void;
-  onRemove: (id: string) => void;
+  filterIds: string[];
+  onRearrage: (
+    dragItemIndex: number,
+    targetIndex: number,
+    numberOfElements: number,
+  ) => void;
 }
 
 interface DragItem {
   index: number;
-  id: string;
+  filterIds: string[];
   type: string;
 }
 
-export const FilterTabTitle: React.FC<FilterTabTitleProps> = ({
-  id,
+export const DraggableFilter: React.FC<FilterTabTitleProps> = ({
   index,
-  isRemoved,
-  getFilterTitle,
-  restoreFilter,
   onRearrage,
-  onRemove,
+  filterIds,
+  children,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [{ isDragging }, drag] = useDrag({
-    item: { id, type: FILTER_TYPE, index },
-    collect: (monitor: any) => ({
+    item: { filterIds, type: FILTER_TYPE, index },
+    collect: (monitor: DragSourceMonitor) => ({
       isDragging: monitor.isDragging(),
     }),
   });
@@ -158,7 +114,7 @@ export const FilterTabTitle: React.FC<FilterTabTitleProps> = ({
         return;
       }
 
-      onRearrage(item.id, index);
+      onRearrage(dragIndex, hoverIndex, item.filterIds.length);
       // Note: we're mutating the monitor item here.
       // Generally it's better to avoid mutations,
       // but it's good here for the sake of performance
@@ -169,36 +125,10 @@ export const FilterTabTitle: React.FC<FilterTabTitleProps> = ({
   });
   drag(drop(ref));
   return (
-    <TabTitleContainer ref={ref} isDragging={isDragging}>
-      <StyledFilterTabTitle className={isRemoved ? 'removed' : ''}>
-        <StyledFilterTitle>
-          {isRemoved ? t('(Removed)') : getFilterTitle(id)}
-        </StyledFilterTitle>
-        {isRemoved && (
-          <StyledSpan
-            role="button"
-            data-test="undo-button"
-            tabIndex={0}
-            onClick={() => restoreFilter(id)}
-          >
-            {t('Undo?')}
-          </StyledSpan>
-        )}
-      </StyledFilterTabTitle>
-      <div css={{ alignSelf: 'flex-end' }}>
-        {isRemoved ? (
-          <></>
-        ) : (
-          <StyledTrashIcon
-            onClick={event => {
-              event.stopPropagation();
-              onRemove(id);
-            }}
-          />
-        )}
-      </div>
-    </TabTitleContainer>
+    <Container ref={ref} isDragging={isDragging}>
+      {children}
+    </Container>
   );
 };
 
-export default FilterTabTitle;
+export default DraggableFilter;

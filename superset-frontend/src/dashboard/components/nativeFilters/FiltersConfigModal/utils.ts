@@ -19,7 +19,14 @@
 import { FormInstance } from 'antd/lib/form';
 import shortid from 'shortid';
 import { getInitialDataMask } from 'src/dataMask/reducer';
-import { FilterRemoval, NativeFiltersForm } from './types';
+import { SetStateAction } from 'react';
+import { MemoVoidIteratorCapped } from 'lodash';
+import {
+  FilterRemoval,
+  NativeFiltersForm,
+  FilterHierarchy,
+  FilterHierarchyNode,
+} from './types';
 import { Filter, FilterConfiguration, Target } from '../types';
 
 export const REMOVAL_DELAY_SECS = 5;
@@ -156,7 +163,12 @@ export const createHandleTabEdit = (
       | Record<string, FilterRemoval>,
   ) => void,
   setSaveAlertVisible: Function,
-  removeFilterFromOrderedFilters: (removedFilterId: string) => void,
+  setOrderedFilters: (
+    val: string[] | ((prevState: string[]) => string[]),
+  ) => void,
+  setFilterHierarchy: (
+    state: FilterHierarchy | ((prevState: FilterHierarchy) => FilterHierarchy),
+  ) => void,
   addFilter: Function,
 ) => (filterId: string, action: 'add' | 'remove') => {
   const completeFilterRemoval = (filterId: string) => {
@@ -167,13 +179,27 @@ export const createHandleTabEdit = (
       ...removedFilters,
       [filterId]: { isPending: false },
     }));
+    setOrderedFilters((orderedFilters: string[]) =>
+      orderedFilters.filter(id => id !== filterId),
+    );
+    // Remove the filter from the side tab and de-associate children
+    // in case we removed a parent.
+    setFilterHierarchy(filterHierarchy =>
+      filterHierarchy
+        .filter(nativeFilter => nativeFilter.id !== filterId)
+        .map(nativeFilter => {
+          const didRemoveParent = nativeFilter.parentId === filterId;
+          return didRemoveParent
+            ? { ...nativeFilter, parentId: null }
+            : nativeFilter;
+        }),
+    );
   };
 
   if (action === 'remove') {
     // first set up the timer to completely remove it
     const timerId = window.setTimeout(() => {
       completeFilterRemoval(filterId);
-      removeFilterFromOrderedFilters(filterId);
     }, REMOVAL_DELAY_SECS * 1000);
     // mark the filter state as "removal in progress"
     setRemovedFilters(removedFilters => ({

@@ -9,7 +9,11 @@ interface Props {
   removedFilters: Record<string, FilterRemoval>;
   restoreFilter: (id: string) => void;
   getFilterTitle: (id: string) => string;
-  onRearrage: (itemId: string, targetIndex: number) => void;
+  onRearrage: (
+    dragIndex: number,
+    targetIndex: number,
+    numberOfelements: number,
+  ) => void;
   onRemove: (id: string) => void;
   currentFilterId: string;
   onChange: (id: string) => void;
