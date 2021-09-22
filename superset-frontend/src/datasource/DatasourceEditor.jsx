@@ -464,13 +464,13 @@ class DatasourceEditor extends React.PureComponent {
         results.added.push(col.name);
       } else if (
         currentCol.type !== col.type ||
-        currentCol.is_dttm !== col.is_dttm
+        (!currentCol.is_dttm && col.is_dttm)
       ) {
         // modified column
         finalColumns.push({
           ...currentCol,
           type: col.type,
-          is_dttm: col.is_dttm,
+          is_dttm: currentCol.is_dttm || col.is_dttm,
         });
         results.modified.push(col.name);
       } else {
