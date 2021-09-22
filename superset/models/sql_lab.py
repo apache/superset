@@ -48,15 +48,8 @@ from superset.models.helpers import (
 )
 from superset.models.tags import QueryUpdater
 from superset.sql_parse import CtasMethod, ParsedQuery, Table
+from superset.sqllab.limiting_factor import LimitingFactor
 from superset.utils.core import QueryStatus, user_label
-
-
-class LimitingFactor(str, enum.Enum):
-    QUERY = "QUERY"
-    DROPDOWN = "DROPDOWN"
-    QUERY_AND_DROPDOWN = "QUERY_AND_DROPDOWN"
-    NOT_LIMITED = "NOT_LIMITED"
-    UNKNOWN = "UNKNOWN"
 
 
 class Query(Model, ExtraJSONMixin):

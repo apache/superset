@@ -30,16 +30,16 @@ from superset.common.db_query_status import QueryStatus
 from superset.dao.exceptions import DAOCreateFailedError
 from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetErrorsException, SupersetGenericErrorException
-from superset.models.core import Database
-from superset.models.sql_lab import LimitingFactor, Query
 from superset.sqllab.command_status import SqlJsonExecutionStatus
 from superset.sqllab.exceptions import (
     QueryIsForbiddenToAccessException,
     SqlLabException,
 )
-from superset.utils import core as utils
+from superset.sqllab.limiting_factor import LimitingFactor
 
 if TYPE_CHECKING:
+    from superset.models.core import Database
+    from superset.models.sql_lab import Query
     from superset.sqllab.sql_json_executer import SqlJsonExecutor
     from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
     from superset.queries.dao import QueryDAO

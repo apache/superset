@@ -35,8 +35,9 @@ from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException
 from superset.models.core import Database
-from superset.models.sql_lab import LimitingFactor, Query, SavedQuery
+from superset.models.sql_lab import Query, SavedQuery
 from superset.result_set import SupersetResultSet
+from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sql_lab import (
     cancel_query,
     execute_sql_statements,
