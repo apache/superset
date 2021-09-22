@@ -36,13 +36,14 @@ import { Dropdown } from 'src/common/components';
 import {
   queryEditorSetFunctionNames,
   queryEditorSetSelectedText,
+  queryEditorSetSchemaOptions,
 } from 'src/SqlLab/actions/sqlLab';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { initialState, queries, table } from './fixtures';
 
 const MOCKED_SQL_EDITOR_HEIGHT = 500;
 
-fetchMock.get('glob:*/api/v1/database/*', {});
+fetchMock.get('glob:*/api/v1/database/*', { result: [] });
 
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
@@ -53,6 +54,7 @@ describe('SqlEditor', () => {
     actions: {
       queryEditorSetFunctionNames,
       queryEditorSetSelectedText,
+      queryEditorSetSchemaOptions,
       addDangerToast: jest.fn(),
     },
     database: {},
