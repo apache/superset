@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { EChartsOption } from 'echarts';
+import { EChartsCoreOption } from 'echarts';
 import {
   AnnotationLayer,
   TimeGranularity,
@@ -140,7 +140,7 @@ export type EchartsMixedTimeseriesChartTransformedProps = {
   formData: EchartsMixedTimeseriesFormData;
   height: number;
   width: number;
-  echartOptions: EChartsOption;
+  echartOptions: EChartsCoreOption;
   emitFilter: boolean;
   emitFilterB: boolean;
   setDataMask: SetDataMaskHook;
