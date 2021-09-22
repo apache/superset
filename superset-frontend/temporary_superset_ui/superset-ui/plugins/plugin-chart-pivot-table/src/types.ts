@@ -31,7 +31,7 @@ import { ColorFormatters } from '@superset-ui/chart-controls';
 
 export interface PivotTableStylesProps {
   height: number;
-  width: number;
+  width: number | string;
   margin: number;
 }
 
