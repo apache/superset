@@ -93,14 +93,15 @@ from superset.models.core import Database, FavStar, Log
 from superset.models.dashboard import Dashboard
 from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.models.slice import Slice
-from superset.models.sql_lab import LimitingFactor, Query, TabState
+from superset.models.sql_lab import Query, TabState
 from superset.models.user_attributes import UserAttribute
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.sql_parse import ParsedQuery, Table
 from superset.sql_validators import get_validator_by_name
-from superset.sqllab.utils import apply_display_max_row_configuration_if_require
 from superset.sqllab.command import CommandResult, ExecuteSqlCommand
 from superset.sqllab.command_status import SqlJsonExecutionStatus
+from superset.sqllab.limiting_factor import LimitingFactor
+from superset.sqllab.utils import apply_display_max_row_configuration_if_require
 from superset.tasks.async_queries import load_explore_json_into_cache
 from superset.typing import FlaskResponse
 from superset.utils import core as utils, csv
