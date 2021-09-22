@@ -4802,6 +4802,11 @@
   dependencies:
     "@types/react" "*"
 
+"@types/math-expression-evaluator@^1.2.1":
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/@types/math-expression-evaluator/-/math-expression-evaluator-1.2.1.tgz#081f339b4fad815d2049f6a1dabbc9ee5e43f189"
+  integrity sha512-H6IG9R0jU16nR3N24UpL7X40aDcUl5eTncBSd/itwz6rWI4nNzMcNYreHj0MnKlHSga1Iq1AqjSuY67EhiN+Zw==
+
 "@types/micromatch@^4.0.1":
   version "4.0.1"
   resolved "https://registry.yarnpkg.com/@types/micromatch/-/micromatch-4.0.1.tgz#9381449dd659fc3823fd2a4190ceacc985083bc7"
@@ -10034,13 +10039,13 @@ ecc-jsbn@~0.1.1:
     jsbn "~0.1.0"
     safer-buffer "^2.1.0"
 
-echarts@^5.2.0:
-  version "5.2.0"
-  resolved "https://registry.yarnpkg.com/echarts/-/echarts-5.2.0.tgz#9f1fbfbf048c15ab630bf0a74525c4c534d6cebc"
-  integrity sha512-7CrCKGRjFdpLIJ/Yt1gpHeqs5PiCem2GHPdWZPwKl7WSYeZu0Qzm1bcCFe9/b4dfVaL1zlY4JmdzaVwKksVeqg==
+echarts@^5.2.1:
+  version "5.2.1"
+  resolved "https://registry.yarnpkg.com/echarts/-/echarts-5.2.1.tgz#bd58ec011cd82def4a714e4038ef4b73b8417bc3"
+  integrity sha512-OJ79b22eqRfbSV8vYmDKmA+XWfNbr0Uk/OafWcFNIGDWti2Uw9A6eVCiJLmqPa9Sk+EWL+t5v26aak0z3gxiZw==
   dependencies:
     tslib "2.3.0"
-    zrender "5.2.0"
+    zrender "5.2.1"
 
 editions@^2.2.0:
   version "2.3.1"
@@ -23433,9 +23438,9 @@ yosay@^2.0.2:
     taketalk "^1.0.0"
     wrap-ansi "^2.0.0"
 
-zrender@5.2.0:
-  version "5.2.0"
-  resolved "https://registry.yarnpkg.com/zrender/-/zrender-5.2.0.tgz#f8abc484ac4a8a51b04c3ccd37beabe1def342cd"
-  integrity sha512-87v3gvB0lcWy48ObA/DwrhQ95ADMMRhECVrXmHDFCBNvbxHFfEDZtrZh4VmVjLAeFAjimY4PyZ65rbLCivdszA==
+zrender@5.2.1:
+  version "5.2.1"
+  resolved "https://registry.yarnpkg.com/zrender/-/zrender-5.2.1.tgz#5f4bbda915ba6d412b0b19dc2431beaad05417bb"
+  integrity sha512-M3bPGZuyLTNBC6LiNKXJwSCtglMp8XUEqEBG+2MdICDI3d1s500Y4P0CzldQGsqpRVB7fkvf3BKQQRxsEaTlsw==
   dependencies:
     tslib "2.3.0"

@@ -28,7 +28,7 @@ import {
   isIntervalAnnotationLayer,
   isTimeseriesAnnotationLayer,
 } from '@superset-ui/core';
-import { EChartsOption, SeriesOption } from 'echarts';
+import { EChartsCoreOption, SeriesOption } from 'echarts';
 import {
   DEFAULT_FORM_DATA,
   EchartsMixedTimeseriesFormData,
@@ -227,7 +227,7 @@ export default function transformProps(
 
   const { setDataMask = () => {} } = hooks;
 
-  const echartOptions: EChartsOption = {
+  const echartOptions: EChartsCoreOption = {
     useUTC: true,
     grid: {
       ...defaultGrid,

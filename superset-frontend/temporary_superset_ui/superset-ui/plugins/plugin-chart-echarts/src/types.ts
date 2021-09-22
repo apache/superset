@@ -17,7 +17,7 @@
  * under the License.
  */
 import { DataRecordValue, SetDataMaskHook } from '@superset-ui/core';
-import { EChartsOption } from 'echarts';
+import { EChartsCoreOption } from 'echarts';
 import { TooltipMarker } from 'echarts/types/src/util/format';
 
 export type EchartsStylesProps = {
@@ -28,7 +28,7 @@ export type EchartsStylesProps = {
 export interface EchartsProps {
   height: number;
   width: number;
-  echartOptions: EChartsOption;
+  echartOptions: EChartsCoreOption;
   eventHandlers?: EventHandlers;
   selectedValues?: Record<number, string>;
   forceClear?: boolean;
@@ -102,7 +102,7 @@ export interface EChartTransformedProps<F> {
   formData: F;
   height: number;
   width: number;
-  echartOptions: EChartsOption;
+  echartOptions: EChartsCoreOption;
   emitFilter: boolean;
   setDataMask: SetDataMaskHook;
   labelMap: Record<string, DataRecordValue[]>;
