@@ -21,6 +21,12 @@ import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import TimeSeriesColumnControl from '.';
 
+jest.mock('lodash/debounce', () => (fn: Function & { cancel: Function }) => {
+  // eslint-disable-next-line no-param-reassign
+  fn.cancel = jest.fn();
+  return fn;
+});
+
 test('renders with default props', () => {
   render(<TimeSeriesColumnControl />);
   expect(screen.getByText('Time series columns')).toBeInTheDocument();
