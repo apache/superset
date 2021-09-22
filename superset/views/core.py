@@ -106,6 +106,7 @@ from superset.sqllab.exceptions import (
     QueryIsForbiddenToAccessException,
     SqlLabException,
 )
+from superset.sqllab.execution_context_convertor import ExecutionContextConvertorImpl
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sqllab.query_render import SqlQueryRenderImpl
 from superset.sqllab.sql_json_executer import (
@@ -2455,16 +2456,21 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         sql_json_executor = Superset._create_sql_json_executor(
             execution_context, query_dao
         )
-        command = ExecuteSqlCommand(
+        execution_context_convertor = ExecutionContextConvertorImpl()
+        execution_context_convertor.set_max_row_in_display(
+            bool(config.get("DISPLAY_MAX_ROW"))
+        )
+
+        return ExecuteSqlCommand(
             execution_context,
             query_dao,
             DatabaseDAO(),
             CanAccessQueryValidatorImpl(),
             SqlQueryRenderImpl(get_template_processor),
             sql_json_executor,
+            execution_context_convertor,
             log_params,
         )
-        return command
 
     @staticmethod
     def _create_sql_json_executor(
