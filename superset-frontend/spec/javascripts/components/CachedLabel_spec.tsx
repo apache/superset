@@ -17,20 +17,26 @@
  * under the License.
  */
 import React from 'react';
-import { Resizable } from 're-resizable';
-import { shallow } from 'enzyme';
+import { render, screen } from 'spec/helpers/testing-library';
 
-import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
+import CachedLabel, { CacheLabelProps } from 'src/components/CachedLabel';
 
-describe('ResizableContainer', () => {
-  const props = { editMode: false, id: 'id' };
+const defaultProps = {
+  onClick: () => {},
+  cachedTimestamp: '2017-01-01',
+};
 
-  function setup(propOverrides) {
-    return shallow(<ResizableContainer {...props} {...propOverrides} />);
-  }
+const setup = (props: CacheLabelProps) => <CachedLabel {...props} />;
 
-  it('should render a Resizable', () => {
-    const wrapper = setup();
-    expect(wrapper.find(Resizable)).toExist();
+describe('CachedLabel', () => {
+  it('is valid', () => {
+    expect(React.isValidElement(<CachedLabel {...defaultProps} />)).toBe(true);
+  });
+
+  it('renders', () => {
+    render(setup(defaultProps));
+
+    const label = screen.getByText(/cached/i);
+    expect(label).toBeVisible();
   });
 });
