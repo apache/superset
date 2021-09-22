@@ -16,25 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { addToast } from '../actions';
-import { ToastType } from '../constants';
+import { bindActionCreators } from 'redux';
+import { connect } from 'react-redux';
+import ToastPresenter from './ToastPresenter';
 
-export default function toastsFromPyFlashMessages(flashMessages = []) {
-  const toasts = [];
+import { removeToast } from './actions';
 
-  flashMessages.forEach(([messageType, message]) => {
-    const toastType =
-      messageType === 'danger'
-        ? ToastType.DANGER
-        : (messageType === 'success' && ToastType.SUCCESS) || ToastType.INFO;
-
-    const toast = addToast({
-      text: message,
-      toastType,
-    }).payload;
-
-    toasts.push(toast);
-  });
-
-  return toasts;
-}
+export default connect(
+  ({ messageToasts: toasts }) => ({ toasts }),
+  dispatch => bindActionCreators({ removeToast }, dispatch),
+)(ToastPresenter);

@@ -26,7 +26,7 @@ import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 
 const DatasourceEditor = AsyncEsmComponent(() => import('./DatasourceEditor'));
 

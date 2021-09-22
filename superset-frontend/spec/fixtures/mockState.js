@@ -17,7 +17,7 @@
  * under the License.
  */
 import datasources from 'spec/fixtures/mockDatasource';
-import messageToasts from 'spec/javascripts/messageToasts/mockMessageToasts';
+import messageToasts from 'src/components/MessageToasts/mockMessageToasts';
 import {
   nativeFiltersInfo,
   mockDataMaskInfo,
