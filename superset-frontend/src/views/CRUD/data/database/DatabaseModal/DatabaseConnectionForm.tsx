@@ -437,7 +437,7 @@ const forceSSLField = ({
   changeMethods,
   db,
   sslForced,
-}: FieldPropTypes) => { console.log("db", db); return (
+}: FieldPropTypes) => (
   <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
     <Switch
       disabled={sslForced && !isEditMode}
@@ -477,7 +477,7 @@ const forceSSLField = ({
       /> )}
 
   </div>
-)};
+  )
 
 const FORM_FIELD_MAP = {
   host: hostField,
