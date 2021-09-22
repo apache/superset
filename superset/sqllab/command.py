@@ -21,7 +21,6 @@ import logging
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as __
-from sqlalchemy.orm.session import Session
 
 from superset.commands.base import BaseCommand
 from superset.common.db_query_status import QueryStatus
@@ -43,10 +42,7 @@ if TYPE_CHECKING:
     from superset.queries.dao import QueryDAO
     from superset.databases.dao import DatabaseDAO
 
-config = app.config
 logger = logging.getLogger(__name__)
-
-SqlResults = Dict[str, Any]
 
 CommandResult = Dict[str, Any]
 
@@ -59,6 +55,7 @@ class ExecuteSqlCommand(BaseCommand):
     _sql_query_render: SqlQueryRender
     _sql_json_executor: SqlJsonExecutor
     _execution_context_convertor: ExecutionContextConvertor
+    _sqllab_ctas_no_limit: bool
     log_params: Optional[Dict[str, Any]] = None
 
     def __init__(
@@ -70,6 +67,7 @@ class ExecuteSqlCommand(BaseCommand):
         sql_query_render: SqlQueryRender,
         sql_json_executor: SqlJsonExecutor,
         execution_context_convertor: ExecutionContextConvertor,
+        sqllab_ctas_no_limit_flag: bool,
         log_params: Optional[Dict[str, Any]] = None,
     ) -> None:
         self._execution_context = execution_context
@@ -79,6 +77,7 @@ class ExecuteSqlCommand(BaseCommand):
         self._sql_query_render = sql_query_render
         self._sql_json_executor = sql_json_executor
         self._execution_context_convertor = execution_context_convertor
+        self._sqllab_ctas_no_limit = sqllab_ctas_no_limit_flag
         self.log_params = log_params
 
     def validate(self) -> None:
@@ -177,7 +176,7 @@ class ExecuteSqlCommand(BaseCommand):
 
     def _is_required_to_set_limit(self) -> bool:
         return not (
-            config.get("SQLLAB_CTAS_NO_LIMIT") and self._execution_context.select_as_cta
+            self._sqllab_ctas_no_limit and self._execution_context.select_as_cta
         )
 
     def _set_query_limit(self, rendered_query: str) -> None:

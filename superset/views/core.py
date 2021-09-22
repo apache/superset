@@ -2469,6 +2469,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             SqlQueryRenderImpl(get_template_processor),
             sql_json_executor,
             execution_context_convertor,
+            config.get("SQLLAB_CTAS_NO_LIMIT"),  # type: ignore
             log_params,
         )
 
@@ -2476,13 +2477,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def _create_sql_json_executor(
         execution_context: SqlJsonExecutionContext, query_dao: QueryDAO
     ) -> SqlJsonExecutor:
+        sql_json_executor: SqlJsonExecutor
         if execution_context.is_run_asynchronous():
             sql_json_executor = ASynchronousSqlJsonExecutor(query_dao, get_sql_results)
         else:
             sql_json_executor = SynchronousSqlJsonExecutor(
                 query_dao,
                 get_sql_results,
-                config.get("SQLLAB_TIMEOUT"),
+                config.get("SQLLAB_TIMEOUT"),  # type: ignore
                 is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE"),
             )
         return sql_json_executor
