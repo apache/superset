@@ -26,7 +26,7 @@
     "prettier": "npm run format",
     "check-translation": "prettier --check ../superset/translations/**/LC_MESSAGES/*.json",
     "clean-translation": "prettier --write ../superset/translations/**/LC_MESSAGES/*.json",
-    "storybook": "cross-env NODE_ENV=development BABEL_ENV=development start-storybook -s ./images -p 6006",
+    "storybook": "cross-env NODE_ENV=development BABEL_ENV=development start-storybook -s ./src/assets/images -p 6006",
     "build-storybook": "build-storybook"
   },
   "repository": {

@@ -20,7 +20,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import AntdIcon from '@ant-design/icons';
 import { styled } from '@superset-ui/core';
-import TransparentIcon from 'images/icons/transparent.svg';
+import TransparentIcon from 'src/assets/images/icons/transparent.svg';
 import IconType from './IconType';
 
 const AntdIconComponent = ({
@@ -57,7 +57,7 @@ export const Icon = (props: IconProps) => {
     async function importIcon(): Promise<void> {
       ImportedSVG.current = (
         await import(
-          `!!@svgr/webpack?-svgo,+titleProp,+ref!images/icons/${fileName}.svg`
+          `!!@svgr/webpack?-svgo,+titleProp,+ref!src/assets/images/icons/${fileName}.svg`
         )
       ).default;
       if (!cancelled) {
