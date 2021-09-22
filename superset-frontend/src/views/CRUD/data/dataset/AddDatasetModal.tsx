@@ -22,7 +22,7 @@ import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { isEmpty, isNil } from 'lodash';
 import Modal from 'src/components/Modal';
 import TableSelector from 'src/components/TableSelector';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 
 type DatasetAddObject = {
   id: number;

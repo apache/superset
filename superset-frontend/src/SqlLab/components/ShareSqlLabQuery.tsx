@@ -18,10 +18,9 @@
  */
 import React from 'react';
 import { t, useTheme, styled } from '@superset-ui/core';
-
 import Button from 'src/components/Button';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Icons from 'src/components/Icons';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { storeQuery } from 'src/utils/common';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';

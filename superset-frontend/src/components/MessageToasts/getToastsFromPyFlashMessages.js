@@ -16,27 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ADD_TOAST, REMOVE_TOAST } from '../actions';
+import { addToast } from './actions';
+import { ToastType } from './types';
 
-export default function messageToastsReducer(toasts = [], action) {
-  switch (action.type) {
-    case ADD_TOAST: {
-      const { payload: toast } = action;
-      const result = toasts.slice();
-      if (!toast.noDuplicate || !result.find(x => x.text === toast.text)) {
-        return [toast, ...toasts];
-      }
-      return toasts;
-    }
+export default function toastsFromPyFlashMessages(flashMessages = []) {
+  const toasts = [];
 
-    case REMOVE_TOAST: {
-      const {
-        payload: { id },
-      } = action;
-      return [...toasts].filter(toast => toast.id !== id);
-    }
+  flashMessages.forEach(([messageType, message]) => {
+    const toastType =
+      messageType === 'danger'
+        ? ToastType.DANGER
+        : (messageType === 'success' && ToastType.SUCCESS) || ToastType.INFO;
 
-    default:
-      return toasts;
-  }
+    const toast = addToast({
+      text: message,
+      toastType,
+    }).payload;
+
+    toasts.push(toast);
+  });
+
+  return toasts;
 }
