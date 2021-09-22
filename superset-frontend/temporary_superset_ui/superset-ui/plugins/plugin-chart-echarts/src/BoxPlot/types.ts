@@ -23,7 +23,7 @@ import {
   QueryFormData,
   SetDataMaskHook,
 } from '@superset-ui/core';
-import { EChartsOption } from 'echarts';
+import { EChartsCoreOption } from 'echarts';
 import { EchartsTitleFormData, DEFAULT_TITLE_FORM_DATA } from '../types';
 
 export type BoxPlotQueryFormData = QueryFormData & {
@@ -56,7 +56,7 @@ export interface BoxPlotChartTransformedProps {
   formData: BoxPlotQueryFormData;
   height: number;
   width: number;
-  echartOptions: EChartsOption;
+  echartOptions: EChartsCoreOption;
   emitFilter: boolean;
   setDataMask: SetDataMaskHook;
   labelMap: Record<string, DataRecordValue[]>;

@@ -23,7 +23,7 @@ import {
   DataRecord,
   DataRecordValue,
 } from '@superset-ui/core';
-import { EChartsOption, GraphSeriesOption } from 'echarts';
+import { EChartsCoreOption, GraphSeriesOption } from 'echarts';
 import { extent as d3Extent } from 'd3-array';
 import { GraphEdgeItemOption } from 'echarts/types/src/chart/graph/GraphSeries';
 import {
@@ -265,7 +265,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     },
   ];
 
-  const echartOptions: EChartsOption = {
+  const echartOptions: EChartsCoreOption = {
     animationDuration: DEFAULT_GRAPH_SERIES_OPTION.animationDuration,
     animationEasing: DEFAULT_GRAPH_SERIES_OPTION.animationEasing,
     tooltip: {

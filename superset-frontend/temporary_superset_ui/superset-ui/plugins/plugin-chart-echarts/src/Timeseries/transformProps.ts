@@ -28,7 +28,7 @@ import {
   TimeseriesChartDataResponseResult,
   DataRecordValue,
 } from '@superset-ui/core';
-import { EChartsOption, SeriesOption } from 'echarts';
+import { EChartsCoreOption, SeriesOption } from 'echarts';
 import {
   DEFAULT_FORM_DATA,
   EchartsTimeseriesChartProps,
@@ -221,7 +221,7 @@ export default function transformProps(
     yAxisTitleMargin,
     xAxisTitleMargin,
   );
-  const echartOptions: EChartsOption = {
+  const echartOptions: EChartsCoreOption = {
     useUTC: true,
     grid: {
       ...defaultGrid,
@@ -233,6 +233,7 @@ export default function transformProps(
       nameGap: xAxisTitleMargin,
       nameLocation: 'middle',
       axisLabel: {
+        hideOverlap: true,
         formatter: xAxisFormatter,
         rotate: xAxisLabelRotation,
       },

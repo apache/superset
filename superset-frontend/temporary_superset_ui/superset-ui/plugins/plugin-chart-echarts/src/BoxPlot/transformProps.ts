@@ -23,7 +23,7 @@ import {
   getNumberFormatter,
   getTimeFormatter,
 } from '@superset-ui/core';
-import { EChartsOption, BoxplotSeriesOption } from 'echarts';
+import { EChartsCoreOption, BoxplotSeriesOption } from 'echarts';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
 import {
   BoxPlotChartTransformedProps,
@@ -206,7 +206,7 @@ export default function transformProps(
     yAxisTitleMargin,
     xAxisTitleMargin,
   );
-  const echartOptions: EChartsOption = {
+  const echartOptions: EChartsCoreOption = {
     grid: {
       ...defaultGrid,
       ...chartPadding,

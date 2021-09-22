@@ -25,7 +25,7 @@ import {
   getMetricLabel,
   DataRecordValue,
 } from '@superset-ui/core';
-import { EChartsOption, GaugeSeriesOption } from 'echarts';
+import { EChartsCoreOption, GaugeSeriesOption } from 'echarts';
 import { GaugeDataItemOption } from 'echarts/types/src/chart/gauge/GaugeSeries';
 import range from 'lodash/range';
 import { parseNumbersList } from '../utils/controls';
@@ -253,7 +253,7 @@ export default function transformProps(
     },
   ];
 
-  const echartOptions: EChartsOption = {
+  const echartOptions: EChartsCoreOption = {
     series,
   };
 

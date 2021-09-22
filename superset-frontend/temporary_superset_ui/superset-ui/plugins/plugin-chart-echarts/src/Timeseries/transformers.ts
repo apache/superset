@@ -36,7 +36,7 @@ import {
 import { SeriesOption } from 'echarts';
 import {
   CallbackDataParams,
-  DefaultExtraStateOpts,
+  DefaultStatesMixin,
   ItemStyleOption,
   LineStyleOption,
   OptionName,
@@ -301,7 +301,7 @@ export function transformEventAnnotation(
       },
     ];
 
-    const lineStyle: LineStyleOption & DefaultExtraStateOpts['emphasis'] = {
+    const lineStyle: LineStyleOption & DefaultStatesMixin['emphasis'] = {
       width,
       type: style as ZRLineType,
       color: color || colorScale(name),
