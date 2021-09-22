@@ -98,6 +98,7 @@ from superset.models.user_attributes import UserAttribute
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.sql_parse import ParsedQuery, Table
 from superset.sql_validators import get_validator_by_name
+from superset.sqllab.utils import apply_display_max_row_configuration_if_require
 from superset.sqllab.command import CommandResult, ExecuteSqlCommand
 from superset.sqllab.command_status import SqlJsonExecutionStatus
 from superset.tasks.async_queries import load_explore_json_into_cache
@@ -128,7 +129,6 @@ from superset.views.base import (
 )
 from superset.views.utils import (
     _deserialize_results_payload,
-    apply_display_max_row_limit,
     bootstrap_user_data,
     check_datasource_perms,
     check_explore_cache_perms,
@@ -2314,7 +2314,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     status=400,
                 ) from ex
 
-            obj = apply_display_max_row_limit(obj, rows)
+            obj = apply_display_max_row_configuration_if_require(obj, rows)
 
         return json_success(
             json.dumps(

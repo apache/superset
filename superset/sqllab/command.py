@@ -50,7 +50,7 @@ from superset.sqllab.command_status import SqlJsonExecutionStatus
 from superset.utils import core as utils
 from superset.utils.dates import now_as_float
 from superset.utils.sqllab_execution_context import SqlJsonExecutionContext
-from superset.views.utils import apply_display_max_row_limit
+from superset.sqllab.utils import apply_display_max_row_configuration_if_require
 
 config = app.config
 logger = logging.getLogger(__name__)
@@ -397,7 +397,7 @@ class ExecuteSqlCommand(BaseCommand):
     ) -> str:
         display_max_row = config["DISPLAY_MAX_ROW"]
         return json.dumps(
-            apply_display_max_row_limit(execution_result, display_max_row),
+            apply_display_max_row_configuration_if_require(execution_result, display_max_row),
             default=utils.pessimistic_json_iso_dttm_ser,
             ignore_nan=True,
             encoding=None,
