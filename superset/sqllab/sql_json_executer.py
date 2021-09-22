@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=too-few-public-methods, invalid-name, line-too-long
 from __future__ import annotations
 
 import dataclasses
@@ -97,7 +98,7 @@ class SynchronousSqlJsonExecutor(SqlJsonExecutorBase):
             execution_context.set_execution_result(data)
         except SupersetTimeoutException as ex:
             raise ex
-        except Exception as ex:  # pylint: disable=broad-except
+        except Exception as ex:
             logger.exception("Query %i failed unexpectedly", execution_context.query.id)
             raise SupersetGenericDBErrorException(utils.error_msg_from_exception(ex))
 

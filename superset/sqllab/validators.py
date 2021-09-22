@@ -25,6 +25,8 @@ if TYPE_CHECKING:
     from superset.models.sql_lab import Query
 
 
-class CanAccessQueryValidatorImpl(CanAccessQueryValidator):
+class CanAccessQueryValidatorImpl(  # pylint: disable=too-few-public-methods
+    CanAccessQueryValidator
+):
     def validate(self, query: Query) -> None:
         security_manager.raise_for_access(query=query)

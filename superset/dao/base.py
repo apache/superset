@@ -130,7 +130,9 @@ class BaseDAO:
         """
         if cls.model_cls is None:
             raise DAOConfigError()
-        if not isinstance(instance_model, cls.model_cls):
+        if not isinstance(  # pylint: disable=isinstance-second-argument-not-valid-type
+            instance_model, cls.model_cls
+        ):
             raise DAOCreateFailedError(
                 "the instance model is not a type of the model class"
             )
@@ -140,7 +142,7 @@ class BaseDAO:
                 db.session.commit()
         except SQLAlchemyError as ex:  # pragma: no cover
             db.session.rollback()
-            raise DAOCreateFailedError(exception=ex)
+            raise DAOCreateFailedError(exception=ex) from ex
         return instance_model
 
     @classmethod

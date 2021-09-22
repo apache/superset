@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=line-too-long
 from __future__ import annotations
 
 import logging
@@ -58,7 +57,7 @@ class ExecuteSqlCommand(BaseCommand):
     _sqllab_ctas_no_limit: bool
     log_params: Optional[Dict[str, Any]] = None
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         execution_context: SqlJsonExecutionContext,
         query_dao: QueryDAO,
@@ -198,17 +197,17 @@ class ExecuteSqlCommand(BaseCommand):
         )
 
 
-class CanAccessQueryValidator:
+class CanAccessQueryValidator:  # pylint: disable=too-few-public-methods
     def validate(self, query: Query) -> None:
         raise NotImplementedError()
 
 
-class SqlQueryRender:
+class SqlQueryRender:  # pylint: disable=too-few-public-methods
     def render(self, execution_context: SqlJsonExecutionContext) -> str:
         raise NotImplementedError()
 
 
-class ExecutionContextConvertor:
+class ExecutionContextConvertor:  # pylint: disable=too-few-public-methods
     def to_payload(
         self,
         execution_context: SqlJsonExecutionContext,

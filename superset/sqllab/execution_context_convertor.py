@@ -32,10 +32,10 @@ if TYPE_CHECKING:
 
 
 class ExecutionContextConvertorImpl(ExecutionContextConvertor):
-    _max_row_in_display_configuration: bool
+    _max_row_in_display_configuration: bool  # pylint: disable=invalid-name
 
     def set_max_row_in_display(self, value: bool) -> None:
-        self._max_row_in_display_configuration = value
+        self._max_row_in_display_configuration = value  # pylint: disable=invalid-name
 
     def to_payload(
         self,
@@ -59,7 +59,9 @@ class ExecutionContextConvertorImpl(ExecutionContextConvertor):
             encoding=None,
         )
 
-    def _to_payload_query_based(self, query: Query) -> str:
+    def _to_payload_query_based(  # pylint: disable=no-self-use
+        self, query: Query
+    ) -> str:
         return json.dumps(
             {"query": query.to_dict()}, default=utils.json_int_dttm_ser, ignore_nan=True
         )

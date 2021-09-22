@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 """A collection of ORM sqlalchemy models for SQL Lab"""
-import enum
 import re
 from datetime import datetime
 from typing import Any, Dict, List
