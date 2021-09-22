@@ -29,6 +29,7 @@ import {
   createFetchDistinct,
   createErrorHandler,
 } from 'src/views/CRUD/utils';
+import { ColumnObject } from 'src/views/CRUD/data/dataset/types';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DatasourceModal from 'src/datasource/DatasourceModal';
@@ -165,6 +166,21 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       })
         .then(({ json = {} }) => {
           const owners = json.result.owners.map((owner: any) => owner.id);
+          const addCertificationFields = json.result.columns.map(
+            (column: ColumnObject) => {
+              const {
+                certification: { details = '', certified_by = '' } = {},
+              } = JSON.parse(column.extra || '{}') || {};
+              return {
+                ...column,
+                certification_details: details || '',
+                certified_by: certified_by || '',
+                is_certified: details || certified_by,
+              };
+            },
+          );
+          // eslint-disable-next-line no-param-reassign
+          json.result.columns = [...addCertificationFields];
           setDatasetCurrentlyEditing({ ...json.result, owners });
         })
         .catch(() => {

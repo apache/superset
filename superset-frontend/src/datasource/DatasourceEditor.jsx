@@ -110,6 +110,14 @@ const ColumnButtonWrapper = styled.div`
   ${({ theme }) => `margin-bottom: ${theme.gridUnit * 2}px`}
 `;
 
+const StyledLabelWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  span {
+    margin-right: ${({ theme }) => theme.gridUnit}px;
+  }
+`;
+
 const checkboxGenerator = (d, onChange) => (
   <CheckboxControl value={d} onChange={onChange} />
 );
@@ -235,6 +243,28 @@ function ColumnCollectionTable({
                 />
               }
             />
+            <Field
+              fieldKey="certified_by"
+              label={t('Certified By')}
+              description={t('Person or group that has certified this metric')}
+              control={
+                <TextControl
+                  controlId="certified"
+                  placeholder={t('Certified by')}
+                />
+              }
+            />
+            <Field
+              fieldKey="certification_details"
+              label={t('Certification details')}
+              description={t('Details of the certification')}
+              control={
+                <TextControl
+                  controlId="certificationDetails"
+                  placeholder={t('Certification details')}
+                />
+              }
+            />
           </Fieldset>
         </FormContainer>
       }
@@ -247,11 +277,27 @@ function ColumnCollectionTable({
       }}
       onChange={onChange}
       itemRenderers={{
-        column_name: (v, onItemChange) =>
+        column_name: (v, onItemChange, _, record) =>
           editableColumnName ? (
-            <EditableTitle canEdit title={v} onSaveTitle={onItemChange} />
+            <StyledLabelWrapper>
+              {record.is_certified && (
+                <CertifiedIcon
+                  certifiedBy={record.certified_by}
+                  details={record.certification_details}
+                />
+              )}
+              <EditableTitle canEdit title={v} onSaveTitle={onItemChange} />
+            </StyledLabelWrapper>
           ) : (
-            v
+            <StyledLabelWrapper>
+              {record.is_certified && (
+                <CertifiedIcon
+                  certifiedBy={record.certified_by}
+                  details={record.certification_details}
+                />
+              )}
+              {v}
+            </StyledLabelWrapper>
           ),
         type: d => (d ? <Label>{d}</Label> : null),
         is_dttm: checkboxGenerator,
@@ -1089,7 +1135,6 @@ class DatasourceEditor extends React.PureComponent {
     const { datasource, activeTabKey } = this.state;
     const { metrics } = datasource;
     const sortedMetrics = metrics?.length ? this.sortMetrics(metrics) : [];
-
     return (
       <DatasourceContainer>
         {this.renderErrors()}

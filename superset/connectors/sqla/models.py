@@ -83,7 +83,7 @@ from superset.jinja_context import (
 )
 from superset.models.annotations import Annotation
 from superset.models.core import Database
-from superset.models.helpers import AuditMixinNullable, QueryResult
+from superset.models.helpers import AuditMixinNullable, CertificationMixin, QueryResult
 from superset.sql_parse import ParsedQuery
 from superset.typing import AdhocMetric, Metric, OrderBy, QueryObjectDict
 from superset.utils import core as utils
@@ -173,7 +173,7 @@ class AnnotationDatasource(BaseDatasource):
         raise NotImplementedError()
 
 
-class TableColumn(Model, BaseColumn):
+class TableColumn(Model, BaseColumn, CertificationMixin):
 
     """ORM object for table columns, each table can have multiple columns"""
 
@@ -188,6 +188,7 @@ class TableColumn(Model, BaseColumn):
     is_dttm = Column(Boolean, default=False)
     expression = Column(Text)
     python_date_format = Column(String(255))
+    extra = Column(Text)
 
     export_fields = [
         "table_id",
@@ -201,6 +202,7 @@ class TableColumn(Model, BaseColumn):
         "expression",
         "description",
         "python_date_format",
+        "extra",
     ]
 
     update_from_object_fields = [s for s in export_fields if s not in ("table_id",)]
@@ -375,11 +377,20 @@ class TableColumn(Model, BaseColumn):
             "type",
             "type_generic",
             "python_date_format",
+            "is_certified",
+            "certified_by",
+            "certification_details",
+            "warning_markdown",
         )
-        return {s: getattr(self, s) for s in attrs if hasattr(self, s)}
+
+        attr_dict = {s: getattr(self, s) for s in attrs if hasattr(self, s)}
+
+        attr_dict.update(super().data)
+
+        return attr_dict
 
 
-class SqlMetric(Model, BaseMetric):
+class SqlMetric(Model, BaseMetric, CertificationMixin):
 
     """ORM object for metrics, each table can have multiple metrics"""
 
@@ -426,28 +437,6 @@ class SqlMetric(Model, BaseMetric):
 
     def get_perm(self) -> Optional[str]:
         return self.perm
-
-    def get_extra_dict(self) -> Dict[str, Any]:
-        try:
-            return json.loads(self.extra)
-        except (TypeError, json.JSONDecodeError):
-            return {}
-
-    @property
-    def is_certified(self) -> bool:
-        return bool(self.get_extra_dict().get("certification"))
-
-    @property
-    def certified_by(self) -> Optional[str]:
-        return self.get_extra_dict().get("certification", {}).get("certified_by")
-
-    @property
-    def certification_details(self) -> Optional[str]:
-        return self.get_extra_dict().get("certification", {}).get("details")
-
-    @property
-    def warning_markdown(self) -> Optional[str]:
-        return self.get_extra_dict().get("warning_markdown")
 
     @property
     def data(self) -> Dict[str, Any]:

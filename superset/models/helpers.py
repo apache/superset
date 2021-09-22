@@ -476,3 +476,31 @@ class ExtraJSONMixin:
         extra = self.extra
         extra[key] = value
         self.extra_json = json.dumps(extra)
+
+
+class CertificationMixin:
+    """Mixin to add extra certification fields"""
+
+    extra = sa.Column(sa.Text, default="{}")
+
+    def get_extra_dict(self) -> Dict[str, Any]:
+        try:
+            return json.loads(self.extra)
+        except (TypeError, json.JSONDecodeError):
+            return {}
+
+    @property
+    def is_certified(self) -> bool:
+        return bool(self.get_extra_dict().get("certification"))
+
+    @property
+    def certified_by(self) -> Optional[str]:
+        return self.get_extra_dict().get("certification", {}).get("certified_by")
+
+    @property
+    def certification_details(self) -> Optional[str]:
+        return self.get_extra_dict().get("certification", {}).get("details")
+
+    @property
+    def warning_markdown(self) -> Optional[str]:
+        return self.get_extra_dict().get("warning_markdown")
