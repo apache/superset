@@ -437,7 +437,7 @@ const forceSSLField = ({
   changeMethods,
   db,
   sslForced,
-}: FieldPropTypes) => (
+}: FieldPropTypes) => { console.log("db", db); return (
   <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
     <Switch
       disabled={sslForced && !isEditMode}
@@ -454,13 +454,30 @@ const forceSSLField = ({
       }}
     />
     <span css={toggleStyle}>SSL</span>
-    <InfoTooltip
-      tooltip={t('SSL Mode "require" will be used.')}
-      placement="right"
-      viewBox="0 -5 24 24"
-    />
+
+    {db?.database_name === 'PostgreSQL' && (
+      <InfoTooltip
+        tooltip={t('Requires a root certificate authority (public, local, or self-signed). SSL Mode "require" will be used.')}
+        placement="right"
+        viewBox="0 -5 24 24"
+      /> )}
+
+    {db?.database_name === 'MySQL' && (
+      <InfoTooltip
+        tooltip={t('Requires a root certificate authority (public, local, or self-signed).')}
+        placement="right"
+        viewBox="0 -5 24 24"
+      /> )}
+
+    {db?.database_name === 'Amazon Redshift' && (
+      <InfoTooltip
+        tooltip={t('Requires a root certificate authority (public, local, or self-signed). SSL Mode "verify-ca" will be used.')}
+        placement="right"
+        viewBox="0 -5 24 24"
+      /> )}
+
   </div>
-);
+)};
 
 const FORM_FIELD_MAP = {
   host: hostField,
