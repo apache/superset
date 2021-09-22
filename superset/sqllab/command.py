@@ -31,6 +31,7 @@ from sqlalchemy.orm.session import Session
 
 from superset import app, db, is_feature_enabled, sql_lab
 from superset.commands.base import BaseCommand
+from superset.common.db_query_status import QueryStatus
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetErrorException,
@@ -52,7 +53,6 @@ from superset.utils.sqllab_execution_context import SqlJsonExecutionContext
 from superset.views.utils import apply_display_max_row_limit
 
 config = app.config
-QueryStatus = utils.QueryStatus
 logger = logging.getLogger(__name__)
 
 PARAMETER_MISSING_ERR = (

@@ -32,6 +32,7 @@ from flask_babel import gettext as __
 from sqlalchemy.orm import Session
 
 from superset import app, results_backend, results_backend_use_msgpack, security_manager
+from superset.common.db_query_status import QueryStatus
 from superset.dataframe import df_to_records
 from superset.db_engine_specs import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -41,12 +42,7 @@ from superset.models.sql_lab import LimitingFactor, Query
 from superset.result_set import SupersetResultSet
 from superset.sql_parse import CtasMethod, ParsedQuery
 from superset.utils.celery import session_scope
-from superset.utils.core import (
-    json_iso_dttm_ser,
-    QuerySource,
-    QueryStatus,
-    zlib_compress,
-)
+from superset.utils.core import json_iso_dttm_ser, QuerySource, zlib_compress
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import stats_timing
 
