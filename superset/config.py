@@ -334,6 +334,8 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Experimental feature introducing a client (browser) cache
     "CLIENT_CACHE": False,
     "DISABLE_DATASET_SOURCE_EDIT": False,
+    # When using a recent version of Druid that supports JOINs turn this on
+    "DRUID_JOINS": False,
     "DYNAMIC_PLUGINS": False,
     # For some security concerns, you may need to enforce CSRF protection on
     # all query request to explore_json endpoint. In Superset, we use
