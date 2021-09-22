@@ -17,6 +17,12 @@
  * under the License.
  */
 import { DatePicker as AntdDatePicker } from 'antd';
+import { styled } from '@superset-ui/core';
 
-export const { RangePicker } = AntdDatePicker;
+const AntdRangePicker = AntdDatePicker.RangePicker;
+
+export const RangePicker = styled(AntdRangePicker)`
+  border-radius: ${({ theme }) => theme.gridUnit}px;
+`;
+
 export const DatePicker = AntdDatePicker;
