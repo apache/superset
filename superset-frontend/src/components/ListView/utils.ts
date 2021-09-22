@@ -55,6 +55,8 @@ const RisonParam: QueryParamConfig<string, any> = {
       : rison.decode(dataStr),
 };
 
+export const SELECT_WIDTH = 200;
+
 export class ListViewError extends Error {
   name = 'ListViewError';
 }

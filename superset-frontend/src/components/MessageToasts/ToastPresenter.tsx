@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { styled } from '@superset-ui/core';
-import { ToastMeta } from 'src/messageToasts/types';
+import { ToastMeta } from 'src/components/MessageToasts/types';
 import Toast from './Toast';
 
 const StyledToastPresenter = styled.div`

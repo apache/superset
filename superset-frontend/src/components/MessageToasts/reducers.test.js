@@ -16,9 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ToastType } from 'src/messageToasts/constants';
+import { ADD_TOAST, REMOVE_TOAST } from 'src/components/MessageToasts/actions';
+import messageToastsReducer from 'src/components/MessageToasts/reducers';
 
-export default [
-  { id: 'info_id', toastType: ToastType.INFO, text: 'info toast' },
-  { id: 'danger_id', toastType: ToastType.DANGER, text: 'danger toast' },
-];
+describe('messageToasts reducer', () => {
+  it('should return initial state', () => {
+    expect(messageToastsReducer(undefined, {})).toEqual([]);
+  });
+
+  it('should add a toast', () => {
+    expect(
+      messageToastsReducer([], {
+        type: ADD_TOAST,
+        payload: { text: 'test', id: 'id', type: 'test_type' },
+      }),
+    ).toEqual([{ text: 'test', id: 'id', type: 'test_type' }]);
+  });
+
+  it('should remove a toast', () => {
+    expect(
+      messageToastsReducer([{ id: 'id' }, { id: 'id2' }], {
+        type: REMOVE_TOAST,
+        payload: { id: 'id' },
+      }),
+    ).toEqual([{ id: 'id2' }]);
+  });
+});

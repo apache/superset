@@ -20,7 +20,7 @@ import React, { useEffect, FC } from 'react';
 import { t } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
 import { useParams } from 'react-router-dom';
-import { useToasts } from 'src/messageToasts/enhancers/withToasts';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 import Loading from 'src/components/Loading';
 import {
   useDashboard,

@@ -46,7 +46,7 @@ import SubMenu, {
 } from 'src/components/Menu/SubMenu';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import Owner from 'src/types/Owner';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import FacePile from 'src/components/FacePile';
@@ -98,6 +98,8 @@ interface DatasetListProps {
   addSuccessToast: (msg: string) => void;
   user: {
     userId: string | number;
+    firstName: string;
+    lastName: string;
   };
 }
 
@@ -243,11 +245,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   <CertifiedIcon
                     certifiedBy={parsedExtra.certification.certified_by}
                     details={parsedExtra.certification.details}
+                    size="l"
                   />
                 )}
                 {parsedExtra?.warning_markdown && (
                   <WarningIconWithTooltip
                     warningMarkdown={parsedExtra.warning_markdown}
+                    size="l"
                   />
                 )}
                 {titleLink}
@@ -412,7 +416,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               errMsg,
             ),
           ),
-          user.userId,
+          user,
         ),
         paginate: true,
       },

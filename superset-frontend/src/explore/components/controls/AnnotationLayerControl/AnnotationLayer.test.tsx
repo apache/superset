@@ -57,16 +57,18 @@ beforeAll(() => {
   );
 });
 
-test('renders with default props', () => {
-  const { container } = render(<AnnotationLayer {...defaultProps} />);
-  expect(container).toBeInTheDocument();
+const waitForRender = (props?: any) =>
+  waitFor(() => render(<AnnotationLayer {...defaultProps} {...props} />));
+
+test('renders with default props', async () => {
+  await waitForRender();
   expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
   expect(screen.getByRole('button', { name: 'OK' })).toBeDisabled();
   expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled();
 });
 
-test('renders extra checkboxes when type is time series', () => {
-  render(<AnnotationLayer {...defaultProps} />);
+test('renders extra checkboxes when type is time series', async () => {
+  await waitForRender();
   expect(
     screen.queryByRole('button', { name: 'Show Markers' }),
   ).not.toBeInTheDocument();
@@ -103,68 +105,47 @@ test('enables apply and ok buttons', async () => {
   });
 });
 
-test('triggers addAnnotationLayer when apply button is clicked', () => {
+test('triggers addAnnotationLayer when apply button is clicked', async () => {
   const addAnnotationLayer = jest.fn();
-  render(
-    <AnnotationLayer
-      {...defaultProps}
-      name="Test"
-      value="2x"
-      addAnnotationLayer={addAnnotationLayer}
-    />,
-  );
+  await waitForRender({ name: 'Test', value: '2x', addAnnotationLayer });
   userEvent.click(screen.getByRole('button', { name: 'Apply' }));
   expect(addAnnotationLayer).toHaveBeenCalled();
 });
 
-test('triggers addAnnotationLayer and close when ok button is clicked', () => {
+test('triggers addAnnotationLayer and close when ok button is clicked', async () => {
   const addAnnotationLayer = jest.fn();
   const close = jest.fn();
-  render(
-    <AnnotationLayer
-      {...defaultProps}
-      name="Test"
-      value="2x"
-      addAnnotationLayer={addAnnotationLayer}
-      close={close}
-    />,
-  );
+  await waitForRender({ name: 'Test', value: '2x', addAnnotationLayer, close });
   userEvent.click(screen.getByRole('button', { name: 'OK' }));
   expect(addAnnotationLayer).toHaveBeenCalled();
   expect(close).toHaveBeenCalled();
 });
 
-test('triggers close when cancel button is clicked', () => {
+test('triggers close when cancel button is clicked', async () => {
   const close = jest.fn();
-  render(<AnnotationLayer {...defaultProps} close={close} />);
+  await waitForRender({ close });
   userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
   expect(close).toHaveBeenCalled();
 });
 
-test('triggers removeAnnotationLayer and close when remove button is clicked', () => {
+test('triggers removeAnnotationLayer and close when remove button is clicked', async () => {
   const removeAnnotationLayer = jest.fn();
   const close = jest.fn();
-  render(
-    <AnnotationLayer
-      {...defaultProps}
-      name="Test"
-      value="2x"
-      removeAnnotationLayer={removeAnnotationLayer}
-      close={close}
-    />,
-  );
+  await waitForRender({
+    name: 'Test',
+    value: '2x',
+    removeAnnotationLayer,
+    close,
+  });
   userEvent.click(screen.getByRole('button', { name: 'Remove' }));
   expect(removeAnnotationLayer).toHaveBeenCalled();
   expect(close).toHaveBeenCalled();
 });
 
 test('renders chart options', async () => {
-  render(
-    <AnnotationLayer
-      {...defaultProps}
-      annotationType={ANNOTATION_TYPES_METADATA.EVENT.value}
-    />,
-  );
+  await waitForRender({
+    annotationType: ANNOTATION_TYPES_METADATA.EVENT.value,
+  });
   userEvent.click(
     screen.getByRole('combobox', { name: 'Annotation source type' }),
   );
@@ -179,13 +160,10 @@ test('renders chart options', async () => {
 });
 
 test('keeps apply disabled when missing required fields', async () => {
-  render(
-    <AnnotationLayer
-      {...defaultProps}
-      annotationType={ANNOTATION_TYPES_METADATA.EVENT.value}
-      sourceType="Table"
-    />,
-  );
+  await waitForRender({
+    annotationType: ANNOTATION_TYPES_METADATA.EVENT.value,
+    sourceType: 'Table',
+  });
   userEvent.click(
     screen.getByRole('combobox', { name: 'Annotation layer value' }),
   );
@@ -214,4 +192,49 @@ test('keeps apply disabled when missing required fields', async () => {
   checkboxes.forEach(checkbox => userEvent.click(checkbox));
 
   expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
+});
+
+test.skip('Disable apply button if formula is incorrect', async () => {
+  // TODO: fix flaky test that passes locally but fails on CI
+  await waitForRender({ name: 'test' });
+
+  userEvent.clear(screen.getByLabelText('Formula'));
+  userEvent.type(screen.getByLabelText('Formula'), 'x+1');
+  await waitFor(() => {
+    expect(screen.getByLabelText('Formula')).toHaveValue('x+1');
+    expect(screen.getByRole('button', { name: 'OK' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Apply' })).toBeEnabled();
+  });
+
+  userEvent.clear(screen.getByLabelText('Formula'));
+  userEvent.type(screen.getByLabelText('Formula'), 'y = x*2+1');
+  await waitFor(() => {
+    expect(screen.getByLabelText('Formula')).toHaveValue('y = x*2+1');
+    expect(screen.getByRole('button', { name: 'OK' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Apply' })).toBeEnabled();
+  });
+
+  userEvent.clear(screen.getByLabelText('Formula'));
+  userEvent.type(screen.getByLabelText('Formula'), 'y+1');
+  await waitFor(() => {
+    expect(screen.getByLabelText('Formula')).toHaveValue('y+1');
+    expect(screen.getByRole('button', { name: 'OK' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
+  });
+
+  userEvent.clear(screen.getByLabelText('Formula'));
+  userEvent.type(screen.getByLabelText('Formula'), 'x+');
+  await waitFor(() => {
+    expect(screen.getByLabelText('Formula')).toHaveValue('x+');
+    expect(screen.getByRole('button', { name: 'OK' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
+  });
+
+  userEvent.clear(screen.getByLabelText('Formula'));
+  userEvent.type(screen.getByLabelText('Formula'), 'y = z+1');
+  await waitFor(() => {
+    expect(screen.getByLabelText('Formula')).toHaveValue('y = z+1');
+    expect(screen.getByRole('button', { name: 'OK' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
+  });
 });

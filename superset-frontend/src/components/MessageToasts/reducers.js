@@ -16,13 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { bindActionCreators } from 'redux';
-import { connect } from 'react-redux';
-import ToastPresenter from '../components/ToastPresenter';
+import { ADD_TOAST, REMOVE_TOAST } from './actions';
 
-import { removeToast } from '../actions';
+export default function messageToastsReducer(toasts = [], action) {
+  switch (action.type) {
+    case ADD_TOAST: {
+      const { payload: toast } = action;
+      const result = toasts.slice();
+      if (!toast.noDuplicate || !result.find(x => x.text === toast.text)) {
+        return [toast, ...toasts];
+      }
+      return toasts;
+    }
 
-export default connect(
-  ({ messageToasts: toasts }) => ({ toasts }),
-  dispatch => bindActionCreators({ removeToast }, dispatch),
-)(ToastPresenter);
+    case REMOVE_TOAST: {
+      const {
+        payload: { id },
+      } = action;
+      return [...toasts].filter(toast => toast.id !== id);
+    }
+
+    default:
+      return toasts;
+  }
+}

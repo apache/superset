@@ -22,7 +22,7 @@ import ControlHeader from 'src/explore/components/ControlHeader';
 import { Select } from 'src/components';
 import { SelectProps, OptionsType } from 'src/components/Select/Select';
 import { SelectValue, LabeledValue } from 'antd/lib/select';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 
 type SelectAsyncProps = Omit<SelectProps, 'options' | 'ariaLabel' | 'onChange'>;
 

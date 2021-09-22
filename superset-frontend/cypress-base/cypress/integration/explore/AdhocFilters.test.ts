@@ -26,10 +26,6 @@ describe('AdhocFilters', () => {
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
   });
 
-  xit('Should not load mathjs when not needed', () => {
-    cy.get('script[src*="mathjs"]').should('have.length', 0);
-  });
-
   let numScripts = 0;
 
   xit('Should load AceEditor scripts when needed', () => {
