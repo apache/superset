@@ -17,15 +17,30 @@ specific language governing permissions and limitations
 under the License.
 -->
 ## Change Log
-### 1.3 (Mon Sep 6 18:40:24 2021 +0700)
+### 1.3.1
 **Database Migrations**
 
 **Features**
+- [#16711](https://github.com/apache/superset/pull/16711) feat(jinja): improve url parameter formatting (@villebro)
+- [#14955](https://github.com/apache/superset/pull/14955) feat: show build number value in the About if present in the config (@cccs-joel)
 - [#16594](https://github.com/apache/superset/pull/16594) feat: Experimental cross-filter plugins (@simcha90)
 - [#16416](https://github.com/apache/superset/pull/16416) feat: add Shillelagh DB engine spec (@betodealmeida)
 - [#16167](https://github.com/apache/superset/pull/16167) feat: Adding Rockset db engine spec (@srinify)
 
 **Fixes**
+- [#16776](https://github.com/apache/superset/pull/16776) fix(dataset): retain is_dttm if set on metadata sync (@villebro)
+- [#16716](https://github.com/apache/superset/pull/16716) fix(pandas-postprocessing): percentage compare to use correct column (@villebro)
+- [#16692](https://github.com/apache/superset/pull/16692) fix: catch exception when create connection (@zhaoyongjie)
+- [#16699](https://github.com/apache/superset/pull/16699) fix(explore): only refresh data panel on relevant changes (@villebro)
+- [#16687](https://github.com/apache/superset/pull/16687) fix: don't send invalid URLs back to the user (@dpgaspar)
+- [#16662](https://github.com/apache/superset/pull/16662) fix: fix assignment in FilterBoxViz (@tianhe1986)
+- [#16634](https://github.com/apache/superset/pull/16634) fix(sqla): support for date adhoc filter (@villebro)
+- [#16536](https://github.com/apache/superset/pull/16536) fix: params in sql lab are jumpy in the ace editor (@eschutho)
+- [#16614](https://github.com/apache/superset/pull/16614) fix: TemporalWrapperType string representation (@villebro)
+- [#16452](https://github.com/apache/superset/pull/16452) fix: queryEditor bug (@AAfghahi)
+- [#16374](https://github.com/apache/superset/pull/16374) fix: update table ID in query context on chart import (@betodealmeida)
+- [#16289](https://github.com/apache/superset/pull/16289) fix: improve pivot post-processing (@betodealmeida)
+- [#16262](https://github.com/apache/superset/pull/16262) fix: pivot col names in post_process (@betodealmeida)
 - [#16592](https://github.com/apache/superset/pull/16592) fix: Remove export CSV in old filter box (@duynguyenhoang)
 - [#16573](https://github.com/apache/superset/pull/16573) fix: impersonate user label/tooltip (@betodealmeida)
 - [#16412](https://github.com/apache/superset/pull/16412) fix: Support Jinja template functions in global async queries (@robdiciuccio)
@@ -41,6 +56,8 @@ under the License.
 - [#16293](https://github.com/apache/superset/pull/16293) fix(sqlite): week grain refer to day of week (@villebro)
 
 **Others**
+- [#16702](https://github.com/apache/superset/pull/16702) perf(dashboard): native filter select will be stuck if there has a filter box. (@stephenLYZ)
+- [#16648](https://github.com/apache/superset/pull/16648) chore: Bump Flask-OpenID to 1.3.0 (@dpgaspar)
 - [#16193](https://github.com/apache/superset/pull/16193) refactor: external metadata fetch API (@zhaoyongjie)
 
 ### 1.3.0 (Fri Aug 13 20:41:03 2021 -0700)
