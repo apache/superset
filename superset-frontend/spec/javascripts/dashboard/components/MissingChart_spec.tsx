@@ -17,23 +17,38 @@
  * under the License.
  */
 import React from 'react';
-import { shallow } from 'enzyme';
+import { render } from 'spec/helpers/testing-library';
 
 import MissingChart from 'src/dashboard/components/MissingChart';
 
-describe('MissingChart', () => {
-  function setup(overrideProps) {
-    const wrapper = shallow(<MissingChart height={100} {...overrideProps} />);
-    return wrapper;
-  }
+type MissingChartProps = {
+  height: number;
+};
 
+const setup = (overrides?: MissingChartProps) => (
+  <MissingChart height={100} {...overrides} />
+);
+
+describe('MissingChart', () => {
   it('renders a .missing-chart-container', () => {
-    const wrapper = setup();
-    expect(wrapper.find('.missing-chart-container')).toExist();
+    const rendered = render(setup());
+
+    const missingChartContainer = rendered.container.querySelector(
+      '.missing-chart-container',
+    );
+    expect(missingChartContainer).toBeVisible();
   });
 
   it('renders a .missing-chart-body', () => {
-    const wrapper = setup();
-    expect(wrapper.find('.missing-chart-body')).toExist();
+    const rendered = render(setup());
+
+    const missingChartBody = rendered.container.querySelector(
+      '.missing-chart-body',
+    );
+    const bodyText =
+      'There is no chart definition associated with this component, could it have been deleted?<br><br>Delete this container and save to remove this message.';
+
+    expect(missingChartBody).toBeVisible();
+    expect(missingChartBody?.innerHTML).toMatch(bodyText);
   });
 });
