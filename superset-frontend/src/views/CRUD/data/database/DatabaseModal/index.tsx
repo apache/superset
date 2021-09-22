@@ -614,7 +614,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const fetchDB = () => {
     if (isEditMode && databaseId) {
       if (!dbLoading) {
-        getAvailableDbs();
         fetchResource(databaseId).catch(e =>
           addDangerToast(
             t(
@@ -818,17 +817,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   useEffect(() => {
     if (dbFetched) {
-      getAvailableDbs();
-      // const dbModel = availableDbs?.find(
-      //   (db: DatabaseForm) =>
-      //     db.engine === dbFetched.backend || dbFetched.engine,
-      // );
       setDB({
         type: ActionType.fetched,
-        payload: {
-          ...dbFetched,
-          paramProperties: dbModel?.parameters?.properties,
-        },
+        payload: dbFetched,
       });
       // keep a copy of the name separate for display purposes
       // because it shouldn't change when the form is updated
