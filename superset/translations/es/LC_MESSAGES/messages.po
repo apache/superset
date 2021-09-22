@@ -506,7 +506,7 @@ msgstr "Deck.gl - Capas Múltiples"
 
 #: superset/viz.py:2283 superset/viz.py:2315 superset/viz_sip38.py:2218
 msgid "Bad spatial key"
-msgstr "Cave espacial errónea"
+msgstr "Clave espacial errónea"
 
 #: superset/viz.py:2301 superset/viz_sip38.py:2204
 #, python-format
@@ -519,6 +519,8 @@ msgid ""
 "entry,                                        please consider filtering "
 "those out"
 msgstr ""
+"Se encontró una entrada espacial NULL inválida, por favor considera "
+"filtrar esas entradas"
 
 #: superset/viz.py:2427 superset/viz_sip38.py:2311
 msgid "Deck.gl - Scatter plot"
@@ -668,7 +670,7 @@ msgstr "Capas de Anotación"
 #: superset/annotation_layers/commands/exceptions.py:53
 #: superset/annotation_layers/commands/exceptions.py:57
 msgid "Annotation layer has associated annotations."
-msgstr ""
+msgstr "La capa de anotación tiene anotaciones asociadas"
 
 #: superset/annotation_layers/commands/exceptions.py:66
 #: superset/reports/commands/exceptions.py:133
@@ -700,16 +702,20 @@ msgid ""
 "lower percentile must be greater than 0 and less than 100. Must be lower "
 "than upper percentile."
 msgstr ""
+"El porcentaje inferior debe ser mayor que 0 y menor que 100. Debe ser menor "
+"que el porcentaje superior."
 
 #: superset/charts/schemas.py:568
 msgid ""
 "upper percentile must be greater than 0 and less than 100. Must be higher "
 "than lower percentile."
 msgstr ""
+"El porcentaje superior debe ser mayor que 0 y menor que 100. Debe ser mayor "
+"que el porcentaje inferior."
 
 #: superset/charts/schemas.py:848
 msgid "`width` must be greater or equal to 0"
-msgstr "`anchira` debe ser mayor o igual a 0"
+msgstr "`anchura` debe ser mayor o igual a 0"
 
 #: superset/charts/schemas.py:938
 msgid "`row_limit` must be greater than or equal to 1"
@@ -806,7 +812,7 @@ msgstr "Actualizando la fuente de datos [{}]"
 
 #: superset/connectors/druid/models.py:1054
 msgid "Metric(s) {} must be aggregations."
-msgstr "la(s) métrica(s) {} tiene que ser agregaciones"
+msgstr "La(s) métrica(s) {} tiene que ser agregaciones"
 
 #: superset/connectors/druid/models.py:1476
 msgid "Unsupported extraction function: "
