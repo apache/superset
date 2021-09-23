@@ -246,8 +246,10 @@ export default class AnnotationLayer extends React.PureComponent {
     if (callback) {
       callback(value);
     }
-    if (!value || !value.length) {
+    if (value === undefined || (Array.isArray(value) && !value.length)) {
       this.props.onPopoverClear(true);
+    } else {
+      this.props.onPopoverClear(false);
     }
   }
 
