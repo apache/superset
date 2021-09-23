@@ -23,29 +23,23 @@ import {
   AnnotationLayer,
   AnnotationOpacity,
   AnnotationType,
+  evalExpression,
+  FormulaAnnotationLayer,
   isRecordAnnotationResult,
   isTableAnnotationLayer,
   isTimeseriesAnnotationResult,
   TimeseriesDataRecord,
 } from '@superset-ui/core';
-import mexp from 'math-expression-evaluator';
 
 export function evalFormula(
-  formula: AnnotationLayer,
+  formula: FormulaAnnotationLayer,
   data: TimeseriesDataRecord[],
 ): [Date, number][] {
-  const token = {
-    type: 3,
-    token: 'x',
-    show: 'x',
-    value: 'x',
-  };
   const { value: expression } = formula;
-  const subExpressions = String(expression).split('=');
 
   return data.map(row => [
     new Date(Number(row.__timestamp)),
-    Number(mexp.eval(subExpressions[1] ?? subExpressions[0], [token], { x: row.__timestamp })),
+    evalExpression(expression, row.__timestamp as number),
   ]);
 }
 

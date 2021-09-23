@@ -28,11 +28,9 @@
   "dependencies": {
     "@superset-ui/chart-controls": "0.18.5",
     "@superset-ui/core": "0.18.5",
-    "@types/math-expression-evaluator": "^1.2.1",
     "d3-array": "^1.2.0",
     "echarts": "^5.2.1",
-    "lodash": "^4.17.15",
-    "math-expression-evaluator": "^1.3.8"
+    "lodash": "^4.17.15"
   },
   "peerDependencies": {
     "react": "^16.13.1"
