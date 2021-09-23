@@ -83,8 +83,8 @@ class TestCreateDatabaseCommand(SupersetTestCase):
         mock_logger.assert_called_with(
             action="db_connection_failed."
             "DatabaseInvalidError."
-            "DatabaseRequiredFieldValidationError."
-            "DatabaseExistsValidationError"
+            "DatabaseExistsValidationError."
+            "DatabaseRequiredFieldValidationError"
         )
 
     @mock.patch(
