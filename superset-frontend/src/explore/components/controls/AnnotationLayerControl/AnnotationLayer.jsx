@@ -20,13 +20,13 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { CompactPicker } from 'react-color';
 import Button from 'src/components/Button';
-import { parse as mathjsParse } from 'mathjs';
 import {
   t,
   SupersetClient,
   getCategoricalSchemeRegistry,
   getChartMetadataRegistry,
   validateNonEmpty,
+  isValidExpression,
 } from '@superset-ui/core';
 
 import SelectControl from 'src/explore/components/controls/SelectControl';
@@ -70,8 +70,6 @@ const propTypes = {
   addAnnotationLayer: PropTypes.func,
   removeAnnotationLayer: PropTypes.func,
   close: PropTypes.func,
-
-  onPopoverClear: PropTypes.func,
 };
 
 const defaultProps = {
@@ -95,7 +93,6 @@ const defaultProps = {
   addAnnotationLayer: () => {},
   removeAnnotationLayer: () => {},
   close: () => {},
-  onPopoverClear: () => {},
 };
 
 export default class AnnotationLayer extends React.PureComponent {
@@ -172,7 +169,6 @@ export default class AnnotationLayer extends React.PureComponent {
     );
     this.handleValue = this.handleValue.bind(this);
     this.isValidForm = this.isValidForm.bind(this);
-    this.popoverClearWrapper = this.popoverClearWrapper.bind(this);
   }
 
   componentDidMount() {
@@ -204,15 +200,11 @@ export default class AnnotationLayer extends React.PureComponent {
     return sources;
   }
 
-  isValidFormula(value, annotationType) {
+  isValidFormulaAnnotation(expression, annotationType) {
     if (annotationType === ANNOTATION_TYPES.FORMULA) {
-      try {
-        mathjsParse(value).compile().evaluate({ x: 0 });
-      } catch (err) {
-        return true;
-      }
+      return isValidExpression(expression);
     }
-    return false;
+    return true;
   }
 
   isValidForm() {
@@ -238,19 +230,8 @@ export default class AnnotationLayer extends React.PureComponent {
         errors.push(validateNonEmpty(intervalEndColumn));
       }
     }
-    errors.push(this.isValidFormula(value, annotationType));
+    errors.push(!this.isValidFormulaAnnotation(value, annotationType));
     return !errors.filter(x => x).length;
-  }
-
-  popoverClearWrapper(value, callback) {
-    if (callback) {
-      callback(value);
-    }
-    if (value === undefined || (Array.isArray(value) && !value.length)) {
-      this.props.onPopoverClear(true);
-    } else {
-      this.props.onPopoverClear(false);
-    }
   }
 
   handleAnnotationType(annotationType) {
@@ -425,7 +406,7 @@ export default class AnnotationLayer extends React.PureComponent {
           options={valueOptions}
           isLoading={isLoadingOptions}
           value={value}
-          onChange={value => this.popoverClearWrapper(value, this.handleValue)}
+          onChange={this.handleValue}
           validationErrors={!value ? ['Mandatory'] : []}
           optionRenderer={this.renderOption}
         />
@@ -443,7 +424,9 @@ export default class AnnotationLayer extends React.PureComponent {
           value={value}
           onChange={this.handleValue}
           validationErrors={
-            this.isValidFormula(value, annotationType) ? ['Bad formula.'] : []
+            !this.isValidFormulaAnnotation(value, annotationType)
+              ? ['Bad formula.']
+              : []
           }
         />
       );
@@ -512,11 +495,7 @@ export default class AnnotationLayer extends React.PureComponent {
                 validationErrors={!intervalEndColumn ? ['Mandatory'] : []}
                 options={columns}
                 value={intervalEndColumn}
-                onChange={value =>
-                  this.popoverClearWrapper(value, v =>
-                    this.setState({ intervalEndColumn: v }),
-                  )
-                }
+                onChange={value => this.setState({ intervalEndColumn: value })}
               />
             )}
             <SelectControl
@@ -527,11 +506,7 @@ export default class AnnotationLayer extends React.PureComponent {
               description={t('Pick a title for you annotation.')}
               options={[{ value: '', label: 'None' }].concat(columns)}
               value={titleColumn}
-              onChange={value =>
-                this.popoverClearWrapper(value, v =>
-                  this.setState({ titleColumn: v }),
-                )
-              }
+              onChange={value => this.setState({ titleColumn: value })}
             />
             {annotationType !== ANNOTATION_TYPES.TIME_SERIES && (
               <SelectControl
@@ -545,11 +520,7 @@ export default class AnnotationLayer extends React.PureComponent {
                 multi
                 options={columns}
                 value={descriptionColumns}
-                onChange={value =>
-                  this.popoverClearWrapper(value, v =>
-                    this.setState({ descriptionColumns: v }),
-                  )
-                }
+                onChange={value => this.setState({ descriptionColumns: value })}
               />
             )}
             <div style={{ marginTop: '1rem' }}>
@@ -667,9 +638,7 @@ export default class AnnotationLayer extends React.PureComponent {
             { value: 'opacityHigh', label: '0.8' },
           ]}
           value={opacity}
-          onChange={value =>
-            this.popoverClearWrapper(value, v => this.setState({ opacity: v }))
-          }
+          onChange={value => this.setState({ opacity: value })}
         />
         <div>
           <ControlHeader label={t('Color')} />
@@ -777,12 +746,7 @@ export default class AnnotationLayer extends React.PureComponent {
                   name="annotation-source-type"
                   options={supportedSourceTypes}
                   value={sourceType}
-                  onChange={value =>
-                    this.popoverClearWrapper(
-                      value,
-                      this.handleAnnotationSourceType,
-                    )
-                  }
+                  onChange={this.handleAnnotationSourceType}
                   validationErrors={!sourceType ? [t('Mandatory')] : []}
                 />
               )}

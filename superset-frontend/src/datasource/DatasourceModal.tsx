@@ -26,7 +26,7 @@ import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 
 const DatasourceEditor = AsyncEsmComponent(() => import('./DatasourceEditor'));
 
@@ -64,17 +64,17 @@ interface DatasourceModalProps {
   show: boolean;
 }
 
-function buildMetricExtraJsonObject(metric: Record<string, unknown>) {
+function buildExtraJsonObject(item: Record<string, unknown>) {
   const certification =
-    metric?.certified_by || metric?.certification_details
+    item?.certified_by || item?.certification_details
       ? {
-          certified_by: metric?.certified_by,
-          details: metric?.certification_details,
+          certified_by: item?.certified_by,
+          details: item?.certification_details,
         }
       : undefined;
   return JSON.stringify({
     certification,
-    warning_markdown: metric?.warning_markdown,
+    warning_markdown: item?.warning_markdown,
   });
 }
 
@@ -109,7 +109,13 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           metrics: currentDatasource?.metrics?.map(
             (metric: Record<string, unknown>) => ({
               ...metric,
-              extra: buildMetricExtraJsonObject(metric),
+              extra: buildExtraJsonObject(metric),
+            }),
+          ),
+          columns: currentDatasource?.columns?.map(
+            (column: Record<string, unknown>) => ({
+              ...column,
+              extra: buildExtraJsonObject(column),
             }),
           ),
           type: currentDatasource.type || currentDatasource.datasource_type,

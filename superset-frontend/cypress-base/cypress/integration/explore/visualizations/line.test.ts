@@ -32,14 +32,6 @@ describe('Visualization > Line', () => {
     cy.get('.ant-alert-warning').contains(`Metrics: cannot be empty`);
   });
 
-  it('should preload mathjs', () => {
-    cy.get('script[src*="mathjs"]').should('have.length', 1);
-    cy.contains('Add annotation layer').scrollIntoView().click();
-    // should not load additional mathjs
-    cy.get('script[src*="mathjs"]').should('have.length', 1);
-    cy.contains('Layer configuration');
-  });
-
   it('should not show validator error when metric added', () => {
     const formData = { ...LINE_CHART_DEFAULTS, metrics: [] };
     cy.visitChartByParams(JSON.stringify(formData));
@@ -85,7 +77,6 @@ describe('Visualization > Line', () => {
     const formData = { ...LINE_CHART_DEFAULTS, metrics: [NUM_METRIC] };
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
-    cy.get('script[src*="mathjs"]').should('have.length', 1);
   });
 
   it('should work with groupby', () => {

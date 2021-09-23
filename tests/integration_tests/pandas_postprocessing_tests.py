@@ -870,3 +870,22 @@ class TestPostProcessing(SupersetTestCase):
                 metrics=["cars"],
                 percentiles=[10, 90, 10],
             )
+
+    def test_resample(self):
+        df = timeseries_df.copy()
+        df.index.name = "time_column"
+        df.reset_index(inplace=True)
+
+        post_df = proc.resample(
+            df=df, rule="1D", method="ffill", time_column="time_column",
+        )
+        self.assertListEqual(
+            post_df["label"].tolist(), ["x", "y", "y", "y", "z", "z", "q"]
+        )
+        self.assertListEqual(post_df["y"].tolist(), [1.0, 2.0, 2.0, 2.0, 3.0, 3.0, 4.0])
+
+        post_df = proc.resample(
+            df=df, rule="1D", method="asfreq", time_column="time_column", fill_value=0,
+        )
+        self.assertListEqual(post_df["label"].tolist(), ["x", "y", 0, 0, "z", 0, "q"])
+        self.assertListEqual(post_df["y"].tolist(), [1.0, 2.0, 0, 0, 3.0, 0, 4.0])

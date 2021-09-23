@@ -141,7 +141,10 @@ export function useListViewResource<D extends object = any>(
         .map(({ id, operator: opr, value }) => ({
           col: id,
           opr,
-          value,
+          value:
+            value && typeof value === 'object' && 'value' in value
+              ? value.value
+              : value,
         }));
 
       const queryParams = rison.encode({

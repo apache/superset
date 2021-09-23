@@ -30,6 +30,7 @@ If applicable, add screenshots to help explain your problem.
 
 (please complete the following information):
 
+- browser type and version:
 - superset version: `superset version`
 - python version: `python --version`
 - node.js version: `node -v`
