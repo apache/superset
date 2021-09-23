@@ -19,7 +19,6 @@
 import { styled, t } from '@superset-ui/core';
 import { uniq } from 'lodash';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { filterId } from 'spec/fixtures/mockSliceEntities';
 import { Form } from 'src/common/components';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { StyledModal } from 'src/components/Modal';
@@ -351,7 +350,7 @@ export function FiltersConfigModal({
               if (changes.filters) {
                 // we only need to set this if a name changed
                 const filterNameChanged = Object.values(changes.filters).some(
-                  (filter: any) => filter.name != null,
+                  (filter: any) => filter.name !== null,
                 );
                 const changedFilterHierarchies = Object.keys(changes.filters)
                   .filter(key => changes.filters[key].parentFilter)
@@ -361,7 +360,8 @@ export function FiltersConfigModal({
                   }));
                 if (filterNameChanged) {
                   setFormValues(values);
-                } else if (changedFilterHierarchies.length) {
+                }
+                if (changedFilterHierarchies.length > 0) {
                   const changedFilterId = changedFilterHierarchies[0];
                   handleFilterHierarchyChange(
                     changedFilterId.id,

@@ -19,14 +19,8 @@
 import { FormInstance } from 'antd/lib/form';
 import shortid from 'shortid';
 import { getInitialDataMask } from 'src/dataMask/reducer';
-import { SetStateAction } from 'react';
-import { MemoVoidIteratorCapped } from 'lodash';
-import {
-  FilterRemoval,
-  NativeFiltersForm,
-  FilterHierarchy,
-  FilterHierarchyNode,
-} from './types';
+
+import { FilterRemoval, NativeFiltersForm, FilterHierarchy } from './types';
 import { Filter, FilterConfiguration, Target } from '../types';
 
 export const REMOVAL_DELAY_SECS = 5;

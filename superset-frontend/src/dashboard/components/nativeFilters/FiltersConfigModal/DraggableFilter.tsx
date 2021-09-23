@@ -33,7 +33,7 @@ const FILTER_TYPE = 'FILTER';
 
 const Container = styled.div<TabTitleContainerProps>`
   ${({ theme, isDragging }) => `
-    opacity: ${isDragging ? 0 : 1};
+    opacity: ${isDragging ? 0.3 : 1};
     width: 100%;
     &:hover {
       transition: all 0.3s;
