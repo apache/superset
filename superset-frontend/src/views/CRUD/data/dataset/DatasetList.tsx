@@ -512,22 +512,22 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       onClick: () => setDatasetAddModalOpen(true),
       buttonStyle: 'primary',
     });
-  }
 
-  if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
-    buttonArr.push({
-      name: (
-        <Tooltip
-          id="import-tooltip"
-          title={t('Import datasets')}
-          placement="bottomRight"
-        >
-          <Icons.Import data-test="import-button" />
-        </Tooltip>
-      ),
-      buttonStyle: 'link',
-      onClick: openDatasetImportModal,
-    });
+    if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
+      buttonArr.push({
+        name: (
+          <Tooltip
+            id="import-tooltip"
+            title={t('Import datasets')}
+            placement="bottomRight"
+          >
+            <Icons.Import data-test="import-button" />
+          </Tooltip>
+        ),
+        buttonStyle: 'link',
+        onClick: openDatasetImportModal,
+      });
+    }
   }
 
   menuData.buttons = buttonArr;

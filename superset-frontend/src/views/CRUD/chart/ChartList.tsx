@@ -586,21 +586,22 @@ function ChartList(props: ChartListProps) {
         window.location.assign('/chart/add');
       },
     });
-  }
-  if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
-    subMenuButtons.push({
-      name: (
-        <Tooltip
-          id="import-tooltip"
-          title={t('Import charts')}
-          placement="bottomRight"
-        >
-          <Icons.Import data-test="import-button" />
-        </Tooltip>
-      ),
-      buttonStyle: 'link',
-      onClick: openChartImportModal,
-    });
+
+    if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
+      subMenuButtons.push({
+        name: (
+          <Tooltip
+            id="import-tooltip"
+            title={t('Import charts')}
+            placement="bottomRight"
+          >
+            <Icons.Import data-test="import-button" />
+          </Tooltip>
+        ),
+        buttonStyle: 'link',
+        onClick: openChartImportModal,
+      });
+    }
   }
   return (
     <>

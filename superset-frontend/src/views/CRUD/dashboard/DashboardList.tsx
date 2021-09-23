@@ -553,21 +553,22 @@ function DashboardList(props: DashboardListProps) {
         window.location.assign('/dashboard/new');
       },
     });
-  }
-  if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
-    subMenuButtons.push({
-      name: (
-        <Tooltip
-          id="import-tooltip"
-          title={t('Import dashboards')}
-          placement="bottomRight"
-        >
-          <Icons.Import data-test="import-button" />
-        </Tooltip>
-      ),
-      buttonStyle: 'link',
-      onClick: openDashboardImportModal,
-    });
+
+    if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
+      subMenuButtons.push({
+        name: (
+          <Tooltip
+            id="import-tooltip"
+            title={t('Import dashboards')}
+            placement="bottomRight"
+          >
+            <Icons.Import data-test="import-button" />
+          </Tooltip>
+        ),
+        buttonStyle: 'link',
+        onClick: openDashboardImportModal,
+      });
+    }
   }
   return (
     <>
