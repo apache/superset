@@ -152,14 +152,11 @@ class ExploreResultsButton extends React.PureComponent {
   }
 
   render() {
-    const allowsSubquery =
-      this.props.database && this.props.database.allows_subquery;
     return (
       <>
         <Button
           buttonSize="small"
           onClick={this.props.onClick}
-          disabled={!allowsSubquery}
           tooltip={t('Explore the result set in the data exploration view')}
         >
           <InfoTooltipWithTrigger

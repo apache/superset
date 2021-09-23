@@ -487,17 +487,15 @@ export default class ResultSet extends React.PureComponent<
             onChangeAutoComplete={this.handleOnChangeAutoComplete}
           />
           <ResultSetButtons>
-            {this.props.visualize &&
-              this.props.database &&
-              this.props.database.allows_virtual_table_explore && (
-                <ExploreResultsButton
-                  // @ts-ignore Redux types are difficult to work with, ignoring for now
-                  query={this.props.query}
-                  database={this.props.database}
-                  actions={this.props.actions}
-                  onClick={this.handleExploreBtnClick}
-                />
-              )}
+            {this.props.visualize && this.props.database && (
+              <ExploreResultsButton
+                // @ts-ignore Redux types are difficult to work with, ignoring for now
+                query={this.props.query}
+                database={this.props.database}
+                actions={this.props.actions}
+                onClick={this.handleExploreBtnClick}
+              />
+            )}
             {this.props.csv && (
               <Button
                 buttonSize="small"
