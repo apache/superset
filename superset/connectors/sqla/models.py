@@ -35,6 +35,7 @@ from typing import (
     Union,
 )
 
+import dateutil.parser
 import pandas as pd
 import sqlalchemy as sa
 import sqlparse
@@ -1416,15 +1417,25 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             )
         return ob
 
-    @staticmethod
     def _get_top_groups(
-        df: pd.DataFrame, dimensions: List[str], groupby_exprs: Dict[str, Any],
+        self, df: pd.DataFrame, dimensions: List[str], groupby_exprs: Dict[str, Any],
     ) -> ColumnElement:
+        column_map = {column.column_name: column for column in self.columns}
         groups = []
         for _unused, row in df.iterrows():
             group = []
             for dimension in dimensions:
-                group.append(groupby_exprs[dimension] == row[dimension])
+                value = row[dimension]
+
+                # Some databases like Druid will return timestamps as strings, but
+                # do not perform automatic casting when comparing these strings to
+                # a timestamp. For cases like this we convert the value from a
+                # string into a timestamp.
+                if column_map[dimension].is_temporal and isinstance(value, str):
+                    dttm = dateutil.parser.parse(value)
+                    value = text(self.db_engine_spec.convert_dttm("TIMESTAMP", dttm))
+
+                group.append(groupby_exprs[dimension] == value)
             groups.append(and_(*group))
 
         return or_(*groups)
