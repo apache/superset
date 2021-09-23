@@ -277,6 +277,7 @@ export function useSingleViewResource<D extends object = any>(
       updateState({
         loading: true,
       });
+
       return SupersetClient.post({
         endpoint: `/api/v1/${resourceName}/`,
         body: JSON.stringify(resource),

@@ -54,7 +54,6 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import expression, Select
 
 from superset import app, db_engine_specs, is_feature_enabled
-from superset.db_engine_specs import get_available_engine_specs
 from superset.db_engine_specs.base import TimeGrain
 from superset.extensions import cache_manager, encrypted_field_factory, security_manager
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
@@ -248,18 +247,14 @@ class Database(
             parameters = self.db_engine_spec.get_parameters_from_uri(uri, encrypted_extra=encrypted_extra)  # type: ignore # pylint: disable=line-too-long,useless-suppression
         except Exception:  # pylint: disable=broad-except
             parameters = {}
+
         return parameters
 
     @property
     def parameters_schema(self) -> Dict[str, Any]:
         try:
-<<<<<<< HEAD
             parameters_schema = self.db_engine_spec.parameters_json_schema()  # type: ignore # pylint: disable=line-too-long
         except Exception:  # pylint: disable=broad-except
-=======
-            parameters_schema = self.db_engine_spec.parameters_json_schema()  # type: ignore
-        except Exception:
->>>>>>> private sheets working, credential_info errors
             parameters_schema = {}
         return parameters_schema
 
