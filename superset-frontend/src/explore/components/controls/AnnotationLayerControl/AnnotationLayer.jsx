@@ -20,13 +20,13 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { CompactPicker } from 'react-color';
 import Button from 'src/components/Button';
-import mexp from 'math-expression-evaluator';
 import {
   t,
   SupersetClient,
   getCategoricalSchemeRegistry,
   getChartMetadataRegistry,
   validateNonEmpty,
+  isValidExpression,
 } from '@superset-ui/core';
 
 import SelectControl from 'src/explore/components/controls/SelectControl';
@@ -204,28 +204,9 @@ export default class AnnotationLayer extends React.PureComponent {
     return sources;
   }
 
-  isValidFormula(expression, annotationType) {
+  isValidFormulaAnnotation(expression, annotationType) {
     if (annotationType === ANNOTATION_TYPES.FORMULA) {
-      try {
-        const token = {
-          type: 3,
-          token: 'x',
-          show: 'x',
-          value: 'x',
-        };
-
-        // handle input like "y = x+1" instead of just "x+1"
-        const subexpressions = expression.split('=');
-        if (
-          subexpressions.length > 2 ||
-          (subexpressions[1] && !subexpressions[0].match(/^\s*[a-zA-Z]\w*\s*$/))
-        ) {
-          return false;
-        }
-        mexp.eval(subexpressions[1] ?? subexpressions[0], [token], { x: 0 });
-      } catch (err) {
-        return false;
-      }
+      return isValidExpression(expression);
     }
     return true;
   }
@@ -253,7 +234,7 @@ export default class AnnotationLayer extends React.PureComponent {
         errors.push(validateNonEmpty(intervalEndColumn));
       }
     }
-    errors.push(!this.isValidFormula(value, annotationType));
+    errors.push(!this.isValidFormulaAnnotation(value, annotationType));
     return !errors.filter(x => x).length;
   }
 
@@ -457,7 +438,9 @@ export default class AnnotationLayer extends React.PureComponent {
           value={value}
           onChange={this.handleValue}
           validationErrors={
-            !this.isValidFormula(value, annotationType) ? ['Bad formula.'] : []
+            !this.isValidFormulaAnnotation(value, annotationType)
+              ? ['Bad formula.']
+              : []
           }
         />
       );
