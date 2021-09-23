@@ -651,9 +651,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         if self.sql:
             return get_virtual_table_metadata(dataset=self)
         return get_physical_table_metadata(
-            database=self.database,
-            table_name=self.table_name,
-            schema_name=self.schema,
+            database=self.database, table_name=self.table_name, schema_name=self.schema,
         )
 
     @property
@@ -918,10 +916,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             return [or_(*clauses) for clauses in filters_grouped.values()]
         except TemplateError as ex:
             raise QueryObjectValidationError(
-                _(
-                    "Error in jinja expression in RLS filters: %(msg)s",
-                    msg=ex.message,
-                )
+                _("Error in jinja expression in RLS filters: %(msg)s", msg=ex.message,)
             ) from ex
 
     def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
@@ -1349,9 +1344,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     orderby = [
                         (
                             self._get_series_orderby(
-                                series_limit_metric,
-                                metrics_by_name,
-                                columns_by_name,
+                                series_limit_metric, metrics_by_name, columns_by_name,
                             ),
                             False,
                         )
@@ -1425,10 +1418,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         return ob
 
     def _get_top_groups(
-        self,
-        df: pd.DataFrame,
-        dimensions: List[str],
-        groupby_exprs: Dict[str, Any],
+        self, df: pd.DataFrame, dimensions: List[str], groupby_exprs: Dict[str, Any],
     ) -> ColumnElement:
         column_map = {column.column_name: column for column in self.columns}
         groups = []
