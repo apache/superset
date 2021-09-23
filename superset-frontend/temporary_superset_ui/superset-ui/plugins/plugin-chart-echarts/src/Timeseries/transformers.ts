@@ -18,11 +18,11 @@
  */
 import {
   AnnotationData,
-  AnnotationLayer,
   AnnotationOpacity,
   CategoricalColorScale,
   EventAnnotationLayer,
   FilterState,
+  FormulaAnnotationLayer,
   getTimeFormatter,
   IntervalAnnotationLayer,
   isTimeseriesAnnotationResult,
@@ -204,7 +204,7 @@ export function transformSeries(
 }
 
 export function transformFormulaAnnotation(
-  layer: AnnotationLayer,
+  layer: FormulaAnnotationLayer,
   data: TimeseriesDataRecord[],
   colorScale: CategoricalColorScale,
 ): SeriesOption {

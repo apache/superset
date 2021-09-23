@@ -20,17 +20,17 @@
 import { kebabCase, throttle } from 'lodash';
 import d3 from 'd3';
 import moment from 'moment';
-import mexp from 'math-expression-evaluator';
 import nv from 'nvd3-fork';
 import PropTypes from 'prop-types';
 import {
-  t,
-  isDefined,
-  getTimeFormatter,
-  smartDateVerboseFormatter,
-  getNumberFormatter,
-  NumberFormats,
   CategoricalColorNamespace,
+  evalExpression,
+  getNumberFormatter,
+  getTimeFormatter,
+  isDefined,
+  NumberFormats,
+  smartDateVerboseFormatter,
+  t,
 } from '@superset-ui/core';
 
 import 'nvd3-fork/build/nv.d3.css';
@@ -946,13 +946,6 @@ function nvd3Vis(element, props) {
         }
 
         if (formulas.length > 0) {
-          const token = {
-            type: 3,
-            token: 'x',
-            show: 'x',
-            value: 'x',
-          };
-
           const xValues = [];
           if (vizType === 'bar') {
             // For bar-charts we want one data point evaluated for every
@@ -982,13 +975,11 @@ function nvd3Vis(element, props) {
           }
           const formulaData = formulas.map(fo => {
             const { value: expression } = fo;
-            const subExpressions = String(expression).split('=');
-
             return {
               key: fo.name,
               values: xValues.map(x => ({
                 x,
-                y: mexp.eval(subExpressions[1] ?? subExpressions[0], [token], { x }),
+                y: evalExpression(expression, x),
               })),
               color: fo.color,
               strokeWidth: fo.width,

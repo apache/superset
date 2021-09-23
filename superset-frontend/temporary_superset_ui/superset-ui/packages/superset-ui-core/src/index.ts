@@ -32,3 +32,4 @@ export * from './validator';
 export * from './chart';
 export * from './chart-composition';
 export * from './components';
+export * from './math-expression';
