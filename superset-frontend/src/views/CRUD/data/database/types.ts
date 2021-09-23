@@ -44,7 +44,8 @@ export type DatabaseObject = {
     username?: string;
     password?: string;
     encryption?: boolean;
-    encrypted_credentials?: string;
+    credentials_info?: string;
+    service_account_info?: string;
     query?: Record<string, string>;
     catalog?: Record<string, string>;
     properties?: Record<string, any>;

@@ -49,12 +49,7 @@ enum CredentialInfoOptions {
   copyPaste,
 }
 
-const setStringToBoolean = (optionValue: string) => {
-  if (optionValue === 'true') {
-    return true;
-  }
-  return false;
-};
+const castStringToBoolean = (optionValue: string) => optionValue === 'true';
 
 export const FormFieldOrder = [
   'host',
@@ -108,7 +103,8 @@ const CredentialsInfo = ({
   const [isPublic, setIsPublic] = useState<boolean>(true);
   const showCredentialsInfo =
     db?.engine === 'gsheets' ? !isEditMode && !isPublic : !isEditMode;
-  const isEncrypted = db?.encrypted_extra && db?.encrypted_extra?.length > 2;
+  // a database that has an optional encrypted field has an encrypted_extra that is an empty object, this checks for that.
+  const isEncrypted = isEditMode && db?.encrypted_extra !== '{}';
   const encryptedField = db?.engine && encryptedCredentialsMap[db.engine];
   const encryptedValue =
     typeof db?.parameters?.[encryptedField] === 'object'
@@ -122,12 +118,14 @@ const CredentialsInfo = ({
             css={(theme: SupersetTheme) => labelMarginBotton(theme)}
             required
           >
-            {t('Type of Google Sheets Allowed')}
+            {t('Type of Google Sheets allowed')}
           </FormLabel>
           <Select
             style={{ width: '100%' }}
             defaultValue={isEncrypted ? 'false' : 'true'}
-            onChange={(value: string) => setIsPublic(setStringToBoolean(value))}
+            onChange={(value: string) =>
+              setIsPublic(castStringToBoolean(value))
+            }
           >
             <Select.Option value="true" key={1}>
               {t('Publicly shared sheets only')}
@@ -184,7 +182,7 @@ const CredentialsInfo = ({
               <FormLabel required>{t('Upload Credentials')}</FormLabel>
               <InfoTooltip
                 tooltip={t(
-                  'Use the JSON file you automatically downloaded when creating your service account in Google BigQuery.',
+                  'Use the JSON file you automatically downloaded when creating your service account.',
                 )}
                 viewBox="0 0 24 24"
               />

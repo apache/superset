@@ -505,7 +505,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setEditNewDb(false);
     onHide();
   };
-
   const onSave = async () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...update } = db || {};
@@ -520,30 +519,34 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
       const parameters_schema = isEditMode
         ? dbToUpdate.parameters_schema.properties
-        : db?.paramProperties;
-      const paramConfigArray = Object.keys(parameters_schema || {});
+        : dbModel?.parameters.properties;
       const additionalEncryptedExtra = JSON.parse(
         dbToUpdate.encrypted_extra || '{}',
       );
+      const paramConfigArray = Object.keys(parameters_schema || {});
 
       paramConfigArray.forEach(paramConfig => {
-        // we are going through the parameter configuration and seeing if this is an encrypted field
-        if (parameters_schema[paramConfig]['x-encrypted-extra']) {
-          if (
-            typeof dbToUpdate.parameters?.[paramConfig] === 'object' &&
-            dbToUpdate.parameters?.[paramConfig].constructor === Object
-          ) {
+        /*
+         * Parameters that are annotated with the `x-encrypted-extra` properties should be moved to
+         * `encrypted_extra`, so that they are stored encrypted in the backend when the database is
+         * created or edited.
+         */
+        if (
+          parameters_schema[paramConfig]['x-encrypted-extra'] &&
+          dbToUpdate.parameters?.[paramConfig]
+        ) {
+          if (typeof dbToUpdate.parameters?.[paramConfig] === 'object') {
             // add new encrypted extra to encrypted_extra object
-            additionalEncryptedExtra[paramConfig] = JSON.stringify(
-              dbToUpdate.parameters?.[paramConfig],
-            );
-            // cast the encrypted field as a string in parameters
+            additionalEncryptedExtra[paramConfig] =
+              dbToUpdate.parameters?.[paramConfig];
+            // The backend expects `encrypted_extra` as a string for historical reasons.
             dbToUpdate.parameters[paramConfig] = JSON.stringify(
               dbToUpdate.parameters[paramConfig],
             );
           } else {
-            additionalEncryptedExtra[paramConfig] =
-              dbToUpdate.parameters?.[paramConfig];
+            additionalEncryptedExtra[paramConfig] = JSON.parse(
+              dbToUpdate.parameters?.[paramConfig] || '{}',
+            );
           }
         }
       });

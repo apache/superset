@@ -77,7 +77,7 @@ class BigQueryParametersSchema(Schema):
 
 
 class BigQueryParametersType(TypedDict):
-    encrypted_credentials: Dict[str, Any]
+    credentials_info: Dict[str, Any]
     query: Dict[str, Any]
 
 
@@ -363,14 +363,15 @@ class BigQueryEngineSpec(BaseEngineSpec):
     def build_sqlalchemy_uri(
         cls,
         parameters: BigQueryParametersType,
-        encrypted_extra: Optional[Dict[str, str]] = None,
+        encrypted_extra: Optional[Dict[str, Any]] = None,
     ) -> str:
         query = parameters.get("query", {})
         query_params = urllib.parse.urlencode(query)
+
         if encrypted_extra:
-            credentials_info = json.loads(
-                encrypted_extra.get("credentials_info") or "{}"
-            )
+            credentials_info = encrypted_extra.get("credentials_info")
+            if isinstance(credentials_info, str):
+                credentials_info = json.loads(credentials_info)
             project_id = credentials_info.get("project_id")
         if not encrypted_extra:
             raise ValidationError("Missing service credentials")
@@ -385,6 +386,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
         cls, uri: str, encrypted_extra: Optional[Dict[str, str]] = None
     ) -> Any:
         value = make_url(uri)
+
         # Building parameters from encrypted_extra and uri
         if encrypted_extra:
             return {**encrypted_extra, "query": value.query}

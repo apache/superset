@@ -118,7 +118,9 @@ class GSheetsEngineSpec(SqliteEngineSpec):
 
     @classmethod
     def get_parameters_from_uri(
-        cls, uri: str, encrypted_extra: Optional[Dict[str, str]] = None,
+        cls,
+        uri: str,  # pylint: disable=unused-argument
+        encrypted_extra: Optional[Dict[str, str]] = None,
     ) -> Any:
         # Building parameters from encrypted_extra and uri
         if encrypted_extra:
