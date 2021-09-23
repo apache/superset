@@ -58,8 +58,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=R0904
-class SupersetAppInitializer:
+class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
     def __init__(self, app: SupersetApp) -> None:
         super().__init__()
 

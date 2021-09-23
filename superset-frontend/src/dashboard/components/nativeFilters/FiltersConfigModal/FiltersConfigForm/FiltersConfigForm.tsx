@@ -51,7 +51,7 @@ import { Select } from 'src/components';
 import { cacheWrapper } from 'src/utils/cacheWrapper';
 import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
-import { addDangerToast } from 'src/messageToasts/actions';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import Collapse from 'src/components/Collapse';
 import { getChartDataRequest } from 'src/chart/chartAction';
@@ -722,15 +722,14 @@ const FiltersConfigForm = (
                   !doLoadedDatasetsHaveTemporalColumns;
                 return {
                   value: filterType,
-                  label: isDisabled ? (
+                  label: mappedName || name,
+                  customLabel: isDisabled ? (
                     <Tooltip
                       title={t('Datasets do not contain a temporal column')}
                     >
                       {mappedName || name}
                     </Tooltip>
-                  ) : (
-                    mappedName || name
-                  ),
+                  ) : undefined,
                   disabled: isDisabled,
                 };
               })}

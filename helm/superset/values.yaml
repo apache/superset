@@ -184,6 +184,15 @@ resources: {}
   #   memory: 128Mi
 
 ##
+## Custom hostAliases for all superset pods
+## https://kubernetes.io/docs/tasks/network/customize-hosts-file-for-pods/
+hostAliases: []
+# - hostnames:
+#   - nodns.my.lan
+#   ip: 18.27.36.45
+
+
+##
 ## Superset node configuration
 supersetNode:
   command:
@@ -198,6 +207,7 @@ supersetNode:
     db_user: superset
     db_pass: superset
     db_name: superset
+  env: {}
   forceReload: false # If true, forces deployment to reload on each upgrade
   initContainers:
     - name: wait-for-postgres

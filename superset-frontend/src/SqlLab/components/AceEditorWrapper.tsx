@@ -30,6 +30,7 @@ import {
   AceCompleterKeyword,
   FullSQLEditor as AceEditor,
 } from 'src/components/AsyncAceEditor';
+import { QueryEditor } from '../types';
 
 type HotKey = {
   key: string;
@@ -51,7 +52,7 @@ interface Props {
   tables: any[];
   functionNames: string[];
   extendedTables: Array<{ name: string; columns: any[] }>;
-  queryEditor: any;
+  queryEditor: QueryEditor;
   height: string;
   hotkeys: HotKey[];
   onChange: (sql: string) => void;
@@ -86,10 +87,12 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
   componentDidMount() {
     // Making sure no text is selected from previous mount
     this.props.actions.queryEditorSetSelectedText(this.props.queryEditor, null);
-    this.props.actions.queryEditorSetFunctionNames(
-      this.props.queryEditor,
-      this.props.queryEditor.dbId,
-    );
+    if (this.props.queryEditor.dbId) {
+      this.props.actions.queryEditorSetFunctionNames(
+        this.props.queryEditor,
+        this.props.queryEditor.dbId,
+      );
+    }
     this.setAutoCompleter(this.props);
   }
 
@@ -228,8 +231,8 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
 
   getAceAnnotations() {
     const { validationResult } = this.props.queryEditor;
-    const resultIsReady = validationResult && validationResult.completed;
-    if (resultIsReady && validationResult.errors.length > 0) {
+    const resultIsReady = validationResult?.completed;
+    if (resultIsReady && validationResult?.errors?.length) {
       const errors = validationResult.errors.map((err: any) => ({
         type: 'error',
         row: err.line_number - 1,

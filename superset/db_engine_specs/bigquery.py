@@ -17,7 +17,7 @@
 import re
 import urllib
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Pattern, Tuple, Type, TYPE_CHECKING
 
 import pandas as pd
 from apispec import APISpec
@@ -32,6 +32,7 @@ from typing_extensions import TypedDict
 
 from superset.databases.schemas import encrypted_field_properties, EncryptedField
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.exceptions import SupersetDBAPIDisconnectionError
 from superset.errors import SupersetError, SupersetErrorType
 from superset.sql_parse import Table
 from superset.utils import core as utils
@@ -387,6 +388,13 @@ class BigQueryEngineSpec(BaseEngineSpec):
             return {**encrypted_extra, "query": value.query}
 
         raise ValidationError("Invalid service credentials")
+
+    @classmethod
+    def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
+        # pylint: disable=import-error,import-outside-toplevel
+        from google.auth.exceptions import DefaultCredentialsError
+
+        return {DefaultCredentialsError: SupersetDBAPIDisconnectionError}
 
     @classmethod
     def validate_parameters(

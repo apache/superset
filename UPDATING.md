@@ -25,8 +25,14 @@ assists people when migrating to a new version.
 ## Next
 
 ### Breaking Changes
+
+- [16660](https://github.com/apache/incubator-superset/pull/16660): The `columns` Jinja parameter has been renamed `table_columns` to make the `columns` query object parameter available in the Jinja context.
+- [16711](https://github.com/apache/incubator-superset/pull/16711): The `url_param` Jinja function will now by default escape the result. For instance, the value `O'Brien` will now be changed to `O''Brien`. To disable this behavior, call `url_param` with `escape_result` set to `False`: `url_param("my_key", "my default", escape_result=False)`.
+
 ### Potential Downtime
+
 ### Deprecations
+
 ### Other
 
 ## 1.3.0
@@ -34,22 +40,25 @@ assists people when migrating to a new version.
 ### Breaking Changes
 
 - [15909](https://github.com/apache/incubator-superset/pull/15909): a change which
-drops a uniqueness criterion (which may or may not have existed) to the tables table. This constraint was obsolete as it is handled by the ORM due to differences in how MySQL, PostgreSQL, etc. handle uniqueness for NULL values.
+  drops a uniqueness criterion (which may or may not have existed) to the tables table. This constraint was obsolete as it is handled by the ORM due to differences in how MySQL, PostgreSQL, etc. handle uniqueness for NULL values.
 
 ### Potential Downtime
+
 - [14234](https://github.com/apache/superset/pull/14234): Adds the `limiting_factor` column to the `query` table. Give the migration includes a DDL operation on a heavily trafficed table, potential service downtime may be required.
+
+-[16454](https://github.com/apache/superset/pull/16454): Adds the `extra` column to the `table_columns` table. Users using MySQL will either need to schedule downtime or use the percona toolkit (or similar) to perform the migration.
 
 ## 1.2.0
 
 ### Deprecations
 
 - [13440](https://github.com/apache/superset/pull/13440): Dashboard/Charts reports and old Alerts is deprecated. The following config keys are deprecated:
-    - ENABLE_ALERTS
-    - SCHEDULED_EMAIL_DEBUG_MODE
-    - EMAIL_REPORTS_CRON_RESOLUTION
-    - EMAIL_ASYNC_TIME_LIMIT_SEC
-    - EMAIL_REPORT_BCC_ADDRESS
-    - EMAIL_REPORTS_USER
+  - ENABLE_ALERTS
+  - SCHEDULED_EMAIL_DEBUG_MODE
+  - EMAIL_REPORTS_CRON_RESOLUTION
+  - EMAIL_ASYNC_TIME_LIMIT_SEC
+  - EMAIL_REPORT_BCC_ADDRESS
+  - EMAIL_REPORTS_USER
 
 ### Other
 
@@ -84,19 +93,21 @@ drops a uniqueness criterion (which may or may not have existed) to the tables t
 ## 1.0.0
 
 ### Breaking Changes
+
 - [11509](https://github.com/apache/superset/pull/12491): Dataset metadata updates check user ownership, only owners or an Admin are allowed.
 - Security simplification (SIP-19), the following permission domains were simplified:
-    - [12072](https://github.com/apache/superset/pull/12072): `Query` with `can_read`, `can_write`
-    - [12036](https://github.com/apache/superset/pull/12036): `Database` with `can_read`, `can_write`.
-    - [12012](https://github.com/apache/superset/pull/12036): `Dashboard` with `can_read`, `can_write`.
-    - [12061](https://github.com/apache/superset/pull/12061): `Log` with `can_read`, `can_write`.
-    - [12000](https://github.com/apache/superset/pull/12000): `Dataset` with `can_read`, `can_write`.
-    - [12014](https://github.com/apache/superset/pull/12014): `Annotation` with `can_read`, `can_write`.
-    - [11981](https://github.com/apache/superset/pull/11981): `Chart` with `can_read`, `can_write`.
-    - [11853](https://github.com/apache/superset/pull/11853): `ReportSchedule` with `can_read`, `can_write`.
-    - [11856](https://github.com/apache/superset/pull/11856): `CssTemplate` with `can_read`, `can_write`.
-    - [11764](https://github.com/apache/superset/pull/11764): `SavedQuery` with `can_read`, `can_write`.
-   Old permissions will be automatically migrated to these new permissions and applied to all existing security Roles.
+
+  - [12072](https://github.com/apache/superset/pull/12072): `Query` with `can_read`, `can_write`
+  - [12036](https://github.com/apache/superset/pull/12036): `Database` with `can_read`, `can_write`.
+  - [12012](https://github.com/apache/superset/pull/12036): `Dashboard` with `can_read`, `can_write`.
+  - [12061](https://github.com/apache/superset/pull/12061): `Log` with `can_read`, `can_write`.
+  - [12000](https://github.com/apache/superset/pull/12000): `Dataset` with `can_read`, `can_write`.
+  - [12014](https://github.com/apache/superset/pull/12014): `Annotation` with `can_read`, `can_write`.
+  - [11981](https://github.com/apache/superset/pull/11981): `Chart` with `can_read`, `can_write`.
+  - [11853](https://github.com/apache/superset/pull/11853): `ReportSchedule` with `can_read`, `can_write`.
+  - [11856](https://github.com/apache/superset/pull/11856): `CssTemplate` with `can_read`, `can_write`.
+  - [11764](https://github.com/apache/superset/pull/11764): `SavedQuery` with `can_read`, `can_write`.
+    Old permissions will be automatically migrated to these new permissions and applied to all existing security Roles.
 
 - [11499](https://github.com/apache/superset/pull/11499): Breaking change: `STORE_CACHE_KEYS_IN_METADATA_DB` config flag added (default=`False`) to write `CacheKey` records to the metadata DB. `CacheKey` recording was enabled by default previously.
 
@@ -111,42 +122,44 @@ drops a uniqueness criterion (which may or may not have existed) to the tables t
 - [11244](https://github.com/apache/superset/pull/11244): The `REDUCE_DASHBOARD_BOOTSTRAP_PAYLOAD` feature flag has been removed after being set to True for multiple months.
 
 - [11172](https://github.com/apache/superset/pull/11172): Turning
-off language selectors by default as i18n is incomplete in most languages
-and requires more work. You can easily turn on the languages you want
-to expose in your environment in superset_config.py
+  off language selectors by default as i18n is incomplete in most languages
+  and requires more work. You can easily turn on the languages you want
+  to expose in your environment in superset_config.py
 
 - [11172](https://github.com/apache/superset/pull/11172): Breaking change: SQL templating is turned off by default. To turn it on set `ENABLE_TEMPLATE_PROCESSING` to True on `FEATURE_FLAGS`
 
 ### Potential Downtime
+
 - [11920](https://github.com/apache/superset/pull/11920): Undos the DB migration from [11714](https://github.com/apache/superset/pull/11714) to prevent adding new columns to the logs table. Deploying a sha between these two PRs may result in locking your DB.
 
 - [11714](https://github.com/apache/superset/pull/11714): Logs
-significantly more analytics events (roughly double?), and when
-using DBEventLogger (default) could result in stressing the metadata
-database more.
+  significantly more analytics events (roughly double?), and when
+  using DBEventLogger (default) could result in stressing the metadata
+  database more.
 
 - [11098](https://github.com/apache/superset/pull/11098): includes a database migration that adds a `uuid` column to most models, and updates `Dashboard.position_json` to include chart UUIDs. Depending on number of objects, the migration may take up to 5 minutes, requiring planning for downtime.
 
 ### Deprecations
+
 - [11155](https://github.com/apache/superset/pull/11155): The `FAB_UPDATE_PERMS` config parameter is no longer required as the Superset application correctly informs FAB under which context permissions should be updated.
 
 ## 0.38.0
 
-* [10887](https://github.com/apache/superset/pull/10887): Breaking change: The custom cache backend changed in order to support the Flask-Caching factory method approach and thus must be registered as a custom type. See [here](https://flask-caching.readthedocs.io/en/latest/#custom-cache-backends) for specifics.
+- [10887](https://github.com/apache/superset/pull/10887): Breaking change: The custom cache backend changed in order to support the Flask-Caching factory method approach and thus must be registered as a custom type. See [here](https://flask-caching.readthedocs.io/en/latest/#custom-cache-backends) for specifics.
 
-* [10674](https://github.com/apache/superset/pull/10674): Breaking change: PUBLIC_ROLE_LIKE_GAMMA was removed is favour of the new PUBLIC_ROLE_LIKE so it can be set to whatever role you want.
+- [10674](https://github.com/apache/superset/pull/10674): Breaking change: PUBLIC_ROLE_LIKE_GAMMA was removed is favour of the new PUBLIC_ROLE_LIKE so it can be set to whatever role you want.
 
-* [10590](https://github.com/apache/superset/pull/10590): Breaking change: this PR will convert iframe chart into dashboard markdown component, and remove all `iframe`, `separator`, and `markup` slices (and support) from Superset. If you have important data in those slices, please backup manually.
+- [10590](https://github.com/apache/superset/pull/10590): Breaking change: this PR will convert iframe chart into dashboard markdown component, and remove all `iframe`, `separator`, and `markup` slices (and support) from Superset. If you have important data in those slices, please backup manually.
 
-* [10562](https://github.com/apache/superset/pull/10562): EMAIL_REPORTS_WEBDRIVER is deprecated use WEBDRIVER_TYPE instead.
+- [10562](https://github.com/apache/superset/pull/10562): EMAIL_REPORTS_WEBDRIVER is deprecated use WEBDRIVER_TYPE instead.
 
-* [10567](https://github.com/apache/superset/pull/10567): Default WEBDRIVER_OPTION_ARGS are Chrome-specific. If you're using FF, should be `--headless` only
+- [10567](https://github.com/apache/superset/pull/10567): Default WEBDRIVER_OPTION_ARGS are Chrome-specific. If you're using FF, should be `--headless` only
 
-* [10241](https://github.com/apache/superset/pull/10241): change on Alpha role, users started to have access to "Annotation Layers", "Css Templates" and "Import Dashboards".
+- [10241](https://github.com/apache/superset/pull/10241): change on Alpha role, users started to have access to "Annotation Layers", "Css Templates" and "Import Dashboards".
 
-* [10324](https://github.com/apache/superset/pull/10324): Facebook Prophet has been introduced as an optional dependency to add support for timeseries forecasting in the chart data API. To enable this feature, install Superset with the optional dependency `prophet` or directly `pip install fbprophet`.
+- [10324](https://github.com/apache/superset/pull/10324): Facebook Prophet has been introduced as an optional dependency to add support for timeseries forecasting in the chart data API. To enable this feature, install Superset with the optional dependency `prophet` or directly `pip install fbprophet`.
 
-* [10320](https://github.com/apache/superset/pull/10320): References to blacklst/whitelist language have been replaced with more appropriate alternatives. All configs refencing containing `WHITE`/`BLACK` have been replaced with `ALLOW`/`DENY`. Affected config variables that need to be updated: `TIME_GRAIN_BLACKLIST`, `VIZ_TYPE_BLACKLIST`, `DRUID_DATA_SOURCE_BLACKLIST`.
+- [10320](https://github.com/apache/superset/pull/10320): References to blacklst/whitelist language have been replaced with more appropriate alternatives. All configs refencing containing `WHITE`/`BLACK` have been replaced with `ALLOW`/`DENY`. Affected config variables that need to be updated: `TIME_GRAIN_BLACKLIST`, `VIZ_TYPE_BLACKLIST`, `DRUID_DATA_SOURCE_BLACKLIST`.
 
 ## 0.37.1
 

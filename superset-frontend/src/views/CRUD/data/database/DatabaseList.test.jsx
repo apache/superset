@@ -161,13 +161,13 @@ describe('DatabaseList', () => {
         .find('[name="expose_in_sqllab"]')
         .first()
         .props()
-        .onSelect(true);
+        .onSelect({ label: 'Yes', value: true });
 
       filtersWrapper
         .find('[name="allow_run_async"]')
         .first()
         .props()
-        .onSelect(false);
+        .onSelect({ label: 'Yes', value: false });
 
       filtersWrapper
         .find('[name="database_name"]')
