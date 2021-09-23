@@ -17,7 +17,6 @@
  * under the License.
  */
 /* eslint-disable react/require-default-props */
-import Immutable from 'immutable';
 import PropTypes from 'prop-types';
 import React from 'react';
 import { CanvasOverlay } from 'react-map-gl';
@@ -31,7 +30,7 @@ const propTypes = {
   compositeOperation: PropTypes.string,
   dotRadius: PropTypes.number,
   lngLatAccessor: PropTypes.func,
-  locations: PropTypes.instanceOf(Immutable.List).isRequired,
+  locations: PropTypes.arrayOf(PropTypes.object).isRequired,
   pointRadiusUnit: PropTypes.string,
   renderWhileDragging: PropTypes.bool,
   rgb: PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, PropTypes.number])),
@@ -42,24 +41,24 @@ const defaultProps = {
   // Same as browser default.
   compositeOperation: 'source-over',
   dotRadius: 4,
-  lngLatAccessor: location => [location.get(0), location.get(1)],
+  lngLatAccessor: location => [location[0], location[1]],
   renderWhileDragging: true,
 };
 
 const computeClusterLabel = (properties, aggregation) => {
-  const count = properties.get('point_count');
+  const count = properties.point_count;
   if (!aggregation) {
     return count;
   }
   if (aggregation === 'sum' || aggregation === 'min' || aggregation === 'max') {
-    return properties.get(aggregation);
+    return properties[aggregation];
   }
-  const sum = properties.get('sum');
+  const { sum } = properties;
   const mean = sum / count;
   if (aggregation === 'mean') {
     return Math.round(100 * mean) / 100;
   }
-  const squaredSum = properties.get('squaredSum');
+  const { squaredSum } = properties;
   const variance = squaredSum / count - (sum / count) ** 2;
   if (aggregation === 'var') {
     return Math.round(100 * variance) / 100;
@@ -126,8 +125,8 @@ class ScatterPlotGlowOverlay extends React.PureComponent {
     const clusterLabelMap = [];
 
     locations.forEach((location, i) => {
-      if (location.get('properties').get('cluster')) {
-        clusterLabelMap[i] = computeClusterLabel(location.get('properties'), aggregation);
+      if (location.properties.cluster) {
+        clusterLabelMap[i] = computeClusterLabel(location.properties, aggregation);
       }
     }, this);
 
@@ -148,7 +147,7 @@ class ScatterPlotGlowOverlay extends React.PureComponent {
           pixelRounded[1] - radius < height
         ) {
           ctx.beginPath();
-          if (location.get('properties').get('cluster')) {
+          if (location.properties.cluster) {
             let clusterLabel = clusterLabelMap[i];
             const scaledRadius = roundDecimal((clusterLabel / maxLabel) ** 0.5 * radius, 1);
             const fontHeight = roundDecimal(scaledRadius * 0.5, 1);
@@ -177,8 +176,8 @@ class ScatterPlotGlowOverlay extends React.PureComponent {
             }
           } else {
             const defaultRadius = radius / 6;
-            const radiusProperty = location.get('properties').get('radius');
-            const pointMetric = location.get('properties').get('metric');
+            const radiusProperty = location.properties.radius;
+            const pointMetric = location.properties.metric;
             let pointRadius = radiusProperty === null ? defaultRadius : radiusProperty;
             let pointLabel;
 

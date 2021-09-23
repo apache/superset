@@ -30,7 +30,6 @@
   "dependencies": {
     "@superset-ui/chart-controls": "0.18.6",
     "@superset-ui/core": "0.18.6",
-    "immutable": "^3.8.2",
     "mapbox-gl": "^0.53.0",
     "prop-types": "^15.6.2",
     "react-map-gl": "^4.0.10",
