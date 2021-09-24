@@ -1671,7 +1671,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             return None
 
         if not DatasetDAO.validate_uniqueness(
-            target.database_id, target.schema, target.table_name
+            target.database_id, target.schema, target.table_name, check_count=True
         ):
             raise Exception(get_dataset_exist_error_msg(target.full_name))
 
