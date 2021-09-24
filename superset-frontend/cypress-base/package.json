@@ -3,12 +3,9 @@
   "version": "1.0.0",
   "description": "run cypress against superset",
   "scripts": {
-    "cypress-open-ct": "cypress open-ct",
-    "cypress-run-ct": "cypress run-ct",
-    "cypress-open-e2e": "cypress open",
-    "cypress-run-e2e": "cypress run",
-    "cypress-run-e2e-chrome": "cypress run --browser chrome --headless",
-    "cypress-open-e2e-debug": "cypress open --config watchForFileChanges=true"
+    "cypress": "cypress",
+    "cypress-run-chrome": "cypress run --browser chrome --headless",
+    "cypress-open-debug": "cypress open --config watchForFileChanges=true"
   },
   "author": "Apache",
   "license": "Apache-2.0",
