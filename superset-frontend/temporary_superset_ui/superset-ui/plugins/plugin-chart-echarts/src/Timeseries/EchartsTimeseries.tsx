@@ -16,12 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback } from 'react';
-import { EventHandlers } from '../types';
+import React, { useCallback, useRef } from 'react';
+import { ViewRootGroup } from 'echarts/types/src/util/types';
+import GlobalModel from 'echarts/types/src/model/Global';
+import ComponentModel from 'echarts/types/src/model/Component';
+import { EchartsHandler, EventHandlers } from '../types';
 import Echart from '../components/Echart';
 import { TimeseriesChartTransformedProps } from './types';
 import { currentSeries } from '../utils/series';
 
+const TIMER_DURATION = 300;
 // @ts-ignore
 export default function EchartsTimeseries({
   formData,
@@ -32,10 +36,55 @@ export default function EchartsTimeseries({
   labelMap,
   selectedValues,
   setDataMask,
+  legendData = [],
 }: TimeseriesChartTransformedProps) {
+  const { emitFilter, stack } = formData;
+  const echartRef = useRef<EchartsHandler | null>(null);
+  const lastTimeRef = useRef(Date.now());
+  const lastSelectedLegend = useRef('');
+  const clickTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  const handleDoubleClickChange = useCallback((name?: string) => {
+    const echartInstance = echartRef.current?.getEchartInstance();
+    if (!name) {
+      echartInstance?.dispatchAction({
+        type: 'legendAllSelect',
+      });
+    } else {
+      legendData.forEach(datum => {
+        if (datum === name) {
+          echartInstance?.dispatchAction({
+            type: 'legendSelect',
+            name: datum,
+          });
+        } else {
+          echartInstance?.dispatchAction({
+            type: 'legendUnSelect',
+            name: datum,
+          });
+        }
+      });
+    }
+  }, []);
+
+  const getModelInfo = (target: ViewRootGroup, globalModel: GlobalModel) => {
+    let el = target;
+    let model: ComponentModel | null = null;
+    while (el) {
+      // eslint-disable-next-line no-underscore-dangle
+      const modelInfo = el.__ecComponentInfo;
+      if (modelInfo != null) {
+        model = globalModel.getComponent(modelInfo.mainType, modelInfo.index);
+        break;
+      }
+      el = el.parent;
+    }
+    return model;
+  };
+
   const handleChange = useCallback(
     (values: string[]) => {
-      if (!formData.emitFilter) {
+      if (!emitFilter) {
         return;
       }
       const groupbyValues = values.map(value => labelMap[value]);
@@ -71,13 +120,19 @@ export default function EchartsTimeseries({
 
   const eventHandlers: EventHandlers = {
     click: props => {
-      const { seriesName: name } = props;
-      const values = Object.values(selectedValues);
-      if (values.includes(name)) {
-        handleChange(values.filter(v => v !== name));
-      } else {
-        handleChange([name]);
+      if (clickTimer.current) {
+        clearTimeout(clickTimer.current);
       }
+      // Ensure that double-click events do not trigger single click event. So we put it in the timer.
+      clickTimer.current = setTimeout(() => {
+        const { seriesName: name } = props;
+        const values = Object.values(selectedValues);
+        if (values.includes(name)) {
+          handleChange(values.filter(v => v !== name));
+        } else {
+          handleChange([name]);
+        }
+      }, TIMER_DURATION);
     },
     mousemove: params => {
       currentSeries.name = params.seriesName;
@@ -85,14 +140,63 @@ export default function EchartsTimeseries({
     mouseout: () => {
       currentSeries.name = '';
     },
+    legendselectchanged: payload => {
+      const currentTime = Date.now();
+      // TIMER_DURATION is the interval between two legendselectchanged event
+      if (
+        currentTime - lastTimeRef.current < TIMER_DURATION &&
+        lastSelectedLegend.current === payload.name
+      ) {
+        // execute dbclick
+        handleDoubleClickChange(payload.name);
+      } else {
+        lastTimeRef.current = currentTime;
+        // remember last selected legend
+        lastSelectedLegend.current = payload.name;
+      }
+      // if all legend is unselected, we keep all selected
+      if (Object.values(payload.selected).every(i => !i)) {
+        handleDoubleClickChange();
+      }
+    },
+  };
+
+  const zrEventHandlers: EventHandlers = {
+    dblclick: params => {
+      // clear single click timer
+      if (clickTimer.current) {
+        clearTimeout(clickTimer.current);
+      }
+      const pointInPixel = [params.offsetX, params.offsetY];
+      const echartInstance = echartRef.current?.getEchartInstance();
+      if (echartInstance?.containPixel('grid', pointInPixel)) {
+        // do not trigger if click unstacked chart's blank area
+        if (!stack && params.target?.type === 'ec-polygon') return;
+        // @ts-ignore
+        const globalModel = echartInstance.getModel();
+        const model = getModelInfo(params.target, globalModel);
+        const seriesCount = globalModel.getSeriesCount();
+        const currentSeriesIndices = globalModel.getCurrentSeriesIndices();
+        if (model) {
+          const { name } = model;
+          if (seriesCount !== currentSeriesIndices.length) {
+            handleDoubleClickChange();
+          } else {
+            handleDoubleClickChange(name);
+          }
+        }
+      }
+    },
   };
 
   return (
     <Echart
+      ref={echartRef}
       height={height}
       width={width}
       echartOptions={echartOptions}
       eventHandlers={eventHandlers}
+      zrEventHandlers={zrEventHandlers}
       selectedValues={selectedValues}
     />
   );

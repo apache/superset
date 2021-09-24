@@ -221,6 +221,15 @@ export default function transformProps(
     yAxisTitleMargin,
     xAxisTitleMargin,
   );
+
+  const legendData = rawSeries
+    .filter(
+      entry =>
+        extractForecastSeriesContext(entry.name || '').type === ForecastSeriesEnum.Observation,
+    )
+    .map(entry => entry.name || '')
+    .concat(extractAnnotationLabels(annotationLayers, annotationData));
+
   const echartOptions: EChartsCoreOption = {
     useUTC: true,
     grid: {
@@ -282,14 +291,7 @@ export default function transformProps(
     },
     legend: {
       ...getLegendProps(legendType, legendOrientation, showLegend, zoomable),
-      // @ts-ignore
-      data: rawSeries
-        .filter(
-          entry =>
-            extractForecastSeriesContext(entry.name || '').type === ForecastSeriesEnum.Observation,
-        )
-        .map(entry => entry.name || '')
-        .concat(extractAnnotationLabels(annotationLayers, annotationData)),
+      data: legendData as string[],
     },
     series: dedupSeries(series),
     toolbox: {
@@ -328,5 +330,6 @@ export default function transformProps(
     selectedValues,
     setDataMask,
     width,
+    legendData,
   };
 }
