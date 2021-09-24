@@ -437,47 +437,45 @@ const forceSSLField = ({
   changeMethods,
   db,
   sslForced,
-}: FieldPropTypes) => (
-  <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
-    <Switch
-      disabled={sslForced && !isEditMode}
-      checked={db?.parameters?.encryption || sslForced}
-      onChange={changed => {
-        changeMethods.onParametersChange({
-          target: {
-            type: 'toggle',
-            name: 'encryption',
-            checked: true,
-            value: changed,
-          },
-        });
-      }}
-    />
-    <span css={toggleStyle}>SSL</span>
+}: FieldPropTypes) => {
+    return (
+      <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
+        <Switch
+          disabled={sslForced && !isEditMode}
+          checked={db?.parameters?.encryption || sslForced}
+          onChange={changed => {
+            changeMethods.onParametersChange({
+              target: {
+                type: 'toggle',
+                name: 'encryption',
+                checked: true,
+                value: changed,
+              },
+            });
+          } } />
+        <span css={toggleStyle}>SSL</span>
 
-    {db?.database_name === 'PostgreSQL' && (
-      <InfoTooltip
-        tooltip={t('Requires a root certificate authority (public, local, or self-signed). SSL Mode "require" will be used.')}
-        placement="right"
-        viewBox="0 -5 24 24"
-      /> )}
+        {db?.database_name === 'PostgreSQL' && (
+          <InfoTooltip
+            tooltip={t('Requires a root certificate authority (public, local, or self-signed). SSL Mode "require" will be used.')}
+            placement="right"
+            viewBox="0 -5 24 24" />)}
 
-    {db?.database_name === 'MySQL' && (
-      <InfoTooltip
-        tooltip={t('Requires a root certificate authority (public, local, or self-signed).')}
-        placement="right"
-        viewBox="0 -5 24 24"
-      /> )}
+        {db?.database_name === 'MySQL' && (
+          <InfoTooltip
+            tooltip={t('Requires a root certificate authority (public, local, or self-signed).')}
+            placement="right"
+            viewBox="0 -5 24 24" />)}
 
-    {db?.database_name === 'Amazon Redshift' && (
-      <InfoTooltip
-        tooltip={t('Requires a root certificate authority (public, local, or self-signed). SSL Mode "verify-ca" will be used.')}
-        placement="right"
-        viewBox="0 -5 24 24"
-      /> )}
+        {db?.database_name === 'Amazon Redshift' && (
+          <InfoTooltip
+            tooltip={t('Requires a root certificate authority (public, local, or self-signed). SSL Mode "verify-ca" will be used.')}
+            placement="right"
+            viewBox="0 -5 24 24" />)}
 
-  </div>
-  )
+      </div>
+    );
+  }
 
 const FORM_FIELD_MAP = {
   host: hostField,
