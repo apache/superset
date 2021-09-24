@@ -34,6 +34,7 @@ import {
   xAxisShowMinmax,
   yAxisShowMinmax,
   leftMargin,
+  yAxisBounds,
 } from '../NVD3Controls';
 
 const config: ControlPanelConfig = {
@@ -113,6 +114,7 @@ const config: ControlPanelConfig = {
         [yAxisLabel, bottomMargin],
         ['y_axis_format', null],
         [yLogScale, yAxisShowMinmax],
+        [yAxisBounds],
       ],
     },
   ],
