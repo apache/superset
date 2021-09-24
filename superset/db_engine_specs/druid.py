@@ -19,6 +19,7 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
+from superset import is_feature_enabled
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.exceptions import SupersetException
 from superset.utils import core as utils
@@ -35,7 +36,7 @@ class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     engine = "druid"
     engine_name = "Apache Druid"
-    allows_joins = False
+    allows_joins = is_feature_enabled("DRUID_JOINS")
     allows_subqueries = True
 
     _time_grain_expressions = {
@@ -100,3 +101,17 @@ class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         if tt in (utils.TemporalType.DATETIME, utils.TemporalType.TIMESTAMP):
             return f"""TIME_PARSE('{dttm.isoformat(timespec="seconds")}')"""
         return None
+
+    @classmethod
+    def epoch_to_dttm(cls) -> str:
+        """
+        Convert from number of seconds since the epoch to a timestamp.
+        """
+        return "MILLIS_TO_TIMESTAMP({col} * 1000)"
+
+    @classmethod
+    def epoch_ms_to_dttm(cls) -> str:
+        """
+        Convert from number of milliseconds since the epoch to a timestamp.
+        """
+        return "MILLIS_TO_TIMESTAMP({col})"

@@ -92,6 +92,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
                     "python_date_format": None,
                     "type": type_map["source"],
                     "verbose_name": None,
+                    "extra": None,
                 },
                 {
                     "column_name": "target",
@@ -104,6 +105,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
                     "python_date_format": None,
                     "type": type_map["target"],
                     "verbose_name": None,
+                    "extra": None,
                 },
                 {
                     "column_name": "value",
@@ -116,6 +118,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
                     "python_date_format": None,
                     "type": type_map["value"],
                     "verbose_name": None,
+                    "extra": None,
                 },
             ],
             "database_uuid": str(example_db.uuid),
