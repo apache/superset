@@ -100,7 +100,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         if check_count:
             # Make sure there is only one dataset
             # Using this test to allow for overwrite
-            return dataset_query.count() == 1
+            return not dataset_query.count() == 1
 
         return not db.session.query(dataset_query.exists()).scalar()
 
