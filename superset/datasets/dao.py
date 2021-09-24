@@ -105,18 +105,6 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         return not db.session.query(dataset_query.exists()).scalar()
 
     @staticmethod
-    def validate_duplicate_uniqueness(
-        database_id: int, schema: Optional[str], name: str
-    ) -> bool:
-        dataset_query = db.session.query(SqlaTable).filter(
-            SqlaTable.table_name == name,
-            SqlaTable.schema == schema,
-            SqlaTable.database_id == database_id,
-        )
-
-        return not db.session.query(dataset_query.exists()).scalar()
-
-    @staticmethod
     def validate_update_uniqueness(
         database_id: int, dataset_id: int, name: str
     ) -> bool:
