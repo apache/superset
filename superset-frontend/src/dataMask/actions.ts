@@ -71,14 +71,7 @@ export function updateDataMask(
 }
 
 export function clearDataMask(filterId: string | number) {
-  return updateDataMask(
-    filterId,
-    getInitialDataMask(filterId, {
-      filterState: {
-        value: null,
-      },
-    }),
-  );
+  return updateDataMask(filterId, getInitialDataMask(filterId));
 }
 
 export type AnyDataMaskAction =
