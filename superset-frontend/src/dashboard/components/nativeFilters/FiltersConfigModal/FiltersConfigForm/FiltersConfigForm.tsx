@@ -323,9 +323,7 @@ const FiltersConfigForm = (
   const [datasetDetails, setDatasetDetails] = useState<Record<string, any>>();
   const defaultFormFilter = useMemo(() => ({}), []);
   const formValues = form.getFieldValue('filters')?.[filterId];
-  const formFilter = !removed
-    ? formValues
-    : undoFormValues || defaultFormFilter;
+  const formFilter = formValues || undoFormValues || defaultFormFilter;
 
   const nativeFilterItems = getChartMetadataRegistry().items;
   const nativeFilterVizTypes = Object.entries(nativeFilterItems)
@@ -681,11 +679,11 @@ const FiltersConfigForm = (
 
   useEffect(() => {
     // the filter was just restored after undo
-    if (undoFormValues && !formValues?.filterType) {
+    if (undoFormValues && !removed) {
       setNativeFilterFieldValues(form, filterId, undoFormValues);
       setUndoFormValues(null);
     }
-  }, [formValues?.filterType, filterId, form, undoFormValues]);
+  }, [formValues, filterId, form, removed, undoFormValues]);
 
   if (removed) {
     return <RemovedFilter onClick={() => restoreFilter(filterId)} />;
@@ -833,7 +831,7 @@ const FiltersConfigForm = (
                 formChanged();
               }}
             >
-              {formFilter.filterType && (
+              {!removed && (
                 <StyledRowSubFormItem
                   name={['filters', filterId, 'defaultDataMask']}
                   initialValue={initialDefaultValue}
