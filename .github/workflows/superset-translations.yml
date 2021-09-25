@@ -17,6 +17,10 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version:  '16'
       - name: Install dependencies
         uses: ./.github/actions/cached-dependencies
         with:
