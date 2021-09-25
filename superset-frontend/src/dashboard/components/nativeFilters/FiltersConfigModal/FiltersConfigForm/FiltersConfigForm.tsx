@@ -315,12 +315,18 @@ const FiltersConfigForm = (
   const [activeFilterPanelKey, setActiveFilterPanelKey] = useState<
     string | string[]
   >(FilterPanels.basic.key);
-
+  const [undoFormValues, setUndoFormValues] = useState<Record<
+    string,
+    any
+  > | null>(null);
   const forceUpdate = useForceUpdate();
   const [datasetDetails, setDatasetDetails] = useState<Record<string, any>>();
   const defaultFormFilter = useMemo(() => ({}), []);
+  const formValues = form.getFieldValue('filters')?.[filterId];
   const formFilter =
-    form.getFieldValue('filters')?.[filterId] || defaultFormFilter;
+    formValues && formValues?.filterType
+      ? { ...filterToEdit, ...formValues }
+      : { ...filterToEdit, ...undoFormValues } || defaultFormFilter;
 
   const nativeFilterItems = getChartMetadataRegistry().items;
   const nativeFilterVizTypes = Object.entries(nativeFilterItems)
@@ -521,7 +527,6 @@ const FiltersConfigForm = (
     hasDataset,
     hasFilledDataset,
     hasDefaultValue,
-    formFilter,
     isDataDirty,
     refreshHandler,
     showDataset,
@@ -550,18 +555,17 @@ const FiltersConfigForm = (
   }));
 
   const parentFilter = parentFilterOptions.find(
-    ({ value }) => value === filterToEdit?.cascadeParentIds[0],
+    ({ value }) => value === formFilter?.cascadeParentIds?.[0],
   );
 
   const hasParentFilter = !!parentFilter;
 
-  const hasPreFilter =
-    !!filterToEdit?.adhoc_filters || !!filterToEdit?.time_range;
+  const hasPreFilter = !!formFilter?.adhoc_filters || !!formFilter?.time_range;
 
   const hasSorting =
-    typeof filterToEdit?.controlValues?.sortAscending === 'boolean';
+    typeof formFilter?.controlValues?.sortAscending === 'boolean';
 
-  let sort = filterToEdit?.controlValues?.sortAscending;
+  let sort = formFilter?.controlValues?.sortAscending;
   if (typeof formFilter?.controlValues?.sortAscending === 'boolean') {
     sort = formFilter.controlValues.sortAscending;
   }
@@ -667,6 +671,23 @@ const FiltersConfigForm = (
       {...rest}
     />
   );
+
+  useEffect(() => {
+    // just removed, saving current form items for eventual undo
+    if (removed) {
+      console.log('----SET UNDO VALUES-----');
+      setUndoFormValues(formValues);
+    }
+  }, [removed]);
+
+  useEffect(() => {
+    // the filter was just restored after undo
+    if (undoFormValues && !formValues?.filterType) {
+      console.log('----SET FORM VALUES-----', undoFormValues);
+      setNativeFilterFieldValues(form, filterId, undoFormValues);
+      setUndoFormValues(null);
+    }
+  }, [formValues?.filterType, filterId, form, undoFormValues]);
 
   if (removed) {
     return <RemovedFilter onClick={() => restoreFilter(filterId)} />;
