@@ -323,10 +323,9 @@ const FiltersConfigForm = (
   const [datasetDetails, setDatasetDetails] = useState<Record<string, any>>();
   const defaultFormFilter = useMemo(() => ({}), []);
   const formValues = form.getFieldValue('filters')?.[filterId];
-  const formFilter =
-    formValues && formValues?.filterType
-      ? { ...filterToEdit, ...formValues }
-      : { ...filterToEdit, ...undoFormValues } || defaultFormFilter;
+  const formFilter = !removed
+    ? formValues
+    : undoFormValues || defaultFormFilter;
 
   const nativeFilterItems = getChartMetadataRegistry().items;
   const nativeFilterVizTypes = Object.entries(nativeFilterItems)
@@ -352,11 +351,11 @@ const FiltersConfigForm = (
 
   const showTimeRangePicker = useMemo(() => {
     const currentDataset = Object.values(loadedDatasets).find(
-      dataset => dataset.id === formFilter.dataset?.value,
+      dataset => dataset.id === formFilter?.dataset?.value,
     );
 
     return currentDataset ? hasTemporalColumns(currentDataset) : true;
-  }, [formFilter.dataset?.value, loadedDatasets]);
+  }, [formFilter?.dataset?.value, loadedDatasets]);
 
   // @ts-ignore
   const hasDataset = !!nativeFilterItems[formFilter?.filterType]?.value
@@ -374,7 +373,7 @@ const FiltersConfigForm = (
         forceUpdate,
         form,
         filterId,
-        filterType: formFilter.filterType,
+        filterType: formFilter?.filterType,
         filterToEdit,
         formFilter,
         removed,
@@ -385,31 +384,6 @@ const FiltersConfigForm = (
   const nativeFilterItem = nativeFilterItems[formFilter?.filterType] ?? {};
   // @ts-ignore
   const enableNoResults = !!nativeFilterItem.value?.enableNoResults;
-
-  useEffect(() => {
-    if (datasetId) {
-      cachedSupersetGet({
-        endpoint: `/api/v1/dataset/${datasetId}`,
-      })
-        .then((response: JsonResponse) => {
-          setMetrics(response.json?.result?.metrics);
-          const dataset = response.json?.result;
-          // modify the response to fit structure expected by AdhocFilterControl
-          dataset.type = dataset.datasource_type;
-          dataset.filter_select = true;
-          setDatasetDetails(dataset);
-        })
-        .catch((response: SupersetApiError) => {
-          addDangerToast(response.message);
-        });
-    }
-  }, [datasetId]);
-
-  useImperativeHandle(ref, () => ({
-    changeTab(tab: 'configuration' | 'scoping') {
-      setActiveTabKey(tab);
-    },
-  }));
 
   const hasMetrics = hasColumn && !!metrics.length;
 
@@ -423,8 +397,6 @@ const FiltersConfigForm = (
   const isCascadingFilter = CASCADING_FILTERS.includes(formFilter?.filterType);
 
   const isDataDirty = formFilter?.isDataDirty ?? true;
-
-  useBackendFormUpdate(form, filterId);
 
   const setNativeFilterFieldValuesWrapper = (values: object) => {
     setNativeFilterFieldValues(form, filterId, values);
@@ -519,19 +491,6 @@ const FiltersConfigForm = (
   const showDataset =
     !datasetId || datasetDetails || formFilter?.dataset?.label;
 
-  useEffect(() => {
-    if (hasDataset && hasFilledDataset && hasDefaultValue && isDataDirty) {
-      refreshHandler();
-    }
-  }, [
-    hasDataset,
-    hasFilledDataset,
-    hasDefaultValue,
-    isDataDirty,
-    refreshHandler,
-    showDataset,
-  ]);
-
   const formChanged = useCallback(() => {
     form.setFields([
       {
@@ -555,17 +514,18 @@ const FiltersConfigForm = (
   }));
 
   const parentFilter = parentFilterOptions.find(
-    ({ value }) => value === formFilter?.cascadeParentIds?.[0],
+    ({ value }) => value === filterToEdit?.cascadeParentIds?.[0],
   );
 
   const hasParentFilter = !!parentFilter;
 
-  const hasPreFilter = !!formFilter?.adhoc_filters || !!formFilter?.time_range;
+  const hasPreFilter =
+    !!filterToEdit?.adhoc_filters?.length || !!filterToEdit?.time_range;
 
   const hasSorting =
-    typeof formFilter?.controlValues?.sortAscending === 'boolean';
+    typeof filterToEdit?.controlValues?.sortAscending === 'boolean';
 
-  let sort = formFilter?.controlValues?.sortAscending;
+  let sort = filterToEdit?.controlValues?.sortAscending;
   if (typeof formFilter?.controlValues?.sortAscending === 'boolean') {
     sort = formFilter.controlValues.sortAscending;
   }
@@ -608,7 +568,7 @@ const FiltersConfigForm = (
     formFilter?.filterType === 'filter_range';
 
   const initialDefaultValue =
-    formFilter.filterType === filterToEdit?.filterType
+    formFilter?.filterType === filterToEdit?.filterType
       ? filterToEdit?.defaultDataMask
       : null;
 
@@ -625,6 +585,62 @@ const FiltersConfigForm = (
       .filter(key => !BASIC_CONTROL_ITEMS.includes(key))
       .some(key => controlItems[key].checked);
   }
+
+  const ParentSelect = ({
+    value,
+    ...rest
+  }: {
+    value?: { value: string | number };
+  }) => (
+    <Select
+      ariaLabel={t('Parent filter')}
+      placeholder={t('None')}
+      options={parentFilterOptions}
+      allowClear
+      value={value?.value}
+      {...rest}
+    />
+  );
+
+  useEffect(() => {
+    if (datasetId) {
+      cachedSupersetGet({
+        endpoint: `/api/v1/dataset/${datasetId}`,
+      })
+        .then((response: JsonResponse) => {
+          setMetrics(response.json?.result?.metrics);
+          const dataset = response.json?.result;
+          // modify the response to fit structure expected by AdhocFilterControl
+          dataset.type = dataset.datasource_type;
+          dataset.filter_select = true;
+          setDatasetDetails(dataset);
+        })
+        .catch((response: SupersetApiError) => {
+          addDangerToast(response.message);
+        });
+    }
+  }, [datasetId]);
+
+  useImperativeHandle(ref, () => ({
+    changeTab(tab: 'configuration' | 'scoping') {
+      setActiveTabKey(tab);
+    },
+  }));
+
+  useBackendFormUpdate(form, filterId);
+
+  useEffect(() => {
+    if (hasDataset && hasFilledDataset && hasDefaultValue && isDataDirty) {
+      refreshHandler();
+    }
+  }, [
+    hasDataset,
+    hasFilledDataset,
+    hasDefaultValue,
+    isDataDirty,
+    refreshHandler,
+    showDataset,
+  ]);
 
   useEffect(() => {
     const activeFilterPanelKey = [FilterPanels.basic.key];
@@ -656,26 +672,9 @@ const FiltersConfigForm = (
     JSON.stringify(loadedDatasets),
   ]);
 
-  const ParentSelect = ({
-    value,
-    ...rest
-  }: {
-    value?: { value: string | number };
-  }) => (
-    <Select
-      ariaLabel={t('Parent filter')}
-      placeholder={t('None')}
-      options={parentFilterOptions}
-      allowClear
-      value={value?.value}
-      {...rest}
-    />
-  );
-
   useEffect(() => {
     // just removed, saving current form items for eventual undo
     if (removed) {
-      console.log('----SET UNDO VALUES-----');
       setUndoFormValues(formValues);
     }
   }, [removed]);
@@ -683,7 +682,6 @@ const FiltersConfigForm = (
   useEffect(() => {
     // the filter was just restored after undo
     if (undoFormValues && !formValues?.filterType) {
-      console.log('----SET FORM VALUES-----', undoFormValues);
       setNativeFilterFieldValues(form, filterId, undoFormValues);
       setUndoFormValues(null);
     }
@@ -835,7 +833,7 @@ const FiltersConfigForm = (
                 formChanged();
               }}
             >
-              {formFilter.filterType && (
+              {!removed && (
                 <StyledRowSubFormItem
                   name={['filters', filterId, 'defaultDataMask']}
                   initialValue={initialDefaultValue}
