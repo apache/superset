@@ -35,6 +35,8 @@ assists people when migrating to a new version.
 
 ### Other
 
+- [16809](https://github.com/apache/incubator-superset/pull/16809): When building the superset frontend assets manually, you should now use Node 16 (previously Node 14 was required/recommended). Node 14 will most likely still work for at least some time, but is no longer actively tested for on CI.
+
 ## 1.3.0
 
 ### Breaking Changes
