@@ -46,8 +46,7 @@ const mockedProps = {
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 const store = mockStore(initialState);
-const DATABASE_ENDPOINT = 'glob:*/api/v1/database/?*';
-fetchMock.get(DATABASE_ENDPOINT, []);
+fetchMock.get('glob:*/api/v1/database/*/schemas/?*', { result: [] });
 describe('SqlEditorLeftBar', () => {
   let wrapper;
 
