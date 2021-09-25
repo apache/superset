@@ -26,6 +26,7 @@ import {
 } from '@superset-ui/core';
 import { Dispatch } from 'redux';
 import { addDangerToast, toastActions } from 'src/messageToasts/actions';
+import { updateDataMask } from 'src/dataMask/actions';
 import { Slice } from 'src/types/Chart';
 
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
@@ -152,6 +153,7 @@ export const exploreActions = {
   updateChartTitle,
   createNewSlice,
   sliceUpdated,
+  updateDataMask,
 };
 
 export type ExploreActions = typeof exploreActions;
