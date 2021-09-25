@@ -833,7 +833,7 @@ const FiltersConfigForm = (
                 formChanged();
               }}
             >
-              {!removed && (
+              {formFilter.filterType && (
                 <StyledRowSubFormItem
                   name={['filters', filterId, 'defaultDataMask']}
                   initialValue={initialDefaultValue}
