@@ -19,7 +19,7 @@ from typing import Any, Dict
 from superset.common.db_query_status import QueryStatus
 
 
-def apply_display_max_row_configuration_if_require(
+def apply_display_max_row_configuration_if_require(  # pylint: disable=invalid-name
     sql_results: Dict[str, Any], max_rows_in_result: int
 ) -> Dict[str, Any]:
     """
