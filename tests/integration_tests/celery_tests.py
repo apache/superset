@@ -36,11 +36,11 @@ from tests.integration_tests.base_tests import login
 from tests.integration_tests.conftest import CTAS_SCHEMA_NAME
 from tests.integration_tests.test_app import app
 from superset import db, sql_lab
+from superset.common.db_query_status import QueryStatus
 from superset.result_set import SupersetResultSet
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetErrorType
 from superset.extensions import celery_app
-from superset.models.helpers import QueryStatus
 from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery, CtasMethod
 from superset.utils.core import get_example_database, backend

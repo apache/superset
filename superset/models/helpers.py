@@ -38,7 +38,7 @@ from sqlalchemy.orm import Mapper, Session
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy_utils import UUIDType
 
-from superset.utils.core import QueryStatus
+from superset.common.db_query_status import QueryStatus
 
 logger = logging.getLogger(__name__)
 

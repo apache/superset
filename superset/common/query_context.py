@@ -29,6 +29,7 @@ from typing_extensions import TypedDict
 from superset import app, db, is_feature_enabled
 from superset.annotation_layers.dao import AnnotationLayerDAO
 from superset.charts.dao import ChartDAO
+from superset.common.db_query_status import QueryStatus
 from superset.common.query_actions import get_query_results
 from superset.common.query_object import QueryObject
 from superset.common.utils import QueryCacheManager
@@ -49,7 +50,6 @@ from superset.utils.core import (
     get_column_names_from_metrics,
     get_metric_names,
     normalize_dttm_col,
-    QueryStatus,
     TIME_COMPARISION,
 )
 from superset.utils.date_parser import get_past_or_future, normalize_time_delta
