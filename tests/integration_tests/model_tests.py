@@ -264,9 +264,9 @@ class TestDatabaseModel(SupersetTestCase):
             assert (
                 textwrap.dedent(
                     """\
-                SELECT "source",
-                       "target",
-                       "value"
+                SELECT "source" AS "source",
+                       "target" AS "target",
+                       "value" AS "value"
                 FROM "energy_usage"
                 LIMIT 100"""
                 )

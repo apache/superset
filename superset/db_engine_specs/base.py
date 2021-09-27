@@ -952,11 +952,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if (show_cols or latest_partition) and not cols:
             cols = database.get_columns(table_name, schema)
 
-        quote = engine.dialect.identifier_preparer.quote
         if show_cols:
-            # Explicitly quote all column names, as BigQuery doesn't quote column
-            # names that are also identifiers (eg, "limit") by default.
-            fields = [text(quote(col["name"])) for col in cols]
+            fields = cls._get_fields(cols)
+        quote = engine.dialect.identifier_preparer.quote
         if schema:
             full_table_name = quote(schema) + "." + quote(table_name)
         else:
