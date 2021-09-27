@@ -1673,7 +1673,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         if not DatasetDAO.validate_uniqueness(
             target.database_id, target.schema, target.table_name
-        ):
+        ) and hasattr(
+            target, "columns"
+        ):  # skip if there aren't columns updated
             raise Exception(get_dataset_exist_error_msg(target.full_name))
 
     @staticmethod
