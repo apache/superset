@@ -1294,15 +1294,16 @@ class BusinessTypeResponse(TypedDict, total=False):
     formatted_value: Optional[str]  # a string representation of the parsed value
     valid_filter_operators: List[Literal["==", "<=", "<", "IN", ">=", ">"]]
 
-
+import ipaddress
 def cidr_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
     resp: BusinessTypeResponse = {}
-    if isinstance(req["value"], str):
+    try: 
+        ip_range = ipaddress.ip_network(req["value"])
         resp["status"] = "valid"
-        resp["value"] = 123456
+        resp["value"] = { "start" : int(ip_range[0]), "end" : int(ip_range[-1]) }
         resp["formatted_value"] = req["value"]
         resp["valid_filter_operators"] = ["IN"]
-    else:
+    except:
         resp["status"] = "invalid"
         resp["value"] = None
         resp["formatted_value"] = None
