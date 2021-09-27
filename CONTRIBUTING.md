@@ -805,7 +805,7 @@ npm install
 npm run cypress-run-chrome
 
 # run tests from a specific file
-npm run cypress-run-chrome -- --spec cypress/integration/explore/link.test.js
+npm run cypress-run-chrome -- --spec cypress/integration/explore/link.test.ts
 
 # run specific file with video capture
 npm run cypress-run-chrome -- --spec cypress/integration/dashboard/index.test.js --config video=true

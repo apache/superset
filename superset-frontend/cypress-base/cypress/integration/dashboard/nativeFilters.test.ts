@@ -40,8 +40,8 @@ xdescribe('Nativefilters', () => {
       .click();
     cy.get('[data-test="query-save-button"]').click();
     cy.get('[data-test="save-chart-modal-select-dashboard-form"]')
-      .find('#dashboard-creatable-select')
-      .type(`${dashboard}{enter}{enter}`);
+      .find('input[aria-label="Select a dashboard"]')
+      .type(`${dashboard}`, { force: true });
     cy.get('[data-test="btn-modal-save"]').click();
   });
   beforeEach(() => {
