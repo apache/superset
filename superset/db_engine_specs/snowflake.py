@@ -195,7 +195,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         parameters: SnowflakeParametersType,
         encrypted_extra: Optional[Dict[str, Any]] = None,
     ) -> str:
-        query = parameters.get("query")
+        query = parameters.get("query", {})
         query_params = urllib.parse.urlencode(query)
 
         if not encrypted_extra:
