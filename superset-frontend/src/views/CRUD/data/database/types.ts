@@ -47,6 +47,9 @@ export type DatabaseObject = {
     credentials_info?: string;
     query?: Record<string, string>;
     catalog?: Record<string, string>;
+    warehouse?: string;
+    role?: string;
+    account?: string;
   };
   configuration_method: CONFIGURATION_METHOD;
   engine?: string;
