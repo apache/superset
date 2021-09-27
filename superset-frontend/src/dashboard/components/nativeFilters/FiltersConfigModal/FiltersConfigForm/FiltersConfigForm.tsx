@@ -512,15 +512,21 @@ const FiltersConfigForm = (
   }));
 
   const parentFilter = parentFilterOptions.find(
-    ({ value }) => value === filterToEdit?.cascadeParentIds?.[0],
+    ({ value }) =>
+      value === formFilter?.parentFilter?.value ||
+      value === filterToEdit?.cascadeParentIds?.[0],
   );
 
   const hasParentFilter = !!parentFilter;
 
   const hasPreFilter =
-    !!filterToEdit?.adhoc_filters?.length || !!filterToEdit?.time_range;
+    !!formFilter?.adhoc_filters ||
+    !!formFilter?.time_range ||
+    !!filterToEdit?.adhoc_filters?.length ||
+    !!filterToEdit?.time_range;
 
   const hasSorting =
+    typeof formFilter?.controlValues?.sortAscending === 'boolean' ||
     typeof filterToEdit?.controlValues?.sortAscending === 'boolean';
 
   let sort = filterToEdit?.controlValues?.sortAscending;
