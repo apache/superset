@@ -70,6 +70,7 @@ import {
   EchartsTreemapChartPlugin,
   EchartsMixedTimeseriesChartPlugin,
   EchartsTreeChartPlugin,
+  EchartsSunburstChartPlugin
 } from '@superset-ui/plugin-chart-echarts';
 import {
   SelectFilterPlugin,
@@ -166,6 +167,7 @@ export default class MainPreset extends Preset {
         new TimeColumnFilterPlugin().configure({ key: 'filter_timecolumn' }),
         new TimeGrainFilterPlugin().configure({ key: 'filter_timegrain' }),
         new EchartsTreeChartPlugin().configure({ key: 'tree_chart' }),
+        new EchartsSunburstChartPlugin().configure({ key: 'sunburst_2' }),
         ...experimentalplugins,
       ],
     });
