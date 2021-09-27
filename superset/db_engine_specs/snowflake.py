@@ -16,6 +16,7 @@
 # under the License.
 import json
 import re
+import urllib
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING, TypedDict
 from urllib import parse
@@ -25,7 +26,8 @@ from apispec.ext.marshmallow import MarshmallowPlugin
 from babel.core import default_locale
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
-from sqlalchemy.engine.url import URL
+from marshmallow.exceptions import ValidationError
+from sqlalchemy.engine.url import make_url, URL
 
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 from superset.errors import SupersetError, SupersetErrorType
@@ -211,7 +213,6 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         cls, uri: str, encrypted_extra: Optional[Dict[str, str]] = None
     ) -> Any:
         value = make_url(uri)
-
         # Building parameters from encrypted_extra and uri
         if encrypted_extra:
             return {**encrypted_extra, "query": value.query}
