@@ -142,12 +142,13 @@ describe('SaveModal', () => {
 
   it('onChange', () => {
     const wrapper = getWrapper();
+    const dashboardId = mockEvent.value;
 
     wrapper.instance().onSliceNameChange(mockEvent);
     expect(wrapper.state().newSliceName).toBe(mockEvent.target.value);
 
-    wrapper.instance().onDashboardSelectChange(mockEvent);
-    expect(wrapper.state().saveToDashboardId).toBe(mockEvent.value);
+    wrapper.instance().onDashboardSelectChange(dashboardId);
+    expect(wrapper.state().saveToDashboardId).toBe(dashboardId);
   });
 
   describe('saveOrOverwrite', () => {
