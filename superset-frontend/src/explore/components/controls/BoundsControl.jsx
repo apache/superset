@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { InputNumber } from 'src/common/components';
 import { t, styled } from '@superset-ui/core';
-import { isEqual } from 'lodash';
+import { isEqual, debounce } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
 const propTypes = {
@@ -56,7 +56,7 @@ export default class BoundsControl extends React.Component {
         Number.isNaN(this.props.value[1]) ? '' : props.value[1],
       ],
     };
-    this.onChange = this.onChange.bind(this);
+    this.onChange = debounce(this.onChange.bind(this), 300);
     this.onMinChange = this.onMinChange.bind(this);
     this.onMaxChange = this.onMaxChange.bind(this);
     this.update = this.update.bind(this);
