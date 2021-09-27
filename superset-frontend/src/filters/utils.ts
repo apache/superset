@@ -117,18 +117,3 @@ export function getDataRecordFormatter({
     return String(value);
   };
 }
-
-export function formatFilterValue(
-  value: string | number | boolean | null,
-): string {
-  if (value === null) {
-    return NULL_STRING;
-  }
-  if (typeof value === 'string') {
-    return value;
-  }
-  if (typeof value === 'number') {
-    return String(value);
-  }
-  return value ? TRUE_STRING : FALSE_STRING;
-}

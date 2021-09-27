@@ -54,6 +54,7 @@ from geopy.point import Point
 from pandas.tseries.frequencies import to_offset
 
 from superset import app, is_feature_enabled
+from superset.common.db_query_status import QueryStatus
 from superset.constants import NULL_STRING
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -443,14 +444,14 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         except SupersetSecurityException as ex:
             error = dataclasses.asdict(ex.error)
             self.errors.append(error)
-            self.status = utils.QueryStatus.FAILED
+            self.status = QueryStatus.FAILED
 
         payload = self.get_df_payload(query_obj)
 
         # if payload does not have a df, we are raising an error here.
         df = cast(Optional[pd.DataFrame], payload["df"])
 
-        if self.status != utils.QueryStatus.FAILED:
+        if self.status != QueryStatus.FAILED:
             payload["data"] = self.get_data(df)
         if "df" in payload:
             del payload["df"]
@@ -503,7 +504,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                 try:
                     df = cache_value["df"]
                     self.query = cache_value["query"]
-                    self.status = utils.QueryStatus.SUCCESS
+                    self.status = QueryStatus.SUCCESS
                     is_loaded = True
                     stats_logger.incr("loaded_from_cache")
                 except Exception as ex:  # pylint: disable=broad-except
@@ -540,7 +541,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                         )
                     )
                 df = self.get_df(query_obj)
-                if self.status != utils.QueryStatus.FAILED:
+                if self.status != QueryStatus.FAILED:
                     stats_logger.incr("loaded_from_source")
                     if not self.force:
                         stats_logger.incr("loaded_from_source_without_force")
@@ -554,7 +555,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                     )
                 )
                 self.errors.append(error)
-                self.status = utils.QueryStatus.FAILED
+                self.status = QueryStatus.FAILED
             except Exception as ex:  # pylint: disable=broad-except
                 logger.exception(ex)
 
@@ -566,10 +567,10 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                     )
                 )
                 self.errors.append(error)
-                self.status = utils.QueryStatus.FAILED
+                self.status = QueryStatus.FAILED
                 stacktrace = utils.get_stacktrace()
 
-            if is_loaded and cache_key and self.status != utils.QueryStatus.FAILED:
+            if is_loaded and cache_key and self.status != QueryStatus.FAILED:
                 set_and_log_cache(
                     cache_manager.data_cache,
                     cache_key,
@@ -605,7 +606,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
     @staticmethod
     def has_error(payload: VizPayload) -> bool:
         return (
-            payload.get("status") == utils.QueryStatus.FAILED
+            payload.get("status") == QueryStatus.FAILED
             or payload.get("error") is not None
             or bool(payload.get("errors"))
         )
