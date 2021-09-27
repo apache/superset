@@ -144,11 +144,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
 
     @classmethod
     def update(  # pylint: disable=arguments-differ
-        cls,
-        model: SqlaTable,
-        properties: Dict[str, Any],
-        commit: bool = True,
-        override_columns: bool = False,
+        cls, model: SqlaTable, properties: Dict[str, Any], commit: bool = True
     ) -> Optional[SqlaTable]:
         """
         Updates a Dataset model on the metadata DB
@@ -164,7 +160,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
                 model, properties.get("metrics", []), commit=commit
             )
 
-        return super().update(model, properties, commit=True)
+        return super().update(model, properties, commit=False)
 
     @classmethod
     def update_columns(
