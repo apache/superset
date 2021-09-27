@@ -22,6 +22,7 @@ import re
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from pprint import pprint
 from typing import (
     Any,
     cast,
@@ -1662,8 +1663,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         # Check whether the relevant attributes have changed.
         state = db.inspect(target)  # pylint: disable=no-member
-
-        for attr in ["database_id", "schema", "table_name"]:
+        for attr in ["schema", "table_name"]:
             history = state.get_history(attr, True)
 
             if history.has_changes():
@@ -1673,7 +1673,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         if not DatasetDAO.validate_uniqueness(
             target.database_id, target.schema, target.table_name
-        ) and hasattr(target, "columns"):
+        ):
             raise Exception(get_dataset_exist_error_msg(target.full_name))
 
     @staticmethod
