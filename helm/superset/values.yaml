@@ -302,6 +302,7 @@ init:
       command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
   initscript: |-
     #!/bin/sh
+    set -eu
     echo "Upgrading DB schema..."
     superset db upgrade
     echo "Initializing roles..."
