@@ -258,6 +258,10 @@ class HiveEngineSpec(PrestoEngineSpec):
         return None
 
     @classmethod
+    def epoch_to_dttm(cls) -> str:
+        return "from_unixtime({col})"
+
+    @classmethod
     def adjust_database_uri(
         cls, uri: URL, selected_schema: Optional[str] = None
     ) -> None:
