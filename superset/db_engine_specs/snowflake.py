@@ -17,14 +17,18 @@
 import json
 import re
 from datetime import datetime
-from typing import Any, Dict, Optional, Pattern, Tuple, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING, TypedDict
 from urllib import parse
 
+from apispec import APISpec
+from apispec.ext.marshmallow import MarshmallowPlugin
+from babel.core import default_locale
 from flask_babel import gettext as __
+from marshmallow import fields, Schema
 from sqlalchemy.engine.url import URL
 
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
-from superset.errors import SupersetErrorType
+from superset.errors import SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
 from superset.utils import core as utils
 
@@ -42,11 +46,33 @@ SYNTAX_ERROR_REGEX = re.compile(
 )
 
 
+class SnowflakeParametersSchema(Schema):
+    username = fields.Str(required=True)
+    password = fields.Str(required=True)
+    account = fields.Str(required=True)
+    database = fields.Str(required=True)
+    role = fields.Str(required=True)
+    warehouse = fields.Str(required=True)
+
+
+class SnowflakeParametersType(TypedDict):
+    username: str
+    password: str
+    account: str
+    database: str
+    role: str
+    warehouse: str
+
+
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     engine = "snowflake"
     engine_name = "Snowflake"
     force_column_alias_quotes = True
     max_column_name_length = 256
+
+    parameters_schema = SnowflakeParametersSchema()
+    default_driver = "snowflake"
+    sqlalchemy_uri_placeholder = "snowflake://"
 
     _time_grain_expressions = {
         None: "{col}",
@@ -160,3 +186,59 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             return False
 
         return True
+
+    @classmethod
+    def build_sqlalchemy_uri(
+        cls,
+        parameters: SnowflakeParametersType,
+        encrypted_extra: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        query = parameters.get("query", {})
+        query_params = urllib.parse.urlencode(query)
+
+        if not encrypted_extra:
+            raise ValidationError("Missing service credentials")
+
+        project_id = encrypted_extra.get("credentials_info", {}).get("project_id")
+
+        if project_id:
+            return f"{cls.default_driver}://{project_id}/?{query_params}"
+
+        raise ValidationError("Invalid service credentials")
+
+    @classmethod
+    def get_parameters_from_uri(
+        cls, uri: str, encrypted_extra: Optional[Dict[str, str]] = None
+    ) -> Any:
+        value = make_url(uri)
+
+        # Building parameters from encrypted_extra and uri
+        if encrypted_extra:
+            return {**encrypted_extra, "query": value.query}
+
+        raise ValidationError("Invalid service credentials")
+
+    @classmethod
+    def validate_parameters(
+        cls, parameters: SnowflakeParametersType  # pylint: disable=unused-argument
+    ) -> List[SupersetError]:
+        return []
+
+    @classmethod
+    def parameters_json_schema(cls) -> Any:
+        """
+        Return configuration parameters as OpenAPI.
+        """
+        if not cls.parameters_schema:
+            return None
+
+        ma_plugin = MarshmallowPlugin()
+        spec = APISpec(
+            title="Database Parameters",
+            version="1.0.0",
+            openapi_version="3.0.0",
+            plugins=[ma_plugin],
+        )
+
+        spec.components.schema(cls.__name__, schema=cls.parameters_schema)
+        return spec.to_dict()["components"]["schemas"][cls.__name__]
