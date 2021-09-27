@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Utility functions used across Superset"""
+# pylint: disable=too-many-lines
 import collections
 import decimal
 import errno
@@ -1761,3 +1762,25 @@ def parse_boolean_string(bool_str: Optional[str]) -> bool:
         return bool(strtobool(bool_str.lower()))
     except ValueError:
         return False
+
+
+def apply_max_row_limit(limit: int, max_limit: Optional[int] = None,) -> int:
+    """
+    Override row limit if max global limit is defined
+
+    :param limit: requested row limit
+    :param max_limit: Maximum allowed row limit
+    :return: Capped row limit
+
+    >>> apply_max_row_limit(100000, 10)
+    10
+    >>> apply_max_row_limit(10, 100000)
+    10
+    >>> apply_max_row_limit(0, 10000)
+    10000
+    """
+    if max_limit is None:
+        max_limit = current_app.config["SQL_MAX_ROW"]
+    if limit != 0:
+        return min(max_limit, limit)
+    return max_limit

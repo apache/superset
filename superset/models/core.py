@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=line-too-long,unused-argument
 """A collection of ORM sqlalchemy models for Superset"""
 import enum
 import json
@@ -44,7 +43,7 @@ from sqlalchemy import (
     Table,
     Text,
 )
-from sqlalchemy.engine import Dialect, Engine, url
+from sqlalchemy.engine import Connection, Dialect, Engine, url
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.exc import ArgumentError
@@ -244,7 +243,7 @@ class Database(
         uri = make_url(self.sqlalchemy_uri_decrypted)
         encrypted_extra = self.get_encrypted_extra()
         try:
-            parameters = self.db_engine_spec.get_parameters_from_uri(uri, encrypted_extra=encrypted_extra)  # type: ignore
+            parameters = self.db_engine_spec.get_parameters_from_uri(uri, encrypted_extra=encrypted_extra)  # type: ignore # pylint: disable=line-too-long,useless-suppression
         except Exception:  # pylint: disable=broad-except
             parameters = {}
 
@@ -372,7 +371,10 @@ class Database(
                 sqlalchemy_url, params, effective_username, security_manager, source
             )
 
-        return create_engine(sqlalchemy_url, **params)
+        try:
+            return create_engine(sqlalchemy_url, **params)
+        except Exception as ex:
+            raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
 
     def get_reserved_words(self) -> Set[str]:
         return self.get_dialect().preparer.reserved_words
@@ -479,7 +481,7 @@ class Database(
         key=lambda self, *args, **kwargs: f"db:{self.id}:schema:None:table_list",
         cache=cache_manager.data_cache,
     )
-    def get_all_table_names_in_database(
+    def get_all_table_names_in_database(  # pylint: disable=unused-argument
         self,
         cache: bool = False,
         cache_timeout: Optional[bool] = None,
@@ -494,7 +496,7 @@ class Database(
         key=lambda self, *args, **kwargs: f"db:{self.id}:schema:None:view_list",
         cache=cache_manager.data_cache,
     )
-    def get_all_view_names_in_database(
+    def get_all_view_names_in_database(  # pylint: disable=unused-argument
         self,
         cache: bool = False,
         cache_timeout: Optional[bool] = None,
@@ -506,10 +508,10 @@ class Database(
         return self.db_engine_spec.get_all_datasource_names(self, "view")
 
     @cache_util.memoized_func(
-        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:table_list",
+        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:table_list",  # pylint: disable=line-too-long,useless-suppression
         cache=cache_manager.data_cache,
     )
-    def get_all_table_names_in_schema(
+    def get_all_table_names_in_schema(  # pylint: disable=unused-argument
         self,
         schema: str,
         cache: bool = False,
@@ -539,10 +541,10 @@ class Database(
             return []
 
     @cache_util.memoized_func(
-        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:view_list",
+        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:view_list",  # pylint: disable=line-too-long,useless-suppression
         cache=cache_manager.data_cache,
     )
-    def get_all_view_names_in_schema(
+    def get_all_view_names_in_schema(  # pylint: disable=unused-argument
         self,
         schema: str,
         cache: bool = False,
@@ -573,7 +575,7 @@ class Database(
         key=lambda self, *args, **kwargs: f"db:{self.id}:schema_list",
         cache=cache_manager.data_cache,
     )
-    def get_all_schema_names(
+    def get_all_schema_names(  # pylint: disable=unused-argument
         self,
         cache: bool = False,
         cache_timeout: Optional[int] = None,
@@ -720,6 +722,28 @@ class Database(
     def has_table_by_name(self, table_name: str, schema: Optional[str] = None) -> bool:
         engine = self.get_sqla_engine()
         return engine.has_table(table_name, schema)
+
+    @classmethod
+    def _has_view(
+        cls,
+        conn: Connection,
+        dialect: Dialect,
+        view_name: str,
+        schema: Optional[str] = None,
+    ) -> bool:
+        view_names: List[str] = []
+        try:
+            view_names = dialect.get_view_names(connection=conn, schema=schema)
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.warning(ex)
+        return view_name in view_names
+
+    def has_view(self, view_name: str, schema: Optional[str] = None) -> bool:
+        engine = self.get_sqla_engine()
+        return engine.run_callable(self._has_view, engine.dialect, view_name, schema)
+
+    def has_view_by_name(self, view_name: str, schema: Optional[str] = None) -> bool:
+        return self.has_view(view_name=view_name, schema=schema)
 
     @memoized
     def get_dialect(self) -> Dialect:

@@ -129,6 +129,7 @@ export class Tabs extends React.PureComponent {
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleDeleteTab = this.handleDeleteTab.bind(this);
     this.handleDropOnTab = this.handleDropOnTab.bind(this);
+    this.handleDrop = this.handleDrop.bind(this);
   }
 
   componentDidMount() {
@@ -281,6 +282,12 @@ export class Tabs extends React.PureComponent {
     }
   }
 
+  handleDrop(dropResult) {
+    if (dropResult.dragging.type !== TABS_TYPE) {
+      this.props.handleComponentDrop(dropResult);
+    }
+  }
+
   render() {
     const {
       depth,
@@ -292,7 +299,6 @@ export class Tabs extends React.PureComponent {
       onResizeStart,
       onResize,
       onResizeStop,
-      handleComponentDrop,
       renderTabContent,
       renderHoverMenu,
       isComponentVisible: isCurrentTabVisible,
@@ -315,11 +321,7 @@ export class Tabs extends React.PureComponent {
         orientation="row"
         index={index}
         depth={depth}
-        onDrop={dropResult => {
-          if (dropResult.dragging.type !== TABS_TYPE) {
-            handleComponentDrop(dropResult);
-          }
-        }}
+        onDrop={this.handleDrop}
         editMode={editMode}
       >
         {({

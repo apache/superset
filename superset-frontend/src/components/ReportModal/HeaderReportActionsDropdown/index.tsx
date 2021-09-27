@@ -53,9 +53,6 @@ export default function HeaderReportActionsDropDown({
         : report.chart_id === chart?.id,
     ),
   );
-  console.log('this is reports with the filter', reports);
-  const report: AlertObject = Object.values(reports)[0];
-  console.log('this is the individual report', report);
   const user: UserWithPermissionsAndRoles = useSelector<
     any,
     UserWithPermissionsAndRoles
@@ -66,6 +63,7 @@ export default function HeaderReportActionsDropDown({
   ] = useState<AlertObject | null>(null);
   const theme = useTheme();
   const [showModal, setShowModal] = useState<boolean>(false);
+  const [showModal, setShowModal] = useState(false);
   const toggleActiveKey = async (data: AlertObject, checked: boolean) => {
     if (data?.id) {
       toggleActive(data, checked);
@@ -104,10 +102,8 @@ export default function HeaderReportActionsDropDown({
           resourceId: dashboardId || chart?.id,
         }),
       );
-      console.log('mounted', dashboardId);
     }
     return () => {
-      console.log('unmounted', dashboardId);
     };
   }, []);
 
@@ -158,7 +154,6 @@ export default function HeaderReportActionsDropDown({
             >
               <span role="button" className="action-button" tabIndex={0}>
                 <Icons.Calendar />
-                {dashboardId}
               </span>
             </NoAnimationDropdown>
             {currentReportDeleting && (
@@ -187,7 +182,6 @@ export default function HeaderReportActionsDropDown({
             onClick={() => setShowModal(true)}
           >
             <Icons.Calendar />
-            {dashboardId}
           </span>
         )}
       </>
