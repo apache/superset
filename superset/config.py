@@ -1282,6 +1282,7 @@ MENU_HIDE_USER_INFO = False
 SQLALCHEMY_DOCS_URL = "https://docs.sqlalchemy.org/en/13/core/engines.html"
 SQLALCHEMY_DISPLAY_TEXT = "SQLAlchemy docs"
 
+import ipaddress
 
 class BusinessTypeRequest(TypedDict):
     business_type: str
@@ -1294,15 +1295,22 @@ class BusinessTypeResponse(TypedDict, total=False):
     formatted_value: Optional[str]  # a string representation of the parsed value
     valid_filter_operators: List[Literal["==", "<=", "<", "IN", ">=", ">"]]
 
-import ipaddress
+port_conversion_dict: Dict[
+    str, list,
+] = {
+    "https": [443],
+    "ftp": [20, 21],
+}
+
+
 def cidr_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
     resp: BusinessTypeResponse = {}
     try: 
         ip_range = ipaddress.ip_network(req["value"])
         resp["status"] = "valid"
-        resp["value"] = { "start" : int(ip_range[0]), "end" : int(ip_range[-1]) }
+        resp["value"] = { "start" : int(ip_range[0]), "end" : int(ip_range[-1]) } if ip_range[0] != ip_range[-1] else int(ip_range[0])
         resp["formatted_value"] = req["value"]
-        resp["valid_filter_operators"] = ["IN"]
+        resp["valid_filter_operators"] = ["IN"] if  ip_range[0] != ip_range[-1] else ["==", "<=", "<", "IN", ">=", ">"]
     except:
         resp["status"] = "invalid"
         resp["value"] = None
@@ -1310,6 +1318,24 @@ def cidr_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
         resp["valid_filter_operators"] = []
     return resp
 
+
+def port_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
+    resp: BusinessTypeResponse = {}
+    if req["value"] in port_conversion_dict: 
+        resp["status"] = "valid"
+        resp["value"] = port_conversion_dict(req["value"])
+        resp["formatted_value"] = req["value"]
+        resp["valid_filter_operators"] = ["==", "<=", "<", ">=", ">"] if len(req["value"]) == 1 else ["IN"] 
+    elif req["value"].isnumeric() and (0 <= number <= 65535): # Not sure if we care about this case  
+        resp["status"] = "valid"
+        resp["value"] = req["value"]
+        resp["formatted_value"] = req["value"]
+        resp["valid_filter_operators"] = ["==", "<=", "<", ">=", ">"]
+    else: 
+        resp["status"] = "invalid"
+        resp["value"] = None
+        resp["formatted_value"] = None
+        resp["valid_filter_operators"] = []
 
 # the business type key should correspond to that set in the column metadata
 BUSINESS_TYPE_ADDONS: Dict[
