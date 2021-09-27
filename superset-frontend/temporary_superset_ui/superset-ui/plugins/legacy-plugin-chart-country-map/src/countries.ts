@@ -17,6 +17,7 @@ import india from 'file-loader!./countries/india.geojson';
 import indonesia from 'file-loader!./countries/indonesia.geojson';
 import iran from 'file-loader!./countries/iran.geojson';
 import italy from 'file-loader!./countries/italy.geojson';
+import italy_regions from 'file-loader!./countries/italy_regions.geojson';
 import japan from 'file-loader!./countries/japan.geojson';
 import korea from 'file-loader!./countries/korea.geojson';
 import liechtenstein from 'file-loader!./countries/liechtenstein.geojson';
@@ -62,6 +63,7 @@ export const countries = {
   indonesia,
   iran,
   italy,
+  italy_regions,
   japan,
   korea,
   liechtenstein,
@@ -92,6 +94,9 @@ export const countries = {
 export const countryOptions = Object.keys(countries).map(x => {
   if (x === 'uk' || x === 'usa') {
     return [x, x.toUpperCase()];
+  }
+  if (x === 'italy_regions') {
+    return [x, 'Italy (regions)'];
   }
   return [x, x[0].toUpperCase() + x.slice(1)];
 });
