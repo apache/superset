@@ -30,7 +30,18 @@ import re
 import sys
 from collections import OrderedDict
 from datetime import date, timedelta
-from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Type,
+    TYPE_CHECKING,
+    TypedDict,
+    Union,
+)
 
 from cachelib.base import BaseCache
 from celery.schedules import crontab
@@ -1270,6 +1281,41 @@ MENU_HIDE_USER_INFO = False
 # SQLalchemy link doc reference
 SQLALCHEMY_DOCS_URL = "https://docs.sqlalchemy.org/en/13/core/engines.html"
 SQLALCHEMY_DISPLAY_TEXT = "SQLAlchemy docs"
+
+
+class BusinessTypeRequest(TypedDict):
+    business_type: str
+    value: Any  # unparsed value (usually text when passed from text box)
+
+
+class BusinessTypeResponse(TypedDict, total=False):
+    status: Literal["valid", "invalid"]
+    value: Any  # parsed value (can be any value)
+    formatted_value: Optional[str]  # a string representation of the parsed value
+    valid_filter_operators: List[Literal["==", "<=", "<", "IN", ">=", ">"]]
+
+
+def cidr_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
+    resp: BusinessTypeResponse = {}
+    if isinstance(req["value"], str):
+        resp["status"] = "valid"
+        resp["value"] = 123456
+        resp["formatted_value"] = req["value"]
+        resp["valid_filter_operators"] = ["IN"]
+    else:
+        resp["status"] = "invalid"
+        resp["value"] = None
+        resp["formatted_value"] = None
+        resp["valid_filter_operators"] = []
+    return resp
+
+
+# the business type key should correspond to that set in the column metadata
+BUSINESS_TYPE_ADDONS: Dict[
+    str, Callable[[BusinessTypeRequest], BusinessTypeResponse]
+] = {
+    "cidr": cidr_func,
+}
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
