@@ -512,6 +512,7 @@ const sharedControls = {
   series_columns: enableExploreDnd ? dndColumnsControl : columnsControl,
   series_limit,
   series_limit_metric: enableExploreDnd ? dnd_sort_by : sort_by,
+  legacy_order_by: enableExploreDnd ? dnd_sort_by : sort_by,
 };
 
 export default sharedControls;

@@ -16,24 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import * as sectionsModule from './sections';
+import { t } from '@superset-ui/core';
+import { ControlSetRow } from '../types';
 
-export * from './utils';
-export * from './constants';
-export * from './operators';
-
-// can't do `export * as sections from './sections'`, babel-transformer will fail
-export const sections = sectionsModule;
-
-export * from './components/InfoTooltipWithTrigger';
-export * from './components/ColumnOption';
-export * from './components/ColumnTypeLabel';
-export * from './components/MetricOption';
-
-// React control components
-export { default as sharedControls } from './shared-controls';
-export { default as sharedControlComponents } from './shared-controls/components';
-export { legacySortBy } from './shared-controls/legacySortBy';
-export * from './shared-controls/emitFilterControl';
-export * from './shared-controls/components';
-export * from './types';
+export const legacySortBy: ControlSetRow[] = [
+  ['legacy_order_by'],
+  [
+    {
+      name: 'order_desc',
+      config: {
+        type: 'CheckboxControl',
+        label: t('Sort descending'),
+        default: true,
+        description: t(
+          'Whether to sort descending or ascending. Takes effect only when "Sort by" is set',
+        ),
+      },
+    },
+  ],
+];
