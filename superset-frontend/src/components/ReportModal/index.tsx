@@ -25,8 +25,7 @@ import React, {
   FunctionComponent,
 } from 'react';
 import { t, SupersetTheme } from '@superset-ui/core';
-import { bindActionCreators } from 'redux';
-import { connect, useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { addReport, editReport } from 'src/reports/actions/reports';
 import { AlertObject } from 'src/views/CRUD/alert/types';
 
@@ -77,14 +76,14 @@ interface ReportProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
   addReport: (report?: ReportObject) => {};
-  onHide: () => {};
+  onHide: () => void;
   onReportAdd: (report?: ReportObject) => {};
-  show: boolean;
+  showModal: boolean;
   userId: number;
   userEmail: string;
   dashboardId?: number;
   chart?: ChartState;
-  props: any;
+  props?: any;
 }
 
 interface ReportPayloadType {
@@ -154,7 +153,7 @@ const reportReducer = (
 const ReportModal: FunctionComponent<ReportProps> = ({
   onReportAdd,
   onHide,
-  show = false,
+  showModal = false,
   dashboardId,
   chart,
   userId,
@@ -291,7 +290,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
 
   return (
     <StyledModal
-      show={show}
+      show={showModal}
       onHide={onClose}
       title={wrappedTitle}
       footer={renderModalFooter}
@@ -381,7 +380,4 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   );
 };
 
-const mapDispatchToProps = (dispatch: any) =>
-  bindActionCreators({ addReport, editReport }, dispatch);
-
-export default connect(null, mapDispatchToProps)(withToasts(ReportModal));
+export default withToasts(ReportModal);

@@ -517,6 +517,7 @@ class Header extends React.PureComponent {
                 </span>
               )}
               <HeaderReportActionsDropdown
+                key={dashboardInfo.id}
                 toggleActive={this.props.toggleActive}
                 deleteActiveReport={this.props.deleteActiveReport}
                 dashboardId={dashboardInfo.id}
