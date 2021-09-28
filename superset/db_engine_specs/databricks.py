@@ -24,14 +24,14 @@ from superset.db_engine_specs.hive import HiveEngineSpec
 
 class DatabricksHiveEngineSpec(HiveEngineSpec):
     engine = "databricks"
-    engine_name = "Databricks (Hive)"
+    engine_name = "Databricks Interactive Cluster"
     driver = "pyhive"
     _show_functions_column = "function"
 
 
 class DatabricksODBCEngineSpec(BaseEngineSpec):
     engine = "databricks"
-    engine_name = "Databricks (ODBC)"
+    engine_name = "Databricks SQL Endpoint"
     driver = "pyodbc"
 
     # the syntax for the ODBC engine is identical to the Hive one, so
