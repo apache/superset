@@ -22,7 +22,6 @@ import re
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from pprint import pprint
 from typing import (
     Any,
     cast,
@@ -1663,6 +1662,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         # Check whether the relevant attributes have changed.
         state = db.inspect(target)  # pylint: disable=no-member
+
         for attr in ["database_id", "schema", "table_name"]:
             history = state.get_history(attr, True)
 
