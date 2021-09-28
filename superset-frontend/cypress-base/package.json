@@ -18,7 +18,6 @@
   },
   "devDependencies": {
     "cypress": "^7.0.0",
-    "@cypress/webpack-dev-server": "^1.6.0",
     "eslint-plugin-cypress": "^2.12.1"
   },
   "nyc": {
