@@ -80,28 +80,39 @@ export default function transformProps(chartProps: ChartProps) {
     return columnMap;
   }, columnTypeMap);
 
+  const columnVerboseNameMap = new Map<string, string>();
+
+  columns.reduce(function (columnMap, column: Column) {
+    // @ts-ignore
+    const name = column['column_name'];
+    // @ts-ignore
+    columnMap[name] = column.verbose_name;
+    return columnMap;
+  }, columnVerboseNameMap);
+ 
   const formColumns = formData.columns as any;
 
   const columnDefs = formColumns.map((c: any) => {
+    const columnType = columnTypeMap[c];
+    const columnHeader = columnVerboseNameMap[c] ? columnVerboseNameMap[c] : c;
     return {
       field: c,
       minWidth: 50,
+      headerName: columnHeader,
       // @ts-ignore
       cellRenderer: columnTypeMap[c] == 'IPV4' ? 'ipv4ValueRenderer' :
       // @ts-ignore
-      columnTypeMap[c] == 'IPV6' ? 'ipv6ValueRenderer' :
+      columnType == 'IPV6' ? 'ipv6ValueRenderer' :
       // @ts-ignore
-      columnTypeMap[c] == 'DOMAIN' ? 'domainValueRenderer' :
+      columnType == 'DOMAIN' ? 'domainValueRenderer' :
       // @ts-ignore
-      columnTypeMap[c] == 'COUNTRY' ? 'countryValueRenderer' :
+      columnType == 'COUNTRY' ? 'countryValueRenderer' :
       // @ts-ignore
-      columnTypeMap[c] == 'JSON' ? 'jsonValueRenderer' :
+      columnType == 'JSON' ? 'jsonValueRenderer' :
               undefined,
       sortable: true,
     };
   });
-
-  console.log(columnDefs);
 
   return {
     formData,
