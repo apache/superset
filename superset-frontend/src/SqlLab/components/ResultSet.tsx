@@ -25,11 +25,16 @@ import { RadioChangeEvent } from 'antd/lib/radio';
 import Button from 'src/components/Button';
 import shortid from 'shortid';
 import rison from 'rison';
-import { styled, t, makeApi } from '@superset-ui/core';
+import {
+  styled,
+  t,
+  makeApi,
+  SupersetClient,
+  JsonResponse,
+} from '@superset-ui/core';
 import { debounce } from 'lodash';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
-import { put as updateDatset } from 'src/api/dataset';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import Loading from '../../components/Loading';
 import ExploreCtasResultsButton from './ExploreCtasResultsButton';
@@ -132,6 +137,27 @@ const ResultSetButtons = styled.div`
 const ResultSetErrorMessage = styled.div`
   padding-top: ${({ theme }) => 4 * theme.gridUnit}px;
 `;
+
+const updateDataset = async (
+  datasetId: number,
+  sql: string,
+  columns: Array<Record<string, any>>,
+  overrideColumns: boolean,
+) => {
+  const endpoint = `api/v1/dataset/${datasetId}?override_columns=${overrideColumns}`;
+  const headers = { 'Content-Type': 'application/json' };
+  const body = JSON.stringify({
+    sql,
+    columns,
+  });
+
+  const data: JsonResponse = await SupersetClient.put({
+    endpoint,
+    headers,
+    body,
+  });
+  return data.json.result;
+};
 
 export default class ResultSet extends React.PureComponent<
   ResultSetProps,
@@ -236,12 +262,11 @@ export default class ResultSet extends React.PureComponent<
   };
 
   handleOverwriteDataset = async () => {
-    const { sql, results, dbId } = this.props.query;
+    const { sql, results } = this.props.query;
     const { datasetToOverwrite } = this.state;
 
-    await updateDatset(
+    await updateDataset(
       datasetToOverwrite.datasetId,
-      dbId,
       sql,
       results.selected_columns.map(d => ({ column_name: d.name })),
       true,
@@ -487,17 +512,15 @@ export default class ResultSet extends React.PureComponent<
             onChangeAutoComplete={this.handleOnChangeAutoComplete}
           />
           <ResultSetButtons>
-            {this.props.visualize &&
-              this.props.database &&
-              this.props.database.allows_virtual_table_explore && (
-                <ExploreResultsButton
-                  // @ts-ignore Redux types are difficult to work with, ignoring for now
-                  query={this.props.query}
-                  database={this.props.database}
-                  actions={this.props.actions}
-                  onClick={this.handleExploreBtnClick}
-                />
-              )}
+            {this.props.visualize && this.props.database && (
+              <ExploreResultsButton
+                // @ts-ignore Redux types are difficult to work with, ignoring for now
+                query={this.props.query}
+                database={this.props.database}
+                actions={this.props.actions}
+                onClick={this.handleExploreBtnClick}
+              />
+            )}
             {this.props.csv && (
               <Button
                 buttonSize="small"

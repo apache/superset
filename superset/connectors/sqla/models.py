@@ -1663,7 +1663,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         # Check whether the relevant attributes have changed.
         state = db.inspect(target)  # pylint: disable=no-member
-        for attr in ["schema", "table_name"]:
+        for attr in ["database_id", "schema", "table_name"]:
             history = state.get_history(attr, True)
 
             if history.has_changes():
