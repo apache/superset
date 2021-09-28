@@ -25,6 +25,7 @@ import CountryValueRenderer from './CountryValueRenderer';
 import Ipv4ValueRenderer from './Ipv4ValueRenderer';
 import Ipv6ValueRenderer from './Ipv6ValueRenderer';
 import DomainValueRenderer from './DomainValueRenderer';
+import JsonValueRenderer from './JsonValueRenderer';
 import CustomTooltip from './CustomTooltip';
 
 
@@ -47,7 +48,7 @@ import {
 
 const DEFAULT_COLUMN_DEF = {
   flex: 1,
-  minWidth: 100,
+  minWidth: 125,
   editable: true,
   sortable: true,
   filter: true,
@@ -55,7 +56,6 @@ const DEFAULT_COLUMN_DEF = {
   tooltipField: '',
   tooltipComponent: 'customTooltip',
 };
-
 
 export default function CccsGrid({
   width,
@@ -131,6 +131,7 @@ export default function CccsGrid({
     ipv4ValueRenderer: Ipv4ValueRenderer,
     ipv6ValueRenderer: Ipv6ValueRenderer,
     domainValueRenderer: DomainValueRenderer,
+    jsonValueRenderer: JsonValueRenderer,
     customTooltip: CustomTooltip,
   };
 

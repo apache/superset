@@ -94,6 +94,8 @@ export default function transformProps(chartProps: ChartProps) {
       columnTypeMap[c] == 'DOMAIN' ? 'domainValueRenderer' :
       // @ts-ignore
       columnTypeMap[c] == 'COUNTRY' ? 'countryValueRenderer' :
+      // @ts-ignore
+      columnTypeMap[c] == 'JSON' ? 'jsonValueRenderer' :
               undefined,
       sortable: true,
     };
