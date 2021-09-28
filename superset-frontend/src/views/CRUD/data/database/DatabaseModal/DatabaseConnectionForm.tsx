@@ -432,8 +432,6 @@ const queryField = ({
   />
 );
 
-
-
 const forceSSLField = ({
   isEditMode,
   changeMethods,
