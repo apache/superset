@@ -211,40 +211,11 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     onComparatorChange,
   } = useSimpleTabFilterProps(props);
   const [suggestions, setSuggestions] = useState<Record<string, any>>([]);
+  const [comparator, setComparator] = useState(props.adhocFilter.comparator);
   const [
     loadingComparatorSuggestions,
     setLoadingComparatorSuggestions,
   ] = useState(false);
-
-  useEffect(() => {
-    const refreshComparatorSuggestions = () => {
-      const { datasource } = props;
-      const col = props.adhocFilter.subject;
-      const having = props.adhocFilter.clause === CLAUSES.HAVING;
-
-      if (col && datasource && datasource.filter_select && !having) {
-        const controller = new AbortController();
-        const { signal } = controller;
-        if (loadingComparatorSuggestions) {
-          controller.abort();
-        }
-        setLoadingComparatorSuggestions(true);
-        SupersetClient.get({
-          signal,
-          endpoint: `/superset/filter/${datasource.type}/${datasource.id}/${col}/`,
-        })
-          .then(({ json }) => {
-            setSuggestions(json);
-            setLoadingComparatorSuggestions(false);
-          })
-          .catch(() => {
-            setSuggestions([]);
-            setLoadingComparatorSuggestions(false);
-          });
-      }
-    };
-    refreshComparatorSuggestions();
-  }, [props.adhocFilter.subject]);
 
   const onInputComparatorChange = (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -257,7 +228,6 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   );
 
   const getOptionsRemaining = () => {
-    const { comparator } = props.adhocFilter;
     // if select is multi/value is array, we show the options not selected
     const valuesFromSuggestionsLength = Array.isArray(comparator)
       ? comparator.filter(v => suggestions.includes(v)).length
@@ -271,7 +241,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   };
 
   let columns = props.options;
-  const { subject, operator, comparator, operatorId } = props.adhocFilter;
+  const { subject, operator, operatorId } = props.adhocFilter;
 
   const subjectSelectProps = {
     ariaLabel: t('Select subject'),
@@ -344,6 +314,42 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
       width: max-content;
     }
   `;
+
+  useEffect(() => {
+    const refreshComparatorSuggestions = () => {
+      const { datasource } = props;
+      const col = props.adhocFilter.subject;
+      const having = props.adhocFilter.clause === CLAUSES.HAVING;
+
+      if (col && datasource && datasource.filter_select && !having) {
+        const controller = new AbortController();
+        const { signal } = controller;
+        if (loadingComparatorSuggestions) {
+          controller.abort();
+        }
+        setLoadingComparatorSuggestions(true);
+        SupersetClient.get({
+          signal,
+          endpoint: `/superset/filter/${datasource.type}/${datasource.id}/${col}/`,
+        })
+          .then(({ json }) => {
+            setSuggestions(json);
+            setLoadingComparatorSuggestions(false);
+            setComparator(undefined);
+          })
+          .catch(() => {
+            setSuggestions([]);
+            setLoadingComparatorSuggestions(false);
+            setComparator(undefined);
+          });
+      }
+    };
+    refreshComparatorSuggestions();
+  }, [props.adhocFilter.subject]);
+
+  useEffect(() => {
+    setComparator(props.adhocFilter.comparator);
+  }, [props.adhocFilter.comparator]);
 
   return (
     <>
