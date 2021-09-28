@@ -455,6 +455,7 @@ if (isDevMode) {
     },
     static: path.join(process.cwd(), '../static/assets'),
   };
+  config.watchOptions = { followSymlinks: true };
 
   // make sure to use @emotion/* modules in the root directory
   fs.readdirSync(path.resolve(APP_DIR, './node_modules/@emotion'), pkg => {
