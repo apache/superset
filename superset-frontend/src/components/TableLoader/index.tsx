@@ -21,7 +21,7 @@ import { t, SupersetClient, JsonObject } from '@superset-ui/core';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Loading from 'src/components/Loading';
-import 'stylesheets/reactable-pagination.less';
+import '../../assets/stylesheets/reactable-pagination.less';
 
 export interface TableLoaderProps {
   dataEndpoint?: string;
