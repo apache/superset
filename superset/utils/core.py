@@ -562,6 +562,8 @@ def base_json_conv(obj: Any,) -> Any:  # pylint: disable=inconsistent-return-sta
         return float(obj)
     if isinstance(obj, uuid.UUID):
         return str(obj)
+    if isinstance(obj, time):
+        return str(obj)
     if isinstance(obj, timedelta):
         return format_timedelta(obj)
     if isinstance(obj, bytes):
@@ -584,7 +586,7 @@ def json_iso_dttm_ser(obj: Any, pessimistic: bool = False) -> str:
     val = base_json_conv(obj)
     if val is not None:
         return val
-    if isinstance(obj, (datetime, date, time, pd.Timestamp)):
+    if isinstance(obj, (datetime, date, pd.Timestamp)):
         obj = obj.isoformat()
     else:
         if pessimistic:
