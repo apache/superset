@@ -123,12 +123,14 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "changed_by.last_name",
         "changed_on",
         "changed_on_delta_humanized",
+        "chart_id",
         "created_by.first_name",
         "created_by.last_name",
         "created_on",
         "creation_method",
         "crontab",
         "crontab_humanized",
+        "dashboard_id",
         "description",
         "id",
         "last_eval_dttm",
@@ -271,7 +273,6 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
 
     @expose("/", methods=["POST"])
     @protect()
-    @safe
     @statsd_metrics
     @permission_name("post")
     def post(self) -> Response:

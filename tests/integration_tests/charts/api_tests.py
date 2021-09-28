@@ -18,7 +18,7 @@
 """Unit tests for Superset"""
 import json
 import unittest
-from datetime import datetime, timedelta
+from datetime import datetime
 from io import BytesIO
 from typing import Optional
 from unittest import mock
@@ -35,7 +35,7 @@ import humanize
 import prison
 import pytest
 import yaml
-from sqlalchemy import and_, or_
+from sqlalchemy import and_
 from sqlalchemy.sql import func
 
 from tests.integration_tests.fixtures.world_bank_dashboard import (
@@ -1203,6 +1203,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.login(username="admin")
         request_payload = get_query_context("birth_names")
         del request_payload["queries"][0]["row_limit"]
+
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
         response_payload = json.loads(rv.data.decode("utf-8"))
         result = response_payload["result"][0]
@@ -1210,16 +1211,69 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
-        "superset.common.query_actions.config", {**app.config, "SAMPLES_ROW_LIMIT": 5},
+        "superset.utils.core.current_app.config", {**app.config, "SQL_MAX_ROW": 10},
     )
-    def test_chart_data_default_sample_limit(self):
+    def test_chart_data_sql_max_row_limit(self):
         """
-        Chart data API: Ensure sample response row count doesn't exceed default limit
+        Chart data API: Ensure row count doesn't exceed max global row limit
+        """
+        self.login(username="admin")
+        request_payload = get_query_context("birth_names")
+        request_payload["queries"][0]["row_limit"] = 10000000
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        response_payload = json.loads(rv.data.decode("utf-8"))
+        result = response_payload["result"][0]
+        self.assertEqual(result["rowcount"], 10)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch(
+        "superset.common.query_object.config", {**app.config, "SAMPLES_ROW_LIMIT": 5},
+    )
+    def test_chart_data_sample_default_limit(self):
+        """
+        Chart data API: Ensure sample response row count defaults to config defaults
+        """
+        self.login(username="admin")
+        request_payload = get_query_context("birth_names")
+        request_payload["result_type"] = utils.ChartDataResultType.SAMPLES
+        del request_payload["queries"][0]["row_limit"]
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        response_payload = json.loads(rv.data.decode("utf-8"))
+        result = response_payload["result"][0]
+        self.assertEqual(result["rowcount"], 5)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch(
+        "superset.common.query_actions.config",
+        {**app.config, "SAMPLES_ROW_LIMIT": 5, "SQL_MAX_ROW": 15},
+    )
+    def test_chart_data_sample_custom_limit(self):
+        """
+        Chart data API: Ensure requested sample response row count is between
+        default and SQL max row limit
         """
         self.login(username="admin")
         request_payload = get_query_context("birth_names")
         request_payload["result_type"] = utils.ChartDataResultType.SAMPLES
         request_payload["queries"][0]["row_limit"] = 10
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        response_payload = json.loads(rv.data.decode("utf-8"))
+        result = response_payload["result"][0]
+        self.assertEqual(result["rowcount"], 10)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch(
+        "superset.utils.core.current_app.config", {**app.config, "SQL_MAX_ROW": 5},
+    )
+    def test_chart_data_sql_max_row_sample_limit(self):
+        """
+        Chart data API: Ensure requested sample response row count doesn't
+        exceed SQL max row limit
+        """
+        self.login(username="admin")
+        request_payload = get_query_context("birth_names")
+        request_payload["result_type"] = utils.ChartDataResultType.SAMPLES
+        request_payload["queries"][0]["row_limit"] = 10000000
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
         response_payload = json.loads(rv.data.decode("utf-8"))
         result = response_payload["result"][0]
@@ -1715,6 +1769,9 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         chart = db.session.query(Slice).filter_by(uuid=chart_config["uuid"]).one()
         assert chart.table == dataset
 
+        chart.owners = []
+        dataset.owners = []
+        database.owners = []
         db.session.delete(chart)
         db.session.delete(dataset)
         db.session.delete(database)
@@ -1784,6 +1841,9 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         dataset = database.tables[0]
         chart = db.session.query(Slice).filter_by(uuid=chart_config["uuid"]).one()
 
+        chart.owners = []
+        dataset.owners = []
+        database.owners = []
         db.session.delete(chart)
         db.session.delete(dataset)
         db.session.delete(database)
@@ -1950,3 +2010,24 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             "verbose_name",
             "dtype",
         ]
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_chart_data_series_limit(self):
+        """
+        Chart data API: Query total rows
+        """
+        SERIES_LIMIT = 5
+        self.login(username="admin")
+        request_payload = get_query_context("birth_names")
+        request_payload["queries"][0]["columns"] = ["state", "name"]
+        request_payload["queries"][0]["series_columns"] = ["name"]
+        request_payload["queries"][0]["series_limit"] = SERIES_LIMIT
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        response_payload = json.loads(rv.data.decode("utf-8"))
+        data = response_payload["result"][0]["data"]
+        unique_names = set(row["name"] for row in data)
+        self.maxDiff = None
+        self.assertEqual(len(unique_names), SERIES_LIMIT)
+        self.assertEqual(
+            set(column for column in data[0].keys()), {"state", "name", "sum__num"}
+        )

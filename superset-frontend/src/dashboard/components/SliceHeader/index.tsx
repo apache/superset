@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC } from 'react';
+import React, { FC, useMemo } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import { useDispatch, useSelector } from 'react-redux';
@@ -89,6 +89,14 @@ const SliceHeader: FC<SliceHeaderProps> = ({
     state => state.dataMask[slice?.slice_id]?.filterState?.value,
   );
 
+  const indicator = useMemo(
+    () => ({
+      value: crossFilterValue,
+      name: t('Emitted values'),
+    }),
+    [crossFilterValue],
+  );
+
   return (
     <div className="chart-header" data-test="slice-header" ref={innerRef}>
       <div className="header-title">
@@ -139,10 +147,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 placement="top"
                 title={
                   <FilterIndicator
-                    indicator={{
-                      value: crossFilterValue,
-                      name: t('Emitted values'),
-                    }}
+                    indicator={indicator}
                     text={t('Click to clear emitted filters')}
                   />
                 }

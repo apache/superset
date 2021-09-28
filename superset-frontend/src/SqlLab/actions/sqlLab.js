@@ -898,6 +898,8 @@ export function updateSavedQuery(query) {
 
 export function queryEditorSetSql(queryEditor, sql) {
   return function (dispatch) {
+    // saved query and set tab state use this action
+    dispatch({ type: QUERY_EDITOR_SET_SQL, queryEditor, sql });
     if (isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)) {
       return SupersetClient.put({
         endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
@@ -914,7 +916,7 @@ export function queryEditorSetSql(queryEditor, sql) {
         ),
       );
     }
-    return dispatch({ type: QUERY_EDITOR_SET_SQL, queryEditor, sql });
+    return Promise.resolve();
   };
 }
 
@@ -949,6 +951,11 @@ export function queryEditorSetQueryLimit(queryEditor, queryLimit) {
 
 export function queryEditorSetTemplateParams(queryEditor, templateParams) {
   return function (dispatch) {
+    dispatch({
+      type: QUERY_EDITOR_SET_TEMPLATE_PARAMS,
+      queryEditor,
+      templateParams,
+    });
     const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
       ? SupersetClient.put({
           endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
@@ -956,24 +963,16 @@ export function queryEditorSetTemplateParams(queryEditor, templateParams) {
         })
       : Promise.resolve();
 
-    return sync
-      .then(() =>
-        dispatch({
-          type: QUERY_EDITOR_SET_TEMPLATE_PARAMS,
-          queryEditor,
-          templateParams,
-        }),
-      )
-      .catch(() =>
-        dispatch(
-          addDangerToast(
-            t(
-              'An error occurred while setting the tab template parameters. ' +
-                'Please contact your administrator.',
-            ),
+    return sync.catch(() =>
+      dispatch(
+        addDangerToast(
+          t(
+            'An error occurred while setting the tab template parameters. ' +
+              'Please contact your administrator.',
           ),
         ),
-      );
+      ),
+    );
   };
 }
 

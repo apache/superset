@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { t, SupersetTheme, css, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
@@ -46,22 +46,23 @@ export default function HeaderReportActionsDropDown({
   chart?: ChartState;
 }) {
   const dispatch = useDispatch();
-  const reports: Record<number, AlertObject> = useSelector<any, AlertObject>(
-    state => state.reports,
+  const reports: any = useSelector<any>(state =>
+    Object.values(state.reports).filter((report: any) =>
+      dashboardId
+        ? report.dashboard_id === dashboardId
+        : report.chart_id === chart?.id,
+    ),
   );
   const user: UserWithPermissionsAndRoles = useSelector<
     any,
     UserWithPermissionsAndRoles
   >(state => state.user || state.explore?.user);
-  const reportsIds = Object.keys(reports || []);
-  const report: AlertObject = reports?.[reportsIds[0]];
   const [
     currentReportDeleting,
     setCurrentReportDeleting,
   ] = useState<AlertObject | null>(null);
   const theme = useTheme();
-  const [showModal, setShowModal] = useState(false);
-  const dashboardIdRef = useRef(dashboardId);
+  const [showModal, setShowModal] = useState<boolean>(false);
   const toggleActiveKey = async (data: AlertObject, checked: boolean) => {
     if (data?.id) {
       toggleActive(data, checked);
@@ -92,7 +93,6 @@ export default function HeaderReportActionsDropDown({
 
   useEffect(() => {
     if (canAddReports()) {
-      dashboardIdRef.current = dashboardId;
       dispatch(
         fetchUISpecificReport({
           userId: user.userId,
@@ -102,26 +102,8 @@ export default function HeaderReportActionsDropDown({
         }),
       );
     }
-  }, [dashboardId]);
-
-  // (TODO: lyndsiWilliams): Leaving this in case we decide we need it after all
-  // useEffect(() => {
-  //   if (
-  //     canAddReports() &&
-  //     dashboardId &&
-  //     dashboardId !== dashboardIdRef.current
-  //   ) {
-  //     dashboardIdRef.current = dashboardId;
-  //     dispatch(
-  //       fetchUISpecificReport({
-  //         userId: user.userId,
-  //         filterField: 'dashboard_id',
-  //         creationMethod: 'dashboards',
-  //         resourceId: dashboardId,
-  //       }),
-  //     );
-  //   }
-  // }, [dashboardId]);
+    return () => {};
+  }, []);
 
   const menu = () => (
     <Menu selectable={false} css={{ width: '200px' }}>
@@ -129,8 +111,8 @@ export default function HeaderReportActionsDropDown({
         {t('Email reports active')}
         <Switch
           data-test="toggle-active"
-          checked={report?.active}
-          onClick={(checked: boolean) => toggleActiveKey(report, checked)}
+          checked={reports?.active}
+          onClick={(checked: boolean) => toggleActiveKey(reports, checked)}
           size="small"
           css={{ marginLeft: theme.gridUnit * 2 }}
         />
@@ -139,7 +121,7 @@ export default function HeaderReportActionsDropDown({
         {t('Edit email report')}
       </Menu.Item>
       <Menu.Item
-        onClick={() => setCurrentReportDeleting(report)}
+        onClick={() => setCurrentReportDeleting(reports)}
         css={deleteColor}
       >
         {t('Delete email report')}
@@ -151,14 +133,14 @@ export default function HeaderReportActionsDropDown({
     canAddReports() && (
       <>
         <ReportModal
-          show={showModal}
-          onHide={() => setShowModal(false)}
           userId={user.userId}
+          showModal={showModal}
+          onHide={() => setShowModal(false)}
           userEmail={user.email}
           dashboardId={dashboardId}
           chart={chart}
         />
-        {report ? (
+        {reports ? (
           <>
             <NoAnimationDropdown
               // ref={ref}

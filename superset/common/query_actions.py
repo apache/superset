@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import copy
-import math
 from typing import Any, Callable, cast, Dict, List, Optional, TYPE_CHECKING
 
 from flask_babel import _
@@ -131,15 +130,11 @@ def _get_samples(
     query_context: "QueryContext", query_obj: "QueryObject", force_cached: bool = False
 ) -> Dict[str, Any]:
     datasource = _get_datasource(query_context, query_obj)
-    row_limit = query_obj.row_limit or math.inf
     query_obj = copy.copy(query_obj)
     query_obj.is_timeseries = False
     query_obj.orderby = []
-    query_obj.groupby = []
     query_obj.metrics = []
     query_obj.post_processing = []
-    query_obj.row_limit = min(row_limit, config["SAMPLES_ROW_LIMIT"])
-    query_obj.row_offset = 0
     query_obj.columns = [o.column_name for o in datasource.columns]
     return _get_full(query_context, query_obj, force_cached)
 
