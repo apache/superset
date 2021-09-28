@@ -432,12 +432,19 @@ const queryField = ({
   />
 );
 
+
+
 const forceSSLField = ({
   isEditMode,
   changeMethods,
   db,
   sslForced,
-}: FieldPropTypes) => {
+}: FieldPropTypes) => { 
+    const tooltipText = {
+      "PostgreSQL": 'Requires a root certificate authority (public, local, or self-signed). SSL Mode "require" will be used.',
+      "MySQL": 'Requires a root certificate authority (public, local, or self-signed).',
+      "Amazon Redshift":'Requires a root certificate authority (public, local, or self-signed). SSL Mode "verify-ca" will be used.'
+    }
     return (
       <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
         <Switch
@@ -454,25 +461,10 @@ const forceSSLField = ({
             });
           } } />
         <span css={toggleStyle}>SSL</span>
-
-        {db?.database_name === 'PostgreSQL' && (
-          <InfoTooltip
-            tooltip={t('Requires a root certificate authority (public, local, or self-signed). SSL Mode "require" will be used.')}
-            placement="right"
-            viewBox="0 -5 24 24" />)}
-
-        {db?.database_name === 'MySQL' && (
-          <InfoTooltip
-            tooltip={t('Requires a root certificate authority (public, local, or self-signed).')}
-            placement="right"
-            viewBox="0 -5 24 24" />)}
-
-        {db?.database_name === 'Amazon Redshift' && (
-          <InfoTooltip
-            tooltip={t('Requires a root certificate authority (public, local, or self-signed). SSL Mode "verify-ca" will be used.')}
-            placement="right"
-            viewBox="0 -5 24 24" />)}
-
+        <InfoTooltip
+          tooltip={t(tooltipText[db?.database_name!])}
+          placement="right"
+          viewBox="0 -5 24 24" />
       </div>
     );
   }
