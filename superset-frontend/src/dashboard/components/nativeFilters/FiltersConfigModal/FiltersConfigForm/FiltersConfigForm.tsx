@@ -44,7 +44,7 @@ import React, {
   useState,
 } from 'react';
 import { useSelector } from 'react-redux';
-import { isEqual } from 'lodash';
+import { isEqual, isEmpty } from 'lodash';
 import { FormItem } from 'src/components/Form';
 import { Input } from 'src/common/components';
 import { Select } from 'src/components';
@@ -62,6 +62,7 @@ import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 import { Radio } from 'src/components/Radio';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
+import { usePrevious } from 'src/common/hooks/usePrevious';
 import {
   Chart,
   ChartsState,
@@ -70,7 +71,7 @@ import {
 } from 'src/dashboard/types';
 import Loading from 'src/components/Loading';
 import { ColumnSelect } from './ColumnSelect';
-import { NativeFiltersForm } from '../types';
+import { NativeFiltersForm, FilterRemoval } from '../types';
 import {
   FILTER_SUPPORTED_TYPES,
   hasTemporalColumns,
@@ -264,7 +265,7 @@ const FilterPanels = {
 export interface FiltersConfigFormProps {
   filterId: string;
   filterToEdit?: Filter;
-  removed?: boolean;
+  removedFilters: Record<string, FilterRemoval>;
   restoreFilter: (filterId: string) => void;
   form: FormInstance<NativeFiltersForm>;
   parentFilters: { id: string; title: string }[];
@@ -300,21 +301,22 @@ const FiltersConfigForm = (
   {
     filterId,
     filterToEdit,
-    removed,
+    removedFilters,
     restoreFilter,
     form,
     parentFilters,
   }: FiltersConfigFormProps,
   ref: React.RefObject<any>,
 ) => {
+  const removed = !!removedFilters[filterId];
   const [error, setError] = useState<string>('');
   const [metrics, setMetrics] = useState<Metric[]>([]);
   const [activeTabKey, setActiveTabKey] = useState<string>(
     FilterTabs.configuration.key,
   );
   const [activeFilterPanelKey, setActiveFilterPanelKey] = useState<
-    string | string[]
-  >(FilterPanels.basic.key);
+    string | string[] | undefined
+  >();
   const [undoFormValues, setUndoFormValues] = useState<Record<
     string,
     any
@@ -324,6 +326,31 @@ const FiltersConfigForm = (
   const defaultFormFilter = useMemo(() => ({}), []);
   const formValues = form.getFieldValue('filters')?.[filterId];
   const formFilter = formValues || undoFormValues || defaultFormFilter;
+  const previousRemovedFilters = usePrevious(removedFilters);
+
+  const parentFilterOptions = useMemo(
+    () =>
+      parentFilters.map(filter => ({
+        value: filter.id,
+        label: filter.title,
+      })),
+    [parentFilters],
+  );
+
+  const parentId =
+    formFilter?.parentFilter?.value || filterToEdit?.cascadeParentIds?.[0];
+
+  const parentFilter = parentFilterOptions.find(
+    ({ value }) => value === parentId,
+  );
+
+  const [isHierarchical, setIsHierarchical] = useState(!!parentFilter);
+
+  useEffect(() => {
+    if (!isEqual(removedFilters, previousRemovedFilters)) {
+      setIsHierarchical(parentId && !removedFilters[parentId]);
+    }
+  }, [parentId, previousRemovedFilters, removedFilters]);
 
   const nativeFilterItems = getChartMetadataRegistry().items;
   const nativeFilterVizTypes = Object.entries(nativeFilterItems)
@@ -506,19 +533,6 @@ const FiltersConfigForm = (
     [filterId, form, formChanged],
   );
 
-  const parentFilterOptions = parentFilters.map(filter => ({
-    value: filter.id,
-    label: filter.title,
-  }));
-
-  const parentFilter = parentFilterOptions.find(
-    ({ value }) =>
-      value === formFilter?.parentFilter?.value ||
-      value === filterToEdit?.cascadeParentIds?.[0],
-  );
-
-  const hasParentFilter = !!parentFilter;
-
   const hasPreFilter =
     !!formFilter?.adhoc_filters ||
     !!formFilter?.time_range ||
@@ -583,13 +597,6 @@ const FiltersConfigForm = (
     return Promise.reject(new Error(t('Pre-filter is required')));
   };
 
-  let hasCheckedAdvancedControl = hasParentFilter || hasPreFilter || hasSorting;
-  if (!hasCheckedAdvancedControl) {
-    hasCheckedAdvancedControl = Object.keys(controlItems)
-      .filter(key => !BASIC_CONTROL_ITEMS.includes(key))
-      .some(key => controlItems[key].checked);
-  }
-
   const ParentSelect = ({
     value,
     ...rest
@@ -647,12 +654,28 @@ const FiltersConfigForm = (
   ]);
 
   useEffect(() => {
-    const activeFilterPanelKey = [FilterPanels.basic.key];
-    if (hasCheckedAdvancedControl) {
-      activeFilterPanelKey.push(FilterPanels.advanced.key);
+    // Run only once when the control items are available
+    if (!activeFilterPanelKey && !isEmpty(controlItems)) {
+      const hasCheckedAdvancedControl =
+        isHierarchical ||
+        hasPreFilter ||
+        hasSorting ||
+        Object.keys(controlItems)
+          .filter(key => !BASIC_CONTROL_ITEMS.includes(key))
+          .some(key => controlItems[key].checked);
+      setActiveFilterPanelKey(
+        hasCheckedAdvancedControl
+          ? [FilterPanels.basic.key, FilterPanels.advanced.key]
+          : FilterPanels.basic.key,
+      );
     }
-    setActiveFilterPanelKey(activeFilterPanelKey);
-  }, [hasCheckedAdvancedControl]);
+  }, [
+    activeFilterPanelKey,
+    isHierarchical,
+    hasPreFilter,
+    hasSorting,
+    controlItems,
+  ]);
 
   const initiallyExcludedCharts = useMemo(() => {
     const excluded: number[] = [];
@@ -915,8 +938,9 @@ const FiltersConfigForm = (
               {isCascadingFilter && (
                 <CollapsibleControl
                   title={t('Filter is hierarchical')}
-                  initialValue={hasParentFilter}
+                  checked={isHierarchical}
                   onChange={checked => {
+                    setIsHierarchical(checked);
                     formChanged();
                     if (checked) {
                       // execute after render
