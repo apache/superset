@@ -240,13 +240,18 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     return optionsRemaining ? placeholder : '';
   };
 
+  const handleSubjectChange = (subject: string) => {
+    setComparator(undefined);
+    onSubjectChange(subject);
+  };
+
   let columns = props.options;
   const { subject, operator, operatorId } = props.adhocFilter;
 
   const subjectSelectProps = {
     ariaLabel: t('Select subject'),
     value: subject ?? undefined,
-    onChange: onSubjectChange,
+    onChange: handleSubjectChange,
     notFoundContent: t(
       'No such column found. To filter on a metric, try the Custom SQL tab.',
     ),
@@ -335,12 +340,10 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
           .then(({ json }) => {
             setSuggestions(json);
             setLoadingComparatorSuggestions(false);
-            setComparator(undefined);
           })
           .catch(() => {
             setSuggestions([]);
             setLoadingComparatorSuggestions(false);
-            setComparator(undefined);
           });
       }
     };
