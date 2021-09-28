@@ -2,7 +2,6 @@
 A docstring
 """
 import ipaddress
-import pprint
 from typing import Callable, Dict
 from flask.wrappers import Response
 from flask_appbuilder.api import expose
@@ -64,13 +63,6 @@ class BusinessTypeRestApi(BaseSupersetModelRestApi):
            "value": int(port)
         })
         return self.response(200, result=bus_resp)
-
-        # resp: Response = {
-        #     "output": "Hello",
-        # }
-        # return self.response(200, result=resp)
-
-
 
 
 def cidr_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
