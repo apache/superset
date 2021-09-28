@@ -1295,11 +1295,32 @@ class BusinessTypeResponse(TypedDict, total=False):
     formatted_value: Optional[str]  # a string representation of the parsed value
     valid_filter_operators: List[Literal["==", "<=", "<", "IN", ">=", ">"]]
 
+
+# additional port mappings take from /etc/services - perhaps that should be used to populate this dictionary?
 port_conversion_dict: Dict[
     str, list,
 ] = {
+    "http": [80],
+    "ssh": [22],
     "https": [443],
     "ftp": [20, 21],
+    "ftps": [989, 990],
+    "telnet": [23],
+    "telnets": [992],
+    "smtp": [25],
+    "submissions": [465], # aka smtps, ssmtp, urd
+    "kerberos": [88],
+    "kerberos-adm": [749],
+    "pop3": [110],
+    "pop3s": [995],
+    "nntp": [119],
+    "nntps": [563],
+    "ntp": [123],
+    "snmp": [161],
+    "ldap": [389],
+    "ldaps": [636],
+    "imap2": [143], # aka imap
+    "imaps": [993],
 }
 
 

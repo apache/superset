@@ -132,6 +132,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         from superset.css_templates.api import CssTemplateRestApi
         from superset.dashboards.api import DashboardRestApi
+        from superset.business_types.api import BusinessTypeRestApi
         from superset.databases.api import DatabaseRestApi
         from superset.datasets.api import DatasetRestApi
         from superset.datasets.columns.api import DatasetColumnsRestApi
@@ -210,6 +211,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ReportScheduleRestApi)
         appbuilder.add_api(ReportExecutionLogRestApi)
         appbuilder.add_api(FilterSetRestApi)
+        appbuilder.add_api(BusinessTypeRestApi)
         #
         # Setup regular views
         #
@@ -531,7 +533,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             cond=lambda: bool(
                 self.config["DRUID_IS_ACTIVE"]
                 and self.config["DRUID_METADATA_LINKS_ENABLED"]
-            ),
+            ),        
         )
         appbuilder.add_link(
             "Refresh Druid Metadata",
