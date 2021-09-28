@@ -171,7 +171,7 @@ msgstr "Issue 1001 - La base de datos tiene una carga inusualmente elevada."
 
 #: superset/errors.py:74
 msgid "Issue 1002 - The database returned an unexpected error."
-msgstr "Issue 1002 - La base de datos regresó un error inesperado."
+msgstr "Issue 1002 - La base de datos devolvió un error inesperado."
 
 #: superset/errors.py:80 superset/errors.py:95
 msgid ""
@@ -189,7 +189,7 @@ msgstr "Issue 1005 - La tabla fue eliminada o renombrada en la base de datos."
 
 #: superset/errors.py:110
 msgid "Issue 1006 - One or more parameters specified in the query are missing."
-msgstr "Issue 1006 - Fala uno o más parámetros especificados en la consulta."
+msgstr "Issue 1006 - Faltan uno o más parámetros especificados en la consulta."
 
 #: superset/databases/schemas.py:168 superset/exceptions.py:125
 msgid "Invalid certificate"
@@ -208,12 +208,12 @@ msgstr "Valor de retorno no soportado para el método %(name)s"
 #: superset/jinja_context.py:246
 #, python-format
 msgid "Unsafe template value for key %(key)s: %(value_type)s"
-msgstr "Valor de plantilla inseguro para la llave %(key)s: %(value_type)s"
+msgstr "Valor de plantilla inseguro para la clave %(key)s: %(value_type)s"
 
 #: superset/jinja_context.py:257
 #, python-format
 msgid "Unsupported template value for key %(key)s"
-msgstr "Valor de plantilla no soportado para la llave %(key)s"
+msgstr "Valor de plantilla no soportado para la clave %(key)s"
 
 #: superset/sql_lab.py:173
 msgid "Only `SELECT` statements are allowed against this database"
@@ -250,7 +250,7 @@ msgstr "La fecha de inicio no puede ser posterior a la fecha final"
 
 #: superset/viz.py:527
 msgid "Cached value not found"
-msgstr "Valor no encontrdo en memoria cache"
+msgstr "Valor no encontrado en memoria caché"
 
 #: superset/common/query_context.py:395 superset/viz.py:542
 #, python-format
@@ -301,7 +301,7 @@ msgstr "Por favor elige al menos una métrica"
 
 #: superset/viz.py:859 superset/viz_sip38.py:785
 msgid "Group By' and 'Columns' can't overlap"
-msgstr "'Group By' y 'Columnas' no pueden traslaparse"
+msgstr "'Group By' y 'Columns' no pueden solaparse"
 
 #: superset/viz.py:954 superset/viz_sip38.py:837
 msgid "Treemap"
@@ -329,7 +329,7 @@ msgstr "Gráfico de Puntos"
 
 #: superset/viz.py:1127 superset/viz_sip38.py:1085
 msgid "Pick a metric to display"
-msgstr "Elige la métrica a mostrar"
+msgstr "Elige qué métrica mostrar"
 
 #: superset/viz.py:1145 superset/viz_sip38.py:1101
 msgid "Big Number with Trendline"
@@ -365,7 +365,7 @@ msgstr "Serie temportal - Gráfico de múltiples líneas"
 
 #: superset/viz.py:1430 superset/viz_sip38.py:1375
 msgid "Time Series - Dual Axis Line Chart"
-msgstr "Serie temporal - Gráfico de líneas de doble eje"
+msgstr "Serie Temporal - Gráfico de líneas de doble eje"
 
 #: superset/viz.py:1440 superset/viz_sip38.py:1385
 msgid "Pick a metric for left axis!"
@@ -393,7 +393,7 @@ msgstr "Serie Temporal - Cambio Porcentual"
 
 #: superset/viz.py:1569 superset/viz_sip38.py:1514
 msgid "Time Series - Stacked"
-msgstr "Serie Temporl - Apiladas"
+msgstr "Serie Temporal - Apiladas"
 
 #: superset/viz.py:1579 superset/viz_sip38.py:1543
 msgid "Histogram"
@@ -409,7 +409,7 @@ msgstr "Distribución - Gráfico de Barra"
 
 #: superset/viz.py:1645
 msgid "Can't have overlap between Series and Breakdowns"
-msgstr "No se puede traslapar Series y Distribuciones"
+msgstr "No puede haber solapamiento entre Series y Distribuciones"
 
 #: superset/viz.py:1650 superset/viz_sip38.py:1607
 msgid "Pick at least one field for [Series]"
@@ -480,7 +480,7 @@ msgstr ""
 
 #: superset/viz.py:2120 superset/viz_sip38.py:2041
 msgid "[Longitude] and [Latitude] must be set"
-msgstr "Debe especificarse [Longitud] y [Latitud]"
+msgstr "Deben especificarse [Longitud] y [Latitud]"
 
 #: superset/viz.py:2127 superset/viz_sip38.py:2048
 msgid "Must have a [Group By] column to have 'count' as the [Label]"
@@ -511,7 +511,7 @@ msgstr "Clave espacial errónea"
 #: superset/viz.py:2301 superset/viz_sip38.py:2204
 #, python-format
 msgid "Invalid spatial point encountered: %s"
-msgstr "Punto espacial enválido encontrado: %s"
+msgstr "Punto espacial inválido encontrado: %s"
 
 #: superset/viz.py:2337 superset/viz_sip38.py:2240
 msgid ""
@@ -695,27 +695,27 @@ msgstr "Petición incorrecta: %(error)s"
 
 #: superset/charts/schemas.py:487
 msgid "`confidence_interval` must be between 0 and 1 (exclusive)"
-msgstr "`confidence_interval` debe ser un número entre 0 and 1 (exclusivo)"
+msgstr "`confidence_interval` debe ser un número entre 0 y 1 (exclusivo)"
 
 #: superset/charts/schemas.py:553
 msgid ""
 "lower percentile must be greater than 0 and less than 100. Must be lower "
 "than upper percentile."
 msgstr ""
-"El porcentaje inferior debe ser mayor que 0 y menor que 100. Debe ser menor "
-"que el porcentaje superior."
+"el percentil inferior debe ser mayor que 0 y menor que 100. Debe ser menor "
+"que el percentil superior."
 
 #: superset/charts/schemas.py:568
 msgid ""
 "upper percentile must be greater than 0 and less than 100. Must be higher "
 "than lower percentile."
 msgstr ""
-"El porcentaje superior debe ser mayor que 0 y menor que 100. Debe ser mayor "
-"que el porcentaje inferior."
+"el percentil superior debe ser mayor que 0 y menor que 100. Debe ser mayor "
+"que el percentil inferior."
 
 #: superset/charts/schemas.py:848
 msgid "`width` must be greater or equal to 0"
-msgstr "`anchura` debe ser mayor o igual a 0"
+msgstr "`width` debe ser mayor o igual a 0"
 
 #: superset/charts/schemas.py:938
 msgid "`row_limit` must be greater than or equal to 1"
@@ -782,7 +782,7 @@ msgstr "Los Gráficos no han podido eliminarse"
 
 #: superset/charts/commands/exceptions.py:106
 msgid "Import chart failed for an unknown reason"
-msgstr "Importar Gráfico falló por una razón desconocida"
+msgstr "Importar el gráfico falló por una razón desconocida"
 
 #: superset/commands/exceptions.py:85
 #: superset/datasets/commands/exceptions.py:141
@@ -795,12 +795,12 @@ msgstr "La fuente no existe"
 
 #: superset/common/query_object.py:301
 msgid "`operation` property of post processing object undefined"
-msgstr "La propiedad `operation` del objeto de post procesamiento no esta definida"
+msgstr "La propiedad `operation` del objeto de post-procesamiento no está definida"
 
 #: superset/common/query_object.py:305
 #, python-format
 msgid "Unsupported post processing operation: %(operation)s"
-msgstr "Operación de post procesamiento no soportada: %(operation)s"
+msgstr "Operación de post-procesamiento no soportada: %(operation)s"
 
 #: superset/connectors/druid/models.py:240
 msgid "Adding new datasource [{}]"
@@ -1124,7 +1124,7 @@ msgstr "Modificado"
 
 #: superset/connectors/druid/views.py:400
 msgid "Refreshed metadata from cluster [{}]"
-msgstr "Metadatos recargados desde el cluster [{}]"
+msgstr "Metadatos refrescados desde el cluster [{}]"
 
 #: superset/connectors/sqla/models.py:634
 msgid "Only `SELECT` statements are allowed"
@@ -1173,12 +1173,12 @@ msgstr "¿Consulta vacía?"
 #: superset/connectors/sqla/models.py:1273
 #, python-format
 msgid "Metric '%(metric)s' does not exist"
-msgstr "El métrica '%(metric)s' no existe"
+msgstr "La métrica '%(metric)s' no existe"
 
 #: superset/connectors/sqla/models.py:1101
 #, python-format
 msgid "Invalid filter operation type: %(op)s"
-msgstr "Tipo de operación de filtro inválido: %(op)s"
+msgstr "Tipo de operación de filtrado inválida: %(op)s"
 
 #: superset/connectors/sqla/models.py:1112
 #, python-format
@@ -1269,7 +1269,7 @@ msgstr "Formato D3"
 #: superset/connectors/sqla/views.py:243 superset/connectors/sqla/views.py:467
 #: superset/views/database/mixins.py:195
 msgid "Extra"
-msgstr "Adicional"
+msgstr "Extra"
 
 #: superset/connectors/sqla/views.py:285
 msgid "Row level security filter"
@@ -1482,12 +1482,12 @@ msgstr "Refrescar metadatos de columna"
 #: superset/connectors/sqla/views.py:554
 #, python-format
 msgid "Metadata refreshed for the following table(s): %(tables)s"
-msgstr "Metadatos actualizados para la siguiente tabla(s): %(tables)s"
+msgstr "Metadatos actualizados para la(s) siguiente(s) tabla(s): %(tables)s"
 
 #: superset/connectors/sqla/views.py:564
 #, python-format
 msgid "The following tables added new columns: %(tables)s"
-msgstr "Las siguientes tablas agregaron nuevas columnas: %(tables)s"
+msgstr "Las siguientes tablas añadieron nuevas columnas: %(tables)s"
 
 #: superset/connectors/sqla/views.py:575
 #, python-format
@@ -1502,7 +1502,7 @@ msgstr "Las siguientes tablas actualizaron metadatos de columna: %(tables)s"
 #: superset/connectors/sqla/views.py:593
 #, python-format
 msgid "Unable to refresh metadata for the following table(s): %(tables)s"
-msgstr "No se pudo refrescar metadatos para la siguiente tabla(s): %(tables)s"
+msgstr "No se pudieron refrescar los metadatos para la(s) siguiente(s) tabla(s): %(tables)s"
 
 #: superset/css_templates/api.py:137
 #, python-format
@@ -1544,27 +1544,27 @@ msgstr "Dashboard no encontrado."
 
 #: superset/dashboards/commands/exceptions.py:49
 msgid "Dashboard could not be created."
-msgstr "Dashboard no ha podido ser creado."
+msgstr "El Dashboard no pudo ser creado."
 
 #: superset/dashboards/commands/exceptions.py:53
 msgid "Dashboards could not be deleted."
-msgstr "Dashboards no ha podido ser eliminados."
+msgstr "Los Dashboards no pudieron ser eliminados."
 
 #: superset/dashboards/commands/exceptions.py:61
 msgid "Dashboard could not be updated."
-msgstr "Dashboard no ha podido ser actualizado."
+msgstr "El Dashboard no pudo ser actualizado."
 
 #: superset/dashboards/commands/exceptions.py:65
 msgid "Dashboard could not be deleted."
-msgstr "Dashboard no ha podido ser eliminado."
+msgstr "El Dashboard no pudo ser eliminado."
 
 #: superset/dashboards/commands/exceptions.py:73
 msgid "Changing this Dashboard is forbidden"
-msgstr "Cambiar este Dashboard es prohibido"
+msgstr "Cambiar este Dashboard está prohibido"
 
 #: superset/dashboards/commands/exceptions.py:77
 msgid "Import dashboard failed for an unknown reason"
-msgstr "Importar Dashboard falló por una razón desconocida"
+msgstr "Importar el Dashboard falló por una razón desconocida"
 
 #: superset/dashboards/commands/importers/v0.py:303
 msgid "No data in file"
@@ -1582,7 +1582,7 @@ msgstr ""
 
 #: superset/databases/schemas.py:150
 msgid "SQLite database cannot be used as a data source for security reasons."
-msgstr "La base de datos SQLite no puede ser usada como fuente de datos por "
+msgstr "La base de datos SQLite no puede ser usada como fuente de datos por razones de seguridad."
 
 #: superset/databases/schemas.py:181 superset/databases/schemas.py:196
 #, python-format
@@ -1607,7 +1607,7 @@ msgstr "La fuente de datos %(name)s ya existe"
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:169
 #: superset/databases/commands/exceptions.py:49
 msgid "Field is required"
-msgstr "El campo es requerido"
+msgstr "El campo es obligatorio"
 
 #: superset/databases/commands/exceptions.py:61
 msgid "Field cannot be decoded by JSON.  %{json_error}s"
@@ -1635,7 +1635,7 @@ msgstr "El Gráfico no ha podido guardarse"
 #: superset/databases/commands/exceptions.py:104
 #: superset/databases/commands/exceptions.py:120 superset/views/core.py:1284
 msgid "Connection failed, please check your connection settings"
-msgstr "La conexión ha fallado, por favor verifique su configuración de conexión"
+msgstr "La conexión ha fallado, por favor verifique sus ajustes de conexión"
 
 #: superset/databases/commands/exceptions.py:108
 msgid "Cannot delete a database that has tables attached"
@@ -1643,7 +1643,7 @@ msgstr "No se puede eliminar una base de datos que tiene tablas adjuntas"
 
 #: superset/databases/commands/exceptions.py:112
 msgid "Database could not be deleted."
-msgstr "Los Gráficos no han podido eliminarse"
+msgstr "La base de datos no han podido ser eliminada."
 
 #: superset/databases/commands/exceptions.py:124
 msgid "Stopped an unsafe database connection"
@@ -1659,7 +1659,7 @@ msgstr "Se ha producido un error inesperado, por favor verifique los registros p
 
 #: superset/databases/commands/exceptions.py:136
 msgid "Import database failed for an unknown reason"
-msgstr "Importar base de datos falló por una razón desconocida"
+msgstr "Importar la base de datos falló por una razón desconocida"
 
 #: superset/databases/commands/test_connection.py:69
 msgid "Could not load database driver: {}"
@@ -1674,7 +1674,7 @@ msgstr[1] "Selecciona una base de datos"
 
 #: superset/datasets/filters.py:26
 msgid "Null or Empty"
-msgstr "Nulo o vacío"
+msgstr "Nulo o Vacío"
 
 #: superset/datasets/commands/exceptions.py:47
 msgid "Database not allowed to change"
@@ -1713,20 +1713,20 @@ msgstr ""
 
 #: superset/datasets/commands/exceptions.py:149
 msgid "Dataset parameters are invalid."
-msgstr "Los parametros del Gráfico son invalidos"
+msgstr "Los parametros del conjunto de datos son inválidos."
 
 #: superset/datasets/commands/exceptions.py:153
 msgid "Dataset could not be created."
-msgstr "El conjunto de datos no ha podido crearse"
+msgstr "El conjunto de datos no pudo ser creado."
 
 #: superset/datasets/commands/exceptions.py:157
 #: superset/datasets/commands/exceptions.py:169
 msgid "Dataset could not be updated."
-msgstr "El conjunto de datos no ha podido actualizarse"
+msgstr "El conjunto de datos no pudo ser actualizado."
 
 #: superset/datasets/commands/exceptions.py:161
 msgid "Dataset could not be deleted."
-msgstr "El conjunto de datos no ha podido eliminarse"
+msgstr "El conjunto de datos no pudo ser eliminado."
 
 #: superset/datasets/commands/exceptions.py:165
 msgid "Dataset(s) could not be bulk deleted."
@@ -1738,11 +1738,11 @@ msgstr "No está permitido cambiar este conjunto de datos"
 
 #: superset/datasets/commands/exceptions.py:177
 msgid "Import dataset failed for an unknown reason"
-msgstr "Importar conjunto de datos falló por una razón desconocida"
+msgstr "Importar el conjunto de datos falló por una razón desconocida"
 
 #: superset/db_engine_specs/presto.py:834
 msgid "Unknown Presto Error"
-msgstr "Error Presto desconocido"
+msgstr "Error de Presto desconocido"
 
 #: superset/db_engine_specs/presto.py:1052
 #, python-format
@@ -1770,7 +1770,7 @@ msgstr "Los Gráficos no han podido eliminarse"
 
 #: superset/queries/saved_queries/commands/exceptions.py:27
 msgid "Saved query not found."
-msgstr "No se encuentra la consulta guardada"
+msgstr "No se encuentra la consulta guardada."
 
 #: superset/reports/api.py:417
 #, python-format
@@ -1799,11 +1799,11 @@ msgstr "La base de datos no existe"
 
 #: superset/reports/commands/exceptions.py:62
 msgid "Database is required for alerts"
-msgstr "La base de datos es requerida para los alertas"
+msgstr "La base de datos es requerida para las alertas"
 
 #: superset/reports/commands/exceptions.py:71
 msgid "Type is required"
-msgstr "El tipo es requerido"
+msgstr "El tipo es obligatorio"
 
 #: superset/reports/commands/exceptions.py:80
 msgid "Choose a chart or dashboard not both"
@@ -1811,71 +1811,71 @@ msgstr "Elija un gráfico o un dashboard, no ambos"
 
 #: superset/reports/commands/exceptions.py:84
 msgid "Report Schedule parameters are invalid."
-msgstr "Los parametros del informe programado son invalidos"
+msgstr "Los parametros del informe programado son inválidos"
 
 #: superset/reports/commands/exceptions.py:88
 msgid "Report Schedule could not be deleted."
-msgstr "El informe programado no ha podido eliminarse"
+msgstr "El informe programado no ha podido ser eliminado."
 
 #: superset/reports/commands/exceptions.py:92
 msgid "Report Schedule could not be created."
-msgstr "El informe programado no ha podido crearse"
+msgstr "El informe programado no ha podido ser creado."
 
 #: superset/reports/commands/exceptions.py:96
 msgid "Report Schedule could not be updated."
-msgstr "El informe programado no ha podido actualizarse"
+msgstr "El informe programado no ha podido ser actualizado."
 
 #: superset/reports/commands/exceptions.py:100
 msgid "Report Schedule not found."
-msgstr "No se encuentra el informe programado"
+msgstr "No se encuentra el informe programado."
 
 #: superset/reports/commands/exceptions.py:104
 msgid "Report Schedule delete failed."
-msgstr "El informe programado no ha podido eliminarse"
+msgstr "El informe programado no se pudo eliminar."
 
 #: superset/reports/commands/exceptions.py:108
 msgid "Report Schedule log prune failed."
-msgstr "El informe programado no ha podido eliminarse"
+msgstr "Los registros del informe programado no pudieron limpiarse."
 
 #: superset/reports/commands/exceptions.py:112
 msgid "Report Schedule execution failed when generating a screenshot."
-msgstr "El informe programado falló al generar una captura de pantalla"
+msgstr "La ejecución del informe programado falló al generar una captura de pantalla."
 
 #: superset/reports/commands/exceptions.py:116
 msgid "Report Schedule execution got an unexpected error."
-msgstr "El informe programado falló por un error inesperado"
+msgstr "La ejecución del informe programado falló por un error inesperado."
 
 #: superset/reports/commands/exceptions.py:120
 msgid "Report Schedule is still working, refusing to re-compute."
-msgstr "El informe programado todavía está trabajando, rechazando la recomputación"
+msgstr "El informe programado todavía está en proceso, rechazando la recomputación."
 
 #: superset/reports/commands/exceptions.py:124
 msgid "Report Schedule reached a working timeout."
-msgstr "El informe programado alcanzó el tiempo de espera máximo"
+msgstr "El informe programado alcanzó el tiempo de espera máximo."
 
 #: superset/reports/commands/exceptions.py:138
 msgid "Alert query returned more then one row."
-msgstr "La consulta de alerta devolvió más de una fila"
+msgstr "La consulta de alerta devolvió más de una fila."
 
 #: superset/reports/commands/exceptions.py:143
 msgid "Alert validator config error."
-msgstr "El validador de alerta configuración de error"
+msgstr "Error de configuración del validador de alertas."
 
 #: superset/reports/commands/exceptions.py:147
 msgid "Alert query returned more then one column."
-msgstr "La consulta de alerta devolvió más de una columna"
+msgstr "La consulta de alerta devolvió más de una columna."
 
 #: superset/reports/commands/exceptions.py:151
 msgid "Alert query returned a non-number value."
-msgstr "La consulta de alerta devolvió un valor no numérico"
+msgstr "La consulta de alerta devolvió un valor no numérico."
 
 #: superset/reports/commands/exceptions.py:155
 msgid "Alert found an error while executing a query."
-msgstr "La alerta encontró un error al ejecutar una consulta"
+msgstr "La alerta encontró un error al ejecutar una consulta."
 
 #: superset/reports/commands/exceptions.py:159
 msgid "Alert fired during grace period."
-msgstr "La alerta fue disparada durante el periodo de gracia."
+msgstr "La alerta saltó durante el periodo de gracia."
 
 #: superset/reports/commands/exceptions.py:163
 msgid "Alert ended grace period."
@@ -1883,15 +1883,15 @@ msgstr "La alerta terminó el periodo de gracia."
 
 #: superset/reports/commands/exceptions.py:167
 msgid "Alert on grace period"
-msgstr "La alerta en el periodo de gracia"
+msgstr "Alerta durante el periodo de gracia"
 
 #: superset/reports/commands/exceptions.py:171
 msgid "Report Schedule sellenium user not found"
-msgstr "El informe programado usuario sellenium no encontrado"
+msgstr "No se encontró el usuario sellenium del informe programado"
 
 #: superset/reports/commands/exceptions.py:175
 msgid "Report Schedule state not found"
-msgstr "El estado del informe programado no se encontró"
+msgstr "No se encontró el estado del informe programado"
 
 #: superset/reports/commands/exceptions.py:179
 msgid "Report schedule unexpected error"
@@ -2115,12 +2115,12 @@ msgstr "Columnas referenciadas no disponibles en DataFrame."
 #: superset/utils/pandas_postprocessing.py:161
 #, python-format
 msgid "Column referenced by aggregate is undefined: %(column)s"
-msgstr "Columna referenciadas por agración no está definida: %(column)s"
+msgstr "La(s) columna(s) referenciada(s) por los agregados no está(n) definida(s): %(column)s"
 
 #: superset/utils/pandas_postprocessing.py:168
 #, python-format
 msgid "Operator undefined for aggregator: %(name)s"
-msgstr "Operador no definido para agregador: %(name)s"
+msgstr "Operador no definido para el agregado: %(name)s"
 
 #: superset/utils/pandas_postprocessing.py:177
 #, python-format
@@ -2129,11 +2129,11 @@ msgstr "Función numpy inválida: %(operator)s"
 
 #: superset/utils/pandas_postprocessing.py:245
 msgid "Pivot operation requires at least one index"
-msgstr "La operación de Pivote requiere al menos un índice"
+msgstr "La operación de pivote requiere al menos un índice"
 
 #: superset/utils/pandas_postprocessing.py:249
 msgid "Pivot operation must include at least one aggregate"
-msgstr "La operación de Pivote debe incluir al menos un agregador"
+msgstr "La operación de pivote debe incluir al menos un agregado"
 
 #: superset/utils/pandas_postprocessing.py:357
 msgid "Undefined window for rolling operation"
@@ -2160,11 +2160,11 @@ msgstr "Cadena de geohash inválida"
 
 #: superset/utils/pandas_postprocessing.py:512
 msgid "Invalid longitude/latitude"
-msgstr "Longitud/latitud inválida"
+msgstr "Longitud/latitud inválidas"
 
 #: superset/utils/pandas_postprocessing.py:554
 msgid "Invalid geodetic string"
-msgstr "Cadena de geodésica inválida"
+msgstr "Cadena geodésica inválida"
 
 #: superset/utils/pandas_postprocessing.py:616
 msgid "`fbprophet` package not installed"
@@ -2249,7 +2249,7 @@ msgstr "Lista de correos electrónicos delimitados por punto y coma ';'"
 
 #: superset/views/alerts.py:175
 msgid "How long to keep the logs around for this alert"
-msgstr "¿Cuánto tiempo mantener los registros de esta alerta?"
+msgstr "¿Por cuánto tiempo quieres mantener los registros de esta alerta?"
 
 #: superset/views/alerts.py:176
 msgid ""
@@ -2432,7 +2432,7 @@ msgstr ""
 
 #: superset/views/core.py:645
 msgid "An unknown error occurred. Please contact your Superset administrator"
-msgstr "Se produjo un error desconocido. Por favor contacta con tu administrador de Superset"
+msgstr "Se produjo un error desconocido. Por favor, contacta con tu administrador de Superset"
 
 #: superset/views/core.py:710
 #, python-format
@@ -2514,12 +2514,12 @@ msgstr ""
 #: superset/views/core.py:1642
 #, python-format
 msgid "Chart %(id)s not found"
-msgstr "El gráfico %(id)s no se encuentra"
+msgstr "Gráfico %(id)s no encontrado"
 
 #: superset/views/core.py:1655
 #, python-format
 msgid "Table %(table)s wasn't found in the database %(db)s"
-msgstr "La tabla %(table)s no se encuentra en la base de datos %(db)s"
+msgstr "La tabla %(table)s no fue encontrada en la base de datos %(db)s"
 
 #: superset/views/core.py:1925
 #, python-format
@@ -2535,7 +2535,7 @@ msgstr "No puedo encontrar DruidCluster con nombre = '%(name)s'"
 
 #: superset/views/core.py:2180
 msgid "Data could not be deserialized. You may want to re-run the query."
-msgstr "Los datos no se pudieron deserializar. Puedes re-ejecutar la consulta."
+msgstr "Los datos no se pudieron deserializar. Puedes probar a re-ejecutar la consulta."
 
 #: superset/views/core.py:2284
 #, python-format
@@ -2566,19 +2566,19 @@ msgstr[1] ""
 #: superset/views/core.py:2809
 #, python-format
 msgid "%(user)s's profile"
-msgstr "%(user)s's perfil"
+msgstr "Perfil de %(user)s"
 
 #: superset/views/css_templates.py:39
 msgid "Show CSS Template"
-msgstr "Mostrar plantilla CSS"
+msgstr "Mostrar Plantilla CSS"
 
 #: superset/views/css_templates.py:40
 msgid "Add CSS Template"
-msgstr "Añadir plantilla CSS"
+msgstr "Añadir Plantilla CSS"
 
 #: superset/views/css_templates.py:41
 msgid "Edit CSS Template"
-msgstr "Editar plantilla CSS"
+msgstr "Editar Plantilla CSS"
 
 #: superset/views/css_templates.py:46
 msgid "Template Name"
@@ -2586,7 +2586,7 @@ msgstr "Nombre Plantilla"
 
 #: superset/views/dynamic_plugins.py:42
 msgid "A human-friendly name"
-msgstr "Un nombre humanamente legible"
+msgstr "Un nombre legible para personas"
 
 #: superset/views/dynamic_plugins.py:43
 msgid ""
