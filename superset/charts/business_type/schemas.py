@@ -1,6 +1,8 @@
-from marshmallow import fields, Schema
+"""
+Schemas for business types
+"""
 
-busniess_type_convert_schema = {
+business_type_convert_schema = {
     "type": "object",
     "properties": {
         "type": {
