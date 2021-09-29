@@ -23,13 +23,13 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { ThemeProvider } from '@superset-ui/core';
 import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
-import ToastPresenter from '../messageToasts/containers/ToastPresenter';
-import ExploreViewContainer from './components/ExploreViewContainer';
-import setupApp from '../setup/setupApp';
-import setupPlugins from '../setup/setupPlugins';
+import ToastContainer from 'src/components/MessageToasts/ToastContainer';
+import setupApp from 'src/setup/setupApp';
+import setupPlugins from 'src/setup/setupPlugins';
 import './main.less';
-import '../../stylesheets/reactable-pagination.less';
-import { theme } from '../preamble';
+import 'stylesheets/reactable-pagination.less';
+import { theme } from 'src/preamble';
+import ExploreViewContainer from './components/ExploreViewContainer';
 
 setupApp();
 setupPlugins();
@@ -40,7 +40,7 @@ const App = ({ store }) => (
       <ThemeProvider theme={theme}>
         <DynamicPluginProvider>
           <ExploreViewContainer />
-          <ToastPresenter />
+          <ToastContainer />
         </DynamicPluginProvider>
       </ThemeProvider>
     </DndProvider>

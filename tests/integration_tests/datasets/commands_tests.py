@@ -14,8 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=no-self-use, invalid-name, line-too-long
-
 from operator import itemgetter
 from typing import Any, List
 from unittest.mock import patch
@@ -94,6 +92,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
                     "python_date_format": None,
                     "type": type_map["source"],
                     "verbose_name": None,
+                    "extra": None,
                 },
                 {
                     "column_name": "target",
@@ -106,6 +105,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
                     "python_date_format": None,
                     "type": type_map["target"],
                     "verbose_name": None,
+                    "extra": None,
                 },
                 {
                     "column_name": "value",
@@ -118,6 +118,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
                     "python_date_format": None,
                     "type": type_map["value"],
                     "verbose_name": None,
+                    "extra": None,
                 },
             ],
             "database_uuid": str(example_db.uuid),
@@ -294,8 +295,11 @@ class TestImportDatasetsCommand(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
-    def test_import_v1_dataset(self):
+    @patch("superset.datasets.commands.importers.v1.utils.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_import_v1_dataset(self, mock_g):
         """Test that we can import a dataset"""
+        mock_g.user = security_manager.find_user("admin")
         contents = {
             "metadata.yaml": yaml.safe_dump(dataset_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
@@ -320,6 +324,9 @@ class TestImportDatasetsCommand(SupersetTestCase):
         assert dataset.filter_select_enabled
         assert dataset.fetch_values_predicate is None
         assert dataset.extra == "dttm > sysdate() -10 "
+
+        # user should be included as one of the owners
+        assert dataset.owners == [mock_g.user]
 
         # database is also imported
         assert str(dataset.database.uuid) == "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89"
@@ -348,6 +355,8 @@ class TestImportDatasetsCommand(SupersetTestCase):
         assert column.description is None
         assert column.python_date_format is None
 
+        dataset.owners = []
+        dataset.database.owners = []
         db.session.delete(dataset)
         db.session.delete(dataset.database)
         db.session.commit()
@@ -469,6 +478,8 @@ class TestImportDatasetsCommand(SupersetTestCase):
         )
         assert len(database.tables) == 1
 
+        database.tables[0].owners = []
+        database.owners = []
         db.session.delete(database.tables[0])
         db.session.delete(database)
         db.session.commit()

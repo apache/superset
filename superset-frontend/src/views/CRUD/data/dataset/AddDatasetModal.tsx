@@ -22,7 +22,7 @@ import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { isEmpty, isNil } from 'lodash';
 import Modal from 'src/components/Modal';
 import TableSelector from 'src/components/TableSelector';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 
 type DatasetAddObject = {
   id: number;
@@ -50,7 +50,7 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
   onHide,
   show,
 }) => {
-  const [currentSchema, setSchema] = useState('');
+  const [currentSchema, setSchema] = useState<string | undefined>('');
   const [currentTableName, setTableName] = useState('');
   const [datasourceId, setDatasourceId] = useState<number>(0);
   const [disableSave, setDisableSave] = useState(true);
@@ -60,19 +60,27 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
     addDangerToast,
   );
 
-  const onChange = ({
-    dbId,
-    schema,
-    tableName,
-  }: {
-    dbId: number;
-    schema: string;
-    tableName: string;
+  const setSaveButtonState = () => {
+    setDisableSave(isNil(datasourceId) || isEmpty(currentTableName));
+  };
+
+  const onDbChange = (db: {
+    id: number;
+    database_name: string;
+    backend: string;
   }) => {
-    setDatasourceId(dbId);
-    setDisableSave(isNil(dbId) || isEmpty(tableName));
+    setDatasourceId(db.id);
+    setSaveButtonState();
+  };
+
+  const onSchemaChange = (schema?: string) => {
     setSchema(schema);
+    setSaveButtonState();
+  };
+
+  const onTableChange = (tableName: string) => {
     setTableName(tableName);
+    setSaveButtonState();
   };
 
   const onSave = () => {
@@ -108,7 +116,9 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
           dbId={datasourceId}
           formMode
           handleError={addDangerToast}
-          onUpdate={onChange}
+          onDbChange={onDbChange}
+          onSchemaChange={onSchemaChange}
+          onTableChange={onTableChange}
           schema={currentSchema}
           tableName={currentTableName}
         />

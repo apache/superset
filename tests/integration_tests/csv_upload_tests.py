@@ -420,7 +420,7 @@ def test_import_parquet(setup_csv_upload, create_columnar_files):
     data = (
         get_upload_db()
         .get_sqla_engine()
-        .execute(f"SELECT * from {PARQUET_UPLOAD_TABLE}")
+        .execute(f"SELECT * from {PARQUET_UPLOAD_TABLE} ORDER BY b")
         .fetchall()
     )
     assert data == [("john", 1), ("paul", 2)]
@@ -435,7 +435,7 @@ def test_import_parquet(setup_csv_upload, create_columnar_files):
     data = (
         get_upload_db()
         .get_sqla_engine()
-        .execute(f"SELECT * from {PARQUET_UPLOAD_TABLE}")
+        .execute(f"SELECT * from {PARQUET_UPLOAD_TABLE} ORDER BY b")
         .fetchall()
     )
     assert data == [("john", 1), ("paul", 2), ("max", 3), ("bob", 4)]

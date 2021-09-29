@@ -48,6 +48,7 @@ const propTypes = {
   dashboardId: PropTypes.number.isRequired,
   component: componentShape.isRequired,
   parentComponent: componentShape.isRequired,
+  getComponentById: PropTypes.func.isRequired,
   index: PropTypes.number.isRequired,
   depth: PropTypes.number.isRequired,
   editMode: PropTypes.bool.isRequired,
@@ -268,16 +269,22 @@ class ChartHolder extends React.Component {
       isComponentVisible,
       dashboardId,
       fullSizeChartId,
+      getComponentById = () => undefined,
     } = this.props;
 
     const { chartId } = component.meta;
     const isFullSize = fullSizeChartId === chartId;
 
     // inherit the size of parent columns
-    const widthMultiple =
-      parentComponent.type === COLUMN_TYPE
-        ? parentComponent.meta.width || GRID_MIN_COLUMN_COUNT
-        : component.meta.width || GRID_MIN_COLUMN_COUNT;
+    const columnParentWidth = getComponentById(
+      parentComponent.parents?.find(parent => parent.startsWith(COLUMN_TYPE)),
+    )?.meta?.width;
+    let widthMultiple = component.meta.width || GRID_MIN_COLUMN_COUNT;
+    if (parentComponent.type === COLUMN_TYPE) {
+      widthMultiple = parentComponent.meta.width || GRID_MIN_COLUMN_COUNT;
+    } else if (columnParentWidth && widthMultiple > columnParentWidth) {
+      widthMultiple = columnParentWidth;
+    }
 
     let chartWidth = 0;
     let chartHeight = 0;

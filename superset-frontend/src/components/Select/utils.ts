@@ -67,8 +67,8 @@ export function hasOption(search: string, options: AntdOptionsType) {
     const labelText = String(label);
     const valueText = String(value);
     return (
-      valueText.toLowerCase().includes(searchOption) ||
-      labelText.toLowerCase().includes(searchOption)
+      valueText.toLowerCase() === searchOption ||
+      labelText.toLowerCase() === searchOption
     );
   });
 }

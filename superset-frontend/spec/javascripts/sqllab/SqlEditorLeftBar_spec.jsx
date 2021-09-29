@@ -46,8 +46,7 @@ const mockedProps = {
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 const store = mockStore(initialState);
-const DATABASE_ENDPOINT = 'glob:*/api/v1/database/?*';
-fetchMock.get(DATABASE_ENDPOINT, []);
+fetchMock.get('glob:*/api/v1/database/*/schemas/?*', { result: [] });
 describe('SqlEditorLeftBar', () => {
   let wrapper;
 
@@ -81,9 +80,13 @@ describe('Left Panel Expansion', () => {
         </Provider>
       </ThemeProvider>,
     );
-    const dbSelect = screen.getByText(/select a database/i);
-    const schemaSelect = screen.getByText(/select a schema \(0\)/i);
-    const dropdown = screen.getByText(/Select table/i);
+    const dbSelect = screen.getByRole('combobox', {
+      name: 'Select database or type database name',
+    });
+    const schemaSelect = screen.getByRole('combobox', {
+      name: 'Select schema or type schema name',
+    });
+    const dropdown = screen.getByText(/Select table or type table name/i);
     const abUser = screen.getByText(/ab_user/i);
     expect(dbSelect).toBeInTheDocument();
     expect(schemaSelect).toBeInTheDocument();

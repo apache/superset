@@ -409,12 +409,12 @@ referenced in the rst, e.g.
     .. image:: _static/images/tutorial/tutorial_01_sources_database.png
 
 aren't actually stored in that directory. Instead, you should add and commit
-images (and any other static assets) to the `superset-frontend/images` directory.
+images (and any other static assets) to the `superset-frontend/src/assets/images` directory.
 When the docs are deployed to https://superset.apache.org/, images
 are copied from there to the `_static/images` directory, just like they're referenced
 in the docs.
 
-For example, the image referenced above actually lives in `superset-frontend/images/tutorial`. Since the image is moved during the documentation build process, the docs reference the image in `_static/images/tutorial` instead.
+For example, the image referenced above actually lives in `superset-frontend/src/assets/images/tutorial`. Since the image is moved during the documentation build process, the docs reference the image in `_static/images/tutorial` instead.
 
 ### Flask server
 
@@ -522,7 +522,11 @@ Frontend assets (TypeScript, JavaScript, CSS, and images) must be compiled in or
 
 ##### nvm and node
 
-First, be sure you are using recent versions of Node.js and npm. We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage your node environment:
+First, be sure you are using the following versions of Node.js and npm:
+- `Node.js`: Version 16
+- `npm`: Version 7
+
+We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage your node environment:
 
 ```bash
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install.sh | bash
@@ -539,12 +543,6 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install
 ```
 
 For those interested, you may also try out [avn](https://github.com/nvm-sh/nvm#deeper-shell-integration) to automatically switch to the node version that is required to run Superset frontend.
-
-We have upgraded our `package-lock.json` to use `lockfileversion: 2` from npm 7, so please make sure you have installed npm 7, too:
-
-```bash
-npm install -g npm@7
-```
 
 #### Install dependencies
 
@@ -807,7 +805,7 @@ npm install
 npm run cypress-run-chrome
 
 # run tests from a specific file
-npm run cypress-run-chrome -- --spec cypress/integration/explore/link.test.js
+npm run cypress-run-chrome -- --spec cypress/integration/explore/link.test.ts
 
 # run specific file with video capture
 npm run cypress-run-chrome -- --spec cypress/integration/dashboard/index.test.js --config video=true

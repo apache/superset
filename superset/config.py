@@ -20,6 +20,7 @@ All configuration in this file can be overridden by providing a superset_config
 in your PYTHONPATH as there is a ``from superset_config import *``
 at the end of this file.
 """
+# pylint: disable=too-many-lines
 import imp  # pylint: disable=deprecated-module
 import importlib.util
 import json
@@ -37,6 +38,7 @@ from dateutil import tz
 from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
 from pandas.io.parsers import STR_NA_VALUES
+from werkzeug.local import LocalProxy
 
 from superset.jinja_context import BaseTemplateProcessor
 from superset.stats_logger import DummyStatsLogger
@@ -112,12 +114,16 @@ VERSION_STRING = _try_json_readversion(VERSION_INFO_FILE) or _try_json_readversi
 VERSION_SHA_LENGTH = 8
 VERSION_SHA = _try_json_readsha(VERSION_INFO_FILE, VERSION_SHA_LENGTH)
 
+# Build number is shown in the About section if available. This
+# can be replaced at build time to expose build information.
+BUILD_NUMBER = None
+
 # default viz used in chart explorer
 DEFAULT_VIZ_TYPE = "table"
 
+# default row limit when requesting chart data
 ROW_LIMIT = 50000
-VIZ_ROW_LIMIT = 10000
-# max rows retreieved when requesting samples from datasource in explore view
+# default row limit when requesting samples from datasource in explore view
 SAMPLES_ROW_LIMIT = 1000
 # max rows retrieved by filter select auto complete
 FILTER_SELECT_ROW_LIMIT = 10000
@@ -173,9 +179,9 @@ SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
 # Note: the default impl leverages SqlAlchemyUtils' EncryptedType, which defaults
 #  to AES-128 under the covers using the app's SECRET_KEY as key material.
 #
-# pylint: disable=C0103
-SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = SQLAlchemyUtilsAdapter
-
+SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = (  # pylint: disable=invalid-name
+    SQLAlchemyUtilsAdapter
+)
 # The limit of queries fetched for query search
 QUERY_SEARCH_LIMIT = 1000
 
@@ -328,6 +334,8 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Experimental feature introducing a client (browser) cache
     "CLIENT_CACHE": False,
     "DISABLE_DATASET_SOURCE_EDIT": False,
+    # When using a recent version of Druid that supports JOINs turn this on
+    "DRUID_JOINS": False,
     "DYNAMIC_PLUGINS": False,
     # For some security concerns, you may need to enforce CSRF protection on
     # all query request to explore_json endpoint. In Superset, we use
@@ -427,7 +435,14 @@ FEATURE_FLAGS: Dict[str, bool] = {}
 #         feature_flags_dict['some_feature'] = g.user and g.user.get_id() == 5
 #     return feature_flags_dict
 GET_FEATURE_FLAGS_FUNC: Optional[Callable[[Dict[str, bool]], Dict[str, bool]]] = None
-
+# A function that receives a feature flag name and an optional default value.
+# Has a similar utility to GET_FEATURE_FLAGS_FUNC but it's useful to not force the
+# evaluation of all feature flags when just evaluating a single one.
+#
+# Note that the default `get_feature_flags` will evaluate each feature with this
+# callable when the config key is set, so don't use both GET_FEATURE_FLAGS_FUNC
+# and IS_FEATURE_ENABLED_FUNC in conjunction.
+IS_FEATURE_ENABLED_FUNC: Optional[Callable[[str, Optional[bool]], bool]] = None
 # A function that expands/overrides the frontend `bootstrap_data.common` object.
 # Can be used to implement custom frontend functionality,
 # or dynamically change certain configs.
@@ -449,6 +464,7 @@ COMMON_BOOTSTRAP_OVERRIDES_FUNC: Callable[
 #         "id": 'myVisualizationColors',
 #         "description": '',
 #         "label": 'My Visualization Colors',
+#         "isDefault": True,
 #         "colors":
 #          ['#006699', '#009DD9', '#5AAA46', '#44AAAA', '#DDAA77', '#7799BB', '#88AA77',
 #          '#552288', '#5AAA46', '#CC7788', '#EEDD55', '#9977BB', '#BBAA44', '#DDCCDD']
@@ -483,6 +499,7 @@ THEME_OVERRIDES: Dict[str, Any] = {}
 #         "description": '',
 #         "isDiverging": True,
 #         "label": 'My custom warm to hot',
+#         "isDefault": True,
 #         "colors":
 #          ['#552288', '#5AAA46', '#CC7788', '#EEDD55', '#9977BB', '#BBAA44', '#DDCCDD',
 #          '#006699', '#009DD9', '#5AAA46', '#44AAAA', '#DDAA77', '#7799BB', '#88AA77']
@@ -656,9 +673,7 @@ QUERY_LOGGER = None
 # Set this API key to enable Mapbox visualizations
 MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
 
-# Maximum number of rows returned from a database
-# in async mode, no more than SQL_MAX_ROW will be returned and stored
-# in the results backend. This also becomes the limit when exporting CSVs
+# Maximum number of rows returned for any analytical database query
 SQL_MAX_ROW = 100000
 
 # Maximum number of rows displayed in SQL Lab UI
@@ -827,7 +842,7 @@ CSV_TO_HIVE_UPLOAD_S3_BUCKET = None
 CSV_TO_HIVE_UPLOAD_DIRECTORY = "EXTERNAL_HIVE_TABLES/"
 # Function that creates upload directory dynamically based on the
 # database used, user and schema provided.
-def CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC(
+def CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC(  # pylint: disable=invalid-name
     database: "Database",
     user: "models.User",  # pylint: disable=unused-argument
     schema: Optional[str],
@@ -972,7 +987,14 @@ DB_CONNECTION_MUTATOR = None
 #    def SQL_QUERY_MUTATOR(sql, user_name, security_manager, database):
 #        dttm = datetime.now().isoformat()
 #        return f"-- [SQL LAB] {username} {dttm}\n{sql}"
-SQL_QUERY_MUTATOR = None
+def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument
+    sql: str,
+    user_name: Optional[str],
+    security_manager: LocalProxy,
+    database: "Database",
+) -> str:
+    return sql
+
 
 # Enable / disable scheduled email reports
 #

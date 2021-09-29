@@ -91,7 +91,13 @@ export default class SqlEditorLeftBar extends React.PureComponent {
   }
 
   onTableChange(tableName, schemaName) {
-    this.props.actions.addTable(this.props.queryEditor, tableName, schemaName);
+    if (tableName && schemaName) {
+      this.props.actions.addTable(
+        this.props.queryEditor,
+        tableName,
+        schemaName,
+      );
+    }
   }
 
   onToggleTable(tables) {
@@ -171,7 +177,6 @@ export default class SqlEditorLeftBar extends React.PureComponent {
           onTablesLoad={this.onTablesLoad}
           schema={qe.schema}
           sqlLabMode
-          tableNameSticky={false}
         />
         <div className="divider" />
         <StyledScrollbarContainer>
