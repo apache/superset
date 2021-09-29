@@ -480,30 +480,40 @@ const forceSSLField = ({
   changeMethods,
   db,
   sslForced,
-}: FieldPropTypes) => (
-  <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
-    <Switch
-      disabled={sslForced && !isEditMode}
-      checked={db?.parameters?.encryption || sslForced}
-      onChange={changed => {
-        changeMethods.onParametersChange({
-          target: {
-            type: 'toggle',
-            name: 'encryption',
-            checked: true,
-            value: changed,
-          },
-        });
-      }}
-    />
-    <span css={toggleStyle}>SSL</span>
-    <InfoTooltip
-      tooltip={t('SSL Mode "require" will be used.')}
-      placement="right"
-      viewBox="0 -5 24 24"
-    />
-  </div>
-);
+}: FieldPropTypes) => {
+  const tooltipText = {
+    PostgreSQL:
+      'Requires a root certificate authority (public, local, or self-signed). SSL Mode "require" will be used.',
+    MySQL:
+      'Requires a root certificate authority (public, local, or self-signed).',
+    'Amazon Redshift':
+      'Requires a root certificate authority (public, local, or self-signed). SSL Mode "verify-ca" will be used.',
+  };
+  return (
+    <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
+      <Switch
+        disabled={sslForced && !isEditMode}
+        checked={db?.parameters?.encryption || sslForced}
+        onChange={changed => {
+          changeMethods.onParametersChange({
+            target: {
+              type: 'toggle',
+              name: 'encryption',
+              checked: true,
+              value: changed,
+            },
+          });
+        }}
+      />
+      <span css={toggleStyle}>SSL</span>
+      <InfoTooltip
+        tooltip={t(tooltipText[db?.database_name!])}
+        placement="right"
+        viewBox="0 -5 24 24"
+      />
+    </div>
+  );
+};
 
 const FORM_FIELD_MAP = {
   host: hostField,
