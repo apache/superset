@@ -17,8 +17,9 @@
  * under the License.
  */
 import React, { useCallback, useMemo, useState, useRef } from 'react';
-import { uniq } from 'lodash';
+import { uniq, debounce } from 'lodash';
 import { t, styled } from '@superset-ui/core';
+import { SLOW_DEBOUNCE } from 'src/constants';
 import { Form } from 'src/common/components';
 import { StyledModal } from 'src/components/Modal';
 import ErrorBoundary from 'src/components/ErrorBoundary';
@@ -233,6 +234,23 @@ export function FiltersConfigModal({
     }
   };
 
+  const onValuesChange = useMemo(
+    () =>
+      debounce((changes: any, values: NativeFiltersForm) => {
+        if (
+          changes.filters &&
+          Object.values(changes.filters).some(
+            (filter: any) => filter.name != null,
+          )
+        ) {
+          // we only need to set this if a name changed
+          setFormValues(values);
+        }
+        setSaveAlertVisible(false);
+      }, SLOW_DEBOUNCE),
+    [],
+  );
+
   return (
     <StyledModalWrapper
       visible={isOpen}
@@ -259,18 +277,7 @@ export function FiltersConfigModal({
           <StyledForm
             preserve={false}
             form={form}
-            onValuesChange={(changes, values: NativeFiltersForm) => {
-              if (
-                changes.filters &&
-                Object.values(changes.filters).some(
-                  (filter: any) => filter.name != null,
-                )
-              ) {
-                // we only need to set this if a name changed
-                setFormValues(values);
-              }
-              setSaveAlertVisible(false);
-            }}
+            onValuesChange={onValuesChange}
             layout="vertical"
           >
             <FilterTabs
