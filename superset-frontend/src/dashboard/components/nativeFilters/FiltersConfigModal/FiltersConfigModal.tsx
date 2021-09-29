@@ -196,6 +196,27 @@ export function FiltersConfigModal({
         title: getFilterTitle(id),
       }));
 
+  const cleanDeletedParents = (values: NativeFiltersForm | null) => {
+    Object.keys(filterConfigMap).forEach(key => {
+      const filter = filterConfigMap[key];
+      const parentId = filter.cascadeParentIds?.[0];
+      if (parentId && removedFilters[parentId]) {
+        filter.cascadeParentIds = [];
+      }
+    });
+
+    const filters = values?.filters;
+    if (filters) {
+      Object.keys(filters).forEach(key => {
+        const filter = filters[key];
+        const parentId = filter.parentFilter?.value;
+        if (parentId && removedFilters[parentId]) {
+          filter.parentFilter = undefined;
+        }
+      });
+    }
+  };
+
   const handleSave = async () => {
     const values: NativeFiltersForm | null = await validateForm(
       form,
@@ -207,6 +228,7 @@ export function FiltersConfigModal({
     );
 
     if (values) {
+      cleanDeletedParents(values);
       createHandleSave(
         filterConfigMap,
         filterIds,
@@ -295,7 +317,7 @@ export function FiltersConfigModal({
                   form={form}
                   filterId={id}
                   filterToEdit={filterConfigMap[id]}
-                  removed={!!removedFilters[id]}
+                  removedFilters={removedFilters}
                   restoreFilter={restoreFilter}
                   parentFilters={getParentFilters(id)}
                 />
