@@ -521,7 +521,7 @@ export default class ResultSet extends React.PureComponent<
                   database={this.props.database}
                   actions={this.props.actions}
                   onClick={this.handleExploreBtnClick}
-                />,
+                />
               )}
             {this.props.csv && (
               <Button
