@@ -1314,6 +1314,7 @@ import ipaddress
 
 def cidr_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
     resp: BusinessTypeResponse = {}
+    print(req["value"])
     try: 
         ip_range = ipaddress.ip_network(req["value"])
         resp["status"] = "valid"
@@ -1334,10 +1335,10 @@ def port_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
     if req["value"] in port_conversion_dict:
         print("in if") 
         resp["status"] = "valid"
-        resp["value"] = port_conversion_dict[req["value"]]()
+        resp["value"] = port_conversion_dict[req["value"]]
         resp["formatted_value"] = req["value"]
         resp["valid_filter_operators"] = ["==", "<=", "<", ">=", ">"] if len(req["value"]) == 1 else ["IN"] 
-    elif req["value"] and (0 <= req["value"] <= 65535): # Not sure if we care about this case  
+    elif req["value"] and (0 <= int(req["value"]) <= 65535): # Not sure if we care about this case  
         print("in elif")
         resp["status"] = "valid"
         resp["value"] = req["value"]

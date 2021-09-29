@@ -2,13 +2,15 @@
 A docstring
 """
 import ipaddress
-from typing import Callable, Dict
+from typing import Callable, Dict, Any
 from flask.wrappers import Response
-from flask_appbuilder.api import expose
+from flask.wrappers import Request
+from flask_appbuilder.api import rison, expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from superset import app
 from superset.charts.business_type.business_type_request import BusinessTypeRequest
 from superset.charts.business_type.business_type_response import BusinessTypeResponse
+from superset.charts.business_type.schemas import busniess_type_convert_schema
 from superset.extensions import event_logger
 from superset.connectors.sqla.models import SqlaTable
 from superset.views.base_api import BaseSupersetModelRestApi
@@ -16,35 +18,62 @@ from superset.views.base_api import BaseSupersetModelRestApi
 config = app.config
 BUSINESS_TYPE_ADDONS = config["BUSINESS_TYPE_ADDONS"]
 
+
 class BusinessTypeRestApi(BaseSupersetModelRestApi):
-    """
-    A docstring
-    """
     datamodel = SQLAInterface(SqlaTable)
 
     include_route_methods = {"get"}
-    #class_permission_name = "Chart"
-
     resource_name = "chart"
-    #allow_browser_login = True
+    
+    openapi_spec_tag = "Charts"
+    apispec_parameter_schemas = {
+        "busniess_type_convert_schema": busniess_type_convert_schema,
+    }
 
-    #openapi_spec_tag = "Chart"
-
-    @expose("/business_type/<type>/<value>", methods=["GET"])
+    @expose("/business_type", methods=["GET"])
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=False, # pylint: disable-arguments-renamed
     )
-    def get(self, type: str, value: str) -> Response:
-        """
-        Gets a port response
-        """
-        print(value)
-        if type not in BUSINESS_TYPE_ADDONS:
+    @rison(busniess_type_convert_schema)
+    def get(self, **kwargs: Any) -> Response:
+        """Send a greeting
+        ---
+        get:
+          description: >-
+            Deletes multiple annotation layers in a bulk operation.
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/busniess_type_convert_schema'
+          responses:
+            200:
+              description: a sucsessfull conversion has taken place
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                      value:
+                        type: object
+                      formatted_value:
+                        type: string
+                      valid_filter_operators:
+                        type: list
+    """
+        value: str = kwargs['rison']['value']
+        busniess_type: str = kwargs['rison']['type']
+        
+        if busniess_type not in BUSINESS_TYPE_ADDONS:
             return self.response(404)
 
-        bus_resp: BusinessTypeResponse = BUSINESS_TYPE_ADDONS[type]({
-           "business_type": "port",
+        bus_resp: BusinessTypeResponse = BUSINESS_TYPE_ADDONS[busniess_type]({
+           "business_type": busniess_type,
            "value": value
         })
         
