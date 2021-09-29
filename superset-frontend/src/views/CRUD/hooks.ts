@@ -330,7 +330,7 @@ export function useSingleViewResource<D extends object = any>(
         .then(
           ({ json = {} }) => {
             updateState({
-              resource: json.result,
+              resource: { ...json.result, id: json.id },
               error: null,
             });
             return json.result;

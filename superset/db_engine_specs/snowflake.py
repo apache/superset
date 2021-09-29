@@ -16,7 +16,6 @@
 # under the License.
 import json
 import re
-import urllib
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
 from urllib import parse
@@ -25,7 +24,6 @@ from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
-from marshmallow.exceptions import ValidationError
 from sqlalchemy.engine.url import make_url, URL
 from typing_extensions import TypedDict
 
@@ -193,12 +191,14 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     def build_sqlalchemy_uri(
         cls,
         parameters: SnowflakeParametersType,
-        encrypted_extra: Optional[Dict[str, Any]] = None,
+        encrypted_extra: Optional[  # pylint: disable=unused-argument
+            Dict[str, Any]
+        ] = None,
     ) -> str:
 
         return str(
             URL(
-                f"snowflake",
+                "snowflake",
                 username=parameters.get("username"),
                 password=parameters.get("password"),
                 host=parameters.get("account"),
@@ -212,10 +212,14 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
 
     @classmethod
     def get_parameters_from_uri(
-        cls, uri: str, encrypted_extra: Optional[Dict[str, str]] = None
+        cls,
+        uri: str,
+        encrypted_extra: Optional[  # pylint: disable=unused-argument
+            Dict[str, str]
+        ] = None,
     ) -> Any:
         url = make_url(uri)
-        query = {key: value for (key, value) in url.query.items()}
+        query = dict(url.query.items())
         return {
             "username": url.username,
             "password": url.password,
