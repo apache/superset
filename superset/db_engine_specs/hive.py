@@ -35,6 +35,7 @@ from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import ColumnClause, Select
 
+from superset.common.db_query_status import QueryStatus
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.exceptions import SupersetException
@@ -48,7 +49,6 @@ if TYPE_CHECKING:
     from superset.models.core import Database
 
 
-QueryStatus = utils.QueryStatus
 logger = logging.getLogger(__name__)
 
 
@@ -256,6 +256,10 @@ class HiveEngineSpec(PrestoEngineSpec):
             return f"""CAST('{dttm
                 .isoformat(sep=" ", timespec="microseconds")}' AS TIMESTAMP)"""
         return None
+
+    @classmethod
+    def epoch_to_dttm(cls) -> str:
+        return "from_unixtime({col})"
 
     @classmethod
     def adjust_database_uri(

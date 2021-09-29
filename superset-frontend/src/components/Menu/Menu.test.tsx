@@ -103,6 +103,7 @@ const mockedProps = {
       locale: 'en',
       version_string: '1.0.0',
       version_sha: 'randomSHA',
+      build_number: 'randomBuildNumber',
     },
     settings: [
       {
@@ -280,10 +281,10 @@ test('should render the Profile link when available', async () => {
   expect(profile).toHaveAttribute('href', user_profile_url);
 });
 
-test('should render the About section and version_string or sha when available', async () => {
+test('should render the About section and version_string, sha or build_number when available', async () => {
   const {
     data: {
-      navbar_right: { version_sha, version_string },
+      navbar_right: { version_sha, version_string, build_number },
     },
   } = mockedProps;
 
@@ -292,9 +293,11 @@ test('should render the About section and version_string or sha when available',
   const about = await screen.findByText('About');
   const version = await screen.findByText(`Version: ${version_string}`);
   const sha = await screen.findByText(`SHA: ${version_sha}`);
+  const build = await screen.findByText(`Build: ${build_number}`);
   expect(about).toBeInTheDocument();
   expect(version).toBeInTheDocument();
   expect(sha).toBeInTheDocument();
+  expect(build).toBeInTheDocument();
 });
 
 test('should render the Documentation link when available', async () => {

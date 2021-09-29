@@ -16,16 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { NO_TIME_RANGE, TIME_FILTER_MAP } from 'src/explore/constants';
-import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
-import { ChartConfiguration, Filters } from 'src/dashboard/reducers/types';
-import { DataMaskStateWithId, DataMaskType } from 'src/dataMask/types';
 import {
   ensureIsArray,
   FeatureFlag,
   FilterState,
   isFeatureEnabled,
 } from '@superset-ui/core';
+import { NO_TIME_RANGE, TIME_FILTER_MAP } from 'src/explore/constants';
+import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
+import { ChartConfiguration, Filters } from 'src/dashboard/reducers/types';
+import { DataMaskStateWithId, DataMaskType } from 'src/dataMask/types';
+import { areObjectsEqual } from 'src/reduxUtils';
 import { Layout } from '../../types';
 import { getTreeCheckedItems } from '../nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/utils';
 
@@ -154,6 +155,8 @@ export type Indicator = {
   path?: string[];
 };
 
+const cachedIndicatorsForChart = {};
+const cachedDashboardFilterDataForChart = {};
 // inspects redux state to find what the filter indicators should be shown for a given chart
 export const selectIndicatorsForChart = (
   chartId: number,
@@ -165,37 +168,75 @@ export const selectIndicatorsForChart = (
   // so grab the columns from the applied/rejected filters
   const appliedColumns = getAppliedColumns(chart);
   const rejectedColumns = getRejectedColumns(chart);
+  const matchingFilters = Object.values(filters).filter(
+    filter => filter.chartId !== chartId,
+  );
+  const matchingDatasources = Object.entries(datasources)
+    .filter(([key]) =>
+      matchingFilters.find(filter => filter.datasourceId === key),
+    )
+    .map(([, datasource]) => datasource);
 
-  const indicators = Object.values(filters)
-    .filter(filter => filter.chartId !== chartId)
-    .reduce(
-      (acc, filter) =>
-        acc.concat(
-          selectIndicatorsForChartFromFilter(
-            chartId,
-            filter,
-            datasources[filter.datasourceId] || {},
-            appliedColumns,
-            rejectedColumns,
-          ),
+  const cachedFilterData = cachedDashboardFilterDataForChart[chartId];
+  if (
+    cachedIndicatorsForChart[chartId] &&
+    areObjectsEqual(cachedFilterData?.appliedColumns, appliedColumns) &&
+    areObjectsEqual(cachedFilterData?.rejectedColumns, rejectedColumns) &&
+    areObjectsEqual(cachedFilterData?.matchingFilters, matchingFilters) &&
+    areObjectsEqual(cachedFilterData?.matchingDatasources, matchingDatasources)
+  ) {
+    return cachedIndicatorsForChart[chartId];
+  }
+  const indicators = matchingFilters.reduce(
+    (acc, filter) =>
+      acc.concat(
+        selectIndicatorsForChartFromFilter(
+          chartId,
+          filter,
+          datasources[filter.datasourceId] || {},
+          appliedColumns,
+          rejectedColumns,
         ),
-      [] as Indicator[],
-    );
+      ),
+    [] as Indicator[],
+  );
   indicators.sort((a, b) => a.name.localeCompare(b.name));
+  cachedIndicatorsForChart[chartId] = indicators;
+  cachedDashboardFilterDataForChart[chartId] = {
+    appliedColumns,
+    rejectedColumns,
+    matchingFilters,
+    matchingDatasources,
+  };
   return indicators;
 };
 
+const cachedNativeIndicatorsForChart = {};
+const cachedNativeFilterDataForChart: any = {};
+const defaultChartConfig = {};
 export const selectNativeIndicatorsForChart = (
   nativeFilters: Filters,
   dataMask: DataMaskStateWithId,
   chartId: number,
   chart: any,
   dashboardLayout: Layout,
-  chartConfiguration: ChartConfiguration = {},
+  chartConfiguration: ChartConfiguration = defaultChartConfig,
 ): Indicator[] => {
   const appliedColumns = getAppliedColumns(chart);
   const rejectedColumns = getRejectedColumns(chart);
 
+  const cachedFilterData = cachedNativeFilterDataForChart[chartId];
+  if (
+    cachedNativeIndicatorsForChart[chartId] &&
+    areObjectsEqual(cachedFilterData?.appliedColumns, appliedColumns) &&
+    areObjectsEqual(cachedFilterData?.rejectedColumns, rejectedColumns) &&
+    cachedFilterData?.nativeFilters === nativeFilters &&
+    cachedFilterData?.dashboardLayout === dashboardLayout &&
+    cachedFilterData?.chartConfiguration === chartConfiguration &&
+    cachedFilterData?.dataMask === dataMask
+  ) {
+    return cachedNativeIndicatorsForChart[chartId];
+  }
   const getStatus = ({
     label,
     column,
@@ -283,5 +324,15 @@ export const selectNativeIndicatorsForChart = (
       })
       .filter(filter => filter.status === IndicatorStatus.CrossFilterApplied);
   }
-  return crossFilterIndicators.concat(nativeFilterIndicators);
+  const indicators = crossFilterIndicators.concat(nativeFilterIndicators);
+  cachedNativeIndicatorsForChart[chartId] = indicators;
+  cachedNativeFilterDataForChart[chartId] = {
+    nativeFilters,
+    dashboardLayout,
+    chartConfiguration,
+    dataMask,
+    appliedColumns,
+    rejectedColumns,
+  };
+  return indicators;
 };

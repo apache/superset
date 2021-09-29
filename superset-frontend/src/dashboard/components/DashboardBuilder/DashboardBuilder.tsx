@@ -18,7 +18,7 @@
  */
 /* eslint-env browser */
 import cx from 'classnames';
-import React, { FC } from 'react';
+import React, { FC, useCallback, useMemo } from 'react';
 import { JsonObject, styled, css } from '@superset-ui/core';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
@@ -157,15 +157,14 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     state => state.dashboardState.fullSizeChartId,
   );
 
-  const handleChangeTab = ({
-    pathToTabIndex,
-  }: {
-    pathToTabIndex: string[];
-  }) => {
-    dispatch(setDirectPathToChild(pathToTabIndex));
-  };
+  const handleChangeTab = useCallback(
+    ({ pathToTabIndex }: { pathToTabIndex: string[] }) => {
+      dispatch(setDirectPathToChild(pathToTabIndex));
+    },
+    [dispatch],
+  );
 
-  const handleDeleteTopLevelTabs = () => {
+  const handleDeleteTopLevelTabs = useCallback(() => {
     dispatch(deleteTopLevelTabs());
 
     const firstTab = getDirectPathToTabIndex(
@@ -173,7 +172,12 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
       0,
     );
     dispatch(setDirectPathToChild(firstTab));
-  };
+  }, [dashboardLayout, dispatch]);
+
+  const handleDrop = useCallback(
+    dropResult => dispatch(handleComponentDrop(dropResult)),
+    [dispatch],
+  );
 
   const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
   const rootChildId = dashboardRoot.children[0];
@@ -217,6 +221,54 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const filterBarHeight = `calc(100vh - ${offset}px)`;
   const filterBarOffset = dashboardFiltersOpen ? 0 : barTopOffset + 20;
 
+  const draggableStyle = useMemo(
+    () => ({
+      marginLeft: dashboardFiltersOpen || editMode ? 0 : -32,
+    }),
+    [dashboardFiltersOpen, editMode],
+  );
+
+  const renderDraggableContent = useCallback(
+    ({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) => (
+      <div>
+        {!hideDashboardHeader && <DashboardHeader />}
+        {dropIndicatorProps && <div {...dropIndicatorProps} />}
+        {!isReport && topLevelTabs && (
+          <WithPopoverMenu
+            shouldFocus={shouldFocusTabs}
+            menuItems={[
+              <IconButton
+                icon={<Icons.FallOutlined iconSize="xl" />}
+                label="Collapse tab content"
+                onClick={handleDeleteTopLevelTabs}
+              />,
+            ]}
+            editMode={editMode}
+          >
+            {/* @ts-ignore */}
+            <DashboardComponent
+              id={topLevelTabs?.id}
+              parentId={DASHBOARD_ROOT_ID}
+              depth={DASHBOARD_ROOT_DEPTH + 1}
+              index={0}
+              renderTabContent={false}
+              renderHoverMenu={false}
+              onChangeTab={handleChangeTab}
+            />
+          </WithPopoverMenu>
+        )}
+      </div>
+    ),
+    [
+      editMode,
+      handleChangeTab,
+      handleDeleteTopLevelTabs,
+      hideDashboardHeader,
+      isReport,
+      topLevelTabs,
+    ],
+  );
+
   return (
     <StyledDiv>
       {nativeFiltersEnabled && !editMode && (
@@ -244,45 +296,13 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
           depth={DASHBOARD_ROOT_DEPTH}
           index={0}
           orientation="column"
-          onDrop={dropResult => dispatch(handleComponentDrop(dropResult))}
+          onDrop={handleDrop}
           editMode={editMode}
           // you cannot drop on/displace tabs if they already exist
           disableDragDrop={!!topLevelTabs}
-          style={{
-            marginLeft: dashboardFiltersOpen || editMode ? 0 : -32,
-          }}
+          style={draggableStyle}
         >
-          {({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) => (
-            <div>
-              {!hideDashboardHeader && <DashboardHeader />}
-              {dropIndicatorProps && <div {...dropIndicatorProps} />}
-              {!isReport && topLevelTabs && (
-                <WithPopoverMenu
-                  shouldFocus={shouldFocusTabs}
-                  menuItems={[
-                    <IconButton
-                      icon={<Icons.FallOutlined iconSize="xl" />}
-                      label="Collapse tab content"
-                      onClick={handleDeleteTopLevelTabs}
-                    />,
-                  ]}
-                  editMode={editMode}
-                >
-                  {/*
-                      // @ts-ignore */}
-                  <DashboardComponent
-                    id={topLevelTabs?.id}
-                    parentId={DASHBOARD_ROOT_ID}
-                    depth={DASHBOARD_ROOT_DEPTH + 1}
-                    index={0}
-                    renderTabContent={false}
-                    renderHoverMenu={false}
-                    onChangeTab={handleChangeTab}
-                  />
-                </WithPopoverMenu>
-              )}
-            </div>
-          )}
+          {renderDraggableContent}
         </DragDroppable>
       </StyledHeader>
       <StyledContent fullSizeChartId={fullSizeChartId}>

@@ -23,17 +23,17 @@ from typing import Any, cast, Dict, Optional, TYPE_CHECKING
 
 from flask import g
 
-from superset import app, is_feature_enabled
+from superset import is_feature_enabled
 from superset.models.sql_lab import Query
 from superset.sql_parse import CtasMethod
 from superset.utils import core as utils
+from superset.utils.core import apply_max_row_limit
 from superset.utils.dates import now_as_float
 from superset.views.utils import get_cta_schema_name
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import Database
 
-QueryStatus = utils.QueryStatus
 logger = logging.getLogger(__name__)
 
 SqlResults = Dict[str, Any]
@@ -56,6 +56,8 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
     expand_data: bool
     create_table_as_select: Optional[CreateTableAsSelect]
     database: Optional[Database]
+    query: Query
+    _sql_result: Optional[SqlResults]
 
     def __init__(self, query_params: Dict[str, Any]):
         self.create_table_as_select = None
@@ -63,6 +65,9 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
         self._init_from_query_params(query_params)
         self.user_id = self._get_user_id()
         self.client_id_or_short_id = cast(str, self.client_id or utils.shortid()[:10])
+
+    def set_query(self, query: Query) -> None:
+        self.query = query
 
     def _init_from_query_params(self, query_params: Dict[str, Any]) -> None:
         self.database_id = cast(int, query_params.get("database_id"))
@@ -97,7 +102,7 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
 
     @staticmethod
     def _get_limit_param(query_params: Dict[str, Any]) -> int:
-        limit: int = query_params.get("queryLimit") or app.config["SQL_MAX_ROW"]
+        limit = apply_max_row_limit(query_params.get("queryLimit") or 0)
         if limit < 0:
             logger.warning(
                 "Invalid limit of %i specified. Defaulting to max limit.", limit
@@ -133,6 +138,12 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
     def _validate_db(self, database: Database) -> None:
         # TODO validate db.id is equal to self.database_id
         pass
+
+    def get_execution_result(self) -> Optional[SqlResults]:
+        return self._sql_result
+
+    def set_execution_result(self, sql_result: Optional[SqlResults]) -> None:
+        self._sql_result = sql_result
 
     def create_query(self) -> Query:
         # pylint: disable=line-too-long

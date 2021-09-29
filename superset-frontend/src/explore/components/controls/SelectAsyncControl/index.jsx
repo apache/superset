@@ -22,7 +22,7 @@ import { t } from '@superset-ui/core';
 
 import Select from 'src/components/AsyncSelect';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 
 const propTypes = {
   dataEndpoint: PropTypes.string.isRequired,
