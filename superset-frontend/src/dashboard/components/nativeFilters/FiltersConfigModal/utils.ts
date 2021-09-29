@@ -65,15 +65,11 @@ export const validateForm = async (
           'Cannot create cyclic hierarchy',
         );
       }
-      try {
-        const parentId = formValues.filters?.[filterId]
-          ? formValues.filters[filterId]?.parentFilter?.value
-          : filterConfigMap[filterId]?.cascadeParentIds?.[0];
-        if (parentId) {
-          validateCycles(parentId, [...trace, filterId]);
-        }
-      } catch (error) {
-        console.log(error);
+      const parentId = formValues.filters?.[filterId]
+        ? formValues.filters[filterId]?.parentFilter?.value
+        : filterConfigMap[filterId]?.cascadeParentIds?.[0];
+      if (parentId) {
+        validateCycles(parentId, [...trace, filterId]);
       }
     };
 
