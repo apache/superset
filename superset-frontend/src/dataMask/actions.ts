@@ -22,6 +22,11 @@ import { FeatureFlag, isFeatureEnabled } from '../featureFlags';
 import { Filters } from '../dashboard/reducers/types';
 import { getInitialDataMask } from './reducer';
 
+export const CLEAR_DATA_MASK_STATE = 'CLEAR_DATA_MASK_STATE';
+export interface ClearDataMaskState {
+  type: typeof CLEAR_DATA_MASK_STATE;
+}
+
 export const UPDATE_DATA_MASK = 'UPDATE_DATA_MASK';
 export interface UpdateDataMask {
   type: typeof UPDATE_DATA_MASK;
@@ -81,7 +86,14 @@ export function clearDataMask(filterId: string | number) {
   );
 }
 
+export function clearDataMaskState(): ClearDataMaskState {
+  return {
+    type: CLEAR_DATA_MASK_STATE,
+  };
+}
+
 export type AnyDataMaskAction =
+  | ClearDataMaskState
   | UpdateDataMask
   | SetDataMaskForFilterConfigFail
   | SetDataMaskForFilterConfigComplete;
