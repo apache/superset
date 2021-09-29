@@ -146,7 +146,6 @@ export function useListViewResource<D extends object = any>(
               ? value.value
               : value,
         }));
-
       const queryParams = rison.encode({
         order_column: sortBy[0].id,
         order_direction: sortBy[0].desc ? 'desc' : 'asc',
@@ -321,7 +320,6 @@ export function useSingleViewResource<D extends object = any>(
       updateState({
         loading: true,
       });
-
       return SupersetClient.put({
         endpoint: `/api/v1/${resourceName}/${resourceID}`,
         body: JSON.stringify(resource),
@@ -330,7 +328,7 @@ export function useSingleViewResource<D extends object = any>(
         .then(
           ({ json = {} }) => {
             updateState({
-              resource: json.result,
+              resource: { ...json.result, id: json.id },
               error: null,
             });
             return json.result;

@@ -386,7 +386,7 @@ function dbReducer(
         engine: action.payload.backend || trimmedState.engine,
         configuration_method: action.payload.configuration_method,
         extra_json: deserializeExtraJSON,
-        parameters: action.payload.parameters,
+        parameters: action.payload.parameters || trimmedState.parameters,
         query_input,
       };
 
@@ -567,9 +567,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       // convert extra_json to back to string
       dbToUpdate.extra = serializeExtra(dbToUpdate?.extra_json);
     }
-
     if (db?.id) {
       setLoading(true);
+      dbToUpdate.id = db.id;
       const result = await updateResource(
         db.id as number,
         dbToUpdate as DatabaseObject,
