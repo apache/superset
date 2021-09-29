@@ -14,19 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=no-self-use
+from typing import Any, Callable, Dict
+
 import pytest
 
-from superset.sql_lab import dummy_sql_query_mutator
 from superset.utils.public_interfaces import compute_hash, get_warning_message
-from tests.integration_tests.base_tests import SupersetTestCase
 
 # These are public interfaces exposed by Superset. Make sure
 # to only change the interfaces and update the hashes in new
 # major versions of Superset.
-hashes = {
-    dummy_sql_query_mutator: "Kv%NM3b;7BcpoD2wbPkW",
-}
+hashes: Dict[Callable[..., Any], str] = {}
 
 
 @pytest.mark.parametrize("interface,expected_hash", list(hashes.items()))

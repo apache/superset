@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataMaskStateWithId } from 'src/dataMask/types';
+import { NativeFilterType } from 'src/dashboard/components/nativeFilters/types';
 import { NativeFiltersState } from 'src/dashboard/reducers/types';
+import { DataMaskStateWithId } from 'src/dataMask/types';
 
 export const mockDataMaskInfo: DataMaskStateWithId = {
   DefaultsID: {
@@ -66,6 +67,7 @@ export const nativeFiltersInfo: NativeFiltersState = {
         allowsMultipleValues: true,
         isRequired: false,
       },
+      type: NativeFilterType.NATIVE_FILTER,
     },
   },
 };

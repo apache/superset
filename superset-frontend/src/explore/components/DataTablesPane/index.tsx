@@ -221,7 +221,7 @@ export const DataTablesPane = ({
       ...prevState,
       [RESULT_TYPES.samples]: true,
     }));
-  }, [queryFormData.adhoc_filters, queryFormData.datasource]);
+  }, [queryFormData?.adhoc_filters, queryFormData?.datasource]);
 
   useEffect(() => {
     if (queriesResponse && chartStatus === 'success') {

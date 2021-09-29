@@ -18,4 +18,4 @@
 -e file:.
 pyrsistent>=0.16.1,<0.17
 zipp==3.4.1
-sasl==0.2.1
+sasl==0.3.1

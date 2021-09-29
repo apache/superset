@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Utility functions used across Superset"""
+# pylint: disable=too-many-lines
 import collections
 import decimal
 import errno
@@ -1174,7 +1175,7 @@ def merge_extra_filters(form_data: Dict[str, Any]) -> None:
             time_extra = date_options.get(filter_column)
             if time_extra:
                 time_extra_value = filtr.get("val")
-                if time_extra_value:
+                if time_extra_value and time_extra_value != NO_TIME_RANGE:
                     form_data[time_extra] = time_extra_value
                     applied_time_extras[filter_column] = time_extra_value
             elif filtr["val"]:
@@ -1639,7 +1640,7 @@ def get_time_filter_status(
             )
 
     time_range = applied_time_extras.get(ExtraFiltersTimeColumnType.TIME_RANGE)
-    if time_range and time_range != NO_TIME_RANGE:
+    if time_range:
         # are there any temporal columns to assign the time grain to?
         if temporal_columns:
             applied.append({"column": ExtraFiltersTimeColumnType.TIME_RANGE})
@@ -1761,3 +1762,25 @@ def parse_boolean_string(bool_str: Optional[str]) -> bool:
         return bool(strtobool(bool_str.lower()))
     except ValueError:
         return False
+
+
+def apply_max_row_limit(limit: int, max_limit: Optional[int] = None,) -> int:
+    """
+    Override row limit if max global limit is defined
+
+    :param limit: requested row limit
+    :param max_limit: Maximum allowed row limit
+    :return: Capped row limit
+
+    >>> apply_max_row_limit(100000, 10)
+    10
+    >>> apply_max_row_limit(10, 100000)
+    10
+    >>> apply_max_row_limit(0, 10000)
+    10000
+    """
+    if max_limit is None:
+        max_limit = current_app.config["SQL_MAX_ROW"]
+    if limit != 0:
+        return min(max_limit, limit)
+    return max_limit

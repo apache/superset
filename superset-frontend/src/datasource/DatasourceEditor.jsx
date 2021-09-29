@@ -49,7 +49,7 @@ import CollectionTable from 'src/CRUD/CollectionTable';
 import Fieldset from 'src/CRUD/Fieldset';
 import Field from 'src/CRUD/Field';
 
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import Icons from 'src/components/Icons';
 
@@ -108,6 +108,14 @@ const EditLockContainer = styled.div`
 const ColumnButtonWrapper = styled.div`
   text-align: right;
   ${({ theme }) => `margin-bottom: ${theme.gridUnit * 2}px`}
+`;
+
+const StyledLabelWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  span {
+    margin-right: ${({ theme }) => theme.gridUnit}px;
+  }
 `;
 
 const checkboxGenerator = (d, onChange) => (
@@ -235,6 +243,28 @@ function ColumnCollectionTable({
                 />
               }
             />
+            <Field
+              fieldKey="certified_by"
+              label={t('Certified By')}
+              description={t('Person or group that has certified this metric')}
+              control={
+                <TextControl
+                  controlId="certified"
+                  placeholder={t('Certified by')}
+                />
+              }
+            />
+            <Field
+              fieldKey="certification_details"
+              label={t('Certification details')}
+              description={t('Details of the certification')}
+              control={
+                <TextControl
+                  controlId="certificationDetails"
+                  placeholder={t('Certification details')}
+                />
+              }
+            />
           </Fieldset>
         </FormContainer>
       }
@@ -247,11 +277,27 @@ function ColumnCollectionTable({
       }}
       onChange={onChange}
       itemRenderers={{
-        column_name: (v, onItemChange) =>
+        column_name: (v, onItemChange, _, record) =>
           editableColumnName ? (
-            <EditableTitle canEdit title={v} onSaveTitle={onItemChange} />
+            <StyledLabelWrapper>
+              {record.is_certified && (
+                <CertifiedIcon
+                  certifiedBy={record.certified_by}
+                  details={record.certification_details}
+                />
+              )}
+              <EditableTitle canEdit title={v} onSaveTitle={onItemChange} />
+            </StyledLabelWrapper>
           ) : (
-            v
+            <StyledLabelWrapper>
+              {record.is_certified && (
+                <CertifiedIcon
+                  certifiedBy={record.certified_by}
+                  details={record.certification_details}
+                />
+              )}
+              {v}
+            </StyledLabelWrapper>
           ),
         type: d => (d ? <Label>{d}</Label> : null),
         is_dttm: checkboxGenerator,
@@ -464,13 +510,13 @@ class DatasourceEditor extends React.PureComponent {
         results.added.push(col.name);
       } else if (
         currentCol.type !== col.type ||
-        currentCol.is_dttm !== col.is_dttm
+        (!currentCol.is_dttm && col.is_dttm)
       ) {
         // modified column
         finalColumns.push({
           ...currentCol,
           type: col.type,
-          is_dttm: col.is_dttm,
+          is_dttm: currentCol.is_dttm || col.is_dttm,
         });
         results.modified.push(col.name);
       } else {
@@ -775,41 +821,47 @@ class DatasourceEditor extends React.PureComponent {
             <div>
               {this.state.isSqla && (
                 <>
-                  <Field
-                    fieldKey="databaseSelector"
-                    label={t('virtual')}
-                    control={
-                      <DatabaseSelector
-                        dbId={datasource.database.id}
-                        schema={datasource.schema}
-                        onSchemaChange={schema =>
-                          this.state.isEditMode &&
-                          this.onDatasourcePropChange('schema', schema)
+                  <Col xs={24} md={12}>
+                    <Field
+                      fieldKey="databaseSelector"
+                      label={t('virtual')}
+                      control={
+                        <div css={{ marginTop: 8 }}>
+                          <DatabaseSelector
+                            db={datasource?.database}
+                            schema={datasource.schema}
+                            onSchemaChange={schema =>
+                              this.state.isEditMode &&
+                              this.onDatasourcePropChange('schema', schema)
+                            }
+                            onDbChange={database =>
+                              this.state.isEditMode &&
+                              this.onDatasourcePropChange('database', database)
+                            }
+                            formMode={false}
+                            handleError={this.props.addDangerToast}
+                            readOnly={!this.state.isEditMode}
+                          />
+                        </div>
+                      }
+                    />
+                    <div css={{ width: 'calc(100% - 34px)', marginTop: -16 }}>
+                      <Field
+                        fieldKey="table_name"
+                        label={t('Dataset name')}
+                        control={
+                          <TextControl
+                            controlId="table_name"
+                            onChange={table => {
+                              this.onDatasourcePropChange('table_name', table);
+                            }}
+                            placeholder={t('Dataset name')}
+                            disabled={!this.state.isEditMode}
+                          />
                         }
-                        onDbChange={database =>
-                          this.state.isEditMode &&
-                          this.onDatasourcePropChange('database', database)
-                        }
-                        formMode={false}
-                        handleError={this.props.addDangerToast}
-                        readOnly={!this.state.isEditMode}
                       />
-                    }
-                  />
-                  <Field
-                    fieldKey="table_name"
-                    label={t('Dataset name')}
-                    control={
-                      <TextControl
-                        controlId="table_name"
-                        onChange={table => {
-                          this.onDatasourcePropChange('table_name', table);
-                        }}
-                        placeholder={t('Dataset name')}
-                        disabled={!this.state.isEditMode}
-                      />
-                    }
-                  />
+                    </div>
+                  </Col>
                   <Field
                     fieldKey="sql"
                     label={t('SQL')}
@@ -853,33 +905,44 @@ class DatasourceEditor extends React.PureComponent {
                   fieldKey="tableSelector"
                   label={t('Physical')}
                   control={
-                    <TableSelector
-                      clearable={false}
-                      dbId={datasource.database.id}
-                      handleError={this.props.addDangerToast}
-                      schema={datasource.schema}
-                      sqlLabMode={false}
-                      tableName={datasource.table_name}
-                      onSchemaChange={
-                        this.state.isEditMode
-                          ? schema =>
-                              this.onDatasourcePropChange('schema', schema)
-                          : undefined
-                      }
-                      onDbChange={
-                        this.state.isEditMode
-                          ? database =>
-                              this.onDatasourcePropChange('database', database)
-                          : undefined
-                      }
-                      onTableChange={
-                        this.state.isEditMode
-                          ? table =>
-                              this.onDatasourcePropChange('table_name', table)
-                          : undefined
-                      }
-                      readOnly={!this.state.isEditMode}
-                    />
+                    <div css={{ marginTop: 8 }}>
+                      <TableSelector
+                        clearable={false}
+                        database={{
+                          ...datasource.database,
+                          database_name:
+                            datasource.database.database_name ||
+                            datasource.database.name,
+                        }}
+                        dbId={datasource.database.id}
+                        handleError={this.props.addDangerToast}
+                        schema={datasource.schema}
+                        sqlLabMode={false}
+                        tableName={datasource.table_name}
+                        onSchemaChange={
+                          this.state.isEditMode
+                            ? schema =>
+                                this.onDatasourcePropChange('schema', schema)
+                            : undefined
+                        }
+                        onDbChange={
+                          this.state.isEditMode
+                            ? database =>
+                                this.onDatasourcePropChange(
+                                  'database',
+                                  database,
+                                )
+                            : undefined
+                        }
+                        onTableChange={
+                          this.state.isEditMode
+                            ? table =>
+                                this.onDatasourcePropChange('table_name', table)
+                            : undefined
+                        }
+                        readOnly={!this.state.isEditMode}
+                      />
+                    </div>
                   }
                   description={t(
                     'The pointer to a physical table (or view). Keep in mind that the chart is ' +
@@ -1072,7 +1135,6 @@ class DatasourceEditor extends React.PureComponent {
     const { datasource, activeTabKey } = this.state;
     const { metrics } = datasource;
     const sortedMetrics = metrics?.length ? this.sortMetrics(metrics) : [];
-
     return (
       <DatasourceContainer>
         {this.renderErrors()}
