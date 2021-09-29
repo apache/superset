@@ -220,8 +220,7 @@ class SupersetError:
             )
 
     def to_dict(self) -> Dict[str, Any]:
-        rv = {"message": self.message,
-              "error_type": self.error_type}
+        rv = {"message": self.message, "error_type": self.error_type}
         if self.extra:
-            rv["extra"] = self.extra
+            rv["extra"] = self.extra  # type: ignore
         return rv
