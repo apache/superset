@@ -180,6 +180,7 @@ type DBReducerActionType =
         database_name?: string;
         engine?: string;
         configuration_method: CONFIGURATION_METHOD;
+        paramProperties?: Record<string, any>;
       };
     }
   | {
@@ -358,45 +359,25 @@ function dbReducer(
         .join('&');
 
       if (
-        action.payload.backend === 'bigquery' &&
+        action.payload.encrypted_extra &&
         action.payload.configuration_method ===
           CONFIGURATION_METHOD.DYNAMIC_FORM
       ) {
+        const engineParamsCatalog = Object.keys(
+          extra_json?.engine_params?.catalog || {},
+        ).map(e => ({
+          name: e,
+          value: extra_json?.engine_params?.catalog[e],
+        }));
         return {
           ...action.payload,
-          engine: action.payload.backend,
+          engine: action.payload.backend || trimmedState.engine,
           configuration_method: action.payload.configuration_method,
           extra_json: deserializeExtraJSON,
-          parameters: {
-            credentials_info: JSON.stringify(
-              action.payload?.parameters?.credentials_info || '',
-            ),
-            query,
-          },
+          catalog: engineParamsCatalog,
+          parameters: action.payload.parameters,
           query_input,
         };
-      }
-
-      if (
-        action.payload.backend === 'gsheets' &&
-        action.payload.configuration_method ===
-          CONFIGURATION_METHOD.DYNAMIC_FORM &&
-        extra_json?.engine_params?.catalog !== undefined
-      ) {
-        // pull catalog from engine params
-        const engineParamsCatalog = extra_json?.engine_params?.catalog;
-
-        return {
-          ...action.payload,
-          engine: action.payload.backend,
-          configuration_method: action.payload.configuration_method,
-          extra_json: deserializeExtraJSON,
-          catalog: Object.keys(engineParamsCatalog).map(e => ({
-            name: e,
-            value: engineParamsCatalog[e],
-          })),
-          query_input,
-        } as DatabaseObject;
       }
 
       return {
@@ -513,7 +494,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       encrypted_extra: db?.encrypted_extra || '',
       server_cert: db?.server_cert || undefined,
     };
-
     testDatabaseConnection(connection, addDangerToast, addSuccessToast);
   };
 
@@ -525,11 +505,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setEditNewDb(false);
     onHide();
   };
-
   const onSave = async () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...update } = db || {};
-
     // Clone DB object
     const dbToUpdate = JSON.parse(JSON.stringify(update));
 
@@ -539,32 +517,41 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       if (validationErrors && !isEmpty(validationErrors)) {
         return;
       }
+      const parameters_schema = isEditMode
+        ? dbToUpdate.parameters_schema.properties
+        : dbModel?.parameters.properties;
+      const additionalEncryptedExtra = JSON.parse(
+        dbToUpdate.encrypted_extra || '{}',
+      );
+      const paramConfigArray = Object.keys(parameters_schema || {});
 
-      const engine = dbToUpdate.backend || dbToUpdate.engine;
-      if (engine === 'bigquery' && dbToUpdate.parameters?.credentials_info) {
-        // wrap encrypted_extra in credentials_info only for BigQuery
+      paramConfigArray.forEach(paramConfig => {
+        /*
+         * Parameters that are annotated with the `x-encrypted-extra` properties should be moved to
+         * `encrypted_extra`, so that they are stored encrypted in the backend when the database is
+         * created or edited.
+         */
         if (
-          dbToUpdate.parameters?.credentials_info &&
-          typeof dbToUpdate.parameters?.credentials_info === 'object' &&
-          dbToUpdate.parameters?.credentials_info.constructor === Object
+          parameters_schema[paramConfig]['x-encrypted-extra'] &&
+          dbToUpdate.parameters?.[paramConfig]
         ) {
-          // Don't cast if object
-          dbToUpdate.encrypted_extra = JSON.stringify({
-            credentials_info: dbToUpdate.parameters?.credentials_info,
-          });
-
-          // Convert credentials info string before updating
-          dbToUpdate.parameters.credentials_info = JSON.stringify(
-            dbToUpdate.parameters.credentials_info,
-          );
-        } else {
-          dbToUpdate.encrypted_extra = JSON.stringify({
-            credentials_info: JSON.parse(
-              dbToUpdate.parameters?.credentials_info,
-            ),
-          });
+          if (typeof dbToUpdate.parameters?.[paramConfig] === 'object') {
+            // add new encrypted extra to encrypted_extra object
+            additionalEncryptedExtra[paramConfig] =
+              dbToUpdate.parameters?.[paramConfig];
+            // The backend expects `encrypted_extra` as a string for historical reasons.
+            dbToUpdate.parameters[paramConfig] = JSON.stringify(
+              dbToUpdate.parameters[paramConfig],
+            );
+          } else {
+            additionalEncryptedExtra[paramConfig] = JSON.parse(
+              dbToUpdate.parameters?.[paramConfig] || '{}',
+            );
+          }
         }
-      }
+      });
+      // cast the new encrypted extra object into a string
+      dbToUpdate.encrypted_extra = JSON.stringify(additionalEncryptedExtra);
     }
 
     if (dbToUpdate?.parameters?.catalog) {
@@ -660,10 +647,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         type: ActionType.dbSelected,
         payload: {
           database_name,
+          engine,
           configuration_method: isDynamic
             ? CONFIGURATION_METHOD.DYNAMIC_FORM
             : CONFIGURATION_METHOD.SQLALCHEMY_URI,
-          engine,
+          paramProperties: parameters?.properties,
         },
       });
     }
