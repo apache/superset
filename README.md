@@ -164,12 +164,20 @@ $ git clone https://github.com/raghavSharmaSigmoid/superset.git
 $ cd superset
 $ git checkout firebolt-integration
 
-# 2. Run below commands to create local requirements text file which has firebolt adapter path
-$ touch ./docker/requirements-local.txt
-$ echo "firebolt-sqlalchemy" >> ./docker/requirements-local.txt
+# 2. Run below commands to clone firebolt adapter into superset folder
+$ cd superset
+$ git clone https://github.com/raghavSharmaSigmoid/firebolt-sqlalchemy.git
 
-# 3. Run below command to build and start docker
-$ docker-compose build --force-rm
+# 3. Run below commands to build the firebolt adapter
+$ cd firebolt-sqlalchemy
+$ python3 -m build
+
+# 4. Run below commands to create local requirements text file which has firebolt adapter path
+$ cd $HOME/superset
+$ touch ./docker/requirements-local.txt
+$ echo "firebolt-sqlalchemy@file://localhost/app/superset/firebolt-sqlalchemy/dist/firebolt-sqlalchemy-0.0.1.tar.gz#egg=firebolt-sqlalchemy" >> ./docker/requirements-local.txt
+
+# 5. Run below command to start docker
 $ docker-compose up
 ````
 
