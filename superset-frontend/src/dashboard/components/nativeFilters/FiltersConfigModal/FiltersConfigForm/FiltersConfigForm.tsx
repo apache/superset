@@ -308,7 +308,7 @@ const FiltersConfigForm = (
   }: FiltersConfigFormProps,
   ref: React.RefObject<any>,
 ) => {
-  const removed = !!removedFilters[filterId];
+  const isRemoved = !!removedFilters[filterId];
   const [error, setError] = useState<string>('');
   const [metrics, setMetrics] = useState<Metric[]>([]);
   const [activeTabKey, setActiveTabKey] = useState<string>(
@@ -401,7 +401,7 @@ const FiltersConfigForm = (
         filterType: formFilter?.filterType,
         filterToEdit,
         formFilter,
-        removed,
+        removed: isRemoved,
       })
     : {};
   const hasColumn = !!mainControlItems.groupby;
@@ -701,20 +701,20 @@ const FiltersConfigForm = (
 
   useEffect(() => {
     // just removed, saving current form items for eventual undo
-    if (removed) {
+    if (isRemoved) {
       setUndoFormValues(formValues);
     }
-  }, [removed]);
+  }, [isRemoved]);
 
   useEffect(() => {
     // the filter was just restored after undo
-    if (undoFormValues && !removed) {
+    if (undoFormValues && !isRemoved) {
       setNativeFilterFieldValues(form, filterId, undoFormValues);
       setUndoFormValues(null);
     }
-  }, [formValues, filterId, form, removed, undoFormValues]);
+  }, [formValues, filterId, form, isRemoved, undoFormValues]);
 
-  if (removed) {
+  if (isRemoved) {
     return <RemovedFilter onClick={() => restoreFilter(filterId)} />;
   }
 
@@ -741,13 +741,13 @@ const FiltersConfigForm = (
             name={['filters', filterId, 'name']}
             label={<StyledLabel>{t('Filter name')}</StyledLabel>}
             initialValue={filterToEdit?.name}
-            rules={[{ required: !removed, message: t('Name is required') }]}
+            rules={[{ required: !isRemoved, message: t('Name is required') }]}
           >
             <Input {...getFiltersConfigModalTestId('name-input')} />
           </StyledFormItem>
           <StyledFormItem
             name={['filters', filterId, 'filterType']}
-            rules={[{ required: !removed, message: t('Name is required') }]}
+            rules={[{ required: !isRemoved, message: t('Name is required') }]}
             initialValue={filterToEdit?.filterType || 'filter_select'}
             label={<StyledLabel>{t('Filter Type')}</StyledLabel>}
             {...getFiltersConfigModalTestId('filter-type')}
@@ -805,7 +805,7 @@ const FiltersConfigForm = (
                     : undefined
                 }
                 rules={[
-                  { required: !removed, message: t('Dataset is required') },
+                  { required: !isRemoved, message: t('Dataset is required') },
                 ]}
                 {...getFiltersConfigModalTestId('datasource-input')}
               >
@@ -860,7 +860,7 @@ const FiltersConfigForm = (
                 formChanged();
               }}
             >
-              {!removed && (
+              {!isRemoved && (
                 <StyledRowSubFormItem
                   name={['filters', filterId, 'defaultDataMask']}
                   initialValue={initialDefaultValue}
