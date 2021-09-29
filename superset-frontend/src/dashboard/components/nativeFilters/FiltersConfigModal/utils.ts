@@ -65,11 +65,15 @@ export const validateForm = async (
           'Cannot create cyclic hierarchy',
         );
       }
-      const parentId = formValues.filters[filterId]
-        ? formValues.filters[filterId].parentFilter?.value
-        : filterConfigMap[filterId]?.cascadeParentIds?.[0];
-      if (parentId) {
-        validateCycles(parentId, [...trace, filterId]);
+      try {
+        const parentId = formValues.filters?.[filterId]
+          ? formValues.filters[filterId]?.parentFilter?.value
+          : filterConfigMap[filterId]?.cascadeParentIds?.[0];
+        if (parentId) {
+          validateCycles(parentId, [...trace, filterId]);
+        }
+      } catch (error) {
+        console.log(error);
       }
     };
 
@@ -111,7 +115,7 @@ export const createHandleSave = (
     .filter(id => !removedFilters[id])
     .map(id => {
       // create a filter config object from the form inputs
-      const formInputs = values.filters[id];
+      const formInputs = values.filters?.[id];
       // if user didn't open a filter, return the original config
       if (!formInputs) return filterConfigMap[id];
       const target: Partial<Target> = {};

@@ -62,7 +62,6 @@ import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 import { Radio } from 'src/components/Radio';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
-import { usePrevious } from 'src/common/hooks/usePrevious';
 import {
   Chart,
   ChartsState,
@@ -326,7 +325,6 @@ const FiltersConfigForm = (
   const defaultFormFilter = useMemo(() => ({}), []);
   const formValues = form.getFieldValue('filters')?.[filterId];
   const formFilter = formValues || undoFormValues || defaultFormFilter;
-  const previousRemovedFilters = usePrevious(removedFilters);
 
   const parentFilterOptions = useMemo(
     () =>
@@ -344,13 +342,7 @@ const FiltersConfigForm = (
     ({ value }) => value === parentId,
   );
 
-  const [isHierarchical, setIsHierarchical] = useState(!!parentFilter);
-
-  useEffect(() => {
-    if (!isEqual(removedFilters, previousRemovedFilters)) {
-      setIsHierarchical(parentId && !removedFilters[parentId]);
-    }
-  }, [parentId, previousRemovedFilters, removedFilters]);
+  const hasParentFilter = !!parentFilter;
 
   const nativeFilterItems = getChartMetadataRegistry().items;
   const nativeFilterVizTypes = Object.entries(nativeFilterItems)
@@ -602,16 +594,27 @@ const FiltersConfigForm = (
     ...rest
   }: {
     value?: { value: string | number };
-  }) => (
-    <Select
-      ariaLabel={t('Parent filter')}
-      placeholder={t('None')}
-      options={parentFilterOptions}
-      allowClear
-      value={value?.value}
-      {...rest}
-    />
-  );
+  }) => {
+    const parentId = value?.value;
+    const isParentRemoved = parentId && removedFilters[parentId];
+    let options = parentFilterOptions;
+    if (isParentRemoved) {
+      options = [
+        { label: t('(deleted)'), value: parentId as string },
+        ...parentFilterOptions,
+      ];
+    }
+    return (
+      <Select
+        ariaLabel={t('Parent filter')}
+        placeholder={t('None')}
+        options={options}
+        allowClear
+        value={parentId}
+        {...rest}
+      />
+    );
+  };
 
   useEffect(() => {
     if (datasetId) {
@@ -657,7 +660,7 @@ const FiltersConfigForm = (
     // Run only once when the control items are available
     if (!activeFilterPanelKey && !isEmpty(controlItems)) {
       const hasCheckedAdvancedControl =
-        isHierarchical ||
+        hasParentFilter ||
         hasPreFilter ||
         hasSorting ||
         Object.keys(controlItems)
@@ -671,7 +674,7 @@ const FiltersConfigForm = (
     }
   }, [
     activeFilterPanelKey,
-    isHierarchical,
+    hasParentFilter,
     hasPreFilter,
     hasSorting,
     controlItems,
@@ -938,9 +941,8 @@ const FiltersConfigForm = (
               {isCascadingFilter && (
                 <CollapsibleControl
                   title={t('Filter is hierarchical')}
-                  checked={isHierarchical}
+                  initialValue={hasParentFilter}
                   onChange={checked => {
-                    setIsHierarchical(checked);
                     formChanged();
                     if (checked) {
                       // execute after render
