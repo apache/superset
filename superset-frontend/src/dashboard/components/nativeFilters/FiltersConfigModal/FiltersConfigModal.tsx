@@ -321,7 +321,6 @@ export function FiltersConfigModal({
       <ErrorBoundary>
         <StyledModalBody>
           <StyledForm
-            preserve
             form={form}
             onValuesChange={(changes, values: NativeFiltersForm) => {
               if (changes.filters) {
@@ -336,7 +335,7 @@ export function FiltersConfigModal({
                     parentFilter: changes.filters[key].parentFilter,
                   }));
                 if (filterNameChanged) {
-                  setFormValues({ filters: form.getFieldValue('filters') });
+                  setFormValues(values);
                 }
                 if (changedFilterHierarchies.length > 0) {
                   const changedFilterId = changedFilterHierarchies[0];

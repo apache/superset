@@ -55,14 +55,17 @@ const FiltureConfigurePane: React.FC<Props> = ({
         />
       </div>
       <ContentHolder>
-        <div
-          style={{
-            height: '100%',
-            overflowY: 'scroll',
-          }}
-        >
-          {children(active)}
-        </div>
+        {filterGroups.flat().map(id => (
+          <div
+            style={{
+              height: '100%',
+              overflowY: 'scroll',
+              display: id === active ? '' : 'none',
+            }}
+          >
+            {children(id)}
+          </div>
+        ))}
       </ContentHolder>
     </Container>
   );
