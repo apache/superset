@@ -25,6 +25,7 @@ import {
   useDrop,
   XYCoord,
 } from 'react-dnd';
+import FilterGroupIcon from 'images/icons/filter_group.svg';
 
 interface TabTitleContainerProps {
   readonly isDragging: boolean;
@@ -32,26 +33,24 @@ interface TabTitleContainerProps {
 const FILTER_TYPE = 'FILTER';
 
 const Container = styled.div<TabTitleContainerProps>`
-  ${({ theme, isDragging }) => `
+  ${({ isDragging, theme }) => `
     opacity: ${isDragging ? 0.3 : 1};
     width: 100%;
-    &:hover {
-      transition: all 0.3s;
-      span, .anticon {
-        color: ${theme.colors.primary.dark1};
-      }
-    }
+    display: flex;
+    padding: 0px ${theme.gridUnit}px;
 `}
+`;
+
+const ImageContainer = styled.div`
+  width: 16px;
+  position: relative;
+  top: 8px;
 `;
 
 interface FilterTabTitleProps {
   index: number;
   filterIds: string[];
-  onRearrage: (
-    dragItemIndex: number,
-    targetIndex: number,
-    numberOfElements: number,
-  ) => void;
+  onRearrage: (dragItemIndex: number, targetIndex: number) => void;
 }
 
 interface DragItem {
@@ -114,7 +113,7 @@ export const DraggableFilter: React.FC<FilterTabTitleProps> = ({
         return;
       }
 
-      onRearrage(dragIndex, hoverIndex, item.filterIds.length);
+      onRearrage(dragIndex, hoverIndex);
       // Note: we're mutating the monitor item here.
       // Generally it's better to avoid mutations,
       // but it's good here for the sake of performance
@@ -126,7 +125,14 @@ export const DraggableFilter: React.FC<FilterTabTitleProps> = ({
   drag(drop(ref));
   return (
     <Container ref={ref} isDragging={isDragging}>
-      {children}
+      <ImageContainer>
+        <img
+          css={{ width: '16px' }}
+          src={FilterGroupIcon}
+          alt="filter-group-logo"
+        />
+      </ImageContainer>
+      <div css={{ flexGrow: 4 }}>{children}</div>
     </Container>
   );
 };

@@ -56,7 +56,6 @@ const CollapsibleControl = (props: CollapsibleControlProps) => {
     title,
     tooltip,
     children,
-    name,
     onChange = () => {},
     initialValue = false,
   } = props;

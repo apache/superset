@@ -11,9 +11,15 @@ const FilterTitle = styled.div`
       cursor: pointer;
       width: 100%;
       &.active {
-        background-color: ${theme.colors.secondary.light4};
+        color:  ${theme.colors.primary.dark1};
         span {
           color:  ${theme.colors.secondary.base};
+        }
+      }
+      &:hover {
+        color: ${theme.colors.primary.light1};
+        span, .anticon {
+          color: ${theme.colors.primary.light1};
         }
       }
 `}
@@ -22,24 +28,23 @@ const FilterTitle = styled.div`
 const StyledTrashIcon = styled(Icons.Trash)`
   color: ${({ theme }) => theme.colors.grayscale.light3};
 `;
+const Container = styled.div`
+  height: 100%;
+  overflow-y: scroll;
+`;
 
 interface Props {
-  filterHierarchy: Array<{ id: string; parentId: string | null }>;
   getFilterTitle: (filterId: string) => string;
   onChange: (filterId: string) => void;
   currentFilterId: string;
   removedFilters: Record<string, FilterRemoval>;
   onRemove: (id: string) => void;
   restoreFilter: (id: string) => void;
-  onRearrage: (
-    dragIndex: number,
-    targetIndex: number,
-    numberOfelements: number,
-  ) => void;
+  onRearrage: (dragIndex: number, targetIndex: number) => void;
+  filterGroups: string[][];
 }
 
 const TabTitleContainer: React.FC<Props> = ({
-  filterHierarchy,
   getFilterTitle,
   onChange,
   currentFilterId,
@@ -47,6 +52,7 @@ const TabTitleContainer: React.FC<Props> = ({
   onRemove,
   restoreFilter,
   onRearrage,
+  filterGroups,
 }) => {
   const renderComponent = (id: string) => {
     const isRemoved = !!removedFilters[id];
@@ -57,17 +63,23 @@ const TabTitleContainer: React.FC<Props> = ({
         onClick={() => onChange(id)}
         className={currentFilterId === id ? 'active' : ''}
       >
-        <div>{isRemoved ? t('(Removed)') : getFilterTitle(id)}</div>
-        {isRemoved && (
-          <span
-            role="button"
-            data-test="undo-button"
-            tabIndex={0}
-            onClick={() => restoreFilter(id)}
-          >
-            {t('Undo?')}
-          </span>
-        )}
+        <div css={{ display: 'flex', width: '100%' }}>
+          <div>{isRemoved ? t('(Removed)') : getFilterTitle(id)}</div>
+          {isRemoved && (
+            <span
+              css={{ alignSelf: 'flex-end', marginLeft: 'auto' }}
+              role="button"
+              data-test="undo-button"
+              tabIndex={0}
+              onClick={e => {
+                e.preventDefault();
+                restoreFilter(id);
+              }}
+            >
+              {t('Undo?')}
+            </span>
+          )}
+        </div>
         <div css={{ alignSelf: 'flex-end', marginLeft: 'auto' }}>
           {isRemoved ? (
             <></>
@@ -116,30 +128,18 @@ const TabTitleContainer: React.FC<Props> = ({
     );
   };
 
-  const renderTree = () => {
-    const rendered: Array<string> = [];
-    const items: Array<React.ReactNode> = [];
-    filterHierarchy.forEach((item, index) => {
-      const filterIdsInGroup = [...rendered];
-      const element = recursivelyRender(item.id, filterHierarchy, rendered);
-      if (!element) {
-        return;
-      }
+  const renderFilterGroups = () => {
+    const items: React.ReactNode[] = [];
+    filterGroups.forEach((item, index) => {
       items.push(
-        <DraggableFilter
-          onRearrage={onRearrage}
-          index={index}
-          filterIds={rendered.filter(
-            element => element && !filterIdsInGroup.includes(element),
-          )}
-        >
-          {element}
+        <DraggableFilter onRearrage={onRearrage} index={index} filterIds={item}>
+          {item.map(filter => renderComponent(filter))}
         </DraggableFilter>,
       );
     });
     return items;
   };
-  return <div>{renderTree()}</div>;
+  return <Container>{renderFilterGroups()}</Container>;
 };
 
 export default TabTitleContainer;

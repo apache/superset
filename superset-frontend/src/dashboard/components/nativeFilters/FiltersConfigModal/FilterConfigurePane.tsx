@@ -5,20 +5,15 @@ import FilterTitlePane from './FilterTitlePane';
 import { FilterRemoval } from './types';
 
 interface Props {
-  onEdit: (filterId: string, action: 'add' | 'remove') => void;
+  children: (filterId: string) => React.ReactNode;
   getFilterTitle: (filterId: string) => string;
   onChange: (activeKey: string) => void;
-  currentFilterId: string;
-  filterIds: string[];
-  removedFilters: Record<string, FilterRemoval>;
+  onEdit: (filterId: string, action: 'add' | 'remove') => void;
+  onRearrange: (dragIndex: number, targetIndex: number) => void;
   restoreFilter: (id: string) => void;
-  children: (filterId: string) => React.ReactNode;
-  onRearrange: (
-    dragIndex: number,
-    targetIndex: number,
-    numberOfelements: number,
-  ) => void;
-  filterHierarchy: Array<{ id: string; parentId: string | null }>;
+  currentFilterId: string;
+  filterGroups: string[][];
+  removedFilters: Record<string, FilterRemoval>;
 }
 
 const Container = styled.div`
@@ -33,35 +28,44 @@ const ContentHolder = styled.div`
 `;
 
 const FiltureConfigurePane: React.FC<Props> = ({
-  onEdit,
-  removedFilters,
   getFilterTitle,
-  onRearrange,
   onChange,
-  filterIds,
+  onEdit,
+  onRearrange,
+  restoreFilter,
   children,
   currentFilterId,
-  filterHierarchy,
-}) => (
-  <Container>
-    <div css={{ flexGrow: 1 }}>
-      <FilterTitlePane
-        currentFilterId={currentFilterId}
-        filterIds={filterIds}
-        getFilterTitle={getFilterTitle}
-        onRearrage={onRearrange}
-        onRemove={(id: string) => curry(onEdit)(id)('remove')}
-        removedFilters={removedFilters}
-        restoreFilter={getFilterTitle}
-        onChange={onChange}
-        onEdit={onEdit}
-        filterHierarchy={filterHierarchy}
-      />
-    </div>
-    <ContentHolder>
-      {filterIds.filter(id => id === currentFilterId).map(id => children(id))}
-    </ContentHolder>
-  </Container>
-);
+  filterGroups,
+  removedFilters,
+}) => {
+  const active = filterGroups.flat().filter(id => id === currentFilterId)[0];
+  return (
+    <Container>
+      <div css={{ flexGrow: 1 }}>
+        <FilterTitlePane
+          currentFilterId={currentFilterId}
+          getFilterTitle={getFilterTitle}
+          onRearrage={onRearrange}
+          onRemove={(id: string) => curry(onEdit)(id)('remove')}
+          removedFilters={removedFilters}
+          restoreFilter={restoreFilter}
+          onChange={onChange}
+          onEdit={onEdit}
+          filterGroups={filterGroups}
+        />
+      </div>
+      <ContentHolder>
+        <div
+          style={{
+            height: '100%',
+            overflowY: 'scroll',
+          }}
+        >
+          {children(active)}
+        </div>
+      </ContentHolder>
+    </Container>
+  );
+};
 
 export default FiltureConfigurePane;

@@ -20,7 +20,12 @@ import { FormInstance } from 'antd/lib/form';
 import shortid from 'shortid';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 
-import { FilterRemoval, NativeFiltersForm, FilterHierarchy } from './types';
+import {
+  FilterRemoval,
+  NativeFiltersForm,
+  FilterHierarchy,
+  FilterHierarchyNode,
+} from './types';
 import { Filter, FilterConfiguration, Target } from '../types';
 
 export const REMOVAL_DELAY_SECS = 5;
@@ -48,7 +53,8 @@ export const validateForm = async (
   try {
     let formValues: NativeFiltersForm;
     try {
-      formValues = (await form.validateFields()) as NativeFiltersForm;
+      await form.validateFields();
+      formValues = { filters: form.getFieldValue('filters') };
     } catch (error) {
       // In Jest tests in chain of tests, Ant generate `outOfDate` error so need to catch it here
       if (!error?.errorFields?.length && error?.outOfDate) {
@@ -158,7 +164,7 @@ export const createHandleTabEdit = (
   ) => void,
   setSaveAlertVisible: Function,
   setOrderedFilters: (
-    val: string[] | ((prevState: string[]) => string[]),
+    val: string[][] | ((prevState: string[][]) => string[][]),
   ) => void,
   setFilterHierarchy: (
     state: FilterHierarchy | ((prevState: FilterHierarchy) => FilterHierarchy),
@@ -173,9 +179,16 @@ export const createHandleTabEdit = (
       ...removedFilters,
       [filterId]: { isPending: false },
     }));
-    setOrderedFilters((orderedFilters: string[]) =>
-      orderedFilters.filter(id => id !== filterId),
-    );
+    setOrderedFilters((orderedFilters: string[][]) => {
+      const newOrder = [];
+      for (let index = 0; index < orderedFilters.length; index += 1) {
+        const group = orderedFilters[index].filter(id => id !== filterId);
+        if (group.length !== 0) {
+          newOrder.push(group);
+        }
+      }
+      return newOrder;
+    });
     // Remove the filter from the side tab and de-associate children
     // in case we removed a parent.
     setFilterHierarchy(filterHierarchy =>
@@ -212,3 +225,47 @@ export const generateFilterId = () =>
 
 export const getFilterIds = (config: FilterConfiguration) =>
   config.map(filter => filter.id);
+
+export function buildFilterGroup(nodes: FilterHierarchyNode[]) {
+  const buildGroup = (
+    elementId: string,
+    nodeList: FilterHierarchyNode[],
+    found: string[],
+  ): string[] | null => {
+    const element = nodeList.find(el => el.id === elementId);
+    const didFind = found.includes(elementId);
+    let parent: string[] = [];
+    let children: string[] = [];
+
+    if (!element || didFind) {
+      return null;
+    }
+    found.push(elementId);
+    const { parentId } = element;
+
+    if (parentId) {
+      const parentArray = buildGroup(parentId, nodeList, found);
+      parent = parentArray ? parentArray.flat() : [];
+    }
+    const childrenArray = nodeList
+      .filter(el => el.parentId === elementId)
+      .map(el => buildGroup(el.id, nodeList, found));
+
+    if (childrenArray) {
+      children = childrenArray
+        ? (childrenArray.flat().filter(id => id) as string[])
+        : [];
+    }
+    return [...parent, elementId, ...children];
+  };
+  const rendered: string[] = [];
+  const group: string[][] = [];
+  for (let index = 0; index < nodes.length; index += 1) {
+    const element = nodes[index];
+    const subGroup = buildGroup(element.id, nodes, rendered);
+    if (subGroup) {
+      group.push(subGroup);
+    }
+  }
+  return group;
+}

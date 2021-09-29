@@ -5,21 +5,17 @@ import { FilterRemoval } from './types';
 import TabTitles from './TabTitleContainer';
 
 interface Props {
-  filterIds: string[];
   removedFilters: Record<string, FilterRemoval>;
   restoreFilter: (id: string) => void;
   getFilterTitle: (id: string) => string;
-  onRearrage: (
-    dragIndex: number,
-    targetIndex: number,
-    numberOfelements: number,
-  ) => void;
+  onRearrage: (dragIndex: number, targetIndex: number) => void;
   onRemove: (id: string) => void;
   currentFilterId: string;
   onChange: (id: string) => void;
   onEdit: (filterId: string, action: 'add' | 'remove') => void;
-  filterHierarchy: Array<{ id: string; parentId: string | null }>;
+  filterGroups: string[][];
 }
+
 const StyledHeader = styled.div`
   ${({ theme }) => `
     color: ${theme.colors.grayscale.dark1};
@@ -33,6 +29,8 @@ const StyledHeader = styled.div`
 const TabsContainer = styled.div`
   height: 100%;
   overflow-y: scroll;
+  display: flex;
+  flex-direction: column;
 `;
 
 const StyledAddFilterBox = styled.div`
@@ -40,29 +38,29 @@ const StyledAddFilterBox = styled.div`
   padding: ${({ theme }) => theme.gridUnit * 2}px;
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   cursor: pointer;
+  margin-top: auto;
   &:hover {
     color: ${({ theme }) => theme.colors.primary.base};
   }
 `;
 
 const FilterTitlePane: React.FC<Props> = ({
-  filterIds,
   getFilterTitle,
-  currentFilterId,
   onChange,
-  filterHierarchy,
   onEdit,
-  removedFilters,
   onRemove,
   onRearrage,
   restoreFilter,
+  currentFilterId,
+  filterGroups,
+  removedFilters,
 }) => (
   <>
     <TabsContainer>
       <StyledHeader>Filters</StyledHeader>
-      <div css={{ height: '100%' }}>
+      <div>
         <TabTitles
-          filterHierarchy={filterHierarchy}
+          filterGroups={filterGroups}
           getFilterTitle={getFilterTitle}
           onChange={onChange}
           currentFilterId={currentFilterId}
@@ -72,26 +70,30 @@ const FilterTitlePane: React.FC<Props> = ({
           restoreFilter={restoreFilter}
         />
       </div>
+      <StyledAddFilterBox
+        onClick={() => {
+          onEdit('', 'add');
+          setTimeout(() => {
+            const element = document.getElementById('native-filters-tabs');
+            if (element) {
+              const navList = element.getElementsByClassName(
+                'ant-tabs-nav-list',
+              )[0];
+              navList.scrollTop = navList.scrollHeight;
+            }
+          }, 0);
+        }}
+      >
+        <PlusOutlined />{' '}
+        <span
+          data-test="add-filter-button"
+          aria-label="Add filter"
+          role="button"
+        >
+          {t('Add filter')}
+        </span>
+      </StyledAddFilterBox>
     </TabsContainer>
-    <StyledAddFilterBox
-      onClick={() => {
-        onEdit('', 'add');
-        setTimeout(() => {
-          const element = document.getElementById('native-filters-tabs');
-          if (element) {
-            const navList = element.getElementsByClassName(
-              'ant-tabs-nav-list',
-            )[0];
-            navList.scrollTop = navList.scrollHeight;
-          }
-        }, 0);
-      }}
-    >
-      <PlusOutlined />{' '}
-      <span data-test="add-filter-button" aria-label="Add filter">
-        {t('Add filter')}
-      </span>
-    </StyledAddFilterBox>
   </>
 );
 

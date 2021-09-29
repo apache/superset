@@ -316,7 +316,6 @@ const FiltersConfigForm = (
   const [activeFilterPanelKey, setActiveFilterPanelKey] = useState<
     string | string[]
   >(FilterPanels.basic.key);
-
   const forceUpdate = useForceUpdate();
   const [datasetDetails, setDatasetDetails] = useState<Record<string, any>>();
   const defaultFormFilter = useMemo(() => ({}), []);
@@ -555,7 +554,7 @@ const FiltersConfigForm = (
   );
 
   const hasParentFilter = !!parentFilter;
-
+  console.log(`Filtername: ${filterToEdit?.name}`, hasParentFilter);
   const hasPreFilter =
     !!filterToEdit?.adhoc_filters || !!filterToEdit?.time_range;
 

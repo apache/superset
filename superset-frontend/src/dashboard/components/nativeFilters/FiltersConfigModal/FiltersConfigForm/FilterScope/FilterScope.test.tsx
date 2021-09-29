@@ -34,8 +34,9 @@ describe('FilterScope', () => {
   let form: FormInstance<NativeFiltersForm>;
   const mockedProps = {
     filterId: 'DefaultFilterId',
-    restoreFilter: jest.fn(),
     parentFilters: [],
+    onFilterHierarchyChange: jest.fn(),
+    restoreFilter: jest.fn(),
     save,
   };
 
