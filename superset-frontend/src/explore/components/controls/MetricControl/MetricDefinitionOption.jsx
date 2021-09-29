@@ -18,12 +18,11 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-
-import withToasts from 'src/messageToasts/enhancers/withToasts';
 import {
   StyledColumnOption,
   StyledMetricOption,
 } from 'src/explore/components/optionRenderers';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import AggregateOption from './AggregateOption';
 import columnType from './columnType';
 import aggregateOptionType from './aggregateOptionType';

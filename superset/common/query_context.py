@@ -29,6 +29,7 @@ from typing_extensions import TypedDict
 from superset import app, db, is_feature_enabled
 from superset.annotation_layers.dao import AnnotationLayerDAO
 from superset.charts.dao import ChartDAO
+from superset.common.db_query_status import QueryStatus
 from superset.common.query_actions import get_query_results
 from superset.common.query_object import QueryObject
 from superset.common.utils import QueryCacheManager
@@ -49,7 +50,6 @@ from superset.utils.core import (
     get_column_names_from_metrics,
     get_metric_names,
     normalize_dttm_col,
-    QueryStatus,
     TIME_COMPARISION,
 )
 from superset.utils.date_parser import get_past_or_future, normalize_time_delta
@@ -100,11 +100,11 @@ class QueryContext:
         self.datasource = ConnectorRegistry.get_datasource(
             str(datasource["type"]), int(datasource["id"]), db.session
         )
-        self.queries = [QueryObject(**query_obj) for query_obj in queries]
         self.force = force
         self.custom_cache_timeout = custom_cache_timeout
         self.result_type = result_type or ChartDataResultType.FULL
         self.result_format = result_format or ChartDataResultFormat.JSON
+        self.queries = [QueryObject(self, **query_obj) for query_obj in queries]
         self.cache_values = {
             "datasource": datasource,
             "queries": queries,
@@ -451,7 +451,6 @@ class QueryContext:
                 invalid_columns = [
                     col
                     for col in query_obj.columns
-                    + query_obj.groupby
                     + get_column_names_from_metrics(query_obj.metrics or [])
                     if col not in self.datasource.column_names and col != DTTM_ALIAS
                 ]

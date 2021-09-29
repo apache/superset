@@ -161,13 +161,13 @@ describe('DatabaseList', () => {
         .find('[name="expose_in_sqllab"]')
         .first()
         .props()
-        .onSelect(true);
+        .onSelect({ label: 'Yes', value: true });
 
       filtersWrapper
         .find('[name="allow_run_async"]')
         .first()
         .props()
-        .onSelect(false);
+        .onSelect({ label: 'Yes', value: false });
 
       filtersWrapper
         .find('[name="database_name"]')
@@ -211,7 +211,7 @@ describe('RTL', () => {
   });
 
   it('renders an "Import Database" tooltip under import button', async () => {
-    const importButton = screen.getByTestId('import-button');
+    const importButton = await screen.findByTestId('import-button');
     userEvent.hover(importButton);
 
     await screen.findByRole('tooltip');

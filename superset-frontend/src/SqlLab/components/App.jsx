@@ -23,16 +23,16 @@ import { connect } from 'react-redux';
 import { t, supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import throttle from 'lodash/throttle';
-import TabbedSqlEditors from './TabbedSqlEditors';
-import QueryAutoRefresh from './QueryAutoRefresh';
-import QuerySearch from './QuerySearch';
-import ToastPresenter from '../../messageToasts/containers/ToastPresenter';
+import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import {
   LOCALSTORAGE_MAX_USAGE_KB,
   LOCALSTORAGE_WARNING_THRESHOLD,
   LOCALSTORAGE_WARNING_MESSAGE_THROTTLE_MS,
-} from '../constants';
-import * as Actions from '../actions/sqlLab';
+} from 'src/SqlLab/constants';
+import * as Actions from 'src/SqlLab/actions/sqlLab';
+import TabbedSqlEditors from './TabbedSqlEditors';
+import QueryAutoRefresh from './QueryAutoRefresh';
+import QuerySearch from './QuerySearch';
 
 class App extends React.PureComponent {
   constructor(props) {
@@ -109,7 +109,7 @@ class App extends React.PureComponent {
       <ThemeProvider theme={supersetTheme}>
         <div className="App SqlLab">
           {content}
-          <ToastPresenter />
+          <ToastContainer />
         </div>
       </ThemeProvider>
     );

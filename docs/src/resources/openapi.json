@@ -9984,43 +9984,45 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "properties": {
-                      "available_drivers": {
-                        "description": "Installed drivers for the engine",
-                        "items": {
+                  "databases": {
+                    "items": {
+                      "properties": {
+                        "available_drivers": {
+                          "description": "Installed drivers for the engine",
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "default_driver": {
+                          "description": "Default driver for the engine",
                           "type": "string"
                         },
-                        "type": "array"
+                        "engine": {
+                          "description": "Name of the SQLAlchemy engine",
+                          "type": "string"
+                        },
+                        "name": {
+                          "description": "Name of the database",
+                          "type": "string"
+                        },
+                        "parameters": {
+                          "description": "JSON schema defining the needed parameters",
+                          "type": "object"
+                        },
+                        "preferred": {
+                          "description": "Is the database preferred?",
+                          "type": "boolean"
+                        },
+                        "sqlalchemy_uri_placeholder": {
+                          "description": "Example placeholder for the SQLAlchemy URI",
+                          "type": "string"
+                        }
                       },
-                      "default_driver": {
-                        "description": "Default driver for the engine",
-                        "type": "string"
-                      },
-                      "engine": {
-                        "description": "Name of the SQLAlchemy engine",
-                        "type": "string"
-                      },
-                      "name": {
-                        "description": "Name of the database",
-                        "type": "string"
-                      },
-                      "parameters": {
-                        "description": "JSON schema defining the needed parameters",
-                        "type": "object"
-                      },
-                      "preferred": {
-                        "description": "Is the database preferred?",
-                        "type": "boolean"
-                      },
-                      "sqlalchemy_uri_placeholder": {
-                        "description": "Example placeholder for the SQLAlchemy URI",
-                        "type": "string"
-                      }
+                      "type": "object"
                     },
-                    "type": "object"
-                  },
-                  "type": "array"
+                    "type": "array"
+                  }
                 }
               }
             },

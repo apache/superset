@@ -38,6 +38,7 @@ describe('FilterScope', () => {
     onFilterHierarchyChange: jest.fn(),
     restoreFilter: jest.fn(),
     save,
+    removedFilters: {},
   };
 
   const MockModal = ({ scope }: { scope?: object }) => {

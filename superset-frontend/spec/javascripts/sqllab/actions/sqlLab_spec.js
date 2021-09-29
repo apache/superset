@@ -23,7 +23,7 @@ import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import shortid from 'shortid';
 import * as featureFlags from 'src/featureFlags';
-import { ADD_TOAST } from 'src/messageToasts/actions';
+import { ADD_TOAST } from 'src/components/MessageToasts/actions';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import { defaultQueryEditor, query } from '../fixtures';
 
@@ -612,44 +612,44 @@ describe('async actions', () => {
     });
 
     describe('queryEditorSetSql', () => {
+      const sql = 'SELECT * ';
+      const expectedActions = [
+        {
+          type: actions.QUERY_EDITOR_SET_SQL,
+          queryEditor,
+          sql,
+        },
+      ];
       describe('with backend persistence flag on', () => {
         it('updates the tab state in the backend', () => {
           expect.assertions(2);
 
-          const sql = 'SELECT * ';
           const store = mockStore({});
 
           return store
             .dispatch(actions.queryEditorSetSql(queryEditor, sql))
             .then(() => {
-              expect(store.getActions()).toHaveLength(0);
+              expect(store.getActions()).toEqual(expectedActions);
               expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(1);
             });
         });
       });
-    });
-    describe('with backend persistence flag off', () => {
-      it('does not update the tab state in the backend', () => {
-        const backendPersistenceOffMock = jest
-          .spyOn(featureFlags, 'isFeatureEnabled')
-          .mockImplementation(
-            feature => !(feature === 'SQLLAB_BACKEND_PERSISTENCE'),
-          );
-        const sql = 'SELECT * ';
-        const store = mockStore({});
-        const expectedActions = [
-          {
-            type: actions.QUERY_EDITOR_SET_SQL,
-            queryEditor,
-            sql,
-          },
-        ];
+      describe('with backend persistence flag off', () => {
+        it('does not update the tab state in the backend', () => {
+          const backendPersistenceOffMock = jest
+            .spyOn(featureFlags, 'isFeatureEnabled')
+            .mockImplementation(
+              feature => !(feature === 'SQLLAB_BACKEND_PERSISTENCE'),
+            );
 
-        store.dispatch(actions.queryEditorSetSql(queryEditor, sql));
+          const store = mockStore({});
 
-        expect(store.getActions()).toEqual(expectedActions);
-        expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(0);
-        backendPersistenceOffMock.mockRestore();
+          store.dispatch(actions.queryEditorSetSql(queryEditor, sql));
+
+          expect(store.getActions()).toEqual(expectedActions);
+          expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(0);
+          backendPersistenceOffMock.mockRestore();
+        });
       });
     });
 

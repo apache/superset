@@ -21,7 +21,7 @@ import { render, screen } from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
 import { storeWithState } from 'spec/fixtures/mockStore';
-import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
+import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import TableLoader, { TableLoaderProps } from '.';
 
 fetchMock.get('glob:*/api/v1/mock', [
@@ -38,7 +38,7 @@ function renderWithProps(props: TableLoaderProps = defaultProps) {
   return render(
     <Provider store={storeWithState({})}>
       <TableLoader {...props} />
-      <ToastPresenter />
+      <ToastContainer />
     </Provider>,
   );
 }

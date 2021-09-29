@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=too-many-lines
 import json
 import logging
 from datetime import datetime
@@ -115,6 +116,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "encrypted_extra",
         "extra",
         "parameters",
+        "parameters_schema",
         "server_cert",
         "sqlalchemy_uri",
     ]
@@ -329,6 +331,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             changed_model = UpdateDatabaseCommand(g.user, pk, item).run()
             # Return censored version for sqlalchemy URI
             item["sqlalchemy_uri"] = changed_model.sqlalchemy_uri
+            if changed_model.parameters:
+                item["parameters"] = changed_model.parameters
             return self.response(200, id=changed_model.id, result=item)
         except DatabaseNotFoundError:
             return self.response_404()

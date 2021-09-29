@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, t } from '@superset-ui/core';
-import { uniq } from 'lodash';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useState, useRef } from 'react';
+import { uniq, debounce } from 'lodash';
+import { t, styled } from '@superset-ui/core';
+import { SLOW_DEBOUNCE } from 'src/constants';
 import { Form } from 'src/common/components';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { StyledModal } from 'src/components/Modal';
@@ -230,6 +231,27 @@ export function FiltersConfigModal({
         title: getFilterTitle(id),
       }));
 
+  const cleanDeletedParents = (values: NativeFiltersForm | null) => {
+    Object.keys(filterConfigMap).forEach(key => {
+      const filter = filterConfigMap[key];
+      const parentId = filter.cascadeParentIds?.[0];
+      if (parentId && removedFilters[parentId]) {
+        filter.cascadeParentIds = [];
+      }
+    });
+
+    const filters = values?.filters;
+    if (filters) {
+      Object.keys(filters).forEach(key => {
+        const filter = filters[key];
+        const parentId = filter.parentFilter?.value;
+        if (parentId && removedFilters[parentId]) {
+          filter.parentFilter = undefined;
+        }
+      });
+    }
+  };
+
   const handleSave = async () => {
     const values: NativeFiltersForm | null = await validateForm(
       form,
@@ -241,6 +263,7 @@ export function FiltersConfigModal({
     );
 
     if (values) {
+      cleanDeletedParents(values);
       createHandleSave(
         filterConfigMap,
         orderedFilters.flat(),
@@ -297,6 +320,23 @@ export function FiltersConfigModal({
     setOrderedFilters(buildFilterGroup(newState));
   };
 
+  const onValuesChange = useMemo(
+    () =>
+      debounce((changes: any, values: NativeFiltersForm) => {
+        if (
+          changes.filters &&
+          Object.values(changes.filters).some(
+            (filter: any) => filter.name != null,
+          )
+        ) {
+          // we only need to set this if a name changed
+          setFormValues(values);
+        }
+        setSaveAlertVisible(false);
+      }, SLOW_DEBOUNCE),
+    [],
+  );
+
   return (
     <StyledModalWrapper
       visible={isOpen}
@@ -322,31 +362,7 @@ export function FiltersConfigModal({
         <StyledModalBody>
           <StyledForm
             form={form}
-            onValuesChange={(changes, values: NativeFiltersForm) => {
-              if (changes.filters) {
-                // we only need to set this if a name changed
-                const filterNameChanged = Object.values(changes.filters).some(
-                  (filter: any) => filter.name !== null,
-                );
-                const changedFilterHierarchies = Object.keys(changes.filters)
-                  .filter(key => changes.filters[key].parentFilter)
-                  .map(key => ({
-                    id: key,
-                    parentFilter: changes.filters[key].parentFilter,
-                  }));
-                if (filterNameChanged) {
-                  setFormValues(values);
-                }
-                if (changedFilterHierarchies.length > 0) {
-                  const changedFilterId = changedFilterHierarchies[0];
-                  handleFilterHierarchyChange(
-                    changedFilterId.id,
-                    changedFilterId.parentFilter,
-                  );
-                }
-              }
-              setSaveAlertVisible(false);
-            }}
+            onValuesChange={onValuesChange}
             layout="vertical"
           >
             <FiltureConfigurePane
@@ -365,7 +381,7 @@ export function FiltersConfigModal({
                   form={form}
                   filterId={id}
                   filterToEdit={filterConfigMap[id]}
-                  removed={!!removedFilters[id]}
+                  removedFilters={removedFilters}
                   restoreFilter={restoreFilter}
                   parentFilters={getParentFilters(id)}
                   onFilterHierarchyChange={handleFilterHierarchyChange}

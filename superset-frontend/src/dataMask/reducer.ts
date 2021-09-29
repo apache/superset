@@ -29,6 +29,7 @@ import { URL_PARAMS } from 'src/constants';
 import { DataMaskStateWithId, DataMaskWithId } from './types';
 import {
   AnyDataMaskAction,
+  CLEAR_DATA_MASK_STATE,
   SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE,
   UPDATE_DATA_MASK,
 } from './actions';
@@ -56,9 +57,7 @@ export function getInitialDataMask(
   return {
     ...otherProps,
     extraFormData: {},
-    filterState: {
-      value: undefined,
-    },
+    filterState: {},
     ownState: {},
     ...moreProps,
   } as DataMaskWithId;
@@ -104,6 +103,8 @@ const dataMaskReducer = produce(
   (draft: DataMaskStateWithId, action: AnyDataMaskAction) => {
     const cleanState = {};
     switch (action.type) {
+      case CLEAR_DATA_MASK_STATE:
+        return cleanState;
       case UPDATE_DATA_MASK:
         draft[action.filterId] = {
           ...getInitialDataMask(action.filterId),

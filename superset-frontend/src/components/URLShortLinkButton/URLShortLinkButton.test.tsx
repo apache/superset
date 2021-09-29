@@ -21,7 +21,7 @@ import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import URLShortLinkButton from 'src/components/URLShortLinkButton';
-import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
+import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 
 const fakeUrl = 'http://fakeurl.com';
 
@@ -65,7 +65,7 @@ test('renders error message on short url error', async () => {
   render(
     <>
       <URLShortLinkButton />
-      <ToastPresenter />
+      <ToastContainer />
     </>,
     { useRedux: true },
   );

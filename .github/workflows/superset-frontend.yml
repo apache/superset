@@ -25,6 +25,10 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         continue-on-error: true
         run: ./scripts/ci_check_no_file_changes.sh frontend
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version:  '16'
       - name: Install dependencies
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
