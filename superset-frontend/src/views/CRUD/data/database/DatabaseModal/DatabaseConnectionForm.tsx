@@ -63,6 +63,9 @@ export const FormFieldOrder = [
   'catalog',
   'query',
   'encryption',
+  'account',
+  'warehouse',
+  'role',
 ];
 
 interface FieldPropTypes {
@@ -475,6 +478,71 @@ const queryField = ({
   />
 );
 
+const warehouseField = ({
+  required,
+  changeMethods,
+  getValidation,
+  validationErrors,
+  db,
+}: FieldPropTypes) => (
+  <ValidatedInput
+    id="warehouse"
+    name="warehouse"
+    required={required}
+    value={db?.parameters?.warehouse}
+    validationMethods={{ onBlur: getValidation }}
+    errorMessage={validationErrors?.warehouse}
+    placeholder="e.g. compute_wh"
+    label="Warehouse"
+    onChange={changeMethods.onParametersChange}
+    className="form-group-w-50"
+  />
+);
+
+const roleField = ({
+  required,
+  changeMethods,
+  getValidation,
+  validationErrors,
+  db,
+}: FieldPropTypes) => (
+  <ValidatedInput
+    id="role"
+    name="role"
+    required={required}
+    value={db?.parameters?.role}
+    validationMethods={{ onBlur: getValidation }}
+    errorMessage={validationErrors?.role}
+    placeholder="e.g. AccountAdmin"
+    label="Role"
+    onChange={changeMethods.onParametersChange}
+    className="form-group-w-50"
+  />
+);
+
+const accountField = ({
+  required,
+  changeMethods,
+  getValidation,
+  validationErrors,
+  db,
+}: FieldPropTypes) => (
+  <ValidatedInput
+    id="account"
+    name="account"
+    required={required}
+    value={db?.parameters?.account}
+    validationMethods={{ onBlur: getValidation }}
+    errorMessage={validationErrors?.account}
+    placeholder="e.g. world_population"
+    label="Account"
+    onChange={changeMethods.onParametersChange}
+    helpText={t(
+      'Copy the account name of that database you are trying to connect to.',
+    )}
+  />
+);
+
 const forceSSLField = ({
   isEditMode,
   changeMethods,
@@ -517,6 +585,9 @@ const FORM_FIELD_MAP = {
   credentials_info: CredentialsInfo,
   service_account_info: CredentialsInfo,
   catalog: TableCatalog,
+  warehouse: warehouseField,
+  role: roleField,
+  account: accountField,
 };
 
 const DatabaseConnectionForm = ({
