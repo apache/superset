@@ -50,8 +50,8 @@ from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
 from pandas.io.parsers import STR_NA_VALUES
 from werkzeug.local import LocalProxy
-from superset.business_types.business_type_request import BusinessTypeRequest
-from superset.business_types.business_type_response import BusinessTypeResponse
+from superset.charts.business_type.business_type_request import BusinessTypeRequest
+from superset.charts.business_type.business_type_response import BusinessTypeResponse
 from superset.jinja_context import BaseTemplateProcessor
 from superset.stats_logger import DummyStatsLogger
 from superset.typing import CacheConfig
@@ -1310,6 +1310,7 @@ port_conversion_dict: Dict[
     "imaps": [993],
 }
 
+import ipaddress
 
 def cidr_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
     resp: BusinessTypeResponse = {}
