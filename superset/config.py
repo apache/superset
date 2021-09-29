@@ -50,7 +50,8 @@ from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
 from pandas.io.parsers import STR_NA_VALUES
 from werkzeug.local import LocalProxy
-
+from superset.business_types.business_type_request import BusinessTypeRequest
+from superset.business_types.business_type_response import BusinessTypeResponse
 from superset.jinja_context import BaseTemplateProcessor
 from superset.stats_logger import DummyStatsLogger
 from superset.typing import CacheConfig
@@ -1281,6 +1282,83 @@ MENU_HIDE_USER_INFO = False
 # SQLalchemy link doc reference
 SQLALCHEMY_DOCS_URL = "https://docs.sqlalchemy.org/en/13/core/engines.html"
 SQLALCHEMY_DISPLAY_TEXT = "SQLAlchemy docs"
+
+
+port_conversion_dict: Dict[
+    str, list,
+] = {
+    "http": [80],
+    "ssh": [22],
+    "https": [443],
+    "ftp": [20, 21],
+    "ftps": [989, 990],
+    "telnet": [23],
+    "telnets": [992],
+    "smtp": [25],
+    "submissions": [465], # aka smtps, ssmtp, urd
+    "kerberos": [88],
+    "kerberos-adm": [749],
+    "pop3": [110],
+    "pop3s": [995],
+    "nntp": [119],
+    "nntps": [563],
+    "ntp": [123],
+    "snmp": [161],
+    "ldap": [389],
+    "ldaps": [636],
+    "imap2": [143], # aka imap
+    "imaps": [993],
+}
+
+
+def cidr_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
+    resp: BusinessTypeResponse = {}
+    try: 
+        ip_range = ipaddress.ip_network(req["value"])
+        resp["status"] = "valid"
+        resp["value"] = { "start" : int(ip_range[0]), "end" : int(ip_range[-1]) } if ip_range[0] != ip_range[-1] else int(ip_range[0])
+        resp["formatted_value"] = req["value"]
+        resp["valid_filter_operators"] = ["IN"] if  ip_range[0] != ip_range[-1] else ["==", "<=", "<", "IN", ">=", ">"]
+    except:
+        resp["status"] = "invalid"
+        resp["value"] = None
+        resp["formatted_value"] = None
+        resp["valid_filter_operators"] = []
+    return resp
+
+
+def port_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
+    resp: BusinessTypeResponse = {}
+    print("in port_func")
+    if req["value"] in port_conversion_dict:
+        print("in if") 
+        resp["status"] = "valid"
+        resp["value"] = port_conversion_dict[req["value"]]()
+        resp["formatted_value"] = req["value"]
+        resp["valid_filter_operators"] = ["==", "<=", "<", ">=", ">"] if len(req["value"]) == 1 else ["IN"] 
+    elif req["value"] and (0 <= req["value"] <= 65535): # Not sure if we care about this case  
+        print("in elif")
+        resp["status"] = "valid"
+        resp["value"] = req["value"]
+        resp["formatted_value"] = req["value"]
+        resp["valid_filter_operators"] = ["==", "<=", "<", ">=", ">"]
+    else: 
+        print("in else")
+        resp["status"] = "invalid"
+        resp["value"] = None
+        resp["formatted_value"] = None
+        resp["valid_filter_operators"] = []
+    print("leaving port_func")
+    return resp
+
+# the business type key should correspond to that set in the column metadata
+BUSINESS_TYPE_ADDONS: Dict[
+    str, Callable[[BusinessTypeRequest], BusinessTypeResponse]
+] = {
+    "cidr": cidr_func,
+    "port": port_func
+}
+
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
