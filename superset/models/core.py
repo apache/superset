@@ -253,7 +253,7 @@ class Database(
     @property
     def parameters_schema(self) -> Dict[str, Any]:
         try:
-            parameters_schema = self.db_engine_spec.parameters_json_schema()  # type: ignore # pylint: disable=line-too-long
+            parameters_schema = self.db_engine_spec.parameters_json_schema()  # type: ignore # pylint: disable=line-too-long,
         except Exception:  # pylint: disable=broad-except
             parameters_schema = {}
         return parameters_schema

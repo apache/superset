@@ -16,18 +16,16 @@
 # under the License.
 import json
 import re
-import urllib
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING, TypedDict
+from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
 from urllib import parse
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
-from babel.core import default_locale
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
-from marshmallow.exceptions import ValidationError
 from sqlalchemy.engine.url import make_url, URL
+from typing_extensions import TypedDict
 
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 from superset.errors import SupersetError, SupersetErrorType
@@ -193,31 +191,43 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     def build_sqlalchemy_uri(
         cls,
         parameters: SnowflakeParametersType,
-        encrypted_extra: Optional[Dict[str, Any]] = None,
+        encrypted_extra: Optional[  # pylint: disable=unused-argument
+            Dict[str, Any]
+        ] = None,
     ) -> str:
-        query = parameters.get("query", {})
-        query_params = urllib.parse.urlencode(query)
 
-        if not encrypted_extra:
-            raise ValidationError("Missing service credentials")
-
-        project_id = encrypted_extra.get("credentials_info", {}).get("project_id")
-
-        if project_id:
-            return f"{cls.default_driver}://{project_id}/?{query_params}"
-
-        raise ValidationError("Invalid service credentials")
+        return str(
+            URL(
+                "snowflake",
+                username=parameters.get("username"),
+                password=parameters.get("password"),
+                host=parameters.get("account"),
+                database=parameters.get("database"),
+                query={
+                    "role": parameters.get("role"),
+                    "warehouse": parameters.get("warehouse"),
+                },
+            )
+        )
 
     @classmethod
     def get_parameters_from_uri(
-        cls, uri: str, encrypted_extra: Optional[Dict[str, str]] = None
+        cls,
+        uri: str,
+        encrypted_extra: Optional[  # pylint: disable=unused-argument
+            Dict[str, str]
+        ] = None,
     ) -> Any:
-        value = make_url(uri)
-        # Building parameters from encrypted_extra and uri
-        if encrypted_extra:
-            return {**encrypted_extra, "query": value.query}
-
-        raise ValidationError("Invalid service credentials")
+        url = make_url(uri)
+        query = dict(url.query.items())
+        return {
+            "username": url.username,
+            "password": url.password,
+            "account": url.host,
+            "database": url.database,
+            "role": query.get("role"),
+            "warehouse": query.get("warehouse"),
+        }
 
     @classmethod
     def validate_parameters(
