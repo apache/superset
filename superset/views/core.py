@@ -95,6 +95,7 @@ from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query, TabState
 from superset.models.user_attributes import UserAttribute
+from superset.queries.dao import QueryDAO
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.sql_parse import ParsedQuery, Table
 from superset.sql_validators import get_validator_by_name
@@ -2440,7 +2441,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 "user_agent": cast(Optional[str], request.headers.get("USER_AGENT"))
             }
             execution_context = SqlJsonExecutionContext(request.json)
-            command = ExecuteSqlCommand(execution_context, log_params)
+            command = ExecuteSqlCommand(execution_context, QueryDAO(), log_params)
             command_result: CommandResult = command.run()
             return self._create_response_from_execution_context(command_result)
         except SqlLabException as ex:
