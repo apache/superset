@@ -57,6 +57,7 @@ from superset.utils.dates import now_as_float
 if TYPE_CHECKING:
     from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
     from superset.queries.dao import QueryDAO
+    from superset.databases.dao import DatabaseDAO
 
 config = app.config
 logger = logging.getLogger(__name__)
@@ -75,6 +76,7 @@ CommandResult = Dict[str, Any]
 class ExecuteSqlCommand(BaseCommand):
     _execution_context: SqlJsonExecutionContext
     _query_dao: QueryDAO
+    _database_dao: DatabaseDAO
     _access_validator: CanAccessQueryValidator
     _log_params: Optional[Dict[str, Any]] = None
     _session: Session
@@ -83,11 +85,13 @@ class ExecuteSqlCommand(BaseCommand):
         self,
         execution_context: SqlJsonExecutionContext,
         query_dao: QueryDAO,
+        database_dao: DatabaseDAO,
         access_validator: CanAccessQueryValidator,
         log_params: Optional[Dict[str, Any]] = None,
     ) -> None:
         self._execution_context = execution_context
         self._query_dao = query_dao
+        self._database_dao = database_dao
         self._access_validator = access_validator
         self._log_params = log_params
         self._session = db.session()
@@ -146,7 +150,7 @@ class ExecuteSqlCommand(BaseCommand):
             raise ex
 
     def _get_the_query_db(self) -> Database:
-        mydb = self._session.query(Database).get(self._execution_context.database_id)
+        mydb = self._database_dao.find_by_id(self._execution_context.database_id)
         self._validate_query_db(mydb)
         return mydb
 

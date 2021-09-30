@@ -2446,7 +2446,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             }
             execution_context = SqlJsonExecutionContext(request.json)
             command = ExecuteSqlCommand(
-                execution_context, QueryDAO(), CanAccessQueryValidatorImpl(), log_params
+                execution_context,
+                QueryDAO(),
+                DatabaseDAO(),
+                CanAccessQueryValidatorImpl(),
+                log_params,
             )
             command_result: CommandResult = command.run()
             return self._create_response_from_execution_context(command_result)
