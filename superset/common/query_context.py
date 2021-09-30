@@ -125,8 +125,9 @@ class QueryContext:
     ) -> CachedTimeOffset:
         # ensure query_object is immutable
         query_object_clone = copy.copy(query_object)
-        queries = []
-        cache_keys = []
+        queries: List[str] = []
+        cache_keys: List[Optional[str]] = []
+        rv_dfs: List[pd.DataFrame] = [df]
 
         time_offsets = query_object.time_offsets
         outer_from_dttm = query_object.from_dttm
@@ -155,6 +156,12 @@ class QueryContext:
             # `offset` is added to the hash function
             cache_key = self.query_cache_key(query_object_clone, time_offset=offset)
             cache = QueryCacheManager.get(cache_key, CacheRegion.DATA, self.force)
+            # whether hit on the cache
+            if cache.is_loaded:
+                rv_dfs.append(cache.df)
+                queries.append(cache.query)
+                cache_keys.append(cache_key)
+                continue
 
             query_object_clone_dct = query_object_clone.to_dict()
             # rename metrics: SUM(value) => SUM(value) 1 year ago
@@ -168,13 +175,6 @@ class QueryContext:
             join_keys = [DTTM_ALIAS] + [
                 col for col in df.columns if col not in metrics_and_dttm_mapping.keys()
             ]
-
-            # whether hit in the cache
-            if cache.is_loaded:
-                df = self.left_join_df(left_df=df, right_df=cache.df, on=join_keys)
-                queries.append(cache.query)
-                cache_keys.append(cache_key)
-                continue
 
             result = self.datasource.query(query_object_clone_dct)
             queries.append(result.query)
@@ -196,17 +196,22 @@ class QueryContext:
                     columns=metrics_and_dttm_mapping
                 )
 
-                # 3. set offset for dttm column
+                # 3. set time offset for dttm column
                 offset_metrics_df[DTTM_ALIAS] = offset_metrics_df[
                     DTTM_ALIAS
                 ] - DateOffset(**normalize_time_delta(offset))
 
             # df left join `offset_metrics_df`
-            df = self.left_join_df(left_df=df, right_df=offset_metrics_df, on=join_keys)
+            offset_df = self.left_join_df(
+                left_df=df, right_df=offset_metrics_df, on=join_keys,
+            )
+            offset_slice = offset_df[
+                [m for m in metrics_and_dttm_mapping.values() if m != DTTM_ALIAS]
+            ]
 
-            # set offset df to cache.
+            # set offset_slice to cache and stack.
             value = {
-                "df": offset_metrics_df,
+                "df": offset_slice,
                 "query": result.query,
             }
             cache.set(
@@ -216,8 +221,10 @@ class QueryContext:
                 datasource_uid=self.datasource.uid,
                 region=CacheRegion.DATA,
             )
+            rv_dfs.append(offset_slice)
 
-        return CachedTimeOffset(df=df, queries=queries, cache_keys=cache_keys)
+        concat_df = pd.concat(rv_dfs, axis=1, copy=False)
+        return CachedTimeOffset(df=concat_df, queries=queries, cache_keys=cache_keys)
 
     def normalize_df(self, df: pd.DataFrame, query_object: QueryObject) -> pd.DataFrame:
         timestamp_format = None
