@@ -1389,10 +1389,6 @@ def uri_filter(cond="none", default="") -> Optional[Any]:
     if ((dashboard_id != None) and (jwt_dashboard_id != dashboard_id)):
         pass
 
-
-    if cond not in mobi_filter_dict and cond == 'merchants':
-        default="select merchant_code from process"
-
     param=mobi_filter_dict.get(cond)
 
     if param is None or len(param) == 0:
