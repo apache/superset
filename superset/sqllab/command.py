@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=line-too-long
+# pylint: disable=line-too-long, too-few-public-methods
 from __future__ import annotations
 
 import dataclasses
@@ -30,15 +30,14 @@ from sqlalchemy.orm.session import Session
 
 from superset import app, db, is_feature_enabled, sql_lab
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAOCreateFailedError
 from superset.common.db_query_status import QueryStatus
+from superset.dao.exceptions import DAOCreateFailedError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetErrorException,
     SupersetErrorsException,
     SupersetGenericDBErrorException,
     SupersetGenericErrorException,
-    SupersetSecurityException,
     SupersetTemplateParamsErrorException,
     SupersetTimeoutException,
 )
@@ -46,7 +45,10 @@ from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.sqllab.command_status import SqlJsonExecutionStatus
-from superset.sqllab.exceptions import SqlLabException
+from superset.sqllab.exceptions import (
+    QueryIsForbiddenToAccessException,
+    SqlLabException,
+)
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sqllab.utils import apply_display_max_row_configuration_if_require
 from superset.utils import core as utils
@@ -73,18 +75,20 @@ CommandResult = Dict[str, Any]
 class ExecuteSqlCommand(BaseCommand):
     _execution_context: SqlJsonExecutionContext
     _query_dao: QueryDAO
+    _access_validator: CanAccessQueryValidator
     _log_params: Optional[Dict[str, Any]] = None
     _session: Session
-
 
     def __init__(
         self,
         execution_context: SqlJsonExecutionContext,
         query_dao: QueryDAO,
+        access_validator: CanAccessQueryValidator,
         log_params: Optional[Dict[str, Any]] = None,
     ) -> None:
         self._execution_context = execution_context
         self._query_dao = query_dao
+        self._access_validator = access_validator
         self._log_params = log_params
         self._session = db.session()
 
@@ -170,13 +174,9 @@ class ExecuteSqlCommand(BaseCommand):
 
     def _validate_access(self, query: Query) -> None:
         try:
-            query.raise_for_access()
-        except SupersetSecurityException as ex:
-            query.set_extra_json_key("errors", [dataclasses.asdict(ex.error)])
-            query.status = QueryStatus.FAILED
-            query.error_message = ex.error.message
-            self._session.commit()
-            raise SupersetErrorException(ex.error, status=403) from ex
+            self._access_validator.validate(query)
+        except Exception as ex:
+            raise QueryIsForbiddenToAccessException(self._execution_context, ex) from ex
 
     def _render_query(self) -> str:
         def validate(
@@ -408,3 +408,8 @@ class ExecuteSqlCommand(BaseCommand):
             default=utils.json_int_dttm_ser,
             ignore_nan=True,
         )
+
+
+class CanAccessQueryValidator:
+    def validate(self, query: Query) -> None:
+        raise NotImplementedError()
