@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent, useState } from 'react';
+import React, { FunctionComponent, useState, useEffect } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { isEmpty, isNil } from 'lodash';
@@ -60,9 +60,9 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
     addDangerToast,
   );
 
-  const setSaveButtonState = () => {
+  useEffect(() => {
     setDisableSave(isNil(datasourceId) || isEmpty(currentTableName));
-  };
+  }, [currentTableName, datasourceId]);
 
   const onDbChange = (db: {
     id: number;
@@ -70,17 +70,14 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
     backend: string;
   }) => {
     setDatasourceId(db.id);
-    setSaveButtonState();
   };
 
   const onSchemaChange = (schema?: string) => {
     setSchema(schema);
-    setSaveButtonState();
   };
 
   const onTableChange = (tableName: string) => {
     setTableName(tableName);
-    setSaveButtonState();
   };
 
   const onSave = () => {
