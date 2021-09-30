@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=arguments-renamed
 import logging
 from typing import List, Optional, TYPE_CHECKING
 
@@ -59,7 +60,7 @@ class ChartDAO(BaseDAO):
     @staticmethod
     def save(
         slc: Slice, commit: bool = True
-    ) -> None:  # pylint: disable=arguments-renamed
+    ) -> None:
         db.session.add(slc)
         if commit:
             db.session.commit()
