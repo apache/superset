@@ -44,7 +44,7 @@ def get_env_variable(var_name: str, default: Optional[str] = None) -> str:
             )
             raise EnvironmentError(error_msg)
 
-
+MAPBOX_API_KEY = get_env_variable("MAPBOX_API_KEY")
 DATABASE_DIALECT = get_env_variable("DATABASE_DIALECT")
 DATABASE_USER = get_env_variable("DATABASE_USER")
 DATABASE_PASSWORD = get_env_variable("DATABASE_PASSWORD")
