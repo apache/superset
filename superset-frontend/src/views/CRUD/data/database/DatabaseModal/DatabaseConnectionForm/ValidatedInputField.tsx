@@ -18,70 +18,45 @@
  */
 import React from 'react';
 import { t } from '@superset-ui/core';
-import { FieldPropTypes } from 'src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
+import { FieldPropTypes } from '.';
 
-export const accountField = ({
-  required,
-  changeMethods,
-  getValidation,
-  validationErrors,
-  db,
-}: FieldPropTypes) => (
-  <ValidatedInput
-    id="account"
-    name="account"
-    required={required}
-    value={db?.parameters?.account}
-    validationMethods={{ onBlur: getValidation }}
-    errorMessage={validationErrors?.account}
-    placeholder="e.g. world_population"
-    label="Account"
-    onChange={changeMethods.onParametersChange}
-    helpText={t(
+const FIELD_TEXT_MAP = {
+  account: {
+    helpText: t(
       'Copy the account name of that database you are trying to connect to.',
-    )}
-  />
-);
+    ),
+    placeholder: 'e.g. world_population',
+  },
+  warehouse: {
+    placeholder: 'e.g. compute_wh',
+    className: 'form-group-w-50',
+  },
+  role: {
+    placeholder: 'e.g. AccountAdmin',
+    className: 'form-group-w-50',
+  },
+};
 
-export const warehouseField = ({
+export const validatedInputField = ({
   required,
   changeMethods,
   getValidation,
   validationErrors,
   db,
-}: FieldPropTypes) => (
-  <ValidatedInput
-    id="warehouse"
-    name="warehouse"
-    required={required}
-    value={db?.parameters?.warehouse}
-    validationMethods={{ onBlur: getValidation }}
-    errorMessage={validationErrors?.warehouse}
-    placeholder="e.g. compute_wh"
-    label="Warehouse"
-    onChange={changeMethods.onParametersChange}
-    className="form-group-w-50"
-  />
-);
-
-export const roleField = ({
-  required,
-  changeMethods,
-  getValidation,
-  validationErrors,
-  db,
+  field,
 }: FieldPropTypes) => (
   <ValidatedInput
     id="role"
     name="role"
     required={required}
-    value={db?.parameters?.role}
+    value={db?.parameters?.[field]}
     validationMethods={{ onBlur: getValidation }}
-    errorMessage={validationErrors?.role}
-    placeholder="e.g. AccountAdmin"
-    label="Role"
+    errorMessage={validationErrors?.[field]}
+    placeholder={FIELD_TEXT_MAP[field].placeholder}
+    helpText={FIELD_TEXT_MAP[field].helpText}
+    label={field}
     onChange={changeMethods.onParametersChange}
-    className="form-group-w-50"
+    className={FIELD_TEXT_MAP[field].className || field}
   />
 );
