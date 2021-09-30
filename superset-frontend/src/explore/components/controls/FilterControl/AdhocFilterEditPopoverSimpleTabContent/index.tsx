@@ -140,7 +140,7 @@ export const useSimpleTabFilterProps = (props: Props) => {
         subject,
         clause,
         operator:
-          operator && isOperatorRelevant(operatorId, subject)
+          operator && operatorId && isOperatorRelevant(operatorId, subject)
             ? OPERATOR_ENUM_TO_OPERATOR_TYPE[operatorId].operation
             : null,
         expressionType: EXPRESSION_TYPES.SIMPLE,
