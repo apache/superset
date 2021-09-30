@@ -165,16 +165,13 @@ class QueryContext:
 
             query_object_clone_dct = query_object_clone.to_dict()
             # rename metrics: SUM(value) => SUM(value) 1 year ago
-            metrics_and_dttm_mapping = {
+            metrics_mapping = {
                 metric: TIME_COMPARISION.join([metric, offset])
                 for metric in get_metric_names(
                     query_object_clone_dct.get("metrics", [])
                 )
             }
-            metrics_and_dttm_mapping[DTTM_ALIAS] = DTTM_ALIAS
-            join_keys = [DTTM_ALIAS] + [
-                col for col in df.columns if col not in metrics_and_dttm_mapping.keys()
-            ]
+            join_keys = [col for col in df.columns if col not in metrics_mapping.keys()]
 
             result = self.datasource.query(query_object_clone_dct)
             queries.append(result.query)
@@ -183,7 +180,10 @@ class QueryContext:
             offset_metrics_df = result.df
             if offset_metrics_df.empty:
                 offset_metrics_df = pd.DataFrame(
-                    {col: [np.NaN] for col in metrics_and_dttm_mapping.values()}
+                    {
+                        col: [np.NaN]
+                        for col in join_keys + list(metrics_mapping.values())
+                    }
                 )
             else:
                 # 1. normalize df, set dttm column
@@ -192,9 +192,7 @@ class QueryContext:
                 )
 
                 # 2. rename extra query columns
-                offset_metrics_df = offset_metrics_df.rename(
-                    columns=metrics_and_dttm_mapping
-                )
+                offset_metrics_df = offset_metrics_df.rename(columns=metrics_mapping)
 
                 # 3. set time offset for dttm column
                 offset_metrics_df[DTTM_ALIAS] = offset_metrics_df[
@@ -205,9 +203,7 @@ class QueryContext:
             offset_df = self.left_join_df(
                 left_df=df, right_df=offset_metrics_df, join_keys=join_keys,
             )
-            offset_slice = offset_df[
-                [m for m in metrics_and_dttm_mapping.values() if m != DTTM_ALIAS]
-            ]
+            offset_slice = offset_df[[m for m in metrics_mapping.values()]]
 
             # set offset_slice to cache and stack.
             value = {
@@ -223,8 +219,8 @@ class QueryContext:
             )
             rv_dfs.append(offset_slice)
 
-        concat_df = pd.concat(rv_dfs, axis=1, copy=False)
-        return CachedTimeOffset(df=concat_df, queries=queries, cache_keys=cache_keys)
+        rv_df = pd.concat(rv_dfs, axis=1, copy=False) if time_offsets else df
+        return CachedTimeOffset(df=rv_df, queries=queries, cache_keys=cache_keys)
 
     def normalize_df(self, df: pd.DataFrame, query_object: QueryObject) -> pd.DataFrame:
         timestamp_format = None
