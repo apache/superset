@@ -22,9 +22,11 @@ const Container = styled.div`
 `;
 const ContentHolder = styled.div`
   flex-grow: 3;
-  border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light3};
   margin-left: ${({ theme }) => theme.gridUnit * -1 - 1};
-  padding: 0px ${({ theme }) => theme.gridUnit}px;
+`;
+const TitlesContainer = styled.div`
+  width: 220px;
+  border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
 `;
 
 const FiltureConfigurePane: React.FC<Props> = ({
@@ -41,7 +43,7 @@ const FiltureConfigurePane: React.FC<Props> = ({
   const active = filterGroups.flat().filter(id => id === currentFilterId)[0];
   return (
     <Container>
-      <div css={{ flexGrow: 1 }}>
+      <TitlesContainer>
         <FilterTitlePane
           currentFilterId={currentFilterId}
           filterGroups={filterGroups}
@@ -53,7 +55,7 @@ const FiltureConfigurePane: React.FC<Props> = ({
           removedFilters={removedFilters}
           restoreFilter={restoreFilter}
         />
-      </div>
+      </TitlesContainer>
       <ContentHolder>
         {filterGroups.flat().map(id => (
           <div

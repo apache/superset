@@ -98,6 +98,7 @@ const StyledContainer = styled.div`
   display: flex;
   flex-direction: row-reverse;
   justify-content: space-between;
+  padding: 0px ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
 const StyledRowContainer = styled.div`
@@ -105,6 +106,7 @@ const StyledRowContainer = styled.div`
   flex-direction: row;
   justify-content: space-between;
   width: 100%;
+  padding: 0px ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
 export const StyledFormItem = styled(FormItem)`
@@ -184,7 +186,7 @@ const RefreshIcon = styled(Icons.Refresh)`
 `;
 
 const StyledCollapse = styled(Collapse)`
-  border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  border-left: 0;
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   border-radius: 0;
 
