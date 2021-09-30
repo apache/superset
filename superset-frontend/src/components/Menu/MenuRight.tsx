@@ -187,6 +187,11 @@ const RightMenu = ({
                     SHA: {navbarRight.version_sha}
                   </div>
                 )}
+                {navbarRight.build_number && (
+                  <div css={versionInfoStyles}>
+                    Build: {navbarRight.build_number}
+                  </div>
+                )}
               </div>
             </Menu.ItemGroup>,
           ]}
