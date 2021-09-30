@@ -36,7 +36,6 @@ import ExploreCtasResultsButton from './ExploreCtasResultsButton';
 import ExploreResultsButton from './ExploreResultsButton';
 import HighlightedSql from './HighlightedSql';
 import FilterableTable from '../../components/FilterableTable/FilterableTable';
-//import GlobalFilter from '../../components/FilterableTable/GlobalFilter';
 import QueryStateLabel from './QueryStateLabel';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import { prepareCopyToClipboardTabularData } from '../../utils/common';
@@ -65,11 +64,6 @@ enum LIMITING_FACTOR {
 
 const LOADING_STYLES: CSSProperties = { position: 'relative', minHeight: 100 };
 
-interface ReactTableColumns{
-    Header: string;
-    accessor?: string;
-    id?: string
-}
 interface DatasetOptionAutocomplete {
   value: string;
   datasetId: number;

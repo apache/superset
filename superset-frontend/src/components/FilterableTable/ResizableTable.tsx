@@ -26,7 +26,7 @@ import {
   useSortBy,
   useTable,
   useResizeColumns,
-  useBlockLayout,
+  useFlexLayout,
 } from 'react-table';
 import { Empty } from 'src/common/components';
 //import { TableCollection, Pagination } from 'src/components/dataViewCommon';
@@ -67,7 +67,6 @@ const ResizableTableStyles = styled.div<{
     `
     flex: 1 1 auto;
     margin-bottom: ${theme.gridUnit * 4}px;
-    overflow: auto;
   `}
   .table {
     border: 1px solid black;
@@ -86,17 +85,20 @@ const ResizableTableStyles = styled.div<{
 
   th[role='columnheader'] {
     z-index: 1;
- border-bottom: 1px solid black;
- {/*border-bottom: ${({ theme }) =>
+ {border-bottom: ${({ theme }) =>
    `${theme.gridUnit - 2}px solid ${theme.colors.grayscale.light2}`};
     ${({ small }) => small && `padding-bottom: 0;`}*/}
     border-right: 1px solid black;
     text-overflow: elipsis; 
     overflow: hidden;
+    background-color: green;
   }
-
   tr.table-row:nth-child(odd) {
     background-color: ${({ theme }) => `${theme.colors.grayscale.light2}`};
+  }
+  th,
+  td {
+  position: relative
   }
   tr,
   td {
@@ -161,7 +163,7 @@ useGlobalFilter,
 useSortBy,
 usePagination,
 useResizeColumns,
-useBlockLayout,
+useFlexLayout,
 );
 
 //const [filterText, setFilterText] = useState('');
@@ -184,14 +186,16 @@ default:
 
 const isEmpty = !loading && rows.length === 0;
 
-console.log('STATE_FILLTBL', state);
+console.group('RESIZABLE_TABLE')
 
+console.log('STATE_FILLTBL', state);
 console.log('PROPS_FILLTBL', getTableProps(props));
 console.log('PROPS_FILLTBL_BDYPROPS', getTableBodyProps(props));
-
 console.log('HEADER_GROUP', headerGroups);
 console.log('COLUMNS', columns);
 console.log('ROWS', rows);
+
+console.groupEnd()
 
 return (
 <>
