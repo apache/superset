@@ -129,7 +129,7 @@ const plugins = [
     patterns: [
       'package.json',
       { from: 'src/assets/images', to: 'images' },
-      { from: 'stylesheets', to: 'stylesheets' },
+      { from: 'src/assets/stylesheets', to: 'stylesheets' },
     ],
   }),
 
