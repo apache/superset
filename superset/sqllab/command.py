@@ -20,11 +20,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
-import simplejson as json
 from flask_babel import gettext as __
-from sqlalchemy.orm.session import Session
 
-from superset import app, db
+from superset import app
 from superset.commands.base import BaseCommand
 from superset.common.db_query_status import QueryStatus
 from superset.dao.exceptions import DAOCreateFailedError
@@ -38,8 +36,6 @@ from superset.sqllab.exceptions import (
     SqlLabException,
 )
 from superset.sqllab.limiting_factor import LimitingFactor
-from superset.sqllab.utils import apply_display_max_row_configuration_if_require
-from superset.utils import core as utils
 
 if TYPE_CHECKING:
     from superset.sqllab.sql_json_executer import SqlJsonExecutor
@@ -63,8 +59,8 @@ class ExecuteSqlCommand(BaseCommand):
     _access_validator: CanAccessQueryValidator
     _sql_query_render: SqlQueryRender
     _sql_json_executor: SqlJsonExecutor
+    _execution_context_convertor: ExecutionContextConvertor
     _log_params: Optional[Dict[str, Any]] = None
-    _session: Session
 
     def __init__(
         self,
@@ -74,6 +70,7 @@ class ExecuteSqlCommand(BaseCommand):
         access_validator: CanAccessQueryValidator,
         sql_query_render: SqlQueryRender,
         sql_json_executor: SqlJsonExecutor,
+        execution_context_convertor: ExecutionContextConvertor,
         log_params: Optional[Dict[str, Any]] = None,
     ) -> None:
         self._execution_context = execution_context
@@ -82,8 +79,8 @@ class ExecuteSqlCommand(BaseCommand):
         self._access_validator = access_validator
         self._sql_query_render = sql_query_render
         self._sql_json_executor = sql_json_executor
+        self._execution_context_convertor = execution_context_convertor
         self._log_params = log_params
-        self._session = db.session()
 
     def validate(self) -> None:
         pass
@@ -101,7 +98,9 @@ class ExecuteSqlCommand(BaseCommand):
                 status = self._run_sql_json_exec_from_scratch()
             return {
                 "status": status,
-                "payload": self._create_payload_from_execution_context(status),
+                "payload": self._execution_context_convertor.to_payload(
+                    self._execution_context, status
+                ),
             }
         except (SqlLabException, SupersetErrorsException) as ex:
             raise ex
@@ -200,38 +199,6 @@ class ExecuteSqlCommand(BaseCommand):
             lim for lim in limits if lim is not None
         )
 
-    def _create_payload_from_execution_context(  # pylint: disable=invalid-name
-        self, status: SqlJsonExecutionStatus,
-    ) -> str:
-
-        if status == SqlJsonExecutionStatus.HAS_RESULTS:
-            return self._to_payload_results_based(
-                self._execution_context.get_execution_result() or {}
-            )
-        return self._to_payload_query_based(self._execution_context.query)
-
-    def _to_payload_results_based(  # pylint: disable=no-self-use
-        self, execution_result: SqlResults
-    ) -> str:
-        display_max_row = config["DISPLAY_MAX_ROW"]
-        return json.dumps(
-            apply_display_max_row_configuration_if_require(
-                execution_result, display_max_row
-            ),
-            default=utils.pessimistic_json_iso_dttm_ser,
-            ignore_nan=True,
-            encoding=None,
-        )
-
-    def _to_payload_query_based(  # pylint: disable=no-self-use
-        self, query: Query
-    ) -> str:
-        return json.dumps(
-            {"query": query.to_dict()},
-            default=utils.json_int_dttm_ser,
-            ignore_nan=True,
-        )
-
 
 class CanAccessQueryValidator:
     def validate(self, query: Query) -> None:
@@ -240,4 +207,13 @@ class CanAccessQueryValidator:
 
 class SqlQueryRender:
     def render(self, execution_context: SqlJsonExecutionContext) -> str:
+        raise NotImplementedError()
+
+
+class ExecutionContextConvertor:
+    def to_payload(
+        self,
+        execution_context: SqlJsonExecutionContext,
+        execution_status: SqlJsonExecutionStatus,
+    ) -> str:
         raise NotImplementedError()
