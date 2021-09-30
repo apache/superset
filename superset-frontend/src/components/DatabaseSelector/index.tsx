@@ -253,6 +253,7 @@ export default function DatabaseSelector({
         ariaLabel={t('Select database or type database name')}
         data-test="select-database"
         header={<FormLabel>{t('Database')}</FormLabel>}
+        lazyLoading={false}
         onChange={changeDataBase}
         value={currentDb}
         placeholder={t('Select database or type database name')}

@@ -27,7 +27,7 @@ import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import setupApp from 'src/setup/setupApp';
 import setupPlugins from 'src/setup/setupPlugins';
 import './main.less';
-import 'stylesheets/reactable-pagination.less';
+import '../assets/stylesheets/reactable-pagination.less';
 import { theme } from 'src/preamble';
 import ExploreViewContainer from './components/ExploreViewContainer';
 

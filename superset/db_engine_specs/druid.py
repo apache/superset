@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger()
 
 
-class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
+class DruidEngineSpec(BaseEngineSpec):
     """Engine spec for Druid.io"""
 
     engine = "druid"
