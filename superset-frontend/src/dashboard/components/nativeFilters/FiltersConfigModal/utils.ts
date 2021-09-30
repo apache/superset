@@ -42,6 +42,7 @@ export const validateForm = async (
       errors: [error],
     };
     form.setFields([fieldError]);
+    setCurrentFilterId(filterId);
   };
 
   try {
@@ -57,25 +58,34 @@ export const validateForm = async (
       }
     }
 
-    const validateCycles = (filterId: string, trace: string[] = []) => {
+    const validateCycles = (
+      filterId: string,
+      trace: string[] = [],
+    ): boolean => {
       if (trace.includes(filterId)) {
         addValidationError(
           filterId,
           'parentFilter',
           'Cannot create cyclic hierarchy',
         );
+        return false;
       }
       const parentId = formValues.filters?.[filterId]
         ? formValues.filters[filterId]?.parentFilter?.value
         : filterConfigMap[filterId]?.cascadeParentIds?.[0];
       if (parentId) {
-        validateCycles(parentId, [...trace, filterId]);
+        return validateCycles(parentId, [...trace, filterId]);
       }
+      return true;
     };
 
-    filterIds
+    const invalid = filterIds
       .filter(id => !removedFilters[id])
-      .forEach(filterId => validateCycles(filterId));
+      .some(filterId => !validateCycles(filterId));
+
+    if (invalid) {
+      return null;
+    }
 
     return formValues;
   } catch (error) {
