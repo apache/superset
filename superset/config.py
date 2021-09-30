@@ -1215,9 +1215,6 @@ def uri_filter(cond="none", default="") -> Optional[Any]:
 
     if jwt_dashboard_id != dashboard_id:
         raise Exception("dashboard_id has manipulated")
-
-    if cond not in mobi_filter_dict and cond == 'merchants':
-        default="select merchant_code from process"
         
     param=mobi_filter_dict.get(cond)
 
