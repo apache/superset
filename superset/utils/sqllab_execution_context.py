@@ -22,6 +22,7 @@ from dataclasses import dataclass
 from typing import Any, cast, Dict, Optional, TYPE_CHECKING
 
 from flask import g
+from sqlalchemy.orm.exc import DetachedInstanceError
 
 from superset import is_feature_enabled
 from superset.models.sql_lab import Query
@@ -34,7 +35,6 @@ from superset.views.utils import get_cta_schema_name
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import Database
 
-QueryStatus = utils.QueryStatus
 logger = logging.getLogger(__name__)
 
 SqlResults = Dict[str, Any]
@@ -177,6 +177,15 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
             user_id=self.user_id,
             client_id=self.client_id_or_short_id,
         )
+
+    def get_query_details(self) -> str:
+        try:
+            if self.query:
+                if self.query.id:
+                    return "query '{}' - '{}'".format(self.query.id, self.query.sql)
+        except DetachedInstanceError:
+            pass
+        return "query '{}'".format(self.sql)
 
 
 class CreateTableAsSelect:  # pylint: disable=too-few-public-methods

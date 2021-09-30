@@ -52,7 +52,7 @@ describe('AdhocFilters', () => {
   });
 
   xit('Set simple adhoc filter', () => {
-    cy.get('[data-test=adhoc-filter-simple-value] .Select__control').click();
+    cy.get('[aria-label="Comparator option"] .Select__control').click();
     cy.get('[data-test=adhoc-filter-simple-value] input[type=text]')
       .focus()
       .type('Jack{enter}', { delay: 20 });

@@ -52,6 +52,7 @@ from sqlalchemy.sql.expression import ColumnClause, Select
 from sqlalchemy.types import TypeEngine
 
 from superset import cache_manager, is_feature_enabled
+from superset.common.db_query_status import QueryStatus
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetTemplateException
@@ -95,7 +96,6 @@ CONNECTION_UNKNOWN_DATABASE_ERROR = re.compile(
 )
 
 
-QueryStatus = utils.QueryStatus
 logger = logging.getLogger(__name__)
 
 
