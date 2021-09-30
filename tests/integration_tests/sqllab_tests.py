@@ -688,6 +688,7 @@ class TestSqlLab(SupersetTestCase):
         )
         self.delete_fake_db()
 
+    @pytest.mark.ofek
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",

@@ -86,9 +86,9 @@ class SqlQueryRenderImpl(SqlQueryRender):
         self, execution_context: SqlJsonExecutionContext, undefined_parameters: Any
     ) -> None:
         raise SqlQueryRenderException(
-            execution_context,
-            SupersetErrorType.MISSING_TEMPLATE_PARAMS_ERROR,
-            ngettext(
+            sql_json_execution_context=execution_context,
+            error_type=SupersetErrorType.MISSING_TEMPLATE_PARAMS_ERROR,
+            reason_message=ngettext(
                 "The parameter %(parameters)s in your query is undefined.",
                 "The following parameters in your query are undefined: %(parameters)s.",
                 len(undefined_parameters),
@@ -105,7 +105,7 @@ class SqlQueryRenderImpl(SqlQueryRender):
         self, ex: Exception, execution_context: SqlJsonExecutionContext
     ) -> None:
         raise SqlQueryRenderException(
-            execution_context,
+            sql_json_execution_context=execution_context,
             error_type=SupersetErrorType.INVALID_TEMPLATE_PARAMS_ERROR,
             reason_message=__(
                 "The query contains one or more malformed template parameters."
@@ -142,3 +142,9 @@ class SqlQueryRenderException(SqlLabException):
     @property
     def extra(self) -> Optional[Dict[str, Any]]:
         return self._extra
+
+    def to_dict(self) -> Dict[str, Any]:
+        rv = super().to_dict()
+        if self._extra:
+            rv["extra"] = self._extra
+        return rv
