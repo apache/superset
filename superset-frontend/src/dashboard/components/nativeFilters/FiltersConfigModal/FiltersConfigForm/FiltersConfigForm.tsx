@@ -940,43 +940,51 @@ const FiltersConfigForm = (
               key={FilterPanels.advanced.key}
             >
               {isCascadingFilter && (
-                <CollapsibleControl
-                  title={t('Filter is hierarchical')}
-                  initialValue={hasParentFilter}
-                  name={['filters', filterId, 'hasParent']}
-                  onChange={checked => {
-                    formChanged();
-                    // execute after render
-                    setTimeout(() => {
-                      if (checked) {
-                        form.validateFields([
-                          ['filters', filterId, 'parentFilter'],
-                        ]);
-                      }
-                      onFilterHierarchyChange(
-                        filterId,
-                        form.getFieldValue('filters')[filterId].parentFilter,
-                      );
-                    }, 0);
-                  }}
-                >
-                  <StyledRowSubFormItem
-                    name={['filters', filterId, 'parentFilter']}
-                    label={<StyledLabel>{t('Parent filter')}</StyledLabel>}
-                    initialValue={parentFilter}
-                    normalize={value => (value ? { value } : undefined)}
-                    data-test="parent-filter-input"
-                    required
-                    rules={[
-                      {
-                        required: true,
-                        message: t('Parent filter is required'),
-                      },
-                    ]}
+                <CleanFormItem name={['filters', filterId, 'hasParent']}>
+                  <CollapsibleControl
+                    title={t('Filter is hierarchical')}
+                    initialValue={hasParentFilter}
+                    onChange={checked => {
+                      formChanged();
+                      // execute after render
+                      setTimeout(() => {
+                        if (checked) {
+                          form.validateFields([
+                            ['filters', filterId, 'parentFilter'],
+                          ]);
+                        } else {
+                          setNativeFilterFieldValues(form, filterId, {
+                            parentFilter: undefined,
+                          });
+                        }
+                        onFilterHierarchyChange(
+                          filterId,
+                          checked
+                            ? form.getFieldValue('filters')[filterId]
+                                .parentFilter
+                            : undefined,
+                        );
+                      }, 0);
+                    }}
                   >
-                    <ParentSelect />
-                  </StyledRowSubFormItem>
-                </CollapsibleControl>
+                    <StyledRowSubFormItem
+                      name={['filters', filterId, 'parentFilter']}
+                      label={<StyledLabel>{t('Parent filter')}</StyledLabel>}
+                      initialValue={parentFilter}
+                      normalize={value => (value ? { value } : undefined)}
+                      data-test="parent-filter-input"
+                      required
+                      rules={[
+                        {
+                          required: true,
+                          message: t('Parent filter is required'),
+                        },
+                      ]}
+                    >
+                      <ParentSelect />
+                    </StyledRowSubFormItem>
+                  </CollapsibleControl>
+                </CleanFormItem>
               )}
               {Object.keys(controlItems)
                 .filter(key => !BASIC_CONTROL_ITEMS.includes(key))

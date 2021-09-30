@@ -25,14 +25,13 @@ import {
   useDrop,
   XYCoord,
 } from 'react-dnd';
-import FilterGroupIcon from 'images/icons/filter_group.svg';
 
-interface TabTitleContainerProps {
+interface TitleContainerProps {
   readonly isDragging: boolean;
 }
 const FILTER_TYPE = 'FILTER';
 
-const Container = styled.div<TabTitleContainerProps>`
+const Container = styled.div<TitleContainerProps>`
   ${({ isDragging, theme }) => `
     opacity: ${isDragging ? 0.3 : 1};
     width: 100%;
@@ -126,11 +125,7 @@ export const DraggableFilter: React.FC<FilterTabTitleProps> = ({
   return (
     <Container ref={ref} isDragging={isDragging}>
       <ImageContainer>
-        <img
-          css={{ width: '16px' }}
-          src={FilterGroupIcon}
-          alt="filter-group-logo"
-        />
+        <img src="/static/assets/images/icons/move.svg" alt="dragimage" />
       </ImageContainer>
       <div css={{ flexGrow: 4 }}>{children}</div>
     </Container>

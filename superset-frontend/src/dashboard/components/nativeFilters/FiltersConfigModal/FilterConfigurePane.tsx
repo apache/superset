@@ -44,19 +44,20 @@ const FiltureConfigurePane: React.FC<Props> = ({
       <div css={{ flexGrow: 1 }}>
         <FilterTitlePane
           currentFilterId={currentFilterId}
+          filterGroups={filterGroups}
           getFilterTitle={getFilterTitle}
+          onChange={onChange}
+          onEdit={onEdit}
           onRearrage={onRearrange}
           onRemove={(id: string) => curry(onEdit)(id)('remove')}
           removedFilters={removedFilters}
           restoreFilter={restoreFilter}
-          onChange={onChange}
-          onEdit={onEdit}
-          filterGroups={filterGroups}
         />
       </div>
       <ContentHolder>
         {filterGroups.flat().map(id => (
           <div
+            key={id}
             style={{
               height: '100%',
               overflowY: 'scroll',

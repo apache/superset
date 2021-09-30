@@ -44,7 +44,7 @@ interface Props {
   filterGroups: string[][];
 }
 
-const TabTitleContainer: React.FC<Props> = ({
+const FilterTitleContainer: React.FC<Props> = ({
   getFilterTitle,
   onChange,
   currentFilterId,
@@ -89,6 +89,7 @@ const TabTitleContainer: React.FC<Props> = ({
                 event.stopPropagation();
                 onRemove(id);
               }}
+              alt="RemoveFilter"
             />
           )}
         </div>
@@ -142,4 +143,4 @@ const TabTitleContainer: React.FC<Props> = ({
   return <Container>{renderFilterGroups()}</Container>;
 };
 
-export default TabTitleContainer;
+export default FilterTitleContainer;

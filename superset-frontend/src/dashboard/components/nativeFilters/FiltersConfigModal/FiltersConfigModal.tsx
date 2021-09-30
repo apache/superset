@@ -17,9 +17,8 @@
  * under the License.
  */
 import React, { useCallback, useMemo, useState, useRef } from 'react';
-import { uniq, debounce } from 'lodash';
+import { uniq } from 'lodash';
 import { t, styled } from '@superset-ui/core';
-import { SLOW_DEBOUNCE } from 'src/constants';
 import { Form } from 'src/common/components';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { StyledModal } from 'src/components/Modal';
@@ -153,12 +152,12 @@ export function FiltersConfigModal({
         parentId: filter.cascadeParentIds[0] || null,
       }));
 
-  const [filterHierarchy, setFilterHierarchy] = useState<FilterHierarchy>(
+  const [filterHierarchy, setFilterHierarchy] = useState<FilterHierarchy>(() =>
     getInitialFilterHierarchy(),
   );
 
   // State for tracking the re-ordering of filters
-  const [orderedFilters, setOrderedFilters] = useState<string[][]>(
+  const [orderedFilters, setOrderedFilters] = useState<string[][]>(() =>
     buildFilterGroup(filterHierarchy),
   );
 
@@ -168,17 +167,16 @@ export function FiltersConfigModal({
     setNewFilterIds([...newFilterIds, newFilterId]);
     setCurrentFilterId(newFilterId);
     setSaveAlertVisible(false);
-    setFilterHierarchy([
-      ...filterHierarchy,
+    setFilterHierarchy(previousState => [
+      ...previousState,
       { id: newFilterId, parentId: null },
     ]);
     setOrderedFilters([...orderedFilters, [newFilterId]]);
   }, [
     newFilterIds,
+    orderedFilters,
     setCurrentFilterId,
     setFilterHierarchy,
-    filterHierarchy,
-    orderedFilters,
     setOrderedFilters,
   ]);
 
@@ -306,35 +304,47 @@ export function FiltersConfigModal({
     newOrderedFilter.splice(targetIndex, 0, removed);
     setOrderedFilters(newOrderedFilter);
   };
-  const handleFilterHierarchyChange = (
-    filterId: string,
-    parentFilter?: { value: string; label: string },
-  ) => {
-    const index = filterHierarchy.findIndex(item => item.id === filterId);
-    const newState = [...filterHierarchy];
-    newState.splice(index, 1, {
-      id: filterId,
-      parentId: parentFilter ? parentFilter.value : null,
-    });
-    setFilterHierarchy(newState);
-    setOrderedFilters(buildFilterGroup(newState));
-  };
+  const handleFilterHierarchyChange = useCallback(
+    (filterId: string, parentFilter?: { value: string; label: string }) => {
+      const index = filterHierarchy.findIndex(item => item.id === filterId);
+      const newState = [...filterHierarchy];
+      newState.splice(index, 1, {
+        id: filterId,
+        parentId: parentFilter ? parentFilter.value : null,
+      });
+      setFilterHierarchy(newState);
+      setOrderedFilters(buildFilterGroup(newState));
+    },
+    [setFilterHierarchy, setOrderedFilters, filterHierarchy],
+  );
 
   const onValuesChange = useMemo(
-    () =>
-      debounce((changes: any, values: NativeFiltersForm) => {
-        if (
-          changes.filters &&
-          Object.values(changes.filters).some(
-            (filter: any) => filter.name != null,
-          )
-        ) {
-          // we only need to set this if a name changed
-          setFormValues(values);
-        }
-        setSaveAlertVisible(false);
-      }, SLOW_DEBOUNCE),
-    [],
+    () => (changes: any, values: NativeFiltersForm) => {
+      if (
+        changes.filters &&
+        Object.values(changes.filters).some(
+          (filter: any) => filter.name != null,
+        )
+      ) {
+        // we only need to set this if a name changed
+        setFormValues(values);
+      }
+      const changedFilterHierarchies = Object.keys(changes.filters)
+        .filter(key => changes.filters[key].parentFilter)
+        .map(key => ({
+          id: key,
+          parentFilter: changes.filters[key].parentFilter,
+        }));
+      if (changedFilterHierarchies.length > 0) {
+        const changedFilterId = changedFilterHierarchies[0];
+        handleFilterHierarchyChange(
+          changedFilterId.id,
+          changedFilterId.parentFilter,
+        );
+      }
+      setSaveAlertVisible(false);
+    },
+    [handleFilterHierarchyChange],
   );
 
   return (

@@ -448,3 +448,39 @@ export const mockQueryDataForCountries = [
   { country_name: 'Zambia', 'SUM(SP_POP_TOTL)': 438847085 },
   { country_name: 'Zimbabwe', 'SUM(SP_POP_TOTL)': 509866860 },
 ];
+
+export const buildNativeFilter = (
+  id: string,
+  name: string,
+  parents: string[],
+) => ({
+  id,
+  controlValues: {
+    multiSelect: true,
+    enableEmptyFilter: false,
+    defaultToFirstItem: false,
+    inverseSelection: false,
+    searchAllOptions: false,
+  },
+  name,
+  filterType: 'filter_select',
+  targets: [
+    {
+      datasetId: 1,
+      column: {
+        name,
+      },
+    },
+  ],
+  defaultDataMask: {
+    extraFormData: {},
+    filterState: {},
+    ownState: {},
+  },
+  cascadeParentIds: parents,
+  scope: {
+    rootPath: ['ROOT_ID'],
+    excluded: [],
+  },
+  type: 'NATIVE_FILTER',
+});

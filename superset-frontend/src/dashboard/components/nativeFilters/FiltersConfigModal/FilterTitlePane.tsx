@@ -2,7 +2,7 @@ import { styled, t } from '@superset-ui/core';
 import React from 'react';
 import { PlusOutlined } from '@ant-design/icons';
 import { FilterRemoval } from './types';
-import TabTitles from './TabTitleContainer';
+import FilterTitleContainer from './FilterTitleContainer';
 
 interface Props {
   removedFilters: Record<string, FilterRemoval>;
@@ -59,7 +59,7 @@ const FilterTitlePane: React.FC<Props> = ({
     <TabsContainer>
       <StyledHeader>Filters</StyledHeader>
       <div>
-        <TabTitles
+        <FilterTitleContainer
           filterGroups={filterGroups}
           getFilterTitle={getFilterTitle}
           onChange={onChange}
