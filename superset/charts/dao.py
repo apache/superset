@@ -57,7 +57,9 @@ class ChartDAO(BaseDAO):
             raise ex
 
     @staticmethod
-    def save(slc: Slice, commit: bool = True) -> None:
+    def save(
+        slc: Slice, commit: bool = True
+    ) -> None:  # pylint: disable=arguments-renamed
         db.session.add(slc)
         if commit:
             db.session.commit()

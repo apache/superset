@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=too-few-public-methods, invalid-name, line-too-long
+# pylint: disable=too-few-public-methods, invalid-name
 from __future__ import annotations
 
 import dataclasses
@@ -100,7 +100,9 @@ class SynchronousSqlJsonExecutor(SqlJsonExecutorBase):
             raise ex
         except Exception as ex:
             logger.exception("Query %i failed unexpectedly", execution_context.query.id)
-            raise SupersetGenericDBErrorException(utils.error_msg_from_exception(ex))
+            raise SupersetGenericDBErrorException(
+                utils.error_msg_from_exception(ex)
+            ) from ex
 
         if data.get("status") == QueryStatus.FAILED:  # type: ignore
             # new error payload with rich context
@@ -199,6 +201,6 @@ class ASynchronousSqlJsonExecutor(SqlJsonExecutorBase):
             query.set_extra_json_key("errors", [error_payload])
             query.status = QueryStatus.FAILED
             query.error_message = message
-            raise SupersetErrorException(error)
+            raise SupersetErrorException(error) from ex
         self._query_dao.update_saved_query_exec_info(query_id)
         return SqlJsonExecutionStatus.QUERY_IS_RUNNING
