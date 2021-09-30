@@ -114,9 +114,9 @@ class QueryContext:
 
     @staticmethod
     def left_join_df(
-        left_df: pd.DataFrame, right_df: pd.DataFrame, on: List[str],
+        left_df: pd.DataFrame, right_df: pd.DataFrame, join_keys: List[str],
     ) -> pd.DataFrame:
-        df = left_df.set_index(on).join(right_df.set_index(on))
+        df = left_df.set_index(join_keys).join(right_df.set_index(join_keys))
         df.reset_index(inplace=True)
         return df
 
@@ -203,7 +203,7 @@ class QueryContext:
 
             # df left join `offset_metrics_df`
             offset_df = self.left_join_df(
-                left_df=df, right_df=offset_metrics_df, on=join_keys,
+                left_df=df, right_df=offset_metrics_df, join_keys=join_keys,
             )
             offset_slice = offset_df[
                 [m for m in metrics_and_dttm_mapping.values() if m != DTTM_ALIAS]
