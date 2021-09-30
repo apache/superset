@@ -203,7 +203,7 @@ class QueryContext:
             offset_df = self.left_join_df(
                 left_df=df, right_df=offset_metrics_df, join_keys=join_keys,
             )
-            offset_slice = offset_df[[m for m in metrics_mapping.values()]]
+            offset_slice = offset_df[metrics_mapping.values()]
 
             # set offset_slice to cache and stack.
             value = {
