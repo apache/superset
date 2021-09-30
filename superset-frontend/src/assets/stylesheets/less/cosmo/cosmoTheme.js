@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/* eslint-disable */
 (function () {
   $(window).scroll(function () {
     var top = $(document).scrollTop();

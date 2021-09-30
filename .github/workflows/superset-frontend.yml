@@ -18,6 +18,8 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
+      - name: Check npm lock file version
+        run: ./scripts/ci_check_npm_lock_version.sh ./superset-frontend/package-lock.json
       - name: Check if frontend changes are present
         id: check
         env:
