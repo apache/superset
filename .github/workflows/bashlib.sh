@@ -55,8 +55,6 @@ npm-install() {
   cd "$GITHUB_WORKSPACE/superset-frontend"
 
   # cache-restore npm
-  say "::group::Install npm@7"
-  sudo npm i -g npm@7 --registry=https://registry.npmjs.org
   say "::group::Install npm packages"
   echo "npm: $(npm --version)"
   echo "node: $(node --version)"

@@ -1576,7 +1576,14 @@ class TestDatabaseApi(SupersetTestCase):
                     "engine": "gsheets",
                     "name": "Google Sheets",
                     "parameters": {
-                        "properties": {"catalog": {"type": "object"},},
+                        "properties": {
+                            "catalog": {"type": "object"},
+                            "service_account_info": {
+                                "description": "Contents of GSheets JSON credentials.",
+                                "type": "string",
+                                "x-encrypted-extra": True,
+                            },
+                        },
                         "type": "object",
                     },
                     "preferred": False,

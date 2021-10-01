@@ -180,7 +180,7 @@ test('Refresh should work', async () => {
   userEvent.click(select);
 
   await waitFor(() => {
-    expect(SupersetClientGet).toBeCalledTimes(1);
+    expect(SupersetClientGet).toBeCalledTimes(2);
     expect(props.getDbList).toBeCalledTimes(0);
     expect(props.getTableList).toBeCalledTimes(0);
     expect(props.handleError).toBeCalledTimes(0);
@@ -193,8 +193,8 @@ test('Refresh should work', async () => {
   userEvent.click(screen.getByRole('button', { name: 'refresh' }));
 
   await waitFor(() => {
-    expect(SupersetClientGet).toBeCalledTimes(2);
-    expect(props.getDbList).toBeCalledTimes(0);
+    expect(SupersetClientGet).toBeCalledTimes(3);
+    expect(props.getDbList).toBeCalledTimes(1);
     expect(props.getTableList).toBeCalledTimes(0);
     expect(props.handleError).toBeCalledTimes(0);
     expect(props.onDbChange).toBeCalledTimes(0);

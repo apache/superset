@@ -52,6 +52,7 @@ export default function setupColors(
   extraSequentialColorSchemes: SequentialScheme[] = [],
 ) {
   registerColorSchemes(
+    // @ts-ignore
     getCategoricalSchemeRegistry(),
     [
       ...superset,
@@ -66,6 +67,7 @@ export default function setupColors(
     'supersetColors',
   );
   registerColorSchemes(
+    // @ts-ignore
     getSequentialSchemeRegistry(),
     [...sequentialCommon, ...sequentialD3, ...extraSequentialColorSchemes],
     'superset_seq_1',

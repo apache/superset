@@ -602,7 +602,17 @@ class ImportV1DatabaseSchema(Schema):
             raise ValidationError("Must provide a password for the database")
 
 
-class EncryptedField(fields.String):
+class EncryptedField:  # pylint: disable=too-few-public-methods
+    """
+    A database field that should be stored in encrypted_extra.
+    """
+
+
+class EncryptedString(EncryptedField, fields.String):
+    pass
+
+
+class EncryptedDict(EncryptedField, fields.Dict):
     pass
 
 

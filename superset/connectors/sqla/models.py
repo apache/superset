@@ -70,6 +70,7 @@ from sqlalchemy.sql.expression import Label, Select, TextAsFrom, TextClause
 from sqlalchemy.sql.selectable import Alias, TableClause
 
 from superset import app, db, is_feature_enabled, security_manager
+from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.connectors.sqla.utils import (
     get_physical_table_metadata,
@@ -151,12 +152,12 @@ class AnnotationDatasource(BaseDatasource):
             qry = qry.filter(Annotation.start_dttm >= query_obj["from_dttm"])
         if query_obj["to_dttm"]:
             qry = qry.filter(Annotation.end_dttm <= query_obj["to_dttm"])
-        status = utils.QueryStatus.SUCCESS
+        status = QueryStatus.SUCCESS
         try:
             df = pd.read_sql_query(qry.statement, db.engine)
         except Exception as ex:  # pylint: disable=broad-except
             df = pd.DataFrame()
-            status = utils.QueryStatus.FAILED
+            status = QueryStatus.FAILED
             logger.exception(ex)
             error_message = utils.error_msg_from_exception(ex)
         return QueryResult(
@@ -1291,8 +1292,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         if row_offset:
             qry = qry.offset(row_offset)
 
-        if db_engine_spec.allows_subqueries and series_limit and groupby_series_columns:
-            if db_engine_spec.allows_joins:
+        if series_limit and groupby_series_columns:
+            if db_engine_spec.allows_joins and db_engine_spec.allows_subqueries:
                 # some sql dialects require for order by expressions
                 # to also be in the select clause -- others, e.g. vertica,
                 # require a unique inner alias
@@ -1444,7 +1445,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         qry_start_dttm = datetime.now()
         query_str_ext = self.get_query_str_extended(query_obj)
         sql = query_str_ext.sql
-        status = utils.QueryStatus.SUCCESS
+        status = QueryStatus.SUCCESS
         errors = None
         error_message = None
 
@@ -1477,7 +1478,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             df = self.database.get_df(sql, self.schema, mutator=assign_column_label)
         except Exception as ex:  # pylint: disable=broad-except
             df = pd.DataFrame()
-            status = utils.QueryStatus.FAILED
+            status = QueryStatus.FAILED
             logger.warning(
                 "Query %s on schema %s failed", sql, self.schema, exc_info=True
             )

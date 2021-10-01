@@ -54,10 +54,20 @@ extraEnv: {}
   # GUNICORN_TIMEOUT: 300
 
 
-   # OAUTH_HOME_DOMAIN: ..
+  # OAUTH_HOME_DOMAIN: ..
   # # If a whitelist is not set, any address that can use your OAuth2 endpoint will be able to login.
   # #   this includes any random Gmail address if your OAuth2 Web App is set to External.
   # OAUTH_WHITELIST_REGEX: ...
+
+## Extra environment variables in RAW format that will be passed into pods
+##
+extraEnvRaw: []
+  # Load DB password from other secret (e.g. for zalando operator)
+  # - name: DB_PASS
+  #   valueFrom:
+  #     secretKeyRef:
+  #       name: superset.superset-postgres.credentials.postgresql.acid.zalan.do
+  #       key: password
 
 ## Extra environment variables to pass as secrets
 ##
@@ -302,6 +312,7 @@ init:
       command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
   initscript: |-
     #!/bin/sh
+    set -eu
     echo "Upgrading DB schema..."
     superset db upgrade
     echo "Initializing roles..."
