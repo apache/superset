@@ -154,24 +154,19 @@ export default class AdhocFilter {
       op => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation,
     );
     if (this.expressionType === EXPRESSION_TYPES.SIMPLE) {
-      // console.log('isValid Meth', this.expressionType)
       if (nullCheckOperators.indexOf(this.operator) >= 0) {
-        // console.log('Null Op --> opertator', this.operator)
-        // console.log('subject', this.subject)
         return !!(this.operator && this.subject);
       }
       if (truthCheckOperators.indexOf(this.operator) >= 0) {
-        // console.log('i hit in truthCheckers', this.subject)
         return !!(this.subject && this.comparator !== null);
       }
       if (this.operator && this.subject && this.clause) {
-        // console.log('i trio check', this.operator, 'subject ->', this.subject, 'clause', this.clause)
         if (Array.isArray(this.comparator)) {
           if (this.comparator.length > 0) {
             // A non-empty array of values ('IN' or 'NOT IN' clauses)
             return true;
           }
-        } else if (this.comparator === null) {
+        } else if (this.comparator !== null) {
           // A value has been selected or typed
           return true;
         }
