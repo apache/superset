@@ -32,6 +32,7 @@ from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
+from superset import app
 from superset import is_feature_enabled, thumbnail_cache
 from superset.charts.commands.bulk_delete import BulkDeleteChartCommand
 from superset.charts.commands.create import CreateChartCommand
@@ -89,6 +90,8 @@ from superset.views.core import CsvResponse, generate_download_headers
 from superset.views.filters import FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
+config = app.config
+BUSINESS_TYPE_TRANSLATIONS = config["BUSINESS_TYPE_TRANSLATIONS"]
 
 
 class ChartRestApi(BaseSupersetModelRestApi):
@@ -703,6 +706,15 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=_("Request is not JSON"))
 
         try:
+            for query in json_body["queries"]:
+                for filter in query["filters"]:
+                    if str(filter["col"]).startswith("cidr_"):
+                        resp = BUSINESS_TYPE_TRANSLATIONS["cidr"](filter)
+                        print("call cidr filter method for column {} with op {} and value {}".format(
+                            str(filter["col"]),
+                            str(filter["op"]),
+                            str(filter["val"])
+                        ))
             command = ChartDataCommand()
             query_context = command.set_query_context(json_body)
             command.validate()
