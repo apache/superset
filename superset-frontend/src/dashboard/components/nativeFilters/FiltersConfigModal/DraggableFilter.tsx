@@ -25,6 +25,7 @@ import {
   useDrop,
   XYCoord,
 } from 'react-dnd';
+import Icons from 'src/components/Icons';
 
 interface TitleContainerProps {
   readonly isDragging: boolean;
@@ -40,10 +41,10 @@ const Container = styled.div<TitleContainerProps>`
 `}
 `;
 
-const ImageContainer = styled.div`
-  width: 16px;
+const DragIcon = styled(Icons.Drag)`
+  font-size: ${({ theme }) => theme.typography.sizes.m}px;
   position: relative;
-  top: 8px;
+  top: 12px;
 `;
 
 interface FilterTabTitleProps {
@@ -124,9 +125,7 @@ export const DraggableFilter: React.FC<FilterTabTitleProps> = ({
   drag(drop(ref));
   return (
     <Container ref={ref} isDragging={isDragging}>
-      <ImageContainer>
-        <img src="/static/assets/images/icons/move.svg" alt="dragimage" />
-      </ImageContainer>
+      <DragIcon alt="dragimage" />
       <div css={{ flexGrow: 4 }}>{children}</div>
     </Container>
   );
