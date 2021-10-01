@@ -233,13 +233,13 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
             default: 'values',
             choices: [
               ['values', 'Actual values'],
-              ['absolute', 'Absolute difference'],
+              ['absolute', 'Difference'],
               ['percentage', 'Percentage change'],
               ['ratio', 'Ratio'],
             ],
             description: t(
               'How to display time shifts: as individual lines; as the ' +
-                'absolute difference between the main time series and each time shift; ' +
+                'difference between the main time series and each time shift; ' +
                 'as the percentage change; or as the ratio between series and time shifts.',
             ),
           },
