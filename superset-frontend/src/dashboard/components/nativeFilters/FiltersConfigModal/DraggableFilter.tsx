@@ -128,7 +128,7 @@ export const DraggableFilter: React.FC<FilterTabTitleProps> = ({
   drag(drop(ref));
   return (
     <Container ref={ref} isDragging={isDragging}>
-      <DragIcon isDragging={isDragging} alt="dragimage" />
+      <DragIcon isDragging={isDragging} alt="Move icon" />
       <div css={{ flexGrow: 4 }}>{children}</div>
     </Container>
   );

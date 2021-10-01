@@ -355,7 +355,7 @@ test('filter title groups are draggable', async () => {
     dashboardLayout,
   };
   defaultRender(state, { ...props, createNewOnOpen: false });
-  const draggables = screen.getAllByAltText('dragimage');
+  const draggables = document.querySelectorAll('div[draggable=true]');
   expect(draggables.length).toBe(2);
 });
 

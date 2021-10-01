@@ -24,7 +24,7 @@ import FilterConfigPane from './FilterConfigurePane';
 
 const defaultProps = {
   children: jest.fn(),
-  getFilterTitle: jest.fn(),
+  getFilterTitle: (id: string) => id,
   onChange: jest.fn(),
   onEdit: jest.fn(),
   onRearrange: jest.fn(),
@@ -60,9 +60,11 @@ test('renders form', async () => {
 });
 test('drag and drop', async () => {
   defaultRender();
-  const [countryStateFilter, productFilter] = screen.getAllByAltText(
-    'dragimage',
+  // Drag the state and contry filter above the product filter
+  const [countryStateFilter, productFilter] = document.querySelectorAll(
+    'div[draggable=true]',
   );
+  // const productFilter = await screen.findByText('NATIVE_FILTER-3');
   fireEvent.dragStart(productFilter);
   fireEvent.dragEnter(countryStateFilter);
   fireEvent.dragOver(countryStateFilter);
@@ -83,7 +85,7 @@ test('remove filter', async () => {
       cancelable: true,
     }),
   );
-  expect(defaultProps.onEdit).toHaveBeenCalledWith('NATIVE_FILTER-2');
+  expect(defaultProps.onEdit).toHaveBeenCalledWith('NATIVE_FILTER-2', 'remove');
 });
 
 test('add filter', async () => {
@@ -97,5 +99,5 @@ test('add filter', async () => {
       cancelable: true,
     }),
   );
-  expect(defaultProps.onEdit).toBeCalledTimes(1);
+  expect(defaultProps.onEdit).toHaveBeenCalledWith('', 'add');
 });
