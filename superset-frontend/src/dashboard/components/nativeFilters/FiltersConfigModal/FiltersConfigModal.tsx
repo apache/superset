@@ -205,7 +205,7 @@ export function FiltersConfigModal({
     setRemovedFilters({});
     setSaveAlertVisible(false);
     setFormValues({ filters: {} });
-    // setOrderedFilters(buildFilterGroup(getInitialFilterHierarchy()));
+    setOrderedFilters(buildFilterGroup(getInitialFilterHierarchy()));
     form.setFieldsValue({ changed: false });
   };
 
