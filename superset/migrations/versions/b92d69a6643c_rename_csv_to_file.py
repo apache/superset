@@ -17,41 +17,23 @@
 """rename_csv_to_file
 
 Revision ID: b92d69a6643c
-Revises: 3ebe0993c770
+Revises: 60dc453f4e2e
 Create Date: 2021-09-19 14:42:20.130368
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "b92d69a6643c"
-down_revision = "3ebe0993c770"
+down_revision = "60dc453f4e2e"
 
-import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.sql import expression
 
 
 def upgrade():
     with op.batch_alter_table("dbs") as batch_op:
-        batch_op.add_column(
-            sa.Column(
-                "allow_file_upload",
-                sa.Boolean(),
-                nullable=False,
-                server_default=expression.true(),
-            )
-        )
-        batch_op.drop_column("allow_csv_upload")
+        batch_op.alter_column("allow_csv_upload", new_column_name="allow_file_upload")
 
 
 def downgrade():
     with op.batch_alter_table("dbs") as batch_op:
-        batch_op.add_column(
-            sa.Column(
-                "allow_csv_upload",
-                sa.Boolean(),
-                nullable=False,
-                server_default=expression.true(),
-            )
-        )
-        batch_op.drop_column("allow_file_upload")
+        batch_op.alter_column("allow_file_upload", new_column_name="allow_csv_upload")
