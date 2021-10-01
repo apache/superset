@@ -1330,7 +1330,7 @@ def cidr_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
 
 def cidr_translate_filter_func(filter):
     
-    resp: BusinessTypeResponse = cidr_func({value: filter["val"], business_type: "cidr"})
+    resp: BusinessTypeResponse = cidr_func({value: filter["val"] if not isinstace(filter["val"], list) else filter["val"][0] , business_type: "cidr"})
 
     if filter[op] == "IN" or filter[op] == "==":
         return [
