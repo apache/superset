@@ -1332,7 +1332,7 @@ def cidr_translate_filter_func(filter):
     
     resp: BusinessTypeResponse = cidr_func({value: filter["val"], business_type: "cidr"})
 
-    if filter[op] == "IN" or filter[op] == "equals":
+    if filter[op] == "IN" or filter[op] == "==":
         return [
             {
                 op: ">=",
@@ -1345,7 +1345,7 @@ def cidr_translate_filter_func(filter):
                 col: filter['col']
             },
         ]
-    elif filter[op] == "not IN" or filter[op] == "not equals":
+    elif filter[op] == "NOT IN" or filter[op] == "!=":
         return [
             {
                 op: "<=",
