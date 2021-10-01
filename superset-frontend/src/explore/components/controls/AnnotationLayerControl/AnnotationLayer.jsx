@@ -20,13 +20,13 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { CompactPicker } from 'react-color';
 import Button from 'src/components/Button';
-import { parse as mathjsParse } from 'mathjs';
 import {
   t,
   SupersetClient,
   getCategoricalSchemeRegistry,
   getChartMetadataRegistry,
   validateNonEmpty,
+  isValidExpression,
 } from '@superset-ui/core';
 
 import SelectControl from 'src/explore/components/controls/SelectControl';
@@ -204,15 +204,11 @@ export default class AnnotationLayer extends React.PureComponent {
     return sources;
   }
 
-  isValidFormula(value, annotationType) {
+  isValidFormulaAnnotation(expression, annotationType) {
     if (annotationType === ANNOTATION_TYPES.FORMULA) {
-      try {
-        mathjsParse(value).compile().evaluate({ x: 0 });
-      } catch (err) {
-        return true;
-      }
+      return isValidExpression(expression);
     }
-    return false;
+    return true;
   }
 
   isValidForm() {
@@ -238,7 +234,7 @@ export default class AnnotationLayer extends React.PureComponent {
         errors.push(validateNonEmpty(intervalEndColumn));
       }
     }
-    errors.push(this.isValidFormula(value, annotationType));
+    errors.push(!this.isValidFormulaAnnotation(value, annotationType));
     return !errors.filter(x => x).length;
   }
 
@@ -442,7 +438,9 @@ export default class AnnotationLayer extends React.PureComponent {
           value={value}
           onChange={this.handleValue}
           validationErrors={
-            this.isValidFormula(value, annotationType) ? ['Bad formula.'] : []
+            !this.isValidFormulaAnnotation(value, annotationType)
+              ? ['Bad formula.']
+              : []
           }
         />
       );

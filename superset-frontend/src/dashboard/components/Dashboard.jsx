@@ -50,6 +50,7 @@ const propTypes = {
     removeSliceFromDashboard: PropTypes.func.isRequired,
     triggerQuery: PropTypes.func.isRequired,
     logEvent: PropTypes.func.isRequired,
+    clearDataMaskState: PropTypes.func.isRequired,
   }).isRequired,
   dashboardInfo: dashboardInfoPropShape.isRequired,
   dashboardState: dashboardStatePropShape.isRequired,
@@ -194,6 +195,7 @@ class Dashboard extends React.PureComponent {
 
   componentWillUnmount() {
     window.removeEventListener('visibilitychange', this.onVisibilityChange);
+    this.props.actions.clearDataMaskState();
   }
 
   onVisibilityChange() {

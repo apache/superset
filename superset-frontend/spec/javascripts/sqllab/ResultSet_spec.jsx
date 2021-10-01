@@ -26,6 +26,7 @@ import Alert from 'src/components/Alert';
 import ProgressBar from 'src/components/ProgressBar';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
+import fetchMock from 'fetch-mock';
 import FilterableTable from 'src/components/FilterableTable/FilterableTable';
 import ExploreResultsButton from 'src/SqlLab/components/ExploreResultsButton';
 import ResultSet from 'src/SqlLab/components/ResultSet';
@@ -80,6 +81,7 @@ const newProps = {
     },
   },
 };
+fetchMock.get('glob:*/api/v1/dataset?*', { result: [] });
 
 test('is valid', () => {
   expect(React.isValidElement(<ResultSet {...mockedProps} />)).toBe(true);
