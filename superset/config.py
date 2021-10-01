@@ -1187,7 +1187,7 @@ SQLALCHEMY_EXAMPLES_URI = None
 
 # Some sqlalchemy connection strings can open Superset to security risks.
 # Typically these should not be allowed.
-PREVENT_UNSAFE_DB_CONNECTIONS = True
+PREVENT_UNSAFE_DB_CONNECTIONS = False
 
 # Path used to store SSL certificates that are generated when using custom certs.
 # Defaults to temporary directory.
@@ -1328,6 +1328,72 @@ def cidr_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
         resp["valid_filter_operators"] = []
     return resp
 
+def cidr_translate_filter_func(filter):
+    
+    resp: BusinessTypeResponse = cidr_func({value: filter["val"], business_type: "cidr"})
+
+    if filter[op] == "IN" or filter[op] == "equals":
+        return [
+            {
+                op: ">=",
+                val: BusinessTypeResponse['value']['start'],
+                col: filter['col']
+            },
+            {
+                op: "<=",
+                val: BusinessTypeResponse['value']['end'],
+                col: filter['col']
+            },
+        ]
+    elif filter[op] == "not IN" or filter[op] == "not equals":
+        return [
+            {
+                op: "<=",
+                val: BusinessTypeResponse['value']['start'],
+                col: filter['col']
+            },
+            {
+                op: ">=",
+                val: BusinessTypeResponse['value']['end'],
+                col: filter['col']
+            },
+        ]
+    elif filter[op] == "<":
+        return [
+            {
+                op: "<",
+                val: BusinessTypeResponse['value']['end'],
+                col: filter['col']
+            },
+        ]
+    elif filter[op] == "<=":
+        return [
+            {
+                op: "<=",
+                val: BusinessTypeResponse['value']['end'],
+                col: filter['col']
+            },
+        ]
+    elif filter[op] == ">":
+        return [
+            {
+                op: ">",
+                val: BusinessTypeResponse['value']['start'],
+                col: filter['col']
+            },
+        ]
+    elif filter[op] == ">=":
+        return [
+            {
+                op: ">=",
+                val: BusinessTypeResponse['value']['start'],
+                col: filter['col']
+            },
+        ]
+    else:
+        return [filter]
+
+
 
 def port_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
     resp: BusinessTypeResponse = {}
@@ -1360,6 +1426,14 @@ BUSINESS_TYPE_ADDONS: Dict[
     "cidr": cidr_func,
     "port": port_func
 }
+
+# the business type key should correspond to that set in the column metadata
+BUSINESS_TYPE_TRANSLATIONS: Dict[
+    str, Callable[[Any], Any]
+] = {
+    "cidr": cidr_translate_filter_func,
+}
+
 
 
 # -------------------------------------------------------------------
