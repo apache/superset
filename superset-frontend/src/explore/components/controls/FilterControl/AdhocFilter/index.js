@@ -166,7 +166,7 @@ export default class AdhocFilter {
             // A non-empty array of values ('IN' or 'NOT IN' clauses)
             return true;
           }
-        } else if (this.comparator !== null) {
+        } else if (this.comparator === null) {
           // A value has been selected or typed
           return true;
         }
