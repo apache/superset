@@ -26,14 +26,23 @@ Create Date: 2021-09-19 14:42:20.130368
 revision = "b92d69a6643c"
 down_revision = "60dc453f4e2e"
 
+import sqlalchemy as sa
 from alembic import op
 
 
 def upgrade():
     with op.batch_alter_table("dbs") as batch_op:
-        batch_op.alter_column("allow_csv_upload", new_column_name="allow_file_upload")
+        batch_op.alter_column(
+            "allow_csv_upload",
+            new_column_name="allow_file_upload",
+            existing_type=sa.Boolean(),
+        )
 
 
 def downgrade():
     with op.batch_alter_table("dbs") as batch_op:
-        batch_op.alter_column("allow_file_upload", new_column_name="allow_csv_upload")
+        batch_op.alter_column(
+            "allow_file_upload",
+            new_column_name="allow_csv_upload",
+            existing_type=sa.Boolean(),
+        )
