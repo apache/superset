@@ -836,6 +836,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         }
         try:
             datasource_data = datasource.data if datasource else dummy_datasource_data
+            datasource_database = datasource_data.get("database")
+            if datasource_database:
+                datasource_database["parameters"] = {}
         except (SupersetException, SQLAlchemyError):
             datasource_data = dummy_datasource_data
 
