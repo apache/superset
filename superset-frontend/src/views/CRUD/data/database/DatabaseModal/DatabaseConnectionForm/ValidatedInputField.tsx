@@ -47,8 +47,8 @@ export const validatedInputField = ({
   field,
 }: FieldPropTypes) => (
   <ValidatedInput
-    id="role"
-    name="role"
+    id={field}
+    name={field}
     required={required}
     value={db?.parameters?.[field]}
     validationMethods={{ onBlur: getValidation }}
