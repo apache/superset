@@ -134,6 +134,7 @@ setup(
         "exasol": ["sqlalchemy-exasol>=2.1.0, <2.2"],
         "excel": ["xlrd>=1.2.0, <1.3"],
         "firebird": ["sqlalchemy-firebird>=0.7.0, <0.8"],
+        "firebolt": ["firebolt-sqlalchemy>=0.0.1"],
         "gsheets": ["shillelagh[gsheetsapi]>=1.0.3, <2"],
         "hana": ["hdbcli==2.4.162", "sqlalchemy_hana==0.4.0"],
         "hive": ["pyhive[hive]>=0.6.1", "tableschema", "thrift>=0.11.0, <1.0.0"],
