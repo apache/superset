@@ -1330,64 +1330,64 @@ def cidr_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
 
 def cidr_translate_filter_func(filter):
     
-    resp: BusinessTypeResponse = cidr_func({value: filter["val"], business_type: "cidr"})
+    resp: BusinessTypeResponse = cidr_func({"value": filter["val"][0], "business_type": "cidr"})
 
-    if filter[op] == "IN" or filter[op] == "==":
+    if filter["op"] == "IN" or filter["op"] == "==":
         return [
             {
-                op: ">=",
-                val: BusinessTypeResponse['value']['start'],
-                col: filter['col']
+                "op": ">=",
+                "val": resp['value']['start'],
+                "col": filter['col']
             },
             {
-                op: "<=",
-                val: BusinessTypeResponse['value']['end'],
-                col: filter['col']
+                "op": "<=",
+                "val": resp['value']['end'],
+                "col": filter['col']
             },
         ]
-    elif filter[op] == "NOT IN" or filter[op] == "!=":
+    elif filter["op"] == "NOT IN" or filter["op"] == "!=":
         return [
             {
-                op: "<=",
-                val: BusinessTypeResponse['value']['start'],
-                col: filter['col']
+                "op": "<=",
+                "val": resp['value']['start'],
+                "col": filter['col']
             },
             {
-                op: ">=",
-                val: BusinessTypeResponse['value']['end'],
-                col: filter['col']
-            },
-        ]
-    elif filter[op] == "<":
-        return [
-            {
-                op: "<",
-                val: BusinessTypeResponse['value']['end'],
-                col: filter['col']
+                "op": ">=",
+                "val": resp['value']['end'],
+                "col": filter['col']
             },
         ]
-    elif filter[op] == "<=":
+    elif filter["op"] == "<":
         return [
             {
-                op: "<=",
-                val: BusinessTypeResponse['value']['end'],
-                col: filter['col']
+                "op": "<",
+                "val": resp['value']['end'],
+                "col": filter['col']
             },
         ]
-    elif filter[op] == ">":
+    elif filter["op"] == "<=":
         return [
             {
-                op: ">",
-                val: BusinessTypeResponse['value']['start'],
-                col: filter['col']
+                "op": "<=",
+                "val": resp['value']['end'],
+                "col": filter['col']
             },
         ]
-    elif filter[op] == ">=":
+    elif filter["op"] == ">":
         return [
             {
-                op: ">=",
-                val: BusinessTypeResponse['value']['start'],
-                col: filter['col']
+                "op": ">",
+                "val": resp['value']['start'],
+                "col": filter['col']
+            },
+        ]
+    elif filter["op"] == ">=":
+        return [
+            {
+                "op": ">=",
+                "val": resp['value']['start'],
+                "col": filter['col']
             },
         ]
     else:
