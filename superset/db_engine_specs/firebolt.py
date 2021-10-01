@@ -27,7 +27,7 @@ class FireboltEngineSpec(BaseEngineSpec):
     engine = "firebolt"
     engine_name = "Firebolt"
     default_driver = "firebolt"
-    
+
     _time_grain_expressions = {
         None: "{col}",
         "PT1S": "date_trunc('second', CAST({col} AS TIMESTAMP))",
