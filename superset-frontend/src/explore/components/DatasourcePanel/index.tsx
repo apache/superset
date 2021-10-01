@@ -257,10 +257,8 @@ export default function DataSourcePanel({
     setInputValue('');
   }, [columns, datasource, metrics]);
 
-  const sortCertifiedFirst = (slice: ColumnMeta[]) => {
-    const sorted = slice.sort((a, b) => b.is_certified - a.is_certified);
-    return sorted;
-  };
+  const sortCertifiedFirst = (slice: ColumnMeta[]) =>
+    slice.sort((a, b) => b.is_certified - a.is_certified);
 
   const metricSlice = useMemo(
     () =>
