@@ -97,6 +97,8 @@ describe('newEntitiesFromDrop', () => {
     const newRow = result[newRowId];
     expect(newRow.type).toBe(ROW_TYPE);
     expect(newRow.parents).toEqual(['a']);
-    expect(result[newChartId].type).toBe(CHART_TYPE);
+    const newChart = result[newChartId];
+    expect(newChart.type).toBe(CHART_TYPE);
+    expect(newChart.parents).toEqual(['a', newRowId]);
   });
 });
