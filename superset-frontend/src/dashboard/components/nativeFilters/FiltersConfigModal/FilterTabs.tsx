@@ -240,7 +240,9 @@ const FilterTabs: FC<FilterTabsProps> = ({
               }
             >
               <StyledFilterTitle>
-                {showErroredFilter && <Icons.WarningSolid iconSize="m" />}
+                {!removedFilters[id] && showErroredFilter && (
+                  <Icons.WarningSolid iconSize="m" />
+                )}
                 {removedFilters[id] ? t('(Removed)') : filterName}
               </StyledFilterTitle>
               {removedFilters[id] && (

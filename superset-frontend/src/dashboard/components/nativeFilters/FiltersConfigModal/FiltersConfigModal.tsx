@@ -16,13 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  useRef,
-} from 'react';
+import React, { useCallback, useMemo, useState, useRef } from 'react';
 import { uniq, debounce } from 'lodash';
 import { t, styled } from '@superset-ui/core';
 import { SLOW_DEBOUNCE } from 'src/constants';
@@ -291,16 +285,6 @@ export function FiltersConfigModal({
       }, SLOW_DEBOUNCE),
     [],
   );
-
-  useEffect(() => {
-    setErroredFilters(prevErroredFilters => [
-      ...prevErroredFilters.filter(filterId => !removedFilters[filterId]),
-    ]);
-  }, [removedFilters]);
-
-  useEffect(() => {
-    console.log('erroredFilters', erroredFilters);
-  }, [erroredFilters]);
 
   return (
     <StyledModalWrapper
