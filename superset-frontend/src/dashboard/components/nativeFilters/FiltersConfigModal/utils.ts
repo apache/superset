@@ -19,6 +19,7 @@
 import { FormInstance } from 'antd/lib/form';
 import shortid from 'shortid';
 import { getInitialDataMask } from 'src/dataMask/reducer';
+import { t } from '@superset-ui/core';
 import { FilterRemoval, NativeFiltersForm } from './types';
 import { Filter, FilterConfiguration, Target } from '../types';
 
@@ -31,6 +32,7 @@ export const validateForm = async (
   filterIds: string[],
   removedFilters: Record<string, FilterRemoval>,
   setCurrentFilterId: Function,
+  setErroredFilters: Function,
 ) => {
   const addValidationError = (
     filterId: string,
@@ -43,6 +45,12 @@ export const validateForm = async (
     };
     form.setFields([fieldError]);
     setCurrentFilterId(filterId);
+    setErroredFilters((prevErroredFilters: string[]) => {
+      if (!prevErroredFilters.includes(filterId)) {
+        return [...prevErroredFilters, filterId];
+      }
+      return prevErroredFilters;
+    });
   };
 
   try {
@@ -66,7 +74,7 @@ export const validateForm = async (
         addValidationError(
           filterId,
           'parentFilter',
-          'Cannot create cyclic hierarchy',
+          t('Cannot create cyclic hierarchy'),
         );
         return false;
       }
@@ -103,9 +111,20 @@ export const validateForm = async (
         field => field.name[0] === 'filters',
       );
       if (filterError) {
-        setCurrentFilterId(filterError.name[1]);
+        const filterId = filterError.name[1];
+        setCurrentFilterId(filterId);
       }
     }
+    error.errorFields.forEach((err: { name: string[] }) => {
+      const filterId = err.name[1];
+      setErroredFilters((prevErroredFilters: string[]) => {
+        if (!prevErroredFilters.includes(filterId)) {
+          return [...prevErroredFilters, filterId];
+        }
+        return prevErroredFilters;
+      });
+    });
+
     return null;
   }
 };

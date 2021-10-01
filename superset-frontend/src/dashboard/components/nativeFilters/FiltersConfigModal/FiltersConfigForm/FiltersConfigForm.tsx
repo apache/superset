@@ -268,6 +268,7 @@ export interface FiltersConfigFormProps {
   restoreFilter: (filterId: string) => void;
   form: FormInstance<NativeFiltersForm>;
   parentFilters: { id: string; title: string }[];
+  setErroredFilters: (f: (filters: string[]) => string[]) => void;
 }
 
 const FILTERS_WITH_ADHOC_FILTERS = ['filter_select', 'filter_range'];
@@ -304,6 +305,7 @@ const FiltersConfigForm = (
     restoreFilter,
     form,
     parentFilters,
+    setErroredFilters,
   }: FiltersConfigFormProps,
   ref: React.RefObject<any>,
 ) => {
@@ -515,7 +517,10 @@ const FiltersConfigForm = (
         value: true,
       },
     ]);
-  }, [form]);
+    setErroredFilters((prevErroredFilters: string[]) => [
+      ...prevErroredFilters.filter((f: string) => f !== filterId),
+    ]);
+  }, [filterId, form, setErroredFilters]);
 
   const updateFormValues = useCallback(
     (values: any) => {

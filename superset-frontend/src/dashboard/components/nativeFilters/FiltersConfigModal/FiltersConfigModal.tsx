@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useMemo, useState, useRef } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useRef,
+} from 'react';
 import { uniq, debounce } from 'lodash';
 import { t, styled } from '@superset-ui/core';
 import { SLOW_DEBOUNCE } from 'src/constants';
@@ -126,6 +132,7 @@ export function FiltersConfigModal({
   const [currentFilterId, setCurrentFilterId] = useState(
     initialCurrentFilterId,
   );
+  const [erroredFilters, setErroredFilters] = useState<string[]>([]);
 
   // the form values are managed by the antd form, but we copy them to here
   // so that we can display them (e.g. filter titles in the tab headers)
@@ -225,6 +232,7 @@ export function FiltersConfigModal({
       filterIds,
       removedFilters,
       setCurrentFilterId,
+      setErroredFilters,
     );
 
     if (values) {
@@ -259,6 +267,17 @@ export function FiltersConfigModal({
   const onValuesChange = useMemo(
     () =>
       debounce((changes: any, values: NativeFiltersForm) => {
+        const changedFilters: string[] = [];
+        Object.keys(changes.filters).forEach(filterId => {
+          changedFilters.push(filterId);
+        });
+        if (changedFilters.length) {
+          setErroredFilters(prevErroredFilters => [
+            ...prevErroredFilters.filter(
+              filterId => !changedFilters.find(f => f === filterId),
+            ),
+          ]);
+        }
         if (
           changes.filters &&
           Object.values(changes.filters).some(
@@ -272,6 +291,16 @@ export function FiltersConfigModal({
       }, SLOW_DEBOUNCE),
     [],
   );
+
+  useEffect(() => {
+    setErroredFilters(prevErroredFilters => [
+      ...prevErroredFilters.filter(filterId => !removedFilters[filterId]),
+    ]);
+  }, [removedFilters]);
+
+  useEffect(() => {
+    console.log('erroredFilters', erroredFilters);
+  }, [erroredFilters]);
 
   return (
     <StyledModalWrapper
@@ -303,6 +332,7 @@ export function FiltersConfigModal({
             layout="vertical"
           >
             <FilterTabs
+              erroredFilters={erroredFilters}
               onEdit={handleTabEdit}
               onChange={setCurrentFilterId}
               getFilterTitle={getFilterTitle}
@@ -320,6 +350,7 @@ export function FiltersConfigModal({
                   removedFilters={removedFilters}
                   restoreFilter={restoreFilter}
                   parentFilters={getParentFilters(id)}
+                  setErroredFilters={setErroredFilters}
                 />
               )}
             </FilterTabs>
