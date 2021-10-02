@@ -32,9 +32,9 @@ if TYPE_CHECKING:
 
 
 class ExecutionContextConvertorImpl(ExecutionContextConvertor):
-    _max_row_in_display_configuration: bool  # pylint: disable=invalid-name
+    _max_row_in_display_configuration: int  # pylint: disable=invalid-name
 
-    def set_max_row_in_display(self, value: bool) -> None:
+    def set_max_row_in_display(self, value: int) -> None:
         self._max_row_in_display_configuration = value  # pylint: disable=invalid-name
 
     def to_payload(

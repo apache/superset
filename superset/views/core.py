@@ -2472,7 +2472,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
         execution_context_convertor = ExecutionContextConvertorImpl()
         execution_context_convertor.set_max_row_in_display(
-            bool(config.get("DISPLAY_MAX_ROW"))
+            int(config.get("DISPLAY_MAX_ROW"))  # type: ignore
         )
         return ExecuteSqlCommand(
             execution_context,
