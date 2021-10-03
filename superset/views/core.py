@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=too-many-lines
+# pylint: disable=too-many-lines, invalid-name
 from __future__ import annotations
 
 import logging
@@ -95,14 +95,28 @@ from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query, TabState
 from superset.models.user_attributes import UserAttribute
+from superset.queries.dao import QueryDAO
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
+from superset.sql_lab import get_sql_results
 from superset.sql_parse import ParsedQuery, Table
 from superset.sql_validators import get_validator_by_name
 from superset.sqllab.command import CommandResult, ExecuteSqlCommand
 from superset.sqllab.command_status import SqlJsonExecutionStatus
-from superset.sqllab.exceptions import SqlLabException
+from superset.sqllab.exceptions import (
+    QueryIsForbiddenToAccessException,
+    SqlLabException,
+)
+from superset.sqllab.execution_context_convertor import ExecutionContextConvertorImpl
 from superset.sqllab.limiting_factor import LimitingFactor
+from superset.sqllab.query_render import SqlQueryRenderImpl
+from superset.sqllab.sql_json_executer import (
+    ASynchronousSqlJsonExecutor,
+    SqlJsonExecutor,
+    SynchronousSqlJsonExecutor,
+)
+from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 from superset.sqllab.utils import apply_display_max_row_configuration_if_require
+from superset.sqllab.validators import CanAccessQueryValidatorImpl
 from superset.tasks.async_queries import load_explore_json_into_cache
 from superset.typing import FlaskResponse
 from superset.utils import core as utils, csv
@@ -111,7 +125,6 @@ from superset.utils.cache import etag_cache
 from superset.utils.core import apply_max_row_limit, ReservedUrlParameters
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import check_dashboard_access
-from superset.utils.sqllab_execution_context import SqlJsonExecutionContext
 from superset.views.base import (
     api,
     BaseSupersetView,
@@ -2440,12 +2453,59 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 "user_agent": cast(Optional[str], request.headers.get("USER_AGENT"))
             }
             execution_context = SqlJsonExecutionContext(request.json)
-            command = ExecuteSqlCommand(execution_context, log_params)
+            command = self._create_sql_json_command(execution_context, log_params)
             command_result: CommandResult = command.run()
             return self._create_response_from_execution_context(command_result)
         except SqlLabException as ex:
+            logger.error(ex.message)
+            self._set_http_status_into_Sql_lab_exception(ex)
             payload = {"errors": [ex.to_dict()]}
             return json_error_response(status=ex.status, payload=payload)
+
+    @staticmethod
+    def _create_sql_json_command(
+        execution_context: SqlJsonExecutionContext, log_params: Optional[Dict[str, Any]]
+    ) -> ExecuteSqlCommand:
+        query_dao = QueryDAO()
+        sql_json_executor = Superset._create_sql_json_executor(
+            execution_context, query_dao
+        )
+        execution_context_convertor = ExecutionContextConvertorImpl()
+        execution_context_convertor.set_max_row_in_display(
+            int(config.get("DISPLAY_MAX_ROW"))  # type: ignore
+        )
+        return ExecuteSqlCommand(
+            execution_context,
+            query_dao,
+            DatabaseDAO(),
+            CanAccessQueryValidatorImpl(),
+            SqlQueryRenderImpl(get_template_processor),
+            sql_json_executor,
+            execution_context_convertor,
+            config.get("SQLLAB_CTAS_NO_LIMIT"),  # type: ignore
+            log_params,
+        )
+
+    @staticmethod
+    def _create_sql_json_executor(
+        execution_context: SqlJsonExecutionContext, query_dao: QueryDAO
+    ) -> SqlJsonExecutor:
+        sql_json_executor: SqlJsonExecutor
+        if execution_context.is_run_asynchronous():
+            sql_json_executor = ASynchronousSqlJsonExecutor(query_dao, get_sql_results)
+        else:
+            sql_json_executor = SynchronousSqlJsonExecutor(
+                query_dao,
+                get_sql_results,
+                config.get("SQLLAB_TIMEOUT"),  # type: ignore
+                is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE"),
+            )
+        return sql_json_executor
+
+    @staticmethod
+    def _set_http_status_into_Sql_lab_exception(ex: SqlLabException) -> None:
+        if isinstance(ex, QueryIsForbiddenToAccessException):
+            ex.status = 403
 
     def _create_response_from_execution_context(  # pylint: disable=invalid-name, no-self-use
         self, command_result: CommandResult,
