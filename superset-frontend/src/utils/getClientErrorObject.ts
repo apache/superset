@@ -48,6 +48,8 @@ export function parseErrorJson(responseObject: JsonObject): ClientErrorObject {
     error.link = error.errors[0]?.extra?.link;
   }
 
+  console.log('ERROR', error);
+
   if (error.stack) {
     error = {
       ...error,
