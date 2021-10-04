@@ -88,7 +88,6 @@ const addFilterFlow = async () => {
   userEvent.click(screen.getByText('Time range'));
   userEvent.type(screen.getByTestId(getModalTestId('name-input')), FILTER_NAME);
   userEvent.click(screen.getByText('Save'));
-  await screen.findByText('All Filters (1)');
 };
 
 const addFilterSetFlow = async () => {
