@@ -218,6 +218,32 @@ export function FiltersConfigModal({
     }
   };
 
+  const handleErroredFilters = useCallback(() => {
+    // managing left pane errored filters indicators
+    const formValidationFields = form.getFieldsError();
+    const erroredFiltersIds: string[] = [];
+
+    formValidationFields.forEach(field => {
+      const filterId = field.name[1] as string;
+      if (field.errors.length > 0 && !erroredFiltersIds.includes(filterId)) {
+        erroredFiltersIds.push(filterId);
+      }
+    });
+
+    // no form validation issues found, resets errored filters
+    if (!erroredFiltersIds.length && erroredFilters.length > 0) {
+      setErroredFilters([]);
+      return;
+    }
+    // form validation issues found, sets errored filters
+    if (
+      erroredFiltersIds.length > 0 &&
+      !isEqual(sortBy(erroredFilters), sortBy(erroredFiltersIds))
+    ) {
+      setErroredFilters(erroredFiltersIds);
+    }
+  }, [form, erroredFilters]);
+
   const handleSave = async () => {
     const values: NativeFiltersForm | null = await validateForm(
       form,
@@ -226,8 +252,9 @@ export function FiltersConfigModal({
       filterIds,
       removedFilters,
       setCurrentFilterId,
-      setErroredFilters,
     );
+
+    handleErroredFilters();
 
     if (values) {
       cleanDeletedParents(values);
@@ -262,23 +289,6 @@ export function FiltersConfigModal({
     () =>
       debounce((changes: any, values: NativeFiltersForm) => {
         if (changes.filters) {
-          const formValidationFields = form.getFieldsError();
-          const newErroredFilters: string[] = [];
-          formValidationFields.forEach(field => {
-            if (field.errors.length > 0) {
-              const fieldName = field.name[1] as string;
-              newErroredFilters.push(fieldName);
-            }
-          });
-          // adds or reset errored filters
-          if (
-            (erroredFilters.length && !newErroredFilters.length) ||
-            (newErroredFilters.length &&
-              !isEqual(sortBy(newErroredFilters), sortBy(erroredFilters)))
-          ) {
-            setErroredFilters(newErroredFilters);
-          }
-
           if (
             Object.values(changes.filters).some(
               (filter: any) => filter.name != null,
@@ -287,10 +297,11 @@ export function FiltersConfigModal({
             // we only need to set this if a name changed
             setFormValues(values);
           }
+          handleErroredFilters();
         }
         setSaveAlertVisible(false);
       }, SLOW_DEBOUNCE),
-    [erroredFilters, form],
+    [handleErroredFilters],
   );
 
   return (

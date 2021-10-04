@@ -877,22 +877,22 @@ const FiltersConfigForm = (
                       {
                         validator: () => {
                           if (formFilter?.defaultDataMask?.filterState?.value) {
+                            // requires managing the error as the DefaultValue
+                            // component does not use an Antdesign compatible input
+                            const formValidationFields = form.getFieldsError();
                             setErroredFilters(prevErroredFilters => {
-                              // removes the error if this was the only errored form item
                               if (
-                                prevErroredFilters.length === 1 &&
-                                prevErroredFilters[0] === filterId
+                                prevErroredFilters.length &&
+                                !formValidationFields.find(
+                                  f => f.errors.length > 0,
+                                )
                               ) {
                                 return [];
                               }
-                              return prevErroredFilters.filter(
-                                f => f !== filterId,
-                              );
+                              return prevErroredFilters;
                             });
                             return Promise.resolve();
                           }
-                          // requires managing the error as the DefaultValue
-                          // component does not use an Antdesign compatible input
                           setErroredFilters(prevErroredFilters => {
                             if (prevErroredFilters.includes(filterId)) {
                               return prevErroredFilters;

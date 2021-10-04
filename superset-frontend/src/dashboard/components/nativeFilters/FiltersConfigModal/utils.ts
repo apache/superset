@@ -32,7 +32,6 @@ export const validateForm = async (
   filterIds: string[],
   removedFilters: Record<string, FilterRemoval>,
   setCurrentFilterId: Function,
-  setErroredFilters: Function,
 ) => {
   const addValidationError = (
     filterId: string,
@@ -45,12 +44,6 @@ export const validateForm = async (
     };
     form.setFields([fieldError]);
     setCurrentFilterId(filterId);
-    setErroredFilters((prevErroredFilters: string[]) => {
-      if (prevErroredFilters.includes(filterId)) {
-        return prevErroredFilters;
-      }
-      return [...prevErroredFilters, filterId];
-    });
   };
 
   try {
@@ -115,19 +108,6 @@ export const validateForm = async (
         setCurrentFilterId(filterId);
       }
     }
-
-    const erroredFilters: string[] = [];
-    error.errorFields.forEach((err: { name: string[] }) => {
-      const filterId = err.name[1];
-      erroredFilters.push(filterId);
-    });
-
-    if (errorFields.length) {
-      setErroredFilters((prevErroredFilters: string[]) => [
-        ...new Set([...prevErroredFilters, ...erroredFilters]),
-      ]);
-    }
-
     return null;
   }
 };
