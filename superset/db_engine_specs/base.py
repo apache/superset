@@ -82,8 +82,6 @@ class TimeGrain(NamedTuple):
     duration: Optional[str]
 
 
-QueryStatus = utils.QueryStatus
-
 builtin_time_grains: Dict[Optional[str], str] = {
     None: __("Original value"),
     "PT1S": __("Second"),

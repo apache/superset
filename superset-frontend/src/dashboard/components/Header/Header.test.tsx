@@ -23,7 +23,6 @@ import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 import * as actions from 'src/reports/actions/reports';
 import * as featureFlags from 'src/featureFlags';
-import { ReportObject } from 'src/components/ReportModal';
 import mockState from 'spec/fixtures/mockStateWithoutUser';
 import { HeaderProps } from './types';
 import Header from '.';
@@ -345,24 +344,27 @@ describe('Email Report Modal', () => {
     render(setup(mockedProps), { useRedux: true });
 
     const reportValues = {
-      active: true,
-      creation_method: 'dashboards',
-      crontab: '0 12 * * 1',
-      dashboard: mockedProps.dashboardInfo.id,
-      name: 'Weekly Report',
-      owners: [mockedProps.user.userId],
-      recipients: [
-        {
-          recipient_config_json: {
-            target: mockedProps.user.email,
+      id: 1,
+      result: {
+        active: true,
+        creation_method: 'dashboards',
+        crontab: '0 12 * * 1',
+        dashboard: mockedProps.dashboardInfo.id,
+        name: 'Weekly Report',
+        owners: [mockedProps.user.userId],
+        recipients: [
+          {
+            recipient_config_json: {
+              target: mockedProps.user.email,
+            },
+            type: 'Email',
           },
-          type: 'Email',
-        },
-      ],
-      type: 'Report',
+        ],
+        type: 'Report',
+      },
     };
     // This is needed to structure the reportValues to match the fetchMock return
-    const stringyReportValues = `{"active":true,"creation_method":"dashboards","crontab":"0 12 * * 1","dashboard":${mockedProps.dashboardInfo.id},"name":"Weekly Report","owners":[${mockedProps.user.userId}],"recipients":[{"recipient_config_json":{"target":"${mockedProps.user.email}"},"type":"Email"}],"type":"Report"}`;
+    const stringyReportValues = `{"id":1,"result":{"active":true,"creation_method":"dashboards","crontab":"0 12 * * 1","dashboard":${mockedProps.dashboardInfo.id},"name":"Weekly Report","owners":[${mockedProps.user.userId}],"recipients":[{"recipient_config_json":{"target":"${mockedProps.user.email}"},"type":"Email"}],"type":"Report"}}`;
     // Watch for report POST
     fetchMock.post(REPORT_ENDPOINT, reportValues);
 
@@ -380,7 +382,7 @@ describe('Email Report Modal', () => {
 
     // Mock addReport from Redux
     const makeRequest = () => {
-      const request = actions.addReport(reportValues as ReportObject);
+      const request = actions.addReport(reportValues);
       return request(dispatch);
     };
 

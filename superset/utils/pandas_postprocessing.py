@@ -498,17 +498,17 @@ def compare(  # pylint: disable=too-many-arguments
         )
     if compare_type not in tuple(PandasPostprocessingCompare):
         raise QueryObjectValidationError(
-            _("`compare_type` must be `absolute`, `percentage` or `ratio`")
+            _("`compare_type` must be `difference`, `percentage` or `ratio`")
         )
     if len(source_columns) == 0:
         return df
 
     for s_col, c_col in zip(source_columns, compare_columns):
-        if compare_type == PandasPostprocessingCompare.ABS:
+        if compare_type == PandasPostprocessingCompare.DIFF:
             diff_series = df[s_col] - df[c_col]
         elif compare_type == PandasPostprocessingCompare.PCT:
             diff_series = (
-                ((df[s_col] - df[c_col]) / df[s_col]).astype(float).round(precision)
+                ((df[s_col] - df[c_col]) / df[c_col]).astype(float).round(precision)
             )
         else:
             # compare_type == "ratio"
@@ -915,3 +915,29 @@ def boxplot(
         for metric in metrics
     }
     return aggregate(df, groupby=groupby, aggregates=aggregates)
+
+
+def resample(
+    df: DataFrame,
+    rule: str,
+    method: str,
+    time_column: str,
+    fill_value: Optional[Union[float, int]] = None,
+) -> DataFrame:
+    """
+    resample a timeseries dataframe.
+
+    :param df: DataFrame to resample.
+    :param rule: The offset string representing target conversion.
+    :param method: How to fill the NaN value after resample.
+    :param time_column: existing columns in DataFrame.
+    :param fill_value: What values do fill missing.
+    :return: DataFrame after resample
+    :raises QueryObjectValidationError: If the request in incorrect
+    """
+    df = df.set_index(time_column)
+    if method == "asfreq" and fill_value is not None:
+        df = df.resample(rule).asfreq(fill_value=fill_value)
+    else:
+        df = getattr(df.resample(rule), method)()
+    return df.reset_index()

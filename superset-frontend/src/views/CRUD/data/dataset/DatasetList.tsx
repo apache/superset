@@ -29,6 +29,7 @@ import {
   createFetchDistinct,
   createErrorHandler,
 } from 'src/views/CRUD/utils';
+import { ColumnObject } from 'src/views/CRUD/data/dataset/types';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DatasourceModal from 'src/datasource/DatasourceModal';
@@ -46,7 +47,7 @@ import SubMenu, {
 } from 'src/components/Menu/SubMenu';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import Owner from 'src/types/Owner';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import FacePile from 'src/components/FacePile';
@@ -98,6 +99,8 @@ interface DatasetListProps {
   addSuccessToast: (msg: string) => void;
   user: {
     userId: string | number;
+    firstName: string;
+    lastName: string;
   };
 }
 
@@ -163,6 +166,21 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       })
         .then(({ json = {} }) => {
           const owners = json.result.owners.map((owner: any) => owner.id);
+          const addCertificationFields = json.result.columns.map(
+            (column: ColumnObject) => {
+              const {
+                certification: { details = '', certified_by = '' } = {},
+              } = JSON.parse(column.extra || '{}') || {};
+              return {
+                ...column,
+                certification_details: details || '',
+                certified_by: certified_by || '',
+                is_certified: details || certified_by,
+              };
+            },
+          );
+          // eslint-disable-next-line no-param-reassign
+          json.result.columns = [...addCertificationFields];
           setDatasetCurrentlyEditing({ ...json.result, owners });
         })
         .catch(() => {
@@ -243,11 +261,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   <CertifiedIcon
                     certifiedBy={parsedExtra.certification.certified_by}
                     details={parsedExtra.certification.details}
+                    size="l"
                   />
                 )}
                 {parsedExtra?.warning_markdown && (
                   <WarningIconWithTooltip
                     warningMarkdown={parsedExtra.warning_markdown}
+                    size="l"
                   />
                 )}
                 {titleLink}
@@ -412,7 +432,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               errMsg,
             ),
           ),
-          user.userId,
+          user,
         ),
         paginate: true,
       },
@@ -492,22 +512,22 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       onClick: () => setDatasetAddModalOpen(true),
       buttonStyle: 'primary',
     });
-  }
 
-  if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
-    buttonArr.push({
-      name: (
-        <Tooltip
-          id="import-tooltip"
-          title={t('Import datasets')}
-          placement="bottomRight"
-        >
-          <Icons.Import data-test="import-button" />
-        </Tooltip>
-      ),
-      buttonStyle: 'link',
-      onClick: openDatasetImportModal,
-    });
+    if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
+      buttonArr.push({
+        name: (
+          <Tooltip
+            id="import-tooltip"
+            title={t('Import datasets')}
+            placement="bottomRight"
+          >
+            <Icons.Import data-test="import-button" />
+          </Tooltip>
+        ),
+        buttonStyle: 'link',
+        onClick: openDatasetImportModal,
+      });
+    }
   }
 
   menuData.buttons = buttonArr;

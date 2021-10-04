@@ -18,7 +18,7 @@
 
 from datetime import datetime
 from datetime import timezone
-from typing import Iterator, List, Tuple
+from typing import Iterator, List, Tuple, Type
 
 import yaml
 from flask_appbuilder import Model
@@ -33,8 +33,8 @@ METADATA_FILE_NAME = "metadata.yaml"
 
 class ExportModelsCommand(BaseCommand):
 
-    dao = BaseDAO
-    not_found = CommandException
+    dao: Type[BaseDAO] = BaseDAO
+    not_found: Type[CommandException] = CommandException
 
     def __init__(self, model_ids: List[int]):
         self.model_ids = model_ids

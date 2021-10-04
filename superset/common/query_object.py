@@ -14,9 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=invalid-name
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, NamedTuple, Optional
+from typing import Any, Dict, List, NamedTuple, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as _
 from pandas import DataFrame
@@ -28,6 +29,7 @@ from superset.exceptions import QueryObjectValidationError
 from superset.typing import Metric, OrderBy
 from superset.utils import pandas_postprocessing
 from superset.utils.core import (
+    apply_max_row_limit,
     ChartDataResultType,
     DatasourceDict,
     DTTM_ALIAS,
@@ -40,6 +42,10 @@ from superset.utils.core import (
 from superset.utils.date_parser import get_since_until, parse_human_timedelta
 from superset.utils.hashing import md5_sha_from_dict
 from superset.views.utils import get_time_range_endpoints
+
+if TYPE_CHECKING:
+    from superset.common.query_context import QueryContext  # pragma: no cover
+
 
 config = app.config
 logger = logging.getLogger(__name__)
@@ -103,6 +109,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
 
     def __init__(  # pylint: disable=too-many-arguments,too-many-locals
         self,
+        query_context: "QueryContext",
         annotation_layers: Optional[List[Dict[str, Any]]] = None,
         applied_time_extras: Optional[Dict[str, str]] = None,
         apply_fetch_values_predicate: bool = False,
@@ -146,7 +153,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             self.datasource = ConnectorRegistry.get_datasource(
                 str(datasource["type"]), int(datasource["id"]), db.session
             )
-        self.result_type = result_type
+        self.result_type = result_type or query_context.result_type
         self.apply_fetch_values_predicate = apply_fetch_values_predicate or False
         self.annotation_layers = [
             layer
@@ -186,7 +193,12 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             for x in metrics
         ]
 
-        self.row_limit = config["ROW_LIMIT"] if row_limit is None else row_limit
+        default_row_limit = (
+            config["SAMPLES_ROW_LIMIT"]
+            if self.result_type == ChartDataResultType.SAMPLES
+            else config["ROW_LIMIT"]
+        )
+        self.row_limit = apply_max_row_limit(row_limit or default_row_limit)
         self.row_offset = row_offset or 0
         self.filter = filters or []
         self.series_limit = series_limit
@@ -262,28 +274,37 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self, raise_exceptions: Optional[bool] = True
     ) -> Optional[QueryObjectValidationError]:
         """Validate query object"""
-        error: Optional[QueryObjectValidationError] = None
-        all_labels = self.metric_names + self.column_names
-        missing_series = [col for col in self.series_columns if col not in self.columns]
-        if missing_series:
-            _(
-                "The following entries in `series_columns` are missing "
-                "in `columns`: %(columns)s. ",
-                columns=", ".join(f'"{x}"' for x in missing_series),
-            )
+        try:
+            self._validate_there_are_no_missing_series()
+            self._validate_no_have_duplicate_labels()
+            return None
+        except QueryObjectValidationError as ex:
+            if raise_exceptions:
+                raise ex
+            return ex
 
+    def _validate_no_have_duplicate_labels(self) -> None:
+        all_labels = self.metric_names + self.column_names
         if len(set(all_labels)) < len(all_labels):
             dup_labels = find_duplicates(all_labels)
-            error = QueryObjectValidationError(
+            raise QueryObjectValidationError(
                 _(
                     "Duplicate column/metric labels: %(labels)s. Please make "
                     "sure all columns and metrics have a unique label.",
                     labels=", ".join(f'"{x}"' for x in dup_labels),
                 )
             )
-        if error and raise_exceptions:
-            raise error
-        return error
+
+    def _validate_there_are_no_missing_series(self) -> None:
+        missing_series = [col for col in self.series_columns if col not in self.columns]
+        if missing_series:
+            raise QueryObjectValidationError(
+                _(
+                    "The following entries in `series_columns` are missing "
+                    "in `columns`: %(columns)s. ",
+                    columns=", ".join(f'"{x}"' for x in missing_series),
+                )
+            )
 
     def to_dict(self) -> Dict[str, Any]:
         query_object_dict = {

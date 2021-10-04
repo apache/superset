@@ -64,6 +64,7 @@ const IconFileNames = [
   'dataset_virtual_greyscale',
   'dataset_virtual',
   'download',
+  'drag',
   'edit_alt',
   'edit',
   'email',

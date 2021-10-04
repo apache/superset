@@ -54,6 +54,7 @@ from geopy.point import Point
 from pandas.tseries.frequencies import to_offset
 
 from superset import app, is_feature_enabled
+from superset.common.db_query_status import QueryStatus
 from superset.constants import NULL_STRING
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -69,6 +70,7 @@ from superset.typing import Metric, QueryObjectDict, VizData, VizPayload
 from superset.utils import core as utils, csv
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import (
+    apply_max_row_limit,
     DTTM_ALIAS,
     ExtraFiltersReasonType,
     JS_MAX_INTEGER,
@@ -324,7 +326,10 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         )
         limit = int(self.form_data.get("limit") or 0)
         timeseries_limit_metric = self.form_data.get("timeseries_limit_metric")
+
+        # apply row limit to query
         row_limit = int(self.form_data.get("row_limit") or config["ROW_LIMIT"])
+        row_limit = apply_max_row_limit(row_limit)
 
         # default order direction
         order_desc = self.form_data.get("order_desc", True)
@@ -439,14 +444,14 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         except SupersetSecurityException as ex:
             error = dataclasses.asdict(ex.error)
             self.errors.append(error)
-            self.status = utils.QueryStatus.FAILED
+            self.status = QueryStatus.FAILED
 
         payload = self.get_df_payload(query_obj)
 
         # if payload does not have a df, we are raising an error here.
         df = cast(Optional[pd.DataFrame], payload["df"])
 
-        if self.status != utils.QueryStatus.FAILED:
+        if self.status != QueryStatus.FAILED:
             payload["data"] = self.get_data(df)
         if "df" in payload:
             del payload["df"]
@@ -499,7 +504,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                 try:
                     df = cache_value["df"]
                     self.query = cache_value["query"]
-                    self.status = utils.QueryStatus.SUCCESS
+                    self.status = QueryStatus.SUCCESS
                     is_loaded = True
                     stats_logger.incr("loaded_from_cache")
                 except Exception as ex:  # pylint: disable=broad-except
@@ -536,7 +541,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                         )
                     )
                 df = self.get_df(query_obj)
-                if self.status != utils.QueryStatus.FAILED:
+                if self.status != QueryStatus.FAILED:
                     stats_logger.incr("loaded_from_source")
                     if not self.force:
                         stats_logger.incr("loaded_from_source_without_force")
@@ -550,7 +555,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                     )
                 )
                 self.errors.append(error)
-                self.status = utils.QueryStatus.FAILED
+                self.status = QueryStatus.FAILED
             except Exception as ex:  # pylint: disable=broad-except
                 logger.exception(ex)
 
@@ -562,10 +567,10 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                     )
                 )
                 self.errors.append(error)
-                self.status = utils.QueryStatus.FAILED
+                self.status = QueryStatus.FAILED
                 stacktrace = utils.get_stacktrace()
 
-            if is_loaded and cache_key and self.status != utils.QueryStatus.FAILED:
+            if is_loaded and cache_key and self.status != QueryStatus.FAILED:
                 set_and_log_cache(
                     cache_manager.data_cache,
                     cache_key,
@@ -601,7 +606,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
     @staticmethod
     def has_error(payload: VizPayload) -> bool:
         return (
-            payload.get("status") == utils.QueryStatus.FAILED
+            payload.get("status") == QueryStatus.FAILED
             or payload.get("error") is not None
             or bool(payload.get("errors"))
         )
@@ -1687,9 +1692,6 @@ class HistogramViz(BaseViz):
     def query_obj(self) -> QueryObjectDict:
         """Returns the query object for this visualization"""
         query_obj = super().query_obj()
-        query_obj["row_limit"] = self.form_data.get(
-            "row_limit", int(config["VIZ_ROW_LIMIT"])
-        )
         numeric_columns = self.form_data.get("all_columns_x")
         if numeric_columns is None:
             raise QueryObjectValidationError(
