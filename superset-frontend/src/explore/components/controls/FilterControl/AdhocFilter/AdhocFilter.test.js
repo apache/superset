@@ -188,7 +188,7 @@ describe('AdhocFilter', () => {
       clause: CLAUSES.WHERE,
     });
     // eslint-disable-next-line no-unused-expressions
-    expect(adhocFilter8.isValid()).toBe(false);
+    expect(adhocFilter8.isValid()).toBe(true);
 
     const adhocFilter9 = new AdhocFilter({
       expressionType: EXPRESSION_TYPES.SIMPLE,

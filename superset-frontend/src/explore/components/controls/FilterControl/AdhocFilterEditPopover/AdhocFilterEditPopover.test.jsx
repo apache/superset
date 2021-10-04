@@ -122,7 +122,7 @@ describe('AdhocFilterEditPopover', () => {
 
   it('prevents saving if the filter is invalid', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(Button).find({ disabled: true })).not.toExist();
+    expect(wrapper.find(Button).find({ disabled: true })).toExist();
     wrapper
       .instance()
       .onAdhocFilterChange(simpleAdhocFilter.duplicateWith({ operator: null }));
