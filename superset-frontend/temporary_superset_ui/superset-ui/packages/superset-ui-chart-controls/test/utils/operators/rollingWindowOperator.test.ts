@@ -118,8 +118,8 @@ test('rolling window and "actual values" in the time compare', () => {
   });
 });
 
-test('rolling window and "absolute / percentage / ratio" in the time compare', () => {
-  const comparisionTypes = ['absolute', 'percentage', 'ratio'];
+test('rolling window and "difference / percentage / ratio" in the time compare', () => {
+  const comparisionTypes = ['difference', 'percentage', 'ratio'];
   comparisionTypes.forEach(cType => {
     expect(
       rollingWindowOperator(
