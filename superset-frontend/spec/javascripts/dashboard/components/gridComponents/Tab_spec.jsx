@@ -32,7 +32,7 @@ import Tab, {
 } from 'src/dashboard/components/gridComponents/Tab';
 import { dashboardLayoutWithTabs } from 'spec/fixtures/mockDashboardLayout';
 import { getMockStore } from 'spec/fixtures/mockStore';
-import { initialState } from 'spec/javascripts/sqllab/fixtures';
+import { initialState } from 'src/SqlLab/fixtures';
 
 describe('Tabs', () => {
   const props = {
