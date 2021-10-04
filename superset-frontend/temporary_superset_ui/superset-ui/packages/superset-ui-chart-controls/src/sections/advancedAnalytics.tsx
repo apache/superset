@@ -114,13 +114,13 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
           default: 'values',
           choices: [
             [ComparisionType.Values, 'Actual values'],
-            [ComparisionType.Absolute, 'Absolute difference'],
+            [ComparisionType.Difference, 'Difference'],
             [ComparisionType.Percentage, 'Percentage change'],
             [ComparisionType.Ratio, 'Ratio'],
           ],
           description: t(
             'How to display time shifts: as individual lines; as the ' +
-              'absolute difference between the main time series and each time shift; ' +
+              'difference between the main time series and each time shift; ' +
               'as the percentage change; or as the ratio between series and time shifts.',
           ),
         },

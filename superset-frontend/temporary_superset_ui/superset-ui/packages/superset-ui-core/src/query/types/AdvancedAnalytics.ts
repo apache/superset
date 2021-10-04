@@ -31,7 +31,7 @@ export interface RollingWindow {
 
 export enum ComparisionType {
   Values = 'values',
-  Absolute = 'absolute',
+  Difference = 'difference',
   Percentage = 'percentage',
   Ratio = 'ratio',
 }
