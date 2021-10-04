@@ -71,8 +71,8 @@ test('time compare: skip transformation', () => {
   ).toEqual(undefined);
 });
 
-test('time compare: absolute/percentage/ratio', () => {
-  const comparisionTypes = ['absolute', 'percentage', 'ratio'];
+test('time compare: difference/percentage/ratio', () => {
+  const comparisionTypes = ['difference', 'percentage', 'ratio'];
   comparisionTypes.forEach(cType => {
     expect(
       timeCompareOperator(
@@ -125,8 +125,8 @@ test('time compare pivot: values', () => {
   });
 });
 
-test('time compare pivot: absolute/percentage/ratio', () => {
-  const comparisionTypes = ['absolute', 'percentage', 'ratio'];
+test('time compare pivot: difference/percentage/ratio', () => {
+  const comparisionTypes = ['difference', 'percentage', 'ratio'];
   comparisionTypes.forEach(cType => {
     expect(
       timeComparePivotOperator(
