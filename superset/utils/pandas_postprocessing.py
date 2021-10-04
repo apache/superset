@@ -498,13 +498,13 @@ def compare(  # pylint: disable=too-many-arguments
         )
     if compare_type not in tuple(PandasPostprocessingCompare):
         raise QueryObjectValidationError(
-            _("`compare_type` must be `absolute`, `percentage` or `ratio`")
+            _("`compare_type` must be `difference`, `percentage` or `ratio`")
         )
     if len(source_columns) == 0:
         return df
 
     for s_col, c_col in zip(source_columns, compare_columns):
-        if compare_type == PandasPostprocessingCompare.ABS:
+        if compare_type == PandasPostprocessingCompare.DIFF:
             diff_series = df[s_col] - df[c_col]
         elif compare_type == PandasPostprocessingCompare.PCT:
             diff_series = (
