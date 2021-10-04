@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-treemap",
-  "version": "0.18.8",
+  "version": "0.18.9",
   "description": "Superset Legacy Chart - Treemap",
   "sideEffects": [
     "*.css"
@@ -28,8 +28,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/chart-controls": "0.18.8",
-    "@superset-ui/core": "0.18.8",
+    "@superset-ui/chart-controls": "0.18.9",
+    "@superset-ui/core": "0.18.9",
     "d3-hierarchy": "^1.1.8",
     "d3-selection": "^1.4.0",
     "prop-types": "^15.6.2"
