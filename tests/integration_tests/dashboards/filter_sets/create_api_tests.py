@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import json
 from typing import Any, Dict, TYPE_CHECKING
 
 from superset.dashboards.filter_sets.consts import (
@@ -249,7 +250,7 @@ class TestCreateFilterSetsApi:
     ):
         # arrange
         login(client, "admin")
-        valid_filter_set_data_for_create[DESCRIPTION_FIELD] = {}
+        valid_filter_set_data_for_create[JSON_METADATA_FIELD] = {}
 
         # act
         response = call_create_filter_set(
@@ -259,6 +260,29 @@ class TestCreateFilterSetsApi:
         # assert
         assert response.status_code == 400
         assert_filterset_was_not_created(valid_filter_set_data_for_create)
+
+    def test_with_extra_json_metadata_fields__201(
+        self,
+        dashboard_id: int,
+        valid_filter_set_data_for_create: Dict[str, Any],
+        valid_json_metadata: Dict[Any, Any],
+        client: FlaskClient[Any],
+    ):
+        # arrange
+        login(client, "admin")
+        valid_json_metadata["extra"] = "value"
+        valid_filter_set_data_for_create[JSON_METADATA_FIELD] = json.dumps(
+            valid_json_metadata
+        )
+
+        # act
+        response = call_create_filter_set(
+            client, dashboard_id, valid_filter_set_data_for_create
+        )
+
+        # assert
+        assert response.status_code == 201
+        assert_filterset_was_created(valid_filter_set_data_for_create)
 
     def test_without_owner_type__400(
         self,

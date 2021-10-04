@@ -26,6 +26,7 @@ from superset.dashboards.filter_sets.consts import (
     DESCRIPTION_FIELD,
     JSON_METADATA_FIELD,
     NAME_FIELD,
+    NATIVE_FILTERS_FIELD,
     OWNER_ID_FIELD,
     OWNER_TYPE_FIELD,
     USER_OWNER_TYPE,
@@ -258,7 +259,7 @@ def filterset_id(filtersets: Dict[str, List[FilterSet]]) -> int:
 
 @pytest.fixture
 def valid_json_metadata() -> Dict[str, Any]:
-    return {"nativeFilters": {}}
+    return {NATIVE_FILTERS_FIELD: {}}
 
 
 @pytest.fixture

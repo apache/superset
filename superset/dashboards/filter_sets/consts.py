@@ -26,5 +26,6 @@ DASHBOARD_ID_FIELD = "dashboard_id"
 OWNER_OBJECT_FIELD = "owner_object"
 DASHBOARD_FIELD = "dashboard"
 PARAMS_PROPERTY = "params"
+NATIVE_FILTERS_FIELD = "nativeFilters"
 
 FILTER_SET_API_PERMISSIONS_NAME = "FilterSets"

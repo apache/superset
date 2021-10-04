@@ -16,7 +16,7 @@
 # under the License.
 from typing import Any, cast, Dict, Mapping
 
-from marshmallow import fields, post_load, Schema, ValidationError
+from marshmallow import fields, INCLUDE, post_load, Schema, ValidationError
 from marshmallow.validate import Length, OneOf
 
 from superset.dashboards.filter_sets.consts import (
@@ -34,7 +34,7 @@ class JsonMetadataSchema(Schema):
 
 
 class FilterSetSchema(Schema):
-    json_metadata_schema: JsonMetadataSchema = JsonMetadataSchema()
+    json_metadata_schema: JsonMetadataSchema = JsonMetadataSchema(unknown=INCLUDE)
 
     def _validate_json_meta_data(self, json_meta_data: str) -> None:
         try:
@@ -44,7 +44,6 @@ class FilterSetSchema(Schema):
 
 
 class FilterSetPostSchema(FilterSetSchema):
-    json_metadata_schema: JsonMetadataSchema = JsonMetadataSchema()
     # pylint: disable=W0613
     name = fields.String(required=True, allow_none=False, validate=Length(0, 500),)
     description = fields.String(
