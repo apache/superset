@@ -46,10 +46,10 @@ export const validateForm = async (
     form.setFields([fieldError]);
     setCurrentFilterId(filterId);
     setErroredFilters((prevErroredFilters: string[]) => {
-      if (!prevErroredFilters.includes(filterId)) {
-        return [...prevErroredFilters, filterId];
+      if (prevErroredFilters.includes(filterId)) {
+        return prevErroredFilters;
       }
-      return prevErroredFilters;
+      return [...prevErroredFilters, filterId];
     });
   };
 
@@ -115,15 +115,18 @@ export const validateForm = async (
         setCurrentFilterId(filterId);
       }
     }
+
+    const erroredFilters: string[] = [];
     error.errorFields.forEach((err: { name: string[] }) => {
       const filterId = err.name[1];
-      setErroredFilters((prevErroredFilters: string[]) => {
-        if (!prevErroredFilters.includes(filterId)) {
-          return [...prevErroredFilters, filterId];
-        }
-        return prevErroredFilters;
-      });
+      erroredFilters.push(filterId);
     });
+
+    if (errorFields.length) {
+      setErroredFilters((prevErroredFilters: string[]) => [
+        ...new Set([...prevErroredFilters, ...erroredFilters]),
+      ]);
+    }
 
     return null;
   }

@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useCallback, useMemo, useState, useRef } from 'react';
-import { uniq, debounce } from 'lodash';
+import { uniq, debounce, isEqual, sortBy } from 'lodash';
 import { t, styled } from '@superset-ui/core';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { Form } from 'src/common/components';
@@ -261,29 +261,36 @@ export function FiltersConfigModal({
   const onValuesChange = useMemo(
     () =>
       debounce((changes: any, values: NativeFiltersForm) => {
-        const changedFilters: string[] = [];
-        Object.keys(changes.filters).forEach(filterId => {
-          changedFilters.push(filterId);
-        });
-        if (changedFilters.length) {
-          setErroredFilters(prevErroredFilters => [
-            ...prevErroredFilters.filter(
-              filterId => !changedFilters.find(f => f === filterId),
-            ),
-          ]);
-        }
-        if (
-          changes.filters &&
-          Object.values(changes.filters).some(
-            (filter: any) => filter.name != null,
-          )
-        ) {
-          // we only need to set this if a name changed
-          setFormValues(values);
+        if (changes.filters) {
+          const formValidationFields = form.getFieldsError();
+          const newErroredFilters: string[] = [];
+          formValidationFields.forEach(field => {
+            if (field.errors.length > 0) {
+              const fieldName = field.name[1] as string;
+              newErroredFilters.push(fieldName);
+            }
+          });
+          // adds or reset errored filters
+          if (
+            (erroredFilters.length && !newErroredFilters.length) ||
+            (newErroredFilters.length &&
+              !isEqual(sortBy(newErroredFilters), sortBy(erroredFilters)))
+          ) {
+            setErroredFilters(newErroredFilters);
+          }
+
+          if (
+            Object.values(changes.filters).some(
+              (filter: any) => filter.name != null,
+            )
+          ) {
+            // we only need to set this if a name changed
+            setFormValues(values);
+          }
         }
         setSaveAlertVisible(false);
       }, SLOW_DEBOUNCE),
-    [],
+    [erroredFilters, form],
   );
 
   return (
