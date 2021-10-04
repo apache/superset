@@ -292,7 +292,6 @@ const config = {
       react: path.resolve('./node_modules/react'),
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
-    symlinks: true,
     fallback: {
       fs: false,
       vm: false,
