@@ -16,24 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { connect } from 'react-redux';
-import { bindActionCreators, Dispatch } from 'redux';
-import * as Actions from 'src/SqlLab/actions/sqlLab';
-import SouthPane from '.';
+import React from 'react';
+import Label from 'src/components/Label';
+import { STATE_TYPE_MAP } from 'src/SqlLab/constants';
+import { Query } from 'src/SqlLab/types';
 
-function mapStateToProps({ sqlLab }: Record<string, any>) {
-  return {
-    activeSouthPaneTab: sqlLab.activeSouthPaneTab,
-    databases: sqlLab.databases,
-    offline: sqlLab.offline,
-    user: sqlLab.user,
-  };
+interface QueryStateLabelProps {
+  query: Query;
 }
 
-function mapDispatchToProps(dispatch: Dispatch) {
-  return {
-    actions: bindActionCreators<any, any>(Actions, dispatch),
-  };
+export default function QueryStateLabel({ query }: QueryStateLabelProps) {
+  return (
+    <Label className="m-r-3" type={STATE_TYPE_MAP[query.state]}>
+      {query.state}
+    </Label>
+  );
 }
-
-export default connect<any>(mapStateToProps, mapDispatchToProps)(SouthPane);

@@ -16,24 +16,37 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { connect } from 'react-redux';
-import { bindActionCreators, Dispatch } from 'redux';
-import * as Actions from 'src/SqlLab/actions/sqlLab';
-import SouthPane from '.';
+import React from 'react';
+import Alert from 'src/components/Alert';
+import { t } from '@superset-ui/core';
+import { Query } from 'src/SqlLab/types';
+import QueryTable from 'src/SqlLab/components/QueryTable';
 
-function mapStateToProps({ sqlLab }: Record<string, any>) {
-  return {
-    activeSouthPaneTab: sqlLab.activeSouthPaneTab,
-    databases: sqlLab.databases,
-    offline: sqlLab.offline,
-    user: sqlLab.user,
-  };
+interface QueryHistoryProps {
+  queries: Query[];
+  actions: Record<string, unknown>;
+  displayLimit: number;
 }
 
-function mapDispatchToProps(dispatch: Dispatch) {
-  return {
-    actions: bindActionCreators<any, any>(Actions, dispatch),
-  };
-}
+const QueryHistory = ({ queries, actions, displayLimit }: QueryHistoryProps) =>
+  queries.length > 0 ? (
+    <QueryTable
+      columns={[
+        'state',
+        'started',
+        'duration',
+        'progress',
+        'rows',
+        'sql',
+        'output',
+        'actions',
+      ]}
+      queries={queries}
+      actions={actions}
+      displayLimit={displayLimit}
+    />
+  ) : (
+    <Alert type="info" message={t('No query history yet...')} />
+  );
 
-export default connect<any>(mapStateToProps, mapDispatchToProps)(SouthPane);
+export default QueryHistory;
