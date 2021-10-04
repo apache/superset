@@ -16,24 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { connect } from 'react-redux';
-import { bindActionCreators, Dispatch } from 'redux';
-import * as Actions from 'src/SqlLab/actions/sqlLab';
-import SouthPane from '.';
+import React from 'react';
+import { QueryState } from 'src/SqlLab/types';
 
-function mapStateToProps({ sqlLab }: Record<string, any>) {
-  return {
-    activeSouthPaneTab: sqlLab.activeSouthPaneTab,
-    databases: sqlLab.databases,
-    offline: sqlLab.offline,
-    user: sqlLab.user,
-  };
+interface TabStatusIconProps {
+  tabState: QueryState;
 }
 
-function mapDispatchToProps(dispatch: Dispatch) {
-  return {
-    actions: bindActionCreators<any, any>(Actions, dispatch),
-  };
+export default function TabStatusIcon({ tabState }: TabStatusIconProps) {
+  return <div className={`circle ${tabState}`} />;
 }
-
-export default connect<any>(mapStateToProps, mapDispatchToProps)(SouthPane);
