@@ -161,7 +161,6 @@ const updateDataset = async (
     owners,
   });
 
-  console.log(body);
   const data: JsonResponse = await SupersetClient.put({
     endpoint,
     headers,
@@ -275,8 +274,6 @@ export default class ResultSet extends React.PureComponent<
   handleOverwriteDataset = async () => {
     const { sql, results } = this.props.query;
     const { datasetToOverwrite } = this.state;
-
-    console.log(datasetToOverwrite);
 
     await updateDataset(
       datasetToOverwrite.datasetId,
@@ -418,8 +415,6 @@ export default class ResultSet extends React.PureComponent<
         method: 'GET',
         endpoint: '/api/v1/dataset',
       })(`q=${queryParams}`);
-
-      console.log(response.result);
 
       return response.result.map(
         (r: { table_name: string; id: number; owners: [DatasetOwner] }) => ({
