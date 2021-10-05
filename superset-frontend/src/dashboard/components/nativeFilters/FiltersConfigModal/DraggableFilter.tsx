@@ -35,18 +35,20 @@ const FILTER_TYPE = 'FILTER';
 const Container = styled.div<TitleContainerProps>`
   ${({ isDragging, theme }) => `
     opacity: ${isDragging ? 0.3 : 1};
+    cursor: ${isDragging ? 'grabbing' : 'pointer'};
     width: 100%;
     display: flex;
-    padding: 0px ${theme.gridUnit}px;
+    padding:  ${theme.gridUnit}px
+
 `}
 `;
 
 const DragIcon = styled(Icons.Drag)<IconType & { isDragging: boolean }>`
   ${({ isDragging, theme }) => `
     font-size: ${theme.typography.sizes.m}px;
-    position: relative;
-    top: 12px;
+    margin-top: 12px;
     cursor: ${isDragging ? 'grabbing' : 'grab'};
+    padding-left: ${theme.gridUnit}px;
 `}
 `;
 
@@ -128,7 +130,7 @@ export const DraggableFilter: React.FC<FilterTabTitleProps> = ({
   drag(drop(ref));
   return (
     <Container ref={ref} isDragging={isDragging}>
-      <DragIcon isDragging={isDragging} alt="Move icon" />
+      <DragIcon isDragging={isDragging} alt="Move icon" className="dragIcon" />
       <div css={{ flexGrow: 4 }}>{children}</div>
     </Container>
   );

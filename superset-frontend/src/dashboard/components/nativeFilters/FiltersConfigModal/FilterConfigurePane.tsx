@@ -42,7 +42,7 @@ const ContentHolder = styled.div`
   margin-left: ${({ theme }) => theme.gridUnit * -1 - 1};
 `;
 const TitlesContainer = styled.div`
-  width: 220px;
+  width: 270px;
   border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
 `;
 

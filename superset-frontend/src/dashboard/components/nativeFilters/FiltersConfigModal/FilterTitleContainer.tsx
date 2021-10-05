@@ -26,12 +26,20 @@ const FilterTitle = styled.div`
   ${({ theme }) => `
       display: flex;
       padding: ${theme.gridUnit * 2}px;
-      cursor: pointer;
       width: 100%;
+      border-radius: ${theme.borderRadius}px;
       &.active {
-        color:  ${theme.colors.primary.dark1};
-        span {
-          color:  ${theme.colors.secondary.base};
+        color: ${theme.colors.grayscale.dark1};
+        border-radius: ${theme.borderRadius}px;
+        background-color: ${theme.colors.secondary.light4};
+        span, .anticon {
+          color: ${theme.colors.grayscale.dark1};
+        }
+        &:hover {
+          color: ${theme.colors.grayscale.dark1};
+          span, .anticon {
+            color: ${theme.colors.grayscale.dark1};
+          }
         }
       }
       &:hover {

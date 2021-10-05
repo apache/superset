@@ -92,13 +92,17 @@ import {
 } from '../FiltersConfigModal';
 import DatasetSelect from './DatasetSelect';
 
-const { TabPane } = Tabs;
+const TabPane = styled(Tabs.TabPane)`
+  padding: ${({ theme }) => theme.gridUnit * 4}px 0px;
+`;
 
 const StyledContainer = styled.div`
+  ${({ theme }) => `
   display: flex;
   flex-direction: row-reverse;
   justify-content: space-between;
-  padding: 0px ${({ theme }) => theme.gridUnit * 4}px;
+  padding: 0px ${theme.gridUnit * 4}px;
+`}
 `;
 
 const StyledRowContainer = styled.div`

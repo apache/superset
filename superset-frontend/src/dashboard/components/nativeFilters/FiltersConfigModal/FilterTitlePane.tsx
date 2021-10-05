@@ -41,6 +41,7 @@ const StyledHeader = styled.div`
     padding-top: ${theme.gridUnit * 4}px;
     padding-right: ${theme.gridUnit * 4}px;
     padding-left: ${theme.gridUnit * 4}px;
+    padding-bottom: ${theme.gridUnit * 2}px;
   `}
 `;
 
@@ -76,7 +77,7 @@ const FilterTitlePane: React.FC<Props> = ({
   <>
     <TabsContainer>
       <StyledHeader>Filters</StyledHeader>
-      <div>
+      <div css={{ height: '100%', 'overflow-y': 'scroll' }}>
         <FilterTitleContainer
           filterGroups={filterGroups}
           getFilterTitle={getFilterTitle}
