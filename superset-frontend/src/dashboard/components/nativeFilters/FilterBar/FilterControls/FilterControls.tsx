@@ -55,7 +55,7 @@ const FilterControls: FC<FilterControlsProps> = ({
       nodes[i] = portals.createHtmlPortalNode();
     }
     return nodes;
-  }, [filterValues]);
+  }, [filterValues.length]);
 
   const cascadeFilters = useMemo(() => {
     const filtersWithValue = filterValues.map(filter => ({
