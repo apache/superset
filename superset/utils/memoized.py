@@ -64,7 +64,9 @@ class _memoized:
         if not self.is_method:
             self.is_method = True
         # Support instance methods.
-        return functools.partial(self.__call__, obj)
+        func = functools.partial(self.__call__, obj)
+        func.__func__ = self.func  # type: ignore
+        return func
 
 
 def memoized(
