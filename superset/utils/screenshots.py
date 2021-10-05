@@ -204,7 +204,7 @@ class ChartScreenshot(BaseScreenshot):
         thumb_size: Optional[WindowSize] = None,
     ):
         super().__init__(url, digest)
-        self.window_size = window_size or (800, 600)
+        self.window_size = window_size or (1600, 1200)
         self.thumb_size = thumb_size or (800, 600)
 
 
