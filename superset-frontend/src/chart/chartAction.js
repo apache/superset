@@ -399,7 +399,7 @@ export function exploreJSON(
           switch (response.status) {
             case 200:
               // Query results returned synchronously, meaning query was already cached.
-              return Promise.resolve([result]);
+              return Promise.resolve(result);
             case 202:
               // Query is running asynchronously and we must await the results
               if (shouldUseLegacyApi(formData)) {
