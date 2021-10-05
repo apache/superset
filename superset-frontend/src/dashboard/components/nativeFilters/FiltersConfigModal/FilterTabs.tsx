@@ -35,7 +35,7 @@ export const StyledSpan = styled.span`
 `;
 
 export const StyledFilterTitle = styled.span`
-  width: ${FILTER_WIDTH}px;
+  width: 100%;
   white-space: normal;
   color: ${({ theme }) => theme.colors.grayscale.dark1};
 `;
@@ -61,6 +61,7 @@ export const FilterTabTitle = styled.span`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
+  align-items: center;
 
   @keyframes tabTitleRemovalAnimation {
     0%,
@@ -80,9 +81,15 @@ export const FilterTabTitle = styled.span`
     animation-duration: ${REMOVAL_DELAY_SECS}s;
   }
 
-  &.errored > span,
-  &.errored > span > span {
+  &.errored > span {
     color: ${({ theme }) => theme.colors.error.base};
+  }
+`;
+
+const StyledWarning = styled(Icons.Warning)`
+  color: ${({ theme }) => theme.colors.error.base};
+  &.anticon {
+    margin-right: 0;
   }
 `;
 
@@ -226,7 +233,7 @@ const FilterTabs: FC<FilterTabsProps> = ({
   >
     {filterIds.map(id => {
       const showErroredFilter = erroredFilters.includes(id);
-      const filterName = getFilterTitle(id) || t('[untitled]');
+      const filterName = getFilterTitle(id);
       return (
         <LineEditableTabs.TabPane
           tab={
@@ -240,11 +247,9 @@ const FilterTabs: FC<FilterTabsProps> = ({
               }
             >
               <StyledFilterTitle>
-                {!removedFilters[id] && showErroredFilter && (
-                  <Icons.WarningSolid iconSize="m" />
-                )}
                 {removedFilters[id] ? t('(Removed)') : filterName}
               </StyledFilterTitle>
+              {!removedFilters[id] && showErroredFilter && <StyledWarning />}
               {removedFilters[id] && (
                 <StyledSpan
                   role="button"

@@ -175,12 +175,13 @@ export function FiltersConfigModal({
     setSaveAlertVisible(false);
     setFormValues({ filters: {} });
     form.setFieldsValue({ changed: false });
+    setErroredFilters([]);
   };
 
   const getFilterTitle = (id: string) =>
-    formValues.filters[id]?.name ??
-    filterConfigMap[id]?.name ??
-    t('New filter');
+    formValues.filters[id]?.name ||
+    filterConfigMap[id]?.name ||
+    t('[untitled]');
 
   const getParentFilters = (id: string) =>
     filterIds
