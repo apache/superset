@@ -98,9 +98,8 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             exceptions.append(DatabaseChangeValidationError())
         # Validate/Populate owner
         try:
-            if owner_ids:
-                owners = self.populate_owners(self._actor, owner_ids)
-                self._properties["owners"] = owners
+            owners = self.populate_owners(self._actor, owner_ids)
+            self._properties["owners"] = owners
         except ValidationError as ex:
             exceptions.append(ex)
 

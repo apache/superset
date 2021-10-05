@@ -657,24 +657,6 @@ class TestDatasetApi(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
-    def test_update_dataset_owners_kept(self):
-        """
-        Dataset API: Test update dataset does not clear owners
-        """
-        dataset = self.insert_default_dataset()
-
-        self.login(username="admin")
-        dataset_data = {"description": "Arash's metrics for a successful Series C"}
-        uri = f"api/v1/dataset/{dataset.id}"
-        rv = self.put_assert_metric(uri, dataset_data, "put")
-        assert rv.status_code == 200
-
-        model = db.session.query(SqlaTable).get(dataset.id)
-        assert model.owners == dataset.owners
-
-        db.session.delete(dataset)
-        db.session.commit()
-
     def test_update_dataset_create_column(self):
         """
         Dataset API: Test update dataset create column
