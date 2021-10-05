@@ -66,6 +66,7 @@ export type AlertObject = {
   created_on?: string;
   crontab?: string;
   dashboard?: MetaObject;
+  dashboard_id?: number;
   database?: MetaObject;
   description?: string;
   grace_period?: number;

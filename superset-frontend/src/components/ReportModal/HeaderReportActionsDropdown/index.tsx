@@ -46,13 +46,11 @@ export default function HeaderReportActionsDropDown({
   chart?: ChartState;
 }) {
   const dispatch = useDispatch();
-  const reports: any = useSelector<any>(state =>
-    Object.values(state.reports).filter((report: any) =>
-      dashboardId
-        ? report.dashboard_id === dashboardId
-        : report.chart_id === chart?.id,
-    ),
+  const reports: Record<number, AlertObject> = useSelector<any, AlertObject>(
+    state => state.reports,
   );
+  const report: AlertObject = Object.values(reports)[0];
+  const hasReport = !!report;
   const user: UserWithPermissionsAndRoles = useSelector<
     any,
     UserWithPermissionsAndRoles
@@ -103,6 +101,19 @@ export default function HeaderReportActionsDropDown({
       );
     }
   }, []);
+
+  useEffect(() => {
+    if (hasReport && report.dashboard_id !== dashboardId) {
+      dispatch(
+        fetchUISpecificReport({
+          userId: user.userId,
+          filterField: dashboardId ? 'dashboard_id' : 'chart_id',
+          creationMethod: dashboardId ? 'dashboards' : 'charts',
+          resourceId: dashboardId || chart?.id,
+        }),
+      );
+    }
+  }, [dashboardId]);
 
   const menu = () => (
     <Menu selectable={false} css={{ width: '200px' }}>
