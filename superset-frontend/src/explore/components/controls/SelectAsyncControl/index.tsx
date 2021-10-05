@@ -23,6 +23,7 @@ import { Select } from 'src/components';
 import { SelectProps, OptionsType } from 'src/components/Select/Select';
 import { SelectValue, LabeledValue } from 'antd/lib/select';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 
 type SelectAsyncProps = Omit<SelectProps, 'options' | 'ariaLabel' | 'onChange'>;
 
@@ -71,15 +72,22 @@ const SelectAsyncControl = ({
   };
 
   useEffect(() => {
+    const onError = (response: Response) =>
+      getClientErrorObject(response).then(e => {
+        const { error } = e;
+        addDangerToast(`${t('Error while fetching data')}: ${error}`);
+      });
     const loadOptions = () =>
       SupersetClient.get({
         endpoint: dataEndpoint,
-      }).then(response => {
-        const data = mutator ? mutator(response.json) : response.json.result;
-        setOptions(data);
-      });
+      })
+        .then(response => {
+          const data = mutator ? mutator(response.json) : response.json.result;
+          setOptions(data);
+        })
+        .catch(onError);
     loadOptions();
-  }, [dataEndpoint, mutator]);
+  }, [addDangerToast, dataEndpoint, mutator]);
 
   return (
     <Select
@@ -89,9 +97,6 @@ const SelectAsyncControl = ({
       header={<ControlHeader {...props} />}
       mode={multi ? 'multiple' : 'single'}
       onChange={handleOnChange}
-      onError={error =>
-        addDangerToast(`${t('Error while fetching data')}: ${error}`)
-      }
       options={options}
       placeholder={placeholder}
     />

@@ -17,9 +17,12 @@
  * under the License.
  */
 import userEvent from '@testing-library/user-event';
+import fetchMock from 'fetch-mock';
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import SelectAsyncControl from '.';
+
+const datasetsOwnersEndpoint = 'glob:*/api/v1/dataset/related/owners*';
 
 jest.mock('src/components/Select/Select', () => ({
   __esModule: true,
@@ -43,10 +46,14 @@ jest.mock('src/components/Select/Select', () => ({
   ),
 }));
 
+fetchMock.get(datasetsOwnersEndpoint, {
+  result: [],
+});
+
 const createProps = () => ({
   ariaLabel: 'SelectAsyncControl',
   value: [],
-  dataEndpoint: 'api/v1/dataset/related/owners',
+  dataEndpoint: datasetsOwnersEndpoint,
   multi: true,
   placeholder: 'Select ...',
   onChange: jest.fn(),
