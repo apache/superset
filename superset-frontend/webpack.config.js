@@ -273,6 +273,7 @@ const config = {
         },
       },
     },
+    usedExports: 'global',
     minimizer: [new CssMinimizerPlugin()],
   },
   resolve: {
@@ -289,9 +290,9 @@ const config = {
         APP_DIR,
         './node_modules/@superset-ui/chart-controls',
       ),
+      react: path.resolve('./node_modules/react'),
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
-    symlinks: false,
     fallback: {
       fs: false,
       vm: false,
@@ -455,7 +456,6 @@ if (isDevMode) {
     },
     static: path.join(process.cwd(), '../static/assets'),
   };
-  config.watchOptions = { followSymlinks: true };
 
   // make sure to use @emotion/* modules in the root directory
   fs.readdirSync(path.resolve(APP_DIR, './node_modules/@emotion'), pkg => {
