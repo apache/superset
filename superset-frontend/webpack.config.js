@@ -273,6 +273,7 @@ const config = {
         },
       },
     },
+    usedExports: 'global',
     minimizer: [new CssMinimizerPlugin()],
   },
   resolve: {
