@@ -31,7 +31,7 @@ const defaultProps = {
   onChange: sinon.spy(),
 };
 
-describe('SelectControl', () => {
+describe('TextArea', () => {
   let wrapper;
   beforeEach(() => {
     wrapper = shallow(<TextAreaControl {...defaultProps} />);
