@@ -235,8 +235,8 @@ describe('Groupby control', () => {
     cy.verifySliceSuccess({ waitAlias: '@chartData' });
 
     cy.get('[data-test=groupby]').within(() => {
-      cy.get('.Select__control').click();
-      cy.get('input[type=text]').type('state{enter}');
+      cy.get('.ant-select').click();
+      cy.get('input[type=search]').type('state{enter}');
     });
     cy.get('button[data-test="run-query-button"]').click();
     cy.verifySliceSuccess({ waitAlias: '@chartData', chartSelector: 'svg' });

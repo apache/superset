@@ -1,0 +1,24 @@
+---
+name: Firebolt
+menu: Connecting to Databases
+route: /docs/databases/firebolt
+index: 31
+version: 1
+---
+
+## Firebolt
+
+The recommended connector library for Firebolt is [firebolt-sqlalchemy](https://pypi.org/project/firebolt-sqlalchemy/).
+Superset has been tested on `firebolt-sqlalchemy>=0.0.1`.
+
+The recommended connection string is:
+
+```
+firebolt://{username}:{password}@{host}/{database}
+```
+
+Here's a connection string example of Superset connecting to a Firebolt database:
+
+```
+firebolt://email@domain:password@host/sample_database
+```
