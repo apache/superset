@@ -331,6 +331,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             changed_model = UpdateDatabaseCommand(g.user, pk, item).run()
             # Return censored version for sqlalchemy URI
             item["sqlalchemy_uri"] = changed_model.sqlalchemy_uri
+            if changed_model.parameters:
+                item["parameters"] = changed_model.parameters
             return self.response(200, id=changed_model.id, result=item)
         except DatabaseNotFoundError:
             return self.response_404()
