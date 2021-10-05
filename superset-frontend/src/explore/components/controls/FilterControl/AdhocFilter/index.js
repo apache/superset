@@ -33,6 +33,20 @@ export const CLAUSES = {
   WHERE: 'WHERE',
 };
 
+// eslint-disable-next-line camelcase
+const NON_VAlID_NULL_OPRS = {
+  '>': '>',
+  '<': '<',
+  '>=': '>=',
+  '<=': '<=',
+};
+
+const VALID_COMPARATORS = {
+  string: 'string',
+  number: 'number',
+  object: 'object',
+};
+
 const OPERATORS_TO_SQL = {
   '==': '=',
   '!=': '<>',
@@ -153,12 +167,13 @@ export default class AdhocFilter {
     const truthCheckOperators = [Operators.IS_TRUE, Operators.IS_FALSE].map(
       op => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation,
     );
+    const validComparator = VALID_COMPARATORS[typeof this.comparator];
     if (this.expressionType === EXPRESSION_TYPES.SIMPLE) {
       if (nullCheckOperators.indexOf(this.operator) >= 0) {
         return !!(this.operator && this.subject);
       }
       if (truthCheckOperators.indexOf(this.operator) >= 0) {
-        return !!(this.subject && this.comparator !== null);
+        return !!(this.subject && validComparator);
       }
       if (this.operator && this.subject && this.clause) {
         if (Array.isArray(this.comparator)) {
@@ -166,8 +181,11 @@ export default class AdhocFilter {
             // A non-empty array of values ('IN' or 'NOT IN' clauses)
             return true;
           }
-        } else if (this.comparator === null) {
-          // A value has been selected or typed
+        } else if (validComparator) {
+          // A valid value has been selected
+          if (this.comparator === null && NON_VAlID_NULL_OPRS[this.operator]) {
+            return false;
+          }
           return true;
         }
       }
