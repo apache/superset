@@ -18,10 +18,9 @@
  */
 import {
   AnyFilterAction,
-  SAVE_FILTER_SETS,
   SET_FILTER_CONFIG_COMPLETE,
   SET_IN_SCOPE_STATUS_OF_FILTERS,
-  SET_FILTER_SETS_CONFIG_COMPLETE,
+  SET_FILTER_SETS_COMPLETE,
   SET_FOCUSED_NATIVE_FILTER,
   UNSET_FOCUSED_NATIVE_FILTER,
 } from 'src/dashboard/actions/nativeFilters';
@@ -72,33 +71,20 @@ export default function nativeFilterReducer(
   },
   action: AnyFilterAction,
 ) {
-  const { filterSets } = state;
   switch (action.type) {
     case HYDRATE_DASHBOARD:
       return {
         filters: action.data.nativeFilters.filters,
         filterSets: action.data.nativeFilters.filterSets,
       };
-    case SAVE_FILTER_SETS:
-      return {
-        ...state,
-        filterSets: {
-          ...filterSets,
-          [action.filtersSetId]: {
-            id: action.filtersSetId,
-            name: action.name,
-            dataMask: action.dataMask,
-          },
-        },
-      };
 
     case SET_FILTER_CONFIG_COMPLETE:
     case SET_IN_SCOPE_STATUS_OF_FILTERS:
       return getInitialState({ filterConfig: action.filterConfig, state });
 
-    case SET_FILTER_SETS_CONFIG_COMPLETE:
+    case SET_FILTER_SETS_COMPLETE:
       return getInitialState({
-        filterSetsConfig: action.filterSetsConfig,
+        filterSetsConfig: action.filterSets,
         state,
       });
 

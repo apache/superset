@@ -64,6 +64,7 @@ export type DashboardState = {
   isRefreshing: boolean;
   hasUnsavedChanges: boolean;
 };
+
 export type DashboardInfo = {
   id: number;
   common: {
@@ -72,7 +73,9 @@ export type DashboardInfo = {
   };
   userId: string;
   dash_edit_perm: boolean;
+  json_metadata: string;
   metadata: {
+    native_filter_configuration: JsonObject;
     show_native_filters: boolean;
     chart_configuration: JsonObject;
   };

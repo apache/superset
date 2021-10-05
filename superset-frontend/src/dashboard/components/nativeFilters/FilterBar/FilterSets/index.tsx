@@ -21,10 +21,13 @@ import React, { useEffect, useState, MouseEvent } from 'react';
 import { DataMask, HandlerFunction, styled, t } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
 import { DataMaskState, DataMaskWithId } from 'src/dataMask/types';
-import { setFilterSetsConfiguration } from 'src/dashboard/actions/nativeFilters';
+import {
+  createFilterSet,
+  setFilterSetsConfiguration,
+} from 'src/dashboard/actions/nativeFilters';
 import { Filters, FilterSet } from 'src/dashboard/reducers/types';
 import { areObjectsEqual } from 'src/reduxUtils';
-import { findExistingFilterSet, generateFiltersSetId } from './utils';
+import { findExistingFilterSet } from './utils';
 import { Filter } from '../../types';
 import { useFilters, useNativeFiltersDataMask, useFilterSets } from '../state';
 import Footer from './Footer';
@@ -213,9 +216,8 @@ const FilterSets: React.FC<FilterSetsProps> = ({
   };
 
   const handleCreateFilterSet = () => {
-    const newFilterSet: FilterSet = {
+    const newFilterSet: Omit<FilterSet, 'id'> = {
       name: filterSetName.trim(),
-      id: generateFiltersSetId(),
       nativeFilters: filters,
       dataMask: Object.keys(filters).reduce(
         (prev, nextFilterId) => ({
@@ -225,9 +227,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
         {},
       ),
     };
-    dispatch(
-      setFilterSetsConfiguration([newFilterSet].concat(filterSetFilterValues)),
-    );
+    dispatch(createFilterSet(newFilterSet));
     setEditMode(false);
     setFilterSetName(DEFAULT_FILTER_SET_NAME);
   };
