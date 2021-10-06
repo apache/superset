@@ -64,6 +64,7 @@ const filterMock: Filter = {
   targets: [{}],
   controlValues: {},
   type: NativeFilterType.NATIVE_FILTER,
+  description: '',
 };
 
 const createProps: () => ControlItemsProps = () => ({
