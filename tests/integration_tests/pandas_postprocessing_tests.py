@@ -35,7 +35,8 @@ from superset.utils.core import (
 from .base_tests import SupersetTestCase
 from .fixtures.dataframes import (
     categories_df,
-    country_df,
+    single_metric_df,
+    multiple_metrics_df,
     lonlat_df,
     names_df,
     timeseries_df,
@@ -308,10 +309,10 @@ class TestPostProcessing(SupersetTestCase):
 
     def test_pivot_without_flatten_columns_and_reset_index(self):
         df = proc.pivot(
-            df=country_df,
+            df=single_metric_df,
             index=["dttm"],
             columns=["country"],
-            aggregates={"metric": {"operator": "sum"}},
+            aggregates={"sum_metric": {"operator": "sum"}},
             flatten_columns=False,
             reset_index=False,
         )
@@ -320,7 +321,7 @@ class TestPostProcessing(SupersetTestCase):
         # dttm
         # 2019-01-01      5  6
         # 2019-01-02      7  8
-        assert df.columns.to_list() == [("metric", "UK"), ("metric", "US")]
+        assert df.columns.to_list() == [("sum_metric", "UK"), ("sum_metric", "US")]
         assert df.index.to_list() == to_datetime(["2019-01-01", "2019-01-02"]).to_list()
 
     def test_aggregate(self):
@@ -423,12 +424,12 @@ class TestPostProcessing(SupersetTestCase):
             window=2,
         )
 
-    def test_rolling_with_pivot_df(self):
+    def test_rolling_with_pivot_df_and_single_metric(self):
         pivot_df = proc.pivot(
-            df=country_df,
+            df=single_metric_df,
             index=["dttm"],
             columns=["country"],
-            aggregates={"metric": {"operator": "sum"}},
+            aggregates={"sum_metric": {"operator": "sum"}},
             flatten_columns=False,
             reset_index=False,
         )
@@ -449,6 +450,33 @@ class TestPostProcessing(SupersetTestCase):
             df=pivot_df, rolling_type="sum", window=2, min_periods=2, is_pivot_df=True,
         )
         assert rolling_df.empty is True
+
+    def test_rolling_with_pivot_df_and_multiple_metrics(self):
+        pivot_df = proc.pivot(
+            df=multiple_metrics_df,
+            index=["dttm"],
+            columns=["country"],
+            aggregates={
+                "sum_metric": {"operator": "sum"},
+                "count_metric": {"operator": "sum"},
+            },
+            flatten_columns=False,
+            reset_index=False,
+        )
+        rolling_df = proc.rolling(
+            df=pivot_df, rolling_type="sum", window=2, min_periods=0, is_pivot_df=True,
+        )
+        #         dttm  count_metric, UK  count_metric, US  sum_metric, UK  sum_metric, US
+        # 0 2019-01-01               1.0               2.0             5.0             6.0
+        # 1 2019-01-02               4.0               6.0            12.0            14.0
+        assert rolling_df["count_metric, UK"].to_list() == [1.0, 4.0]
+        assert rolling_df["count_metric, US"].to_list() == [2.0, 6.0]
+        assert rolling_df["sum_metric, UK"].to_list() == [5.0, 12.0]
+        assert rolling_df["sum_metric, US"].to_list() == [6.0, 14.0]
+        assert (
+            rolling_df["dttm"].to_list()
+            == to_datetime(["2019-01-01", "2019-01-02",]).to_list()
+        )
 
     def test_select(self):
         # reorder columns
@@ -602,12 +630,12 @@ class TestPostProcessing(SupersetTestCase):
             operator="abc",
         )
 
-    def test_cum_with_pivot_df(self):
+    def test_cum_with_pivot_df_and_single_metric(self):
         pivot_df = proc.pivot(
-            df=country_df,
+            df=single_metric_df,
             index=["dttm"],
             columns=["country"],
-            aggregates={"metric": {"operator": "sum"}},
+            aggregates={"sum_metric": {"operator": "sum"}},
             flatten_columns=False,
             reset_index=False,
         )
@@ -617,6 +645,31 @@ class TestPostProcessing(SupersetTestCase):
         # 1 2019-01-02  12  14
         assert cum_df["UK"].to_list() == [5.0, 12.0]
         assert cum_df["US"].to_list() == [6.0, 14.0]
+        assert (
+            cum_df["dttm"].to_list()
+            == to_datetime(["2019-01-01", "2019-01-02",]).to_list()
+        )
+
+    def test_cum_with_pivot_df_and_multiple_metrics(self):
+        pivot_df = proc.pivot(
+            df=multiple_metrics_df,
+            index=["dttm"],
+            columns=["country"],
+            aggregates={
+                "sum_metric": {"operator": "sum"},
+                "count_metric": {"operator": "sum"},
+            },
+            flatten_columns=False,
+            reset_index=False,
+        )
+        cum_df = proc.cum(df=pivot_df, operator="sum", is_pivot_df=True,)
+        #         dttm  count_metric, UK  count_metric, US  sum_metric, UK  sum_metric, US
+        # 0 2019-01-01                 1                 2               5               6
+        # 1 2019-01-02                 4                 6              12              14
+        assert cum_df["count_metric, UK"].to_list() == [1.0, 4.0]
+        assert cum_df["count_metric, US"].to_list() == [2.0, 6.0]
+        assert cum_df["sum_metric, UK"].to_list() == [5.0, 12.0]
+        assert cum_df["sum_metric, US"].to_list() == [6.0, 14.0]
         assert (
             cum_df["dttm"].to_list()
             == to_datetime(["2019-01-01", "2019-01-02",]).to_list()

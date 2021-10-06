@@ -419,7 +419,8 @@ def rolling(  # pylint: disable=too-many-arguments
         ) from ex
 
     if is_pivot_df:
-        agg: Dict[str, Dict[str, Any]] = {col: {} for col in df.columns[:1].to_list()}
+        agg_in_pivot_df = df.columns.get_level_values(0).drop_duplicates().to_list()
+        agg: Dict[str, Dict[str, Any]] = {col: {} for col in agg_in_pivot_df}
         df_rolling.columns = [
             _flatten_column_after_pivot(col, agg) for col in df_rolling.columns
         ]
@@ -578,7 +579,8 @@ def cum(
         )
     if is_pivot_df:
         df_cum = getattr(df_cum, operation)()
-        agg: Dict[str, Dict[str, Any]] = {col: {} for col in df.columns[:1].to_list()}
+        agg_in_pivot_df = df.columns.get_level_values(0).drop_duplicates().to_list()
+        agg: Dict[str, Dict[str, Any]] = {col: {} for col in agg_in_pivot_df}
         df_cum.columns = [
             _flatten_column_after_pivot(col, agg) for col in df_cum.columns
         ]
