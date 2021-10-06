@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, t } from '@superset-ui/core';
-import React from 'react';
 import { PlusOutlined } from '@ant-design/icons';
-import { FilterRemoval } from './types';
+import { styled, t, useTheme } from '@superset-ui/core';
+import React from 'react';
 import FilterTitleContainer from './FilterTitleContainer';
+import { FilterRemoval } from './types';
 
 interface Props {
   removedFilters: Record<string, FilterRemoval>;
@@ -47,7 +47,6 @@ const StyledHeader = styled.div`
 
 const TabsContainer = styled.div`
   height: 100%;
-  overflow-y: scroll;
   display: flex;
   flex-direction: column;
 `;
@@ -73,47 +72,56 @@ const FilterTitlePane: React.FC<Props> = ({
   currentFilterId,
   filterGroups,
   removedFilters,
-}) => (
-  <>
-    <TabsContainer>
-      <StyledHeader>Filters</StyledHeader>
-      <div css={{ height: '100%', 'overflow-y': 'scroll' }}>
-        <FilterTitleContainer
-          filterGroups={filterGroups}
-          getFilterTitle={getFilterTitle}
-          onChange={onChange}
-          currentFilterId={currentFilterId}
-          removedFilters={removedFilters}
-          onRemove={onRemove}
-          onRearrage={onRearrage}
-          restoreFilter={restoreFilter}
-        />
-      </div>
-      <StyledAddFilterBox
-        onClick={() => {
-          onEdit('', 'add');
-          setTimeout(() => {
-            const element = document.getElementById('native-filters-tabs');
-            if (element) {
-              const navList = element.getElementsByClassName(
-                'ant-tabs-nav-list',
-              )[0];
-              navList.scrollTop = navList.scrollHeight;
-            }
-          }, 0);
-        }}
-      >
-        <PlusOutlined />{' '}
-        <span
-          data-test="add-filter-button"
-          aria-label="Add filter"
-          role="button"
+}) => {
+  const theme = useTheme();
+  return (
+    <>
+      <TabsContainer>
+        <StyledHeader>Filters</StyledHeader>
+        <div
+          css={{
+            height: '100%',
+            'overflow-y': 'auto',
+            marginLeft: theme.gridUnit * 3,
+          }}
         >
-          {t('Add filter')}
-        </span>
-      </StyledAddFilterBox>
-    </TabsContainer>
-  </>
-);
+          <FilterTitleContainer
+            filterGroups={filterGroups}
+            getFilterTitle={getFilterTitle}
+            onChange={onChange}
+            currentFilterId={currentFilterId}
+            removedFilters={removedFilters}
+            onRemove={onRemove}
+            onRearrage={onRearrage}
+            restoreFilter={restoreFilter}
+          />
+        </div>
+        <StyledAddFilterBox
+          onClick={() => {
+            onEdit('', 'add');
+            setTimeout(() => {
+              const element = document.getElementById('native-filters-tabs');
+              if (element) {
+                const navList = element.getElementsByClassName(
+                  'ant-tabs-nav-list',
+                )[0];
+                navList.scrollTop = navList.scrollHeight;
+              }
+            }, 0);
+          }}
+        >
+          <PlusOutlined />{' '}
+          <span
+            data-test="add-filter-button"
+            aria-label="Add filter"
+            role="button"
+          >
+            {t('Add filter')}
+          </span>
+        </StyledAddFilterBox>
+      </TabsContainer>
+    </>
+  );
+};
 
 export default FilterTitlePane;

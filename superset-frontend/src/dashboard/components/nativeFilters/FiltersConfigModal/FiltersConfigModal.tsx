@@ -199,13 +199,15 @@ export function FiltersConfigModal({
 
   // After this, it should be as if the modal was just opened fresh.
   // Called when the modal is closed.
-  const resetForm = () => {
+  const resetForm = (isSaving = false) => {
     setNewFilterIds([]);
     setCurrentFilterId(initialCurrentFilterId);
     setRemovedFilters({});
     setSaveAlertVisible(false);
     setFormValues({ filters: {} });
-    setOrderedFilters(buildFilterGroup(getInitialFilterHierarchy()));
+    if (!isSaving) {
+      setOrderedFilters(buildFilterGroup(getInitialFilterHierarchy()));
+    }
     form.setFieldsValue({ changed: false });
   };
 
@@ -269,7 +271,7 @@ export function FiltersConfigModal({
         onSave,
         values,
       )();
-      resetForm();
+      resetForm(true);
     } else {
       configFormRef.current.changeTab('configuration');
     }

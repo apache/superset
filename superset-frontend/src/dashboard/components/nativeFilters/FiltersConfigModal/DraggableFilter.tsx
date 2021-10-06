@@ -39,7 +39,6 @@ const Container = styled.div<TitleContainerProps>`
     width: 100%;
     display: flex;
     padding:  ${theme.gridUnit}px
-
 `}
 `;
 

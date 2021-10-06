@@ -35,12 +35,6 @@ const FilterTitle = styled.div`
         span, .anticon {
           color: ${theme.colors.grayscale.dark1};
         }
-        &:hover {
-          color: ${theme.colors.grayscale.dark1};
-          span, .anticon {
-            color: ${theme.colors.grayscale.dark1};
-          }
-        }
       }
       &:hover {
         color: ${theme.colors.primary.light1};
@@ -56,7 +50,7 @@ const StyledTrashIcon = styled(Icons.Trash)`
 `;
 const Container = styled.div`
   height: 100%;
-  overflow-y: scroll;
+  overflow-y: auto;
 `;
 
 interface Props {
