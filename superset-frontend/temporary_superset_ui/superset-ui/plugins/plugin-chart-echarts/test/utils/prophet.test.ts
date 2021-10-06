@@ -171,5 +171,24 @@ describe('formatProphetTooltipSeries', () => {
         formatter,
       }),
     ).toEqual('<img>qwerty: ŷ = 20 (5, 12)');
+    expect(
+      formatProphetTooltipSeries({
+        seriesName: 'qwerty',
+        marker: '<img>',
+        observation: 10.1,
+        forecastLower: 6,
+        forecastUpper: 7,
+        formatter,
+      }),
+    ).toEqual('<img>qwerty: 10 (6, 13)');
+    expect(
+      formatProphetTooltipSeries({
+        seriesName: 'qwerty',
+        marker: '<img>',
+        forecastLower: 7,
+        forecastUpper: 8,
+        formatter,
+      }),
+    ).toEqual('<img>qwerty: (7, 15)');
   });
 });

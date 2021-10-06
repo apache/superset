@@ -67,7 +67,7 @@ export function transformSeries(
   opts: {
     area?: boolean;
     filterState?: FilterState;
-    forecastEnabled?: boolean;
+    seriesContexts?: { [key: string]: ForecastSeriesEnum[] };
     markerEnabled?: boolean;
     markerSize?: number;
     areaOpacity?: number;
@@ -86,7 +86,7 @@ export function transformSeries(
   const {
     area,
     filterState,
-    forecastEnabled,
+    seriesContexts = {},
     markerEnabled,
     markerSize,
     areaOpacity = 1,
@@ -100,6 +100,11 @@ export function transformSeries(
     showValueIndexes = [],
     richTooltip,
   } = opts;
+  const contexts = seriesContexts[name || ''] || [];
+  const hasForecast =
+    contexts.includes(ForecastSeriesEnum.ForecastTrend) ||
+    contexts.includes(ForecastSeriesEnum.ForecastLower) ||
+    contexts.includes(ForecastSeriesEnum.ForecastUpper);
 
   const forecastSeries = extractForecastSeriesContext(name || '');
   const isConfidenceBand =
@@ -125,7 +130,7 @@ export function transformSeries(
     stackId = forecastSeries.type;
   }
   let plotType;
-  if (!isConfidenceBand && (seriesType === 'scatter' || (forecastEnabled && isObservation))) {
+  if (!isConfidenceBand && (seriesType === 'scatter' || (hasForecast && isObservation))) {
     plotType = 'scatter';
   } else if (isConfidenceBand) {
     plotType = 'line';
@@ -141,7 +146,7 @@ export function transformSeries(
   if (!isConfidenceBand) {
     if (plotType === 'scatter') {
       showSymbol = true;
-    } else if (forecastEnabled && isObservation) {
+    } else if (hasForecast && isObservation) {
       showSymbol = true;
     } else if (plotType === 'line' && showValue) {
       showSymbol = true;
