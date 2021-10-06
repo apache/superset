@@ -46,6 +46,7 @@ import {
 import { extractAnnotationLabels } from '../utils/annotation';
 import {
   extractForecastSeriesContext,
+  extractForecastSeriesContexts,
   extractProphetValuesFromTooltipParams,
   formatProphetTooltipSeries,
   rebaseTimeseriesDatum,
@@ -113,6 +114,9 @@ export default function transformProps(
   const rawSeries = extractTimeseriesSeries(rebasedData, {
     fillNeighborValue: stack && !forecastEnabled ? 0 : undefined,
   });
+  const seriesContexts = extractForecastSeriesContexts(
+    Object.values(rawSeries).map(series => series.name as string),
+  );
   const series: SeriesOption[] = [];
   const formatter = getNumberFormatter(contributionMode ? ',.0%' : yAxisFormat);
 
@@ -145,7 +149,7 @@ export default function transformProps(
     const transformedSeries = transformSeries(entry, colorScale, {
       area,
       filterState,
-      forecastEnabled,
+      seriesContexts,
       markerEnabled,
       markerSize,
       areaOpacity: opacity,

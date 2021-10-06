@@ -35,6 +35,16 @@ export const extractForecastSeriesContext = (seriesName: OptionName): ForecastSe
   };
 };
 
+export const extractForecastSeriesContexts = (
+  seriesNames: string[],
+): { [key: string]: ForecastSeriesEnum[] } =>
+  seriesNames.reduce((agg, name) => {
+    const context = extractForecastSeriesContext(name);
+    const currentContexts = agg[context.name] || [];
+    currentContexts.push(context.type);
+    return { ...agg, [context.name]: currentContexts };
+  }, {} as { [key: string]: ForecastSeriesEnum[] });
+
 export const extractProphetValuesFromTooltipParams = (
   params: (CallbackDataParams & { seriesId: string })[],
 ): Record<string, ProphetValue> => {
@@ -83,10 +93,12 @@ export const formatProphetTooltipSeries = ({
   if (forecastTrend) {
     if (isObservation) row += ', ';
     row += `ŷ = ${formatter(forecastTrend)}`;
-    if (forecastLower && forecastUpper)
-      // the lower bound needs to be added to the upper bound
-      row += ` (${formatter(forecastLower)}, ${formatter(forecastLower + forecastUpper)})`;
   }
+  if (forecastLower && forecastUpper)
+    // the lower bound needs to be added to the upper bound
+    row = `${row.trim()} (${formatter(forecastLower)}, ${formatter(
+      forecastLower + forecastUpper,
+    )})`;
   return `${row.trim()}`;
 };
 
