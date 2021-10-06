@@ -142,15 +142,10 @@ export function FiltersConfigModal({
     setRemovedFilters(current => ({ ...current, [id]: null }));
   };
   const getInitialFilterHierarchy = () =>
-    filterConfig
-      .filter(f => {
-        const isRemoved = removedFilters[f.id];
-        return !isRemoved || isRemoved.isPending;
-      })
-      .map(filter => ({
-        id: filter.id,
-        parentId: filter.cascadeParentIds[0] || null,
-      }));
+    filterConfig.map(filter => ({
+      id: filter.id,
+      parentId: filter.cascadeParentIds[0] || null,
+    }));
 
   const [filterHierarchy, setFilterHierarchy] = useState<FilterHierarchy>(() =>
     getInitialFilterHierarchy(),
@@ -185,7 +180,7 @@ export function FiltersConfigModal({
   useRemoveCurrentFilter(
     removedFilters,
     currentFilterId,
-    filterIds,
+    orderedFilters,
     setCurrentFilterId,
   );
 
@@ -285,9 +280,9 @@ export function FiltersConfigModal({
   const handleCancel = () => {
     const changed = form.getFieldValue('changed');
     const initialOrder = buildFilterGroup(getInitialFilterHierarchy()).flat();
-    const didChangeOrder = orderedFilters
-      .flat()
-      .some((val, index) => val !== initialOrder[index]);
+    const didChangeOrder =
+      orderedFilters.flat().length !== initialOrder.length ||
+      orderedFilters.flat().some((val, index) => val !== initialOrder[index]);
     if (
       unsavedFiltersIds.length > 0 ||
       form.isFieldsTouched() ||

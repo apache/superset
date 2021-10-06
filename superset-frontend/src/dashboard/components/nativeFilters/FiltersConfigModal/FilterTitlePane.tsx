@@ -75,52 +75,50 @@ const FilterTitlePane: React.FC<Props> = ({
 }) => {
   const theme = useTheme();
   return (
-    <>
-      <TabsContainer>
-        <StyledHeader>Filters</StyledHeader>
-        <div
-          css={{
-            height: '100%',
-            'overflow-y': 'auto',
-            marginLeft: theme.gridUnit * 3,
-          }}
+    <TabsContainer>
+      <StyledHeader>Filters</StyledHeader>
+      <div
+        css={{
+          height: '100%',
+          'overflow-y': 'auto',
+          marginLeft: theme.gridUnit * 3,
+        }}
+      >
+        <FilterTitleContainer
+          filterGroups={filterGroups}
+          getFilterTitle={getFilterTitle}
+          onChange={onChange}
+          currentFilterId={currentFilterId}
+          removedFilters={removedFilters}
+          onRemove={onRemove}
+          onRearrage={onRearrage}
+          restoreFilter={restoreFilter}
+        />
+      </div>
+      <StyledAddFilterBox
+        onClick={() => {
+          onEdit('', 'add');
+          setTimeout(() => {
+            const element = document.getElementById('native-filters-tabs');
+            if (element) {
+              const navList = element.getElementsByClassName(
+                'ant-tabs-nav-list',
+              )[0];
+              navList.scrollTop = navList.scrollHeight;
+            }
+          }, 0);
+        }}
+      >
+        <PlusOutlined />{' '}
+        <span
+          data-test="add-filter-button"
+          aria-label="Add filter"
+          role="button"
         >
-          <FilterTitleContainer
-            filterGroups={filterGroups}
-            getFilterTitle={getFilterTitle}
-            onChange={onChange}
-            currentFilterId={currentFilterId}
-            removedFilters={removedFilters}
-            onRemove={onRemove}
-            onRearrage={onRearrage}
-            restoreFilter={restoreFilter}
-          />
-        </div>
-        <StyledAddFilterBox
-          onClick={() => {
-            onEdit('', 'add');
-            setTimeout(() => {
-              const element = document.getElementById('native-filters-tabs');
-              if (element) {
-                const navList = element.getElementsByClassName(
-                  'ant-tabs-nav-list',
-                )[0];
-                navList.scrollTop = navList.scrollHeight;
-              }
-            }, 0);
-          }}
-        >
-          <PlusOutlined />{' '}
-          <span
-            data-test="add-filter-button"
-            aria-label="Add filter"
-            role="button"
-          >
-            {t('Add filter')}
-          </span>
-        </StyledAddFilterBox>
-      </TabsContainer>
-    </>
+          {t('Add filter')}
+        </span>
+      </StyledAddFilterBox>
+    </TabsContainer>
   );
 };
 

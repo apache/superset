@@ -101,9 +101,7 @@ const FilterTitleContainer: React.FC<Props> = ({
           )}
         </div>
         <div css={{ alignSelf: 'flex-end', marginLeft: 'auto' }}>
-          {isRemoved ? (
-            <></>
-          ) : (
+          {isRemoved ? null : (
             <StyledTrashIcon
               onClick={event => {
                 event.stopPropagation();
@@ -128,8 +126,6 @@ const FilterTitleContainer: React.FC<Props> = ({
     let parent = null;
     const element = nodeList.filter(el => el.id === elementId)[0];
     if (!element) {
-      // eslint-disable-next-line no-console
-      console.warn(`Could not find filter with ID ${elementId}`);
       return null;
     }
 
