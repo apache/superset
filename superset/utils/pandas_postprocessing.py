@@ -752,7 +752,6 @@ def prophet(  # pylint: disable=too-many-arguments
     - `__yhat`: the forecast for the given date
     - `__yhat_lower`: the lower bound of the forecast for the given date
     - `__yhat_upper`: the upper bound of the forecast for the given date
-    - `__yhat_upper`: the upper bound of the forecast for the given date
 
 
     :param df: DataFrame containing all-numeric data (temporal column ignored)
