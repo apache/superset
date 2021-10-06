@@ -23,7 +23,7 @@ module.exports = {
     'prettier/react',
     'plugin:react-hooks/recommended',
   ],
-  parser: 'babel-eslint',
+  parser: '@babel/eslint-parser',
   parserOptions: {
     ecmaFeatures: {
       experimentalObjectRestSpread: true,
@@ -167,6 +167,7 @@ module.exports = {
         'src/**/*.test.tsx',
         'src/**/*.test.js',
         'src/**/*.test.jsx',
+        'src/**/fixtures.*',
       ],
       plugins: ['jest', 'jest-dom', 'no-only-tests', 'testing-library'],
       env: {

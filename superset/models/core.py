@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=line-too-long
 """A collection of ORM sqlalchemy models for Superset"""
 import enum
 import json
@@ -253,7 +254,7 @@ class Database(
     @property
     def parameters_schema(self) -> Dict[str, Any]:
         try:
-            parameters_schema = self.db_engine_spec.parameters_json_schema()  # type: ignore # pylint: disable=line-too-long
+            parameters_schema = self.db_engine_spec.parameters_json_schema()  # type: ignore
         except Exception:  # pylint: disable=broad-except
             parameters_schema = {}
         return parameters_schema
