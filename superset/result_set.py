@@ -19,17 +19,15 @@
 import datetime
 import json
 import logging
-from typing import Any, Dict, List, Optional, Tuple, Type, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Tuple, Type
 
 import numpy as np
 import pandas as pd
 import pyarrow as pa
 
+from superset.db_engine_specs import BaseEngineSpec
 from superset.typing import DbapiDescription, DbapiResult
 from superset.utils import core as utils
-
-if TYPE_CHECKING:
-    from superset.db_engine_specs import BaseEngineSpec
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +76,7 @@ class SupersetResultSet:
         self,
         data: DbapiResult,
         cursor_description: DbapiDescription,
-        db_engine_spec: Type["BaseEngineSpec"],
+        db_engine_spec: Type[BaseEngineSpec],
     ):
         self.db_engine_spec = db_engine_spec
         data = data or []
