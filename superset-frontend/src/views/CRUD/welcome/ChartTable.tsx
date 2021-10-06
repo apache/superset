@@ -218,7 +218,7 @@ function ChartTable({
             onClick: () => {
               const target =
                 chartFilter === 'Favorite'
-                  ? '/chart/list/?filters=(favorite:!t)'
+                  ? '/chart/list/?filters=(favorite:(label:Yes,value:!t))'
                   : '/chart/list/';
               history.push(target);
             },
