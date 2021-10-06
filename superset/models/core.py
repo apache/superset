@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=line-too-long
 """A collection of ORM sqlalchemy models for Superset"""
 import enum
 import json
@@ -223,6 +224,7 @@ class Database(
             "allows_virtual_table_explore": self.allows_virtual_table_explore,
             "explore_database_id": self.explore_database_id,
             "parameters": self.parameters,
+            "parameters_schema": self.parameters_schema,
         }
 
     @property
@@ -248,6 +250,14 @@ class Database(
             parameters = {}
 
         return parameters
+
+    @property
+    def parameters_schema(self) -> Dict[str, Any]:
+        try:
+            parameters_schema = self.db_engine_spec.parameters_json_schema()  # type: ignore
+        except Exception:  # pylint: disable=broad-except
+            parameters_schema = {}
+        return parameters_schema
 
     @property
     def metadata_cache_timeout(self) -> Dict[str, Any]:

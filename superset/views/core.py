@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=too-many-lines
+# pylint: disable=too-many-lines, invalid-name
 from __future__ import annotations
 
 import logging
@@ -60,6 +60,7 @@ from superset import (
     viz,
 )
 from superset.charts.dao import ChartDAO
+from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import (
@@ -92,13 +93,30 @@ from superset.models.core import Database, FavStar, Log
 from superset.models.dashboard import Dashboard
 from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.models.slice import Slice
-from superset.models.sql_lab import LimitingFactor, Query, TabState
+from superset.models.sql_lab import Query, TabState
 from superset.models.user_attributes import UserAttribute
+from superset.queries.dao import QueryDAO
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
+from superset.sql_lab import get_sql_results
 from superset.sql_parse import ParsedQuery, Table
 from superset.sql_validators import get_validator_by_name
 from superset.sqllab.command import CommandResult, ExecuteSqlCommand
 from superset.sqllab.command_status import SqlJsonExecutionStatus
+from superset.sqllab.exceptions import (
+    QueryIsForbiddenToAccessException,
+    SqlLabException,
+)
+from superset.sqllab.execution_context_convertor import ExecutionContextConvertorImpl
+from superset.sqllab.limiting_factor import LimitingFactor
+from superset.sqllab.query_render import SqlQueryRenderImpl
+from superset.sqllab.sql_json_executer import (
+    ASynchronousSqlJsonExecutor,
+    SqlJsonExecutor,
+    SynchronousSqlJsonExecutor,
+)
+from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
+from superset.sqllab.utils import apply_display_max_row_configuration_if_require
+from superset.sqllab.validators import CanAccessQueryValidatorImpl
 from superset.tasks.async_queries import load_explore_json_into_cache
 from superset.typing import FlaskResponse
 from superset.utils import core as utils, csv
@@ -107,7 +125,6 @@ from superset.utils.cache import etag_cache
 from superset.utils.core import apply_max_row_limit, ReservedUrlParameters
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import check_dashboard_access
-from superset.utils.sqllab_execution_context import SqlJsonExecutionContext
 from superset.views.base import (
     api,
     BaseSupersetView,
@@ -127,7 +144,6 @@ from superset.views.base import (
 )
 from superset.views.utils import (
     _deserialize_results_payload,
-    apply_display_max_row_limit,
     bootstrap_user_data,
     check_datasource_perms,
     check_explore_cache_perms,
@@ -145,7 +161,6 @@ config = app.config
 SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
 stats_logger = config["STATS_LOGGER"]
 DAR = DatasourceAccessRequest
-QueryStatus = utils.QueryStatus
 logger = logging.getLogger(__name__)
 
 DATABASE_KEYS = [
@@ -711,7 +726,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/explore/<datasource_type>/<int:datasource_id>/", methods=["GET", "POST"])
     @expose("/explore/", methods=["GET", "POST"])
-    def explore(  # pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+    def explore(
         self, datasource_type: Optional[str] = None, datasource_id: Optional[int] = None
     ) -> FlaskResponse:
         form_data, slc = get_form_data(use_slice_data=True)
@@ -834,6 +850,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         }
         try:
             datasource_data = datasource.data if datasource else dummy_datasource_data
+            datasource_database = datasource_data.get("database")
+            if datasource_database:
+                datasource_database["parameters"] = {}
         except (SupersetException, SQLAlchemyError):
             datasource_data = dummy_datasource_data
 
@@ -1057,8 +1076,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/tables/<int:db_id>/<schema>/<substr>/")
     @expose("/tables/<int:db_id>/<schema>/<substr>/<force_refresh>/")
-    def tables(  # pylint: disable=too-many-locals,no-self-use
-        self, db_id: int, schema: str, substr: str, force_refresh: str = "false"
+    @expose("/tables/<int:db_id>/<schema>/<substr>/<force_refresh>/<exact_match>")
+    def tables(  # pylint: disable=too-many-locals,no-self-use,too-many-arguments
+        self,
+        db_id: int,
+        schema: str,
+        substr: str,
+        force_refresh: str = "false",
+        exact_match: str = "false",
     ) -> FlaskResponse:
         """Endpoint to fetch the list of tables for given database"""
         # Guarantees database filtering by security access
@@ -1071,6 +1096,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return json_error_response("Not found", 404)
 
         force_refresh_parsed = force_refresh.lower() == "true"
+        exact_match_parsed = exact_match.lower() == "true"
         schema_parsed = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         substr_parsed = utils.parse_js_uri_path_item(substr, eval_undefined=True)
 
@@ -1112,9 +1138,15 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 ds_name.table if schema_parsed else f"{ds_name.schema}.{ds_name.table}"
             )
 
+        def is_match(src: str, target: utils.DatasourceName) -> bool:
+            target_label = get_datasource_label(target)
+            if exact_match_parsed:
+                return src == target_label
+            return src in target_label
+
         if substr_parsed:
-            tables = [tn for tn in tables if substr_parsed in get_datasource_label(tn)]
-            views = [vn for vn in views if substr_parsed in get_datasource_label(vn)]
+            tables = [tn for tn in tables if is_match(substr_parsed, tn)]
+            views = [vn for vn in views if is_match(substr_parsed, vn)]
 
         if not schema_parsed and database.default_schemas:
             user_schemas = (
@@ -2301,7 +2333,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     status=400,
                 ) from ex
 
-            obj = apply_display_max_row_limit(obj, rows)
+            obj = apply_display_max_row_configuration_if_require(obj, rows)
 
         return json_success(
             json.dumps(
@@ -2420,13 +2452,64 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/sql_json/", methods=["POST"])
     def sql_json(self) -> FlaskResponse:
-        log_params = {
-            "user_agent": cast(Optional[str], request.headers.get("USER_AGENT"))
-        }
-        execution_context = SqlJsonExecutionContext(request.json)
-        command = ExecuteSqlCommand(execution_context, log_params)
-        command_result: CommandResult = command.run()
-        return self._create_response_from_execution_context(command_result)
+        try:
+            log_params = {
+                "user_agent": cast(Optional[str], request.headers.get("USER_AGENT"))
+            }
+            execution_context = SqlJsonExecutionContext(request.json)
+            command = self._create_sql_json_command(execution_context, log_params)
+            command_result: CommandResult = command.run()
+            return self._create_response_from_execution_context(command_result)
+        except SqlLabException as ex:
+            logger.error(ex.message)
+            self._set_http_status_into_Sql_lab_exception(ex)
+            payload = {"errors": [ex.to_dict()]}
+            return json_error_response(status=ex.status, payload=payload)
+
+    @staticmethod
+    def _create_sql_json_command(
+        execution_context: SqlJsonExecutionContext, log_params: Optional[Dict[str, Any]]
+    ) -> ExecuteSqlCommand:
+        query_dao = QueryDAO()
+        sql_json_executor = Superset._create_sql_json_executor(
+            execution_context, query_dao
+        )
+        execution_context_convertor = ExecutionContextConvertorImpl()
+        execution_context_convertor.set_max_row_in_display(
+            int(config.get("DISPLAY_MAX_ROW"))  # type: ignore
+        )
+        return ExecuteSqlCommand(
+            execution_context,
+            query_dao,
+            DatabaseDAO(),
+            CanAccessQueryValidatorImpl(),
+            SqlQueryRenderImpl(get_template_processor),
+            sql_json_executor,
+            execution_context_convertor,
+            config.get("SQLLAB_CTAS_NO_LIMIT"),  # type: ignore
+            log_params,
+        )
+
+    @staticmethod
+    def _create_sql_json_executor(
+        execution_context: SqlJsonExecutionContext, query_dao: QueryDAO
+    ) -> SqlJsonExecutor:
+        sql_json_executor: SqlJsonExecutor
+        if execution_context.is_run_asynchronous():
+            sql_json_executor = ASynchronousSqlJsonExecutor(query_dao, get_sql_results)
+        else:
+            sql_json_executor = SynchronousSqlJsonExecutor(
+                query_dao,
+                get_sql_results,
+                config.get("SQLLAB_TIMEOUT"),  # type: ignore
+                is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE"),
+            )
+        return sql_json_executor
+
+    @staticmethod
+    def _set_http_status_into_Sql_lab_exception(ex: SqlLabException) -> None:
+        if isinstance(ex, QueryIsForbiddenToAccessException):
+            ex.status = 403
 
     def _create_response_from_execution_context(  # pylint: disable=invalid-name, no-self-use
         self, command_result: CommandResult,

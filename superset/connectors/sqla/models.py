@@ -35,6 +35,7 @@ from typing import (
     Union,
 )
 
+import dateutil.parser
 import pandas as pd
 import sqlalchemy as sa
 import sqlparse
@@ -69,6 +70,7 @@ from sqlalchemy.sql.expression import Label, Select, TextAsFrom, TextClause
 from sqlalchemy.sql.selectable import Alias, TableClause
 
 from superset import app, db, is_feature_enabled, security_manager
+from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.connectors.sqla.utils import (
     get_physical_table_metadata,
@@ -83,7 +85,7 @@ from superset.jinja_context import (
 )
 from superset.models.annotations import Annotation
 from superset.models.core import Database
-from superset.models.helpers import AuditMixinNullable, QueryResult
+from superset.models.helpers import AuditMixinNullable, CertificationMixin, QueryResult
 from superset.sql_parse import ParsedQuery
 from superset.typing import AdhocMetric, Metric, OrderBy, QueryObjectDict
 from superset.utils import core as utils
@@ -150,12 +152,12 @@ class AnnotationDatasource(BaseDatasource):
             qry = qry.filter(Annotation.start_dttm >= query_obj["from_dttm"])
         if query_obj["to_dttm"]:
             qry = qry.filter(Annotation.end_dttm <= query_obj["to_dttm"])
-        status = utils.QueryStatus.SUCCESS
+        status = QueryStatus.SUCCESS
         try:
             df = pd.read_sql_query(qry.statement, db.engine)
         except Exception as ex:  # pylint: disable=broad-except
             df = pd.DataFrame()
-            status = utils.QueryStatus.FAILED
+            status = QueryStatus.FAILED
             logger.exception(ex)
             error_message = utils.error_msg_from_exception(ex)
         return QueryResult(
@@ -173,7 +175,7 @@ class AnnotationDatasource(BaseDatasource):
         raise NotImplementedError()
 
 
-class TableColumn(Model, BaseColumn):
+class TableColumn(Model, BaseColumn, CertificationMixin):
 
     """ORM object for table columns, each table can have multiple columns"""
 
@@ -188,6 +190,7 @@ class TableColumn(Model, BaseColumn):
     is_dttm = Column(Boolean, default=False)
     expression = Column(Text)
     python_date_format = Column(String(255))
+    extra = Column(Text)
 
     export_fields = [
         "table_id",
@@ -201,6 +204,7 @@ class TableColumn(Model, BaseColumn):
         "expression",
         "description",
         "python_date_format",
+        "extra",
     ]
 
     update_from_object_fields = [s for s in export_fields if s not in ("table_id",)]
@@ -375,11 +379,20 @@ class TableColumn(Model, BaseColumn):
             "type",
             "type_generic",
             "python_date_format",
+            "is_certified",
+            "certified_by",
+            "certification_details",
+            "warning_markdown",
         )
-        return {s: getattr(self, s) for s in attrs if hasattr(self, s)}
+
+        attr_dict = {s: getattr(self, s) for s in attrs if hasattr(self, s)}
+
+        attr_dict.update(super().data)
+
+        return attr_dict
 
 
-class SqlMetric(Model, BaseMetric):
+class SqlMetric(Model, BaseMetric, CertificationMixin):
 
     """ORM object for metrics, each table can have multiple metrics"""
 
@@ -426,28 +439,6 @@ class SqlMetric(Model, BaseMetric):
 
     def get_perm(self) -> Optional[str]:
         return self.perm
-
-    def get_extra_dict(self) -> Dict[str, Any]:
-        try:
-            return json.loads(self.extra)
-        except (TypeError, json.JSONDecodeError):
-            return {}
-
-    @property
-    def is_certified(self) -> bool:
-        return bool(self.get_extra_dict().get("certification"))
-
-    @property
-    def certified_by(self) -> Optional[str]:
-        return self.get_extra_dict().get("certification", {}).get("certified_by")
-
-    @property
-    def certification_details(self) -> Optional[str]:
-        return self.get_extra_dict().get("certification", {}).get("details")
-
-    @property
-    def warning_markdown(self) -> Optional[str]:
-        return self.get_extra_dict().get("warning_markdown")
 
     @property
     def data(self) -> Dict[str, Any]:
@@ -1301,8 +1292,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         if row_offset:
             qry = qry.offset(row_offset)
 
-        if db_engine_spec.allows_subqueries and series_limit and groupby_series_columns:
-            if db_engine_spec.allows_joins:
+        if series_limit and groupby_series_columns:
+            if db_engine_spec.allows_joins and db_engine_spec.allows_subqueries:
                 # some sql dialects require for order by expressions
                 # to also be in the select clause -- others, e.g. vertica,
                 # require a unique inner alias
@@ -1427,15 +1418,25 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             )
         return ob
 
-    @staticmethod
     def _get_top_groups(
-        df: pd.DataFrame, dimensions: List[str], groupby_exprs: Dict[str, Any],
+        self, df: pd.DataFrame, dimensions: List[str], groupby_exprs: Dict[str, Any],
     ) -> ColumnElement:
+        column_map = {column.column_name: column for column in self.columns}
         groups = []
         for _unused, row in df.iterrows():
             group = []
             for dimension in dimensions:
-                group.append(groupby_exprs[dimension] == row[dimension])
+                value = row[dimension]
+
+                # Some databases like Druid will return timestamps as strings, but
+                # do not perform automatic casting when comparing these strings to
+                # a timestamp. For cases like this we convert the value from a
+                # string into a timestamp.
+                if column_map[dimension].is_temporal and isinstance(value, str):
+                    dttm = dateutil.parser.parse(value)
+                    value = text(self.db_engine_spec.convert_dttm("TIMESTAMP", dttm))
+
+                group.append(groupby_exprs[dimension] == value)
             groups.append(and_(*group))
 
         return or_(*groups)
@@ -1444,7 +1445,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         qry_start_dttm = datetime.now()
         query_str_ext = self.get_query_str_extended(query_obj)
         sql = query_str_ext.sql
-        status = utils.QueryStatus.SUCCESS
+        status = QueryStatus.SUCCESS
         errors = None
         error_message = None
 
@@ -1477,7 +1478,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             df = self.database.get_df(sql, self.schema, mutator=assign_column_label)
         except Exception as ex:  # pylint: disable=broad-except
             df = pd.DataFrame()
-            status = utils.QueryStatus.FAILED
+            status = QueryStatus.FAILED
             logger.warning(
                 "Query %s on schema %s failed", sql, self.schema, exc_info=True
             )

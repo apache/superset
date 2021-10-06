@@ -23,8 +23,8 @@ import { RangePicker } from 'src/components/DatePicker';
 import moment from 'moment';
 import Icons from 'src/components/Icons';
 import Modal from 'src/components/Modal';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { StyledIcon } from 'src/views/CRUD/utils';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 
 import { AnnotationObject } from './types';

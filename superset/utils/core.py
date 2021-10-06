@@ -1175,7 +1175,7 @@ def merge_extra_filters(form_data: Dict[str, Any]) -> None:
             time_extra = date_options.get(filter_column)
             if time_extra:
                 time_extra_value = filtr.get("val")
-                if time_extra_value:
+                if time_extra_value and time_extra_value != NO_TIME_RANGE:
                     form_data[time_extra] = time_extra_value
                     applied_time_extras[filter_column] = time_extra_value
             elif filtr["val"]:
@@ -1640,7 +1640,7 @@ def get_time_filter_status(
             )
 
     time_range = applied_time_extras.get(ExtraFiltersTimeColumnType.TIME_RANGE)
-    if time_range and time_range != NO_TIME_RANGE:
+    if time_range:
         # are there any temporal columns to assign the time grain to?
         if temporal_columns:
             applied.append({"column": ExtraFiltersTimeColumnType.TIME_RANGE})

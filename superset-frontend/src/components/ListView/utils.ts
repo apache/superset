@@ -45,15 +45,18 @@ import {
   ViewModeType,
 } from './types';
 
-// Define custom RisonParam for proper encoding/decoding
+// Define custom RisonParam for proper encoding/decoding; note that
+// plus symbols should be encoded to avoid being converted into a space
 const RisonParam: QueryParamConfig<string, any> = {
   encode: (data?: any | null) =>
-    data === undefined ? undefined : rison.encode(data),
+    data === undefined ? undefined : rison.encode(data).replace(/\+/g, '%2B'),
   decode: (dataStr?: string | string[]) =>
     dataStr === undefined || Array.isArray(dataStr)
       ? undefined
       : rison.decode(dataStr),
 };
+
+export const SELECT_WIDTH = 200;
 
 export class ListViewError extends Error {
   name = 'ListViewError';

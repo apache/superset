@@ -53,6 +53,7 @@ from superset import (
     security_manager,
     sql_lab,
 )
+from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
@@ -748,17 +749,18 @@ class TestCore(SupersetTestCase):
         data = self.run_sql(sql, "fdaklj3ws")
         self.assertEqual(data["data"][0]["test"], "2")
 
+    @pytest.mark.ofek
     @mock.patch(
         "tests.integration_tests.superset_test_custom_template_processors.datetime"
     )
-    @mock.patch("superset.sql_lab.get_sql_results")
+    @mock.patch("superset.views.core.get_sql_results")
     def test_custom_templated_sql_json(self, sql_lab_mock, mock_dt) -> None:
         """Test sqllab receives macros expanded query."""
         mock_dt.utcnow = mock.Mock(return_value=datetime.datetime(1970, 1, 1))
         self.login()
         sql = "SELECT '$DATE()' as test"
         resp = {
-            "status": utils.QueryStatus.SUCCESS,
+            "status": QueryStatus.SUCCESS,
             "query": {"rows": 1},
             "data": [{"test": "'1970-01-01'"}],
         }
@@ -1214,7 +1216,7 @@ class TestCore(SupersetTestCase):
 
         data = [{"col_0": i} for i in range(100)]
         payload = {
-            "status": utils.QueryStatus.SUCCESS,
+            "status": QueryStatus.SUCCESS,
             "query": {"rows": 100},
             "data": data,
         }
@@ -1267,7 +1269,7 @@ class TestCore(SupersetTestCase):
         query = {
             "database_id": 1,
             "sql": "SELECT * FROM birth_names LIMIT 100",
-            "status": utils.QueryStatus.PENDING,
+            "status": QueryStatus.PENDING,
         }
         (
             serialized_data,
@@ -1279,8 +1281,8 @@ class TestCore(SupersetTestCase):
         )
         payload = {
             "query_id": 1,
-            "status": utils.QueryStatus.SUCCESS,
-            "state": utils.QueryStatus.SUCCESS,
+            "status": QueryStatus.SUCCESS,
+            "state": QueryStatus.SUCCESS,
             "data": serialized_data,
             "columns": all_columns,
             "selected_columns": selected_columns,
@@ -1315,7 +1317,7 @@ class TestCore(SupersetTestCase):
         query = {
             "database_id": 1,
             "sql": "SELECT * FROM birth_names LIMIT 100",
-            "status": utils.QueryStatus.PENDING,
+            "status": QueryStatus.PENDING,
         }
         (
             serialized_data,
@@ -1327,8 +1329,8 @@ class TestCore(SupersetTestCase):
         )
         payload = {
             "query_id": 1,
-            "status": utils.QueryStatus.SUCCESS,
-            "state": utils.QueryStatus.SUCCESS,
+            "status": QueryStatus.SUCCESS,
+            "state": QueryStatus.SUCCESS,
             "data": serialized_data,
             "columns": all_columns,
             "selected_columns": selected_columns,

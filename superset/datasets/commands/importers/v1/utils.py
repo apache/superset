@@ -125,6 +125,7 @@ def import_dataset(
         table_exists = True
 
     if data_uri and (not table_exists or force_data):
+        logger.info("Downloading data from %s", data_uri)
         load_data(data_uri, dataset, example_database, session)
 
     if hasattr(g, "user") and g.user:
