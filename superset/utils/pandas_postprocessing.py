@@ -349,8 +349,8 @@ def sort(df: DataFrame, columns: Dict[str, bool]) -> DataFrame:
 @validate_column_args("columns")
 def rolling(  # pylint: disable=too-many-arguments
     df: DataFrame,
-    columns: Dict[str, str],
     rolling_type: str,
+    columns: Optional[Dict[str, str]] = None,
     window: Optional[int] = None,
     rolling_type_options: Optional[Dict[str, Any]] = None,
     center: bool = False,
@@ -381,10 +381,10 @@ def rolling(  # pylint: disable=too-many-arguments
     :raises QueryObjectValidationError: If the request in incorrect
     """
     rolling_type_options = rolling_type_options or {}
+    columns = columns or {}
     if is_pivot_df:
         df_rolling = df
     else:
-        validate_column_args("columns")(rolling)
         df_rolling = df[columns.keys()]
     kwargs: Dict[str, Union[str, int]] = {}
     if window is None:
@@ -419,7 +419,7 @@ def rolling(  # pylint: disable=too-many-arguments
         ) from ex
 
     if is_pivot_df:
-        agg: Dict[str, Dict[str, Any]] = {col: {} for col in columns.values()}
+        agg: Dict[str, Dict[str, Any]] = {col: {} for col in df.columns[:1].to_list()}
         df_rolling.columns = [
             _flatten_column_after_pivot(col, agg) for col in df_rolling.columns
         ]
@@ -546,7 +546,10 @@ def compare(  # pylint: disable=too-many-arguments
 
 @validate_column_args("columns")
 def cum(
-    df: DataFrame, columns: Dict[str, str], operator: str, is_pivot_df: bool = False,
+    df: DataFrame,
+    operator: str,
+    columns: Optional[Dict[str, str]] = None,
+    is_pivot_df: bool = False,
 ) -> DataFrame:
     """
     Calculate cumulative sum/product/min/max for select columns.
@@ -561,10 +564,10 @@ def cum(
     :param is_pivot_df: Dataframe is pivoted or not
     :return: DataFrame with cumulated columns
     """
+    columns = columns or {}
     if is_pivot_df:
         df_cum = df
     else:
-        validate_column_args("columns")(rolling)
         df_cum = df[columns.keys()]
     operation = "cum" + operator
     if operation not in ALLOWLIST_CUMULATIVE_FUNCTIONS or not hasattr(
@@ -575,7 +578,7 @@ def cum(
         )
     if is_pivot_df:
         df_cum = getattr(df_cum, operation)()
-        agg: Dict[str, Dict[str, Any]] = {col: {} for col in columns.values()}
+        agg: Dict[str, Dict[str, Any]] = {col: {} for col in df.columns[:1].to_list()}
         df_cum.columns = [
             _flatten_column_after_pivot(col, agg) for col in df_cum.columns
         ]

@@ -165,3 +165,11 @@ prophet_df = DataFrame(
         "b": [4, 3, 4.1, 3.95],
     }
 )
+
+country_df = DataFrame(
+    {
+        "dttm": to_datetime(["2019-01-01", "2019-01-01", "2019-01-02", "2019-01-02",]),
+        "country": ["UK", "US", "UK", "US"],
+        "metric": [5, 6, 7, 8],
+    }
+)
