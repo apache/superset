@@ -23,7 +23,7 @@ from ast import literal_eval
 from contextlib import closing
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, TYPE_CHECKING
 
 import numpy
 import pandas as pd
@@ -54,13 +54,15 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import expression, Select
 
 from superset import app, db_engine_specs, is_feature_enabled
-from superset.db_engine_specs.base import TimeGrain
 from superset.extensions import cache_manager, encrypted_field_factory, security_manager
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.tags import FavStarUpdater
 from superset.result_set import SupersetResultSet
 from superset.utils import cache as cache_util, core as utils
 from superset.utils.memoized import memoized
+
+if TYPE_CHECKING:
+    from superset.db_engine_specs.base import TimeGrain
 
 config = app.config
 custom_password_store = config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
@@ -605,7 +607,7 @@ class Database(
         engines = db_engine_specs.get_engine_specs()
         return engines.get(backend, db_engine_specs.BaseEngineSpec)
 
-    def grains(self) -> Tuple[TimeGrain, ...]:
+    def grains(self) -> Tuple["TimeGrain", ...]:
         """Defines time granularity database-specific expressions.
 
         The idea here is to make it easy for users to change the time grain
