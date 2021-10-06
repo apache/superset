@@ -39,7 +39,7 @@ export const rollingWindowOperator: PostProcessingFactory<
       // time compare type: actual values
       columns = [...Array.from(metricsMap.values()), ...Array.from(metricsMap.keys())];
     } else {
-      // time compare type: absolute / percentage / ratio
+      // time compare type: difference / percentage / ratio
       columns = Array.from(metricsMap.entries()).map(([offset, metric]) =>
         [comparisonType, metric, offset].join(TIME_COMPARISON_SEPARATOR),
       );
@@ -60,6 +60,7 @@ export const rollingWindowOperator: PostProcessingFactory<
       options: {
         operator: 'sum',
         columns: columnsMap,
+        is_pivot_df: true,
       },
     };
   }
@@ -72,6 +73,7 @@ export const rollingWindowOperator: PostProcessingFactory<
         window: ensureIsInt(formData.rolling_periods, 1),
         min_periods: ensureIsInt(formData.min_periods, 0),
         columns: columnsMap,
+        is_pivot_df: true,
       },
     };
   }
