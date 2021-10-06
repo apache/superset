@@ -40,7 +40,7 @@ import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import TextControl from 'src/explore/components/controls/TextControl';
-import SelectControl from 'src/explore/components/controls/SelectControl';
+import { Select } from 'src/components';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import SelectAsyncControl from 'src/explore/components/controls/SelectAsyncControl';
 import SpatialControl from 'src/explore/components/controls/SpatialControl';
@@ -121,7 +121,12 @@ const StyledLabelWrapper = styled.div`
 const checkboxGenerator = (d, onChange) => (
   <CheckboxControl value={d} onChange={onChange} />
 );
-const DATA_TYPES = ['STRING', 'NUMERIC', 'DATETIME', 'BOOLEAN'];
+const DATA_TYPES = [
+  { value: 'STRING', label: 'STRING' },
+  { value: 'NUMERIC', label: 'NUMERIC' },
+  { value: 'DATETIME', label: 'DATETIME' },
+  { value: 'BOOLEAN', label: 'BOOLEAN' },
+];
 
 const DATASOURCE_TYPES_ARR = [
   { key: 'physical', label: t('Physical (table or view)') },
@@ -207,7 +212,13 @@ function ColumnCollectionTable({
                 fieldKey="type"
                 label={t('Data type')}
                 control={
-                  <SelectControl choices={DATA_TYPES} name="type" freeForm />
+                  <Select
+                    ariaLabel={t('Data type')}
+                    options={DATA_TYPES}
+                    name="type"
+                    allowNewOptions
+                    allowClear
+                  />
                 }
               />
             )}
