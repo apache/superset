@@ -97,6 +97,8 @@ export interface PostProcessingPivot {
     index: string[];
     columns: string[];
     aggregates: Aggregates;
+    flatten_columns?: boolean;
+    reset_index?: boolean;
   };
 }
 
@@ -128,6 +130,7 @@ export interface PostProcessingRolling {
     window: number;
     min_periods: number;
     columns: string[];
+    is_pivot_df?: boolean;
   };
 }
 
@@ -136,6 +139,7 @@ export interface PostProcessingCum {
   options: {
     columns: string[];
     operator: NumpyFunction;
+    is_pivot_df?: boolean;
   };
 }
 
