@@ -221,7 +221,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     // We are using the refresh state to re-trigger the query
     // previousRefresh should be out of dependencies array
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentDbId, currentSchema, onTablesLoad, refresh]);
+  }, [currentDbId, currentSchema, onTablesLoad, refresh, currentTable]);
 
   function renderSelectRow(select: ReactNode, refreshBtn: ReactNode) {
     return (
