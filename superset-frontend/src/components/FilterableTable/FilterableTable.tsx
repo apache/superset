@@ -435,7 +435,7 @@ export default class FilterableTable extends PureComponent<
         }}
         className={`grid-cell ${this.rowClassName({ index: rowIndex })}`}
       >
-        <div>{content}</div>
+        <div css={{ width: 'inherit' }}>{content}</div>
       </div>
     );
 
