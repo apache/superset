@@ -49,8 +49,13 @@ export default function HeaderReportActionsDropDown({
   const reports: Record<number, AlertObject> = useSelector<any, AlertObject>(
     state => state.reports,
   );
-  const report: AlertObject = Object.values(reports)[0];
-  const hasReport = !!report;
+  const report: AlertObject = Object.values(reports).filter(report => {
+    if (dashboardId) {
+      return report.dashboard_id === dashboardId;
+    }
+    return report.chart_id === chart?.id;
+  })[0];
+
   const user: UserWithPermissionsAndRoles = useSelector<
     any,
     UserWithPermissionsAndRoles
@@ -103,7 +108,7 @@ export default function HeaderReportActionsDropDown({
   }, []);
 
   useEffect(() => {
-    if (hasReport && report.dashboard_id !== dashboardId) {
+    if (canAddReports()) {
       dispatch(
         fetchUISpecificReport({
           userId: user.userId,
@@ -121,8 +126,8 @@ export default function HeaderReportActionsDropDown({
         {t('Email reports active')}
         <Switch
           data-test="toggle-active"
-          checked={reports?.active}
-          onClick={(checked: boolean) => toggleActiveKey(reports, checked)}
+          checked={report?.active}
+          onClick={(checked: boolean) => toggleActiveKey(report, checked)}
           size="small"
           css={{ marginLeft: theme.gridUnit * 2 }}
         />
@@ -131,7 +136,7 @@ export default function HeaderReportActionsDropDown({
         {t('Edit email report')}
       </Menu.Item>
       <Menu.Item
-        onClick={() => setCurrentReportDeleting(reports)}
+        onClick={() => setCurrentReportDeleting(report)}
         css={deleteColor}
       >
         {t('Delete email report')}

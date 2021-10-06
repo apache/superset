@@ -62,6 +62,7 @@ export type AlertObject = {
   chart?: MetaObject;
   changed_by?: user;
   changed_on_delta_humanized?: string;
+  chart_id: number;
   created_by?: user;
   created_on?: string;
   crontab?: string;
