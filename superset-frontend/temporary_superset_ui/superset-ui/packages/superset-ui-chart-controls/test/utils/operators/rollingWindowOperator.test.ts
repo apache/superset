@@ -69,6 +69,7 @@ test('rolling_type: cumsum', () => {
         'count(*)': 'count(*)',
         'sum(val)': 'sum(val)',
       },
+      is_pivot_df: true,
     },
   });
 });
@@ -86,6 +87,7 @@ test('rolling_type: sum/mean/std', () => {
           'count(*)': 'count(*)',
           'sum(val)': 'sum(val)',
         },
+        is_pivot_df: true,
       },
     });
   });
@@ -114,6 +116,7 @@ test('rolling window and "actual values" in the time compare', () => {
         'sum(val)__1 year ago': 'sum(val)__1 year ago',
         'sum(val)__1 year later': 'sum(val)__1 year later',
       },
+      is_pivot_df: true,
     },
   });
 });
@@ -141,6 +144,7 @@ test('rolling window and "difference / percentage / ratio" in the time compare',
           [`${cType}__sum(val)__sum(val)__1 year ago`]: `${cType}__sum(val)__sum(val)__1 year ago`,
           [`${cType}__sum(val)__sum(val)__1 year later`]: `${cType}__sum(val)__sum(val)__1 year later`,
         },
+        is_pivot_df: true,
       },
     });
   });
