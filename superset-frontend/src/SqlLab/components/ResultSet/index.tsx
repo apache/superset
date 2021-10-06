@@ -69,9 +69,17 @@ enum LIMITING_FACTOR {
 
 const LOADING_STYLES: CSSProperties = { position: 'relative', minHeight: 100 };
 
+interface DatasetOwner {
+  first_name: string;
+  id: number;
+  last_name: string;
+  username: string;
+}
+
 interface DatasetOptionAutocomplete {
   value: string;
   datasetId: number;
+  owners: [DatasetOwner];
 }
 
 interface ResultSetProps {
@@ -142,6 +150,7 @@ const updateDataset = async (
   datasetId: number,
   sql: string,
   columns: Array<Record<string, any>>,
+  owners: [number],
   overrideColumns: boolean,
 ) => {
   const endpoint = `api/v1/dataset/${datasetId}?override_columns=${overrideColumns}`;
@@ -149,6 +158,7 @@ const updateDataset = async (
   const body = JSON.stringify({
     sql,
     columns,
+    owners,
   });
 
   const data: JsonResponse = await SupersetClient.put({
@@ -269,6 +279,7 @@ export default class ResultSet extends React.PureComponent<
       datasetToOverwrite.datasetId,
       sql,
       results.selected_columns.map(d => ({ column_name: d.name })),
+      datasetToOverwrite.owners.map((o: DatasetOwner) => o.id),
       true,
     );
 
@@ -405,10 +416,13 @@ export default class ResultSet extends React.PureComponent<
         endpoint: '/api/v1/dataset',
       })(`q=${queryParams}`);
 
-      return response.result.map((r: { table_name: string; id: number }) => ({
-        value: r.table_name,
-        datasetId: r.id,
-      }));
+      return response.result.map(
+        (r: { table_name: string; id: number; owners: [DatasetOwner] }) => ({
+          value: r.table_name,
+          datasetId: r.id,
+          owners: r.owners,
+        }),
+      );
     }
 
     return null;
