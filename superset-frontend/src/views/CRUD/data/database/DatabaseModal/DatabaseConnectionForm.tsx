@@ -499,7 +499,7 @@ const forceSSLField = ({
     <span css={toggleStyle}>SSL</span>
     <InfoTooltip
       tooltip={t(
-        'Enable SSL for increased security. See link at the top of this form for more information.',
+        'Enable SSL for increased security. Refer to the official documentation for more information.',
       )}
       placement="right"
       viewBox="0 -5 24 24"
