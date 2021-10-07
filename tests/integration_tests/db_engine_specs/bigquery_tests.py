@@ -176,15 +176,13 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
         sys.modules["pandas_gbq"] = mock.MagicMock()
         df = DataFrame()
         database = mock.MagicMock()
-        self.assertRaisesRegexp(
-            Exception,
-            "Could not import libraries",
-            BigQueryEngineSpec.df_to_sql,
-            database=database,
-            table=Table(table="name", schema="schema"),
-            df=df,
-            to_sql_kwargs={},
-        )
+        with self.assertRaises(Exception):
+            BigQueryEngineSpec.df_to_sql(
+                database=database,
+                table=Table(table="name", schema="schema"),
+                df=df,
+                to_sql_kwargs={},
+            )
 
         invalid_kwargs = [
             {"name": "some_name"},
