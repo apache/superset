@@ -180,7 +180,7 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
 
     def get_query_details(self) -> str:
         try:
-            if self.query:
+            if hasattr(self, "query"):
                 if self.query.id:
                     return "query '{}' - '{}'".format(self.query.id, self.query.sql)
         except DetachedInstanceError:
