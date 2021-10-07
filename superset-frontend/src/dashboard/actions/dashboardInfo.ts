@@ -28,11 +28,14 @@ export function dashboardInfoChanged(newInfo: { metadata: any }) {
   const { metadata } = newInfo;
 
   if (metadata?.label_colors) {
-    const scheme = metadata.color_scheme;
-    const namespace = metadata.color_namespace;
-    const colorMap = isString(metadata.label_colors)
-      ? JSON.parse(metadata.label_colors)
-      : metadata.label_colors;
+    const {
+      color_scheme: scheme,
+      color_namespace: namespace,
+      label_colors: labelColors,
+    } = metadata;
+    const colorMap = isString(labelColors)
+      ? JSON.parse(labelColors)
+      : labelColors;
     Object.keys(colorMap).forEach(label => {
       CategoricalColorNamespace.getScale(scheme, namespace).setColor(
         label,
