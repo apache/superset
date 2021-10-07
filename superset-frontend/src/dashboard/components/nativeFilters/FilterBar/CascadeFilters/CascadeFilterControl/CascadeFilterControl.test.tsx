@@ -23,21 +23,21 @@ import { Provider } from 'react-redux';
 import { nativeFiltersInfo } from 'spec/javascripts/dashboard/fixtures/mockNativeFilters';
 import CascadeFilterControl, { CascadeFilterControlProps } from '.';
 
-const mockedProps = {
+const mockedProps = (defaultsId = nativeFiltersInfo.filters.DefaultsID) => ({
   filter: {
-    ...nativeFiltersInfo.filters.DefaultsID,
+    ...defaultsId,
     cascadeChildren: [
       {
-        ...nativeFiltersInfo.filters.DefaultsID,
+        ...defaultsId,
         name: 'test child filter 1',
         cascadeChildren: [],
       },
       {
-        ...nativeFiltersInfo.filters.DefaultsID,
+        ...defaultsId,
         name: 'test child filter 2',
         cascadeChildren: [
           {
-            ...nativeFiltersInfo.filters.DefaultsID,
+            ...defaultsId,
             name: 'test child of a child filter',
             cascadeChildren: [],
           },
@@ -46,7 +46,7 @@ const mockedProps = {
     ],
   },
   onFilterSelectionChange: jest.fn(),
-};
+});
 
 const setup = (props: CascadeFilterControlProps) => (
   <Provider store={mockStore}>
@@ -55,22 +55,38 @@ const setup = (props: CascadeFilterControlProps) => (
 );
 
 test('should render', () => {
-  const { container } = render(setup(mockedProps));
+  const { container } = render(setup(mockedProps()));
   expect(container).toBeInTheDocument();
 });
 
 test('should render the filter name', () => {
-  render(setup(mockedProps));
+  render(setup(mockedProps()));
   expect(screen.getByText('test')).toBeInTheDocument();
 });
 
 test('should render the children filter names', () => {
-  render(setup(mockedProps));
+  render(setup(mockedProps()));
   expect(screen.getByText('test child filter 1')).toBeInTheDocument();
   expect(screen.getByText('test child filter 2')).toBeInTheDocument();
 });
 
 test('should render the child of a child filter name', () => {
-  render(setup(mockedProps));
+  render(setup(mockedProps()));
   expect(screen.getByText('test child of a child filter')).toBeInTheDocument();
+});
+
+test('should render tooltip if description is not empty', async () => {
+  render(setup(mockedProps()));
+  const toolTips = await screen.findAllByTestId('filter-description');
+  expect(toolTips).toHaveLength(4);
+  toolTips.map(item => expect(item).toBeInTheDocument());
+});
+test('should not render tooltip if description is empty', () => {
+  render(
+    setup(
+      mockedProps({ ...nativeFiltersInfo.filters.DefaultsID, description: '' }),
+    ),
+  );
+  const toolTips = screen.queryAllByTestId('filter-description');
+  toolTips.map(item => expect(item).not.toBeInTheDocument());
 });

@@ -17,11 +17,12 @@
  * under the License.
  */
 import React from 'react';
-import { styled } from '@superset-ui/core';
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import { styled, t } from '@superset-ui/core';
 import { Form, FormItem } from 'src/components/Form';
+import { checkIsMissingRequiredValue } from '../utils';
 import FilterValue from './FilterValue';
 import { FilterProps } from './types';
-import { checkIsMissingRequiredValue } from '../utils';
 
 const StyledIcon = styled.div`
   position: absolute;
@@ -52,6 +53,12 @@ const StyledFilterControlContainer = styled(Form)`
   }
 `;
 
+const ToolTipContainer = styled.div`
+  font-size: ${({ theme }) => theme.typography.sizes.m}px;
+  display: flex;
+  padding-left: ${({ theme }) => theme.gridUnit}px;
+`;
+
 const FilterControl: React.FC<FilterProps> = ({
   dataMaskSelected,
   filter,
@@ -74,7 +81,19 @@ const FilterControl: React.FC<FilterProps> = ({
           <StyledFilterControlTitleBox>
             <StyledFilterControlTitle data-test="filter-control-name">
               {name}
-            </StyledFilterControlTitle>
+            </StyledFilterControlTitle>{' '}
+            {!!filter.description && (
+              <ToolTipContainer
+                data-test="filter-description"
+                className="text-muted"
+              >
+                <InfoTooltipWithTrigger
+                  label={t('description')}
+                  tooltip={filter.description}
+                  placement="top"
+                />
+              </ToolTipContainer>
+            )}
             <StyledIcon data-test="filter-icon">{icon}</StyledIcon>
           </StyledFilterControlTitleBox>
         }
