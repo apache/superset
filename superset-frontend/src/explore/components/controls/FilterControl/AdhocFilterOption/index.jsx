@@ -37,7 +37,7 @@ const propTypes = {
     ]),
   ).isRequired,
   hasCustomSQL: PropTypes.bool,
-  operators: PropTypes.arrayOf(PropTypes.object),
+  operators: PropTypes.arrayOf(PropTypes.string),
   datasource: PropTypes.object,
   partitionColumn: PropTypes.string,
   onMoveLabel: PropTypes.func,

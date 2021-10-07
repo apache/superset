@@ -47,7 +47,7 @@ const propTypes = {
   partitionColumn: PropTypes.string,
   theme: PropTypes.object,
   hasCustomSQL: PropTypes.bool,
-  operators: PropTypes.arrayOf(PropTypes.object),
+  operators: PropTypes.arrayOf(PropTypes.string),
 };
 
 const ResizeIcon = styled.i`
