@@ -23,7 +23,7 @@ module.exports = {
     'prettier/react',
     'plugin:react-hooks/recommended',
   ],
-  parser: 'babel-eslint',
+  parser: '@babel/eslint-parser',
   parserOptions: {
     ecmaFeatures: {
       experimentalObjectRestSpread: true,
