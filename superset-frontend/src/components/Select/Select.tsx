@@ -181,6 +181,7 @@ const Select = ({
   mode = 'single',
   name,
   notFoundContent,
+  onError,
   onChange,
   onClear,
   optionFilterProps = ['label', 'value'],
@@ -328,15 +329,18 @@ const Select = ({
     setSearchedValue('');
   };
 
-  const onError = (response: Response) =>
-    getClientErrorObject(response).then(e => {
-      const { error } = e;
-      setError(error);
+  const internalOnError = useCallback(
+    (response: Response) =>
+      getClientErrorObject(response).then(e => {
+        const { error } = e;
+        setError(error);
 
-      if (props.onError) {
-        props.onError(error);
-      }
-    });
+        if (onError) {
+          onError(error);
+        }
+      }),
+    [onError],
+  );
 
   const handleData = (data: OptionsType) => {
     let mergedData: OptionsType = [];
@@ -391,13 +395,13 @@ const Select = ({
             setAllValuesLoaded(true);
           }
         })
-        .catch(onError)
+        .catch(internalOnError)
         .finally(() => {
           setIsLoading(false);
           setIsTyping(false);
         });
     },
-    [allValuesLoaded, fetchOnlyOnSearch, options],
+    [allValuesLoaded, fetchOnlyOnSearch, internalOnError, options],
   );
 
   const handleOnSearch = useMemo(
