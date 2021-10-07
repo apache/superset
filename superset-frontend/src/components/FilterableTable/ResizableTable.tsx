@@ -70,11 +70,9 @@ const ResizableTableStyles = styled.div<{
   `}
   .table {
     border: 1px solid black;
-  width: 100%;
+    width: 100%;
   }
-  .table-row {
-    }
-
+  
     .table-cell {
       ${({ small }) =>
         small &&
@@ -83,132 +81,91 @@ const ResizableTableStyles = styled.div<{
     }
   }
 
-  th[role='columnheader'] {
-    z-index: 1;
- {border-bottom: ${({ theme }) =>
-   `${theme.gridUnit - 2}px solid ${theme.colors.grayscale.light2}`};
-    ${({ small }) => small && `padding-bottom: 0;`}*/}
-    border-right: 1px solid black;
-    text-overflow: elipsis; 
-    overflow: hidden;
-    background-color: green;
-  }
-  tr.table-row:nth-child(odd) {
-    background-color: ${({ theme }) => `${theme.colors.grayscale.light2}`};
-  }
-  th,
-  td {
-  position: relative
-  }
-  tr,
-  td {
-    margin: 0;
-    border-bottom: 1px solid black;
-    border-right: 1px solid black;
-
-    .resizer {
-      display: inline-block;
-      width: 10px;
-      height: 100%;
-      position: absolute;
-      right: 0;
-      top: 0;
-      transform: translateX(50%);
-      z-index: 1;
-      ${'' /* prevents from scrolling while dragging on touch devices */}
-      touch-action:none;
-
-      &.isResizing {
-        background: red;
-      }
-    }
-  }
 `;
 
 const ResizableTable = ({
   columns,
-data,
-filterText = '',
-totalCount = data.length,
-initialSortBy = [],
-loading = false,
-scrollTable = true,
-emptyWrapperType = EmptyWrapperType.Default,
-noDataText,
-showRowCount = true,
-...props
+  data,
+  filterText = '',
+  totalCount = data.length,
+  initialSortBy = [],
+  loading = false,
+  scrollTable = true,
+  emptyWrapperType = EmptyWrapperType.Default,
+  noDataText,
+  showRowCount = true,
+  ...props
 }: ResizableTableProps) => {
-{
-/*const initialState = {
+  {
+    /*const initialState = {
 pageSize: initialPageSize ?? DEFAULT_PAGE_SIZE,
 sortBy: initialSortBy,
 };*/
-}
+  }
 
-const {
-getTableProps,
-getTableBodyProps,
-headerGroups,
-rows,
-prepareRow,
-setGlobalFilter,
-...state
-} = useTable(
-{
-  columns,
-  data,
-},
-useFilters,
-useGlobalFilter,
-useSortBy,
-usePagination,
-useResizeColumns,
-useFlexLayout,
-);
-
-//const [filterText, setFilterText] = useState('');
-
-useEffect(() => {
-setGlobalFilter(filterText);
-}, [filterText, setGlobalFilter]);
-
-let EmptyWrapperComponent;
-switch (emptyWrapperType) {
-case EmptyWrapperType.Small:
-  EmptyWrapperComponent = ({ children }: any) => <>{children}</>;
-  break;
-case EmptyWrapperType.Default:
-default:
-  EmptyWrapperComponent = ({ children }: any) => (
-    <EmptyWrapper>{children}</EmptyWrapper>
+  const {
+    getTableProps,
+    getTableBodyProps,
+    headerGroups,
+    rows,
+    prepareRow,
+    setGlobalFilter,
+    ...state
+  } = useTable(
+    {
+      columns,
+      data,
+    },
+    useFilters,
+    useGlobalFilter,
+    useSortBy,
+    usePagination,
+    useResizeColumns,
+    useFlexLayout,
   );
-}
 
-const isEmpty = !loading && rows.length === 0;
+  //const [filterText, setFilterText] = useState('');
 
-console.group('RESIZABLE_TABLE')
+  useEffect(() => {
+    setGlobalFilter(filterText);
+  }, [filterText, setGlobalFilter]);
 
-console.log('STATE_FILLTBL', state);
-console.log('PROPS_FILLTBL', getTableProps(props));
-console.log('PROPS_FILLTBL_BDYPROPS', getTableBodyProps(props));
-console.log('HEADER_GROUP', headerGroups);
-console.log('COLUMNS', columns);
-console.log('ROWS', rows);
+  let EmptyWrapperComponent;
+  switch (emptyWrapperType) {
+    case EmptyWrapperType.Small:
+      EmptyWrapperComponent = ({ children }: any) => <>{children}</>;
+      break;
+    case EmptyWrapperType.Default:
+    default:
+      EmptyWrapperComponent = ({ children }: any) => (
+        <EmptyWrapper>{children}</EmptyWrapper>
+      );
+  }
 
-console.groupEnd()
+  const isEmpty = !loading && rows.length === 0;
 
-return (
-<>
-  <ResizableTableStyles {...props}>
+  console.group('RESIZABLE_TABLE');
 
-      {/*{console.log('getTableProps:', getTableProps)}*/}
-      {/*{console.log('getTableBodyProps:', getTableBodyProps)}*/}
-      {/*{console.log('prepareRow:', prepareRow)}*/}
-      {/*{console.log('headerGroups:', headerGroups)}*/}
-      {console.log('rows:', rows)}
-      {console.log('columns:', columns)}
-      
-    <TableDisplay
+  console.log('STATE_FILLTBL', state);
+  console.log('PROPS_FILLTBL', getTableProps(props));
+  console.log('PROPS_FILLTBL_BDYPROPS', getTableBodyProps(props));
+  console.log('HEADER_GROUP', headerGroups);
+  console.log('COLUMNS', columns);
+  console.log('ROWS', rows);
+
+  console.groupEnd();
+
+  return (
+    <>
+      <ResizableTableStyles {...props}>
+        {/*{console.log('getTableProps:', getTableProps)}*/}
+        {/*{console.log('getTableBodyProps:', getTableBodyProps)}*/}
+        {/*{console.log('prepareRow:', prepareRow)}*/}
+        {/*{console.log('headerGroups:', headerGroups)}*/}
+        {console.log('rows:', rows)}
+        {console.log('columns:', columns)}
+
+        <TableDisplay
           getTableProps={getTableProps}
           getTableBodyProps={getTableBodyProps}
           prepareRow={prepareRow}
