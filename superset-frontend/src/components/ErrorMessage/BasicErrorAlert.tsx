@@ -56,7 +56,7 @@ export default function BasicErrorAlert({
 }: BasicErrorAlertProps) {
   return (
     <StyledContainer level={level} role="alert">
-      {level === 'error' ? (
+      {!level || level === 'error' ? (
         <Icons.ErrorSolid iconColor={supersetTheme.colors[level].base} />
       ) : (
         <Icons.WarningSolid iconColor={supersetTheme.colors[level].base} />

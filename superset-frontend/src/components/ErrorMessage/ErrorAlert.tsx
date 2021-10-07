@@ -106,7 +106,7 @@ export default function ErrorAlert({
     <ErrorAlertDiv level={level} role="alert">
       <div className="top-row">
         <LeftSideContent>
-          {level === 'error' ? (
+          {!level || level === 'error' ? (
             <Icons.ErrorSolid
               className="icon"
               iconColor={supersetTheme.colors[level].base}
@@ -169,7 +169,7 @@ export default function ErrorAlert({
           onHide={() => setIsModalOpen(false)}
           title={
             <div className="header">
-              {level === 'error' ? (
+              {!level || level === 'error' ? (
                 <Icons.ErrorSolid
                   className="icon"
                   iconColor={supersetTheme.colors[level].base}
