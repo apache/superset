@@ -26,6 +26,8 @@ import Alert from 'src/components/Alert';
 import Badge from 'src/components/Badge';
 import shortid from 'shortid';
 import { styled, SupersetClient, t, supersetTheme } from '@superset-ui/core';
+import { Select } from 'src/components';
+import { FormLabel } from 'src/components/Form';
 import Button from 'src/components/Button';
 import Tabs from 'src/components/Tabs';
 import CertifiedIcon from 'src/components/CertifiedIcon';
@@ -40,7 +42,6 @@ import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import TextControl from 'src/explore/components/controls/TextControl';
-import { Select } from 'src/components';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import SelectAsyncControl from 'src/explore/components/controls/SelectAsyncControl';
 import SpatialControl from 'src/explore/components/controls/SpatialControl';
@@ -722,16 +723,23 @@ class DatasourceEditor extends React.PureComponent {
           label={t('Owners')}
           description={t('Owners of the dataset')}
           control={
-            <SelectAsyncControl
-              dataEndpoint="api/v1/dataset/related/owners"
-              multi
-              mutator={data =>
-                data.result.map(pk => ({
-                  value: pk.value,
-                  label: `${pk.text}`,
-                }))
-              }
-            />
+            <>
+              <Select
+                ariaLabel={t('Select owners')}
+                header={<FormLabel>{t('Owners')}</FormLabel>}
+                options={[{ label: 'foo', value: 'bar' }]}
+              />
+              <SelectAsyncControl
+                dataEndpoint="api/v1/dataset/related/owners"
+                multi
+                mutator={data =>
+                  data.result.map(pk => ({
+                    value: pk.value,
+                    label: `${pk.text}`,
+                  }))
+                }
+              />
+            </>
           }
           controlProps={{}}
         />
