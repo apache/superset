@@ -36,7 +36,33 @@ import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
+<<<<<<< Updated upstream
 import { Input } from 'src/common/components';
+=======
+import { Input, SelectProps } from 'src/common/components';
+
+const StyledInput = styled(Input)`
+  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+`;
+
+const SelectWithLabel = styled(Select)`
+  .ant-select-selector {
+    margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+  }
+
+  .ant-select-selector::after {
+    content: '${(
+      pr: SelectProps<any> & {
+        labelText: string | boolean;
+      },
+    ) => pr.labelText || '\\A0'}';
+    display: inline-block;
+    white-space: nowrap;
+    color: ${({ theme }) => theme.colors.grayscale.light1};
+    width: max-content;
+  }
+`;
+>>>>>>> Stashed changes
 
 export interface SimpleColumnType {
   id: number;
@@ -81,6 +107,7 @@ export interface Props {
     filter_select: boolean;
   };
   partitionColumn: string;
+  operators?: Operators[];
 }
 export const useSimpleTabFilterProps = (props: Props) => {
   const isOperatorRelevant = (operator: Operators, subject: string) => {
@@ -280,7 +307,9 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   const operatorSelectProps = {
     placeholder: t(
       '%s operator(s)',
-      OPERATORS_OPTIONS.filter(op => isOperatorRelevant(op, subject)).length,
+      (props.operators ?? OPERATORS_OPTIONS).filter(op =>
+        isOperatorRelevant(op, subject),
+      ).length,
     ),
     value: operatorId,
     onChange: onOperatorChange,
@@ -388,7 +417,25 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
           key: option,
         }))}
         {...operatorSelectProps}
+<<<<<<< Updated upstream
       />
+=======
+        filterOption={(input, option) =>
+          option && option.children
+            ? option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+            : false
+        }
+        getPopupContainer={triggerNode => triggerNode.parentNode}
+      >
+        {(props.operators ?? OPERATORS_OPTIONS)
+          .filter(op => isOperatorRelevant(op, subject))
+          .map(option => (
+            <Select.Option value={option} key={option}>
+              {OPERATOR_ENUM_TO_OPERATOR_TYPE[option].display}
+            </Select.Option>
+          ))}
+      </Select>
+>>>>>>> Stashed changes
       {MULTI_OPERATORS.has(operatorId) || suggestions.length > 0 ? (
         <SelectWithLabel
           options={suggestions.map((suggestion: string) => ({
@@ -398,7 +445,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
           {...comparatorSelectProps}
         />
       ) : (
-        <Input
+        <StyledInput
           data-test="adhoc-filter-simple-value"
           name="filter-value"
           ref={ref => {
