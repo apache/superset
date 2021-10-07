@@ -102,6 +102,7 @@ const LimitSelectStyled = styled.span`
 
 const StyledToolbar = styled.div`
   padding: ${({ theme }) => theme.gridUnit * 2}px;
+  background: ${({ theme }) => theme.colors.grayscale.light5};
   display: flex;
   justify-content: space-between;
   border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
