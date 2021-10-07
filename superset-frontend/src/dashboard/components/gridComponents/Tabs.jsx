@@ -133,15 +133,12 @@ export class Tabs extends React.PureComponent {
   }
 
   componentDidMount() {
-    this.props.setActiveTabs([...this.props.activeTabs, this.state.activeKey]);
+    this.props.setActiveTabs(this.state.activeKey);
   }
 
   componentDidUpdate(prevProps, prevState) {
     if (prevState.activeKey !== this.state.activeKey) {
-      this.props.setActiveTabs([
-        ...this.props.activeTabs.filter(tabId => tabId !== prevState.activeKey),
-        this.state.activeKey,
-      ]);
+      this.props.setActiveTabs(this.state.activeKey, prevState.activeKey);
     }
   }
 
