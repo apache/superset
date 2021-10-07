@@ -14,8 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=no-self-use, invalid-name
-
 import itertools
 import json
 from unittest.mock import MagicMock, patch
@@ -465,8 +463,10 @@ class TestImportDashboardsCommand(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
-    def test_import_v1_dashboard(self):
+    @patch("superset.dashboards.commands.importers.v1.utils.g")
+    def test_import_v1_dashboard(self, mock_g):
         """Test that we can import a dashboard"""
+        mock_g.user = security_manager.find_user("admin")
         contents = {
             "metadata.yaml": yaml.safe_dump(dashboard_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
@@ -546,6 +546,12 @@ class TestImportDashboardsCommand(SupersetTestCase):
         database = dataset.database
         assert str(database.uuid) == database_config["uuid"]
 
+        assert dashboard.owners == [mock_g.user]
+
+        dashboard.owners = []
+        chart.owners = []
+        dataset.owners = []
+        database.owners = []
         db.session.delete(dashboard)
         db.session.delete(chart)
         db.session.delete(dataset)

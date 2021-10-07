@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { RefObject } from 'react';
+import { styled } from '@superset-ui/core';
 import cx from 'classnames';
 
 interface HoverMenuProps {
@@ -24,6 +25,43 @@ interface HoverMenuProps {
   innerRef: RefObject<HTMLDivElement>;
   children: React.ReactNode;
 }
+
+const HoverStyleOverrides = styled.div`
+  .hover-menu {
+    opacity: 0;
+    position: absolute;
+    z-index: @z-index-above-dashboard-charts;
+    font-size: @font-size-m;
+  }
+
+  .hover-menu--left {
+    width: 24px;
+    top: 50%;
+    transform: translate(0, -50%);
+    left: -28px;
+    padding: 8px 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .hover-menu--left > :nth-child(n):not(:only-child):not(:last-child) {
+    margin-bottom: 12px;
+  }
+
+  .hover-menu--top {
+    height: 24px;
+    top: -24px;
+    left: 50%;
+    transform: translate(-50%);
+    padding: 0 8px;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+  }
+`;
 
 export default class HoverMenu extends React.PureComponent<HoverMenuProps> {
   static defaultProps = {
@@ -35,16 +73,18 @@ export default class HoverMenu extends React.PureComponent<HoverMenuProps> {
   render() {
     const { innerRef, position, children } = this.props;
     return (
-      <div
-        ref={innerRef}
-        className={cx(
-          'hover-menu',
-          position === 'left' && 'hover-menu--left',
-          position === 'top' && 'hover-menu--top',
-        )}
-      >
-        {children}
-      </div>
+      <HoverStyleOverrides className="hover-menu-container">
+        <div
+          ref={innerRef}
+          className={cx(
+            'hover-menu',
+            position === 'left' && 'hover-menu--left',
+            position === 'top' && 'hover-menu--top',
+          )}
+        >
+          {children}
+        </div>
+      </HoverStyleOverrides>
     );
   }
 }

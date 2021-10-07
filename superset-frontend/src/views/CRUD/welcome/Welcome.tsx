@@ -26,7 +26,7 @@ import {
   setInLocalStorage,
 } from 'src/utils/localStorageHelpers';
 import ListViewCard from 'src/components/ListViewCard';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import {
   createErrorHandler,
   getRecentAcitivtyObjs,

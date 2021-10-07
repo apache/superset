@@ -33,7 +33,7 @@ import ListView, {
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import { Switch } from 'src/components/Switch';
 import { DATETIME_WITH_TIME_ZONE } from 'src/constants';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';
 import RecipientIcon from 'src/views/CRUD/alert/components/RecipientIcon';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
@@ -56,6 +56,8 @@ interface AlertListProps {
   isReportEnabled: boolean;
   user: {
     userId: string | number;
+    firstName: string;
+    lastName: string;
   };
 }
 const deleteAlerts = makeApi<number[], { message: string }>({
@@ -381,7 +383,7 @@ function AlertList({
           createErrorHandler(errMsg =>
             t('An error occurred while fetching created by values: %s', errMsg),
           ),
-          user.userId,
+          user,
         ),
         paginate: true,
       },

@@ -34,6 +34,8 @@ from flask import current_app, g, has_request_context, request
 from flask_babel import gettext as _
 from jinja2 import DebugUndefined
 from jinja2.sandbox import SandboxedEnvironment
+from sqlalchemy.engine.interfaces import Dialect
+from sqlalchemy.types import String
 from typing_extensions import TypedDict
 
 from superset.exceptions import SupersetTemplateException
@@ -95,9 +97,11 @@ class ExtraCache:
         self,
         extra_cache_keys: Optional[List[Any]] = None,
         removed_filters: Optional[List[str]] = None,
+        dialect: Optional[Dialect] = None,
     ):
         self.extra_cache_keys = extra_cache_keys
         self.removed_filters = removed_filters if removed_filters is not None else []
+        self.dialect = dialect
 
     def current_user_id(self, add_to_cache_keys: bool = True) -> Optional[int]:
         """
@@ -145,7 +149,11 @@ class ExtraCache:
         return key
 
     def url_param(
-        self, param: str, default: Optional[str] = None, add_to_cache_keys: bool = True
+        self,
+        param: str,
+        default: Optional[str] = None,
+        add_to_cache_keys: bool = True,
+        escape_result: bool = True,
     ) -> Optional[str]:
         """
         Read a url or post parameter and use it in your SQL Lab query.
@@ -166,6 +174,7 @@ class ExtraCache:
         :param param: the parameter to lookup
         :param default: the value to return in the absence of the parameter
         :param add_to_cache_keys: Whether the value should be included in the cache key
+        :param escape_result: Should special characters in the result be escaped
         :returns: The URL parameters
         """
 
@@ -178,6 +187,11 @@ class ExtraCache:
         form_data, _ = get_form_data()
         url_params = form_data.get("url_params") or {}
         result = url_params.get(param, default)
+        if result and escape_result and self.dialect:
+            # use the dialect specific quoting logic to escape string
+            result = String().literal_processor(dialect=self.dialect)(value=result)[
+                1:-1
+            ]
         if add_to_cache_keys:
             self.cache_key_wrapper(result)
         return result
@@ -430,7 +444,11 @@ class BaseTemplateProcessor:
 class JinjaTemplateProcessor(BaseTemplateProcessor):
     def set_context(self, **kwargs: Any) -> None:
         super().set_context(**kwargs)
-        extra_cache = ExtraCache(self._extra_cache_keys, self._removed_filters)
+        extra_cache = ExtraCache(
+            extra_cache_keys=self._extra_cache_keys,
+            removed_filters=self._removed_filters,
+            dialect=self._database.get_dialect(),
+        )
         self._context.update(
             {
                 "url_param": partial(safe_proxy, extra_cache.url_param),

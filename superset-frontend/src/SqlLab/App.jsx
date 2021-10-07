@@ -39,7 +39,7 @@ import { BYTES_PER_CHAR, KB_STORAGE } from './constants';
 import setupApp from '../setup/setupApp';
 
 import './main.less';
-import '../../stylesheets/reactable-pagination.less';
+import '../assets/stylesheets/reactable-pagination.less';
 import '../components/FilterableTable/FilterableTableStyles.less';
 import { theme } from '../preamble';
 

@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=too-many-lines
 import logging
 import re
 import textwrap
@@ -51,6 +52,7 @@ from sqlalchemy.sql.expression import ColumnClause, Select
 from sqlalchemy.types import TypeEngine
 
 from superset import cache_manager, is_feature_enabled
+from superset.common.db_query_status import QueryStatus
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetTemplateException
@@ -94,7 +96,6 @@ CONNECTION_UNKNOWN_DATABASE_ERROR = re.compile(
 )
 
 
-QueryStatus = utils.QueryStatus
 logger = logging.getLogger(__name__)
 
 
@@ -508,7 +509,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         ),
         (
             re.compile(r"^date.*", re.IGNORECASE),
-            types.DATE(),
+            types.DATETIME(),
             utils.GenericDataType.TEMPORAL,
         ),
         (
