@@ -36,33 +36,21 @@ import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
-<<<<<<< Updated upstream
 import { Input } from 'src/common/components';
-=======
-import { Input, SelectProps } from 'src/common/components';
 
 const StyledInput = styled(Input)`
   margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
-const SelectWithLabel = styled(Select)`
-  .ant-select-selector {
-    margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
-  }
-
+const SelectWithLabel = styled(Select)<{ labelText: string }>`
   .ant-select-selector::after {
-    content: '${(
-      pr: SelectProps<any> & {
-        labelText: string | boolean;
-      },
-    ) => pr.labelText || '\\A0'}';
+    content: ${({ labelText }) => labelText || '\\A0'};
     display: inline-block;
     white-space: nowrap;
     color: ${({ theme }) => theme.colors.grayscale.light1};
     width: max-content;
   }
 `;
->>>>>>> Stashed changes
 
 export interface SimpleColumnType {
   id: number;
@@ -339,16 +327,6 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   const labelText =
     comparator && comparator.length > 0 && createSuggestionsPlaceholder();
 
-  const SelectWithLabel = styled(Select)`
-    .ant-select-selector::after {
-      content: ${() => labelText || '\\A0'};
-      display: inline-block;
-      white-space: nowrap;
-      color: ${({ theme }) => theme.colors.grayscale.light1};
-      width: max-content;
-    }
-  `;
-
   useEffect(() => {
     const refreshComparatorSuggestions = () => {
       const { datasource } = props;
@@ -409,35 +387,18 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
       />
       <Select
         css={theme => ({ marginBottom: theme.gridUnit * 4 })}
-        options={OPERATORS_OPTIONS.filter(op =>
-          isOperatorRelevant(op, subject),
-        ).map(option => ({
-          value: option,
-          label: OPERATOR_ENUM_TO_OPERATOR_TYPE[option].display,
-          key: option,
-        }))}
-        {...operatorSelectProps}
-<<<<<<< Updated upstream
-      />
-=======
-        filterOption={(input, option) =>
-          option && option.children
-            ? option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-            : false
-        }
-        getPopupContainer={triggerNode => triggerNode.parentNode}
-      >
-        {(props.operators ?? OPERATORS_OPTIONS)
+        options={(props.operators ?? OPERATORS_OPTIONS)
           .filter(op => isOperatorRelevant(op, subject))
-          .map(option => (
-            <Select.Option value={option} key={option}>
-              {OPERATOR_ENUM_TO_OPERATOR_TYPE[option].display}
-            </Select.Option>
-          ))}
-      </Select>
->>>>>>> Stashed changes
+          .map(option => ({
+            value: option,
+            label: OPERATOR_ENUM_TO_OPERATOR_TYPE[option].display,
+            key: option,
+          }))}
+        {...operatorSelectProps}
+      />
       {MULTI_OPERATORS.has(operatorId) || suggestions.length > 0 ? (
         <SelectWithLabel
+          labelText={labelText}
           options={suggestions.map((suggestion: string) => ({
             value: suggestion,
             label: String(suggestion),
