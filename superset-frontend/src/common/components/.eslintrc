@@ -18,6 +18,17 @@
  */
 {
   "rules": {
-    "no-restricted-imports": 0
+    "no-restricted-imports": [
+      "warn",
+      {
+        "paths": [
+          {
+              "name": "@superset-ui/core",
+              "importNames": ["supersetTheme"],
+              "message": "Please use the theme directly from the ThemeProvider rather than importing supersetTheme."
+          }
+        ]
+      }
+    ]
   }
 }
