@@ -111,7 +111,7 @@ export default function ErrorAlert({
           {!level || level === 'error' ? (
             <Icons.ErrorSolid
               className="icon"
-              iconColor={theme.colors[level].base}
+              iconColor={theme.colors.error.base}
             />
           ) : (
             <Icons.WarningSolid
@@ -174,7 +174,7 @@ export default function ErrorAlert({
               {!level || level === 'error' ? (
                 <Icons.ErrorSolid
                   className="icon"
-                  iconColor={theme.colors[level].base}
+                  iconColor={theme.colors.error.base}
                 />
               ) : (
                 <Icons.WarningSolid
