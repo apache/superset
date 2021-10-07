@@ -93,6 +93,7 @@ export interface SelectProps extends PickedSelectProps {
   pageSize?: number;
   invertSelection?: boolean;
   fetchOnlyOnSearch?: boolean;
+  onError?: (error: string) => void;
 }
 
 const StyledContainer = styled.div`
@@ -331,6 +332,10 @@ const Select = ({
     getClientErrorObject(response).then(e => {
       const { error } = e;
       setError(error);
+
+      if (props.onError) {
+        props.onError(error);
+      }
     });
 
   const handleData = (data: OptionsType) => {
