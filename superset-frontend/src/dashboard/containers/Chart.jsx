@@ -76,7 +76,6 @@ function mapStateToProps(
     sliceId: id,
     nativeFilters,
     dataMask,
-    labelColors: labelColors && Object.keys(labelColors).length && labelColors,
   });
 
   formData.dashboardId = dashboardInfo.id;
@@ -84,6 +83,7 @@ function mapStateToProps(
   return {
     chart,
     datasource,
+    labelColors: labelColors && Object.keys(labelColors).length && labelColors,
     slice: sliceEntities.slices[id],
     timeout: dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
     filters: getActiveFilters() || EMPTY_OBJECT,

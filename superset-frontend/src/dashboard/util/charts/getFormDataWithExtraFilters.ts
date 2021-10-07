@@ -16,11 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  CategoricalColorNamespace,
-  DataRecordFilters,
-  JsonObject,
-} from '@superset-ui/core';
+import { DataRecordFilters, JsonObject } from '@superset-ui/core';
 import { ChartQueryPayload, Charts, LayoutItem } from 'src/dashboard/types';
 import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
 import { DataMaskStateWithId } from 'src/dataMask/types';
@@ -62,10 +58,7 @@ export default function getFormDataWithExtraFilters({
   sliceId,
   layout,
   dataMask,
-  labelColors,
 }: GetFormDataWithExtraFiltersArguments) {
-  const scale = CategoricalColorNamespace.getScale(colorScheme, colorNamespace);
-  const scaleLabelColors = labelColors || scale.getColorMap();
   // if dashboard metadata + filters have not changed, use cache if possible
   const cachedFormData = cachedFormdataByChart[sliceId];
   if (
@@ -74,9 +67,6 @@ export default function getFormDataWithExtraFilters({
       ignoreUndefined: true,
     }) &&
     areObjectsEqual(cachedFormData?.color_namespace, colorNamespace, {
-      ignoreUndefined: true,
-    }) &&
-    areObjectsEqual(cachedFormData?.label_colors, labelColors, {
       ignoreUndefined: true,
     }) &&
     !!cachedFormData &&
@@ -110,7 +100,6 @@ export default function getFormDataWithExtraFilters({
   const formData = {
     ...chart.formData,
     ...(colorScheme && { color_scheme: colorScheme }),
-    label_colors: scaleLabelColors,
     extra_filters: getEffectiveExtraFilters(filters),
     ...extraData,
   };
