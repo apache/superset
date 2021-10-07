@@ -109,7 +109,11 @@ export default function ErrorAlert({
           {!level || level === 'error' ? (
             <Icons.ErrorSolid
               className="icon"
+<<<<<<< HEAD
               iconColor={supersetTheme.colors[level].base}
+=======
+              iconColor={theme.colors.error.base}
+>>>>>>> ea700384b... fix: error alerts again (#17026)
             />
           ) : (
             <Icons.WarningSolid
@@ -172,7 +176,11 @@ export default function ErrorAlert({
               {!level || level === 'error' ? (
                 <Icons.ErrorSolid
                   className="icon"
+<<<<<<< HEAD
                   iconColor={supersetTheme.colors[level].base}
+=======
+                  iconColor={theme.colors.error.base}
+>>>>>>> ea700384b... fix: error alerts again (#17026)
                 />
               ) : (
                 <Icons.WarningSolid
