@@ -251,6 +251,7 @@ export default function DatabaseSelector({
     return renderSelectRow(
       <Select
         ariaLabel={t('Select database or type database name')}
+        optionFilterProps={['database_name', 'value']}
         data-test="select-database"
         header={<FormLabel>{t('Database')}</FormLabel>}
         lazyLoading={false}
