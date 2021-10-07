@@ -47,7 +47,6 @@ const propTypes = {
   editMode: PropTypes.bool.isRequired,
   renderHoverMenu: PropTypes.bool,
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
-  activeTabs: PropTypes.arrayOf(PropTypes.string),
 
   // actions (from DashboardComponent.jsx)
   logEvent: PropTypes.func.isRequired,
@@ -74,7 +73,6 @@ const defaultProps = {
   availableColumnCount: 0,
   columnWidth: 0,
   directPathToChild: [],
-  activeTabs: [],
   setActiveTabs() {},
   onResizeStart() {},
   onResize() {},
@@ -407,7 +405,6 @@ function mapStateToProps(state) {
   return {
     nativeFilters: state.nativeFilters,
     directPathToChild: state.dashboardState.directPathToChild,
-    activeTabs: state.dashboardState.activeTabs,
   };
 }
 export default connect(mapStateToProps)(Tabs);
