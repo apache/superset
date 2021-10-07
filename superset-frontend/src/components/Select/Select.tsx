@@ -627,7 +627,7 @@ const Select = ({
           selectOptions.map(opt => {
             const isOptObject = typeof opt === 'object';
             const label = isOptObject ? opt?.label || opt.value : opt;
-            const value = (isOptObject && opt.value) || opt;
+            const value = isOptObject ? opt.value : opt;
             const { customLabel, ...optProps } = opt;
 
             return (
