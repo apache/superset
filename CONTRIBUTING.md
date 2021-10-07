@@ -650,18 +650,23 @@ pre-commit run --all-files
 
 ## Linting
 
-Lint the project with:
+### Python
+
+We use [Pylint](https://pylint.org/) for linting which can be invoked via:
 
 ```bash
 # for python
 tox -e pylint
+```
 
-Alternatively, you can use pre-commit (mentioned above) for python linting
+In terms of best practices please advoid blanket disablement of Pylint messages globally (via `.pylintrc`) or top-level within the file header, albeit there being a few exceptions. Disablement should occur inline as it prevents masking issues and provides context as to why said message is disabled.
 
-The Python code is auto-formatted using [Black](https://github.com/python/black) which
+Additionally the Python code is auto-formatted using [Black](https://github.com/python/black) which
 is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/editor_integration.html)
 
-# for frontend
+### TypeScript
+
+```bash
 cd superset-frontend
 npm ci
 npm run lint

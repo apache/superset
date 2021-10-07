@@ -110,10 +110,12 @@ export default class SelectControl extends React.PureComponent {
     let onChangeVal = val;
 
     if (Array.isArray(val)) {
-      const values = val.map(v => v?.[valueKey] || v);
+      const values = val.map(v =>
+        v?.[valueKey] !== undefined ? v[valueKey] : v,
+      );
       onChangeVal = values;
     }
-    if (typeof val === 'object' && val?.[valueKey]) {
+    if (typeof val === 'object' && val?.[valueKey] !== undefined) {
       onChangeVal = val[valueKey];
     }
     this.props.onChange(onChangeVal, []);
