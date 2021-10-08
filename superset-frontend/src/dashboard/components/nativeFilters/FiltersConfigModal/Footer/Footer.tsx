@@ -62,7 +62,7 @@ const Footer: FC<FooterProps> = ({
         {t('Cancel')}
       </Button>
       <Button
-        disabled={canSave}
+        disabled={!canSave}
         key="submit"
         buttonStyle="primary"
         onClick={handleSave}

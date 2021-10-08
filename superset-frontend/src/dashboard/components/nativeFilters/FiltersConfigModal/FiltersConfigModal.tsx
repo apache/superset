@@ -333,7 +333,7 @@ export function FiltersConfigModal({
           onDismiss={() => setSaveAlertVisible(false)}
           onCancel={handleCancel}
           handleSave={handleSave}
-          canSave={!!erroredFilters.length}
+          canSave={!erroredFilters.length}
           saveAlertVisible={saveAlertVisible}
           onConfirmCancel={handleConfirmCancel}
         />
