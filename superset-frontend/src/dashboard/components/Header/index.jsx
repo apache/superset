@@ -292,17 +292,28 @@ class Header extends React.PureComponent {
       });
       this.props.addWarningToast(
         t(
-          `This dashboard is currently force refreshing; the next force refresh will be in %s.`,
+          `This dashboard is currently auto refreshing; the next auto refresh will be in %s.`,
           intervalMessage,
         ),
       );
+      
+      if (isFeatureEnabled(FeatureFlag.DASHBOARD_FORCE_AUTO_REFRESH)) {
+        // force-refresh while auto-refresh in dashboard
+        return fetchCharts(
+          affectedCharts,
+          true,
+          interval * 0.2,
+          dashboardInfo.id,
+        );
+      } else {
+        return fetchCharts(
+          affectedCharts,
+          false,
+          interval * 0.2,
+          dashboardInfo.id,
+        );
+      }
 
-      return fetchCharts(
-        affectedCharts,
-        true,
-        interval * 0.2,
-        dashboardInfo.id,
-      );
     };
 
     this.refreshTimer = setPeriodicRunner({
