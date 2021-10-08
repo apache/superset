@@ -33,8 +33,8 @@ class CreatedContent extends React.PureComponent<CreatedContentProps> {
     const mutator = (data: Slice[]) =>
       data.map(slice => ({
         slice: <a href={slice.url}>{slice.title}</a>,
-        favorited: moment.utc(slice.dttm).fromNow(),
-        _favorited: slice.dttm,
+        created: moment.utc(slice.dttm).fromNow(),
+        _created: slice.dttm,
       }));
     return (
       <TableLoader
@@ -52,8 +52,8 @@ class CreatedContent extends React.PureComponent<CreatedContentProps> {
     const mutator = (data: Dashboard[]) =>
       data.map(dash => ({
         dashboard: <a href={dash.url}>{dash.title}</a>,
-        favorited: moment.utc(dash.dttm).fromNow(),
-        _favorited: dash.dttm,
+        created: moment.utc(dash.dttm).fromNow(),
+        _created: dash.dttm,
       }));
     return (
       <TableLoader
