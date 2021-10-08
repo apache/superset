@@ -675,8 +675,11 @@ const FiltersConfigForm = (
           .some(key => controlItems[key].checked);
       setActiveFilterPanelKey(
         hasCheckedAdvancedControl
-          ? [FilterPanels.basic.key, FilterPanels.advanced.key]
-          : FilterPanels.basic.key,
+          ? [
+              `${filterId}-${FilterPanels.basic.key}`,
+              `${filterId}-${FilterPanels.advanced.key}`,
+            ]
+          : `${filterId}-${FilterPanels.basic.key}`,
       );
     }
   }, [
@@ -846,13 +849,16 @@ const FiltersConfigForm = (
         )}
         <StyledCollapse
           activeKey={activeFilterPanelKey}
-          onChange={key => setActiveFilterPanelKey(key)}
+          onChange={key => {
+            setActiveFilterPanelKey(key);
+          }}
           expandIconPosition="right"
+          key={`native-filter-config-${filterId}`}
         >
           <Collapse.Panel
             forceRender
             header={FilterPanels.basic.name}
-            key={FilterPanels.basic.key}
+            key={`${filterId}-${FilterPanels.basic.key}`}
           >
             <CleanFormItem
               name={['filters', filterId, 'defaultValueQueriesData']}
@@ -943,7 +949,7 @@ const FiltersConfigForm = (
             <Collapse.Panel
               forceRender
               header={FilterPanels.advanced.name}
-              key={FilterPanels.advanced.key}
+              key={`${filterId}-${FilterPanels.advanced.key}`}
             >
               {isCascadingFilter && (
                 <CleanFormItem name={['filters', filterId, 'hasParent']}>

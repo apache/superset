@@ -392,6 +392,7 @@ export function FiltersConfigModal({
                   restoreFilter={restoreFilter}
                   parentFilters={getParentFilters(id)}
                   onFilterHierarchyChange={handleFilterHierarchyChange}
+                  key={id}
                 />
               )}
             </FiltureConfigurePane>
