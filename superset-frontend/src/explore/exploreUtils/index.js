@@ -103,6 +103,10 @@ export function getExploreLongUrl(
     return null;
   }
 
+  // label_colors should not pollute the URL
+  // eslint-disable-next-line no-param-reassign
+  delete formData.label_colors;
+
   const uri = new URI('/');
   const directory = getURIDirectory(endpointType);
   const search = uri.search(true);
@@ -159,6 +163,11 @@ export function getExploreUrl({
   if (!formData.datasource) {
     return null;
   }
+
+  // label_colors should not pollute the URL
+  // eslint-disable-next-line no-param-reassign
+  delete formData.label_colors;
+
   let uri = getChartDataUri({ path: '/', allowDomainSharding });
   if (curUrl) {
     uri = URI(URI(curUrl).search());
