@@ -205,6 +205,21 @@ export default class SelectControl extends React.PureComponent {
       danger,
     };
 
+    const getValue = () => {
+      const currentValue =
+        value ||
+        (this.props.default !== undefined ? this.props.default : undefined);
+
+      // safety check - the value is intended to be undefined but null was used
+      if (
+        currentValue === null &&
+        !this.state.options.find(o => o.value === null)
+      ) {
+        return undefined;
+      }
+      return currentValue;
+    };
+
     const selectProps = {
       allowNewOptions: freeForm,
       autoFocus,
@@ -225,9 +240,7 @@ export default class SelectControl extends React.PureComponent {
       optionRenderer,
       options: this.state.options,
       placeholder,
-      value:
-        value ||
-        (this.props.default !== undefined ? this.props.default : undefined),
+      value: getValue(),
     };
 
     return (
