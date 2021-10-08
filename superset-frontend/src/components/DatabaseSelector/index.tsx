@@ -194,9 +194,9 @@ export default function DatabaseSelector({
       const queryParams = rison.encode({ force: refresh > 0 });
       const endpoint = `/api/v1/database/${currentDb.value}/schemas/?q=${queryParams}`;
 
-      try {
-        // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
-        SupersetClient.get({ endpoint }).then(({ json }) => {
+      // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
+      SupersetClient.get({ endpoint })
+        .then(({ json }) => {
           const options = json.result
             .map((s: string) => ({
               value: s,
@@ -210,10 +210,12 @@ export default function DatabaseSelector({
             onSchemasLoad(options);
           }
           setSchemaOptions(options);
+          setLoadingSchemas(false);
+        })
+        .catch(e => {
+          setLoadingSchemas(false);
+          handleError(t('There was an error loading the schemas'));
         });
-      } finally {
-        setLoadingSchemas(false);
-      }
     }
   }, [currentDb, onSchemasLoad, refresh]);
 
