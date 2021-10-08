@@ -189,8 +189,8 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         setPreviousRefresh(refresh);
       }
 
-      try {
-        SupersetClient.get({ endpoint }).then(({ json }) => {
+      SupersetClient.get({ endpoint })
+        .then(({ json }) => {
           const options: TableOption[] = [];
           let currentTable;
           json.options.forEach((table: Table) => {
@@ -213,10 +213,12 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
             ),
           );
           setCurrentTable(currentTable);
+          setLoadingTables(false);
+        })
+        .catch(e => {
+          setLoadingTables(false);
+          handleError(t('There was an error loading the tables'));
         });
-      } finally {
-        setLoadingTables(false);
-      }
     }
     // We are using the refresh state to re-trigger the query
     // previousRefresh should be out of dependencies array
