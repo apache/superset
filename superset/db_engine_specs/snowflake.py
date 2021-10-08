@@ -28,7 +28,7 @@ from sqlalchemy.engine.url import make_url, URL
 from typing_extensions import TypedDict
 
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
-from superset.errors import SupersetError, SupersetErrorType
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
 from superset.utils import core as utils
 
@@ -233,7 +233,29 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     def validate_parameters(
         cls, parameters: SnowflakeParametersType  # pylint: disable=unused-argument
     ) -> List[SupersetError]:
-        return []
+        errors: List[SupersetError] = []
+        required = {
+            "host",
+            "warehouse",
+            "username",
+            "database",
+            "account",
+            "role",
+            "password",
+        }
+        present = {key for key in parameters if parameters.get(key, ())}
+        missing = sorted(required - present)
+
+        if missing:
+            errors.append(
+                SupersetError(
+                    message=f'One or more parameters are missing: {", ".join(missing)}',
+                    error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+                    level=ErrorLevel.WARNING,
+                    extra={"missing": missing},
+                ),
+            )
+        return errors
 
     @classmethod
     def parameters_json_schema(cls) -> Any:
