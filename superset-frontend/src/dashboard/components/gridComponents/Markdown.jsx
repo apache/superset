@@ -350,13 +350,13 @@ class Markdown extends React.PureComponent {
                   className="dashboard-component dashboard-component-chart-holder"
                   data-test="dashboard-component-chart-holder"
                 >
-                  {editMode &&
+                  {editMode && (
                     <HoverMenu position="top">
                       <DeleteComponentButton
                         onDelete={this.handleDeleteComponent}
                       />
                     </HoverMenu>
-                  }
+                  )}
                   {editMode && isEditing
                     ? this.renderEditMode()
                     : this.renderPreviewMode()}
