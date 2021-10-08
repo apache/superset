@@ -137,7 +137,7 @@ Join our growing community!
 - [TrustMedis](https://trustmedis.com) [@famasya]
 - [WeSure](https://www.wesure.cn/)
 
-### HR / Staffing 
+### HR / Staffing
 - [Symmetrics](https://www.symmetrics.fyi)
 
 ### Others
