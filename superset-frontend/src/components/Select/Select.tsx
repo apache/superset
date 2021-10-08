@@ -524,13 +524,8 @@ const Select = ({
   }, [options]);
 
   useEffect(() => {
-    let selectValue = value;
-    // special case where null is intended to be undefined
-    if (value === null && !selectOptions.find(o => o.value === null)) {
-      selectValue = undefined;
-    }
-    setSelectValue(selectValue);
-  }, [value, selectOptions]);
+    setSelectValue(value);
+  }, [value]);
 
   useEffect(() => {
     if (selectValue) {
