@@ -71,6 +71,17 @@ const SelectAsyncControl = ({
     onChange(onChangeVal);
   };
 
+  const getValue = () => {
+    const currentValue =
+      value || (props.default !== undefined ? props.default : undefined);
+
+    // safety check - the value is intended to be undefined but null was used
+    if (currentValue === null && !options.find(o => o.value === null)) {
+      return undefined;
+    }
+    return currentValue;
+  };
+
   useEffect(() => {
     const onError = (response: Response) =>
       getClientErrorObject(response).then(e => {
@@ -93,7 +104,7 @@ const SelectAsyncControl = ({
     <Select
       allowClear={allowClear}
       ariaLabel={ariaLabel || t('Select ...')}
-      value={value || (props.default !== undefined ? props.default : undefined)}
+      value={getValue()}
       header={<ControlHeader {...props} />}
       mode={multi ? 'multiple' : 'single'}
       onChange={handleOnChange}
