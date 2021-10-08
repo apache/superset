@@ -76,7 +76,10 @@ const StyledPill = styled(Pill)`
 
 const ContentWrapper = styled.div`
   max-height: 700px;
-  overflow-y: auto;
+  .ant-select-dropdown {
+    // ensures dropdown positions correctly
+    top: 36px !important;
+  }
 `;
 
 const CascadePopover: React.FC<CascadePopoverProps> = ({
