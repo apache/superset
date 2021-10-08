@@ -150,9 +150,16 @@ export default function dashboardStateReducer(state = {}, action) {
       };
     },
     [SET_ACTIVE_TABS]() {
+      const prevActiveTabs = state.activeTabs ?? [];
+      const newActiveTabs = action.prevTabId
+        ? [
+            ...prevActiveTabs.filter(tabId => tabId !== action.prevTabId),
+            action.tabId,
+          ]
+        : [...prevActiveTabs, action.tabId];
       return {
         ...state,
-        activeTabs: action.tabIds,
+        activeTabs: newActiveTabs,
       };
     },
     [SET_FOCUSED_FILTER_FIELD]() {
