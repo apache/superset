@@ -40,7 +40,7 @@ class CreatedContent extends React.PureComponent<CreatedContentProps> {
       <TableLoader
         dataEndpoint={`/superset/created_slices/${this.props.user.userId}/`}
         className="table-condensed"
-        columns={['slice', 'favorited']}
+        columns={['slice', 'created']}
         mutator={mutator}
         noDataText={t('No charts')}
         sortable
@@ -61,7 +61,7 @@ class CreatedContent extends React.PureComponent<CreatedContentProps> {
         mutator={mutator}
         dataEndpoint={`/superset/created_dashboards/${this.props.user.userId}/`}
         noDataText={t('No dashboards')}
-        columns={['dashboard', 'favorited']}
+        columns={['dashboard', 'created']}
         sortable
       />
     );
