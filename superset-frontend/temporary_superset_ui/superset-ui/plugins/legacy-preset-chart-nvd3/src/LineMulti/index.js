@@ -35,6 +35,7 @@ const metadata = new ChartMetadata({
     t('Comparison'),
     t('Time'),
     t('Multi-Layers'),
+    t('Deprecated'),
   ],
   thumbnail,
   useLegacyApi: true,
