@@ -180,7 +180,6 @@ type DBReducerActionType =
         database_name?: string;
         engine?: string;
         configuration_method: CONFIGURATION_METHOD;
-        paramProperties?: Record<string, any>;
       };
     }
   | {
@@ -651,7 +650,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           configuration_method: isDynamic
             ? CONFIGURATION_METHOD.DYNAMIC_FORM
             : CONFIGURATION_METHOD.SQLALCHEMY_URI,
-          paramProperties: parameters?.properties,
         },
       });
     }

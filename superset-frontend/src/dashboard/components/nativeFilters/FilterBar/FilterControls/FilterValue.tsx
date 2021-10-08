@@ -29,7 +29,7 @@ import {
   getChartMetadataRegistry,
 } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
-import { areObjectsEqual } from 'src/reduxUtils';
+import { isEqual, isEqualWith } from 'lodash';
 import { getChartDataRequest } from 'src/chart/chartAction';
 import Loading from 'src/components/Loading';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
@@ -105,10 +105,17 @@ const FilterValue: React.FC<FilterProps> = ({
       time_range,
     });
     const filterOwnState = filter.dataMask?.ownState || {};
+    // TODO: We should try to improve our useEffect hooks to depend more on
+    // granular information instead of big objects that require deep comparison.
+    const customizer = (
+      objValue: Partial<QueryFormData>,
+      othValue: Partial<QueryFormData>,
+      key: string,
+    ) => (key === 'url_params' ? true : undefined);
     if (
       !isRefreshing &&
-      (!areObjectsEqual(formData, newFormData) ||
-        !areObjectsEqual(ownState, filterOwnState) ||
+      (!isEqualWith(formData, newFormData, customizer) ||
+        !isEqual(ownState, filterOwnState) ||
         isDashboardRefreshing)
     ) {
       setFormData(newFormData);
