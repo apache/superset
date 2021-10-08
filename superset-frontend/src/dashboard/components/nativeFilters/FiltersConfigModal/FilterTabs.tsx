@@ -35,7 +35,7 @@ export const StyledSpan = styled.span`
 `;
 
 export const StyledFilterTitle = styled.span`
-  width: ${FILTER_WIDTH}px;
+  width: 100%;
   white-space: normal;
   color: ${({ theme }) => theme.colors.grayscale.dark1};
 `;
@@ -61,6 +61,7 @@ export const FilterTabTitle = styled.span`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
+  align-items: center;
 
   @keyframes tabTitleRemovalAnimation {
     0%,
@@ -78,6 +79,17 @@ export const FilterTabTitle = styled.span`
     transform-origin: top;
     animation-name: tabTitleRemovalAnimation;
     animation-duration: ${REMOVAL_DELAY_SECS}s;
+  }
+
+  &.errored > span {
+    color: ${({ theme }) => theme.colors.error.base};
+  }
+`;
+
+const StyledWarning = styled(Icons.Warning)`
+  color: ${({ theme }) => theme.colors.error.base};
+  &.anticon {
+    margin-right: 0;
   }
 `;
 
@@ -169,6 +181,7 @@ type FilterTabsProps = {
   currentFilterId: string;
   onEdit: (filterId: string, action: 'add' | 'remove') => void;
   filterIds: string[];
+  erroredFilters: string[];
   removedFilters: Record<string, FilterRemoval>;
   restoreFilter: Function;
   children: Function;
@@ -180,6 +193,7 @@ const FilterTabs: FC<FilterTabsProps> = ({
   onChange,
   currentFilterId,
   filterIds = [],
+  erroredFilters = [],
   removedFilters = [],
   restoreFilter,
   children,
@@ -217,34 +231,47 @@ const FilterTabs: FC<FilterTabsProps> = ({
       ),
     }}
   >
-    {filterIds.map(id => (
-      <LineEditableTabs.TabPane
-        tab={
-          <FilterTabTitle className={removedFilters[id] ? 'removed' : ''}>
-            <StyledFilterTitle>
-              {removedFilters[id] ? t('(Removed)') : getFilterTitle(id)}
-            </StyledFilterTitle>
-            {removedFilters[id] && (
-              <StyledSpan
-                role="button"
-                data-test="undo-button"
-                tabIndex={0}
-                onClick={() => restoreFilter(id)}
-              >
-                {t('Undo?')}
-              </StyledSpan>
-            )}
-          </FilterTabTitle>
-        }
-        key={id}
-        closeIcon={removedFilters[id] ? <></> : <StyledTrashIcon />}
-      >
-        {
-          // @ts-ignore
-          children(id)
-        }
-      </LineEditableTabs.TabPane>
-    ))}
+    {filterIds.map(id => {
+      const showErroredFilter = erroredFilters.includes(id);
+      const filterName = getFilterTitle(id);
+      return (
+        <LineEditableTabs.TabPane
+          tab={
+            <FilterTabTitle
+              className={
+                removedFilters[id]
+                  ? 'removed'
+                  : showErroredFilter
+                  ? 'errored'
+                  : ''
+              }
+            >
+              <StyledFilterTitle>
+                {removedFilters[id] ? t('(Removed)') : filterName}
+              </StyledFilterTitle>
+              {!removedFilters[id] && showErroredFilter && <StyledWarning />}
+              {removedFilters[id] && (
+                <StyledSpan
+                  role="button"
+                  data-test="undo-button"
+                  tabIndex={0}
+                  onClick={() => restoreFilter(id)}
+                >
+                  {t('Undo?')}
+                </StyledSpan>
+              )}
+            </FilterTabTitle>
+          }
+          key={id}
+          closeIcon={removedFilters[id] ? <></> : <StyledTrashIcon />}
+        >
+          {
+            // @ts-ignore
+            children(id)
+          }
+        </LineEditableTabs.TabPane>
+      );
+    })}
   </FilterTabsContainer>
 );
 
