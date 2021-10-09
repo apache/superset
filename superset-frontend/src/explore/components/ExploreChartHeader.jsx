@@ -224,7 +224,13 @@ export class ExploreChartHeader extends React.PureComponent {
         <div className="title-panel">
           <EditableTitle
             title={this.getSliceName()}
-            canEdit={!this.props.slice || this.props.can_overwrite}
+            canEdit={
+              !this.props.slice ||
+              this.props.can_overwrite ||
+              (this.props.slice?.owners || []).includes(
+                this.props?.user?.userId,
+              )
+            }
             onSaveTitle={this.props.actions.updateChartTitle}
           />
 
