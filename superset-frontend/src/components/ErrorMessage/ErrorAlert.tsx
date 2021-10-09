@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState, ReactNode } from 'react';
-import { styled, supersetTheme, t } from '@superset-ui/core';
+import { styled, useTheme, t } from '@superset-ui/core';
 import { noOp } from 'src/utils/common';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
@@ -97,6 +97,8 @@ export default function ErrorAlert({
   subtitle,
   title,
 }: ErrorAlertProps) {
+  const theme = useTheme();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBodyExpanded, setIsBodyExpanded] = useState(false);
 
@@ -106,15 +108,15 @@ export default function ErrorAlert({
     <ErrorAlertDiv level={level} role="alert">
       <div className="top-row">
         <LeftSideContent>
-          {level === 'error' ? (
+          {!level || level === 'error' ? (
             <Icons.ErrorSolid
               className="icon"
-              iconColor={supersetTheme.colors[level].base}
+              iconColor={theme.colors.error.base}
             />
           ) : (
             <Icons.WarningSolid
               className="icon"
-              iconColor={supersetTheme.colors[level].base}
+              iconColor={theme.colors[level].base}
             />
           )}
           <strong>{title}</strong>
@@ -169,15 +171,15 @@ export default function ErrorAlert({
           onHide={() => setIsModalOpen(false)}
           title={
             <div className="header">
-              {level === 'error' ? (
+              {!level || level === 'error' ? (
                 <Icons.ErrorSolid
                   className="icon"
-                  iconColor={supersetTheme.colors[level].base}
+                  iconColor={theme.colors.error.base}
                 />
               ) : (
                 <Icons.WarningSolid
                   className="icon"
-                  iconColor={supersetTheme.colors[level].base}
+                  iconColor={theme.colors[level].base}
                 />
               )}
               <div className="title">{title}</div>

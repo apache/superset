@@ -165,3 +165,19 @@ prophet_df = DataFrame(
         "b": [4, 3, 4.1, 3.95],
     }
 )
+
+single_metric_df = DataFrame(
+    {
+        "dttm": to_datetime(["2019-01-01", "2019-01-01", "2019-01-02", "2019-01-02",]),
+        "country": ["UK", "US", "UK", "US"],
+        "sum_metric": [5, 6, 7, 8],
+    }
+)
+multiple_metrics_df = DataFrame(
+    {
+        "dttm": to_datetime(["2019-01-01", "2019-01-01", "2019-01-02", "2019-01-02",]),
+        "country": ["UK", "US", "UK", "US"],
+        "sum_metric": [5, 6, 7, 8],
+        "count_metric": [1, 2, 3, 4],
+    }
+)
