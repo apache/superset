@@ -34,6 +34,19 @@ class TestElasticSearchDbEngineSpec(TestDbEngineSpec):
             "CAST('2019-01-02T03:04:05' AS DATETIME)",
         )
 
+    def test_convert_dttm2(self):
+        """
+        ES 7.8 and above versions need to use the DATETIME_PARSE function to
+        solve the time zone problem
+        """
+        dttm = self.get_dttm()
+        db_extra = {"version": "7.8"}
+
+        self.assertEqual(
+            ElasticSearchEngineSpec.convert_dttm("DATETIME", dttm, **db_extra),
+            "DATETIME_PARSE('2019-01-02T03:04:05', 'yyyy-MM-dd HH:mm:ss')",
+        )
+
     def test_opendistro_convert_dttm(self):
         """
         DB Eng Specs (opendistro): Test convert_dttm

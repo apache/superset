@@ -16,7 +16,7 @@
 # under the License.o
 
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.hive import HiveEngineSpec

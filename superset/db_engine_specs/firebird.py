@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 from superset.utils import core as utils

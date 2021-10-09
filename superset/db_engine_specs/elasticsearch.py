@@ -72,8 +72,8 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
         if es_version and StrictVersion(es_version) >= StrictVersion("7.8"):
             datetime_formatted = dttm.isoformat(sep=" ", timespec="seconds")
             return f"""DATETIME_PARSE('{datetime_formatted}', 'yyyy-MM-dd HH:mm:ss')"""
-        else:
-            return f"""CAST('{dttm.isoformat(timespec="seconds")}' AS DATETIME)"""
+
+        return f"""CAST('{dttm.isoformat(timespec="seconds")}' AS DATETIME)"""
 
 
 class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
