@@ -98,7 +98,9 @@ class MssqlEngineSpec(BaseEngineSpec):
         return "dateadd(S, {col}, '1970-01-01')"
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, **kwargs: Any
+    ) -> Optional[str]:
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
             return f"CONVERT(DATE, '{dttm.date().isoformat()}', 23)"

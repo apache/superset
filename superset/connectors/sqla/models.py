@@ -248,16 +248,22 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         return self.table.db_engine_spec
 
     @property
+    def db_extra(self) -> Dict[str, Any]:
+        return self.table.database.get_extra()
+
+    @property
     def type_generic(self) -> Optional[utils.GenericDataType]:
         if self.is_dttm:
             return GenericDataType.TEMPORAL
-        column_spec = self.db_engine_spec.get_column_spec(self.type)
+        column_spec = self.db_engine_spec.get_column_spec(
+            self.type, db_extra=self.db_extra
+        )
         return column_spec.generic_type if column_spec else None
 
     def get_sqla_col(self, label: Optional[str] = None) -> Column:
         label = label or self.column_name
         db_engine_spec = self.db_engine_spec
-        column_spec = db_engine_spec.get_column_spec(self.type)
+        column_spec = db_engine_spec.get_column_spec(self.type, db_extra=self.db_extra)
         type_ = column_spec.sqla_type if column_spec else None
         if self.expression:
             tp = self.table.get_template_processor()
@@ -312,7 +318,9 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
 
         pdf = self.python_date_format
         is_epoch = pdf in ("epoch_s", "epoch_ms")
-        column_spec = self.db_engine_spec.get_column_spec(self.type)
+        column_spec = self.db_engine_spec.get_column_spec(
+            self.type, db_extra=self.db_extra
+        )
         type_ = column_spec.sqla_type if column_spec else DateTime
         if not self.expression and not time_grain and not is_epoch:
             sqla_col = column(self.column_name, type_=type_)
@@ -335,7 +343,11 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
     ) -> str:
         """Convert datetime object to a SQL expression string"""
         dttm_type = self.type or ("DATETIME" if self.is_dttm else None)
-        sql = self.db_engine_spec.convert_dttm(dttm_type, dttm) if dttm_type else None
+        sql = (
+            self.db_engine_spec.convert_dttm(dttm_type, dttm, **self.db_extra)
+            if dttm_type
+            else None
+        )
 
         if sql:
             return sql
@@ -348,10 +360,8 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
             utils.TimeRangeEndpoint.INCLUSIVE,
             utils.TimeRangeEndpoint.EXCLUSIVE,
         ):
-            tf = (
-                self.table.database.get_extra()
-                .get("python_date_format_by_column_name", {})
-                .get(self.column_name)
+            tf = self.db_extra.get("python_date_format_by_column_name", {}).get(
+                self.column_name
             )
 
         if tf:
@@ -1174,7 +1184,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     sqla_col = col_obj.get_timestamp_expression(filter_grain)
                 else:
                     sqla_col = col_obj.get_sqla_col()
-                col_spec = db_engine_spec.get_column_spec(col_obj.type)
+                col_spec = db_engine_spec.get_column_spec(
+                    col_obj.type, db_extra=self.database.get_extra()
+                )
                 is_list_target = op in (
                     utils.FilterOperator.IN.value,
                     utils.FilterOperator.NOT_IN.value,
@@ -1421,6 +1433,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     def _get_top_groups(
         self, df: pd.DataFrame, dimensions: List[str], groupby_exprs: Dict[str, Any],
     ) -> ColumnElement:
+        db_extra: Dict[str, Any] = self.database.get_extra()
         column_map = {column.column_name: column for column in self.columns}
         groups = []
         for _unused, row in df.iterrows():
@@ -1434,7 +1447,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 # string into a timestamp.
                 if column_map[dimension].is_temporal and isinstance(value, str):
                     dttm = dateutil.parser.parse(value)
-                    value = text(self.db_engine_spec.convert_dttm("TIMESTAMP", dttm))
+                    value = text(
+                        self.db_engine_spec.convert_dttm("TIMESTAMP", dttm, **db_extra)
+                    )
 
                 group.append(groupby_exprs[dimension] == value)
             groups.append(and_(*group))

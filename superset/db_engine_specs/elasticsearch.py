@@ -15,7 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Dict, Optional, Type
+from distutils.version import StrictVersion
+from typing import Any, Dict, Optional, Type
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.exceptions import (
@@ -59,10 +60,20 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
         }
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
-        if target_type.upper() == utils.TemporalType.DATETIME:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, **kwargs: Any
+    ) -> Optional[str]:
+
+        if target_type.upper() != utils.TemporalType.DATETIME:
+            return None
+
+        es_version = kwargs.get("version")
+
+        if es_version and StrictVersion(es_version) >= StrictVersion("7.8"):
+            datetime_formatted = dttm.isoformat(sep=" ", timespec="seconds")
+            return f"""DATETIME_PARSE('{datetime_formatted}', 'yyyy-MM-dd HH:mm:ss')"""
+        else:
             return f"""CAST('{dttm.isoformat(timespec="seconds")}' AS DATETIME)"""
-        return None
 
 
 class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
@@ -87,7 +98,9 @@ class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     engine_name = "ElasticSearch (OpenDistro SQL)"
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, **kwargs: Any
+    ) -> Optional[str]:
         if target_type.upper() == utils.TemporalType.DATETIME:
             return f"""'{dttm.isoformat(timespec="seconds")}'"""
         return None

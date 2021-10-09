@@ -94,7 +94,9 @@ class DruidEngineSpec(BaseEngineSpec):
         return extra
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, **kwargs: Any
+    ) -> Optional[str]:
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
             return f"CAST(TIME_PARSE('{dttm.date().isoformat()}') AS DATE)"

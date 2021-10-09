@@ -686,13 +686,14 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def convert_dttm(  # pylint: disable=unused-argument
-        cls, target_type: str, dttm: datetime,
+        cls, target_type: str, dttm: datetime, **kwargs: Any,
     ) -> Optional[str]:
         """
         Convert Python datetime object to a SQL expression
 
         :param target_type: The target type of expression
         :param dttm: The datetime object
+        :param kwargs: The database extra object
         :return: The SQL expression
         """
         return None
@@ -1280,10 +1281,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return parsed_query.is_select()
 
     @classmethod
-    @memoized
     def get_column_spec(  # pylint: disable=unused-argument
         cls,
         native_type: Optional[str],
+        db_extra: Optional[Dict[str, Any]] = None,
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
         column_type_mappings: Tuple[
             Tuple[
@@ -1298,6 +1299,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Converts native database type to sqlalchemy column type.
         :param native_type: Native database typee
         :param source: Type coming from the database table or cursor description
+        :param db_extra: The database extra object
         :return: ColumnSpec object
         """
         col_types = cls.get_sqla_column_type(
@@ -1309,7 +1311,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             # using datetimes
             if generic_type == GenericDataType.TEMPORAL:
                 column_type = literal_dttm_type_factory(
-                    column_type, cls, native_type or ""
+                    column_type, cls, native_type or "", db_extra=db_extra or {}
                 )
             is_dttm = generic_type == GenericDataType.TEMPORAL
             return ColumnSpec(
