@@ -44,7 +44,7 @@ class TestElasticSearchDbEngineSpec(TestDbEngineSpec):
 
         self.assertEqual(
             ElasticSearchEngineSpec.convert_dttm("DATETIME", dttm, **db_extra),
-            "DATETIME_PARSE('2019-01-02T03:04:05', 'yyyy-MM-dd HH:mm:ss')",
+            "DATETIME_PARSE('2019-01-02 03:04:05', 'yyyy-MM-dd HH:mm:ss')",
         )
 
     def test_opendistro_convert_dttm(self):
