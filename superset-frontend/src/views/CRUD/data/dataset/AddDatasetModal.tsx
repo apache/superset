@@ -19,7 +19,6 @@
 import React, { FunctionComponent, useState, useEffect } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
-import { isEmpty, isNil } from 'lodash';
 import Modal from 'src/components/Modal';
 import TableSelector from 'src/components/TableSelector';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -64,7 +63,7 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
   );
 
   useEffect(() => {
-    setDisableSave(isNil(currentDatabase) || isEmpty(currentTableName));
+    setDisableSave(currentDatabase === undefined || currentTableName === '');
   }, [currentTableName, currentDatabase]);
 
   const onDbChange = (db: DatabaseObject) => {
@@ -92,8 +91,11 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
   };
 
   const onSave = () => {
+    if (currentDatabase === undefined) {
+      return;
+    }
     const data = {
-      database: currentDatabase?.id || 0,
+      database: currentDatabase.id,
       ...(currentSchema ? { schema: currentSchema } : {}),
       table_name: currentTableName,
     };
