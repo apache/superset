@@ -106,7 +106,7 @@ setup(
         "simplejson>=3.15.0",
         "slackclient==2.5.0",  # PINNED! slack changes file upload api in the future versions
         "sqlalchemy>=1.3.16, <1.4, !=1.3.21",
-        "sqlalchemy-utils>=0.36.6, <0.37",
+        "sqlalchemy-utils>=0.37.8, <0.38",
         "sqlparse==0.3.0",  # PINNED! see https://github.com/andialbrecht/sqlparse/issues/562
         "tabulate==0.8.9",
         "typing-extensions>=3.10, <4",  # needed to support Literal (3.8) and TypeGuard (3.10)
@@ -134,6 +134,7 @@ setup(
         "exasol": ["sqlalchemy-exasol>=2.1.0, <2.2"],
         "excel": ["xlrd>=1.2.0, <1.3"],
         "firebird": ["sqlalchemy-firebird>=0.7.0, <0.8"],
+        "firebolt": ["firebolt-sqlalchemy>=0.0.1"],
         "gsheets": ["shillelagh[gsheetsapi]>=1.0.3, <2"],
         "hana": ["hdbcli==2.4.162", "sqlalchemy_hana==0.4.0"],
         "hive": ["pyhive[hive]>=0.6.1", "tableschema", "thrift>=0.11.0, <1.0.0"],
@@ -168,5 +169,6 @@ setup(
     classifiers=[
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
     ],
 )

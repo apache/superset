@@ -19,6 +19,7 @@
 import { FormInstance } from 'antd/lib/form';
 import shortid from 'shortid';
 import { getInitialDataMask } from 'src/dataMask/reducer';
+import { t } from '@superset-ui/core';
 import { FilterRemoval, NativeFiltersForm } from './types';
 import { Filter, FilterConfiguration, Target } from '../types';
 
@@ -42,6 +43,7 @@ export const validateForm = async (
       errors: [error],
     };
     form.setFields([fieldError]);
+    setCurrentFilterId(filterId);
   };
 
   try {
@@ -57,25 +59,34 @@ export const validateForm = async (
       }
     }
 
-    const validateCycles = (filterId: string, trace: string[] = []) => {
+    const validateCycles = (
+      filterId: string,
+      trace: string[] = [],
+    ): boolean => {
       if (trace.includes(filterId)) {
         addValidationError(
           filterId,
           'parentFilter',
-          'Cannot create cyclic hierarchy',
+          t('Cannot create cyclic hierarchy'),
         );
+        return false;
       }
-      const parentId = formValues.filters[filterId]
-        ? formValues.filters[filterId].parentFilter?.value
+      const parentId = formValues.filters?.[filterId]
+        ? formValues.filters[filterId]?.parentFilter?.value
         : filterConfigMap[filterId]?.cascadeParentIds?.[0];
       if (parentId) {
-        validateCycles(parentId, [...trace, filterId]);
+        return validateCycles(parentId, [...trace, filterId]);
       }
+      return true;
     };
 
-    filterIds
+    const invalid = filterIds
       .filter(id => !removedFilters[id])
-      .forEach(filterId => validateCycles(filterId));
+      .some(filterId => !validateCycles(filterId));
+
+    if (invalid) {
+      return null;
+    }
 
     return formValues;
   } catch (error) {
@@ -93,7 +104,8 @@ export const validateForm = async (
         field => field.name[0] === 'filters',
       );
       if (filterError) {
-        setCurrentFilterId(filterError.name[1]);
+        const filterId = filterError.name[1];
+        setCurrentFilterId(filterId);
       }
     }
     return null;
@@ -111,7 +123,7 @@ export const createHandleSave = (
     .filter(id => !removedFilters[id])
     .map(id => {
       // create a filter config object from the form inputs
-      const formInputs = values.filters[id];
+      const formInputs = values.filters?.[id];
       // if user didn't open a filter, return the original config
       if (!formInputs) return filterConfigMap[id];
       const target: Partial<Target> = {};

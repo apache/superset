@@ -90,7 +90,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       const lastDashboard = sessionStorage.getItem(SK_DASHBOARD_ID);
       let recentDashboard = lastDashboard && parseInt(lastDashboard, 10);
 
-      if (!recentDashboard && this.props.dashboardId) {
+      if (this.props.dashboardId) {
         recentDashboard = this.props.dashboardId;
       }
 
