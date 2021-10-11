@@ -74,14 +74,6 @@ const StyledPill = styled(Pill)`
   background: ${({ theme }) => theme.colors.grayscale.light1};
 `;
 
-const ContentWrapper = styled.div`
-  max-height: 700px;
-  .ant-select-dropdown {
-    // ensures dropdown positions correctly
-    top: 36px !important;
-  }
-`;
-
 const CascadePopover: React.FC<CascadePopoverProps> = ({
   dataMaskSelected,
   filter,
@@ -181,16 +173,14 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   );
 
   const content = (
-    <ContentWrapper>
-      <CascadeFilterControl
-        dataMaskSelected={dataMaskSelected}
-        data-test="cascade-filters-control"
-        key={filter.id}
-        filter={filter}
-        directPathToChild={visible ? currentPathToChild : undefined}
-        onFilterSelectionChange={onFilterSelectionChange}
-      />
-    </ContentWrapper>
+    <CascadeFilterControl
+      dataMaskSelected={dataMaskSelected}
+      data-test="cascade-filters-control"
+      key={filter.id}
+      filter={filter}
+      directPathToChild={visible ? currentPathToChild : undefined}
+      onFilterSelectionChange={onFilterSelectionChange}
+    />
   );
 
   return (
