@@ -17,9 +17,16 @@ specific language governing permissions and limitations
 under the License.
 -->
 ## Change Log
-### 1.3.1
-**Database Migrations**
+### 1.3.2
+**Fixes**
+- [#16928](https://github.com/apache/superset/pull/16928) fix: handle mixed time-series error (@yougyoung94)
+- [#16955](https://github.com/apache/superset/pull/16955) fix: don't log invalid redirect URL sent by user (@dpgaspar)
+- [#16953](https://github.com/apache/superset/pull/16953) fix(examples): incorrect covid row component id (@villebro)
+- [#16949](https://github.com/apache/superset/pull/16949) fix(explore): Ensuring parameters key is included (@craig-rueda)
+- [#16933](https://github.com/apache/superset/pull/16933) fix(dashboard): recursive parent on dashboard components (@villebro)
+- [#16893](https://github.com/apache/superset/pull/16893) fix: Clear native filters state (@simcha90)
 
+### 1.3.1
 **Features**
 - [#16711](https://github.com/apache/superset/pull/16711) feat(jinja): improve url parameter formatting (@villebro)
 - [#14955](https://github.com/apache/superset/pull/14955) feat: show build number value in the About if present in the config (@cccs-joel)
