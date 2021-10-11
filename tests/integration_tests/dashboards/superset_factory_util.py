@@ -23,12 +23,8 @@ from flask_appbuilder.security.sqla.models import User
 from superset import appbuilder
 from superset.connectors.sqla.models import SqlaTable, sqlatable_user
 from superset.models.core import Database
-from superset.models.dashboard import (
-    Dashboard,
-    dashboard_slices,
-    dashboard_user,
-    DashboardRoles,
-)
+from superset.models.dashboard import Dashboard, dashboard_slices, dashboard_user
+from superset.models.objects_roles import ObjectRoles
 from superset.models.slice import Slice, slice_user
 from tests.integration_tests.dashboards.dashboard_test_utils import (
     random_slug,
@@ -227,7 +223,10 @@ def delete_dashboard_users_associations(dashboard: Dashboard) -> None:
 
 def delete_dashboard_roles_associations(dashboard: Dashboard) -> None:
     session.execute(
-        DashboardRoles.delete().where(DashboardRoles.c.dashboard_id == dashboard.id)
+        ObjectRoles.delete().where(
+            ObjectRoles.c.object_id == dashboard.id,
+            ObjectRoles.c.object_type == "Dashboard",
+        )
     )
 
 
