@@ -672,6 +672,14 @@ npm ci
 npm run lint
 ```
 
+If using the eslint extension with vscode, put the following in your workspace `settings.json` file:
+
+```json
+"eslint.workingDirectories": [
+  "superset-frontend"
+]
+```
+
 ## Conventions
 
 ### Python
