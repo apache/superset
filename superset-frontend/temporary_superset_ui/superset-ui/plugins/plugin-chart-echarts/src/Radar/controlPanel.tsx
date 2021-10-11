@@ -32,8 +32,8 @@ import {
   sections,
   sharedControls,
   emitFilterControl,
+  ControlFormItemSpec,
 } from '@superset-ui/chart-controls';
-import { ControlFormItemSpec } from '@superset-ui/chart-controls/lib/components/ControlForm';
 import { DEFAULT_FORM_DATA } from './types';
 import { LABEL_POSITION } from '../constants';
 import { legendSection } from '../controls';
