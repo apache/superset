@@ -64,16 +64,20 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
         cls, target_type: str, dttm: datetime, **kwargs: Any
     ) -> Optional[str]:
 
-        if target_type.upper() != utils.TemporalType.DATETIME:
-            return None
+        if target_type.upper() == utils.TemporalType.DATETIME:
+            es_version = kwargs.get("version")
+            # The elasticsearch CAST function does not take effect for the time zone
+            # setting. In elasticsearch7.8 and above, we can use the DATETIME_PARSE
+            # function to solve this problem.
+            if es_version and StrictVersion(es_version) >= StrictVersion("7.8"):
+                datetime_formatted = dttm.isoformat(sep=" ", timespec="seconds")
+                return (
+                    f"""DATETIME_PARSE('{datetime_formatted}', 'yyyy-MM-dd HH:mm:ss')"""
+                )
 
-        es_version = kwargs.get("version")
+            return f"""CAST('{dttm.isoformat(timespec="seconds")}' AS DATETIME)"""
 
-        if es_version and StrictVersion(es_version) >= StrictVersion("7.8"):
-            datetime_formatted = dttm.isoformat(sep=" ", timespec="seconds")
-            return f"""DATETIME_PARSE('{datetime_formatted}', 'yyyy-MM-dd HH:mm:ss')"""
-
-        return f"""CAST('{dttm.isoformat(timespec="seconds")}' AS DATETIME)"""
+        return None
 
 
 class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
