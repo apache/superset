@@ -17,7 +17,7 @@
  * under the License.
  */
 import rison from 'rison';
-import React from 'react';
+import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { Row, Col } from 'src/common/components';
 import { Radio } from 'src/components/Radio';
@@ -43,7 +43,6 @@ import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import TextControl from 'src/explore/components/controls/TextControl';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
-import SelectAsyncControl from 'src/explore/components/controls/SelectAsyncControl';
 import SpatialControl from 'src/explore/components/controls/SpatialControl';
 
 import CollectionTable from 'src/CRUD/CollectionTable';
@@ -374,6 +373,40 @@ const propTypes = {
 const defaultProps = {
   onChange: () => {},
 };
+
+function OwnersSelector({ datasource, onChange }) {
+  const selectedOwners = datasource.owners.map(owner => ({
+    value: owner.id,
+    label: `${owner.first_name} ${owner.last_name}`,
+  }));
+  const loadOptions = useMemo(() => (search = '', page, pageSize) => {
+    const query = rison.encode({ filter: search, page, page_size: pageSize });
+    return SupersetClient.get({
+      endpoint: `/api/v1/chart/related/owners?q=${query}`,
+    }).then(response => ({
+      data: response.json.result.map(item => ({
+        value: item.value,
+        label: item.text,
+      })),
+      totalCount: response.json.count,
+    }));
+  });
+
+  return (
+    <Select
+      ariaLabel={t('Select owners')}
+      mode="multiple"
+      name="owners"
+      value={selectedOwners || []}
+      options={loadOptions}
+      onChange={newOwners => {
+        onChange(newOwners);
+      }}
+      header={<FormLabel>{t('Owners')}</FormLabel>}
+      allowClear
+    />
+  );
+}
 
 class DatasourceEditor extends React.PureComponent {
   constructor(props) {
@@ -718,31 +751,7 @@ class DatasourceEditor extends React.PureComponent {
             }
           />
         )}
-        <Field
-          fieldKey="owners"
-          label={t('Owners')}
-          description={t('Owners of the dataset')}
-          control={
-            <>
-              <Select
-                ariaLabel={t('Select owners')}
-                header={<FormLabel>{t('Owners')}</FormLabel>}
-                options={[{ label: 'foo', value: 'bar' }]}
-              />
-              <SelectAsyncControl
-                dataEndpoint="api/v1/dataset/related/owners"
-                multi
-                mutator={data =>
-                  data.result.map(pk => ({
-                    value: pk.value,
-                    label: `${pk.text}`,
-                  }))
-                }
-              />
-            </>
-          }
-          controlProps={{}}
-        />
+        <OwnersSelector datasource={datasource} />
       </Fieldset>
     );
   }
