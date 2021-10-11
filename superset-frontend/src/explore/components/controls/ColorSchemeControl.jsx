@@ -110,7 +110,6 @@ export default class ColorSchemeControl extends React.PureComponent {
     // save parsed schemes for later
     this.schemes = isFunction(schemes) ? schemes() : schemes;
 
-    const supersetDefaultSchemeId = this.schemes?.SUPERSET_DEFAULT?.id;
     const allColorOptions = (isFunction(choices) ? choices() : choices).filter(
       o => o[0] !== 'SUPERSET_DEFAULT',
     );
