@@ -515,4 +515,4 @@ const sharedControls = {
   legacy_order_by: enableExploreDnd ? dnd_sort_by : sort_by,
 };
 
-export default sharedControls;
+export { sharedControls, dndEntity, dndColumnsControl };

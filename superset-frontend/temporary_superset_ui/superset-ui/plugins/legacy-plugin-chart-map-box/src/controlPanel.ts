@@ -23,8 +23,8 @@ import {
   ControlPanelState,
   formatSelectOptions,
   sections,
+  dndEntity,
 } from '@superset-ui/chart-controls';
-import { dndEntity } from '@superset-ui/chart-controls/lib/shared-controls/dndControls';
 
 const allColumns = {
   type: 'SelectControl',
