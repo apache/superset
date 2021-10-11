@@ -26,6 +26,8 @@ import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
 import { isFeatureEnabled } from 'src/featureFlags';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
+import { isEqualWith } from 'lodash';
+import { undefinedCustomizer } from 'src/utils/isEqualCustomizers';
 import { DataMaskStateWithId, DataMaskWithId } from './types';
 import {
   AnyDataMaskAction,
@@ -37,7 +39,6 @@ import {
   Filter,
   FilterConfiguration,
 } from '../dashboard/components/nativeFilters/types';
-import { areObjectsEqual } from '../reduxUtils';
 import { Filters } from '../dashboard/reducers/types';
 
 export function getInitialDataMask(
@@ -78,10 +79,10 @@ function fillNativeFilters(
     };
     if (
       currentFilters &&
-      !areObjectsEqual(
+      !isEqualWith(
         filter.defaultDataMask,
         currentFilters[filter.id]?.defaultDataMask,
-        { ignoreUndefined: true },
+        undefinedCustomizer,
       )
     ) {
       mergedDataMask[filter.id] = {

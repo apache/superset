@@ -22,6 +22,8 @@ import { isFeatureEnabled, t, FeatureFlag } from '@superset-ui/core';
 
 import { PluginContext } from 'src/components/DynamicPlugins';
 import Loading from 'src/components/Loading';
+import { isEqual, isEqualWith } from 'lodash';
+import { undefinedCustomizer } from 'src/utils/isEqualCustomizers';
 import getChartIdsFromLayout from '../util/getChartIdsFromLayout';
 import getLayoutComponentFromChartId from '../util/getLayoutComponentFromChartId';
 import DashboardBuilder from './DashboardBuilder/DashboardBuilder';
@@ -37,7 +39,6 @@ import {
   Logger,
 } from '../../logger/LogUtils';
 import OmniContainer from '../../components/OmniContainer';
-import { areObjectsEqual } from '../../reduxUtils';
 
 import '../stylesheets/index.less';
 import getLocationHash from '../util/getLocationHash';
@@ -176,12 +177,8 @@ class Dashboard extends React.PureComponent {
 
     if (
       !editMode &&
-      (!areObjectsEqual(appliedOwnDataCharts, ownDataCharts, {
-        ignoreUndefined: true,
-      }) ||
-        !areObjectsEqual(appliedFilters, activeFilters, {
-          ignoreUndefined: true,
-        }))
+      (!isEqualWith(appliedOwnDataCharts, ownDataCharts, undefinedCustomizer) ||
+        !isEqualWith(appliedFilters, activeFilters, undefinedCustomizer))
     ) {
       this.applyFilters();
     }
@@ -247,12 +244,10 @@ class Dashboard extends React.PureComponent {
         // if filterKey changes value,
         // update charts in its scope
         if (
-          !areObjectsEqual(
+          !isEqualWith(
             appliedFilters[filterKey].values,
             activeFilters[filterKey].values,
-            {
-              ignoreUndefined: true,
-            },
+            undefinedCustomizer,
           )
         ) {
           affectedChartIds.push(...activeFilters[filterKey].scope);
@@ -261,7 +256,7 @@ class Dashboard extends React.PureComponent {
         // if filterKey changes scope,
         // update all charts in its scope
         if (
-          !areObjectsEqual(
+          !isEqual(
             appliedFilters[filterKey].scope,
             activeFilters[filterKey].scope,
           )

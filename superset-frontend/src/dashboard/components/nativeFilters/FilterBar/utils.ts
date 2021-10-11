@@ -18,7 +18,8 @@
  */
 
 import { DataMaskStateWithId } from 'src/dataMask/types';
-import { areObjectsEqual } from 'src/reduxUtils';
+import { isEqualWith } from 'lodash';
+import { undefinedCustomizer } from 'src/utils/isEqualCustomizers';
 import { FilterState } from '@superset-ui/core';
 import { Filter } from '../types';
 
@@ -70,10 +71,10 @@ export const checkIsApplyDisabled = (
   const dataAppliedValues = Object.values(dataMaskApplied);
 
   return (
-    areObjectsEqual(
+    isEqualWith(
       getOnlyExtraFormData(dataMaskSelected),
       getOnlyExtraFormData(dataMaskApplied),
-      { ignoreUndefined: true },
+      undefinedCustomizer,
     ) ||
     dataSelectedValues.length !== dataAppliedValues.length ||
     filters.some(filter =>

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { JsonObject } from '@superset-ui/core';
-import { areObjectsEqual } from '../../../reduxUtils';
+import { isEqual } from 'lodash';
 
 export const arrayDiff = (a: string[], b: string[]) => [
   ...a.filter(x => !b.includes(x)),
@@ -35,9 +35,7 @@ export const getAffectedOwnDataCharts = (
   );
   const checkForUpdateIds = new Set<string>([...chartIds, ...appliedChartIds]);
   checkForUpdateIds.forEach(chartId => {
-    if (
-      !areObjectsEqual(ownDataCharts[chartId], appliedOwnDataCharts[chartId])
-    ) {
+    if (!isEqual(ownDataCharts[chartId], appliedOwnDataCharts[chartId])) {
       affectedIds.push(chartId);
     }
   });

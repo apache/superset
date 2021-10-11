@@ -26,7 +26,7 @@ import { NO_TIME_RANGE, TIME_FILTER_MAP } from 'src/explore/constants';
 import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
 import { ChartConfiguration, Filters } from 'src/dashboard/reducers/types';
 import { DataMaskStateWithId, DataMaskType } from 'src/dataMask/types';
-import { areObjectsEqual } from 'src/reduxUtils';
+import { isEqual } from 'lodash';
 import { Layout } from '../../types';
 import { getTreeCheckedItems } from '../nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/utils';
 
@@ -180,10 +180,10 @@ export const selectIndicatorsForChart = (
   const cachedFilterData = cachedDashboardFilterDataForChart[chartId];
   if (
     cachedIndicatorsForChart[chartId] &&
-    areObjectsEqual(cachedFilterData?.appliedColumns, appliedColumns) &&
-    areObjectsEqual(cachedFilterData?.rejectedColumns, rejectedColumns) &&
-    areObjectsEqual(cachedFilterData?.matchingFilters, matchingFilters) &&
-    areObjectsEqual(cachedFilterData?.matchingDatasources, matchingDatasources)
+    isEqual(cachedFilterData?.appliedColumns, appliedColumns) &&
+    isEqual(cachedFilterData?.rejectedColumns, rejectedColumns) &&
+    isEqual(cachedFilterData?.matchingFilters, matchingFilters) &&
+    isEqual(cachedFilterData?.matchingDatasources, matchingDatasources)
   ) {
     return cachedIndicatorsForChart[chartId];
   }
@@ -228,8 +228,8 @@ export const selectNativeIndicatorsForChart = (
   const cachedFilterData = cachedNativeFilterDataForChart[chartId];
   if (
     cachedNativeIndicatorsForChart[chartId] &&
-    areObjectsEqual(cachedFilterData?.appliedColumns, appliedColumns) &&
-    areObjectsEqual(cachedFilterData?.rejectedColumns, rejectedColumns) &&
+    isEqual(cachedFilterData?.appliedColumns, appliedColumns) &&
+    isEqual(cachedFilterData?.rejectedColumns, rejectedColumns) &&
     cachedFilterData?.nativeFilters === nativeFilters &&
     cachedFilterData?.dashboardLayout === dashboardLayout &&
     cachedFilterData?.chartConfiguration === chartConfiguration &&

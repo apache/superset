@@ -23,7 +23,8 @@ import { useDispatch } from 'react-redux';
 import { DataMaskState, DataMaskWithId } from 'src/dataMask/types';
 import { setFilterSetsConfiguration } from 'src/dashboard/actions/nativeFilters';
 import { Filters, FilterSet } from 'src/dashboard/reducers/types';
-import { areObjectsEqual } from 'src/reduxUtils';
+import { isEqualWith } from 'lodash';
+import { undefinedCustomizer } from 'src/utils/isEqualCustomizers';
 import { findExistingFilterSet, generateFiltersSetId } from './utils';
 import { Filter } from '../../types';
 import { useFilters, useNativeFiltersDataMask, useFilterSets } from '../state';
@@ -113,9 +114,11 @@ const FilterSets: React.FC<FilterSetsProps> = ({
     filterSet?: FilterSet,
   ) =>
     !filterValues.find(filter => filter?.id === id) ||
-    !areObjectsEqual(filters[id], filterSet?.nativeFilters?.[id], {
-      ignoreUndefined: true,
-    });
+    !isEqualWith(
+      filters[id],
+      filterSet?.nativeFilters?.[id],
+      undefinedCustomizer,
+    );
 
   const takeFilterSet = (id: string, target?: HTMLElement) => {
     const ignoreSelectorHeader = 'ant-collapse-header';

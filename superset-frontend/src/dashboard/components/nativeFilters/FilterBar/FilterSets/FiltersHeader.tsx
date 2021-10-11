@@ -21,7 +21,8 @@ import { styled, t, useTheme } from '@superset-ui/core';
 import { Collapse, Typography, Tooltip } from 'src/common/components';
 import { DataMaskState } from 'src/dataMask/types';
 import Icons from 'src/components/Icons';
-import { areObjectsEqual } from 'src/reduxUtils';
+import { isEqualWith } from 'lodash';
+import { undefinedCustomizer } from 'src/utils/isEqualCustomizers';
 import { FilterSet } from 'src/dashboard/reducers/types';
 import { getFilterValueForDisplay } from './utils';
 import { useFilters } from '../state';
@@ -86,9 +87,11 @@ const FiltersHeader: FC<FiltersHeaderProps> = ({ dataMask, filterSet }) => {
   const getFilterRow = ({ id, name }: { id: string; name: string }) => {
     const changedFilter =
       filterSet &&
-      !areObjectsEqual(filters[id], filterSet?.nativeFilters?.[id], {
-        ignoreUndefined: true,
-      });
+      !isEqualWith(
+        filters[id],
+        filterSet?.nativeFilters?.[id],
+        undefinedCustomizer,
+      );
     const removedFilter = !Object.keys(filters).includes(id);
 
     return (

@@ -22,7 +22,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { styled, t, css, useTheme } from '@superset-ui/core';
-import { debounce } from 'lodash';
+import { isEqual, debounce } from 'lodash';
 import { Resizable } from 're-resizable';
 
 import { usePluginContext } from 'src/components/DynamicPlugins';
@@ -46,7 +46,6 @@ import SaveModal from './SaveModal';
 import QueryAndSaveBtns from './QueryAndSaveBtns';
 import DataSourcePanel from './DatasourcePanel';
 import { getExploreLongUrl } from '../exploreUtils';
-import { areObjectsEqual } from '../../reduxUtils';
 import { getFormDataFromControls } from '../controlUtils';
 import * as exploreActions from '../actions/exploreActions';
 import * as saveModalActions from '../actions/saveModalActions';
@@ -329,10 +328,7 @@ function ExploreViewContainer(props) {
       const changedControlKeys = Object.keys(props.controls).filter(
         key =>
           typeof previousControls[key] !== 'undefined' &&
-          !areObjectsEqual(
-            props.controls[key].value,
-            previousControls[key].value,
-          ),
+          !isEqual(props.controls[key].value, previousControls[key].value),
       );
 
       // this should also be handled by the actions that are actually changing the controls
@@ -350,10 +346,7 @@ function ExploreViewContainer(props) {
       const changedControlKeys = Object.keys(props.controls).filter(
         key =>
           typeof lastQueriedControls[key] !== 'undefined' &&
-          !areObjectsEqual(
-            props.controls[key].value,
-            lastQueriedControls[key].value,
-          ),
+          !isEqual(props.controls[key].value, lastQueriedControls[key].value),
       );
 
       return changedControlKeys.some(

@@ -30,6 +30,7 @@ import {
 } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { isEqual, isEqualWith } from 'lodash';
+import { ignorePropsCustomizer } from 'src/utils/isEqualCustomizers';
 import { getChartDataRequest } from 'src/chart/chartAction';
 import Loading from 'src/components/Loading';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
@@ -107,11 +108,7 @@ const FilterValue: React.FC<FilterProps> = ({
     const filterOwnState = filter.dataMask?.ownState || {};
     // TODO: We should try to improve our useEffect hooks to depend more on
     // granular information instead of big objects that require deep comparison.
-    const customizer = (
-      objValue: Partial<QueryFormData>,
-      othValue: Partial<QueryFormData>,
-      key: string,
-    ) => (key === 'url_params' ? true : undefined);
+    const customizer = ignorePropsCustomizer('url_params');
     if (
       !isRefreshing &&
       (!isEqualWith(formData, newFormData, customizer) ||

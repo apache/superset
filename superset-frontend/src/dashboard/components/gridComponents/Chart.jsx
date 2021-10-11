@@ -30,7 +30,6 @@ import {
   LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
   LOG_ACTIONS_FORCE_REFRESH_CHART,
 } from 'src/logger/LogUtils';
-import { areObjectsEqual } from 'src/reduxUtils';
 
 import SliceHeader from '../SliceHeader';
 import MissingChart from '../MissingChart';
@@ -158,7 +157,7 @@ export default class Chart extends React.Component {
         const prop = SHOULD_UPDATE_ON_PROP_CHANGES[i];
         // use deep objects equality comparison to prevent
         // unneccessary updates when objects references change
-        if (!areObjectsEqual(nextProps[prop], this.props[prop])) {
+        if (!isEqual(nextProps[prop], this.props[prop])) {
           return true;
         }
       }
