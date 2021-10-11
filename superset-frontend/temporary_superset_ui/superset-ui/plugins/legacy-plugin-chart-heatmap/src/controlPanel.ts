@@ -24,8 +24,8 @@ import {
   formatSelectOptions,
   formatSelectOptionsForRange,
   sections,
+  dndEntity,
 } from '@superset-ui/chart-controls';
-import { dndEntity } from '@superset-ui/chart-controls/lib/shared-controls/dndControls';
 
 const sortAxisChoices = [
   ['alpha_asc', t('Axis ascending')],

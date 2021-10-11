@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { ReactElement } from 'react';
-import sharedControls from '../shared-controls';
+import { sharedControls } from '../shared-controls';
 import sharedControlComponents from '../shared-controls/components';
 import { ControlType, ControlSetItem, ExpandedControlItem, ControlOverrides } from '../types';
 

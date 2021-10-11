@@ -19,10 +19,11 @@
  */
 import React, { ReactNode, ReactText, ReactElement } from 'react';
 import { QueryFormData, DatasourceType, Metric, JsonValue, Column } from '@superset-ui/core';
-import sharedControls from './shared-controls';
+import { sharedControls } from './shared-controls';
 import sharedControlComponents from './shared-controls/components';
 
 export { Metric } from '@superset-ui/core';
+export { ControlFormItemSpec } from './components/ControlForm';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyDict = Record<string, any>;
