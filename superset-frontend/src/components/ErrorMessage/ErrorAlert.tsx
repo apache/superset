@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState, ReactNode } from 'react';
-import { styled, supersetTheme, t } from '@superset-ui/core';
+import { styled, useTheme, t } from '@superset-ui/core';
 import { noOp } from 'src/utils/common';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
@@ -92,34 +92,27 @@ interface ErrorAlertProps {
 export default function ErrorAlert({
   body,
   copyText,
-  level,
+  level = 'error',
   source = 'dashboard',
   subtitle,
   title,
 }: ErrorAlertProps) {
+  const theme = useTheme();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBodyExpanded, setIsBodyExpanded] = useState(false);
 
   const isExpandable = ['explore', 'sqllab'].includes(source);
+  const iconColor = theme.colors[level].base;
 
   return (
     <ErrorAlertDiv level={level} role="alert">
       <div className="top-row">
         <LeftSideContent>
-          {!level || level === 'error' ? (
-            <Icons.ErrorSolid
-              className="icon"
-<<<<<<< HEAD
-              iconColor={supersetTheme.colors[level].base}
-=======
-              iconColor={theme.colors.error.base}
->>>>>>> ea700384b... fix: error alerts again (#17026)
-            />
+          {level === 'error' ? (
+            <Icons.ErrorSolid className="icon" iconColor={iconColor} />
           ) : (
-            <Icons.WarningSolid
-              className="icon"
-              iconColor={supersetTheme.colors[level].base}
-            />
+            <Icons.WarningSolid className="icon" iconColor={iconColor} />
           )}
           <strong>{title}</strong>
         </LeftSideContent>
@@ -173,20 +166,10 @@ export default function ErrorAlert({
           onHide={() => setIsModalOpen(false)}
           title={
             <div className="header">
-              {!level || level === 'error' ? (
-                <Icons.ErrorSolid
-                  className="icon"
-<<<<<<< HEAD
-                  iconColor={supersetTheme.colors[level].base}
-=======
-                  iconColor={theme.colors.error.base}
->>>>>>> ea700384b... fix: error alerts again (#17026)
-                />
+              {level === 'error' ? (
+                <Icons.ErrorSolid className="icon" iconColor={iconColor} />
               ) : (
-                <Icons.WarningSolid
-                  className="icon"
-                  iconColor={supersetTheme.colors[level].base}
-                />
+                <Icons.WarningSolid className="icon" iconColor={iconColor} />
               )}
               <div className="title">{title}</div>
             </div>
