@@ -193,12 +193,15 @@ def mock_upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
     return dest_dir
 
 
+@pytest.mark.usefixtures("setup_csv_upload")
+@pytest.mark.usefixtures("create_csv_files")
 @mock.patch(
     "superset.models.core.config",
     {**app.config, "ALLOWED_USER_CSV_SCHEMA_FUNC": lambda d, u: ["admin_database"]},
 )
 @mock.patch("superset.db_engine_specs.hive.upload_to_s3", mock_upload_to_s3)
-def test_import_csv_enforced_schema(setup_csv_upload, create_csv_files):
+@mock.patch("superset.views.database.views.event_logger.log_with_context")
+def test_import_csv_enforced_schema(mock_event_logger):
     if utils.backend() == "sqlite":
         pytest.skip("Sqlite doesn't support schema / database creation")
 
@@ -218,6 +221,12 @@ def test_import_csv_enforced_schema(setup_csv_upload, create_csv_files):
         extra={"schema": "admin_database", "if_exists": "replace"},
     )
     assert success_msg in resp
+    mock_event_logger.assert_called_with(
+        action="successful_csv_upload",
+        database=get_upload_db().name,
+        schema="admin_database",
+        table=CSV_UPLOAD_TABLE_W_SCHEMA,
+    )
 
     engine = get_upload_db().get_sqla_engine()
     data = engine.execute(
@@ -259,11 +268,16 @@ def test_import_csv_explore_database(setup_csv_upload, create_csv_files):
     assert table.database_id == utils.get_example_database().id
 
 
+@pytest.mark.usefixtures("setup_csv_upload")
+@pytest.mark.usefixtures("create_csv_files")
 @mock.patch("superset.db_engine_specs.hive.upload_to_s3", mock_upload_to_s3)
-def test_import_csv(setup_csv_upload, create_csv_files):
+@mock.patch("superset.views.database.views.event_logger.log_with_context")
+def test_import_csv(mock_event_logger):
     success_msg_f1 = (
         f'CSV file "{CSV_FILENAME1}" uploaded to table "{CSV_UPLOAD_TABLE}"'
     )
+
+    test_db = get_upload_db()
 
     # initial upload with fail mode
     resp = upload_csv(CSV_FILENAME1, CSV_UPLOAD_TABLE)
@@ -282,6 +296,12 @@ def test_import_csv(setup_csv_upload, create_csv_files):
             CSV_FILENAME1, CSV_UPLOAD_TABLE, extra={"if_exists": "append"}
         )
         assert success_msg_f1 in resp
+        mock_event_logger.assert_called_with(
+            action="successful_csv_upload",
+            database=test_db.name,
+            schema=None,
+            table=CSV_UPLOAD_TABLE,
+        )
 
     # upload again with replace mode and specific columns
     resp = upload_csv(
@@ -324,7 +344,7 @@ def test_import_csv(setup_csv_upload, create_csv_files):
         extra={"null_values": '["", "john"]', "if_exists": "replace"},
     )
     # make sure that john and empty string are replaced with None
-    engine = get_upload_db().get_sqla_engine()
+    engine = test_db.get_sqla_engine()
     data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").fetchall()
     assert data == [(None, 1, "x"), ("paul", 2, None)]
 
@@ -335,10 +355,15 @@ def test_import_csv(setup_csv_upload, create_csv_files):
     assert data == [("john", 1, "x"), ("paul", 2, None)]
 
 
+@pytest.mark.usefixtures("setup_csv_upload")
+@pytest.mark.usefixtures("create_excel_files")
 @mock.patch("superset.db_engine_specs.hive.upload_to_s3", mock_upload_to_s3)
-def test_import_excel(setup_csv_upload, create_excel_files):
+@mock.patch("superset.views.database.views.event_logger.log_with_context")
+def test_import_excel(mock_event_logger):
     if utils.backend() == "hive":
         pytest.skip("Hive doesn't excel upload.")
+
+    test_db = get_upload_db()
 
     success_msg = (
         f'Excel file "{EXCEL_FILENAME}" uploaded to table "{EXCEL_UPLOAD_TABLE}"'
@@ -347,6 +372,12 @@ def test_import_excel(setup_csv_upload, create_excel_files):
     # initial upload with fail mode
     resp = upload_excel(EXCEL_FILENAME, EXCEL_UPLOAD_TABLE)
     assert success_msg in resp
+    mock_event_logger.assert_called_with(
+        action="successful_excel_upload",
+        database=test_db.name,
+        schema=None,
+        table=EXCEL_UPLOAD_TABLE,
+    )
 
     # upload again with fail mode; should fail
     fail_msg = f'Unable to upload Excel file "{EXCEL_FILENAME}" to table "{EXCEL_UPLOAD_TABLE}"'
@@ -365,21 +396,31 @@ def test_import_excel(setup_csv_upload, create_excel_files):
         EXCEL_FILENAME, EXCEL_UPLOAD_TABLE, extra={"if_exists": "replace"}
     )
     assert success_msg in resp
+    mock_event_logger.assert_called_with(
+        action="successful_excel_upload",
+        database=test_db.name,
+        schema=None,
+        table=EXCEL_UPLOAD_TABLE,
+    )
 
     # make sure that john and empty string are replaced with None
     data = (
-        get_upload_db()
-        .get_sqla_engine()
+        test_db.get_sqla_engine()
         .execute(f"SELECT * from {EXCEL_UPLOAD_TABLE}")
         .fetchall()
     )
     assert data == [(0, "john", 1), (1, "paul", 2)]
 
 
+@pytest.mark.usefixtures("setup_csv_upload")
+@pytest.mark.usefixtures("create_columnar_files")
 @mock.patch("superset.db_engine_specs.hive.upload_to_s3", mock_upload_to_s3)
-def test_import_parquet(setup_csv_upload, create_columnar_files):
+@mock.patch("superset.views.database.views.event_logger.log_with_context")
+def test_import_parquet(mock_event_logger):
     if utils.backend() == "hive":
         pytest.skip("Hive doesn't allow parquet upload.")
+
+    test_db = get_upload_db()
 
     success_msg_f1 = f'Columnar file "[\'{PARQUET_FILENAME1}\']" uploaded to table "{PARQUET_UPLOAD_TABLE}"'
 
@@ -398,6 +439,12 @@ def test_import_parquet(setup_csv_upload, create_columnar_files):
             PARQUET_FILENAME1, PARQUET_UPLOAD_TABLE, extra={"if_exists": "append"}
         )
         assert success_msg_f1 in resp
+        mock_event_logger.assert_called_with(
+            action="successful_columnar_upload",
+            database=test_db.name,
+            schema=None,
+            table=PARQUET_UPLOAD_TABLE,
+        )
 
     # upload again with replace mode and specific columns
     resp = upload_columnar(
@@ -418,8 +465,7 @@ def test_import_parquet(setup_csv_upload, create_columnar_files):
     assert success_msg_f1 in resp
 
     data = (
-        get_upload_db()
-        .get_sqla_engine()
+        test_db.get_sqla_engine()
         .execute(f"SELECT * from {PARQUET_UPLOAD_TABLE} ORDER BY b")
         .fetchall()
     )
@@ -433,8 +479,7 @@ def test_import_parquet(setup_csv_upload, create_columnar_files):
     assert success_msg_f2 in resp
 
     data = (
-        get_upload_db()
-        .get_sqla_engine()
+        test_db.get_sqla_engine()
         .execute(f"SELECT * from {PARQUET_UPLOAD_TABLE} ORDER BY b")
         .fetchall()
     )
