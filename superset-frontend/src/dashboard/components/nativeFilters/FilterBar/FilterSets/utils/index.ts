@@ -58,6 +58,7 @@ export const findExistingFilterSet = ({
       const isEqual = areObjectsEqual(
         filterFromSelectedFilters.filterState,
         dataMaskFromFilterSet?.[id]?.filterState,
+        { ignoreUndefined: true, ignoreNull: true },
       );
       const hasSamePropsNumber =
         dataMaskSelectedEntries.length ===

@@ -83,6 +83,34 @@ export interface CreateFilterSetFail {
   type: typeof CREATE_FILTER_SET_FAIL;
 }
 
+export const DELETE_FILTER_SET_BEGIN = 'DELETE_FILTER_SET_BEGIN';
+export interface DeleteFilterSetBegin {
+  type: typeof DELETE_FILTER_SET_BEGIN;
+}
+export const DELETE_FILTER_SET_COMPLETE = 'DELETE_FILTER_SET_COMPLETE';
+export interface DeleteFilterSetComplete {
+  type: typeof DELETE_FILTER_SET_COMPLETE;
+  filterSet: FilterSet;
+}
+export const DELETE_FILTER_SET_FAIL = 'DELETE_FILTER_SET_FAIL';
+export interface DeleteFilterSetFail {
+  type: typeof DELETE_FILTER_SET_FAIL;
+}
+
+export const UPDATE_FILTER_SET_BEGIN = 'UPDATE_FILTER_SET_BEGIN';
+export interface UpdateFilterSetBegin {
+  type: typeof UPDATE_FILTER_SET_BEGIN;
+}
+export const UPDATE_FILTER_SET_COMPLETE = 'UPDATE_FILTER_SET_COMPLETE';
+export interface UpdateFilterSetComplete {
+  type: typeof UPDATE_FILTER_SET_COMPLETE;
+  filterSet: FilterSet;
+}
+export const UPDATE_FILTER_SET_FAIL = 'UPDATE_FILTER_SET_FAIL';
+export interface UpdateFilterSetFail {
+  type: typeof UPDATE_FILTER_SET_FAIL;
+}
+
 export const setFilterConfiguration = (
   filterConfig: FilterConfiguration,
 ) => async (dispatch: Dispatch, getState: () => any) => {
@@ -227,59 +255,83 @@ export const createFilterSet = (filterSet: Omit<FilterSet, 'id'>) => async (
     type: CREATE_FILTER_SET_BEGIN,
   });
 
-  const response = await postFilterSets({
+  const serverFilterSet: Omit<FilterSet, 'id' | 'name'> & { name?: string } = {
+    ...filterSet,
+  };
+
+  delete serverFilterSet.name;
+
+  await postFilterSets({
     name: filterSet.name,
     owner_type: 'Dashboard',
     owner_id: dashboardId,
-    json_metadata: filterSet,
+    json_metadata: JSON.stringify(serverFilterSet),
   });
 
-  console.log(response);
   dispatch({
     type: CREATE_FILTER_SET_COMPLETE,
   });
   dispatch(getFilterSets());
 };
 
-export const setFilterSetsConfiguration = (filterSets: FilterSet[]) => async (
-  dispatch: Dispatch,
-  getState: () => any,
+export const updateFilterSet = (filterSet: FilterSet) => async (
+  dispatch: Function,
+  getState: () => RootState,
 ) => {
-  dispatch({
-    type: SET_FILTER_SETS_BEGIN,
-    filterSets,
-  });
-  const { id } = getState().dashboardInfo;
-
-  // TODO extract this out when makeApi supports url parameters
-  const updateDashboard = makeApi<
-    Partial<DashboardInfo>,
-    { result: DashboardInfo }
+  const dashboardId = getState().dashboardInfo.id;
+  const postFilterSets = makeApi<
+    Partial<FilterSetFullData & { json_metadata: any }>,
+    {}
   >({
     method: 'PUT',
-    endpoint: `/api/v1/dashboard/${id}`,
+    endpoint: `/api/v1/dashboard/${dashboardId}/filtersets/${filterSet.id}`,
   });
 
-  try {
-    const response = await updateDashboard({
-      // json_metadata: JSON.stringify({
-      //   // ...metadata,
-      //   // filter_sets_configuration: filterSets,
-      // }),
-    });
-    const newMetadata = JSON.parse(response.result.json_metadata);
-    dispatch(
-      dashboardInfoChanged({
-        metadata: newMetadata,
-      }),
-    );
-    dispatch({
-      type: SET_FILTER_SETS_COMPLETE,
-      filterSets: newMetadata?.filter_sets_configuration,
-    });
-  } catch (err) {
-    dispatch({ type: SET_FILTER_SETS_FAIL, filterSets });
-  }
+  dispatch({
+    type: UPDATE_FILTER_SET_BEGIN,
+  });
+
+  const serverFilterSet: Omit<FilterSet, 'id' | 'name'> & {
+    name?: string;
+    id?: number;
+  } = {
+    ...filterSet,
+  };
+
+  delete serverFilterSet.id;
+  delete serverFilterSet.name;
+
+  await postFilterSets({
+    name: filterSet.name,
+    json_metadata: JSON.stringify(serverFilterSet),
+  });
+
+  dispatch({
+    type: UPDATE_FILTER_SET_COMPLETE,
+  });
+  dispatch(getFilterSets());
+};
+
+export const deleteFilterSet = (filterSetId: number) => async (
+  dispatch: Function,
+  getState: () => RootState,
+) => {
+  const dashboardId = getState().dashboardInfo.id;
+  const deleteFilterSets = makeApi<{}, {}>({
+    method: 'DELETE',
+    endpoint: `/api/v1/dashboard/${dashboardId}/filtersets/${filterSetId}`,
+  });
+
+  dispatch({
+    type: DELETE_FILTER_SET_BEGIN,
+  });
+
+  await deleteFilterSets({});
+
+  dispatch({
+    type: DELETE_FILTER_SET_COMPLETE,
+  });
+  dispatch(getFilterSets());
 };
 
 export const SET_FOCUSED_NATIVE_FILTER = 'SET_FOCUSED_NATIVE_FILTER';
@@ -317,4 +369,10 @@ export type AnyFilterAction =
   | UnsetFocusedNativeFilter
   | CreateFilterSetBegin
   | CreateFilterSetComplete
-  | CreateFilterSetFail;
+  | CreateFilterSetFail
+  | DeleteFilterSetBegin
+  | DeleteFilterSetComplete
+  | DeleteFilterSetFail
+  | UpdateFilterSetBegin
+  | UpdateFilterSetComplete
+  | UpdateFilterSetFail;

@@ -150,7 +150,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
 }) => {
   const history = useHistory();
   const dataMaskApplied: DataMaskStateWithId = useNativeFiltersDataMask();
-  const [editFilterSetId, setEditFilterSetId] = useState<string | null>(null);
+  const [editFilterSetId, setEditFilterSetId] = useState<number | null>(null);
   const [dataMaskSelected, setDataMaskSelected] = useImmer<DataMaskStateWithId>(
     dataMaskApplied,
   );
@@ -161,13 +161,11 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const filters = useFilters();
   const previousFilters = usePrevious(filters);
   const filterValues = Object.values<Filter>(filters);
-  const [isFilterSetChanged, setIsFilterSetChanged] = useState(false);
 
   const handleFilterSelectionChange = (
     filter: Pick<Filter, 'id'> & Partial<Filter>,
     dataMask: Partial<DataMask>,
   ) => {
-    setIsFilterSetChanged(tab !== TabIds.AllFilters);
     setDataMaskSelected(draft => {
       // force instant updating on initialization for filters with `requiredFirst` is true or instant filters
       if (
@@ -341,7 +339,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
                 onEditFilterSet={setEditFilterSetId}
                 disabled={!isApplyDisabled}
                 dataMaskSelected={dataMaskSelected}
-                isFilterSetChanged={isFilterSetChanged}
+                tab={tab}
                 onFilterSelectionChange={handleFilterSelectionChange}
               />
             </Tabs.TabPane>
