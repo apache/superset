@@ -124,7 +124,7 @@ export default class ColorSchemeControl extends React.PureComponent {
       (this.props.default !== undefined ? this.props.default : undefined);
 
     if (currentScheme === 'SUPERSET_DEFAULT') {
-      currentScheme = supersetDefaultSchemeId;
+      currentScheme = this.schemes?.SUPERSET_DEFAULT?.id;
     }
 
     const selectProps = {
