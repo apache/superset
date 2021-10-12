@@ -80,7 +80,7 @@ const FilterTitlePane: React.FC<Props> = ({
       <div
         css={{
           height: '100%',
-          'overflow-y': 'auto',
+          overflowY: 'auto',
           marginLeft: theme.gridUnit * 3,
         }}
       >

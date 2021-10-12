@@ -45,7 +45,7 @@ const Container = styled.div<TitleContainerProps>`
 const DragIcon = styled(Icons.Drag)<IconType & { isDragging: boolean }>`
   ${({ isDragging, theme }) => `
     font-size: ${theme.typography.sizes.m}px;
-    margin-top: 12px;
+    margin-top: 15px;
     cursor: ${isDragging ? 'grabbing' : 'grab'};
     padding-left: ${theme.gridUnit}px;
 `}

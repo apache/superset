@@ -85,7 +85,9 @@ const FilterTitleContainer: React.FC<Props> = ({
         className={currentFilterId === id ? 'active' : ''}
       >
         <div css={{ display: 'flex', width: '100%' }}>
-          <div>{isRemoved ? t('(Removed)') : getFilterTitle(id)}</div>
+          <div css={{ alignItems: 'center', display: 'flex' }}>
+            {isRemoved ? t('(Removed)') : getFilterTitle(id)}
+          </div>
           {isRemoved && (
             <span
               css={{ alignSelf: 'flex-end', marginLeft: 'auto' }}
@@ -150,7 +152,12 @@ const FilterTitleContainer: React.FC<Props> = ({
     const items: React.ReactNode[] = [];
     filterGroups.forEach((item, index) => {
       items.push(
-        <DraggableFilter onRearrage={onRearrage} index={index} filterIds={item}>
+        <DraggableFilter
+          key={index}
+          onRearrage={onRearrage}
+          index={index}
+          filterIds={item}
+        >
           {item.map(filter => renderComponent(filter))}
         </DraggableFilter>,
       );

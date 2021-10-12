@@ -19,7 +19,7 @@
 import React from 'react';
 import { dashboardLayout } from 'spec/fixtures/mockDashboardLayout';
 import { buildNativeFilter } from 'spec/fixtures/mockNativeFilters';
-import { render, screen, fireEvent } from 'spec/helpers/testing-library';
+import { act, fireEvent, render, screen } from 'spec/helpers/testing-library';
 import FilterConfigPane from './FilterConfigurePane';
 
 const defaultProps = {
@@ -55,7 +55,10 @@ function defaultRender(initialState: any = defaultState, props = defaultProps) {
 }
 
 test('renders form', async () => {
-  defaultRender();
+  await act(async () => {
+    defaultRender();
+  });
+
   expect(defaultProps.children).toHaveBeenCalledTimes(3);
 });
 
@@ -66,12 +69,14 @@ test('drag and drop', async () => {
     'div[draggable=true]',
   );
   // const productFilter = await screen.findByText('NATIVE_FILTER-3');
-  fireEvent.dragStart(productFilter);
-  fireEvent.dragEnter(countryStateFilter);
-  fireEvent.dragOver(countryStateFilter);
-  fireEvent.drop(countryStateFilter);
-  fireEvent.dragLeave(countryStateFilter);
-  fireEvent.dragEnd(productFilter);
+  await act(async () => {
+    fireEvent.dragStart(productFilter);
+    fireEvent.dragEnter(countryStateFilter);
+    fireEvent.dragOver(countryStateFilter);
+    fireEvent.drop(countryStateFilter);
+    fireEvent.dragLeave(countryStateFilter);
+    fireEvent.dragEnd(productFilter);
+  });
   expect(defaultProps.onRearrange).toHaveBeenCalledTimes(1);
 });
 
@@ -79,13 +84,15 @@ test('remove filter', async () => {
   defaultRender();
   // First trash icon
   const removeFilterIcon = document.querySelector("[alt='RemoveFilter']")!;
-  fireEvent(
-    removeFilterIcon,
-    new MouseEvent('click', {
-      bubbles: true,
-      cancelable: true,
-    }),
-  );
+  await act(async () => {
+    fireEvent(
+      removeFilterIcon,
+      new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+  });
   expect(defaultProps.onEdit).toHaveBeenCalledWith('NATIVE_FILTER-2', 'remove');
 });
 
@@ -93,12 +100,15 @@ test('add filter', async () => {
   defaultRender();
   // First trash icon
   const removeFilterIcon = screen.getByText('Add filter')!;
-  fireEvent(
-    removeFilterIcon,
-    new MouseEvent('click', {
-      bubbles: true,
-      cancelable: true,
-    }),
-  );
+  await act(async () => {
+    fireEvent(
+      removeFilterIcon,
+      new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+  });
+
   expect(defaultProps.onEdit).toHaveBeenCalledWith('', 'add');
 });
