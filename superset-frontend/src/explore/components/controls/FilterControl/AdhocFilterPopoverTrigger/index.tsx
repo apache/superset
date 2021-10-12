@@ -22,10 +22,10 @@ import { OptionSortType } from 'src/explore/types';
 import AdhocFilterEditPopover from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopover';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { ExplorePopoverContent } from 'src/explore/components/ExploreContentPopover';
-import { Operators } from '../../../../constants';
+import { Operators } from 'src/explore/constants';
 
 interface AdhocFilterPopoverTriggerProps {
-  hasCustomSQL?: boolean;
+  sections?: string[];
   operators?: Operators[];
   adhocFilter: AdhocFilter;
   options: OptionSortType[];
@@ -93,7 +93,7 @@ class AdhocFilterPopoverTrigger extends React.PureComponent<
           partitionColumn={this.props.partitionColumn}
           onResize={this.onPopoverResize}
           onClose={closePopover}
-          hasCustomSQL={this.props.hasCustomSQL}
+          sections={this.props.sections}
           operators={this.props.operators}
           onChange={this.props.onFilterEdit}
         />

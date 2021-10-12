@@ -59,7 +59,7 @@ const selectedMetricType = PropTypes.oneOfType([
 const propTypes = {
   label: PropTypes.oneOfType([PropTypes.object, PropTypes.string]),
   name: PropTypes.string,
-  hasCustomSQL: PropTypes.bool,
+  sections: PropTypes.arrayOf(PropTypes.string),
   operators: PropTypes.arrayOf(PropTypes.string),
   onChange: PropTypes.func,
   value: PropTypes.arrayOf(adhocFilterType),
@@ -109,7 +109,7 @@ class AdhocFilterControl extends React.Component {
         adhocFilter={adhocFilter}
         onFilterEdit={this.onFilterEdit}
         options={this.state.options}
-        hasCustomSQL={this.props.hasCustomSQL}
+        sections={this.props.sections}
         operators={this.props.operators}
         datasource={this.props.datasource}
         onRemoveFilter={() => this.onRemoveFilter(index)}
@@ -329,7 +329,7 @@ class AdhocFilterControl extends React.Component {
     return (
       <AdhocFilterPopoverTrigger
         operators={this.props.operators}
-        hasCustomSQL={this.props.hasCustomSQL}
+        sections={this.props.sections}
         adhocFilter={new AdhocFilter({})}
         datasource={this.props.datasource}
         options={this.state.options}

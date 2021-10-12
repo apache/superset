@@ -36,7 +36,7 @@ const propTypes = {
       adhocMetricType,
     ]),
   ).isRequired,
-  hasCustomSQL: PropTypes.bool,
+  sections: PropTypes.arrayOf(PropTypes.string),
   operators: PropTypes.arrayOf(PropTypes.string),
   datasource: PropTypes.object,
   partitionColumn: PropTypes.string,
@@ -55,11 +55,11 @@ const AdhocFilterOption = ({
   onMoveLabel,
   onDropLabel,
   index,
-  hasCustomSQL,
+  sections,
   operators,
 }) => (
   <AdhocFilterPopoverTrigger
-    hasCustomSQL={hasCustomSQL}
+    sections={sections}
     operators={operators}
     adhocFilter={adhocFilter}
     options={options}

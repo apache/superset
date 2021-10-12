@@ -46,7 +46,7 @@ const propTypes = {
   datasource: PropTypes.object,
   partitionColumn: PropTypes.string,
   theme: PropTypes.object,
-  hasCustomSQL: PropTypes.bool,
+  sections: PropTypes.arrayOf(PropTypes.string),
   operators: PropTypes.arrayOf(PropTypes.string),
 };
 
@@ -56,6 +56,11 @@ const ResizeIcon = styled.i`
 
 const startingWidth = 320;
 const startingHeight = 240;
+const SectionWrapper = styled.div`
+  .ant-select {
+    margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+  }
+`;
 
 const FilterPopoverContentContainer = styled.div`
   .adhoc-filter-edit-tabs > .nav-tabs {
@@ -168,7 +173,7 @@ export default class AdhocFilterEditPopover extends React.Component {
       onResize,
       datasource,
       partitionColumn,
-      hasCustomSQL = true,
+      sections = ['SIMPLE', 'CUSTOM_SQL'],
       theme,
       operators,
       ...popoverProps
@@ -179,7 +184,27 @@ export default class AdhocFilterEditPopover extends React.Component {
     const stateIsValid = adhocFilter.isValid();
     const hasUnsavedChanges = !adhocFilter.equals(propsAdhocFilter);
 
-    const simpleContent = (
+    const sectionRenders = {};
+
+    sectionRenders.CUSTOM_SQL = (
+      <ErrorBoundary>
+        {!this.props.datasource || this.props.datasource.type !== 'druid' ? (
+          <AdhocFilterEditPopoverSqlTabContent
+            adhocFilter={this.state.adhocFilter}
+            onChange={this.onAdhocFilterChange}
+            options={this.props.options}
+            height={this.state.height}
+            activeKey={this.state.activeKey}
+          />
+        ) : (
+          <div className="custom-sql-disabled-message">
+            Custom SQL Filters are not available on druid datasources
+          </div>
+        )}
+      </ErrorBoundary>
+    );
+
+    sectionRenders.SIMPLE = (
       <ErrorBoundary>
         <AdhocFilterEditPopoverSimpleTabContent
           operators={operators}
@@ -201,7 +226,7 @@ export default class AdhocFilterEditPopover extends React.Component {
         data-test="filter-edit-popover"
         ref={this.popoverContentRef}
       >
-        {hasCustomSQL ? (
+        {sections.length > 1 ? (
           <Tabs
             id="adhoc-filter-edit-tabs"
             defaultActiveKey={adhocFilter.expressionType}
@@ -211,40 +236,27 @@ export default class AdhocFilterEditPopover extends React.Component {
             allowOverflow
             onChange={this.onTabChange}
           >
-            <Tabs.TabPane
-              className="adhoc-filter-edit-tab"
-              key={EXPRESSION_TYPES.SIMPLE}
-              tab={t('Simple')}
-            >
-              {simpleContent}
-            </Tabs.TabPane>
-            {hasCustomSQL && (
+            {sections.includes('SIMPLE') && (
+              <Tabs.TabPane
+                className="adhoc-filter-edit-tab"
+                key={EXPRESSION_TYPES.SIMPLE}
+                tab={t('Simple')}
+              >
+                {sectionRenders.SIMPLE}
+              </Tabs.TabPane>
+            )}
+            {sections.includes('CUSTOM_SQL') && (
               <Tabs.TabPane
                 className="adhoc-filter-edit-tab"
                 key={EXPRESSION_TYPES.SQL}
                 tab={t('Custom SQL')}
               >
-                <ErrorBoundary>
-                  {!this.props.datasource ||
-                  this.props.datasource.type !== 'druid' ? (
-                    <AdhocFilterEditPopoverSqlTabContent
-                      adhocFilter={this.state.adhocFilter}
-                      onChange={this.onAdhocFilterChange}
-                      options={this.props.options}
-                      height={this.state.height}
-                      activeKey={this.state.activeKey}
-                    />
-                  ) : (
-                    <div className="custom-sql-disabled-message">
-                      Custom SQL Filters are not available on druid datasources
-                    </div>
-                  )}
-                </ErrorBoundary>
+                {sectionRenders.CUSTOM_SQL}
               </Tabs.TabPane>
             )}
           </Tabs>
         ) : (
-          simpleContent
+          <SectionWrapper>{sectionRenders[sections[0]]}</SectionWrapper>
         )}
         <div>
           <Button buttonSize="small" onClick={this.props.onClose} cta>
