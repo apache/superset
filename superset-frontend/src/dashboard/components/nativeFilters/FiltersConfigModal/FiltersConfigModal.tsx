@@ -26,7 +26,9 @@ import { testWithId } from 'src/utils/testUtils';
 import { useFilterConfigMap, useFilterConfiguration } from '../state';
 import { FilterConfiguration } from '../types';
 import FiltureConfigurePane from './FilterConfigurePane';
-import FiltersConfigForm from './FiltersConfigForm/FiltersConfigForm';
+import FiltersConfigForm, {
+  FilterPanels,
+} from './FiltersConfigForm/FiltersConfigForm';
 import Footer from './Footer/Footer';
 import { useOpenModal, useRemoveCurrentFilter } from './state';
 import { FilterRemoval, NativeFiltersForm, FilterHierarchy } from './types';
@@ -156,6 +158,15 @@ export function FiltersConfigModal({
     buildFilterGroup(filterHierarchy),
   );
 
+  const [activeFilterPanelKey, setActiveFilterPanelKey] = useState<
+    string | string[]
+  >(`${initialCurrentFilterId}-${FilterPanels.basic.key}`);
+
+  const onTabChange = (filterId: string) => {
+    setCurrentFilterId(filterId);
+    setActiveFilterPanelKey(`${filterId}-${FilterPanels.basic.key}`);
+  };
+
   // generates a new filter id and appends it to the newFilterIds
   const addFilter = useCallback(() => {
     const newFilterId = generateFilterId();
@@ -167,6 +178,7 @@ export function FiltersConfigModal({
       { id: newFilterId, parentId: null },
     ]);
     setOrderedFilters([...orderedFilters, [newFilterId]]);
+    setActiveFilterPanelKey(`${newFilterId}-${FilterPanels.basic.key}`);
   }, [
     newFilterIds,
     orderedFilters,
@@ -297,7 +309,6 @@ export function FiltersConfigModal({
   };
   const onRearrage = (dragIndex: number, targetIndex: number) => {
     const newOrderedFilter = orderedFilters.map(group => [...group]);
-
     const removed = newOrderedFilter.splice(dragIndex, 1)[0];
     newOrderedFilter.splice(targetIndex, 0, removed);
     setOrderedFilters(newOrderedFilter);
@@ -375,7 +386,7 @@ export function FiltersConfigModal({
           >
             <FiltureConfigurePane
               onEdit={handleTabEdit}
-              onChange={setCurrentFilterId}
+              onChange={onTabChange}
               getFilterTitle={getFilterTitle}
               currentFilterId={currentFilterId}
               removedFilters={removedFilters}
@@ -394,6 +405,11 @@ export function FiltersConfigModal({
                   parentFilters={getParentFilters(id)}
                   onFilterHierarchyChange={handleFilterHierarchyChange}
                   key={id}
+                  activeFilterPanelKeys={activeFilterPanelKey}
+                  handleActiveFilterPanelChange={key =>
+                    setActiveFilterPanelKey(key)
+                  }
+                  isActive={currentFilterId === id}
                 />
               )}
             </FiltureConfigurePane>

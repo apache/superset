@@ -98,10 +98,10 @@ const TabPane = styled(Tabs.TabPane)`
 
 const StyledContainer = styled.div`
   ${({ theme }) => `
-  display: flex;
-  flex-direction: row-reverse;
-  justify-content: space-between;
-  padding: 0px ${theme.gridUnit * 4}px;
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: space-between;
+    padding: 0px ${theme.gridUnit * 4}px;
 `}
 `;
 
@@ -252,7 +252,7 @@ const FilterTabs = {
   },
 };
 
-const FilterPanels = {
+export const FilterPanels = {
   basic: {
     key: 'basic',
     name: t('Basic'),
@@ -274,6 +274,9 @@ export interface FiltersConfigFormProps {
     filterId: string,
     parentFilter: { label: string; value: string },
   ) => void;
+  handleActiveFilterPanelChange: (activeFilterPanel: string | string[]) => void;
+  activeFilterPanelKeys: string | string[];
+  isActive: boolean;
 }
 
 const FILTERS_WITH_ADHOC_FILTERS = ['filter_select', 'filter_range'];
@@ -307,10 +310,13 @@ const FiltersConfigForm = (
     filterId,
     filterToEdit,
     removedFilters,
-    restoreFilter,
     form,
     parentFilters,
+    activeFilterPanelKeys,
+    isActive,
+    restoreFilter,
     onFilterHierarchyChange,
+    handleActiveFilterPanelChange,
   }: FiltersConfigFormProps,
   ref: React.RefObject<any>,
 ) => {
@@ -320,9 +326,7 @@ const FiltersConfigForm = (
   const [activeTabKey, setActiveTabKey] = useState<string>(
     FilterTabs.configuration.key,
   );
-  const [activeFilterPanelKey, setActiveFilterPanelKey] = useState<
-    string | string[] | undefined
-  >();
+
   const [undoFormValues, setUndoFormValues] = useState<Record<
     string,
     any
@@ -665,7 +669,7 @@ const FiltersConfigForm = (
 
   useEffect(() => {
     // Run only once when the control items are available
-    if (!activeFilterPanelKey && !isEmpty(controlItems)) {
+    if (isActive && !isEmpty(controlItems)) {
       const hasCheckedAdvancedControl =
         hasParentFilter ||
         hasPreFilter ||
@@ -673,7 +677,7 @@ const FiltersConfigForm = (
         Object.keys(controlItems)
           .filter(key => !BASIC_CONTROL_ITEMS.includes(key))
           .some(key => controlItems[key].checked);
-      setActiveFilterPanelKey(
+      handleActiveFilterPanelChange(
         hasCheckedAdvancedControl
           ? [
               `${filterId}-${FilterPanels.basic.key}`,
@@ -682,13 +686,7 @@ const FiltersConfigForm = (
           : `${filterId}-${FilterPanels.basic.key}`,
       );
     }
-  }, [
-    activeFilterPanelKey,
-    hasParentFilter,
-    hasPreFilter,
-    hasSorting,
-    controlItems,
-  ]);
+  }, [isActive]);
 
   const initiallyExcludedCharts = useMemo(() => {
     const excluded: number[] = [];
@@ -848,9 +846,9 @@ const FiltersConfigForm = (
           </StyledRowContainer>
         )}
         <StyledCollapse
-          activeKey={activeFilterPanelKey}
+          activeKey={activeFilterPanelKeys}
           onChange={key => {
-            setActiveFilterPanelKey(key);
+            handleActiveFilterPanelChange(key);
           }}
           expandIconPosition="right"
           key={`native-filter-config-${filterId}`}

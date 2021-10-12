@@ -58,6 +58,7 @@ test('renders form', async () => {
   defaultRender();
   expect(defaultProps.children).toHaveBeenCalledTimes(3);
 });
+
 test('drag and drop', async () => {
   defaultRender();
   // Drag the state and contry filter above the product filter

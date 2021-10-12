@@ -37,10 +37,12 @@ const Container = styled.div`
   display: flex;
   height: 100%;
 `;
+
 const ContentHolder = styled.div`
   flex-grow: 3;
   margin-left: ${({ theme }) => theme.gridUnit * -1 - 1};
 `;
+
 const TitlesContainer = styled.div`
   width: 270px;
   border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
@@ -79,7 +81,7 @@ const FiltureConfigurePane: React.FC<Props> = ({
             key={id}
             style={{
               height: '100%',
-              overflowY: 'scroll',
+              overflowY: 'auto',
               display: id === active ? '' : 'none',
             }}
           >

@@ -48,6 +48,7 @@ const FilterTitle = styled.div`
 const StyledTrashIcon = styled(Icons.Trash)`
   color: ${({ theme }) => theme.colors.grayscale.light3};
 `;
+
 const Container = styled.div`
   height: 100%;
   overflow-y: auto;
