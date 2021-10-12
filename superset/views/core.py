@@ -857,7 +857,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             datasource_data = dummy_datasource_data
 
         if datasource:
-            datasource_data["owners"] = [owner.data for owner in datasource.owners]
+            datasource_data["owners"] = datasource.owners_data
 
         bootstrap_data = {
             "can_add": slice_add_perm,
