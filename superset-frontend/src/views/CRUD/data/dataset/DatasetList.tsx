@@ -165,10 +165,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         endpoint: `/api/v1/dataset/${id}`,
       })
         .then(({ json = {} }) => {
-          const owners = json.result.owners.map((owner: any) => ({
-            value: owner.id,
-            label: `${owner.first_name} ${owner.last_name}`,
-          }));
           const addCertificationFields = json.result.columns.map(
             (column: ColumnObject) => {
               const {
@@ -184,7 +180,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           );
           // eslint-disable-next-line no-param-reassign
           json.result.columns = [...addCertificationFields];
-          setDatasetCurrentlyEditing({ ...json.result, owners });
+          setDatasetCurrentlyEditing(json.result);
         })
         .catch(() => {
           addDangerToast(

@@ -375,25 +375,28 @@ const defaultProps = {
 };
 
 function OwnersSelector({ datasource, onChange }) {
-  const loadOptions = useMemo(() => (search = '', page, pageSize) => {
-    const query = rison.encode({ filter: search, page, page_size: pageSize });
-    return SupersetClient.get({
-      endpoint: `/api/v1/dataset/related/owners?q=${query}`,
-    }).then(response => ({
-      data: response.json.result.map(item => ({
-        value: item.value,
-        label: item.text,
-      })),
-      totalCount: response.json.count,
-    }));
-  });
+  const loadOptions = useMemo(
+    () => (search = '', page, pageSize) => {
+      const query = rison.encode({ filter: search, page, page_size: pageSize });
+      return SupersetClient.get({
+        endpoint: `/api/v1/dataset/related/owners?q=${query}`,
+      }).then(response => ({
+        data: response.json.result.map(item => ({
+          value: item.value,
+          label: item.text,
+        })),
+        totalCount: response.json.count,
+      }));
+    },
+    [],
+  );
 
   return (
     <Select
       ariaLabel={t('Select owners')}
       mode="multiple"
       name="owners"
-      value={datasource.owners || []}
+      value={datasource.owners}
       options={loadOptions}
       onChange={onChange}
       header={<FormLabel>{t('Owners')}</FormLabel>}
@@ -408,6 +411,10 @@ class DatasourceEditor extends React.PureComponent {
     this.state = {
       datasource: {
         ...props.datasource,
+        owners: props.datasource.owners.map(owner => ({
+          value: owner.id,
+          label: `${owner.first_name} ${owner.last_name}`,
+        })),
         metrics: props.datasource.metrics?.map(metric => {
           const {
             certified_by: certifiedByMetric,
