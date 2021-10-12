@@ -396,7 +396,7 @@ export default class FilterableTable extends PureComponent<
           }}
           className={`${className} grid-cell grid-header-cell`}
         >
-          <div>{label}</div>
+          <div css={{ width: 'max-content' }}>{label}</div>
         </div>
       </Tooltip>
     );
