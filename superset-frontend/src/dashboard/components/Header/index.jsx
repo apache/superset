@@ -304,7 +304,7 @@ class Header extends React.PureComponent {
           interval * 0.2,
           dashboardInfo.id,
         );
-      } 
+      }
       return fetchCharts(
         affectedCharts,
         true,

@@ -30,7 +30,17 @@ import re
 import sys
 from collections import OrderedDict
 from datetime import date, timedelta
-from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union, Literal
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Type,
+    TYPE_CHECKING,
+    Union,
+    Literal,
+)
 
 from cachelib.base import BaseCache
 from celery.schedules import crontab
