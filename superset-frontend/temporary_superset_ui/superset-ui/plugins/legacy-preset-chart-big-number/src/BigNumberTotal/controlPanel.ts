@@ -36,6 +36,7 @@ export default {
     {
       label: t('Options'),
       expanded: true,
+      tabOverride: 'data',
       controlSetRows: [
         [
           {
@@ -43,6 +44,7 @@ export default {
             config: {
               type: 'TextControl',
               label: t('Subheader'),
+              renderTrigger: true,
               description: t('Description text that shows up below your Big Number'),
             },
           },
