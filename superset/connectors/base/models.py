@@ -265,11 +265,7 @@ class BaseDatasource(
             "metrics": [o.data for o in self.metrics],
             # TODO deprecate, move logic to JS
             "order_by_choices": order_by_choices,
-            # Passing the format needed to power owner selection in edit screen
-            "owners": [
-                {"label": f"{owner.first_name} {owner.last_name}", "value": owner.id}
-                for owner in self.owners
-            ],
+            "owners": [owner.id for owner in self.owners],
             "verbose_map": verbose_map,
             "select_star": self.select_star,
         }

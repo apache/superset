@@ -856,6 +856,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         except (SupersetException, SQLAlchemyError):
             datasource_data = dummy_datasource_data
 
+        # passing the format needed to power owner selection in edit screen
+        if datasource:
+            datasource_data["owners"] = [
+                {"label": f"{owner.first_name} {owner.last_name}", "value": owner.id}
+                for owner in datasource.owners
+            ]
+
         bootstrap_data = {
             "can_add": slice_add_perm,
             "can_download": slice_download_perm,
