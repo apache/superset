@@ -17,7 +17,7 @@
  * under the License.
  */
 import rison from 'rison';
-import React, { useMemo } from 'react';
+import React, { useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { Row, Col } from 'src/common/components';
 import { Radio } from 'src/components/Radio';
@@ -375,21 +375,18 @@ const defaultProps = {
 };
 
 function OwnersSelector({ datasource, onChange }) {
-  const loadOptions = useMemo(
-    () => (search = '', page, pageSize) => {
-      const query = rison.encode({ filter: search, page, page_size: pageSize });
-      return SupersetClient.get({
-        endpoint: `/api/v1/dataset/related/owners?q=${query}`,
-      }).then(response => ({
-        data: response.json.result.map(item => ({
-          value: item.value,
-          label: item.text,
-        })),
-        totalCount: response.json.count,
-      }));
-    },
-    [],
-  );
+  const loadOptions = useCallback((search = '', page, pageSize) => {
+    const query = rison.encode({ filter: search, page, page_size: pageSize });
+    return SupersetClient.get({
+      endpoint: `/api/v1/dataset/related/owners?q=${query}`,
+    }).then(response => ({
+      data: response.json.result.map(item => ({
+        value: item.value,
+        label: item.text,
+      })),
+      totalCount: response.json.count,
+    }));
+  }, []);
 
   return (
     <Select
