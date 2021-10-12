@@ -28,7 +28,7 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy import inspect
 
-from superset.migrations.shared.common import find_fk_constraint_name
+from superset.migrations.shared.common import create_dashboard_roles_table
 
 # revision identifiers, used by Alembic.
 revision = "d96513202d2a"
@@ -39,6 +39,7 @@ logger = logging.getLogger("alembic.runtime.migration")
 OLD_TABLE_NAME = "dashboard_roles"
 NEW_TABLE_NAME = "object_roles"
 DASHBOARD_ROLES_CONSTRAINT_NAME = "dashboard_roles_ibfk_1"
+OBJECT_ROLES_FK_NAME = "object_roles_ibfk_1"
 UNIQUE_CONSTRAINT_NAME = "object_roles_unique_rows"
 OBJECT_TYPE_COLUMN_NAME = "object_type"
 
@@ -91,71 +92,55 @@ def _on_error(original_exception, run_on_error):
 
 
 def create_upgrade_steps() -> List[Callable]:
-    def new_column_operation() -> None:
-        logger.info("add column")
-        op.add_column(
-            OLD_TABLE_NAME,
-            sa.Column(OBJECT_TYPE_COLUMN_NAME, sa.String(length=256), nullable=True),
-        )
-        logger.info("set values")
-        op.execute(
-            "UPDATE {table_name} SET object_type = {object_type}".format(
-                table_name=OLD_TABLE_NAME, object_type="'Dashboard'"
+    return [
+        _create_object_roles_table,
+        _migrate_data_to_new_table,
+        lambda: op.drop_table(OLD_TABLE_NAME),
+    ]
+
+
+def _create_object_roles_table():
+    op.create_table(
+        NEW_TABLE_NAME,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("object_id", sa.Integer, nullable=False),
+        sa.Column("object_type", sa.String(255), nullable=False),
+        sa.Column("role_id", sa.Integer, nullable=False),
+        sa.ForeignKeyConstraint(["role_id"], ["ab_role.id"], name=OBJECT_ROLES_FK_NAME),
+        sa.UniqueConstraint(
+            *["object_id", "role_id", "object_type"], name=UNIQUE_CONSTRAINT_NAME
+        ),
+    )
+
+
+def _migrate_data_to_new_table():
+    op.execute(
+        (
+            "INSERT INTO {new_table} "
+            "SELECT id, dashboard_id as object_id, 'Dashboard' as object_type , role_id "
+            "FROM {old_table}".format(
+                old_table=OLD_TABLE_NAME, new_table=NEW_TABLE_NAME
             )
         )
-        logger.info("set not null")
-        op.alter_column(
-            OLD_TABLE_NAME, "object_type", nullable=False, type_=sa.String(length=256)
-        ),
+    )
 
-    return [
-        lambda: not bool(logger.info("drop_constraint"))
-        and op.drop_constraint(
-            constraint_name=find_fk_constraint_name(OLD_TABLE_NAME, ["dashboard_id"]),
-            table_name=OLD_TABLE_NAME,
-            type_="foreignkey",
-        ),
-        lambda: not bool(logger.info("alter_column"))
-        and op.alter_column(
-            OLD_TABLE_NAME,
-            "dashboard_id",
-            new_column_name="object_id",
-            type_=sa.Integer(),
-            nullable=True,
-        ),
-        new_column_operation,
-        lambda: not bool(logger.info("create_unique_constraint"))
-        and op.create_unique_constraint(
-            constraint_name=UNIQUE_CONSTRAINT_NAME,
-            table_name=OLD_TABLE_NAME,
-            columns=["object_id", "object_type", "role_id"],
-        ),
-        lambda: not bool(logger.info("rename_table"))
-        and op.rename_table(OLD_TABLE_NAME, NEW_TABLE_NAME),
-    ]
+
+def _migrate_data_to_old_table():
+    op.execute(
+        (
+            "INSERT INTO {old_table} "
+            "SELECT id, object_id as dashboard_id, role_id "
+            "FROM {new_table} t"
+            " WHERE t.object_type = 'Dashboard'".format(
+                old_table=OLD_TABLE_NAME, new_table=NEW_TABLE_NAME
+            )
+        )
+    )
 
 
 def create_downgrade_steps() -> List[Callable]:
     return [
-        lambda: op.rename_table(NEW_TABLE_NAME, OLD_TABLE_NAME),
-        lambda: op.drop_constraint(
-            constraint_name=UNIQUE_CONSTRAINT_NAME,
-            table_name=OLD_TABLE_NAME,
-            type_="unique",
-        ),
-        lambda: op.drop_column(table_name=OLD_TABLE_NAME, column_name="object_type"),
-        lambda: op.alter_column(
-            table_name=OLD_TABLE_NAME,
-            column_name="object_id",
-            new_column_name="dashboard_id",
-            type_=sa.Integer(),
-            nullable=False,
-        ),
-        lambda: op.create_foreign_key(
-            constraint_name=DASHBOARD_ROLES_CONSTRAINT_NAME,
-            source_table=OLD_TABLE_NAME,
-            referent_table="dashboards",
-            local_cols=["dashboard_id"],
-            remote_cols=["id"],
-        ),
+        create_dashboard_roles_table,
+        _migrate_data_to_old_table,
+        lambda: op.drop_table(NEW_TABLE_NAME),
     ]

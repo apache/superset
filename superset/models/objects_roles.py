@@ -16,23 +16,13 @@
 # under the License.
 from __future__ import annotations
 
-import logging
-
 from flask_appbuilder import Model
 from sqlalchemy import Column, ForeignKey, Integer, String
-from sqlalchemy_utils import generic_relationship
-
-from superset import app
-from superset.models.helpers import AuditMixinNullable
-
-config = app.config
-logger = logging.getLogger(__name__)
 
 
-class ObjectRoles(Model, AuditMixinNullable):
+class ObjectRoles(Model):  # pylint: disable=too-few-public-methods
     __tablename__ = "object_roles"
     id = Column(Integer, primary_key=True)
     role_id = Column("role_id", Integer, ForeignKey("ab_role.id"), nullable=False)
     object_id = Column(Integer, nullable=False)
     object_type = Column(String(255), nullable=False)
-    object = generic_relationship(object_type, object_id)
