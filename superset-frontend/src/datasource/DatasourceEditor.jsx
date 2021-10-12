@@ -395,7 +395,7 @@ function OwnersSelector({ datasource, onChange }) {
       name="owners"
       value={datasource.owners || []}
       options={loadOptions}
-      onChange={newOwners => onChange(newOwners)}
+      onChange={onChange}
       header={<FormLabel>{t('Owners')}</FormLabel>}
       allowClear
     />
