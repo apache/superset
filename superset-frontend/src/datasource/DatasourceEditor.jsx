@@ -25,7 +25,7 @@ import Card from 'src/components/Card';
 import Alert from 'src/components/Alert';
 import Badge from 'src/components/Badge';
 import shortid from 'shortid';
-import { styled, SupersetClient, t, supersetTheme } from '@superset-ui/core';
+import { styled, SupersetClient, t, withTheme } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import Tabs from 'src/components/Tabs';
 import CertifiedIcon from 'src/components/CertifiedIcon';
@@ -97,7 +97,7 @@ const StyledBadge = styled(Badge)`
 `;
 
 const EditLockContainer = styled.div`
-  font-size: ${supersetTheme.typography.sizes.s}px;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
   display: flex;
   align-items: center;
   a {
@@ -808,7 +808,7 @@ class DatasourceEditor extends React.PureComponent {
     );
   }
 
-  renderSourceFieldset() {
+  renderSourceFieldset(theme) {
     const { datasource } = this.state;
     return (
       <div>
@@ -970,11 +970,11 @@ class DatasourceEditor extends React.PureComponent {
             <span role="button" tabIndex={0} onClick={this.onChangeEditMode}>
               {this.state.isEditMode ? (
                 <Icons.LockUnlocked
-                  iconColor={supersetTheme.colors.grayscale.base}
+                  iconColor={theme.colors.grayscale.base}
                 />
               ) : (
                 <Icons.LockLocked
-                  iconColor={supersetTheme.colors.grayscale.base}
+                  iconColor={theme.colors.grayscale.base}
                 />
               )}
             </span>
@@ -1146,6 +1146,8 @@ class DatasourceEditor extends React.PureComponent {
     const { datasource, activeTabKey } = this.state;
     const { metrics } = datasource;
     const sortedMetrics = metrics?.length ? this.sortMetrics(metrics) : [];
+    const { theme } = this.props;
+
     return (
       <DatasourceContainer>
         {this.renderErrors()}
@@ -1170,7 +1172,7 @@ class DatasourceEditor extends React.PureComponent {
           defaultActiveKey={activeTabKey}
         >
           <Tabs.TabPane key={0} tab={t('Source')}>
-            {this.renderSourceFieldset()}
+            {this.renderSourceFieldset(theme)}
           </Tabs.TabPane>
           <Tabs.TabPane
             tab={
@@ -1263,4 +1265,6 @@ class DatasourceEditor extends React.PureComponent {
 DatasourceEditor.defaultProps = defaultProps;
 DatasourceEditor.propTypes = propTypes;
 
-export default withToasts(DatasourceEditor);
+const DataSourceComponent = withTheme(DatasourceEditor)
+
+export default withToasts(DataSourceComponent);
