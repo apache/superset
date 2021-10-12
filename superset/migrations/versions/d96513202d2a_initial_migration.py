@@ -28,6 +28,8 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy import inspect
 
+from superset.migrations.shared.common import find_fk_constraint_name
+
 # revision identifiers, used by Alembic.
 revision = "d96513202d2a"
 down_revision = "60dc453f4e2e"
@@ -109,7 +111,7 @@ def create_upgrade_steps() -> List[Callable]:
     return [
         lambda: not bool(logger.info("drop_constraint"))
         and op.drop_constraint(
-            constraint_name=_get_dashboard_constraint_name(),
+            constraint_name=find_fk_constraint_name(OLD_TABLE_NAME, ["dashboard_id"]),
             table_name=OLD_TABLE_NAME,
             type_="foreignkey",
         ),
