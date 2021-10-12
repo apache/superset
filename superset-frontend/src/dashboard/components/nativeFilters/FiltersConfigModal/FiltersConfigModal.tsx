@@ -190,6 +190,7 @@ export function FiltersConfigModal({
     setOrderedFilters,
     setFilterHierarchy,
     addFilter,
+    filterHierarchy,
   );
 
   // After this, it should be as if the modal was just opened fresh.

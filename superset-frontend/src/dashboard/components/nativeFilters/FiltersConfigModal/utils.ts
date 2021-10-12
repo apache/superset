@@ -162,79 +162,6 @@ export const createHandleSave = (
 
   await saveForm(newFilterConfig);
 };
-
-export const createHandleTabEdit = (
-  setRemovedFilters: (
-    value:
-      | ((
-          prevState: Record<string, FilterRemoval>,
-        ) => Record<string, FilterRemoval>)
-      | Record<string, FilterRemoval>,
-  ) => void,
-  setSaveAlertVisible: Function,
-  setOrderedFilters: (
-    val: string[][] | ((prevState: string[][]) => string[][]),
-  ) => void,
-  setFilterHierarchy: (
-    state: FilterHierarchy | ((prevState: FilterHierarchy) => FilterHierarchy),
-  ) => void,
-  addFilter: Function,
-) => (filterId: string, action: 'add' | 'remove') => {
-  const completeFilterRemoval = (filterId: string) => {
-    // the filter state will actually stick around in the form,
-    // and the filterConfig/newFilterIds, but we use removedFilters
-    // to mark it as removed.
-    setRemovedFilters(removedFilters => ({
-      ...removedFilters,
-      [filterId]: { isPending: false },
-    }));
-    setOrderedFilters((orderedFilters: string[][]) => {
-      const newOrder = [];
-      for (let index = 0; index < orderedFilters.length; index += 1) {
-        const group = orderedFilters[index].filter(id => id !== filterId);
-        if (group.length !== 0) {
-          newOrder.push(group);
-        }
-      }
-      return newOrder;
-    });
-    // Remove the filter from the side tab and de-associate children
-    // in case we removed a parent.
-    setFilterHierarchy(filterHierarchy =>
-      filterHierarchy
-        .filter(nativeFilter => nativeFilter.id !== filterId)
-        .map(nativeFilter => {
-          const didRemoveParent = nativeFilter.parentId === filterId;
-          return didRemoveParent
-            ? { ...nativeFilter, parentId: null }
-            : nativeFilter;
-        }),
-    );
-  };
-
-  if (action === 'remove') {
-    // first set up the timer to completely remove it
-    const timerId = window.setTimeout(() => {
-      completeFilterRemoval(filterId);
-    }, REMOVAL_DELAY_SECS * 1000);
-    // mark the filter state as "removal in progress"
-    setRemovedFilters(removedFilters => ({
-      ...removedFilters,
-      [filterId]: { isPending: true, timerId },
-    }));
-    setSaveAlertVisible(false);
-  } else if (action === 'add') {
-    addFilter();
-  }
-};
-
-export const NATIVE_FILTER_PREFIX = 'NATIVE_FILTER-';
-export const generateFilterId = () =>
-  `${NATIVE_FILTER_PREFIX}${shortid.generate()}`;
-
-export const getFilterIds = (config: FilterConfiguration) =>
-  config.map(filter => filter.id);
-
 export function buildFilterGroup(nodes: FilterHierarchyNode[]) {
   const buildGroup = (
     elementId: string,
@@ -278,3 +205,88 @@ export function buildFilterGroup(nodes: FilterHierarchyNode[]) {
   }
   return group;
 }
+export const createHandleTabEdit = (
+  setRemovedFilters: (
+    value:
+      | ((
+          prevState: Record<string, FilterRemoval>,
+        ) => Record<string, FilterRemoval>)
+      | Record<string, FilterRemoval>,
+  ) => void,
+  setSaveAlertVisible: Function,
+  setOrderedFilters: (
+    val: string[][] | ((prevState: string[][]) => string[][]),
+  ) => void,
+  setFilterHierarchy: (
+    state: FilterHierarchy | ((prevState: FilterHierarchy) => FilterHierarchy),
+  ) => void,
+  addFilter: Function,
+  filterHierarchy: FilterHierarchy,
+) => (filterId: string, action: 'add' | 'remove') => {
+  const completeFilterRemoval = (filterId: string) => {
+    const buildNewFilterHierarchy = (hierarchy: FilterHierarchy) =>
+      hierarchy
+        .filter(nativeFilter => nativeFilter.id !== filterId)
+        .map(nativeFilter => {
+          const didRemoveParent = nativeFilter.parentId === filterId;
+          return didRemoveParent
+            ? { ...nativeFilter, parentId: null }
+            : nativeFilter;
+        });
+    // the filter state will actually stick around in the form,
+    // and the filterConfig/newFilterIds, but we use removedFilters
+    // to mark it as removed.
+    setRemovedFilters(removedFilters => ({
+      ...removedFilters,
+      [filterId]: { isPending: false },
+    }));
+    // Remove the filter from the side tab and de-associate children
+    // in case we removed a parent.
+    setFilterHierarchy(prevFilterHierarchy =>
+      buildNewFilterHierarchy(prevFilterHierarchy),
+    );
+    setOrderedFilters((orderedFilters: string[][]) => {
+      const newOrder = [];
+      for (let index = 0; index < orderedFilters.length; index += 1) {
+        const doesGroupContainDeletedFilter =
+          orderedFilters[index].findIndex(id => id === filterId) >= 0;
+        // Rebuild just the group that contains deleted filter ID.
+        if (doesGroupContainDeletedFilter) {
+          const newGroups = buildFilterGroup(
+            buildNewFilterHierarchy(
+              filterHierarchy.filter(filter =>
+                orderedFilters[index].includes(filter.id),
+              ),
+            ),
+          );
+          newGroups.forEach(group => newOrder.push(group));
+        } else {
+          newOrder.push(orderedFilters[index]);
+        }
+      }
+      return newOrder;
+    });
+  };
+
+  if (action === 'remove') {
+    // first set up the timer to completely remove it
+    const timerId = window.setTimeout(() => {
+      completeFilterRemoval(filterId);
+    }, REMOVAL_DELAY_SECS * 1000);
+    // mark the filter state as "removal in progress"
+    setRemovedFilters(removedFilters => ({
+      ...removedFilters,
+      [filterId]: { isPending: true, timerId },
+    }));
+    setSaveAlertVisible(false);
+  } else if (action === 'add') {
+    addFilter();
+  }
+};
+
+export const NATIVE_FILTER_PREFIX = 'NATIVE_FILTER-';
+export const generateFilterId = () =>
+  `${NATIVE_FILTER_PREFIX}${shortid.generate()}`;
+
+export const getFilterIds = (config: FilterConfiguration) =>
+  config.map(filter => filter.id);
