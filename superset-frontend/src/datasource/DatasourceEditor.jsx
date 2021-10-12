@@ -375,14 +375,10 @@ const defaultProps = {
 };
 
 function OwnersSelector({ datasource, onChange }) {
-  const selectedOwners = datasource.owners.map(owner => ({
-    value: owner.id,
-    label: `${owner.first_name} ${owner.last_name}`,
-  }));
   const loadOptions = useMemo(() => (search = '', page, pageSize) => {
     const query = rison.encode({ filter: search, page, page_size: pageSize });
     return SupersetClient.get({
-      endpoint: `/api/v1/chart/related/owners?q=${query}`,
+      endpoint: `/api/v1/dataset/related/owners?q=${query}`,
     }).then(response => ({
       data: response.json.result.map(item => ({
         value: item.value,
@@ -397,11 +393,9 @@ function OwnersSelector({ datasource, onChange }) {
       ariaLabel={t('Select owners')}
       mode="multiple"
       name="owners"
-      value={selectedOwners || []}
+      value={datasource.owners || []}
       options={loadOptions}
-      onChange={newOwners => {
-        onChange(newOwners);
-      }}
+      onChange={newOwners => onChange(newOwners)}
       header={<FormLabel>{t('Owners')}</FormLabel>}
       allowClear
     />
@@ -751,7 +745,12 @@ class DatasourceEditor extends React.PureComponent {
             }
           />
         )}
-        <OwnersSelector datasource={datasource} />
+        <OwnersSelector
+          datasource={datasource}
+          onChange={newOwners => {
+            this.onDatasourceChange({ ...datasource, owners: newOwners });
+          }}
+        />
       </Fieldset>
     );
   }
