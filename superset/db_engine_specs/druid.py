@@ -54,7 +54,7 @@ class DruidEngineSpec(BaseEngineSpec):
         "P1D": "TIME_FLOOR({col}, 'P1D')",
         "P1W": "TIME_FLOOR({col}, 'P1W')",
         "P1M": "TIME_FLOOR({col}, 'P1M')",
-        "P0.25Y": "TIME_FLOOR({col}, 'P0.25Y')",
+        "P0.25Y": "TIME_FLOOR({col}, 'P3M')",
         "P1Y": "TIME_FLOOR({col}, 'P1Y')",
         "P1W/1970-01-03T00:00:00Z": (
             "TIME_SHIFT(TIME_FLOOR(TIME_SHIFT({col}, 'P1D', 1), 'P1W'), 'P1D', 5)"
