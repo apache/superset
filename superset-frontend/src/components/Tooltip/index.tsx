@@ -30,7 +30,7 @@ export const Tooltip = (props: TooltipProps) => {
       <Global
         styles={css`
           .ant-tooltip-open {
-            display: block;
+            display: inline-block;
             &::after {
               content: '';
               display: block;
