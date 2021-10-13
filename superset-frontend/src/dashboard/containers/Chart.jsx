@@ -83,7 +83,7 @@ function mapStateToProps(
   return {
     chart,
     datasource,
-    labelColors: labelColors || {},
+    labelColors,
     slice: sliceEntities.slices[id],
     timeout: dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
     filters: getActiveFilters() || EMPTY_OBJECT,
