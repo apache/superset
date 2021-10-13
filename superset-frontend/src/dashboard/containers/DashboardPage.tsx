@@ -57,14 +57,14 @@ const DashboardPage: FC = () => {
   const { result: datasets, error: datasetsApiError } = useDashboardDatasets(
     idOrSlug,
   );
-  const dashboardHydrated = useRef(false);
+  const isDashboardHydrated = useRef(false);
 
   const error = dashboardApiError || chartsApiError;
   const readyToRender = Boolean(dashboard && charts);
   const { dashboard_title, css } = dashboard || {};
 
-  if (readyToRender && !dashboardHydrated.current) {
-    dashboardHydrated.current = true;
+  if (readyToRender && !isDashboardHydrated.current) {
+    isDashboardHydrated.current = true;
     dispatch(hydrateDashboard(dashboard, charts));
   }
 
