@@ -47,12 +47,12 @@ class ClickHouseEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         "PT5M": "toDateTime(intDiv(toUInt32(toDateTime({col})), 300)*300)",
         "PT10M": "toDateTime(intDiv(toUInt32(toDateTime({col})), 600)*600)",
         "PT15M": "toDateTime(intDiv(toUInt32(toDateTime({col})), 900)*900)",
-        "PT0.5H": "toDateTime(intDiv(toUInt32(toDateTime({col})), 1800)*1800)",
+        "PT30M": "toDateTime(intDiv(toUInt32(toDateTime({col})), 1800)*1800)",
         "PT1H": "toStartOfHour(toDateTime({col}))",
         "P1D": "toStartOfDay(toDateTime({col}))",
         "P1W": "toMonday(toDateTime({col}))",
         "P1M": "toStartOfMonth(toDateTime({col}))",
-        "P0.25Y": "toStartOfQuarter(toDateTime({col}))",
+        "P3M": "toStartOfQuarter(toDateTime({col}))",
         "P1Y": "toStartOfYear(toDateTime({col}))",
     }
 
