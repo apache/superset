@@ -86,7 +86,7 @@ describe('TimeFormatterRegistrySingleton', () => {
         expect(formatTime(undefined, date, TimeGranularity.FIFTEEN_MINUTES)).toEqual(
           '2020-05-10 00:00 — 2020-05-10 00:14',
         );
-        expect(formatTime(undefined, date, TimeGranularity.HALF_HOUR)).toEqual(
+        expect(formatTime(undefined, date, TimeGranularity.THIRTY_MINUTES)).toEqual(
           '2020-05-10 00:00 — 2020-05-10 00:29',
         );
         expect(formatTime(undefined, date, TimeGranularity.HOUR)).toEqual('2020-05-10 00:00');

@@ -199,7 +199,7 @@
       ["P1D", "day"],
       ["P1W", "week"],
       ["P1M", "month"],
-      ["P0.25Y", "quarter"],
+      ["P3M", "quarter"],
       ["P1Y", "year"]
     ],
     "main_dttm_col": "ds",
@@ -216,7 +216,7 @@
     "include_search": true,
     "url_params": {},
     "granularity_sqla": "ds",
-    "time_grain_sqla": "P0.25Y",
+    "time_grain_sqla": "P3M",
     "time_range": "No filter",
     "query_mode": "aggregate",
     "groupby": ["state", "gender", "name"],

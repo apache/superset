@@ -14,7 +14,7 @@ const TimeFormatsForGranularity: Record<TimeGranularity, string> = {
   [TimeGranularity.FIVE_MINUTES]: MINUTE,
   [TimeGranularity.TEN_MINUTES]: MINUTE,
   [TimeGranularity.FIFTEEN_MINUTES]: MINUTE,
-  [TimeGranularity.HALF_HOUR]: MINUTE,
+  [TimeGranularity.THIRTY_MINUTES]: MINUTE,
   [TimeGranularity.HOUR]: '%Y-%m-%d %H:00',
   [TimeGranularity.DAY]: DATABASE_DATE,
   [TimeGranularity.WEEK]: DATABASE_DATE,

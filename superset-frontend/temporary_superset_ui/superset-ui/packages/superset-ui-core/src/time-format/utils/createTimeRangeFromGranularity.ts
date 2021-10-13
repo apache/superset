@@ -30,7 +30,7 @@ function computeEndTimeFromGranularity(
       return new Date(time.getTime() + MS_IN_MINUTE * 10 - 1);
     case TimeGranularity.FIFTEEN_MINUTES:
       return new Date(time.getTime() + MS_IN_MINUTE * 15 - 1);
-    case TimeGranularity.HALF_HOUR:
+    case TimeGranularity.THIRTY_MINUTES:
       return new Date(time.getTime() + MS_IN_MINUTE * 30 - 1);
     case TimeGranularity.HOUR:
       return new Date(time.getTime() + MS_IN_HOUR - 1);

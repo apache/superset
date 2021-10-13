@@ -65,7 +65,7 @@ describe('createTimeRangeFromGranularity(time, granularity, useLocalTime)', () =
       expect(testUTC(TimeGranularity.FIFTEEN_MINUTES, 2020, 4, 15)).toEqual(
         '2020-05-15 00:00:00.000 — 2020-05-15 00:14:59.999',
       );
-      expect(testUTC(TimeGranularity.HALF_HOUR, 2020, 4, 15)).toEqual(
+      expect(testUTC(TimeGranularity.THIRTY_MINUTES, 2020, 4, 15)).toEqual(
         '2020-05-15 00:00:00.000 — 2020-05-15 00:29:59.999',
       );
       expect(testUTC(TimeGranularity.HOUR, 2020, 4, 15)).toEqual(
@@ -126,7 +126,7 @@ describe('createTimeRangeFromGranularity(time, granularity, useLocalTime)', () =
       expect(testLocal(TimeGranularity.FIFTEEN_MINUTES, 2020, 4, 15)).toEqual(
         '2020-05-15 00:00:00.000 — 2020-05-15 00:14:59.999',
       );
-      expect(testLocal(TimeGranularity.HALF_HOUR, 2020, 4, 15)).toEqual(
+      expect(testLocal(TimeGranularity.THIRTY_MINUTES, 2020, 4, 15)).toEqual(
         '2020-05-15 00:00:00.000 — 2020-05-15 00:29:59.999',
       );
       expect(testLocal(TimeGranularity.HOUR, 2020, 4, 15)).toEqual(
