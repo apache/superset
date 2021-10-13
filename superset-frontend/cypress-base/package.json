@@ -5,7 +5,7 @@
   "scripts": {
     "cypress": "cypress",
     "cypress-run-chrome": "cypress run --browser chrome --headless",
-    "cypress-open-debug": "cypress open --config watchForFileChanges=true"
+    "cypress-debug": "cypress open --config watchForFileChanges=true"
   },
   "author": "Apache",
   "license": "Apache-2.0",
