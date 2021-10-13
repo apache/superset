@@ -103,7 +103,7 @@ describe('Dashboard tabs', () => {
     cy.get('[data-test="grid-container"]').find('.box_plot');
   });
 
-  it('should send new queries when tab becomes visible', () => {
+  xit('should send new queries when tab becomes visible', () => {
     // landing in first tab
     waitForChartLoad(FILTER_BOX);
     waitForChartLoad(TREEMAP);

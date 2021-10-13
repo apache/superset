@@ -31,7 +31,7 @@ describe('Dashboard form data', () => {
     cy.visit(WORLD_HEALTH_DASHBOARD, { qs: urlParams });
   });
 
-  it('should apply url params to slice requests', () => {
+  xit('should apply url params to slice requests', () => {
     cy.intercept('/api/v1/chart/data?*', request => {
       // TODO: export url params to chart data API
       request.body.queries.forEach((query: { url_params: JsonObject }) => {
