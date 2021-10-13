@@ -32,6 +32,7 @@ const defaultProps = {
   currentFilterId: 'NATIVE_FILTER-1',
   filterGroups: [['NATIVE_FILTER-2', 'NATIVE_FILTER-1'], ['NATIVE_FILTER-3']],
   removedFilters: {},
+  erroredFilters: [],
 };
 const defaultState = {
   dashboardInfo: {
@@ -58,7 +59,6 @@ test('renders form', async () => {
   await act(async () => {
     defaultRender();
   });
-
   expect(defaultProps.children).toHaveBeenCalledTimes(3);
 });
 

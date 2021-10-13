@@ -42,7 +42,7 @@ const FilterTitle = styled.div`
           color: ${theme.colors.primary.light1};
         }
       }
-      &.errored > span {
+      &.errored div, &.errored .warning{
         color: ${theme.colors.error.base};
       }
 `}
@@ -55,7 +55,7 @@ const StyledTrashIcon = styled(Icons.Trash)`
 const StyledWarning = styled(Icons.Warning)`
   color: ${({ theme }) => theme.colors.error.base};
   &.anticon {
-    margin-right: 0;
+    margin-left: auto;
   }
 `;
 
@@ -91,26 +91,27 @@ const FilterTitleContainer: React.FC<Props> = ({
     const isRemoved = !!removedFilters[id];
     const isErrored = erroredFilters.includes(id);
     const isActive = currentFilterId === id;
-    let className = ' ';
+    const classNames = [];
     if (isErrored) {
-      className += 'errored';
+      classNames.push('errored');
     }
     if (isActive) {
-      className += ' active';
+      classNames.push('active');
     }
-
     return (
       <FilterTitle
         role="tab"
         key={`filter-title-tab-${id}`}
         onClick={() => onChange(id)}
-        className={className}
+        className={classNames.join(' ')}
       >
         <div css={{ display: 'flex', width: '100%' }}>
           <div css={{ alignItems: 'center', display: 'flex' }}>
             {isRemoved ? t('(Removed)') : getFilterTitle(id)}
           </div>
-          {!removedFilters[id] && isErrored && <StyledWarning />}
+          {!removedFilters[id] && isErrored && (
+            <StyledWarning className="warning" />
+          )}
           {isRemoved && (
             <span
               css={{ alignSelf: 'flex-end', marginLeft: 'auto' }}

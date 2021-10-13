@@ -17,8 +17,8 @@
  * under the License.
  */
 import React, { useCallback, useMemo, useState, useRef } from 'react';
-import { uniq, isEqual, sortBy } from 'lodash';
-import { t, styled } from '@superset-ui/core';
+import { uniq, isEqual, sortBy, debounce } from 'lodash';
+import { t, styled, SLOW_DEBOUNCE } from '@superset-ui/core';
 import { Form } from 'src/common/components';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { StyledModal } from 'src/components/Modal';
@@ -217,6 +217,7 @@ export function FiltersConfigModal({
     if (!isSaving) {
       setOrderedFilters(buildFilterGroup(getInitialFilterHierarchy()));
     }
+    form.resetFields();
     form.setFieldsValue({ changed: false });
     setErroredFilters([]);
   };
@@ -358,32 +359,33 @@ export function FiltersConfigModal({
   );
 
   const onValuesChange = useMemo(
-    () => (changes: any, values: NativeFiltersForm) => {
-      if (
-        changes.filters &&
-        Object.values(changes.filters).some(
-          (filter: any) => filter.name != null,
-        )
-      ) {
-        // we only need to set this if a name changed
-        setFormValues(values);
-      }
-      const changedFilterHierarchies = Object.keys(changes.filters)
-        .filter(key => changes.filters[key].parentFilter)
-        .map(key => ({
-          id: key,
-          parentFilter: changes.filters[key].parentFilter,
-        }));
-      if (changedFilterHierarchies.length > 0) {
-        const changedFilterId = changedFilterHierarchies[0];
-        handleFilterHierarchyChange(
-          changedFilterId.id,
-          changedFilterId.parentFilter,
-        );
-      }
-      setSaveAlertVisible(false);
-      handleErroredFilters();
-    },
+    () =>
+      debounce((changes: any, values: NativeFiltersForm) => {
+        if (
+          changes.filters &&
+          Object.values(changes.filters).some(
+            (filter: any) => filter.name != null,
+          )
+        ) {
+          // we only need to set this if a name changed
+          setFormValues(values);
+        }
+        const changedFilterHierarchies = Object.keys(changes.filters)
+          .filter(key => changes.filters[key].parentFilter)
+          .map(key => ({
+            id: key,
+            parentFilter: changes.filters[key].parentFilter,
+          }));
+        if (changedFilterHierarchies.length > 0) {
+          const changedFilterId = changedFilterHierarchies[0];
+          handleFilterHierarchyChange(
+            changedFilterId.id,
+            changedFilterId.parentFilter,
+          );
+        }
+        setSaveAlertVisible(false);
+        handleErroredFilters();
+      }, SLOW_DEBOUNCE),
     [handleFilterHierarchyChange, handleErroredFilters],
   );
 
