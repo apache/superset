@@ -93,6 +93,7 @@ export interface SelectProps extends PickedSelectProps {
   pageSize?: number;
   invertSelection?: boolean;
   fetchOnlyOnSearch?: boolean;
+  keepOrder?: boolean;
   onError?: (error: string) => void;
 }
 
@@ -177,6 +178,7 @@ const Select = ({
   invertSelection = false,
   labelInValue = false,
   lazyLoading = true,
+  keepOrder = false, // keep order of options
   loading,
   mode = 'single',
   name,
@@ -246,7 +248,7 @@ const Select = ({
               : selectedValue === opt.value;
           }
 
-          if (found) {
+          if (found && !keepOrder) {
             topOptions.push(opt);
           } else {
             otherOptions.push(opt);

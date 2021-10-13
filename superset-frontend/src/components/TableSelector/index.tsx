@@ -310,8 +310,9 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         onChange={(table: TableOption) => internalTableChange(table)}
         options={tableOptions}
         placeholder={t('Select table or type table name')}
-        showSearch
         value={currentTable}
+        showSearch
+        keepOrder
       />
     );
 
