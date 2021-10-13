@@ -9379,18 +9379,18 @@ datamaps@^0.5.8:
     d3 "^3.5.6"
     topojson "^1.6.19"
 
-datatables.net-bs@^1.10.15:
-  version "1.10.24"
-  resolved "https://registry.yarnpkg.com/datatables.net-bs/-/datatables.net-bs-1.10.24.tgz#619ece0f9e762d42aefad1b653f9ebcac5eb1667"
-  integrity sha512-tV8MAZtUw8DJJhplDaIp0cBa9r6jjZ1wcJx3aMJ0m4Mbyqx3g71UL4mY2NqTOuoDYHvh0lhKF5ZGA3Ol8c86uQ==
+datatables.net-bs@^1.11.3:
+  version "1.11.3"
+  resolved "https://registry.yarnpkg.com/datatables.net-bs/-/datatables.net-bs-1.11.3.tgz#4bca92330474733e0936db631fc12021f257a095"
+  integrity sha512-Db1YwAhO0QAWQbZTsKriUrOInT66+xaA+fV616KTKpQt5Zt+p6OsEKK+xv8LxLgG8qu5dPwMBlkhqSiS/hV2sg==
   dependencies:
-    datatables.net "1.10.24"
+    datatables.net ">=1.10.25"
     jquery ">=1.7"
 
-datatables.net@1.10.24:
-  version "1.10.24"
-  resolved "https://registry.yarnpkg.com/datatables.net/-/datatables.net-1.10.24.tgz#370e02f1e201de8334fdc92e7515c1624191573c"
-  integrity sha512-CwXixvOdinvBCLXvcTloDinWiEM7Geaz+GwyjPrZL+MXIGPcLv4Op1bbWn8ErsI1JWMIWC8Cuf1rnDU2RrFV5w==
+datatables.net@>=1.10.25:
+  version "1.11.3"
+  resolved "https://registry.yarnpkg.com/datatables.net/-/datatables.net-1.11.3.tgz#80e691036efcd62467558ee64c07dd566cb761b4"
+  integrity sha512-VMj5qEaTebpNurySkM6jy6sGpl+s6onPK8xJhYr296R/vUBnz1+id16NVqNf9z5aR076OGcpGHCuiTuy4E05oQ==
   dependencies:
     jquery ">=1.7"
 
