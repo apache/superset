@@ -27,6 +27,7 @@ interface Props {
   onChange: (activeKey: string) => void;
   onEdit: (filterId: string, action: 'add' | 'remove') => void;
   onRearrange: (dragIndex: number, targetIndex: number) => void;
+  erroredFilters: string[];
   restoreFilter: (id: string) => void;
   currentFilterId: string;
   filterGroups: string[][];
@@ -54,6 +55,7 @@ const FiltureConfigurePane: React.FC<Props> = ({
   onEdit,
   onRearrange,
   restoreFilter,
+  erroredFilters,
   children,
   currentFilterId,
   filterGroups,
@@ -66,12 +68,13 @@ const FiltureConfigurePane: React.FC<Props> = ({
         <FilterTitlePane
           currentFilterId={currentFilterId}
           filterGroups={filterGroups}
+          removedFilters={removedFilters}
+          erroredFilters={erroredFilters}
           getFilterTitle={getFilterTitle}
           onChange={onChange}
           onEdit={onEdit}
           onRearrage={onRearrange}
           onRemove={(id: string) => onEdit(id, 'remove')}
-          removedFilters={removedFilters}
           restoreFilter={restoreFilter}
         />
       </TitlesContainer>

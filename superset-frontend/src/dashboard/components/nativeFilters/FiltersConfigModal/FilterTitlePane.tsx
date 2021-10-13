@@ -23,15 +23,16 @@ import FilterTitleContainer from './FilterTitleContainer';
 import { FilterRemoval } from './types';
 
 interface Props {
-  removedFilters: Record<string, FilterRemoval>;
   restoreFilter: (id: string) => void;
   getFilterTitle: (id: string) => string;
   onRearrage: (dragIndex: number, targetIndex: number) => void;
   onRemove: (id: string) => void;
-  currentFilterId: string;
   onChange: (id: string) => void;
   onEdit: (filterId: string, action: 'add' | 'remove') => void;
+  removedFilters: Record<string, FilterRemoval>;
+  currentFilterId: string;
   filterGroups: string[][];
+  erroredFilters: string[];
 }
 
 const StyledHeader = styled.div`
@@ -72,6 +73,7 @@ const FilterTitlePane: React.FC<Props> = ({
   currentFilterId,
   filterGroups,
   removedFilters,
+  erroredFilters,
 }) => {
   const theme = useTheme();
   return (
@@ -86,10 +88,11 @@ const FilterTitlePane: React.FC<Props> = ({
       >
         <FilterTitleContainer
           filterGroups={filterGroups}
-          getFilterTitle={getFilterTitle}
-          onChange={onChange}
           currentFilterId={currentFilterId}
           removedFilters={removedFilters}
+          getFilterTitle={getFilterTitle}
+          erroredFilters={erroredFilters}
+          onChange={onChange}
           onRemove={onRemove}
           onRearrage={onRearrage}
           restoreFilter={restoreFilter}

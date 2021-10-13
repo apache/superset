@@ -20,6 +20,7 @@ import { FormInstance } from 'antd/lib/form';
 import shortid from 'shortid';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 
+import { t } from '@superset-ui/core';
 import {
   FilterRemoval,
   NativeFiltersForm,
@@ -72,7 +73,7 @@ export const validateForm = async (
         addValidationError(
           filterId,
           'parentFilter',
-          'Cannot create cyclic hierarchy',
+          t('Cannot create cyclic hierarchy'),
         );
         return false;
       }
@@ -109,7 +110,8 @@ export const validateForm = async (
         field => field.name[0] === 'filters',
       );
       if (filterError) {
-        setCurrentFilterId(filterError.name[1]);
+        const filterId = filterError.name[1];
+        setCurrentFilterId(filterId);
       }
     }
     return null;

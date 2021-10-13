@@ -37,6 +37,7 @@ describe('FilterScope', () => {
   const mockedProps = {
     filterId: 'DefaultFilterId',
     parentFilters: [],
+    setErroredFilters: jest.fn(),
     onFilterHierarchyChange: jest.fn(),
     restoreFilter: jest.fn(),
     save,

@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useCallback, useMemo, useState, useRef } from 'react';
-import { uniq } from 'lodash';
+import { uniq, isEqual, sortBy } from 'lodash';
 import { t, styled } from '@superset-ui/core';
 import { Form } from 'src/common/components';
 import ErrorBoundary from 'src/components/ErrorBoundary';
@@ -128,6 +128,7 @@ export function FiltersConfigModal({
   const [currentFilterId, setCurrentFilterId] = useState(
     initialCurrentFilterId,
   );
+  const [erroredFilters, setErroredFilters] = useState<string[]>([]);
 
   // the form values are managed by the antd form, but we copy them to here
   // so that we can display them (e.g. filter titles in the tab headers)
@@ -217,12 +218,13 @@ export function FiltersConfigModal({
       setOrderedFilters(buildFilterGroup(getInitialFilterHierarchy()));
     }
     form.setFieldsValue({ changed: false });
+    setErroredFilters([]);
   };
 
   const getFilterTitle = (id: string) =>
-    formValues.filters[id]?.name ??
-    filterConfigMap[id]?.name ??
-    t('New filter');
+    formValues.filters[id]?.name ||
+    filterConfigMap[id]?.name ||
+    t('[untitled]');
 
   const getParentFilters = (id: string) =>
     filterIds
@@ -260,6 +262,32 @@ export function FiltersConfigModal({
     }
   };
 
+  const handleErroredFilters = useCallback(() => {
+    // managing left pane errored filters indicators
+    const formValidationFields = form.getFieldsError();
+    const erroredFiltersIds: string[] = [];
+
+    formValidationFields.forEach(field => {
+      const filterId = field.name[1] as string;
+      if (field.errors.length > 0 && !erroredFiltersIds.includes(filterId)) {
+        erroredFiltersIds.push(filterId);
+      }
+    });
+
+    // no form validation issues found, resets errored filters
+    if (!erroredFiltersIds.length && erroredFilters.length > 0) {
+      setErroredFilters([]);
+      return;
+    }
+    // form validation issues found, sets errored filters
+    if (
+      erroredFiltersIds.length > 0 &&
+      !isEqual(sortBy(erroredFilters), sortBy(erroredFiltersIds))
+    ) {
+      setErroredFilters(erroredFiltersIds);
+    }
+  }, [form, erroredFilters]);
+
   const handleSave = async () => {
     const values: NativeFiltersForm | null = await validateForm(
       form,
@@ -269,6 +297,8 @@ export function FiltersConfigModal({
       removedFilters,
       setCurrentFilterId,
     );
+
+    handleErroredFilters();
 
     if (values) {
       cleanDeletedParents(values);
@@ -352,8 +382,9 @@ export function FiltersConfigModal({
         );
       }
       setSaveAlertVisible(false);
+      handleErroredFilters();
     },
-    [handleFilterHierarchyChange],
+    [handleFilterHierarchyChange, handleErroredFilters],
   );
 
   return (
@@ -385,6 +416,7 @@ export function FiltersConfigModal({
             layout="vertical"
           >
             <FiltureConfigurePane
+              erroredFilters={erroredFilters}
               onEdit={handleTabEdit}
               onChange={onTabChange}
               getFilterTitle={getFilterTitle}
@@ -410,6 +442,7 @@ export function FiltersConfigModal({
                     setActiveFilterPanelKey(key)
                   }
                   isActive={currentFilterId === id}
+                  setErroredFilters={setErroredFilters}
                 />
               )}
             </FiltureConfigurePane>
