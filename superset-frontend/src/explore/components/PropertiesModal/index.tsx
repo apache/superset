@@ -88,7 +88,11 @@ export default function PropertiesModal({
 
   const loadOptions = useMemo(
     () => (input = '', page: number, pageSize: number) => {
-      const query = rison.encode({ filter: input, page, page_size: pageSize });
+      const query = rison.encode({
+        filter: input,
+        page,
+        page_size: pageSize,
+      });
       return SupersetClient.get({
         endpoint: `/api/v1/chart/related/owners?q=${query}`,
       }).then(response => ({

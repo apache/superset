@@ -29,7 +29,9 @@ export enum TabIds {
 
 export function mapParentFiltersToChildren(
   filters: Filter[],
-): { [id: string]: Filter[] } {
+): {
+  [id: string]: Filter[];
+} {
   const cascadeChildren = {};
   filters.forEach(filter => {
     const [parentId] = filter.cascadeParentIds || [];

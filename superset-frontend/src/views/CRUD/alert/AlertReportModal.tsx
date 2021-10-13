@@ -575,7 +575,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   // Fetch data to populate form dropdowns
   const loadOwnerOptions = useMemo(
     () => (input = '', page: number, pageSize: number) => {
-      const query = rison.encode({ filter: input, page, page_size: pageSize });
+      const query = rison.encode({
+        filter: input,
+        page,
+        page_size: pageSize,
+      });
       return SupersetClient.get({
         endpoint: `/api/v1/report/related/owners?q=${query}`,
       }).then(response => ({
@@ -623,7 +627,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const loadSourceOptions = useMemo(
     () => (input = '', page: number, pageSize: number) => {
-      const query = rison.encode({ filter: input, page, page_size: pageSize });
+      const query = rison.encode({
+        filter: input,
+        page,
+        page_size: pageSize,
+      });
       return SupersetClient.get({
         endpoint: `/api/v1/report/related/database?q=${query}`,
       }).then(response => {
@@ -651,7 +659,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const loadDashboardOptions = useMemo(
     () => (input = '', page: number, pageSize: number) => {
-      const query = rison.encode({ filter: input, page, page_size: pageSize });
+      const query = rison.encode({
+        filter: input,
+        page,
+        page_size: pageSize,
+      });
       return SupersetClient.get({
         endpoint: `/api/v1/report/related/dashboard?q=${query}`,
       }).then(response => {
@@ -720,7 +732,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const loadChartOptions = useMemo(
     () => (input = '', page: number, pageSize: number) => {
-      const query = rison.encode({ filter: input, page, page_size: pageSize });
+      const query = rison.encode({
+        filter: input,
+        page,
+        page_size: pageSize,
+      });
       return SupersetClient.get({
         endpoint: `/api/v1/report/related/chart?q=${query}`,
       }).then(response => {
