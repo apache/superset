@@ -35,11 +35,11 @@ from typing import (
     Callable,
     Dict,
     List,
+    Literal,
     Optional,
     Type,
     TYPE_CHECKING,
     Union,
-    Literal,
 )
 
 from cachelib.base import BaseCache
