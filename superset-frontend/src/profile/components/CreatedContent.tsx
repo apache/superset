@@ -33,14 +33,14 @@ class CreatedContent extends React.PureComponent<CreatedContentProps> {
     const mutator = (data: Slice[]) =>
       data.map(slice => ({
         slice: <a href={slice.url}>{slice.title}</a>,
-        favorited: moment.utc(slice.dttm).fromNow(),
-        _favorited: slice.dttm,
+        created: moment.utc(slice.dttm).fromNow(),
+        _created: slice.dttm,
       }));
     return (
       <TableLoader
         dataEndpoint={`/superset/created_slices/${this.props.user.userId}/`}
         className="table-condensed"
-        columns={['slice', 'favorited']}
+        columns={['slice', 'created']}
         mutator={mutator}
         noDataText={t('No charts')}
         sortable
@@ -52,8 +52,8 @@ class CreatedContent extends React.PureComponent<CreatedContentProps> {
     const mutator = (data: Dashboard[]) =>
       data.map(dash => ({
         dashboard: <a href={dash.url}>{dash.title}</a>,
-        favorited: moment.utc(dash.dttm).fromNow(),
-        _favorited: dash.dttm,
+        created: moment.utc(dash.dttm).fromNow(),
+        _created: dash.dttm,
       }));
     return (
       <TableLoader
@@ -61,7 +61,7 @@ class CreatedContent extends React.PureComponent<CreatedContentProps> {
         mutator={mutator}
         dataEndpoint={`/superset/created_dashboards/${this.props.user.userId}/`}
         noDataText={t('No dashboards')}
-        columns={['dashboard', 'favorited']}
+        columns={['dashboard', 'created']}
         sortable
       />
     );

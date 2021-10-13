@@ -81,3 +81,20 @@ class SqlLabException(SupersetException):
                 return ": {}".format(exception.message)  # type: ignore
             return ": {}".format(str(exception))
         return ""
+
+
+QUERY_IS_FORBIDDEN_TO_ACCESS_REASON_MESSAGE = "can not access the query"
+
+
+class QueryIsForbiddenToAccessException(SqlLabException):
+    def __init__(
+        self,
+        sql_json_execution_context: SqlJsonExecutionContext,
+        exception: Optional[Exception] = None,
+    ) -> None:
+        super().__init__(
+            sql_json_execution_context,
+            SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+            QUERY_IS_FORBIDDEN_TO_ACCESS_REASON_MESSAGE,
+            exception,
+        )

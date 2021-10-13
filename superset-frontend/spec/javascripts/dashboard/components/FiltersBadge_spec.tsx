@@ -139,7 +139,6 @@ describe('FiltersBadge', () => {
         wrapper.find('[data-test="incompatible-filter-count"]'),
       ).toHaveText('1');
       // to look at the shape of the wrapper use:
-      // console.log(wrapper.debug())
       expect(wrapper.find(Icons.AlertSolid)).toExist();
     });
   });

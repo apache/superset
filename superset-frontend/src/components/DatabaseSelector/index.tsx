@@ -63,21 +63,25 @@ type DatabaseValue = {
   id: number;
   database_name: string;
   backend: string;
+  allow_multi_schema_metadata_fetch: boolean;
+};
+
+export type DatabaseObject = {
+  id: number;
+  database_name: string;
+  backend: string;
+  allow_multi_schema_metadata_fetch: boolean;
 };
 
 type SchemaValue = { label: string; value: string };
 
 interface DatabaseSelectorProps {
-  db?: { id: number; database_name: string; backend: string };
+  db?: DatabaseObject;
   formMode?: boolean;
   getDbList?: (arg0: any) => {};
   handleError: (msg: string) => void;
   isDatabaseSelectEnabled?: boolean;
-  onDbChange?: (db: {
-    id: number;
-    database_name: string;
-    backend: string;
-  }) => void;
+  onDbChange?: (db: DatabaseObject) => void;
   onSchemaChange?: (schema?: string) => void;
   onSchemasLoad?: (schemas: Array<object>) => void;
   readOnly?: boolean;
@@ -165,20 +169,20 @@ export default function DatabaseSelector({
         if (result.length === 0) {
           handleError(t("It seems you don't have access to any database"));
         }
-        const options = result.map(
-          (row: { id: number; database_name: string; backend: string }) => ({
-            label: (
-              <SelectLabel
-                backend={row.backend}
-                databaseName={row.database_name}
-              />
-            ),
-            value: row.id,
-            id: row.id,
-            database_name: row.database_name,
-            backend: row.backend,
-          }),
-        );
+        const options = result.map((row: DatabaseObject) => ({
+          label: (
+            <SelectLabel
+              backend={row.backend}
+              databaseName={row.database_name}
+            />
+          ),
+          value: row.id,
+          id: row.id,
+          database_name: row.database_name,
+          backend: row.backend,
+          allow_multi_schema_metadata_fetch:
+            row.allow_multi_schema_metadata_fetch,
+        }));
         return {
           data: options,
           totalCount: options.length,
@@ -194,9 +198,9 @@ export default function DatabaseSelector({
       const queryParams = rison.encode({ force: refresh > 0 });
       const endpoint = `/api/v1/database/${currentDb.value}/schemas/?q=${queryParams}`;
 
-      try {
-        // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
-        SupersetClient.get({ endpoint }).then(({ json }) => {
+      // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
+      SupersetClient.get({ endpoint })
+        .then(({ json }) => {
           const options = json.result
             .map((s: string) => ({
               value: s,
@@ -210,10 +214,12 @@ export default function DatabaseSelector({
             onSchemasLoad(options);
           }
           setSchemaOptions(options);
+          setLoadingSchemas(false);
+        })
+        .catch(e => {
+          setLoadingSchemas(false);
+          handleError(t('There was an error loading the schemas'));
         });
-      } finally {
-        setLoadingSchemas(false);
-      }
     }
   }, [currentDb, onSchemasLoad, refresh]);
 
@@ -251,8 +257,10 @@ export default function DatabaseSelector({
     return renderSelectRow(
       <Select
         ariaLabel={t('Select database or type database name')}
+        optionFilterProps={['database_name', 'value']}
         data-test="select-database"
         header={<FormLabel>{t('Database')}</FormLabel>}
+        lazyLoading={false}
         onChange={changeDataBase}
         value={currentDb}
         placeholder={t('Select database or type database name')}

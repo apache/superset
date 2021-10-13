@@ -26,7 +26,12 @@ import DatabaseSelector from '.';
 const SupersetClientGet = jest.spyOn(SupersetClient, 'get');
 
 const createProps = () => ({
-  db: { id: 1, database_name: 'test', backend: 'test-postgresql' },
+  db: {
+    id: 1,
+    database_name: 'test',
+    backend: 'test-postgresql',
+    allow_multi_schema_metadata_fetch: false,
+  },
   formMode: false,
   isDatabaseSelectEnabled: true,
   readOnly: false,
@@ -180,7 +185,7 @@ test('Refresh should work', async () => {
   userEvent.click(select);
 
   await waitFor(() => {
-    expect(SupersetClientGet).toBeCalledTimes(1);
+    expect(SupersetClientGet).toBeCalledTimes(2);
     expect(props.getDbList).toBeCalledTimes(0);
     expect(props.getTableList).toBeCalledTimes(0);
     expect(props.handleError).toBeCalledTimes(0);
@@ -193,8 +198,8 @@ test('Refresh should work', async () => {
   userEvent.click(screen.getByRole('button', { name: 'refresh' }));
 
   await waitFor(() => {
-    expect(SupersetClientGet).toBeCalledTimes(2);
-    expect(props.getDbList).toBeCalledTimes(0);
+    expect(SupersetClientGet).toBeCalledTimes(3);
+    expect(props.getDbList).toBeCalledTimes(1);
     expect(props.getTableList).toBeCalledTimes(0);
     expect(props.handleError).toBeCalledTimes(0);
     expect(props.onDbChange).toBeCalledTimes(0);
@@ -246,6 +251,7 @@ test('Sends the correct db when changing the database', async () => {
         id: 2,
         database_name: 'test-mysql',
         backend: 'mysql',
+        allow_multi_schema_metadata_fetch: false,
       }),
     ),
   );
