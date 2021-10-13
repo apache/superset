@@ -36,7 +36,7 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.extensions import event_logger
 from superset.models.core import Database
 
-BYPASS_VALIDATION_ENGINES = {"bigquery", "snowflake"}
+BYPASS_VALIDATION_ENGINES = {"bigquery"}
 
 
 class ValidateDatabaseParametersCommand(BaseCommand):
