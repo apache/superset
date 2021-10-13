@@ -17,7 +17,7 @@
  * under the License.
  */
 import rison from 'rison';
-import React from 'react';
+import React, { useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { Row, Col } from 'src/common/components';
 import { Radio } from 'src/components/Radio';
@@ -26,6 +26,8 @@ import Alert from 'src/components/Alert';
 import Badge from 'src/components/Badge';
 import shortid from 'shortid';
 import { styled, SupersetClient, t, supersetTheme } from '@superset-ui/core';
+import { Select } from 'src/components';
+import { FormLabel } from 'src/components/Form';
 import Button from 'src/components/Button';
 import Tabs from 'src/components/Tabs';
 import CertifiedIcon from 'src/components/CertifiedIcon';
@@ -40,9 +42,7 @@ import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import TextControl from 'src/explore/components/controls/TextControl';
-import { Select } from 'src/components';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
-import SelectAsyncControl from 'src/explore/components/controls/SelectAsyncControl';
 import SpatialControl from 'src/explore/components/controls/SpatialControl';
 
 import CollectionTable from 'src/CRUD/CollectionTable';
@@ -374,12 +374,44 @@ const defaultProps = {
   onChange: () => {},
 };
 
+function OwnersSelector({ datasource, onChange }) {
+  const loadOptions = useCallback((search = '', page, pageSize) => {
+    const query = rison.encode({ filter: search, page, page_size: pageSize });
+    return SupersetClient.get({
+      endpoint: `/api/v1/dataset/related/owners?q=${query}`,
+    }).then(response => ({
+      data: response.json.result.map(item => ({
+        value: item.value,
+        label: item.text,
+      })),
+      totalCount: response.json.count,
+    }));
+  }, []);
+
+  return (
+    <Select
+      ariaLabel={t('Select owners')}
+      mode="multiple"
+      name="owners"
+      value={datasource.owners}
+      options={loadOptions}
+      onChange={onChange}
+      header={<FormLabel>{t('Owners')}</FormLabel>}
+      allowClear
+    />
+  );
+}
+
 class DatasourceEditor extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
       datasource: {
         ...props.datasource,
+        owners: props.datasource.owners.map(owner => ({
+          value: owner.id,
+          label: `${owner.first_name} ${owner.last_name}`,
+        })),
         metrics: props.datasource.metrics?.map(metric => {
           const {
             certified_by: certifiedByMetric,
@@ -717,23 +749,11 @@ class DatasourceEditor extends React.PureComponent {
             }
           />
         )}
-        <Field
-          fieldKey="owners"
-          label={t('Owners')}
-          description={t('Owners of the dataset')}
-          control={
-            <SelectAsyncControl
-              dataEndpoint="api/v1/dataset/related/owners"
-              multi
-              mutator={data =>
-                data.result.map(pk => ({
-                  value: pk.value,
-                  label: `${pk.text}`,
-                }))
-              }
-            />
-          }
-          controlProps={{}}
+        <OwnersSelector
+          datasource={datasource}
+          onChange={newOwners => {
+            this.onDatasourceChange({ ...datasource, owners: newOwners });
+          }}
         />
       </Fieldset>
     );
