@@ -12,7 +12,7 @@ export const TimeGranularity = {
   FIVE_MINUTES: 'PT5M',
   TEN_MINUTES: 'PT10M',
   FIFTEEN_MINUTES: 'PT15M',
-  HALF_HOUR: 'PT0.5H',
+  THIRTY_MINUTES: 'PT30M',
   HOUR: 'PT1H',
   DAY: 'P1D',
   WEEK: 'P1W',
@@ -21,7 +21,7 @@ export const TimeGranularity = {
   WEEK_ENDING_SATURDAY: 'P1W/1970-01-03T00:00:00Z',
   WEEK_ENDING_SUNDAY: 'P1W/1970-01-04T00:00:00Z',
   MONTH: 'P1M',
-  QUARTER: 'P0.25Y',
+  QUARTER: 'P3M',
   YEAR: 'P1Y',
 } as const;
 
