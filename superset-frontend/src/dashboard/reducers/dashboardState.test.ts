@@ -29,7 +29,10 @@ describe('DashboardState reducer', () => {
       dashboardStateReducer({ activeTabs: ['tab1'] }, setActiveTabs('tab1')),
     ).toEqual({ activeTabs: ['tab1'] });
     expect(
-      dashboardStateReducer({ activeTabs: ['tab1'] }, setActiveTabs('tab2', 'tab1')),
+      dashboardStateReducer(
+        { activeTabs: ['tab1'] },
+        setActiveTabs('tab2', 'tab1'),
+      ),
     ).toEqual({ activeTabs: ['tab2'] });
   });
 });
