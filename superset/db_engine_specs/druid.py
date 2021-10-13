@@ -48,13 +48,13 @@ class DruidEngineSpec(BaseEngineSpec):
         "PT5M": "TIME_FLOOR({col}, 'PT5M')",
         "PT10M": "TIME_FLOOR({col}, 'PT10M')",
         "PT15M": "TIME_FLOOR({col}, 'PT15M')",
-        "PT0.5H": "TIME_FLOOR({col}, 'PT30M')",
+        "PT30M": "TIME_FLOOR({col}, 'PT30M')",
         "PT1H": "TIME_FLOOR({col}, 'PT1H')",
         "PT6H": "TIME_FLOOR({col}, 'PT6H')",
         "P1D": "TIME_FLOOR({col}, 'P1D')",
         "P1W": "TIME_FLOOR({col}, 'P1W')",
         "P1M": "TIME_FLOOR({col}, 'P1M')",
-        "P0.25Y": "TIME_FLOOR({col}, 'P3M')",
+        "P3M": "TIME_FLOOR({col}, 'P3M')",
         "P1Y": "TIME_FLOOR({col}, 'P1Y')",
         "P1W/1970-01-03T00:00:00Z": (
             "TIME_SHIFT(TIME_FLOOR(TIME_SHIFT({col}, 'P1D', 1), 'P1W'), 'P1D', 5)"
