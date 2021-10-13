@@ -167,7 +167,7 @@ class PropertiesModal extends React.PureComponent {
       ).reduce(
         (prev, next) => ({
           ...prev,
-          [next]: CategoricalColorNamespace.getScale(value)(next),
+          [next]: CategoricalColorNamespace.getExistingScale(value)(next),
         }),
         {},
       );

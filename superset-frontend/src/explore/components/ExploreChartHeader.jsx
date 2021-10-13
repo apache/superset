@@ -21,7 +21,12 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import Icons from 'src/components/Icons';
-import { styled, t } from '@superset-ui/core';
+import {
+  CategoricalColorNamespace,
+  SupersetClient,
+  styled,
+  t,
+} from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import ReportModal from 'src/components/ReportModal';
 import {
@@ -31,6 +36,7 @@ import {
 } from 'src/reports/actions/reports';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import HeaderReportActionsDropdown from 'src/components/ReportModal/HeaderReportActionsDropdown';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { chartPropShape } from '../../dashboard/util/propShapes';
 import ExploreActionButtons from './ExploreActionButtons';
 import RowCountLabel from './RowCountLabel';
@@ -53,6 +59,7 @@ const propTypes = {
   addHistory: PropTypes.func,
   can_overwrite: PropTypes.bool.isRequired,
   can_download: PropTypes.bool.isRequired,
+  dashboardId: PropTypes.number,
   isStarred: PropTypes.bool.isRequired,
   slice: PropTypes.object,
   sliceName: PropTypes.string,
@@ -108,12 +115,15 @@ export class ExploreChartHeader extends React.PureComponent {
     this.state = {
       isPropertiesModalOpen: false,
       showingReportModal: false,
+      existingOwners: [],
+      permissionsError: null,
     };
     this.openPropertiesModal = this.openPropertiesModal.bind(this);
     this.closePropertiesModal = this.closePropertiesModal.bind(this);
     this.showReportModal = this.showReportModal.bind(this);
     this.hideReportModal = this.hideReportModal.bind(this);
     this.renderReportModal = this.renderReportModal.bind(this);
+    this.fetchChartData = this.fetchChartData.bind(this);
   }
 
   componentDidMount() {
@@ -126,6 +136,51 @@ export class ExploreChartHeader extends React.PureComponent {
         'charts',
         chart.id,
       );
+    }
+    this.fetchChartData();
+  }
+
+  async fetchChartData() {
+    try {
+      const { dashboardId, form_data: formData, slice } = this.props;
+      const response = await SupersetClient.get({
+        endpoint: `/api/v1/chart/${slice.slice_id}`,
+      });
+      const chart = response.json.result;
+      const colorScheme = formData.color_scheme;
+      const dashboards = chart.dashboards || [];
+      const dashboard =
+        dashboardId &&
+        dashboards.length &&
+        dashboards.find(d => d.id === dashboardId);
+
+      if (colorScheme && dashboard && dashboard.json_metadata) {
+        const labelColors =
+          JSON.parse(dashboard.json_metadata).label_colors || {};
+
+        Object.keys(labelColors).forEach(label => {
+          CategoricalColorNamespace.setSchemeColor(
+            colorScheme,
+            'GLOBAL',
+            label,
+            labelColors[label],
+          );
+        });
+      }
+
+      const existingOwners = chart.owners.map(owner => ({
+        value: owner.id,
+        label: `${owner.first_name} ${owner.last_name}`,
+      }));
+
+      this.setState({
+        existingOwners,
+      });
+    } catch (response) {
+      const clientError = await getClientErrorObject(response);
+      this.setState({
+        permissionsError: clientError,
+      });
     }
   }
 
@@ -244,6 +299,8 @@ export class ExploreChartHeader extends React.PureComponent {
                 onHide={this.closePropertiesModal}
                 onSave={this.props.sliceUpdated}
                 slice={this.props.slice}
+                error={this.state.permissionsError}
+                existingOwners={this.state.existingOwners}
               />
               <Tooltip
                 id="edit-desc-tooltip"

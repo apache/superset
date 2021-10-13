@@ -123,6 +123,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "cache_timeout",
         "dashboards.dashboard_title",
         "dashboards.id",
+        "dashboards.json_metadata",
         "description",
         "owners.first_name",
         "owners.id",

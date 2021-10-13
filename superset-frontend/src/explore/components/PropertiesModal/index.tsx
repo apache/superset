@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import Modal from 'src/components/Modal';
 import { Row, Col, Input, TextArea } from 'src/common/components';
 import Button from 'src/components/Button';
@@ -33,6 +33,8 @@ type PropertiesModalProps = {
   show: boolean;
   onHide: () => void;
   onSave: (chart: Chart) => void;
+  permissionsError?: string;
+  existingOwners?: SelectValue;
 };
 
 export default function PropertiesModal({
@@ -40,17 +42,18 @@ export default function PropertiesModal({
   onHide,
   onSave,
   show,
+  permissionsError,
+  existingOwners,
 }: PropertiesModalProps) {
   const [submitting, setSubmitting] = useState(false);
-
+  const [selectedOwners, setSelectedOwners] = useState<SelectValue | null>(
+    null,
+  );
   // values of form inputs
   const [name, setName] = useState(slice.slice_name || '');
   const [description, setDescription] = useState(slice.description || '');
   const [cacheTimeout, setCacheTimeout] = useState(
     slice.cache_timeout != null ? slice.cache_timeout : '',
-  );
-  const [selectedOwners, setSelectedOwners] = useState<SelectValue | null>(
-    null,
   );
 
   function showError({ error, statusText, message }: any) {
@@ -64,27 +67,6 @@ export default function PropertiesModal({
       okButtonProps: { danger: true, className: 'btn-danger' },
     });
   }
-
-  const fetchChartData = useCallback(
-    async function fetchChartData() {
-      try {
-        const response = await SupersetClient.get({
-          endpoint: `/api/v1/chart/${slice.slice_id}`,
-        });
-        const chart = response.json.result;
-        setSelectedOwners(
-          chart.owners.map((owner: any) => ({
-            value: owner.id,
-            label: `${owner.first_name} ${owner.last_name}`,
-          })),
-        );
-      } catch (response) {
-        const clientError = await getClientErrorObject(response);
-        showError(clientError);
-      }
-    },
-    [slice.slice_id],
-  );
 
   const loadOptions = useMemo(
     () => (input = '', page: number, pageSize: number) => {
@@ -141,10 +123,17 @@ export default function PropertiesModal({
 
   const ownersLabel = t('Owners');
 
-  // get the owners of this slice
   useEffect(() => {
-    fetchChartData();
-  }, [fetchChartData]);
+    if (permissionsError) {
+      showError(permissionsError);
+    }
+  }, [permissionsError]);
+
+  useEffect(() => {
+    if (existingOwners) {
+      setSelectedOwners(existingOwners);
+    }
+  }, [existingOwners]);
 
   // update name after it's changed in another modal
   useEffect(() => {
@@ -241,8 +230,8 @@ export default function PropertiesModal({
                 mode="multiple"
                 name="owners"
                 value={selectedOwners || []}
-                options={loadOptions}
                 onChange={setSelectedOwners}
+                options={loadOptions}
                 disabled={!selectedOwners}
                 allowClear
               />

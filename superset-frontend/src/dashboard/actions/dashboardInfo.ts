@@ -37,7 +37,9 @@ export function dashboardInfoChanged(newInfo: { metadata: any }) {
       ? JSON.parse(labelColors)
       : labelColors;
     Object.keys(colorMap).forEach(label => {
-      CategoricalColorNamespace.getScale(scheme, namespace).setColor(
+      CategoricalColorNamespace.setSchemeColor(
+        scheme,
+        namespace,
         label,
         colorMap[label],
       );

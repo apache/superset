@@ -94,7 +94,9 @@ export const hydrateDashboard = (dashboardData, chartData) => (
       ? JSON.parse(metadata.label_colors)
       : metadata.label_colors;
     Object.keys(colorMap).forEach(label => {
-      CategoricalColorNamespace.getScale(scheme, namespace).setColor(
+      CategoricalColorNamespace.setSchemeColor(
+        scheme,
+        namespace,
         label,
         colorMap[label],
       );

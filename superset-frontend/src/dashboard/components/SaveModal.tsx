@@ -21,7 +21,7 @@ import React from 'react';
 import { Radio } from 'src/components/Radio';
 import { RadioChangeEvent, Input } from 'src/common/components';
 import Button from 'src/components/Button';
-import { t, CategoricalColorNamespace, JsonResponse } from '@superset-ui/core';
+import { t, JsonResponse } from '@superset-ui/core';
 
 import ModalTrigger from 'src/components/ModalTrigger';
 import Checkbox from 'src/components/Checkbox';
@@ -131,11 +131,11 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
       lastModifiedTime,
     } = this.props;
 
-    const scale = CategoricalColorNamespace.getScale(
-      colorScheme,
-      colorNamespace,
-    );
-    const labelColors = colorScheme ? scale.getColorMap() : {};
+    const labelColors =
+      colorScheme && dashboardInfo?.metadata?.label_colors
+        ? dashboardInfo.metadata.label_colors
+        : {};
+
     // check refresh frequency is for current session or persist
     const refreshFrequency = shouldPersistRefreshFrequency
       ? currentRefreshFrequency

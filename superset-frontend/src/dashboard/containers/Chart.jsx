@@ -61,8 +61,7 @@ function mapStateToProps(
     (chart && chart.form_data && datasources[chart.form_data.datasource]) ||
     PLACEHOLDER_DATASOURCE;
   const { colorScheme, colorNamespace } = dashboardState;
-  const { metadata } = dashboardInfo;
-  const labelColors = metadata?.label_colors;
+  const labelColors = dashboardInfo?.metadata?.label_colors || {};
   // note: this method caches filters if possible to prevent render cascades
   const formData = getFormDataWithExtraFilters({
     layout: dashboardLayout.present,
@@ -84,7 +83,7 @@ function mapStateToProps(
   return {
     chart,
     datasource,
-    labelColors: labelColors && Object.keys(labelColors).length && labelColors,
+    labelColors: labelColors || {},
     slice: sliceEntities.slices[id],
     timeout: dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
     filters: getActiveFilters() || EMPTY_OBJECT,
