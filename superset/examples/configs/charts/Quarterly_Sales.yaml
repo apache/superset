@@ -68,7 +68,7 @@ params:
   show_legend: false
   slice_id: 668
   time_compare: null
-  time_grain_sqla: P0.25Y
+  time_grain_sqla: P3M
   time_range: No filter
   time_range_endpoints:
   - inclusive

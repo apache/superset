@@ -35,7 +35,7 @@ class KylinEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         "P1D": "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO DAY) AS DATE)",
         "P1W": "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO WEEK) AS DATE)",
         "P1M": "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO MONTH) AS DATE)",
-        "P0.25Y": "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO QUARTER) AS DATE)",
+        "P3M": "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO QUARTER) AS DATE)",
         "P1Y": "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO YEAR) AS DATE)",
     }
 

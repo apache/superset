@@ -37,7 +37,7 @@ class CrateEngineSpec(BaseEngineSpec):
         "P1D": "DATE_TRUNC('day', {col})",
         "P1W": "DATE_TRUNC('week', {col})",
         "P1M": "DATE_TRUNC('month', {col})",
-        "P0.25Y": "DATE_TRUNC('quarter', {col})",
+        "P3M": "DATE_TRUNC('quarter', {col})",
         "P1Y": "DATE_TRUNC('year', {col})",
     }
 

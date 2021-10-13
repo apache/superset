@@ -58,13 +58,13 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
                  DATE_TRUNC('HOUR', {col}))",
         "PT15M": "DATEADD(MINUTE, FLOOR(DATE_PART(MINUTE, {col}) / 15) * 15, \
                  DATE_TRUNC('HOUR', {col}))",
-        "PT0.5H": "DATEADD(MINUTE, FLOOR(DATE_PART(MINUTE, {col}) / 30) * 30, \
+        "PT30M": "DATEADD(MINUTE, FLOOR(DATE_PART(MINUTE, {col}) / 30) * 30, \
                   DATE_TRUNC('HOUR', {col}))",
         "PT1H": "DATE_TRUNC('HOUR', {col})",
         "P1D": "DATE_TRUNC('DAY', {col})",
         "P1W": "DATE_TRUNC('WEEK', {col})",
         "P1M": "DATE_TRUNC('MONTH', {col})",
-        "P0.25Y": "DATE_TRUNC('QUARTER', {col})",
+        "P3M": "DATE_TRUNC('QUARTER', {col})",
         "P1Y": "DATE_TRUNC('YEAR', {col})",
     }
 
