@@ -182,6 +182,25 @@ class Header extends React.PureComponent {
     }
   }
 
+  componentDidUpdate(prevProps) {
+    if (this.props.refreshFrequency !== prevProps.refreshFrequency) {
+      const { refreshFrequency } = this.props;
+      this.startPeriodicRender(refreshFrequency * 1000);
+    }
+    if (this.props.dashboardInfo.id !== prevProps.dashboardInfo.id) {
+      const { dashboardInfo, user } = this.props;
+      if (user && isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
+        // this is in case there is an anonymous user.
+        this.props.fetchUISpecificReport(
+          user.userId,
+          'dashboard_id',
+          'dashboards',
+          dashboardInfo.id,
+        );
+      }
+    }
+  }
+
   UNSAFE_componentWillReceiveProps(nextProps) {
     const { user } = this.props;
     if (
