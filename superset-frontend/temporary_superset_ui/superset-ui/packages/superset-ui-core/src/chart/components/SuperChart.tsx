@@ -37,6 +37,8 @@ export type Props = Omit<SuperChartCoreProps, 'chartProps'> &
     FallbackComponent?: React.ComponentType<FallbackPropsWithDimension>;
     /** Event listener for unexpected errors from chart */
     onErrorBoundary?: ErrorBoundaryProps['onError'];
+    /** Prop for form plugins uisng superchart */
+    showOverflow?: boolean;
     /** Chart width */
     height?: number | string;
     /** Chart height */
