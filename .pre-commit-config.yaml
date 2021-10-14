@@ -48,3 +48,9 @@ repos:
     hooks:
       - id: black
         language_version: python3
+  - repo: local
+    hooks:
+    -   id: prettier
+        name: prettier
+        entry: make js-format
+        language: system
