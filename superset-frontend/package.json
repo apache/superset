@@ -276,6 +276,7 @@
     "fetch-mock": "^7.7.3",
     "file-loader": "^6.0.0",
     "fork-ts-checker-webpack-plugin": "^6.3.3",
+    "husky": "^7.0.2",
     "ignore-styles": "^5.0.1",
     "imports-loader": "^3.0.0",
     "jest": "^26.6.3",
@@ -328,5 +329,16 @@
         }
       ]
     }
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "./{src,spec,cypress-base}/**/*{.js,.jsx,.ts,.tsx,.css,.less,.scss,.sass}": [
+      "prettier --write",
+      "git add"
+    ]
   }
 }
