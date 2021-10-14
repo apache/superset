@@ -30,4 +30,5 @@ export interface FilterProps {
   directPathToChild?: string[];
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
   inView?: boolean;
+  showOverflow?: boolean;
 }

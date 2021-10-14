@@ -27,6 +27,7 @@ export interface CascadeFilterControlProps {
   dataMaskSelected?: DataMaskStateWithId;
   filter: CascadeFilter;
   directPathToChild?: string[];
+  showOverflow?: boolean;
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
 }
 
@@ -35,7 +36,6 @@ const StyledDiv = styled.div`
   width: 100%;
   flex-direction: column;
   align-items: center;
-
   .ant-form-item {
     margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
   }
@@ -52,6 +52,7 @@ const CascadeFilterControl: React.FC<CascadeFilterControlProps> = ({
       dataMaskSelected={dataMaskSelected}
       filter={filter}
       directPathToChild={directPathToChild}
+      showOverflow
       onFilterSelectionChange={onFilterSelectionChange}
     />
     <StyledDiv>
@@ -61,6 +62,7 @@ const CascadeFilterControl: React.FC<CascadeFilterControlProps> = ({
           dataMaskSelected={dataMaskSelected}
           filter={childFilter}
           directPathToChild={directPathToChild}
+          showOverflow
           onFilterSelectionChange={onFilterSelectionChange}
         />
       ))}

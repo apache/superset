@@ -74,6 +74,11 @@ const StyledPill = styled(Pill)`
   background: ${({ theme }) => theme.colors.grayscale.light1};
 `;
 
+const ContentStyles = styled.div`
+  max-height: 700px;
+  overflow: auto;
+`;
+
 const CascadePopover: React.FC<CascadePopoverProps> = ({
   dataMaskSelected,
   filter,
@@ -173,14 +178,16 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   );
 
   const content = (
-    <CascadeFilterControl
-      dataMaskSelected={dataMaskSelected}
-      data-test="cascade-filters-control"
-      key={filter.id}
-      filter={filter}
-      directPathToChild={visible ? currentPathToChild : undefined}
-      onFilterSelectionChange={onFilterSelectionChange}
-    />
+    <ContentStyles>
+      <CascadeFilterControl
+        dataMaskSelected={dataMaskSelected}
+        data-test="cascade-filters-control"
+        key={filter.id}
+        filter={filter}
+        directPathToChild={visible ? currentPathToChild : undefined}
+        onFilterSelectionChange={onFilterSelectionChange}
+      />
+    </ContentStyles>
   );
 
   return (
@@ -192,7 +199,12 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
       onVisibleChange={onVisibleChange}
       placement="rightTop"
       id={filter.id}
-      overlayStyle={{ width: '400px' }}
+      overlayStyle={{
+        width: '400px',
+        position: 'relative',
+        overflow: 'scroll',
+      }}
+      className="cascade-popover"
     >
       <div>
         {activeFilters.map(activeFilter => (

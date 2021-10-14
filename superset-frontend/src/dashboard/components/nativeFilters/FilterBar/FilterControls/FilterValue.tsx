@@ -59,6 +59,7 @@ const FilterValue: React.FC<FilterProps> = ({
   directPathToChild,
   onFilterSelectionChange,
   inView = true,
+  showOverflow,
 }) => {
   const { id, targets, filterType, adhoc_filters, time_range } = filter;
   const metadata = getChartMetadataRegistry().get(filterType);
@@ -225,6 +226,7 @@ const FilterValue: React.FC<FilterProps> = ({
         <SuperChart
           height={HEIGHT}
           width="100%"
+          showOverflow={showOverflow}
           formData={formData}
           // For charts that don't have datasource we need workaround for empty placeholder
           queriesData={hasDataSource ? state : [{ data: [{}] }]}
