@@ -16,19 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-{
-  "rules": {
-    "no-restricted-imports": [
-      "warn",
-      {
-        "paths": [
-          {
-              "name": "@superset-ui/core",
-              "importNames": ["supersetTheme"],
-              "message": "Please use the theme directly from the ThemeProvider rather than importing supersetTheme."
-          }
-        ]
-      }
-    ]
-  }
+import React from 'react';
+import { t } from '@superset-ui/core';
+
+import { ErrorMessageComponentProps } from './types';
+import ErrorAlert from './ErrorAlert';
+
+function DatasetNotFoundErrorMessage({
+  error,
+  source = 'dashboard',
+  subtitle,
+}: ErrorMessageComponentProps) {
+  const { level, message } = error;
+
+  return (
+    <ErrorAlert
+      title={t('Missing dataset')}
+      subtitle={subtitle}
+      level={level}
+      source={source}
+      copyText={message}
+      body={null}
+    />
+  );
 }
+
+export default DatasetNotFoundErrorMessage;

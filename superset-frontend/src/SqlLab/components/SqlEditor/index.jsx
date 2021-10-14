@@ -24,7 +24,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
-import { t, styled, supersetTheme, withTheme } from '@superset-ui/core';
+import { t, styled, withTheme } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
 import StyledModal from 'src/components/Modal';
@@ -102,10 +102,10 @@ const LimitSelectStyled = styled.span`
 
 const StyledToolbar = styled.div`
   padding: ${({ theme }) => theme.gridUnit * 2}px;
-  background-color: @lightest;
+  background: ${({ theme }) => theme.colors.grayscale.light5};
   display: flex;
   justify-content: space-between;
-  border: 1px solid ${supersetTheme.colors.grayscale.light2};
+  border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   border-top: 0;
 
   form {

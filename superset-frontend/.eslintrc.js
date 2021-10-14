@@ -108,13 +108,19 @@ module.exports = {
         'no-prototype-builtins': 0,
         'no-restricted-properties': 0,
         'no-restricted-imports': [
-          'error',
+          'warn',
           {
             paths: [
               {
                 name: 'antd',
                 message:
                   'Please import Ant components from the index of common/components',
+              },
+              {
+                name: '@superset-ui/core',
+                importNames: ['supersetTheme'],
+                message:
+                  'Please use the theme directly from the ThemeProvider rather than importing supersetTheme.',
               },
             ],
           },
