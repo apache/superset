@@ -42,10 +42,10 @@ const FilterTitle = styled.div`
           color: ${theme.colors.primary.light1};
         }
       }
-      &.errored div, &.errored .warning{
+      &.errored div, &.errored .warning {
         color: ${theme.colors.error.base};
       }
-`}
+  `}
 `;
 
 const StyledTrashIcon = styled(Icons.Trash)`

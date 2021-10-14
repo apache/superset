@@ -214,12 +214,12 @@ export function FiltersConfigModal({
     setRemovedFilters({});
     setSaveAlertVisible(false);
     setFormValues({ filters: {} });
+    setErroredFilters([]);
     if (!isSaving) {
       setOrderedFilters(buildFilterGroup(getInitialFilterHierarchy()));
+      form.resetFields();
     }
-    form.resetFields();
     form.setFieldsValue({ changed: false });
-    setErroredFilters([]);
   };
 
   const getFilterTitle = (id: string) =>

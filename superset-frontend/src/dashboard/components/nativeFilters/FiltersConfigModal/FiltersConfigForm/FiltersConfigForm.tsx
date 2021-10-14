@@ -102,7 +102,7 @@ const StyledContainer = styled.div`
     flex-direction: row-reverse;
     justify-content: space-between;
     padding: 0px ${theme.gridUnit * 4}px;
-`}
+  `}
 `;
 
 const StyledRowContainer = styled.div`

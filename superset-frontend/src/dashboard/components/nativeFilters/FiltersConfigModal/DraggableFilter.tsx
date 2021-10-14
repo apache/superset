@@ -30,6 +30,7 @@ import Icons, { IconType } from 'src/components/Icons';
 interface TitleContainerProps {
   readonly isDragging: boolean;
 }
+
 const FILTER_TYPE = 'FILTER';
 
 const Container = styled.div<TitleContainerProps>`
@@ -39,16 +40,18 @@ const Container = styled.div<TitleContainerProps>`
     width: 100%;
     display: flex;
     padding:  ${theme.gridUnit}px
-`}
+  `}
 `;
 
-const DragIcon = styled(Icons.Drag)<IconType & { isDragging: boolean }>`
+const DragIcon = styled(Icons.Drag, {
+  shouldForwardProp: propName => propName !== 'isDragging',
+})<IconType & { isDragging: boolean }>`
   ${({ isDragging, theme }) => `
     font-size: ${theme.typography.sizes.m}px;
     margin-top: 15px;
     cursor: ${isDragging ? 'grabbing' : 'grab'};
     padding-left: ${theme.gridUnit}px;
-`}
+  `}
 `;
 
 interface FilterTabTitleProps {
