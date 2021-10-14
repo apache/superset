@@ -17,9 +17,9 @@
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
 
 from flask.ctx import AppContext
+from pybigquery.sqlalchemy_bigquery import BigQueryDialect
 from pytest_mock import MockFixture
 from sqlalchemy import select
-from sqlalchemy.dialects.sqlite.base import SQLiteDialect
 from sqlalchemy.sql import sqltypes
 
 
@@ -59,19 +59,7 @@ def test_get_fields(app_context: AppContext) -> None:
     columns = [{"name": "limit"}, {"name": "name"}, {"name": "project.name"}]
     fields = BigQueryEngineSpec._get_fields(columns)
 
-    # generic SQL
     query = select(fields)
-    assert (
-        str(query)
-        == 'SELECT "limit" AS "limit", name AS name, "project.name" AS project__name'
-    )
-
-    # BigQuery-specific SQL
-    try:
-        from pybigquery.sqlalchemy_bigquery import BigQueryDialect
-    except ModuleNotFoundError:
-        return
-
     assert str(query.compile(dialect=BigQueryDialect())) == (
         "SELECT `limit` AS `limit`, `name` AS `name`, "
         "`project`.`name` AS `project__name`"
@@ -134,41 +122,10 @@ def test_select_star(mocker: MockFixture, app_context: AppContext) -> None:
     # mock the database so we can compile the query
     database = mocker.MagicMock()
     database.compile_sqla_query = lambda query: str(
-        query.compile(dialect=SQLiteDialect())
-    )
-
-    # use SQLite dialect so we don't need the BQ dependency
-    engine = mocker.MagicMock()
-    engine.dialect = SQLiteDialect()
-
-    sql = BigQueryEngineSpec.select_star(
-        database=database,
-        table_name="my_table",
-        engine=engine,
-        schema=None,
-        limit=100,
-        show_cols=True,
-        indent=True,
-        latest_partition=False,
-        cols=cols,
-    )
-    assert (
-        sql
-        == """SELECT trailer AS trailer
-FROM my_table
-LIMIT ?
-OFFSET ?"""
-    )
-
-    # BigQuery-specific SQL
-    try:
-        from pybigquery.sqlalchemy_bigquery import BigQueryDialect
-    except ModuleNotFoundError:
-        return
-
-    database.compile_sqla_query = lambda query: str(
         query.compile(dialect=BigQueryDialect())
     )
+
+    engine = mocker.MagicMock()
     engine.dialect = BigQueryDialect()
 
     sql = BigQueryEngineSpec.select_star(
