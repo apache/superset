@@ -143,7 +143,7 @@ function DashboardList(props: DashboardListProps) {
   };
 
   const { userId } = props.user;
-  const userKey = getFromLocalStorage(userId.toString(), null);
+  const userKey = getFromLocalStorage(userId?.toString(), null);
 
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
