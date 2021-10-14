@@ -216,8 +216,9 @@ export function FiltersConfigModal({
     setFormValues({ filters: {} });
     setErroredFilters([]);
     if (!isSaving) {
-      setFilterHierarchy(getInitialFilterHierarchy());
-      setOrderedFilters(buildFilterGroup(getInitialFilterHierarchy()));
+      const initialFilterHierarchy = getInitialFilterHierarchy();
+      setFilterHierarchy(initialFilterHierarchy);
+      setOrderedFilters(buildFilterGroup(initialFilterHierarchy));
       form.resetFields();
     }
     form.setFieldsValue({ changed: false });
