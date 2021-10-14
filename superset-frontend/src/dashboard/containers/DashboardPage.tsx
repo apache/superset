@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC, useEffect } from 'react';
+import React, { FC, useRef, useEffect } from 'react';
 import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
 import { useParams } from 'react-router-dom';
@@ -58,20 +58,19 @@ const DashboardPage: FC = () => {
   const { result: datasets, error: datasetsApiError } = useDashboardDatasets(
     idOrSlug,
   );
+  const isDashboardHydrated = useRef(false);
 
   const error = dashboardApiError || chartsApiError;
   const readyToRender = Boolean(dashboard && charts);
   const { dashboard_title, css } = dashboard || {};
 
-  useEffect(() => {
-    if (readyToRender) {
-      dispatch(hydrateDashboard(dashboard, charts));
-      if (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET)) {
-        dispatch(getFilterSets());
-      }
+  if (readyToRender && !isDashboardHydrated.current) {
+    isDashboardHydrated.current = true;
+    dispatch(hydrateDashboard(dashboard, charts));
+    if (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET)) {
+      dispatch(getFilterSets());
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [readyToRender]);
+  }
 
   useEffect(() => {
     if (dashboard_title) {

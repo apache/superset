@@ -99,7 +99,6 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       currentDatasource.schema;
 
     setIsSaving(true);
-
     SupersetClient.post({
       endpoint: '/datasource/save/',
       postPayload: {
@@ -119,6 +118,9 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
             }),
           ),
           type: currentDatasource.type || currentDatasource.datasource_type,
+          owners: currentDatasource.owners.map(
+            (o: { label: string; value: number }) => o.value,
+          ),
         },
       },
     })
