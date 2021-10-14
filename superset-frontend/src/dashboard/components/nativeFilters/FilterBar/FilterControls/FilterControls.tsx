@@ -73,35 +73,43 @@ const FilterControls: FC<FilterControlsProps> = ({
   }, [filterValues, dataMaskSelected]);
   const cascadeFilterIds = new Set(cascadeFilters.map(item => item.id));
 
-  const handleVisibleChange = useCallback(
-    index => (visible: boolean) =>
-      setVisiblePopoverId(visible ? cascadeFilters[index].id : null),
-    [cascadeFilters],
-  );
-
   const [filtersInScope, filtersOutOfScope] = useSelectFiltersInScope(
     cascadeFilters,
   );
   const dashboardHasTabs = useDashboardHasTabs();
   const showCollapsePanel = dashboardHasTabs && cascadeFilters.length > 0;
 
+  const cascadePopoverFactory = useCallback(
+    index => (
+      <CascadePopover
+        data-test="cascade-filters-control"
+        key={cascadeFilters[index].id}
+        dataMaskSelected={dataMaskSelected}
+        visible={visiblePopoverId === cascadeFilters[index].id}
+        onVisibleChange={visible =>
+          setVisiblePopoverId(visible ? cascadeFilters[index].id : null)
+        }
+        filter={cascadeFilters[index]}
+        onFilterSelectionChange={onFilterSelectionChange}
+        directPathToChild={directPathToChild}
+        inView={false}
+      />
+    ),
+    [
+      cascadeFilters,
+      JSON.stringify(dataMaskSelected),
+      directPathToChild,
+      onFilterSelectionChange,
+      visiblePopoverId,
+    ],
+  );
   return (
     <Wrapper>
       {portalNodes
         .filter((node, index) => cascadeFilterIds.has(filterValues[index].id))
         .map((node, index) => (
           <InPortal node={node}>
-            <CascadePopover
-              data-test="cascade-filters-control"
-              key={cascadeFilters[index].id}
-              dataMaskSelected={dataMaskSelected}
-              visible={visiblePopoverId === cascadeFilters[index].id}
-              onVisibleChange={handleVisibleChange(index)}
-              filter={cascadeFilters[index]}
-              onFilterSelectionChange={onFilterSelectionChange}
-              directPathToChild={directPathToChild}
-              inView={false}
-            />
+            {cascadePopoverFactory(index)}
           </InPortal>
         ))}
       {filtersInScope.map(filter => {
@@ -153,4 +161,4 @@ const FilterControls: FC<FilterControlsProps> = ({
   );
 };
 
-export default FilterControls;
+export default React.memo(FilterControls);

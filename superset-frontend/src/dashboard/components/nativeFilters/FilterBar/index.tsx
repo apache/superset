@@ -365,5 +365,4 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     </BarWrapper>
   );
 };
-
-export default FilterBar;
+export default React.memo(FilterBar);

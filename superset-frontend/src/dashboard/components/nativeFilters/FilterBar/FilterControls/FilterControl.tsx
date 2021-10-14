@@ -97,5 +97,4 @@ const FilterControl: React.FC<FilterProps> = ({
     </StyledFilterControlContainer>
   );
 };
-
-export default FilterControl;
+export default React.memo(FilterControl);

@@ -220,6 +220,19 @@ const FilterValue: React.FC<FilterProps> = ({
     [setDataMask, setFocusedFilter, unsetFocusedFilter],
   );
 
+  const isMissingRequiredValue = checkIsMissingRequiredValue(
+    filter,
+    filter.dataMask?.filterState,
+  );
+
+  const filterState = useMemo(
+    () => ({
+      ...filter.dataMask?.filterState,
+      validateStatus: isMissingRequiredValue && 'error',
+    }),
+    [filter.dataMask?.filterState, isMissingRequiredValue],
+  );
+
   if (error) {
     return (
       <BasicErrorAlert
@@ -229,14 +242,6 @@ const FilterValue: React.FC<FilterProps> = ({
       />
     );
   }
-  const isMissingRequiredValue = checkIsMissingRequiredValue(
-    filter,
-    filter.dataMask?.filterState,
-  );
-  const filterState = {
-    ...filter.dataMask?.filterState,
-    validateStatus: isMissingRequiredValue && 'error',
-  };
 
   return (
     <StyledDiv data-test="form-item-value">
@@ -261,5 +266,4 @@ const FilterValue: React.FC<FilterProps> = ({
     </StyledDiv>
   );
 };
-
 export default FilterValue;
