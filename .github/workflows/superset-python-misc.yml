@@ -67,7 +67,7 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version:  '16'
-        run: npm install
+        run: npm install prettier
       - name: Install dependencies
         uses: ./.github/actions/cached-dependencies
         with:
