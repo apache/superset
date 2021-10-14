@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-rose",
-  "version": "0.18.12",
+  "version": "0.18.13",
   "description": "Superset Legacy Chart - Nightingale Rose Diagram",
   "sideEffects": [
     "*.css"
@@ -28,8 +28,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/chart-controls": "0.18.12",
-    "@superset-ui/core": "0.18.12",
+    "@superset-ui/chart-controls": "0.18.13",
+    "@superset-ui/core": "0.18.13",
     "d3": "^3.5.17",
     "nvd3": "1.8.6",
     "prop-types": "^15.6.2"
