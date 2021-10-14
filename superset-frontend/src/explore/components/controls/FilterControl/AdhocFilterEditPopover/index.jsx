@@ -181,6 +181,11 @@ export default class AdhocFilterEditPopover extends React.Component {
 
     const { adhocFilter } = this.state;
 
+    const resultSections =
+      datasource?.type === 'druid'
+        ? sections.filter(s => s !== 'CUSTOM_SQL')
+        : sections;
+
     const stateIsValid = adhocFilter.isValid();
     const hasUnsavedChanges = !adhocFilter.equals(propsAdhocFilter);
 
@@ -188,19 +193,13 @@ export default class AdhocFilterEditPopover extends React.Component {
 
     sectionRenders.CUSTOM_SQL = (
       <ErrorBoundary>
-        {!this.props.datasource || this.props.datasource.type !== 'druid' ? (
-          <AdhocFilterEditPopoverSqlTabContent
-            adhocFilter={this.state.adhocFilter}
-            onChange={this.onAdhocFilterChange}
-            options={this.props.options}
-            height={this.state.height}
-            activeKey={this.state.activeKey}
-          />
-        ) : (
-          <div className="custom-sql-disabled-message">
-            Custom SQL Filters are not available on druid datasources
-          </div>
-        )}
+        <AdhocFilterEditPopoverSqlTabContent
+          adhocFilter={this.state.adhocFilter}
+          onChange={this.onAdhocFilterChange}
+          options={this.props.options}
+          height={this.state.height}
+          activeKey={this.state.activeKey}
+        />
       </ErrorBoundary>
     );
 
@@ -226,7 +225,7 @@ export default class AdhocFilterEditPopover extends React.Component {
         data-test="filter-edit-popover"
         ref={this.popoverContentRef}
       >
-        {sections.length > 1 ? (
+        {resultSections.length > 1 ? (
           <Tabs
             id="adhoc-filter-edit-tabs"
             defaultActiveKey={adhocFilter.expressionType}
@@ -236,7 +235,7 @@ export default class AdhocFilterEditPopover extends React.Component {
             allowOverflow
             onChange={this.onTabChange}
           >
-            {sections.includes('SIMPLE') && (
+            {resultSections.includes('SIMPLE') && (
               <Tabs.TabPane
                 className="adhoc-filter-edit-tab"
                 key={EXPRESSION_TYPES.SIMPLE}
@@ -245,7 +244,7 @@ export default class AdhocFilterEditPopover extends React.Component {
                 {sectionRenders.SIMPLE}
               </Tabs.TabPane>
             )}
-            {sections.includes('CUSTOM_SQL') && (
+            {resultSections.includes('CUSTOM_SQL') && (
               <Tabs.TabPane
                 className="adhoc-filter-edit-tab"
                 key={EXPRESSION_TYPES.SQL}
@@ -256,7 +255,7 @@ export default class AdhocFilterEditPopover extends React.Component {
             )}
           </Tabs>
         ) : (
-          <SectionWrapper>{sectionRenders[sections[0]]}</SectionWrapper>
+          <SectionWrapper>{sectionRenders[resultSections[0]]}</SectionWrapper>
         )}
         <div>
           <Button buttonSize="small" onClick={this.props.onClose} cta>
