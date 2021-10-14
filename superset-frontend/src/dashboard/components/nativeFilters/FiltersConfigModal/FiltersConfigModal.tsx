@@ -216,6 +216,7 @@ export function FiltersConfigModal({
     setFormValues({ filters: {} });
     setErroredFilters([]);
     if (!isSaving) {
+      setFilterHierarchy(getInitialFilterHierarchy());
       setOrderedFilters(buildFilterGroup(getInitialFilterHierarchy()));
       form.resetFields();
     }
