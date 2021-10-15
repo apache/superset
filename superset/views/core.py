@@ -856,6 +856,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         except (SupersetException, SQLAlchemyError):
             datasource_data = dummy_datasource_data
 
+        if datasource:
+            datasource_data["owners"] = datasource.owners_data
+
         bootstrap_data = {
             "can_add": slice_add_perm,
             "can_download": slice_download_perm,
