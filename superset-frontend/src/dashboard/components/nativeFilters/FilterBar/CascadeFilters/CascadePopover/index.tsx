@@ -202,7 +202,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
       overlayStyle={{
         width: '400px',
         position: 'relative',
-        overflow: 'scroll',
+        overflow: 'auto',
       }}
       className="cascade-popover"
     >
