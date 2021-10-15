@@ -69,8 +69,11 @@ import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { cacheWrapper } from 'src/utils/cacheWrapper';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
-import { Filter, NativeFilterType } from '../../types';
-import { getFormData } from '../../utils';
+import {
+  Filter,
+  NativeFilterType,
+} from 'src/dashboard/components/nativeFilters/types';
+import { getFormData } from 'src/dashboard/components/nativeFilters/utils';
 import {
   CASCADING_FILTERS,
   getFiltersConfigModalTestId,

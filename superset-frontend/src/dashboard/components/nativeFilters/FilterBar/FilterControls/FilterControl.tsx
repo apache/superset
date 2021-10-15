@@ -17,9 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import { styled, t } from '@superset-ui/core';
+import { styled } from '@superset-ui/core';
 import { Form, FormItem } from 'src/components/Form';
+import Icons from 'src/components/Icons';
 import { checkIsMissingRequiredValue } from '../utils';
 import FilterValue from './FilterValue';
 import { FilterProps } from './types';
@@ -51,12 +51,9 @@ const StyledFilterControlContainer = styled(Form)`
     width: 100%;
     padding-right: ${({ theme }) => theme.gridUnit * 11}px;
   }
-`;
-
-const ToolTipContainer = styled.div`
-  font-size: ${({ theme }) => theme.typography.sizes.m}px;
-  display: flex;
-  padding-left: ${({ theme }) => theme.gridUnit}px;
+  .ant-form-item-tooltip {
+    margin-bottom: ${({ theme }) => theme.gridUnit}px;
+  }
 `;
 
 const FilterControl: React.FC<FilterProps> = ({
@@ -77,23 +74,27 @@ const FilterControl: React.FC<FilterProps> = ({
   return (
     <StyledFilterControlContainer layout="vertical">
       <FormItem
+        tooltip={
+          filter.description.trim()
+            ? {
+                icon: <Icons.Info />,
+                overlay: filter.description,
+                placement: 'topRight',
+                overlayInnerStyle: {
+                  display: '-webkit-box',
+                  overflow: 'auto',
+                  textOverflow: 'ellipsis',
+                  WebkitLineClamp: 20,
+                  WebkitBoxOrient: 'vertical',
+                },
+              }
+            : null
+        }
         label={
           <StyledFilterControlTitleBox>
             <StyledFilterControlTitle data-test="filter-control-name">
               {name}
             </StyledFilterControlTitle>{' '}
-            {!!filter.description && (
-              <ToolTipContainer
-                data-test="filter-description"
-                className="text-muted"
-              >
-                <InfoTooltipWithTrigger
-                  label={t('description')}
-                  tooltip={filter.description}
-                  placement="top"
-                />
-              </ToolTipContainer>
-            )}
             <StyledIcon data-test="filter-icon">{icon}</StyledIcon>
           </StyledFilterControlTitleBox>
         }
