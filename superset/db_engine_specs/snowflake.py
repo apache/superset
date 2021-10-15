@@ -235,7 +235,6 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     ) -> List[SupersetError]:
         errors: List[SupersetError] = []
         required = {
-            "host",
             "warehouse",
             "username",
             "database",
