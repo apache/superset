@@ -24,7 +24,7 @@ import { Select } from 'src/components';
 
 const DEFAULT_TIMEZONE = {
   name: 'GMT Standard Time',
-  value: 'Africa/Abidjan',
+  value: 'Africa/Abidjan', // timezones are deduped by the first alphabetical value
 };
 
 const MIN_SELECT_WIDTH = '400px';
@@ -121,7 +121,7 @@ const TimezoneSelector = ({ onTimezoneChange, timezone }: TimezoneProps) => {
 
   return (
     <Select
-      ariaLabel={t('Timezone Selector')}
+      ariaLabel={t('Timezone selector')}
       css={{ minWidth: MIN_SELECT_WIDTH }} // smallest size for current values
       onChange={onTimezoneChange}
       value={timezone || DEFAULT_TIMEZONE.value}
