@@ -52,4 +52,4 @@ repos:
     rev: v2.2.1 # Use the sha or tag you want to point at
     hooks:
       - id: prettier
-      - args: ["'./{src,spec,cypress-base}/**/*{.js,.jsx,.ts,.tsx,.css,.less,.scss,.sass}'"]
+        files: 'superset-frontend'
