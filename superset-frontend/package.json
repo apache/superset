@@ -289,7 +289,6 @@
     "mini-css-extract-plugin": "^2.3.0",
     "mock-socket": "^9.0.3",
     "node-fetch": "^2.6.1",
-    "po2json": "^0.4.5",
     "prettier": "^2.2.1",
     "process": "^0.11.10",
     "react-test-renderer": "^16.9.0",
