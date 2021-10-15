@@ -89,11 +89,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             html_table = ""
 
         call_to_action = __("Explore in Superset")
-        img_tag = (
-            f'<img width="1000px" src="cid:{msgid}">'
-            if self._content.screenshot
-            else ""
-        )
+        img_tag = f'<img src="cid:{msgid}">' if self._content.screenshot else ""
         body = textwrap.dedent(
             f"""
             <html>
