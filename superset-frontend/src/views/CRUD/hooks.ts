@@ -428,6 +428,7 @@ export function useImportResource(
       return SupersetClient.post({
         endpoint: `/api/v1/${resourceName}/import/`,
         body: formData,
+        headers: { Accept: 'application/json' },
       })
         .then(() => true)
         .catch(response =>

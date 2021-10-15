@@ -26,7 +26,12 @@ import TableSelector from '.';
 const SupersetClientGet = jest.spyOn(SupersetClient, 'get');
 
 const createProps = () => ({
-  dbId: 1,
+  database: {
+    id: 1,
+    database_name: 'main',
+    backend: 'sqlite',
+    allow_multi_schema_metadata_fetch: false,
+  },
   schema: 'test_schema',
   handleError: jest.fn(),
 });
