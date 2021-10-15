@@ -21,7 +21,7 @@ import { SupersetTheme, t } from '@superset-ui/core';
 import { Switch } from 'src/common/components';
 import InfoTooltip from 'src/components/InfoTooltip';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
-import { FieldPropTypes } from './';
+import { FieldPropTypes } from '.';
 import { toggleStyle, infoTooltip } from '../styles';
 
 export const hostField = ({
