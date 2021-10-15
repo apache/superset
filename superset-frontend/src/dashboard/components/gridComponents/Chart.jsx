@@ -230,7 +230,18 @@ export default class Chart extends React.Component {
     });
   };
 
-  getChartUrl = () => getExploreLongUrl(this.props.formData);
+  getChartUrl = () => {
+    const filters = this.props.formData?.extra_form_data?.filters;
+    // remove formData params that we don't need in the explore url
+    // this should be superseded by some sort of "exploration context" system
+    const formData = {
+      ...this.props.formData,
+      extra_form_data: { filters },
+      native_filters: undefined,
+      dataMask: undefined,
+    };
+    return getExploreLongUrl(formData, null, false);
+  };
 
   exportCSV(isFullCSV = false) {
     this.props.logEvent(LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART, {
