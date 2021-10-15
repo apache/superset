@@ -90,7 +90,6 @@ function useIsFilterInScope() {
   // Chart is visible if it's placed in an active tab tree or if it's not attached to any tab.
   // Chart is in an active tab tree if all of it's ancestors of type TAB are active
   return (filter: CascadeFilter) =>
-    filter.chartsInScope === undefined ||
     filter.chartsInScope?.some((chartId: number) => {
       const tabParents = selectChartTabParents(chartId);
       return (
