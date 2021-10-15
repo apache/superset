@@ -74,6 +74,7 @@ class TestJinja2Context(SupersetTestCase):
         ):
             cache = ExtraCache()
             self.assertEqual(cache.filter_values("name"), ["foo"])
+            self.assertEqual(cache.applied_filters, ["name"])
 
         with app.test_request_context(
             data={
@@ -94,6 +95,7 @@ class TestJinja2Context(SupersetTestCase):
         ):
             cache = ExtraCache()
             self.assertEqual(cache.filter_values("name"), ["foo", "bar"])
+            self.assertEqual(cache.applied_filters, ["name"])
 
     def test_get_filters_adhoc_filters(self) -> None:
         with app.test_request_context(
@@ -118,6 +120,7 @@ class TestJinja2Context(SupersetTestCase):
                 cache.get_filters("name"), [{"op": "IN", "col": "name", "val": ["foo"]}]
             )
             self.assertEqual(cache.removed_filters, list())
+            self.assertEqual(cache.applied_filters, ["name"])
 
         with app.test_request_context(
             data={
@@ -166,6 +169,7 @@ class TestJinja2Context(SupersetTestCase):
                 [{"op": "IN", "col": "name", "val": ["foo", "bar"]}],
             )
             self.assertEqual(cache.removed_filters, ["name"])
+            self.assertEqual(cache.applied_filters, ["name"])
 
     def test_filter_values_extra_filters(self) -> None:
         with app.test_request_context(
@@ -177,6 +181,7 @@ class TestJinja2Context(SupersetTestCase):
         ):
             cache = ExtraCache()
             self.assertEqual(cache.filter_values("name"), ["foo"])
+            self.assertEqual(cache.applied_filters, ["name"])
 
     def test_url_param_default(self) -> None:
         with app.test_request_context():
