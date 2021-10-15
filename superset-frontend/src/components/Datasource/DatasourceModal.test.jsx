@@ -28,8 +28,8 @@ import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import Modal from 'src/components/Modal';
-import DatasourceModal from 'src/datasource/DatasourceModal';
-import DatasourceEditor from 'src/datasource/DatasourceEditor';
+import { DatasourceModal } from 'src/components/Datasource';
+import DatasourceEditor from 'src/components/Datasource/DatasourceEditor';
 import * as featureFlags from 'src/featureFlags';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 
