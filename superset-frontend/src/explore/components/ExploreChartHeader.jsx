@@ -152,7 +152,7 @@ export class ExploreChartHeader extends React.PureComponent {
         dashboardId &&
         dashboards.length &&
         dashboards.find(d => d.id === dashboardId);
-   
+
       if (dashboard && dashboard.json_metadata) {
         // setting the chart to use the dashboard custom label colors if any
         const labelColors =
