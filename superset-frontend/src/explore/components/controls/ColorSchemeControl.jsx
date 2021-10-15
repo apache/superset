@@ -110,23 +110,31 @@ export default class ColorSchemeControl extends React.PureComponent {
     // save parsed schemes for later
     this.schemes = isFunction(schemes) ? schemes() : schemes;
 
-    const options = (isFunction(choices) ? choices() : choices).map(
-      ([value]) => ({
-        value,
-        label: this.schemes?.[value]?.label || value,
-        customLabel: this.renderOption(value),
-      }),
+    const allColorOptions = (isFunction(choices) ? choices() : choices).filter(
+      o => o[0] !== 'SUPERSET_DEFAULT',
     );
+    const options = allColorOptions.map(([value]) => ({
+      value,
+      label: this.schemes?.[value]?.label || value,
+      customLabel: this.renderOption(value),
+    }));
+
+    let currentScheme =
+      this.props.value ||
+      (this.props.default !== undefined ? this.props.default : undefined);
+
+    if (currentScheme === 'SUPERSET_DEFAULT') {
+      currentScheme = this.schemes?.SUPERSET_DEFAULT?.id;
+    }
+
     const selectProps = {
       ariaLabel: t('Select color scheme'),
       allowClear: this.props.clearable,
-      defaultValue: this.props.default,
       name: `select-${this.props.name}`,
       onChange: this.onChange,
       options,
       placeholder: `Select (${options.length})`,
-      showSearch: true,
-      value: this.props.value,
+      value: currentScheme,
     };
     return (
       <Select header={<ControlHeader {...this.props} />} {...selectProps} />

@@ -189,7 +189,7 @@ class TestSqlLab(SupersetTestCase):
             return
 
         with mock.patch(
-            "superset.utils.sqllab_execution_context.get_cta_schema_name",
+            "superset.sqllab.sqllab_execution_context.get_cta_schema_name",
             lambda d, u, s, sql: f"{u.username}_database",
         ):
             old_allow_ctas = examples_db.allow_ctas

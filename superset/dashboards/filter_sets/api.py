@@ -90,6 +90,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         JSON_METADATA_FIELD,
     ]
     list_columns = [
+        "id",
         "created_on",
         "changed_on",
         "created_by_fk",
@@ -101,7 +102,15 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         DASHBOARD_ID_FIELD,
         PARAMS_PROPERTY,
     ]
-    show_exclude_columns = [OWNER_OBJECT_FIELD, DASHBOARD_FIELD, JSON_METADATA_FIELD]
+    show_columns = [
+        "id",
+        NAME_FIELD,
+        DESCRIPTION_FIELD,
+        OWNER_TYPE_FIELD,
+        OWNER_ID_FIELD,
+        DASHBOARD_ID_FIELD,
+        PARAMS_PROPERTY,
+    ]
     search_columns = ["id", NAME_FIELD, OWNER_ID_FIELD, DASHBOARD_ID_FIELD]
     base_filters = [[OWNER_ID_FIELD, FilterSetFilter, ""]]
 
@@ -232,7 +241,9 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         try:
             item = self.add_model_schema.load(request.json)
             new_model = CreateFilterSetCommand(g.user, dashboard_id, item).run()
-            return self.response(201, id=new_model.id, result=item)
+            return self.response(
+                201, **self.show_model_schema.dump(new_model, many=False)
+            )
         except ValidationError as error:
             return self.response_400(message=error.messages)
         except UserIsNotDashboardOwnerError:
@@ -302,7 +313,9 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         try:
             item = self.edit_model_schema.load(request.json)
             changed_model = UpdateFilterSetCommand(g.user, dashboard_id, pk, item).run()
-            return self.response(200, id=changed_model.id, result=item)
+            return self.response(
+                200, **self.show_model_schema.dump(changed_model, many=False)
+            )
         except ValidationError as error:
             return self.response_400(message=error.messages)
         except (

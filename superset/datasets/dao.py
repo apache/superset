@@ -143,7 +143,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         return len(dataset_query) == 0
 
     @classmethod
-    def update(  # pylint: disable=arguments-differ
+    def update(
         cls, model: SqlaTable, properties: Dict[str, Any], commit: bool = True
     ) -> Optional[SqlaTable]:
         """

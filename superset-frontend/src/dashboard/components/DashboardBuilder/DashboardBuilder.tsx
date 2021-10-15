@@ -68,6 +68,44 @@ const StyledDiv = styled.div`
   grid-template-columns: auto 1fr;
   grid-template-rows: auto 1fr;
   flex: 1;
+  /* Special cases */
+
+  /* A row within a column has inset hover menu */
+  .dragdroppable-column .dragdroppable-row .hover-menu--left {
+    left: -12px;
+    background: @lightest;
+    border: 1px solid @gray-light;
+  }
+
+  /* A column within a column or tabs has inset hover menu */
+  .dragdroppable-column .dragdroppable-column .hover-menu--top,
+  .dashboard-component-tabs .dragdroppable-column .hover-menu--top {
+    top: -12px;
+    background: @lightest;
+    border: 1px solid @gray-light;
+  }
+
+  /* move Tabs hover menu to top near actual Tabs */
+  .dashboard-component-tabs > .hover-menu--left {
+    top: 0;
+    transform: unset;
+    background: transparent;
+  }
+
+  /* push Chart actions to upper right */
+  .dragdroppable-column .dashboard-component-chart-holder .hover-menu--top,
+  .dragdroppable .dashboard-component-header .hover-menu--top {
+    right: 8px;
+    top: 8px;
+    background: transparent;
+    border: none;
+    transform: unset;
+    left: unset;
+  }
+  div:hover > .hover-menu-container .hover-menu,
+  .hover-menu-container .hover-menu:hover {
+    opacity: 1;
+  }
 `;
 
 // @z-index-above-dashboard-charts + 1 = 11

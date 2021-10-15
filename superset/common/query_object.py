@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=invalid-name
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, NamedTuple, Optional, TYPE_CHECKING
@@ -273,28 +274,37 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self, raise_exceptions: Optional[bool] = True
     ) -> Optional[QueryObjectValidationError]:
         """Validate query object"""
-        error: Optional[QueryObjectValidationError] = None
-        all_labels = self.metric_names + self.column_names
-        missing_series = [col for col in self.series_columns if col not in self.columns]
-        if missing_series:
-            _(
-                "The following entries in `series_columns` are missing "
-                "in `columns`: %(columns)s. ",
-                columns=", ".join(f'"{x}"' for x in missing_series),
-            )
+        try:
+            self._validate_there_are_no_missing_series()
+            self._validate_no_have_duplicate_labels()
+            return None
+        except QueryObjectValidationError as ex:
+            if raise_exceptions:
+                raise ex
+            return ex
 
+    def _validate_no_have_duplicate_labels(self) -> None:
+        all_labels = self.metric_names + self.column_names
         if len(set(all_labels)) < len(all_labels):
             dup_labels = find_duplicates(all_labels)
-            error = QueryObjectValidationError(
+            raise QueryObjectValidationError(
                 _(
                     "Duplicate column/metric labels: %(labels)s. Please make "
                     "sure all columns and metrics have a unique label.",
                     labels=", ".join(f'"{x}"' for x in dup_labels),
                 )
             )
-        if error and raise_exceptions:
-            raise error
-        return error
+
+    def _validate_there_are_no_missing_series(self) -> None:
+        missing_series = [col for col in self.series_columns if col not in self.columns]
+        if missing_series:
+            raise QueryObjectValidationError(
+                _(
+                    "The following entries in `series_columns` are missing "
+                    "in `columns`: %(columns)s. ",
+                    columns=", ".join(f'"{x}"' for x in missing_series),
+                )
+            )
 
     def to_dict(self) -> Dict[str, Any]:
         query_object_dict = {

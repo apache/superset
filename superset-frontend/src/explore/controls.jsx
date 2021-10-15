@@ -125,15 +125,12 @@ const groupByControl = {
   includeTime: false,
   description: t('One or many controls to group by'),
   optionRenderer: c => <StyledColumnOption column={c} showType />,
-  valueRenderer: c => <StyledColumnOption column={c} />,
   valueKey: 'column_name',
-  allowAll: true,
   filterOption: ({ data: opt }, text) =>
     (opt.column_name &&
       opt.column_name.toLowerCase().indexOf(text.toLowerCase()) >= 0) ||
     (opt.verbose_name &&
       opt.verbose_name.toLowerCase().indexOf(text.toLowerCase()) >= 0),
-  promptTextCreator: label => label,
   mapStateToProps: (state, control) => {
     const newState = {};
     if (state.datasource) {
@@ -144,7 +141,6 @@ const groupByControl = {
     }
     return newState;
   },
-  commaChoosesOption: false,
 };
 
 const metrics = {
@@ -266,7 +262,7 @@ export const controls = {
     type: 'SelectControl',
     freeForm: true,
     label: TIME_FILTER_LABELS.granularity,
-    default: 'one day',
+    default: 'P1D',
     choices: [
       [null, 'all'],
       ['PT5S', '5 seconds'],
@@ -304,7 +300,6 @@ export const controls = {
     ),
     clearable: false,
     optionRenderer: c => <StyledColumnOption column={c} showType />,
-    valueRenderer: c => <StyledColumnOption column={c} />,
     valueKey: 'column_name',
     mapStateToProps: state => {
       const props = {};
