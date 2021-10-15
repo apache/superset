@@ -359,7 +359,12 @@ export default class FilterableTable extends PureComponent<
         ? 'header-style-disabled'
         : 'header-style';
     return (
-      <Tooltip id="header-tooltip" title={label}>
+      <Tooltip
+        id="header-tooltip"
+        title={label}
+        placement="topLeft"
+        css={{ display: 'block' }}
+      >
         <div className={className}>
           {label}
           {sortBy === dataKey && (
@@ -385,7 +390,13 @@ export default class FilterableTable extends PureComponent<
         ? 'header-style-disabled'
         : 'header-style';
     return (
-      <Tooltip key={key} id="header-tooltip" title={label}>
+      <Tooltip
+        key={key}
+        id="header-tooltip"
+        title={label}
+        placement="topLeft"
+        css={{ display: 'block' }}
+      >
         <div
           style={{
             ...style,

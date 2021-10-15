@@ -551,6 +551,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       });
       // cast the new encrypted extra object into a string
       dbToUpdate.encrypted_extra = JSON.stringify(additionalEncryptedExtra);
+      // this needs to be added by default to gsheets
+      if (dbToUpdate.engine === 'gsheets') {
+        dbToUpdate.impersonate_user = true;
+      }
     }
 
     if (dbToUpdate?.parameters?.catalog) {
