@@ -46,6 +46,8 @@ const propTypes = {
   datasource: PropTypes.object,
   partitionColumn: PropTypes.string,
   theme: PropTypes.object,
+  sections: PropTypes.arrayOf(PropTypes.string),
+  operators: PropTypes.arrayOf(PropTypes.string),
 };
 
 const ResizeIcon = styled.i`
@@ -54,6 +56,11 @@ const ResizeIcon = styled.i`
 
 const startingWidth = 320;
 const startingHeight = 240;
+const SectionWrapper = styled.div`
+  .ant-select {
+    margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+  }
+`;
 
 const FilterPopoverContentContainer = styled.div`
   .adhoc-filter-edit-tabs > .nav-tabs {
@@ -166,14 +173,50 @@ export default class AdhocFilterEditPopover extends React.Component {
       onResize,
       datasource,
       partitionColumn,
+      sections = ['SIMPLE', 'CUSTOM_SQL'],
       theme,
+      operators,
       ...popoverProps
     } = this.props;
 
     const { adhocFilter } = this.state;
 
+    const resultSections =
+      datasource?.type === 'druid'
+        ? sections.filter(s => s !== 'CUSTOM_SQL')
+        : sections;
+
     const stateIsValid = adhocFilter.isValid();
     const hasUnsavedChanges = !adhocFilter.equals(propsAdhocFilter);
+
+    const sectionRenders = {};
+
+    sectionRenders.CUSTOM_SQL = (
+      <ErrorBoundary>
+        <AdhocFilterEditPopoverSqlTabContent
+          adhocFilter={this.state.adhocFilter}
+          onChange={this.onAdhocFilterChange}
+          options={this.props.options}
+          height={this.state.height}
+          activeKey={this.state.activeKey}
+        />
+      </ErrorBoundary>
+    );
+
+    sectionRenders.SIMPLE = (
+      <ErrorBoundary>
+        <AdhocFilterEditPopoverSimpleTabContent
+          operators={operators}
+          adhocFilter={this.state.adhocFilter}
+          onChange={this.onAdhocFilterChange}
+          options={options}
+          datasource={datasource}
+          onHeightChange={this.adjustHeight}
+          partitionColumn={partitionColumn}
+          popoverRef={this.popoverContentRef.current}
+        />
+      </ErrorBoundary>
+    );
 
     return (
       <FilterPopoverContentContainer
@@ -182,55 +225,38 @@ export default class AdhocFilterEditPopover extends React.Component {
         data-test="filter-edit-popover"
         ref={this.popoverContentRef}
       >
-        <Tabs
-          id="adhoc-filter-edit-tabs"
-          defaultActiveKey={adhocFilter.expressionType}
-          className="adhoc-filter-edit-tabs"
-          data-test="adhoc-filter-edit-tabs"
-          style={{ minHeight: this.state.height, width: this.state.width }}
-          allowOverflow
-          onChange={this.onTabChange}
-        >
-          <Tabs.TabPane
-            className="adhoc-filter-edit-tab"
-            key={EXPRESSION_TYPES.SIMPLE}
-            tab={t('Simple')}
+        {resultSections.length > 1 ? (
+          <Tabs
+            id="adhoc-filter-edit-tabs"
+            defaultActiveKey={adhocFilter.expressionType}
+            className="adhoc-filter-edit-tabs"
+            data-test="adhoc-filter-edit-tabs"
+            style={{ minHeight: this.state.height, width: this.state.width }}
+            allowOverflow
+            onChange={this.onTabChange}
           >
-            <ErrorBoundary>
-              <AdhocFilterEditPopoverSimpleTabContent
-                adhocFilter={this.state.adhocFilter}
-                onChange={this.onAdhocFilterChange}
-                options={options}
-                datasource={datasource}
-                onHeightChange={this.adjustHeight}
-                partitionColumn={partitionColumn}
-                popoverRef={this.popoverContentRef.current}
-              />
-            </ErrorBoundary>
-          </Tabs.TabPane>
-          <Tabs.TabPane
-            className="adhoc-filter-edit-tab"
-            key={EXPRESSION_TYPES.SQL}
-            tab={t('Custom SQL')}
-          >
-            <ErrorBoundary>
-              {!this.props.datasource ||
-              this.props.datasource.type !== 'druid' ? (
-                <AdhocFilterEditPopoverSqlTabContent
-                  adhocFilter={this.state.adhocFilter}
-                  onChange={this.onAdhocFilterChange}
-                  options={this.props.options}
-                  height={this.state.height}
-                  activeKey={this.state.activeKey}
-                />
-              ) : (
-                <div className="custom-sql-disabled-message">
-                  Custom SQL Filters are not available on druid datasources
-                </div>
-              )}
-            </ErrorBoundary>
-          </Tabs.TabPane>
-        </Tabs>
+            {resultSections.includes('SIMPLE') && (
+              <Tabs.TabPane
+                className="adhoc-filter-edit-tab"
+                key={EXPRESSION_TYPES.SIMPLE}
+                tab={t('Simple')}
+              >
+                {sectionRenders.SIMPLE}
+              </Tabs.TabPane>
+            )}
+            {resultSections.includes('CUSTOM_SQL') && (
+              <Tabs.TabPane
+                className="adhoc-filter-edit-tab"
+                key={EXPRESSION_TYPES.SQL}
+                tab={t('Custom SQL')}
+              >
+                {sectionRenders.CUSTOM_SQL}
+              </Tabs.TabPane>
+            )}
+          </Tabs>
+        ) : (
+          <SectionWrapper>{sectionRenders[resultSections[0]]}</SectionWrapper>
+        )}
         <div>
           <Button buttonSize="small" onClick={this.props.onClose} cta>
             {t('Close')}
