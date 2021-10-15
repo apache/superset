@@ -27,7 +27,6 @@ export interface CascadeFilterControlProps {
   dataMaskSelected?: DataMaskStateWithId;
   filter: CascadeFilter;
   directPathToChild?: string[];
-  showOverflow?: boolean;
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
 }
 
@@ -62,7 +61,6 @@ const CascadeFilterControl: React.FC<CascadeFilterControlProps> = ({
           dataMaskSelected={dataMaskSelected}
           filter={childFilter}
           directPathToChild={directPathToChild}
-          showOverflow
           onFilterSelectionChange={onFilterSelectionChange}
         />
       ))}
