@@ -147,24 +147,20 @@ export class ExploreChartHeader extends React.PureComponent {
         endpoint: `/api/v1/chart/${slice.slice_id}`,
       });
       const chart = response.json.result;
-      const colorScheme = formData.color_scheme;
       const dashboards = chart.dashboards || [];
       const dashboard =
         dashboardId &&
         dashboards.length &&
         dashboards.find(d => d.id === dashboardId);
-
-      if (colorScheme && dashboard && dashboard.json_metadata) {
+   
+      if (dashboard && dashboard.json_metadata) {
+        // setting the chart to use the dashboard custom label colors if any
         const labelColors =
           JSON.parse(dashboard.json_metadata).label_colors || {};
+        const categoricalNamespace = CategoricalColorNamespace.getNamespace();
 
         Object.keys(labelColors).forEach(label => {
-          CategoricalColorNamespace.setSchemeColor(
-            colorScheme,
-            'GLOBAL',
-            label,
-            labelColors[label],
-          );
+          categoricalNamespace.setColor(label, labelColors[label]);
         });
       }
 

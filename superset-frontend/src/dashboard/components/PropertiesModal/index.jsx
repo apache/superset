@@ -29,7 +29,6 @@ import {
   t,
   SupersetClient,
   getCategoricalSchemeRegistry,
-  CategoricalColorNamespace,
 } from '@superset-ui/core';
 
 import Modal from 'src/components/Modal';
@@ -140,14 +139,14 @@ class PropertiesModal extends React.PureComponent {
     JsonEditor.preload();
   }
 
-  onColorSchemeChange(value, { updateMetadata = true } = {}) {
+  onColorSchemeChange(colorScheme, { updateMetadata = true } = {}) {
     // check that color_scheme is valid
     const colorChoices = getCategoricalSchemeRegistry().keys();
     const { json_metadata: jsonMetadata } = this.state.values;
     const jsonMetadataObj = jsonMetadata?.length
       ? JSON.parse(jsonMetadata)
       : {};
-    if (!colorChoices.includes(value)) {
+    if (!colorChoices.includes(colorScheme)) {
       Modal.error({
         title: 'Error',
         content: t('A valid color scheme is required'),
@@ -161,20 +160,12 @@ class PropertiesModal extends React.PureComponent {
       updateMetadata &&
       Object.keys(jsonMetadataObj).includes('color_scheme')
     ) {
-      jsonMetadataObj.color_scheme = value;
-      jsonMetadataObj.label_colors = Object.keys(
-        jsonMetadataObj.label_colors ?? {},
-      ).reduce(
-        (prev, next) => ({
-          ...prev,
-          [next]: CategoricalColorNamespace.getExistingScale(value)(next),
-        }),
-        {},
-      );
+      jsonMetadataObj.color_scheme = colorScheme;
+
       this.onMetadataChange(jsonStringify(jsonMetadataObj));
     }
 
-    this.updateFormState('colorScheme', value);
+    this.updateFormState('colorScheme', colorScheme);
   }
 
   onOwnersChange(value) {

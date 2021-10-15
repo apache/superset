@@ -26,23 +26,20 @@ export const DASHBOARD_INFO_UPDATED = 'DASHBOARD_INFO_UPDATED';
 // updates partially changed dashboard info
 export function dashboardInfoChanged(newInfo: { metadata: any }) {
   const { metadata } = newInfo;
+  const { color_namespace: namespace, label_colors: labelColors } = metadata;
+
+  const categoricalNamespace = CategoricalColorNamespace.getNamespace(
+    namespace,
+  );
+
+  categoricalNamespace.resetColors();
 
   if (metadata?.label_colors) {
-    const {
-      color_scheme: scheme,
-      color_namespace: namespace,
-      label_colors: labelColors,
-    } = metadata;
     const colorMap = isString(labelColors)
       ? JSON.parse(labelColors)
       : labelColors;
     Object.keys(colorMap).forEach(label => {
-      CategoricalColorNamespace.setSchemeColor(
-        scheme,
-        namespace,
-        label,
-        colorMap[label],
-      );
+      categoricalNamespace.setColor(label, colorMap[label]);
     });
   }
 

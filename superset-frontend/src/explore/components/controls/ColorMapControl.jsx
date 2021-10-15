@@ -37,11 +37,12 @@ const defaultProps = {
 export default class ColorMapControl extends React.PureComponent {
   constructor(props) {
     super(props);
-    Object.keys(this.props.value).forEach(label => {
-      CategoricalColorNamespace.getScale(
-        this.props.colorScheme,
-        this.props.colorNamespace,
-      ).setColor(label, this.props.value[label]);
+    const colorMap = this.props.value;
+    const categoricalNamespace = CategoricalColorNamespace.getNamespace(
+      this.props.colorNamespace,
+    );
+    Object.keys(colorMap).forEach(label => {
+      categoricalNamespace.setColor(label, colorMap[label]);
     });
   }
 
