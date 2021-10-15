@@ -267,7 +267,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view(
             RowLevelSecurityFiltersModelView,
             "Row Level Security",
-            label=__("Row level security"),
+            label=__("Row Level Security"),
             category="Security",
             category_label=__("Security"),
             icon="fa-lock",
@@ -376,7 +376,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         appbuilder.add_link(
             "Upload a Columnar file",
-            label=__("Upload a Columnar file"),
+            label=__("Upload a Columnar File"),
             href="/columnartodatabaseview/form",
             icon="fa-upload",
             category="Data",
