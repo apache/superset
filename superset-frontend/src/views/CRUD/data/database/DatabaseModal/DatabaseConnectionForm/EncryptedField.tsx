@@ -22,7 +22,7 @@ import { Select, Button } from 'src/common/components';
 import InfoTooltip from 'src/components/InfoTooltip';
 import FormLabel from 'src/components/Form/FormLabel';
 import { DeleteFilled } from '@ant-design/icons';
-import { FieldPropTypes } from '.';
+import { FieldPropTypes } from './';
 import { infoTooltip, labelMarginBotton, CredentialInfoForm } from '../styles';
 
 enum CredentialInfoOptions {
