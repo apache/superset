@@ -50,7 +50,7 @@ describe('TimezoneSelector', () => {
     );
 
     const select = screen.getByRole('combobox', {
-      name: 'Timezone Selector',
+      name: 'Timezone selector',
     });
     expect(select).toBeInTheDocument();
     userEvent.click(select);
