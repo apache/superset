@@ -99,6 +99,7 @@ FRONTEND_CONF_KEYS = (
     "SQLALCHEMY_DOCS_URL",
     "SQLALCHEMY_DISPLAY_TEXT",
     "GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL",
+    "DASHBOARD_AUTO_REFRESH_MODE",
 )
 logger = logging.getLogger(__name__)
 
@@ -420,7 +421,7 @@ def show_http_exception(ex: HTTPException) -> FlaskResponse:
         and ex.code in {404, 500}
     ):
         path = resource_filename("superset", f"static/assets/{ex.code}.html")
-        return send_file(path), ex.code
+        return send_file(path, cache_timeout=0), ex.code
 
     return json_errors_response(
         errors=[
@@ -442,7 +443,7 @@ def show_command_errors(ex: CommandException) -> FlaskResponse:
     logger.warning(ex)
     if "text/html" in request.accept_mimetypes and not config["DEBUG"]:
         path = resource_filename("superset", "static/assets/500.html")
-        return send_file(path), 500
+        return send_file(path, cache_timeout=0), 500
 
     extra = ex.normalized_messages() if isinstance(ex, CommandInvalidError) else {}
     return json_errors_response(
@@ -464,7 +465,7 @@ def show_unexpected_exception(ex: Exception) -> FlaskResponse:
     logger.exception(ex)
     if "text/html" in request.accept_mimetypes and not config["DEBUG"]:
         path = resource_filename("superset", "static/assets/500.html")
-        return send_file(path), 500
+        return send_file(path, cache_timeout=0), 500
 
     return json_errors_response(
         errors=[

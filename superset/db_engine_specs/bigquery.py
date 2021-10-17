@@ -131,14 +131,14 @@ class BigQueryEngineSpec(BaseEngineSpec):
         "PT15M": "CAST(TIMESTAMP_SECONDS("
         "15*60 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 15*60)"
         ") AS {type})",
-        "PT0.5H": "CAST(TIMESTAMP_SECONDS("
+        "PT30M": "CAST(TIMESTAMP_SECONDS("
         "30*60 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 30*60)"
         ") AS {type})",
         "PT1H": "{func}({col}, HOUR)",
         "P1D": "{func}({col}, DAY)",
         "P1W": "{func}({col}, WEEK)",
         "P1M": "{func}({col}, MONTH)",
-        "P0.25Y": "{func}({col}, QUARTER)",
+        "P3M": "{func}({col}, QUARTER)",
         "P1Y": "{func}({col}, YEAR)",
     }
 

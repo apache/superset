@@ -19,9 +19,9 @@
 describe('AdhocFilters', () => {
   beforeEach(() => {
     cy.login();
-    cy.intercept('GET', '/superset/explore_json/**').as('getJson');
-    cy.intercept('POST', '/superset/explore_json/**').as('postJson');
     cy.intercept('GET', '/superset/filter/table/*/name').as('filterValues');
+    cy.intercept('POST', '/superset/explore_json/**').as('postJson');
+    cy.intercept('GET', '/superset/explore_json/**').as('getJson');
     cy.visitChartByName('Boys'); // a table chart
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
   });

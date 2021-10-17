@@ -26,7 +26,12 @@ import DatabaseSelector from '.';
 const SupersetClientGet = jest.spyOn(SupersetClient, 'get');
 
 const createProps = () => ({
-  db: { id: 1, database_name: 'test', backend: 'test-postgresql' },
+  db: {
+    id: 1,
+    database_name: 'test',
+    backend: 'test-postgresql',
+    allow_multi_schema_metadata_fetch: false,
+  },
   formMode: false,
   isDatabaseSelectEnabled: true,
   readOnly: false,
@@ -246,6 +251,7 @@ test('Sends the correct db when changing the database', async () => {
         id: 2,
         database_name: 'test-mysql',
         backend: 'mysql',
+        allow_multi_schema_metadata_fetch: false,
       }),
     ),
   );

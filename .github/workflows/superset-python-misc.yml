@@ -29,6 +29,7 @@ jobs:
         continue-on-error: true
         run: ./scripts/ci_check_no_file_changes.sh python
       - name: Setup Python
+        if: steps.check.outcome == 'failure'
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}

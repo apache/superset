@@ -17,14 +17,18 @@
 import json
 import re
 from datetime import datetime
-from typing import Any, Dict, Optional, Pattern, Tuple, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
 from urllib import parse
 
+from apispec import APISpec
+from apispec.ext.marshmallow import MarshmallowPlugin
 from flask_babel import gettext as __
-from sqlalchemy.engine.url import URL
+from marshmallow import fields, Schema
+from sqlalchemy.engine.url import make_url, URL
+from typing_extensions import TypedDict
 
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
-from superset.errors import SupersetErrorType
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
 from superset.utils import core as utils
 
@@ -42,11 +46,33 @@ SYNTAX_ERROR_REGEX = re.compile(
 )
 
 
+class SnowflakeParametersSchema(Schema):
+    username = fields.Str(required=True)
+    password = fields.Str(required=True)
+    account = fields.Str(required=True)
+    database = fields.Str(required=True)
+    role = fields.Str(required=True)
+    warehouse = fields.Str(required=True)
+
+
+class SnowflakeParametersType(TypedDict):
+    username: str
+    password: str
+    account: str
+    database: str
+    role: str
+    warehouse: str
+
+
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     engine = "snowflake"
     engine_name = "Snowflake"
     force_column_alias_quotes = True
     max_column_name_length = 256
+
+    parameters_schema = SnowflakeParametersSchema()
+    default_driver = "snowflake"
+    sqlalchemy_uri_placeholder = "snowflake://"
 
     _time_grain_expressions = {
         None: "{col}",
@@ -58,13 +84,13 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
                  DATE_TRUNC('HOUR', {col}))",
         "PT15M": "DATEADD(MINUTE, FLOOR(DATE_PART(MINUTE, {col}) / 15) * 15, \
                  DATE_TRUNC('HOUR', {col}))",
-        "PT0.5H": "DATEADD(MINUTE, FLOOR(DATE_PART(MINUTE, {col}) / 30) * 30, \
+        "PT30M": "DATEADD(MINUTE, FLOOR(DATE_PART(MINUTE, {col}) / 30) * 30, \
                   DATE_TRUNC('HOUR', {col}))",
         "PT1H": "DATE_TRUNC('HOUR', {col})",
         "P1D": "DATE_TRUNC('DAY', {col})",
         "P1W": "DATE_TRUNC('WEEK', {col})",
         "P1M": "DATE_TRUNC('MONTH', {col})",
-        "P0.25Y": "DATE_TRUNC('QUARTER', {col})",
+        "P3M": "DATE_TRUNC('QUARTER', {col})",
         "P1Y": "DATE_TRUNC('YEAR', {col})",
     }
 
@@ -160,3 +186,91 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             return False
 
         return True
+
+    @classmethod
+    def build_sqlalchemy_uri(
+        cls,
+        parameters: SnowflakeParametersType,
+        encrypted_extra: Optional[  # pylint: disable=unused-argument
+            Dict[str, Any]
+        ] = None,
+    ) -> str:
+
+        return str(
+            URL(
+                "snowflake",
+                username=parameters.get("username"),
+                password=parameters.get("password"),
+                host=parameters.get("account"),
+                database=parameters.get("database"),
+                query={
+                    "role": parameters.get("role"),
+                    "warehouse": parameters.get("warehouse"),
+                },
+            )
+        )
+
+    @classmethod
+    def get_parameters_from_uri(
+        cls,
+        uri: str,
+        encrypted_extra: Optional[  # pylint: disable=unused-argument
+            Dict[str, str]
+        ] = None,
+    ) -> Any:
+        url = make_url(uri)
+        query = dict(url.query.items())
+        return {
+            "username": url.username,
+            "password": url.password,
+            "account": url.host,
+            "database": url.database,
+            "role": query.get("role"),
+            "warehouse": query.get("warehouse"),
+        }
+
+    @classmethod
+    def validate_parameters(
+        cls, parameters: SnowflakeParametersType  # pylint: disable=unused-argument
+    ) -> List[SupersetError]:
+        errors: List[SupersetError] = []
+        required = {
+            "warehouse",
+            "username",
+            "database",
+            "account",
+            "role",
+            "password",
+        }
+        present = {key for key in parameters if parameters.get(key, ())}
+        missing = sorted(required - present)
+
+        if missing:
+            errors.append(
+                SupersetError(
+                    message=f'One or more parameters are missing: {", ".join(missing)}',
+                    error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+                    level=ErrorLevel.WARNING,
+                    extra={"missing": missing},
+                ),
+            )
+        return errors
+
+    @classmethod
+    def parameters_json_schema(cls) -> Any:
+        """
+        Return configuration parameters as OpenAPI.
+        """
+        if not cls.parameters_schema:
+            return None
+
+        ma_plugin = MarshmallowPlugin()
+        spec = APISpec(
+            title="Database Parameters",
+            version="1.0.0",
+            openapi_version="3.0.0",
+            plugins=[ma_plugin],
+        )
+
+        spec.components.schema(cls.__name__, schema=cls.parameters_schema)
+        return spec.to_dict()["components"]["schemas"][cls.__name__]

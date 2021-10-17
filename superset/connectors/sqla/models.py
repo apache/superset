@@ -65,8 +65,8 @@ from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty, S
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table, text
-from sqlalchemy.sql.elements import ColumnClause
-from sqlalchemy.sql.expression import Label, Select, TextAsFrom, TextClause
+from sqlalchemy.sql.elements import ColumnClause, TextClause
+from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 
 from superset import app, db, is_feature_enabled, security_manager
@@ -809,6 +809,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     )
                 ) from ex
         sql = sqlparse.format(sql.strip("\t\r\n; "), strip_comments=True)
+        # we need to escape strings that SQLAlchemy interprets as bind parameters
+        sql = utils.escape_sqla_query_binds(sql)
         if not sql:
             raise QueryObjectValidationError(_("Virtual dataset query cannot be empty"))
         if len(sqlparse.split(sql)) > 1:
