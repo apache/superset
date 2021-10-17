@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useRef, FC } from 'react';
-import { t } from '@superset-ui/core';
+import React, { FC, useRef, useEffect } from 'react';
+import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
 import { useParams } from 'react-router-dom';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -31,6 +31,7 @@ import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
 import { setDatasources } from 'src/dashboard/actions/datasources';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 import setupPlugins from 'src/setup/setupPlugins';
+import { getFilterSets } from '../actions/nativeFilters';
 
 setupPlugins();
 const DashboardContainer = React.lazy(
@@ -66,6 +67,9 @@ const DashboardPage: FC = () => {
   if (readyToRender && !isDashboardHydrated.current) {
     isDashboardHydrated.current = true;
     dispatch(hydrateDashboard(dashboard, charts));
+    if (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET)) {
+      dispatch(getFilterSets());
+    }
   }
 
   useEffect(() => {
