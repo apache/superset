@@ -96,7 +96,7 @@ def _get_full(
     datasource = _get_datasource(query_context, query_obj)
     result_type = query_obj.result_type or query_context.result_type
     payload = query_context.get_df_payload(query_obj, force_cached=force_cached)
-    applied_jinja_filters = payload.get("applied_jinja_filters", [])
+    applied_template_filters = payload.get("applied_template_filters", [])
     df = payload["df"]
     status = payload["status"]
     if status != QueryStatus.FAILED:
@@ -116,12 +116,12 @@ def _get_full(
     payload["applied_filters"] = [
         {"column": col}
         for col in filter_columns
-        if col in columns or col in applied_jinja_filters
+        if col in columns or col in applied_template_filters
     ] + applied_time_columns
     payload["rejected_filters"] = [
         {"reason": ExtraFiltersReasonType.COL_NOT_IN_DATASOURCE, "column": col}
         for col in filter_columns
-        if col not in columns and col not in applied_jinja_filters
+        if col not in columns and col not in applied_template_filters
     ] + rejected_time_columns
 
     if result_type == ChartDataResultType.RESULTS and status != QueryStatus.FAILED:

@@ -138,7 +138,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         self.status: Optional[str] = None
         self.error_msg = ""
         self.results: Optional[QueryResult] = None
-        self.applied_jinja_filters: List[str] = []
+        self.applied_template_filters: List[str] = []
         self.errors: List[Dict[str, Any]] = []
         self.force = force
         self._force_cached = force_cached
@@ -266,7 +266,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
 
         # The datasource here can be different backend but the interface is common
         self.results = self.datasource.query(query_obj)
-        self.applied_jinja_filters = self.results.applied_jinja_filters or []
+        self.applied_template_filters = self.results.applied_template_filters or []
         self.query = self.results.query
         self.status = self.results.status
         self.errors = self.results.errors
@@ -456,7 +456,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         filters = self.form_data.get("filters", [])
         filter_columns = [flt.get("col") for flt in filters]
         columns = set(self.datasource.column_names)
-        applied_jinja_filters = self.applied_jinja_filters or []
+        applied_template_filters = self.applied_template_filters or []
         applied_time_extras = self.form_data.get("applied_time_extras", {})
         applied_time_columns, rejected_time_columns = utils.get_time_filter_status(
             self.datasource, applied_time_extras
@@ -464,12 +464,12 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         payload["applied_filters"] = [
             {"column": col}
             for col in filter_columns
-            if col in columns or col in applied_jinja_filters
+            if col in columns or col in applied_template_filters
         ] + applied_time_columns
         payload["rejected_filters"] = [
             {"reason": ExtraFiltersReasonType.COL_NOT_IN_DATASOURCE, "column": col}
             for col in filter_columns
-            if col not in columns and col not in applied_jinja_filters
+            if col not in columns and col not in applied_template_filters
         ] + rejected_time_columns
         if df is not None:
             payload["colnames"] = list(df.columns)
@@ -494,8 +494,8 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                 try:
                     df = cache_value["df"]
                     self.query = cache_value["query"]
-                    self.applied_jinja_filters = cache_value.get(
-                        "applied_jinja_filters", []
+                    self.applied_template_filters = cache_value.get(
+                        "applied_template_filters", []
                     )
                     self.status = QueryStatus.SUCCESS
                     is_loaded = True
