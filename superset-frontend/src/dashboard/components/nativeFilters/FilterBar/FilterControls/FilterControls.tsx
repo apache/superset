@@ -108,9 +108,7 @@ const FilterControls: FC<FilterControlsProps> = ({
       {portalNodes
         .filter((node, index) => cascadeFilterIds.has(filterValues[index].id))
         .map((node, index) => (
-          <InPortal node={node}>
-            {cascadePopoverFactory(index)}
-          </InPortal>
+          <InPortal node={node}>{cascadePopoverFactory(index)}</InPortal>
         ))}
       {filtersInScope.map(filter => {
         const index = filterValues.findIndex(f => f.id === filter.id);

@@ -162,20 +162,21 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const previousFilters = usePrevious(filters);
   const filterValues = Object.values<Filter>(filters);
 
-  const handleFilterSelectionChange = useCallback((
-    filter: Pick<Filter, 'id'> & Partial<Filter>,
-    dataMask: Partial<DataMask>,
-  ) => {
-    setDataMaskSelected(draft => {
-      // force instant updating on initialization for filters with `requiredFirst` is true or instant filters
-      if (
-        // filterState.value === undefined - means that value not initialized
-        dataMask.filterState?.value !== undefined &&
-        dataMaskSelected[filter.id]?.filterState?.value === undefined &&
-        filter.requiredFirst
-      ) {
-        dispatch(updateDataMask(filter.id, dataMask));
-      }
+  const handleFilterSelectionChange = useCallback(
+    (
+      filter: Pick<Filter, 'id'> & Partial<Filter>,
+      dataMask: Partial<DataMask>,
+    ) => {
+      setDataMaskSelected(draft => {
+        // force instant updating on initialization for filters with `requiredFirst` is true or instant filters
+        if (
+          // filterState.value === undefined - means that value not initialized
+          dataMask.filterState?.value !== undefined &&
+          dataMaskSelected[filter.id]?.filterState?.value === undefined &&
+          filter.requiredFirst
+        ) {
+          dispatch(updateDataMask(filter.id, dataMask));
+        }
 
         draft[filter.id] = {
           ...(getInitialDataMask(filter.id) as DataMaskWithId),
@@ -183,7 +184,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         };
       });
     },
-    [dataMaskSelected, dispatch, setDataMaskSelected, tab]
+    [dataMaskSelected, dispatch, setDataMaskSelected, tab],
   );
 
   const publishDataMask = useCallback(
