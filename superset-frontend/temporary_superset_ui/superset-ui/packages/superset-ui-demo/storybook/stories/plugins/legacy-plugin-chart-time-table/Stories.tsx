@@ -7,7 +7,7 @@ import data from './data';
 new TimeTableChartPlugin().configure({ key: 'time-table' }).register();
 
 export default {
-  title: 'Legacy Chart Plugins|legacy-plugin-chart-time-table',
+  title: 'Legacy Chart Plugins/legacy-plugin-chart-time-table',
 };
 
 export const basic = () => (

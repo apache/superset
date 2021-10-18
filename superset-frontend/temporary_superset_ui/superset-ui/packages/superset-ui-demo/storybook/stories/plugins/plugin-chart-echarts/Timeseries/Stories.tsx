@@ -11,7 +11,7 @@ new EchartsTimeseriesChartPlugin().configure({ key: 'echarts-timeseries' }).regi
 getChartTransformPropsRegistry().registerValue('echarts-timeseries', transformProps);
 
 export default {
-  title: 'Chart Plugins|plugin-chart-echarts/Timeseries',
+  title: 'Chart Plugins/plugin-chart-echarts/Timeseries',
   decorators: [withKnobs, withResizableChartDemo],
 };
 

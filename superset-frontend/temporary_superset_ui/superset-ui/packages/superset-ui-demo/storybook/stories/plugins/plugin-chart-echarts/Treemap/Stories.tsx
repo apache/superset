@@ -11,7 +11,7 @@ new EchartsTreemapChartPlugin().configure({ key: 'echarts-treemap' }).register()
 getChartTransformPropsRegistry().registerValue('echarts-treemap', transformProps);
 
 export default {
-  title: 'Chart Plugins|plugin-chart-echarts/Treemap',
+  title: 'Chart Plugins/plugin-chart-echarts/Treemap',
   decorators: [withKnobs, withResizableChartDemo],
 };
 

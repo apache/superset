@@ -7,7 +7,7 @@ import data from './data';
 new PairedTTestChartPlugin().configure({ key: 'paired-t-test' }).register();
 
 export default {
-  title: 'Legacy Chart Plugins|legacy-plugin-chart-paired-t-test',
+  title: 'Legacy Chart Plugins/legacy-plugin-chart-paired-t-test',
 };
 
 export const basic = () => (

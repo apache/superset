@@ -7,7 +7,7 @@ import data from './data';
 new MapBoxChartPlugin().configure({ key: 'map-box' }).register();
 
 export default {
-  title: 'Legacy Chart Plugins|legacy-plugin-chart-map-box',
+  title: 'Legacy Chart Plugins/legacy-plugin-chart-map-box',
 };
 
 export const basic = () => (

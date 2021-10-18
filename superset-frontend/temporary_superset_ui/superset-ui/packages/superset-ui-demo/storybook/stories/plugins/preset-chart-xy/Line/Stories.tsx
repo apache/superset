@@ -6,7 +6,7 @@ new LegacyLineChartPlugin().configure({ key: LINE_PLUGIN_LEGACY_TYPE }).register
 new LineChartPlugin().configure({ key: LINE_PLUGIN_TYPE }).register();
 
 export default {
-  title: 'Chart Plugins|preset-chart-xy/Line',
+  title: 'Chart Plugins/preset-chart-xy/Line',
   decorators: [withKnobs],
 };
 

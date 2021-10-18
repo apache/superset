@@ -1,15 +1,15 @@
 import { addParameters, addDecorator } from '@storybook/react';
 import { jsxDecorator } from 'storybook-addon-jsx';
-import categoricalD3 from '@superset-ui/core/lib/color/colorSchemes/categorical/d3';
-import categoricalSuperset from '@superset-ui/core/lib/color/colorSchemes/categorical/superset';
-import sequentialCommon from '@superset-ui/core/lib/color/colorSchemes/sequential/common';
-import sequentialD3 from '@superset-ui/core/lib/color/colorSchemes/sequential/d3';
 import {
   configure,
   getTimeFormatterRegistry,
   smartDateFormatter,
   getCategoricalSchemeRegistry,
   getSequentialSchemeRegistry,
+  CategoricalD3,
+  CategoricalSuperset,
+  SequentialCommon,
+  SequentialD3,
 } from '@superset-ui/core';
 import { configureEncodable } from '@superset-ui/preset-chart-xy';
 import themeDecorator from './themeDecorator';
@@ -56,7 +56,7 @@ configure();
 
 // Register color schemes
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
-[categoricalD3, categoricalSuperset].forEach(group => {
+[CategoricalD3, CategoricalSuperset].forEach(group => {
   group.forEach(scheme => {
     categoricalSchemeRegistry.registerValue(scheme.id, scheme);
   });
@@ -64,7 +64,7 @@ const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 categoricalSchemeRegistry.setDefaultKey('d3Category10');
 
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
-[sequentialCommon, sequentialD3].forEach(group => {
+[SequentialCommon, SequentialD3].forEach(group => {
   group.forEach(scheme => {
     sequentialSchemeRegistry.registerValue(scheme.id, scheme);
   });

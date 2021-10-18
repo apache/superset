@@ -7,7 +7,7 @@ import dummyDatasource from '../../../shared/dummyDatasource';
 new PartitionChartPlugin().configure({ key: 'partition' }).register();
 
 export default {
-  title: 'Legacy Chart Plugins|legacy-plugin-chart-partition',
+  title: 'Legacy Chart Plugins/legacy-plugin-chart-partition',
 };
 
 export const basic = () => (
