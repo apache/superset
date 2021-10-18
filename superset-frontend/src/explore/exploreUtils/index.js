@@ -18,6 +18,7 @@
  */
 
 import { useCallback, useEffect } from 'react';
+import { omit } from 'lodash';
 /* eslint camelcase: 0 */
 import URI from 'urijs';
 import {
@@ -103,9 +104,15 @@ export function getExploreLongUrl(
     return null;
   }
 
-  // label_colors should not pollute the URL
-  // eslint-disable-next-line no-param-reassign
-  delete formData.label_colors;
+  // remove formData params that we don't need in the explore url.
+  // These are present when generating explore urls from the dashboard page.
+  // This should be superseded by some sort of "exploration context" system
+  // where form data and other context is referenced by id.
+  const trimmedFormData = omit(formData, [
+    'dataMask',
+    'url_params',
+    'label_colors',
+  ]);
 
   const uri = new URI('/');
   const directory = getURIDirectory(endpointType);
@@ -113,7 +120,7 @@ export function getExploreLongUrl(
   Object.keys(extraSearch).forEach(key => {
     search[key] = extraSearch[key];
   });
-  search.form_data = safeStringify(formData);
+  search.form_data = safeStringify(trimmedFormData);
   if (endpointType === URL_PARAMS.standalone.name) {
     search.standalone = DashboardStandaloneMode.HIDE_NAV;
   }
