@@ -17,16 +17,23 @@
  * under the License.
  */
 import React, { FC, useMemo, useState } from 'react';
-import { DataMask, styled, t } from '@superset-ui/core';
 import { css } from '@emotion/react';
-import * as portals from 'react-reverse-portal';
-import { DataMaskStateWithId } from 'src/dataMask/types';
+import { DataMask, styled, t } from '@superset-ui/core';
+import {
+  createHtmlPortalNode,
+  InPortal,
+  OutPortal,
+} from 'react-reverse-portal';
 import { Collapse } from 'src/common/components';
+import { DataMaskStateWithId } from 'src/dataMask/types';
+import {
+  useDashboardHasTabs,
+  useSelectFiltersInScope,
+} from 'src/dashboard/components/nativeFilters/state';
+import { Filter } from 'src/dashboard/components/nativeFilters/types';
 import CascadePopover from '../CascadeFilters/CascadePopover';
-import { buildCascadeFiltersTree } from './utils';
 import { useFilters } from '../state';
-import { Filter } from '../../types';
-import { useDashboardHasTabs, useSelectFiltersInScope } from '../../state';
+import { buildCascadeFiltersTree } from './utils';
 
 const Wrapper = styled.div`
   padding: ${({ theme }) => theme.gridUnit * 4}px;
@@ -52,7 +59,7 @@ const FilterControls: FC<FilterControlsProps> = ({
   const portalNodes = React.useMemo(() => {
     const nodes = new Array(filterValues.length);
     for (let i = 0; i < filterValues.length; i += 1) {
-      nodes[i] = portals.createHtmlPortalNode();
+      nodes[i] = createHtmlPortalNode();
     }
     return nodes;
   }, [filterValues.length]);
@@ -78,7 +85,7 @@ const FilterControls: FC<FilterControlsProps> = ({
       {portalNodes
         .filter((node, index) => cascadeFilterIds.has(filterValues[index].id))
         .map((node, index) => (
-          <portals.InPortal node={node}>
+          <InPortal node={node}>
             <CascadePopover
               data-test="cascade-filters-control"
               key={cascadeFilters[index].id}
@@ -92,11 +99,11 @@ const FilterControls: FC<FilterControlsProps> = ({
               directPathToChild={directPathToChild}
               inView={false}
             />
-          </portals.InPortal>
+          </InPortal>
         ))}
       {filtersInScope.map(filter => {
         const index = filterValues.findIndex(f => f.id === filter.id);
-        return <portals.OutPortal node={portalNodes[index]} inView />;
+        return <OutPortal node={portalNodes[index]} inView />;
       })}
       {showCollapsePanel && (
         <Collapse
@@ -134,7 +141,7 @@ const FilterControls: FC<FilterControlsProps> = ({
           >
             {filtersOutOfScope.map(filter => {
               const index = cascadeFilters.findIndex(f => f.id === filter.id);
-              return <portals.OutPortal node={portalNodes[index]} inView />;
+              return <OutPortal node={portalNodes[index]} inView />;
             })}
           </Collapse.Panel>
         </Collapse>

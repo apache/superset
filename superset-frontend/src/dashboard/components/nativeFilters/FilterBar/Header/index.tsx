@@ -87,6 +87,9 @@ const Header: FC<HeaderProps> = ({
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
+  const dashboardId = useSelector<RootState, number>(
+    ({ dashboardInfo }) => dashboardInfo.id,
+  );
 
   const isClearAllDisabled = Object.values(dataMaskApplied).every(
     filter =>
@@ -99,7 +102,10 @@ const Header: FC<HeaderProps> = ({
       <TitleArea>
         <span>{t('Filters')}</span>
         {canEdit && (
-          <FilterConfigurationLink createNewOnOpen={filterValues.length === 0}>
+          <FilterConfigurationLink
+            dashboardId={dashboardId}
+            createNewOnOpen={filterValues.length === 0}
+          >
             <Icons.Edit
               data-test="create-filter"
               iconColor={theme.colors.grayscale.base}
