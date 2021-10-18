@@ -84,6 +84,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     unsetFocusedFilter,
     appSection,
     showOverflow,
+    parentRef,
   } = props;
   const {
     enableEmptyFilter,
@@ -279,11 +280,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           // @ts-ignore
           value={filterState.value || []}
           disabled={isDisabled}
-          getPopupContainer={
-            showOverflow
-              ? () => document.getElementsByClassName('cascade-popover')
-              : null
-          }
+          getPopupContainer={showOverflow ? () => parentRef : undefined}
           showSearch={showSearch}
           mode={multiSelect ? 'multiple' : 'single'}
           placeholder={placeholderText}

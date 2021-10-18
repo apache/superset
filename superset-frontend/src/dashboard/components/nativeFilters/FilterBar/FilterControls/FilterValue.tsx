@@ -60,6 +60,7 @@ const FilterValue: React.FC<FilterProps> = ({
   onFilterSelectionChange,
   inView = true,
   showOverflow,
+  parentRef,
 }) => {
   const { id, targets, filterType, adhoc_filters, time_range } = filter;
   const metadata = getChartMetadataRegistry().get(filterType);
@@ -228,6 +229,7 @@ const FilterValue: React.FC<FilterProps> = ({
           width="100%"
           showOverflow={showOverflow}
           formData={formData}
+          parentRef={parentRef}
           // For charts that don't have datasource we need workaround for empty placeholder
           queriesData={hasDataSource ? state : [{ data: [{}] }]}
           chartType={filterType}

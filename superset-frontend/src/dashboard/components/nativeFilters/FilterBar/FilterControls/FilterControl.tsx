@@ -60,6 +60,7 @@ const FilterControl: React.FC<FilterProps> = ({
   directPathToChild,
   inView,
   showOverflow,
+  parentRef,
 }) => {
   const { name = '<undefined>' } = filter;
 
@@ -89,6 +90,7 @@ const FilterControl: React.FC<FilterProps> = ({
           directPathToChild={directPathToChild}
           onFilterSelectionChange={onFilterSelectionChange}
           inView={inView}
+          parentRef={parentRef}
         />
       </FormItem>
     </StyledFilterControlContainer>

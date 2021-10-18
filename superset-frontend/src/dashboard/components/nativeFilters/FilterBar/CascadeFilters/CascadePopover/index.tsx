@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { styled, t, DataMask, css, SupersetTheme } from '@superset-ui/core';
 import Popover from 'src/components/Popover';
 import Icons from 'src/components/Icons';
@@ -90,6 +90,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
 }) => {
   const [currentPathToChild, setCurrentPathToChild] = useState<string[]>();
   const dataMask = dataMaskSelected[filter.id];
+  const parent = useRef();
 
   useEffect(() => {
     setCurrentPathToChild(directPathToChild);
@@ -204,7 +205,8 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
         position: 'relative',
         overflow: 'auto',
       }}
-      className="cascade-popover"
+      // className="cascade-popover"
+      ref={parent}
     >
       <div>
         {activeFilters.map(activeFilter => (
