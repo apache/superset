@@ -8,7 +8,7 @@ import data from './data';
 new SunburstChartPlugin().configure({ key: 'sunburst' }).register();
 
 export default {
-  title: 'Legacy Chart Plugins|legacy-plugin-chart-sunburst',
+  title: 'Legacy Chart Plugins/legacy-plugin-chart-sunburst',
 };
 
 export const basic = () => (

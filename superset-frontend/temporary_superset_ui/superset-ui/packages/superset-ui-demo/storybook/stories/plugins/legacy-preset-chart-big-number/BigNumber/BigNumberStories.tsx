@@ -56,7 +56,7 @@ function withNulls(origData: object[], nullPosition = 3) {
 }
 
 export default {
-  title: 'Legacy Chart Plugins|legacy-preset-big-number/BigNumber',
+  title: 'Legacy Chart Plugins/legacy-preset-big-number/BigNumber',
 };
 
 export const basicWithTrendline = () => (

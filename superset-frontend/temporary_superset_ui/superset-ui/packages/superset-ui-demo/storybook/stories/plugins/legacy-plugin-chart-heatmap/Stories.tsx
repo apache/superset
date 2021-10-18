@@ -7,7 +7,7 @@ import data from './data';
 new HeatmapChartPlugin().configure({ key: 'heatmap' }).register();
 
 export default {
-  title: 'Legacy Chart Plugins|legacy-plugin-chart-heatmap',
+  title: 'Legacy Chart Plugins/legacy-plugin-chart-heatmap',
 };
 
 export const basic = () => (

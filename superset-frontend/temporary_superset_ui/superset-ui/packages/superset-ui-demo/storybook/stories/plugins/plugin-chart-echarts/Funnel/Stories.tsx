@@ -11,7 +11,7 @@ new EchartsFunnelChartPlugin().configure({ key: 'echarts-funnel' }).register();
 getChartTransformPropsRegistry().registerValue('echarts-funnel', transformProps);
 
 export default {
-  title: 'Chart Plugins|plugin-chart-echarts/Funnel',
+  title: 'Chart Plugins/plugin-chart-echarts/Funnel',
   decorators: [withKnobs, withResizableChartDemo],
 };
 

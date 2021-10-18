@@ -11,7 +11,7 @@ new EchartsPieChartPlugin().configure({ key: 'echarts-pie' }).register();
 getChartTransformPropsRegistry().registerValue('echarts-pie', transformProps);
 
 export default {
-  title: 'Chart Plugins|plugin-chart-echarts/Pie',
+  title: 'Chart Plugins/plugin-chart-echarts/Pie',
   decorators: [withKnobs, withResizableChartDemo],
 };
 

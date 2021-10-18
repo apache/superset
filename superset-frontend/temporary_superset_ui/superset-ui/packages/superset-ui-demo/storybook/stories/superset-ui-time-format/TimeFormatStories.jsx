@@ -104,7 +104,7 @@ TimeFormatValidator.propTypes = propTypes;
 TimeFormatValidator.defaultProps = defaultProps;
 
 export default {
-  title: 'Core Packages|@superset-ui/time-format',
+  title: 'Core Packages/@superset-ui-time-format',
 };
 
 export const validator = () => <TimeFormatValidator />;

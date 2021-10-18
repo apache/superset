@@ -17,7 +17,7 @@ new LegacyWordCloudChartPlugin().configure({ key: 'legacy-word-cloud2' }).regist
 getChartTransformPropsRegistry().registerValue('word-cloud2', transformProps);
 
 export default {
-  title: 'Chart Plugins|plugin-chart-word-cloud',
+  title: 'Chart Plugins/plugin-chart-word-cloud',
   decorators: [withKnobs, withResizableChartDemo],
 };
 

@@ -7,7 +7,7 @@ import data from './data';
 new RoseChartPlugin().configure({ key: 'rose' }).register();
 
 export default {
-  title: 'Legacy Chart Plugins|legacy-plugin-chart-rose',
+  title: 'Legacy Chart Plugins/legacy-plugin-chart-rose',
 };
 
 export const basic = () => (

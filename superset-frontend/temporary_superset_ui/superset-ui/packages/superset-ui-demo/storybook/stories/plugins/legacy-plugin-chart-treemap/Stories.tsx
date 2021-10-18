@@ -7,7 +7,7 @@ import data from './data';
 new TreemapChartPlugin().configure({ key: 'treemap' }).register();
 
 export default {
-  title: 'Legacy Chart Plugins|legacy-plugin-chart-treemap',
+  title: 'Legacy Chart Plugins/legacy-plugin-chart-treemap',
 };
 
 export const basic = () => (

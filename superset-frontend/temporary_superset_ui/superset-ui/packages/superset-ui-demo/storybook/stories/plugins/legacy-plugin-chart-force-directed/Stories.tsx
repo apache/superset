@@ -7,7 +7,7 @@ import data from './data';
 new ForceDirectedChartPlugin().configure({ key: 'force-directed' }).register();
 
 export default {
-  title: 'Legacy Chart Plugins|legacy-plugin-chart-force-directed',
+  title: 'Legacy Chart Plugins/legacy-plugin-chart-force-directed',
 };
 
 export const basic = () => (

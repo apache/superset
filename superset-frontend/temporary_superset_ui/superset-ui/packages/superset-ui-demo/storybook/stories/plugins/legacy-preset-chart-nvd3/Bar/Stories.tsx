@@ -3,7 +3,7 @@ import { BarChartPlugin } from '@superset-ui/legacy-preset-chart-nvd3';
 new BarChartPlugin().configure({ key: 'bar' }).register();
 
 export default {
-  title: 'Legacy Chart Plugins|legacy-preset-chart-nvd3/Bar',
+  title: 'Legacy Chart Plugins/legacy-preset-chart-nvd3/Bar',
 };
 
 export { basic } from './stories/basic';

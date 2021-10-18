@@ -11,7 +11,7 @@ new EchartsTreeChartPlugin().configure({ key: 'echarts-tree' }).register();
 getChartTransformPropsRegistry().registerValue('echarts-tree', transformProps);
 
 export default {
-  title: 'Chart Plugins|plugin-chart-echarts/Tree',
+  title: 'Chart Plugins/plugin-chart-echarts/Tree',
   decorators: [withKnobs, withResizableChartDemo],
 };
 

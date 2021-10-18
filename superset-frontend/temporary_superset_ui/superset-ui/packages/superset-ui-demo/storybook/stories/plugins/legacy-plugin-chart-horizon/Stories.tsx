@@ -6,7 +6,7 @@ import data from './data';
 new HorizonChartPlugin().configure({ key: 'horizon' }).register();
 
 export default {
-  title: 'Legacy Chart Plugins|legacy-plugin-chart-horizon',
+  title: 'Legacy Chart Plugins/legacy-plugin-chart-horizon',
 };
 
 export const basic = () => (

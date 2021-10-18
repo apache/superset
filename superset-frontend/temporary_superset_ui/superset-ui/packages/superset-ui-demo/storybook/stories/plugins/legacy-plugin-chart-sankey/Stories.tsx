@@ -8,7 +8,7 @@ import data from './data';
 new SankeyChartPlugin().configure({ key: 'sankey' }).register();
 
 export default {
-  title: 'Legacy Chart Plugins|legacy-plugin-chart-sankey',
+  title: 'Legacy Chart Plugins/legacy-plugin-chart-sankey',
 };
 
 export const basic = () => (

@@ -11,7 +11,7 @@ new EchartsBoxPlotChartPlugin().configure({ key: 'echarts-boxplot' }).register()
 getChartTransformPropsRegistry().registerValue('echarts-boxplot', transformProps);
 
 export default {
-  title: 'Chart Plugins|plugin-chart-echarts/BoxPlot',
+  title: 'Chart Plugins/plugin-chart-echarts/BoxPlot',
   decorators: [withKnobs, withResizableChartDemo],
 };
 

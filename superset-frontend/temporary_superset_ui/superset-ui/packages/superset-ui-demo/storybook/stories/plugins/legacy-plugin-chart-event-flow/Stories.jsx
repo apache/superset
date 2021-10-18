@@ -6,7 +6,7 @@ import EventFlowChartPlugin from '@superset-ui/legacy-plugin-chart-event-flow';
 new EventFlowChartPlugin().configure({ key: 'event-flow' }).register();
 
 export default {
-  title: 'Legacy Chart Plugins|legacy-plugin-chart-event-flow',
+  title: 'Legacy Chart Plugins/legacy-plugin-chart-event-flow',
 };
 
 const data = sampleEvents.twentyUsers.allEvents.map(({ ENTITY_ID, EVENT_NAME, TS }) => ({
