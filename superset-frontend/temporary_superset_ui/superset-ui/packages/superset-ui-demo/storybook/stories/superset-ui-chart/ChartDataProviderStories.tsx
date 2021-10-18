@@ -41,7 +41,7 @@ const FORM_DATA_LOOKUP = {
 };
 
 export default {
-  title: 'Core / chart',
+  title: 'Others/DataProvider',
   decorators: [
     withKnobs({
       escapeHTML: false,

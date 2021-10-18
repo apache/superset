@@ -7,7 +7,7 @@ import data from './data';
 new WorldMapChartPlugin().configure({ key: 'world-map' }).register();
 
 export default {
-  title: 'Legacy Chart Plugins|legacy-plugin-chart-world-map',
+  title: 'Legacy Chart Plugins/legacy-plugin-chart-world-map',
 };
 
 export const basic = () => (

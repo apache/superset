@@ -5,7 +5,7 @@ new LegacyBoxPlotChartPlugin().configure({ key: BOX_PLOT_PLUGIN_LEGACY_TYPE }).r
 new BoxPlotChartPlugin().configure({ key: BOX_PLOT_PLUGIN_TYPE }).register();
 
 export default {
-  title: 'Chart Plugins|preset-chart-xy/BoxPlot',
+  title: 'Chart Plugins/preset-chart-xy/BoxPlot',
 };
 
 export { basic, horizontal } from './stories/Basic';

@@ -11,7 +11,7 @@ new EchartsTimeseriesChartPlugin().configure({ key: 'mixed-timeseries' }).regist
 getChartTransformPropsRegistry().registerValue('mixed-timeseries', transformProps);
 
 export default {
-  title: 'Chart Plugins|plugin-chart-echarts/MixedTimeseries',
+  title: 'Chart Plugins/plugin-chart-echarts/MixedTimeseries',
   decorators: [withKnobs, withResizableChartDemo],
 };
 

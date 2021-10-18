@@ -6,7 +6,7 @@ import data from './data';
 new ParallelCoordinatesChartPlugin().configure({ key: 'parallel-coordinates' }).register();
 
 export default {
-  title: 'Legacy Chart Plugins|legacy-plugin-chart-parallel-coordinates',
+  title: 'Legacy Chart Plugins/legacy-plugin-chart-parallel-coordinates',
 };
 
 export const basic = () => (

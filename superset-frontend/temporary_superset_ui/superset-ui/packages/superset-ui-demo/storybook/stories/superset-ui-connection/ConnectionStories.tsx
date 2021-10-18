@@ -12,7 +12,7 @@ const ENDPOINTS = {
 };
 
 export default {
-  title: 'Core Packages|@superset-ui/connection',
+  title: 'Core Packages/@superset-ui-connection',
   decorators: [
     withKnobs({
       escapeHTML: false,

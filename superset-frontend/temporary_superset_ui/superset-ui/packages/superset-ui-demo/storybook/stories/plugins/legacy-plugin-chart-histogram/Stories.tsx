@@ -7,7 +7,7 @@ import data from './data';
 new HistogramChartPlugin().configure({ key: 'histogram' }).register();
 
 export default {
-  title: 'Legacy Chart Plugins|legacy-plugin-chart-histogram',
+  title: 'Legacy Chart Plugins/legacy-plugin-chart-histogram',
 };
 
 export const basic = () => (

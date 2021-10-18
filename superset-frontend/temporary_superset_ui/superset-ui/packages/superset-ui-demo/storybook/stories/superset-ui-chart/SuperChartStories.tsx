@@ -14,7 +14,7 @@ new BuggyChartPlugin().configure({ key: ChartKeys.BUGGY }).register();
 const DEFAULT_QUERY_DATA = { data: ['foo', 'bar'] };
 
 export default {
-  title: 'Core / chart',
+  title: 'Others/SuperChart',
   decorators: [withKnobs],
 };
 

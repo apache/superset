@@ -6,7 +6,7 @@ import data from './data';
 new ChordChartPlugin().configure({ key: 'chord' }).register();
 
 export default {
-  title: 'Legacy Chart Plugins|legacy-plugin-chart-chord',
+  title: 'Legacy Chart Plugins/legacy-plugin-chart-chord',
 };
 
 export const basic = () => (
