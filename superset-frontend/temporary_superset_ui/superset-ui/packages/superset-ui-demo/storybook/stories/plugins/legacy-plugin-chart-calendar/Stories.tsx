@@ -7,7 +7,7 @@ import dummyDatasource from '../../../shared/dummyDatasource';
 new CalendarChartPlugin().configure({ key: 'calendar' }).register();
 
 export default {
-  title: 'Legacy Chart Plugins|legacy-plugin-chart-calendar',
+  title: 'Legacy Chart Plugins/legacy-plugin-chart-calendar',
 };
 
 export const basic = () => (

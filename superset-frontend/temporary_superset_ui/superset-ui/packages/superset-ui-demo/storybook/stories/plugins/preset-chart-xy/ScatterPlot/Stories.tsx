@@ -6,7 +6,7 @@ new LegacyScatterPlotChartPlugin().configure({ key: SCATTER_PLOT_PLUGIN_LEGACY_T
 new ScatterPlotChartPlugin().configure({ key: SCATTER_PLOT_PLUGIN_TYPE }).register();
 
 export default {
-  title: 'Chart Plugins|preset-chart-xy/ScatterPlot',
+  title: 'Chart Plugins/preset-chart-xy/ScatterPlot',
   decorators: [withKnobs],
 };
 

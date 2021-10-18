@@ -7,7 +7,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 new PivotTableChartPlugin().configure({ key: 'pivot-table' }).register();
 
 export default {
-  title: 'Legacy Chart Plugins|legacy-plugin-chart-pivot-table',
+  title: 'Legacy Chart Plugins/legacy-plugin-chart-pivot-table',
 };
 
 const datasource = {

@@ -7,7 +7,7 @@ import data from './data';
 new SankeyLoopChartPlugin().configure({ key: 'sankey-loop' }).register();
 
 export default {
-  title: 'Legacy Chart Plugins|legacy-plugin-chart-sankey-loop',
+  title: 'Legacy Chart Plugins/legacy-plugin-chart-sankey-loop',
 };
 
 export const basic = () => (
