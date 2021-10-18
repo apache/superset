@@ -270,9 +270,17 @@ def get_user_roles() -> List[Role]:
     return g.user.roles
 
 
-def is_user_admin() -> bool:
+def user_has_role(desired_role: str) -> bool:
     user_roles = [role.name.lower() for role in list(get_user_roles())]
-    return "admin" in user_roles
+    return desired_role in user_roles
+
+
+def is_user_admin() -> bool:
+    return user_has_role("admin")
+
+
+def is_user_alpha() -> bool:
+    return user_has_role("alpha")
 
 
 class BaseSupersetView(BaseView):

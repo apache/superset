@@ -21,7 +21,7 @@ it needs to call create_app() in order to initialize things properly
 """
 from typing import Any
 
-from celery.signals import worker_process_init
+from celery.signals import worker_process_init, setup_logging
 
 # Superset framework imports
 from superset import create_app
@@ -43,3 +43,8 @@ def reset_db_connection_pool(**kwargs: Any) -> None:  # pylint: disable=unused-a
     with flask_app.app_context():
         # https://docs.sqlalchemy.org/en/14/core/connections.html#engine-disposal
         db.engine.dispose()
+
+
+@setup_logging.connect
+def on_setup_logging(**kwargs):
+    pass

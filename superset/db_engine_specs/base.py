@@ -1272,6 +1272,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return parsed_query.is_select()
 
     @classmethod
+    def parse_sql(cls, sql: str) -> List[str]:
+        return [str(s).strip(" ;") for s in sqlparse.parse(sql)]
+
+    @classmethod
     @memoized
     def get_column_spec(
         cls,

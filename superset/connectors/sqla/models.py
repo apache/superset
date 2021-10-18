@@ -824,10 +824,10 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         sql = sqlparse.format(sql.strip("\t\r\n; "), strip_comments=True)
         if not sql:
             raise QueryObjectValidationError(_("Virtual dataset query cannot be empty"))
-        if len(sqlparse.split(sql)) > 1:
-            raise QueryObjectValidationError(
-                _("Virtual dataset query cannot consist of multiple statements")
-            )
+        # if len(sqlparse.split(sql)) > 1:
+        #     raise QueryObjectValidationError(
+        #         _("Virtual dataset query cannot consist of multiple statements")
+        #     )
         return sql
 
     def adhoc_metric_to_sqla(

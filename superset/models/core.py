@@ -389,7 +389,8 @@ class Database(
         schema: Optional[str] = None,
         mutator: Optional[Callable[[pd.DataFrame], None]] = None,
     ) -> pd.DataFrame:
-        sqls = [str(s).strip(" ;") for s in sqlparse.parse(sql)]
+        #sqls = [str(s).strip(" ;") for s in sqlparse.parse(sql)]
+        sqls = self.db_engine_spec.parse_sql(sql)
 
         engine = self.get_sqla_engine(schema=schema)
         username = utils.get_username()

@@ -1169,7 +1169,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :raises DashboardAccessDeniedError: If the user cannot access the resource
         """
         from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
-        from superset.views.base import get_user_roles, is_user_admin
+        from superset.views.base import get_user_roles, is_user_admin, is_user_alpha
         from superset.views.utils import is_owner
         from superset import is_feature_enabled
 
@@ -1180,6 +1180,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             )
             can_access = (
                 is_user_admin()
+                or is_user_alpha()
                 or is_owner(dashboard, g.user)
                 or (dashboard.published and has_rbac_access)
             )
