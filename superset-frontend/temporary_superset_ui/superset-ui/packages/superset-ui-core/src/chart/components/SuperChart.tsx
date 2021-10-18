@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, RefObject } from 'react';
 import ErrorBoundary, { ErrorBoundaryProps, FallbackProps } from 'react-error-boundary';
 import { ParentSize } from '@vx/responsive';
 import { createSelector } from 'reselect';
@@ -39,6 +39,8 @@ export type Props = Omit<SuperChartCoreProps, 'chartProps'> &
     onErrorBoundary?: ErrorBoundaryProps['onError'];
     /** Prop for form plugins uisng superchart */
     showOverflow?: boolean;
+    /** Prop for popovercontainer ref */
+    parentRef?: RefObject<any>;
     /** Chart width */
     height?: number | string;
     /** Chart height */
