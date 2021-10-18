@@ -40,7 +40,7 @@ class DruidEngineSpec(BaseEngineSpec):
     allows_subqueries = True
 
     _time_grain_expressions = {
-        None: "CAST({col} AS TIMESTAMP)",
+        None: "{col}",
         "PT1S": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT1S')",
         "PT5S": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT5S')",
         "PT30S": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT30S')",
