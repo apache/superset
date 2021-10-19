@@ -233,5 +233,4 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
     </Popover>
   );
 };
-
-export default CascadePopover;
+export default React.memo(CascadePopover);
