@@ -221,7 +221,7 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-locals
     ):
         if SQL_MAX_ROW and (not query.limit or query.limit > SQL_MAX_ROW):
             query.limit = SQL_MAX_ROW
-        if query.limit:
+        if query.limit and increased_limit:
             # We are fetching one more than the requested limit in order
             # to test whether there are more rows than the limit.
             # Later, the extra row will be dropped before sending
