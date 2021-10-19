@@ -26,6 +26,7 @@ import {
   HEADER_TYPE,
   MARKDOWN_TYPE,
   ROW_TYPE,
+  FILTER_SUMMARY,
   TABS_TYPE,
   TAB_TYPE,
 } from './componentTypes';
@@ -34,6 +35,7 @@ import {
   MEDIUM_HEADER,
   BACKGROUND_TRANSPARENT,
   GRID_DEFAULT_CHART_WIDTH,
+  GRID_COLUMN_COUNT,
 } from './constants';
 
 const typeToDefaultMetaData = {
@@ -43,12 +45,16 @@ const typeToDefaultMetaData = {
     background: BACKGROUND_TRANSPARENT,
   },
   [DIVIDER_TYPE]: null,
+  [FILTER_SUMMARY]: {
+    width: GRID_COLUMN_COUNT,
+    background: BACKGROUND_TRANSPARENT,
+  },
   [HEADER_TYPE]: {
     text: 'New header',
     headerSize: MEDIUM_HEADER,
     background: BACKGROUND_TRANSPARENT,
   },
-  [MARKDOWN_TYPE]: { width: GRID_DEFAULT_CHART_WIDTH, height: 50 },
+  [MARKDOWN_TYPE]: { width: GRID_DEFAULT_CHART_WIDTH },
   [ROW_TYPE]: { background: BACKGROUND_TRANSPARENT },
   [TABS_TYPE]: null,
   [TAB_TYPE]: {

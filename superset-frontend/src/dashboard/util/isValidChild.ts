@@ -43,6 +43,7 @@ import {
   ROW_TYPE,
   TABS_TYPE,
   TAB_TYPE,
+  FILTER_SUMMARY,
 } from './componentTypes';
 
 import { DASHBOARD_ROOT_DEPTH as rootDepth } from './constants';
@@ -61,6 +62,7 @@ const parentMaxDepthLookup = {
   },
 
   [DASHBOARD_GRID_TYPE]: {
+    [FILTER_SUMMARY]: depthOne,
     [CHART_TYPE]: depthOne,
     [MARKDOWN_TYPE]: depthOne,
     [COLUMN_TYPE]: depthOne,
@@ -71,6 +73,7 @@ const parentMaxDepthLookup = {
   },
 
   [ROW_TYPE]: {
+    [FILTER_SUMMARY]: depthFour,
     [CHART_TYPE]: depthFour,
     [MARKDOWN_TYPE]: depthFour,
     [COLUMN_TYPE]: depthFour,
@@ -81,6 +84,7 @@ const parentMaxDepthLookup = {
   },
 
   [TAB_TYPE]: {
+    [FILTER_SUMMARY]: depthFive,
     [CHART_TYPE]: depthFive,
     [MARKDOWN_TYPE]: depthFive,
     [COLUMN_TYPE]: depthThree,
@@ -91,6 +95,7 @@ const parentMaxDepthLookup = {
   },
 
   [COLUMN_TYPE]: {
+    [FILTER_SUMMARY]: depthFive,
     [CHART_TYPE]: depthFive,
     [HEADER_TYPE]: depthFive,
     [MARKDOWN_TYPE]: depthFive,
@@ -100,6 +105,7 @@ const parentMaxDepthLookup = {
   },
 
   // these have no valid children
+  [FILTER_SUMMARY]: {},
   [CHART_TYPE]: {},
   [DIVIDER_TYPE]: {},
   [HEADER_TYPE]: {},

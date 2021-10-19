@@ -29,6 +29,7 @@ export const NEW_DIVIDER_ID = 'NEW_DIVIDER_ID';
 export const NEW_HEADER_ID = 'NEW_HEADER_ID';
 export const NEW_MARKDOWN_ID = 'NEW_MARKDOWN_ID';
 export const NEW_ROW_ID = 'NEW_ROW_ID';
+export const NEW_FILTER_SUMMARY_ID = 'NEW_FILTERS_SUMMARY_ID';
 export const NEW_TAB_ID = 'NEW_TAB_ID';
 export const NEW_TABS_ID = 'NEW_TABS_ID';
 

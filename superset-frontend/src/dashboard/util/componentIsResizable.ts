@@ -16,8 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { COLUMN_TYPE, CHART_TYPE, MARKDOWN_TYPE } from './componentTypes';
+import {
+  COLUMN_TYPE,
+  CHART_TYPE,
+  MARKDOWN_TYPE,
+  FILTER_SUMMARY,
+} from './componentTypes';
 
 export default function componentIsResizable(entity: { type: string }) {
-  return [COLUMN_TYPE, CHART_TYPE, MARKDOWN_TYPE].indexOf(entity.type) > -1;
+  return (
+    [COLUMN_TYPE, CHART_TYPE, MARKDOWN_TYPE, FILTER_SUMMARY].indexOf(
+      entity.type,
+    ) > -1
+  );
 }

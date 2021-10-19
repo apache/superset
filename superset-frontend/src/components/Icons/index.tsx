@@ -68,6 +68,7 @@ const IconFileNames = [
   'edit_alt',
   'edit',
   'email',
+  'enter',
   'error',
   'error_solid',
   'error_solid_small',

@@ -23,6 +23,7 @@ import {
   COLUMN_TYPE,
   MARKDOWN_TYPE,
   CHART_TYPE,
+  FILTER_SUMMARY,
 } from './componentTypes';
 
 function getTotalChildWidth({ id, components }) {
@@ -85,6 +86,7 @@ export default function getDetailedComponentWidth({
     });
   } else if (
     component.type === MARKDOWN_TYPE ||
+    component.type === FILTER_SUMMARY ||
     component.type === CHART_TYPE
   ) {
     result.minimumWidth = GRID_MIN_COLUMN_COUNT;

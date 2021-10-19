@@ -19,10 +19,10 @@
 /* eslint-env browser */
 import React from 'react';
 import Tabs from 'src/components/Tabs';
-import { StickyContainer, Sticky } from 'react-sticky';
+import { Sticky, StickyContainer } from 'react-sticky';
 import { ParentSize } from '@vx/responsive';
 
-import { t, styled } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled, styled, t } from '@superset-ui/core';
 
 import NewColumn from './gridComponents/new/NewColumn';
 import NewDivider from './gridComponents/new/NewDivider';
@@ -30,6 +30,7 @@ import NewHeader from './gridComponents/new/NewHeader';
 import NewRow from './gridComponents/new/NewRow';
 import NewTabs from './gridComponents/new/NewTabs';
 import NewMarkdown from './gridComponents/new/NewMarkdown';
+import NewFilterSummary from './gridComponents/new/NewFilterSummary';
 import SliceAdder from '../containers/SliceAdder';
 
 export interface BCPProps {
@@ -71,6 +72,9 @@ const BuilderComponentPane: React.FC<BCPProps> = ({ topOffset = 0 }) => (
                     <NewHeader />
                     <NewMarkdown />
                     <NewDivider />
+                    {isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) && (
+                      <NewFilterSummary />
+                    )}
                   </Tabs.TabPane>
                   <Tabs.TabPane
                     key={2}
