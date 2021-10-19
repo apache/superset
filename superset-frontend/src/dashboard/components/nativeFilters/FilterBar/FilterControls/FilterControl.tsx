@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useMemo } from 'react';
 import { styled } from '@superset-ui/core';
 import { Form, FormItem } from 'src/components/Form';
 import FilterValue from './FilterValue';
@@ -67,17 +67,22 @@ const FilterControl: React.FC<FilterProps> = ({
     filter.dataMask?.filterState,
   );
 
+  const label = useMemo(
+    () => (
+      <StyledFilterControlTitleBox>
+        <StyledFilterControlTitle data-test="filter-control-name">
+          {name}
+        </StyledFilterControlTitle>
+        <StyledIcon data-test="filter-icon">{icon}</StyledIcon>
+      </StyledFilterControlTitleBox>
+    ),
+    [icon, name],
+  );
+
   return (
     <StyledFilterControlContainer layout="vertical">
       <FormItem
-        label={
-          <StyledFilterControlTitleBox>
-            <StyledFilterControlTitle data-test="filter-control-name">
-              {name}
-            </StyledFilterControlTitle>
-            <StyledIcon data-test="filter-icon">{icon}</StyledIcon>
-          </StyledFilterControlTitleBox>
-        }
+        label={label}
         required={filter?.controlValues?.enableEmptyFilter}
         validateStatus={isMissingRequiredValue ? 'error' : undefined}
       >
@@ -92,5 +97,4 @@ const FilterControl: React.FC<FilterProps> = ({
     </StyledFilterControlContainer>
   );
 };
-
-export default FilterControl;
+export default React.memo(FilterControl);
