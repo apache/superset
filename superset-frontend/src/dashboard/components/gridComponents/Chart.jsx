@@ -41,6 +41,7 @@ import { slicePropShape, chartPropShape } from '../../util/propShapes';
 
 import { isFilterBox } from '../../util/activeDashboardFilters';
 import getFilterValuesByFilterId from '../../util/getFilterValuesByFilterId';
+import { FILTER_BOX_MIGRATION_STATES } from '../../../explore/constants';
 
 const propTypes = {
   id: PropTypes.number.isRequired,
@@ -60,6 +61,7 @@ const propTypes = {
   sliceName: PropTypes.string.isRequired,
   timeout: PropTypes.number.isRequired,
   maxRows: PropTypes.number.isRequired,
+  filterboxMigrationState: FILTER_BOX_MIGRATION_STATES,
   // all active filter fields in dashboard
   filters: PropTypes.object.isRequired,
   refreshChart: PropTypes.func.isRequired,
@@ -101,6 +103,11 @@ const ChartOverlay = styled.div`
   top: 0;
   left: 0;
   z-index: 5;
+
+  &.is-deactivated {
+    opacity: 0.25;
+    background-color: #000;
+  }
 `;
 
 export default class Chart extends React.Component {
@@ -291,6 +298,7 @@ export default class Chart extends React.Component {
       filterState,
       handleToggleFullSize,
       isFullSize,
+      filterboxMigrationState,
     } = this.props;
 
     const { width } = this.state;
@@ -302,6 +310,12 @@ export default class Chart extends React.Component {
 
     const { queriesResponse, chartUpdateEndTime, chartStatus } = chart;
     const isLoading = chartStatus === 'loading';
+    const isDeactivatedViz =
+      slice.viz_type === 'filter_box' &&
+      [
+        FILTER_BOX_MIGRATION_STATES.REVIEWING,
+        FILTER_BOX_MIGRATION_STATES.CONVERTED,
+      ].includes(filterboxMigrationState);
     // eslint-disable-next-line camelcase
     const isCached = queriesResponse?.map(({ is_cached }) => is_cached) || [];
     const cachedDttm =
@@ -376,15 +390,15 @@ export default class Chart extends React.Component {
             isOverflowable && 'dashboard-chart--overflowable',
           )}
         >
-          {isLoading && (
+          {(isLoading || isDeactivatedViz) && (
             <ChartOverlay
+              className={cx(isDeactivatedViz && 'is-deactivated')}
               style={{
                 width,
                 height: this.getChartHeight(),
               }}
             />
           )}
-
           <ChartContainer
             width={width}
             height={this.getChartHeight()}
@@ -405,6 +419,7 @@ export default class Chart extends React.Component {
             timeout={timeout}
             triggerQuery={chart.triggerQuery}
             vizType={slice.viz_type}
+            isDeactivatedViz={isDeactivatedViz}
           />
         </div>
       </div>

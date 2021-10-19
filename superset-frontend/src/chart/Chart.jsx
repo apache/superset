@@ -51,6 +51,7 @@ const propTypes = {
   vizType: PropTypes.string.isRequired,
   triggerRender: PropTypes.bool,
   isFiltersInitialized: PropTypes.bool,
+  isDeactivatedViz: PropTypes.bool,
   // state
   chartAlert: PropTypes.string,
   chartStatus: PropTypes.string,
@@ -81,6 +82,7 @@ const defaultProps = {
   triggerRender: false,
   dashboardId: null,
   chartStackTrace: null,
+  isDeactivatedViz: false,
 };
 
 const Styles = styled.div`
@@ -119,7 +121,8 @@ class Chart extends React.PureComponent {
   }
 
   componentDidUpdate() {
-    if (this.props.triggerQuery) {
+    // if the chart is deactivated (filter_box), only load once in componentDidMount
+    if (this.props.triggerQuery && !this.props.isDeactivatedViz) {
       this.runQuery();
     }
   }
@@ -220,6 +223,7 @@ class Chart extends React.PureComponent {
       onQuery,
       refreshOverlayVisible,
       queriesResponse = [],
+      isDeactivatedViz = false,
     } = this.props;
 
     const isLoading = chartStatus === 'loading';
@@ -265,7 +269,7 @@ class Chart extends React.PureComponent {
             </RefreshOverlayWrapper>
           )}
 
-          {isLoading && <Loading />}
+          {isLoading && !isDeactivatedViz && <Loading />}
         </Styles>
       </ErrorBoundary>
     );

@@ -95,6 +95,7 @@ function mapStateToProps(
     ownState: dataMask[id]?.ownState,
     filterState: dataMask[id]?.filterState,
     maxRows: common.conf.SQL_MAX_ROW,
+    filterboxMigrationState: dashboardState.filterboxMigrationState,
   };
 }
 
