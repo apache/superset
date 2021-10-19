@@ -187,6 +187,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
         filter={filter}
         directPathToChild={visible ? currentPathToChild : undefined}
         onFilterSelectionChange={onFilterSelectionChange}
+        parentRef={parent}
       />
     </ContentStyles>
   );
