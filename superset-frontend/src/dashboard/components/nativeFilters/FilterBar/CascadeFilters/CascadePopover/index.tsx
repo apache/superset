@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useRef,
+} from 'react';
 import { styled, t, DataMask, css, SupersetTheme } from '@superset-ui/core';
 import Popover from 'src/components/Popover';
 import Icons from 'src/components/Icons';
