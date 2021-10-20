@@ -21,6 +21,7 @@ addDecorator(jsxDecorator);
 addDecorator(themeDecorator);
 
 addParameters({
+  passArgsFirst: false,
   options: {
     name: '✨ Superset UI',
     addonPanelInRight: false,
