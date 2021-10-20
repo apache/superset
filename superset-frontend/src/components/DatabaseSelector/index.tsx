@@ -201,22 +201,18 @@ export default function DatabaseSelector({
       // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
       SupersetClient.get({ endpoint })
         .then(({ json }) => {
-          const options = json.result
-            .map((s: string) => ({
-              value: s,
-              label: s,
-              title: s,
-            }))
-            .sort((a: { label: string }, b: { label: string }) =>
-              a.label.localeCompare(b.label),
-            );
+          const options = json.result.map((s: string) => ({
+            value: s,
+            label: s,
+            title: s,
+          }));
           if (onSchemasLoad) {
             onSchemasLoad(options);
           }
           setSchemaOptions(options);
           setLoadingSchemas(false);
         })
-        .catch(e => {
+        .catch(() => {
           setLoadingSchemas(false);
           handleError(t('There was an error loading the schemas'));
         });

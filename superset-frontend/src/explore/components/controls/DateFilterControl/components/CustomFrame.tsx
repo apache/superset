@@ -121,6 +121,10 @@ export function CustomFrame(props: FrameComponentProps) {
             options={SINCE_MODE_OPTIONS}
             value={sinceMode}
             onChange={(value: string) => onChange('sinceMode', value)}
+            sortComparator={(
+              a: typeof SINCE_MODE_OPTIONS[number],
+              b: typeof SINCE_MODE_OPTIONS[number],
+            ) => a.order - b.order}
           />
           {sinceMode === 'specific' && (
             <Row>
@@ -155,6 +159,10 @@ export function CustomFrame(props: FrameComponentProps) {
                   options={SINCE_GRAIN_OPTIONS}
                   value={sinceGrain}
                   onChange={(value: string) => onChange('sinceGrain', value)}
+                  sortComparator={(
+                    a: typeof SINCE_GRAIN_OPTIONS[number],
+                    b: typeof SINCE_GRAIN_OPTIONS[number],
+                  ) => a.order - b.order}
                 />
               </Col>
             </Row>
@@ -173,6 +181,10 @@ export function CustomFrame(props: FrameComponentProps) {
             options={UNTIL_MODE_OPTIONS}
             value={untilMode}
             onChange={(value: string) => onChange('untilMode', value)}
+            sortComparator={(
+              a: typeof UNTIL_MODE_OPTIONS[number],
+              b: typeof UNTIL_MODE_OPTIONS[number],
+            ) => a.order - b.order}
           />
           {untilMode === 'specific' && (
             <Row>
@@ -206,6 +218,10 @@ export function CustomFrame(props: FrameComponentProps) {
                   options={UNTIL_GRAIN_OPTIONS}
                   value={untilGrain}
                   onChange={(value: string) => onChange('untilGrain', value)}
+                  sortComparator={(
+                    a: typeof UNTIL_GRAIN_OPTIONS[number],
+                    b: typeof UNTIL_GRAIN_OPTIONS[number],
+                  ) => a.order - b.order}
                 />
               </Col>
             </Row>
