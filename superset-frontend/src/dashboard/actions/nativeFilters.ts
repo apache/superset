@@ -20,7 +20,6 @@
 import { makeApi } from '@superset-ui/core';
 import { Dispatch } from 'redux';
 import { FilterConfiguration } from 'src/dashboard/components/nativeFilters/types';
-import { DataMaskType, DataMaskStateWithId } from 'src/dataMask/types';
 import {
   SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL,
   setDataMaskForFilterConfigComplete,
@@ -28,17 +27,19 @@ import {
 import { HYDRATE_DASHBOARD } from './hydrate';
 import { dashboardInfoChanged } from './dashboardInfo';
 import {
-  DashboardInfo,
   Filters,
   FilterSet,
+  FilterSetFullData,
   FilterSets,
 } from '../reducers/types';
+import { DashboardInfo, RootState } from '../types';
 
 export const SET_FILTER_CONFIG_BEGIN = 'SET_FILTER_CONFIG_BEGIN';
 export interface SetFilterConfigBegin {
   type: typeof SET_FILTER_CONFIG_BEGIN;
   filterConfig: FilterConfiguration;
 }
+
 export const SET_FILTER_CONFIG_COMPLETE = 'SET_FILTER_CONFIG_COMPLETE';
 export interface SetFilterConfigComplete {
   type: typeof SET_FILTER_CONFIG_COMPLETE;
@@ -54,21 +55,60 @@ export interface SetInScopeStatusOfFilters {
   type: typeof SET_IN_SCOPE_STATUS_OF_FILTERS;
   filterConfig: FilterConfiguration;
 }
-export const SET_FILTER_SETS_CONFIG_BEGIN = 'SET_FILTER_SETS_CONFIG_BEGIN';
-export interface SetFilterSetsConfigBegin {
-  type: typeof SET_FILTER_SETS_CONFIG_BEGIN;
-  filterSetsConfig: FilterSet[];
+export const SET_FILTER_SETS_BEGIN = 'SET_FILTER_SETS_BEGIN';
+export interface SetFilterSetsBegin {
+  type: typeof SET_FILTER_SETS_BEGIN;
 }
-export const SET_FILTER_SETS_CONFIG_COMPLETE =
-  'SET_FILTER_SETS_CONFIG_COMPLETE';
-export interface SetFilterSetsConfigComplete {
-  type: typeof SET_FILTER_SETS_CONFIG_COMPLETE;
-  filterSetsConfig: FilterSet[];
+export const SET_FILTER_SETS_COMPLETE = 'SET_FILTER_SETS_COMPLETE';
+export interface SetFilterSetsComplete {
+  type: typeof SET_FILTER_SETS_COMPLETE;
+  filterSets: FilterSet[];
 }
-export const SET_FILTER_SETS_CONFIG_FAIL = 'SET_FILTER_SETS_CONFIG_FAIL';
-export interface SetFilterSetsConfigFail {
-  type: typeof SET_FILTER_SETS_CONFIG_FAIL;
-  filterSetsConfig: FilterSet[];
+export const SET_FILTER_SETS_FAIL = 'SET_FILTER_SETS_FAIL';
+export interface SetFilterSetsFail {
+  type: typeof SET_FILTER_SETS_FAIL;
+}
+
+export const CREATE_FILTER_SET_BEGIN = 'CREATE_FILTER_SET_BEGIN';
+export interface CreateFilterSetBegin {
+  type: typeof CREATE_FILTER_SET_BEGIN;
+}
+export const CREATE_FILTER_SET_COMPLETE = 'CREATE_FILTER_SET_COMPLETE';
+export interface CreateFilterSetComplete {
+  type: typeof CREATE_FILTER_SET_COMPLETE;
+  filterSet: FilterSet;
+}
+export const CREATE_FILTER_SET_FAIL = 'CREATE_FILTER_SET_FAIL';
+export interface CreateFilterSetFail {
+  type: typeof CREATE_FILTER_SET_FAIL;
+}
+
+export const DELETE_FILTER_SET_BEGIN = 'DELETE_FILTER_SET_BEGIN';
+export interface DeleteFilterSetBegin {
+  type: typeof DELETE_FILTER_SET_BEGIN;
+}
+export const DELETE_FILTER_SET_COMPLETE = 'DELETE_FILTER_SET_COMPLETE';
+export interface DeleteFilterSetComplete {
+  type: typeof DELETE_FILTER_SET_COMPLETE;
+  filterSet: FilterSet;
+}
+export const DELETE_FILTER_SET_FAIL = 'DELETE_FILTER_SET_FAIL';
+export interface DeleteFilterSetFail {
+  type: typeof DELETE_FILTER_SET_FAIL;
+}
+
+export const UPDATE_FILTER_SET_BEGIN = 'UPDATE_FILTER_SET_BEGIN';
+export interface UpdateFilterSetBegin {
+  type: typeof UPDATE_FILTER_SET_BEGIN;
+}
+export const UPDATE_FILTER_SET_COMPLETE = 'UPDATE_FILTER_SET_COMPLETE';
+export interface UpdateFilterSetComplete {
+  type: typeof UPDATE_FILTER_SET_COMPLETE;
+  filterSet: FilterSet;
+}
+export const UPDATE_FILTER_SET_FAIL = 'UPDATE_FILTER_SET_FAIL';
+export interface UpdateFilterSetFail {
+  type: typeof UPDATE_FILTER_SET_FAIL;
 }
 
 export const setFilterConfiguration = (
@@ -161,66 +201,138 @@ export interface SetBootstrapData {
   data: BootstrapData;
 }
 
-export const setFilterSetsConfiguration = (
-  filterSetsConfig: FilterSet[],
-) => async (dispatch: Dispatch, getState: () => any) => {
-  dispatch({
-    type: SET_FILTER_SETS_CONFIG_BEGIN,
-    filterSetsConfig,
-  });
-  const { id, metadata } = getState().dashboardInfo;
-
-  // TODO extract this out when makeApi supports url parameters
-  const updateDashboard = makeApi<
-    Partial<DashboardInfo>,
-    { result: DashboardInfo }
+export const getFilterSets = () => async (
+  dispatch: Dispatch,
+  getState: () => RootState,
+) => {
+  const dashboardId = getState().dashboardInfo.id;
+  const fetchFilterSets = makeApi<
+    null,
+    {
+      count: number;
+      ids: number[];
+      result: FilterSetFullData[];
+    }
   >({
-    method: 'PUT',
-    endpoint: `/api/v1/dashboard/${id}`,
+    method: 'GET',
+    endpoint: `/api/v1/dashboard/${dashboardId}/filtersets`,
   });
 
-  try {
-    const response = await updateDashboard({
-      json_metadata: JSON.stringify({
-        ...metadata,
-        filter_sets_configuration: filterSetsConfig,
-      }),
-    });
-    const newMetadata = JSON.parse(response.result.json_metadata);
-    dispatch(
-      dashboardInfoChanged({
-        metadata: newMetadata,
-      }),
-    );
-    dispatch({
-      type: SET_FILTER_SETS_CONFIG_COMPLETE,
-      filterSetsConfig: newMetadata?.filter_sets_configuration,
-    });
-  } catch (err) {
-    dispatch({ type: SET_FILTER_SETS_CONFIG_FAIL, filterSetsConfig });
-  }
+  dispatch({
+    type: SET_FILTER_SETS_BEGIN,
+  });
+
+  const response = await fetchFilterSets(null);
+
+  dispatch({
+    type: SET_FILTER_SETS_COMPLETE,
+    filterSets: response.ids.map((id, i) => ({
+      ...response.result[i].params,
+      id,
+      name: response.result[i].name,
+    })),
+  });
 };
 
-export const SAVE_FILTER_SETS = 'SAVE_FILTER_SETS';
-export interface SaveFilterSets {
-  type: typeof SAVE_FILTER_SETS;
-  name: string;
-  dataMask: Pick<DataMaskStateWithId, DataMaskType.NativeFilters>;
-  filtersSetId: string;
-}
+export const createFilterSet = (filterSet: Omit<FilterSet, 'id'>) => async (
+  dispatch: Function,
+  getState: () => RootState,
+) => {
+  const dashboardId = getState().dashboardInfo.id;
+  const postFilterSets = makeApi<
+    Partial<FilterSetFullData & { json_metadata: any }>,
+    {
+      count: number;
+      ids: number[];
+      result: FilterSetFullData[];
+    }
+  >({
+    method: 'POST',
+    endpoint: `/api/v1/dashboard/${dashboardId}/filtersets`,
+  });
 
-export function saveFilterSets(
-  name: string,
-  filtersSetId: string,
-  dataMask: Pick<DataMaskStateWithId, DataMaskType.NativeFilters>,
-): SaveFilterSets {
-  return {
-    type: SAVE_FILTER_SETS,
-    name,
-    filtersSetId,
-    dataMask,
+  dispatch({
+    type: CREATE_FILTER_SET_BEGIN,
+  });
+
+  const serverFilterSet: Omit<FilterSet, 'id' | 'name'> & { name?: string } = {
+    ...filterSet,
   };
-}
+
+  delete serverFilterSet.name;
+
+  await postFilterSets({
+    name: filterSet.name,
+    owner_type: 'Dashboard',
+    owner_id: dashboardId,
+    json_metadata: JSON.stringify(serverFilterSet),
+  });
+
+  dispatch({
+    type: CREATE_FILTER_SET_COMPLETE,
+  });
+  dispatch(getFilterSets());
+};
+
+export const updateFilterSet = (filterSet: FilterSet) => async (
+  dispatch: Function,
+  getState: () => RootState,
+) => {
+  const dashboardId = getState().dashboardInfo.id;
+  const postFilterSets = makeApi<
+    Partial<FilterSetFullData & { json_metadata: any }>,
+    {}
+  >({
+    method: 'PUT',
+    endpoint: `/api/v1/dashboard/${dashboardId}/filtersets/${filterSet.id}`,
+  });
+
+  dispatch({
+    type: UPDATE_FILTER_SET_BEGIN,
+  });
+
+  const serverFilterSet: Omit<FilterSet, 'id' | 'name'> & {
+    name?: string;
+    id?: number;
+  } = {
+    ...filterSet,
+  };
+
+  delete serverFilterSet.id;
+  delete serverFilterSet.name;
+
+  await postFilterSets({
+    name: filterSet.name,
+    json_metadata: JSON.stringify(serverFilterSet),
+  });
+
+  dispatch({
+    type: UPDATE_FILTER_SET_COMPLETE,
+  });
+  dispatch(getFilterSets());
+};
+
+export const deleteFilterSet = (filterSetId: number) => async (
+  dispatch: Function,
+  getState: () => RootState,
+) => {
+  const dashboardId = getState().dashboardInfo.id;
+  const deleteFilterSets = makeApi<{}, {}>({
+    method: 'DELETE',
+    endpoint: `/api/v1/dashboard/${dashboardId}/filtersets/${filterSetId}`,
+  });
+
+  dispatch({
+    type: DELETE_FILTER_SET_BEGIN,
+  });
+
+  await deleteFilterSets({});
+
+  dispatch({
+    type: DELETE_FILTER_SET_COMPLETE,
+  });
+  dispatch(getFilterSets());
+};
 
 export const SET_FOCUSED_NATIVE_FILTER = 'SET_FOCUSED_NATIVE_FILTER';
 export interface SetFocusedNativeFilter {
@@ -248,11 +360,19 @@ export type AnyFilterAction =
   | SetFilterConfigBegin
   | SetFilterConfigComplete
   | SetFilterConfigFail
-  | SetFilterSetsConfigBegin
-  | SetFilterSetsConfigComplete
-  | SetFilterSetsConfigFail
+  | SetFilterSetsBegin
+  | SetFilterSetsComplete
+  | SetFilterSetsFail
   | SetInScopeStatusOfFilters
-  | SaveFilterSets
   | SetBootstrapData
   | SetFocusedNativeFilter
-  | UnsetFocusedNativeFilter;
+  | UnsetFocusedNativeFilter
+  | CreateFilterSetBegin
+  | CreateFilterSetComplete
+  | CreateFilterSetFail
+  | DeleteFilterSetBegin
+  | DeleteFilterSetComplete
+  | DeleteFilterSetFail
+  | UpdateFilterSetBegin
+  | UpdateFilterSetComplete
+  | UpdateFilterSetFail;

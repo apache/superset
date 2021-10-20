@@ -27,7 +27,7 @@ import {
   DataMaskStateWithId,
   DataMaskWithId,
 } from 'src/dataMask/types';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ChartsState, RootState } from 'src/dashboard/types';
 import { NATIVE_FILTER_PREFIX } from '../FiltersConfigModal/utils';
 import { Filter } from '../types';
@@ -37,35 +37,46 @@ export const useFilterSets = () =>
     state => state.nativeFilters.filterSets || {},
   );
 
-export const useFilters = () =>
-  useSelector<any, Filters>(state => {
-    const preselectNativeFilters =
-      state.dashboardState?.preselectNativeFilters || {};
-    return Object.entries(state.nativeFilters.filters).reduce(
-      (acc, [filterId, filter]: [string, Filter]) => ({
-        ...acc,
-        [filterId]: {
-          ...filter,
-          preselect: preselectNativeFilters[filterId],
-        },
-      }),
-      {} as Filters,
-    );
-  });
+export const useFilters = () => {
+  const preselectedNativeFilters = useSelector<any, Filters>(
+    state => state.dashboardState?.preselectNativeFilters,
+  );
+  const nativeFilters = useSelector<any, Filters>(
+    state => state.nativeFilters.filters,
+  );
+  return useMemo(
+    () =>
+      Object.entries(nativeFilters).reduce(
+        (acc, [filterId, filter]: [string, Filter]) => ({
+          ...acc,
+          [filterId]: {
+            ...filter,
+            preselect: preselectedNativeFilters?.[filterId],
+          },
+        }),
+        {} as Filters,
+      ),
+    [nativeFilters, preselectedNativeFilters],
+  );
+};
 
 export const useNativeFiltersDataMask = () => {
   const dataMask = useSelector<RootState, DataMaskStateWithId>(
     state => state.dataMask,
   );
 
-  return Object.values(dataMask)
-    .filter((item: DataMaskWithId) =>
-      String(item.id).startsWith(NATIVE_FILTER_PREFIX),
-    )
-    .reduce(
-      (prev, next: DataMaskWithId) => ({ ...prev, [next.id]: next }),
-      {},
-    ) as DataMaskStateWithId;
+  return useMemo(
+    () =>
+      Object.values(dataMask)
+        .filter((item: DataMaskWithId) =>
+          String(item.id).startsWith(NATIVE_FILTER_PREFIX),
+        )
+        .reduce(
+          (prev, next: DataMaskWithId) => ({ ...prev, [next.id]: next }),
+          {},
+        ) as DataMaskStateWithId,
+    [dataMask],
+  );
 };
 
 export const useFilterUpdates = (
