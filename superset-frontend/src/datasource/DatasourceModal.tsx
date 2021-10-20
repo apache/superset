@@ -119,14 +119,17 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           ),
           type: currentDatasource.type || currentDatasource.datasource_type,
           owners: currentDatasource.owners.map(
-            (o: { label: string; value: number }) => o.value,
+            (o: Record<string, number>) => o.value || o.id,
           ),
         },
       },
     })
       .then(({ json }) => {
         addSuccessToast(t('The dataset has been saved'));
-        onDatasourceSave(json);
+        onDatasourceSave({
+          ...json,
+          owners: currentDatasource.owners,
+        });
         onHide();
       })
       .catch(response => {
