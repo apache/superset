@@ -30,17 +30,7 @@ import re
 import sys
 from collections import OrderedDict
 from datetime import date, timedelta
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Literal,
-    Optional,
-    Type,
-    TYPE_CHECKING,
-    Union,
-)
+from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
 
 from cachelib.base import BaseCache
 from celery.schedules import crontab
@@ -48,6 +38,7 @@ from dateutil import tz
 from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
 from pandas.io.parsers import STR_NA_VALUES
+from typing_extensions import Literal
 from werkzeug.local import LocalProxy
 
 from superset.jinja_context import BaseTemplateProcessor
