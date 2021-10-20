@@ -19,10 +19,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { TextArea } from 'src/common/components';
-import { debounce } from 'lodash';
 import { t } from '@superset-ui/core';
 
-import { FAST_DEBOUNCE } from 'src/constants';
 import Button from 'src/components/Button';
 import { TextAreaEditor } from 'src/components/AsyncAceEditor';
 import ModalTrigger from 'src/components/ModalTrigger';
@@ -32,7 +30,7 @@ import ControlHeader from 'src/explore/components/ControlHeader';
 const propTypes = {
   name: PropTypes.string,
   onChange: PropTypes.func,
-  value: PropTypes.string,
+  defaultValue: PropTypes.string,
   height: PropTypes.number,
   minLines: PropTypes.number,
   maxLines: PropTypes.number,
@@ -51,7 +49,7 @@ const propTypes = {
 
 const defaultProps = {
   onChange: () => {},
-  value: '',
+  defaultValue: '',
   height: 250,
   minLines: 3,
   maxLines: 10,
@@ -62,27 +60,16 @@ const defaultProps = {
 export default class TextAreaControl extends React.Component {
   constructor() {
     super();
-    this.state = {
-      value: '',
-    };
-    this.onAceChangeDebounce = debounce(value => {
-      this.onAceChange(value);
-    }, FAST_DEBOUNCE);
+    this.inputRef = React.createRef();
   }
 
   onControlChange(event) {
     const { value } = event.target;
-    this.setState({ value });
-    this.props.onChange(value);
-  }
-
-  onAceChange(value) {
-    this.setState({ value });
     this.props.onChange(value);
   }
 
   renderEditor(inModal = false) {
-    const value = this.state.value || this.props.value;
+    const defaultValue = this.props.defaultValue || '';
     const minLines = inModal ? 40 : this.props.minLines || 12;
     if (this.props.language) {
       const style = { border: '1px solid #CCC' };
@@ -91,15 +78,16 @@ export default class TextAreaControl extends React.Component {
       }
       return (
         <TextAreaEditor
+          ref={this.inputRef}
           mode={this.props.language}
           style={style}
           minLines={minLines}
           maxLines={inModal ? 1000 : this.props.maxLines}
-          onChange={this.onAceChangeDebounce}
+          onChange={this.props.onChange}
           width="100%"
           height={`${minLines}em`}
           editorProps={{ $blockScrolling: true }}
-          value={value}
+          defaultValue={defaultValue}
           readOnly={this.props.readOnly}
         />
       );
@@ -108,7 +96,7 @@ export default class TextAreaControl extends React.Component {
       <TextArea
         placeholder={t('textarea')}
         onChange={this.onControlChange.bind(this)}
-        value={value}
+        value={defaultValue}
         disabled={this.props.readOnly}
         style={{ height: this.props.height }}
       />

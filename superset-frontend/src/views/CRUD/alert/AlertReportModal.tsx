@@ -1136,7 +1136,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   maxLines={15}
                   onChange={onSQLChange}
                   readOnly={false}
-                  value={currentAlert ? currentAlert.sql : ''}
+                  defaultValue={resource?.sql}
                 />
               </StyledInputContainer>
               <div className="inline-container wrap">
