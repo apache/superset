@@ -126,7 +126,10 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     })
       .then(({ json }) => {
         addSuccessToast(t('The dataset has been saved'));
-        onDatasourceSave(json);
+        onDatasourceSave({
+          ...json,
+          owners: currentDatasource.owners,
+        });
         onHide();
       })
       .catch(response => {
