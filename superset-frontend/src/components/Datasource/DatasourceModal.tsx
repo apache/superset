@@ -119,7 +119,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           ),
           type: currentDatasource.type || currentDatasource.datasource_type,
           owners: currentDatasource.owners.map(
-            (o: { label: string; value: number }) => o.value,
+            (o: Record<string, number>) => o.value || o.id,
           ),
         },
       },
