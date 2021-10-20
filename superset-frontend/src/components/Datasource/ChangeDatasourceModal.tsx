@@ -41,7 +41,7 @@ import {
   SORT_BY as DATASET_SORT_BY,
 } from 'src/views/CRUD/data/dataset/constants';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import FacePile from '../components/FacePile';
+import FacePile from '../FacePile';
 
 const CONFIRM_WARNING_MESSAGE = t(
   'Warning! Changing the dataset may break the chart if the metadata does not exist.',
