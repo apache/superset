@@ -287,7 +287,9 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-locals
     return SupersetResultSet(data, cursor_description, db_engine_spec)
 
 
-def apply_limit_if_exists(database: Database, increased_limit: int, query: Query, sql: str) -> str:
+def apply_limit_if_exists(
+    database: Database, increased_limit: Optional[int], query: Query, sql: str
+) -> str:
     if query.limit and increased_limit:
         # We are fetching one more than the requested limit in order
         # to test whether there are more rows than the limit.

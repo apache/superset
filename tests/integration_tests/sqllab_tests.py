@@ -43,7 +43,8 @@ from superset.sql_lab import (
     execute_sql_statements,
     execute_sql_statement,
     get_sql_results,
-    SqlLabException, apply_limit_if_exists,
+    SqlLabException,
+    apply_limit_if_exists,
 )
 from superset.sql_parse import CtasMethod
 from superset.utils.core import (
@@ -1001,7 +1002,6 @@ class TestSqlLab(SupersetTestCase):
         final_sql = apply_limit_if_exists(database, None, mock_query, sql)
 
         assert final_sql == sql
-
 
 
 @pytest.mark.parametrize("spec", [HiveEngineSpec, PrestoEngineSpec])
