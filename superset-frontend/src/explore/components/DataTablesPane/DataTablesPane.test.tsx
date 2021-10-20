@@ -102,9 +102,12 @@ test('Should show tabs: View samples', async () => {
 });
 
 test('Should copy data table content correctly', async () => {
-  fetchMock.post(/api\/v1\/chart\/data\?form_data=%7B%22slice_id%22%3A456%7D/, {
-    result: [{ data: [{ __timestamp: 1230768000000, genre: 'Action' }] }],
-  });
+  fetchMock.post(
+    'glob:*/api/v1/chart/data?form_data=%7B%22slice_id%22%3A456%7D',
+    {
+      result: [{ data: [{ __timestamp: 1230768000000, genre: 'Action' }] }],
+    },
+  );
   const copyToClipboardSpy = jest.spyOn(copyUtils, 'default');
   const props = createProps();
   render(
