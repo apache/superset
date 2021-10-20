@@ -1003,6 +1003,17 @@ class TestSqlLab(SupersetTestCase):
 
         assert final_sql == sql
 
+    def test_apply_limit_if_exists_when_increased_limit(self):
+        sql = """
+                   SET @value = 42;
+                   SELECT @value AS foo;
+               """
+        database = get_example_database()
+        mock_query = mock.MagicMock()
+        mock_query.limit = 300
+        final_sql = apply_limit_if_exists(database, 1000, mock_query, sql)
+        assert "LIMIT 1000" in final_sql
+
 
 @pytest.mark.parametrize("spec", [HiveEngineSpec, PrestoEngineSpec])
 def test_cancel_query_implicit(spec: BaseEngineSpec) -> None:
