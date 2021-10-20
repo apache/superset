@@ -49,6 +49,7 @@ import {
 import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar';
 import Loading from 'src/components/Loading';
 import { Global } from '@emotion/react';
+import { useEmbedded } from 'src/components/Emmbedded';
 import { shouldFocusTabs, getRootLevelTabsComponent } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
@@ -199,6 +200,8 @@ const StyledDashboardContent = styled.div<{
 
 const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const dispatch = useDispatch();
+  const embedded = useEmbedded();
+
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
   );
@@ -243,7 +246,9 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const standaloneMode = getUrlParam(URL_PARAMS.standalone);
   const isReport = standaloneMode === DashboardStandaloneMode.REPORT;
   const hideDashboardHeader =
-    standaloneMode === DashboardStandaloneMode.HIDE_NAV_AND_TITLE || isReport;
+    embedded.hideTitle ||
+    StandaloneMode === DashboardStandaloneMode.HIDE_NAV_AND_TITLE ||
+    isReport;
 
   const barTopOffset =
     (hideDashboardHeader ? 0 : HEADER_HEIGHT) +
@@ -288,7 +293,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
       <div>
         {!hideDashboardHeader && <DashboardHeader />}
         {dropIndicatorProps && <div {...dropIndicatorProps} />}
-        {!isReport && topLevelTabs && (
+        {!isReport && topLevelTabs && embedded.hideNav && (
           <WithPopoverMenu
             shouldFocus={shouldFocusTabs}
             menuItems={[
@@ -321,6 +326,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
       hideDashboardHeader,
       isReport,
       topLevelTabs,
+      embedded.hideNav,
     ],
   );
 

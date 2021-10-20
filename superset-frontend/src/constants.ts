@@ -27,6 +27,10 @@ export const URL_PARAMS = {
     name: 'standalone',
     type: 'number',
   },
+  embedded: {
+    name: 'embedded',
+    type: 'number',
+  },
   preselectFilters: {
     name: 'preselect_filters',
     type: 'object',

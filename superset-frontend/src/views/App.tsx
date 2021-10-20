@@ -29,8 +29,11 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { QueryParamProvider } from 'use-query-params';
 import { initFeatureFlags } from 'src/featureFlags';
+import { URL_PARAMS } from 'src/constants';
 import { ThemeProvider } from '@superset-ui/core';
 import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
+import { EmbeddedProvider } from 'src/components/Emmbedded';
+import { getUrlParam } from 'src/utils/urlUtils';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
 import Menu from 'src/components/Menu/Menu';
@@ -63,19 +66,23 @@ const RootContextProviders: React.FC = ({ children }) => {
     lastLocationPathname = location.pathname;
   }, [location.pathname]);
 
+  const config = getUrlParam(URL_PARAMS.embedded);
+
   return (
     <ThemeProvider theme={theme}>
       <ReduxProvider store={store}>
         <DndProvider backend={HTML5Backend}>
           <FlashProvider messages={common.flash_messages}>
-            <DynamicPluginProvider>
-              <QueryParamProvider
-                ReactRouterRoute={Route}
-                stringifyOptions={{ encode: false }}
-              >
-                {children}
-              </QueryParamProvider>
-            </DynamicPluginProvider>
+            <EmbeddedProvider config={config}>
+              <DynamicPluginProvider>
+                <QueryParamProvider
+                  ReactRouterRoute={Route}
+                  stringifyOptions={{ encode: false }}
+                >
+                  {children}
+                </QueryParamProvider>
+              </DynamicPluginProvider>
+            </EmbeddedProvider>
           </FlashProvider>
         </DndProvider>
       </ReduxProvider>
