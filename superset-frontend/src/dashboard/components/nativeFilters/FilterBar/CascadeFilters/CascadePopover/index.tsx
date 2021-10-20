@@ -212,7 +212,6 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
         position: 'relative',
         overflow: 'auto',
       }}
-      // className="cascade-popover"
       ref={parent}
     >
       <div>
