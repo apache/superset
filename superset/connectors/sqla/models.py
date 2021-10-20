@@ -103,6 +103,7 @@ VIRTUAL_TABLE_ALIAS = "virtual_table"
 
 
 class SqlaQuery(NamedTuple):
+    applied_template_filters: List[str]
     extra_cache_keys: List[Any]
     labels_expected: List[str]
     prequeries: List[str]
@@ -110,6 +111,7 @@ class SqlaQuery(NamedTuple):
 
 
 class QueryStringExtended(NamedTuple):
+    applied_template_filters: Optional[List[str]]
     labels_expected: List[str]
     prequeries: List[str]
     sql: str
@@ -755,7 +757,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         sql = sqlparse.format(sql, reindent=True)
         sql = self.mutate_query_from_config(sql)
         return QueryStringExtended(
-            labels_expected=sqlaq.labels_expected, sql=sql, prequeries=sqlaq.prequeries
+            applied_template_filters=sqlaq.applied_template_filters,
+            labels_expected=sqlaq.labels_expected,
+            prequeries=sqlaq.prequeries,
+            sql=sql,
         )
 
     def get_query_str(self, query_obj: QueryObjectDict) -> str:
@@ -978,7 +983,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         extra_cache_keys: List[Any] = []
         template_kwargs["extra_cache_keys"] = extra_cache_keys
         removed_filters: List[str] = []
+        applied_template_filters: List[str] = []
         template_kwargs["removed_filters"] = removed_filters
+        template_kwargs["applied_filters"] = applied_template_filters
         template_processor = self.get_template_processor(**template_kwargs)
         db_engine_spec = self.db_engine_spec
         prequeries: List[str] = []
@@ -1394,6 +1401,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             labels_expected = [label]
 
         return SqlaQuery(
+            applied_template_filters=applied_template_filters,
             extra_cache_keys=extra_cache_keys,
             labels_expected=labels_expected,
             sqla_query=qry,
@@ -1491,6 +1499,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             error_message = utils.error_msg_from_exception(ex)
 
         return QueryResult(
+            applied_template_filters=query_str_ext.applied_template_filters,
             status=status,
             df=df,
             duration=datetime.now() - qry_start_dttm,

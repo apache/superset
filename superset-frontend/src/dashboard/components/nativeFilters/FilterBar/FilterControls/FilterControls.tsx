@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC, useMemo, useState } from 'react';
+import React, { FC, useCallback, useMemo, useState } from 'react';
 import { css } from '@emotion/react';
 import { DataMask, styled, t } from '@superset-ui/core';
 import {
@@ -55,8 +55,8 @@ const FilterControls: FC<FilterControlsProps> = ({
 }) => {
   const [visiblePopoverId, setVisiblePopoverId] = useState<string | null>(null);
   const filters = useFilters();
-  const filterValues = Object.values<Filter>(filters);
-  const portalNodes = React.useMemo(() => {
+  const filterValues = useMemo(() => Object.values<Filter>(filters), [filters]);
+  const portalNodes = useMemo(() => {
     const nodes = new Array(filterValues.length);
     for (let i = 0; i < filterValues.length; i += 1) {
       nodes[i] = createHtmlPortalNode();
@@ -70,8 +70,7 @@ const FilterControls: FC<FilterControlsProps> = ({
       dataMask: dataMaskSelected[filter.id],
     }));
     return buildCascadeFiltersTree(filtersWithValue);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(filterValues), dataMaskSelected]);
+  }, [filterValues, dataMaskSelected]);
   const cascadeFilterIds = new Set(cascadeFilters.map(item => item.id));
 
   const [filtersInScope, filtersOutOfScope] = useSelectFiltersInScope(
@@ -80,26 +79,36 @@ const FilterControls: FC<FilterControlsProps> = ({
   const dashboardHasTabs = useDashboardHasTabs();
   const showCollapsePanel = dashboardHasTabs && cascadeFilters.length > 0;
 
+  const cascadePopoverFactory = useCallback(
+    index => (
+      <CascadePopover
+        data-test="cascade-filters-control"
+        key={cascadeFilters[index].id}
+        dataMaskSelected={dataMaskSelected}
+        visible={visiblePopoverId === cascadeFilters[index].id}
+        onVisibleChange={visible =>
+          setVisiblePopoverId(visible ? cascadeFilters[index].id : null)
+        }
+        filter={cascadeFilters[index]}
+        onFilterSelectionChange={onFilterSelectionChange}
+        directPathToChild={directPathToChild}
+        inView={false}
+      />
+    ),
+    [
+      cascadeFilters,
+      JSON.stringify(dataMaskSelected),
+      directPathToChild,
+      onFilterSelectionChange,
+      visiblePopoverId,
+    ],
+  );
   return (
     <Wrapper>
       {portalNodes
         .filter((node, index) => cascadeFilterIds.has(filterValues[index].id))
         .map((node, index) => (
-          <InPortal node={node}>
-            <CascadePopover
-              data-test="cascade-filters-control"
-              key={cascadeFilters[index].id}
-              dataMaskSelected={dataMaskSelected}
-              visible={visiblePopoverId === cascadeFilters[index].id}
-              onVisibleChange={visible =>
-                setVisiblePopoverId(visible ? cascadeFilters[index].id : null)
-              }
-              filter={cascadeFilters[index]}
-              onFilterSelectionChange={onFilterSelectionChange}
-              directPathToChild={directPathToChild}
-              inView={false}
-            />
-          </InPortal>
+          <InPortal node={node}>{cascadePopoverFactory(index)}</InPortal>
         ))}
       {filtersInScope.map(filter => {
         const index = filterValues.findIndex(f => f.id === filter.id);
@@ -150,4 +159,4 @@ const FilterControls: FC<FilterControlsProps> = ({
   );
 };
 
-export default FilterControls;
+export default React.memo(FilterControls);
