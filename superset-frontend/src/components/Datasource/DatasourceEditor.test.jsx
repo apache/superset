@@ -28,7 +28,7 @@ import { Radio } from 'src/components/Radio';
 
 import Icons from 'src/components/Icons';
 import Tabs from 'src/components/Tabs';
-import DatasourceEditor from 'src/datasource/DatasourceEditor';
+import DatasourceEditor from 'src/components/Datasource/DatasourceEditor';
 import Field from 'src/CRUD/Field';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import * as featureFlags from 'src/featureFlags';
