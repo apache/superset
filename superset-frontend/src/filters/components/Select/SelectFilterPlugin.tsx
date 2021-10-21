@@ -287,7 +287,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           // @ts-ignore
           value={filterState.value || []}
           disabled={isDisabled}
-          getPopupContainer={showOverflow ? () => parentRef : undefined}
+          getPopupContainer={
+            showOverflow ? () => parentRef?.current : undefined
+          }
           showSearch={showSearch}
           mode={multiSelect ? 'multiple' : 'single'}
           placeholder={placeholderText}
