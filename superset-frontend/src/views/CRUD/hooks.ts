@@ -324,7 +324,7 @@ export function useSingleViewResource<D extends object = any>(
 
       return SupersetClient.put({
         endpoint: `/api/v1/${resourceName}/${resourceID}`,
-        body: JSON.stringify(resource),
+        body: JSON.stringify({ ...resource, show_owners: true }),
         headers: { 'Content-Type': 'application/json' },
       })
         .then(
