@@ -100,17 +100,26 @@ export const RowCount = ({
 export const useFilteredTableData = (
   filterText: string,
   data?: Record<string, any>[],
-) =>
-  useMemo(() => {
+) => {
+  const rowsAsStrings = useMemo(
+    () =>
+      data?.map((row: Record<string, any>) =>
+        Object.values(row).map(value => value?.toString().toLowerCase()),
+      ) ?? [],
+    [data],
+  );
+
+  return useMemo(() => {
     if (!data?.length) {
       return [];
     }
-    return data.filter((row: Record<string, any>) =>
-      Object.values(row).some(value =>
-        value?.toString().toLowerCase().includes(filterText.toLowerCase()),
+    return data.filter((_, index: number) =>
+      rowsAsStrings[index].some(value =>
+        value?.includes(filterText.toLowerCase()),
       ),
     );
-  }, [data, filterText]);
+  }, [data, filterText, rowsAsStrings]);
+};
 
 export const useTableColumns = (
   colnames?: string[],
