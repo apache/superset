@@ -7,7 +7,7 @@
     "forceConsistentCasingInFileNames": true,
     "importHelpers": false,
     "jsx": "preserve",
-    "lib": ["dom",  "dom.iterable", "esnext"],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "module": "esnext",
     "moduleResolution": "node",
     "noImplicitAny": true,
