@@ -60,10 +60,10 @@ class TestReportSchedulesApi(SupersetTestCase):
 
             report_schedule = insert_report_schedule(
                 type=ReportScheduleType.ALERT,
-                name=f"name_working",
-                crontab=f"* * * * *",
-                sql=f"SELECT value from table",
-                description=f"Report working",
+                name="name_working",
+                crontab="* * * * *",
+                sql="SELECT value from table",
+                description="Report working",
                 chart=chart,
                 database=example_db,
                 owners=[admin_user, alpha_user],
@@ -181,6 +181,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "chart": {
                 "id": report_schedule.chart.id,
                 "slice_name": report_schedule.chart.slice_name,
+                "viz_type": report_schedule.chart.viz_type,
             },
             "context_markdown": report_schedule.context_markdown,
             "crontab": report_schedule.crontab,
@@ -205,6 +206,7 @@ class TestReportSchedulesApi(SupersetTestCase):
                     "type": "Email",
                 }
             ],
+            "timezone": report_schedule.timezone,
             "type": report_schedule.type,
             "validator_config_json": report_schedule.validator_config_json,
             "validator_type": report_schedule.validator_type,
@@ -273,12 +275,14 @@ class TestReportSchedulesApi(SupersetTestCase):
             "creation_method",
             "crontab",
             "crontab_humanized",
+            "description",
             "id",
             "last_eval_dttm",
             "last_state",
             "name",
             "owners",
             "recipients",
+            "timezone",
             "type",
         ]
         assert rv.status_code == 200
@@ -302,7 +306,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         ReportSchedule Api: Test sorting on get list report schedules
         """
         self.login(username="admin")
-        uri = f"api/v1/report/"
+        uri = "api/v1/report/"
 
         order_columns = [
             "active",
@@ -312,6 +316,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "changed_on_delta_humanized",
             "created_on",
             "crontab",
+            "description",
             "last_eval_dttm",
             "name",
             "type",
@@ -673,6 +678,233 @@ class TestReportSchedulesApi(SupersetTestCase):
         uri = "api/v1/report/"
         rv = self.client.post(uri, json=report_schedule_data)
         assert rv.status_code == 201
+
+        # Test that report cannot be created with null timezone
+        report_schedule_data = {
+            "type": ReportScheduleType.ALERT,
+            "name": "new5",
+            "description": "description",
+            "creation_method": ReportCreationMethodType.ALERTS_REPORTS,
+            "crontab": "0 9 * * *",
+            "recipients": [
+                {
+                    "type": ReportRecipientType.EMAIL,
+                    "recipient_config_json": {"target": "target@superset.org"},
+                },
+                {
+                    "type": ReportRecipientType.SLACK,
+                    "recipient_config_json": {"target": "channel"},
+                },
+            ],
+            "working_timeout": 3600,
+            "timezone": None,
+            "dashboard": dashboard.id,
+            "database": example_db.id,
+        }
+        rv = self.client.post(uri, json=report_schedule_data)
+        assert rv.status_code == 400
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data == {"message": {"timezone": ["Field may not be null."]}}
+
+        # Test that report should reflect the timezone value passed in
+        report_schedule_data = {
+            "type": ReportScheduleType.ALERT,
+            "name": "new6",
+            "description": "description",
+            "creation_method": ReportCreationMethodType.ALERTS_REPORTS,
+            "crontab": "0 9 * * *",
+            "recipients": [
+                {
+                    "type": ReportRecipientType.EMAIL,
+                    "recipient_config_json": {"target": "target@superset.org"},
+                },
+                {
+                    "type": ReportRecipientType.SLACK,
+                    "recipient_config_json": {"target": "channel"},
+                },
+            ],
+            "working_timeout": 3600,
+            "timezone": "America/Los_Angeles",
+            "dashboard": dashboard.id,
+            "database": example_db.id,
+        }
+        uri = "api/v1/report/"
+        rv = self.client.post(uri, json=report_schedule_data)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["result"]["timezone"] == "America/Los_Angeles"
+        assert rv.status_code == 201
+
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "create_report_schedules"
+    )
+    def test_unsaved_report_schedule_schema(self):
+        """
+        ReportSchedule Api: Test create report schedule with unsaved chart
+        """
+        self.login(username="admin")
+        chart = db.session.query(Slice).first()
+        dashboard = db.session.query(Dashboard).first()
+        example_db = get_example_database()
+
+        report_schedule_data = {
+            "type": ReportScheduleType.REPORT,
+            "name": "name3",
+            "description": "description",
+            "creation_method": ReportCreationMethodType.CHARTS,
+            "crontab": "0 9 * * *",
+            "chart": 0,
+        }
+        uri = "api/v1/report/"
+        rv = self.client.post(uri, json=report_schedule_data)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 422
+        assert (
+            data["message"]["chart"]
+            == "Please save your chart first, then try creating a new email report."
+        )
+
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "create_report_schedules"
+    )
+    def test_no_dashboard_report_schedule_schema(self):
+        """
+        ReportSchedule Api: Test create report schedule with no dashboard id
+        """
+        self.login(username="admin")
+        chart = db.session.query(Slice).first()
+        dashboard = db.session.query(Dashboard).first()
+        example_db = get_example_database()
+        report_schedule_data = {
+            "type": ReportScheduleType.REPORT,
+            "name": "name3",
+            "description": "description",
+            "creation_method": ReportCreationMethodType.DASHBOARDS,
+            "crontab": "0 9 * * *",
+        }
+        uri = "api/v1/report/"
+        rv = self.client.post(uri, json=report_schedule_data)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 422
+        assert (
+            data["message"]["dashboard"]
+            == "Please save your dashboard first, then try creating a new email report."
+        )
+
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "create_report_schedules"
+    )
+    def test_create_multiple_creation_method_report_schedule_charts(self):
+        """
+        ReportSchedule Api: Test create multiple reports with the same creation method
+        """
+        self.login(username="admin")
+        chart = db.session.query(Slice).first()
+        dashboard = db.session.query(Dashboard).first()
+        example_db = get_example_database()
+        report_schedule_data = {
+            "type": ReportScheduleType.REPORT,
+            "name": "name4",
+            "description": "description",
+            "creation_method": ReportCreationMethodType.CHARTS,
+            "crontab": "0 9 * * *",
+            "working_timeout": 3600,
+            "chart": chart.id,
+        }
+        uri = "api/v1/report/"
+        rv = self.client.post(uri, json=report_schedule_data)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 201
+
+        # this second time it should receive an error because the chart has an attached report
+        # with the same creation method from the same user.
+        report_schedule_data = {
+            "type": ReportScheduleType.REPORT,
+            "name": "name5",
+            "description": "description",
+            "creation_method": ReportCreationMethodType.CHARTS,
+            "crontab": "0 9 * * *",
+            "working_timeout": 3600,
+            "chart": chart.id,
+        }
+        uri = "api/v1/report/"
+        rv = self.client.post(uri, json=report_schedule_data)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 409
+        assert data == {
+            "errors": [
+                {
+                    "message": "Resource already has an attached report.",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": "Issue 1010 - Superset encountered an error while running a command.",
+                            }
+                        ]
+                    },
+                }
+            ]
+        }
+
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "create_report_schedules"
+    )
+    def test_create_multiple_creation_method_report_schedule_dashboards(self):
+        """
+        ReportSchedule Api: Test create multiple reports with the same creation method
+        """
+        self.login(username="admin")
+        chart = db.session.query(Slice).first()
+        dashboard = db.session.query(Dashboard).first()
+        example_db = get_example_database()
+        report_schedule_data = {
+            "type": ReportScheduleType.REPORT,
+            "name": "name4",
+            "description": "description",
+            "creation_method": ReportCreationMethodType.DASHBOARDS,
+            "crontab": "0 9 * * *",
+            "working_timeout": 3600,
+            "dashboard": dashboard.id,
+        }
+        uri = "api/v1/report/"
+        rv = self.client.post(uri, json=report_schedule_data)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 201
+
+        # this second time it should receive an error because the dashboard has an attached report
+        # with the same creation method from the same user.
+        report_schedule_data = {
+            "type": ReportScheduleType.REPORT,
+            "name": "name5",
+            "description": "description",
+            "creation_method": ReportCreationMethodType.DASHBOARDS,
+            "crontab": "0 9 * * *",
+            "working_timeout": 3600,
+            "dashboard": dashboard.id,
+        }
+        uri = "api/v1/report/"
+        rv = self.client.post(uri, json=report_schedule_data)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 409
+        assert data == {
+            "errors": [
+                {
+                    "message": "Resource already has an attached report.",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": "Issue 1010 - Superset encountered an error while running a command.",
+                            }
+                        ]
+                    },
+                }
+            ]
+        }
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_create_report_schedule_chart_dash_validation(self):

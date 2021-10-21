@@ -31,10 +31,10 @@ const defaultProps = {
 
 test('renders with default props', () => {
   render(<DndMetricSelect {...defaultProps} />, { useDnd: true });
-  expect(screen.getByText('Drop column or metric')).toBeInTheDocument();
+  expect(screen.getByText('Drop column or metric here')).toBeInTheDocument();
 });
 
 test('renders with default props and multi = true', () => {
   render(<DndMetricSelect {...defaultProps} multi />, { useDnd: true });
-  expect(screen.getByText('Drop columns or metrics')).toBeInTheDocument();
+  expect(screen.getByText('Drop columns or metrics here')).toBeInTheDocument();
 });

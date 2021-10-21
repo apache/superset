@@ -30,6 +30,7 @@ export const FILTER_SUPPORTED_TYPES = {
   filter_timegrain: [GenericDataType.TEMPORAL],
   filter_timecolumn: [GenericDataType.TEMPORAL],
   filter_select: [
+    GenericDataType.BOOLEAN,
     GenericDataType.STRING,
     GenericDataType.NUMERIC,
     GenericDataType.TEMPORAL,

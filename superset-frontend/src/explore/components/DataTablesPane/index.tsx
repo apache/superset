@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { JsonObject, styled, t } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
 import Tabs from 'src/components/Tabs';
@@ -35,6 +35,7 @@ import {
   useFilteredTableData,
   useTableColumns,
 } from 'src/explore/components/DataTableControl';
+import { applyFormattingToTabularData } from 'src/utils/common';
 
 const RESULT_TYPES = {
   results: 'results' as const,
@@ -112,6 +113,7 @@ export const DataTablesPane = ({
   chartStatus,
   ownState,
   errorMessage,
+  queriesResponse,
 }: {
   queryFormData: Record<string, any>;
   tableSectionHeight: number;
@@ -119,6 +121,7 @@ export const DataTablesPane = ({
   ownState?: JsonObject;
   onCollapseChange: (openPanelName: string) => void;
   errorMessage?: JSX.Element;
+  queriesResponse: Record<string, any>;
 }) => {
   const [data, setData] = useState<{
     [RESULT_TYPES.results]?: Record<string, any>[];
@@ -128,6 +131,7 @@ export const DataTablesPane = ({
     [RESULT_TYPES.results]: true,
     [RESULT_TYPES.samples]: true,
   });
+  const [columnNames, setColumnNames] = useState<string[]>([]);
   const [error, setError] = useState(NULLISH_RESULTS_STATE);
   const [filterText, setFilterText] = useState('');
   const [activeTabKey, setActiveTabKey] = useState<string>(
@@ -139,6 +143,18 @@ export const DataTablesPane = ({
   }>(NULLISH_RESULTS_STATE);
   const [panelOpen, setPanelOpen] = useState(
     getFromLocalStorage(STORAGE_KEYS.isOpen, false),
+  );
+
+  const formattedData = useMemo(
+    () => ({
+      [RESULT_TYPES.results]: applyFormattingToTabularData(
+        data[RESULT_TYPES.results],
+      ),
+      [RESULT_TYPES.samples]: applyFormattingToTabularData(
+        data[RESULT_TYPES.samples],
+      ),
+    }),
+    [data],
   );
 
   const getData = useCallback(
@@ -218,7 +234,14 @@ export const DataTablesPane = ({
       ...prevState,
       [RESULT_TYPES.samples]: true,
     }));
-  }, [queryFormData.adhoc_filters, queryFormData.datasource]);
+  }, [queryFormData?.adhoc_filters, queryFormData?.datasource]);
+
+  useEffect(() => {
+    if (queriesResponse && chartStatus === 'success') {
+      const { colnames } = queriesResponse[0];
+      setColumnNames([...colnames]);
+    }
+  }, [queriesResponse]);
 
   useEffect(() => {
     if (panelOpen && isRequestPending[RESULT_TYPES.results]) {
@@ -269,17 +292,25 @@ export const DataTablesPane = ({
   const filteredData = {
     [RESULT_TYPES.results]: useFilteredTableData(
       filterText,
-      data[RESULT_TYPES.results],
+      formattedData[RESULT_TYPES.results],
     ),
     [RESULT_TYPES.samples]: useFilteredTableData(
       filterText,
-      data[RESULT_TYPES.samples],
+      formattedData[RESULT_TYPES.samples],
     ),
   };
 
+  // this is to preserve the order of the columns, even if there are integer values,
+  // while also only grabbing the first column's keys
   const columns = {
-    [RESULT_TYPES.results]: useTableColumns(data[RESULT_TYPES.results]),
-    [RESULT_TYPES.samples]: useTableColumns(data[RESULT_TYPES.samples]),
+    [RESULT_TYPES.results]: useTableColumns(
+      columnNames,
+      data[RESULT_TYPES.results],
+    ),
+    [RESULT_TYPES.samples]: useTableColumns(
+      columnNames,
+      data[RESULT_TYPES.samples],
+    ),
   };
 
   const renderDataTable = (type: string) => {
@@ -316,7 +347,10 @@ export const DataTablesPane = ({
   const TableControls = (
     <TableControlsWrapper>
       <RowCount data={data[activeTabKey]} loading={isLoading[activeTabKey]} />
-      <CopyToClipboardButton data={data[activeTabKey]} />
+      <CopyToClipboardButton
+        data={formattedData[activeTabKey]}
+        columns={columnNames}
+      />
       <FilterInput onChangeHandler={setFilterText} />
     </TableControlsWrapper>
   );

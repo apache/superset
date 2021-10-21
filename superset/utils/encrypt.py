@@ -22,7 +22,7 @@ from sqlalchemy import TypeDecorator
 from sqlalchemy_utils import EncryptedType
 
 
-class AbstractEncryptedFieldAdapter(ABC):
+class AbstractEncryptedFieldAdapter(ABC):  # pylint: disable=too-few-public-methods
     @abstractmethod
     def create(
         self,
@@ -33,7 +33,9 @@ class AbstractEncryptedFieldAdapter(ABC):
         pass
 
 
-class SQLAlchemyUtilsAdapter(AbstractEncryptedFieldAdapter):
+class SQLAlchemyUtilsAdapter(  # pylint: disable=too-few-public-methods
+    AbstractEncryptedFieldAdapter
+):
     def create(
         self,
         app_config: Optional[Dict[str, Any]],

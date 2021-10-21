@@ -36,6 +36,7 @@ export default {
             config: {
               type: 'CollectionControl',
               label: t('Time series columns'),
+              renderTrigger: true,
               validators: [validateNonEmpty],
               controlName: 'TimeSeriesColumnControl',
             },

@@ -16,10 +16,12 @@
 # under the License.
 
 import logging
+from enum import Enum
 from time import sleep
 from typing import Any, Dict, Optional, Tuple, TYPE_CHECKING
 
 from flask import current_app
+from requests.models import PreparedRequest
 from selenium.common.exceptions import (
     StaleElementReferenceException,
     TimeoutException,
@@ -40,6 +42,12 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla.models import User
+
+
+class DashboardStandaloneMode(Enum):
+    HIDE_NAV = 1
+    HIDE_NAV_AND_TITLE = 2
+    REPORT = 3
 
 
 class WebDriverProxy:
@@ -96,6 +104,10 @@ class WebDriverProxy:
     def get_screenshot(
         self, url: str, element_name: str, user: "User",
     ) -> Optional[bytes]:
+        params = {"standalone": DashboardStandaloneMode.REPORT.value}
+        req = PreparedRequest()
+        req.prepare_url(url, params)
+        url = req.url or ""
 
         driver = self.auth(user)
         driver.set_window_size(*self._window)
@@ -125,10 +137,11 @@ class WebDriverProxy:
             ]
             logger.debug("Wait %i seconds for chart animation", selenium_animation_wait)
             sleep(selenium_animation_wait)
-            logger.info("Taking a PNG screenshot or url %s", url)
+            logger.info("Taking a PNG screenshot of url %s", url)
             img = element.screenshot_as_png
         except TimeoutException:
             logger.warning("Selenium timed out requesting url %s", url, exc_info=True)
+            img = element.screenshot_as_png
         except StaleElementReferenceException:
             logger.error(
                 "Selenium got a stale element while requesting url %s",

@@ -63,6 +63,7 @@ def load_energy(
         tbl = table(table_name=tbl_name)
     tbl.description = "Energy consumption"
     tbl.database = database
+    tbl.filter_select_enabled = True
 
     if not any(col.metric_name == "sum__value" for col in tbl.metrics):
         col = str(column("value").compile(db.engine))

@@ -30,9 +30,7 @@ from superset.utils import core as utils
 from .base import BaseSupersetView, DeleteMixin, json_success, SupersetModelView
 
 
-class SavedQueryView(
-    SupersetModelView, DeleteMixin
-):  # pylint: disable=too-many-ancestors
+class SavedQueryView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(SavedQuery)
     include_route_methods = RouteMethod.CRUD_SET
 

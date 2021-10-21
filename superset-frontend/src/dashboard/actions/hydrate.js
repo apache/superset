@@ -280,7 +280,6 @@ export const hydrateDashboard = (dashboardData, chartData) => (
 
   const nativeFilters = getInitialNativeFilterState({
     filterConfig: metadata?.native_filter_configuration || [],
-    filterSetsConfig: metadata?.filter_sets_configuration || [],
   });
 
   if (!metadata) {
@@ -335,7 +334,7 @@ export const hydrateDashboard = (dashboardData, chartData) => (
       dashboardInfo: {
         ...dashboardData,
         metadata,
-        userId: String(user.userId), // legacy, please use state.user instead
+        userId: user.userId ? String(user.userId) : null, // legacy, please use state.user instead
         dash_edit_perm: canEdit,
         dash_save_perm: findPermission('can_save_dash', 'Superset', roles),
         dash_share_perm: findPermission(
@@ -378,6 +377,7 @@ export const hydrateDashboard = (dashboardData, chartData) => (
         hasUnsavedChanges: false,
         maxUndoHistoryExceeded: false,
         lastModifiedTime: dashboardData.changed_on,
+        isRefreshing: false,
         activeTabs: [],
       },
       dashboardLayout,

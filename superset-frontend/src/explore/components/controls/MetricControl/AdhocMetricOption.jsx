@@ -36,6 +36,8 @@ const propTypes = {
   onMoveLabel: PropTypes.func,
   onDropLabel: PropTypes.func,
   index: PropTypes.number,
+  type: PropTypes.string,
+  multi: PropTypes.bool,
 };
 
 class AdhocMetricOption extends React.PureComponent {
@@ -46,7 +48,7 @@ class AdhocMetricOption extends React.PureComponent {
 
   onRemoveMetric(e) {
     e.stopPropagation();
-    this.props.onRemoveMetric();
+    this.props.onRemoveMetric(this.props.index);
   }
 
   render() {
@@ -60,6 +62,8 @@ class AdhocMetricOption extends React.PureComponent {
       onMoveLabel,
       onDropLabel,
       index,
+      type,
+      multi,
     } = this.props;
 
     return (
@@ -79,9 +83,10 @@ class AdhocMetricOption extends React.PureComponent {
           onMoveLabel={onMoveLabel}
           onDropLabel={onDropLabel}
           index={index}
-          type={DndItemType.AdhocMetricOption}
+          type={type ?? DndItemType.AdhocMetricOption}
           withCaret
           isFunction
+          multi={multi}
         />
       </AdhocMetricPopoverTrigger>
     );

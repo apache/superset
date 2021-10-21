@@ -66,7 +66,7 @@ class TestDictImportExport(SupersetTestCase):
         cls.delete_imports()
 
     def create_table(
-        self, name, schema="", id=0, cols_names=[], cols_uuids=None, metric_names=[]
+        self, name, schema=None, id=0, cols_names=[], cols_uuids=None, metric_names=[]
     ):
         database_name = "main"
         name = "{0}{1}".format(NAME_PREFIX, name)
@@ -127,9 +127,6 @@ class TestDictImportExport(SupersetTestCase):
 
     def get_datasource(self, datasource_id):
         return db.session.query(DruidDatasource).filter_by(id=datasource_id).first()
-
-    def get_table_by_name(self, name):
-        return db.session.query(SqlaTable).filter_by(table_name=name).first()
 
     def yaml_compare(self, obj_1, obj_2):
         obj_1_str = yaml.safe_dump(obj_1, default_flow_style=False)

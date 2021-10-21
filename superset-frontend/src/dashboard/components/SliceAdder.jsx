@@ -23,7 +23,7 @@ import { List } from 'react-virtualized';
 import { createFilter } from 'react-search-input';
 import { t, styled } from '@superset-ui/core';
 import { Input } from 'src/common/components';
-import Select from 'src/components/Select';
+import { Select } from 'src/components';
 import Loading from 'src/components/Loading';
 import {
   CHART_TYPE,
@@ -59,10 +59,10 @@ const defaultProps = {
 
 const KEYS_TO_FILTERS = ['slice_name', 'viz_type', 'datasource_name'];
 const KEYS_TO_SORT = {
-  slice_name: 'Name',
-  viz_type: 'Vis type',
-  datasource_name: 'Dataset',
-  changed_on: 'Recent',
+  slice_name: 'name',
+  viz_type: 'viz type',
+  datasource_name: 'dataset',
+  changed_on: 'recent',
 };
 
 const DEFAULT_SORT_KEY = 'changed_on';
@@ -168,8 +168,7 @@ class SliceAdder extends React.Component {
     }));
   }
 
-  handleSelect(object) {
-    const sortBy = object.value;
+  handleSelect(sortBy) {
     this.setState(prevState => ({
       sortBy,
       filteredSlices: this.getFilteredSortedSlices(

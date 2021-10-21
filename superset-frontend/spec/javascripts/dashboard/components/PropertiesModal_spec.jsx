@@ -150,8 +150,9 @@ describe('PropertiesModal', () => {
       const wrapper = setup();
       const modalInstance = wrapper.find('PropertiesModal').instance();
       const spy = jest.spyOn(modalInstance, 'updateFormState');
-      modalInstance.onOwnersChange('foo');
-      expect(spy).toHaveBeenCalledWith('owners', 'foo');
+      const newOwners = [{ value: 1, label: 'foo' }];
+      modalInstance.onOwnersChange(newOwners);
+      expect(spy).toHaveBeenCalledWith('owners', newOwners);
     });
   });
   describe('onMetadataChange', () => {

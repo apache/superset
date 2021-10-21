@@ -20,6 +20,8 @@ from typing import Any, Dict, NamedTuple, List, Pattern, Tuple, Union
 from unittest.mock import patch
 import pytest
 
+import sqlalchemy as sa
+
 from superset import db
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.db_engine_specs.bigquery import BigQueryEngineSpec
@@ -241,7 +243,7 @@ class TestDatabaseModel(SupersetTestCase):
             FilterTestCase(FilterOperator.IN, ["1", "2"], "IN (1, 2)"),
             FilterTestCase(FilterOperator.NOT_IN, ["1", "2"], "NOT IN (1, 2)"),
         )
-        table = self.get_table_by_name("birth_names")
+        table = self.get_table(name="birth_names")
         for filter_ in filters:
             query_obj = {
                 "granularity": None,
@@ -263,6 +265,43 @@ class TestDatabaseModel(SupersetTestCase):
                 )
             else:
                 self.assertIn(filter_.expected, sql)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_boolean_type_where_operators(self):
+        table = self.get_table(name="birth_names")
+        db.session.add(
+            TableColumn(
+                column_name="boolean_gender",
+                expression="case when gender = 'boy' then True else False end",
+                type="BOOLEAN",
+                table=table,
+            )
+        )
+        query_obj = {
+            "granularity": None,
+            "from_dttm": None,
+            "to_dttm": None,
+            "groupby": ["boolean_gender"],
+            "metrics": ["count"],
+            "is_timeseries": False,
+            "filter": [
+                {
+                    "col": "boolean_gender",
+                    "op": FilterOperator.IN,
+                    "val": ["true", "false"],
+                }
+            ],
+            "extras": {},
+        }
+        sqla_query = table.get_sqla_query(**query_obj)
+        sql = table.database.compile_sqla_query(sqla_query.sqla_query)
+        dialect = table.database.get_dialect()
+        operand = "(true, false)"
+        # override native_boolean=False behavior in MySQLCompiler
+        # https://github.com/sqlalchemy/sqlalchemy/blob/master/lib/sqlalchemy/dialects/mysql/base.py
+        if not dialect.supports_native_boolean and dialect.name != "mysql":
+            operand = "(1, 0)"
+        self.assertIn(f"IN {operand}", sql)
 
     def test_incorrect_jinja_syntax_raises_correct_exception(self):
         query_obj = {
@@ -424,3 +463,23 @@ class TestDatabaseModel(SupersetTestCase):
         db.session.delete(table)
         db.session.delete(database)
         db.session.commit()
+
+    def test_values_for_column(self):
+        table = SqlaTable(
+            table_name="test_null_in_column",
+            sql="SELECT 'foo' as foo UNION SELECT 'bar' UNION SELECT NULL",
+            database=get_example_database(),
+        )
+        TableColumn(column_name="foo", type="VARCHAR(255)", table=table)
+
+        with_null = table.values_for_column(
+            column_name="foo", limit=10000, contain_null=True
+        )
+        assert None in with_null
+        assert len(with_null) == 3
+
+        without_null = table.values_for_column(
+            column_name="foo", limit=10000, contain_null=False
+        )
+        assert None not in without_null
+        assert len(without_null) == 2

@@ -19,8 +19,9 @@
 import React, { useState, useMemo } from 'react';
 import moment, { Moment } from 'moment';
 import { styled } from '@superset-ui/core';
-import { RangePicker as AntRangePicker } from 'src/components/DatePicker';
-import { FilterContainer, BaseFilter, FilterTitle } from './Base';
+import { RangePicker } from 'src/components/DatePicker';
+import { FormLabel } from 'src/components/Form';
+import { BaseFilter } from './Base';
 
 interface DateRangeFilterProps extends BaseFilter {
   onSubmit: (val: number[]) => void;
@@ -29,13 +30,12 @@ interface DateRangeFilterProps extends BaseFilter {
 
 type ValueState = [number, number];
 
-const RangePicker = styled(AntRangePicker)`
-  padding: 0 11px;
-  transform: translateX(-7px);
-`;
-
-const RangeFilterContainer = styled(FilterContainer)`
-  margin-right: 1em;
+const RangeFilterContainer = styled.div`
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  width: 360px;
 `;
 
 export default function DateRangeFilter({
@@ -51,10 +51,9 @@ export default function DateRangeFilter({
 
   return (
     <RangeFilterContainer>
-      <FilterTitle>{Header}:</FilterTitle>
+      <FormLabel>{Header}</FormLabel>
       <RangePicker
         showTime
-        bordered={false}
         value={momentValue}
         onChange={momentRange => {
           if (!momentRange) {

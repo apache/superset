@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
-import React, { useEffect } from 'react';
+import { styled, TimeRangeEndpoint } from '@superset-ui/core';
+import React, { useCallback, useEffect } from 'react';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import { NO_TIME_RANGE } from 'src/explore/constants';
 import { PluginFilterTimeProps } from './types';
@@ -31,7 +31,8 @@ const ControlContainer = styled.div<{
   validateStatus?: 'error' | 'warning' | 'info';
 }>`
   padding: 2px;
-  & > span {
+  & > span,
+  & > span:hover {
     border: 2px solid transparent;
     display: inline-block;
     border: ${({ theme, validateStatus }) =>
@@ -54,6 +55,11 @@ const ControlContainer = styled.div<{
   }
 `;
 
+const endpoints = ['inclusive', 'exclusive'] as [
+  TimeRangeEndpoint,
+  TimeRangeEndpoint,
+];
+
 export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
   const {
     setDataMask,
@@ -65,19 +71,22 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
     formData: { inputRef },
   } = props;
 
-  const handleTimeRangeChange = (timeRange?: string): void => {
-    const isSet = timeRange && timeRange !== NO_TIME_RANGE;
-    setDataMask({
-      extraFormData: isSet
-        ? {
-            time_range: timeRange,
-          }
-        : {},
-      filterState: {
-        value: isSet ? timeRange : undefined,
-      },
-    });
-  };
+  const handleTimeRangeChange = useCallback(
+    (timeRange?: string): void => {
+      const isSet = timeRange && timeRange !== NO_TIME_RANGE;
+      setDataMask({
+        extraFormData: isSet
+          ? {
+              time_range: timeRange,
+            }
+          : {},
+        filterState: {
+          value: isSet ? timeRange : undefined,
+        },
+      });
+    },
+    [setDataMask],
+  );
 
   useEffect(() => {
     handleTimeRangeChange(filterState.value);
@@ -96,9 +105,11 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
         onMouseLeave={unsetFocusedFilter}
       >
         <DateFilterControl
+          endpoints={endpoints}
           value={filterState.value || NO_TIME_RANGE}
           name="time_range"
           onChange={handleTimeRangeChange}
+          type={filterState.validateStatus}
         />
       </ControlContainer>
     </TimeFilterStyles>

@@ -18,6 +18,7 @@
  */
 import React, { ReactNode, useCallback, useState } from 'react';
 import { ControlType } from '@superset-ui/chart-controls';
+import { ControlComponentProps as BaseControlComponentProps } from '@superset-ui/chart-controls/lib/shared-controls/components/types';
 import { JsonValue, QueryFormData } from '@superset-ui/core';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
@@ -42,6 +43,13 @@ export type ControlProps = {
   hidden?: boolean;
   renderTrigger?: boolean;
 };
+
+/**
+ *
+ */
+export type ControlComponentProps<
+  ValueType extends JsonValue = JsonValue
+> = Omit<ControlProps, 'value'> & BaseControlComponentProps<ValueType>;
 
 export default function Control(props: ControlProps) {
   const {

@@ -54,10 +54,20 @@ extraEnv: {}
   # GUNICORN_TIMEOUT: 300
 
 
-   # OAUTH_HOME_DOMAIN: ..
+  # OAUTH_HOME_DOMAIN: ..
   # # If a whitelist is not set, any address that can use your OAuth2 endpoint will be able to login.
   # #   this includes any random Gmail address if your OAuth2 Web App is set to External.
   # OAUTH_WHITELIST_REGEX: ...
+
+## Extra environment variables in RAW format that will be passed into pods
+##
+extraEnvRaw: []
+  # Load DB password from other secret (e.g. for zalando operator)
+  # - name: DB_PASS
+  #   valueFrom:
+  #     secretKeyRef:
+  #       name: superset.superset-postgres.credentials.postgresql.acid.zalan.do
+  #       key: password
 
 ## Extra environment variables to pass as secrets
 ##
@@ -81,6 +91,22 @@ extraConfigs: {}
   #       tables: []
 
 extraSecrets: {}
+
+extraVolumes: []
+ # - name: customConfig
+ #   configMap:
+ #     name: '{{ template "superset.fullname" . }}-custom-config'
+ # - name: additionalSecret
+ #   secret:
+ #     secretName: my-secret
+ #     defaultMode: 0600
+
+extraVolumeMounts: []
+ # - name: customConfig
+ #   mountPath: /mnt/config
+ #   readOnly: true
+ # - name: additionalSecret:
+ #   mountPath: /mnt/secret
 
 # A dictionary of overrides to append at the end of superset_config.py - the name does not matter
 # WARNING: the order is not guaranteed
@@ -168,6 +194,15 @@ resources: {}
   #   memory: 128Mi
 
 ##
+## Custom hostAliases for all superset pods
+## https://kubernetes.io/docs/tasks/network/customize-hosts-file-for-pods/
+hostAliases: []
+# - hostnames:
+#   - nodns.my.lan
+#   ip: 18.27.36.45
+
+
+##
 ## Superset node configuration
 supersetNode:
   command:
@@ -182,6 +217,7 @@ supersetNode:
     db_user: superset
     db_pass: superset
     db_name: superset
+  env: {}
   forceReload: false # If true, forces deployment to reload on each upgrade
   initContainers:
     - name: wait-for-postgres
@@ -276,6 +312,7 @@ init:
       command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
   initscript: |-
     #!/bin/sh
+    set -eu
     echo "Upgrading DB schema..."
     superset db upgrade
     echo "Initializing roles..."

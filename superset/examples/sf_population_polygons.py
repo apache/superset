@@ -58,6 +58,7 @@ def load_sf_population_polygons(
         tbl = table(table_name=tbl_name)
     tbl.description = "Population density of San Francisco"
     tbl.database = database
+    tbl.filter_select_enabled = True
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()

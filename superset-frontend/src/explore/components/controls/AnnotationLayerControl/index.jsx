@@ -62,12 +62,10 @@ class AnnotationLayerControl extends React.PureComponent {
     this.state = {
       popoverVisible: {},
       addedAnnotationIndex: null,
-      popoverClear: false,
     };
     this.addAnnotationLayer = this.addAnnotationLayer.bind(this);
     this.removeAnnotationLayer = this.removeAnnotationLayer.bind(this);
     this.handleVisibleChange = this.handleVisibleChange.bind(this);
-    this.handlePopoverClear = this.handlePopoverClear.bind(this);
   }
 
   componentDidMount() {
@@ -105,19 +103,9 @@ class AnnotationLayerControl extends React.PureComponent {
   }
 
   handleVisibleChange(visible, popoverKey) {
-    if (!this.state.popoverClear) {
-      this.setState(prevState => ({
-        popoverVisible: { ...prevState.popoverVisible, [popoverKey]: visible },
-      }));
-    } else {
-      this.handlePopoverClear(false);
-    }
-  }
-
-  handlePopoverClear(popoverClear) {
-    this.setState({
-      popoverClear,
-    });
+    this.setState(prevState => ({
+      popoverVisible: { ...prevState.popoverVisible, [popoverKey]: visible },
+    }));
   }
 
   removeAnnotationLayer(annotation) {
@@ -143,7 +131,6 @@ class AnnotationLayerControl extends React.PureComponent {
             this.handleVisibleChange(false, popoverKey);
             this.setState({ addedAnnotationIndex: null });
           }}
-          onPopoverClear={this.handlePopoverClear}
         />
       </div>
     );

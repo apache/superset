@@ -52,7 +52,7 @@
   ],
   "license": "0BSD",
   "scripts": {
-    "build": "gatsby build && cp .htaccess public/",
+    "build": "gatsby build && cp .htaccess .asf.yaml public/",
     "develop": "gatsby develop",
     "develop-ga": "GATSBY_GTAG_DEBUG=true gatsby develop",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md,mdx}\"",

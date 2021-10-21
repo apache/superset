@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=too-many-public-methods, invalid-name
 """Unit tests for Superset"""
 import json
 import unittest
@@ -63,10 +62,10 @@ class TestDatasetApi(SupersetTestCase):
     @staticmethod
     def insert_dataset(
         table_name: str,
-        schema: str,
         owners: List[int],
         database: Database,
         sql: Optional[str] = None,
+        schema: Optional[str] = None,
     ) -> SqlaTable:
         obj_owners = list()
         for owner in owners:
@@ -86,7 +85,7 @@ class TestDatasetApi(SupersetTestCase):
 
     def insert_default_dataset(self):
         return self.insert_dataset(
-            "ab_permission", "", [self.get_user("admin").id], get_main_database()
+            "ab_permission", [self.get_user("admin").id], get_main_database()
         )
 
     def get_fixture_datasets(self) -> List[SqlaTable]:
@@ -105,11 +104,7 @@ class TestDatasetApi(SupersetTestCase):
             for table_name in self.fixture_virtual_table_names:
                 datasets.append(
                     self.insert_dataset(
-                        table_name,
-                        "",
-                        [admin.id],
-                        main_db,
-                        "SELECT * from ab_view_menu;",
+                        table_name, [admin.id], main_db, "SELECT * from ab_view_menu;",
                     )
                 )
             yield datasets
@@ -126,9 +121,7 @@ class TestDatasetApi(SupersetTestCase):
             admin = self.get_user("admin")
             main_db = get_main_database()
             for tables_name in self.fixture_tables_names:
-                datasets.append(
-                    self.insert_dataset(tables_name, "", [admin.id], main_db)
-                )
+                datasets.append(self.insert_dataset(tables_name, [admin.id], main_db))
             yield datasets
 
             # rollback changes
@@ -185,7 +178,9 @@ class TestDatasetApi(SupersetTestCase):
             "changed_on_delta_humanized",
             "changed_on_utc",
             "database",
+            "datasource_type",
             "default_endpoint",
+            "description",
             "explore_url",
             "extra",
             "id",
@@ -226,6 +221,7 @@ class TestDatasetApi(SupersetTestCase):
         Dataset API: Test get dataset item
         """
         table = self.get_energy_usage_dataset()
+        main_db = get_main_database()
         self.login(username="admin")
         uri = f"api/v1/dataset/{table.id}"
         rv = self.get_assert_metric(uri, "get")
@@ -233,7 +229,11 @@ class TestDatasetApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         expected_result = {
             "cache_timeout": None,
-            "database": {"database_name": "examples", "id": 1},
+            "database": {
+                "backend": main_db.backend,
+                "database_name": "examples",
+                "id": 1,
+            },
             "default_endpoint": None,
             "description": "Energy consumption",
             "extra": None,
@@ -248,9 +248,10 @@ class TestDatasetApi(SupersetTestCase):
             "table_name": "energy_usage",
             "template_params": None,
         }
-        assert {
-            k: v for k, v in response["result"].items() if k in expected_result
-        } == expected_result
+        if response["result"]["database"]["backend"] not in ("presto", "hive"):
+            assert {
+                k: v for k, v in response["result"].items() if k in expected_result
+            } == expected_result
         assert len(response["result"]["columns"]) == 3
         assert len(response["result"]["metrics"]) == 2
 
@@ -270,11 +271,13 @@ class TestDatasetApi(SupersetTestCase):
         datasets = []
         if example_db.backend == "postgresql":
             datasets.append(
-                self.insert_dataset("ab_permission", "public", [], get_main_database())
+                self.insert_dataset(
+                    "ab_permission", [], get_main_database(), schema="public"
+                )
             )
             datasets.append(
                 self.insert_dataset(
-                    "columns", "information_schema", [], get_main_database()
+                    "columns", [], get_main_database(), schema="information_schema",
                 )
             )
             schema_values = [
@@ -543,6 +546,49 @@ class TestDatasetApi(SupersetTestCase):
         uri = "api/v1/dataset/"
         rv = self.post_assert_metric(uri, table_data, "post")
         assert rv.status_code == 422
+
+    @patch("superset.models.core.Database.get_columns")
+    @patch("superset.models.core.Database.has_table_by_name")
+    @patch("superset.models.core.Database.get_table")
+    def test_create_dataset_validate_view_exists(
+        self, mock_get_table, mock_has_table_by_name, mock_get_columns
+    ):
+        """
+        Dataset API: Test create dataset validate view exists
+        """
+
+        mock_get_columns.return_value = [
+            {"name": "col", "type": "VARCHAR", "type_generic": None, "is_dttm": None,}
+        ]
+
+        mock_has_table_by_name.return_value = False
+        mock_get_table.return_value = None
+
+        example_db = get_example_database()
+        engine = example_db.get_sqla_engine()
+        dialect = engine.dialect
+
+        with patch.object(
+            dialect, "get_view_names", wraps=dialect.get_view_names
+        ) as patch_get_view_names:
+            patch_get_view_names.return_value = ["test_case_view"]
+
+            self.login(username="admin")
+            table_data = {
+                "database": example_db.id,
+                "schema": "",
+                "table_name": "test_case_view",
+            }
+
+            uri = "api/v1/dataset/"
+            rv = self.post_assert_metric(uri, table_data, "post")
+            assert rv.status_code == 201
+
+            # cleanup
+            data = json.loads(rv.data.decode("utf-8"))
+            uri = f'api/v1/dataset/{data.get("id")}'
+            rv = self.client.delete(uri)
+            assert rv.status_code == 200
 
     @patch("superset.datasets.dao.DatasetDAO.create")
     def test_create_dataset_sqlalchemy_error(self, mock_dao_create):
@@ -921,7 +967,7 @@ class TestDatasetApi(SupersetTestCase):
         dataset = self.insert_default_dataset()
         self.login(username="admin")
         ab_user = self.insert_dataset(
-            "ab_user", "", [self.get_user("admin").id], get_main_database()
+            "ab_user", [self.get_user("admin").id], get_main_database()
         )
         table_data = {"table_name": "ab_user"}
         uri = f"api/v1/dataset/{dataset.id}"
@@ -1494,6 +1540,8 @@ class TestDatasetApi(SupersetTestCase):
         assert dataset.table_name == "imported_dataset"
         assert str(dataset.uuid) == dataset_config["uuid"]
 
+        dataset.owners = []
+        database.owners = []
         db.session.delete(dataset)
         db.session.delete(database)
         db.session.commit()
@@ -1586,6 +1634,8 @@ class TestDatasetApi(SupersetTestCase):
         )
         dataset = database.tables[0]
 
+        dataset.owners = []
+        database.owners = []
         db.session.delete(dataset)
         db.session.delete(database)
         db.session.commit()

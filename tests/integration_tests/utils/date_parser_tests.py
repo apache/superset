@@ -14,16 +14,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from unittest.mock import patch
 
+from dateutil.relativedelta import relativedelta
+
 from superset.charts.commands.exceptions import (
+    TimeRangeAmbiguousError,
     TimeRangeParseFailError,
-    TimeRangeUnclearError,
 )
 from superset.utils.date_parser import (
     DateRangeMigration,
     datetime_eval,
+    get_past_or_future,
     get_since_until,
     parse_human_datetime,
     parse_human_timedelta,
@@ -288,15 +291,47 @@ class TestDateParser(SupersetTestCase):
         self.assertEqual(parse_past_timedelta("52 weeks"), timedelta(364))
         self.assertEqual(parse_past_timedelta("1 month"), timedelta(31))
 
+    def test_get_past_or_future(self):
+        # 2020 is a leap year
+        dttm = datetime(2020, 2, 29)
+        self.assertEqual(get_past_or_future("1 year", dttm), datetime(2021, 2, 28))
+        self.assertEqual(get_past_or_future("-1 year", dttm), datetime(2019, 2, 28))
+        self.assertEqual(get_past_or_future("1 month", dttm), datetime(2020, 3, 29))
+        self.assertEqual(get_past_or_future("3 month", dttm), datetime(2020, 5, 29))
+
     def test_parse_human_datetime(self):
-        with self.assertRaises(TimeRangeUnclearError):
+        with self.assertRaises(TimeRangeAmbiguousError):
             parse_human_datetime("  2 days  ")
 
-        with self.assertRaises(TimeRangeUnclearError):
+        with self.assertRaises(TimeRangeAmbiguousError):
             parse_human_datetime("2 day")
 
         with self.assertRaises(TimeRangeParseFailError):
             parse_human_datetime("xxxxxxx")
+
+        self.assertEqual(parse_human_datetime("2015-04-03"), datetime(2015, 4, 3, 0, 0))
+
+        self.assertEqual(
+            parse_human_datetime("2/3/1969"), datetime(1969, 2, 3, 0, 0),
+        )
+
+        self.assertLessEqual(parse_human_datetime("now"), datetime.now())
+
+        self.assertLess(parse_human_datetime("yesterday"), datetime.now())
+
+        self.assertEqual(
+            date.today() - timedelta(1), parse_human_datetime("yesterday").date()
+        )
+
+        self.assertEqual(
+            parse_human_datetime("one year ago").date(),
+            (datetime.now() - relativedelta(years=1)).date(),
+        )
+
+        self.assertEqual(
+            parse_human_datetime("2 years after").date(),
+            (datetime.now() + relativedelta(years=2)).date(),
+        )
 
     def test_DateRangeMigration(self):
         params = '{"time_range": "   8 days     : 2020-03-10T00:00:00"}'

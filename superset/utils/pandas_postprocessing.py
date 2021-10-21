@@ -21,16 +21,18 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import geohash as geohash_lib
 import numpy as np
+import pandas as pd
 from flask_babel import gettext as _
 from geopy.point import Point
 from pandas import DataFrame, NamedAgg, Series, Timestamp
 
-from superset.constants import NULL_STRING
+from superset.constants import NULL_STRING, PandasAxis, PandasPostprocessingCompare
 from superset.exceptions import QueryObjectValidationError
 from superset.utils.core import (
     DTTM_ALIAS,
     PostProcessingBoxplotWhiskerType,
     PostProcessingContributionOrientation,
+    TIME_COMPARISION,
 )
 
 NUMPY_FUNCTIONS = {
@@ -88,12 +90,12 @@ PROPHET_TIME_GRAIN_MAP = {
     "PT5M": "5min",
     "PT10M": "10min",
     "PT15M": "15min",
-    "PT0.5H": "30min",
+    "PT30M": "30min",
     "PT1H": "H",
     "P1D": "D",
     "P1W": "W",
     "P1M": "M",
-    "P0.25Y": "Q",
+    "P3M": "Q",
     "P1Y": "A",
     "1969-12-28T00:00:00Z/P1W": "W",
     "1969-12-29T00:00:00Z/P1W": "W",
@@ -129,6 +131,9 @@ def _flatten_column_after_pivot(
 def validate_column_args(*argnames: str) -> Callable[..., Any]:
     def wrapper(func: Callable[..., Any]) -> Callable[..., Any]:
         def wrapped(df: DataFrame, **options: Any) -> Any:
+            if options.get("is_pivot_df"):
+                # skip validation when pivot Dataframe
+                return func(df, **options)
             columns = df.columns.tolist()
             for name in argnames:
                 if name in options and not all(
@@ -209,7 +214,7 @@ def _append_columns(
 
 
 @validate_column_args("index", "columns")
-def pivot(  # pylint: disable=too-many-arguments
+def pivot(  # pylint: disable=too-many-arguments,too-many-locals
     df: DataFrame,
     index: List[str],
     aggregates: Dict[str, Dict[str, Any]],
@@ -221,6 +226,7 @@ def pivot(  # pylint: disable=too-many-arguments
     marginal_distributions: Optional[bool] = None,
     marginal_distribution_name: Optional[str] = None,
     flatten_columns: bool = True,
+    reset_index: bool = True,
 ) -> DataFrame:
     """
     Perform a pivot operation on a DataFrame.
@@ -241,6 +247,7 @@ def pivot(  # pylint: disable=too-many-arguments
     :param marginal_distribution_name: Name of row/column with marginal distribution.
            Default to 'All'.
     :param flatten_columns: Convert column names to strings
+    :param reset_index: Convert index to column
     :return: A pivot table
     :raises QueryObjectValidationError: If the request in incorrect
     """
@@ -262,6 +269,16 @@ def pivot(  # pylint: disable=too-many-arguments
     #  Remove once/if support is added.
     aggfunc = {na.column: na.aggfunc for na in aggregate_funcs.values()}
 
+    # When dropna = False, the pivot_table function will calculate cartesian-product
+    # for MultiIndex.
+    # https://github.com/apache/superset/issues/15956
+    # https://github.com/pandas-dev/pandas/issues/18030
+    series_set = set()
+    if not drop_missing_columns and columns:
+        for row in df[columns].itertuples():
+            for metric in aggfunc.keys():
+                series_set.add(str(tuple([metric]) + tuple(row[1:])))
+
     df = df.pivot_table(
         values=aggfunc.keys(),
         index=index,
@@ -273,6 +290,12 @@ def pivot(  # pylint: disable=too-many-arguments
         margins_name=marginal_distribution_name,
     )
 
+    if not drop_missing_columns and len(series_set) > 0 and not df.empty:
+        for col in df.columns:
+            series = str(col)
+            if series not in series_set:
+                df = df.drop(col, axis=PandasAxis.COLUMN)
+
     if combine_value_with_metric:
         df = df.stack(0).unstack()
 
@@ -282,7 +305,8 @@ def pivot(  # pylint: disable=too-many-arguments
             _flatten_column_after_pivot(col, aggregates) for col in df.columns
         ]
     # return index as regular column
-    df.reset_index(level=0, inplace=True)
+    if reset_index:
+        df.reset_index(level=0, inplace=True)
     return df
 
 
@@ -325,13 +349,14 @@ def sort(df: DataFrame, columns: Dict[str, bool]) -> DataFrame:
 @validate_column_args("columns")
 def rolling(  # pylint: disable=too-many-arguments
     df: DataFrame,
-    columns: Dict[str, str],
     rolling_type: str,
-    window: int,
+    columns: Optional[Dict[str, str]] = None,
+    window: Optional[int] = None,
     rolling_type_options: Optional[Dict[str, Any]] = None,
     center: bool = False,
     win_type: Optional[str] = None,
     min_periods: Optional[int] = None,
+    is_pivot_df: bool = False,
 ) -> DataFrame:
     """
     Apply a rolling window on the dataset. See the Pandas docs for further details:
@@ -351,14 +376,21 @@ def rolling(  # pylint: disable=too-many-arguments
     :param win_type: Type of window function.
     :param min_periods: The minimum amount of periods required for a row to be included
                         in the result set.
+    :param is_pivot_df: Dataframe is pivoted or not
     :return: DataFrame with the rolling columns
     :raises QueryObjectValidationError: If the request in incorrect
     """
     rolling_type_options = rolling_type_options or {}
-    df_rolling = df[columns.keys()]
+    columns = columns or {}
+    if is_pivot_df:
+        df_rolling = df
+    else:
+        df_rolling = df[columns.keys()]
     kwargs: Dict[str, Union[str, int]] = {}
-    if not window:
+    if window is None:
         raise QueryObjectValidationError(_("Undefined window for rolling operation"))
+    if window == 0:
+        raise QueryObjectValidationError(_("Window must be > 0"))
 
     kwargs["window"] = window
     if min_periods is not None:
@@ -377,18 +409,28 @@ def rolling(  # pylint: disable=too-many-arguments
         )
     try:
         df_rolling = getattr(df_rolling, rolling_type)(**rolling_type_options)
-    except TypeError:
+    except TypeError as ex:
         raise QueryObjectValidationError(
             _(
                 "Invalid options for %(rolling_type)s: %(options)s",
                 rolling_type=rolling_type,
                 options=rolling_type_options,
             )
-        )
-    df = _append_columns(df, df_rolling, columns)
+        ) from ex
+
+    if is_pivot_df:
+        agg_in_pivot_df = df.columns.get_level_values(0).drop_duplicates().to_list()
+        agg: Dict[str, Dict[str, Any]] = {col: {} for col in agg_in_pivot_df}
+        df_rolling.columns = [
+            _flatten_column_after_pivot(col, agg) for col in df_rolling.columns
+        ]
+        df_rolling.reset_index(level=0, inplace=True)
+    else:
+        df_rolling = _append_columns(df, df_rolling, columns)
+
     if min_periods:
-        df = df[min_periods:]
-    return df
+        df_rolling = df_rolling[min_periods:]
+    return df_rolling
 
 
 @validate_column_args("columns", "drop", "rename")
@@ -425,9 +467,14 @@ def select(
 
 
 @validate_column_args("columns")
-def diff(df: DataFrame, columns: Dict[str, str], periods: int = 1,) -> DataFrame:
+def diff(
+    df: DataFrame,
+    columns: Dict[str, str],
+    periods: int = 1,
+    axis: PandasAxis = PandasAxis.ROW,
+) -> DataFrame:
     """
-    Calculate row-by-row difference for select columns.
+    Calculate row-by-row or column-by-column difference for select columns.
 
     :param df: DataFrame on which the diff will be based.
     :param columns: columns on which to perform diff, mapping source column to
@@ -436,16 +483,75 @@ def diff(df: DataFrame, columns: Dict[str, str], periods: int = 1,) -> DataFrame
            on diff values calculated from `y`, leaving the original column `y`
            unchanged.
     :param periods: periods to shift for calculating difference.
+    :param axis: 0 for row, 1 for column. default 0.
     :return: DataFrame with diffed columns
     :raises QueryObjectValidationError: If the request in incorrect
     """
     df_diff = df[columns.keys()]
-    df_diff = df_diff.diff(periods=periods)
+    df_diff = df_diff.diff(periods=periods, axis=axis)
     return _append_columns(df, df_diff, columns)
 
 
+@validate_column_args("source_columns", "compare_columns")
+def compare(  # pylint: disable=too-many-arguments
+    df: DataFrame,
+    source_columns: List[str],
+    compare_columns: List[str],
+    compare_type: Optional[PandasPostprocessingCompare],
+    drop_original_columns: Optional[bool] = False,
+    precision: Optional[int] = 4,
+) -> DataFrame:
+    """
+    Calculate column-by-column changing for select columns.
+
+    :param df: DataFrame on which the compare will be based.
+    :param source_columns: Main query columns
+    :param compare_columns: Columns being compared
+    :param compare_type: Type of compare. Choice of `absolute`, `percentage` or `ratio`
+    :param drop_original_columns: Whether to remove the source columns and
+           compare columns.
+    :param precision: Round a change rate to a variable number of decimal places.
+    :return: DataFrame with compared columns.
+    :raises QueryObjectValidationError: If the request in incorrect.
+    """
+    if len(source_columns) != len(compare_columns):
+        raise QueryObjectValidationError(
+            _("`compare_columns` must have the same length as `source_columns`.")
+        )
+    if compare_type not in tuple(PandasPostprocessingCompare):
+        raise QueryObjectValidationError(
+            _("`compare_type` must be `difference`, `percentage` or `ratio`")
+        )
+    if len(source_columns) == 0:
+        return df
+
+    for s_col, c_col in zip(source_columns, compare_columns):
+        if compare_type == PandasPostprocessingCompare.DIFF:
+            diff_series = df[s_col] - df[c_col]
+        elif compare_type == PandasPostprocessingCompare.PCT:
+            diff_series = (
+                ((df[s_col] - df[c_col]) / df[c_col]).astype(float).round(precision)
+            )
+        else:
+            # compare_type == "ratio"
+            diff_series = (df[s_col] / df[c_col]).astype(float).round(precision)
+        diff_df = diff_series.to_frame(
+            name=TIME_COMPARISION.join([compare_type, s_col, c_col])
+        )
+        df = pd.concat([df, diff_df], axis=1)
+
+    if drop_original_columns:
+        df = df.drop(source_columns + compare_columns, axis=1)
+    return df
+
+
 @validate_column_args("columns")
-def cum(df: DataFrame, columns: Dict[str, str], operator: str) -> DataFrame:
+def cum(
+    df: DataFrame,
+    operator: str,
+    columns: Optional[Dict[str, str]] = None,
+    is_pivot_df: bool = False,
+) -> DataFrame:
     """
     Calculate cumulative sum/product/min/max for select columns.
 
@@ -456,9 +562,14 @@ def cum(df: DataFrame, columns: Dict[str, str], operator: str) -> DataFrame:
            `y2` based on cumulative values calculated from `y`, leaving the original
            column `y` unchanged.
     :param operator: cumulative operator, e.g. `sum`, `prod`, `min`, `max`
+    :param is_pivot_df: Dataframe is pivoted or not
     :return: DataFrame with cumulated columns
     """
-    df_cum = df[columns.keys()]
+    columns = columns or {}
+    if is_pivot_df:
+        df_cum = df
+    else:
+        df_cum = df[columns.keys()]
     operation = "cum" + operator
     if operation not in ALLOWLIST_CUMULATIVE_FUNCTIONS or not hasattr(
         df_cum, operation
@@ -466,7 +577,17 @@ def cum(df: DataFrame, columns: Dict[str, str], operator: str) -> DataFrame:
         raise QueryObjectValidationError(
             _("Invalid cumulative operator: %(operator)s", operator=operator)
         )
-    return _append_columns(df, getattr(df_cum, operation)(), columns)
+    if is_pivot_df:
+        df_cum = getattr(df_cum, operation)()
+        agg_in_pivot_df = df.columns.get_level_values(0).drop_duplicates().to_list()
+        agg: Dict[str, Dict[str, Any]] = {col: {} for col in agg_in_pivot_df}
+        df_cum.columns = [
+            _flatten_column_after_pivot(col, agg) for col in df_cum.columns
+        ]
+        df_cum.reset_index(level=0, inplace=True)
+    else:
+        df_cum = _append_columns(df, getattr(df_cum, operation)(), columns)
+    return df_cum
 
 
 def geohash_decode(
@@ -489,8 +610,8 @@ def geohash_decode(
         return _append_columns(
             df, lonlat_df, {"latitude": latitude, "longitude": longitude}
         )
-    except ValueError:
-        raise QueryObjectValidationError(_("Invalid geohash string"))
+    except ValueError as ex:
+        raise QueryObjectValidationError(_("Invalid geohash string")) from ex
 
 
 def geohash_encode(
@@ -512,8 +633,8 @@ def geohash_encode(
             lambda row: geohash_lib.encode(row["latitude"], row["longitude"]), axis=1,
         )
         return _append_columns(df, encode_df, {"geohash": geohash})
-    except ValueError:
-        QueryObjectValidationError(_("Invalid longitude/latitude"))
+    except ValueError as ex:
+        raise QueryObjectValidationError(_("Invalid longitude/latitude")) from ex
 
 
 def geodetic_parse(
@@ -554,8 +675,8 @@ def geodetic_parse(
         if altitude:
             columns["altitude"] = altitude
         return _append_columns(df, geodetic_df, columns)
-    except ValueError:
-        raise QueryObjectValidationError(_("Invalid geodetic string"))
+    except ValueError as ex:
+        raise QueryObjectValidationError(_("Invalid geodetic string")) from ex
 
 
 @validate_column_args("columns")
@@ -634,14 +755,14 @@ def _prophet_fit_and_predict(  # pylint: disable=too-many-arguments
     Fit a prophet model and return a DataFrame with predicted results.
     """
     try:
+        # pylint: disable=import-error,import-outside-toplevel
+        from prophet import Prophet
+
         prophet_logger = logging.getLogger("prophet.plot")
-
         prophet_logger.setLevel(logging.CRITICAL)
-        from prophet import Prophet  # pylint: disable=import-error
-
         prophet_logger.setLevel(logging.NOTSET)
-    except ModuleNotFoundError:
-        raise QueryObjectValidationError(_("`prophet` package not installed"))
+    except ModuleNotFoundError as ex:
+        raise QueryObjectValidationError(_("`prophet` package not installed")) from ex
     model = Prophet(
         interval_width=confidence_interval,
         yearly_seasonality=yearly_seasonality,
@@ -672,7 +793,6 @@ def prophet(  # pylint: disable=too-many-arguments
 
     - `__yhat`: the forecast for the given date
     - `__yhat_lower`: the lower bound of the forecast for the given date
-    - `__yhat_upper`: the upper bound of the forecast for the given date
     - `__yhat_upper`: the upper bound of the forecast for the given date
 
 
@@ -836,3 +956,29 @@ def boxplot(
         for metric in metrics
     }
     return aggregate(df, groupby=groupby, aggregates=aggregates)
+
+
+def resample(
+    df: DataFrame,
+    rule: str,
+    method: str,
+    time_column: str,
+    fill_value: Optional[Union[float, int]] = None,
+) -> DataFrame:
+    """
+    resample a timeseries dataframe.
+
+    :param df: DataFrame to resample.
+    :param rule: The offset string representing target conversion.
+    :param method: How to fill the NaN value after resample.
+    :param time_column: existing columns in DataFrame.
+    :param fill_value: What values do fill missing.
+    :return: DataFrame after resample
+    :raises QueryObjectValidationError: If the request in incorrect
+    """
+    df = df.set_index(time_column)
+    if method == "asfreq" and fill_value is not None:
+        df = df.resample(rule).asfreq(fill_value=fill_value)
+    else:
+        df = getattr(df.resample(rule), method)()
+    return df.reset_index()

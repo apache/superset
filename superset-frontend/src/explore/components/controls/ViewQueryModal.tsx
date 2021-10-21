@@ -50,6 +50,14 @@ type Result = {
   language: string;
 };
 
+const StyledSyntaxContainer = styled.div`
+  height: 100%;
+`;
+
+const StyledSyntaxHighlighter = styled(SyntaxHighlighter)`
+  height: calc(100% - 26px); // 100% - clipboard height
+`;
+
 const ViewQueryModal: React.FC<Props> = props => {
   const [result, setResult] = useState<Result[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -93,7 +101,7 @@ const ViewQueryModal: React.FC<Props> = props => {
     <>
       {result.map(item =>
         item.query ? (
-          <div>
+          <StyledSyntaxContainer key={item.query}>
             <CopyToClipboard
               text={item.query}
               shouldShowText={false}
@@ -103,13 +111,13 @@ const ViewQueryModal: React.FC<Props> = props => {
                 </CopyButtonViewQuery>
               }
             />
-            <SyntaxHighlighter
+            <StyledSyntaxHighlighter
               language={item.language || undefined}
               style={github}
             >
               {item.query}
-            </SyntaxHighlighter>
-          </div>
+            </StyledSyntaxHighlighter>
+          </StyledSyntaxContainer>
         ) : null,
       )}
     </>

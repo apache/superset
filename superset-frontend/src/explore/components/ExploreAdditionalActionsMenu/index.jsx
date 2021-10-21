@@ -91,6 +91,8 @@ const ExploreAdditionalActionsMenu = props => {
                   latestQueryFormData={props.latestQueryFormData}
                 />
               }
+              draggable
+              resizable
               responsive
             />
           </Menu.Item>

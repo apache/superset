@@ -18,17 +18,19 @@
  */
 const path = require('path');
 
-// Suerset's webpack.config.js
+// Superset's webpack.config.js
 const customConfig = require('../webpack.config.js');
 
 module.exports = {
+  core: {
+    builder: 'webpack5',
+  },
   stories: ['../src/@(components|common|filters)/**/*.stories.@(t|j)sx'],
   addons: [
     '@storybook/addon-essentials',
     '@storybook/addon-links',
-    '@storybook/preset-typescript',
     'storybook-addon-jsx',
-    '@storybook/addon-knobs/register',
+    '@storybook/addon-knobs',
     'storybook-addon-paddings',
   ],
   webpackFinal: config => ({

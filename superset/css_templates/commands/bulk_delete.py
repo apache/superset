@@ -44,7 +44,7 @@ class BulkDeleteCssTemplateCommand(BaseCommand):
             return None
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
-            raise CssTemplateBulkDeleteFailedError()
+            raise CssTemplateBulkDeleteFailedError() from ex
 
     def validate(self) -> None:
         # Validate/populate model exists
