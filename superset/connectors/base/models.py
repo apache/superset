@@ -419,7 +419,9 @@ class BaseDatasource(
         """
         raise NotImplementedError()
 
-    def values_for_column(self, column_name: str, limit: int = 10000) -> List[Any]:
+    def values_for_column(
+        self, column_name: str, limit: int = 10000, contain_null: bool = True,
+    ) -> List[Any]:
         """Given a column, returns an iterable of distinct values
 
         This is used to populate the dropdown showing a list of
