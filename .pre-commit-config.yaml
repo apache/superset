@@ -48,3 +48,8 @@ repos:
     hooks:
       - id: black
         language_version: python3
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v2.2.1 # Use the sha or tag you want to point at
+    hooks:
+      - id: prettier
+        files: 'superset-frontend'

@@ -463,3 +463,23 @@ class TestDatabaseModel(SupersetTestCase):
         db.session.delete(table)
         db.session.delete(database)
         db.session.commit()
+
+    def test_values_for_column(self):
+        table = SqlaTable(
+            table_name="test_null_in_column",
+            sql="SELECT 'foo' as foo UNION SELECT 'bar' UNION SELECT NULL",
+            database=get_example_database(),
+        )
+        TableColumn(column_name="foo", type="VARCHAR(255)", table=table)
+
+        with_null = table.values_for_column(
+            column_name="foo", limit=10000, contain_null=True
+        )
+        assert None in with_null
+        assert len(with_null) == 3
+
+        without_null = table.values_for_column(
+            column_name="foo", limit=10000, contain_null=False
+        )
+        assert None not in without_null
+        assert len(without_null) == 2

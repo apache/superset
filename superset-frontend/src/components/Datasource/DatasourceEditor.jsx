@@ -409,8 +409,8 @@ class DatasourceEditor extends React.PureComponent {
       datasource: {
         ...props.datasource,
         owners: props.datasource.owners.map(owner => ({
-          value: owner.id,
-          label: `${owner.first_name} ${owner.last_name}`,
+          value: owner.value || owner.id,
+          label: owner.label || `${owner.first_name} ${owner.last_name}`,
         })),
         metrics: props.datasource.metrics?.map(metric => {
           const {
