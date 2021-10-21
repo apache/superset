@@ -45,9 +45,9 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
   );
-  const nativeFilters =
-    useSelector<RootState, Filters>(state => state.nativeFilters?.filters) ??
-    {};
+  const nativeFilters = useSelector<RootState, Filters>(
+    state => state.nativeFilters?.filters,
+  );
   const directPathToChild = useSelector<RootState, string[]>(
     state => state.dashboardState.directPathToChild,
   );
@@ -68,7 +68,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   }, [getLeafComponentIdFromPath(directPathToChild)]);
 
   // recalculate charts and tabs in scopes of native filters only when a scope or dashboard layout changes
-  const filterScopes = Object.values(nativeFilters).map(filter => ({
+  const filterScopes = Object.values(nativeFilters ?? {}).map(filter => ({
     id: filter.id,
     scope: filter.scope,
   }));

@@ -65,8 +65,8 @@ from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty, S
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table, text
-from sqlalchemy.sql.elements import ColumnClause
-from sqlalchemy.sql.expression import Label, Select, TextAsFrom, TextClause
+from sqlalchemy.sql.elements import ColumnClause, TextClause
+from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 
 from superset import app, db, is_feature_enabled, security_manager
@@ -103,6 +103,7 @@ VIRTUAL_TABLE_ALIAS = "virtual_table"
 
 
 class SqlaQuery(NamedTuple):
+    applied_template_filters: List[str]
     extra_cache_keys: List[Any]
     labels_expected: List[str]
     prequeries: List[str]
@@ -110,6 +111,7 @@ class SqlaQuery(NamedTuple):
 
 
 class QueryStringExtended(NamedTuple):
+    applied_template_filters: Optional[List[str]]
     labels_expected: List[str]
     prequeries: List[str]
     sql: str
@@ -755,7 +757,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         sql = sqlparse.format(sql, reindent=True)
         sql = self.mutate_query_from_config(sql)
         return QueryStringExtended(
-            labels_expected=sqlaq.labels_expected, sql=sql, prequeries=sqlaq.prequeries
+            applied_template_filters=sqlaq.applied_template_filters,
+            labels_expected=sqlaq.labels_expected,
+            prequeries=sqlaq.prequeries,
+            sql=sql,
         )
 
     def get_query_str(self, query_obj: QueryObjectDict) -> str:
@@ -809,6 +814,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     )
                 ) from ex
         sql = sqlparse.format(sql.strip("\t\r\n; "), strip_comments=True)
+        # we need to escape strings that SQLAlchemy interprets as bind parameters
+        sql = utils.escape_sqla_query_binds(sql)
         if not sql:
             raise QueryObjectValidationError(_("Virtual dataset query cannot be empty"))
         if len(sqlparse.split(sql)) > 1:
@@ -976,7 +983,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         extra_cache_keys: List[Any] = []
         template_kwargs["extra_cache_keys"] = extra_cache_keys
         removed_filters: List[str] = []
+        applied_template_filters: List[str] = []
         template_kwargs["removed_filters"] = removed_filters
+        template_kwargs["applied_filters"] = applied_template_filters
         template_processor = self.get_template_processor(**template_kwargs)
         db_engine_spec = self.db_engine_spec
         prequeries: List[str] = []
@@ -1392,6 +1401,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             labels_expected = [label]
 
         return SqlaQuery(
+            applied_template_filters=applied_template_filters,
             extra_cache_keys=extra_cache_keys,
             labels_expected=labels_expected,
             sqla_query=qry,
@@ -1489,6 +1499,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             error_message = utils.error_msg_from_exception(ex)
 
         return QueryResult(
+            applied_template_filters=query_str_ext.applied_template_filters,
             status=status,
             df=df,
             duration=datetime.now() - qry_start_dttm,
