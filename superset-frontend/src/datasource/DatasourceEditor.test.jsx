@@ -17,7 +17,6 @@
  * under the License.
  */
 import React from 'react';
-import { shallow, mount } from 'enzyme';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
@@ -25,16 +24,9 @@ import { Provider } from 'react-redux';
 import userEvent from '@testing-library/user-event';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-
-import { Radio } from 'src/components/Radio';
-
-import Icons from 'src/components/Icons';
-import Tabs from 'src/components/Tabs';
 import DatasourceEditor from 'src/datasource/DatasourceEditor';
-import Field from 'src/CRUD/Field';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import * as featureFlags from 'src/featureFlags';
-import TableSelector from 'src/components/TableSelector';
 
 const props = {
   datasource: mockDatasource['7__table'],
@@ -49,9 +41,7 @@ describe('DatasourceEditor', () => {
   const store = mockStore({});
   fetchMock.get(DATASOURCE_ENDPOINT, []);
 
-  let wrapper;
   let el;
-  let inst;
   let isFeatureEnabledMock;
 
   beforeEach(() => {
@@ -62,7 +52,7 @@ describe('DatasourceEditor', () => {
         </Provider>
       </ThemeProvider>
     );
-    render(el)
+    render(el);
   });
 
   it('is valid', () => {
@@ -77,8 +67,8 @@ describe('DatasourceEditor', () => {
     new Promise(done => {
       const columnsTab = screen.getByTestId('collection-tab-Columns');
 
-      userEvent.click(columnsTab)
-      const syncButton = screen.getByText(/sync columns from source/i)
+      userEvent.click(columnsTab);
+      const syncButton = screen.getByText(/sync columns from source/i);
       expect(syncButton).toBeInTheDocument();
 
       userEvent.click(syncButton);
@@ -91,59 +81,66 @@ describe('DatasourceEditor', () => {
     }));
 
   it('to add, remove and modify columns accordingly', () => {
-
     const columnsTab = screen.getByTestId('collection-tab-Columns');
-    userEvent.click(columnsTab)
+    userEvent.click(columnsTab);
 
-    const getToggles = screen.getAllByRole('button', { name: /toggle expand/i });
+    const getToggles = screen.getAllByRole('button', {
+      name: /toggle expand/i,
+    });
     userEvent.click(getToggles[0]);
     // should render text fields
     const getTextboxes = screen.getAllByRole('textbox');
-    expect(getTextboxes.length).toEqual(5)
+    expect(getTextboxes.length).toEqual(5);
 
-    const inputLabel = screen.getByPlaceholderText('Label')
+    const inputLabel = screen.getByPlaceholderText('Label');
     const inputDescription = screen.getByPlaceholderText('Description');
     const inputDtmFormat = screen.getByPlaceholderText('%Y/%m/%d');
-    const inputCertifedBy = screen.getAllByPlaceholderText('Certified by')
-    const inputerCertDetails = screen.getByPlaceholderText('Certification details');
+    const inputCertifedBy = screen.getAllByPlaceholderText('Certified by');
+    const inputerCertDetails = screen.getByPlaceholderText(
+      'Certification details',
+    );
 
-    waitFor(()=> {
-      userEvent.type(inputLabel, 'test_lable')
-      userEvent.type(inputDescription, 'test')
-      userEvent.type(inputDtmFormat, 'test')
-      userEvent.type(inputCertifedBy, 'test')
-      userEvent.type(inputerCertDetails, 'test')
-    })
+    waitFor(() => {
+      userEvent.type(inputLabel, 'test_lable');
+      userEvent.type(inputDescription, 'test');
+      userEvent.type(inputDtmFormat, 'test');
+      userEvent.type(inputCertifedBy, 'test');
+      userEvent.type(inputerCertDetails, 'test');
+    });
 
     // test deleting columns
-    const deleteButtons = screen.getAllByRole('button',{ name: /delete item/i });
+    const deleteButtons = screen.getAllByRole('button', {
+      name: /delete item/i,
+    });
     expect(deleteButtons.length).toEqual(7);
     userEvent.click(deleteButtons[0]);
-    const countRows = screen.getAllByRole('button',{ name: /delete item/i });
+    const countRows = screen.getAllByRole('button', { name: /delete item/i });
     expect(countRows.length).toEqual(6);
 
     // test adding columns
-    const calcColsTab = screen.getByTestId('collection-tab-Calculated columns')
-    userEvent.click(calcColsTab)
+    const calcColsTab = screen.getByTestId('collection-tab-Calculated columns');
+    userEvent.click(calcColsTab);
     const addBtn = screen.getByRole('button', {
-      name: /add item/i
-    })
+      name: /add item/i,
+    });
     expect(addBtn).toBeInTheDocument();
-    userEvent.click(addBtn)
+    userEvent.click(addBtn);
     const newColumn = screen.getByRole('button', {
-      name: /<new column>/i
+      name: /<new column>/i,
     });
     expect(newColumn).toBeInTheDocument();
   });
 
   it('renders isSqla fields', () => {
     const columnsTab = screen.getByRole('tab', {
-      name: /settings/i
+      name: /settings/i,
     });
-    userEvent.click(columnsTab)
+    userEvent.click(columnsTab);
     const extraField = screen.getAllByText(/extra/i);
     expect(extraField.length).toEqual(2);
-    expect(screen.getByText(/autocomplete query predicate/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/autocomplete query predicate/i),
+    ).toBeInTheDocument();
     expect(screen.getByText(/template parameters/i)).toBeInTheDocument();
   });
 
@@ -159,26 +156,26 @@ describe('DatasourceEditor', () => {
     });
 
     it('Source Tab: edit mode', () => {
-      const getLockBtn = screen.getByRole('img', { name: /lock\-locked/i })
+      const getLockBtn = screen.getByRole('img', { name: /lock-locked/i });
       userEvent.click(getLockBtn);
       const physicalRadioBtn = screen.getByRole('radio', {
-        name: /physical \(table or view\)/i
-      })
+        name: /physical \(table or view\)/i,
+      });
       const vituralRadioBtn = screen.getByRole('radio', {
-        name: /virtual \(sql\)/i
+        name: /virtual \(sql\)/i,
       });
       expect(physicalRadioBtn).toBeEnabled();
       expect(vituralRadioBtn).toBeEnabled();
     });
 
     it('Source Tab: readOnly mode', () => {
-      const getLockBtn = screen.getByRole('img', { name: /lock\-locked/i })
+      const getLockBtn = screen.getByRole('img', { name: /lock-locked/i });
       expect(getLockBtn).toBeInTheDocument();
       const physicalRadioBtn = screen.getByRole('radio', {
-        name: /physical \(table or view\)/i
-      })
+        name: /physical \(table or view\)/i,
+      });
       const vituralRadioBtn = screen.getByRole('radio', {
-        name: /virtual \(sql\)/i
+        name: /virtual \(sql\)/i,
       });
       expect(physicalRadioBtn).toBeDisabled();
       expect(vituralRadioBtn).toBeDisabled();
@@ -197,8 +194,9 @@ describe('DatasourceEditor', () => {
     });
 
     it('disable edit Source tab', () => {
-      screen.logTestingPlaygroundURL();
-      expect(screen.queryByRole('img', { name: /lock\-locked/i })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('img', { name: /lock-locked/i }),
+      ).not.toBeInTheDocument();
       isFeatureEnabledMock.mockRestore();
     });
   });
@@ -217,7 +215,7 @@ describe('DatasourceEditor RTL', () => {
     expect(certificationDetails.value).toEqual('foo');
     const warningMarkdown = await await screen.findByPlaceholderText(
       /certified by/i,
-     );
+    );
     expect(warningMarkdown.value).toEqual('someone');
   });
   it('properly updates the metric information', async () => {
