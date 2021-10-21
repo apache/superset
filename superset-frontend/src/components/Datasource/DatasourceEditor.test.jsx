@@ -24,7 +24,7 @@ import { Provider } from 'react-redux';
 import userEvent from '@testing-library/user-event';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import DatasourceEditor from 'src/datasource/DatasourceEditor';
+import DatasourceEditor from 'src/components/Datasource/DatasourceEditor';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import * as featureFlags from 'src/featureFlags';
 
