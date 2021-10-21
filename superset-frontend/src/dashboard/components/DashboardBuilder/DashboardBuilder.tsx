@@ -60,6 +60,7 @@ const CLOSED_FILTER_BAR_WIDTH = 32;
 const OPEN_FILTER_BAR_WIDTH = 260;
 const FILTER_BAR_HEADER_HEIGHT = 80;
 const FILTER_BAR_TABS_HEIGHT = 46;
+const BUILDER_PANEL_WIDTH = 374;
 
 type DashboardBuilderProps = {};
 
@@ -143,6 +144,7 @@ const StyledContent = styled.div<{
 const StyledDashboardContent = styled.div<{
   dashboardFiltersOpen: boolean;
   editMode: boolean;
+  barTopOffset: number;
 }>`
   display: flex;
   flex-direction: row;
@@ -169,6 +171,22 @@ const StyledDashboardContent = styled.div<{
       }
       return theme.gridUnit * 8;
     }}px;
+
+    ${({ editMode, theme }) =>
+      editMode &&
+      `
+      max-width: calc(100% - ${BUILDER_PANEL_WIDTH}px - ${
+        theme.gridUnit * 8
+      }px);
+    `}
+  }
+
+  .dashboard-builder-sidepane {
+    height: ${({ barTopOffset }) => `calc(100vh - ${barTopOffset}px`});
+    width: ${BUILDER_PANEL_WIDTH}px;
+    position: fixed;
+    right: 0;
+    top: 0;
   }
 
   .dashboard-component-chart-holder {
@@ -359,6 +377,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
             className="dashboard-content"
             dashboardFiltersOpen={dashboardFiltersOpen}
             editMode={editMode}
+            barTopOffset={barTopOffset}
           >
             {showDashboard ? (
               <DashboardContainer topLevelTabs={topLevelTabs} />

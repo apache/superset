@@ -36,20 +36,15 @@ export interface BCPProps {
   topOffset: number;
 }
 
-const SUPERSET_HEADER_HEIGHT = 59;
-
 const BuilderComponentPaneTabs = styled(Tabs)`
   line-height: inherit;
   margin-top: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
+const SUPERSET_HEADER_HEIGHT = 59;
+
 const BuilderComponentPane: React.FC<BCPProps> = ({ topOffset = 0 }) => (
-  <div
-    className="dashboard-builder-sidepane"
-    style={{
-      height: `calc(100vh - ${topOffset + SUPERSET_HEADER_HEIGHT}px)`,
-    }}
-  >
+  <div className="dashboard-builder-sidepane">
     <ParentSize>
       {({ height }) => (
         <StickyContainer>
@@ -57,7 +52,11 @@ const BuilderComponentPane: React.FC<BCPProps> = ({ topOffset = 0 }) => (
             {({ style, isSticky }: { style: any; isSticky: boolean }) => (
               <div
                 className="viewport"
-                style={isSticky ? { ...style, top: topOffset } : null}
+                style={
+                  window.pageYOffset > 0
+                    ? { ...style, top: topOffset }
+                    : { top: topOffset + SUPERSET_HEADER_HEIGHT }
+                }
               >
                 <BuilderComponentPaneTabs
                   id="tabs"
