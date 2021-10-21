@@ -43,7 +43,7 @@ class DatasetColumnsPutSchema(Schema):
     id = fields.Integer()
     column_name = fields.String(required=True, validate=Length(1, 255))
     type = fields.String(validate=Length(1, 32))
-    business_type = fields.String(allow_none=True, validate=Length(, 255))
+    business_type = fields.String(allow_none=True, validate=Length(1, 255))
     verbose_name = fields.String(allow_none=True, Length=(1, 1024))
     description = fields.String(allow_none=True)
     expression = fields.String(allow_none=True)
