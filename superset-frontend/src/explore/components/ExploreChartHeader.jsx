@@ -239,12 +239,14 @@ export class ExploreChartHeader extends React.PureComponent {
                   showTooltip
                 />
               )}
-              <PropertiesModal
-                show={this.state.isPropertiesModalOpen}
-                onHide={this.closePropertiesModal}
-                onSave={this.props.sliceUpdated}
-                slice={this.props.slice}
-              />
+              {this.state.isPropertiesModalOpen &&
+                <PropertiesModal
+                  show={this.state.isPropertiesModalOpen}
+                  onHide={this.closePropertiesModal}
+                  onSave={this.props.sliceUpdated}
+                  slice={this.props.slice}
+                />
+              }
               <Tooltip
                 id="edit-desc-tooltip"
                 title={t('Edit chart properties')}
