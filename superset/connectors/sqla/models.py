@@ -199,6 +199,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         "is_dttm",
         "is_active",
         "type",
+        "business_type"
         "groupby",
         "filterable",
         "expression",
@@ -378,6 +379,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
             "is_dttm",
             "type",
             "type_generic",
+            "business_type",
             "python_date_format",
             "is_certified",
             "certified_by",

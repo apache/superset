@@ -637,6 +637,7 @@ class TestDatasetApi(SupersetTestCase):
             "description": "description",
             "expression": "expression",
             "type": "INTEGER",
+            "business_type": "BUSINESS_TYPE",
             "verbose_name": "New Col",
         }
         dataset_data = {
@@ -653,6 +654,7 @@ class TestDatasetApi(SupersetTestCase):
         assert new_col_dict["description"] in [col.description for col in columns]
         assert new_col_dict["expression"] in [col.expression for col in columns]
         assert new_col_dict["type"] in [col.type for col in columns]
+        assert new_col_dict["business_type"] in [col.business_type for col in columns]
 
         db.session.delete(dataset)
         db.session.commit()
@@ -669,6 +671,7 @@ class TestDatasetApi(SupersetTestCase):
             "description": "description",
             "expression": "expression",
             "type": "INTEGER",
+            "business_type": "BUSINESS_TYPE",
             "verbose_name": "New Col",
         }
         uri = f"api/v1/dataset/{dataset.id}"
@@ -699,6 +702,7 @@ class TestDatasetApi(SupersetTestCase):
         assert columns[2].description == new_column_data["description"]
         assert columns[2].expression == new_column_data["expression"]
         assert columns[2].type == new_column_data["type"]
+        assert columns[2].business_type == new_column_data["business_type"]
         assert columns[2].verbose_name == new_column_data["verbose_name"]
 
         db.session.delete(dataset)
@@ -716,6 +720,7 @@ class TestDatasetApi(SupersetTestCase):
             "description": "description",
             "expression": "expression",
             "type": "INTEGER",
+            "business_type": "BUSINESS_TYPE",
             "verbose_name": "New Col",
         }
         uri = f"api/v1/dataset/{dataset.id}"
