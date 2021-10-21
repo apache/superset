@@ -80,7 +80,7 @@ describe('DatasourceEditor', () => {
       }, 0);
     }));
 
-  it('to add, remove and modify columns accordingly', () => {
+  it('to add, remove and modify columns accordingly', async () => {
     const columnsTab = screen.getByTestId('collection-tab-Columns');
     userEvent.click(columnsTab);
 
@@ -95,18 +95,16 @@ describe('DatasourceEditor', () => {
     const inputLabel = screen.getByPlaceholderText('Label');
     const inputDescription = screen.getByPlaceholderText('Description');
     const inputDtmFormat = screen.getByPlaceholderText('%Y/%m/%d');
-    const inputCertifedBy = screen.getAllByPlaceholderText('Certified by');
-    const inputerCertDetails = screen.getByPlaceholderText(
+    const inputCertifiedBy = screen.getByPlaceholderText('Certified by');
+    const inputCertDetails = screen.getByPlaceholderText(
       'Certification details',
     );
 
-    waitFor(() => {
-      userEvent.type(inputLabel, 'test_lable');
-      userEvent.type(inputDescription, 'test');
-      userEvent.type(inputDtmFormat, 'test');
-      userEvent.type(inputCertifedBy, 'test');
-      userEvent.type(inputerCertDetails, 'test');
-    });
+    userEvent.type(await inputLabel, 'test_lable');
+    userEvent.type(await inputDescription, 'test');
+    userEvent.type(await inputDtmFormat, 'test');
+    userEvent.type(await inputCertifiedBy, 'test');
+    userEvent.type(await inputCertDetails, 'test');
 
     // test deleting columns
     const deleteButtons = screen.getAllByRole('button', {
@@ -213,9 +211,7 @@ describe('DatasourceEditor RTL', () => {
       /certification details/i,
     );
     expect(certificationDetails.value).toEqual('foo');
-    const warningMarkdown = await await screen.findByPlaceholderText(
-      /certified by/i,
-    );
+    const warningMarkdown = await screen.findByPlaceholderText(/certified by/i);
     expect(warningMarkdown.value).toEqual('someone');
   });
   it('properly updates the metric information', async () => {
