@@ -111,6 +111,7 @@ class PropertiesModal extends React.PureComponent {
       values: {
         dashboard_title: '',
         slug: '',
+        description: '',
         owners: [],
         roles: [],
         json_metadata: '',
@@ -208,6 +209,7 @@ class PropertiesModal extends React.PureComponent {
           ...state.values,
           dashboard_title: dashboard.dashboard_title || '',
           slug: dashboard.slug || '',
+          description: dashboard.description || '',
           // format json with 2-space indentation
           json_metadata: dashboard.json_metadata
             ? jsonStringify(jsonMetadataObj)
@@ -250,6 +252,7 @@ class PropertiesModal extends React.PureComponent {
       values: {
         json_metadata: jsonMetadata,
         slug,
+        description,
         dashboard_title: dashboardTitle,
         colorScheme,
         owners: ownersValue,
@@ -282,6 +285,7 @@ class PropertiesModal extends React.PureComponent {
         id: this.props.dashboardId,
         title: dashboardTitle,
         slug,
+        description,
         jsonMetadata,
         ownerIds: owners,
         colorScheme: metadataColorScheme || colorScheme,
@@ -295,6 +299,7 @@ class PropertiesModal extends React.PureComponent {
         body: JSON.stringify({
           dashboard_title: dashboardTitle,
           slug: slug || null,
+          description: description || null,
           json_metadata: jsonMetadata || null,
           owners,
           ...morePutProps,
@@ -309,6 +314,7 @@ class PropertiesModal extends React.PureComponent {
           id: this.props.dashboardId,
           title: result.dashboard_title,
           slug: result.slug,
+          description: result.description,
           jsonMetadata: result.json_metadata,
           ownerIds: result.owners,
           colorScheme: metadataColorScheme || colorScheme,
@@ -490,6 +496,22 @@ class PropertiesModal extends React.PureComponent {
                 />
                 <p className="help-block">
                   {t('A readable URL for your dashboard')}
+                </p>
+              </FormItem>
+            </Col>
+          </Row>
+          <Row>
+            <Col xs={24} md={24}>
+              <FormItem label={t('Description')}>
+                <Input
+                  name="description"
+                  type="text"
+                  value={values.description || ''}
+                  onChange={this.onChange}
+                  disabled={!isDashboardLoaded}
+                />
+                <p className="help-block">
+                  {t('A dashboard description')}
                 </p>
               </FormItem>
             </Col>

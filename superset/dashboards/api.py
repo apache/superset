@@ -116,6 +116,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "published",
         "status",
         "slug",
+        "description",
         "url",
         "css",
         "position_json",
@@ -152,6 +153,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     add_columns = [
         "dashboard_title",
         "slug",
+        "description",
         "owners",
         "roles",
         "position_json",
