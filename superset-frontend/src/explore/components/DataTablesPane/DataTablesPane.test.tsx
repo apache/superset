@@ -130,7 +130,7 @@ test('Should copy data table content correctly', async () => {
   userEvent.click(await screen.findByText('View samples'));
   expect(await screen.findByText('1 rows retrieved')).toBeVisible();
 
-  userEvent.click(screen.getByRole('button', { name: 'copy' }));
+  userEvent.click(screen.getByRole('button', { name: 'Copy' }));
   expect(copyToClipboardSpy).toHaveBeenCalledWith(
     '2009-01-01 00:00:00\tAction\n',
   );
