@@ -49,6 +49,7 @@ describe('controlUtils', () => {
     } as unknown) as DatasourceMeta,
     controls: {},
     form_data: { datasource: '1__table', viz_type: 'table' },
+    dataMask: {},
   };
 
   beforeAll(() => {

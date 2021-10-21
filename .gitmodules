@@ -39,3 +39,6 @@
 [submodule ".github/actions/github-action-push-to-another-repository"]
 	path = .github/actions/github-action-push-to-another-repository
 	url = https://github.com/cpina/github-action-push-to-another-repository
+[submodule "superset-ui"]
+	path = superset-ui
+	url = https://github.com/askstylo/superset-ui
