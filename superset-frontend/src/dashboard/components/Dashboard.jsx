@@ -235,14 +235,16 @@ class Dashboard extends React.PureComponent {
     );
     [...allKeys].forEach(filterKey => {
       if (
-        !currFilterKeys.includes(filterKey) &&
-        appliedFilterKeys.includes(filterKey)
-      ) {
         // filterKey is removed?
-        affectedChartIds.push(...appliedFilters[filterKey].scope);
-      } else if (!appliedFilterKeys.includes(filterKey)) {
+        (!currFilterKeys.includes(filterKey) &&
+          appliedFilterKeys.includes(filterKey)) ||
         // filterKey is newly added?
-        affectedChartIds.push(...activeFilters[filterKey].scope);
+        !appliedFilterKeys.includes(filterKey)
+      ) {
+        // check if there are values in filter, if no, there is was added only ownState, so no need reload other charts
+        if (Object.keys(appliedFilters[filterKey]?.values ?? []).length) {
+          affectedChartIds.push(...appliedFilters[filterKey].scope);
+        }
       } else {
         // if filterKey changes value,
         // update charts in its scope
