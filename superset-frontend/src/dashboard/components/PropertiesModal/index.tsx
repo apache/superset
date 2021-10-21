@@ -75,6 +75,7 @@ type DashboardInfo = {
   id: number;
   title: string;
   slug: string;
+  description: string;
   certifiedBy: string;
   certificationDetails: string;
   isManagedExternally: boolean;
@@ -153,6 +154,7 @@ const PropertiesModal = ({
         id,
         dashboard_title,
         slug,
+        description,
         certified_by,
         certification_details,
         owners,
@@ -164,6 +166,7 @@ const PropertiesModal = ({
         id,
         title: dashboard_title,
         slug: slug || '',
+        description: description || '',
         certifiedBy: certified_by || '',
         certificationDetails: certification_details || '',
         isManagedExternally: is_managed_externally || false,
@@ -294,7 +297,7 @@ const PropertiesModal = ({
   };
 
   const onFinish = () => {
-    const { title, slug, certifiedBy, certificationDetails } =
+    const { title, slug, description, certifiedBy, certificationDetails } =
       form.getFieldsValue();
     let currentColorScheme = colorScheme;
     let colorNamespace = '';
@@ -360,6 +363,7 @@ const PropertiesModal = ({
       id: dashboardId,
       title,
       slug,
+      description,
       jsonMetadata: currentJsonMetadata,
       owners,
       colorScheme: currentColorScheme,
@@ -379,6 +383,7 @@ const PropertiesModal = ({
         body: JSON.stringify({
           dashboard_title: title,
           slug: slug || null,
+          description: description || null,
           json_metadata: currentJsonMetadata || null,
           owners: (owners || []).map(o => o.id),
           certified_by: certifiedBy || null,
@@ -598,6 +603,14 @@ const PropertiesModal = ({
             <p className="help-block">
               {t('A readable URL for your dashboard')}
             </p>
+          </Col>
+        </Row>
+        <Row>
+          <Col xs={24} md={24}>
+            <FormItem label={t('Description')} name="description">
+              <Input type="text" disabled={isLoading} />
+              <p className="help-block">{t('A dashboard description')}</p>
+            </FormItem>
           </Col>
         </Row>
         {isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC)

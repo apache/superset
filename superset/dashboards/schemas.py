@@ -34,6 +34,7 @@ thumbnail_query_schema = {
 
 dashboard_title_description = "A title for the dashboard."
 slug_description = "Unique identifying part for the web address of the dashboard."
+description_description = "A dashboard description/"
 owners_description = (
     "Owner are users ids allowed to delete or change this dashboard. "
     "If left empty you will be one of the owners of the dashboard."
@@ -151,6 +152,7 @@ class RolesSchema(Schema):
 class DashboardGetResponseSchema(Schema):
     id = fields.Int()
     slug = fields.String()
+    description = fields.String()
     url = fields.String()
     dashboard_title = fields.String(description=dashboard_title_description)
     thumbnail_url = fields.String()
@@ -237,6 +239,9 @@ class DashboardPostSchema(BaseDashboardSchema):
     slug = fields.String(
         description=slug_description, allow_none=True, validate=[Length(1, 255)]
     )
+    description = fields.String(
+        description=description_description, allow_none=True
+    )
     owners = fields.List(fields.Integer(description=owners_description))
     roles = fields.List(fields.Integer(description=roles_description))
     position_json = fields.String(
@@ -264,6 +269,9 @@ class DashboardPutSchema(BaseDashboardSchema):
     )
     slug = fields.String(
         description=slug_description, allow_none=True, validate=Length(0, 255)
+    )
+    description = fields.String(
+        description=description_description, allow_none=True
     )
     owners = fields.List(
         fields.Integer(description=owners_description, allow_none=True)
