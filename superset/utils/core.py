@@ -1813,3 +1813,35 @@ def escape_sqla_query_binds(sql: str) -> str:
             sql = sql.replace(bind, bind.replace(":", "\\:"))
             processed_binds.add(bind)
     return sql
+
+
+def normalize_prequery_result_type(
+    value: Union[str, int, float, bool, np.generic]
+) -> Union[str, int, float, bool]:
+    """
+    Convert a value that is potentially a numpy type into its equivalent Python type.
+
+    :param value: primitive datatype in either numpy or python format
+    :return: equivalent primitive python type
+    >>> normalize_prequery_result_type('abc')
+    'abc'
+    >>> normalize_prequery_result_type(True)
+    True
+    >>> normalize_prequery_result_type(123)
+    123
+    >>> normalize_prequery_result_type(np.int16(123))
+    123
+    >>> normalize_prequery_result_type(np.uint32(123))
+    123
+    >>> normalize_prequery_result_type(np.int64(123))
+    123
+    >>> normalize_prequery_result_type(123.456)
+    123.456
+    >>> normalize_prequery_result_type(np.float32(123.456))
+    123.45600128173828
+    >>> normalize_prequery_result_type(np.float64(123.456))
+    123.456
+    """
+    if isinstance(value, np.generic):
+        return value.item()
+    return value
