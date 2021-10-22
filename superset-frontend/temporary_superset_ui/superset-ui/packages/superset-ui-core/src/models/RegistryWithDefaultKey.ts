@@ -7,7 +7,7 @@ interface RegistryWithDefaultKeyConfig extends RegistryConfig {
 
 export default class RegistryWithDefaultKey<
   V,
-  W extends V | Promise<V> = V | Promise<V>
+  W extends V | Promise<V> = V | Promise<V>,
 > extends Registry<V, W> {
   initialDefaultKey?: string;
 

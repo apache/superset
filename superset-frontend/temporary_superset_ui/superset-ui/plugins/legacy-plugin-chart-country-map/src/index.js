@@ -36,7 +36,7 @@ const metadata = new ChartMetadata({
 export default class CountryMapChartPlugin extends ChartPlugin {
   constructor() {
     super({
-      loadChart: () => import('./ReactCountryMap.js'),
+      loadChart: () => import('./ReactCountryMap'),
       metadata,
       transformProps,
       controlPanel,

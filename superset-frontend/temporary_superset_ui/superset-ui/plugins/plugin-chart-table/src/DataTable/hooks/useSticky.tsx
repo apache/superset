@@ -34,7 +34,7 @@ import useMountedMemo from '../utils/useMountedMemo';
 
 type ReactElementWithChildren<
   T extends keyof JSX.IntrinsicElements,
-  C extends ReactNode = ReactNode
+  C extends ReactNode = ReactNode,
 > = ReactElement<ComponentPropsWithRef<T> & { children: C }, T>;
 
 type Th = ReactElementWithChildren<'th'>;
