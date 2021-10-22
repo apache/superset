@@ -27,10 +27,7 @@ import {
   SLOW_DEBOUNCE,
 } from 'src/constants';
 import Button from 'src/components/Button';
-import {
-  applyFormattingToTabularData,
-  prepareCopyToClipboardTabularData,
-} from 'src/utils/common';
+import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import RowCountLabel from 'src/explore/components/RowCountLabel';
 
@@ -48,7 +45,7 @@ export const CopyButton = styled(Button)`
 `;
 
 const CopyNode = (
-  <CopyButton buttonSize="xsmall">
+  <CopyButton buttonSize="xsmall" aria-label={t('Copy')}>
     <i className="fa fa-clipboard" />
   </CopyButton>
 );
@@ -103,18 +100,26 @@ export const RowCount = ({
 export const useFilteredTableData = (
   filterText: string,
   data?: Record<string, any>[],
-) =>
-  useMemo(() => {
+) => {
+  const rowsAsStrings = useMemo(
+    () =>
+      data?.map((row: Record<string, any>) =>
+        Object.values(row).map(value => value?.toString().toLowerCase()),
+      ) ?? [],
+    [data],
+  );
+
+  return useMemo(() => {
     if (!data?.length) {
       return [];
     }
-    const formattedData = applyFormattingToTabularData(data);
-    return formattedData.filter((row: Record<string, any>) =>
-      Object.values(row).some(value =>
-        value?.toString().toLowerCase().includes(filterText.toLowerCase()),
+    return data.filter((_, index: number) =>
+      rowsAsStrings[index].some(value =>
+        value?.includes(filterText.toLowerCase()),
       ),
     );
-  }, [data, filterText]);
+  }, [data, filterText, rowsAsStrings]);
+};
 
 export const useTableColumns = (
   colnames?: string[],
