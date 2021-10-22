@@ -82,34 +82,24 @@ const getOptionsForSavedMetrics = (
 
 type ValueType = Metric | AdhocMetric | QueryFormMetric;
 
-const columnsContainAllMetrics = (
+const getMetricsMatchingCurrentDataset = (
   value: ValueType | ValueType[] | null | undefined,
   columns: ColumnMeta[],
   savedMetrics: (savedMetricType | Metric)[],
-) => {
-  const columnNames = new Set(
-    [...(columns || []), ...(savedMetrics || [])]
-      // eslint-disable-next-line camelcase
-      .map(
-        item =>
-          (item as ColumnMeta).column_name ||
-          (item as savedMetricType).metric_name,
-      ),
-  );
-
-  return (
-    ensureIsArray(value)
-      .filter(metric => metric)
-      // find column names
-      .map(metric =>
-        (metric as AdhocMetric).column
-          ? (metric as AdhocMetric).column.column_name
-          : (metric as ColumnMeta).column_name || metric,
-      )
-      .filter(name => name && typeof name === 'string')
-      .every(name => columnNames.has(name))
-  );
-};
+) =>
+  ensureIsArray(value).filter(metric => {
+    if (typeof metric === 'string' || (metric as Metric).metric_name) {
+      return savedMetrics?.some(
+        savedMetric =>
+          savedMetric.metric_name === metric ||
+          savedMetric.metric_name === (metric as Metric).metric_name,
+      );
+    }
+    return columns?.some(
+      column =>
+        (metric as AdhocMetric).column?.column_name === column.column_name,
+    );
+  });
 
 export type DndMetricSelectProps = DndControlProps<ValueType> & {
   savedMetrics: savedMetricType[];
@@ -162,12 +152,11 @@ export const DndMetricSelect = (props: any) => {
       !isEqual(prevColumns, columns) ||
       !isEqual(prevSavedMetrics, savedMetrics)
     ) {
-      // Remove all metrics if selected value no longer a valid column
-      // in the dataset. Must use `nextProps` here because Redux reducers may
-      // have already updated the value for this control.
-      if (!columnsContainAllMetrics(props.value, columns, savedMetrics)) {
-        onChange([]);
-      }
+      // Remove selected custom metrics that do not exist in the dataset anymore
+      // Remove selected adhoc metrics that use columns which do not exist in the dataset anymore
+      onChange(
+        getMetricsMatchingCurrentDataset(props.value, columns, savedMetrics),
+      );
     }
   }, [
     prevColumns,
