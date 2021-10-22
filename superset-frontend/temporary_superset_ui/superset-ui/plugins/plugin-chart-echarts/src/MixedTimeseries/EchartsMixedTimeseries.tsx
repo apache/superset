@@ -35,9 +35,10 @@ export default function EchartsMixedTimeseries({
   formData,
   seriesBreakdown,
 }: EchartsMixedTimeseriesChartTransformedProps) {
-  const isFirstQuery = useCallback((seriesIndex: number) => seriesIndex < seriesBreakdown, [
-    seriesBreakdown,
-  ]);
+  const isFirstQuery = useCallback(
+    (seriesIndex: number) => seriesIndex < seriesBreakdown,
+    [seriesBreakdown],
+  );
 
   const handleChange = useCallback(
     (values: string[], seriesIndex: number) => {

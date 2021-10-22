@@ -281,9 +281,8 @@ export default function transformProps(
         const prophetValue = !richTooltip ? [params] : params;
 
         const rows: Array<string> = [`${tooltipTimeFormatter(value)}`];
-        const prophetValues: Record<string, ProphetValue> = extractProphetValuesFromTooltipParams(
-          prophetValue,
-        );
+        const prophetValues: Record<string, ProphetValue> =
+          extractProphetValuesFromTooltipParams(prophetValue);
 
         Object.keys(prophetValues).forEach(key => {
           const value = prophetValues[key];

@@ -38,7 +38,7 @@ const metadata = new ChartMetadata({
 export default class SunburstChartPlugin extends ChartPlugin {
   constructor() {
     super({
-      loadChart: () => import('./ReactSunburst.js'),
+      loadChart: () => import('./ReactSunburst'),
       metadata,
       transformProps,
       controlPanel,

@@ -3,24 +3,24 @@
 ### Setup local development
 
 1. clone this repo
-2. have `yarn` install package dependencies and manage the symlinking between packages for you
+2. have `npm` install package dependencies and manage the symlinking between packages for you
 
 ```sh
 git clone ...superset-ui && cd superset-ui
-yarn install
-yarn build
+npm ci
+npm build
 ```
 
 To build only selected packages or plugins,
 
 ```bash
-yarn build "*chart-table"
+npm build "*chart-table"
 ```
 
 ### File organization
 
-[lerna](https://github.com/lerna/lerna/) and [yarn](https://yarnpkg.com) are used to manage versions
-and dependencies between packages in this monorepo.
+[lerna](https://github.com/lerna/lerna/) and [npm](https://www.npmjs.com/) are used to manage
+versions and dependencies between packages in this monorepo.
 
 ```
 superset-ui/
@@ -44,7 +44,7 @@ superset-ui/
 ### Builds, linting, and testing
 
 Each package defines its own build config, linting, and testing. You can have lerna run commands
-across all packages using the syntax `yarn run test` (or `yarn run test:watch` for watch mode) from
+across all packages using the syntax `npm run test` (or `npm run test:watch` for watch mode) from
 the root `@superset-ui` directory.
 
 - [Using Storybook](docs/storybook.md) - You can test your components independently from Superset
@@ -65,7 +65,7 @@ committing. You can use `npm run commit` to help you create a commit message.
 publish new versions of `superset-ui`.
 
 1. Checkout the `master` branch from the main repo at `apache-superset/superset-ui` - NOT A FORK!
-2. run `yarn run ci:create-patch-version` to bump the patch version (the most common case) or
-   `yarn run ci:create-minor-version` to bump the minor version. Once the process finishes and the
+2. run `npm run ci:create-patch-version` to bump the patch version (the most common case) or
+   `npm run ci:create-minor-version` to bump the minor version. Once the process finishes and the
    commit has been pushed to GitHub, CI will complete publishing the release to npm (takes some time
    to complete).

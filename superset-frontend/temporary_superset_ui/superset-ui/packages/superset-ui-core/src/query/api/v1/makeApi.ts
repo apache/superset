@@ -61,7 +61,7 @@ function isPayloadless(method?: Method) {
 export default function makeApi<
   Payload = SupersetPayload,
   Result = JsonObject,
-  T extends ParseMethod = ParseMethod
+  T extends ParseMethod = ParseMethod,
 >({
   endpoint,
   method,

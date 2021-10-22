@@ -54,9 +54,8 @@ export function ControlFormItem({
   const { gridUnit } = useTheme();
   const [hovered, setHovered] = useState(false);
   const [value, setValue] = useState(initialValue === undefined ? defaultValue : initialValue);
-  const [validationErrors, setValidationErrors] = useState<
-    ControlHeaderProps['validationErrors']
-  >();
+  const [validationErrors, setValidationErrors] =
+    useState<ControlHeaderProps['validationErrors']>();
 
   const handleChange = (e: ChangeEvent<HTMLInputElement> | JsonValue) => {
     const fieldValue =

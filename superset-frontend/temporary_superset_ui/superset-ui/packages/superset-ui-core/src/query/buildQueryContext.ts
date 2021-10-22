@@ -32,8 +32,12 @@ export default function buildQueryContext(
       }
     | BuildFinalQueryObjects,
 ): QueryContext {
-  const { queryFields, buildQuery = WRAP_IN_ARRAY, hooks = {}, ownState = {} } =
-    typeof options === 'function' ? { buildQuery: options, queryFields: {} } : options || {};
+  const {
+    queryFields,
+    buildQuery = WRAP_IN_ARRAY,
+    hooks = {},
+    ownState = {},
+  } = typeof options === 'function' ? { buildQuery: options, queryFields: {} } : options || {};
   return {
     datasource: new DatasourceKey(formData.datasource).toObject(),
     force: formData.force || false,
