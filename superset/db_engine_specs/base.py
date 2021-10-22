@@ -291,8 +291,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     # Whether ORDER BY clause can use sql caculated expression
     # if True, use alias of select column for `order by`
-    # the True is safe for most database
-    # But for backward compatibility, set to False by default
+    # the True is safely for most database
+    # But for backward compatibility, False by default
     allows_hidden_orderby_calculated_column = False
 
     force_column_alias_quotes = False
