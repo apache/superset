@@ -43,6 +43,7 @@ const defaultProps = {
       verbose_name: 'Column B',
     },
   ],
+  onChange: () => {},
 };
 
 const adhocMetricA = {
