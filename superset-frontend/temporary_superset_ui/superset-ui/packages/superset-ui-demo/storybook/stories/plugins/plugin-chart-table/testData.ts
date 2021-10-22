@@ -22,7 +22,7 @@ import { TableChartFormData, TableChartProps } from '@superset-ui/plugin-chart-t
 // eslint-disable-next-line import/extensions
 import birthNamesJson from './birthNames.json';
 
-export const birthNames = (birthNamesJson as unknown) as TableChartProps;
+export const birthNames = birthNamesJson as unknown as TableChartProps;
 
 export const basicFormData: TableChartFormData = {
   datasource: '1__table',

@@ -41,7 +41,7 @@ const metadata = new ChartMetadata({
 export default class TreemapChartPlugin extends ChartPlugin {
   constructor() {
     super({
-      loadChart: () => import('./ReactTreemap.js'),
+      loadChart: () => import('./ReactTreemap'),
       metadata,
       transformProps,
       controlPanel,

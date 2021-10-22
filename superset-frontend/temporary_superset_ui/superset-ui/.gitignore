@@ -36,13 +36,9 @@ test-changelog.md
 
 *.tsbuildinfo
 
-# Ignore npm lock files, always use yarn.lock instead
-npm-shrinkwrap.json
-package-lock.json
-
-# Ignore yarn.lock in packages
-plugins/*/yarn.lock
-packages/*/yarn.lock
+# Ignore package-lock in packages
+plugins/*/package-lock.json
+packages/*/package-lock.json
 
 # For country map geojson conversion script
 .ipynb_checkpoints/

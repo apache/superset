@@ -32,7 +32,7 @@ const metadata = new ChartMetadata({
 export default class SankeyChartPlugin extends ChartPlugin {
   constructor() {
     super({
-      loadChart: () => import('./ReactSankeyLoop.js'),
+      loadChart: () => import('./ReactSankeyLoop'),
       metadata,
       transformProps,
       controlPanel,

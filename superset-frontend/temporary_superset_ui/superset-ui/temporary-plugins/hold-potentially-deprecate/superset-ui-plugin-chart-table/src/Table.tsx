@@ -136,34 +136,32 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
     };
   }
 
-  static getDerivedStateFromProps: React.GetDerivedStateFromProps<
-    InternalTableProps,
-    TableState
-  > = (props: InternalTableProps, state: TableState) => {
-    const { filters } = props;
-    const { selectedCells, filters: prevFilters } = state;
-    if (prevFilters !== filters) {
-      const newSelectedCells = new Set(Array.from(selectedCells));
-      Object.keys(filters).forEach(key => {
-        filters[key].forEach(value => {
-          newSelectedCells.add(
-            getCellHash({
-              key,
-              value,
-            }),
-          );
+  static getDerivedStateFromProps: React.GetDerivedStateFromProps<InternalTableProps, TableState> =
+    (props: InternalTableProps, state: TableState) => {
+      const { filters } = props;
+      const { selectedCells, filters: prevFilters } = state;
+      if (prevFilters !== filters) {
+        const newSelectedCells = new Set(Array.from(selectedCells));
+        Object.keys(filters).forEach(key => {
+          filters[key].forEach(value => {
+            newSelectedCells.add(
+              getCellHash({
+                key,
+                value,
+              }),
+            );
+          });
         });
-      });
 
-      return {
-        ...state,
-        filters,
-        selectedCells: newSelectedCells,
-      };
-    }
+        return {
+          ...state,
+          filters,
+          selectedCells: newSelectedCells,
+        };
+      }
 
-    return state;
-  };
+      return state;
+    };
 
   handleCellSelected = (cell: Cell) => () => {
     const { selectedCells } = this.state;

@@ -3,9 +3,9 @@
 You can demo your changes by running the storybook demo locally with the following commands:
 
 ```sh
-yarn install
-yarn build
-yarn storybook
+npm ci
+npm run build
+npm run storybook
 ```
 
 The Storybook will

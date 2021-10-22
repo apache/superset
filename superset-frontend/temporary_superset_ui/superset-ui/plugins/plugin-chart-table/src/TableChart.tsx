@@ -243,9 +243,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     function getValueRange(key: string, alignPositiveNegative: boolean) {
       if (typeof data?.[0]?.[key] === 'number') {
         const nums = data.map(row => row[key]) as number[];
-        return (alignPositiveNegative
-          ? [0, d3Max(nums.map(Math.abs))]
-          : d3Extent(nums)) as ValueRange;
+        return (
+          alignPositiveNegative ? [0, d3Max(nums.map(Math.abs))] : d3Extent(nums)
+        ) as ValueRange;
       }
       return null;
     },

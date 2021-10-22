@@ -19,7 +19,7 @@
 import React, { useState, ReactNode } from 'react';
 import AntdSelect, { SelectProps as AntdSelectProps } from 'antd/lib/select';
 
-export const { Option } = AntdSelect;
+export const { Option }: any = AntdSelect;
 
 export type SelectOption<VT = string> = [VT, ReactNode];
 
