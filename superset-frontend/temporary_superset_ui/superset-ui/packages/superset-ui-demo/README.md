@@ -10,11 +10,11 @@ Storybook of `@superset-ui` packages. See it live at
 
 #### Run storybook
 
-To view the storybook locally, you should first run `yarn install && yarn run bootstrap` in the
+To view the storybook locally, you should first run `npm ci && npm run bootstrap` in the
 `@superset-ui` monorepo root directory, which will install all dependencies for this package and
 sym-link any `@superset-ui` packages to your local system.
 
-After that run `yarn run storybook` which will open up a dev server at http://localhost:9001.
+After that run `npm run storybook` which will open up a dev server at http://localhost:9001.
 
 #### Adding new stories
 
@@ -28,7 +28,7 @@ exported for that package in the `storybook/stories/<package>/index.js` file.
 If you are creating stories for a package that doesn't yet have any stories, follow these steps:
 
 1. Add any new package dependencies (including any `@superset-ui/*` packages) via
-   `yarn add <package>`.
+   `npm install <package>`.
 
 2. Create a new folder that mirrors the package name
 

@@ -18,14 +18,8 @@
  */
 export default function transformProps(chartProps) {
   const { width, height, formData, queriesData } = chartProps;
-  const {
-    includeSeries,
-    linearColorScheme,
-    metrics,
-    secondaryMetric,
-    series,
-    showDatatable,
-  } = formData;
+  const { includeSeries, linearColorScheme, metrics, secondaryMetric, series, showDatatable } =
+    formData;
 
   return {
     width,

@@ -69,10 +69,8 @@ export default function transformProps(
 ): TimeseriesChartTransformedProps {
   const { width, height, filterState, formData, hooks, queriesData, datasource } = chartProps;
   const { verboseMap = {} } = datasource;
-  const {
-    annotation_data: annotationData_,
-    data = [],
-  } = queriesData[0] as TimeseriesChartDataResponseResult;
+  const { annotation_data: annotationData_, data = [] } =
+    queriesData[0] as TimeseriesChartDataResponseResult;
   const annotationData = annotationData_ || {};
 
   const {
@@ -273,9 +271,8 @@ export default function transformProps(
         const prophetValue = !richTooltip ? [params] : params;
 
         const rows: Array<string> = [`${tooltipFormatter(value)}`];
-        const prophetValues: Record<string, ProphetValue> = extractProphetValuesFromTooltipParams(
-          prophetValue,
-        );
+        const prophetValues: Record<string, ProphetValue> =
+          extractProphetValuesFromTooltipParams(prophetValue);
 
         Object.keys(prophetValues).forEach(key => {
           const value = prophetValues[key];

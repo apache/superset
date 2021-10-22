@@ -38,28 +38,28 @@ jobs:
             ${{ runner.OS }}-node-
             ${{ runner.OS }}-
 
-      - name: Get yarn cache directory path
-        id: yarn-cache-dir-path
-        run: echo "::set-output name=dir::$(yarn cache dir)"
-      - name: Cache yarn
+      - name: Get npm cache directory path
+        id: npm-cache-dir-path
+        run: echo "::set-output name=dir::$(npm config get cache)"
+      - name: Cache npm
         uses: actions/cache@v1
-        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+        id: npm-cache # use this to check for `cache-hit` (`steps.npm-cache.outputs.cache-hit != 'true'`)
         with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          path: ${{ steps.npm-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-yarn-
+            ${{ runner.os }}-npm-
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: npm ci
       - name: Build packages
-        run: yarn build
+        run: npm run build
       - name: Run ESLint
-        run: yarn lint --quiet
+        run: npm run lint --quiet
       - name: Run unit tests
-        run: yarn test
+        run: npm run test
       - name: Build Storybook
-        run: yarn build-storybook
+        run: npm run build-storybook
       - uses: actions/upload-artifact@v2
         with:
           name: storybookBuild

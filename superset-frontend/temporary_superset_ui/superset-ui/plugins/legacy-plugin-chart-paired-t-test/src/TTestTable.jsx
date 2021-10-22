@@ -195,10 +195,12 @@ class TTestTable extends React.Component {
       </Th>,
     );
     const rows = data.map((entry, i) => {
-      const values = groups.map((
-        group,
-        j, // group names
-      ) => <Td key={j} column={group} data={entry.group[j]} />);
+      const values = groups.map(
+        (
+          group,
+          j, // group names
+        ) => <Td key={j} column={group} data={entry.group[j]} />,
+      );
       values.push(
         <Td
           key={numGroups + 1}

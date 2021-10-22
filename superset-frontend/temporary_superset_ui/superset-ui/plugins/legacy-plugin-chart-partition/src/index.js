@@ -33,7 +33,7 @@ const metadata = new ChartMetadata({
 export default class PartitionChartPlugin extends ChartPlugin {
   constructor() {
     super({
-      loadChart: () => import('./ReactPartition.js'),
+      loadChart: () => import('./ReactPartition'),
       metadata,
       transformProps,
       controlPanel,

@@ -25,8 +25,7 @@ import { SHARED_COLUMN_CONFIG_PROPS, SharedColumnConfigProp } from './constants'
  */
 export type ColumnConfig = {
   [key in SharedColumnConfigProp]?: typeof SHARED_COLUMN_CONFIG_PROPS[key]['value'];
-} &
-  Record<string, StrictJsonValue>;
+} & Record<string, StrictJsonValue>;
 
 /**
  * All required info about a column to render the

@@ -47,7 +47,7 @@ export default class MapBoxChartPlugin extends ChartPlugin {
   constructor() {
     super({
       loadChart: () => import('./MapBox'),
-      loadTransformProps: () => import('./transformProps.js'),
+      loadTransformProps: () => import('./transformProps'),
       metadata,
       controlPanel,
     });

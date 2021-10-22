@@ -248,7 +248,7 @@ describe('buildQueryObject', () => {
         datasource: '5__table',
         granularity_sqla: 'ds',
         viz_type: 'table',
-        url_params: (null as unknown) as undefined,
+        url_params: null as unknown as undefined,
       }).url_params,
     ).toBeUndefined();
   });

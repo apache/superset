@@ -43,7 +43,7 @@ const metadata = new ChartMetadata({
 export default class RoseChartPlugin extends ChartPlugin {
   constructor() {
     super({
-      loadChart: () => import('./ReactRose.js'),
+      loadChart: () => import('./ReactRose'),
       metadata,
       transformProps,
       controlPanel,

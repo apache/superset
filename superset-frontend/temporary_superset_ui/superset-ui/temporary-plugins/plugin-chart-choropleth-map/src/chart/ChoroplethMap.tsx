@@ -206,15 +206,8 @@ class ChoroplethMap extends React.PureComponent<
   }
 
   render() {
-    const {
-      height,
-      width,
-      encoding,
-      tooltipOpen,
-      tooltipLeft,
-      tooltipTop,
-      tooltipData,
-    } = this.props;
+    const { height, width, encoding, tooltipOpen, tooltipLeft, tooltipTop, tooltipData } =
+      this.props;
     const { showMiniMap } = this.state;
     const encoder = this.createEncoder(encoding);
 

@@ -10,9 +10,8 @@ export type LegendItemMarkRendererType<Config extends EncodingConfig> = React.Co
   LegendItemMarkRendererProps<Config>
 >;
 
-export type LegendItemLabelRendererProps<
-  Config extends EncodingConfig
-> = LegendItemMarkRendererProps<Config>;
+export type LegendItemLabelRendererProps<Config extends EncodingConfig> =
+  LegendItemMarkRendererProps<Config>;
 
 export type LegendItemLabelRendererType<Config extends EncodingConfig> = React.ComponentType<
   LegendItemLabelRendererProps<Config>

@@ -51,7 +51,7 @@ const metadata = new ChartMetadata({
 export default class HeatmapChartPlugin extends ChartPlugin {
   constructor() {
     super({
-      loadChart: () => import('./ReactHeatmap.js'),
+      loadChart: () => import('./ReactHeatmap'),
       metadata,
       transformProps,
       controlPanel,

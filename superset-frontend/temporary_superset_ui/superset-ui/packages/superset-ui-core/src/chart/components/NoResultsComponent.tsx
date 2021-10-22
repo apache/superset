@@ -6,19 +6,17 @@ const TITLE_STYLES: CSSProperties = { fontSize: 16, fontWeight: 'bold', paddingB
 const BODY_STYLES: CSSProperties = { fontSize: 14 };
 const MIN_WIDTH_FOR_BODY = 250;
 
-const generateContainerStyles: (
-  height: number | string,
-  width: number | string,
-) => CSSProperties = (height: number | string, width: number | string) => ({
-  alignItems: 'center',
-  display: 'flex',
-  flexDirection: 'column',
-  height,
-  justifyContent: 'center',
-  padding: 16,
-  textAlign: 'center',
-  width,
-});
+const generateContainerStyles: (height: number | string, width: number | string) => CSSProperties =
+  (height: number | string, width: number | string) => ({
+    alignItems: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    height,
+    justifyContent: 'center',
+    padding: 16,
+    textAlign: 'center',
+    width,
+  });
 
 type Props = {
   className?: string;

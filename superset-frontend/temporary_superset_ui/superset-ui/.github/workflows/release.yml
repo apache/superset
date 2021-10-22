@@ -40,28 +40,28 @@ jobs:
             ${{ runner.OS }}-node-
             ${{ runner.OS }}-
 
-      - name: Get yarn cache directory path
-        id: yarn-cache-dir-path
-        run: echo "::set-output name=dir::$(yarn cache dir)"
-      - name: Cache yarn
+      - name: Get npm cache directory path
+        id: npm-cache-dir-path
+        run: echo "::set-output name=dir::$(npm config get cache)"
+      - name: Cache npm
         uses: actions/cache@v1
-        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+        id: npm-cache # use this to check for `cache-hit` (`steps.npm-cache.outputs.cache-hit != 'true'`)
         with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          path: ${{ steps.npm-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-yarn-
+            ${{ runner.os }}-npm-
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: npm ci
       - name: Build packages
-        run: yarn build
+        run: npm run build
       - name: Run unit tests
-        run: yarn test
+        run: npm run test
 
       - name: Configure npm and git
         run: |
-          yarn logout
+          npm logout
           echo "@superset-ui:registry=https://registry.npmjs.org/" > .npmrc
           echo "registry=https://registry.npmjs.org/" >> .npmrc
           echo "//registry.npmjs.org/:_authToken=\${NPM_TOKEN}" >> $HOME/.npmrc 2> /dev/null
@@ -77,7 +77,7 @@ jobs:
         run: |
           git update-index --assume-unchanged .npmrc
           git tag -d `git tag | grep -E '^trigger-'`
-          yarn ci:release-from-tag
+          npm run ci:release-from-tag
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -23,7 +23,7 @@ type ValueOrModuleWithValue<T> = T | { default: T };
 
 interface ChartPluginConfig<
   FormData extends QueryFormData = QueryFormData,
-  Props extends ChartProps = ChartProps
+  Props extends ChartProps = ChartProps,
 > {
   metadata: ChartMetadata;
   /** Use buildQuery for immediate value. For lazy-loading, use loadBuildQuery. */
@@ -60,7 +60,7 @@ function sanitizeLoader<T>(
 
 export default class ChartPlugin<
   FormData extends QueryFormData = QueryFormData,
-  Props extends ChartProps = ChartProps
+  Props extends ChartProps = ChartProps,
 > extends Plugin {
   controlPanel: ChartControlPanel;
 

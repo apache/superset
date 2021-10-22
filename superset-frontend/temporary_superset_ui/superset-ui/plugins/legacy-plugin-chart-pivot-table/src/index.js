@@ -23,7 +23,8 @@ import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
   category: t('Table'),
-  description: t(`Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location.
+  description:
+    t(`Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location.
 
   This chart is being deprecated and we recommend checking out Pivot Table V2 instead!`),
   name: t('Pivot Table'),
@@ -35,7 +36,7 @@ const metadata = new ChartMetadata({
 export default class PivotTableChartPlugin extends ChartPlugin {
   constructor() {
     super({
-      loadChart: () => import('./ReactPivotTable.js'),
+      loadChart: () => import('./ReactPivotTable'),
       metadata,
       transformProps,
       controlPanel,

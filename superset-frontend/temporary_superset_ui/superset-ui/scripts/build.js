@@ -84,7 +84,7 @@ function getPackages(packagePattern, tsOnly = false) {
 let scope = getPackages(glob);
 
 if (shouldLint) {
-  run(`yarn lint --fix {packages,plugins}/${scope}/{src,test}`);
+  run(`npm run lint --fix {packages,plugins}/${scope}/{src,test}`);
 }
 
 if (shouldCleanup) {

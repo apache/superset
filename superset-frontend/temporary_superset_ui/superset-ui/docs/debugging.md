@@ -2,7 +2,8 @@
 
 ## Activate plugins for local development
 
-1. First, make sure you have run `yarn` and `yarn build` in `superset-ui` or your own plugin repo.
+1. First, make sure you have run `npm ci` and `npm run build` in `superset-ui` or your own plugin
+   repo.
 2. Go to [superset-frontend](https://github.com/apache/superset/tree/master/superset-frontend), use
    `npm link` to create a symlink of the plugin source code in `node_modules`:
 
@@ -23,4 +24,4 @@
 
 ## Deactivate plugins
 
-To deactivate a plugin, simply run `npm install` in `superset/superset-frontend` again.
+To deactivate a plugin, simply run `npm ci` in `superset/superset-frontend` again.

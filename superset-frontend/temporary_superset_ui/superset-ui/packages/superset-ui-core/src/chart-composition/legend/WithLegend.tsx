@@ -66,15 +66,8 @@ class WithLegend extends PureComponent<Props, {}> {
   }
 
   render() {
-    const {
-      className,
-      debounceTime,
-      width,
-      height,
-      position,
-      renderChart,
-      renderLegend,
-    } = this.props;
+    const { className, debounceTime, width, height, position, renderChart, renderLegend } =
+      this.props;
 
     const isHorizontal = position === 'left' || position === 'right';
 
