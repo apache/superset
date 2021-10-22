@@ -183,7 +183,7 @@ const defaultSortComparator = (a: AntdLabeledValue, b: AntdLabeledValue) => {
  * It creates a comparator to check for a specific property.
  * Can be used with string and number property values.
  * */
-const propertyComparator = (property: string) => (
+export const propertyComparator = (property: string) => (
   a: AntdLabeledValue,
   b: AntdLabeledValue,
 ) => {
@@ -683,7 +683,5 @@ const Select = ({
     </StyledContainer>
   );
 };
-
-Select.propertyComparator = propertyComparator;
 
 export default Select;

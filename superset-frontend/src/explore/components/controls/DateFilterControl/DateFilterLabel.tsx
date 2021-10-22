@@ -40,7 +40,7 @@ import Label, { Type } from 'src/components/Label';
 import Popover from 'src/components/Popover';
 import { Divider } from 'src/common/components';
 import Icons from 'src/components/Icons';
-import { Select } from 'src/components';
+import Select, { propertyComparator } from 'src/components/Select/Select';
 import { Tooltip } from 'src/components/Tooltip';
 import { DEFAULT_TIME_RANGE } from 'src/explore/constants';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
@@ -54,8 +54,6 @@ import {
   CustomFrame,
   AdvancedFrame,
 } from './components';
-
-const { propertyComparator } = Select;
 
 const guessFrame = (timeRange: string): FrameType => {
   if (COMMON_RANGE_VALUES_SET.has(timeRange)) {

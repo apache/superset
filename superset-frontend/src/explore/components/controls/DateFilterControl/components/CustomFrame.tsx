@@ -23,7 +23,7 @@ import { isInteger } from 'lodash';
 import { Col, InputNumber, Row } from 'src/common/components';
 import { DatePicker } from 'src/components/DatePicker';
 import { Radio } from 'src/components/Radio';
-import { Select } from 'src/components';
+import Select, { propertyComparator } from 'src/components/Select/Select';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import {
   SINCE_GRAIN_OPTIONS,
@@ -41,7 +41,6 @@ import {
   FrameComponentProps,
 } from 'src/explore/components/controls/DateFilterControl/types';
 
-const { propertyComparator } = Select;
 const sortComparator = propertyComparator('order');
 
 export function CustomFrame(props: FrameComponentProps) {
