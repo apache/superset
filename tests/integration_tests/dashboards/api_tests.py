@@ -87,6 +87,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         css: str = "",
         json_metadata: str = "",
         published: bool = False,
+        description: str = ""
     ) -> Dashboard:
         obj_owners = list()
         obj_roles = list()
@@ -108,6 +109,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             slices=slices,
             published=published,
             created_by=created_by,
+            description=description
         )
         db.session.add(dashboard)
         db.session.commit()
@@ -309,7 +311,11 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         """
         admin = self.get_user("admin")
         dashboard = self.insert_dashboard(
-            "title", "slug1", [admin.id], created_by=admin
+            "title",
+            "slug1",
+            [admin.id],
+            created_by=admin,
+            description="some description"
         )
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard.id}"
@@ -341,6 +347,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             "slug": "slug1",
             "table_names": "",
             "thumbnail_url": dashboard.thumbnail_url,
+            "description": dashboard.description,
         }
         data = json.loads(rv.data.decode("utf-8"))
         self.assertIn("changed_on", data["result"])
