@@ -33,6 +33,7 @@ import NewMarkdown from './gridComponents/new/NewMarkdown';
 import SliceAdder from '../containers/SliceAdder';
 
 export interface BCPProps {
+  isStandalone: boolean;
   topOffset: number;
 }
 
@@ -65,7 +66,10 @@ const DashboardBuilderSidepane = styled.div<{
   }
 `;
 
-const BuilderComponentPane: React.FC<BCPProps> = ({ topOffset = 0 }) => (
+const BuilderComponentPane: React.FC<BCPProps> = ({
+  isStandalone,
+  topOffset = 0,
+}) => (
   <DashboardBuilderSidepane
     topOffset={topOffset}
     className="dashboard-builder-sidepane"
@@ -76,7 +80,8 @@ const BuilderComponentPane: React.FC<BCPProps> = ({ topOffset = 0 }) => (
           <Sticky topOffset={-topOffset} bottomOffset={Infinity}>
             {({ style, isSticky }: { style: any; isSticky: boolean }) => {
               const { pageYOffset } = window;
-              const hasHeader = pageYOffset < SUPERSET_HEADER_HEIGHT;
+              const hasHeader =
+                pageYOffset < SUPERSET_HEADER_HEIGHT && !isStandalone;
               const withHeaderTopOffset =
                 topOffset +
                 (SUPERSET_HEADER_HEIGHT - pageYOffset - SIDEPANE_ADJUST_OFFSET);
