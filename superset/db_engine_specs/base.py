@@ -293,7 +293,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # if True, use alias of select column for `order by`
     # the True is safely for most database
     # But for backward compatibility, False by default
-    allows_hidden_orderby_calculated_column = False
+    allows_hidden_cc_in_orderby = False
 
     force_column_alias_quotes = False
     arraysize = 0

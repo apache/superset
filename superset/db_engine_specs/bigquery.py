@@ -99,7 +99,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
     # same cursor, so we need to run all statements at once
     run_multiple_statements_as_one = True
 
-    allows_hidden_orderby_calculated_column = True
+    allows_hidden_cc_in_orderby = True
 
     """
     https://www.python.org/dev/peps/pep-0249/#arraysize
