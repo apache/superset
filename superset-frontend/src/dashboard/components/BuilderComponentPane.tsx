@@ -42,6 +42,7 @@ const BuilderComponentPaneTabs = styled(Tabs)`
 `;
 
 const SUPERSET_HEADER_HEIGHT = 59;
+const SIDEPANE_ADJUST_OFFSET = 4;
 
 const BuilderComponentPane: React.FC<BCPProps> = ({ topOffset = 0 }) => (
   <div className="dashboard-builder-sidepane">
@@ -49,40 +50,49 @@ const BuilderComponentPane: React.FC<BCPProps> = ({ topOffset = 0 }) => (
       {({ height }) => (
         <StickyContainer>
           <Sticky topOffset={-topOffset} bottomOffset={Infinity}>
-            {({ style, isSticky }: { style: any; isSticky: boolean }) => (
-              <div
-                className="viewport"
-                style={
-                  window.pageYOffset > 0
-                    ? { ...style, top: topOffset }
-                    : { top: topOffset + SUPERSET_HEADER_HEIGHT }
-                }
-              >
-                <BuilderComponentPaneTabs
-                  id="tabs"
-                  className="tabs-components"
-                  data-test="dashboard-builder-component-pane-tabs-navigation"
+            {({ style, isSticky }: { style: any; isSticky: boolean }) => {
+              const { pageYOffset } = window;
+              const hasHeader = pageYOffset < SUPERSET_HEADER_HEIGHT;
+              const withHeaderTopOffset =
+                topOffset +
+                (SUPERSET_HEADER_HEIGHT - pageYOffset - SIDEPANE_ADJUST_OFFSET);
+
+              return (
+                <div
+                  className="viewport"
+                  style={{
+                    ...style,
+                    top: hasHeader ? withHeaderTopOffset : topOffset,
+                  }}
                 >
-                  <Tabs.TabPane key={1} tab={t('Components')}>
-                    <NewTabs />
-                    <NewRow />
-                    <NewColumn />
-                    <NewHeader />
-                    <NewMarkdown />
-                    <NewDivider />
-                  </Tabs.TabPane>
-                  <Tabs.TabPane
-                    key={2}
-                    tab={t('Charts')}
-                    className="tab-charts"
+                  <BuilderComponentPaneTabs
+                    id="tabs"
+                    className="tabs-components"
+                    data-test="dashboard-builder-component-pane-tabs-navigation"
                   >
-                    <SliceAdder
-                      height={height + (isSticky ? SUPERSET_HEADER_HEIGHT : 0)}
-                    />
-                  </Tabs.TabPane>
-                </BuilderComponentPaneTabs>
-              </div>
-            )}
+                    <Tabs.TabPane key={1} tab={t('Components')}>
+                      <NewTabs />
+                      <NewRow />
+                      <NewColumn />
+                      <NewHeader />
+                      <NewMarkdown />
+                      <NewDivider />
+                    </Tabs.TabPane>
+                    <Tabs.TabPane
+                      key={2}
+                      tab={t('Charts')}
+                      className="tab-charts"
+                    >
+                      <SliceAdder
+                        height={
+                          height + (isSticky ? SUPERSET_HEADER_HEIGHT : 0)
+                        }
+                      />
+                    </Tabs.TabPane>
+                  </BuilderComponentPaneTabs>
+                </div>
+              );
+            }}
           </Sticky>
         </StickyContainer>
       )}

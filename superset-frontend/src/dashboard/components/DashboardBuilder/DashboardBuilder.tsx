@@ -175,18 +175,16 @@ const StyledDashboardContent = styled.div<{
     ${({ editMode, theme }) =>
       editMode &&
       `
-      max-width: calc(100% - ${BUILDER_PANEL_WIDTH}px - ${
-        theme.gridUnit * 8
-      }px);
+      max-width: calc(100% - ${BUILDER_PANEL_WIDTH + theme.gridUnit * 16}px);
     `}
   }
 
   .dashboard-builder-sidepane {
     height: ${({ barTopOffset }) => `calc(100vh - ${barTopOffset}px`});
-    width: ${BUILDER_PANEL_WIDTH}px;
     position: fixed;
     right: 0;
     top: 0;
+    width: ${BUILDER_PANEL_WIDTH}px;
   }
 
   .dashboard-component-chart-holder {
