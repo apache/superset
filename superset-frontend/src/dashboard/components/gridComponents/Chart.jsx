@@ -19,7 +19,7 @@
 import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
-import { styled } from '@superset-ui/core';
+import { styled, supersetTheme } from '@superset-ui/core';
 import { isEqual } from 'lodash';
 
 import {
@@ -34,6 +34,7 @@ import {
   LOG_ACTIONS_FORCE_REFRESH_CHART,
 } from 'src/logger/LogUtils';
 import { areObjectsEqual } from 'src/reduxUtils';
+import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 
 import SliceHeader from '../SliceHeader';
 import MissingChart from '../MissingChart';
@@ -41,7 +42,6 @@ import { slicePropShape, chartPropShape } from '../../util/propShapes';
 
 import { isFilterBox } from '../../util/activeDashboardFilters';
 import getFilterValuesByFilterId from '../../util/getFilterValuesByFilterId';
-import { FILTER_BOX_MIGRATION_STATES } from '../../../explore/constants';
 
 const propTypes = {
   id: PropTypes.number.isRequired,
@@ -97,6 +97,7 @@ const SHOULD_UPDATE_ON_PROP_CHANGES = Object.keys(propTypes).filter(
 );
 const OVERFLOWABLE_VIZ_TYPES = new Set(['filter_box']);
 const DEFAULT_HEADER_HEIGHT = 22;
+const { colors } = supersetTheme;
 
 const ChartOverlay = styled.div`
   position: absolute;
@@ -105,8 +106,8 @@ const ChartOverlay = styled.div`
   z-index: 5;
 
   &.is-deactivated {
-    opacity: 0.25;
-    background-color: #000;
+    opacity: 0.5;
+    background-color: ${colors.grayscale.light1};
   }
 `;
 
@@ -420,6 +421,7 @@ export default class Chart extends React.Component {
             triggerQuery={chart.triggerQuery}
             vizType={slice.viz_type}
             isDeactivatedViz={isDeactivatedViz}
+            filterboxMigrationState={filterboxMigrationState}
           />
         </div>
       </div>

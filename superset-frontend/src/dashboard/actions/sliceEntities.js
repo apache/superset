@@ -71,38 +71,39 @@ export function fetchAllSlices(userId, excludeFilterBox = false) {
       })
         .then(({ json }) => {
           const slices = {};
-          json.result
-            .filter(
-              slice => !excludeFilterBox || slice.viz_type !== 'filter_box',
-            )
-            .forEach(slice => {
-              let form_data = JSON.parse(slice.params);
-              form_data = {
-                ...form_data,
-                // force using datasource stored in relational table prop
-                datasource:
-                  getDatasourceParameter(
-                    slice.datasource_id,
-                    slice.datasource_type,
-                  ) || form_data.datasource,
-              };
-              slices[slice.id] = {
-                slice_id: slice.id,
-                slice_url: slice.url,
-                slice_name: slice.slice_name,
-                form_data,
-                datasource_name: slice.datasource_name_text,
-                datasource_url: slice.datasource_url,
-                datasource_id: slice.datasource_id,
-                datasource_type: slice.datasource_type,
-                changed_on: new Date(slice.changed_on_utc).getTime(),
-                description: slice.description,
-                description_markdown: slice.description_markeddown,
-                viz_type: slice.viz_type,
-                modified: slice.changed_on_delta_humanized,
-                changed_on_humanized: slice.changed_on_delta_humanized,
-              };
-            });
+          let { result } = json;
+          // disable add filter_box viz to dashboard
+          if (excludeFilterBox) {
+            result = result.filter(slice => slice.viz_type !== 'filter_box');
+          }
+          result.forEach(slice => {
+            let form_data = JSON.parse(slice.params);
+            form_data = {
+              ...form_data,
+              // force using datasource stored in relational table prop
+              datasource:
+                getDatasourceParameter(
+                  slice.datasource_id,
+                  slice.datasource_type,
+                ) || form_data.datasource,
+            };
+            slices[slice.id] = {
+              slice_id: slice.id,
+              slice_url: slice.url,
+              slice_name: slice.slice_name,
+              form_data,
+              datasource_name: slice.datasource_name_text,
+              datasource_url: slice.datasource_url,
+              datasource_id: slice.datasource_id,
+              datasource_type: slice.datasource_type,
+              changed_on: new Date(slice.changed_on_utc).getTime(),
+              description: slice.description,
+              description_markdown: slice.description_markeddown,
+              viz_type: slice.viz_type,
+              modified: slice.changed_on_delta_humanized,
+              changed_on_humanized: slice.changed_on_delta_humanized,
+            };
+          });
 
           return dispatch(setAllSlices(slices));
         })

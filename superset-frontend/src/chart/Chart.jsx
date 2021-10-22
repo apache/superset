@@ -115,14 +115,25 @@ class Chart extends React.PureComponent {
   }
 
   componentDidMount() {
-    if (this.props.triggerQuery) {
+    // during migration, hold chart queries before user choose review or cancel
+    if (
+      this.props.triggerQuery &&
+      this.props.filterboxMigrationState !== 'UNDECIDED'
+    ) {
       this.runQuery();
     }
   }
 
   componentDidUpdate() {
-    // if the chart is deactivated (filter_box), only load once in componentDidMount
-    if (this.props.triggerQuery && !this.props.isDeactivatedViz) {
+    // during migration, hold chart queries before user choose review or cancel
+    if (
+      this.props.triggerQuery &&
+      this.props.filterboxMigrationState !== 'UNDECIDED'
+    ) {
+      // if the chart is deactivated (filter_box), only load once
+      if (this.props.isDeactivatedViz && this.props.queriesResponse) {
+        return;
+      }
       this.runQuery();
     }
   }
@@ -224,6 +235,7 @@ class Chart extends React.PureComponent {
       refreshOverlayVisible,
       queriesResponse = [],
       isDeactivatedViz = false,
+      width,
     } = this.props;
 
     const isLoading = chartStatus === 'loading';
@@ -253,6 +265,7 @@ class Chart extends React.PureComponent {
           className="chart-container"
           data-test="chart-container"
           height={height}
+          width={width}
         >
           <div
             className={`slice_container ${isFaded ? ' faded' : ''}`}

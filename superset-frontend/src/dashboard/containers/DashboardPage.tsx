@@ -144,9 +144,9 @@ const DashboardPage: FC = () => {
           dispatch(
             addWarningToast(
               t(
-                'filter_box will be deprecated from Superset by ' +
-                  'the end of this year. Please replace filter_box by dashboard ' +
-                  'filter components.',
+                'filter_box will be deprecated ' +
+                  'in a future version of Superset. ' +
+                  'Please replace filter_box by dashboard filter components.',
               ),
             ),
           );

@@ -33,6 +33,7 @@ const StyledFilterBoxMigrationModal = styled(Modal)`
   .modal-header {
     flex: 0 1 auto;
   }
+
   .modal-body {
     flex: 1 1 auto;
     overflow: auto;
@@ -66,7 +67,7 @@ const FilterBoxMigrationModal: FunctionComponent<FilterBoxMigrationModalProps> =
     maskStyle={{ top: '50px' }}
     show={show}
     onHide={onHide}
-    title="Ready to review filters in this dashboard?"
+    title={t('Ready to review filters in this dashboard?')}
     hideFooter={hideFooter}
     footer={
       <>
@@ -88,8 +89,11 @@ const FilterBoxMigrationModal: FunctionComponent<FilterBoxMigrationModalProps> =
     responsive
   >
     <div>
-      <b>filter_box</b> will be deprecated from Superset by the end of this
-      year. Please replace filter_box by dashboard filter components.
+      {t(
+        'filter_box will be deprecated ' +
+          'in a future version of Superset. ' +
+          'Please replace filter_box by dashboard filter components.',
+      )}
     </div>
   </StyledFilterBoxMigrationModal>
 );

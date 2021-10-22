@@ -49,7 +49,7 @@ interface SliceData {
   form_data: {
     adhoc_filters?: [];
     datasource: string;
-    date_filter: boolean;
+    date_filter?: boolean;
     filter_configs?: FilterConfig[];
     granularity?: string;
     granularity_sqla?: string;
@@ -65,8 +65,8 @@ interface SliceData {
 }
 
 interface FilterScopeType {
-  scope: [];
-  immune: [];
+  scope: string[];
+  immune: number[];
 }
 
 interface FilterScopesMetadata {
@@ -80,9 +80,7 @@ interface PreselectedFilterColumn {
 }
 
 interface PreselectedFiltersMeatadata {
-  [key: string]: {
-    [key: string]: PreselectedFilterColumn;
-  };
+  [key: string]: PreselectedFilterColumn;
 }
 
 interface FilterBoxToFilterComponentMap {
@@ -161,9 +159,9 @@ const getFilterboxDependencies = (filterScopes: FilterScopesMetadata) => {
 };
 
 export default function getNativeFilterConfig(
-  chartData: SliceData[],
-  filterScopes: FilterScopesMetadata,
-  preselectFilters: any,
+  chartData: SliceData[] = [],
+  filterScopes: FilterScopesMetadata = {},
+  preselectFilters: PreselectedFiltersMeatadata = {},
 ): Filter[] {
   const filterConfig: Filter[] = [];
   const filterBoxToFilterComponentMap: FilterBoxToFilterComponentMap = {};
