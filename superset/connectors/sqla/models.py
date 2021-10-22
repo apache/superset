@@ -1391,7 +1391,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     if c not in metrics and c in groupby_series_columns
                 ]
                 top_groups = self._get_top_groups(
-                    result.df, dimensions, groupby_series_columns
+                    result.df, dimensions, groupby_series_columns, columns_by_name
                 )
                 qry = qry.where(top_groups)
 
@@ -1436,20 +1436,23 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         return ob
 
     def _get_top_groups(
-        self, df: pd.DataFrame, dimensions: List[str], groupby_exprs: Dict[str, Any],
+        self,
+        df: pd.DataFrame,
+        dimensions: List[str],
+        groupby_exprs: Dict[str, Any],
+        columns_by_name: Dict[str, TableColumn],
     ) -> ColumnElement:
-        column_map = {column.column_name: column for column in self.columns}
         groups = []
         for _unused, row in df.iterrows():
             group = []
             for dimension in dimensions:
-                value = row[dimension]
+                value = utils.normalize_prequery_result_type(row[dimension])
 
                 # Some databases like Druid will return timestamps as strings, but
                 # do not perform automatic casting when comparing these strings to
                 # a timestamp. For cases like this we convert the value from a
                 # string into a timestamp.
-                if column_map[dimension].is_temporal and isinstance(value, str):
+                if columns_by_name[dimension].is_temporal and isinstance(value, str):
                     dttm = dateutil.parser.parse(value)
                     value = text(self.db_engine_spec.convert_dttm("TIMESTAMP", dttm))
 
