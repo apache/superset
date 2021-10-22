@@ -25,6 +25,8 @@ import Button from 'src/components/Button';
 import ModalTrigger from 'src/components/ModalTrigger';
 import { FormLabel } from 'src/components/Form';
 
+const { propertyComparator } = Select;
+
 export const options = [
   [0, t("Don't refresh")],
   [10, t('10 seconds')],
@@ -120,9 +122,7 @@ class RefreshIntervalModal extends React.PureComponent<
               options={options}
               value={refreshFrequency}
               onChange={this.handleFrequencyChange}
-              sortComparator={(a, b) =>
-                (a.value as number) - (b.value as number)
-              }
+              sortComparator={propertyComparator('value')}
             />
             {showRefreshWarning && (
               <RefreshWarningContainer>

@@ -55,6 +55,8 @@ import {
   AdvancedFrame,
 } from './components';
 
+const { propertyComparator } = Select;
+
 const guessFrame = (timeRange: string): FrameType => {
   if (COMMON_RANGE_VALUES_SET.has(timeRange)) {
     return 'Common';
@@ -295,10 +297,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         options={FRAME_OPTIONS}
         value={frame}
         onChange={onChangeFrame}
-        sortComparator={(
-          a: typeof FRAME_OPTIONS[number],
-          b: typeof FRAME_OPTIONS[number],
-        ) => a.order - b.order}
+        sortComparator={propertyComparator('order')}
       />
       {frame !== 'No filter' && <Divider />}
       {frame === 'Common' && (

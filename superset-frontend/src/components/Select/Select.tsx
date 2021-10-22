@@ -179,6 +179,20 @@ const defaultSortComparator = (a: AntdLabeledValue, b: AntdLabeledValue) => {
   return (a.value as number) - (b.value as number);
 };
 
+/**
+ * It creates a comparator to check for a specific property.
+ * Can be used with string and number property values.
+ * */
+const propertyComparator = (property: string) => (
+  a: AntdLabeledValue,
+  b: AntdLabeledValue,
+) => {
+  if (typeof a[property] === 'string' && typeof b[property] === 'string') {
+    return a[property].localeCompare(b[property]);
+  }
+  return (a[property] as number) - (b[property] as number);
+};
+
 const Select = ({
   allowNewOptions = false,
   ariaLabel,
@@ -669,5 +683,7 @@ const Select = ({
     </StyledContainer>
   );
 };
+
+Select.propertyComparator = propertyComparator;
 
 export default Select;

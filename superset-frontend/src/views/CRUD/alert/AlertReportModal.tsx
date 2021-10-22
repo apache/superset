@@ -57,6 +57,8 @@ import {
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
 
+const { propertyComparator } = Select;
+
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
   'pivot_table',
@@ -1154,10 +1156,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                         currentAlert?.validator_config_json?.op || undefined
                       }
                       options={CONDITIONS}
-                      sortComparator={(
-                        a: typeof CONDITIONS[number],
-                        b: typeof CONDITIONS[number],
-                      ) => a.order - b.order}
+                      sortComparator={propertyComparator('order')}
                     />
                   </div>
                 </StyledInputContainer>
@@ -1225,9 +1224,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   onChange={onLogRetentionChange}
                   value={currentAlert?.log_retention || DEFAULT_RETENTION}
                   options={RETENTION_OPTIONS}
-                  sortComparator={(a, b) =>
-                    (a.value as number) - (b.value as number)
-                  }
+                  sortComparator={propertyComparator('value')}
                 />
               </div>
             </StyledInputContainer>

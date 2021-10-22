@@ -41,6 +41,9 @@ import {
   FrameComponentProps,
 } from 'src/explore/components/controls/DateFilterControl/types';
 
+const { propertyComparator } = Select;
+const sortComparator = propertyComparator('order');
+
 export function CustomFrame(props: FrameComponentProps) {
   const { customRange, matchedFlag } = customTimeRangeDecode(props.value);
   if (!matchedFlag) {
@@ -121,10 +124,7 @@ export function CustomFrame(props: FrameComponentProps) {
             options={SINCE_MODE_OPTIONS}
             value={sinceMode}
             onChange={(value: string) => onChange('sinceMode', value)}
-            sortComparator={(
-              a: typeof SINCE_MODE_OPTIONS[number],
-              b: typeof SINCE_MODE_OPTIONS[number],
-            ) => a.order - b.order}
+            sortComparator={sortComparator}
           />
           {sinceMode === 'specific' && (
             <Row>
@@ -159,10 +159,7 @@ export function CustomFrame(props: FrameComponentProps) {
                   options={SINCE_GRAIN_OPTIONS}
                   value={sinceGrain}
                   onChange={(value: string) => onChange('sinceGrain', value)}
-                  sortComparator={(
-                    a: typeof SINCE_GRAIN_OPTIONS[number],
-                    b: typeof SINCE_GRAIN_OPTIONS[number],
-                  ) => a.order - b.order}
+                  sortComparator={sortComparator}
                 />
               </Col>
             </Row>
@@ -181,10 +178,7 @@ export function CustomFrame(props: FrameComponentProps) {
             options={UNTIL_MODE_OPTIONS}
             value={untilMode}
             onChange={(value: string) => onChange('untilMode', value)}
-            sortComparator={(
-              a: typeof UNTIL_MODE_OPTIONS[number],
-              b: typeof UNTIL_MODE_OPTIONS[number],
-            ) => a.order - b.order}
+            sortComparator={sortComparator}
           />
           {untilMode === 'specific' && (
             <Row>
@@ -218,10 +212,7 @@ export function CustomFrame(props: FrameComponentProps) {
                   options={UNTIL_GRAIN_OPTIONS}
                   value={untilGrain}
                   onChange={(value: string) => onChange('untilGrain', value)}
-                  sortComparator={(
-                    a: typeof UNTIL_GRAIN_OPTIONS[number],
-                    b: typeof UNTIL_GRAIN_OPTIONS[number],
-                  ) => a.order - b.order}
+                  sortComparator={sortComparator}
                 />
               </Col>
             </Row>

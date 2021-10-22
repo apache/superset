@@ -28,6 +28,8 @@ import {
   MULTIPLE_VALUE_COMPARATORS,
 } from './types';
 
+const { propertyComparator } = Select;
+
 const FullWidthInputNumber = styled(InputNumber)`
   width: 100%;
 `;
@@ -129,10 +131,7 @@ const operatorField = (
     <Select
       ariaLabel={t('Operator')}
       options={operatorOptions}
-      sortComparator={(
-        a: typeof operatorOptions[number],
-        b: typeof operatorOptions[number],
-      ) => a.order - b.order}
+      sortComparator={propertyComparator('order')}
     />
   </FormItem>
 );
