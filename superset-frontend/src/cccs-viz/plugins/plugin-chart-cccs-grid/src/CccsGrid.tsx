@@ -47,10 +47,7 @@ import {
 } from '@superset-ui/core';
 
 const DEFAULT_COLUMN_DEF = {
-  flex: 1,
-  minWidth: 125,
-  editable: true,
-  sortable: true,
+  editable: false,
   filter: true,
   resizable: true,
   tooltipField: '',
@@ -71,7 +68,7 @@ export default function CccsGrid({
   filters: initialFilters = {},
 }: CccsGridProps) {
 
-  const [, setFilters] = useState(initialFilters);
+  const [setFilters] = useState(initialFilters);
 
   const [prevRow, setPrevRow] = useState(-1);
   const [prevColumn, setPrevColumn] = useState('');
@@ -137,12 +134,11 @@ export default function CccsGrid({
 
   const onGridReady = (params: any) => {
     console.log('onGridReady called');
-    params.api.forceUpdate();
   };
 
   const onSelectionChanged = (params: any) => {
     const gridApi = params.api;
-    var selectedRows = gridApi.getSelectedRows();
+    const selectedRows = gridApi.getSelectedRows();
     gridApi.document.querySelector('#selectedRows').innerHTML =
       selectedRows.length === 1 ? selectedRows[0].athlete : '';
   };
@@ -218,14 +214,15 @@ export default function CccsGrid({
     return formData.column_config?.[col]?.emitTarget || col;
   }
 
-  function autoSizeFirst100Columns(params: any){
+  function autoSizeFirst100Columns(params: any) {
     // Autosizes only the first 100 Columns in Ag-Grid
-    const allColumnIds = params.columnApi.getAllColumns().map((col: any) => {return col.getColId()});
-    params.columnApi.autoSizeColumns(allColumnIds.slice(0,100), false);
+    const allColumnIds = params.columnApi.getAllColumns().map((col: any) => { return col.getColId() });
+    params.columnApi.autoSizeColumns(allColumnIds.slice(0, 100), false);
   }
 
   const gridOptions = {
-    suppressColumnVirtualisation: true
+    suppressColumnVirtualisation: true,
+    animateRows: true
     // Disables a Key performance feature for Ag-Grid to enable autosizing of multiple columns
     // if not disabled, only the first 10-15 columns will autosize
     // This change will make initial load up of Ag-Grid slower than before

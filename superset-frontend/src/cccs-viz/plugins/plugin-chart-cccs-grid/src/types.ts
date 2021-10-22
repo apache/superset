@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryFormData, SetDataMaskHook, supersetTheme, TimeseriesDataRecord } from '@superset-ui/core';
+import { ChartProps, QueryFormData, SetDataMaskHook, supersetTheme, TimeseriesDataRecord } from '@superset-ui/core';
 
 export interface CccsGridStylesProps {
   height: number;
@@ -25,10 +25,11 @@ export interface CccsGridStylesProps {
   boldText?: boolean;
 }
 
-interface CccsGridCustomizeProps {
+export interface CccsGridCustomizeProps extends ChartProps{
   headerText: string;
   emitFilter: boolean;
   setDataMask: SetDataMaskHook;
+  orderDesc: boolean,
   selectedValues: Record<number, string>;
   formData: CccsGridQueryFormData;
 }

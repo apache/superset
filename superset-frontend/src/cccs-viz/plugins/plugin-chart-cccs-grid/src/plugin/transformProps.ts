@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, Column, TimeseriesDataRecord } from '@superset-ui/core';
+import { ChartProps, Column, QueryMode, t, TimeseriesDataRecord } from '@superset-ui/core';
 
 export default function transformProps(chartProps: ChartProps) {
   /**
@@ -57,10 +57,8 @@ export default function transformProps(chartProps: ChartProps) {
     queriesData,
   } = chartProps;
   const {
-    boldText,
-    headerFontSize,
-    headerText,
     table_filter: tableFilter,
+    query_mode: queryMode,
   } = formData;
   const data = queriesData[0].data as TimeseriesDataRecord[];
 
@@ -68,10 +66,8 @@ export default function transformProps(chartProps: ChartProps) {
 
   const columns = datasource?.columns as Column[];
 
-  console.log('formData via TransformProps.ts', formData);
-
+  // Map of column types, key is column name, value is column type
   const columnTypeMap = new Map<string, string>();
-
   columns.reduce(function (columnMap, column: Column) {
     // @ts-ignore
     const name = column['column_name'];
@@ -80,8 +76,8 @@ export default function transformProps(chartProps: ChartProps) {
     return columnMap;
   }, columnTypeMap);
 
+  // Map of verbose names, key is column name, value is verbose name
   const columnVerboseNameMap = new Map<string, string>();
-
   columns.reduce(function (columnMap, column: Column) {
     // @ts-ignore
     const name = column['column_name'];
@@ -89,30 +85,88 @@ export default function transformProps(chartProps: ChartProps) {
     columnMap[name] = column.verbose_name;
     return columnMap;
   }, columnVerboseNameMap);
- 
-  const formColumns = formData.columns as any;
 
-  const columnDefs = formColumns.map((c: any) => {
-    const columnType = columnTypeMap[c];
-    const columnHeader = columnVerboseNameMap[c] ? columnVerboseNameMap[c] : c;
-    return {
-      field: c,
-      minWidth: 50,
-      headerName: columnHeader,
-      // @ts-ignore
-      cellRenderer: columnTypeMap[c] == 'IPV4' ? 'ipv4ValueRenderer' :
-      // @ts-ignore
-      columnType == 'IPV6' ? 'ipv6ValueRenderer' :
-      // @ts-ignore
-      columnType == 'DOMAIN' ? 'domainValueRenderer' :
-      // @ts-ignore
-      columnType == 'COUNTRY' ? 'countryValueRenderer' :
-      // @ts-ignore
-      columnType == 'JSON' ? 'jsonValueRenderer' :
-              undefined,
-      sortable: true,
-    };
-  });
+  // Map of sorting columns, key is column name, value is a struct of sort direction (asc/desc) and sort index
+  const sortingColumnMap = new Map<string, {}>();
+  formData.order_by_cols.reduce(function (columnMap: { [x: string]: any; }, item: string, currentIndex: number) {
+    // Logic from extractQueryFields.ts
+    if (typeof item === 'string') {
+      try {
+        const array = JSON.parse(item);
+        const name = array[0];
+        const sortDirection = array[1];
+        const sortIndex = currentIndex - 1;
+        const sortOptions = { sortDirection: sortDirection, sortIndex: sortIndex };
+        columnMap[name] = sortOptions;
+      } catch (error) {
+        throw new Error(t('Found invalid orderby option: %s', item));
+      }
+      return columnMap;
+    }
+    else {
+      console.log('Found invalid orderby option: %s.', item);
+      return undefined;
+    }
+  }, sortingColumnMap);
+
+  // Key is column type, value is renderer name
+  const rendererMap = {
+    IPV4: 'ipv4ValueRenderer',
+    IPV6: 'ipv6ValueRenderer',
+    DOMAIN: 'domainValueRenderer',
+    COUNTRY: 'countryValueRenderer',
+    JSON: 'jsonValueRenderer'
+  };
+
+  var columnDefs: Column[] = [];
+
+  if (queryMode === QueryMode.raw) {
+    columnDefs = formData.columns.map((column: any) => {
+      const columnType = columnTypeMap[column];
+      const columnHeader = columnVerboseNameMap[column] ? columnVerboseNameMap[column] : column;
+      const sortDirection = column in sortingColumnMap ? (sortingColumnMap[column].sortDirection ? 'asc' : 'desc') : null;
+      const sortIndex = column in sortingColumnMap ? sortingColumnMap[column].sortIndex : null;
+      const cellRenderer = columnType in rendererMap ? rendererMap[columnType] : undefined;
+      const isSortable = true;
+      return {
+        field: column,
+        headerName: columnHeader,
+        cellRenderer: cellRenderer,
+        sortable: isSortable,
+        sort: sortDirection,
+        sortIndex: sortIndex
+      };
+    });
+  }
+  else {
+    if (formData.groupby) {
+      const groupByColumnDefs = formData.groupby.map((column: any) => {
+        const columnType = columnTypeMap[column];
+        const columnHeader = columnVerboseNameMap[column] ? columnVerboseNameMap[column] : column;
+        const cellRenderer = columnType in rendererMap ? rendererMap[columnType] : undefined;
+        const isSortable = true;
+        return {
+          field: column,
+          headerName: columnHeader,
+          cellRenderer: cellRenderer,
+          sortable: isSortable
+        };
+      });
+      columnDefs = columnDefs.concat(groupByColumnDefs);
+    }
+
+    if (formData.metrics) {
+      const metricsColumnDefs = formData.metrics.map((column: any) => {
+        const columnHeader = columnVerboseNameMap[column] ? columnVerboseNameMap[column] : column;
+        return {
+          field: column,
+          headerName: columnHeader,
+          sortable: true,
+        };
+      });
+      columnDefs = columnDefs.concat(metricsColumnDefs);
+    }
+  }
 
   return {
     formData,
@@ -122,9 +176,6 @@ export default function transformProps(chartProps: ChartProps) {
     columnDefs: columnDefs,
     rowData: data,
     // and now your control data, manipulated as needed, and passed through as props!
-    boldText,
-    headerFontSize,
-    headerText,
     emitFilter: tableFilter,
   };
 }
