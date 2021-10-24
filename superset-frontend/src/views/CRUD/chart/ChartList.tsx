@@ -58,7 +58,17 @@ import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 import setupPlugins from 'src/setup/setupPlugins';
+import InfoTooltip from 'src/components/InfoTooltip';
 import ChartCard from './ChartCard';
+
+const FlexRowContainer = styled.div`
+  align-items: center;
+  display: flex;
+
+  svg {
+    margin-right: ${({ theme }) => theme.gridUnit}px;
+  }
+`;
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -237,12 +247,17 @@ function ChartList(props: ChartListProps) {
       {
         Cell: ({
           row: {
-            original: { url, slice_name: sliceName },
+            original: { url, slice_name: sliceName, description },
           },
         }: any) => (
-          <a href={url} data-test={`${sliceName}-list-chart-title`}>
-            {sliceName}
-          </a>
+          <FlexRowContainer>
+            <a href={url} data-test={`${sliceName}-list-chart-title`}>
+              {sliceName}
+            </a>
+            {description && (
+              <InfoTooltip tooltip={description} viewBox="0 -1 24 24" />
+            )}
+          </FlexRowContainer>
         ),
         Header: t('Chart'),
         accessor: 'slice_name',
