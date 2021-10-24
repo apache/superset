@@ -35,7 +35,7 @@ export interface DashboardComponentsRegistryMetadata extends RegistryMetadata {
   This is registry that contains list of dynamic dashboard components that can be added in addition to main components
  */
 
-const dashboardComponentsRegistry = (
+const DashboardComponentsRegistry = (
   initComponents: { key: string; item: ComponentItem }[] = [],
 ) => {
   const state: FunctionalRegistryState<
@@ -59,4 +59,4 @@ const dashboardComponentsRegistry = (
   };
 };
 
-export default dashboardComponentsRegistry;
+export default DashboardComponentsRegistry;

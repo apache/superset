@@ -20,7 +20,7 @@ import React, { FC } from 'react';
 import DraggableNewComponent from './DraggableNewComponent';
 import { DYNAMIC_TYPE } from '../../../util/componentTypes';
 import { NEW_DYNAMIC_COMPONENT } from '../../../util/constants';
-import { DashboardComponentsRegistryMetadata } from '../../../../visualizations/dashboardComponents/dashboardComponentsRegistry';
+import { DashboardComponentsRegistryMetadata } from '../../../../visualizations/dashboardComponents/DashboardComponentsRegistry';
 
 type DraggableNewDynamicComponent = {
   componentKey: string;

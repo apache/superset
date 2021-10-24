@@ -21,9 +21,9 @@
   Preset dashboard components (in addition to basic components like row, column, chart, etc...)
  */
 
-import dashboardComponentsRegistry from '../dashboardComponents/dashboardComponentsRegistry';
+import DashboardComponentsRegistry from '../dashboardComponents/DashboardComponentsRegistry';
 
-const dashboardComponents = dashboardComponentsRegistry([
+const dashboardComponents = DashboardComponentsRegistry([
   // Here can be added default dashboard components
 ]);
 
