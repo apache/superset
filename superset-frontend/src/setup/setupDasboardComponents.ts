@@ -25,5 +25,7 @@
 import dashboardComponentsRegistry from '../visualizations/presets/dashboardComponents';
 import test from '../visualizations/dashboardComponents/TestComponent';
 
-// TODO: can be removed after POC approved
-dashboardComponentsRegistry.set('test', test);
+export default function setupDashboardComponents() {
+  // TODO: can be removed after POC approved
+  dashboardComponentsRegistry.set('test', test);
+}
