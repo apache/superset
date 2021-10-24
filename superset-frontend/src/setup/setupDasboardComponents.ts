@@ -16,17 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CHART_TYPE, MARKDOWN_TYPE, DYNAMIC_TYPE } from './componentTypes';
 
-const USER_CONTENT_COMPONENT_TYPE: string[] = [
-  CHART_TYPE,
-  MARKDOWN_TYPE,
-  DYNAMIC_TYPE,
-];
-export default function isDashboardEmpty(layout: any): boolean {
-  // has at least one chart or markdown component
-  return !Object.values(layout).some(
-    ({ type }: { type?: string }) =>
-      type && USER_CONTENT_COMPONENT_TYPE.includes(type),
-  );
-}
+/*
+  This file can be overridden from outside by custom config, it will add/delete new components to existing config in
+  superset-frontend/src/visualizations/presets/dashboardComponents.ts file
+ */
+
+import dashboardComponentsRegistry from '../visualizations/presets/dashboardComponents';
+import test from '../visualizations/dashboardComponents/TestComponent';
+
+// TODO: can be removed after POC approved
+dashboardComponentsRegistry.set('test', test);

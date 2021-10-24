@@ -23,6 +23,7 @@ import {
   COLUMN_TYPE,
   MARKDOWN_TYPE,
   CHART_TYPE,
+  DYNAMIC_TYPE,
 } from './componentTypes';
 
 function getTotalChildWidth({ id, components }) {
@@ -84,6 +85,7 @@ export default function getDetailedComponentWidth({
       }
     });
   } else if (
+    component.type === DYNAMIC_TYPE ||
     component.type === MARKDOWN_TYPE ||
     component.type === CHART_TYPE
   ) {

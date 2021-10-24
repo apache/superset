@@ -25,6 +25,7 @@ import { merge } from 'lodash';
 import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
 import setupFormatters from './setup/setupFormatters';
+import './setup/setupDasboardComponents'; // Already initialized
 
 if (process.env.WEBPACK_MODE === 'development') {
   setHotLoaderConfig({ logLevel: 'debug', trackTailUpdates: false });

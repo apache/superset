@@ -16,17 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CHART_TYPE, MARKDOWN_TYPE, DYNAMIC_TYPE } from './componentTypes';
+import React from 'react';
 
-const USER_CONTENT_COMPONENT_TYPE: string[] = [
-  CHART_TYPE,
-  MARKDOWN_TYPE,
-  DYNAMIC_TYPE,
-];
-export default function isDashboardEmpty(layout: any): boolean {
-  // has at least one chart or markdown component
-  return !Object.values(layout).some(
-    ({ type }: { type?: string }) =>
-      type && USER_CONTENT_COMPONENT_TYPE.includes(type),
-  );
-}
+// TODO: POC only component can be removed after PR approved
+const TestComponent = () => <div>Test</div>;
+
+export default TestComponent;
