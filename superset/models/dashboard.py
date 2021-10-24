@@ -54,7 +54,7 @@ from superset.connectors.sqla.models import SqlMetric, TableColumn
 from superset.extensions import cache_manager
 from superset.models.filter_set import FilterSet
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
-from superset.models.objects_roles import ObjectRoles
+from superset.models.objects_roles import HasRolesMixin
 from superset.models.slice import Slice
 from superset.models.tags import DashboardUpdater
 from superset.models.user_attributes import UserAttribute
@@ -124,17 +124,8 @@ dashboard_user = Table(
 )
 
 
-DashboardRoles = Table(
-    "dashboard_roles",
-    metadata,
-    Column("id", Integer, primary_key=True),
-    Column("dashboard_id", Integer, ForeignKey("dashboards.id"), nullable=False),
-    Column("role_id", Integer, ForeignKey("ab_role.id"), nullable=False),
-)
-
-
 # pylint: disable=too-many-public-methods
-class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
+class Dashboard(Model, AuditMixinNullable, ImportExportMixin, HasRolesMixin):
     """The dashboard object!"""
 
     __tablename__ = "dashboards"
@@ -148,12 +139,6 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     slices = relationship(Slice, secondary=dashboard_slices, backref="dashboards")
     owners = relationship(security_manager.user_model, secondary=dashboard_user)
     published = Column(Boolean, default=False)
-    roles = relationship(
-        security_manager.role_model,
-        secondary=ObjectRoles.__table__,  # pylint: disable=no-member
-        primaryjoin="and_(Dashboard.id==ObjectRoles.object_id, "
-        "ObjectRoles.object_type=='Dashboard')",
-    )
 
     _filter_sets = relationship(
         "FilterSet", back_populates="dashboard", cascade="all, delete"

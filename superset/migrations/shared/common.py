@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import List
 
 import sqlalchemy as sa
 from alembic import op
@@ -30,13 +29,3 @@ def create_dashboard_roles_table() -> None:
         sa.ForeignKeyConstraint(["role_id"], ["ab_role.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
-
-
-def find_fk_constraint_name(table_name: str, columns: List[str]) -> str:
-    bind = op.get_bind()
-    inspector = sa.engine.reflection.Inspector.from_engine(bind)
-
-    for constraint in inspector.get_foreign_keys(table_name):
-        if constraint["constrained_columns"] == columns:
-            return constraint["name"]
-    return ""

@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=too-many-lines
+# pylint: disable=too-many-lines, too-many-public-methods
 import dataclasses
 import json
 import logging
@@ -86,6 +86,7 @@ from superset.jinja_context import (
 from superset.models.annotations import Annotation
 from superset.models.core import Database
 from superset.models.helpers import AuditMixinNullable, CertificationMixin, QueryResult
+from superset.models.objects_roles import HasRolesMixin
 from superset.sql_parse import ParsedQuery
 from superset.typing import AdhocMetric, Metric, OrderBy, QueryObjectDict
 from superset.utils import core as utils
@@ -463,7 +464,7 @@ sqlatable_user = Table(
 )
 
 
-class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-methods
+class SqlaTable(Model, BaseDatasource, HasRolesMixin):
     """An ORM object for SqlAlchemy table references"""
 
     type = "table"

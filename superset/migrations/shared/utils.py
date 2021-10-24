@@ -14,6 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
+from logging import Logger
+from typing import Any, Callable, List
+
 from alembic import op
 from sqlalchemy import engine_from_config
 from sqlalchemy.engine import reflection
@@ -38,3 +42,34 @@ def table_has_column(table: str, column: str) -> bool:
         return any(col["name"] == column for col in insp.get_columns(table))
     except NoSuchTableError:
         return False
+
+
+def run_migrations_as_steps(
+    migration_steps: List[Callable[[], Any]],
+    rollback_steps: List[Callable[[], Any]],
+    logger: Logger = logging.getLogger("alembic"),
+) -> None:
+    run_on_error = []
+    try:
+        for step in migration_steps:
+            step()
+            run_on_error.append(rollback_steps.pop())
+    except Exception as original_exception:
+        _on_error(original_exception, run_on_error, logger)
+
+
+def _on_error(
+    original_exception: Exception, run_on_error: List[Callable[[], Any]], logger: Logger
+) -> None:
+    logger.error(
+        "Failed to run migrations, trying to run rollback steps: %s",
+        original_exception,
+        exc_info=original_exception,
+    )
+    try:
+        for step in run_on_error:
+            step()
+    except Exception as inner_exception:
+        logger.error("Failed to run rollback steps: %s", inner_exception)
+    finally:
+        raise original_exception

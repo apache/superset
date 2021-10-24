@@ -1177,7 +1177,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if is_feature_enabled("DASHBOARD_RBAC"):
             has_rbac_access = any(
                 dashboard_role.id in [user_role.id for user_role in get_user_roles()]
-                for dashboard_role in dashboard.roles
+                for dashboard_role in dashboard.roles  # type: ignore
             )
             can_access = (
                 is_user_admin()

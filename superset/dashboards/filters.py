@@ -77,7 +77,7 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
         schema_perms = security_manager.user_view_menu_names("schema_access")
 
         is_rbac_disabled_filter = []
-        dashboard_has_roles = Dashboard.roles.any()
+        dashboard_has_roles = Dashboard.roles.any()  # type: ignore
         if is_feature_enabled("DASHBOARD_RBAC"):
             is_rbac_disabled_filter.append(~dashboard_has_roles)
 

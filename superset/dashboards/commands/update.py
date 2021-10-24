@@ -49,6 +49,7 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
     def run(self) -> Model:
         self.validate()
         try:
+            self._prepare_properties_to_update()
             dashboard = DashboardDAO.update(self._model, self._properties, commit=False)
             dashboard = DashboardDAO.update_charts_owners(dashboard, commit=True)
         except DAOUpdateFailedError as ex:
@@ -91,7 +92,7 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
 
         # Validate/Populate role
         if roles_ids is None:
-            roles_ids = [role.id for role in self._model.roles]
+            roles_ids = [role.id for role in self._model.roles]  # type: ignore
         try:
             roles = populate_roles(roles_ids)
             self._properties["roles"] = roles
@@ -101,3 +102,12 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             exception = DashboardInvalidError()
             exception.add_list(exceptions)
             raise exception
+
+    def _prepare_properties_to_update(self) -> None:
+        if "roles" in self._properties and self._properties.get("roles"):
+            current_roles = self._model.roles  # type: ignore
+            current_roles_set = set(current_roles)  # type: ignore
+            new_roles = set(self._properties.get("roles", []))
+            for role in current_roles_set.difference(new_roles):
+                current_roles.add(role)  # type: ignore
+            self._properties["roles"] = current_roles

@@ -24,7 +24,6 @@ from superset import appbuilder
 from superset.connectors.sqla.models import SqlaTable, sqlatable_user
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard, dashboard_slices, dashboard_user
-from superset.models.objects_roles import ObjectRoles
 from superset.models.slice import Slice, slice_user
 from tests.integration_tests.dashboards.dashboard_test_utils import (
     random_slug,
@@ -207,7 +206,6 @@ def delete_all_inserted_dashboards():
 
 def delete_dashboard(dashboard: Dashboard, do_commit: bool = False) -> None:
     logger.info(f"deleting dashboard{dashboard.id}")
-    delete_dashboard_roles_associations(dashboard)
     delete_dashboard_users_associations(dashboard)
     delete_dashboard_slices_associations(dashboard)
     session.delete(dashboard)
@@ -218,15 +216,6 @@ def delete_dashboard(dashboard: Dashboard, do_commit: bool = False) -> None:
 def delete_dashboard_users_associations(dashboard: Dashboard) -> None:
     session.execute(
         dashboard_user.delete().where(dashboard_user.c.dashboard_id == dashboard.id)
-    )
-
-
-def delete_dashboard_roles_associations(dashboard: Dashboard) -> None:
-    session.execute(
-        ObjectRoles.delete().where(
-            ObjectRoles.c.object_id == dashboard.id,
-            ObjectRoles.c.object_type == "Dashboard",
-        )
     )
 
 

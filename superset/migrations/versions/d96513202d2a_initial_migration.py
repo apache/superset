@@ -22,13 +22,13 @@ Create Date: 2021-10-10 18:31:58.279446
 
 """
 import logging
-from typing import Callable, List
+from typing import Any, Callable, List
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy import inspect
 
 from superset.migrations.shared.common import create_dashboard_roles_table
+from superset.migrations.shared.utils import run_migrations_as_steps
 
 # revision identifiers, used by Alembic.
 revision = "d96513202d2a"
@@ -37,61 +37,20 @@ down_revision = "60dc453f4e2e"
 logger = logging.getLogger("alembic.runtime.migration")
 
 OLD_TABLE_NAME = "dashboard_roles"
-NEW_TABLE_NAME = "object_roles"
-DASHBOARD_ROLES_CONSTRAINT_NAME = "dashboard_roles_ibfk_1"
+NEW_TABLE_NAME = "object_role_associations"
 OBJECT_ROLES_FK_NAME = "object_roles_ibfk_1"
 UNIQUE_CONSTRAINT_NAME = "object_roles_unique_rows"
-OBJECT_TYPE_COLUMN_NAME = "object_type"
 
 
 def upgrade() -> None:
-    _run_migrations(create_upgrade_steps(), create_downgrade_steps())
+    run_migrations_as_steps(create_upgrade_steps(), create_downgrade_steps(), logger)
 
 
 def downgrade() -> None:
-    _run_migrations(create_downgrade_steps(), create_upgrade_steps())
+    run_migrations_as_steps(create_downgrade_steps(), create_upgrade_steps(), logger)
 
 
-def _get_dashboard_constraint_name() -> str:
-    from superset import db
-
-    logger.info("_get_dashboard_constraint_name")
-    inspector = inspect(db.engine)
-    logger.info(str(inspector))
-
-    for constraint in inspector.get_foreign_keys(OLD_TABLE_NAME):
-        if constraint["constrained_columns"] == ["dashboard_id"]:
-            return constraint["name"]
-
-
-def _run_migrations(
-    migration_steps: List[Callable], rollback_steps: List[Callable]
-) -> None:
-    run_on_error = []
-    try:
-        for step in migration_steps:
-            step()
-            run_on_error.append(rollback_steps.pop())
-    except Exception as original_exception:
-        _on_error(original_exception, run_on_error)
-
-
-def _on_error(original_exception, run_on_error):
-    logger.error(
-        "Failed to run migrations, trying to run rollback steps: %s",
-        original_exception,
-        exc_info=original_exception,
-    )
-    try:
-        for step in run_on_error:
-            step()
-    except Exception as inner_exception:
-        logger.error("Failed to run rollback steps: %s", inner_exception)
-    finally:
-        raise original_exception
-
-
-def create_upgrade_steps() -> List[Callable]:
+def create_upgrade_steps() -> List[Callable[[], Any]]:
     return [
         _create_object_roles_table,
         _migrate_data_to_new_table,
@@ -99,7 +58,15 @@ def create_upgrade_steps() -> List[Callable]:
     ]
 
 
-def _create_object_roles_table():
+def create_downgrade_steps() -> List[Callable[[], Any]]:
+    return [
+        create_dashboard_roles_table,
+        _migrate_data_to_old_table,
+        lambda: op.drop_table(NEW_TABLE_NAME),
+    ]
+
+
+def _create_object_roles_table() -> None:
     op.create_table(
         NEW_TABLE_NAME,
         sa.Column("id", sa.Integer, primary_key=True),
@@ -113,7 +80,7 @@ def _create_object_roles_table():
     )
 
 
-def _migrate_data_to_new_table():
+def _migrate_data_to_new_table() -> None:
     op.execute(
         (
             "INSERT INTO {new_table} "
@@ -125,7 +92,7 @@ def _migrate_data_to_new_table():
     )
 
 
-def _migrate_data_to_old_table():
+def _migrate_data_to_old_table() -> None:
     op.execute(
         (
             "INSERT INTO {old_table} "
@@ -136,11 +103,3 @@ def _migrate_data_to_old_table():
             )
         )
     )
-
-
-def create_downgrade_steps() -> List[Callable]:
-    return [
-        create_dashboard_roles_table,
-        _migrate_data_to_old_table,
-        lambda: op.drop_table(NEW_TABLE_NAME),
-    ]
