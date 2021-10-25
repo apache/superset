@@ -28,28 +28,32 @@ import {
 } from 'src/explore/components/controls/DateFilterControl/types';
 
 export const FRAME_OPTIONS: SelectOptionType[] = [
-  { value: 'Common', label: t('Last') },
-  { value: 'Calendar', label: t('Previous') },
-  { value: 'Custom', label: t('Custom') },
-  { value: 'Advanced', label: t('Advanced') },
-  { value: 'No filter', label: t('No filter') },
+  { value: 'Common', label: t('Last'), order: 0 },
+  { value: 'Calendar', label: t('Previous'), order: 1 },
+  { value: 'Custom', label: t('Custom'), order: 2 },
+  { value: 'Advanced', label: t('Advanced'), order: 3 },
+  { value: 'No filter', label: t('No filter'), order: 4 },
 ];
 
 export const COMMON_RANGE_OPTIONS: SelectOptionType[] = [
-  { value: 'Last day', label: t('last day') },
-  { value: 'Last week', label: t('last week') },
-  { value: 'Last month', label: t('last month') },
-  { value: 'Last quarter', label: t('last quarter') },
-  { value: 'Last year', label: t('last year') },
+  { value: 'Last day', label: t('last day'), order: 0 },
+  { value: 'Last week', label: t('last week'), order: 1 },
+  { value: 'Last month', label: t('last month'), order: 2 },
+  { value: 'Last quarter', label: t('last quarter'), order: 3 },
+  { value: 'Last year', label: t('last year'), order: 4 },
 ];
 export const COMMON_RANGE_VALUES_SET = new Set(
   COMMON_RANGE_OPTIONS.map(({ value }) => value),
 );
 
 export const CALENDAR_RANGE_OPTIONS: SelectOptionType[] = [
-  { value: PreviousCalendarWeek, label: t('previous calendar week') },
-  { value: PreviousCalendarMonth, label: t('previous calendar month') },
-  { value: PreviousCalendarYear, label: t('previous calendar year') },
+  { value: PreviousCalendarWeek, label: t('previous calendar week'), order: 0 },
+  {
+    value: PreviousCalendarMonth,
+    label: t('previous calendar month'),
+    order: 1,
+  },
+  { value: PreviousCalendarYear, label: t('previous calendar year'), order: 2 },
 ];
 export const CALENDAR_RANGE_VALUES_SET = new Set(
   CALENDAR_RANGE_OPTIONS.map(({ value }) => value),
@@ -67,24 +71,26 @@ const GRAIN_OPTIONS = [
 ];
 
 export const SINCE_GRAIN_OPTIONS: SelectOptionType[] = GRAIN_OPTIONS.map(
-  item => ({
+  (item, index) => ({
     value: item.value,
     label: item.label(t('Before')),
+    order: index,
   }),
 );
 
 export const UNTIL_GRAIN_OPTIONS: SelectOptionType[] = GRAIN_OPTIONS.map(
-  item => ({
+  (item, index) => ({
     value: item.value,
     label: item.label(t('After')),
+    order: index,
   }),
 );
 
 export const SINCE_MODE_OPTIONS: SelectOptionType[] = [
-  { value: 'specific', label: t('Specific Date/Time') },
-  { value: 'relative', label: t('Relative Date/Time') },
-  { value: 'now', label: t('Now') },
-  { value: 'today', label: t('Midnight') },
+  { value: 'specific', label: t('Specific Date/Time'), order: 0 },
+  { value: 'relative', label: t('Relative Date/Time'), order: 1 },
+  { value: 'now', label: t('Now'), order: 2 },
+  { value: 'today', label: t('Midnight'), order: 3 },
 ];
 
 export const UNTIL_MODE_OPTIONS: SelectOptionType[] = SINCE_MODE_OPTIONS.slice();
