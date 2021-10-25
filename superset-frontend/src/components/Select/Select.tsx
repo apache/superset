@@ -94,6 +94,7 @@ export interface SelectProps extends PickedSelectProps {
   invertSelection?: boolean;
   fetchOnlyOnSearch?: boolean;
   onError?: (error: string) => void;
+  sortComparator?: (a: AntdLabeledValue, b: AntdLabeledValue) => number;
 }
 
 const StyledContainer = styled.div`
@@ -168,6 +169,30 @@ const Error = ({ error }: { error: string }) => (
   </StyledError>
 );
 
+const defaultSortComparator = (a: AntdLabeledValue, b: AntdLabeledValue) => {
+  if (typeof a.label === 'string' && typeof b.label === 'string') {
+    return a.label.localeCompare(b.label);
+  }
+  if (typeof a.value === 'string' && typeof b.value === 'string') {
+    return a.value.localeCompare(b.value);
+  }
+  return (a.value as number) - (b.value as number);
+};
+
+/**
+ * It creates a comparator to check for a specific property.
+ * Can be used with string and number property values.
+ * */
+export const propertyComparator = (property: string) => (
+  a: AntdLabeledValue,
+  b: AntdLabeledValue,
+) => {
+  if (typeof a[property] === 'string' && typeof b[property] === 'string') {
+    return a[property].localeCompare(b[property]);
+  }
+  return (a[property] as number) - (b[property] as number);
+};
+
 const Select = ({
   allowNewOptions = false,
   ariaLabel,
@@ -189,6 +214,7 @@ const Select = ({
   pageSize = DEFAULT_PAGE_SIZE,
   placeholder = t('Select ...'),
   showSearch = true,
+  sortComparator = defaultSortComparator,
   value,
   ...props
 }: SelectProps) => {
@@ -277,14 +303,21 @@ const Select = ({
             }
           });
         }
-
-        const sortedOptions = [...topOptions, ...otherOptions];
+        const sortedOptions = [
+          ...topOptions.sort(sortComparator),
+          ...otherOptions.sort(sortComparator),
+        ];
+        if (!isEqual(sortedOptions, selectOptions)) {
+          setSelectOptions(sortedOptions);
+        }
+      } else {
+        const sortedOptions = [...selectOptions].sort(sortComparator);
         if (!isEqual(sortedOptions, selectOptions)) {
           setSelectOptions(sortedOptions);
         }
       }
     },
-    [isAsync, isSingleMode, labelInValue, selectOptions],
+    [isAsync, isSingleMode, labelInValue, selectOptions, sortComparator],
   );
 
   const handleOnSelect = (
@@ -342,28 +375,34 @@ const Select = ({
     [onError],
   );
 
-  const handleData = (data: OptionsType) => {
-    let mergedData: OptionsType = [];
-    if (data && Array.isArray(data) && data.length) {
-      const dataValues = new Set();
-      data.forEach(option =>
-        dataValues.add(String(option.value).toLocaleLowerCase()),
-      );
+  const handleData = useCallback(
+    (data: OptionsType) => {
+      let mergedData: OptionsType = [];
+      if (data && Array.isArray(data) && data.length) {
+        const dataValues = new Set();
+        data.forEach(option =>
+          dataValues.add(String(option.value).toLocaleLowerCase()),
+        );
 
-      // merges with existing and creates unique options
-      setSelectOptions(prevOptions => {
-        mergedData = [
-          ...prevOptions.filter(
-            previousOption =>
-              !dataValues.has(String(previousOption.value).toLocaleLowerCase()),
-          ),
-          ...data,
-        ];
-        return mergedData;
-      });
-    }
-    return mergedData;
-  };
+        // merges with existing and creates unique options
+        setSelectOptions(prevOptions => {
+          mergedData = [
+            ...prevOptions.filter(
+              previousOption =>
+                !dataValues.has(
+                  String(previousOption.value).toLocaleLowerCase(),
+                ),
+            ),
+            ...data,
+          ];
+          mergedData.sort(sortComparator);
+          return mergedData;
+        });
+      }
+      return mergedData;
+    },
+    [sortComparator],
+  );
 
   const handlePaginatedFetch = useMemo(
     () => (value: string, page: number, pageSize: number) => {
@@ -401,7 +440,7 @@ const Select = ({
           setIsTyping(false);
         });
     },
-    [allValuesLoaded, fetchOnlyOnSearch, internalOnError, options],
+    [allValuesLoaded, fetchOnlyOnSearch, handleData, internalOnError, options],
   );
 
   const handleOnSearch = useMemo(
@@ -474,8 +513,8 @@ const Select = ({
     }
 
     // multiple or tags mode keep the dropdown visible while selecting options
-    // this waits for the dropdown to be closed before sorting the top options
-    if (!isSingleMode && !isDropdownVisible) {
+    // this waits for the dropdown to be opened before sorting the top options
+    if (!isSingleMode && isDropdownVisible) {
       handleTopOptions(selectValue);
     }
   };
