@@ -843,7 +843,7 @@ class TestCore(SupersetTestCase):
 
     def enable_csv_upload(self, database: models.Database) -> None:
         """Enables csv upload in the given database."""
-        database.allow_csv_upload = True
+        database.allow_file_upload = True
         db.session.commit()
         add_datasource_page = self.get_resp("/databaseview/list/")
         self.assertIn("Upload a CSV", add_datasource_page)

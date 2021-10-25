@@ -338,7 +338,7 @@ const USERS = [
   'Claire',
   'Benedetta',
   'Ilenia',
-];
+].sort();
 
 export const AsyncSelect = ({
   fetchOnlyOnSearch,
@@ -454,6 +454,7 @@ export const AsyncSelect = ({
 };
 
 AsyncSelect.args = {
+  allowClear: false,
   allowNewOptions: false,
   fetchOnlyOnSearch: false,
   pageSize: 10,

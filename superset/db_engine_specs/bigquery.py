@@ -99,6 +99,8 @@ class BigQueryEngineSpec(BaseEngineSpec):
     # same cursor, so we need to run all statements at once
     run_multiple_statements_as_one = True
 
+    allows_hidden_cc_in_orderby = True
+
     """
     https://www.python.org/dev/peps/pep-0249/#arraysize
     raw_connections bypass the pybigquery query execution context and deal with
