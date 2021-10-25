@@ -66,7 +66,7 @@ beforeEach(() => {
           description_columns: {},
           ids: [1, 2],
           label_columns: {
-            allow_csv_upload: 'Allow Csv Upload',
+            allow_file_upload: 'Allow Csv Upload',
             allow_ctas: 'Allow Ctas',
             allow_cvas: 'Allow Cvas',
             allow_dml: 'Allow Dml',
@@ -88,7 +88,7 @@ beforeEach(() => {
             id: 'Id',
           },
           list_columns: [
-            'allow_csv_upload',
+            'allow_file_upload',
             'allow_ctas',
             'allow_cvas',
             'allow_dml',
@@ -110,7 +110,7 @@ beforeEach(() => {
           ],
           list_title: 'List Database',
           order_columns: [
-            'allow_csv_upload',
+            'allow_file_upload',
             'allow_dml',
             'allow_run_async',
             'changed_on',
@@ -121,7 +121,7 @@ beforeEach(() => {
           ],
           result: [
             {
-              allow_csv_upload: false,
+              allow_file_upload: false,
               allow_ctas: false,
               allow_cvas: false,
               allow_dml: false,

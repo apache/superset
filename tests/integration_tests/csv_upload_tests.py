@@ -67,7 +67,7 @@ def setup_csv_upload():
         extra = upload_db.get_extra()
         extra["explore_database_id"] = utils.get_example_database().id
         upload_db.extra = json.dumps(extra)
-        upload_db.allow_csv_upload = True
+        upload_db.allow_file_upload = True
         db.session.commit()
 
         yield
