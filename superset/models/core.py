@@ -129,7 +129,7 @@ class Database(
         String(255), server_default=ConfigurationMethod.SQLALCHEMY_FORM.value
     )
     allow_run_async = Column(Boolean, default=False)
-    allow_csv_upload = Column(Boolean, default=False)
+    allow_file_upload = Column(Boolean, default=False)
     allow_ctas = Column(Boolean, default=False)
     allow_cvas = Column(Boolean, default=False)
     allow_dml = Column(Boolean, default=False)
@@ -145,7 +145,7 @@ class Database(
         "metadata_params": {},
         "engine_params": {},
         "metadata_cache_timeout": {},
-        "schemas_allowed_for_csv_upload": []
+        "schemas_allowed_for_file_upload": []
     }
     """
         ),
@@ -161,7 +161,7 @@ class Database(
         "allow_run_async",
         "allow_ctas",
         "allow_cvas",
-        "allow_csv_upload",
+        "allow_file_upload",
         "extra",
     ]
     extra_import_fields = ["password"]
@@ -679,10 +679,10 @@ class Database(
     ) -> List[Dict[str, Any]]:
         return self.inspector.get_foreign_keys(table_name, schema)
 
-    def get_schema_access_for_csv_upload(  # pylint: disable=invalid-name
+    def get_schema_access_for_file_upload(  # pylint: disable=invalid-name
         self,
     ) -> List[str]:
-        allowed_databases = self.get_extra().get("schemas_allowed_for_csv_upload", [])
+        allowed_databases = self.get_extra().get("schemas_allowed_for_file_upload", [])
 
         if isinstance(allowed_databases, str):
             allowed_databases = literal_eval(allowed_databases)

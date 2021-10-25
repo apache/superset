@@ -267,13 +267,13 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         size: 'sm',
       },
       {
-        accessor: 'allow_csv_upload',
+        accessor: 'allow_file_upload',
         Header: t('CSV upload'),
         Cell: ({
           row: {
-            original: { allow_csv_upload: allowCSVUpload },
+            original: { allow_file_upload: allowFileUpload },
           },
-        }: any) => <BooleanDisplay value={allowCSVUpload} />,
+        }: any) => <BooleanDisplay value={allowFileUpload} />,
         size: 'md',
       },
       {
