@@ -63,13 +63,10 @@ module.exports = {
 
     // todo: remove hard code after move storybook to superset repo.
     config.resolve.alias['@emotion/styled'] = path.resolve(
-        rootPath,
+      rootPath,
       './node_modules/@emotion/styled',
     );
-    config.resolve.alias['@emotion/core'] = path.resolve(
-        rootPath,
-        './node_modules/@emotion/core',
-    );
+    config.resolve.alias['@emotion/core'] = path.resolve(rootPath, './node_modules/@emotion/core');
 
     config.devtool = 'eval-cheap-module-source-map';
     config.devServer = {
