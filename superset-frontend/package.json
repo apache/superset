@@ -59,6 +59,10 @@
     "node": "^16.9.1",
     "npm": "^7.5.4"
   },
+  "workspaces": [
+    "./packages/*",
+    "./plugins/*"
+  ],
   "homepage": "https://superset.apache.org/",
   "dependencies": {
     "@ant-design/icons": "^4.2.2",
@@ -125,6 +129,7 @@
     "js-yaml-loader": "^1.2.2",
     "json-bigint": "^1.0.0",
     "json-stringify-pretty-compact": "^2.0.0",
+    "lerna": "^3.22.1",
     "lodash": "^4.17.21",
     "lodash-es": "^4.17.21",
     "match-sorter": "^6.1.0",
