@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Row, Col, Input } from 'src/common/components';
+import { Row, Col, Input, TextArea } from 'src/common/components';
 import { Form, FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
 import Button from 'src/components/Button';
@@ -503,16 +503,14 @@ class PropertiesModal extends React.PureComponent {
           <Row>
             <Col xs={24} md={24}>
               <FormItem label={t('Description')}>
-                <Input
+                <TextArea
+                  placeholder={t('Write description here')}
                   name="description"
-                  type="text"
                   value={values.description || ''}
                   onChange={this.onChange}
                   disabled={!isDashboardLoaded}
                 />
-                <p className="help-block">
-                  {t('A dashboard description')}
-                </p>
+                <p className="help-block">{t('A dashboard description')}</p>
               </FormItem>
             </Col>
           </Row>
