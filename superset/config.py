@@ -30,7 +30,17 @@ import re
 import sys
 from collections import OrderedDict
 from datetime import date, timedelta
-from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Type,
+    TYPE_CHECKING,
+    Union,
+)
 
 from cachelib.base import BaseCache
 from celery.schedules import crontab
@@ -371,6 +381,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "ESCAPE_MARKDOWN_HTML": False,
     "DASHBOARD_NATIVE_FILTERS": True,
     "DASHBOARD_CROSS_FILTERS": False,
+    # Feature is under active development and breaking changes are expected
     "DASHBOARD_NATIVE_FILTERS_SET": False,
     "DASHBOARD_FILTERS_EXPERIMENTAL": False,
     "GLOBAL_ASYNC_QUERIES": False,
@@ -692,6 +703,8 @@ MAX_TABLE_NAMES = 3000
 SQLLAB_SAVE_WARNING_MESSAGE = None
 SQLLAB_SCHEDULE_WARNING_MESSAGE = None
 
+# Force refresh while auto-refresh in dashboard
+DASHBOARD_AUTO_REFRESH_MODE: Literal["fetch", "force"] = "force"
 
 # Default celery config is to use SQLA as a broker, in a production setting
 # you'll want to use a proper broker as specified here:

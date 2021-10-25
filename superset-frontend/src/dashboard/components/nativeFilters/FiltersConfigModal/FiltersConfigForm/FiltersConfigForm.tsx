@@ -95,12 +95,17 @@ import {
   useForceUpdate,
 } from './utils';
 
-const { TabPane } = Tabs;
+const TabPane = styled(Tabs.TabPane)`
+  padding: ${({ theme }) => theme.gridUnit * 4}px 0px;
+`;
 
 const StyledContainer = styled.div`
-  display: flex;
-  flex-direction: row-reverse;
-  justify-content: space-between;
+  ${({ theme }) => `
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: space-between;
+    padding: 0px ${theme.gridUnit * 4}px;
+  `}
 `;
 
 const StyledRowContainer = styled.div`
@@ -108,6 +113,7 @@ const StyledRowContainer = styled.div`
   flex-direction: row;
   justify-content: space-between;
   width: 100%;
+  padding: 0px ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
 export const StyledFormItem = styled(FormItem)`
@@ -187,9 +193,7 @@ const RefreshIcon = styled(Icons.Refresh)`
 `;
 
 const StyledCollapse = styled(Collapse)`
-  margin-left: ${({ theme }) => theme.gridUnit * -4 - 1}px;
-  margin-right: ${({ theme }) => theme.gridUnit * -4}px;
-  border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  border-left: 0;
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   border-radius: 0;
 
@@ -217,8 +221,6 @@ const StyledCollapse = styled(Collapse)`
 const StyledTabs = styled(Tabs)`
   .ant-tabs-nav {
     position: sticky;
-    margin-left: ${({ theme }) => theme.gridUnit * -4}px;
-    margin-right: ${({ theme }) => theme.gridUnit * -4}px;
     top: 0;
     background: white;
     z-index: 1;
@@ -253,7 +255,7 @@ const FilterTabs = {
   },
 };
 
-const FilterPanels = {
+export const FilterPanels = {
   basic: {
     key: 'basic',
     name: t('Basic'),
@@ -271,6 +273,13 @@ export interface FiltersConfigFormProps {
   restoreFilter: (filterId: string) => void;
   form: FormInstance<NativeFiltersForm>;
   parentFilters: { id: string; title: string }[];
+  onFilterHierarchyChange: (
+    filterId: string,
+    parentFilter: { label: string; value: string },
+  ) => void;
+  handleActiveFilterPanelChange: (activeFilterPanel: string | string[]) => void;
+  activeFilterPanelKeys: string | string[];
+  isActive: boolean;
   setErroredFilters: (f: (filters: string[]) => string[]) => void;
 }
 
@@ -305,9 +314,13 @@ const FiltersConfigForm = (
     filterId,
     filterToEdit,
     removedFilters,
-    restoreFilter,
     form,
     parentFilters,
+    activeFilterPanelKeys,
+    isActive,
+    restoreFilter,
+    onFilterHierarchyChange,
+    handleActiveFilterPanelChange,
     setErroredFilters,
   }: FiltersConfigFormProps,
   ref: React.RefObject<any>,
@@ -318,9 +331,7 @@ const FiltersConfigForm = (
   const [activeTabKey, setActiveTabKey] = useState<string>(
     FilterTabs.configuration.key,
   );
-  const [activeFilterPanelKey, setActiveFilterPanelKey] = useState<
-    string | string[] | undefined
-  >();
+
   const [undoFormValues, setUndoFormValues] = useState<Record<
     string,
     any
@@ -663,7 +674,7 @@ const FiltersConfigForm = (
 
   useEffect(() => {
     // Run only once when the control items are available
-    if (!activeFilterPanelKey && !isEmpty(controlItems)) {
+    if (isActive && !isEmpty(controlItems)) {
       const hasCheckedAdvancedControl =
         hasParentFilter ||
         hasPreFilter ||
@@ -671,19 +682,16 @@ const FiltersConfigForm = (
         Object.keys(controlItems)
           .filter(key => !BASIC_CONTROL_ITEMS.includes(key))
           .some(key => controlItems[key].checked);
-      setActiveFilterPanelKey(
+      handleActiveFilterPanelChange(
         hasCheckedAdvancedControl
-          ? [FilterPanels.basic.key, FilterPanels.advanced.key]
-          : FilterPanels.basic.key,
+          ? [
+              `${filterId}-${FilterPanels.basic.key}`,
+              `${filterId}-${FilterPanels.advanced.key}`,
+            ]
+          : `${filterId}-${FilterPanels.basic.key}`,
       );
     }
-  }, [
-    activeFilterPanelKey,
-    hasParentFilter,
-    hasPreFilter,
-    hasSorting,
-    controlItems,
-  ]);
+  }, [isActive]);
 
   const initiallyExcludedCharts = useMemo(() => {
     const excluded: number[] = [];
@@ -843,14 +851,17 @@ const FiltersConfigForm = (
           </StyledRowContainer>
         )}
         <StyledCollapse
-          activeKey={activeFilterPanelKey}
-          onChange={key => setActiveFilterPanelKey(key)}
+          activeKey={activeFilterPanelKeys}
+          onChange={key => {
+            handleActiveFilterPanelChange(key);
+          }}
           expandIconPosition="right"
+          key={`native-filter-config-${filterId}`}
         >
           <Collapse.Panel
             forceRender
             header={FilterPanels.basic.name}
-            key={FilterPanels.basic.key}
+            key={`${filterId}-${FilterPanels.basic.key}`}
           >
             <CleanFormItem
               name={['filters', filterId, 'defaultValueQueriesData']}
@@ -970,7 +981,7 @@ const FiltersConfigForm = (
             <Collapse.Panel
               forceRender
               header={FilterPanels.advanced.name}
-              key={FilterPanels.advanced.key}
+              key={`${filterId}-${FilterPanels.advanced.key}`}
             >
               {isCascadingFilter && (
                 <CleanFormItem
@@ -981,16 +992,25 @@ const FiltersConfigForm = (
                     initialValue={hasParentFilter}
                     onChange={checked => {
                       formChanged();
-                      if (checked) {
-                        // execute after render
-                        setTimeout(
-                          () =>
-                            form.validateFields([
-                              ['filters', filterId, 'parentFilter'],
-                            ]),
-                          0,
+                      // execute after render
+                      setTimeout(() => {
+                        if (checked) {
+                          form.validateFields([
+                            ['filters', filterId, 'parentFilter'],
+                          ]);
+                        } else {
+                          setNativeFilterFieldValues(form, filterId, {
+                            parentFilter: undefined,
+                          });
+                        }
+                        onFilterHierarchyChange(
+                          filterId,
+                          checked
+                            ? form.getFieldValue('filters')[filterId]
+                                .parentFilter
+                            : undefined,
                         );
-                      }
+                      }, 0);
                     }}
                   >
                     <StyledRowSubFormItem

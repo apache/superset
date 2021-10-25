@@ -46,6 +46,7 @@ export interface NativeFiltersFormItem {
   granularity_sqla?: string;
   type: NativeFilterType;
   description: string;
+  hierarchicalFilter?: boolean;
 }
 
 export interface NativeFiltersForm {
@@ -60,3 +61,6 @@ export type FilterRemoval =
       timerId: number; // id of the timer that finally removes the filter
     }
   | { isPending: false };
+
+export type FilterHierarchyNode = { id: string; parentId: string | null };
+export type FilterHierarchy = FilterHierarchyNode[];
