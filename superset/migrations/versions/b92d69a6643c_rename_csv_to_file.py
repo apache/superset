@@ -14,9 +14,35 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-default_db_extra = """{
-  "metadata_params": {},
-  "engine_params": {},
-  "metadata_cache_timeout": {},
-  "schemas_allowed_for_file_upload": []
-}"""
+"""rename_csv_to_file
+
+Revision ID: b92d69a6643c
+Revises: 32646df09c64
+Create Date: 2021-09-19 14:42:20.130368
+
+"""
+
+# revision identifiers, used by Alembic.
+revision = "b92d69a6643c"
+down_revision = "32646df09c64"
+
+import sqlalchemy as sa
+from alembic import op
+
+
+def upgrade():
+    with op.batch_alter_table("dbs") as batch_op:
+        batch_op.alter_column(
+            "allow_csv_upload",
+            new_column_name="allow_file_upload",
+            existing_type=sa.Boolean(),
+        )
+
+
+def downgrade():
+    with op.batch_alter_table("dbs") as batch_op:
+        batch_op.alter_column(
+            "allow_file_upload",
+            new_column_name="allow_csv_upload",
+            existing_type=sa.Boolean(),
+        )

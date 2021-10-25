@@ -863,7 +863,7 @@ def CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC(  # pylint: disable=invalid-name
 UPLOADED_CSV_HIVE_NAMESPACE: Optional[str] = None
 
 # Function that computes the allowed schemas for the CSV uploads.
-# Allowed schemas will be a union of schemas_allowed_for_csv_upload
+# Allowed schemas will be a union of schemas_allowed_for_file_upload
 # db configuration and a result of this function.
 
 # mypy doesn't catch that if case ensures list content being always str

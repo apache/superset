@@ -347,7 +347,7 @@ saved_queries_metadata_config: Dict[str, Any] = {
     "timestamp": "2021-03-30T20:37:54.791187+00:00",
 }
 database_config: Dict[str, Any] = {
-    "allow_csv_upload": True,
+    "allow_file_upload": True,
     "allow_ctas": True,
     "allow_cvas": True,
     "allow_run_async": False,
