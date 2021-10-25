@@ -343,7 +343,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             "slug1",
             [admin.id],
             created_by=admin,
-            description="some description"
+            description="some description",
         )
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard.id}"

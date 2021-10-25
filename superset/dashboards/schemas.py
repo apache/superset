@@ -239,9 +239,7 @@ class DashboardPostSchema(BaseDashboardSchema):
     slug = fields.String(
         description=slug_description, allow_none=True, validate=[Length(1, 255)]
     )
-    description = fields.String(
-        description=description_description, allow_none=True
-    )
+    description = fields.String(description=description_description, allow_none=True)
     owners = fields.List(fields.Integer(description=owners_description))
     roles = fields.List(fields.Integer(description=roles_description))
     position_json = fields.String(
@@ -270,9 +268,7 @@ class DashboardPutSchema(BaseDashboardSchema):
     slug = fields.String(
         description=slug_description, allow_none=True, validate=Length(0, 255)
     )
-    description = fields.String(
-        description=description_description, allow_none=True
-    )
+    description = fields.String(description=description_description, allow_none=True)
     owners = fields.List(
         fields.Integer(description=owners_description, allow_none=True)
     )
