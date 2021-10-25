@@ -19,7 +19,6 @@
 import React, { useMemo } from 'react';
 import { styled } from '@superset-ui/core';
 import { FormItem as StyledFormItem, Form } from 'src/components/Form';
-import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 import { theme as supersetTheme } from 'src/preamble';
 import { checkIsMissingRequiredValue } from '../utils';
@@ -59,15 +58,13 @@ const StyledFilterControlContainer = styled(Form)`
 `;
 
 const FormItem = styled(StyledFormItem)`
-  ${({ theme }) => `
-    .ant-form-item-label {
-      label.ant-form-item-required:not(.ant-form-item-required-mark-optional){
-        &::after {
-          display: none;
-        }
+  .ant-form-item-label {
+    label.ant-form-item-required:not(.ant-form-item-required-mark-optional) {
+      &::after {
+        display: none;
       }
     }
-`}
+  }
 `;
 
 const ToolTipContainer = styled.div`
@@ -80,7 +77,7 @@ const RequiredFieldIndicator = () => (
     css={{
       color: supersetTheme.colors.error.base,
       fontSize: `${supersetTheme.typography.sizes.s}px`,
-      paddingLeft: '2px',
+      paddingLeft: `${supersetTheme.gridUnit}px`,
     }}
   >
     *
@@ -91,23 +88,23 @@ const DescriptoinToolTip = ({ description }: { description: string }) => (
   <ToolTipContainer>
     <Tooltip
       title={description}
-      placement="top"
+      placement="right"
       overlayInnerStyle={{
         display: '-webkit-box',
         overflow: 'hidden',
-        // @ts-ignore -webkit-line-clamp is not in the CSS type
-        '-webkit-line-clamp': '20',
-        '-webkit-box-orient': 'vertical',
-        'text-overflow': 'ellipsis',
+        WebkitLineClamp: 20,
+        WebkitBoxOrient: 'vertical',
+        textOverflow: 'ellipsis',
       }}
     >
-      <Icons.InfoCircle
-        className="text-muted"
-        css={{ color: supersetTheme.colors.grayscale.light1 }}
+      <i
+        className="fa fa-info-circle text-muted"
+        css={{ paddingLeft: `${supersetTheme.gridUnit}px`, cursor: 'pointer' }}
       />
     </Tooltip>
   </ToolTipContainer>
 );
+
 const FilterControl: React.FC<FilterProps> = ({
   dataMaskSelected,
   filter,
@@ -158,4 +155,5 @@ const FilterControl: React.FC<FilterProps> = ({
     </StyledFilterControlContainer>
   );
 };
+
 export default React.memo(FilterControl);

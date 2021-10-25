@@ -78,9 +78,8 @@ test('should render the child of a child filter name', () => {
 test('should render tooltip if description is not empty', async () => {
   render(setup(createProps()));
   expect(screen.getByText('test')).toBeInTheDocument();
-  const toolTip = screen.getByText('test').closest('div')?.nextSibling;
+  const toolTip = screen.getByText('test')?.parentElement?.querySelector('i');
   expect(toolTip).not.toBe(null);
-  expect(toolTip).toHaveAttribute('role', 'img');
   fireEvent.mouseOver(toolTip as HTMLElement);
   expect(await screen.findByText('test description')).toBeInTheDocument();
 });
@@ -91,6 +90,6 @@ test('should not render tooltip if description is empty', () => {
       createProps({ ...nativeFiltersInfo.filters.DefaultsID, description: '' }),
     ),
   );
-  const toolTip = screen.getByText('test').closest('div')?.nextSibling;
+  const toolTip = screen.getByText('test')?.parentElement?.querySelector('i');
   expect(toolTip).toBe(null);
 });
