@@ -112,7 +112,7 @@ const ARG_TYPES = {
     },
   },
   allowNewOptions: {
-    description: `It enables the user to create new options. 
+    description: `It enables the user to create new options.
       Can be used with standard or async select types.
       Can be used with any mode, single or multiple. False by default.
     `,
