@@ -19,7 +19,6 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  DatasourceType,
   ensureIsArray,
   FeatureFlag,
   GenericDataType,
@@ -42,7 +41,6 @@ import { DndItemType } from 'src/explore/components/DndItemType';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
 import { AGGREGATES } from 'src/explore/constants';
-import { DndControlProps } from './types';
 
 const EMPTY_OBJECT = {};
 const DND_ACCEPTED_TYPES = [DndItemType.Column, DndItemType.Metric];
@@ -82,6 +80,7 @@ const getOptionsForSavedMetrics = (
 
 type ValueType = Metric | AdhocMetric | QueryFormMetric;
 
+// TODO: use typeguards to distinguish saved metrics from adhoc metrics
 const getMetricsMatchingCurrentDataset = (
   value: ValueType | ValueType[] | null | undefined,
   columns: ColumnMeta[],
@@ -100,12 +99,6 @@ const getMetricsMatchingCurrentDataset = (
         (metric as AdhocMetric).column?.column_name === column.column_name,
     );
   });
-
-export type DndMetricSelectProps = DndControlProps<ValueType> & {
-  savedMetrics: savedMetricType[];
-  columns: ColumnMeta[];
-  datasourceType?: DatasourceType;
-};
 
 export const DndMetricSelect = (props: any) => {
   const { onChange, multi, columns, savedMetrics } = props;
@@ -154,7 +147,7 @@ export const DndMetricSelect = (props: any) => {
     ) {
       // Remove selected custom metrics that do not exist in the dataset anymore
       // Remove selected adhoc metrics that use columns which do not exist in the dataset anymore
-      onChange(
+      handleChange(
         getMetricsMatchingCurrentDataset(props.value, columns, savedMetrics),
       );
     }
@@ -164,7 +157,7 @@ export const DndMetricSelect = (props: any) => {
     prevSavedMetrics,
     savedMetrics,
     props.value,
-    onChange,
+    handleChange,
   ]);
 
   const canDrop = useCallback(
