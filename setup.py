@@ -126,7 +126,7 @@ setup(
         "crate": ["crate[sqlalchemy]>=0.26.0, <0.27"],
         "databricks": ["databricks-dbapi[sqlalchemy]>=0.5.0, <0.6"],
         "db2": ["ibm-db-sa>=0.3.5, <0.4"],
-        "dremio": ["sqlalchemy-dremio>=1.1.5, <1.2"],
+        "dremio": ["sqlalchemy-dremio>=1.1.5, <1.3"],
         "drill": ["sqlalchemy-drill==0.1.dev"],
         "druid": ["pydruid>=0.6.1,<0.7"],
         "solr": ["sqlalchemy-solr >= 0.2.0"],
