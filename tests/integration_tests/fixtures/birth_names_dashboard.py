@@ -71,7 +71,7 @@ def _load_data():
             fetch_values_predicate="123 = 123",
         )
 
-        from superset.examples.birth_names import create_slices, create_dashboard
+        from superset.examples.birth_names import create_dashboard, create_slices
 
         slices, _ = create_slices(table, admin_owner=False)
         dash = create_dashboard(slices)
