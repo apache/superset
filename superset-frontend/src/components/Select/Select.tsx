@@ -231,6 +231,20 @@ const Error = ({ error }: { error: string }) => (
   </StyledError>
 );
 
+/**
+ * This component is a customized version of the Antdesign 4.X Select component
+ * https://ant.design/components/select/.
+ * The aim of the component was to combine all the instances of select components throughout the
+ * project under one and to remove the react-select component entirely.
+ * This Select component provides an API that is tested against all the different use cases of Superset.
+ * It limits and overrides the existing Antdesign API in order to keep their usage to the minimum
+ * and to enforce simplification and standardization.
+ * It is divided into two macro categories, Static and Async.
+ * The Static type accepts a static array of options.
+ * The Async type accepts a promise that will return the options.
+ * Each of the categories come with different abilities. For a comprehensive guide please refer to
+ * the storybook in src/components/Select/Select.stories.tsx.
+ */
 const Select = ({
   allowNewOptions = false,
   ariaLabel,
