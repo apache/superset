@@ -31,7 +31,7 @@
     "postrelease": "lerna run deploy-demo",
     "list-changed-packages": "lerna changed",
     "manual-release": "lerna publish --force-publish && npm run postrelease",
-    "clean-npm-lock": "rm -rf package-lock.json ./{packages,plugins}/*/package-lock.json",
+    "clean-npm-lock": "rm -rf ./{packages,plugins}/*/package-lock.json",
     "ci:create-patch-version": "npm run clean-npm-lock && lerna version patch --yes",
     "ci:create-minor-version": "npm run clean-npm-lock && lerna version minor --yes",
     "ci:create-conventional-version": "npm run clean-npm-lock && lerna version --conventional-commits --create-release github --yes",
