@@ -17,9 +17,10 @@
  * under the License.
  */
 import React, { useMemo } from 'react';
-import { styled, t } from '@superset-ui/core';
-import Form from 'antd/lib/form';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import { styled } from '@superset-ui/core';
+import { FormItem as StyledFormItem, Form } from 'src/components/Form';
+import Icons from 'src/components/Icons';
+import { Tooltip } from 'src/components/Tooltip';
 import { theme as supersetTheme } from 'src/preamble';
 import { checkIsMissingRequiredValue } from '../utils';
 import FilterValue from './FilterValue';
@@ -43,11 +44,6 @@ const StyledFilterControlTitleBox = styled.div`
   align-items: center;
   justify-content: space-between;
   margin-bottom: ${({ theme }) => theme.gridUnit}px;
-  .ant-form-item-required:not(.ant-form-item-required-mark-optional) {
-    &::before {
-      display: none;
-    }
-  }
 `;
 
 const StyledFilterControlContainer = styled(Form)`
@@ -62,21 +58,56 @@ const StyledFilterControlContainer = styled(Form)`
   }
 `;
 
-const FormItem = styled(Form.Item)`
+const FormItem = styled(StyledFormItem)`
   ${({ theme }) => `
     .ant-form-item-label {
-      padding-bottom: ${theme.gridUnit}px;
+      label.ant-form-item-required:not(.ant-form-item-required-mark-optional){
+        &::after {
+          display: none;
+        }
+      }
     }
-
-  `}
+`}
 `;
 
 const ToolTipContainer = styled.div`
   font-size: ${({ theme }) => theme.typography.sizes.m}px;
   display: flex;
-  padding-left: ${({ theme }) => theme.gridUnit}px;
 `;
 
+const RequiredFieldIndicator = () => (
+  <span
+    css={{
+      color: supersetTheme.colors.error.base,
+      fontSize: `${supersetTheme.typography.sizes.s}px`,
+      paddingLeft: '2px',
+    }}
+  >
+    *
+  </span>
+);
+
+const DescriptoinToolTip = ({ description }: { description: string }) => (
+  <ToolTipContainer>
+    <Tooltip
+      title={description}
+      placement="top"
+      overlayInnerStyle={{
+        display: '-webkit-box',
+        overflow: 'hidden',
+        // @ts-ignore -webkit-line-clamp is not in the CSS type
+        '-webkit-line-clamp': '20',
+        '-webkit-box-orient': 'vertical',
+        'text-overflow': 'ellipsis',
+      }}
+    >
+      <Icons.InfoCircle
+        className="text-muted"
+        css={{ color: supersetTheme.colors.grayscale.light1 }}
+      />
+    </Tooltip>
+  </ToolTipContainer>
+);
 const FilterControl: React.FC<FilterProps> = ({
   dataMaskSelected,
   filter,
@@ -99,29 +130,14 @@ const FilterControl: React.FC<FilterProps> = ({
         <StyledFilterControlTitle data-test="filter-control-name">
           {name}
         </StyledFilterControlTitle>
-        {isRequired && (
-          <span
-            css={{
-              color: supersetTheme.colors.error.base,
-              fontSize: `${supersetTheme.typography.sizes.s}px`,
-            }}
-          >
-            *
-          </span>
-        )}
+        {isRequired && <RequiredFieldIndicator />}
         {filter.description && filter.description.trim() && (
-          <ToolTipContainer>
-            <InfoTooltipWithTrigger
-              label={t('description')}
-              tooltip={filter.description}
-              placement="top"
-            />
-          </ToolTipContainer>
+          <DescriptoinToolTip description={filter.description} />
         )}
         <StyledIcon data-test="filter-icon">{icon}</StyledIcon>
       </StyledFilterControlTitleBox>
     ),
-    [icon, name],
+    [name, isRequired, filter.description, icon],
   );
 
   return (
@@ -139,7 +155,6 @@ const FilterControl: React.FC<FilterProps> = ({
           inView={inView}
         />
       </FormItem>
-      {filter.requiredFirst ? <span>Test</span> : null}
     </StyledFilterControlContainer>
   );
 };
