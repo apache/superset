@@ -53,6 +53,7 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla import models
+
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
 
