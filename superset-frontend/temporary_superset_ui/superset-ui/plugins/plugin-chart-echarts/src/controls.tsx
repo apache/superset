@@ -123,7 +123,9 @@ const onlyTotalControl = {
     label: t('Only Total'),
     default: true,
     renderTrigger: true,
-    description: t('Only show the total value on the stacked chart'),
+    description: t(
+      'Only show the total value on the stacked chart, and not show on the selected category',
+    ),
     visibility: ({ controls }: ControlPanelsContainerProps) =>
       Boolean(controls?.show_value?.value) && Boolean(controls?.stack?.value),
   },

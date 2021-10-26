@@ -58,7 +58,7 @@ import {
   formatAnnotationLabel,
   parseAnnotationOpacity,
 } from '../utils/annotation';
-import { getChartPadding } from '../utils/series';
+import { currentSeries, getChartPadding } from '../utils/series';
 import { OpacityEnum, TIMESERIES_CONSTANTS } from '../constants';
 
 export function transformSeries(
@@ -194,9 +194,11 @@ export function transformSeries(
           value: [, numericValue],
           dataIndex,
           seriesIndex,
+          seriesName,
         } = params;
+        const isSelectedLegend = currentSeries.legend === seriesName;
         if (!formatter) return numericValue;
-        if (!stack || !onlyTotal) {
+        if (!stack || !onlyTotal || isSelectedLegend) {
           return formatter(numericValue);
         }
         if (seriesIndex === showValueIndexes[dataIndex]) {
