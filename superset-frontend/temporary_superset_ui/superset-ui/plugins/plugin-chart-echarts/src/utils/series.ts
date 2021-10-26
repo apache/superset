@@ -208,4 +208,5 @@ export function sanitizeHtml(text: string): string {
 // TODO: Better use other method to maintain this state
 export const currentSeries = {
   name: '',
+  legend: '',
 };
