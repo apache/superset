@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useMemo, useState, useRef } from 'react';
+import React, {
+  useEffect,
+  useCallback,
+  useMemo,
+  useState,
+  useRef,
+} from 'react';
 import { uniq, isEqual, sortBy, debounce } from 'lodash';
 import { t, styled, SLOW_DEBOUNCE } from '@superset-ui/core';
 import { Form } from 'src/common/components';
@@ -391,6 +397,12 @@ export function FiltersConfigModal({
     [handleFilterHierarchyChange, handleErroredFilters],
   );
 
+  useEffect(() => {
+    setErroredFilters(prevErroredFilters =>
+      prevErroredFilters.filter(f => !removedFilters[f]),
+    );
+  }, [removedFilters]);
+
   return (
     <StyledModalWrapper
       visible={isOpen}
@@ -407,6 +419,7 @@ export function FiltersConfigModal({
           onDismiss={() => setSaveAlertVisible(false)}
           onCancel={handleCancel}
           handleSave={handleSave}
+          canSave={!erroredFilters.length}
           saveAlertVisible={saveAlertVisible}
           onConfirmCancel={handleConfirmCancel}
         />

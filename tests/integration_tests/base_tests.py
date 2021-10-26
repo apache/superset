@@ -398,7 +398,7 @@ class SupersetTestCase(TestCase):
         database_name = FAKE_DB_NAME
         db_id = 100
         extra = """{
-            "schemas_allowed_for_csv_upload":
+            "schemas_allowed_for_file_upload":
             ["this_schema_is_allowed", "this_schema_is_allowed_too"]
         }"""
 

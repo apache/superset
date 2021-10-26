@@ -83,7 +83,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
             "engine_params": {},
             "metadata_cache_timeout": {},
             "metadata_params": {},
-            "schemas_allowed_for_csv_upload": [],
+            "schemas_allowed_for_file_upload": [],
         }
         if backend() == "presto":
             expected_extra = {
@@ -107,7 +107,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
         metadata = yaml.safe_load(contents["databases/examples.yaml"])
         assert metadata == (
             {
-                "allow_csv_upload": True,
+                "allow_file_upload": True,
                 "allow_ctas": True,
                 "allow_cvas": True,
                 "allow_run_async": False,
@@ -305,7 +305,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
             "allow_run_async",
             "allow_ctas",
             "allow_cvas",
-            "allow_csv_upload",
+            "allow_file_upload",
             "extra",
             "uuid",
             "version",
@@ -325,7 +325,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         database = (
             db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
         )
-        assert database.allow_csv_upload
+        assert database.allow_file_upload
         assert database.allow_ctas
         assert database.allow_cvas
         assert not database.allow_run_async
@@ -355,11 +355,11 @@ class TestImportDatabasesCommand(SupersetTestCase):
         database = (
             db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
         )
-        assert database.allow_csv_upload
+        assert database.allow_file_upload
 
-        # update allow_csv_upload to False
+        # update allow_file_upload to False
         new_config = database_config.copy()
-        new_config["allow_csv_upload"] = False
+        new_config["allow_file_upload"] = False
         contents = {
             "databases/imported_database.yaml": yaml.safe_dump(new_config),
             "metadata.yaml": yaml.safe_dump(database_metadata_config),
@@ -370,7 +370,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         database = (
             db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
         )
-        assert not database.allow_csv_upload
+        assert not database.allow_file_upload
 
         # test that only one database was created
         new_num_databases = db.session.query(Database).count()

@@ -182,6 +182,13 @@ class Header extends React.PureComponent {
     }
   }
 
+  componentDidUpdate(prevProps) {
+    if (this.props.refreshFrequency !== prevProps.refreshFrequency) {
+      const { refreshFrequency } = this.props;
+      this.startPeriodicRender(refreshFrequency * 1000);
+    }
+  }
+
   UNSAFE_componentWillReceiveProps(nextProps) {
     const { user } = this.props;
     if (
