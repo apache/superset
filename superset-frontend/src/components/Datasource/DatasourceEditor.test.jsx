@@ -19,11 +19,8 @@
 import React from 'react';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
-import thunk from 'redux-thunk';
-import { Provider } from 'react-redux';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import DatasourceEditor from 'src/components/Datasource/DatasourceEditor';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import * as featureFlags from 'src/featureFlags';
@@ -37,22 +34,14 @@ const props = {
 const DATASOURCE_ENDPOINT = 'glob:*/datasource/external_metadata_by_name/*';
 
 describe('DatasourceEditor', () => {
-  const mockStore = configureStore([thunk]);
-  const store = mockStore({});
   fetchMock.get(DATASOURCE_ENDPOINT, []);
 
   let el;
   let isFeatureEnabledMock;
 
   beforeEach(() => {
-    el = (
-      <ThemeProvider theme={supersetTheme}>
-        <Provider store={store}>
-          <DatasourceEditor {...props} store={store} />;
-        </Provider>
-      </ThemeProvider>
-    );
-    render(el);
+    el = <DatasourceEditor {...props} />;
+    render(el, { useRedux: true });
   });
 
   it('is valid', () => {
@@ -80,7 +69,8 @@ describe('DatasourceEditor', () => {
       }, 0);
     }));
 
-  it('to add, remove and modify columns accordingly', async () => {
+  // to add, remove and modify columns accordingly
+  it('can modify columns', async () => {
     const columnsTab = screen.getByTestId('collection-tab-Columns');
     userEvent.click(columnsTab);
 
@@ -88,7 +78,6 @@ describe('DatasourceEditor', () => {
       name: /toggle expand/i,
     });
     userEvent.click(getToggles[0]);
-    // should render text fields
     const getTextboxes = screen.getAllByRole('textbox');
     expect(getTextboxes.length).toEqual(5);
 
@@ -105,8 +94,18 @@ describe('DatasourceEditor', () => {
     userEvent.type(await inputDtmFormat, 'test');
     userEvent.type(await inputCertifiedBy, 'test');
     userEvent.type(await inputCertDetails, 'test');
+  });
 
-    // test deleting columns
+  it('can delete columns', async () => {
+    const columnsTab = screen.getByTestId('collection-tab-Columns');
+    userEvent.click(columnsTab);
+
+    const getToggles = screen.getAllByRole('button', {
+      name: /toggle expand/i,
+    });
+
+    userEvent.click(getToggles[0]);
+    screen.logTestingPlaygroundURL();
     const deleteButtons = screen.getAllByRole('button', {
       name: /delete item/i,
     });
@@ -114,8 +113,9 @@ describe('DatasourceEditor', () => {
     userEvent.click(deleteButtons[0]);
     const countRows = screen.getAllByRole('button', { name: /delete item/i });
     expect(countRows.length).toEqual(6);
+  });
 
-    // test adding columns
+  it('can delete columns', async () => {
     const calcColsTab = screen.getByTestId('collection-tab-Calculated columns');
     userEvent.click(calcColsTab);
     const addBtn = screen.getByRole('button', {
@@ -188,7 +188,7 @@ describe('DatasourceEditor', () => {
     });
 
     beforeEach(() => {
-      render(el);
+      render(el, { useRedux: true });
     });
 
     it('disable edit Source tab', () => {
