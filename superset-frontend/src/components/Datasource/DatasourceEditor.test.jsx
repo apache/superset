@@ -17,7 +17,6 @@
  * under the License.
  */
 import React from 'react';
-import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
@@ -115,7 +114,7 @@ describe('DatasourceEditor', () => {
     expect(countRows.length).toEqual(6);
   });
 
-  it('can delete columns', async () => {
+  it('can add new columns', async () => {
     const calcColsTab = screen.getByTestId('collection-tab-Calculated columns');
     userEvent.click(calcColsTab);
     const addBtn = screen.getByRole('button', {
