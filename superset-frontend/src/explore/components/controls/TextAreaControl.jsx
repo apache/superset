@@ -58,18 +58,12 @@ const defaultProps = {
 };
 
 export default class TextAreaControl extends React.Component {
-  constructor() {
-    super();
-    this.inputRef = React.createRef();
-  }
-
   onControlChange(event) {
     const { value } = event.target;
     this.props.onChange(value);
   }
 
   renderEditor(inModal = false) {
-    const defaultValue = this.props.defaultValue || '';
     const minLines = inModal ? 40 : this.props.minLines || 12;
     if (this.props.language) {
       const style = { border: '1px solid #CCC' };
@@ -78,7 +72,6 @@ export default class TextAreaControl extends React.Component {
       }
       return (
         <TextAreaEditor
-          ref={this.inputRef}
           mode={this.props.language}
           style={style}
           minLines={minLines}
@@ -87,8 +80,9 @@ export default class TextAreaControl extends React.Component {
           width="100%"
           height={`${minLines}em`}
           editorProps={{ $blockScrolling: true }}
-          defaultValue={defaultValue}
+          defaultValue={this.props.defaultValue}
           readOnly={this.props.readOnly}
+          key={this.props.name}
         />
       );
     }
@@ -96,7 +90,7 @@ export default class TextAreaControl extends React.Component {
       <TextArea
         placeholder={t('textarea')}
         onChange={this.onControlChange.bind(this)}
-        value={defaultValue}
+        value={this.props.defaultValue}
         disabled={this.props.readOnly}
         style={{ height: this.props.height }}
       />
