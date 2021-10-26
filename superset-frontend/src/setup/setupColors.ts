@@ -69,10 +69,7 @@ export default function setupColors(
   registerColorSchemes(
     // @ts-ignore
     getSequentialSchemeRegistry(),
-    [
-      ...SequentialCommon,
-      ...SequentialD3,
-      ...extraSequentialColorSchemes],
+    [...SequentialCommon, ...SequentialD3, ...extraSequentialColorSchemes],
     'superset_seq_1',
   );
 }
