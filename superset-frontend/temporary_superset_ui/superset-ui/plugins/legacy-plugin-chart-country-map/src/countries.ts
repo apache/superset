@@ -26,6 +26,7 @@ import malaysia from 'file-loader!./countries/malaysia.geojson';
 import morocco from 'file-loader!./countries/morocco.geojson';
 import myanmar from 'file-loader!./countries/myanmar.geojson';
 import netherlands from 'file-loader!./countries/netherlands.geojson';
+import peru from 'file-loader!./countries/peru.geojson';
 import poland from 'file-loader!./countries/poland.geojson';
 import portugal from 'file-loader!./countries/portugal.geojson';
 import russia from 'file-loader!./countries/russia.geojson';
@@ -72,6 +73,7 @@ export const countries = {
   myanmar,
   netherlands,
   norway,
+  peru,
   poland,
   portugal,
   russia,
