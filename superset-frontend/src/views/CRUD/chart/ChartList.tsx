@@ -65,6 +65,12 @@ const FlexRowContainer = styled.div`
   align-items: center;
   display: flex;
 
+  a {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   svg {
     margin-right: ${({ theme }) => theme.gridUnit}px;
   }
