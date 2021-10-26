@@ -15,6 +15,7 @@ logs/
 .idea
 *.iml
 .npm
+.npmrc
 .vscode
 .yarnclean
 

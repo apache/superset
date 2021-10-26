@@ -74,7 +74,6 @@ jobs:
 
       - name: Bump version and publish package(s)
         run: |
-          git update-index --assume-unchanged .npmrc
           git tag -d `git tag | grep -E '^trigger-'`
           npm run ci:release-from-tag
         env:
