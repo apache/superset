@@ -322,7 +322,9 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
             sqla_col = column(self.column_name, type_=type_)
             return self.table.make_sqla_column_compatible(sqla_col, label)
         if self.expression:
-            col = literal_column(self.expression, type_=type_)
+            tp = self.table.get_template_processor()
+            expression = tp.process_template(self.expression)
+            col = literal_column(expression, type_=type_)
         else:
             col = column(self.column_name, type_=type_)
         time_expr = self.db_engine_spec.get_timestamp_expr(
