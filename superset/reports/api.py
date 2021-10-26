@@ -399,8 +399,6 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
                     )
                 item["owners"] = owners
 
-            print(owners)
-
             return self.response(200, id=new_model.id, result=item)
         except ReportScheduleNotFoundError:
             return self.response_404()
