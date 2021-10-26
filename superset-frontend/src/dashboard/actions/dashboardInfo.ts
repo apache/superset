@@ -26,15 +26,15 @@ export const DASHBOARD_INFO_UPDATED = 'DASHBOARD_INFO_UPDATED';
 // updates partially changed dashboard info
 export function dashboardInfoChanged(newInfo: { metadata: any }) {
   const { metadata } = newInfo;
-  const { color_namespace: namespace, label_colors: labelColors } = metadata;
 
   const categoricalNamespace = CategoricalColorNamespace.getNamespace(
-    namespace,
+    metadata?.color_namespace,
   );
 
   categoricalNamespace.resetColors();
 
   if (metadata?.label_colors) {
+    const labelColors = metadata.label_colors;
     const colorMap = isString(labelColors)
       ? JSON.parse(labelColors)
       : labelColors;

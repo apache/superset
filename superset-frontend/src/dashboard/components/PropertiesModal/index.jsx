@@ -146,7 +146,8 @@ class PropertiesModal extends React.PureComponent {
     const jsonMetadataObj = jsonMetadata?.length
       ? JSON.parse(jsonMetadata)
       : {};
-    if (!colorChoices.includes(colorScheme)) {
+
+    if (!colorScheme || !colorChoices.includes(colorScheme)) {
       Modal.error({
         title: 'Error',
         content: t('A valid color scheme is required'),
@@ -156,12 +157,8 @@ class PropertiesModal extends React.PureComponent {
     }
 
     // update metadata to match selection
-    if (
-      updateMetadata &&
-      Object.keys(jsonMetadataObj).includes('color_scheme')
-    ) {
+    if (updateMetadata) {
       jsonMetadataObj.color_scheme = colorScheme;
-
       this.onMetadataChange(jsonStringify(jsonMetadataObj));
     }
 
@@ -252,20 +249,21 @@ class PropertiesModal extends React.PureComponent {
         roles: rolesValue,
       },
     } = this.state;
+
     const { onlyApply } = this.props;
     const owners = ownersValue?.map(o => o.value) ?? [];
     const roles = rolesValue?.map(o => o.value) ?? [];
-    let metadataColorScheme;
+    let currentColorScheme = colorScheme;
 
-    // update color scheme to match metadata
+    // color scheme in json metadata has precedence over selection
     if (jsonMetadata?.length) {
-      const { color_scheme: metadataColorScheme } = JSON.parse(jsonMetadata);
-      if (metadataColorScheme) {
-        this.onColorSchemeChange(metadataColorScheme, {
-          updateMetadata: false,
-        });
-      }
+      const metadata = JSON.parse(jsonMetadata);
+      currentColorScheme = metadata?.color_scheme || colorScheme;
     }
+
+    this.onColorSchemeChange(currentColorScheme, {
+        updateMetadata: false,
+    });
 
     const moreProps = {};
     const morePutProps = {};
@@ -280,7 +278,7 @@ class PropertiesModal extends React.PureComponent {
         slug,
         jsonMetadata,
         ownerIds: owners,
-        colorScheme: metadataColorScheme || colorScheme,
+        colorScheme: currentColorScheme,
         ...moreProps,
       });
       this.props.onHide();
@@ -307,7 +305,7 @@ class PropertiesModal extends React.PureComponent {
           slug: result.slug,
           jsonMetadata: result.json_metadata,
           ownerIds: result.owners,
-          colorScheme: metadataColorScheme || colorScheme,
+          colorScheme: currentColorScheme,
           ...moreResultProps,
         });
         this.props.onHide();
