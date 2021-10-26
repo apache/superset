@@ -16,5 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as Pagination } from './Pagination';
-export { default as TableCollection } from './TableCollection';
+import ChangeDatasourceModal from './ChangeDatasourceModal';
+import DatasourceModal from './DatasourceModal';
+
+export { ChangeDatasourceModal, DatasourceModal };
