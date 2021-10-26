@@ -132,7 +132,11 @@ export function getExploreUrlFromDashboard(formData) {
   // These are present when generating explore urls from the dashboard page.
   // This should be superseded by some sort of "exploration context" system
   // where form data and other context is referenced by id.
-  const trimmedFormData = omit(formData, ['dataMask', 'url_params', 'label_colors']);
+  const trimmedFormData = omit(formData, [
+    'dataMask',
+    'url_params',
+    'label_colors',
+  ]);
   return getExploreLongUrl(trimmedFormData, null, false);
 }
 
