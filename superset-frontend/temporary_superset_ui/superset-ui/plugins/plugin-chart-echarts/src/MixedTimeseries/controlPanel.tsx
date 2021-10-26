@@ -42,6 +42,7 @@ const {
   orderDesc,
   rowLimit,
   seriesType,
+  showValues,
   stack,
   truncateYAxis,
   yAxisBounds,
@@ -162,6 +163,18 @@ function createCustomizeSection(label: string, controlSuffix: string): ControlSe
           renderTrigger: true,
           default: area,
           description: t('Draw area under curves. Only applicable for line types.'),
+        },
+      },
+    ],
+    [
+      {
+        name: `show_value${controlSuffix}`,
+        config: {
+          type: 'CheckboxControl',
+          label: t('Show Values'),
+          renderTrigger: true,
+          default: showValues,
+          description: t('Whether to display the numerical values within the cells'),
         },
       },
     ],

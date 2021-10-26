@@ -34,7 +34,7 @@ import {
   EchartsMixedTimeseriesFormData,
   EchartsMixedTimeseriesChartTransformedProps,
 } from './types';
-import { ForecastSeriesEnum, ProphetValue } from '../types';
+import { ForecastSeriesEnum } from '../types';
 import { parseYAxisBound } from '../utils/controls';
 import {
   currentSeries,
@@ -91,6 +91,8 @@ export default function transformProps(
     seriesType,
     seriesTypeB,
     showLegend,
+    showValue,
+    showValueB,
     stack,
     stackB,
     truncateYAxis,
@@ -149,6 +151,7 @@ export default function transformProps(
       markerSize,
       areaOpacity: opacity,
       seriesType,
+      showValue,
       stack,
       yAxisIndex,
       filterState,
@@ -162,6 +165,7 @@ export default function transformProps(
       markerSize: markerSizeB,
       areaOpacity: opacityB,
       seriesType: seriesTypeB,
+      showValue: showValueB,
       stack: stackB,
       yAxisIndex: yAxisIndexB,
       filterState,
@@ -281,8 +285,7 @@ export default function transformProps(
         const prophetValue = !richTooltip ? [params] : params;
 
         const rows: Array<string> = [`${tooltipTimeFormatter(value)}`];
-        const prophetValues: Record<string, ProphetValue> =
-          extractProphetValuesFromTooltipParams(prophetValue);
+        const prophetValues = extractProphetValuesFromTooltipParams(prophetValue);
 
         Object.keys(prophetValues).forEach(key => {
           const value = prophetValues[key];
