@@ -118,6 +118,7 @@ function AlertList({
     t('reports'),
     addDangerToast,
   );
+
   const [alertModalOpen, setAlertModalOpen] = useState<boolean>(false);
   const [currentAlert, setCurrentAlert] = useState<Partial<AlertObject> | null>(
     null,
@@ -136,8 +137,6 @@ function AlertList({
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canCreate = hasPerm('can_write');
-
-  const generateKey = () => `${new Date().getTime()}`;
 
   useEffect(() => {
     if (bulkSelectEnabled && canDelete) {
@@ -450,7 +449,6 @@ function AlertList({
         }}
         show={alertModalOpen}
         isReport={isReportEnabled}
-        key={currentAlert?.id || generateKey()}
       />
       {currentAlertDeleting && (
         <DeleteModal
