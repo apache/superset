@@ -24,6 +24,7 @@ import sharedControlComponents from './shared-controls/components';
 
 export { Metric } from '@superset-ui/core';
 export { ControlFormItemSpec } from './components/ControlForm';
+export { ControlComponentProps } from './shared-controls/components/types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyDict = Record<string, any>;
