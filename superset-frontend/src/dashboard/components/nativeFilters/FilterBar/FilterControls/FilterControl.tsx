@@ -17,10 +17,9 @@
  * under the License.
  */
 import React, { useMemo } from 'react';
-import { styled } from '@superset-ui/core';
+import { styled, SupersetTheme } from '@superset-ui/core';
 import { FormItem as StyledFormItem, Form } from 'src/components/Form';
 import { Tooltip } from 'src/components/Tooltip';
-import { theme as supersetTheme } from 'src/preamble';
 import { checkIsMissingRequiredValue } from '../utils';
 import FilterValue from './FilterValue';
 import { FilterProps } from './types';
@@ -74,17 +73,17 @@ const ToolTipContainer = styled.div`
 
 const RequiredFieldIndicator = () => (
   <span
-    css={{
-      color: supersetTheme.colors.error.base,
-      fontSize: `${supersetTheme.typography.sizes.s}px`,
-      paddingLeft: `${supersetTheme.gridUnit}px`,
-    }}
+    css={(theme: SupersetTheme) => ({
+      color: theme.colors.error.base,
+      fontSize: `${theme.typography.sizes.s}px`,
+      paddingLeft: '1px',
+    })}
   >
     *
   </span>
 );
 
-const DescriptoinToolTip = ({ description }: { description: string }) => (
+const DescriptionToolTip = ({ description }: { description: string }) => (
   <ToolTipContainer>
     <Tooltip
       title={description}
@@ -99,7 +98,10 @@ const DescriptoinToolTip = ({ description }: { description: string }) => (
     >
       <i
         className="fa fa-info-circle text-muted"
-        css={{ paddingLeft: `${supersetTheme.gridUnit}px`, cursor: 'pointer' }}
+        css={(theme: SupersetTheme) => ({
+          paddingLeft: `${theme.gridUnit}px`,
+          cursor: 'pointer',
+        })}
       />
     </Tooltip>
   </ToolTipContainer>
@@ -131,7 +133,7 @@ const FilterControl: React.FC<FilterProps> = ({
         </StyledFilterControlTitle>
         {isRequired && <RequiredFieldIndicator />}
         {filter.description && filter.description.trim() && (
-          <DescriptoinToolTip description={filter.description} />
+          <DescriptionToolTip description={filter.description} />
         )}
         <StyledIcon data-test="filter-icon">{icon}</StyledIcon>
       </StyledFilterControlTitleBox>
