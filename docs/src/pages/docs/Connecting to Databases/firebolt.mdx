@@ -14,11 +14,15 @@ Superset has been tested on `firebolt-sqlalchemy>=0.0.1`.
 The recommended connection string is:
 
 ```
-firebolt://{username}:{password}@{host}/{database}
+firebolt://{username}:{password}@{database}
+or
+firebolt://{username}:{password}@{database}/{engine_name}
 ```
 
 Here's a connection string example of Superset connecting to a Firebolt database:
 
 ```
-firebolt://email@domain:password@host/sample_database
+firebolt://email@domain:password@sample_database
+or
+firebolt://email@domain:password@sample_database/sample_engine
 ```
