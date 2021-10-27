@@ -20,6 +20,7 @@ import React, { FC, Suspense } from 'react';
 import { JsonObject, t } from '@superset-ui/core';
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import cx from 'classnames';
+import { useSelector } from 'react-redux';
 import DragDroppable from '../dnd/DragDroppable';
 import { COLUMN_TYPE, ROW_TYPE } from '../../util/componentTypes';
 import WithPopoverMenu from '../menu/WithPopoverMenu';
@@ -33,6 +34,7 @@ import HoverMenu from '../menu/HoverMenu';
 import DeleteComponentButton from '../DeleteComponentButton';
 import BackgroundStyleDropdown from '../menu/BackgroundStyleDropdown';
 import dashboardComponents from '../../../visualizations/presets/dashboardComponents';
+import { RootState } from '../../types';
 
 type FilterSummaryType = {
   component: JsonObject;
@@ -97,6 +99,15 @@ const DynamicComponent: FC<FilterSummaryType> = ({
 
   const { Component } = dashboardComponents.get(component.meta.componentKey);
 
+  const dashboardData = useSelector<RootState>(
+    ({ nativeFilters, dataMask, charts, dashboardInfo }) => ({
+      nativeFilters,
+      dataMask,
+      charts,
+      dashboardInfo,
+    }),
+  );
+
   return (
     <DragDroppable
       // @ts-ignore
@@ -155,7 +166,7 @@ const DynamicComponent: FC<FilterSummaryType> = ({
                   </HoverMenu>
                 )}
                 <Suspense fallback={<div>{t('Loading...')}</div>}>
-                  <Component />
+                  <Component dashboardData={dashboardData} />
                 </Suspense>
               </div>
             </ResizableContainer>
