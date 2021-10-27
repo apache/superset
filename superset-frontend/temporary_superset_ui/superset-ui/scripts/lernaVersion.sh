@@ -1,4 +1,5 @@
 #!/bin/bash
+rootDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && cd .. && pwd )"
 
 lernaVersionArg="$1"
 if [[ -z $lernaVersionArg ]]; then
@@ -19,7 +20,13 @@ tag=v$(node -e "process.stdout.write(require('./lerna.json').version)");
 message="chore: publish $tag"
 
 # Update the lock file here
+rm "$rootDir/package-lock.json"
 npm i --package-lock-only
+
+if [[ $? -ne 0 ]]; then
+  echo 'Can not update package-lock.json'
+  exit 1
+fi
 
 # Auto-tag and auto-commit like usual
 git commit --all -m ${message}
