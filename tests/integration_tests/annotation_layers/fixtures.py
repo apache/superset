@@ -16,8 +16,10 @@
 # under the License.
 # isort:skip_file
 import pytest
+import dateutil.parser
 from datetime import datetime
 from typing import Optional
+
 
 from superset import db
 from superset.models.annotations import Annotation, AnnotationLayer
@@ -27,6 +29,10 @@ from tests.integration_tests.test_app import app
 
 ANNOTATION_LAYERS_COUNT = 10
 ANNOTATIONS_COUNT = 5
+START_STR = "2019-01-02T03:04:05.678900"
+END_STR = "2020-01-02T03:04:05.678900"
+START_DTTM = dateutil.parser.parse(START_STR)
+END_DTTM = dateutil.parser.parse(END_STR)
 
 
 def get_start_dttm(annotation_id: int) -> datetime:

@@ -16,22 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import airbnb from '@superset-ui/core/lib/color/colorSchemes/categorical/airbnb';
-import categoricalD3 from '@superset-ui/core/lib/color/colorSchemes/categorical/d3';
-import echarts from '@superset-ui/core/lib/color/colorSchemes/categorical/echarts';
-import google from '@superset-ui/core/lib/color/colorSchemes/categorical/google';
-import lyft from '@superset-ui/core/lib/color/colorSchemes/categorical/lyft';
-import preset from '@superset-ui/core/lib/color/colorSchemes/categorical/preset';
-import sequentialCommon from '@superset-ui/core/lib/color/colorSchemes/sequential/common';
-import sequentialD3 from '@superset-ui/core/lib/color/colorSchemes/sequential/d3';
 import {
   CategoricalScheme,
   getCategoricalSchemeRegistry,
   getSequentialSchemeRegistry,
   SequentialScheme,
+  CategoricalAirbnb,
+  CategoricalD3,
+  CategoricalEcharts,
+  CategoricalGoogle,
+  CategoricalLyft,
+  CategoricalPreset,
+  CategoricalSuperset,
+  SequentialCommon,
+  SequentialD3,
+  ColorSchemeRegistry,
 } from '@superset-ui/core';
-import superset from '@superset-ui/core/lib/color/colorSchemes/categorical/superset';
-import ColorSchemeRegistry from '@superset-ui/core/lib/color/ColorSchemeRegistry';
 
 function registerColorSchemes(
   registry: ColorSchemeRegistry<unknown>,
@@ -55,13 +55,13 @@ export default function setupColors(
     // @ts-ignore
     getCategoricalSchemeRegistry(),
     [
-      ...superset,
-      ...airbnb,
-      ...categoricalD3,
-      ...echarts,
-      ...google,
-      ...lyft,
-      ...preset,
+      ...CategoricalAirbnb,
+      ...CategoricalD3,
+      ...CategoricalEcharts,
+      ...CategoricalGoogle,
+      ...CategoricalLyft,
+      ...CategoricalPreset,
+      ...CategoricalSuperset,
       ...extraCategoricalColorSchemes,
     ],
     'supersetColors',
@@ -69,7 +69,7 @@ export default function setupColors(
   registerColorSchemes(
     // @ts-ignore
     getSequentialSchemeRegistry(),
-    [...sequentialCommon, ...sequentialD3, ...extraSequentialColorSchemes],
+    [...SequentialCommon, ...SequentialD3, ...extraSequentialColorSchemes],
     'superset_seq_1',
   );
 }
