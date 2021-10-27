@@ -31,6 +31,8 @@ from tests.integration_tests.annotation_layers.fixtures import (
     create_annotation_layers,
     get_end_dttm,
     get_start_dttm,
+)
+from tests.unit_tests.annotation_layers.fixtures import (
     START_STR,
     END_STR,
 )
@@ -197,7 +199,6 @@ class TestAnnotationLayerApi(SupersetTestCase):
         assert data["count"] == 1
         assert data["result"][0] == expected_result
 
-    @pytest.mark.usefixtures("create_annotation_layers")
     def test_create_annotation_layer(self):
         """
         Annotation Api: Test create annotation layer
@@ -219,6 +220,16 @@ class TestAnnotationLayerApi(SupersetTestCase):
         # Rollback changes
         db.session.delete(created_model)
         db.session.commit()
+
+    def test_create_incorrect_annotation_layer(self):
+        """
+        Annotation Api: Test create incorrect annotation layer
+        """
+        self.login(username="admin")
+        annotation_layer_data = {}
+        uri = "api/v1/annotation_layer/"
+        rv = self.client.post(uri, json=annotation_layer_data)
+        assert rv.status_code == 400
 
     @pytest.mark.usefixtures("create_annotation_layers")
     def test_create_annotation_layer_uniqueness(self):
@@ -520,6 +531,22 @@ class TestAnnotationLayerApi(SupersetTestCase):
         # Rollback changes
         db.session.delete(created_model)
         db.session.commit()
+
+    @pytest.mark.usefixtures("create_annotation_layers")
+    def test_create_incorrect_annotation(self):
+        """
+        Annotation Api: Test create incorrect annotation
+        """
+        layer = self.get_layer_with_annotation()
+
+        self.login(username="admin")
+        annotation_data = {
+            "short_descr": "new",
+            "long_descr": "description",
+        }
+        uri = f"api/v1/annotation_layer/{layer.id}/annotation/"
+        rv = self.client.post(uri, json=annotation_data)
+        assert rv.status_code == 400
 
     @pytest.mark.usefixtures("create_annotation_layers")
     def test_create_annotation_uniqueness(self):

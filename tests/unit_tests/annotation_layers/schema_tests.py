@@ -25,7 +25,7 @@ from superset.annotation_layers.schemas import (
     AnnotationLayerPostSchema,
     AnnotationLayerPutSchema,
 )
-from tests.integration_tests.annotation_layers.fixtures import (
+from tests.unit_tests.annotation_layers.fixtures import (
     END_DTTM,
     END_STR,
     START_DTTM,
