@@ -159,6 +159,8 @@ class PropertiesModal extends React.PureComponent {
     // update metadata to match selection
     if (updateMetadata) {
       jsonMetadataObj.color_scheme = colorScheme;
+      jsonMetadataObj.label_colors = jsonMetadataObj.label_colors || {};
+
       this.onMetadataChange(jsonStringify(jsonMetadataObj));
     }
 
@@ -262,7 +264,7 @@ class PropertiesModal extends React.PureComponent {
     }
 
     this.onColorSchemeChange(currentColorScheme, {
-        updateMetadata: false,
+      updateMetadata: false,
     });
 
     const moreProps = {};
