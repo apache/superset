@@ -17,9 +17,6 @@
  * under the License.
  */
 
-import { data } from 'cypress/types/jquery';
-import M from 'cypress/types/minimatch';
-
 const dataTestLocator = (value: string) => `[data-test='${value}']`;
 
 export const pageHeader = {
