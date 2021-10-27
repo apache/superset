@@ -303,7 +303,8 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         return and_(*l)
 
     def get_timestamp_expression(
-        self, time_grain: Optional[str], label: Optional[str] = None
+        self, time_grain: Optional[str], label: Optional[str] = None,
+        template_processor: Optional[BaseTemplateProcessor] = None
     ) -> Union[TimestampExpression, Label]:
         """
         Return a SQLAlchemy Core element representation of self to be used in a query.
@@ -322,8 +323,9 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
             sqla_col = column(self.column_name, type_=type_)
             return self.table.make_sqla_column_compatible(sqla_col, label)
         if self.expression:
-            tp = self.table.get_template_processor()
-            expression = tp.process_template(self.expression)
+            expression = self.expression
+            if template_processor:
+                expression = template_processor.process_template(self.expression)
             col = literal_column(expression, type_=type_)
         else:
             col = column(self.column_name, type_=type_)
@@ -1091,7 +1093,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 # if groupby field/expr equals granularity field/expr
                 table_col = columns_by_name.get(selected)
                 if table_col and table_col.type_generic == GenericDataType.TEMPORAL:
-                    outer = table_col.get_timestamp_expression(time_grain, selected)
+                    outer = table_col.get_timestamp_expression(
+                        time_grain=time_grain,
+                        label=selected,
+                        template_processor=template_processor)
                 # if groupby field equals a selected column
                 elif table_col:
                     outer = table_col.get_sqla_col()
@@ -1124,7 +1129,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             time_filters = []
 
             if is_timeseries:
-                timestamp = dttm_col.get_timestamp_expression(time_grain)
+                timestamp = dttm_col.get_timestamp_expression(
+                    time_grain=time_grain,
+                    template_processor=template_processor)
                 # always put timestamp as the first column
                 select_exprs.insert(0, timestamp)
                 groupby_all_columns[timestamp.name] = timestamp
@@ -1189,7 +1196,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
             if col_obj:
                 if filter_grain:
-                    sqla_col = col_obj.get_timestamp_expression(filter_grain)
+                    sqla_col = col_obj.get_timestamp_expression(
+                        time_grain=filter_grain,
+                        template_processor=template_processor)
                 else:
                     sqla_col = col_obj.get_sqla_col()
                 col_spec = db_engine_spec.get_column_spec(col_obj.type)
