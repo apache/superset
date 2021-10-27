@@ -972,7 +972,6 @@ const FiltersConfigForm = (
             <StyledFormItem
               name={['filters', filterId, 'description']}
               initialValue={filterToEdit?.description}
-              rules={[{ transform: value => value.trim() }]}
               label={<StyledLabel>{t('Description')}</StyledLabel>}
             >
               <TextArea />
