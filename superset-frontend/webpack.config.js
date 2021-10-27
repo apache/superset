@@ -284,11 +284,11 @@ const config = {
       // as they can be dependencies of other packages via `npm link`.
       '@superset-ui/core': path.resolve(
         APP_DIR,
-        './node_modules/@superset-ui/core',
+        './node_modules/@superset-ui/core/src',
       ),
       '@superset-ui/chart-controls': path.resolve(
         APP_DIR,
-        './node_modules/@superset-ui/chart-controls',
+        './node_modules/@superset-ui/chart-controls/src',
       ),
       react: path.resolve('./node_modules/react'),
     },
@@ -467,23 +467,23 @@ if (isDevMode) {
   });
 
   // find all the symlinked plugins and use their source code for imports
-  let hasSymlink = false;
-  Object.entries(packageConfig.dependencies).forEach(([pkg, version]) => {
-    const srcPath = `./node_modules/${pkg}/src`;
-    if (/superset-ui/.test(pkg) && fs.existsSync(srcPath)) {
-      console.log(
-        `[Superset Plugin] Use symlink source for ${pkg} @ ${version}`,
-      );
-      // only allow exact match so imports like `@superset-ui/plugin-name/lib`
-      // and `@superset-ui/plugin-name/esm` can still work.
-      config.resolve.alias[`${pkg}$`] = `${pkg}/src`;
-      delete config.resolve.alias[pkg];
-      hasSymlink = true;
-    }
-  });
-  if (hasSymlink) {
-    console.log(''); // pure cosmetic new line
-  }
+  // let hasSymlink = false;
+  // Object.entries(packageConfig.dependencies).forEach(([pkg, version]) => {
+  //   const srcPath = `./node_modules/${pkg}/src`;
+  //   if (/superset-ui/.test(pkg) && fs.existsSync(srcPath)) {
+  //     console.log(
+  //       `[Superset Plugin] Use symlink source for ${pkg} @ ${version}`,
+  //     );
+  //     // only allow exact match so imports like `@superset-ui/plugin-name/lib`
+  //     // and `@superset-ui/plugin-name/esm` can still work.
+  //     config.resolve.alias[`${pkg}$`] = `${pkg}/src`;
+  //     delete config.resolve.alias[pkg];
+  //     hasSymlink = true;
+  //   }
+  // });
+  // if (hasSymlink) {
+  //   console.log(''); // pure cosmetic new line
+  // }
 }
 
 // Bundle analyzer is disabled by default

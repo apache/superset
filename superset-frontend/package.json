@@ -61,7 +61,8 @@
   },
   "workspaces": [
     "./packages/*",
-    "./plugins/*"
+    "./plugins/*",
+    "./src"
   ],
   "homepage": "https://superset.apache.org/",
   "dependencies": {
