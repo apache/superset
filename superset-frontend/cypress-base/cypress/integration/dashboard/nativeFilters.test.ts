@@ -41,7 +41,9 @@ describe('Nativefilters Sanity test', () => {
       'api/v1/dashboard/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:100)',
     ).then(xhr => {
       const dashboards = xhr.body.result;
-      const worldBankDashboard = dashboards.find(d => d.dashboard_title === 'World Bank\'s Data');
+      const worldBankDashboard = dashboards.find(
+        d => d.dashboard_title === "World Bank's Data",
+      );
       cy.visit(worldBankDashboard.url);
     });
     cy.get(dashboardView.threeDotsMenuIcon).should('be.visible').click();
@@ -61,7 +63,9 @@ describe('Nativefilters Sanity test', () => {
       'api/v1/dashboard/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:100)',
     ).then(xhr => {
       const dashboards = xhr.body.result;
-      const testDashboard = dashboards.find(d => d.dashboard_title === testItems.dashboard);
+      const testDashboard = dashboards.find(
+        d => d.dashboard_title === testItems.dashboard,
+      );
       cy.visit(testDashboard.url);
     });
   });
