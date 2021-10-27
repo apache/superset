@@ -29,7 +29,7 @@ if [[ $? -ne 0 ]]; then
 fi
 
 # Auto-tag and auto-commit like usual
-git commit --all -m ${message}
+git commit --all -m "${message}"
 git tag -a ${tag} -m ${tag}
 git push origin ${tag}
 git push
