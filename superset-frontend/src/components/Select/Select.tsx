@@ -93,6 +93,7 @@ export interface SelectProps extends PickedSelectProps {
   pageSize?: number;
   invertSelection?: boolean;
   fetchOnlyOnSearch?: boolean;
+  onError?: (error: string) => void;
 }
 
 const StyledContainer = styled.div`
