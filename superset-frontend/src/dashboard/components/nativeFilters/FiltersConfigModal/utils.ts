@@ -159,6 +159,7 @@ export const createHandleSave = (
         scope: formInputs.scope,
         sortMetric: formInputs.sortMetric,
         type: formInputs.type,
+        description: (formInputs.description || '').trim(),
       };
     });
 
