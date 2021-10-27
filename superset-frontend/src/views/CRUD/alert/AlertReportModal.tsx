@@ -440,8 +440,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     NotificationSetting[]
   >([]);
 
-  const generateKey = () => `${new Date().getTime()}`;
-
   const onNotificationAdd = () => {
     const settings: NotificationSetting[] = notificationSettings.slice();
 
@@ -1139,7 +1137,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   onChange={onSQLChange}
                   readOnly={false}
                   defaultValue={currentAlert?.sql}
-                  key={currentAlert?.id || generateKey()}
+                  key={currentAlert?.id}
                 />
               </StyledInputContainer>
               <div className="inline-container wrap">
