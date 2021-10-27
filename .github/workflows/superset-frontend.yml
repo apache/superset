@@ -31,7 +31,7 @@ jobs:
         if: steps.check.outcome == 'failure'
         uses: actions/setup-node@v2
         with:
-          node-version:  '16'
+          node-version: "16"
       - name: Install dependencies
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies

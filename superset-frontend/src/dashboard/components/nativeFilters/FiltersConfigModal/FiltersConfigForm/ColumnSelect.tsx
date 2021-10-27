@@ -73,7 +73,6 @@ export function ColumnSelect({
       ensureIsArray(columns)
         .filter(filterValues)
         .map((col: Column) => col.column_name)
-        .sort((a: string, b: string) => a.localeCompare(b))
         .map((column: string) => ({ label: column, value: column })),
     [columns, filterValues],
   );

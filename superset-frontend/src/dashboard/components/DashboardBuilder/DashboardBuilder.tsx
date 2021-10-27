@@ -77,6 +77,10 @@ const StyledDiv = styled.div`
     border: 1px solid @gray-light;
   }
 
+  .dashboard-component-tabs {
+    position: relative;
+  }
+
   /* A column within a column or tabs has inset hover menu */
   .dragdroppable-column .dragdroppable-column .hover-menu--top,
   .dashboard-component-tabs .dragdroppable-column .hover-menu--top {
@@ -86,7 +90,7 @@ const StyledDiv = styled.div`
   }
 
   /* move Tabs hover menu to top near actual Tabs */
-  .dashboard-component-tabs > .hover-menu--left {
+  .dashboard-component-tabs > .hover-menu-container > .hover-menu--left {
     top: 0;
     transform: unset;
     background: transparent;

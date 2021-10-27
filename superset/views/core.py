@@ -164,7 +164,7 @@ DAR = DatasourceAccessRequest
 logger = logging.getLogger(__name__)
 
 DATABASE_KEYS = [
-    "allow_csv_upload",
+    "allow_file_upload",
     "allow_ctas",
     "allow_cvas",
     "allow_dml",
@@ -921,7 +921,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         datasource.raise_for_access()
         row_limit = apply_max_row_limit(config["FILTER_SELECT_ROW_LIMIT"])
         payload = json.dumps(
-            datasource.values_for_column(column, row_limit),
+            datasource.values_for_column(
+                column_name=column, limit=row_limit, contain_null=False,
+            ),
             default=utils.json_int_dttm_ser,
             ignore_nan=True,
         )
@@ -2873,7 +2875,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         db_id = int(request.args["db_id"])
         database = db.session.query(Database).filter_by(id=db_id).one()
         try:
-            schemas_allowed = database.get_schema_access_for_csv_upload()
+            schemas_allowed = database.get_schema_access_for_file_upload()
             if security_manager.can_access_database(database):
                 return self.json_response(schemas_allowed)
             # the list schemas_allowed should not be empty here
