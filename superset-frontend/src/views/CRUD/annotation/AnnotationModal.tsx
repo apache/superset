@@ -220,9 +220,9 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
   const validate = () => {
     if (
       currentAnnotation &&
-      currentAnnotation.short_descr.length &&
-      currentAnnotation.start_dttm.length &&
-      currentAnnotation.end_dttm.length
+      currentAnnotation.short_descr?.length &&
+      currentAnnotation.start_dttm?.length &&
+      currentAnnotation.end_dttm?.length
     ) {
       setDisableSave(false);
     } else {

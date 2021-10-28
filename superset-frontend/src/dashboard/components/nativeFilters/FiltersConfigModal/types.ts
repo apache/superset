@@ -45,6 +45,7 @@ export interface NativeFiltersFormItem {
   time_range?: string;
   granularity_sqla?: string;
   type: NativeFilterType;
+  description: string;
   hierarchicalFilter?: boolean;
 }
 
