@@ -17,7 +17,7 @@
 import datetime
 
 import pandas as pd
-from sqlalchemy import BigInteger, Date, String
+from sqlalchemy import BigInteger, Date, inspect, String
 from sqlalchemy.sql import column
 
 from superset import db
@@ -38,6 +38,8 @@ def load_country_map_data(only_metadata: bool = False, force: bool = False) -> N
     """Loading data for map with country map"""
     tbl_name = "birth_france_by_region"
     database = utils.get_example_database()
+    engine = database.get_sqla_engine()
+    schema = inspect(engine).default_schema_name
     table_exists = database.has_table_by_name(tbl_name)
 
     if not only_metadata and (not table_exists or force):
@@ -48,7 +50,8 @@ def load_country_map_data(only_metadata: bool = False, force: bool = False) -> N
         data["dttm"] = datetime.datetime.now().date()
         data.to_sql(
             tbl_name,
-            database.get_sqla_engine(),
+            engine,
+            schema=schema,
             if_exists="replace",
             chunksize=500,
             dtype={
@@ -79,6 +82,7 @@ def load_country_map_data(only_metadata: bool = False, force: bool = False) -> N
         obj = table(table_name=tbl_name)
     obj.main_dttm_col = "dttm"
     obj.database = database
+    obj.schema = schema
     obj.filter_select_enabled = True
     if not any(col.metric_name == "avg__2004" for col in obj.metrics):
         col = str(column("2004").compile(db.engine))

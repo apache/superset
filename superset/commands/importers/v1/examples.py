@@ -17,6 +17,7 @@
 from typing import Any, Dict, List, Set, Tuple
 
 from marshmallow import Schema
+from sqlalchemy import inspect
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.sql import select
@@ -113,6 +114,13 @@ class ImportExamplesCommand(ImportModelsCommand):
                     config["database_id"] = examples_db.id
                 else:
                     config["database_id"] = database_ids[config["database_uuid"]]
+
+                # set schema
+                if config["schema"] is None:
+                    database = get_example_database()
+                    engine = database.get_sqla_engine()
+                    insp = inspect(engine)
+                    config["schema"] = insp.default_schema_name
 
                 dataset = import_dataset(
                     session, config, overwrite=overwrite, force_data=force_data

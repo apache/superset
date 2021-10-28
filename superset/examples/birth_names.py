@@ -20,12 +20,11 @@ from typing import Dict, List, Tuple, Union
 
 import pandas as pd
 from flask_appbuilder.security.sqla.models import User
-from sqlalchemy import DateTime, String
+from sqlalchemy import DateTime, inspect, String
 from sqlalchemy.sql import column
 
 from superset import app, db, security_manager
-from superset.connectors.base.models import BaseDatasource
-from superset.connectors.sqla.models import SqlMetric, TableColumn
+from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.exceptions import NoDataException
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
@@ -75,9 +74,13 @@ def load_data(tbl_name: str, database: Database, sample: bool = False) -> None:
         pdf.ds = pd.to_datetime(pdf.ds, unit="ms")
     pdf = pdf.head(100) if sample else pdf
 
+    engine = database.get_sqla_engine()
+    schema = inspect(engine).default_schema_name
+
     pdf.to_sql(
         tbl_name,
         database.get_sqla_engine(),
+        schema=schema,
         if_exists="replace",
         chunksize=500,
         dtype={
@@ -121,14 +124,18 @@ def load_birth_names(
     create_dashboard(slices)
 
 
-def _set_table_metadata(datasource: "BaseDatasource", database: "Database") -> None:
-    datasource.main_dttm_col = "ds"  # type: ignore
+def _set_table_metadata(datasource: SqlaTable, database: "Database") -> None:
+    engine = database.get_sqla_engine()
+    schema = inspect(engine).default_schema_name
+
+    datasource.main_dttm_col = "ds"
     datasource.database = database
+    datasource.schema = schema
     datasource.filter_select_enabled = True
     datasource.fetch_metadata()
 
 
-def _add_table_metrics(datasource: "BaseDatasource") -> None:
+def _add_table_metrics(datasource: SqlaTable) -> None:
     if not any(col.column_name == "num_california" for col in datasource.columns):
         col_state = str(column("state").compile(db.engine))
         col_num = str(column("num").compile(db.engine))
@@ -147,13 +154,11 @@ def _add_table_metrics(datasource: "BaseDatasource") -> None:
 
     for col in datasource.columns:
         if col.column_name == "ds":
-            col.is_dttm = True  # type: ignore
+            col.is_dttm = True
             break
 
 
-def create_slices(
-    tbl: BaseDatasource, admin_owner: bool
-) -> Tuple[List[Slice], List[Slice]]:
+def create_slices(tbl: SqlaTable, admin_owner: bool) -> Tuple[List[Slice], List[Slice]]:
     metrics = [
         {
             "expressionType": "SIMPLE",
