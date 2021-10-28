@@ -19,10 +19,13 @@
 /* eslint-disable camelcase */
 import { SET_REPORT, ADD_REPORT, EDIT_REPORT } from '../actions/reports';
 
+// Talk about the delete
+
 export default function reportsReducer(state = {}, action) {
   const actionHandlers = {
     [SET_REPORT]() {
       return {
+        ...state,
         ...action.report.result.reduce(
           (obj, report) => ({ ...obj, [report.id]: report }),
           {},

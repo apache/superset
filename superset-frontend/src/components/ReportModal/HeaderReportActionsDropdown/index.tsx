@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { t, SupersetTheme, css, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
@@ -50,19 +50,23 @@ export default function HeaderReportActionsDropDown({
   const reports: Record<number, AlertObject> = useSelector<any, AlertObject>(
     state => state.reports,
   );
+  const report: AlertObject = Object.values(reports).filter(report => {
+    if (dashboardId) {
+      return report.dashboard_id === dashboardId;
+    }
+    return report.chart_id === chart?.id;
+  })[0];
+
   const user: UserWithPermissionsAndRoles = useSelector<
     any,
     UserWithPermissionsAndRoles
   >(state => state.user || state.explore?.user);
-  const reportsIds = Object.keys(reports || []);
-  const report: AlertObject = reports?.[reportsIds[0]];
   const [
     currentReportDeleting,
     setCurrentReportDeleting,
   ] = useState<AlertObject | null>(null);
   const theme = useTheme();
-  const [showModal, setShowModal] = useState(false);
-  const dashboardIdRef = useRef(dashboardId);
+  const [showModal, setShowModal] = useState<boolean>(false);
   const toggleActiveKey = async (data: AlertObject, checked: boolean) => {
     if (data?.id) {
       toggleActive(data, checked);
@@ -105,17 +109,13 @@ export default function HeaderReportActionsDropDown({
   }, []);
 
   useEffect(() => {
-    if (
-      canAddReports() &&
-      dashboardId &&
-      dashboardId !== dashboardIdRef.current
-    ) {
+    if (canAddReports()) {
       dispatch(
         fetchUISpecificReport({
           userId: user.userId,
-          filterField: 'dashboard_id',
-          creationMethod: 'dashboards',
-          resourceId: dashboardId,
+          filterField: dashboardId ? 'dashboard_id' : 'chart_id',
+          creationMethod: dashboardId ? 'dashboards' : 'charts',
+          resourceId: dashboardId || chart?.id,
         }),
       );
     }
@@ -149,14 +149,14 @@ export default function HeaderReportActionsDropDown({
     canAddReports() && (
       <>
         <ReportModal
-          show={showModal}
-          onHide={() => setShowModal(false)}
           userId={user.userId}
+          showModal={showModal}
+          onHide={() => setShowModal(false)}
           userEmail={user.email}
           dashboardId={dashboardId}
           chart={chart}
         />
-        {report ? (
+        {reports ? (
           <>
             <NoAnimationDropdown
               // ref={ref}
