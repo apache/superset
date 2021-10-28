@@ -35,7 +35,7 @@ def upgrade():
         batch_op.alter_column(
             "allow_csv_upload",
             new_column_name="allow_file_upload",
-            existing_type=sa.Boolean(),
+            existing_type=sa.Boolean(create_constraint=False),
         )
 
 
@@ -44,5 +44,5 @@ def downgrade():
         batch_op.alter_column(
             "allow_file_upload",
             new_column_name="allow_csv_upload",
-            existing_type=sa.Boolean(),
+            existing_type=sa.Boolean(create_constraint=False),
         )
