@@ -1094,7 +1094,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 # if groupby field/expr equals granularity field/expr
                 if selected == granularity:
                     sqla_col = columns_by_name[selected]
-                    outer = table_col.get_timestamp_expression(
+                    outer = sqla_col.get_timestamp_expression(
                         time_grain=time_grain,
                         label=selected,
                         template_processor=template_processor,
