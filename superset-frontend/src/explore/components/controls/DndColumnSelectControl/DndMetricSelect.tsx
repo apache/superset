@@ -178,14 +178,7 @@ export const DndMetricSelect = (props: any) => {
     if (!isEqual(propsValues, matchingMetrics)) {
       handleChange(matchingMetrics);
     }
-  }, [
-    prevColumns,
-    columns,
-    prevSavedMetrics,
-    savedMetrics,
-    props.value,
-    handleChange,
-  ]);
+  }, [prevColumns, columns, prevSavedMetrics, savedMetrics, handleChange]);
 
   const canDrop = useCallback(
     (item: DatasourcePanelDndItem) => {
@@ -275,7 +268,6 @@ export const DndMetricSelect = (props: any) => {
     [multi, onChange, value],
   );
 
-  console.log('value', value);
   const valueRenderer = useCallback(
     (option: ValueType, index: number) => (
       <MetricDefinitionValue
