@@ -132,6 +132,87 @@ describe('Nativefilters Sanity test', () => {
       .click();
     cy.get(nativeFilters.modal.container).should('not.exist');
   });
+  it("C6910 User can delete a native filter", () => {
+    cy.get(nativeFilters.createFilterButton).should("be.visible").click();
+    cy.get(nativeFilters.modal.container).should("be.visible");
+
+    cy.get(nativeFilters.filtersList.removeIcon).first().click();
+    cy.contains("Restore Filter").should("not.exist", { timeout: 10000 });
+
+    cy.get(nativeFilters.modal.footer)
+      .contains("Save")
+      .should("be.visible")
+      .click();
+  });
+  it("C6917 User can undo deleting a native filter", () => {
+    cy.get(nativeFilters.filterFromDashboardView.expand)
+      .should("be.visible")
+      .click();
+    cy.get(nativeFilters.createFilterButton).should("be.visible").click();
+    cy.get(nativeFilters.modal.container).should("be.visible");
+    cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.filterName)
+      .click()
+      .type("Country name");
+    cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.datasetName)
+      .click()
+      .type("World Bank's Data{enter}");
+
+    cy.get(".loading inline-centered css-101mkpk").should("not.exist");
+    // hack for unclickable country_name
+    cy.wait(5000);
+    cy.get(nativeFilters.filtersPanel.filterInfoInput)
+      .last()
+      .should("be.visible")
+      .click({ force: true });
+    cy.get(nativeFilters.filtersPanel.filterInfoInput).last().type("country_name");
+    cy.get(nativeFilters.filtersPanel.inputDropdown)
+      .should("be.visible", { timeout: 20000 })
+      .last()
+      .click();
+    cy.get(nativeFilters.modal.footer)
+      .contains("Save")
+      .should("be.visible")
+      .click();
+    cy.get(nativeFilters.filterFromDashboardView.filterName).should('be.visible').contains("Country name")
+    cy.get(nativeFilters.createFilterButton).should("be.visible").click();
+    cy.get(nativeFilters.modal.container).should("be.visible");
+    cy.get(nativeFilters.filtersList.removeIcon).first().click();  
+    cy.contains("Undo?").click();
+  });
+  it("C6918 User can cancel changes in native filter", () => {
+    cy.get(nativeFilters.createFilterButton).should("be.visible").click();
+    cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.filterName)
+      .click()
+      .type("suffix");
+      cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.datasetName).should('be.visible')
+    cy.get(nativeFilters.modal.footer)
+      .find(nativeFilters.modal.cancelButton)
+      .should("be.visible")
+      .click();
+    cy.get(nativeFilters.modal.alertXUnsavedFilters).should("be.visible");
+    // remove
+    cy.get(nativeFilters.modal.footer)
+      .find(nativeFilters.modal.yesCancelButton)
+      .should("be.visible")
+      .click({ force: true });
+
+    cy.get(nativeFilters.createFilterButton).should("be.visible").click();
+    cy.get(nativeFilters.modal.tabsList.tabsContainer).within(() => {
+      cy.get(nativeFilters.modal.tabsList.removeTab).click({
+        multiple: true,
+      });
+    });    
+    cy.contains("You have removed this filter.").should("be.visible");
+    cy.get(nativeFilters.modal.footer)
+      .find(nativeFilters.modal.saveButton)
+      .should("be.visible")
+      .click();
+    cy.get(nativeFilters.filtersPanel.filterName).should("not.exist");
+  });
 });
 
 xdescribe('Nativefilters', () => {
