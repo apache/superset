@@ -87,7 +87,7 @@ const sequentialSchemeRegistry = getSequentialSchemeRegistry();
 export const PRIMARY_COLOR = { r: 0, g: 122, b: 135, a: 1 };
 
 const ROW_LIMIT_OPTIONS = [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000];
-const SERIES_LIMITS = [0, 5, 10, 25, 50, 100, 500];
+const SERIES_LIMITS = [5, 10, 25, 50, 100, 500];
 
 type Control = {
   savedMetrics?: Metric[] | null;
@@ -331,8 +331,8 @@ const limit: SharedControlConfig<'SelectControl'> = {
   freeForm: true,
   label: t('Series limit'),
   validators: [legacyValidateInteger],
-  default: 100,
   choices: formatSelectOptions(SERIES_LIMITS),
+  clearable: true,
   description: t(
     'Limits the number of time series that get displayed. A sub query ' +
       '(or an extra phase where sub queries are not supported) is applied to limit ' +
