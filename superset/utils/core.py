@@ -16,6 +16,7 @@
 # under the License.
 """Utility functions used across Superset"""
 # pylint: disable=too-many-lines
+import _thread  # pylint: disable=C0411
 import collections
 import decimal
 import errno
@@ -85,7 +86,6 @@ from sqlalchemy.sql.type_api import Variant
 from sqlalchemy.types import TEXT, TypeDecorator, TypeEngine
 from typing_extensions import TypedDict, TypeGuard
 
-import _thread  # pylint: disable=C0411
 from superset.constants import (
     EXAMPLES_DB_UUID,
     EXTRA_FORM_DATA_APPEND_KEYS,

@@ -39,11 +39,11 @@ def parse_extra(extra_payload: str) -> Dict[str, Any]:
         logger.info("Unable to decode `extra` field: %s", extra_payload)
         return {}
 
-    # Fix for DBs saved with an invalid ``schemas_allowed_for_csv_upload``
-    schemas_allowed_for_csv_upload = extra.get("schemas_allowed_for_csv_upload")
-    if isinstance(schemas_allowed_for_csv_upload, str):
-        extra["schemas_allowed_for_csv_upload"] = json.loads(
-            schemas_allowed_for_csv_upload
+    # Fix for DBs saved with an invalid ``schemas_allowed_for_file_upload``
+    schemas_allowed_for_file_upload = extra.get("schemas_allowed_for_file_upload")
+    if isinstance(schemas_allowed_for_file_upload, str):
+        extra["schemas_allowed_for_file_upload"] = json.loads(
+            schemas_allowed_for_file_upload
         )
 
     return extra

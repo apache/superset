@@ -58,6 +58,12 @@ VIRTUAL_TABLE_STRING_TYPES: Dict[str, Pattern[str]] = {
 }
 
 
+class FilterTestCase(NamedTuple):
+    operator: str
+    value: Union[float, int, List[Any], str]
+    expected: Union[str, List[str]]
+
+
 class TestDatabaseModel(SupersetTestCase):
     def test_is_time_druid_time_col(self):
         """Druid has a special __time column"""
@@ -223,11 +229,6 @@ class TestDatabaseModel(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_where_operators(self):
-        class FilterTestCase(NamedTuple):
-            operator: str
-            value: Union[float, int, List[Any], str]
-            expected: Union[str, List[str]]
-
         filters: Tuple[FilterTestCase, ...] = (
             FilterTestCase(FilterOperator.IS_NULL, "", "IS NULL"),
             FilterTestCase(FilterOperator.IS_NOT_NULL, "", "IS NOT NULL"),

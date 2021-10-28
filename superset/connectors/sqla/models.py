@@ -338,8 +338,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         ],
     ) -> str:
         """Convert datetime object to a SQL expression string"""
-        dttm_type = self.type or ("DATETIME" if self.is_dttm else None)
-        sql = self.db_engine_spec.convert_dttm(dttm_type, dttm) if dttm_type else None
+        sql = self.db_engine_spec.convert_dttm(self.type, dttm) if self.type else None
 
         if sql:
             return sql
@@ -1300,6 +1299,13 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 # if engine does not allow using SELECT alias in ORDER BY
                 # revert to the underlying column
                 col = col.element
+
+            if (
+                db_engine_spec.allows_alias_in_select
+                and db_engine_spec.allows_hidden_cc_in_orderby
+                and col.name in [select_col.name for select_col in select_exprs]
+            ):
+                col = literal_column(col.name)
             direction = asc if ascending else desc
             qry = qry.order_by(direction(col))
 
