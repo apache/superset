@@ -588,7 +588,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         totalCount: response.json.count,
       }));
     },
-    [resource],
+    [],
   );
 
   const getSourceData = useCallback(
@@ -965,7 +965,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               label: (resource.database as DatabaseObject).database_name,
             }
           : undefined,
-        owners: (resource.owners || []).map(owner => ({
+        owners: (alert?.owners || []).map(owner => ({
           value: (owner as MetaObject).value || owner.id,
           label:
             (owner as MetaObject).label ||

@@ -283,5 +283,3 @@ class ReportSchedulePutSchema(Schema):
         default=ReportDataFormat.VISUALIZATION,
         validate=validate.OneOf(choices=tuple(key.value for key in ReportDataFormat)),
     )
-    # render entire owners object info
-    show_owners = fields.Boolean(required=False)
