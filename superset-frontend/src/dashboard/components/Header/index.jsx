@@ -167,13 +167,6 @@ class Header extends React.PureComponent {
     this.startPeriodicRender(refreshFrequency * 1000);
   }
 
-  componentDidUpdate(prevProps) {
-    if (this.props.refreshFrequency !== prevProps.refreshFrequency) {
-      const { refreshFrequency } = this.props;
-      this.startPeriodicRender(refreshFrequency * 1000);
-    }
-  }
-
   UNSAFE_componentWillReceiveProps(nextProps) {
     if (
       UNDO_LIMIT - nextProps.undoLength <= 0 &&
@@ -539,6 +532,7 @@ class Header extends React.PureComponent {
                 </span>
               )}
               <HeaderReportActionsDropdown
+                key={dashboardInfo.id}
                 toggleActive={this.props.toggleActive}
                 deleteActiveReport={this.props.deleteActiveReport}
                 dashboardId={dashboardInfo.id}
