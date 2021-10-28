@@ -25,7 +25,10 @@ export const dndGroupByControl: SharedControlConfig<'DndColumnSelect'> = {
   type: 'DndColumnSelect',
   label: t('Group by'),
   default: [],
-  description: t('One or many columns to group by'),
+  description: t(
+    'One or many columns to group by. High cardinality groupings should include a sort by metric ' +
+      'and series limit to limit the number of fetched and rendered series.',
+  ),
   mapStateToProps(state, { includeTime }) {
     const newState: ExtraControlProps = {};
     if (state.datasource) {
@@ -113,7 +116,10 @@ export const dnd_sort_by: SharedControlConfig<'DndMetricSelect'> = {
   type: 'DndMetricSelect',
   label: t('Sort by'),
   default: null,
-  description: t('Metric used to define the top series'),
+  description: t(
+    'Metric used to define the top series. Should be used in conjunction with the series or row ' +
+      'limit.',
+  ),
   mapStateToProps: ({ datasource }) => ({
     columns: datasource?.columns || [],
     savedMetrics: datasource?.metrics || [],
