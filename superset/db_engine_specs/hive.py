@@ -363,7 +363,7 @@ class HiveEngineSpec(PrestoEngineSpec):
                             str(query_id),
                             tracking_url,
                         )
-                        tracking_url = current_app.config["TRACKING_URL_TRANSFORMER"]
+                        tracking_url = current_app.config["TRACKING_URL_TRANSFORMER"](tracking_url)
                         logger.info(
                             "Query %s: Transformation applied: %s",
                             str(query_id),
