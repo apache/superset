@@ -386,7 +386,6 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
         try:
             new_model = UpdateReportScheduleCommand(g.user, pk, item).run()
-
             return self.response(200, id=new_model.id, result=item)
         except ReportScheduleNotFoundError:
             return self.response_404()
