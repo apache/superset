@@ -37,14 +37,11 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import { CronError } from 'src/components/CronPicker';
 import { RadioChangeEvent } from 'src/components';
 import { ChartState } from 'src/explore/types';
-<<<<<<< HEAD
 import {
   ReportCreationMethod,
   ReportRecipientType,
   ReportScheduleType,
 } from 'src/reports/types';
-=======
->>>>>>> code dry (#16358)
 import {
   antDErrorAlertStyles,
   StyledModal,
@@ -134,7 +131,6 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   chart,
   userId,
   userEmail,
-<<<<<<< HEAD
   creationMethod,
   ...props
 }) => {
@@ -173,22 +169,6 @@ const ReportModal: FunctionComponent<ReportProps> = ({
     reportReducer,
     initialState,
   );
-=======
-  props,
-}) => {
-  const vizType = chart?.sliceFormData?.viz_type;
-  const isChart = !!chart;
-  const defaultNotificationFormat =
-    vizType && TEXT_BASED_VISUALIZATION_TYPES.includes(vizType)
-      ? NOTIFICATION_FORMATS.TEXT
-      : NOTIFICATION_FORMATS.PNG;
-  const [currentReport, setCurrentReport] = useReducer<
-    Reducer<Partial<ReportObject> | null, ReportActionType>
-  >(reportReducer, null);
-  const onReducerChange = useCallback((type: any, payload: any) => {
-    setCurrentReport({ type, payload });
-  }, []);
->>>>>>> code dry (#16358)
   const [cronError, setCronError] = useState<CronError>();
 
   const dispatch = useDispatch();
@@ -285,11 +265,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
           }}
           value={currentReport.report_format || defaultNotificationFormat}
         >
-<<<<<<< HEAD
           {isTextBasedChart && (
-=======
-          {vizType && TEXT_BASED_VISUALIZATION_TYPES.includes(vizType) && (
->>>>>>> code dry (#16358)
             <StyledRadio value={NOTIFICATION_FORMATS.TEXT}>
               {t('Text embedded in email')}
             </StyledRadio>
