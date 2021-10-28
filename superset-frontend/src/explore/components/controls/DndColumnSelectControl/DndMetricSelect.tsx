@@ -88,16 +88,17 @@ const getMetricsMatchingCurrentDataset = (
   prevColumns: ColumnMeta[],
   prevSavedMetrics: (savedMetricType | Metric)[],
 ) => {
-  const areMetricsEqual = isEqual(prevSavedMetrics, savedMetrics);
-  const areColsEqual = isEqual(prevColumns, columns);
+  const areSavedMetricsEqual =
+    !prevSavedMetrics || isEqual(prevSavedMetrics, savedMetrics);
+  const areColsEqual = !prevColumns || isEqual(prevColumns, columns);
 
-  if (areColsEqual && areMetricsEqual) {
+  if (areColsEqual && areSavedMetricsEqual) {
     return values;
   }
   return values.reduce((acc: ValueType[], metric) => {
     if (
       (typeof metric === 'string' || (metric as Metric).metric_name) &&
-      (areMetricsEqual ||
+      (areSavedMetricsEqual ||
         savedMetrics?.some(
           savedMetric =>
             savedMetric.metric_name === metric ||
@@ -166,6 +167,10 @@ export const DndMetricSelect = (props: any) => {
   useEffect(() => {
     // Remove selected custom metrics that do not exist in the dataset anymore
     // Remove selected adhoc metrics that use columns which do not exist in the dataset anymore
+    // Sync adhoc metrics with dataset columns when they are modified by the user
+    if (!props.value) {
+      return;
+    }
     const propsValues = ensureIsArray(props.value);
     const matchingMetrics = getMetricsMatchingCurrentDataset(
       propsValues,
@@ -178,7 +183,7 @@ export const DndMetricSelect = (props: any) => {
     if (!isEqual(propsValues, matchingMetrics)) {
       handleChange(matchingMetrics);
     }
-  }, [prevColumns, columns, prevSavedMetrics, savedMetrics, handleChange]);
+  }, [columns, savedMetrics, handleChange]);
 
   const canDrop = useCallback(
     (item: DatasourcePanelDndItem) => {

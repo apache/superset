@@ -110,7 +110,8 @@ const getMetricsMatchingCurrentDataset = (value, columns, savedMetrics) =>
       );
     }
     return columns?.some(
-      column => metric.column?.column_name === column.column_name,
+      column =>
+        !metric.column || metric.column.column_name === column.column_name,
     );
   });
 
@@ -251,25 +252,23 @@ const MetricsControl = ({
   );
 
   useEffect(() => {
-    // Remove all metrics if selected value no longer a valid column
-    // in the dataset. Must use `nextProps` here because Redux reducers may
-    // have already updated the value for this control.
+    // Remove selected custom metrics that do not exist in the dataset anymore
+    // Remove selected adhoc metrics that use columns which do not exist in the dataset anymore
     if (
-      !isEqual(prevColumns, columns) ||
-      !isEqual(prevSavedMetrics, savedMetrics)
+      propsValue &&
+      (!isEqual(prevColumns, columns) ||
+        !isEqual(prevSavedMetrics, savedMetrics))
     ) {
-      handleChange(
-        getMetricsMatchingCurrentDataset(propsValue, columns, savedMetrics),
+      const matchingMetrics = getMetricsMatchingCurrentDataset(
+        propsValue,
+        columns,
+        savedMetrics,
       );
+      if (!isEqual(matchingMetrics, propsValue)) {
+        handleChange(matchingMetrics);
+      }
     }
-  }, [
-    columns,
-    handleChange,
-    prevColumns,
-    prevSavedMetrics,
-    propsValue,
-    savedMetrics,
-  ]);
+  }, [columns, handleChange, savedMetrics]);
 
   useEffect(() => {
     setValue(coerceAdhocMetrics(propsValue));
