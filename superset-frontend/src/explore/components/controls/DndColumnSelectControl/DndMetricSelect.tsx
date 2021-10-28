@@ -82,23 +82,46 @@ type ValueType = Metric | AdhocMetric | QueryFormMetric;
 
 // TODO: use typeguards to distinguish saved metrics from adhoc metrics
 const getMetricsMatchingCurrentDataset = (
-  value: ValueType | ValueType[] | null | undefined,
+  values: ValueType[],
   columns: ColumnMeta[],
   savedMetrics: (savedMetricType | Metric)[],
-) =>
-  ensureIsArray(value).filter(metric => {
-    if (typeof metric === 'string' || (metric as Metric).metric_name) {
-      return savedMetrics?.some(
-        savedMetric =>
-          savedMetric.metric_name === metric ||
-          savedMetric.metric_name === (metric as Metric).metric_name,
-      );
+  prevColumns: ColumnMeta[],
+  prevSavedMetrics: (savedMetricType | Metric)[],
+) => {
+  const areMetricsEqual = isEqual(prevSavedMetrics, savedMetrics);
+  const areColsEqual = isEqual(prevColumns, columns);
+
+  if (areColsEqual && areMetricsEqual) {
+    return values;
+  }
+  return values.reduce((acc: ValueType[], metric) => {
+    if (
+      (typeof metric === 'string' || (metric as Metric).metric_name) &&
+      (areMetricsEqual ||
+        savedMetrics?.some(
+          savedMetric =>
+            savedMetric.metric_name === metric ||
+            savedMetric.metric_name === (metric as Metric).metric_name,
+        ))
+    ) {
+      acc.push(metric);
+      return acc;
     }
-    return columns?.some(
-      column =>
-        (metric as AdhocMetric).column?.column_name === column.column_name,
-    );
-  });
+
+    if (!areColsEqual) {
+      const newCol = columns?.find(
+        column =>
+          (metric as AdhocMetric).column?.column_name === column.column_name,
+      );
+      if (newCol) {
+        acc.push({ ...(metric as AdhocMetric), column: newCol });
+      }
+    } else {
+      acc.push(metric);
+    }
+    return acc;
+  }, []);
+};
 
 export const DndMetricSelect = (props: any) => {
   const { onChange, multi, columns, savedMetrics } = props;
@@ -141,15 +164,19 @@ export const DndMetricSelect = (props: any) => {
   }, [JSON.stringify(props.value)]);
 
   useEffect(() => {
-    if (
-      !isEqual(prevColumns, columns) ||
-      !isEqual(prevSavedMetrics, savedMetrics)
-    ) {
-      // Remove selected custom metrics that do not exist in the dataset anymore
-      // Remove selected adhoc metrics that use columns which do not exist in the dataset anymore
-      handleChange(
-        getMetricsMatchingCurrentDataset(props.value, columns, savedMetrics),
-      );
+    // Remove selected custom metrics that do not exist in the dataset anymore
+    // Remove selected adhoc metrics that use columns which do not exist in the dataset anymore
+    const propsValues = ensureIsArray(props.value);
+    const matchingMetrics = getMetricsMatchingCurrentDataset(
+      propsValues,
+      columns,
+      savedMetrics,
+      prevColumns,
+      prevSavedMetrics,
+    );
+
+    if (!isEqual(propsValues, matchingMetrics)) {
+      handleChange(matchingMetrics);
     }
   }, [
     prevColumns,
@@ -248,6 +275,7 @@ export const DndMetricSelect = (props: any) => {
     [multi, onChange, value],
   );
 
+  console.log('value', value);
   const valueRenderer = useCallback(
     (option: ValueType, index: number) => (
       <MetricDefinitionValue
@@ -319,7 +347,7 @@ export const DndMetricSelect = (props: any) => {
     ) {
       const itemValue = droppedItem.value as ColumnMeta;
       const config: Partial<AdhocMetric> = {
-        column: { column_name: itemValue?.column_name },
+        column: itemValue,
       };
       if (isFeatureEnabled(FeatureFlag.UX_BETA)) {
         if (itemValue.type_generic === GenericDataType.NUMERIC) {

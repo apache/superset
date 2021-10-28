@@ -48,17 +48,13 @@ const defaultProps = {
 
 const adhocMetricA = {
   expressionType: EXPRESSION_TYPES.SIMPLE,
-  column: {
-    column_name: 'column_a',
-  },
+  column: defaultProps.columns[0],
   aggregate: AGGREGATES.SUM,
   optionName: 'abc',
 };
 const adhocMetricB = {
   expressionType: EXPRESSION_TYPES.SIMPLE,
-  column: {
-    column_name: 'column_b',
-  },
+  column: defaultProps.columns[1],
   aggregate: AGGREGATES.SUM,
   optionName: 'def',
 };
@@ -80,7 +76,7 @@ test('render selected metrics correctly', () => {
   });
   expect(screen.getByText('metric_a')).toBeVisible();
   expect(screen.getByText('Metric B')).toBeVisible();
-  expect(screen.getByText('SUM(column_b)')).toBeVisible();
+  expect(screen.getByText('SUM(Column B)')).toBeVisible();
 });
 
 test('remove selected custom metric when metric gets removed from dataset', () => {
@@ -121,7 +117,7 @@ test('remove selected custom metric when metric gets removed from dataset', () =
   expect(screen.getByText('metric_a')).toBeVisible();
   expect(screen.queryByText('Metric B')).not.toBeInTheDocument();
   expect(screen.getByText('SUM(column_a)')).toBeVisible();
-  expect(screen.getByText('SUM(column_b)')).toBeVisible();
+  expect(screen.getByText('SUM(Column B)')).toBeVisible();
 });
 
 test('remove selected adhoc metric when column gets removed from dataset', async () => {
@@ -172,5 +168,61 @@ test('remove selected adhoc metric when column gets removed from dataset', async
   expect(screen.getByText('metric_a')).toBeVisible();
   expect(screen.getByText('Metric B')).toBeVisible();
   expect(screen.getByText('SUM(column_a)')).toBeVisible();
-  expect(screen.queryByText('SUM(column_b)')).not.toBeInTheDocument();
+  expect(screen.queryByText('SUM(Column B)')).not.toBeInTheDocument();
+});
+
+test('update adhoc metric name when column label in dataset changes', () => {
+  let metricValues = ['metric_a', 'metric_b', adhocMetricA, adhocMetricB];
+  const onChange = (val: any[]) => {
+    metricValues = val;
+  };
+
+  const { rerender } = render(
+    <DndMetricSelect
+      {...defaultProps}
+      value={metricValues}
+      onChange={onChange}
+      multi
+    />,
+    {
+      useDnd: true,
+    },
+  );
+
+  const newPropsWithUpdatedColNames = {
+    ...defaultProps,
+    columns: [
+      {
+        column_name: 'column_a',
+        verbose_name: 'new col A name',
+      },
+      {
+        column_name: 'column_b',
+        verbose_name: 'new col B name',
+      },
+    ],
+  };
+
+  // rerender twice - first to update columns, second to update value
+  rerender(
+    <DndMetricSelect
+      {...newPropsWithUpdatedColNames}
+      value={metricValues}
+      onChange={onChange}
+      multi
+    />,
+  );
+  rerender(
+    <DndMetricSelect
+      {...newPropsWithUpdatedColNames}
+      value={metricValues}
+      onChange={onChange}
+      multi
+    />,
+  );
+
+  expect(screen.getByText('metric_a')).toBeVisible();
+  expect(screen.getByText('Metric B')).toBeVisible();
+  expect(screen.getByText('SUM(new col A name)')).toBeVisible();
+  expect(screen.getByText('SUM(new col B name)')).toBeVisible();
 });
