@@ -90,6 +90,7 @@ export const dnd_adhoc_metrics: SharedControlConfig<'DndMetricSelect'> = {
   mapStateToProps: ({ datasource }) => ({
     columns: datasource ? datasource.columns : [],
     savedMetrics: datasource ? datasource.metrics : [],
+    datasource,
     datasourceType: datasource?.type,
   }),
   description: t('One or many metrics to display'),
@@ -116,6 +117,7 @@ export const dnd_sort_by: SharedControlConfig<'DndMetricSelect'> = {
   mapStateToProps: ({ datasource }) => ({
     columns: datasource?.columns || [],
     savedMetrics: datasource?.metrics || [],
+    datasource,
     datasourceType: datasource?.type,
   }),
 };
