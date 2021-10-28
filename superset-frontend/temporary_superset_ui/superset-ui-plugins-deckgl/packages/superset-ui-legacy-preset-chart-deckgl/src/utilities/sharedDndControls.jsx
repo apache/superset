@@ -18,7 +18,7 @@
  */
 
 import { t } from '@superset-ui/core';
-import { dndEntity } from '@superset-ui/chart-controls/lib/shared-controls/dndControls';
+import { dndEntity } from '@superset-ui/chart-controls';
 
 export const dndLineColumn = {
   name: 'line_column',
