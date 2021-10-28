@@ -248,6 +248,7 @@ def execute_sql_statement(
             # to test whether there are more rows than the limit.
             # Later, the extra row will be dropped before sending
             # the results back to the user.
+            logging.info("Query Limit to run async query: {}".format(increased_limit))
             sql = database.apply_limit_to_sql(sql, increased_limit, force=True)
 
     # Hook to allow environment-specific mutation (usually comments) to the SQL
@@ -282,7 +283,7 @@ def execute_sql_statement(
             descr = cursor.description
             if not query.limit:
                 logging.info("Set maximum limit to fetch data for redis {}:".format(SQL_MAX_ROW))
-                query.limit = SQL_MAX_ROW
+                increased_limit = SQL_MAX_ROW
                 db_engine_spec.limit_method = "fetch_many"
 
             if cursor.description is not None:

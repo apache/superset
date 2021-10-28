@@ -91,7 +91,7 @@ def get_url(chart: Slice, extra_filters: Optional[Dict[str, Any]] = None) -> str
             "{SUPERSET_WEBSERVER_ADDRESS}:"
             "{SUPERSET_WEBSERVER_PORT}".format(**app.config)
         )
-        return f"{baseurl}{chart.get_explore_url(overrides=extra_filters)}"
+        return f"{baseurl}{chart.explore_json_url}"
 
 
 class Strategy:
@@ -322,6 +322,7 @@ def cache_warmup(
     opener.addheaders.append(("Cookie", "session={}".format(cookies[0])))
     for url in strategy.get_urls():
         try:
+            # logger.info("Fetching %s", url)
             opener.open(url)
             results["success"].append(url)
         except URLError:

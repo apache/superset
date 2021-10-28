@@ -13,8 +13,6 @@ import json
 
 from superset.security import SupersetSecurityManager
 
-ALLOWED_RESOURCES = ['SEGMENT EXPLORER', 'AD OPTIMIZATION', 'RECOMMENDER', 'MERCHANDISER']
-
 BOTO_READ_TIMEOUT = float(environ.get('BOTO_READ_TIMEOUT', 10))
 BOTO_MAX_ATTEMPTS = int(environ.get('BOTO_MAX_ATTEMPTS', 3))
 config = Config(
@@ -23,13 +21,6 @@ config = Config(
 
 lambda_client = boto3.client('lambda', config=config)
 
-def has_resource_access(privileges):
-    for config in privileges['level']['tenant']['tenants']:
-        if config['tenant'] == environ['TENANT']:
-            for resource in config['resources']:
-                if ('name' in resource) and (resource['name'] in ALLOWED_RESOURCES):
-                    return True
-    return False
 
 def has_solution_write_access(privileges):
     for config in privileges['level']['tenant']['tenants']:
@@ -105,8 +96,7 @@ class CustomAuthDBView(AuthDBView):
                     privileges = loads(auth_response['privileges'])
                     if has_solution_write_access(privileges):
                         user = 'peakuser'
-                    elif not has_resource_access(privileges):
-                        raise Exception('Insufficient Resource Permissions')
+                # TODO: If user does not have dashboard "authentication failed"
                 user = self.appbuilder.sm.find_user(user)
                 login_user(user, remember=False,
                            duration=timedelta(

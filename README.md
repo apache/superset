@@ -47,25 +47,82 @@ A modern, enterprise-ready business intelligence web application.
 [**Organizations Using Superset**](RESOURCES/INTHEWILD.md)
 
 
-# Installation & Configuration
 
+# Installation & Configuration
 <details>
-  <summary><b>Start with python virtual environment</b></summary>
-  <li>Clone the repo
-  <li>Export all env variables present in .env.sample file
-  <li>python3 -m venv venv
-  <li>source venv/bin/activate
-  <li>pip install -r requirements.txt
-  <li>pip install -r requirements-dev.txt
-  <li>pip install -e .
-  <li>fabmanager create-admin --app superset (Required only once per db)
-  <li>superset db upgrade (It will initialize the database. It needs not to be run everytime)
-  <li>superset init (It creates/fixes default roles and permissions. It needs not to be run everytime)
-  <li>superset load_examples (Optional. Run only to load sample dashboards)
-  <li>FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
-  <li>cd superset/assets
-  <li>npm install
-  <li>npm run dev-server --watch
+  <summary>Running Locally with Virtual Environment</summary>
+  
+---
+*  PYTHON version should be 3.7.4
+*  NODE version should be 14 (verified on 16.9)
+---
+  
+#### 1. Edit and Export ENV variables present in [.env.sample](https://github.com/PeakBI/incubator-superset/blob/master/.env.sample) file
+```shell
+  source .env.sample && export $(cut -d= -f1 .env.sample)
+```
+### 2. Create venv and install dependencies
+```bash
+  python3 -m venv venv
+```
+
+```bash
+  source venv/bin/activate
+```
+
+```bash
+  pip install --upgrade pip
+```
+
+```bash
+  pip install  --no-cache -r requirements/local.txt
+```
+
+If you get some error running above command, following these links might be helpful: https://stackoverflow.com/a/56228387/5036543, https://stackoverflow.com/a/51149263/5036543
+
+```bash
+  pip install -e .
+```
+
+```bash
+  pip install eventlet
+```
+  
+### 3. One time commands
+ 
+```shell
+  fabmanager create-admin --app superset (Required only once per db)
+  superset db upgrade (It will initialize the database and run migrations if any. It needs not to be run everytime)
+  superset init (It creates/fixes default roles and permissions. It needs not to be run everytime)
+```
+  
+### 4. Run Flask server (backend)
+
+```shell
+  FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
+```
+  
+### 5. Running Frontend - Open new terminal 
+
+```shell
+  cd superset-frontend && npm install 
+```
+```shell
+  npm run dev-server --watch
+```
+  
+### Running Celery Worker and beat
+  
+```shell
+  source .env.sample && export $(cut -d= -f1 .env.sample)
+```
+  
+```bash
+celery worker -A superset.tasks.celery_app:app -l INFO -P eventlet -c 100 -Q "%(ENV_STAGE)s-%(ENV_TENANT)s" -n "%(ENV_STAGE)s-%(ENV_TENANT)s" -Ofair --without-heartbeat --without-gossip --without-mingle  
+```
+```bash 
+celery beat --app=superset.tasks.celery_app:app --loglevel=INFO
+```
 </details>
   OR
 <details>

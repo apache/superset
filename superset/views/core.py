@@ -460,7 +460,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return self.get_samples(viz_obj)
 
         payload = viz_obj.get_payload()
-        print("Payload for dashboard", payload)
         return data_payload_response(*viz_obj.payload_json_and_has_error(payload))
 
     @event_logger.log_this
@@ -710,7 +709,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     )
                 }
             )
-            flash(Markup(config["SIP_15_TOAST_MESSAGE"].format(url=url)))
+            # flash(Markup(config["SIP_15_TOAST_MESSAGE"].format(url=url)))
 
         try:
             datasource_id, datasource_type = get_datasource_info(
@@ -799,6 +798,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         }
         try:
             datasource_data = datasource.data if datasource else dummy_datasource_data
+            datasource_database = datasource_data.get("database")
+            if datasource_database:
+                datasource_database["parameters"] = {}
         except (SupersetException, SQLAlchemyError):
             datasource_data = dummy_datasource_data
 
@@ -1855,7 +1857,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         ) and security_manager.can_access("can_save_dash", "Superset")
 
         #  CHECK - Commented for now need to bas chart_only_mode to frontend
-        
+
         # dash_save_perm = security_manager.can_access("can_save_dash", "Superset")
         # superset_can_explore = security_manager.can_access("can_explore", "Superset")
         # superset_can_csv = security_manager.can_access("can_csv", "Superset")
@@ -1898,7 +1900,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         #     "common": self.common_bootstrap_payload(),
         #     "editMode": edit_mode,
         # }
- 
+
         bootstrap_data = {
             "user": bootstrap_user_data(g.user, include_perms=True),
             "common": common_bootstrap_payload(),
@@ -2694,31 +2696,35 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @use_ip_auth
     @api
     @handle_api_exception
-    @expose("/run_query/", methods=["POST", "GET"])
     @event_logger.log_this
+    @expose("/run_query/", methods=["POST", "GET"])
     def run_query(self) -> FlaskResponse:
         log_params = {
-            "user_agent": cast(Optional[str], request.headers.get("USER_AGENT"))
+            "user_agent": cast(
+              Optional[str], request.headers.get("USER_AGENT")
+             )
         }
-        return self.run_query_exec(request.json, log_params)
+        return self.run_query_exec(request.form, log_params)
 
     def run_query_exec(  # pylint: disable=too-many-statements,too-many-locals
-        self, query_params: Dict[str, Any], log_params: Optional[Dict[str, Any]] = None
+        self, query_params, log_params: Optional[Dict[str, Any]] = None
     ) -> FlaskResponse:
         """Runs arbitrary sql and returns and json"""
-        logging.info("Request Received for query execution")
-        logging.info("runAsync value: {}".format(query_params.get("runAsync")))
+        logger.info("Request Received for query execution", query_params)
+        logger.info("runAsync value: {}".format(query_params.get("runAsync")))
         # Collect Values
-        
+
         # Haven't added type in here
         g.user = security_manager.find_user(username="admin")
 
-        database_id: int = cast(int, query_params.get("database_id"))
-        schema: str = cast(str, query_params.get("schema"))
+        database_id: int = cast(int, int(query_params.get("database_id")))
+        schema: str = cast(str, (query_params.get("schema") or None))
         sql: str = cast(str, query_params.get("sql"))
 
         try:
-            template_params = json.loads(query_params.get("templateParams") or "{}")
+            template_params = json.loads(
+               query_params.get("templateParams") or "{}"
+             )
         except json.JSONDecodeError:
             logger.warning(
                 "Invalid template parameter %s" " specified. Defaulting to empty dict",
@@ -2726,8 +2732,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
             template_params = {}
 
-        limit: int = query_params.get("queryLimit") or app.config["SQL_MAX_ROW"]
-        async_flag: bool = cast(bool, query_params.get("runAsync"))
+        limit: int = int(query_params.get("queryLimit", 0))
+        async_flag: bool = cast(
+           bool, bool(query_params.get("runAsync") == "true")
+        )
 
         if limit < 0:
             logger.warning(
@@ -2735,7 +2743,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
             limit = 0
 
-        select_as_cta: bool = cast(bool, query_params.get("select_as_cta"))
+        select_as_cta: bool = cast(
+            bool, bool(query_params.get("select_as_cta") == "true")
+        )
         ctas_method: CtasMethod = cast(
             CtasMethod, query_params.get("ctas_method", CtasMethod.TABLE)
         )
@@ -2751,8 +2761,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         mydb = session.query(Database).get(database_id)
 
         if not mydb:
-            return json_error_response("Database with id %i is missing.", database_id)
-
+            return json_error_response(
+              "Database with id %i is missing.", database_id
+            )
 
         # Set tmp_schema_name for CTA
         # TODO(bkyryliuk): consider parsing, splitting tmp_schema_name from
@@ -2797,7 +2808,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             raise Exception(_("Query record was not created as expected."))
 
         logger.info("Triggering query_id: %i", query_id)
-        # CHECK - Is it breaking change for us ?? 
+        # CHECK - Is it breaking change for us ??
         try:
             query.raise_for_access()
         except SupersetSecurityException as ex:
@@ -2842,9 +2853,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     },
                 )
 
-
-        # Limit is not applied to the CTA queries if SQLLAB_CTAS_NO_LIMIT flag is set
-        # to True.
+        # Limit is not applied to the CTA queries
+        # if SQLLAB_CTAS_NO_LIMIT flag is set to True
         if not (config.get("SQLLAB_CTAS_NO_LIMIT") and select_as_cta):
             # set LIMIT after template processing
             limits = [mydb.db_engine_spec.get_limit_from_sql(rendered_query), limit]
@@ -2855,7 +2865,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             else:  # limits[0] == limits[1]
                 query.limiting_factor = LimitingFactor.QUERY_AND_DROPDOWN
             query.limit = min(lim for lim in limits if lim is not None)
-    
+
         # Flag for whether or not to expand data
         # (feature that will expand Presto row objects and arrays)
         expand_data: bool = cast(
@@ -2864,10 +2874,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             and query_params.get("expand_data"),
         )
 
-        logging.info("Query Limit to run async query: {}".format(query.limit))
-        logging.info("Triggering async: {}".format(async_))
+        logger.info("Query Limit to run async query: {}".format(query.limit))
+        logger.info("Triggering async: {}".format(async_flag))
         # Async request.
-        if async_:
+        if async_flag:
             # Send SQL JSON query to celery workers.
             logger.info("Query %i: Running query on a Celery worker", query.id)
             # Ignore the celery future object and the request may time out.
@@ -2879,20 +2889,22 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     return_results=False,
                     store_results=not query.select_as_cta,
                     # CHECK - AIS is not used anymore
-                    user_name='AIS', #user_name=g.user.username
+                    # user_name=g.user.username
+                    user_name='AIS',
                     start_time=now_as_float(),
                     expand_data=expand_data,
                     log_params=log_params,
                 )
-                # Explicitly forget the task to ensure the task metadata is removed from the
-                # Celery results backend in a timely manner.   
+                # Explicitly forget the task to ensure the task metadata
+                # is removed from the
+                # Celery results backend in a timely manner.
                 try:
                     task.forget()
                 except NotImplementedError:
                     logger.warning(
                         "Unable to forget Celery task as backend"
                         "does not support this operation"
-                    ) 
+                    )
             except Exception as ex:  # pylint: disable=broad-except
                 logger.exception("Query %i: %s", query.id, str(ex))
                 msg = _(
@@ -2903,10 +2915,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 query.status = QueryStatus.FAILED
                 query.error_message = msg
                 session.commit()
-
-                logging.info(
-                 f"calling sql editor service lambda function for query_id: {query_id}"
-                )
+                logger.info(
+                  "calling sql editor service lambda function for query_id:",
+                  query_id)
                 lambda_client.invoke(
                     FunctionName='ais-service-sql-editor-{}-getSupersetResponse'.format(os.environ['STAGE']),
                     InvocationType='Event',
@@ -2916,12 +2927,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                               'queryId': query_id,
                               'tenant': TENANT,
                         }))
-                logging.info(
-                  f"sql editor lambda function called successfully for query_id: {query_id}"
-                )
-
+                logger.info(
+                  "sql editor function called successfully for query_id:",
+                  query_id)
                 return json_error_response("{}".format(msg))
-            
+
             # Update saved query with execution info from the query execution
             QueryDAO.update_saved_query_exec_info(query_id)
 
@@ -2938,7 +2948,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         # Sync request.
         try:
-            logging.info("Running query without sync response")
+            logger.info("Running query without sync response")
             timeout = config["SQLLAB_TIMEOUT"]
             timeout_msg = f"The query exceeded the {timeout} seconds timeout."
             store_results = (
@@ -2988,7 +2998,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     def check_cache_key(self, key):
         """Returns if a key from cache exist"""
-        logging.info("Request Received to check cache key")
+        logger.info("Request Received to check cache key")
         g.user = security_manager.find_user(username="admin")
         key_exist = True if cache_manager.cache.get(key) else False
         status = 200 if key_exist else 404
@@ -3008,11 +3018,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         key: str,
     ) -> FlaskResponse:
         """Serves a key off of the results backend
-        
+
         It is possible to pass the `rows` query argument to limit the number
         of rows returned.
         """
-        logging.info("Request Received to fetch data")
+        logger.info("Request Received to fetch data")
         g.user = security_manager.find_user(username="admin")
 
         if not results_backend:
@@ -3082,7 +3092,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         max_tries=5,
     )
     def stop_sql_query(self) -> FlaskResponse:
-        logging.info("Request Received to stop query")
+        logger.info("Request Received to stop query")
         g.user = security_manager.find_user(username="admin")
         client_id = request.form.get("client_id")
 
@@ -3112,7 +3122,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     #     """Validates that arbitrary sql is acceptable for the given database.
     #     Returns a list of error/warning annotations as json.
     #     """
-    #     logging.info("Request Received to validate query")
+    #     logger.info("Request Received to validate query")
     #     g.user = security_manager.find_user(username="admin")
     #     sql = request.form.get("sql")
     #     database_id = request.form.get("database_id")
@@ -3162,7 +3172,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     #         )
     #         return json_success(payload)
     #     except Exception as e:
-    #         logging.exception(e)
+    #         logger.exception(e)
     #         msg = _(
     #             f"{validator.name} was unable to check your query.\nPlease "
     #             "make sure that any services it depends on are available\n"
@@ -3305,16 +3315,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/welcome/")
     def welcome(self) -> FlaskResponse:
         """Personalized welcome page"""
-        print('Sukhbir- console.log')
-
         if not g.user or not g.user.get_id():
-            print('#1')
-
             if conf.get("PUBLIC_ROLE_LIKE_GAMMA", False) or conf["PUBLIC_ROLE_LIKE"]:
-                print('#2')
                 return self.render_template("superset/public_welcome.html")
             return redirect(appbuilder.get_url_for_login)
-        print('#3')
         welcome_dashboard_id = (
             db.session.query(UserAttribute.welcome_dashboard_id)
             .filter_by(user_id=g.user.get_id())

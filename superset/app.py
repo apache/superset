@@ -18,9 +18,8 @@
 import logging
 import os
 from typing import Any, Callable, Dict
-
 import wtforms_json
-from flask import Flask, redirect
+from flask import Flask, redirect, g
 from flask_appbuilder import expose, IndexView
 from flask_babel import gettext as __, lazy_gettext as _
 from flask_compress import Compress
@@ -73,7 +72,10 @@ def create_app() -> Flask:
 class SupersetIndexView(IndexView):
     @expose("/")
     def index(self) -> FlaskResponse:
-        return redirect("/superset/welcome/")
+        if g.user is not None and g.user.is_authenticated:
+            return redirect("/dashboard/list/")
+        else:
+            return redirect("/superset/welcome/")
 
 
 # pylint: disable=R0904
@@ -227,7 +229,8 @@ class SupersetAppInitializer:
         #
         # Setup regular views
         #
-        if appbuilder.app.config["LOGO_TARGET_PATH"]:
+        # we do not want to show the Home Menu in superset
+        if not appbuilder.app.config["LOGO_TARGET_PATH"]:
             appbuilder.add_link(
                 "Home", label=__("Home"), href="/superset/welcome/",
             )

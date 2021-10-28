@@ -70,7 +70,9 @@ def import_chart(
         params["schema"],
         params["database_name"],
     )
-    slc_to_import.datasource_id = datasource.id  # type: ignore
+
+    slc_to_import.datasource_id = datasource.id
+
     if slc_to_override:
         slc_to_override.override(slc_to_import)
         session.flush()

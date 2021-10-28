@@ -169,8 +169,10 @@ function CssTemplatesList({
             original: { created_on: createdOn },
           },
         }: any) => {
+          let utc = new Date();
+          if (createdOn) {
           const date = new Date(createdOn);
-          const utc = new Date(
+          utc = new Date(
             Date.UTC(
               date.getFullYear(),
               date.getMonth(),
@@ -181,8 +183,8 @@ function CssTemplatesList({
               date.getMilliseconds(),
             ),
           );
-
-          return moment(utc).fromNow();
+         }
+          return (createdOn ? moment(utc).fromNow() : '-');
         },
         Header: t('Created on'),
         accessor: 'created_on',

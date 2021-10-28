@@ -46,7 +46,7 @@ export default function setupColors(
     });
   }
 
-  [superset, airbnb, categoricalD3, echarts, google, lyft, preset, peakColorSchemes].forEach(
+  [peakColorSchemes, superset, airbnb, categoricalD3, echarts, google, lyft, preset].forEach(
     group => {
       group.forEach(scheme => {
         categoricalSchemeRegistry.registerValue(scheme.id, scheme);

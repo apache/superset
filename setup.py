@@ -32,7 +32,7 @@ with io.open("README.md", "r", encoding="utf-8") as f:
     long_description = f.read()
 
 
-def get_git_sha():
+def get_git_sha() -> str:
     try:
         s = subprocess.check_output(["git", "rev-parse", "HEAD"])
         return s.decode().strip()
@@ -114,7 +114,8 @@ setup(
         "holidays==0.10.3",  # PINNED! https://github.com/dr-prodigy/python-holidays/issues/406
     ],
     extras_require={
-        "athena": ["pyathena>=1.10.8,<1.11"],
+        "athena": ["pyathena>=1.10.8, <1.11"],
+        "aurora-data-api": ["preset-sqlalchemy-aurora-data-api>=0.2.8,<0.3"],
         "bigquery": [
             "pandas_gbq>=0.10.0",
             "pybigquery>=0.4.10",
@@ -128,13 +129,13 @@ setup(
         "db2": ["ibm-db-sa>=0.3.5, <0.4"],
         "dremio": ["sqlalchemy-dremio>=1.1.5, <1.2"],
         "drill": ["sqlalchemy-drill==0.1.dev"],
-        "druid": ["pydruid>=0.6.1,<0.7", "requests==2.22.0"],
+        "druid": ["pydruid>=0.6.1,<0.7"],
         "solr": ["sqlalchemy-solr >= 0.2.0"],
         "elasticsearch": ["elasticsearch-dbapi>=0.2.0, <0.3.0"],
         "exasol": ["sqlalchemy-exasol>=2.1.0, <2.2"],
         "excel": ["xlrd>=1.2.0, <1.3"],
         "firebird": ["sqlalchemy-firebird>=0.7.0, <0.8"],
-        "gsheets": ["shillelagh[gsheetsapi]>=0.2, <0.3"],
+        "gsheets": ["shillelagh[gsheetsapi]>=1.0.3, <2"],
         "hana": ["hdbcli==2.4.162", "sqlalchemy_hana==0.4.0"],
         "hive": ["pyhive[hive]>=0.6.1", "tableschema", "thrift>=0.11.0, <1.0.0"],
         "impala": ["impyla>0.16.2, <0.17"],
@@ -148,10 +149,17 @@ setup(
         "trino": ["sqlalchemy-trino>=0.2"],
         "prophet": ["prophet>=1.0.1, <1.1", "pystan<3.0"],
         "redshift": ["sqlalchemy-redshift>=0.8.1, < 0.9"],
-        "snowflake": ["snowflake-sqlalchemy>=1.2.3, <1.3"],
+        "rockset": ["rockset>=0.7.68, <0.8"],
+        "shillelagh": [
+            "shillelagh[datasetteapi,gsheetsapi,socrata,weatherapi]>=1.0.3, <2"
+        ],
+        "snowflake": [
+            "snowflake-sqlalchemy==1.2.4"
+        ],  # PINNED! 1.2.5 introduced breaking changes requiring sqlalchemy>=1.4.0
         "teradata": ["sqlalchemy-teradata==0.9.0.dev0"],
         "thumbnails": ["Pillow>=7.0.0, <8.0.0"],
         "vertica": ["sqlalchemy-vertica-python>=0.5.9, < 0.6"],
+        "netezza": ["nzalchemy>=11.0.2"],
     },
     python_requires="~=3.7",
     author="Apache Software Foundation",

@@ -65,7 +65,6 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
       addDangerToast(t('Sorry, something went wrong. Try again later.'));
     }
   }
-
   return (
     <>
       <Menu.Item key="copy-url" {...rest}>

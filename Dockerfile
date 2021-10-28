@@ -15,96 +15,6 @@
 # limitations under the License.
 #
 
-# <<<<<<< HEAD
-# FROM python:3.6-jessie
-
-# RUN useradd --user-group --create-home --no-log-init --shell /bin/bash superset
-
-# # Configure environment
-# ENV LANG=C.UTF-8 \
-#   LC_ALL=C.UTF-8
-
-# RUN apt-get update -y
-
-# # Install dependencies to fix `curl https support error` and `elaying package configuration warning`
-# RUN apt-get install -y apt-transport-https apt-utils
-
-
-# # Install superset dependencies
-# # https://superset.incubator.apache.org/installation.html#os-dependencies
-# RUN apt-get install -y build-essential libssl-dev \
-#   libffi-dev python3-dev libsasl2-dev libldap2-dev libxi-dev
-
-# # Install extra useful tool for development
-# RUN apt-get install -y vim less postgresql-client redis-tools
-
-# # Install nodejs for custom build
-# # https://superset.incubator.apache.org/installation.html#making-your-own-build
-# # https://nodejs.org/en/download/package-manager/
-# RUN curl -sL https://deb.nodesource.com/setup_10.x | bash - \
-#   && apt-get install -y nodejs
-
-
-# ARG SUPERSET_ENV=$SUPERSET_ENV
-# ARG SQLALCHEMY_DATABASE_URI=$SQLALCHEMY_DATABASE_URI
-# ARG TENANT=$TENANT
-# ARG STAGE=$STAGE
-# ARG REDIS_ENDPOINT=$REDIS_ENDPOINT
-# ARG NO_OF_WORKERS=$NO_OF_WORKERS
-# ARG ADMIN_EMAIL=$ADMIN_EMAIL
-# ARG ADMIN_PASSWORD=$ADMIN_PASSWORD
-# ARG GUEST_EMAIL=$GUEST_EMAIL
-# ARG GUEST_PASSWORD=$GUEST_PASSWORD
-# ARG PEAK_USER_EMAIL=$PEAK_USER_EMAIL
-# ARG PEAK_USER_PASSWORD=$PEAK_USER_PASSWORD
-# ARG AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
-# ARG COMMON_CONFIG_DATA_BUCKET=$COMMON_CONFIG_DATA_BUCKET
-# ARG REDSHIFT_DATABASE_URI=$REDSHIFT_DATABASE_URI
-# ARG PEAK_ADMIN_EMAIL=$PEAK_ADMIN_EMAIL
-# ARG PEAK_ADMIN_PASSWORD=$PEAK_ADMIN_PASSWORD
-
-# ENV SUPERSET_ENV=${SUPERSET_ENV} \
-#   SQLALCHEMY_DATABASE_URI=${SQLALCHEMY_DATABASE_URI} \
-#   TENANT=${TENANT} \
-#   STAGE=$STAGE \
-#   REDIS_ENDPOINT=${REDIS_ENDPOINT} \
-#   NO_OF_WORKERS=${NO_OF_WORKERS} \
-#   ADMIN_EMAIL=${ADMIN_EMAIL} \
-#   ADMIN_PASSWORD=${ADMIN_PASSWORD} \
-#   GUEST_EMAIL=${GUEST_EMAIL} \
-#   GUEST_PASSWORD=${GUEST_PASSWORD} \
-#   PEAK_USER_EMAIL=${PEAK_USER_EMAIL} \
-#   PEAK_USER_PASSWORD=${PEAK_USER_PASSWORD} \
-#   PEAK_ADMIN_EMAIL=${PEAK_ADMIN_EMAIL} \
-#   PEAK_ADMIN_PASSWORD=${PEAK_ADMIN_PASSWORD} \
-#   AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION} \
-#   COMMON_CONFIG_DATA_BUCKET=${COMMON_CONFIG_DATA_BUCKET} \
-#   REDSHIFT_DATABASE_URI=${REDSHIFT_DATABASE_URI}
-
-# WORKDIR /home/superset
-
-# COPY . /home/superset
-
-# RUN pip install --upgrade setuptools pip \
-#   && pip install -r requirements.txt -r requirements-dev.txt  \
-#   && pip install -e . \
-#   && pip install gevent \
-#   && rm -rf /root/.cache/pip
-
-# RUN cd superset/assets \
-#   && npm ci \
-#   && npm run build \
-#   && rm -rf node_modules
-
-# RUN chmod +x docker_init.sh && ./docker_init.sh
-
-# RUN chmod +x docker_entrypoint.sh
-
-# EXPOSE 8088
-
-# CMD ["./docker_entrypoint.sh"]
-# =======
-
 ######################################################################
 # PY stage that simply does a pip install on our requirements
 ######################################################################
@@ -119,7 +29,12 @@ RUN mkdir /app \
             libpq-dev \
             libsasl2-dev \
             libecpg-dev \
+            vim \
+            less \
+            postgresql-client \
+            redis-tools \
         && rm -rf /var/lib/apt/lists/*
+
 
 # First, we just wanna install requirements, which will allow us to utilize the cache
 # in order to only build if and only if requirements change
@@ -130,7 +45,6 @@ RUN cd /app \
     && mkdir -p superset/static \
     && touch superset/static/version_info.json \
     && pip install --no-cache -r requirements/local.txt
-
 
 ######################################################################
 # Node stage to deal with static asset construction
@@ -146,18 +60,18 @@ ENV BUILD_CMD=${NPM_BUILD_CMD}
 # NPM ci first, as to NOT invalidate previous steps except for when package.json changes
 RUN mkdir -p /app/superset-frontend
 RUN mkdir -p /app/superset/assets
-COPY ./docker/frontend-mem-nag.sh /
+COPY ./peak-docker/frontend-mem-nag.sh /
 COPY ./superset-frontend/package* /app/superset-frontend/
-RUN /frontend-mem-nag.sh \
+RUN chmod +x /frontend-mem-nag.sh \
         && cd /app/superset-frontend \
         && npm ci
 
 # Next, copy in the rest and let webpack do its thing
 COPY ./superset-frontend /app/superset-frontend
-# This is BY FAR the most expensive step (thanks Terser!)
+# This seems to be the most expensive step
 RUN cd /app/superset-frontend \
-        && npm run ${BUILD_CMD} \
-        && rm -rf node_modules
+     && npm run ${BUILD_CMD} \
+     && rm -rf node_modules
 
 
 ######################################################################
@@ -166,16 +80,54 @@ RUN cd /app/superset-frontend \
 ARG PY_VER=3.7.9
 FROM python:${PY_VER} AS lean
 
+# Custom Arguments
+ARG SUPERSET_ENV=$SUPERSET_ENV
+ARG SQLALCHEMY_DATABASE_URI=$SQLALCHEMY_DATABASE_URI
+ARG TENANT=$TENANT
+ARG STAGE=$STAGE
+ARG REDIS_ENDPOINT=$REDIS_ENDPOINT
+ARG NO_OF_WORKERS=$NO_OF_WORKERS
+ARG ADMIN_EMAIL=$ADMIN_EMAIL
+ARG ADMIN_PASSWORD=$ADMIN_PASSWORD
+ARG GUEST_EMAIL=$GUEST_EMAIL
+ARG GUEST_PASSWORD=$GUEST_PASSWORD
+ARG PEAK_USER_EMAIL=$PEAK_USER_EMAIL
+ARG PEAK_USER_PASSWORD=$PEAK_USER_PASSWORD
+ARG AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
+ARG COMMON_CONFIG_DATA_BUCKET=$COMMON_CONFIG_DATA_BUCKET
+ARG REDSHIFT_DATABASE_URI=$REDSHIFT_DATABASE_URI
+ARG PEAK_ADMIN_EMAIL=$PEAK_ADMIN_EMAIL
+ARG PEAK_ADMIN_PASSWORD=$PEAK_ADMIN_PASSWORD
+
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
     FLASK_ENV=production \
+    SUPERSET_LOAD_EXAMPLES=no \
+    CYPRESS_CONFIG=false \
     FLASK_APP="superset.app:create_app()" \
     PYTHONPATH="/app/pythonpath" \
     SUPERSET_HOME="/app/superset_home" \
-    SUPERSET_PORT=8088
+    SUPERSET_PORT=8088 \
+    SUPERSET_ENV=${SUPERSET_ENV} \
+    SQLALCHEMY_DATABASE_URI=${SQLALCHEMY_DATABASE_URI} \
+    TENANT=${TENANT} \
+    STAGE=$STAGE \
+    REDIS_ENDPOINT=${REDIS_ENDPOINT} \
+    NO_OF_WORKERS=${NO_OF_WORKERS} \
+    ADMIN_EMAIL=${ADMIN_EMAIL} \
+    ADMIN_PASSWORD=${ADMIN_PASSWORD} \
+    GUEST_EMAIL=${GUEST_EMAIL} \
+    GUEST_PASSWORD=${GUEST_PASSWORD} \
+    PEAK_USER_EMAIL=${PEAK_USER_EMAIL} \
+    PEAK_USER_PASSWORD=${PEAK_USER_PASSWORD} \
+    PEAK_ADMIN_EMAIL=${PEAK_ADMIN_EMAIL} \
+    PEAK_ADMIN_PASSWORD=${PEAK_ADMIN_PASSWORD} \
+    AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION} \
+    COMMON_CONFIG_DATA_BUCKET=${COMMON_CONFIG_DATA_BUCKET} \
+    REDSHIFT_DATABASE_URI=${REDSHIFT_DATABASE_URI}
 
-RUN useradd --user-group --no-create-home --no-log-init --shell /bin/bash superset \
-        && mkdir -p ${SUPERSET_HOME} ${PYTHONPATH} \
+RUN mkdir -p ${PYTHONPATH} \
+        && useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset \
         && apt-get update -y \
         && apt-get install -y --no-install-recommends \
             build-essential \
@@ -187,74 +139,51 @@ RUN useradd --user-group --no-create-home --no-log-init --shell /bin/bash supers
 COPY --from=superset-py /usr/local/lib/python3.7/site-packages/ /usr/local/lib/python3.7/site-packages/
 # Copying site-packages doesn't move the CLIs, so let's copy them one by one
 COPY --from=superset-py /usr/local/bin/gunicorn /usr/local/bin/celery /usr/local/bin/flask /usr/bin/
+COPY --from=superset-py /usr/local/bin/supervisord /usr/bin/
 COPY --from=superset-node /app/superset/static/assets /app/superset/static/assets
 COPY --from=superset-node /app/superset-frontend /app/superset-frontend
 
 ## Lastly, let's install superset itself
 COPY superset /app/superset
 COPY setup.py MANIFEST.in README.md /app/
+
+RUN cd /app \
+        && mkdir -p peak-dashboard
+
 RUN cd /app \
         && chown -R superset:superset * \
-        && pip install -e .
+        && pip install -e . \
+        && pip install eventlet
 
-COPY ./docker/docker-entrypoint.sh /usr/bin/
+COPY ./peak-docker/docker-entrypoint.sh /usr/bin/
+COPY ./supervisor/supervisord.conf /usr/bin/
+
+RUN chmod +x /usr/bin/*.sh
+RUN chmod +x /usr/bin/*.conf
+
+# give permission to import dashboard folder
+RUN chown superset:superset  ./app/peak-dashboard
 
 WORKDIR /app
 
 USER superset
-
-HEALTHCHECK CMD curl -f "http://localhost:$SUPERSET_PORT/health"
-
-EXPOSE ${SUPERSET_PORT}
-
-ENTRYPOINT ["/usr/bin/docker-entrypoint.sh"]
-
-######################################################################
-# Dev image...
-######################################################################
-FROM lean AS dev
-ARG GECKODRIVER_VERSION=v0.28.0
-ARG FIREFOX_VERSION=88.0
-
-COPY ./requirements/*.txt ./docker/requirements-*.txt/ /app/requirements/
-
-USER root
-
-RUN apt-get update -y \
-    && apt-get install -y --no-install-recommends libnss3 libdbus-glib-1-2 libgtk-3-0 libx11-xcb1
-
-# Install GeckoDriver WebDriver
-RUN wget https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER_VERSION}/geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz -O /tmp/geckodriver.tar.gz && \
-    tar xvfz /tmp/geckodriver.tar.gz -C /tmp && \
-    mv /tmp/geckodriver /usr/local/bin/geckodriver && \
-    rm /tmp/geckodriver.tar.gz
-
-# Install Firefox
-RUN wget https://download-installer.cdn.mozilla.net/pub/firefox/releases/${FIREFOX_VERSION}/linux-x86_64/en-US/firefox-${FIREFOX_VERSION}.tar.bz2 -O /opt/firefox.tar.bz2 && \
-    tar xvf /opt/firefox.tar.bz2 -C /opt && \
-    ln -s /opt/firefox/firefox /usr/local/bin/firefox
-
-# Cache everything for dev purposes...
-RUN cd /app \
-    && pip install --no-cache -r requirements/docker.txt \
-    && pip install --no-cache -r requirements/requirements-local.txt || true
-USER superset
-
 
 ######################################################################
 # CI image...
 ######################################################################
 FROM lean AS ci
 
-COPY --chown=superset ./docker/docker-bootstrap.sh /app/docker/
-COPY --chown=superset ./docker/docker-init.sh /app/docker/
-COPY --chown=superset ./docker/docker-ci.sh /app/docker/
+COPY --chown=superset ./peak-docker/docker-init.sh /app/docker/
+COPY --chown=superset ./peak-docker/docker-ci.sh /app/docker/
 
-RUN chmod a+x /app/docker/*.sh
+# Superset init Step
 
-ENV AWS_DEFAULT_REGION=eu-west-1
-ENV AWS_PROFILE=peak-dev
-ENV AWS_REGION=eu-west-1
+RUN chmod a+x /app/docker/*.sh && /app/docker/docker-ci.sh
 
-CMD /app/docker/docker-ci.sh
-# >>>>>>> f506bad12589b849e0fabf7f757f6edb2d50c9ab
+# Superset Entrypoint Step
+
+# HEALTHCHECK CMD curl -f "http://localhost:$SUPERSET_PORT/health"
+
+EXPOSE ${SUPERSET_PORT}
+
+ENTRYPOINT ["/usr/bin/docker-entrypoint.sh"]

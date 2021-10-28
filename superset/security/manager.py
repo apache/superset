@@ -52,6 +52,8 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.utils.core import DatasourceName, RowLevelSecurityFilterType
 
+from superset.security.peak_custom_security_api import PeakCustomSecurityApi
+
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.connectors.base.models import BaseDatasource
@@ -96,7 +98,7 @@ UserModelView.include_route_methods = RouteMethod.CRUD_SET | {
     RouteMethod.ACTION,
     RouteMethod.API_READ,
     RouteMethod.ACTION_POST,
-    "userinfo",
+     "userinfo",
 }
 RoleModelView.include_route_methods = RouteMethod.CRUD_SET
 PermissionViewModelView.include_route_methods = {RouteMethod.LIST}
@@ -113,6 +115,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 ):
     userstatschartview = None
     READ_ONLY_MODEL_VIEWS = {"Database", "DruidClusterModelView", "DynamicPlugin"}
+
+    # Important for calling custom auth of Peak for APIs
+    security_api = PeakCustomSecurityApi
 
     USER_MODEL_VIEWS = {
         "UserDBModelView",
@@ -184,6 +189,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     ACCESSIBLE_PERMS = {"can_userinfo", "resetmypassword"}
 
+    GAMMA_ACCESSIBLE_PERMS = {"all_datasource_access"}
+
     SQLLAB_PERMISSION_VIEWS = {
         ("can_csv", "Superset"),
         ("can_read", "SavedQuery"),
@@ -206,6 +213,44 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "all_database_access",
         "all_query_access",
     )
+
+    # should we need to show the option of upload csv and upload excel
+    GAMMA_MINUS_PEAK_USER_VIEW_MENUS = {
+        "AccessRequestsModelView",
+        "Refresh Druid Metadata",
+        "Upload a CSV",
+        "Upload Excel",
+        "Druid Clusters",
+        "Druid Datasources",
+        "Scan New Datasources",
+        "ResetPasswordView",
+        "RoleModelView",
+        "Security",
+    } | USER_MODEL_VIEWS
+
+    GAMMA_MINUS_PEAK_ADMIN_VIEW_MENUS = {
+        "AccessRequestsModelView",
+        "Refresh Druid Metadata",
+        "Upload a CSV",
+        "Upload Excel",
+        "Druid Clusters",
+        "Druid Datasources",
+        "Scan New Datasources",
+        "ResetPasswordView",
+        "RoleModelView",
+        "Security",
+    } | USER_MODEL_VIEWS
+
+    PEAK_USER_ACCESSIBLE_PERMS = {
+      "all_database_access",
+      "all_datasource_access",
+      "can_add",
+     }
+
+    PEAK_PERMISSION_VIEWS = {
+      ("can_read", "Database"),
+      ("can_write", "Dataset"),
+     }
 
     def get_schema_perm(  # pylint: disable=no-self-use
         self, database: Union["Database", str], schema: Optional[str] = None
@@ -639,6 +684,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.set_role("Gamma", self._is_gamma_pvm)
         self.set_role("granter", self._is_granter_pvm)
         self.set_role("sql_lab", self._is_sql_lab_pvm)
+        self.set_role("peak_user", self._is_peak_user_pvm)
+        self.set_role("peak_admin", self._is_peak_admin_pvm)
 
         # Configure public role
         if conf["PUBLIC_ROLE_LIKE"]:
@@ -776,6 +823,44 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             or pvm.permission.name in self.ALPHA_ONLY_PERMISSIONS
         )
 
+    def _is_in_gamma_minus_peak_user(self, pvm: PermissionModelView) -> bool:
+        """
+        Return True if the FAB permission/view is accessible to only
+        Alpha users, False otherwise.
+
+        :param pvm: The FAB permission/view
+        :returns: Whether the FAB object is accessible to only Alpha users
+        """
+
+        if (
+            pvm.view_menu.name in self.GAMMA_READ_ONLY_MODEL_VIEWS
+            and pvm.permission.name not in self.READ_ONLY_PERMISSION
+        ):
+            return True
+        return (
+            pvm.view_menu.name in self.GAMMA_MINUS_PEAK_USER_VIEW_MENUS
+            or pvm.permission.name in self.ALPHA_ONLY_PERMISSIONS
+        )
+
+    def _is_in_gamma_minus_peak_admin(self, pvm: PermissionModelView) -> bool:
+        """
+        Return True if the FAB permission/view is accessible to only
+        Alpha users, False otherwise.
+
+        :param pvm: The FAB permission/view
+        :returns: Whether the FAB object is accessible to only Alpha users
+        """
+
+        if (
+            pvm.view_menu.name in self.GAMMA_READ_ONLY_MODEL_VIEWS
+            and pvm.permission.name not in self.READ_ONLY_PERMISSION
+        ):
+            return True
+        return (
+            pvm.view_menu.name in self.GAMMA_MINUS_PEAK_ADMIN_VIEW_MENUS
+            or pvm.permission.name in self.ALPHA_ONLY_PERMISSIONS
+        )
+
     def _is_accessible_to_all(self, pvm: PermissionView) -> bool:
         """
         Return True if the FAB permission/view is accessible to all, False
@@ -786,6 +871,42 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
 
         return pvm.permission.name in self.ACCESSIBLE_PERMS
+
+    def _is_accessible_to_gamma(self, pvm: PermissionModelView) -> bool:
+        """
+        Return True if the FAB permission/view is accessible to gamma users, False
+        otherwise.
+
+        :param pvm: The FAB permission/view
+        :returns: Whether the FAB object is accessible to gamma users
+        """
+        return pvm.permission.name in self.GAMMA_ACCESSIBLE_PERMS
+
+    def _is_accessible_to_peak_user(self, pvm: PermissionModelView) -> bool:
+        """
+        Return True if the FAB permission/view is accessible to peak users, False
+        otherwise.
+
+        :param pvm: The FAB permission/view
+        :returns: Whether the FAB object is accessible to gamma users
+        """
+        return (
+            pvm.permission.name in self.PEAK_USER_ACCESSIBLE_PERMS
+            or (pvm.permission.name, pvm.view_menu.name) in self.PEAK_PERMISSION_VIEWS
+        )
+
+    def _is_accessible_to_peak_admin(self, pvm: PermissionModelView) -> bool:
+        """
+        Return True if the FAB permission/view is accessible to peak admin users, False
+        otherwise.
+
+        :param pvm: The FAB permission/view
+        :returns: Whether the FAB object is accessible to gamma users
+        """
+        return (
+            pvm.permission.name in self.PEAK_USER_ACCESSIBLE_PERMS
+            or (pvm.permission.name, pvm.view_menu.name) in self.PEAK_PERMISSION_VIEWS
+        )
 
     def _is_admin_pvm(self, pvm: PermissionView) -> bool:
         """
@@ -824,7 +945,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             self._is_user_defined_permission(pvm)
             or self._is_admin_only(pvm)
             or self._is_alpha_only(pvm)
-        ) or self._is_accessible_to_all(pvm)
+        ) or self._is_accessible_to_all(pvm) or self._is_accessible_to_gamma(pvm)
 
     def _is_sql_lab_pvm(self, pvm: PermissionView) -> bool:
         """
@@ -835,6 +956,32 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: Whether the FAB object is SQL Lab related
         """
         return (pvm.permission.name, pvm.view_menu.name) in self.SQLLAB_PERMISSION_VIEWS
+
+    def _is_peak_user_pvm(self, pvm: PermissionModelView) -> bool:
+        """
+        Return True if the FAB permission/view is Peak user related, False
+        otherwise.
+
+        :param pvm: The FAB permission/view
+        :returns: Whether the FAB object is Peak user related
+        """
+        return not (
+             self._is_in_gamma_minus_peak_user(pvm)
+             or self._is_accessible_to_all(pvm)
+        ) or self._is_accessible_to_gamma(pvm) or self._is_accessible_to_peak_user(pvm)
+
+    def _is_peak_admin_pvm(self, pvm: PermissionModelView) -> bool:
+        """
+        Return True if the FAB permission/view is Peak user related, False
+        otherwise.
+
+        :param pvm: The FAB permission/view
+        :returns: Whether the FAB object is Peak user related
+        """
+        return not (
+             self._is_in_gamma_minus_peak_admin(pvm)
+             or self._is_accessible_to_all(pvm)
+        ) or self._is_accessible_to_gamma(pvm) or self._is_accessible_to_peak_admin(pvm)
 
     def _is_granter_pvm(  # pylint: disable=no-self-use
         self, pvm: PermissionView

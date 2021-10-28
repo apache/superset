@@ -436,6 +436,7 @@ def is_slice_in_container(
 
 def is_owner(obj: Union[Dashboard, Slice], user: User) -> bool:
     """ Check if user is owner of the slice """
+    from superset.views.base import get_user_roles
     if obj and user in obj.owners:
       return True
     else:

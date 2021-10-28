@@ -1223,8 +1223,8 @@ def get_or_create_db(
         db.session.query(models.Database).filter_by(database_name=database_name).first()
     )
     if not database and always_create:
-        logging.info(f"Creating database reference for {database_name}")
-        database = models.Database(database_name=database_name, *args, **kwargs)
+        logger.info("Creating database reference for %s", database_name)
+        database = models.Database(database_name=database_name)
         if(database_name == 'RedshiftDB'):
             database.allow_dml = True
         db.session.add(database)
@@ -1232,7 +1232,6 @@ def get_or_create_db(
     if database:
         database.set_sqlalchemy_uri(sqlalchemy_uri)
         db.session.commit()
-
     return database
 
 

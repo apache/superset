@@ -33,7 +33,7 @@
 {% set roles = roles.append(role.name) %}
 {% endfor %}
 {% if not current_user.is_anonymous and not ('Gamma' in roles)%}
-<li class="dropdown">
+<!-- <li class="dropdown">
   <button type="button" style="margin-top: 12px; margin-right: 30px;" data-toggle="dropdown"
     class="dropdown-toggle btn btn-sm btn-primary">
     <i class="fa fa-plus"></i> {{ _("New") }}
@@ -43,7 +43,7 @@
     <li><a href="/chart/add"><span class="fa fa-fw fa-bar-chart"></span> {{_("Chart")}}</a></li>
     <li><a href="/dashboard/new/"><span class="fa fa-fw fa-dashboard"></span> {{_("Dashboard")}}</a></li>
   </ul>
-</li>
+</li> -->
 {% endif %}
 {% if documentation_url %}
 <li>

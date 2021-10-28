@@ -425,6 +425,8 @@ class AuditMixinNullable(AuditMixin):
 
     @property
     def changed_on_humanized(self) -> str:
+        if self.changed_on is None:
+            return '-'
         return humanize.naturaltime(datetime.now() - self.changed_on)
 
     @renders("changed_on")

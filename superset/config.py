@@ -198,18 +198,7 @@ SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = SQLAlchemyUtilsAdapter
 QUERY_SEARCH_LIMIT = 1000
 
 # Flask-WTF flag for CSRF
-WTF_CSRF_ENABLED = True
-
-# Add endpoints that need to be exempt from CSRF protection
-WTF_CSRF_EXEMPT_LIST = [
-                     "superset.views.core.log",
-                     "superset.views.api.import_dashboard",
-                     "superset.views.core.run_query",
-                     "superset.views.core.check_cache_key",
-                     "superset.views.core.fetch_data",
-                     "superset.views.core.stop_sql_query",
-                     "superset.charts.api.data"
-                     ]
+WTF_CSRF_ENABLED = False
 
 # Whether to run the web server in debug mode or not
 DEBUG = os.environ.get("FLASK_ENV") == "development"
@@ -237,7 +226,7 @@ APP_ICON_WIDTH = 60
 
 # Uncomment to specify where clicking the logo would take the user
 # e.g. setting it to '/' would take the user to '/superset/welcome/'
-LOGO_TARGET_PATH = None
+LOGO_TARGET_PATH = "/dashboard/list/"
 
 # Enables SWAGGER UI for superset openapi spec
 # ex: http://localhost:8080/swagger/v1
@@ -310,19 +299,19 @@ BABEL_DEFAULT_LOCALE = "en"
 # Your application default translation path
 BABEL_DEFAULT_FOLDER = "superset/translations"
 # The allowed translation for you app
-LANGUAGES = {
-    "en": {"flag": "gb", "name": "English"},# GB flag
-    "es": {"flag": "es", "name": "Spanish"},
-    "it": {"flag": "it", "name": "Italian"},
-    "fr": {"flag": "fr", "name": "French"},
-    "zh": {"flag": "cn", "name": "Chinese"},
-    "ja": {"flag": "jp", "name": "Japanese"},
-    "de": {"flag": "de", "name": "German"},
-    "pt": {"flag": "pt", "name": "Portuguese"},
-    "pt_BR": {"flag": "br", "name": "Brazilian Portuguese"},
-    "ru": {"flag": "ru", "name": "Russian"},
-    "ko": {"flag": "kr", "name": "Korean"},
-}
+# LANGUAGES = {
+#     "en": {"flag": "gb", "name": "English"},# GB flag
+#     "es": {"flag": "es", "name": "Spanish"},
+#     "it": {"flag": "it", "name": "Italian"},
+#     "fr": {"flag": "fr", "name": "French"},
+#     "zh": {"flag": "cn", "name": "Chinese"},
+#     "ja": {"flag": "jp", "name": "Japanese"},
+#     "de": {"flag": "de", "name": "German"},
+#     "pt": {"flag": "pt", "name": "Portuguese"},
+#     "pt_BR": {"flag": "br", "name": "Brazilian Portuguese"},
+#     "ru": {"flag": "ru", "name": "Russian"},
+#     "ko": {"flag": "kr", "name": "Korean"},
+# }
 # Turning off i18n by default as translation in most languages are
 # incomplete and not well maintained.
 LANGUAGES = {}
@@ -360,7 +349,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "PRESTO_EXPAND_DATA": False,
     # Exposes API endpoint to compute thumbnails
     "THUMBNAILS": False,
-    "DASHBOARD_CACHE": False,
+    "DASHBOARD_CACHE": True,
     "REMOVE_SLICE_LEVEL_LABEL_COLORS": False,
     "SHARE_QUERIES_VIA_KV_STORE": False,
     "TAGGING_SYSTEM": False,
@@ -393,7 +382,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Enable experimental feature to search for other dashboards
     "OMNIBAR": False,
     "DASHBOARD_RBAC": False,
-    "ENABLE_EXPLORE_DRAG_AND_DROP": False,
+    "ENABLE_EXPLORE_DRAG_AND_DROP": True,
     # Enabling ALERTS_ATTACH_REPORTS, the system sends email and slack message
     # with screenshot and link
     # Disables ALERTS_ATTACH_REPORTS, the system DOES NOT generate screenshot
@@ -452,13 +441,13 @@ EXTRA_CATEGORICAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
 #   "borderRadius": 4,
 #   "colors": {
 #     "primary": {
-#       "base": 'red',
+#       "base": 'blue',
 #     },
 #     "secondary": {
-#       "base": 'green',
+#       "base": 'blue',
 #     },
 #     "grayscale": {
-#       "base": 'orange',
+#       "base": 'blue',
 #     }
 #   }
 # }
@@ -523,10 +512,18 @@ CACHE_CONFIG = {
 }
 
 # Cache for datasource metadata and query results
-DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
+DATA_CACHE_CONFIG: CacheConfig = {
+    'CACHE_TYPE': 'redis',
+    'CACHE_DEFAULT_TIMEOUT': CACHE_DEFAULT_TIMEOUT,
+    'CACHE_KEY_PREFIX': '{}_superset_'.format(TENANT),
+    'CACHE_REDIS_HOST': 'redis',
+    'CACHE_REDIS_PORT': 6379,
+    'CACHE_REDIS_DB': 1,
+    'CACHE_REDIS_URL': 'redis://{}/1'.format(REDIS_ENDPOINT)
+}
 
 # store cache keys by datasource UID (via CacheKey) for custom processing/invalidation
-STORE_CACHE_KEYS_IN_METADATA_DB = False
+STORE_CACHE_KEYS_IN_METADATA_DB = True
 
 # CORS Options
 ENABLE_CORS = True
@@ -686,7 +683,7 @@ class CeleryConfig(object):
     CELERYBEAT_SCHEDULE = {
         'cache-warmup-hourly': {
             'task': 'cache-warmup',
-            'schedule': crontab(hour='*/6'),  # every 7 hour
+            'schedule': crontab(hour='*/6'),  # every 6 hour
             'kwargs': {
                 'strategy_name': 'dummy',
             },

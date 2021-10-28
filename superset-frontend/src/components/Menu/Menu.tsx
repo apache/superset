@@ -27,7 +27,7 @@ import MenuObject, {
   MenuObjectChildProps,
 } from './MenuObject';
 import LanguagePicker, { Languages } from './LanguagePicker';
-import NewMenu from './NewMenu';
+// import NewMenu from './NewMenu';
 
 interface BrandProps {
   path: string;
@@ -190,7 +190,7 @@ export function Menu({
           })}
         </Nav>
         <Nav className="navbar-right">
-          {!navbarRight.user_is_anonymous && <NewMenu />}
+          {/* {!navbarRight.user_is_anonymous && <NewMenu />} */}
           <NavDropdown
             id="settings-dropdown"
             title={t('Settings')}
@@ -225,19 +225,19 @@ export function Menu({
 
               {!navbarRight.user_is_anonymous && [
                 <DropdownMenu.Divider key="user-divider" />,
-                <DropdownMenu.ItemGroup key="user-section" title={t('User')}>
-                  {navbarRight.user_profile_url && (
-                    <DropdownMenu.Item key="profile">
-                      <a href={navbarRight.user_profile_url}>{t('Profile')}</a>
-                    </DropdownMenu.Item>
-                  )}
-                  <DropdownMenu.Item key="info">
-                    <a href={navbarRight.user_info_url}>{t('Info')}</a>
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Item key="logout">
-                    <a href={navbarRight.user_logout_url}>{t('Logout')}</a>
-                  </DropdownMenu.Item>
-                </DropdownMenu.ItemGroup>,
+                // <DropdownMenu.ItemGroup key="user-section" title={t('User')}>
+                //   {navbarRight.user_profile_url && (
+                //     <DropdownMenu.Item key="profile">
+                //       <a href={navbarRight.user_profile_url}>{t('Profile')}</a>
+                //     </DropdownMenu.Item>
+                //   )}
+                //   <DropdownMenu.Item key="info">
+                //     <a href={navbarRight.user_info_url}>{t('Info')}</a>
+                //   </DropdownMenu.Item>
+                //   <DropdownMenu.Item key="logout">
+                //     <a href={navbarRight.user_logout_url}>{t('Logout')}</a>
+                //   </DropdownMenu.Item>
+                // </DropdownMenu.ItemGroup>,
               ]}
               {(navbarRight.version_string || navbarRight.version_sha) && [
                 <DropdownMenu.Divider key="version-info-divider" />,

@@ -17,6 +17,7 @@
 # pylint: disable=R
 
 import logging
+import os
 from os import environ
 from flask import request, g
 from typing import Any
@@ -40,6 +41,7 @@ from superset.charts.commands.exceptions import (
 )
 
 import superset.models.core as models
+import superset.models.dashboard as dashboard
 from superset import app
 get_time_range_schema = {"type": "string"}
 
@@ -96,29 +98,43 @@ class Api(BaseSupersetView):
         """
          It checks if there is any dashboard of that slug name in the common bucket of s3. If yes, it pulls that file.
 
+         Created new folder "peak-dashboard" in /app/ directory and
+         we have given access 'superset' user to this folder
+         so .json can be open in this folder.
         """
         slug = request.get_json()["slug"]
+        database_id = request.get_json()["database_id"]
         isPublished = request.get_json()["isPublished"]
         g.user = security_manager.find_user(username="admin")
         if slug:
-            #get file from common bucket
+            newdir = "peak-dashboard/"
+
+            prevdir = os.getcwd()
+            logging.info("Current Directory %s", prevdir)
+
+            os.chdir(os.path.expanduser(newdir))
+            nowdir = os.getcwd()
+            logging.info("New Directory %s", nowdir)
+
+            # get file from common bucket
             file_name = slug+".json"
-            #  TODO: temp changes
-            #s3_utils.get_file_data(environ['COMMON_CONFIG_DATA_BUCKET'], app.config["DASHBOARD_OBJECT_PATH"] + slug + ".json", file_name)
+            s3_utils.get_file_data(environ['COMMON_CONFIG_DATA_BUCKET'], app.config["DASHBOARD_OBJECT_PATH"] + slug + ".json", file_name)
             try:
               with open(file_name, 'r') as data_stream:
               #call import dashboard function
-                dashboard_ids = import_dashboards(db.session, data_stream)
+                dashboard_ids = import_dashboards(db.session, data_stream.read(), database_id)
                 if isPublished:
                   if dashboard_ids and len(dashboard_ids) > 0:
                     for dashboard_id in dashboard_ids:
-                      Dashboard = models.Dashboard
+                      Dashboard = dashboard.Dashboard
                       dash = (db.session.query(Dashboard).filter(Dashboard.id == dashboard_id).one_or_none())
                       dash.published = True
                       db.session.commit()
-                      
+
+                os.chdir(os.path.expanduser(prevdir))
                 return json_success(json.dumps({"dashboard_imported": True}))
             except Exception as e:
+                os.chdir(os.path.expanduser(prevdir))
                 logging.error("Error when importing dashboard from file %s", file_name)
                 logging.error(e)
                 return json_error_response(

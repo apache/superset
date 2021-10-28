@@ -256,7 +256,7 @@ def get_user_roles() -> List[Role]:
 
 def is_user_admin() -> bool:
     user_roles = [role.name.lower() for role in list(get_user_roles())]
-    return "admin" in user_roles or "peak_user" in roles or "peak_admin" in roles
+    return "admin" in user_roles or "peak_user" in user_roles or "peak_admin" in user_roles
 
 
 class BaseSupersetView(BaseView):

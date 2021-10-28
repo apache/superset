@@ -104,7 +104,6 @@ const Tabs = Object.assign(StyledTabs, {
 
 Tabs.defaultProps = {
   fullWidth: true,
-  animated: true,
 };
 
 const StyledEditableTabs = styled(StyledTabs)`

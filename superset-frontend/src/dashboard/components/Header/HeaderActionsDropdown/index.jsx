@@ -243,7 +243,7 @@ class HeaderActionsDropdown extends React.PureComponent {
             />
           </Menu.Item>
         )}
-        {userCanShare && (
+        {/* {userCanShare && (
           <ShareMenuItems
             url={url}
             copyMenuItemTitle={t('Copy dashboard URL')}
@@ -253,7 +253,7 @@ class HeaderActionsDropdown extends React.PureComponent {
             addSuccessToast={addSuccessToast}
             addDangerToast={addDangerToast}
           />
-        )}
+        )} */}
         <Menu.Item
           key={MENU_KEYS.REFRESH_DASHBOARD}
           data-test="refresh-dashboard-menu-item"

@@ -27,7 +27,7 @@ const mockedProps = {
         name: 'Home',
         icon: '',
         label: 'Home',
-        url: '/superset/welcome',
+        url: '/dashboard/list/',
         index: 1,
       },
       {

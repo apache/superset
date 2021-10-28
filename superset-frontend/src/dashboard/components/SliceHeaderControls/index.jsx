@@ -256,7 +256,7 @@ class SliceHeaderControls extends React.PureComponent {
           </Menu.Item>
         )}
 
-        {supersetCanShare && (
+        {/* {supersetCanShare && (
           <ShareMenuItems
             url={getDashboardUrl(
               window.location.pathname,
@@ -269,7 +269,7 @@ class SliceHeaderControls extends React.PureComponent {
             addSuccessToast={addSuccessToast}
             addDangerToast={addDangerToast}
           />
-        )}
+        )} */}
 
         <Menu.Item key={MENU_KEYS.RESIZE_LABEL}>{resizeLabel}</Menu.Item>
 
