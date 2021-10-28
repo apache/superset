@@ -146,6 +146,7 @@ const percent_metrics: typeof sharedControls.metrics = {
   mapStateToProps: ({ datasource, controls }, controlState) => ({
     columns: datasource?.columns || [],
     savedMetrics: datasource?.metrics || [],
+    datasource,
     datasourceType: datasource?.type,
     queryMode: getQueryMode(controls),
     externalValidationErrors: validateAggControlValues(controls, [
