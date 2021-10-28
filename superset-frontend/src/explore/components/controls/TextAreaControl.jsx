@@ -30,7 +30,7 @@ import ControlHeader from 'src/explore/components/ControlHeader';
 const propTypes = {
   name: PropTypes.string,
   onChange: PropTypes.func,
-  defaultValue: PropTypes.string,
+  initialValue: PropTypes.string,
   height: PropTypes.number,
   minLines: PropTypes.number,
   maxLines: PropTypes.number,
@@ -49,7 +49,7 @@ const propTypes = {
 
 const defaultProps = {
   onChange: () => {},
-  defaultValue: '',
+  initialValue: '',
   height: 250,
   minLines: 3,
   maxLines: 10,
@@ -80,9 +80,10 @@ export default class TextAreaControl extends React.Component {
           width="100%"
           height={`${minLines}em`}
           editorProps={{ $blockScrolling: true }}
-          defaultValue={this.props.defaultValue}
+          defaultValue={this.props.initialValue}
           readOnly={this.props.readOnly}
           key={this.props.name}
+          {...this.props}
         />
       );
     }
@@ -90,7 +91,7 @@ export default class TextAreaControl extends React.Component {
       <TextArea
         placeholder={t('textarea')}
         onChange={this.onControlChange.bind(this)}
-        value={this.props.defaultValue}
+        defaultValue={this.props.initialValue}
         disabled={this.props.readOnly}
         style={{ height: this.props.height }}
       />
