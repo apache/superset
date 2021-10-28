@@ -25,8 +25,8 @@ import React, {
   FunctionComponent,
 } from 'react';
 import { t, SupersetTheme } from '@superset-ui/core';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { useDispatch, useSelector } from 'react-redux';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { addReport, editReport } from 'src/reports/actions/reports';
 import { AlertObject } from 'src/views/CRUD/alert/types';
 
@@ -37,7 +37,6 @@ import Icons from 'src/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { CronError } from 'src/components/CronPicker';
 import { RadioChangeEvent } from 'src/components';
-import { ChartState } from 'src/explore/types';
 import {
   antDErrorAlertStyles,
   StyledModal,
@@ -102,7 +101,7 @@ interface ReportProps {
   dashboardId?: number;
   chart?: ChartObject;
   creationMethod: string;
-  props: any;
+  props?: any;
 }
 
 interface ReportPayloadType {
