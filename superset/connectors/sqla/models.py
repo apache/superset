@@ -303,8 +303,10 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         return and_(*l)
 
     def get_timestamp_expression(
-        self, time_grain: Optional[str], label: Optional[str] = None,
-        template_processor: Optional[BaseTemplateProcessor] = None
+        self,
+        time_grain: Optional[str],
+        label: Optional[str] = None,
+        template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> Union[TimestampExpression, Label]:
         """
         Return a SQLAlchemy Core element representation of self to be used in a query.
@@ -1096,7 +1098,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     outer = table_col.get_timestamp_expression(
                         time_grain=time_grain,
                         label=selected,
-                        template_processor=template_processor)
+                        template_processor=template_processor,
+                    )
                 # if groupby field equals a selected column
                 elif table_col:
                     outer = table_col.get_sqla_col()
@@ -1130,8 +1133,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
             if is_timeseries:
                 timestamp = dttm_col.get_timestamp_expression(
-                    time_grain=time_grain,
-                    template_processor=template_processor)
+                    time_grain=time_grain, template_processor=template_processor
+                )
                 # always put timestamp as the first column
                 select_exprs.insert(0, timestamp)
                 groupby_all_columns[timestamp.name] = timestamp
@@ -1197,8 +1200,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             if col_obj:
                 if filter_grain:
                     sqla_col = col_obj.get_timestamp_expression(
-                        time_grain=filter_grain,
-                        template_processor=template_processor)
+                        time_grain=filter_grain, template_processor=template_processor
+                    )
                 else:
                     sqla_col = col_obj.get_sqla_col()
                 col_spec = db_engine_spec.get_column_spec(col_obj.type)
