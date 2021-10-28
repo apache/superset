@@ -476,7 +476,6 @@ class DatasourceEditor extends React.PureComponent {
       sql,
       columns: [...this.state.databaseColumns, ...this.state.calculatedColumns],
     };
-    console.log('in Editor: DatasourceEditor', datasource);
     this.props.onChange(newDatasource, this.state.errors);
   }
 
