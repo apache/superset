@@ -46,3 +46,4 @@ packages/*/package-lock.json
 scripts/*.zip
 
 **/storybook-static
+rat-results.txt
