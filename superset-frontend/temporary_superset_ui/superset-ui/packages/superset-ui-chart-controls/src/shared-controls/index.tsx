@@ -134,6 +134,7 @@ const metrics: SharedControlConfig<'MetricsControl'> = {
   mapStateToProps: ({ datasource }) => ({
     columns: datasource ? datasource.columns : [],
     savedMetrics: datasource ? datasource.metrics : [],
+    datasource,
     datasourceType: datasource?.type,
   }),
   description: t('One or many metrics to display'),
@@ -362,6 +363,7 @@ const sort_by: SharedControlConfig<'MetricsControl'> = {
   mapStateToProps: ({ datasource }) => ({
     columns: datasource?.columns || [],
     savedMetrics: datasource?.metrics || [],
+    datasource,
     datasourceType: datasource?.type,
   }),
 };
