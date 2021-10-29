@@ -40,7 +40,13 @@ import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import setupApp from 'src/setup/setupApp';
 import { routes, isFrontendRoute } from 'src/views/routes';
 import { Logger } from 'src/logger/LogUtils';
+import * as FullStory from '@fullstory/browser';
 import { store } from './store';
+
+FullStory.init({
+  orgId: '15S0JP',
+  devMode: process.env.NODE_ENV === 'development',
+});
 
 setupApp();
 
