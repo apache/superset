@@ -30,11 +30,13 @@ export const SET_CHART_CONFIG_BEGIN = 'SET_CHART_CONFIG_BEGIN';
 export interface SetChartConfigBegin {
   type: typeof SET_CHART_CONFIG_BEGIN;
   chartConfiguration: ChartConfiguration;
+  filterscopes: String;
 }
 export const SET_CHART_CONFIG_COMPLETE = 'SET_CHART_CONFIG_COMPLETE';
 export interface SetChartConfigComplete {
   type: typeof SET_CHART_CONFIG_COMPLETE;
   chartConfiguration: ChartConfiguration;
+  filterscopes: String;
 }
 export const SET_CHART_CONFIG_FAIL = 'SET_CHART_CONFIG_FAIL';
 export interface SetChartConfigFail {
@@ -43,10 +45,12 @@ export interface SetChartConfigFail {
 }
 export const setChartConfiguration = (
   chartConfiguration: ChartConfiguration,
+  filterscopes?: String,
 ) => async (dispatch: Dispatch, getState: () => any) => {
   dispatch({
     type: SET_CHART_CONFIG_BEGIN,
     chartConfiguration,
+    filterscopes,
   });
   const { id, metadata } = getState().dashboardInfo;
 
@@ -60,10 +64,12 @@ export const setChartConfiguration = (
   });
 
   try {
+    const filterCondition = JSON.parse(String(filterscopes));
     const response = await updateDashboard({
       json_metadata: JSON.stringify({
         ...metadata,
         chart_configuration: chartConfiguration,
+        filter_scopes: filterCondition,
       }),
     });
     dispatch(
@@ -74,6 +80,7 @@ export const setChartConfiguration = (
     dispatch({
       type: SET_CHART_CONFIG_COMPLETE,
       chartConfiguration,
+      filterscopes,
     });
   } catch (err) {
     dispatch({ type: SET_CHART_CONFIG_FAIL, chartConfiguration });
