@@ -34,7 +34,13 @@ import { theme } from 'src/preamble';
 import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
 import setupApp from 'src/setup/setupApp';
 import { routes, isFrontendRoute } from 'src/views/routes';
+import * as FullStory from '@fullstory/browser';
 import { store } from './store';
+
+FullStory.init({
+  orgId: '15S0JP',
+  devMode: process.env.NODE_ENV === 'development',
+});
 
 setupApp();
 
