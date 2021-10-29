@@ -94,6 +94,7 @@ export default function transformProps(
     xAxisTimeFormat,
     yAxisBounds,
     tooltipTimeFormat,
+    tooltipSortByMetric,
     zoomable,
     richTooltip,
     xAxisLabelRotation,
@@ -268,7 +269,11 @@ export default function transformProps(
       trigger: richTooltip ? 'axis' : 'item',
       formatter: (params: any) => {
         const value: number = !richTooltip ? params.value : params[0].value[0];
-        const prophetValue = !richTooltip ? [params] : params;
+        const prophetValue: any[] = !richTooltip ? [params] : params;
+
+        if (richTooltip && tooltipSortByMetric) {
+          prophetValue.sort((a, b) => b.data[1] - a.data[1]);
+        }
 
         const rows: Array<string> = [`${tooltipFormatter(value)}`];
         const prophetValues: Record<string, ProphetValue> =
