@@ -18,26 +18,19 @@ import json
 import logging
 import re
 from datetime import datetime
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Match,
-    Optional,
-    Pattern,
-    Tuple,
-    TYPE_CHECKING,
-    Union,
-)
+from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING, Union
 
 from flask_babel import gettext as __
 from pytz import _FixedOffset  # type: ignore
 from sqlalchemy.dialects.postgresql import ARRAY, DOUBLE_PRECISION, ENUM, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
-from sqlalchemy.types import String, TypeEngine
+from sqlalchemy.types import String
 
-from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    BasicParametersMixin,
+    ColumnTypeMapping,
+)
 from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetException
 from superset.models.sql_lab import Query
@@ -279,15 +272,9 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
     def get_column_spec(
         cls,
         native_type: Optional[str],
+        column_name: Optional[str] = None,
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
-        column_type_mappings: Tuple[
-            Tuple[
-                Pattern[str],
-                Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
-                GenericDataType,
-            ],
-            ...,
-        ] = column_type_mappings,
+        column_type_mappings: Tuple[ColumnTypeMapping, ...] = column_type_mappings,
     ) -> Union[ColumnSpec, None]:
 
         column_spec = super().get_column_spec(native_type)

@@ -17,12 +17,13 @@
 import json
 import logging
 from datetime import datetime
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import Any, Dict, Optional, Tuple, TYPE_CHECKING, Union
 
 from superset import is_feature_enabled
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, ColumnTypeMapping
 from superset.exceptions import SupersetException
 from superset.utils import core as utils
+from superset.utils.core import ColumnSpec
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
@@ -115,3 +116,26 @@ class DruidEngineSpec(BaseEngineSpec):
         Convert from number of milliseconds since the epoch to a timestamp.
         """
         return "MILLIS_TO_TIMESTAMP({col})"
+
+    @classmethod
+    def get_column_spec(
+        cls,
+        native_type: Optional[str],
+        column_name: Optional[str] = None,
+        source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
+        column_type_mappings: Tuple[
+            ColumnTypeMapping, ...
+        ] = BaseEngineSpec.column_type_mappings,
+    ) -> Union[ColumnSpec, None]:
+        # __time is a reserved column name and should always be considered a
+        # timestamp (are incorrectly returned as LONG for queries)
+        if column_name == "__time":
+            return super().get_column_spec("TIMESTAMP")
+
+        column_spec = super().get_column_spec(native_type)
+        if column_spec:
+            return column_spec
+
+        return super().get_column_spec(
+            native_type, column_type_mappings=column_type_mappings
+        )

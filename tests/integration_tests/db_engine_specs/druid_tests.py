@@ -16,7 +16,7 @@
 # under the License.
 from unittest import mock
 
-from sqlalchemy import column
+from sqlalchemy import column, types
 
 from superset.db_engine_specs.druid import DruidEngineSpec
 from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
@@ -76,3 +76,10 @@ class TestDruidDbEngineSpec(TestDbEngineSpec):
         connect_args = extras["engine_params"]["connect_args"]
         assert connect_args["scheme"] == "https"
         assert "ssl_verify_cert" in connect_args
+
+    def test_column_specs(self):
+        col_spec = DruidEngineSpec.get_column_spec("TIMESTAMP")
+        assert col_spec.is_dttm is True
+        col_spec = DruidEngineSpec.get_column_spec("LONG", column_name="__time")
+        assert isinstance(col_spec.sqla_type, types.TIMESTAMP)
+        assert col_spec.is_dttm is True

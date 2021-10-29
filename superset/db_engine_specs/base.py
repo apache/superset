@@ -75,6 +75,13 @@ if TYPE_CHECKING:
 logger = logging.getLogger()
 
 
+ColumnTypeMapping = Tuple[
+    Pattern[str],
+    Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
+    GenericDataType,
+]
+
+
 class TimeGrain(NamedTuple):
     name: str  # TODO: redundant field, remove
     label: str
@@ -162,14 +169,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     ] = None  # used for user messages, overridden in child classes
     _date_trunc_functions: Dict[str, str] = {}
     _time_grain_expressions: Dict[Optional[str], str] = {}
-    column_type_mappings: Tuple[
-        Tuple[
-            Pattern[str],
-            Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
-            GenericDataType,
-        ],
-        ...,
-    ] = (
+    column_type_mappings: Tuple[ColumnTypeMapping, ...,] = (
         (
             re.compile(r"^smallint", re.IGNORECASE),
             types.SmallInteger(),
@@ -1130,14 +1130,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def get_sqla_column_type(
         cls,
         column_type: Optional[str],
-        column_type_mappings: Tuple[
-            Tuple[
-                Pattern[str],
-                Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
-                GenericDataType,
-            ],
-            ...,
-        ] = column_type_mappings,
+        column_type_mappings: Tuple[ColumnTypeMapping, ...] = column_type_mappings,
     ) -> Union[Tuple[TypeEngine, GenericDataType], None]:
         """
         Return a sqlalchemy native column type that corresponds to the column type
@@ -1290,20 +1283,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def get_column_spec(  # pylint: disable=unused-argument
         cls,
         native_type: Optional[str],
+        column_name: Optional[str] = None,
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
-        column_type_mappings: Tuple[
-            Tuple[
-                Pattern[str],
-                Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
-                GenericDataType,
-            ],
-            ...,
-        ] = column_type_mappings,
+        column_type_mappings: Tuple[ColumnTypeMapping, ...] = column_type_mappings,
     ) -> Union[ColumnSpec, None]:
         """
         Converts native database type to sqlalchemy column type.
         :param native_type: Native database typee
+        :param column_name: name of column
         :param source: Type coming from the database table or cursor description
+        :param column_type_mappings: Mapping to be used (fall back to defaults if
+               undefined)
         :return: ColumnSpec object
         """
         col_types = cls.get_sqla_column_type(
