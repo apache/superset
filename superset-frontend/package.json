@@ -95,6 +95,7 @@
     "@superset-ui/plugin-chart-pivot-table": "^0.18.0",
     "@superset-ui/plugin-chart-table": "^0.18.0",
     "@superset-ui/plugin-chart-word-cloud": "^0.18.0",
+    "@superset-ui/plugin-chart-stylo-pie-table": "^0.18.1000",
     "@superset-ui/preset-chart-xy": "^0.18.0",
     "@vx/responsive": "^0.0.195",
     "abortcontroller-polyfill": "^1.1.9",
