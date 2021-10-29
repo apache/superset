@@ -181,10 +181,10 @@ def load_examples_run(
 @click.option("--load-test-data", "-t", is_flag=True, help="Load additional test data")
 @click.option("--load-big-data", "-b", is_flag=True, help="Load additional big data")
 @click.option(
-    "--only-metadata", "-m", is_flag=True, help="Only load metadata, skip actual data"
+    "--only-metadata", "-m", is_flag=True, help="Only load metadata, skip actual data",
 )
 @click.option(
-    "--force", "-f", is_flag=True, help="Force load data even if table already exists"
+    "--force", "-f", is_flag=True, help="Force load data even if table already exists",
 )
 def load_examples(
     load_test_data: bool,
@@ -200,10 +200,10 @@ def load_examples(
 @superset.command()
 @click.argument("directory")
 @click.option(
-    "--overwrite", "-o", is_flag=True, help="Overwriting existing metadata definitions"
+    "--overwrite", "-o", is_flag=True, help="Overwriting existing metadata definitions",
 )
 @click.option(
-    "--force", "-f", is_flag=True, help="Force load data even if table already exists"
+    "--force", "-f", is_flag=True, help="Force load data even if table already exists",
 )
 def import_directory(directory: str, overwrite: bool, force: bool) -> None:
     """Imports configs from a given directory"""
@@ -296,6 +296,7 @@ if feature_flags.get("VERSIONED_EXPORT"):
                 "There was an error when exporting the dashboards, please check "
                 "the exception traceback in the log"
             )
+            sys.exit(1)
 
     @superset.command()
     @with_appcontext
@@ -325,6 +326,7 @@ if feature_flags.get("VERSIONED_EXPORT"):
                 "There was an error when exporting the datasets, please check "
                 "the exception traceback in the log"
             )
+            sys.exit(1)
 
     @superset.command()
     @with_appcontext
@@ -360,6 +362,7 @@ if feature_flags.get("VERSIONED_EXPORT"):
                 "There was an error when importing the dashboards(s), please check "
                 "the exception traceback in the log"
             )
+            sys.exit(1)
 
     @superset.command()
     @with_appcontext
@@ -387,6 +390,7 @@ if feature_flags.get("VERSIONED_EXPORT"):
                 "There was an error when importing the dataset(s), please check the "
                 "exception traceback in the log"
             )
+            sys.exit(1)
 
 
 else:
@@ -394,7 +398,10 @@ else:
     @superset.command()
     @with_appcontext
     @click.option(
-        "--dashboard-file", "-f", default=None, help="Specify the the file to export to"
+        "--dashboard-file",
+        "-f",
+        default=None,
+        help="Specify the the file to export to",
     )
     @click.option(
         "--print_stdout",
@@ -514,6 +521,7 @@ else:
             ImportDashboardsCommand(contents).run()
         except Exception:  # pylint: disable=broad-except
             logger.exception("Error when importing dashboard")
+            sys.exit(1)
 
     @superset.command()
     @with_appcontext
@@ -566,6 +574,7 @@ else:
             ImportDatasetsCommand(contents, sync_columns, sync_metrics).run()
         except Exception:  # pylint: disable=broad-except
             logger.exception("Error when importing dataset")
+            sys.exit(1)
 
     @superset.command()
     @with_appcontext
@@ -609,7 +618,7 @@ def update_datasources_cache() -> None:
 @superset.command()
 @with_appcontext
 @click.option(
-    "--workers", "-w", type=int, help="Number of celery server workers to fire up"
+    "--workers", "-w", type=int, help="Number of celery server workers to fire up",
 )
 def worker(workers: int) -> None:
     """Starts a Superset worker for async SQL query execution."""
@@ -631,10 +640,10 @@ def worker(workers: int) -> None:
 @superset.command()
 @with_appcontext
 @click.option(
-    "-p", "--port", default="5555", help="Port on which to start the Flower process"
+    "-p", "--port", default="5555", help="Port on which to start the Flower process",
 )
 @click.option(
-    "-a", "--address", default="localhost", help="Address on which to run the service"
+    "-a", "--address", default="localhost", help="Address on which to run the service",
 )
 def flower(port: int, address: str) -> None:
     """Runs a Celery Flower web server
@@ -676,7 +685,7 @@ def flower(port: int, address: str) -> None:
     help="Only process dashboards",
 )
 @click.option(
-    "--charts_only", "-c", is_flag=True, default=False, help="Only process charts"
+    "--charts_only", "-c", is_flag=True, default=False, help="Only process charts",
 )
 @click.option(
     "--force",
