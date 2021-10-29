@@ -51,6 +51,8 @@ COLUMN_FORM_DATA_PARAMS = [
     "columns",
     "entity",
     "groupby",
+    "groupbyRows",
+    "groupbyColumns",
     "order_by_cols",
     "series",
 ]
