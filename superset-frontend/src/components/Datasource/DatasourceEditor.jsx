@@ -471,7 +471,6 @@ class DatasourceEditor extends React.PureComponent {
     const { datasourceType, datasource } = this.state;
     const sql =
       datasourceType === DATASOURCE_TYPES.physical.key ? '' : datasource.sql;
-
     const newDatasource = {
       ...this.state.datasource,
       sql,
@@ -489,6 +488,7 @@ class DatasourceEditor extends React.PureComponent {
   }
 
   onDatasourcePropChange(attr, value) {
+    if (value === undefined) return; // if value is undefined do not update state
     const datasource = { ...this.state.datasource, [attr]: value };
     this.setState(
       prevState => ({
