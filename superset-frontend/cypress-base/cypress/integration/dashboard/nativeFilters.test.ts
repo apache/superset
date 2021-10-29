@@ -134,7 +134,6 @@ describe('Nativefilters Sanity test', () => {
   });
   it('User can delete a native filter', () => {
     cy.get(nativeFilters.createFilterButton)
-      // .should("be.visible")
       .click({ force: true });
     cy.get(nativeFilters.modal.container).should('be.visible');
 
@@ -160,7 +159,7 @@ describe('Nativefilters Sanity test', () => {
       .should('be.visible')
       .click();
     cy.get(nativeFilters.modal.alertXUnsavedFilters).should('be.visible');
-    // remove
+    // remove native filter
     cy.get(nativeFilters.modal.footer)
       .find(nativeFilters.modal.yesCancelButton)
       .contains('cancel')
