@@ -233,4 +233,4 @@ class InvalidPayloadSchemaError(SupersetErrorException):
 
 
 class SupersetCancelQueryException(SupersetException):
-    pass
+    status = 422
