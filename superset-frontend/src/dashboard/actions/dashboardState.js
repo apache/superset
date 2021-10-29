@@ -221,7 +221,7 @@ export function saveDashboardRequest(data, id, saveType) {
             },
             {},
           );
-          dispatch(setChartConfiguration(chartConfiguration));
+          dispatch(setChartConfiguration(chartConfiguration,safeStringify(serializedFilterScopes)));
         }
         dispatch(saveDashboardRequestSuccess(response.json.last_modified_time));
         dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
