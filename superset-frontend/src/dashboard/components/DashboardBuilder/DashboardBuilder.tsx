@@ -236,10 +236,10 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     rootChildId !== DASHBOARD_GRID_ID
       ? dashboardLayout[rootChildId]
       : undefined;
-  const StandaloneMode = getUrlParam(URL_PARAMS.standalone);
-  const isReport = StandaloneMode === DashboardStandaloneMode.REPORT;
+  const standaloneMode = getUrlParam(URL_PARAMS.standalone);
+  const isReport = standaloneMode === DashboardStandaloneMode.REPORT;
   const hideDashboardHeader =
-    StandaloneMode === DashboardStandaloneMode.HIDE_NAV_AND_TITLE || isReport;
+    standaloneMode === DashboardStandaloneMode.HIDE_NAV_AND_TITLE || isReport;
 
   const barTopOffset =
     (hideDashboardHeader ? 0 : HEADER_HEIGHT) +
@@ -266,7 +266,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
 
   const offset =
     FILTER_BAR_HEADER_HEIGHT +
-    (isSticky || StandaloneMode ? 0 : MAIN_HEADER_HEIGHT) +
+    (isSticky || standaloneMode ? 0 : MAIN_HEADER_HEIGHT) +
     (filterSetEnabled ? FILTER_BAR_TABS_HEIGHT : 0);
 
   const filterBarHeight = `calc(100vh - ${offset}px)`;
@@ -380,7 +380,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
             )}
             {editMode && (
               <BuilderComponentPane
-                isStandalone={!!StandaloneMode}
+                isStandalone={!!standaloneMode}
                 topOffset={barTopOffset}
               />
             )}
