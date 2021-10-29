@@ -32,7 +32,7 @@ import {
   EchartsTimeseriesContributionType,
   EchartsTimeseriesSeriesType,
 } from './types';
-import { legendSection, showValueSection } from '../controls';
+import { legendSection, richTooltipSection, showValueSection } from '../controls';
 
 const {
   area,
@@ -44,7 +44,6 @@ const {
   opacity,
   rowLimit,
   seriesType,
-  tooltipTimeFormat,
   truncateYAxis,
   yAxisBounds,
   zoomable,
@@ -225,31 +224,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        // eslint-disable-next-line react/jsx-key
-        [<h1 className="section-header">{t('Tooltip')}</h1>],
-        [
-          {
-            name: 'rich_tooltip',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Rich tooltip'),
-              renderTrigger: true,
-              default: true,
-              description: t('Shows a list of all series available at that point in time'),
-            },
-          },
-        ],
-        [
-          {
-            name: 'tooltipTimeFormat',
-            config: {
-              ...sharedControls.x_axis_time_format,
-              label: t('Tooltip time format'),
-              default: tooltipTimeFormat,
-              clearable: false,
-            },
-          },
-        ],
+        ...richTooltipSection,
         // eslint-disable-next-line react/jsx-key
         [<h1 className="section-header">{t('Y Axis')}</h1>],
         ['y_axis_format'],
