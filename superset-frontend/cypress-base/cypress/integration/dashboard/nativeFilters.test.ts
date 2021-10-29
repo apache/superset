@@ -16,12 +16,124 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CHART_LIST } from '../chart_list/chart_list.helper';
+import { dashboardView, nativeFilters } from 'cypress/support/directories';
+import { testItems } from './dashboard.helper';
 import { DASHBOARD_LIST } from '../dashboard_list/dashboard_list.helper';
+
+const getTestTitle = (
+  test: Mocha.Suite = (Cypress as any).mocha.getRunner().suite.ctx.test,
+): string =>
+  test.parent?.title
+    ? `${getTestTitle(test.parent)} -- ${test.title}`
+    : test.title;
 
 // TODO: fix flaky init logic and re-enable
 const milliseconds = new Date().getTime();
 const dashboard = `Test Dashboard${milliseconds}`;
+
+describe('Nativefilters Sanity test', () => {
+  before(() => {
+    cy.login();
+    cy.intercept('/api/v1/dashboard/?q=**').as('dashboardsList');
+    cy.intercept('POST', '**/copy_dash/*').as('copy');
+    cy.intercept('/api/v1/dashboard/*').as('dashboard');
+    cy.request(
+      'api/v1/dashboard/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:100)',
+    ).then(xhr => {
+      const dashboards = xhr.body.result;
+      const worldBankDashboard = dashboards.find(
+        d => d.dashboard_title === "World Bank's Data",
+      );
+      cy.visit(worldBankDashboard.url);
+    });
+    cy.get(dashboardView.threeDotsMenuIcon).should('be.visible').click();
+    cy.get(dashboardView.saveAsMenuOption).should('be.visible').click();
+    cy.get(dashboardView.saveModal.dashboardNameInput)
+      .should('be.visible')
+      .clear()
+      .type(testItems.dashboard);
+    cy.get(dashboardView.saveModal.saveButton).click();
+    cy.wait('@copy', { timeout: 45000 })
+      .its('response.statusCode')
+      .should('eq', 200);
+  });
+  beforeEach(() => {
+    cy.login();
+    cy.request(
+      'api/v1/dashboard/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:100)',
+    ).then(xhr => {
+      const dashboards = xhr.body.result;
+      const testDashboard = dashboards.find(
+        d => d.dashboard_title === testItems.dashboard,
+      );
+      cy.visit(testDashboard.url);
+    });
+  });
+  it('User can expand / retract native filter sidebar on a dashboard', () => {
+    cy.get(nativeFilters.createFilterButton).should('not.exist');
+    cy.get(nativeFilters.filterFromDashboardView.expand)
+      .should('be.visible')
+      .click();
+    cy.get(nativeFilters.createFilterButton).should('be.visible');
+    cy.get(nativeFilters.filterFromDashboardView.expand).should(
+      'not.be.visible',
+    );
+    cy.get(nativeFilters.filterFromDashboardView.collapse)
+      .should('be.visible')
+      .click();
+    cy.get(nativeFilters.filterFromDashboardView.collapse).should(
+      'not.be.visible',
+    );
+  });
+  it('User can enter filter edit pop-up by clicking on pencil icon', () => {
+    cy.get(nativeFilters.filterFromDashboardView.expand)
+      .should('be.visible')
+      .click();
+    cy.get(nativeFilters.createFilterButton).should('be.visible').click();
+    cy.get(nativeFilters.modal.container).should('be.visible');
+  });
+  it('User can add a new native filter', () => {
+    cy.get(nativeFilters.filterFromDashboardView.expand)
+      .should('be.visible')
+      .click();
+    cy.get(nativeFilters.createFilterButton).should('be.visible').click();
+    cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.filterName)
+      .click()
+      .type('Country name');
+    cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.datasetName)
+      .click()
+      .type('wb_health_population{enter}');
+
+    // Add following step to avoid flaky enter value in line 177
+    cy.get(nativeFilters.filtersPanel.inputDropdown)
+      .should('be.visible', { timeout: 20000 })
+      .last()
+      .click();
+
+    cy.get('.loading inline-centered css-101mkpk').should('not.exist');
+    // hack for unclickable country_name
+    cy.wait(5000);
+    cy.get(nativeFilters.filtersPanel.filterInfoInput)
+      .last()
+      .should('be.visible')
+      .click({ force: true });
+    cy.get(nativeFilters.filtersPanel.filterInfoInput)
+      .last()
+      .type('country_name');
+    cy.get(nativeFilters.filtersPanel.inputDropdown)
+      .should('be.visible', { timeout: 20000 })
+      .last()
+      .click();
+    cy.get(nativeFilters.modal.footer)
+      .contains('Save')
+      .should('be.visible')
+      .click();
+    cy.get(nativeFilters.modal.container).should('not.exist');
+  });
+});
+
 xdescribe('Nativefilters', () => {
   before(() => {
     cy.login();
