@@ -17,11 +17,12 @@
  * under the License.
  */
 import React, { useMemo } from 'react';
-import { styled } from '@superset-ui/core';
-import { Form, FormItem } from 'src/components/Form';
+import { styled, SupersetTheme } from '@superset-ui/core';
+import { FormItem as StyledFormItem, Form } from 'src/components/Form';
+import { Tooltip } from 'src/components/Tooltip';
+import { checkIsMissingRequiredValue } from '../utils';
 import FilterValue from './FilterValue';
 import { FilterProps } from './types';
-import { checkIsMissingRequiredValue } from '../utils';
 
 const StyledIcon = styled.div`
   position: absolute;
@@ -50,7 +51,61 @@ const StyledFilterControlContainer = styled(Form)`
     width: 100%;
     padding-right: ${({ theme }) => theme.gridUnit * 11}px;
   }
+  .ant-form-item-tooltip {
+    margin-bottom: ${({ theme }) => theme.gridUnit}px;
+  }
 `;
+
+const FormItem = styled(StyledFormItem)`
+  .ant-form-item-label {
+    label.ant-form-item-required:not(.ant-form-item-required-mark-optional) {
+      &::after {
+        display: none;
+      }
+    }
+  }
+`;
+
+const ToolTipContainer = styled.div`
+  font-size: ${({ theme }) => theme.typography.sizes.m}px;
+  display: flex;
+`;
+
+const RequiredFieldIndicator = () => (
+  <span
+    css={(theme: SupersetTheme) => ({
+      color: theme.colors.error.base,
+      fontSize: `${theme.typography.sizes.s}px`,
+      paddingLeft: '1px',
+    })}
+  >
+    *
+  </span>
+);
+
+const DescriptionToolTip = ({ description }: { description: string }) => (
+  <ToolTipContainer>
+    <Tooltip
+      title={description}
+      placement="right"
+      overlayInnerStyle={{
+        display: '-webkit-box',
+        overflow: 'hidden',
+        WebkitLineClamp: 20,
+        WebkitBoxOrient: 'vertical',
+        textOverflow: 'ellipsis',
+      }}
+    >
+      <i
+        className="fa fa-info-circle text-muted"
+        css={(theme: SupersetTheme) => ({
+          paddingLeft: `${theme.gridUnit}px`,
+          cursor: 'pointer',
+        })}
+      />
+    </Tooltip>
+  </ToolTipContainer>
+);
 
 const FilterControl: React.FC<FilterProps> = ({
   dataMaskSelected,
@@ -68,6 +123,7 @@ const FilterControl: React.FC<FilterProps> = ({
     filter,
     filter.dataMask?.filterState,
   );
+  const isRequired = !!filter.controlValues?.enableEmptyFilter;
 
   const label = useMemo(
     () => (
@@ -75,10 +131,14 @@ const FilterControl: React.FC<FilterProps> = ({
         <StyledFilterControlTitle data-test="filter-control-name">
           {name}
         </StyledFilterControlTitle>
+        {isRequired && <RequiredFieldIndicator />}
+        {filter.description && filter.description.trim() && (
+          <DescriptionToolTip description={filter.description} />
+        )}
         <StyledIcon data-test="filter-icon">{icon}</StyledIcon>
       </StyledFilterControlTitleBox>
     ),
-    [icon, name],
+    [name, isRequired, filter.description, icon],
   );
 
   return (
@@ -101,4 +161,5 @@ const FilterControl: React.FC<FilterProps> = ({
     </StyledFilterControlContainer>
   );
 };
+
 export default React.memo(FilterControl);

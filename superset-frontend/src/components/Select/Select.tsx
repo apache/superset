@@ -82,17 +82,80 @@ export type OptionsPagePromise = (
 ) => Promise<OptionsTypePage>;
 
 export interface SelectProps extends PickedSelectProps {
+  /**
+   * It enables the user to create new options.
+   * Can be used with standard or async select types.
+   * Can be used with any mode, single or multiple.
+   * False by default.
+   * */
   allowNewOptions?: boolean;
+  /**
+   * It adds the aria-label tag for accessibility standards.
+   * Must be plain English and localized.
+   */
   ariaLabel: string;
+  /**
+   * It adds a header on top of the Select.
+   * Can be any ReactNode.
+   */
   header?: ReactNode;
+  /**
+   * It fires a request against the server after
+   * the first interaction and not on render.
+   * Works in async mode only (See the options property).
+   * True by default.
+   */
   lazyLoading?: boolean;
+  /**
+   * It defines whether the Select should allow for the
+   * selection of multiple options or single.
+   * Single by default.
+   */
   mode?: 'single' | 'multiple';
+  /**
+   * Deprecated.
+   * Prefer ariaLabel instead.
+   */
   name?: string; // discourage usage
+  /**
+   * It allows to define which properties of the option object
+   * should be looked for when searching.
+   * By default label and value.
+   */
   optionFilterProps?: string[];
+  /**
+   * It defines the options of the Select.
+   * The options can be static, an array of options.
+   * The options can also be async, a promise that returns
+   * an array of options.
+   */
   options: OptionsType | OptionsPagePromise;
+  /**
+   * It defines how many results should be included
+   * in the query response.
+   * Works in async mode only (See the options property).
+   */
   pageSize?: number;
+  /**
+   * It shows a stop-outlined icon at the far right of a selected
+   * option instead of the default checkmark.
+   * Useful to better indicate to the user that by clicking on a selected
+   * option it will be de-selected.
+   * False by default.
+   */
   invertSelection?: boolean;
+  /**
+   * It fires a request against the server only after
+   * searching.
+   * Works in async mode only (See the options property).
+   * Undefined by default.
+   */
   fetchOnlyOnSearch?: boolean;
+  /**
+   * It provides a callback function when an error
+   * is generated after a request is fired.
+   * Works in async mode only (See the options property).
+   */
   onError?: (error: string) => void;
   sortComparator?: (a: AntdLabeledValue, b: AntdLabeledValue) => number;
 }
@@ -193,6 +256,20 @@ export const propertyComparator = (property: string) => (
   return (a[property] as number) - (b[property] as number);
 };
 
+/**
+ * This component is a customized version of the Antdesign 4.X Select component
+ * https://ant.design/components/select/.
+ * The aim of the component was to combine all the instances of select components throughout the
+ * project under one and to remove the react-select component entirely.
+ * This Select component provides an API that is tested against all the different use cases of Superset.
+ * It limits and overrides the existing Antdesign API in order to keep their usage to the minimum
+ * and to enforce simplification and standardization.
+ * It is divided into two macro categories, Static and Async.
+ * The Static type accepts a static array of options.
+ * The Async type accepts a promise that will return the options.
+ * Each of the categories come with different abilities. For a comprehensive guide please refer to
+ * the storybook in src/components/Select/Select.stories.tsx.
+ */
 const Select = ({
   allowNewOptions = false,
   ariaLabel,

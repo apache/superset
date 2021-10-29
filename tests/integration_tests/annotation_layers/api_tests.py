@@ -31,6 +31,8 @@ from tests.integration_tests.annotation_layers.fixtures import (
     create_annotation_layers,
     get_end_dttm,
     get_start_dttm,
+    START_STR,
+    END_STR,
 )
 
 ANNOTATION_LAYERS_COUNT = 10
@@ -201,7 +203,10 @@ class TestAnnotationLayerApi(SupersetTestCase):
         Annotation Api: Test create annotation layer
         """
         self.login(username="admin")
-        annotation_layer_data = {"name": "new3", "descr": "description"}
+        annotation_layer_data = {
+            "name": "new3",
+            "descr": "description",
+        }
         uri = "api/v1/annotation_layer/"
         rv = self.client.post(uri, json=annotation_layer_data)
         assert rv.status_code == 201
@@ -500,6 +505,8 @@ class TestAnnotationLayerApi(SupersetTestCase):
         annotation_data = {
             "short_descr": "new",
             "long_descr": "description",
+            "start_dttm": START_STR,
+            "end_dttm": END_STR,
         }
         uri = f"api/v1/annotation_layer/{layer.id}/annotation/"
         rv = self.client.post(uri, json=annotation_data)
@@ -525,6 +532,8 @@ class TestAnnotationLayerApi(SupersetTestCase):
         annotation_data = {
             "short_descr": "short_descr2",
             "long_descr": "description",
+            "start_dttm": START_STR,
+            "end_dttm": END_STR,
         }
         uri = f"api/v1/annotation_layer/{layer.id}/annotation/"
         rv = self.client.post(uri, json=annotation_data)

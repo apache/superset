@@ -17,6 +17,11 @@
  * under the License.
  */
 import {
+  ColumnMeta,
+  InfoTooltipWithTrigger,
+  Metric,
+} from '@superset-ui/chart-controls';
+import {
   AdhocFilter,
   Behavior,
   ChartDataResponseResult,
@@ -26,15 +31,11 @@ import {
   JsonResponse,
   styled,
   SupersetApiError,
-  t,
   SupersetClient,
+  t,
 } from '@superset-ui/core';
-import {
-  ColumnMeta,
-  InfoTooltipWithTrigger,
-  Metric,
-} from '@superset-ui/chart-controls';
 import { FormInstance } from 'antd/lib/form';
+import { isEmpty, isEqual } from 'lodash';
 import React, {
   forwardRef,
   useCallback,
@@ -44,53 +45,55 @@ import React, {
   useState,
 } from 'react';
 import { useSelector } from 'react-redux';
-import { isEqual, isEmpty } from 'lodash';
-import { FormItem } from 'src/components/Form';
-import { Input } from 'src/common/components';
-import { Select } from 'src/components';
-import { cacheWrapper } from 'src/utils/cacheWrapper';
-import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
-import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
-import { addDangerToast } from 'src/components/MessageToasts/actions';
-import { ClientErrorObject } from 'src/utils/getClientErrorObject';
-import Collapse from 'src/components/Collapse';
 import { getChartDataRequest } from 'src/chart/chartAction';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
-import { waitForAsyncData } from 'src/middleware/asyncEvent';
-import Tabs from 'src/components/Tabs';
-import Icons from 'src/components/Icons';
-import { Tooltip } from 'src/components/Tooltip';
-import { Radio } from 'src/components/Radio';
+import { Input, TextArea } from 'src/common/components';
+import { Select } from 'src/components';
+import Collapse from 'src/components/Collapse';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
+import { FormItem } from 'src/components/Form';
+import Icons from 'src/components/Icons';
+import Loading from 'src/components/Loading';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { Radio } from 'src/components/Radio';
+import Tabs from 'src/components/Tabs';
+import { Tooltip } from 'src/components/Tooltip';
 import {
   Chart,
   ChartsState,
   DatasourcesState,
   RootState,
 } from 'src/dashboard/types';
-import Loading from 'src/components/Loading';
-import { ColumnSelect } from './ColumnSelect';
-import { NativeFiltersForm, FilterRemoval } from '../types';
+import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
+import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { waitForAsyncData } from 'src/middleware/asyncEvent';
+import { cacheWrapper } from 'src/utils/cacheWrapper';
+import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import {
-  FILTER_SUPPORTED_TYPES,
-  hasTemporalColumns,
-  setNativeFilterFieldValues,
-  useForceUpdate,
-  mostUsedDataset,
-} from './utils';
-import { useBackendFormUpdate, useDefaultValue } from './state';
-import { getFormData } from '../../utils';
-import { Filter, NativeFilterType } from '../../types';
-import getControlItemsMap from './getControlItemsMap';
-import FilterScope from './FilterScope/FilterScope';
-import RemovedFilter from './RemovedFilter';
-import DefaultValue from './DefaultValue';
-import { CollapsibleControl } from './CollapsibleControl';
+  Filter,
+  NativeFilterType,
+} from 'src/dashboard/components/nativeFilters/types';
+import { getFormData } from 'src/dashboard/components/nativeFilters/utils';
 import {
   CASCADING_FILTERS,
   getFiltersConfigModalTestId,
 } from '../FiltersConfigModal';
+import { FilterRemoval, NativeFiltersForm } from '../types';
+import { CollapsibleControl } from './CollapsibleControl';
+import { ColumnSelect } from './ColumnSelect';
 import DatasetSelect from './DatasetSelect';
+import DefaultValue from './DefaultValue';
+import FilterScope from './FilterScope/FilterScope';
+import getControlItemsMap from './getControlItemsMap';
+import RemovedFilter from './RemovedFilter';
+import { useBackendFormUpdate, useDefaultValue } from './state';
+import {
+  FILTER_SUPPORTED_TYPES,
+  hasTemporalColumns,
+  mostUsedDataset,
+  setNativeFilterFieldValues,
+  useForceUpdate,
+} from './utils';
 
 const TabPane = styled(Tabs.TabPane)`
   padding: ${({ theme }) => theme.gridUnit * 4}px 0px;
@@ -966,6 +969,13 @@ const FiltersConfigForm = (
             {Object.keys(controlItems)
               .filter(key => BASIC_CONTROL_ITEMS.includes(key))
               .map(key => controlItems[key].element)}
+            <StyledFormItem
+              name={['filters', filterId, 'description']}
+              initialValue={filterToEdit?.description}
+              label={<StyledLabel>{t('Description')}</StyledLabel>}
+            >
+              <TextArea />
+            </StyledFormItem>
           </Collapse.Panel>
           {hasAdvancedSection && (
             <Collapse.Panel
