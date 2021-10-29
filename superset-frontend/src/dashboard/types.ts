@@ -72,6 +72,7 @@ export type DashboardInfo = {
   metadata: {
     show_native_filters: boolean;
     chart_configuration: JsonObject;
+    filter_scopes: JsonObject;
   };
 };
 
