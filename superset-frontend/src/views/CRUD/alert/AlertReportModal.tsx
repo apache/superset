@@ -38,7 +38,7 @@ import { Switch } from 'src/components/Switch';
 import Modal from 'src/components/Modal';
 import TimezoneSelector from 'src/components/TimezoneSelector';
 import { Radio } from 'src/components/Radio';
-import { Select } from 'src/components';
+import Select, { propertyComparator } from 'src/components/Select/Select';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';
@@ -85,30 +85,37 @@ const CONDITIONS = [
   {
     label: t('< (Smaller than)'),
     value: '<',
+    order: 0,
   },
   {
     label: t('> (Larger than)'),
     value: '>',
+    order: 1,
   },
   {
     label: t('<= (Smaller or equal)'),
     value: '<=',
+    order: 2,
   },
   {
     label: t('>= (Larger or equal)'),
     value: '>=',
+    order: 3,
   },
   {
     label: t('== (Is equal)'),
     value: '==',
+    order: 4,
   },
   {
     label: t('!= (Is not equal)'),
     value: '!=',
+    order: 5,
   },
   {
     label: t('Not null'),
     value: 'not null',
+    order: 6,
   },
 ];
 
@@ -1147,6 +1154,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                         currentAlert?.validator_config_json?.op || undefined
                       }
                       options={CONDITIONS}
+                      sortComparator={propertyComparator('order')}
                     />
                   </div>
                 </StyledInputContainer>
@@ -1214,6 +1222,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   onChange={onLogRetentionChange}
                   value={currentAlert?.log_retention || DEFAULT_RETENTION}
                   options={RETENTION_OPTIONS}
+                  sortComparator={propertyComparator('value')}
                 />
               </div>
             </StyledInputContainer>

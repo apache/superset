@@ -19,9 +19,9 @@
 coverage/**
 dist/*
 src/assets/images/*
+src/assets/stylesheets/*
 node_modules/*
 node_modules*/*
-stylesheets/*
 vendor/*
 docs/*
 src/dashboard/deprecated/*

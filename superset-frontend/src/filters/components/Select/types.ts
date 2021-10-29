@@ -59,6 +59,8 @@ export type PluginFilterSelectProps = PluginFilterStylesProps & {
   formData: PluginFilterSelectQueryFormData;
   filterState: FilterState;
   isRefreshing: boolean;
+  showOverflow: boolean;
+  parentRef?: RefObject<any>;
 } & PluginFilterHooks;
 
 export const DEFAULT_FORM_DATA: PluginFilterSelectCustomizeProps = {

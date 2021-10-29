@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { RefObject } from 'react';
 import { styled, DataMask } from '@superset-ui/core';
 import FilterControl from 'src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterControl';
 import { CascadeFilter } from 'src/dashboard/components/nativeFilters/FilterBar/CascadeFilters/types';
@@ -28,6 +28,7 @@ export interface CascadeFilterControlProps {
   filter: CascadeFilter;
   directPathToChild?: string[];
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
+  parentRef?: RefObject<any>;
 }
 
 const StyledDiv = styled.div`
@@ -35,7 +36,6 @@ const StyledDiv = styled.div`
   width: 100%;
   flex-direction: column;
   align-items: center;
-
   .ant-form-item {
     margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
   }
@@ -46,12 +46,15 @@ const CascadeFilterControl: React.FC<CascadeFilterControlProps> = ({
   filter,
   directPathToChild,
   onFilterSelectionChange,
+  parentRef,
 }) => (
   <>
     <FilterControl
       dataMaskSelected={dataMaskSelected}
       filter={filter}
       directPathToChild={directPathToChild}
+      parentRef={parentRef}
+      showOverflow
       onFilterSelectionChange={onFilterSelectionChange}
     />
     <StyledDiv>

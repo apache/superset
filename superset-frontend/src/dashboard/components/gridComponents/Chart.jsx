@@ -22,7 +22,10 @@ import PropTypes from 'prop-types';
 import { styled } from '@superset-ui/core';
 import { isEqual } from 'lodash';
 
-import { exportChart, getExploreLongUrl } from 'src/explore/exploreUtils';
+import {
+  exportChart,
+  getExploreUrlFromDashboard,
+} from 'src/explore/exploreUtils';
 import ChartContainer from 'src/chart/ChartContainer';
 import {
   LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
@@ -230,7 +233,7 @@ export default class Chart extends React.Component {
     });
   };
 
-  getChartUrl = () => getExploreLongUrl(this.props.formData);
+  getChartUrl = () => getExploreUrlFromDashboard(this.props.formData);
 
   exportCSV(isFullCSV = false) {
     this.props.logEvent(LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART, {

@@ -171,7 +171,7 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
   };
 
   const validate = () => {
-    if (currentLayer && currentLayer.name.length) {
+    if (currentLayer && currentLayer.name?.length) {
       setDisableSave(false);
     } else {
       setDisableSave(true);

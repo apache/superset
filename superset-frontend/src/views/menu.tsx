@@ -27,6 +27,9 @@ import { ThemeProvider } from '@superset-ui/core';
 import Menu from 'src/components/Menu/Menu';
 import { theme } from 'src/preamble';
 
+import { Provider } from 'react-redux';
+import { store } from './store';
+
 const container = document.getElementById('app');
 const bootstrapJson = container?.getAttribute('data-bootstrap') ?? '{}';
 const bootstrap = JSON.parse(bootstrapJson);
@@ -40,7 +43,9 @@ const app = (
   // @ts-ignore: emotion types defs are incompatible between core and cache
   <CacheProvider value={emotionCache}>
     <ThemeProvider theme={theme}>
-      <Menu data={menu} />
+      <Provider store={store}>
+        <Menu data={menu} />
+      </Provider>
     </ThemeProvider>
   </CacheProvider>
 );
