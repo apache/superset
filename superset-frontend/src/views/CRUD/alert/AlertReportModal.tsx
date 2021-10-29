@@ -524,7 +524,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         contentType === 'dashboard' ? currentAlert?.dashboard?.value : null,
       database: currentAlert?.database?.value,
       owners: (currentAlert?.owners || []).map(
-        owner => (owner as MetaObject).value,
+        owner => (owner as MetaObject).value || owner.id,
       ),
       recipients,
       report_format:
@@ -972,9 +972,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               label: (resource.database as DatabaseObject).database_name,
             }
           : undefined,
-        owners: (resource.owners || []).map(owner => ({
-          value: owner.id,
-          label: `${(owner as Owner).first_name} ${(owner as Owner).last_name}`,
+        owners: (alert?.owners || []).map(owner => ({
+          value: (owner as MetaObject).value || owner.id,
+          label:
+            (owner as MetaObject).label ||
+            `${(owner as Owner).first_name} ${(owner as Owner).last_name}`,
         })),
         // @ts-ignore: Type not assignable
         validator_config_json:
