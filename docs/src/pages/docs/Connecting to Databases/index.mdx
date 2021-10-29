@@ -42,7 +42,7 @@ A list of some of the recommended packages.
 |[Elasticsearch](/docs/databases/elasticsearch)|```pip install elasticsearch-dbapi```|```elasticsearch+http://{user}:{password}@{host}:9200/```|
 |[Exasol](/docs/databases/exasol)|```pip install sqlalchemy-exasol```|```exa+pyodbc://{username}:{password}@{hostname}:{port}/my_schema?CONNECTIONLCALL=en_US.UTF-8&driver=EXAODBC```|
 |[Google Sheets](/docs/databases/google-sheets)|```pip install shillelagh[gsheetsapi]```|```gsheets://```|
-|[Firebolt](/docs/databases/firebolt)|```pip install firebolt-sqlalchemy```|```firebolt://{username}:{password}@{host}/{database}```|
+|[Firebolt](/docs/databases/firebolt)|```pip install firebolt-sqlalchemy```|```firebolt://{username}:{password}@{database} or firebolt://{username}:{password}@{database}/{engine_name}```|
 |[Hologres](/docs/databases/hologres)|```pip install psycopg2```|```postgresql+psycopg2://<UserName>:<DBPassword>@<Database Host>/<Database Name>```|
 |[IBM Db2](/docs/databases/ibm-db2)|```pip install ibm_db_sa```|```db2+ibm_db://```|
 |[IBM Netezza Performance Server](/docs/databases/netezza)|```pip install nzalchemy```|```netezza+nzpy://<UserName>:<DBPassword>@<Database Host>/<Database Name>```|
