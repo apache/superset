@@ -2347,6 +2347,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
 
     @has_access_api
+    @handle_api_exception
     @expose("/stop_query/", methods=["POST"])
     @event_logger.log_this
     @backoff.on_exception(
