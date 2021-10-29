@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from flask import Request
 from marshmallow import ValidationError
@@ -50,8 +50,8 @@ class ChartDataCommand(BaseCommand):
             payload = self._query_context.get_payload(
                 cache_query_context=cache_query_context, force_cached=force_cached
             )
-        except CacheLoadError as exc:
-            raise ChartDataCacheLoadError(exc.message)
+        except CacheLoadError as ex:
+            raise ChartDataCacheLoadError(ex.message) from ex
 
         # TODO: QueryContext should support SIP-40 style errors
         for query in payload["queries"]:
@@ -67,8 +67,8 @@ class ChartDataCommand(BaseCommand):
 
         return return_value
 
-    def run_async(self) -> Dict[str, Any]:
-        job_metadata = async_query_manager.init_job(self._async_channel_id)
+    def run_async(self, user_id: Optional[str]) -> Dict[str, Any]:
+        job_metadata = async_query_manager.init_job(self._async_channel_id, user_id)
         load_chart_data_into_cache.delay(job_metadata, self._form_data)
 
         return job_metadata
@@ -77,8 +77,8 @@ class ChartDataCommand(BaseCommand):
         self._form_data = form_data
         try:
             self._query_context = ChartDataQueryContextSchema().load(self._form_data)
-        except KeyError:
-            raise ValidationError("Request is incorrect")
+        except KeyError as ex:
+            raise ValidationError("Request is incorrect") from ex
         except ValidationError as error:
             raise error
 

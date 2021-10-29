@@ -18,8 +18,8 @@
  */
 import React from 'react';
 import Button from 'src/components/Button';
-import {Empty} from 'src/common/components';
-import {t, styled} from '@superset-ui/core';
+import { Empty } from 'src/common/components';
+import { t, styled } from '@superset-ui/core';
 
 interface EmptyStateProps {
   tableName: string;
@@ -35,16 +35,16 @@ const EmptyContainer = styled.div`
 const ButtonContainer = styled.div`
   Button {
     svg {
-      color: ${({theme}) => theme.colors.grayscale.light5};
+      color: ${({ theme }) => theme.colors.grayscale.light5};
     }
   }
 `;
 
-export default function EmptyState({tableName, tab}: EmptyStateProps) {
+export default function EmptyState({ tableName, tab }: EmptyStateProps) {
   const mineRedirects = {
     DASHBOARDS: '/dashboard/new',
     CHARTS: '/chart/add',
-    SAVED_QUERIES: '/superset/sqllab',
+    SAVED_QUERIES: '/superset/sqllab?new=true',
   };
   const favRedirects = {
     DASHBOARDS: '/dashboard/list/',
@@ -62,7 +62,7 @@ export default function EmptyState({tableName, tab}: EmptyStateProps) {
       tableName === 'SAVED_QUERIES'
         ? t('saved queries')
         : t(`${tableName.toLowerCase()}`)
-      }`}</span>
+    }`}</span>
   );
   const recent = (
     <span className="no-recents">
@@ -78,9 +78,7 @@ export default function EmptyState({tableName, tab}: EmptyStateProps) {
           );
         }
         if (tab === 'Examples') {
-          return t(
-            `Recent example charts, dashboards, and saved queries will appear here`,
-          );
+          return t(`Example ${tableName.toLowerCase()} will appear here`);
         }
         if (tab === 'Edited') {
           return t(
@@ -92,12 +90,14 @@ export default function EmptyState({tableName, tab}: EmptyStateProps) {
     </span>
   );
   // Mine and Recent Activity(all tabs) tab empty state
-  if (tab === 'Mine' || tableName === 'RECENTS') {
+  if (tab === 'Mine' || tableName === 'RECENTS' || tab === 'Examples') {
     return (
       <EmptyContainer>
         <Empty
           image={`/static/assets/images/${tableIcon[tableName]}`}
-          description={tableName === 'RECENTS' ? recent : mine}
+          description={
+            tableName === 'RECENTS' || tab === 'Examples' ? recent : mine
+          }
         >
           {tableName !== 'RECENTS' && (
             <ButtonContainer>
@@ -107,10 +107,15 @@ export default function EmptyState({tableName, tab}: EmptyStateProps) {
                   window.location = mineRedirects[tableName];
                 }}
               >
-                <i className="fa fa-plus"/>
+                <i className="fa fa-plus" />
                 {tableName === 'SAVED_QUERIES'
                   ? t('SQL query')
-                  : t(`${tableName.split('').slice(0, tableName.length - 1).join('')}`)}
+                  : t(
+                      `${tableName
+                        .split('')
+                        .slice(0, tableName.length - 1)
+                        .join('')}`,
+                    )}
               </Button>
             </ButtonContainer>
           )}
@@ -136,10 +141,11 @@ export default function EmptyState({tableName, tab}: EmptyStateProps) {
           }}
         >
           {`${t('See all')}
-          ${tableName === 'SAVED_QUERIES'
-            ? t('SQL Lab queries')
-            : t(tableName.toLowerCase())
-            }`}
+          ${
+            tableName === 'SAVED_QUERIES'
+              ? t('SQL Lab queries')
+              : t(tableName.toLowerCase())
+          }`}
         </Button>
       </Empty>
     </EmptyContainer>

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Slice } from 'src/types/Chart';
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
@@ -58,7 +57,7 @@ jest.mock('src/dashboard/components/SliceHeaderControls', () => ({
       <button
         type="button"
         data-test="exploreChart"
-        onClick={props.exploreChart}
+        onClick={props.logExploreChart}
       >
         exploreChart
       </button>
@@ -94,7 +93,7 @@ jest.mock('src/dashboard/components/SliceHeaderControls', () => ({
   ),
 }));
 
-jest.mock('src/dashboard/containers/FiltersBadge', () => ({
+jest.mock('src/dashboard/components/FiltersBadge', () => ({
   __esModule: true,
   default: (props: any) => (
     <div data-test="FiltersBadge" data-chart-id={props.chartId} />
@@ -114,7 +113,7 @@ const createProps = () => ({
   supersetCanExplore: true,
   supersetCanCSV: true,
   sliceCanEdit: false,
-  slice: ({
+  slice: {
     slice_id: 312,
     slice_url: '/superset/explore/?form_data=%7B%22slice_id%22%3A%20312%7D',
     slice_name: 'Vaccine Candidates per Phase',
@@ -139,12 +138,13 @@ const createProps = () => ({
     },
     viz_type: 'dist_bar',
     datasource: '58__table',
-    description: null,
+    description: '',
     description_markeddown: '',
     owners: [],
     modified: '<span class="no-wrap">20 hours ago</span>',
     changed_on: 1617143411366,
-  } as unknown) as Slice,
+    slice_description: '',
+  },
   componentId: 'CHART-aGfmWtliqA',
   dashboardId: 26,
   isFullSize: false,
@@ -155,8 +155,9 @@ const createProps = () => ({
   updateSliceName: jest.fn(),
   toggleExpandSlice: jest.fn(),
   forceRefresh: jest.fn(),
-  exploreChart: jest.fn(),
+  logExploreChart: jest.fn(),
   exportCSV: jest.fn(),
+  formData: {},
 });
 
 test('Should render', () => {
@@ -175,7 +176,7 @@ test('Should render - default props', () => {
   // @ts-ignore
   delete props.toggleExpandSlice;
   // @ts-ignore
-  delete props.exploreChart;
+  delete props.logExploreChart;
   // @ts-ignore
   delete props.exportCSV;
   // @ts-ignore
@@ -217,7 +218,7 @@ test('Should render default props and "call" actions', () => {
   // @ts-ignore
   delete props.toggleExpandSlice;
   // @ts-ignore
-  delete props.exploreChart;
+  delete props.logExploreChart;
   // @ts-ignore
   delete props.exportCSV;
   // @ts-ignore
@@ -377,9 +378,9 @@ test('Correct actions to "SliceHeaderControls"', () => {
   userEvent.click(screen.getByTestId('forceRefresh'));
   expect(props.forceRefresh).toBeCalledTimes(1);
 
-  expect(props.exploreChart).toBeCalledTimes(0);
+  expect(props.logExploreChart).toBeCalledTimes(0);
   userEvent.click(screen.getByTestId('exploreChart'));
-  expect(props.exploreChart).toBeCalledTimes(1);
+  expect(props.logExploreChart).toBeCalledTimes(1);
 
   expect(props.exportCSV).toBeCalledTimes(0);
   userEvent.click(screen.getByTestId('exportCSV'));

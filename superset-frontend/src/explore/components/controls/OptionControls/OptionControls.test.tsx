@@ -17,7 +17,12 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen, fireEvent } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import {
@@ -36,6 +41,7 @@ import {
 
 const defaultProps = {
   label: <span>Test label</span>,
+  tooltipTitle: 'This is a tooltip title',
   onRemove: jest.fn(),
   onMoveLabel: jest.fn(),
   onDropLabel: jest.fn(),
@@ -50,29 +56,30 @@ const setup = (overrides?: Record<string, any>) =>
     </DndProvider>,
   );
 
-test('should render', () => {
+test('should render', async () => {
   const { container } = setup();
-  expect(container).toBeVisible();
+  await waitFor(() => expect(container).toBeVisible());
 });
 
-test('should display a label', () => {
+test('should display a label', async () => {
   setup();
-  expect(screen.getByText('Test label')).toBeTruthy();
+  expect(await screen.findByText('Test label')).toBeTruthy();
 });
 
-test('should display a certification icon if saved metric is certified', () => {
+test('should display a certification icon if saved metric is certified', async () => {
   const { container } = setup({
     savedMetric: {
       metric_name: 'test_metric',
       is_certified: true,
     },
   });
-  screen.getByText('test_metric');
-  expect(screen.queryByText('Test label')).toBeFalsy();
-  expect(container.querySelector('.metric-option > svg')).toBeInTheDocument();
+  await waitFor(() => {
+    expect(screen.queryByText('Test label')).toBeFalsy();
+    expect(container.querySelector('.metric-option > svg')).toBeInTheDocument();
+  });
 });
 
-test('triggers onMoveLabel on drop', () => {
+test('triggers onMoveLabel on drop', async () => {
   render(
     <DndProvider backend={HTML5Backend}>
       <OptionControlLabel
@@ -87,9 +94,11 @@ test('triggers onMoveLabel on drop', () => {
       />
     </DndProvider>,
   );
-  fireEvent.dragStart(screen.getByText('Label 1'));
-  fireEvent.drop(screen.getByText('Label 2'));
-  expect(defaultProps.onMoveLabel).toHaveBeenCalled();
+  await waitFor(() => {
+    fireEvent.dragStart(screen.getByText('Label 1'));
+    fireEvent.drop(screen.getByText('Label 2'));
+    expect(defaultProps.onMoveLabel).toHaveBeenCalled();
+  });
 });
 
 test('renders DragContainer', () => {

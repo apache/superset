@@ -18,6 +18,7 @@
  */
 import { t, validateNonEmpty } from '@superset-ui/core';
 import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
+import { sharedControls } from '@superset-ui/chart-controls/lib';
 import { DEFAULT_FORM_DATA } from './types';
 
 const {
@@ -25,6 +26,7 @@ const {
   inverseSelection,
   multiSelect,
   defaultToFirstItem,
+  searchAllOptions,
   sortAscending,
 } = DEFAULT_FORM_DATA;
 
@@ -35,7 +37,18 @@ const config: ControlPanelConfig = {
     {
       label: t('Query'),
       expanded: true,
-      controlSetRows: [['groupby']],
+      controlSetRows: [
+        [
+          {
+            name: 'groupby',
+            config: {
+              ...sharedControls.groupby,
+              label: 'Column',
+              required: true,
+            },
+          },
+        ],
+      ],
     },
     {
       label: t('UI Configuration'),
@@ -61,6 +74,7 @@ const config: ControlPanelConfig = {
               label: t('Multiple select'),
               default: multiSelect,
               resetConfig: true,
+              affectsDataMask: true,
               renderTrigger: true,
               description: t('Allow selecting multiple values'),
             },
@@ -71,11 +85,11 @@ const config: ControlPanelConfig = {
             name: 'enableEmptyFilter',
             config: {
               type: 'CheckboxControl',
-              label: t('Enable empty filter'),
+              label: t('Required'),
               default: enableEmptyFilter,
               renderTrigger: true,
               description: t(
-                'When selection is empty, should an always false filter event be emitted',
+                'User must select a value before applying the filter',
               ),
             },
           },
@@ -88,8 +102,12 @@ const config: ControlPanelConfig = {
               label: t('Default to first item'),
               default: defaultToFirstItem,
               resetConfig: true,
+              affectsDataMask: true,
               renderTrigger: true,
-              description: t('Select first item by default'),
+              requiredFirst: true,
+              description: t(
+                'Select first item by default (when using this option, default value can’t be set)',
+              ),
             },
           },
         ],
@@ -99,9 +117,27 @@ const config: ControlPanelConfig = {
             config: {
               type: 'CheckboxControl',
               renderTrigger: true,
+              affectsDataMask: true,
               label: t('Inverse selection'),
               default: inverseSelection,
               description: t('Exclude selected values'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'searchAllOptions',
+            config: {
+              type: 'CheckboxControl',
+              renderTrigger: true,
+              affectsDataMask: true,
+              label: t('Search all filter options'),
+              default: searchAllOptions,
+              description: t(
+                'By default, each filter loads at most 1000 choices at the initial page load. ' +
+                  'Check this box if you have more than 1000 filter values and want to enable dynamically ' +
+                  'searching that loads filter values as users type (may add stress to your database).',
+              ),
             },
           },
         ],

@@ -24,7 +24,6 @@ import { Provider } from 'react-redux';
 
 import { shallow } from 'enzyme';
 import { styledMount as mount } from 'spec/helpers/theming';
-import { FormControl } from 'react-bootstrap';
 import { Radio } from 'src/components/Radio';
 import Button from 'src/components/Button';
 import sinon from 'sinon';
@@ -43,14 +42,16 @@ describe('SaveModal', () => {
       dashboards: [],
     },
     explore: {
-      can_overwrite: true,
-      user_id: '1',
       datasource: {},
       slice: {
         slice_id: 1,
         slice_name: 'title',
+        owners: [1],
       },
       alert: null,
+      user: {
+        userId: 1,
+      },
     },
   };
   const store = mockStore(initialState);
@@ -91,7 +92,6 @@ describe('SaveModal', () => {
   it('renders a Modal with the right set of components', () => {
     const wrapper = getWrapper();
     expect(wrapper.find(StyledModal)).toExist();
-    expect(wrapper.find(FormControl)).toExist();
     expect(wrapper.find(Radio)).toHaveLength(2);
 
     const footerWrapper = shallow(wrapper.find(StyledModal).props().footer);
@@ -106,7 +106,7 @@ describe('SaveModal', () => {
 
   it('disable overwrite option for non-owner', () => {
     const wrapperForNonOwner = getWrapper();
-    wrapperForNonOwner.setProps({ can_overwrite: false });
+    wrapperForNonOwner.setProps({ userId: 2 });
     const overwriteRadio = wrapperForNonOwner.find('#overwrite-radio');
     expect(overwriteRadio).toHaveLength(1);
     expect(overwriteRadio.prop('disabled')).toBe(true);
@@ -142,12 +142,13 @@ describe('SaveModal', () => {
 
   it('onChange', () => {
     const wrapper = getWrapper();
+    const dashboardId = mockEvent.value;
 
     wrapper.instance().onSliceNameChange(mockEvent);
     expect(wrapper.state().newSliceName).toBe(mockEvent.target.value);
 
-    wrapper.instance().onDashboardSelectChange(mockEvent);
-    expect(wrapper.state().saveToDashboardId).toBe(mockEvent.value);
+    wrapper.instance().onDashboardSelectChange(dashboardId);
+    expect(wrapper.state().saveToDashboardId).toBe(dashboardId);
   });
 
   describe('saveOrOverwrite', () => {

@@ -29,7 +29,11 @@ export default function transformProps(chartProps: ChartProps) {
     behaviors,
     filterState,
   } = chartProps;
-  const { setDataMask = () => {} } = hooks;
+  const {
+    setDataMask = () => {},
+    setFocusedFilter = () => {},
+    unsetFocusedFilter = () => {},
+  } = hooks;
   const { data } = queriesData[0];
 
   return {
@@ -42,6 +46,8 @@ export default function transformProps(chartProps: ChartProps) {
     height,
     behaviors,
     setDataMask,
+    setFocusedFilter,
+    unsetFocusedFilter,
     width,
   };
 }

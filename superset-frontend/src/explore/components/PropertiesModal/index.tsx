@@ -16,22 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Row,
-  Col,
-  FormControl,
-  FormGroup,
-  FormControlProps,
-} from 'react-bootstrap';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import Modal from 'src/components/Modal';
+import { Row, Col, Input, TextArea } from 'src/common/components';
 import Button from 'src/components/Button';
-import { OptionsType } from 'react-select/src/types';
-import { AsyncSelect } from 'src/components/Select';
+import { Select } from 'src/components';
+import { SelectValue } from 'antd/lib/select';
 import rison from 'rison';
 import { t, SupersetClient } from '@superset-ui/core';
 import Chart, { Slice } from 'src/types/Chart';
-import FormLabel from 'src/components/FormLabel';
+import { Form, FormItem } from 'src/components/Form';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 
 type PropertiesModalProps = {
@@ -39,11 +33,6 @@ type PropertiesModalProps = {
   show: boolean;
   onHide: () => void;
   onSave: (chart: Chart) => void;
-};
-
-type OwnerOption = {
-  label: string;
-  value: number;
 };
 
 export default function PropertiesModal({
@@ -60,7 +49,9 @@ export default function PropertiesModal({
   const [cacheTimeout, setCacheTimeout] = useState(
     slice.cache_timeout != null ? slice.cache_timeout : '',
   );
-  const [owners, setOwners] = useState<OptionsType<OwnerOption> | null>(null);
+  const [selectedOwners, setSelectedOwners] = useState<SelectValue | null>(
+    null,
+  );
 
   function showError({ error, statusText, message }: any) {
     let errorText = error || statusText || t('An error has occurred');
@@ -81,7 +72,7 @@ export default function PropertiesModal({
           endpoint: `/api/v1/chart/${slice.slice_id}`,
         });
         const chart = response.json.result;
-        setOwners(
+        setSelectedOwners(
           chart.owners.map((owner: any) => ({
             value: owner.id,
             label: `${owner.first_name} ${owner.last_name}`,
@@ -95,36 +86,23 @@ export default function PropertiesModal({
     [slice.slice_id],
   );
 
-  // get the owners of this slice
-  useEffect(() => {
-    fetchChartData();
-  }, [fetchChartData]);
-
-  // update name after it's changed in another modal
-  useEffect(() => {
-    setName(slice.slice_name || '');
-  }, [slice.slice_name]);
-
-  const loadOptions = (input = '') => {
-    const query = rison.encode({
-      filter: input,
-    });
-    return SupersetClient.get({
-      endpoint: `/api/v1/chart/related/owners?q=${query}`,
-    }).then(
-      response => {
-        const { result } = response.json;
-        return result.map((item: any) => ({
-          value: item.value,
-          label: item.text,
-        }));
-      },
-      badResponse => {
-        getClientErrorObject(badResponse).then(showError);
-        return [];
-      },
-    );
-  };
+  const loadOptions = useMemo(
+    () => (input = '', page: number, pageSize: number) => {
+      const query = rison.encode({ filter: input, page, page_size: pageSize });
+      return SupersetClient.get({
+        endpoint: `/api/v1/chart/related/owners?q=${query}`,
+      }).then(response => ({
+        data: response.json.result.map(
+          (item: { value: number; text: string }) => ({
+            value: item.value,
+            label: item.text,
+          }),
+        ),
+        totalCount: response.json.count,
+      }));
+    },
+    [],
+  );
 
   const onSubmit = async (event: React.FormEvent) => {
     event.stopPropagation();
@@ -135,8 +113,11 @@ export default function PropertiesModal({
       description: description || null,
       cache_timeout: cacheTimeout || null,
     };
-    if (owners) {
-      payload.owners = owners.map(o => o.value);
+    if (selectedOwners) {
+      payload.owners = (selectedOwners as {
+        value: number;
+        label: string;
+      }[]).map(o => o.value);
     }
     try {
       const res = await SupersetClient.put({
@@ -157,6 +138,18 @@ export default function PropertiesModal({
     }
     setSubmitting(false);
   };
+
+  const ownersLabel = t('Owners');
+
+  // get the owners of this slice
+  useEffect(() => {
+    fetchChartData();
+  }, [fetchChartData]);
+
+  // update name after it's changed in another modal
+  useEffect(() => {
+    setName(slice.slice_name || '');
+  }, [slice.slice_name]);
 
   return (
     <Modal
@@ -181,7 +174,7 @@ export default function PropertiesModal({
             buttonStyle="primary"
             // @ts-ignore
             onClick={onSubmit}
-            disabled={!owners || submitting || !name}
+            disabled={submitting || !name}
             cta
           >
             {t('Save')}
@@ -191,37 +184,28 @@ export default function PropertiesModal({
       responsive
       wrapProps={{ 'data-test': 'properties-edit-modal' }}
     >
-      <form onSubmit={onSubmit}>
-        <Row>
-          <Col md={6}>
+      <Form onFinish={onSubmit} layout="vertical">
+        <Row gutter={16}>
+          <Col xs={24} md={12}>
             <h3>{t('Basic information')}</h3>
-            <FormGroup>
-              <FormLabel htmlFor="name" required>
-                {t('Name')}
-              </FormLabel>
-              <FormControl
+            <FormItem label={t('Name')} required>
+              <Input
                 name="name"
                 data-test="properties-modal-name-input"
                 type="text"
-                bsSize="sm"
                 value={name}
-                onChange={(
-                  event: React.FormEvent<FormControl & FormControlProps>,
-                ) => setName((event.currentTarget?.value as string) ?? '')}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                  setName(event.target.value ?? '')
+                }
               />
-            </FormGroup>
-            <FormGroup>
-              <FormLabel htmlFor="description">{t('Description')}</FormLabel>
-              <FormControl
+            </FormItem>
+            <FormItem label={t('Description')}>
+              <TextArea
+                rows={3}
                 name="description"
-                type="text"
-                componentClass="textarea"
-                bsSize="sm"
                 value={description}
-                onChange={(
-                  event: React.FormEvent<FormControl & FormControlProps>,
-                ) =>
-                  setDescription((event.currentTarget?.value as string) ?? '')
+                onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setDescription(event.target.value ?? '')
                 }
                 style={{ maxWidth: '100%' }}
               />
@@ -230,22 +214,17 @@ export default function PropertiesModal({
                   'The description can be displayed as widget headers in the dashboard view. Supports markdown.',
                 )}
               </p>
-            </FormGroup>
+            </FormItem>
           </Col>
-          <Col md={6}>
+          <Col xs={24} md={12}>
             <h3>{t('Configuration')}</h3>
-            <FormGroup>
-              <FormLabel htmlFor="cacheTimeout">{t('Cache timeout')}</FormLabel>
-              <FormControl
+            <FormItem label={t('Cache timeout')}>
+              <Input
                 name="cacheTimeout"
                 type="text"
-                bsSize="sm"
                 value={cacheTimeout}
-                onChange={(
-                  event: React.FormEvent<FormControl & FormControlProps>,
-                ) => {
-                  const targetValue =
-                    (event.currentTarget?.value as string) ?? '';
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                  const targetValue = event.target.value ?? '';
                   setCacheTimeout(targetValue.replace(/[^0-9]/, ''));
                 }}
               />
@@ -254,30 +233,28 @@ export default function PropertiesModal({
                   "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the dataset's timeout if undefined.",
                 )}
               </p>
-            </FormGroup>
+            </FormItem>
             <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
-            <FormGroup>
-              <FormLabel htmlFor="owners">{t('Owners')}</FormLabel>
-              <AsyncSelect
-                isMulti
+            <FormItem label={ownersLabel}>
+              <Select
+                ariaLabel={ownersLabel}
+                mode="multiple"
                 name="owners"
-                value={owners || []}
-                loadOptions={loadOptions}
-                defaultOptions // load options on render
-                cacheOptions
-                onChange={setOwners}
-                disabled={!owners}
-                filterOption={null} // options are filtered at the api
+                value={selectedOwners || []}
+                options={loadOptions}
+                onChange={setSelectedOwners}
+                disabled={!selectedOwners}
+                allowClear
               />
               <p className="help-block">
                 {t(
                   'A list of users who can alter the chart. Searchable by name or username.',
                 )}
               </p>
-            </FormGroup>
+            </FormItem>
           </Col>
         </Row>
-      </form>
+      </Form>
     </Modal>
   );
 }

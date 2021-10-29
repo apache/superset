@@ -21,10 +21,9 @@ import {
   DataRecord,
   FilterState,
   QueryFormData,
-  SetDataMaskHook,
 } from '@superset-ui/core';
 import { RefObject } from 'react';
-import { PluginFilterStylesProps } from '../types';
+import { PluginFilterHooks, PluginFilterStylesProps } from '../types';
 
 interface PluginFilterGroupByCustomizeProps {
   defaultValue?: string[] | null;
@@ -39,10 +38,9 @@ export type PluginFilterGroupByQueryFormData = QueryFormData &
 export type PluginFilterGroupByProps = PluginFilterStylesProps & {
   behaviors: Behavior[];
   data: DataRecord[];
-  setDataMask: SetDataMaskHook;
   filterState: FilterState;
   formData: PluginFilterGroupByQueryFormData;
-};
+} & PluginFilterHooks;
 
 export const DEFAULT_FORM_DATA: PluginFilterGroupByCustomizeProps = {
   defaultValue: null,

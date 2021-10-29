@@ -17,96 +17,100 @@
  * under the License.
  */
 import {
-  SupersetClient,
   getChartMetadataRegistry,
-  t,
   styled,
+  SupersetClient,
+  t,
 } from '@superset-ui/core';
-import React, {useMemo, useState} from 'react';
+import React, { useMemo, useState } from 'react';
 import rison from 'rison';
-import {uniqBy} from 'lodash';
-import {isFeatureEnabled, FeatureFlag} from 'src/featureFlags';
+import { uniqBy } from 'lodash';
+import moment from 'moment';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
-  createFetchRelated,
   createErrorHandler,
-  handleBulkChartExport,
+  createFetchRelated,
   handleChartDelete,
 } from 'src/views/CRUD/utils';
 import {
-  useListViewResource,
-  useFavoriteStatus,
   useChartEditModal,
+  useFavoriteStatus,
+  useListViewResource,
 } from 'src/views/CRUD/hooks';
+import handleResourceExport from 'src/utils/export';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import SubMenu, {SubMenuProps} from 'src/components/Menu/SubMenu';
+import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import FaveStar from 'src/components/FaveStar';
 import ListView, {
-  ListViewProps,
+  Filter,
+  FilterOperator,
   Filters,
+  ListViewProps,
   SelectOption,
-  FilterOperators,
 } from 'src/components/ListView';
-import {getFromLocalStorage} from 'src/utils/localStorageHelpers';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import Loading from 'src/components/Loading';
+import { getFromLocalStorage } from 'src/utils/localStorageHelpers';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import Chart from 'src/types/Chart';
-import {Tooltip} from 'src/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
+import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
+import setupPlugins from 'src/setup/setupPlugins';
 import ChartCard from './ChartCard';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
   'The passwords for the databases below are needed in order to ' +
-  'import them together with the charts. Please note that the ' +
-  '"Secure Extra" and "Certificate" sections of ' +
-  'the database configuration are not present in export files, and ' +
-  'should be added manually after the import if they are needed.',
+    'import them together with the charts. Please note that the ' +
+    '"Secure Extra" and "Certificate" sections of ' +
+    'the database configuration are not present in export files, and ' +
+    'should be added manually after the import if they are needed.',
 );
 const CONFIRM_OVERWRITE_MESSAGE = t(
   'You are importing one or more charts that already exist. ' +
-  'Overwriting might cause you to lose some of your work. Are you ' +
-  'sure you want to overwrite?',
+    'Overwriting might cause you to lose some of your work. Are you ' +
+    'sure you want to overwrite?',
 );
 
+setupPlugins();
 const registry = getChartMetadataRegistry();
 
-const createFetchDatasets = (handleError: (err: Response) => void) => async (
+const createFetchDatasets = async (
   filterValue = '',
-  pageIndex?: number,
-  pageSize?: number,
+  page: number,
+  pageSize: number,
 ) => {
   // add filters if filterValue
   const filters = filterValue
-    ? {filters: [{col: 'table_name', opr: 'sw', value: filterValue}]}
+    ? { filters: [{ col: 'table_name', opr: 'sw', value: filterValue }] }
     : {};
-  try {
-    const queryParams = rison.encode({
-      columns: ['datasource_name', 'datasource_id'],
-      keys: ['none'],
-      order_column: 'table_name',
-      order_direction: 'asc',
-      ...(pageIndex ? {page: pageIndex} : {}),
-      ...(pageSize ? {page_size: pageSize} : {}),
-      ...filters,
-    });
+  const queryParams = rison.encode({
+    columns: ['datasource_name', 'datasource_id'],
+    keys: ['none'],
+    order_column: 'table_name',
+    order_direction: 'asc',
+    page,
+    page_size: pageSize,
+    ...filters,
+  });
 
-    const {json = {}} = await SupersetClient.get({
-      endpoint: `/api/v1/dataset/?q=${queryParams}`,
-    });
+  const { json = {} } = await SupersetClient.get({
+    endpoint: `/api/v1/dataset/?q=${queryParams}`,
+  });
 
-    const datasets = json?.result?.map(
-      ({table_name: tableName, id}: { table_name: string; id: number }) => ({
-        label: tableName,
-        value: id,
-      }),
-    );
+  const datasets = json?.result?.map(
+    ({ table_name: tableName, id }: { table_name: string; id: number }) => ({
+      label: tableName,
+      value: id,
+    }),
+  );
 
-    return uniqBy<SelectOption>(datasets, 'value');
-  } catch (e) {
-    handleError(e);
-  }
-  return [];
+  return {
+    data: uniqBy<SelectOption>(datasets, 'value'),
+    totalCount: json?.count,
+  };
 };
 
 interface ChartListProps {
@@ -114,19 +118,19 @@ interface ChartListProps {
   addSuccessToast: (msg: string) => void;
   user: {
     userId: string | number;
+    firstName: string;
+    lastName: string;
   };
 }
 
 const Actions = styled.div`
-  color: ${({theme}) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
-function IsCyrillic(ch: string) {
-  return /^[\u0400-\u04FF ]+$/.test(ch);
-};
+const IsCyrillic = (ch: string) => /^[\u0400-\u04FF ]+$/.test(ch);
 
 function ChartList(props: ChartListProps) {
-  const {addDangerToast, addSuccessToast} = props;
+  const { addDangerToast, addSuccessToast } = props;
 
   const {
     state: {
@@ -158,6 +162,10 @@ function ChartList(props: ChartListProps) {
 
   const [importingChart, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
+  const [preparingExport, setPreparingExport] = useState<boolean>(false);
+
+  const { userId } = props.user;
+  const userKey = getFromLocalStorage(userId?.toString(), null);
 
   const openChartImportModal = () => {
     showImportModal(true);
@@ -177,15 +185,23 @@ function ChartList(props: ChartListProps) {
   const canDelete = hasPerm('can_write');
   const canExport =
     hasPerm('can_read') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
-  const initialSort = [{id: 'changed_on_delta_humanized', desc: true}];
+  const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
+
+  const handleBulkChartExport = (chartsToExport: Chart[]) => {
+    const ids = chartsToExport.map(({ id }) => id);
+    handleResourceExport('chart', ids, () => {
+      setPreparingExport(false);
+    });
+    setPreparingExport(true);
+  };
 
   function handleBulkChartDelete(chartsToDelete: Chart[]) {
     SupersetClient.delete({
       endpoint: `/api/v1/chart/?q=${rison.encode(
-        chartsToDelete.map(({id}) => id),
+        chartsToDelete.map(({ id }) => id),
       )}`,
     }).then(
-      ({json = {}}) => {
+      ({ json = {} }) => {
         refreshData();
         addSuccessToast(json.message);
       },
@@ -199,29 +215,33 @@ function ChartList(props: ChartListProps) {
 
   const columns = useMemo(
     () => [
+      ...(props.user.userId
+        ? [
+            {
+              Cell: ({
+                row: {
+                  original: { id },
+                },
+              }: any) => (
+                <FaveStar
+                  itemId={id}
+                  saveFaveStar={saveFavoriteStatus}
+                  isStarred={favoriteStatus[id]}
+                />
+              ),
+              Header: '',
+              id: 'id',
+              disableSortBy: true,
+              size: 'xs',
+            },
+          ]
+        : []),
       {
         Cell: ({
-                 row: {
-                   original: {id},
-                 },
-               }: any) => (
-          <FaveStar
-            itemId={id}
-            saveFaveStar={saveFavoriteStatus}
-            isStarred={favoriteStatus[id]}
-          />
-        ),
-        Header: '',
-        id: 'id',
-        disableSortBy: true,
-        size: 'xs',
-      },
-      {
-        Cell: ({
-                 row: {
-                   original: {url, slice_name: sliceName},
-                 },
-               }: any) => (
+          row: {
+            original: { url, slice_name: sliceName },
+          },
+        }: any) => (
           <a href={url} data-test={`${sliceName}-list-chart-title`}>
             {sliceName}
           </a>
@@ -231,23 +251,23 @@ function ChartList(props: ChartListProps) {
       },
       {
         Cell: ({
-                 row: {
-                   original: {viz_type: vizType},
-                 },
-               }: any) => registry.get(vizType)?.name || vizType,
+          row: {
+            original: { viz_type: vizType },
+          },
+        }: any) => registry.get(vizType)?.name || vizType,
         Header: t('Visualization type'),
         accessor: 'viz_type',
         size: 'xxl',
       },
       {
         Cell: ({
-                 row: {
-                   original: {
-                     datasource_name_text: dsNameTxt,
-                     datasource_url: dsUrl,
-                   },
-                 },
-               }: any) => <a href={dsUrl}>{dsNameTxt}</a>,
+          row: {
+            original: {
+              datasource_name_text: dsNameTxt,
+              datasource_url: dsUrl,
+            },
+          },
+        }: any) => <a href={dsUrl}>{dsNameTxt}</a>,
         Header: t('Dataset'),
         accessor: 'datasource_id',
         disableSortBy: true,
@@ -255,25 +275,35 @@ function ChartList(props: ChartListProps) {
       },
       {
         Cell: ({
-                 row: {
-                   original: {
-                     changed_by_name: changedByName,
-                     changed_by_url: changedByUrl,
-                   },
-                 },
-               }: any) => <a href={changedByUrl}>{changedByName}</a>,
+          row: {
+            original: {
+              last_saved_by: lastSavedBy,
+              changed_by_url: changedByUrl,
+            },
+          },
+        }: any) => (
+          <a href={changedByUrl}>
+            {lastSavedBy?.first_name
+              ? `${lastSavedBy?.first_name} ${lastSavedBy?.last_name}`
+              : null}
+          </a>
+        ),
         Header: t('Modified by'),
-        accessor: 'changed_by.first_name',
+        accessor: 'last_saved_by.first_name',
         size: 'xl',
       },
       {
         Cell: ({
-                 row: {
-                   original: {changed_on_delta_humanized: changedOn},
-                 },
-               }: any) => <span className="no-wrap">{changedOn}</span>,
+          row: {
+            original: { last_saved_at: lastSavedAt },
+          },
+        }: any) => (
+          <span className="no-wrap">
+            {lastSavedAt ? moment.utc(lastSavedAt).fromNow() : null}
+          </span>
+        ),
         Header: t('Last modified'),
-        accessor: 'changed_on_delta_humanized',
+        accessor: 'last_saved_at',
         size: 'xl',
       },
       {
@@ -283,10 +313,10 @@ function ChartList(props: ChartListProps) {
       },
       {
         Cell: ({
-                 row: {
-                   original: {created_by: createdBy},
-                 },
-               }: any) =>
+          row: {
+            original: { created_by: createdBy },
+          },
+        }: any) =>
           createdBy ? `${createdBy.first_name} ${createdBy.last_name}` : '',
         Header: t('Created by'),
         accessor: 'created_by',
@@ -294,7 +324,7 @@ function ChartList(props: ChartListProps) {
         size: 'xl',
       },
       {
-        Cell: ({row: {original}}: any) => {
+        Cell: ({ row: { original } }: any) => {
           const handleDelete = () =>
             handleChartDelete(
               original,
@@ -334,7 +364,7 @@ function ChartList(props: ChartListProps) {
                         className="action-button"
                         onClick={confirmDelete}
                       >
-                        <Icons.Trash/>
+                        <Icons.Trash />
                       </span>
                     </Tooltip>
                   )}
@@ -352,7 +382,7 @@ function ChartList(props: ChartListProps) {
                     className="action-button"
                     onClick={handleExport}
                   >
-                    <Icons.Share/>
+                    <Icons.Share />
                   </span>
                 </Tooltip>
               )}
@@ -368,7 +398,7 @@ function ChartList(props: ChartListProps) {
                     className="action-button"
                     onClick={openEditModal}
                   >
-                    <Icons.EditAlt data-test="edit-alt"/>
+                    <Icons.EditAlt data-test="edit-alt" />
                   </span>
                 </Tooltip>
               )}
@@ -381,121 +411,123 @@ function ChartList(props: ChartListProps) {
         hidden: !canEdit && !canDelete,
       },
     ],
-    [canEdit, canDelete, canExport, favoriteStatus],
+    [
+      canEdit,
+      canDelete,
+      canExport,
+      ...(props.user.userId ? [favoriteStatus] : []),
+    ],
   );
 
-
-  const filters: Filters = [
-    {
-      Header: t('Owner'),
-      id: 'owners',
-      input: 'select',
-      operator: FilterOperators.relationManyMany,
-      unfilteredLabel: t('All'),
-      fetchSelects: createFetchRelated(
-        'chart',
-        'owners',
-        createErrorHandler(errMsg =>
-          addDangerToast(
-            t(
-              'An error occurred while fetching chart owners values: %s',
-              errMsg,
-            ),
-          ),
-        ),
-        props.user.userId,
-      ),
-      paginate: true,
-    },
-    {
-      Header: t('Created by'),
-      id: 'created_by',
-      input: 'select',
-      operator: FilterOperators.relationOneMany,
-      unfilteredLabel: t('All'),
-      fetchSelects: createFetchRelated(
-        'chart',
-        'created_by',
-        createErrorHandler(errMsg =>
-          addDangerToast(
-            t(
-              'An error occurred while fetching chart created by values: %s',
-              errMsg,
-            ),
-          ),
-        ),
-        props.user.userId,
-      ),
-      paginate: true,
-    },
-    {
-      Header: t('Viz type'),
-      id: 'viz_type',
-      input: 'select',
-      operator: FilterOperators.equals,
-      unfilteredLabel: t('All'),
-      selects: registry
-        .keys()
-        .map(k => ({label: registry.get(k)?.name || k, value: k}))
-        .sort((a, b) => {
-          if (!a.label || !b.label) {
-            return 0;
-          }
-
-          if (IsCyrillic(a.label[0]) && !IsCyrillic(b.label[0])) {
-            return -1;
-          }
-          if (IsCyrillic(b.label[0]) && !IsCyrillic(a.label[0])) {
-            return 1;
-          }
-
-          if (a.label > b.label) {
-            return 1;
-          }
-          if (a.label < b.label) {
-            return -1;
-          }
-
-          return 0;
-        }),
-    },
-    {
-      Header: t('Dataset'),
-      id: 'datasource_id',
-      input: 'select',
-      operator: FilterOperators.equals,
-      unfilteredLabel: t('All'),
-      fetchSelects: createFetchDatasets(
-        createErrorHandler(errMsg =>
-          addDangerToast(
-            t(
-              'An error occurred while fetching chart dataset values: %s',
-              errMsg,
-            ),
-          ),
-        ),
-      ),
-      paginate: false,
-    },
-    {
+  const favoritesFilter: Filter = useMemo(
+    () => ({
       Header: t('Favorite'),
       id: 'id',
       urlDisplay: 'favorite',
       input: 'select',
-      operator: FilterOperators.chartIsFav,
+      operator: FilterOperator.chartIsFav,
       unfilteredLabel: t('Any'),
       selects: [
-        {label: t('Yes'), value: true},
-        {label: t('No'), value: false},
+        { label: t('Yes'), value: true },
+        { label: t('No'), value: false },
       ],
-    },
-    {
-      Header: t('Search'),
-      id: 'slice_name',
-      input: 'search',
-      operator: FilterOperators.chartAllText,
-    },
-  ];
+    }),
+    [],
+  );
+
+  const filters: Filters = useMemo(
+    () => [
+      {
+        Header: t('Owner'),
+        id: 'owners',
+        input: 'select',
+        operator: FilterOperator.relationManyMany,
+        unfilteredLabel: t('All'),
+        fetchSelects: createFetchRelated(
+          'chart',
+          'owners',
+          createErrorHandler(errMsg =>
+            addDangerToast(
+              t(
+                'An error occurred while fetching chart owners values: %s',
+                errMsg,
+              ),
+            ),
+          ),
+          props.user,
+        ),
+        paginate: true,
+      },
+      {
+        Header: t('Created by'),
+        id: 'created_by',
+        input: 'select',
+        operator: FilterOperator.relationOneMany,
+        unfilteredLabel: t('All'),
+        fetchSelects: createFetchRelated(
+          'chart',
+          'created_by',
+          createErrorHandler(errMsg =>
+            addDangerToast(
+              t(
+                'An error occurred while fetching chart created by values: %s',
+                errMsg,
+              ),
+            ),
+          ),
+          props.user,
+        ),
+        paginate: true,
+      },
+      {
+        Header: t('Viz type'),
+        id: 'viz_type',
+        input: 'select',
+        operator: FilterOperator.equals,
+        unfilteredLabel: t('All'),
+        selects: registry
+          .keys()
+          .filter(k => nativeFilterGate(registry.get(k)?.behaviors || []))
+          .map(k => ({ label: registry.get(k)?.name || k, value: k }))
+          .sort((a, b) => {
+            if (!a.label || !b.label) {
+              return 0;
+            }
+            if (IsCyrillic(a.label[0]) && !IsCyrillic(b.label[0])) {
+              return -1;
+            }
+            if (IsCyrillic(b.label[0]) && !IsCyrillic(a.label[0])) {
+              return 1;
+            }
+            if (a.label > b.label) {
+              return 1;
+            }
+            if (a.label < b.label) {
+              return -1;
+            }
+
+            return 0;
+          }),
+      },
+      {
+        Header: t('Dataset'),
+        id: 'datasource_id',
+        input: 'select',
+        operator: FilterOperator.equals,
+        unfilteredLabel: t('All'),
+        fetchSelects: createFetchDatasets,
+        paginate: true,
+      },
+      ...(props.user.userId ? [favoritesFilter] : []),
+      {
+        Header: t('Search'),
+        id: 'slice_name',
+        input: 'search',
+        operator: FilterOperator.chartAllText,
+      },
+    ],
+    [addDangerToast, favoritesFilter, props.user],
+  );
 
   const sortTypes = [
     {
@@ -519,8 +551,6 @@ function ChartList(props: ChartListProps) {
   ];
 
   function renderCard(chart: Chart) {
-    const {userId} = props.user;
-    const userKey = getFromLocalStorage(userId.toString(), null);
     return (
       <ChartCard
         chart={chart}
@@ -538,6 +568,7 @@ function ChartList(props: ChartListProps) {
         loading={loading}
         favoriteStatus={favoriteStatus[chart.id]}
         saveFavoriteStatus={saveFavoriteStatus}
+        handleBulkChartExport={handleBulkChartExport}
       />
     );
   }
@@ -555,7 +586,7 @@ function ChartList(props: ChartListProps) {
     subMenuButtons.push({
       name: (
         <>
-          <i className="fa fa-plus"/> {t('Chart')}
+          <i className="fa fa-plus" /> {t('Chart')}
         </>
       ),
       buttonStyle: 'primary',
@@ -563,25 +594,26 @@ function ChartList(props: ChartListProps) {
         window.location.assign('/chart/add');
       },
     });
-  }
-  if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
-    subMenuButtons.push({
-      name: (
-        <Tooltip
-          id="import-tooltip"
-          title={t('Import charts')}
-          placement="bottomRight"
-        >
-          <Icons.Import data-test="import-button"/>
-        </Tooltip>
-      ),
-      buttonStyle: 'link',
-      onClick: openChartImportModal,
-    });
+
+    if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
+      subMenuButtons.push({
+        name: (
+          <Tooltip
+            id="import-tooltip"
+            title={t('Import charts')}
+            placement="bottomRight"
+          >
+            <Icons.Import data-test="import-button" />
+          </Tooltip>
+        ),
+        buttonStyle: 'link',
+        onClick: openChartImportModal,
+      });
+    }
   }
   return (
     <>
-      <SubMenu name={t('Charts')} buttons={subMenuButtons}/>
+      <SubMenu name={t('Charts')} buttons={subMenuButtons} />
       {sliceCurrentlyEditing && (
         <PropertiesModal
           onHide={closeChartEditModal}
@@ -629,6 +661,11 @@ function ChartList(props: ChartListProps) {
               loading={loading}
               pageSize={PAGE_SIZE}
               renderCard={renderCard}
+              showThumbnails={
+                userKey
+                  ? userKey.thumbnails
+                  : isFeatureEnabled(FeatureFlag.THUMBNAILS)
+              }
               defaultViewMode={
                 isFeatureEnabled(FeatureFlag.LISTVIEWS_DEFAULT_CARD_VIEW)
                   ? 'card'
@@ -652,6 +689,7 @@ function ChartList(props: ChartListProps) {
         passwordFields={passwordFields}
         setPasswordFields={setPasswordFields}
       />
+      {preparingExport && <Loading />}
     </>
   );
 }

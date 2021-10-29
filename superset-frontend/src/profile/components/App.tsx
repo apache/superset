@@ -17,31 +17,35 @@
  * under the License.
  */
 import React from 'react';
-import { Col, Row, Panel } from 'react-bootstrap';
-import Tabs from 'src/common/components/Tabs';
-import { t } from '@superset-ui/core';
-
+import { t, styled } from '@superset-ui/core';
+import { Row, Col } from 'src/common/components';
+import Tabs from 'src/components/Tabs';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import Favorites from './Favorites';
 import UserInfo from './UserInfo';
 import Security from './Security';
 import RecentActivity from './RecentActivity';
 import CreatedContent from './CreatedContent';
-import { UserWithPermissionsAndRoles } from '../../types/bootstrapTypes';
 
 interface AppProps {
   user: UserWithPermissionsAndRoles;
 }
 
+const StyledTabPane = styled(Tabs.TabPane)`
+  background-color: ${({ theme }) => theme.colors.grayscale.light5};
+  padding: ${({ theme }) => theme.gridUnit * 4}px;
+`;
+
 export default function App({ user }: AppProps) {
   return (
     <div className="container app">
-      <Row>
-        <Col md={3}>
+      <Row gutter={16}>
+        <Col xs={24} md={6}>
           <UserInfo user={user} />
         </Col>
-        <Col md={9}>
+        <Col xs={24} md={18}>
           <Tabs centered>
-            <Tabs.TabPane
+            <StyledTabPane
               key="1"
               tab={
                 <div>
@@ -49,13 +53,9 @@ export default function App({ user }: AppProps) {
                 </div>
               }
             >
-              <Panel>
-                <Panel.Body>
-                  <Favorites user={user} />
-                </Panel.Body>
-              </Panel>
-            </Tabs.TabPane>
-            <Tabs.TabPane
+              <Favorites user={user} />
+            </StyledTabPane>
+            <StyledTabPane
               key="2"
               tab={
                 <div>
@@ -63,13 +63,9 @@ export default function App({ user }: AppProps) {
                 </div>
               }
             >
-              <Panel>
-                <Panel.Body>
-                  <CreatedContent user={user} />
-                </Panel.Body>
-              </Panel>
-            </Tabs.TabPane>
-            <Tabs.TabPane
+              <CreatedContent user={user} />
+            </StyledTabPane>
+            <StyledTabPane
               key="3"
               tab={
                 <div>
@@ -77,13 +73,9 @@ export default function App({ user }: AppProps) {
                 </div>
               }
             >
-              <Panel>
-                <Panel.Body>
-                  <RecentActivity user={user} />
-                </Panel.Body>
-              </Panel>
-            </Tabs.TabPane>
-            <Tabs.TabPane
+              <RecentActivity user={user} />
+            </StyledTabPane>
+            <StyledTabPane
               key="4"
               tab={
                 <div>
@@ -91,12 +83,8 @@ export default function App({ user }: AppProps) {
                 </div>
               }
             >
-              <Panel>
-                <Panel.Body>
-                  <Security user={user} />
-                </Panel.Body>
-              </Panel>
-            </Tabs.TabPane>
+              <Security user={user} />
+            </StyledTabPane>
           </Tabs>
         </Col>
       </Row>

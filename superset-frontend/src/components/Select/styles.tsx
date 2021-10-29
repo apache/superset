@@ -17,8 +17,8 @@
  * under the License.
  */
 import React, { CSSProperties, ComponentType, ReactNode } from 'react';
-import { css, SerializedStyles, ClassNames } from '@emotion/core';
-import { SupersetTheme } from '@superset-ui/core';
+import { SerializedStyles } from '@emotion/react';
+import { SupersetTheme, css } from '@superset-ui/core';
 import {
   Styles,
   Theme,
@@ -30,7 +30,7 @@ import { Props as SelectProps } from 'react-select/src/Select';
 import { colors as reactSelectColors } from 'react-select/src/theme';
 import { DeepNonNullable } from 'react-select/src/components';
 import { OptionType } from 'antd/lib/select';
-import { SupersetStyledSelectProps } from './Select';
+import { SupersetStyledSelectProps } from './DeprecatedSelect';
 
 export const DEFAULT_CLASS_NAME = 'Select';
 export const DEFAULT_CLASS_NAME_PREFIX = 'Select';
@@ -101,7 +101,7 @@ export const defaultTheme: (
     controlHeight: 34,
     lineHeight: 19,
     fontSize: 14,
-    minWidth: '7.5em', // just enough to display 'No options'
+    minWidth: '6.5em',
   },
 });
 
@@ -345,18 +345,14 @@ export const DEFAULT_COMPONENTS: SelectComponentsType = {
     );
   },
   Option: ({ children, innerProps, data, ...props }) => (
-    <ClassNames>
-      {({ css }) => (
-        <Option
-          {...props}
-          data={data}
-          className={css(data && data.style ? data.style : null)}
-          innerProps={innerProps}
-        >
-          {children}
-        </Option>
-      )}
-    </ClassNames>
+    <Option
+      {...props}
+      data={data}
+      css={data?.style ? data.style : null}
+      innerProps={innerProps}
+    >
+      {children}
+    </Option>
   ),
   ClearIndicator: props => (
     <ClearIndicator {...props}>

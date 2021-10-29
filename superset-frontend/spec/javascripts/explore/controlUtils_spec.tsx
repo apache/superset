@@ -149,30 +149,14 @@ describe('controlUtils', () => {
       expect(control).toBeNull();
     });
 
-    it('applies the default function for metrics', () => {
+    it('metrics control should be empty by default', () => {
       const control = getControlState('metrics', 'table', state);
-      expect(control?.default).toEqual(['first']);
+      expect(control?.default).toBeUndefined();
     });
 
-    it('applies the default function for metric', () => {
+    it('metric control should be empty by default', () => {
       const control = getControlState('metric', 'table', state);
-      expect(control?.default).toEqual('first');
-    });
-
-    it('applies the default function, prefers count if it exists', () => {
-      const stateWithCount = {
-        ...state,
-        datasource: {
-          ...(state.datasource as DatasourceMeta),
-          metrics: [
-            { metric_name: 'first' },
-            { metric_name: 'second' },
-            { metric_name: 'count' },
-          ],
-        },
-      };
-      const control = getControlState('metrics', 'table', stateWithCount);
-      expect(control?.default).toEqual(['count']);
+      expect(control?.default).toBeUndefined();
     });
 
     it('should not apply mapStateToProps when initializing', () => {
@@ -180,7 +164,6 @@ describe('controlUtils', () => {
         ...state,
         controls: undefined,
       });
-      expect(typeof control?.default).toBe('function');
       expect(control?.value).toBe(undefined);
     });
   });

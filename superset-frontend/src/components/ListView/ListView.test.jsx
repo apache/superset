@@ -377,8 +377,8 @@ describe('ListView', () => {
     expect(wrapper.find(ListViewFilters)).toExist();
   });
 
-  it('fetched async filter values on mount', () => {
-    expect(fetchSelectsMock).toHaveBeenCalled();
+  it('does not fetch async filter values on mount', () => {
+    expect(fetchSelectsMock).not.toHaveBeenCalled();
   });
 
   it('calls fetchData on filter', () => {
@@ -387,7 +387,7 @@ describe('ListView', () => {
         .find('[data-test="filters-select"]')
         .first()
         .props()
-        .onChange({ value: 'bar' });
+        .onChange({ label: 'bar', value: 'bar' });
     });
 
     act(() => {
@@ -395,13 +395,15 @@ describe('ListView', () => {
         .find('[data-test="filters-search"]')
         .first()
         .props()
-        .onChange({ currentTarget: { value: 'something' } });
+        .onChange({
+          currentTarget: { label: 'something', value: 'something' },
+        });
     });
 
     wrapper.update();
 
     act(() => {
-      wrapper.find('[data-test="search-input"]').last().props().onBlur();
+      wrapper.find('[data-test="filters-search"]').last().props().onBlur();
     });
 
     expect(mockedProps.fetchData.mock.calls[0]).toMatchInlineSnapshot(`
@@ -411,7 +413,10 @@ describe('ListView', () => {
             Object {
               "id": "id",
               "operator": "eq",
-              "value": "bar",
+              "value": Object {
+                "label": "bar",
+                "value": "bar",
+              },
             },
           ],
           "pageIndex": 0,
@@ -433,7 +438,10 @@ describe('ListView', () => {
             Object {
               "id": "id",
               "operator": "eq",
-              "value": "bar",
+              "value": Object {
+                "label": "bar",
+                "value": "bar",
+              },
             },
             Object {
               "id": "name",
@@ -462,7 +470,7 @@ describe('ListView', () => {
     });
 
     await act(async () => {
-      wrapper2.find('[data-test="card-sort-select"]').first().props().onChange({
+      wrapper2.find('[aria-label="Sort"]').first().props().onChange({
         desc: false,
         id: 'something',
         label: 'Alphabetical',

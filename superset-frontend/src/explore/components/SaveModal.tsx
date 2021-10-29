@@ -18,15 +18,16 @@
  */
 /* eslint camelcase: 0 */
 import React from 'react';
-import { FormControl, FormGroup } from 'react-bootstrap';
+import { Input } from 'src/common/components';
+import { Form, FormItem } from 'src/components/Form';
 import Alert from 'src/components/Alert';
 import { JsonObject, t, styled } from '@superset-ui/core';
 import ReactMarkdown from 'react-markdown';
 import Modal from 'src/components/Modal';
 import { Radio } from 'src/components/Radio';
 import Button from 'src/components/Button';
-import FormLabel from 'src/components/FormLabel';
-import { CreatableSelect } from 'src/components/Select';
+import { Select } from 'src/components';
+import { SelectValue } from 'antd/lib/select';
 import { connect } from 'react-redux';
 
 // Session storage key for recent dashboard
@@ -34,11 +35,10 @@ const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
 const SELECT_PLACEHOLDER = t('**Select** a dashboard OR **create** a new one');
 
 type SaveModalProps = {
-  can_overwrite?: boolean;
   onHide: () => void;
   actions: Record<string, any>;
   form_data?: Record<string, any>;
-  userId: string;
+  userId: number;
   dashboards: Array<any>;
   alert?: string;
   sliceName?: string;
@@ -70,12 +70,16 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       saveToDashboardId: null,
       newSliceName: props.sliceName,
       alert: null,
-      action: props.can_overwrite ? 'overwrite' : 'saveas',
+      action: this.canOverwriteSlice() ? 'overwrite' : 'saveas',
     };
     this.onDashboardSelectChange = this.onDashboardSelectChange.bind(this);
     this.onSliceNameChange = this.onSliceNameChange.bind(this);
     this.changeAction = this.changeAction.bind(this);
     this.saveOrOverwrite = this.saveOrOverwrite.bind(this);
+  }
+
+  canOverwriteSlice(): boolean {
+    return this.props.slice?.owners?.includes(this.props.userId);
   }
 
   componentDidMount() {
@@ -86,7 +90,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       const lastDashboard = sessionStorage.getItem(SK_DASHBOARD_ID);
       let recentDashboard = lastDashboard && parseInt(lastDashboard, 10);
 
-      if (!recentDashboard && this.props.dashboardId) {
+      if (this.props.dashboardId) {
         recentDashboard = this.props.dashboardId;
       }
 
@@ -101,16 +105,14 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     });
   }
 
-  onSliceNameChange(
-    event: React.FormEvent<FormControl> & { target: HTMLInputElement },
-  ) {
+  onSliceNameChange(event: React.ChangeEvent<HTMLInputElement>) {
     this.setState({ newSliceName: event.target.value });
   }
 
-  onDashboardSelectChange(event: Record<string, any>) {
-    const newDashboardName = event ? event.label : null;
+  onDashboardSelectChange(selected: SelectValue) {
+    const newDashboardName = selected ? String(selected) : undefined;
     const saveToDashboardId =
-      event && typeof event.value === 'number' ? event.value : null;
+      selected && typeof selected === 'number' ? selected : null;
     this.setState({ saveToDashboardId, newDashboardName });
   }
 
@@ -162,9 +164,6 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
   render() {
     const dashboardSelectValue =
       this.state.saveToDashboardId || this.state.newDashboardName;
-    const valueObj = dashboardSelectValue
-      ? { value: dashboardSelectValue }
-      : null;
     return (
       <StyledModal
         show
@@ -198,14 +197,14 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
               disabled={!this.state.newSliceName}
               data-test="btn-modal-save"
             >
-              {!this.props.can_overwrite && this.props.slice
+              {!this.canOverwriteSlice() && this.props.slice
                 ? t('Save as new chart')
                 : t('Save')}
             </Button>
           </div>
         }
       >
-        <div data-test="save-modal-body">
+        <Form data-test="save-modal-body" layout="vertical">
           {(this.state.alert || this.props.alert) && (
             <Alert
               type="warning"
@@ -224,10 +223,10 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
               }
             />
           )}
-          <FormGroup data-test="radio-group">
+          <FormItem data-test="radio-group">
             <Radio
               id="overwrite-radio"
-              disabled={!(this.props.can_overwrite && this.props.slice)}
+              disabled={!this.canOverwriteSlice()}
               checked={this.state.action === 'overwrite'}
               onChange={() => this.changeAction('overwrite')}
               data-test="save-overwrite-radio"
@@ -243,32 +242,29 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
               {' '}
               {t('Save as ...')} &nbsp;
             </Radio>
-          </FormGroup>
+          </FormItem>
           <hr />
-          <FormGroup>
-            <FormLabel required>{t('Chart name')}</FormLabel>
-            <FormControl
+          <FormItem label={t('Chart name')} required>
+            <Input
               name="new_slice_name"
               type="text"
-              bsSize="sm"
               placeholder="Name"
               value={this.state.newSliceName}
               onChange={this.onSliceNameChange}
               data-test="new-chart-name"
             />
-          </FormGroup>
-          <FormGroup data-test="save-chart-modal-select-dashboard-form">
-            <FormLabel>{t('Add to dashboard')}</FormLabel>
-            <CreatableSelect
-              id="dashboard-creatable-select"
-              className="save-modal-selector"
-              menuPosition="fixed"
+          </FormItem>
+          <FormItem
+            label={t('Add to dashboard')}
+            data-test="save-chart-modal-select-dashboard-form"
+          >
+            <Select
+              allowClear
+              allowNewOptions
+              ariaLabel={t('Select a dashboard')}
               options={this.props.dashboards}
-              clearable
-              creatable
               onChange={this.onDashboardSelectChange}
-              autoSize={false}
-              value={valueObj}
+              value={dashboardSelectValue || undefined}
               placeholder={
                 // Using markdown to allow for good i18n
                 <ReactMarkdown
@@ -277,8 +273,8 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
                 />
               }
             />
-          </FormGroup>
-        </div>
+          </FormItem>
+        </Form>
       </StyledModal>
     );
   }
@@ -291,8 +287,7 @@ function mapStateToProps({
   return {
     datasource: explore.datasource,
     slice: explore.slice,
-    can_overwrite: explore.can_overwrite,
-    userId: explore.user_id,
+    userId: explore.user?.userId,
     dashboards: saveModal.dashboards,
     alert: saveModal.saveModalAlert,
   };

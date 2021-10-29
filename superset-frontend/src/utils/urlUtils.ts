@@ -17,14 +17,19 @@
  * under the License.
  */
 import { SupersetClient } from '@superset-ui/core';
+import rison from 'rison';
 import { getClientErrorObject } from './getClientErrorObject';
+import { URL_PARAMS } from '../constants';
 
-export type UrlParamType = 'string' | 'number' | 'boolean';
-export function getUrlParam(paramName: string, type: 'string'): string;
-export function getUrlParam(paramName: string, type: 'number'): number;
-export function getUrlParam(paramName: string, type: 'boolean'): boolean;
-export function getUrlParam(paramName: string, type: UrlParamType): unknown {
-  const urlParam = new URLSearchParams(window.location.search).get(paramName);
+export type UrlParamType = 'string' | 'number' | 'boolean' | 'object' | 'rison';
+export type UrlParam = typeof URL_PARAMS[keyof typeof URL_PARAMS];
+export function getUrlParam(param: UrlParam & { type: 'string' }): string;
+export function getUrlParam(param: UrlParam & { type: 'number' }): number;
+export function getUrlParam(param: UrlParam & { type: 'boolean' }): boolean;
+export function getUrlParam(param: UrlParam & { type: 'object' }): object;
+export function getUrlParam(param: UrlParam & { type: 'rison' }): object;
+export function getUrlParam({ name, type }: UrlParam): unknown {
+  const urlParam = new URLSearchParams(window.location.search).get(name);
   switch (type) {
     case 'number':
       if (!urlParam) {
@@ -40,7 +45,25 @@ export function getUrlParam(paramName: string, type: UrlParamType): unknown {
         return Number(urlParam);
       }
       return null;
-    // TODO: process other types when needed
+    case 'object':
+      if (!urlParam) {
+        return null;
+      }
+      return JSON.parse(urlParam);
+    case 'boolean':
+      if (!urlParam) {
+        return null;
+      }
+      return urlParam !== 'false' && urlParam !== '0';
+    case 'rison':
+      if (!urlParam) {
+        return null;
+      }
+      try {
+        return rison.decode(urlParam);
+      } catch {
+        return null;
+      }
     default:
       return urlParam;
   }

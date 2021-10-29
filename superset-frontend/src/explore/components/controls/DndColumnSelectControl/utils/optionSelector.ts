@@ -17,35 +17,30 @@
  * under the License.
  */
 import { ColumnMeta } from '@superset-ui/chart-controls';
+import { ensureIsArray } from '@superset-ui/core';
 
 export class OptionSelector {
   values: ColumnMeta[];
 
-  options: { string: ColumnMeta };
+  options: Record<string, ColumnMeta>;
 
-  isArray: boolean;
+  multi: boolean;
 
   constructor(
-    options: { string: ColumnMeta },
-    initialValues?: string[] | string,
+    options: Record<string, ColumnMeta>,
+    multi: boolean,
+    initialValues?: string[] | string | null,
   ) {
     this.options = options;
-    let values: string[];
-    if (Array.isArray(initialValues)) {
-      values = initialValues;
-      this.isArray = true;
-    } else {
-      values = initialValues ? [initialValues] : [];
-      this.isArray = false;
-    }
-    this.values = values
+    this.multi = multi;
+    this.values = ensureIsArray(initialValues)
       .map(value => {
-        if (value in options) {
+        if (value && value in options) {
           return options[value];
         }
         return null;
       })
-      .filter(Boolean);
+      .filter(Boolean) as ColumnMeta[];
   }
 
   add(value: string) {
@@ -68,12 +63,12 @@ export class OptionSelector {
     [this.values[a], this.values[b]] = [this.values[b], this.values[a]];
   }
 
-  has(groupBy: string): boolean {
-    return !!this.getValues()?.includes(groupBy);
+  has(value: string): boolean {
+    return ensureIsArray(this.getValues()).includes(value);
   }
 
   getValues(): string[] | string | undefined {
-    if (!this.isArray) {
+    if (!this.multi) {
       return this.values.length > 0 ? this.values[0].column_name : undefined;
     }
     return this.values.map(option => option.column_name);

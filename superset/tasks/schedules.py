@@ -26,6 +26,7 @@ import urllib.request
 from collections import namedtuple
 from datetime import datetime, timedelta
 from email.utils import make_msgid, parseaddr
+from enum import Enum
 from typing import (
     Any,
     Callable,
@@ -45,7 +46,6 @@ from celery.app.task import Task
 from dateutil.tz import tzlocal
 from flask import current_app, render_template, url_for
 from flask_babel import gettext as __
-from retry.api import retry_call
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver import chrome, firefox
 from selenium.webdriver.remote.webdriver import WebDriver
@@ -69,10 +69,9 @@ from superset.tasks.alerts.validator import get_validator_function
 from superset.tasks.slack_util import deliver_slack_msg
 from superset.utils.celery import session_scope
 from superset.utils.core import get_email_address_list, send_email_smtp
+from superset.utils.retries import retry_call
 from superset.utils.screenshots import ChartScreenshot, WebDriverProxy
 from superset.utils.urls import get_url_path
-
-# pylint: disable=too-few-public-methods
 
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla.models import User
@@ -89,7 +88,7 @@ WEBDRIVER_BASEURL = config["WEBDRIVER_BASEURL"]
 WEBDRIVER_BASEURL_USER_FRIENDLY = config["WEBDRIVER_BASEURL_USER_FRIENDLY"]
 
 ReportContent = namedtuple(
-    "EmailContent",
+    "ReportContent",
     [
         "body",  # email body
         "data",  # attachments
@@ -230,7 +229,7 @@ def destroy_webdriver(
     # This is some very flaky code in selenium. Hence the retries
     # and catch-all exceptions
     try:
-        retry_call(driver.close, tries=2)
+        retry_call(driver.close, max_tries=2)
     except Exception:  # pylint: disable=broad-except
         pass
     try:
@@ -271,7 +270,10 @@ def deliver_dashboard(  # pylint: disable=too-many-locals
         # This is buggy in certain selenium versions with firefox driver
         get_element = getattr(driver, "find_element_by_class_name")
         element = retry_call(
-            get_element, fargs=["grid-container"], tries=2, delay=EMAIL_PAGE_RENDER_WAIT
+            get_element,
+            fargs=["grid-container"],
+            max_tries=2,
+            interval=EMAIL_PAGE_RENDER_WAIT,
         )
 
         try:
@@ -279,7 +281,7 @@ def deliver_dashboard(  # pylint: disable=too-many-locals
         except WebDriverException:
             # Some webdrivers do not support screenshots for elements.
             # In such cases, take a screenshot of the entire page.
-            screenshot = driver.screenshot()  # pylint: disable=no-member
+            screenshot = driver.screenshot()
         finally:
             destroy_webdriver(driver)
 
@@ -349,7 +351,7 @@ def _get_slice_data(
 
         # Parse the csv file and generate HTML
         columns = rows.pop(0)
-        with app.app_context():  # type: ignore
+        with app.app_context():
             body = render_template(
                 "superset/reports/slice_data.html",
                 columns=columns,
@@ -420,8 +422,8 @@ def _get_slice_visualization(
     element = retry_call(
         driver.find_element_by_class_name,
         fargs=["chart-container"],
-        tries=2,
-        delay=EMAIL_PAGE_RENDER_WAIT,
+        max_tries=2,
+        interval=EMAIL_PAGE_RENDER_WAIT,
     )
 
     try:
@@ -429,7 +431,7 @@ def _get_slice_visualization(
     except WebDriverException:
         # Some webdrivers do not support screenshots for elements.
         # In such cases, take a screenshot of the entire page.
-        screenshot = driver.screenshot()  # pylint: disable=no-member
+        screenshot = driver.screenshot()
     finally:
         destroy_webdriver(driver)
 
@@ -568,7 +570,7 @@ def schedule_alert_query(
             raise RuntimeError("Unknown report type")
 
 
-class AlertState:
+class AlertState(str, Enum):
     ERROR = "error"
     TRIGGER = "trigger"
     PASS = "pass"
@@ -824,7 +826,7 @@ def get_scheduler_action(report_type: str) -> Optional[Callable[..., Any]]:
 
 @celery_app.task(name="email_reports.schedule_hourly")
 def schedule_hourly() -> None:
-    """ Celery beat job meant to be invoked hourly """
+    """Celery beat job meant to be invoked hourly"""
     if not config["ENABLE_SCHEDULED_EMAIL_REPORTS"]:
         logger.info("Scheduled email reports not enabled in config")
         return
@@ -842,7 +844,7 @@ def schedule_hourly() -> None:
 
 @celery_app.task(name="alerts.schedule_check")
 def schedule_alerts() -> None:
-    """ Celery beat job meant to be invoked every minute to check alerts """
+    """Celery beat job meant to be invoked every minute to check alerts"""
     resolution = 0
     now = datetime.utcnow()
     start_at = now - timedelta(

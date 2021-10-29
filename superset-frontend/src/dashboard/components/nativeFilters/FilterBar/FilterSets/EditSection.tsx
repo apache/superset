@@ -21,11 +21,11 @@ import { HandlerFunction, styled, t } from '@superset-ui/core';
 import { Typography, Tooltip } from 'src/common/components';
 import { useDispatch } from 'react-redux';
 import Button from 'src/components/Button';
-import { setFilterSetsConfiguration } from 'src/dashboard/actions/nativeFilters';
+import { updateFilterSet } from 'src/dashboard/actions/nativeFilters';
 import { DataMaskState } from 'src/dataMask/types';
 import { WarningOutlined } from '@ant-design/icons';
 import { ActionButtons } from './Footer';
-import { useDataMask, useFilters, useFilterSets } from '../state';
+import { useNativeFiltersDataMask, useFilters, useFilterSets } from '../state';
 import { APPLY_FILTERS_HINT, findExistingFilterSet } from './utils';
 import { useFilterSetNameDuplicated } from './state';
 import { getFilterBarTestId } from '../index';
@@ -60,7 +60,7 @@ const ActionButton = styled.div<{ disabled?: boolean }>`
 `;
 
 export type EditSectionProps = {
-  filterSetId: string;
+  filterSetId: number;
   dataMaskSelected: DataMaskState;
   onCancel: HandlerFunction;
   disabled: boolean;
@@ -72,7 +72,7 @@ const EditSection: FC<EditSectionProps> = ({
   dataMaskSelected,
   disabled,
 }) => {
-  const dataMaskApplied = useDataMask();
+  const dataMaskApplied = useNativeFiltersDataMask();
   const dispatch = useDispatch();
   const filterSets = useFilterSets();
   const filters = useFilters();
@@ -89,17 +89,12 @@ const EditSection: FC<EditSectionProps> = ({
 
   const handleSave = () => {
     dispatch(
-      setFilterSetsConfiguration(
-        filterSetFilterValues.map(filterSet => {
-          const newFilterSet = {
-            ...filterSet,
-            name: filterSetName,
-            nativeFilters: filters,
-            dataMask: { ...dataMaskApplied },
-          };
-          return filterSetId === filterSet.id ? newFilterSet : filterSet;
-        }),
-      ),
+      updateFilterSet({
+        id: filterSetId,
+        name: filterSetName,
+        nativeFilters: filters,
+        dataMask: { ...dataMaskApplied },
+      }),
     );
     onCancel();
   };

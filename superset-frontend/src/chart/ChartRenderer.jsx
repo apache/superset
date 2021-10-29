@@ -16,17 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { snakeCase } from 'lodash';
+import { snakeCase, isEqual } from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 import { SuperChart, logging, Behavior } from '@superset-ui/core';
-import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger/LogUtils';
+import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 
 const propTypes = {
   annotationData: PropTypes.object,
   actions: PropTypes.object,
   chartId: PropTypes.number.isRequired,
-  datasource: PropTypes.object.isRequired,
+  datasource: PropTypes.object,
   initialValues: PropTypes.object,
   formData: PropTypes.object.isRequired,
   height: PropTypes.number,
@@ -93,6 +93,7 @@ class ChartRenderer extends React.Component {
         nextProps.queriesResponse !== this.props.queriesResponse;
       return (
         this.hasQueryResponseChange ||
+        !isEqual(nextProps.datasource, this.props.datasource) ||
         nextProps.annotationData !== this.props.annotationData ||
         nextProps.ownState !== this.props.ownState ||
         nextProps.filterState !== this.props.filterState ||
@@ -182,8 +183,8 @@ class ChartRenderer extends React.Component {
     const {
       width,
       height,
-      annotationData,
       datasource,
+      annotationData,
       initialValues,
       ownState,
       filterState,

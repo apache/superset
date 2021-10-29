@@ -23,7 +23,6 @@ Here's the source to the documentation hosted at
 The site runs on the Gatsby framework and uses docz for it's
 `Documentation` subsection.
 
-
 ## Getting Started
 
 ```bash
@@ -35,7 +34,10 @@ npm run start
 
 ## To Publish
 
-To publish, the static site that Gatsby generates needs to be pushed
+Github Actions CI automatically publishes the site after changes are
+merged to master.
+
+To manually publish, the static site that Gatsby generates needs to be pushed
 to the `asf-site` branch on the
 [apache/superset-site](https://github.com/apache/superset-site/)
 repository. No need to PR here, simply `git push`.

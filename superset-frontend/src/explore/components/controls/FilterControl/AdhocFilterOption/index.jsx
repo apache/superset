@@ -36,6 +36,8 @@ const propTypes = {
       adhocMetricType,
     ]),
   ).isRequired,
+  sections: PropTypes.arrayOf(PropTypes.string),
+  operators: PropTypes.arrayOf(PropTypes.string),
   datasource: PropTypes.object,
   partitionColumn: PropTypes.string,
   onMoveLabel: PropTypes.func,
@@ -53,8 +55,12 @@ const AdhocFilterOption = ({
   onMoveLabel,
   onDropLabel,
   index,
+  sections,
+  operators,
 }) => (
   <AdhocFilterPopoverTrigger
+    sections={sections}
+    operators={operators}
     adhocFilter={adhocFilter}
     options={options}
     datasource={datasource}
@@ -63,6 +69,7 @@ const AdhocFilterOption = ({
   >
     <OptionControlLabel
       label={adhocFilter.getDefaultLabel()}
+      tooltipTitle={adhocFilter.getTooltipTitle()}
       onRemove={onRemoveFilter}
       onMoveLabel={onMoveLabel}
       onDropLabel={onDropLabel}

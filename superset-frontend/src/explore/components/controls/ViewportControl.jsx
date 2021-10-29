@@ -22,7 +22,7 @@ import Popover from 'src/components/Popover';
 import { decimal2sexagesimal } from 'geolib';
 
 import Label from 'src/components/Label';
-import FormLabel from 'src/components/FormLabel';
+import { FormLabel } from 'src/components/Form';
 import TextControl from './TextControl';
 import ControlHeader from '../ControlHeader';
 

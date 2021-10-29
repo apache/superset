@@ -242,7 +242,7 @@ class DatabaseMixin:
         except Exception as ex:
             raise Exception(
                 _("Extra field cannot be decoded by JSON. %(msg)s", msg=str(ex))
-            )
+            ) from ex
 
         # this will check whether 'metadata_params' is configured correctly
         metadata_signature = inspect.signature(MetaData)
@@ -266,4 +266,4 @@ class DatabaseMixin:
         except Exception as ex:
             raise Exception(
                 _("Extra field cannot be decoded by JSON. %(msg)s", msg=str(ex))
-            )
+            ) from ex

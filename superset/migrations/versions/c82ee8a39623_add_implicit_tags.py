@@ -26,14 +26,44 @@ Create Date: 2018-07-26 11:10:23.653524
 revision = "c82ee8a39623"
 down_revision = "c617da68de7d"
 
-from alembic import op
-from sqlalchemy import Column, Enum, ForeignKey, Integer, String
-from sqlalchemy.ext.declarative import declarative_base
+from datetime import datetime
 
-from superset.models.helpers import AuditMixinNullable
+from alembic import op
+from flask_appbuilder.models.mixins import AuditMixin
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String
+from sqlalchemy.ext.declarative import declarative_base, declared_attr
+
 from superset.models.tags import ObjectTypes, TagTypes
 
 Base = declarative_base()
+
+
+class AuditMixinNullable(AuditMixin):
+    """Altering the AuditMixin to use nullable fields
+
+    Allows creating objects programmatically outside of CRUD
+    """
+
+    created_on = Column(DateTime, default=datetime.now, nullable=True)
+    changed_on = Column(
+        DateTime, default=datetime.now, onupdate=datetime.now, nullable=True
+    )
+
+    @declared_attr
+    def created_by_fk(self) -> Column:
+        return Column(
+            Integer, ForeignKey("ab_user.id"), default=self.get_user_id, nullable=True,
+        )
+
+    @declared_attr
+    def changed_by_fk(self) -> Column:
+        return Column(
+            Integer,
+            ForeignKey("ab_user.id"),
+            default=self.get_user_id,
+            onupdate=self.get_user_id,
+            nullable=True,
+        )
 
 
 class Tag(Base, AuditMixinNullable):

@@ -21,7 +21,7 @@ import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { supersetTheme } from '@superset-ui/core';
 import Button from 'src/components/Button';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import { Tooltip } from '.';
 
 test('starts hidden with default props', () => {
@@ -62,9 +62,7 @@ test('renders with theme', () => {
 test('renders with icon child', async () => {
   render(
     <Tooltip title="Simple tooltip">
-      <Icon name="alert" role="img">
-        Hover me
-      </Icon>
+      <Icons.Alert>Hover me</Icons.Alert>
     </Tooltip>,
   );
   userEvent.hover(screen.getByRole('img'));

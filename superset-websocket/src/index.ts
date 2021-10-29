@@ -23,8 +23,10 @@ import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
 import cookie from 'cookie';
 import Redis from 'ioredis';
+import StatsD from 'hot-shots';
 
 import { createLogger } from './logger';
+import { buildConfig } from './config';
 
 export type StreamResult = [
   recordId: string,
@@ -78,40 +80,9 @@ interface ChannelValue {
 
 const environment = process.env.NODE_ENV;
 
-// default options
-export const opts = {
-  port: 8080,
-  logLevel: 'info',
-  logToFile: false,
-  logFilename: 'app.log',
-  redis: {
-    port: 6379,
-    host: '127.0.0.1',
-    password: '',
-    db: 0,
-    ssl: false,
-  },
-  redisStreamPrefix: 'async-events-',
-  redisStreamReadCount: 100,
-  redisStreamReadBlockMs: 5000,
-  jwtSecret: '',
-  jwtCookieName: 'async-token',
-  socketResponseTimeoutMs: 60 * 1000,
-  pingSocketsIntervalMs: 20 * 1000,
-  gcChannelsIntervalMs: 120 * 1000,
-};
-
 const startServer = process.argv[2] === 'start';
-const configFile =
-  environment === 'test' ? '../config.test.json' : '../config.json';
-let config = {};
-try {
-  config = require(configFile);
-} catch (err) {
-  console.error('config.json not found, using defaults');
-}
-// apply config overrides
-Object.assign(opts, config);
+
+export const opts = buildConfig();
 
 // init logger
 const logger = createLogger({
@@ -119,6 +90,13 @@ const logger = createLogger({
   logLevel: opts.logLevel,
   logToFile: opts.logToFile,
   logFilename: opts.logFilename,
+});
+
+export const statsd = new StatsD({
+  ...opts.statsd,
+  errorHandler: (e: Error) => {
+    logger.error(e);
+  },
 });
 
 // enforce JWT secret length
@@ -160,6 +138,8 @@ export const trackClient = (
   channel: string,
   socketInstance: SocketInstance,
 ): string => {
+  statsd.increment('ws_connected_client');
+
   const socketId = uuidv4();
   sockets[socketId] = socketInstance;
 
@@ -189,6 +169,7 @@ export const sendToChannel = (channel: string, value: EventValue): void => {
     try {
       socketInstance.ws.send(strData);
     } catch (err) {
+      statsd.increment('ws_client_send_error');
       logger.debug(`Error sending to socket: ${err}`);
       // check that the connection is still active
       cleanChannel(channel);

@@ -19,14 +19,12 @@
 /* eslint-disable camelcase */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { FormGroup } from 'react-bootstrap';
-import Tabs from 'src/common/components/Tabs';
+import Tabs from 'src/components/Tabs';
 import Button from 'src/components/Button';
-import { NativeSelect as Select } from 'src/components/Select';
-import { styled, t } from '@superset-ui/core';
-import { ColumnOption, MetricOption } from '@superset-ui/chart-controls';
+import { Select } from 'src/components';
+import { t, styled } from '@superset-ui/core';
 
-import FormLabel from 'src/components/FormLabel';
+import { Form, FormItem } from 'src/components/Form';
 import { SQLEditor } from 'src/components/AsyncAceEditor';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { noOp } from 'src/utils/common';
@@ -37,6 +35,10 @@ import savedMetricType from 'src/explore/components/controls/MetricControl/saved
 import AdhocMetric, {
   EXPRESSION_TYPES,
 } from 'src/explore/components/controls/MetricControl/AdhocMetric';
+import {
+  StyledMetricOption,
+  StyledColumnOption,
+} from 'src/explore/components/optionRenderers';
 
 const propTypes = {
   onChange: PropTypes.func.isRequired,
@@ -56,13 +58,15 @@ const defaultProps = {
   getCurrentTab: noOp,
 };
 
-const ResizeIcon = styled.i`
-  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
-`;
-
-const ColumnOptionStyle = styled.span`
-  .option-label {
-    display: inline;
+const StyledSelect = styled(Select)`
+  .metric-option {
+    & > svg {
+      min-width: ${({ theme }) => `${theme.gridUnit * 4}px`};
+    }
+    & > .option-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
   }
 `;
 
@@ -158,8 +162,10 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
     );
   }
 
-  onColumnChange(columnId) {
-    const column = this.props.columns.find(column => column.id === columnId);
+  onColumnChange(columnName) {
+    const column = this.props.columns.find(
+      column => column.column_name === columnName,
+    );
     this.setState(prevState => ({
       adhocMetric: prevState.adhocMetric.duplicateWith({
         column,
@@ -180,9 +186,9 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
     }));
   }
 
-  onSavedMetricChange(savedMetricId) {
+  onSavedMetricChange(savedMetricName) {
     const savedMetric = this.props.savedMetricsOptions.find(
-      metric => metric.id === savedMetricId,
+      metric => metric.metric_name === savedMetricName,
     );
     this.setState(prevState => ({
       savedMetric,
@@ -255,11 +261,11 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
     if (column.metric_name && !column.verbose_name) {
       column.verbose_name = column.metric_name;
     }
-    return (
-      <ColumnOptionStyle>
-        <ColumnOption column={column} showType />
-      </ColumnOptionStyle>
-    );
+    return <StyledColumnOption column={column} showType />;
+  }
+
+  renderMetricOption(savedMetric) {
+    return <StyledMetricOption metric={savedMetric} showType />;
   }
 
   render() {
@@ -290,34 +296,30 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
 
     // autofocus on column if there's no value in column; otherwise autofocus on aggregate
     const columnSelectProps = {
+      ariaLabel: t('Select column'),
       placeholder: t('%s column(s)', columns.length),
       value: columnValue,
       onChange: this.onColumnChange,
       allowClear: true,
-      showSearch: true,
       autoFocus: !columnValue,
-      filterOption: (input, option) =>
-        option.filterBy.toLowerCase().indexOf(input.toLowerCase()) >= 0,
     };
 
     const aggregateSelectProps = {
+      ariaLabel: t('Select aggregate options'),
       placeholder: t('%s aggregates(s)', AGGREGATES_OPTIONS.length),
       value: adhocMetric.aggregate || adhocMetric.inferSqlExpressionAggregate(),
       onChange: this.onAggregateChange,
       allowClear: true,
       autoFocus: !!columnValue,
-      showSearch: true,
     };
 
     const savedSelectProps = {
+      ariaLabel: t('Select saved metrics'),
       placeholder: t('%s saved metric(s)', savedMetricsOptions?.length ?? 0),
-      value: savedMetric?.verbose_name || savedMetric?.metric_name,
+      value: savedMetric?.metric_name,
       onChange: this.onSavedMetricChange,
       allowClear: true,
-      showSearch: true,
       autoFocus: true,
-      filterOption: (input, option) =>
-        option.filterBy.toLowerCase().indexOf(input.toLowerCase()) >= 0,
     };
 
     if (this.props.datasourceType === 'druid' && aggregateSelectProps.options) {
@@ -336,7 +338,8 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
         savedMetric?.metric_name !== propsSavedMetric?.metric_name);
 
     return (
-      <div
+      <Form
+        layout="vertical"
         id="metrics-edit-popover"
         data-test="metrics-edit-popover"
         {...popoverProps}
@@ -351,67 +354,44 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
           allowOverflow
         >
           <Tabs.TabPane key={SAVED_TAB_KEY} tab={t('Saved')}>
-            <FormGroup>
-              <FormLabel>
-                <strong>{t('Saved metric')}</strong>
-              </FormLabel>
-              <Select
+            <FormItem label={t('Saved metric')}>
+              <StyledSelect
+                options={
+                  Array.isArray(savedMetricsOptions)
+                    ? savedMetricsOptions.map(savedMetric => ({
+                        value: savedMetric.metric_name,
+                        label: savedMetric.metric_name,
+                        customLabel: this.renderMetricOption(savedMetric),
+                        key: savedMetric.id,
+                      }))
+                    : []
+                }
                 {...savedSelectProps}
-                name="select-saved"
-                getPopupContainer={triggerNode => triggerNode.parentNode}
-              >
-                {Array.isArray(savedMetricsOptions) &&
-                  savedMetricsOptions.map(savedMetric => (
-                    <Select.Option
-                      value={savedMetric.id}
-                      filterBy={
-                        savedMetric.verbose_name || savedMetric.metric_name
-                      }
-                      key={savedMetric.id}
-                    >
-                      <MetricOption metric={savedMetric} showType />
-                    </Select.Option>
-                  ))}
-              </Select>
-            </FormGroup>
+              />
+            </FormItem>
           </Tabs.TabPane>
           <Tabs.TabPane key={EXPRESSION_TYPES.SIMPLE} tab={t('Simple')}>
-            <FormGroup>
-              <FormLabel>
-                <strong>{t('column')}</strong>
-              </FormLabel>
+            <FormItem label={t('column')}>
               <Select
+                options={columns.map(column => ({
+                  value: column.column_name,
+                  label: column.verbose_name || column.column_name,
+                  key: column.id,
+                  customLabel: this.renderColumnOption(column),
+                }))}
                 {...columnSelectProps}
-                name="select-column"
-                getPopupContainer={triggerNode => triggerNode.parentNode}
-              >
-                {columns.map(column => (
-                  <Select.Option
-                    value={column.id}
-                    filterBy={column.verbose_name || column.column_name}
-                    key={column.id}
-                  >
-                    {this.renderColumnOption(column)}
-                  </Select.Option>
-                ))}
-              </Select>
-            </FormGroup>
-            <FormGroup>
-              <FormLabel>
-                <strong>{t('aggregate')}</strong>
-              </FormLabel>
+              />
+            </FormItem>
+            <FormItem label={t('aggregate')}>
               <Select
+                options={AGGREGATES_OPTIONS.map(option => ({
+                  value: option,
+                  label: option,
+                  key: option,
+                }))}
                 {...aggregateSelectProps}
-                name="select-aggregate"
-                getPopupContainer={triggerNode => triggerNode.parentNode}
-              >
-                {AGGREGATES_OPTIONS.map(option => (
-                  <Select.Option value={option} key={option}>
-                    {option}
-                  </Select.Option>
-                ))}
-              </Select>
-            </FormGroup>
+              />
+            </FormItem>
           </Tabs.TabPane>
           <Tabs.TabPane
             key={EXPRESSION_TYPES.SQL}
@@ -419,24 +399,23 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
             data-test="adhoc-metric-edit-tab#custom"
           >
             {this.props.datasourceType !== 'druid' ? (
-              <FormGroup data-test="sql-editor">
-                <SQLEditor
-                  showLoadingForImport
-                  ref={this.handleAceEditorRef}
-                  keywords={keywords}
-                  height={`${this.state.height - 80}px`}
-                  onChange={this.onSqlExpressionChange}
-                  width="100%"
-                  showGutter={false}
-                  value={
-                    adhocMetric.sqlExpression || adhocMetric.translateToSql()
-                  }
-                  editorProps={{ $blockScrolling: true }}
-                  enableLiveAutocompletion
-                  className="adhoc-filter-sql-editor"
-                  wrapEnabled
-                />
-              </FormGroup>
+              <SQLEditor
+                data-test="sql-editor"
+                showLoadingForImport
+                ref={this.handleAceEditorRef}
+                keywords={keywords}
+                height={`${this.state.height - 80}px`}
+                onChange={this.onSqlExpressionChange}
+                width="100%"
+                showGutter={false}
+                value={
+                  adhocMetric.sqlExpression || adhocMetric.translateToSql()
+                }
+                editorProps={{ $blockScrolling: true }}
+                enableLiveAutocompletion
+                className="filter-sql-editor"
+                wrapEnabled
+              />
             ) : (
               <div className="custom-sql-disabled-message">
                 Custom SQL Metrics are not available on druid datasources
@@ -465,7 +444,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
           >
             {t('Save')}
           </Button>
-          <ResizeIcon
+          <i
             role="button"
             aria-label="Resize"
             tabIndex={0}
@@ -473,7 +452,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
             className="fa fa-expand edit-popover-resize text-muted"
           />
         </div>
-      </div>
+      </Form>
     );
   }
 }

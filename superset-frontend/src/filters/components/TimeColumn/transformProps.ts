@@ -29,7 +29,11 @@ export default function transformProps(chartProps: ChartProps) {
     width,
     filterState,
   } = chartProps;
-  const { setDataMask = () => {} } = hooks;
+  const {
+    setDataMask = () => {},
+    setFocusedFilter = () => {},
+    unsetFocusedFilter = () => {},
+  } = hooks;
 
   const { data } = queriesData[0];
 
@@ -41,5 +45,7 @@ export default function transformProps(chartProps: ChartProps) {
     data,
     formData: { ...DEFAULT_FORM_DATA, ...formData },
     setDataMask,
+    setFocusedFilter,
+    unsetFocusedFilter,
   };
 }

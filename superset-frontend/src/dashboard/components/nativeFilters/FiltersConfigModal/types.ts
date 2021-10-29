@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Scope } from '../types';
+import { AdhocFilter, DataMask } from '@superset-ui/core';
+import { NativeFilterType, Scope } from '../types';
 
 export interface NativeFiltersFormItem {
   scope: Scope;
@@ -30,16 +31,26 @@ export interface NativeFiltersFormItem {
   controlValues: {
     [key: string]: any;
   };
+  requiredFirst: {
+    [key: string]: boolean;
+  };
   defaultValue: any;
-  parentFilter: {
+  defaultDataMask: DataMask;
+  parentFilter?: {
     value: string;
     label: string;
   };
-  isInstant: boolean;
+  sortMetric: string | null;
+  adhoc_filters?: AdhocFilter[];
+  time_range?: string;
+  granularity_sqla?: string;
+  type: NativeFilterType;
+  hierarchicalFilter?: boolean;
 }
 
 export interface NativeFiltersForm {
   filters: Record<string, NativeFiltersFormItem>;
+  changed?: boolean;
 }
 
 export type FilterRemoval =
@@ -49,3 +60,6 @@ export type FilterRemoval =
       timerId: number; // id of the timer that finally removes the filter
     }
   | { isPending: false };
+
+export type FilterHierarchyNode = { id: string; parentId: string | null };
+export type FilterHierarchy = FilterHierarchyNode[];

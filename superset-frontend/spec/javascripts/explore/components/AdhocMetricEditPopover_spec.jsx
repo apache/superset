@@ -20,7 +20,7 @@
 import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
-import { FormGroup } from 'react-bootstrap';
+import { FormItem } from 'src/components/Form';
 import Button from 'src/components/Button';
 
 import { AGGREGATES } from 'src/explore/constants';
@@ -67,13 +67,13 @@ function setup(overrides) {
 describe('AdhocMetricEditPopover', () => {
   it('renders a popover with edit metric form contents', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(FormGroup)).toHaveLength(4);
+    expect(wrapper.find(FormItem)).toHaveLength(3);
     expect(wrapper.find(Button)).toHaveLength(2);
   });
 
   it('overwrites the adhocMetric in state with onColumnChange', () => {
     const { wrapper } = setup();
-    wrapper.instance().onColumnChange(columns[0].id);
+    wrapper.instance().onColumnChange(columns[0].column_name);
     expect(wrapper.state('adhocMetric')).toEqual(
       sumValueAdhocMetric.duplicateWith({ column: columns[0] }),
     );
@@ -100,7 +100,7 @@ describe('AdhocMetricEditPopover', () => {
     expect(wrapper.find(Button).find({ disabled: true })).not.toExist();
     wrapper.instance().onColumnChange(null);
     expect(wrapper.find(Button).find({ disabled: true })).toExist();
-    wrapper.instance().onColumnChange(columns[0].id);
+    wrapper.instance().onColumnChange(columns[0].column_name);
     expect(wrapper.find(Button).find({ disabled: true })).not.toExist();
     wrapper.instance().onAggregateChange(null);
     expect(wrapper.find(Button).find({ disabled: true })).toExist();
@@ -109,7 +109,7 @@ describe('AdhocMetricEditPopover', () => {
   it('highlights save if changes are present', () => {
     const { wrapper } = setup();
     expect(wrapper.find(Button).find({ buttonStyle: 'primary' })).not.toExist();
-    wrapper.instance().onColumnChange(columns[1].id);
+    wrapper.instance().onColumnChange(columns[1].column_name);
     expect(wrapper.find(Button).find({ buttonStyle: 'primary' })).toExist();
   });
 

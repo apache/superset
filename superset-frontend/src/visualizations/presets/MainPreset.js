@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Preset } from '@superset-ui/core';
+import { isFeatureEnabled, Preset, FeatureFlag } from '@superset-ui/core';
 import {
   BigNumberChartPlugin,
   BigNumberTotalChartPlugin,
@@ -56,11 +56,20 @@ import { DeckGLChartPreset } from '@superset-ui/legacy-preset-chart-deckgl';
 import {
   EchartsPieChartPlugin,
   EchartsBoxPlotChartPlugin,
+  EchartsAreaChartPlugin,
   EchartsTimeseriesChartPlugin,
+  EchartsTimeseriesBarChartPlugin,
+  EchartsTimeseriesLineChartPlugin,
+  EchartsTimeseriesScatterChartPlugin,
+  EchartsTimeseriesSmoothLineChartPlugin,
+  EchartsTimeseriesStepChartPlugin,
   EchartsGraphChartPlugin,
   EchartsGaugeChartPlugin,
   EchartsRadarChartPlugin,
+  EchartsFunnelChartPlugin,
+  EchartsTreemapChartPlugin,
   EchartsMixedTimeseriesChartPlugin,
+  EchartsTreeChartPlugin,
 } from '@superset-ui/plugin-chart-echarts';
 import {
   SelectFilterPlugin,
@@ -76,6 +85,12 @@ import TimeTableChartPlugin from '../TimeTable/TimeTableChartPlugin';
 
 export default class MainPreset extends Preset {
   constructor() {
+    const experimentalplugins = isFeatureEnabled(
+      FeatureFlag.DASHBOARD_FILTERS_EXPERIMENTAL,
+    )
+      ? [new GroupByFilterPlugin().configure({ key: 'filter_groupby' })]
+      : [];
+
     super({
       name: 'Legacy charts',
       presets: [new DeckGLChartPreset()],
@@ -95,6 +110,8 @@ export default class MainPreset extends Preset {
         new DualLineChartPlugin().configure({ key: 'dual_line' }),
         new EventFlowChartPlugin().configure({ key: 'event_flow' }),
         new FilterBoxChartPlugin().configure({ key: 'filter_box' }),
+        new EchartsFunnelChartPlugin().configure({ key: 'funnel' }),
+        new EchartsTreemapChartPlugin().configure({ key: 'treemap_v2' }),
         new EchartsGaugeChartPlugin().configure({ key: 'gauge_chart' }),
         new EchartsGraphChartPlugin().configure({ key: 'graph_chart' }),
         new EchartsRadarChartPlugin().configure({ key: 'radar' }),
@@ -122,15 +139,34 @@ export default class MainPreset extends Preset {
         new TreemapChartPlugin().configure({ key: 'treemap' }),
         new WordCloudChartPlugin().configure({ key: 'word_cloud' }),
         new WorldMapChartPlugin().configure({ key: 'world_map' }),
+        new EchartsAreaChartPlugin().configure({
+          key: 'echarts_area',
+        }),
         new EchartsTimeseriesChartPlugin().configure({
           key: 'echarts_timeseries',
+        }),
+        new EchartsTimeseriesBarChartPlugin().configure({
+          key: 'echarts_timeseries_bar',
+        }),
+        new EchartsTimeseriesLineChartPlugin().configure({
+          key: 'echarts_timeseries_line',
+        }),
+        new EchartsTimeseriesSmoothLineChartPlugin().configure({
+          key: 'echarts_timeseries_smooth',
+        }),
+        new EchartsTimeseriesScatterChartPlugin().configure({
+          key: 'echarts_timeseries_scatter',
+        }),
+        new EchartsTimeseriesStepChartPlugin().configure({
+          key: 'echarts_timeseries_step',
         }),
         new SelectFilterPlugin().configure({ key: 'filter_select' }),
         new RangeFilterPlugin().configure({ key: 'filter_range' }),
         new TimeFilterPlugin().configure({ key: 'filter_time' }),
         new TimeColumnFilterPlugin().configure({ key: 'filter_timecolumn' }),
         new TimeGrainFilterPlugin().configure({ key: 'filter_timegrain' }),
-        new GroupByFilterPlugin().configure({ key: 'filter_groupby' }),
+        new EchartsTreeChartPlugin().configure({ key: 'tree_chart' }),
+        ...experimentalplugins,
       ],
     });
   }

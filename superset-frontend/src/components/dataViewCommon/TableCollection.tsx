@@ -20,7 +20,7 @@ import React from 'react';
 import cx from 'classnames';
 import { TableInstance } from 'react-table';
 import { styled } from '@superset-ui/core';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 
 interface TableCollectionProps {
   getTableProps: (userProps?: any) => any;
@@ -187,7 +187,7 @@ export const Table = styled.table`
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
-    max-width: 300px;
+    max-width: 320px;
     line-height: 1;
     vertical-align: middle;
     &:first-of-type {
@@ -228,11 +228,11 @@ export default React.memo(
         {headerGroups.map(headerGroup => (
           <tr {...headerGroup.getHeaderGroupProps()}>
             {headerGroup.headers.map(column => {
-              let sortIcon = <Icon name="sort" />;
+              let sortIcon = <Icons.Sort />;
               if (column.isSorted && column.isSortedDesc) {
-                sortIcon = <Icon name="sort-desc" />;
+                sortIcon = <Icons.SortDesc />;
               } else if (column.isSorted && !column.isSortedDesc) {
-                sortIcon = <Icon name="sort-asc" />;
+                sortIcon = <Icons.SortAsc />;
               }
               return column.hidden ? null : (
                 <th

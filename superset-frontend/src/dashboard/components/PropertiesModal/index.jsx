@@ -18,10 +18,11 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Row, Col, FormControl } from 'react-bootstrap';
+import { Row, Col, Input } from 'src/common/components';
+import { Form, FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
 import Button from 'src/components/Button';
-import { AsyncSelect } from 'src/components/Select';
+import { Select } from 'src/components';
 import rison from 'rison';
 import {
   styled,
@@ -32,13 +33,11 @@ import {
 } from '@superset-ui/core';
 
 import Modal from 'src/components/Modal';
-import FormLabel from 'src/components/FormLabel';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 
 import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeControlWrapper';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
-import 'src/dashboard/stylesheets/buttons.less';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 
 const StyledJsonEditor = styled(JsonEditor)`
@@ -92,17 +91,22 @@ const loadAccessOptions = accessType => (input = '') => {
   return SupersetClient.get({
     endpoint: `/api/v1/dashboard/related/${accessType}?q=${query}`,
   }).then(
-    response =>
-      response.json.result.map(item => ({
+    response => ({
+      data: response.json.result.map(item => ({
         value: item.value,
         label: item.text,
       })),
+      totalCount: response.json.count,
+    }),
     badResponse => {
       handleErrorResponse(badResponse);
       return [];
     },
   );
 };
+
+const loadOwners = loadAccessOptions('owners');
+const loadRoles = loadAccessOptions('roles');
 
 class PropertiesModal extends React.PureComponent {
   constructor(props) {
@@ -323,32 +327,33 @@ class PropertiesModal extends React.PureComponent {
   getRowsWithoutRoles() {
     const { values, isDashboardLoaded } = this.state;
     return (
-      <Row>
-        <Col md={6}>
+      <Row gutter={16}>
+        <Col xs={24} md={12}>
           <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
-          <FormLabel htmlFor="owners">{t('Owners')}</FormLabel>
-          <AsyncSelect
-            name="owners"
-            isMulti
-            value={values.owners}
-            loadOptions={loadAccessOptions('owners')}
-            defaultOptions // load options on render
-            cacheOptions
-            onChange={this.onOwnersChange}
-            disabled={!isDashboardLoaded}
-            filterOption={null} // options are filtered at the api
-          />
-          <p className="help-block">
-            {t(
-              'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
-            )}
-          </p>
+          <FormItem label={t('Owners')}>
+            <Select
+              allowClear
+              ariaLabel={t('Owners')}
+              disabled={!isDashboardLoaded}
+              name="owners"
+              mode="multiple"
+              value={values.owners}
+              options={loadOwners}
+              onChange={this.onOwnersChange}
+            />
+            <p className="help-block">
+              {t(
+                'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
+              )}
+            </p>
+          </FormItem>
         </Col>
-        <Col md={6}>
+        <Col xs={24} md={12}>
           <h3 style={{ marginTop: '1em' }}>{t('Colors')}</h3>
           <ColorSchemeControlWrapper
             onChange={this.onColorSchemeChange}
             colorScheme={values.colorScheme}
+            labelMargin={4}
           />
         </Col>
       </Row>
@@ -360,55 +365,56 @@ class PropertiesModal extends React.PureComponent {
     return (
       <>
         <Row>
-          <Col md={12}>
+          <Col xs={24} md={24}>
             <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
           </Col>
         </Row>
-        <Row>
-          <Col md={6}>
-            <FormLabel htmlFor="owners">{t('Owners')}</FormLabel>
-            <AsyncSelect
-              name="owners"
-              isMulti
-              value={values.owners}
-              loadOptions={loadAccessOptions('owners')}
-              defaultOptions // load options on render
-              cacheOptions
-              onChange={this.onOwnersChange}
-              disabled={!isDashboardLoaded}
-              filterOption={null} // options are filtered at the api
-            />
-            <p className="help-block">
-              {t(
-                'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
-              )}
-            </p>
+        <Row gutter={16}>
+          <Col xs={24} md={12}>
+            <FormItem label={t('Owners')}>
+              <Select
+                allowClear
+                ariaLabel={t('Owners')}
+                disabled={!isDashboardLoaded}
+                name="owners"
+                mode="multiple"
+                value={values.owners}
+                options={loadOwners}
+                onChange={this.onOwnersChange}
+              />
+              <p className="help-block">
+                {t(
+                  'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
+                )}
+              </p>
+            </FormItem>
           </Col>
-          <Col md={6}>
-            <FormLabel htmlFor="roles">{t('Roles')}</FormLabel>
-            <AsyncSelect
-              name="roles"
-              isMulti
-              value={values.roles}
-              loadOptions={loadAccessOptions('roles')}
-              defaultOptions // load options on render
-              cacheOptions
-              onChange={this.onRolesChange}
-              disabled={!isDashboardLoaded}
-              filterOption={null} // options are filtered at the api
-            />
-            <p className="help-block">
-              {t(
-                'Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles defined then the dashboard is available to all roles.',
-              )}
-            </p>
+          <Col xs={24} md={12}>
+            <FormItem label={t('Roles')}>
+              <Select
+                allowClear
+                ariaLabel={t('Roles')}
+                disabled={!isDashboardLoaded}
+                name="roles"
+                mode="multiple"
+                value={values.roles}
+                options={loadRoles}
+                onChange={this.onRolesChange}
+              />
+              <p className="help-block">
+                {t(
+                  'Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles defined then the dashboard is available to all roles.',
+                )}
+              </p>
+            </FormItem>
           </Col>
         </Row>
         <Row>
-          <Col md={6}>
+          <Col xs={24} md={12}>
             <ColorSchemeControlWrapper
               onChange={this.onColorSchemeChange}
               colorScheme={values.colorScheme}
+              labelMargin={4}
             />
           </Col>
         </Row>
@@ -452,45 +458,49 @@ class PropertiesModal extends React.PureComponent {
         }
         responsive
       >
-        <form data-test="dashboard-edit-properties-form" onSubmit={this.submit}>
+        <Form
+          data-test="dashboard-edit-properties-form"
+          onSubmit={this.submit}
+          layout="vertical"
+        >
           <Row>
-            <Col md={12}>
+            <Col xs={24} md={24}>
               <h3>{t('Basic information')}</h3>
             </Col>
           </Row>
-          <Row>
-            <Col md={6}>
-              <FormLabel htmlFor="embed-height">{t('Title')}</FormLabel>
-              <FormControl
-                data-test="dashboard-title-input"
-                name="dashboard_title"
-                type="text"
-                bsSize="sm"
-                value={values.dashboard_title}
-                onChange={this.onChange}
-                disabled={!isDashboardLoaded}
-              />
+          <Row gutter={16}>
+            <Col xs={24} md={12}>
+              <FormItem label={t('Title')}>
+                <Input
+                  data-test="dashboard-title-input"
+                  name="dashboard_title"
+                  type="text"
+                  value={values.dashboard_title}
+                  onChange={this.onChange}
+                  disabled={!isDashboardLoaded}
+                />
+              </FormItem>
             </Col>
-            <Col md={6}>
-              <FormLabel htmlFor="embed-height">{t('URL slug')}</FormLabel>
-              <FormControl
-                name="slug"
-                type="text"
-                bsSize="sm"
-                value={values.slug || ''}
-                onChange={this.onChange}
-                disabled={!isDashboardLoaded}
-              />
-              <p className="help-block">
-                {t('A readable URL for your dashboard')}
-              </p>
+            <Col xs={24} md={12}>
+              <FormItem label={t('URL slug')}>
+                <Input
+                  name="slug"
+                  type="text"
+                  value={values.slug || ''}
+                  onChange={this.onChange}
+                  disabled={!isDashboardLoaded}
+                />
+                <p className="help-block">
+                  {t('A readable URL for your dashboard')}
+                </p>
+              </FormItem>
             </Col>
           </Row>
           {isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC)
             ? this.getRowsWithRoles()
             : this.getRowsWithoutRoles()}
           <Row>
-            <Col md={12}>
+            <Col xs={24} md={24}>
               <h3 style={{ marginTop: '1em' }}>
                 <Button buttonStyle="link" onClick={this.toggleAdvanced}>
                   <i
@@ -503,10 +513,7 @@ class PropertiesModal extends React.PureComponent {
                 </Button>
               </h3>
               {isAdvancedOpen && (
-                <>
-                  <FormLabel htmlFor="json_metadata">
-                    {t('JSON metadata')}
-                  </FormLabel>
+                <FormItem label={t('JSON metadata')}>
                   <StyledJsonEditor
                     showLoadingForImport
                     name="json_metadata"
@@ -523,11 +530,11 @@ class PropertiesModal extends React.PureComponent {
                       'This JSON object is generated dynamically when clicking the save or overwrite button in the dashboard view. It is exposed here for reference and for power users who may want to alter specific parameters.',
                     )}
                   </p>
-                </>
+                </FormItem>
               )}
             </Col>
           </Row>
-        </form>
+        </Form>
       </Modal>
     );
   }

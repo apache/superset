@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { DataMask } from '@superset-ui/core';
+import { AdhocFilter, DataMask } from '@superset-ui/core';
 
 export interface Column {
   name: string;
@@ -41,9 +41,7 @@ export interface Target {
 
 export interface Filter {
   cascadeParentIds: string[];
-  defaultValue: any;
-  dataMask?: DataMask;
-  isInstant: boolean;
+  defaultDataMask: DataMask;
   id: string; // randomly generated at filter creation
   name: string;
   scope: Scope;
@@ -54,6 +52,19 @@ export interface Filter {
   controlValues: {
     [key: string]: any;
   };
+  sortMetric?: string | null;
+  adhoc_filters?: AdhocFilter[];
+  granularity_sqla?: string;
+  time_range?: string;
+  requiredFirst?: boolean;
+  tabsInScope?: string[];
+  chartsInScope?: number[];
+  type: NativeFilterType;
 }
 
 export type FilterConfiguration = Filter[];
+
+export enum NativeFilterType {
+  NATIVE_FILTER = 'NATIVE_FILTER',
+  SECTION = 'SECTION',
+}

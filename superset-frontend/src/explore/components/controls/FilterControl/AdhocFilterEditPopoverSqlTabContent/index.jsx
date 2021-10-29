@@ -18,9 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { FormGroup } from 'react-bootstrap';
-import { NativeSelect as Select } from 'src/components/Select';
-import { t } from '@superset-ui/core';
+import { Select } from 'src/components';
+import { styled, t } from '@superset-ui/core';
 import { SQLEditor } from 'src/components/AsyncAceEditor';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 
@@ -45,6 +44,13 @@ const propTypes = {
   activeKey: PropTypes.string.isRequired,
 };
 
+const StyledSelect = styled(Select)`
+  ${({ theme }) => `
+    width: ${theme.gridUnit * 30}px;
+    marginRight: ${theme.gridUnit}px;
+  `}
+`;
+
 export default class AdhocFilterEditPopoverSqlTabContent extends React.Component {
   constructor(props) {
     super(props);
@@ -55,7 +61,7 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
     this.handleAceEditorRef = this.handleAceEditorRef.bind(this);
 
     this.selectProps = {
-      name: 'select-column',
+      ariaLabel: t('Select column'),
     };
   }
 
@@ -112,29 +118,26 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
         })
         .filter(Boolean),
     );
+    const selectOptions = Object.keys(CLAUSES).map(clause => ({
+      label: clause,
+      value: clause,
+    }));
 
     return (
       <span>
-        <FormGroup className="filter-edit-clause-section">
-          <Select
+        <div className="filter-edit-clause-section">
+          <StyledSelect
+            options={selectOptions}
             {...this.selectProps}
             {...clauseSelectProps}
-            className="filter-edit-clause-dropdown"
-            getPopupContainer={triggerNode => triggerNode.parentNode}
-          >
-            {Object.keys(CLAUSES).map(clause => (
-              <Select.Option value={clause} key={clause}>
-                {clause}
-              </Select.Option>
-            ))}
-          </Select>
+          />
           <span className="filter-edit-clause-info">
             <strong>WHERE</strong> {t('Filters by columns')}
             <br />
             <strong>HAVING</strong> {t('Filters by metrics')}
           </span>
-        </FormGroup>
-        <FormGroup>
+        </div>
+        <div css={theme => ({ marginTop: theme.gridUnit * 4 })}>
           <SQLEditor
             ref={this.handleAceEditorRef}
             keywords={keywords}
@@ -145,10 +148,10 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
             value={adhocFilter.sqlExpression || adhocFilter.translateToSql()}
             editorProps={{ $blockScrolling: true }}
             enableLiveAutocompletion
-            className="adhoc-filter-sql-editor"
+            className="filter-sql-editor"
             wrapEnabled
           />
-        </FormGroup>
+        </div>
       </span>
     );
   }

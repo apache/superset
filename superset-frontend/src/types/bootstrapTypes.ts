@@ -33,7 +33,7 @@ export interface UserWithPermissionsAndRoles extends User {
     database_access?: string[];
     datasource_access?: string[];
   };
-  roles: Record<string, string[][]>;
+  roles: Record<string, [string, string][]>;
 }
 
 export type Dashboard = {

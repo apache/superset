@@ -23,8 +23,7 @@ import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 import { ParentSize } from '@vx/responsive';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import { Sticky, StickyContainer } from 'react-sticky';
-import { TabContainer, TabContent, TabPane } from 'react-bootstrap';
+import Tabs from 'src/components/Tabs';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
@@ -39,7 +38,10 @@ import {
 } from 'spec/fixtures/mockDashboardLayout';
 import { mockStoreWithTabs, storeWithState } from 'spec/fixtures/mockStore';
 import mockState from 'spec/fixtures/mockState';
-import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
+import {
+  DASHBOARD_ROOT_ID,
+  DASHBOARD_GRID_ID,
+} from 'src/dashboard/util/constants';
 
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
 
@@ -47,16 +49,21 @@ jest.mock('src/dashboard/actions/dashboardState');
 
 describe('DashboardBuilder', () => {
   let favStarStub;
+  let activeTabsStub;
 
   beforeAll(() => {
     // this is invoked on mount, so we stub it instead of making a request
     favStarStub = sinon
       .stub(dashboardStateActions, 'fetchFaveStar')
       .returns({ type: 'mock-action' });
+    activeTabsStub = sinon
+      .stub(dashboardStateActions, 'setActiveTabs')
+      .returns({ type: 'mock-action' });
   });
 
   afterAll(() => {
     favStarStub.restore();
+    activeTabsStub.restore();
   });
 
   function setup(overrideState = {}, overrideStore) {
@@ -82,14 +89,14 @@ describe('DashboardBuilder', () => {
 
   it('should render a StickyContainer with class "dashboard"', () => {
     const wrapper = setup();
-    const stickyContainer = wrapper.find(StickyContainer);
+    const stickyContainer = wrapper.find('[data-test="dashboard-content"]');
     expect(stickyContainer).toHaveLength(1);
     expect(stickyContainer.prop('className')).toBe('dashboard');
   });
 
   it('should add the "dashboard--editing" class if editMode=true', () => {
     const wrapper = setup({ dashboardState: { editMode: true } });
-    const stickyContainer = wrapper.find(StickyContainer).first();
+    const stickyContainer = wrapper.find('[data-test="dashboard-content"]');
     expect(stickyContainer.prop('className')).toBe(
       'dashboard dashboard--editing',
     );
@@ -105,12 +112,12 @@ describe('DashboardBuilder', () => {
       { dashboardLayout: undoableDashboardLayoutWithTabs },
       mockStoreWithTabs,
     );
-    const sticky = wrapper.find(Sticky);
+
+    const sticky = wrapper.find('[data-test="top-level-tabs"]');
     const dashboardComponent = sticky.find(DashboardComponent);
 
     const tabChildren =
       undoableDashboardLayoutWithTabs.present.TABS_ID.children;
-    expect(sticky).toHaveLength(1);
     expect(dashboardComponent).toHaveLength(1 + tabChildren.length); // tab + tabs
     expect(dashboardComponent.at(0).prop('id')).toBe('TABS_ID');
     tabChildren.forEach((tabId, i) => {
@@ -118,19 +125,11 @@ describe('DashboardBuilder', () => {
     });
   });
 
-  it('should render a TabContainer and TabContent', () => {
+  it('should render one Tabs and two TabPane', () => {
     const wrapper = setup({ dashboardLayout: undoableDashboardLayoutWithTabs });
     const parentSize = wrapper.find(ParentSize);
-    expect(parentSize.find(TabContainer)).toHaveLength(1);
-    expect(parentSize.find(TabContent)).toHaveLength(1);
-  });
-
-  it('should set animation=true, mountOnEnter=true, and unmounOnExit=false on TabContainer for perf', () => {
-    const wrapper = setup({ dashboardLayout: undoableDashboardLayoutWithTabs });
-    const tabProps = wrapper.find(ParentSize).find(TabContainer).props();
-    expect(tabProps.animation).toBe(true);
-    expect(tabProps.mountOnEnter).toBe(true);
-    expect(tabProps.unmountOnExit).toBe(false);
+    expect(parentSize.find(Tabs)).toHaveLength(1);
+    expect(parentSize.find(Tabs.TabPane)).toHaveLength(2);
   });
 
   it('should render a TabPane and DashboardGrid for first Tab', () => {
@@ -138,10 +137,10 @@ describe('DashboardBuilder', () => {
     const parentSize = wrapper.find(ParentSize);
     const expectedCount =
       undoableDashboardLayoutWithTabs.present.TABS_ID.children.length;
-    expect(parentSize.find(TabPane)).toHaveLength(expectedCount);
-    expect(parentSize.find(TabPane).first().find(DashboardGrid)).toHaveLength(
-      1,
-    );
+    expect(parentSize.find(Tabs.TabPane)).toHaveLength(expectedCount);
+    expect(
+      parentSize.find(Tabs.TabPane).first().find(DashboardGrid),
+    ).toHaveLength(1);
   });
 
   it('should render a TabPane and DashboardGrid for second Tab', () => {
@@ -155,8 +154,10 @@ describe('DashboardBuilder', () => {
     const parentSize = wrapper.find(ParentSize);
     const expectedCount =
       undoableDashboardLayoutWithTabs.present.TABS_ID.children.length;
-    expect(parentSize.find(TabPane)).toHaveLength(expectedCount);
-    expect(parentSize.find(TabPane).at(1).find(DashboardGrid)).toHaveLength(1);
+    expect(parentSize.find(Tabs.TabPane)).toHaveLength(expectedCount);
+    expect(
+      parentSize.find(Tabs.TabPane).at(1).find(DashboardGrid),
+    ).toHaveLength(1);
   });
 
   it('should render a BuilderComponentPane if editMode=false and user selects "Insert Components" pane', () => {
@@ -179,7 +180,7 @@ describe('DashboardBuilder', () => {
       dashboardLayout: undoableDashboardLayoutWithTabs,
     });
 
-    expect(wrapper.find(TabContainer).prop('activeKey')).toBe(0);
+    expect(wrapper.find(Tabs).at(1).prop('activeKey')).toBe(DASHBOARD_GRID_ID);
 
     wrapper
       .find('.dashboard-component-tabs .ant-tabs .ant-tabs-tab')

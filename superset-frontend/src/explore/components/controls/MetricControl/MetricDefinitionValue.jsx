@@ -48,6 +48,8 @@ export default function MetricDefinitionValue({
   onMoveLabel,
   onDropLabel,
   index,
+  type,
+  multi,
 }) {
   const getSavedMetricByName = metricName =>
     savedMetrics.find(metric => metric.metric_name === metricName);
@@ -74,6 +76,8 @@ export default function MetricDefinitionValue({
       onDropLabel,
       index,
       savedMetric: savedMetric ?? {},
+      type,
+      multi,
     };
 
     return <AdhocMetricOption {...metricOptionProps} />;

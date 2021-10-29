@@ -21,14 +21,17 @@ import Popover from 'src/components/Popover';
 import { OptionSortType } from 'src/explore/types';
 import AdhocFilterEditPopover from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopover';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import { ExplorePopoverContent } from 'src/explore/components/ExploreContentPopover';
+import { Operators } from 'src/explore/constants';
 
 interface AdhocFilterPopoverTriggerProps {
+  sections?: string[];
+  operators?: Operators[];
   adhocFilter: AdhocFilter;
   options: OptionSortType[];
   datasource: Record<string, any>;
   onFilterEdit: (editedFilter: AdhocFilter) => void;
   partitionColumn?: string;
-  createNew?: boolean;
   isControlledComponent?: boolean;
   visible?: boolean;
   togglePopover?: (visible: boolean) => void;
@@ -82,15 +85,19 @@ class AdhocFilterPopoverTrigger extends React.PureComponent<
           closePopover: this.closePopover,
         };
     const overlayContent = (
-      <AdhocFilterEditPopover
-        adhocFilter={adhocFilter}
-        options={this.props.options}
-        datasource={this.props.datasource}
-        partitionColumn={this.props.partitionColumn}
-        onResize={this.onPopoverResize}
-        onClose={closePopover}
-        onChange={this.props.onFilterEdit}
-      />
+      <ExplorePopoverContent>
+        <AdhocFilterEditPopover
+          adhocFilter={adhocFilter}
+          options={this.props.options}
+          datasource={this.props.datasource}
+          partitionColumn={this.props.partitionColumn}
+          onResize={this.onPopoverResize}
+          onClose={closePopover}
+          sections={this.props.sections}
+          operators={this.props.operators}
+          onChange={this.props.onFilterEdit}
+        />
+      </ExplorePopoverContent>
     );
 
     return (
@@ -101,7 +108,7 @@ class AdhocFilterPopoverTrigger extends React.PureComponent<
         defaultVisible={visible}
         visible={visible}
         onVisibleChange={togglePopover}
-        destroyTooltipOnHide={this.props.createNew}
+        destroyTooltipOnHide
       >
         {this.props.children}
       </Popover>

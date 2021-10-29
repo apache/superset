@@ -17,9 +17,11 @@
 import simplejson as json
 from flask import request, Response
 from flask_appbuilder import expose
+from flask_appbuilder.hooks import before_request
 from flask_appbuilder.security.decorators import has_access_api
+from werkzeug.exceptions import NotFound
 
-from superset import db, event_logger
+from superset import db, event_logger, is_feature_enabled
 from superset.models import core as models
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
@@ -29,6 +31,15 @@ from superset.views.base import BaseSupersetView, json_error_response
 class KV(BaseSupersetView):
 
     """Used for storing and retrieving key value pairs"""
+
+    @staticmethod
+    def is_enabled() -> bool:
+        return is_feature_enabled("KV_STORE")
+
+    @before_request
+    def ensure_enabled(self) -> None:
+        if not self.is_enabled():
+            raise NotFound()
 
     @event_logger.log_this
     @has_access_api

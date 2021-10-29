@@ -21,10 +21,12 @@ import sinon from 'sinon';
 import configureStore from 'redux-mock-store';
 import { shallow } from 'enzyme';
 import { Menu } from 'src/common/components';
-import DatasourceModal from 'src/datasource/DatasourceModal';
-import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
+import {
+  DatasourceModal,
+  ChangeDatasourceModal,
+} from 'src/components/Datasource';
 import DatasourceControl from 'src/explore/components/controls/DatasourceControl';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 
 const defaultProps = {
@@ -119,8 +121,7 @@ describe('DatasourceControl', () => {
 
   it('should render health check message', () => {
     const wrapper = setup();
-    const alert = wrapper.find(Icon);
-    expect(alert.at(1).prop('name')).toBe('alert-solid');
+    expect(wrapper.find(Icons.AlertSolid)).toExist();
     const tooltip = wrapper.find(Tooltip).at(0);
     expect(tooltip.prop('title')).toBe(
       defaultProps.datasource.health_check_message,

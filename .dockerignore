@@ -43,4 +43,5 @@ install/
 superset-frontend/cypress-base/
 superset-frontend/coverage/
 superset/static/assets/
+superset-websocket/dist/
 venv

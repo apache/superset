@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
-import { t, useTheme, css } from '@superset-ui/core';
+import React, { useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
+import { Global, css } from '@emotion/react';
+import { t, useTheme } from '@superset-ui/core';
 import {
   MinusCircleFilled,
   CheckCircleFilled,
@@ -25,8 +27,7 @@ import {
 } from '@ant-design/icons';
 import Popover from 'src/components/Popover';
 import Collapse from 'src/components/Collapse';
-import { Global } from '@emotion/core';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import {
   Indent,
   Panel,
@@ -35,6 +36,7 @@ import {
 } from 'src/dashboard/components/FiltersBadge/Styles';
 import { Indicator } from 'src/dashboard/components/FiltersBadge/selectors';
 import FilterIndicator from 'src/dashboard/components/FiltersBadge/FilterIndicator';
+import { RootState } from 'src/dashboard/types';
 
 export interface DetailsPanelProps {
   appliedCrossFilterIndicators: Indicator[];
@@ -53,7 +55,25 @@ const DetailsPanelPopover = ({
   onHighlightFilterSource,
   children,
 }: DetailsPanelProps) => {
+  const [visible, setVisible] = useState(false);
   const theme = useTheme();
+  const activeTabs = useSelector<RootState>(
+    state => state.dashboardState?.activeTabs,
+  );
+
+  // we don't need to clean up useEffect, setting { once: true } removes the event listener after handle function is called
+  useEffect(() => {
+    if (visible) {
+      window.addEventListener('resize', () => setVisible(false), {
+        once: true,
+      });
+    }
+  }, [visible]);
+
+  // if tabs change, popover doesn't close automatically
+  useEffect(() => {
+    setVisible(false);
+  }, [activeTabs]);
 
   const getDefaultActivePanel = () => {
     const result = [];
@@ -77,6 +97,7 @@ const DetailsPanelPopover = ({
   ]);
 
   function handlePopoverStatus(isOpen: boolean) {
+    setVisible(isOpen);
     // every time the popover opens, make sure the most relevant panel is active
     if (isOpen) {
       setActivePanels(getDefaultActivePanel());
@@ -141,6 +162,7 @@ const DetailsPanelPopover = ({
             }
             &.ant-popover {
               color: ${theme.colors.grayscale.light4};
+              z-index: 99;
             }
           }
         `}
@@ -157,9 +179,9 @@ const DetailsPanelPopover = ({
               key="appliedCrossFilters"
               header={
                 <Title bold color={theme.colors.primary.light1}>
-                  <Icon
-                    name="cross-filter-badge"
+                  <Icons.CursorTarget
                     css={{ fill: theme.colors.primary.light1 }}
+                    iconSize="xl"
                   />
                   {t(
                     'Applied Cross Filters (%d)',
@@ -255,6 +277,7 @@ const DetailsPanelPopover = ({
     <Popover
       overlayClassName="filterStatusPopover"
       content={content}
+      visible={visible}
       onVisibleChange={handlePopoverStatus}
       placement="bottom"
       trigger="click"

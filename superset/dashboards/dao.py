@@ -16,20 +16,19 @@
 # under the License.
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Union
 
-from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import contains_eager
 
+from superset import security_manager
 from superset.dao.base import BaseDAO
 from superset.dashboards.commands.exceptions import DashboardNotFoundError
-from superset.dashboards.filters import DashboardFilter
+from superset.dashboards.filters import DashboardAccessFilter
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
-from superset.models.dashboard import Dashboard, id_or_slug_filter
+from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils import core
 from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
 
 logger = logging.getLogger(__name__)
@@ -37,68 +36,95 @@ logger = logging.getLogger(__name__)
 
 class DashboardDAO(BaseDAO):
     model_cls = Dashboard
-    base_filter = DashboardFilter
+    base_filter = DashboardAccessFilter
 
     @staticmethod
     def get_by_id_or_slug(id_or_slug: str) -> Dashboard:
-        query = (
-            db.session.query(Dashboard)
-            .filter(id_or_slug_filter(id_or_slug))
-            .outerjoin(Slice, Dashboard.slices)
-            .outerjoin(Slice.table)
-            .outerjoin(Dashboard.owners)
-            .outerjoin(Dashboard.roles)
-        )
-        # Apply dashboard base filters
-        query = DashboardFilter("id", SQLAInterface(Dashboard, db.session)).apply(
-            query, None
-        )
-        dashboard = query.one_or_none()
+        dashboard = Dashboard.get(id_or_slug)
         if not dashboard:
             raise DashboardNotFoundError()
+        security_manager.raise_for_dashboard_access(dashboard)
         return dashboard
 
     @staticmethod
     def get_datasets_for_dashboard(id_or_slug: str) -> List[Any]:
-        query = (
-            db.session.query(Dashboard)
-            .filter(id_or_slug_filter(id_or_slug))
-            .outerjoin(Slice, Dashboard.slices)
-            .outerjoin(Slice.table)
-        )
-        # Apply dashboard base filters
-        query = DashboardFilter("id", SQLAInterface(Dashboard, db.session)).apply(
-            query, None
-        )
-        dashboard = query.one_or_none()
-        if not dashboard:
-            raise DashboardNotFoundError()
-        datasource_slices = core.indexed(dashboard.slices, "datasource")
-        data = [
-            datasource.data_for_slices(slices)
-            for datasource, slices in datasource_slices.items()
-            if datasource
-        ]
-        return data
+        dashboard = DashboardDAO.get_by_id_or_slug(id_or_slug)
+        return dashboard.datasets_trimmed_for_slices()
 
     @staticmethod
     def get_charts_for_dashboard(id_or_slug: str) -> List[Slice]:
-        query = (
-            db.session.query(Dashboard)
-            .outerjoin(Slice, Dashboard.slices)
-            .outerjoin(Slice.table)
-            .filter(id_or_slug_filter(id_or_slug))
-            .options(contains_eager(Dashboard.slices))
-        )
-        # Apply dashboard base filters
-        query = DashboardFilter("id", SQLAInterface(Dashboard, db.session)).apply(
-            query, None
-        )
+        return DashboardDAO.get_by_id_or_slug(id_or_slug).slices
 
-        dashboard = query.one_or_none()
-        if not dashboard:
-            raise DashboardNotFoundError()
-        return dashboard.slices
+    @staticmethod
+    def get_dashboard_changed_on(
+        id_or_slug_or_dashboard: Union[str, Dashboard]
+    ) -> datetime:
+        """
+        Get latest changed datetime for a dashboard.
+
+        :param id_or_slug_or_dashboard: A dashboard or the ID or slug of the dashboard.
+        :returns: The datetime the dashboard was last changed.
+        """
+
+        dashboard = (
+            DashboardDAO.get_by_id_or_slug(id_or_slug_or_dashboard)
+            if isinstance(id_or_slug_or_dashboard, str)
+            else id_or_slug_or_dashboard
+        )
+        # drop microseconds in datetime to match with last_modified header
+        return dashboard.changed_on.replace(microsecond=0)
+
+    @staticmethod
+    def get_dashboard_and_slices_changed_on(  # pylint: disable=invalid-name
+        id_or_slug_or_dashboard: Union[str, Dashboard]
+    ) -> datetime:
+        """
+        Get latest changed datetime for a dashboard. The change could be a dashboard
+        metadata change, or a change to one of its dependent slices.
+
+        :param id_or_slug_or_dashboard: A dashboard or the ID or slug of the dashboard.
+        :returns: The datetime the dashboard was last changed.
+        """
+
+        dashboard = (
+            DashboardDAO.get_by_id_or_slug(id_or_slug_or_dashboard)
+            if isinstance(id_or_slug_or_dashboard, str)
+            else id_or_slug_or_dashboard
+        )
+        dashboard_changed_on = DashboardDAO.get_dashboard_changed_on(dashboard)
+        slices = dashboard.slices
+        slices_changed_on = max(
+            [slc.changed_on for slc in slices]
+            + ([datetime.fromtimestamp(0)] if len(slices) == 0 else [])
+        )
+        # drop microseconds in datetime to match with last_modified header
+        return max(dashboard_changed_on, slices_changed_on).replace(microsecond=0)
+
+    @staticmethod
+    def get_dashboard_and_datasets_changed_on(  # pylint: disable=invalid-name
+        id_or_slug_or_dashboard: Union[str, Dashboard]
+    ) -> datetime:
+        """
+        Get latest changed datetime for a dashboard. The change could be a dashboard
+        metadata change, a change to one of its dependent datasets.
+
+        :param id_or_slug_or_dashboard: A dashboard or the ID or slug of the dashboard.
+        :returns: The datetime the dashboard was last changed.
+        """
+
+        dashboard = (
+            DashboardDAO.get_by_id_or_slug(id_or_slug_or_dashboard)
+            if isinstance(id_or_slug_or_dashboard, str)
+            else id_or_slug_or_dashboard
+        )
+        dashboard_changed_on = DashboardDAO.get_dashboard_changed_on(dashboard)
+        datasources = dashboard.datasources
+        datasources_changed_on = max(
+            [datasource.changed_on for datasource in datasources]
+            + ([datetime.fromtimestamp(0)] if len(datasources) == 0 else [])
+        )
+        # drop microseconds in datetime to match with last_modified header
+        return max(dashboard_changed_on, datasources_changed_on).replace(microsecond=0)
 
     @staticmethod
     def validate_slug_uniqueness(slug: str) -> bool:

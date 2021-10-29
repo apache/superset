@@ -137,7 +137,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     @permission_name("get")
     @rison(get_list_schema)
     def get_list(  # pylint: disable=arguments-differ
-        self, pk: int, **kwargs: Dict[str, Any]
+        self, pk: int, **kwargs: Any
     ) -> Response:
         """Get a list of annotations
         ---
@@ -198,7 +198,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     @permission_name("get")
     @rison(get_item_schema)
     def get(  # pylint: disable=arguments-differ
-        self, pk: int, annotation_id: int, **kwargs: Dict[str, Any]
+        self, pk: int, annotation_id: int, **kwargs: Any
     ) -> Response:
         """Get item from Model
         ---
@@ -311,7 +311,10 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=ex.normalized_messages())
         except AnnotationCreateFailedError as ex:
             logger.error(
-                "Error creating annotation %s: %s", self.__class__.__name__, str(ex)
+                "Error creating annotation %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -378,13 +381,16 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
         try:
             new_model = UpdateAnnotationCommand(g.user, annotation_id, item).run()
             return self.response(200, id=new_model.id, result=item)
-        except (AnnotationNotFoundError, AnnotationLayerNotFoundError) as ex:
+        except (AnnotationNotFoundError, AnnotationLayerNotFoundError):
             return self.response_404()
         except AnnotationInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except AnnotationUpdateFailedError as ex:
             logger.error(
-                "Error updating annotation %s: %s", self.__class__.__name__, str(ex)
+                "Error updating annotation %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -432,11 +438,14 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
         try:
             DeleteAnnotationCommand(g.user, annotation_id).run()
             return self.response(200, message="OK")
-        except AnnotationNotFoundError as ex:
+        except AnnotationNotFoundError:
             return self.response_404()
         except AnnotationDeleteFailedError as ex:
             logger.error(
-                "Error deleting annotation %s: %s", self.__class__.__name__, str(ex)
+                "Error deleting annotation %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 

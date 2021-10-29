@@ -18,10 +18,9 @@
  */
 import React, { useMemo } from 'react';
 import { styled, t } from '@superset-ui/core';
-import { FormControl } from 'react-bootstrap';
 import { Column } from 'react-table';
 import debounce from 'lodash/debounce';
-
+import { Input } from 'src/common/components';
 import {
   BOOL_FALSE_DISPLAY,
   BOOL_TRUE_DISPLAY,
@@ -56,11 +55,15 @@ const CopyNode = (
 
 export const CopyToClipboardButton = ({
   data,
+  columns,
 }: {
   data?: Record<string, any>;
+  columns?: string[];
 }) => (
   <CopyToClipboard
-    text={data ? prepareCopyToClipboardTabularData(data) : ''}
+    text={
+      data && columns ? prepareCopyToClipboardTabularData(data, columns) : ''
+    }
     wrapped={false}
     copyNode={CopyNode}
   />
@@ -73,9 +76,8 @@ export const FilterInput = ({
 }) => {
   const debouncedChangeHandler = debounce(onChangeHandler, SLOW_DEBOUNCE);
   return (
-    <FormControl
+    <Input
       placeholder={t('Search')}
-      bsSize="sm"
       onChange={(event: any) => {
         const filterText = event.target.value;
         debouncedChangeHandler(filterText);
@@ -115,29 +117,32 @@ export const useFilteredTableData = (
   }, [data, filterText]);
 
 export const useTableColumns = (
+  colnames?: string[],
   data?: Record<string, any>[],
   moreConfigs?: { [key: string]: Partial<Column> },
 ) =>
   useMemo(
     () =>
-      data?.length
-        ? Object.keys(data[0]).map(
-            key =>
-              ({
-                accessor: key,
-                Header: key,
-                Cell: ({ value }) => {
-                  if (value === true) {
-                    return BOOL_TRUE_DISPLAY;
-                  }
-                  if (value === false) {
-                    return BOOL_FALSE_DISPLAY;
-                  }
-                  return String(value);
-                },
-                ...moreConfigs?.[key],
-              } as Column),
-          )
+      colnames && data?.length
+        ? colnames
+            .filter((column: string) => Object.keys(data[0]).includes(column))
+            .map(
+              key =>
+                ({
+                  accessor: row => row[key],
+                  Header: key,
+                  Cell: ({ value }) => {
+                    if (value === true) {
+                      return BOOL_TRUE_DISPLAY;
+                    }
+                    if (value === false) {
+                      return BOOL_FALSE_DISPLAY;
+                    }
+                    return String(value);
+                  },
+                  ...moreConfigs?.[key],
+                } as Column),
+            )
         : [],
     [data, moreConfigs],
   );

@@ -30,6 +30,7 @@ export type QueryState =
   | 'running'
   | 'scheduled'
   | 'success'
+  | 'fetching'
   | 'timed_out';
 
 export type Query = {
@@ -52,6 +53,7 @@ export type Query = {
     data: Record<string, unknown>[];
     expanded_columns: Column[];
     selected_columns: Column[];
+    query: { limit: number };
   };
   resultsKey: string | null;
   schema: string;
@@ -65,4 +67,18 @@ export type Query = {
   templateParams: any;
   rows: number;
   queryLimit: number;
+  limitingFactor: string;
 };
+
+export interface QueryEditor {
+  dbId?: number;
+  title: string;
+  schema: string;
+  autorun: boolean;
+  sql: string;
+  remoteId: number | null;
+  validationResult?: {
+    completed: boolean;
+    errors: SupersetError[];
+  };
+}

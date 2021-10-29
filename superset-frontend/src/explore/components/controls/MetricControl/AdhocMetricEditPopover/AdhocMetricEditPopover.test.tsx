@@ -170,7 +170,7 @@ test('Should switch to tab:Custom SQL', () => {
   ).toBeInTheDocument();
 });
 
-test('Should render "Custom SQL" tab correctly', () => {
+test('Should render "Custom SQL" tab correctly', async () => {
   const props = createProps();
   props.getCurrentTab.mockImplementation(tab => {
     props.adhocMetric.expressionType = tab;
@@ -180,5 +180,5 @@ test('Should render "Custom SQL" tab correctly', () => {
   const tab = screen.getByRole('tab', { name: 'Custom SQL' }).parentElement!;
   userEvent.click(tab);
 
-  expect(screen.getByTestId('sql-editor')).toBeVisible();
+  expect(await screen.findByRole('textbox')).toBeInTheDocument();
 });

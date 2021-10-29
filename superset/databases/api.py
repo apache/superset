@@ -14,11 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=too-many-lines
 import json
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Optional
+from typing import Any, Dict, List, Optional
 from zipfile import ZipFile
 
 from flask import g, request, Response, send_file
@@ -27,8 +28,8 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
 
-from superset import event_logger
-from superset.commands.exceptions import CommandInvalidError
+from superset import app, event_logger
+from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.databases.commands.create import CreateDatabaseCommand
@@ -38,15 +39,16 @@ from superset.databases.commands.exceptions import (
     DatabaseCreateFailedError,
     DatabaseDeleteDatasetsExistFailedError,
     DatabaseDeleteFailedError,
-    DatabaseImportError,
     DatabaseInvalidError,
     DatabaseNotFoundError,
     DatabaseUpdateFailedError,
+    InvalidParametersError,
 )
 from superset.databases.commands.export import ExportDatabasesCommand
 from superset.databases.commands.importers.dispatcher import ImportDatabasesCommand
 from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
 from superset.databases.commands.update import UpdateDatabaseCommand
+from superset.databases.commands.validate import ValidateDatabaseParametersCommand
 from superset.databases.dao import DatabaseDAO
 from superset.databases.decorators import check_datasource_access
 from superset.databases.filters import DatabaseFilter
@@ -57,12 +59,16 @@ from superset.databases.schemas import (
     DatabasePutSchema,
     DatabaseRelatedObjectsResponse,
     DatabaseTestConnectionSchema,
+    DatabaseValidateParametersSchema,
     get_export_ids_schema,
     SchemasResponseSchema,
     SelectStarResponseSchema,
     TableMetadataResponseSchema,
 )
 from superset.databases.utils import get_table_metadata
+from superset.db_engine_specs import get_available_engine_specs
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import InvalidPayloadFormatError
 from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.typing import FlaskResponse
@@ -84,6 +90,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "test_connection",
         "related_objects",
         "function_names",
+        "available",
+        "validate_parameters",
     }
     resource_name = "database"
     class_permission_name = "Database"
@@ -97,14 +105,18 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "expose_in_sqllab",
         "allow_run_async",
         "allow_csv_upload",
+        "configuration_method",
         "allow_ctas",
         "allow_cvas",
         "allow_dml",
+        "backend",
         "force_ctas_schema",
         "allow_multi_schema_metadata_fetch",
         "impersonate_user",
         "encrypted_extra",
         "extra",
+        "parameters",
+        "parameters_schema",
         "server_cert",
         "sqlalchemy_uri",
     ]
@@ -126,6 +138,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "database_name",
         "explore_database_id",
         "expose_in_sqllab",
+        "extra",
         "force_ctas_schema",
         "id",
     ]
@@ -139,6 +152,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "allow_ctas",
         "allow_cvas",
         "allow_dml",
+        "configuration_method",
         "force_ctas_schema",
         "impersonate_user",
         "allow_multi_schema_metadata_fetch",
@@ -173,6 +187,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         DatabaseFunctionNamesResponse,
         DatabaseRelatedObjectsResponse,
         DatabaseTestConnectionSchema,
+        DatabaseValidateParametersSchema,
         TableMetadataResponseSchema,
         SelectStarResponseSchema,
         SchemasResponseSchema,
@@ -222,6 +237,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
         try:
@@ -233,6 +249,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             new_model = CreateDatabaseCommand(g.user, item).run()
             # Return censored version for sqlalchemy URI
             item["sqlalchemy_uri"] = new_model.sqlalchemy_uri
+            item["expose_in_sqllab"] = new_model.expose_in_sqllab
+
+            # If parameters are available return them in the payload
+            if new_model.parameters:
+                item["parameters"] = new_model.parameters
+
             return self.response(201, id=new_model.id, result=item)
         except DatabaseInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
@@ -240,7 +262,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=str(ex))
         except DatabaseCreateFailedError as ex:
             logger.error(
-                "Error creating model %s: %s", self.__class__.__name__, str(ex)
+                "Error creating model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -252,9 +277,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
         log_to_statsd=False,
     )
-    def put(  # pylint: disable=too-many-return-statements, arguments-differ
-        self, pk: int
-    ) -> Response:
+    def put(self, pk: int) -> Response:
         """Changes a Database
         ---
         put:
@@ -308,6 +331,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             changed_model = UpdateDatabaseCommand(g.user, pk, item).run()
             # Return censored version for sqlalchemy URI
             item["sqlalchemy_uri"] = changed_model.sqlalchemy_uri
+            if changed_model.parameters:
+                item["parameters"] = changed_model.parameters
             return self.response(200, id=changed_model.id, result=item)
         except DatabaseNotFoundError:
             return self.response_404()
@@ -317,7 +342,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=str(ex))
         except DatabaseUpdateFailedError as ex:
             logger.error(
-                "Error updating model %s: %s", self.__class__.__name__, str(ex)
+                "Error updating model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -329,7 +357,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".delete",
         log_to_statsd=False,
     )
-    def delete(self, pk: int) -> Response:  # pylint: disable=arguments-differ
+    def delete(self, pk: int) -> Response:
         """Deletes a Database
         ---
         delete:
@@ -370,7 +398,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=str(ex))
         except DatabaseDeleteFailedError as ex:
             logger.error(
-                "Error deleting model %s: %s", self.__class__.__name__, str(ex)
+                "Error deleting model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -562,9 +593,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         f".test_connection",
         log_to_statsd=False,
     )
-    def test_connection(  # pylint: disable=too-many-return-statements
-        self,
-    ) -> FlaskResponse:
+    def test_connection(self) -> FlaskResponse:
         """Tests a database connection
         ---
         post:
@@ -702,6 +731,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        token = request.args.get("token")
         requested_ids = kwargs["rison"]
         timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
         root = f"database_export_{timestamp}"
@@ -719,16 +749,18 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 return self.response_404()
         buf.seek(0)
 
-        return send_file(
+        response = send_file(
             buf,
             mimetype="application/zip",
             as_attachment=True,
             attachment_filename=filename,
         )
+        if token:
+            response.set_cookie(token, "done", max_age=600)
+        return response
 
     @expose("/import/", methods=["POST"])
     @protect()
-    @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
@@ -754,7 +786,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                       type: string
                     overwrite:
                       description: overwrite existing databases?
-                      type: bool
+                      type: boolean
           responses:
             200:
               description: Database import result
@@ -780,6 +812,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         with ZipFile(upload) as bundle:
             contents = get_contents_from_bundle(bundle)
 
+        if not contents:
+            raise NoValidFilesFoundError()
+
         passwords = (
             json.loads(request.form["passwords"])
             if "passwords" in request.form
@@ -790,15 +825,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         command = ImportDatabasesCommand(
             contents, passwords=passwords, overwrite=overwrite
         )
-        try:
-            command.run()
-            return self.response(200, message="OK")
-        except CommandInvalidError as exc:
-            logger.warning("Import database failed")
-            return self.response_422(message=exc.normalized_messages())
-        except DatabaseImportError as exc:
-            logger.error("Import database failed")
-            return self.response_500(message=str(exc))
+        command.run()
+        return self.response(200, message="OK")
 
     @expose("/<int:pk>/function_names/", methods=["GET"])
     @protect()
@@ -822,7 +850,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
               type: integer
           responses:
             200:
-            200:
               description: Query result
               content:
                 application/json:
@@ -839,3 +866,164 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         if not database:
             return self.response_404()
         return self.response(200, function_names=database.function_names,)
+
+    @expose("/available/", methods=["GET"])
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".available",
+        log_to_statsd=False,
+    )
+    def available(self) -> Response:
+        """Return names of databases currently available
+        ---
+        get:
+          description:
+            Get names of databases currently available
+          responses:
+            200:
+              description: Database names
+              content:
+                application/json:
+                  schema:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          description: Name of the database
+                          type: string
+                        engine:
+                          description: Name of the SQLAlchemy engine
+                          type: string
+                        available_drivers:
+                          description: Installed drivers for the engine
+                          type: array
+                          items:
+                            type: string
+                        default_driver:
+                          description: Default driver for the engine
+                          type: string
+                        preferred:
+                          description: Is the database preferred?
+                          type: boolean
+                        sqlalchemy_uri_placeholder:
+                          description: Example placeholder for the SQLAlchemy URI
+                          type: string
+                        parameters:
+                          description: JSON schema defining the needed parameters
+                          type: object
+            400:
+              $ref: '#/components/responses/400'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        preferred_databases: List[str] = app.config.get("PREFERRED_DATABASES", [])
+        available_databases = []
+        for engine_spec, drivers in get_available_engine_specs().items():
+            if not drivers:
+                continue
+
+            payload: Dict[str, Any] = {
+                "name": engine_spec.engine_name,
+                "engine": engine_spec.engine,
+                "available_drivers": sorted(drivers),
+                "preferred": engine_spec.engine_name in preferred_databases,
+            }
+
+            if hasattr(engine_spec, "default_driver"):
+                payload["default_driver"] = engine_spec.default_driver  # type: ignore
+
+            # show configuration parameters for DBs that support it
+            if (
+                hasattr(engine_spec, "parameters_json_schema")
+                and hasattr(engine_spec, "sqlalchemy_uri_placeholder")
+                and getattr(engine_spec, "default_driver") in drivers
+            ):
+                payload[
+                    "parameters"
+                ] = engine_spec.parameters_json_schema()  # type: ignore
+                payload[
+                    "sqlalchemy_uri_placeholder"
+                ] = engine_spec.sqlalchemy_uri_placeholder  # type: ignore
+
+            available_databases.append(payload)
+
+        # sort preferred first
+        response = sorted(
+            (payload for payload in available_databases if payload["preferred"]),
+            key=lambda payload: preferred_databases.index(payload["name"]),
+        )
+
+        # add others
+        response.extend(
+            sorted(
+                (
+                    payload
+                    for payload in available_databases
+                    if not payload["preferred"]
+                ),
+                key=lambda payload: payload["name"],
+            )
+        )
+
+        return self.response(200, databases=response)
+
+    @expose("/validate_parameters", methods=["POST"])
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".validate_parameters",
+        log_to_statsd=False,
+    )
+    def validate_parameters(self) -> FlaskResponse:
+        """validates database connection parameters
+        ---
+        post:
+          description: >-
+            Validates parameters used to connect to a database
+          requestBody:
+            description: DB-specific parameters
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/DatabaseValidateParametersSchema"
+          responses:
+            200:
+              description: Database Test Connection
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if not request.is_json:
+            raise InvalidPayloadFormatError("Request is not JSON")
+
+        try:
+            payload = DatabaseValidateParametersSchema().load(request.json)
+        except ValidationError as ex:
+            errors = [
+                SupersetError(
+                    message="\n".join(messages),
+                    error_type=SupersetErrorType.INVALID_PAYLOAD_SCHEMA_ERROR,
+                    level=ErrorLevel.ERROR,
+                    extra={"invalid": [attribute]},
+                )
+                for attribute, messages in ex.messages.items()
+            ]
+            raise InvalidParametersError(errors) from ex
+
+        command = ValidateDatabaseParametersCommand(g.user, payload)
+        command.run()
+        return self.response(200, message="OK")

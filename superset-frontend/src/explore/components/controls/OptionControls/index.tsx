@@ -19,14 +19,12 @@
 import React, { useRef } from 'react';
 import { useDrag, useDrop, DropTargetMonitor } from 'react-dnd';
 import { styled, t, useTheme } from '@superset-ui/core';
-import {
-  MetricOption,
-  InfoTooltipWithTrigger,
-} from '@superset-ui/chart-controls';
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { Tooltip } from 'src/components/Tooltip';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
+import { StyledMetricOption } from '../../optionRenderers';
 
 export const DragContainer = styled.div`
   margin-bottom: ${({ theme }) => theme.gridUnit}px;
@@ -47,21 +45,34 @@ export const OptionControlContainer = styled.div<{
   border-radius: 3px;
   cursor: ${({ withCaret }) => (withCaret ? 'pointer' : 'default')};
 `;
-
 export const Label = styled.div`
-  display: flex;
-  max-width: 100%;
+  ${({ theme }) => `
+    display: flex;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    align-items: center;
+    white-space: nowrap;
+    padding-left: ${theme.gridUnit}px;
+    svg {
+      margin-right: ${theme.gridUnit}px;
+      margin-left: ${theme.gridUnit}px;
+    }
+    .type-label {
+      margin-right: ${theme.gridUnit * 2}px;
+      margin-left: ${theme.gridUnit}px;
+      font-weight: ${theme.typography.weights.normal};
+      width: auto;
+    }
+    .option-label {
+      display: inline;
+    }
+  `}
+`;
+
+const LabelText = styled.span`
   overflow: hidden;
   text-overflow: ellipsis;
-  align-items: center;
-  white-space: nowrap;
-  padding-left: ${({ theme }) => theme.gridUnit}px;
-  svg {
-    margin-right: ${({ theme }) => theme.gridUnit}px;
-  }
-  .option-label {
-    display: inline;
-  }
 `;
 
 export const CaretContainer = styled.div`
@@ -169,6 +180,8 @@ export const OptionControlLabel = ({
   type,
   index,
   isExtra,
+  tooltipTitle,
+  multi = true,
   ...props
 }: {
   label: string | React.ReactNode;
@@ -183,15 +196,25 @@ export const OptionControlLabel = ({
   type: string;
   index: number;
   isExtra?: boolean;
+  tooltipTitle: string;
+  multi?: boolean;
 }) => {
   const theme = useTheme();
   const ref = useRef<HTMLDivElement>(null);
+  const labelRef = useRef<HTMLDivElement>(null);
+  const hasMetricName = savedMetric?.metric_name;
   const [, drop] = useDrop({
     accept: type,
     drop() {
+      if (!multi) {
+        return;
+      }
       onDropLabel?.();
     },
     hover(item: DragItem, monitor: DropTargetMonitor) {
+      if (!multi) {
+        return;
+      }
       if (!ref.current) {
         return;
       }
@@ -233,7 +256,7 @@ export const OptionControlLabel = ({
       item.index = hoverIndex;
     },
   });
-  const [, drag] = useDrag({
+  const [{ isDragging }, drag] = useDrag({
     item: {
       type,
       index,
@@ -245,10 +268,34 @@ export const OptionControlLabel = ({
   });
 
   const getLabelContent = () => {
-    if (savedMetric?.metric_name) {
-      return <MetricOption metric={savedMetric} />;
+    const shouldShowTooltip =
+      (!isDragging &&
+        typeof label === 'string' &&
+        tooltipTitle &&
+        label &&
+        tooltipTitle !== label) ||
+      (!isDragging &&
+        labelRef &&
+        labelRef.current &&
+        labelRef.current.scrollWidth > labelRef.current.clientWidth);
+
+    if (savedMetric && hasMetricName) {
+      return (
+        <StyledMetricOption
+          metric={savedMetric}
+          labelRef={labelRef}
+          showTooltip={!!shouldShowTooltip}
+        />
+      );
     }
-    return <Tooltip title={label}>{label}</Tooltip>;
+    if (!shouldShowTooltip) {
+      return <LabelText ref={labelRef}>{label}</LabelText>;
+    }
+    return (
+      <Tooltip title={tooltipTitle || label}>
+        <LabelText ref={labelRef}>{label}</LabelText>
+      </Tooltip>
+    );
   };
 
   const getOptionControlContent = () => (
@@ -262,10 +309,10 @@ export const OptionControlLabel = ({
         data-test="remove-control-button"
         onClick={onRemove}
       >
-        <Icon name="x-small" color={theme.colors.grayscale.light1} />
+        <Icons.XSmall iconColor={theme.colors.grayscale.light1} />
       </CloseContainer>
       <Label data-test="control-label">
-        {isFunction && <Icon name="function" viewBox="0 0 16 11" />}
+        {isFunction && <Icons.FunctionX viewBox="0 0 16 11" iconSize="l" />}
         {getLabelContent()}
       </Label>
       {isExtra && (
@@ -281,7 +328,7 @@ export const OptionControlLabel = ({
       )}
       {withCaret && (
         <CaretContainer>
-          <Icon name="caret-right" color={theme.colors.grayscale.light1} />
+          <Icons.CaretRight iconColor={theme.colors.grayscale.light1} />
         </CaretContainer>
       )}
     </OptionControlContainer>

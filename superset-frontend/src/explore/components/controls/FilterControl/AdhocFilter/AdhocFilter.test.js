@@ -20,6 +20,7 @@ import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import { Operators } from 'src/explore/constants';
 
 describe('AdhocFilter', () => {
   it('sets filterOptionName in constructor', () => {
@@ -188,6 +189,22 @@ describe('AdhocFilter', () => {
     });
     // eslint-disable-next-line no-unused-expressions
     expect(adhocFilter8.isValid()).toBe(false);
+
+    const adhocFilter9 = new AdhocFilter({
+      expressionType: EXPRESSION_TYPES.SIMPLE,
+      subject: 'value',
+      operator: 'IS NULL',
+      clause: CLAUSES.WHERE,
+    });
+    expect(adhocFilter9.isValid()).toBe(true);
+    const adhocFilter10 = new AdhocFilter({
+      expressionType: EXPRESSION_TYPES.SIMPLE,
+      subject: 'value',
+      operator: 'IS NOT NULL',
+      clause: CLAUSES.WHERE,
+    });
+    // eslint-disable-next-line no-unused-expressions
+    expect(adhocFilter10.isValid()).toBe(true);
   });
 
   it('can translate from simple expressions to sql expressions', () => {
@@ -208,5 +225,27 @@ describe('AdhocFilter', () => {
       clause: CLAUSES.HAVING,
     });
     expect(adhocFilter2.translateToSql()).toBe('SUM(value) <> 5');
+  });
+  it('sets comparator to null when operator is IS_NULL', () => {
+    const adhocFilter2 = new AdhocFilter({
+      expressionType: EXPRESSION_TYPES.SIMPLE,
+      subject: 'SUM(value)',
+      operator: 'IS NULL',
+      operatorId: Operators.IS_NULL,
+      comparator: '5',
+      clause: CLAUSES.HAVING,
+    });
+    expect(adhocFilter2.comparator).toBe(null);
+  });
+  it('sets comparator to null when operator is IS_NOT_NULL', () => {
+    const adhocFilter2 = new AdhocFilter({
+      expressionType: EXPRESSION_TYPES.SIMPLE,
+      subject: 'SUM(value)',
+      operator: 'IS NOT NULL',
+      operatorId: Operators.IS_NOT_NULL,
+      comparator: '5',
+      clause: CLAUSES.HAVING,
+    });
+    expect(adhocFilter2.comparator).toBe(null);
   });
 });

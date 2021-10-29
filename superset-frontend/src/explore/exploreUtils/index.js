@@ -18,6 +18,7 @@
  */
 
 import { useCallback, useEffect } from 'react';
+import { omit } from 'lodash';
 /* eslint camelcase: 0 */
 import URI from 'urijs';
 import {
@@ -29,7 +30,10 @@ import {
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
 import { URL_PARAMS } from 'src/constants';
-import { MULTI_OPERATORS } from 'src/explore/constants';
+import {
+  MULTI_OPERATORS,
+  OPERATOR_ENUM_TO_OPERATOR_TYPE,
+} from 'src/explore/constants';
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
 
 const MAX_URL_LENGTH = 8000;
@@ -40,6 +44,7 @@ export function getChartKey(explore) {
 }
 
 let requestCounter = 0;
+
 export function getHostName(allowDomainSharding = false) {
   let currentIndex = 0;
   if (allowDomainSharding) {
@@ -57,7 +62,7 @@ export function getHostName(allowDomainSharding = false) {
   return availableDomains[currentIndex];
 }
 
-export function getAnnotationJsonUrl(slice_id, form_data, isNative) {
+export function getAnnotationJsonUrl(slice_id, form_data, isNative, force) {
   if (slice_id === null || slice_id === undefined) {
     return null;
   }
@@ -69,6 +74,7 @@ export function getAnnotationJsonUrl(slice_id, form_data, isNative) {
       form_data: safeStringify(form_data, (key, value) =>
         value === null ? undefined : value,
       ),
+      force,
     })
     .toString();
 }
@@ -85,6 +91,10 @@ export function getURIDirectory(endpointType = 'base') {
   return '/superset/explore/';
 }
 
+/**
+ * This gets the url of the explore page, with all the form data included explicitly.
+ * This includes any form data overrides from the dashboard.
+ */
 export function getExploreLongUrl(
   formData,
   endpointType,
@@ -95,14 +105,20 @@ export function getExploreLongUrl(
     return null;
   }
 
+  // remove formData params that we don't need in the explore url.
+  // These are present when generating explore urls from the dashboard page.
+  // This should be superseded by some sort of "exploration context" system
+  // where form data and other context is referenced by id.
+  const trimmedFormData = omit(formData, ['dataMask', 'url_params']);
+
   const uri = new URI('/');
   const directory = getURIDirectory(endpointType);
   const search = uri.search(true);
   Object.keys(extraSearch).forEach(key => {
     search[key] = extraSearch[key];
   });
-  search.form_data = safeStringify(formData);
-  if (endpointType === URL_PARAMS.standalone) {
+  search.form_data = safeStringify(trimmedFormData);
+  if (endpointType === URL_PARAMS.standalone.name) {
     search.standalone = DashboardStandaloneMode.HIDE_NAV;
   }
   const url = uri.directory(directory).search(search).toString();
@@ -134,6 +150,11 @@ export function getChartDataUri({ path, qs, allowDomainSharding = false }) {
   return uri;
 }
 
+/**
+ * This gets the minimal url for the given form data.
+ * If there are dashboard overrides present in the form data,
+ * they will not be included in the url.
+ */
 export function getExploreUrl({
   formData,
   endpointType = 'base',
@@ -178,7 +199,7 @@ export function getExploreUrl({
   if (endpointType === 'xlsx') {
     search.xlsx = 'true';
   }
-  if (endpointType === URL_PARAMS.standalone) {
+  if (endpointType === URL_PARAMS.standalone.name) {
     search.standalone = '1';
   }
   if (endpointType === 'query') {
@@ -239,7 +260,7 @@ export const buildV1ChartDataPayload = ({
 };
 
 export const getLegacyEndpointType = ({ resultType, resultFormat }) =>
-  ['csv', 'xlsx'].includes(resultFormat)  ? resultFormat : resultType;
+  ['csv', 'xlsx'].includes(resultFormat) ? resultFormat : resultType;
 
 export function postForm(url, payload, target = '_blank') {
   if (!url) {
@@ -321,7 +342,10 @@ export const useDebouncedEffect = (effect, delay, deps) => {
 };
 
 export const getSimpleSQLExpression = (subject, operator, comparator) => {
-  const isMulti = MULTI_OPERATORS.has(operator);
+  const isMulti =
+    [...MULTI_OPERATORS]
+      .map(op => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation)
+      .indexOf(operator) >= 0;
   let expression = subject ?? '';
   if (subject && operator) {
     expression += ` ${operator}`;

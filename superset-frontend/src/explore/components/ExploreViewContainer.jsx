@@ -17,19 +17,19 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { styled, t, supersetTheme, css } from '@superset-ui/core';
+import { styled, t, css, useTheme } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { Resizable } from 're-resizable';
 
-import { useDynamicPluginContext } from 'src/components/DynamicPlugins';
-import { Global } from '@emotion/core';
+import { usePluginContext } from 'src/components/DynamicPlugins';
+import { Global } from '@emotion/react';
 import { Tooltip } from 'src/components/Tooltip';
 import { usePrevious } from 'src/common/hooks/usePrevious';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import {
   getFromLocalStorage,
   setInLocalStorage,
@@ -81,10 +81,11 @@ const Styles = styled.div`
   text-align: left;
   position: relative;
   width: 100%;
-  height: 100%;
+  max-height: 100%;
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
+  flex-basis: 100vh;
   align-items: stretch;
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   .explore-column {
@@ -158,17 +159,23 @@ function useWindowSize({ delayMs = 250 } = {}) {
 }
 
 function ExploreViewContainer(props) {
-  const dynamicPluginContext = useDynamicPluginContext();
-  const dynamicPlugin = dynamicPluginContext.plugins[props.vizType];
-  const isDynamicPluginLoading = dynamicPlugin && dynamicPlugin.loading;
+  const dynamicPluginContext = usePluginContext();
+  const dynamicPlugin = dynamicPluginContext.dynamicPlugins[props.vizType];
+  const isDynamicPluginLoading = dynamicPlugin && dynamicPlugin.mounting;
   const wasDynamicPluginLoading = usePrevious(isDynamicPluginLoading);
 
+  /** the state of controls in the previous render */
   const previousControls = usePrevious(props.controls);
+  /** the state of controls last time a query was triggered */
+  const [lastQueriedControls, setLastQueriedControls] = useState(
+    props.controls,
+  );
   const windowSize = useWindowSize();
 
   const [showingModal, setShowingModal] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
+  const theme = useTheme();
   const width = `${windowSize.width}px`;
   const navHeight = props.standalone ? 0 : 90;
   const height = props.forcedHeight
@@ -185,29 +192,32 @@ function ExploreViewContainer(props) {
     datasource_width: 300,
   };
 
-  function addHistory({ isReplace = false, title } = {}) {
-    const payload = { ...props.form_data };
-    const longUrl = getExploreLongUrl(
-      props.form_data,
-      props.standalone ? URL_PARAMS.standalone : null,
-      false,
-    );
-    try {
-      if (isReplace) {
-        window.history.replaceState(payload, title, longUrl);
-      } else {
-        window.history.pushState(payload, title, longUrl);
-      }
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        'Failed at altering browser history',
-        payload,
-        title,
-        longUrl,
+  const addHistory = useCallback(
+    ({ isReplace = false, title } = {}) => {
+      const payload = { ...props.form_data };
+      const longUrl = getExploreLongUrl(
+        props.form_data,
+        props.standalone ? URL_PARAMS.standalone.name : null,
+        false,
       );
-    }
-  }
+      try {
+        if (isReplace) {
+          window.history.replaceState(payload, title, longUrl);
+        } else {
+          window.history.pushState(payload, title, longUrl);
+        }
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          'Failed at altering browser history',
+          payload,
+          title,
+          longUrl,
+        );
+      }
+    },
+    [props.form_data, props.standalone],
+  );
 
   function handlePopstate() {
     const formData = window.history.state;
@@ -221,11 +231,11 @@ function ExploreViewContainer(props) {
       );
     }
   }
-
-  function onQuery() {
+  const onQuery = useCallback(() => {
     props.actions.triggerQuery(true, props.chart.id);
     addHistory();
-  }
+    setLastQueriedControls(props.controls);
+  }, [props.controls, addHistory, props.actions, props.chart.id]);
 
   function handleKeydown(event) {
     const controlOrCommand = event.ctrlKey || event.metaKey;
@@ -336,13 +346,13 @@ function ExploreViewContainer(props) {
   }, [props.controls, props.ownState]);
 
   const chartIsStale = useMemo(() => {
-    if (previousControls) {
+    if (lastQueriedControls) {
       const changedControlKeys = Object.keys(props.controls).filter(
         key =>
-          typeof previousControls[key] !== 'undefined' &&
+          typeof lastQueriedControls[key] !== 'undefined' &&
           !areObjectsEqual(
             props.controls[key].value,
-            previousControls[key].value,
+            lastQueriedControls[key].value,
           ),
       );
 
@@ -353,7 +363,7 @@ function ExploreViewContainer(props) {
       );
     }
     return false;
-  }, [previousControls, props.controls]);
+  }, [lastQueriedControls, props.controls]);
 
   useEffect(() => {
     if (props.ownState !== undefined) {
@@ -368,18 +378,34 @@ function ExploreViewContainer(props) {
 
   function renderErrorMessage() {
     // Returns an error message as a node if any errors are in the store
-    const errors = Object.entries(props.controls)
-      .filter(
-        ([, control]) =>
-          control.validationErrors && control.validationErrors.length > 0,
-      )
-      .map(([key, control]) => (
-        <div key={key}>
-          {t('Control labeled ')}
-          <strong>{` "${control.label}" `}</strong>
-          {control.validationErrors.join('. ')}
+    const controlsWithErrors = Object.values(props.controls).filter(
+      control =>
+        control.validationErrors && control.validationErrors.length > 0,
+    );
+    if (controlsWithErrors.length === 0) {
+      return null;
+    }
+
+    const errorMessages = controlsWithErrors.map(
+      control => control.validationErrors,
+    );
+    const uniqueErrorMessages = [...new Set(errorMessages.flat())];
+
+    const errors = uniqueErrorMessages
+      .map(message => {
+        const matchingLabels = controlsWithErrors
+          .filter(control => control.validationErrors?.includes(message))
+          .map(control => control.label);
+        return [matchingLabels, message];
+      })
+      .map(([labels, message]) => (
+        <div key={message}>
+          {labels.length > 1 ? t('Controls labeled ') : t('Control labeled ')}
+          <strong>{` ${labels.join(', ')}`}</strong>
+          <span>: {message}</span>
         </div>
       ));
+
     let errorMessage;
     if (errors.length > 0) {
       errorMessage = <div style={{ textAlign: 'left' }}>{errors}</div>;
@@ -422,6 +448,7 @@ function ExploreViewContainer(props) {
             margin-bottom: 0;
           }
           body {
+            height: 100vh;
             max-height: 100vh;
             overflow: hidden;
           }
@@ -432,7 +459,7 @@ function ExploreViewContainer(props) {
           #app {
             flex-basis: 100%;
             overflow: hidden;
-            height: 100vh;
+            height: 100%;
           }
           #app-menu {
             flex-shrink: 0;
@@ -471,11 +498,10 @@ function ExploreViewContainer(props) {
             className="action-button"
             onClick={toggleCollapse}
           >
-            <Icon
-              name="expand"
-              color={supersetTheme.colors.primary.base}
+            <Icons.Expand
               className="collapse-icon"
-              width={16}
+              iconColor={theme.colors.primary.base}
+              iconSize="l"
             />
           </span>
         </div>
@@ -495,15 +521,18 @@ function ExploreViewContainer(props) {
         >
           <span role="button" tabIndex={0} className="action-button">
             <Tooltip title={t('Open Datasource tab')}>
-              <Icon
-                name="collapse"
-                color={supersetTheme.colors.primary.base}
+              <Icons.Collapse
                 className="collapse-icon"
-                width={16}
+                iconColor={theme.colors.primary.base}
+                iconSize="l"
               />
             </Tooltip>
           </span>
-          <Icon name="dataset-physical" width={16} />
+          <Icons.DatasetPhysical
+            css={{ marginTop: theme.gridUnit * 2 }}
+            iconSize="l"
+            iconColor={theme.colors.grayscale.base}
+          />
         </div>
       ) : null}
       <Resizable
@@ -552,12 +581,12 @@ function ExploreViewContainer(props) {
 ExploreViewContainer.propTypes = propTypes;
 
 function mapStateToProps(state) {
-  const { explore, charts, impressionId, dataMask } = state;
+  const { explore, charts, impressionId, dataMask, reports } = state;
   const form_data = getFormDataFromControls(explore.controls);
   form_data.extra_form_data = mergeExtraFormData(
     { ...form_data.extra_form_data },
     {
-      ...dataMask[form_data.slice_id]?.ownState,
+      ...dataMask[form_data.slice_id ?? 0]?.ownState, // 0 - unsaved chart
     },
   );
   const chartKey = Object.keys(charts)[0];
@@ -589,8 +618,10 @@ function mapStateToProps(state) {
     forcedHeight: explore.forced_height,
     chart,
     timeout: explore.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
-    ownState: dataMask[form_data.slice_id]?.ownState,
+    ownState: dataMask[form_data.slice_id ?? 0]?.ownState, // 0 - unsaved chart
     impressionId,
+    user: explore.user,
+    reports,
   };
 }
 

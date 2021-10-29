@@ -28,7 +28,7 @@ import { FALSE_STRING, NULL_STRING, TRUE_STRING } from 'src/utils/common';
 
 export const getSelectExtraFormData = (
   col: string,
-  value?: null | (string | number)[],
+  value?: null | (string | number | boolean | null)[],
   emptyFilter = false,
   inverseSelection = false,
 ): ExtraFormData => {
@@ -41,17 +41,15 @@ export const getSelectExtraFormData = (
         sqlExpression: '1 = 0',
       },
     ];
-  } else {
-    extra.filters =
-      value === undefined || value === null || value.length === 0
-        ? []
-        : [
-            {
-              col,
-              op: inverseSelection ? ('NOT IN' as const) : ('IN' as const),
-              val: value,
-            },
-          ];
+  } else if (value !== undefined && value !== null && value.length !== 0) {
+    extra.filters = [
+      {
+        col,
+        op: inverseSelection ? ('NOT IN' as const) : ('IN' as const),
+        // @ts-ignore
+        val: value,
+      },
+    ];
   }
   return extra;
 };
@@ -69,9 +67,11 @@ export const getRangeExtraFormData = (
     filters.push({ col, op: '<=', val: upper });
   }
 
-  return {
-    filters,
-  };
+  return filters.length
+    ? {
+        filters,
+      }
+    : {};
 };
 
 export interface DataRecordValueFormatter {

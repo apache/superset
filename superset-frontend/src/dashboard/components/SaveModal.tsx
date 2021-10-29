@@ -18,9 +18,8 @@
  */
 /* eslint-env browser */
 import React from 'react';
-import { FormControl, FormGroup } from 'react-bootstrap';
-import { RadioChangeEvent } from 'src/common/components';
 import { Radio } from 'src/components/Radio';
+import { RadioChangeEvent, Input } from 'src/common/components';
 import Button from 'src/components/Button';
 import { t, CategoricalColorNamespace, JsonResponse } from '@superset-ui/core';
 
@@ -109,9 +108,9 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
     });
   }
 
-  handleNameChange(event: React.FormEvent<FormControl>) {
+  handleNameChange(name: string) {
     this.setState({
-      newDashName: (event.target as HTMLInputElement).value,
+      newDashName: name,
       saveType: SAVE_TYPE_NEWDASHBOARD,
     });
   }
@@ -182,7 +181,7 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
         triggerNode={this.props.triggerNode}
         modalTitle={t('Save dashboard')}
         modalBody={
-          <FormGroup>
+          <div>
             <Radio
               value={SAVE_TYPE_OVERWRITE}
               onChange={this.handleSaveTypeChange}
@@ -199,12 +198,12 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
             >
               {t('Save as:')}
             </Radio>
-            <FormControl
+            <Input
               type="text"
               placeholder={t('[dashboard name]')}
               value={this.state.newDashName}
-              onFocus={this.handleNameChange}
-              onChange={this.handleNameChange}
+              onFocus={e => this.handleNameChange(e.target.value)}
+              onChange={e => this.handleNameChange(e.target.value)}
             />
             <div className="m-l-25 m-t-5">
               <Checkbox
@@ -213,7 +212,7 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
               />
               <span className="m-l-5">{t('also copy (duplicate) charts')}</span>
             </div>
-          </FormGroup>
+          </div>
         }
         modalFooter={
           <div>

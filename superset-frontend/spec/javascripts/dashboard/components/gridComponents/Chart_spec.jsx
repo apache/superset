@@ -23,7 +23,7 @@ import sinon from 'sinon';
 import Chart from 'src/dashboard/components/gridComponents/Chart';
 import SliceHeader from 'src/dashboard/components/SliceHeader';
 import ChartContainer from 'src/chart/ChartContainer';
-
+import * as exploreUtils from 'src/explore/exploreUtils';
 import { sliceEntitiesForChart as sliceEntities } from 'spec/fixtures/mockSliceEntities';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import chartQueries, {
@@ -38,6 +38,7 @@ describe('Chart', () => {
     updateSliceName() {},
 
     // from redux
+    maxRows: 666,
     chart: chartQueries[queryId],
     formData: chartQueries[queryId].formData,
     datasource: mockDatasource[sliceEntities.slices[queryId].datasource],
@@ -59,6 +60,8 @@ describe('Chart', () => {
     unsetFocusedFilterField() {},
     addSuccessToast() {},
     addDangerToast() {},
+    exportCSV() {},
+    exportFullCSV() {},
     componentId: 'test',
     dashboardId: 111,
     editMode: false,
@@ -86,7 +89,6 @@ describe('Chart', () => {
   it('should render a description if it has one and isExpanded=true', () => {
     const wrapper = setup();
     expect(wrapper.find('.slice_description')).not.toExist();
-
     wrapper.setProps({ ...props, isExpanded: true });
     expect(wrapper.find('.slice_description')).toExist();
   });
@@ -103,5 +105,31 @@ describe('Chart', () => {
     const wrapper = setup({ changeFilter });
     wrapper.instance().changeFilter();
     expect(changeFilter.callCount).toBe(1);
+  });
+  it('should call exportChart when exportCSV is clicked', () => {
+    const stubbedExportCSV = sinon
+      .stub(exploreUtils, 'exportChart')
+      .returns(() => {});
+    const wrapper = setup();
+    wrapper.instance().exportCSV(props.slice.sliceId);
+    expect(stubbedExportCSV.calledOnce).toBe(true);
+    expect(stubbedExportCSV.lastCall.args[0]).toEqual(
+      expect.objectContaining({
+        formData: expect.anything(),
+        resultType: 'results',
+        resultFormat: 'csv',
+      }),
+    );
+    exploreUtils.exportChart.restore();
+  });
+  it('should call exportChart with row_limit props.maxRows when exportFullCSV is clicked', () => {
+    const stubbedExportCSV = sinon
+      .stub(exploreUtils, 'exportChart')
+      .returns(() => {});
+    const wrapper = setup();
+    wrapper.instance().exportFullCSV(props.slice.sliceId);
+    expect(stubbedExportCSV.calledOnce).toBe(true);
+    expect(stubbedExportCSV.lastCall.args[0].formData.row_limit).toEqual(666);
+    exploreUtils.exportChart.restore();
   });
 });

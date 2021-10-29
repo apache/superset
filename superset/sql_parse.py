@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from dataclasses import dataclass  # pylint: disable=wrong-import-order
+from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional, Set
 from urllib import parse
@@ -79,7 +79,7 @@ def strip_comments_from_sql(statement: str) -> str:
 
 
 @dataclass(eq=True, frozen=True)
-class Table:  # pylint: disable=too-few-public-methods
+class Table:
     """
     A fully qualified SQL table conforming to [[catalog.]schema.]table.
     """
@@ -131,13 +131,17 @@ class ParsedQuery:
         return self._limit
 
     def is_select(self) -> bool:
-        return self._parsed[0].get_type() == "SELECT"
+        # make sure we strip comments; prevents a bug with coments in the CTE
+        parsed = sqlparse.parse(self.strip_comments())
+        return parsed[0].get_type() == "SELECT"
 
     def is_valid_ctas(self) -> bool:
-        return self._parsed[-1].get_type() == "SELECT"
+        parsed = sqlparse.parse(self.strip_comments())
+        return parsed[-1].get_type() == "SELECT"
 
     def is_valid_cvas(self) -> bool:
-        return len(self._parsed) == 1 and self._parsed[0].get_type() == "SELECT"
+        parsed = sqlparse.parse(self.strip_comments())
+        return len(parsed) == 1 and parsed[0].get_type() == "SELECT"
 
     def is_explain(self) -> bool:
         # Remove comments
@@ -265,9 +269,7 @@ class ParsedQuery:
         exec_sql += f"CREATE {method} {full_table_name} AS \n{sql}"
         return exec_sql
 
-    def _extract_from_token(  # pylint: disable=too-many-branches
-        self, token: Token
-    ) -> None:
+    def _extract_from_token(self, token: Token) -> None:
         """
         <Identifier> store a list of subtokens and <IdentifierList> store lists of
         subtoken list.
@@ -311,7 +313,7 @@ class ParsedQuery:
                 if any(not self._is_identifier(token2) for token2 in item.tokens):
                     self._extract_from_token(item)
 
-    def set_or_update_query_limit(self, new_limit: int) -> str:
+    def set_or_update_query_limit(self, new_limit: int, force: bool = False) -> str:
         """Returns the query with the specified limit.
 
         Does not change the underlying query if user did not apply the limit,
@@ -332,8 +334,8 @@ class ParsedQuery:
                 break
         _, limit = statement.token_next(idx=limit_pos)
         # Override the limit only when it exceeds the configured value.
-        if limit.ttype == sqlparse.tokens.Literal.Number.Integer and new_limit < int(
-            limit.value
+        if limit.ttype == sqlparse.tokens.Literal.Number.Integer and (
+            force or new_limit < int(limit.value)
         ):
             limit.value = new_limit
         elif limit.is_group:
