@@ -31,7 +31,7 @@ assists people when migrating to a new version.
 
 ### Potential Downtime
 
-- [16756](https://github.com/apache/incubator-superset/pull/16756): The renaming of column `dbs.allow_csv_upload` fails for MySQL 8 users because there's a check constraint on it.
+- [16756](https://github.com/apache/incubator-superset/pull/16756): a change which renames the `dbs.allow_csv_upload` column to `dbs.allow_file_upload` via a (potentially locking) DDL operation.
 
 ### Deprecations
 
