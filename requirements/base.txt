@@ -168,7 +168,7 @@ packaging==21.0
     # via
     #   bleach
     #   deprecation
-pandas==1.2.5
+pandas==1.3.4
     # via apache-superset
 parsedatetime==2.6
     # via apache-superset
@@ -178,7 +178,7 @@ polyline==1.4.0
     # via apache-superset
 prison==0.2.1
     # via flask-appbuilder
-pyarrow==4.0.1
+pyarrow==5.0.0
     # via apache-superset
 pycparser==2.20
     # via cffi

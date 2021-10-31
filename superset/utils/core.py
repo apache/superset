@@ -16,7 +16,7 @@
 # under the License.
 """Utility functions used across Superset"""
 # pylint: disable=too-many-lines
-import _thread  # pylint: disable=C0411
+import _thread
 import collections
 import decimal
 import errno
