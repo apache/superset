@@ -57,10 +57,12 @@ class DruidEngineSpec(BaseEngineSpec):
         "P3M": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'P3M')",
         "P1Y": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'P1Y')",
         "P1W/1970-01-03T00:00:00Z": (
-            "TIME_SHIFT(TIME_FLOOR(TIME_SHIFT(CAST({col} AS TIMESTAMP), 'P1D', 1), 'P1W'), 'P1D', 5)"  # pylint: disable=line-too-long
+            "TIME_SHIFT(TIME_FLOOR(TIME_SHIFT(CAST({col} AS TIMESTAMP), "
+            "'P1D', 1), 'P1W'), 'P1D', 5)"
         ),
         "1969-12-28T00:00:00Z/P1W": (
-            "TIME_SHIFT(TIME_FLOOR(TIME_SHIFT(CAST({col} AS TIMESTAMP), 'P1D', 1), 'P1W'), 'P1D', -1)"  # pylint: disable=line-too-long
+            "TIME_SHIFT(TIME_FLOOR(TIME_SHIFT(CAST({col} AS TIMESTAMP), "
+            "'P1D', 1), 'P1W'), 'P1D', -1)"
         ),
     }
 

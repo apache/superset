@@ -26,6 +26,7 @@ assists people when migrating to a new version.
 
 ### Breaking Changes
 
+- [17290](https://github.com/apache/superset/pull/17290): Bumps pandas to `1.3.4` and pyarrow to `5.0.0`
 - [16660](https://github.com/apache/incubator-superset/pull/16660): The `columns` Jinja parameter has been renamed `table_columns` to make the `columns` query object parameter available in the Jinja context.
 - [16711](https://github.com/apache/incubator-superset/pull/16711): The `url_param` Jinja function will now by default escape the result. For instance, the value `O'Brien` will now be changed to `O''Brien`. To disable this behavior, call `url_param` with `escape_result` set to `False`: `url_param("my_key", "my default", escape_result=False)`.
 

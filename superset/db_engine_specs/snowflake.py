@@ -231,7 +231,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
 
     @classmethod
     def validate_parameters(
-        cls, parameters: SnowflakeParametersType  # pylint: disable=unused-argument
+        cls, parameters: SnowflakeParametersType
     ) -> List[SupersetError]:
         errors: List[SupersetError] = []
         required = {

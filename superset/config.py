@@ -37,7 +37,7 @@ from celery.schedules import crontab
 from dateutil import tz
 from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
-from pandas.io.parsers import STR_NA_VALUES
+from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
 from typing_extensions import Literal
 from werkzeug.local import LocalProxy
 
@@ -1301,7 +1301,7 @@ if CONFIG_PATH_ENV_VAR in os.environ:
 elif importlib.util.find_spec("superset_config") and not is_test():
     try:
         import superset_config  # pylint: disable=import-error
-        from superset_config import *  # type: ignore # pylint: disable=import-error,wildcard-import
+        from superset_config import *  # type: ignore # pylint: disable=import-error,wildcard-import,unused-wildcard-import
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:
