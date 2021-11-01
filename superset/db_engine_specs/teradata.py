@@ -82,7 +82,7 @@ class ParsedQuery_td:
 
 
     def set_or_update_query_limit_td(self, new_limit: int) -> str:
-        td_sel_keywork = set(["SELECT", "SEL"])
+        td_sel_keywork = set(["SELECT ", "SEL "])
         td_limit_keywork = set(["TOP", "SAMPLE"])
         statement = self._parsed[0]
 
