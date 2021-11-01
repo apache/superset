@@ -139,11 +139,11 @@ export default function EchartsTimeseries({
         }
       }, TIMER_DURATION);
     },
-    mousemove: params => {
-      currentSeries.name = params.seriesName;
-    },
     mouseout: () => {
       currentSeries.name = '';
+    },
+    mouseover: params => {
+      currentSeries.name = params.seriesName;
     },
     legendselectchanged: payload => {
       const currentTime = Date.now();
