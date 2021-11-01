@@ -228,6 +228,7 @@ export default function getNativeFilterConfig(
           DASHBOARD_FILTER_SCOPE_GLOBAL;
         const timeRangeFilter: Filter = {
           id: `NATIVE_FILTER-${shortid.generate()}`,
+          description: 'time range filter',
           controlValues: {},
           name: TIME_FILTER_LABELS.time_range,
           filterType: FILTER_COMPONENT_FILTER_TYPES.FILTER_TIME,
@@ -260,6 +261,7 @@ export default function getNativeFilterConfig(
           const timeGrainFilter: Filter = {
             id: `NATIVE_FILTER-${shortid.generate()}`,
             controlValues: {},
+            description: 'time grain filter',
             name: TIME_FILTER_LABELS.time_grain_sqla,
             filterType: FILTER_COMPONENT_FILTER_TYPES.FILTER_TIMEGRAIN,
             targets: [
@@ -304,6 +306,7 @@ export default function getNativeFilterConfig(
             DASHBOARD_FILTER_SCOPE_GLOBAL;
           const timeColumnFilter: Filter = {
             id: `NATIVE_FILTER-${shortid.generate()}`,
+            description: 'time column filter',
             controlValues: {},
             name: TIME_FILTER_LABELS.granularity_sqla,
             filterType: FILTER_COMPONENT_FILTER_TYPES.FILTER_TIMECOLUMN,
@@ -349,6 +352,7 @@ export default function getNativeFilterConfig(
             DASHBOARD_FILTER_SCOPE_GLOBAL;
           const druidGranularityFilter: Filter = {
             id: `NATIVE_FILTER-${shortid.generate()}`,
+            description: 'time grain filter',
             controlValues: {},
             name: TIME_FILTER_LABELS.granularity,
             filterType: FILTER_COMPONENT_FILTER_TYPES.FILTER_TIMEGRAIN,
@@ -391,6 +395,7 @@ export default function getNativeFilterConfig(
             DASHBOARD_FILTER_SCOPE_GLOBAL;
           const druidOriginFilter: Filter = {
             id: `NATIVE_FILTER-${shortid.generate()}`,
+            description: 'time column filter',
             controlValues: {},
             name: TIME_FILTER_LABELS.druid_time_origin,
             filterType: FILTER_COMPONENT_FILTER_TYPES.FILTER_TIMECOLUMN,
@@ -437,6 +442,7 @@ export default function getNativeFilterConfig(
           scopesByChartId[config.column] || DASHBOARD_FILTER_SCOPE_GLOBAL;
         const entry: Filter = {
           id: `NATIVE_FILTER-${shortid.generate()}`,
+          description: '',
           controlValues: {
             enableEmptyFilter: !config[FILTER_CONFIG_ATTRIBUTES.CLEARABLE],
             defaultToFirstItem: false,

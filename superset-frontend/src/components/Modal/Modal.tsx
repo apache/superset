@@ -51,7 +51,6 @@ export interface ModalProps {
   centered?: boolean;
   footer?: React.ReactNode;
   wrapProps?: object;
-  maskStyle?: object;
   height?: string;
   closable?: boolean;
   resizable?: boolean;
@@ -208,7 +207,6 @@ const CustomModal = ({
   footer,
   hideFooter,
   wrapProps,
-  maskStyle,
   draggable = false,
   resizable = false,
   resizableConfig = {
@@ -325,7 +323,6 @@ const CustomModal = ({
         )
       }
       mask={shouldShowMask}
-      maskStyle={maskStyle}
       draggable={draggable}
       resizable={resizable}
       destroyOnClose={destroyOnClose || resizable || draggable}

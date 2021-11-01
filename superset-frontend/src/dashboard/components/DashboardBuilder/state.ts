@@ -76,10 +76,12 @@ export const useNativeFilters = () => {
   useEffect(() => {
     if (
       filterValues.length === 0 &&
-      dashboardFiltersOpen &&
-      nativeFiltersEnabled
+      nativeFiltersEnabled &&
+      ['CONVERTED', 'REVIEWING', 'NOOP'].includes(filterboxMigrationState)
     ) {
       toggleDashboardFiltersOpen(false);
+    } else {
+      toggleDashboardFiltersOpen(true);
     }
   }, [filterValues.length, filterboxMigrationState]);
 

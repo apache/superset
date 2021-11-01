@@ -19,7 +19,7 @@
 import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
-import { styled, supersetTheme } from '@superset-ui/core';
+import { styled } from '@superset-ui/core';
 import { isEqual } from 'lodash';
 
 import {
@@ -97,7 +97,6 @@ const SHOULD_UPDATE_ON_PROP_CHANGES = Object.keys(propTypes).filter(
 );
 const OVERFLOWABLE_VIZ_TYPES = new Set(['filter_box']);
 const DEFAULT_HEADER_HEIGHT = 22;
-const { colors } = supersetTheme;
 
 const ChartOverlay = styled.div`
   position: absolute;
@@ -107,7 +106,7 @@ const ChartOverlay = styled.div`
 
   &.is-deactivated {
     opacity: 0.5;
-    background-color: ${colors.grayscale.light1};
+    background-color: ${({ theme }) => theme.colors.grayscale.light1};
   }
 `;
 

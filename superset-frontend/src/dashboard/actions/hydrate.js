@@ -69,7 +69,7 @@ export const hydrateDashboard = (
 ) => (dispatch, getState) => {
   const { user, common } = getState();
 
-  let { metadata } = dashboardData;
+  const { metadata } = dashboardData;
   const regularUrlParams = extractUrlParams('regular');
   const reservedUrlParams = extractUrlParams('reserved');
   const editMode = reservedUrlParams.edit === 'true';
@@ -296,17 +296,12 @@ export const hydrateDashboard = (
       filterScopes,
       preselectFilters,
     );
-    metadata = metadata || {};
     metadata.native_filter_configuration = filterConfig;
+    metadata.show_native_filters = true;
   }
   const nativeFilters = getInitialNativeFilterState({
     filterConfig,
   });
-
-  if (!metadata) {
-    metadata = {};
-  }
-
   metadata.show_native_filters =
     dashboardData?.metadata?.show_native_filters ??
     (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&

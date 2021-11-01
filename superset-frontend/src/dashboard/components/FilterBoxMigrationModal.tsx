@@ -44,7 +44,7 @@ const StyledFilterBoxMigrationModal = styled(Modal)`
   }
 
   .ant-modal-body {
-    overflow: visible;
+    overflow: auto;
   }
 `;
 
@@ -64,7 +64,6 @@ const FilterBoxMigrationModal: FunctionComponent<FilterBoxMigrationModalProps> =
   hideFooter = false,
 }) => (
   <StyledFilterBoxMigrationModal
-    maskStyle={{ top: '50px' }}
     show={show}
     onHide={onHide}
     title={t('Ready to review filters in this dashboard?')}

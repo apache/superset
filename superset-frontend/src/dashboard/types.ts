@@ -65,11 +65,6 @@ export type DashboardState = {
   isRefreshing: boolean;
   hasUnsavedChanges: boolean;
 };
-export type DashboardMetadata = {
-  native_filter_configuration?: { [key: string]: any };
-  show_native_filters?: boolean;
-  chart_configuration?: JsonObject;
-};
 export type DashboardInfo = {
   id: number;
   common: {

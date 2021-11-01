@@ -100,51 +100,45 @@ const preselectedFilters = {
   },
 };
 
-describe('getNativeFilterConfig', () => {
-  it('should convert filter_box config to dashboard native filter config', () => {
-    const filterConfig = getNativeFilterConfig(chartData, {}, {});
-    // convert to 2 components
-    expect(filterConfig.length).toEqual(2);
+test('should convert filter_box config to dashboard native filter config', () => {
+  const filterConfig = getNativeFilterConfig(chartData, {}, {});
+  // convert to 2 components
+  expect(filterConfig.length).toEqual(2);
 
-    expect(filterConfig[0].id).toBeDefined();
-    expect(filterConfig[0].filterType).toBe('filter_select');
-    expect(filterConfig[0].name).toBe('region');
-    expect(filterConfig[0].targets).toEqual([
-      { column: { name: 'region' }, datasetId: 1 },
-    ]);
-    expect(filterConfig[0].scope).toEqual({
-      excluded: [],
-      rootPath: ['ROOT_ID'],
-    });
-
-    expect(filterConfig[1].id).toBeDefined();
-    expect(filterConfig[1].filterType).toBe('filter_select');
-    expect(filterConfig[1].name).toBe('country_name');
-    expect(filterConfig[1].targets).toEqual([
-      { column: { name: 'country_name' }, datasetId: 1 },
-    ]);
-    expect(filterConfig[1].scope).toEqual({
-      excluded: [],
-      rootPath: ['ROOT_ID'],
-    });
+  expect(filterConfig[0].id).toBeDefined();
+  expect(filterConfig[0].filterType).toBe('filter_select');
+  expect(filterConfig[0].name).toBe('region');
+  expect(filterConfig[0].targets).toEqual([
+    { column: { name: 'region' }, datasetId: 1 },
+  ]);
+  expect(filterConfig[0].scope).toEqual({
+    excluded: [],
+    rootPath: ['ROOT_ID'],
   });
 
-  it('should convert preselected filters', () => {
-    const filterConfig = getNativeFilterConfig(
-      chartData,
-      {},
-      preselectedFilters,
-    );
-    const { defaultDataMask } = filterConfig[0];
-    expect(defaultDataMask.filterState).toEqual({
-      value: ['East Asia & Pacific'],
-    });
-    expect(defaultDataMask.extraFormData?.filters).toEqual([
-      {
-        col: 'region',
-        op: 'IN',
-        val: ['East Asia & Pacific'],
-      },
-    ]);
+  expect(filterConfig[1].id).toBeDefined();
+  expect(filterConfig[1].filterType).toBe('filter_select');
+  expect(filterConfig[1].name).toBe('country_name');
+  expect(filterConfig[1].targets).toEqual([
+    { column: { name: 'country_name' }, datasetId: 1 },
+  ]);
+  expect(filterConfig[1].scope).toEqual({
+    excluded: [],
+    rootPath: ['ROOT_ID'],
   });
+});
+
+test('should convert preselected filters', () => {
+  const filterConfig = getNativeFilterConfig(chartData, {}, preselectedFilters);
+  const { defaultDataMask } = filterConfig[0];
+  expect(defaultDataMask.filterState).toEqual({
+    value: ['East Asia & Pacific'],
+  });
+  expect(defaultDataMask.extraFormData?.filters).toEqual([
+    {
+      col: 'region',
+      op: 'IN',
+      val: ['East Asia & Pacific'],
+    },
+  ]);
 });
