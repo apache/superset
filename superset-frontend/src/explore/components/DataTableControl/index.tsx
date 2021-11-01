@@ -135,7 +135,7 @@ export const useTableColumns = (
               key =>
                 ({
                   accessor: row => row[key],
-                  // When the key is empty, have to give a string of length greater than 1
+                  // When the key is empty, have to give a string of length greater than 0
                   Header: key || ' ',
                   Cell: ({ value }) => {
                     if (value === true) {
