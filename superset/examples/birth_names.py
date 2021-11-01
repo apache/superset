@@ -130,7 +130,8 @@ def _set_table_metadata(datasource: SqlaTable, database: "Database") -> None:
 
     datasource.main_dttm_col = "ds"
     datasource.database = database
-    datasource.schema = schema
+    if schema:
+        datasource.schema = schema
     datasource.filter_select_enabled = True
     datasource.fetch_metadata()
 
