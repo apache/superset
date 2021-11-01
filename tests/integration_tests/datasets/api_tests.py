@@ -490,6 +490,7 @@ class TestDatasetApi(SupersetTestCase):
             "message": {"table_name": ["Dataset energy_usage already exists"]}
         }
 
+    @pytest.mark.usefixtures("setup_ctas_schema")
     def test_create_dataset_same_name_different_schema(self):
         if backend() == "sqlite":
             # sqlite doesn't support schemas

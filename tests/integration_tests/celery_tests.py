@@ -72,10 +72,8 @@ def get_query_by_id(id: int):
 
 @pytest.fixture(autouse=True, scope="module")
 def setup_sqllab():
-
     with app.app_context():
         yield
-
         db.session.query(Query).delete()
         db.session.commit()
         for tbl in TMP_TABLES:
@@ -214,13 +212,13 @@ def test_run_sync_query_cta_no_data(setup_sqllab):
     assert QueryStatus.SUCCESS == query.status
 
 
-@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", "setup_ctas_schema")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
 @mock.patch(
     "superset.sqllab.sqllab_execution_context.get_cta_schema_name",
     lambda d, u, s, sql: CTAS_SCHEMA_NAME,
 )
-def test_run_sync_query_cta_config(setup_sqllab, ctas_method):
+def test_run_sync_query_cta_config(ctas_method):
     if backend() == "sqlite":
         # sqlite doesn't support schemas
         return
@@ -242,16 +240,13 @@ def test_run_sync_query_cta_config(setup_sqllab, ctas_method):
     delete_tmp_view_or_table(f"{CTAS_SCHEMA_NAME}.{tmp_table_name}", ctas_method)
 
 
-@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@pytest.mark.usefixtures("setup_ctas_schema", "load_birth_names_dashboard_with_slices")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
 @mock.patch(
     "superset.sqllab.sqllab_execution_context.get_cta_schema_name",
     lambda d, u, s, sql: CTAS_SCHEMA_NAME,
 )
-def test_run_async_query_cta_config(setup_sqllab, ctas_method):
-    if backend() == "sqlite":
-        # sqlite doesn't support schemas
-        return
+def test_run_async_query_cta_config(ctas_method):
     tmp_table_name = f"{TEST_ASYNC_CTA_CONFIG}_{ctas_method.lower()}"
     result = run_sql(
         QUERY, cta=True, ctas_method=ctas_method, async_=True, tmp_table=tmp_table_name,
@@ -271,7 +266,7 @@ def test_run_async_query_cta_config(setup_sqllab, ctas_method):
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
-def test_run_async_cta_query(setup_sqllab, ctas_method):
+def test_run_async_cta_query(ctas_method):
     table_name = f"{TEST_ASYNC_CTA}_{ctas_method.lower()}"
     result = run_sql(
         QUERY, cta=True, ctas_method=ctas_method, async_=True, tmp_table=table_name
@@ -293,7 +288,7 @@ def test_run_async_cta_query(setup_sqllab, ctas_method):
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
-def test_run_async_cta_query_with_lower_limit(setup_sqllab, ctas_method):
+def test_run_async_cta_query_with_lower_limit(ctas_method):
     tmp_table = f"{TEST_ASYNC_LOWER_LIMIT}_{ctas_method.lower()}"
     result = run_sql(
         QUERY, cta=True, ctas_method=ctas_method, async_=True, tmp_table=tmp_table

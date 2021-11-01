@@ -19,17 +19,30 @@ import functools
 from typing import Any
 
 import pytest
+import sqlalchemy
 from sqlalchemy.engine import Engine
 from unittest.mock import patch
 
 from tests.integration_tests.test_app import app
 from superset import db
 from superset.extensions import feature_flag_manager
-from superset.utils.core import get_example_database, json_dumps_w_dates
-
+from superset.utils.core import get_example_database, json_dumps_w_dates, backend
 
 CTAS_SCHEMA_NAME = "sqllab_test_db"
 ADMIN_SCHEMA_NAME = "admin_database"
+
+
+@pytest.fixture
+def setup_ctas_schema():
+    with app.app_context():
+        if backend() == "sqlite":
+            pytest.skip("sqlite doesn't support schemas")
+        engine = db.engine
+        if not engine.dialect.has_schema(engine, CTAS_SCHEMA_NAME):
+            engine.execute(sqlalchemy.schema.CreateSchema(CTAS_SCHEMA_NAME))
+        yield
+        if engine.dialect.has_schema(engine, CTAS_SCHEMA_NAME):
+            engine.execute(sqlalchemy.schema.DropSchema(CTAS_SCHEMA_NAME))
 
 
 @pytest.fixture

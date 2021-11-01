@@ -258,6 +258,7 @@ class TestSqlLab(SupersetTestCase):
         db.session.commit()
         self.assertLess(0, len(data["data"]))
 
+    @pytest.mark.usefixtures("setup_ctas_schema")
     def test_sql_json_schema_access(self):
         examples_db = get_example_database()
         db_backend = examples_db.backend
