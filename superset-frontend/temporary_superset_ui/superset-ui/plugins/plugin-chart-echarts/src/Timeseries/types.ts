@@ -70,8 +70,6 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   tooltipTimeFormat?: string;
   truncateYAxis: boolean;
   yAxisFormat?: string;
-  xAxisShowMinLabel?: boolean;
-  xAxisShowMaxLabel?: boolean;
   xAxisTimeFormat?: string;
   timeGrainSqla?: TimeGranularity;
   yAxisBounds: [number | undefined | null, number | undefined | null];
