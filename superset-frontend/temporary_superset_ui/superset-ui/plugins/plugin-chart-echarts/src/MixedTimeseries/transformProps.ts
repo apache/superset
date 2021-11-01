@@ -99,8 +99,6 @@ export default function transformProps(
     tooltipTimeFormat,
     yAxisFormat,
     yAxisFormatSecondary,
-    xAxisShowMinLabel,
-    xAxisShowMaxLabel,
     xAxisTimeFormat,
     yAxisBounds,
     yAxisIndex,
@@ -244,8 +242,6 @@ export default function transformProps(
       nameGap: xAxisTitleMargin,
       nameLocation: 'middle',
       axisLabel: {
-        showMinLabel: xAxisShowMinLabel,
-        showMaxLabel: xAxisShowMaxLabel,
         formatter: xAxisFormatter,
         rotate: xAxisLabelRotation,
       },
@@ -282,14 +278,14 @@ export default function transformProps(
       appendToBody: true,
       trigger: richTooltip ? 'axis' : 'item',
       formatter: (params: any) => {
-        const value: number = !richTooltip ? params.value : params[0].value[0];
-        const prophetValue: any[] = !richTooltip ? [params] : params;
+        const xValue: number = richTooltip ? params[0].value[0] : params.value[0];
+        const prophetValue: any[] = richTooltip ? params : [params];
 
         if (richTooltip && tooltipSortByMetric) {
           prophetValue.sort((a, b) => b.data[1] - a.data[1]);
         }
 
-        const rows: Array<string> = [`${tooltipTimeFormatter(value)}`];
+        const rows: Array<string> = [`${tooltipTimeFormatter(xValue)}`];
         const prophetValues = extractProphetValuesFromTooltipParams(prophetValue);
 
         Object.keys(prophetValues).forEach(key => {
