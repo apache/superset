@@ -50,7 +50,7 @@ export enum PandasAxis {
   Column = 1,
 }
 
-interface Aggregates {
+export interface Aggregates {
   /**
    * The name of the generated aggregate column.
    */
@@ -186,3 +186,53 @@ export type PostProcessingRule =
   | PostProcessingCompare
   | PostProcessingSort
   | PostProcessingResample;
+
+export function isPostProcessingAggregation(
+  rule?: PostProcessingRule,
+): rule is PostProcessingAggregation {
+  return rule?.operation === 'aggregation';
+}
+
+export function isPostProcessingBoxplot(rule?: PostProcessingRule): rule is PostProcessingBoxplot {
+  return rule?.operation === 'boxplot';
+}
+
+export function isPostProcessingContribution(
+  rule?: PostProcessingRule,
+): rule is PostProcessingContribution {
+  return rule?.operation === 'contribution';
+}
+
+export function isPostProcessingPivot(rule?: PostProcessingRule): rule is PostProcessingPivot {
+  return rule?.operation === 'pivot';
+}
+
+export function isPostProcessingProphet(rule?: PostProcessingRule): rule is PostProcessingProphet {
+  return rule?.operation === 'prophet';
+}
+
+export function isPostProcessingDiff(rule?: PostProcessingRule): rule is PostProcessingDiff {
+  return rule?.operation === 'diff';
+}
+
+export function isPostProcessingRolling(rule?: PostProcessingRule): rule is PostProcessingRolling {
+  return rule?.operation === 'rolling';
+}
+
+export function isPostProcessingCum(rule?: PostProcessingRule): rule is PostProcessingCum {
+  return rule?.operation === 'cum';
+}
+
+export function isPostProcessingCompare(rule?: PostProcessingRule): rule is PostProcessingCompare {
+  return rule?.operation === 'compare';
+}
+
+export function isPostProcessingSort(rule?: PostProcessingRule): rule is PostProcessingSort {
+  return rule?.operation === 'sort';
+}
+
+export function isPostProcessingResample(
+  rule?: PostProcessingRule,
+): rule is PostProcessingResample {
+  return rule?.operation === 'resample';
+}

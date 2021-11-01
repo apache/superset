@@ -16,12 +16,7 @@
  * specific language governing permissions and limitationsxw
  * under the License.
  */
-import {
-  PostProcessingBoxplot,
-  getMetricLabel,
-  ensureIsArray,
-  QueryFormColumn,
-} from '@superset-ui/core';
+import { PostProcessingBoxplot, getMetricLabel, ensureIsArray } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 
 type BoxPlotQueryObjectWhiskerType = PostProcessingBoxplot['options']['whisker_type'];
@@ -31,7 +26,7 @@ export const boxplotOperator: PostProcessingFactory<PostProcessingBoxplot | unde
   formData,
   queryObject,
 ) => {
-  const { whiskerOptions } = formData;
+  const { groupby, whiskerOptions } = formData;
 
   if (whiskerOptions) {
     let whiskerType: BoxPlotQueryObjectWhiskerType;
@@ -54,7 +49,7 @@ export const boxplotOperator: PostProcessingFactory<PostProcessingBoxplot | unde
       options: {
         whisker_type: whiskerType,
         percentiles,
-        groupby: ensureIsArray(queryObject.groupby as QueryFormColumn[]),
+        groupby: ensureIsArray(groupby),
         metrics: ensureIsArray(queryObject.metrics).map(getMetricLabel),
       },
     };
