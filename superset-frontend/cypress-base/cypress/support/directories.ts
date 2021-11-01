@@ -317,12 +317,12 @@ export const nativeFilters = {
     footer: '.ant-modal-footer',
     saveButton: dataTestLocator('native-filter-modal-save-button'),
     cancelButton: dataTestLocator('native-filter-modal-cancel-button'),
-    yesCancelButton: '.css-1mljg09',
+    yesCancelButton: '[type="button"]',
     alertXUnsavedFilters: '.ant-alert-message',
     tabsList: {
       tabsContainer: '[class="ant-tabs-nav-list"]',
       tab: '.ant-tabs-tab',
-      removeTab: '.ant-tabs-tab-remove',
+      removeTab: '[aria-label="trash"]',
     },
     addFilter: dataTestLocator('add-filter-button'),
   },
@@ -353,7 +353,7 @@ export const nativeFilters = {
     listItemNotActive: '[class="ant-tabs-tab ant-tabs-tab-with-remove"]',
     listItemActive:
       '[class="ant-tabs-tab ant-tabs-tab-with-remove ant-tabs-tab-active"]',
-    removeIcon: '[aria-label="remove"]',
+    removeIcon: '[aria-label="trash"]',
   },
   filterItem: dataTestLocator('form-item-value'),
   filterItemDropdown: '.ant-select-selection-search',
