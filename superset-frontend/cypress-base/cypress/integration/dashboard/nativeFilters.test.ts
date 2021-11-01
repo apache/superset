@@ -132,6 +132,69 @@ describe('Nativefilters Sanity test', () => {
       .click();
     cy.get(nativeFilters.modal.container).should('not.exist');
   });
+  it('User can delete a native filter', () => {
+    cy.get(nativeFilters.createFilterButton).click({ force: true });
+    cy.get(nativeFilters.modal.container).should('be.visible');
+
+    cy.get(nativeFilters.filtersList.removeIcon).first().click();
+    cy.contains('Restore Filter').should('not.exist', { timeout: 10000 });
+
+    cy.get(nativeFilters.modal.footer)
+      .contains('Save')
+      .should('be.visible')
+      .click();
+  });
+  it('User can cancel changes in native filter', () => {
+    cy.get(nativeFilters.createFilterButton).click({ force: true });
+    cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.filterName)
+      .click()
+      .type('suffix');
+    cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.datasetName)
+      .should('be.visible');
+    cy.get(nativeFilters.modal.footer)
+      .find(nativeFilters.modal.cancelButton)
+      .should('be.visible')
+      .click();
+    cy.get(nativeFilters.modal.alertXUnsavedFilters).should('be.visible');
+    // remove native filter
+    cy.get(nativeFilters.modal.footer)
+      .find(nativeFilters.modal.yesCancelButton)
+      .contains('cancel')
+      .should('be.visible')
+      .click({ force: true });
+
+    cy.get(nativeFilters.createFilterButton).click({ force: true });
+    cy.get(nativeFilters.filtersList.removeIcon).first().click();
+    cy.contains('You have removed this filter.').should('be.visible');
+    cy.get(nativeFilters.modal.footer)
+      .find(nativeFilters.modal.saveButton)
+      .should('be.visible')
+      .click();
+    cy.get(nativeFilters.filtersPanel.filterName).should('not.exist');
+  });
+  it('User can cancel creating a new filter', () => {
+    cy.get(nativeFilters.filterFromDashboardView.expand)
+      .should('be.visible')
+      .click();
+    cy.get(nativeFilters.createFilterButton).should('be.visible').click();
+    cy.get(nativeFilters.modal.container).should('be.visible');
+
+    cy.get(nativeFilters.modal.footer)
+      .find(nativeFilters.modal.cancelButton)
+      .should('be.visible')
+      .click();
+    cy.get(nativeFilters.modal.alertXUnsavedFilters)
+      .should('have.text', 'There are unsaved changes.')
+      .should('be.visible');
+    cy.get(nativeFilters.modal.footer)
+      .find(nativeFilters.modal.yesCancelButton)
+      .contains('cancel')
+      .should('be.visible')
+      .click();
+    cy.get(nativeFilters.modal.container).should('not.exist');
+  });
 });
 
 xdescribe('Nativefilters', () => {
