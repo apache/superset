@@ -133,7 +133,7 @@ class TeradataEngineSpec(BaseEngineSpec):
         "P1D": "TRUNC(CAST({col} as DATE), 'DDD')",
         "P1W": "TRUNC(CAST({col} as DATE), 'WW')",
         "P1M": "TRUNC(CAST({col} as DATE), 'MONTH')",
-        "P3M": "TRUNC(CAST({col} as DATE), 'Q')",
+        "P0.25Y": "TRUNC(CAST({col} as DATE), 'Q')",
         "P1Y": "TRUNC(CAST({col} as DATE), 'YEAR')",
     }
 
