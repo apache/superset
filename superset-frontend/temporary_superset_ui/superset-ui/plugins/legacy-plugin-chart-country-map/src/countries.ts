@@ -49,6 +49,7 @@ import peru from 'file-loader!./countries/peru.geojson';
 import poland from 'file-loader!./countries/poland.geojson';
 import portugal from 'file-loader!./countries/portugal.geojson';
 import russia from 'file-loader!./countries/russia.geojson';
+import saudi_arabia from 'file-loader!./countries/saudi_arabia.geojson';
 import singapore from 'file-loader!./countries/singapore.geojson';
 import slovenia from 'file-loader!./countries/slovenia.geojson';
 import sweden from 'file-loader!./countries/sweden.geojson';
@@ -96,6 +97,7 @@ export const countries = {
   poland,
   portugal,
   russia,
+  saudi_arabia,
   singapore,
   slovenia,
   spain,
