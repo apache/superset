@@ -19,30 +19,29 @@
 /* eslint camelcase: 0 */
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
 import { t, SupersetClient } from '@superset-ui/core';
-
-import { addChart, removeChart, refreshChart } from '../../chart/chartAction';
-import { chart as initChart } from '../../chart/chartReducer';
+import { addChart, removeChart, refreshChart } from 'src/chart/chartAction';
+import { chart as initChart } from 'src/chart/chartReducer';
+import { applyDefaultFormData } from 'src/explore/store';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import { SAVE_TYPE_OVERWRITE } from 'src/dashboard/util/constants';
+import {
+  addSuccessToast,
+  addWarningToast,
+  addDangerToast,
+} from 'src/components/MessageToasts/actions';
+import serializeActiveFilterValues from 'src/dashboard/util/serializeActiveFilterValues';
+import serializeFilterScopes from 'src/dashboard/util/serializeFilterScopes';
+import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
+import { safeStringify } from 'src/utils/safeStringify';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { UPDATE_COMPONENTS_PARENTS_LIST } from './dashboardLayout';
+import { setChartConfiguration } from './dashboardInfo';
 import { fetchDatasourceMetadata } from './datasources';
 import {
   addFilter,
   removeFilter,
   updateDirectPathToFilter,
 } from './dashboardFilters';
-import { applyDefaultFormData } from '../../explore/store';
-import { getClientErrorObject } from '../../utils/getClientErrorObject';
-import { SAVE_TYPE_OVERWRITE } from '../util/constants';
-import {
-  addSuccessToast,
-  addWarningToast,
-  addDangerToast,
-} from '../../messageToasts/actions';
-import { UPDATE_COMPONENTS_PARENTS_LIST } from './dashboardLayout';
-import serializeActiveFilterValues from '../util/serializeActiveFilterValues';
-import serializeFilterScopes from '../util/serializeFilterScopes';
-import { getActiveFilters } from '../util/activeDashboardFilters';
-import { safeStringify } from '../../utils/safeStringify';
-import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
-import { setChartConfiguration } from './dashboardInfo';
 
 export const SET_UNSAVED_CHANGES = 'SET_UNSAVED_CHANGES';
 export function setUnsavedChanges(hasUnsavedChanges) {
@@ -371,8 +370,8 @@ export function setDirectPathToChild(path) {
 }
 
 export const SET_ACTIVE_TABS = 'SET_ACTIVE_TABS';
-export function setActiveTabs(tabIds) {
-  return { type: SET_ACTIVE_TABS, tabIds };
+export function setActiveTabs(tabId, prevTabId) {
+  return { type: SET_ACTIVE_TABS, tabId, prevTabId };
 }
 
 export const SET_FOCUSED_FILTER_FIELD = 'SET_FOCUSED_FILTER_FIELD';

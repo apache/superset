@@ -54,7 +54,7 @@ allow_run_async_description = (
     "as a results backend. Refer to the installation docs "
     "for more information."
 )
-allow_csv_upload_description = (
+allow_file_upload_description = (
     "Allow to upload CSV file data into this database"
     "If selected, please set the schemas allowed for csv upload in Extra."
 )
@@ -108,9 +108,9 @@ extra_description = markdown(
     '"table_cache_timeout": 600}**. '
     "If unset, cache will not be enabled for the functionality. "
     "A timeout of 0 indicates that the cache never expires.<br/>"
-    "3. The ``schemas_allowed_for_csv_upload`` is a comma separated list "
+    "3. The ``schemas_allowed_for_file_upload`` is a comma separated list "
     "of schemas that CSVs are allowed to upload to. "
-    'Specify it as **"schemas_allowed_for_csv_upload": '
+    'Specify it as **"schemas_allowed_for_file_upload": '
     '["public", "csv_upload"]**. '
     "If database flavor does not support schema or any schema is allowed "
     "to be accessed, just leave the list empty<br/>"
@@ -355,7 +355,7 @@ class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
     )
     expose_in_sqllab = fields.Boolean(description=expose_in_sqllab_description)
     allow_run_async = fields.Boolean(description=allow_run_async_description)
-    allow_csv_upload = fields.Boolean(description=allow_csv_upload_description)
+    allow_file_upload = fields.Boolean(description=allow_file_upload_description)
     allow_ctas = fields.Boolean(description=allow_ctas_description)
     allow_cvas = fields.Boolean(description=allow_cvas_description)
     allow_dml = fields.Boolean(description=allow_dml_description)
@@ -397,7 +397,7 @@ class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
     )
     expose_in_sqllab = fields.Boolean(description=expose_in_sqllab_description)
     allow_run_async = fields.Boolean(description=allow_run_async_description)
-    allow_csv_upload = fields.Boolean(description=allow_csv_upload_description)
+    allow_file_upload = fields.Boolean(description=allow_file_upload_description)
     allow_ctas = fields.Boolean(description=allow_ctas_description)
     allow_cvas = fields.Boolean(description=allow_cvas_description)
     allow_dml = fields.Boolean(description=allow_dml_description)
@@ -558,15 +558,15 @@ class ImportV1DatabaseExtraSchema(Schema):
         self, data: Dict[str, Any], **kwargs: Any
     ) -> Dict[str, Any]:
         """
-        Fix ``schemas_allowed_for_csv_upload`` being a string.
+        Fix ``schemas_allowed_for_file_upload`` being a string.
 
         Due to a bug in the database modal, some databases might have been
-        saved and exported with a string for ``schemas_allowed_for_csv_upload``.
+        saved and exported with a string for ``schemas_allowed_for_file_upload``.
         """
-        schemas_allowed_for_csv_upload = data.get("schemas_allowed_for_csv_upload")
-        if isinstance(schemas_allowed_for_csv_upload, str):
-            data["schemas_allowed_for_csv_upload"] = json.loads(
-                schemas_allowed_for_csv_upload
+        schemas_allowed_for_file_upload = data.get("schemas_allowed_for_file_upload")
+        if isinstance(schemas_allowed_for_file_upload, str):
+            data["schemas_allowed_for_file_upload"] = json.loads(
+                schemas_allowed_for_file_upload
             )
 
         return data
@@ -574,7 +574,7 @@ class ImportV1DatabaseExtraSchema(Schema):
     metadata_params = fields.Dict(keys=fields.Str(), values=fields.Raw())
     engine_params = fields.Dict(keys=fields.Str(), values=fields.Raw())
     metadata_cache_timeout = fields.Dict(keys=fields.Str(), values=fields.Integer())
-    schemas_allowed_for_csv_upload = fields.List(fields.String())
+    schemas_allowed_for_file_upload = fields.List(fields.String())
     cost_estimate_enabled = fields.Boolean()
 
 
@@ -587,7 +587,7 @@ class ImportV1DatabaseSchema(Schema):
     allow_run_async = fields.Boolean()
     allow_ctas = fields.Boolean()
     allow_cvas = fields.Boolean()
-    allow_csv_upload = fields.Boolean()
+    allow_file_upload = fields.Boolean()
     extra = fields.Nested(ImportV1DatabaseExtraSchema)
     uuid = fields.UUID(required=True)
     version = fields.String(required=True)
@@ -602,7 +602,17 @@ class ImportV1DatabaseSchema(Schema):
             raise ValidationError("Must provide a password for the database")
 
 
-class EncryptedField(fields.String):
+class EncryptedField:  # pylint: disable=too-few-public-methods
+    """
+    A database field that should be stored in encrypted_extra.
+    """
+
+
+class EncryptedString(EncryptedField, fields.String):
+    pass
+
+
+class EncryptedDict(EncryptedField, fields.Dict):
     pass
 
 

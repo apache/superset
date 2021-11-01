@@ -67,8 +67,9 @@ MAXIMUM_DATE = date.today()
 days_range = (MAXIMUM_DATE - MINIMUM_DATE).days
 
 
-# pylint: disable=too-many-return-statements, too-many-branches
-def get_type_generator(sqltype: sqlalchemy.sql.sqltypes) -> Callable[[], Any]:
+def get_type_generator(  # pylint: disable=too-many-return-statements,too-many-branches
+    sqltype: sqlalchemy.sql.sqltypes,
+) -> Callable[[], Any]:
     if isinstance(sqltype, sqlalchemy.dialects.mysql.types.TINYINT):
         return lambda: random.choice([0, 1])
 

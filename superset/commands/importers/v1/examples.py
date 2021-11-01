@@ -14,8 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=protected-access
-
 from typing import Any, Dict, List, Set, Tuple
 
 from marshmallow import Schema
@@ -78,6 +76,7 @@ class ImportExamplesCommand(ImportModelsCommand):
 
     @classmethod
     def _get_uuids(cls) -> Set[str]:
+        # pylint: disable=protected-access
         return (
             ImportDatabasesCommand._get_uuids()
             | ImportDatasetsCommand._get_uuids()
@@ -85,9 +84,8 @@ class ImportExamplesCommand(ImportModelsCommand):
             | ImportDashboardsCommand._get_uuids()
         )
 
-    # pylint: disable=too-many-locals, arguments-differ
     @staticmethod
-    def _import(
+    def _import(  # pylint: disable=arguments-differ,too-many-locals
         session: Session,
         configs: Dict[str, Any],
         overwrite: bool = False,

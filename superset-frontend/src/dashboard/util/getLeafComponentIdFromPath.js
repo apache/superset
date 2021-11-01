@@ -24,7 +24,7 @@ export default function getLeafComponentIdFromPath(directPathToChild = []) {
 
     while (currentPath.length) {
       const componentId = currentPath.pop();
-      const componentType = componentId.split('-')[0];
+      const componentType = componentId && componentId.split('-')[0];
 
       if (!IN_COMPONENT_ELEMENT_TYPES.includes(componentType)) {
         return componentId;

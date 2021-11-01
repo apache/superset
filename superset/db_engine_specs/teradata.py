@@ -160,4 +160,3 @@ class TeradataEngineSpec(BaseEngineSpec):
         sql = parsed_query.set_or_update_query_limit_td(limit)
         
         return sql
-

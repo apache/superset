@@ -138,8 +138,7 @@ def parse_past_timedelta(
     )
 
 
-# pylint: disable=too-many-arguments, too-many-locals, too-many-branches
-def get_since_until(
+def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches
     time_range: Optional[str] = None,
     since: Optional[str] = None,
     until: Optional[str] = None,

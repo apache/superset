@@ -54,10 +54,20 @@ extraEnv: {}
   # GUNICORN_TIMEOUT: 300
 
 
-   # OAUTH_HOME_DOMAIN: ..
+  # OAUTH_HOME_DOMAIN: ..
   # # If a whitelist is not set, any address that can use your OAuth2 endpoint will be able to login.
   # #   this includes any random Gmail address if your OAuth2 Web App is set to External.
   # OAUTH_WHITELIST_REGEX: ...
+
+## Extra environment variables in RAW format that will be passed into pods
+##
+extraEnvRaw: []
+  # Load DB password from other secret (e.g. for zalando operator)
+  # - name: DB_PASS
+  #   valueFrom:
+  #     secretKeyRef:
+  #       name: superset.superset-postgres.credentials.postgresql.acid.zalan.do
+  #       key: password
 
 ## Extra environment variables to pass as secrets
 ##
@@ -70,12 +80,12 @@ extraSecretEnv: {}
 extraConfigs: {}
   # datasources-init.yaml: |
   #     databases:
-  #     - allow_csv_upload: true
+  #     - allow_file_upload: true
   #       allow_ctas: true
   #       allow_cvas: true
   #       database_name: example-db
   #       extra: "{\r\n    \"metadata_params\": {},\r\n    \"engine_params\": {},\r\n    \"\
-  #         metadata_cache_timeout\": {},\r\n    \"schemas_allowed_for_csv_upload\": []\r\n\
+  #         metadata_cache_timeout\": {},\r\n    \"schemas_allowed_for_file_upload\": []\r\n\
   #         }"
   #       sqlalchemy_uri: example://example-db.local
   #       tables: []
@@ -155,8 +165,8 @@ service:
 
 ingress:
   enabled: false
+  # ingressClassName: nginx
   annotations: {}
-    # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
     ## Extend timeout to allow long running queries.
     # nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
@@ -184,6 +194,15 @@ resources: {}
   #   memory: 128Mi
 
 ##
+## Custom hostAliases for all superset pods
+## https://kubernetes.io/docs/tasks/network/customize-hosts-file-for-pods/
+hostAliases: []
+# - hostnames:
+#   - nodns.my.lan
+#   ip: 18.27.36.45
+
+
+##
 ## Superset node configuration
 supersetNode:
   command:
@@ -198,6 +217,7 @@ supersetNode:
     db_user: superset
     db_pass: superset
     db_name: superset
+  env: {}
   forceReload: false # If true, forces deployment to reload on each upgrade
   initContainers:
     - name: wait-for-postgres
@@ -292,6 +312,7 @@ init:
       command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
   initscript: |-
     #!/bin/sh
+    set -eu
     echo "Upgrading DB schema..."
     superset db upgrade
     echo "Initializing roles..."

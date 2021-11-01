@@ -38,8 +38,7 @@ import {
   PAGE_SIZE,
 } from 'src/views/CRUD/utils';
 import { HOMEPAGE_DASHBOARD_FILTER } from 'src/views/CRUD/storageKeys';
-
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import Loading from 'src/components/Loading';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import DashboardCard from 'src/views/CRUD/dashboard/DashboardCard';
@@ -221,7 +220,9 @@ function DashboardTable({
             onClick: () => {
               const target =
                 dashboardFilter === 'Favorite'
-                  ? '/dashboard/list/?filters=(favorite:!t)'
+                  ? `/dashboard/list/?filters=(favorite:(label:${t(
+                      'Yes',
+                    )},value:!t))`
                   : '/dashboard/list/';
               history.push(target);
             },

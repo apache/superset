@@ -131,13 +131,17 @@ class ParsedQuery:
         return self._limit
 
     def is_select(self) -> bool:
-        return self._parsed[0].get_type() == "SELECT"
+        # make sure we strip comments; prevents a bug with coments in the CTE
+        parsed = sqlparse.parse(self.strip_comments())
+        return parsed[0].get_type() == "SELECT"
 
     def is_valid_ctas(self) -> bool:
-        return self._parsed[-1].get_type() == "SELECT"
+        parsed = sqlparse.parse(self.strip_comments())
+        return parsed[-1].get_type() == "SELECT"
 
     def is_valid_cvas(self) -> bool:
-        return len(self._parsed) == 1 and self._parsed[0].get_type() == "SELECT"
+        parsed = sqlparse.parse(self.strip_comments())
+        return len(parsed) == 1 and parsed[0].get_type() == "SELECT"
 
     def is_explain(self) -> bool:
         # Remove comments
@@ -340,39 +344,4 @@ class ParsedQuery:
         str_res = ""
         for i in statement.tokens:
             str_res += str(i.value)
-        return str_res
-        
-    def set_or_update_query_limit_top(self, new_limit: int) -> str:
-        top_sel_keywork = set(["SELECT", "SEL"])
-        top_limit_keywork = set(["TOP", "SAMPLE"])
-        statement = self._parsed[0]
-
-        if not self._limit:
-            final_limit = new_limit
-        elif new_limit < self._limit:
-            final_limit = new_limit
-        else:
-            final_limit = self._limit
-
-        str_statement = str(statement)
-        str_statement = str_statement.replace('\n', ' ').replace('\r','')
-        tokens = str(str_statement).rstrip().split(' ')
-        tokens = list(filter(None, tokens))
-
-        next_remove_ind = False
-        new_tokens = []
-        for i in tokens:
-            if any(limitword in i.upper() for limitword in top_limit_keywork):
-                next_remove_ind = True
-            elif next_remove_ind and i.isdigit():
-                next_remove_ind = False
-            else:
-                new_tokens.append(i)
-                next_remove_ind = False
-
-        str_res = ""
-        for i in new_tokens:
-            str_res += i + " "
-            if any(selword in i.upper() for selword in top_sel_keywork):
-                str_res += "TOP " + str(final_limit) + " "
         return str_res

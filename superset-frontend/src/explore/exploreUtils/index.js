@@ -18,6 +18,7 @@
  */
 
 import { useCallback, useEffect } from 'react';
+import { omit } from 'lodash';
 /* eslint camelcase: 0 */
 import URI from 'urijs';
 import {
@@ -124,6 +125,15 @@ export function getExploreLongUrl(
     });
   }
   return url;
+}
+
+export function getExploreUrlFromDashboard(formData) {
+  // remove formData params that we don't need in the explore url.
+  // These are present when generating explore urls from the dashboard page.
+  // This should be superseded by some sort of "exploration context" system
+  // where form data and other context is referenced by id.
+  const trimmedFormData = omit(formData, ['dataMask', 'url_params']);
+  return getExploreLongUrl(trimmedFormData, null, false);
 }
 
 export function getChartDataUri({ path, qs, allowDomainSharding = false }) {

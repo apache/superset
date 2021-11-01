@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent, useState } from 'react';
+import React, { FunctionComponent, useState, useEffect } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
-import { isEmpty, isNil } from 'lodash';
 import Modal from 'src/components/Modal';
 import TableSelector from 'src/components/TableSelector';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
+import { DatabaseObject } from 'src/components/DatabaseSelector';
 
 type DatasetAddObject = {
   id: number;
@@ -50,9 +50,11 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
   onHide,
   show,
 }) => {
-  const [currentSchema, setSchema] = useState('');
+  const [currentDatabase, setCurrentDatabase] = useState<
+    DatabaseObject | undefined
+  >();
+  const [currentSchema, setSchema] = useState<string | undefined>('');
   const [currentTableName, setTableName] = useState('');
-  const [datasourceId, setDatasourceId] = useState<number>(0);
   const [disableSave, setDisableSave] = useState(true);
   const { createResource } = useSingleViewResource<Partial<DatasetAddObject>>(
     'dataset',
@@ -60,24 +62,40 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
     addDangerToast,
   );
 
-  const onChange = ({
-    dbId,
-    schema,
-    tableName,
-  }: {
-    dbId: number;
-    schema: string;
-    tableName: string;
-  }) => {
-    setDatasourceId(dbId);
-    setDisableSave(isNil(dbId) || isEmpty(tableName));
+  useEffect(() => {
+    setDisableSave(currentDatabase === undefined || currentTableName === '');
+  }, [currentTableName, currentDatabase]);
+
+  const onDbChange = (db: DatabaseObject) => {
+    setCurrentDatabase(db);
+  };
+
+  const onSchemaChange = (schema?: string) => {
     setSchema(schema);
+  };
+
+  const onTableChange = (tableName: string) => {
     setTableName(tableName);
   };
 
+  const clearModal = () => {
+    setSchema('');
+    setTableName('');
+    setCurrentDatabase(undefined);
+    setDisableSave(true);
+  };
+
+  const hide = () => {
+    clearModal();
+    onHide();
+  };
+
   const onSave = () => {
+    if (currentDatabase === undefined) {
+      return;
+    }
     const data = {
-      database: datasourceId,
+      database: currentDatabase.id,
       ...(currentSchema ? { schema: currentSchema } : {}),
       table_name: currentTableName,
     };
@@ -89,7 +107,7 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
         onDatasetAdd({ id: response.id, ...response });
       }
       addSuccessToast(t('The dataset has been saved'));
-      onHide();
+      hide();
     });
   };
 
@@ -97,7 +115,7 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
     <Modal
       disablePrimaryButton={disableSave}
       onHandledPrimaryAction={onSave}
-      onHide={onHide}
+      onHide={hide}
       primaryButtonName={t('Add')}
       show={show}
       title={t('Add dataset')}
@@ -105,12 +123,14 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
       <TableSelectorContainer>
         <TableSelector
           clearable={false}
-          dbId={datasourceId}
           formMode
-          handleError={addDangerToast}
-          onUpdate={onChange}
+          database={currentDatabase}
           schema={currentSchema}
           tableName={currentTableName}
+          onDbChange={onDbChange}
+          onSchemaChange={onSchemaChange}
+          onTableChange={onTableChange}
+          handleError={addDangerToast}
         />
       </TableSelectorContainer>
     </Modal>

@@ -18,24 +18,26 @@
  */
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-
 import {
   toggleExpandSlice,
   setFocusedFilterField,
   unsetFocusedFilterField,
-} from '../actions/dashboardState';
-import { updateComponents } from '../actions/dashboardLayout';
-import { changeFilter } from '../actions/dashboardFilters';
-import { addSuccessToast, addDangerToast } from '../../messageToasts/actions';
-import { refreshChart } from '../../chart/chartAction';
-import { logEvent } from '../../logger/actions';
+} from 'src/dashboard/actions/dashboardState';
+import { updateComponents } from 'src/dashboard/actions/dashboardLayout';
+import { changeFilter } from 'src/dashboard/actions/dashboardFilters';
+import {
+  addSuccessToast,
+  addDangerToast,
+} from 'src/components/MessageToasts/actions';
+import { refreshChart } from 'src/chart/chartAction';
+import { logEvent } from 'src/logger/actions';
 import {
   getActiveFilters,
   getAppliedFilterValues,
-} from '../util/activeDashboardFilters';
-import getFormDataWithExtraFilters from '../util/charts/getFormDataWithExtraFilters';
-import Chart from '../components/gridComponents/Chart';
-import { PLACEHOLDER_DATASOURCE } from '../constants';
+} from 'src/dashboard/util/activeDashboardFilters';
+import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
+import Chart from 'src/dashboard/components/gridComponents/Chart';
+import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 
 const EMPTY_OBJECT = {};
 

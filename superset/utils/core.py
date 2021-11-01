@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 """Utility functions used across Superset"""
+# pylint: disable=too-many-lines
+import _thread
 import collections
 import decimal
 import errno
@@ -79,11 +81,11 @@ from sqlalchemy import event, exc, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy.sql.elements import TextClause
 from sqlalchemy.sql.type_api import Variant
 from sqlalchemy.types import TEXT, TypeDecorator, TypeEngine
 from typing_extensions import TypedDict, TypeGuard
 
-import _thread  # pylint: disable=C0411
 from superset.constants import (
     EXAMPLES_DB_UUID,
     EXTRA_FORM_DATA_APPEND_KEYS,
@@ -129,6 +131,8 @@ TIME_COMPARISION = "__"
 JS_MAX_INTEGER = 9007199254740991  # Largest int Java Script can handle 2^53-1
 
 InputType = TypeVar("InputType")
+
+BIND_PARAM_REGEX = TextClause._bind_params_regex  # pylint: disable=protected-access
 
 
 class LenientEnum(Enum):
@@ -1174,7 +1178,7 @@ def merge_extra_filters(form_data: Dict[str, Any]) -> None:
             time_extra = date_options.get(filter_column)
             if time_extra:
                 time_extra_value = filtr.get("val")
-                if time_extra_value:
+                if time_extra_value and time_extra_value != NO_TIME_RANGE:
                     form_data[time_extra] = time_extra_value
                     applied_time_extras[filter_column] = time_extra_value
             elif filtr["val"]:
@@ -1639,7 +1643,7 @@ def get_time_filter_status(
             )
 
     time_range = applied_time_extras.get(ExtraFiltersTimeColumnType.TIME_RANGE)
-    if time_range and time_range != NO_TIME_RANGE:
+    if time_range:
         # are there any temporal columns to assign the time grain to?
         if temporal_columns:
             applied.append({"column": ExtraFiltersTimeColumnType.TIME_RANGE})
@@ -1761,3 +1765,83 @@ def parse_boolean_string(bool_str: Optional[str]) -> bool:
         return bool(strtobool(bool_str.lower()))
     except ValueError:
         return False
+
+
+def apply_max_row_limit(limit: int, max_limit: Optional[int] = None,) -> int:
+    """
+    Override row limit if max global limit is defined
+
+    :param limit: requested row limit
+    :param max_limit: Maximum allowed row limit
+    :return: Capped row limit
+
+    >>> apply_max_row_limit(100000, 10)
+    10
+    >>> apply_max_row_limit(10, 100000)
+    10
+    >>> apply_max_row_limit(0, 10000)
+    10000
+    """
+    if max_limit is None:
+        max_limit = current_app.config["SQL_MAX_ROW"]
+    if limit != 0:
+        return min(max_limit, limit)
+    return max_limit
+
+
+def escape_sqla_query_binds(sql: str) -> str:
+    """
+    Replace strings in a query that SQLAlchemy would otherwise interpret as
+    bind parameters.
+
+    :param sql: unescaped query string
+    :return: escaped query string
+    >>> escape_sqla_query_binds("select ':foo'")
+    "select '\\\\:foo'"
+    >>> escape_sqla_query_binds("select 'foo'::TIMESTAMP")
+    "select 'foo'::TIMESTAMP"
+    >>> escape_sqla_query_binds("select ':foo :bar'::TIMESTAMP")
+    "select '\\\\:foo \\\\:bar'::TIMESTAMP"
+    >>> escape_sqla_query_binds("select ':foo :foo :bar'::TIMESTAMP")
+    "select '\\\\:foo \\\\:foo \\\\:bar'::TIMESTAMP"
+    """
+    matches = BIND_PARAM_REGEX.finditer(sql)
+    processed_binds = set()
+    for match in matches:
+        bind = match.group(0)
+        if bind not in processed_binds:
+            sql = sql.replace(bind, bind.replace(":", "\\:"))
+            processed_binds.add(bind)
+    return sql
+
+
+def normalize_prequery_result_type(
+    value: Union[str, int, float, bool, np.generic]
+) -> Union[str, int, float, bool]:
+    """
+    Convert a value that is potentially a numpy type into its equivalent Python type.
+
+    :param value: primitive datatype in either numpy or python format
+    :return: equivalent primitive python type
+    >>> normalize_prequery_result_type('abc')
+    'abc'
+    >>> normalize_prequery_result_type(True)
+    True
+    >>> normalize_prequery_result_type(123)
+    123
+    >>> normalize_prequery_result_type(np.int16(123))
+    123
+    >>> normalize_prequery_result_type(np.uint32(123))
+    123
+    >>> normalize_prequery_result_type(np.int64(123))
+    123
+    >>> normalize_prequery_result_type(123.456)
+    123.456
+    >>> normalize_prequery_result_type(np.float32(123.456))
+    123.45600128173828
+    >>> normalize_prequery_result_type(np.float64(123.456))
+    123.456
+    """
+    if isinstance(value, np.generic):
+        return value.item()
+    return value

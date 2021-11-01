@@ -271,7 +271,7 @@ describe('RTL', () => {
 
   it('renders an export button in the actions bar', async () => {
     // Grab Export action button and mock mouse hovering over it
-    const exportActionButton = screen.getAllByRole('button')[18];
+    const exportActionButton = screen.getAllByTestId('export-action')[0];
     userEvent.hover(exportActionButton);
 
     // Wait for the tooltip to pop up
@@ -284,14 +284,14 @@ describe('RTL', () => {
     expect(exportTooltip).toBeInTheDocument();
   });
 
-  it('renders an import button in the submenu', () => {
+  it('renders an import button in the submenu', async () => {
     // Grab and assert that import saved query button is visible
-    const importButton = screen.getByTestId('import-button');
+    const importButton = await screen.findByTestId('import-button');
     expect(importButton).toBeVisible();
   });
 
   it('renders an "Import Saved Query" tooltip under import button', async () => {
-    const importButton = screen.getByTestId('import-button');
+    const importButton = await screen.findByTestId('import-button');
     userEvent.hover(importButton);
     waitFor(() => {
       expect(importButton).toHaveClass('ant-tooltip-open');
@@ -303,9 +303,9 @@ describe('RTL', () => {
     });
   });
 
-  it('renders an import model when import button is clicked', async () => {
+  it('renders an import modal when import button is clicked', async () => {
     // Grab and click import saved query button to reveal modal
-    const importButton = screen.getByTestId('import-button');
+    const importButton = await screen.findByTestId('import-button');
     userEvent.click(importButton);
 
     // Grab and assert that saved query import modal's heading is visible
@@ -315,9 +315,9 @@ describe('RTL', () => {
     expect(importSavedQueryModalHeading).toBeVisible();
   });
 
-  it('imports a saved query', () => {
+  it('imports a saved query', async () => {
     // Grab and click import saved query button to reveal modal
-    const importButton = screen.getByTestId('import-button');
+    const importButton = await screen.findByTestId('import-button');
     userEvent.click(importButton);
 
     // Grab "Choose File" input from import modal

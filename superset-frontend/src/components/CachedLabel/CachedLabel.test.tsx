@@ -19,21 +19,24 @@
 
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
-import moment from 'moment';
-import { TooltipContent } from './TooltipContent';
+import CachedLabel, { CacheLabelProps } from '.';
 
-test('Rendering TooltipContent correctly - no timestamp', () => {
-  render(<TooltipContent />);
-  expect(screen.getByTestId('tooltip-content')?.textContent).toBe(
-    'Loaded from cache. Click to force-refresh',
-  );
-});
+const defaultProps = {
+  onClick: () => {},
+  cachedTimestamp: '2017-01-01',
+};
 
-test('Rendering TooltipContent correctly - with timestamp', () => {
-  render(<TooltipContent cachedTimestamp="01-01-2000" />);
-  expect(screen.getByTestId('tooltip-content')?.textContent).toBe(
-    `Loaded data cached ${moment
-      .utc('01-01-2000')
-      .fromNow()}. Click to force-refresh`,
-  );
+const setup = (props: CacheLabelProps) => <CachedLabel {...props} />;
+
+describe('CachedLabel', () => {
+  it('is valid', () => {
+    expect(React.isValidElement(<CachedLabel {...defaultProps} />)).toBe(true);
+  });
+
+  it('renders', () => {
+    render(setup(defaultProps));
+
+    const label = screen.getByText(/cached/i);
+    expect(label).toBeVisible();
+  });
 });

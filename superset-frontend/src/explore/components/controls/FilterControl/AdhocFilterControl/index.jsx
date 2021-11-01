@@ -59,6 +59,8 @@ const selectedMetricType = PropTypes.oneOfType([
 const propTypes = {
   label: PropTypes.oneOfType([PropTypes.object, PropTypes.string]),
   name: PropTypes.string,
+  sections: PropTypes.arrayOf(PropTypes.string),
+  operators: PropTypes.arrayOf(PropTypes.string),
   onChange: PropTypes.func,
   value: PropTypes.arrayOf(adhocFilterType),
   datasource: PropTypes.object,
@@ -107,6 +109,8 @@ class AdhocFilterControl extends React.Component {
         adhocFilter={adhocFilter}
         onFilterEdit={this.onFilterEdit}
         options={this.state.options}
+        sections={this.props.sections}
+        operators={this.props.operators}
         datasource={this.props.datasource}
         onRemoveFilter={() => this.onRemoveFilter(index)}
         onMoveLabel={this.moveLabel}
@@ -324,6 +328,8 @@ class AdhocFilterControl extends React.Component {
   addNewFilterPopoverTrigger(trigger) {
     return (
       <AdhocFilterPopoverTrigger
+        operators={this.props.operators}
+        sections={this.props.sections}
         adhocFilter={new AdhocFilter({})}
         datasource={this.props.datasource}
         options={this.state.options}

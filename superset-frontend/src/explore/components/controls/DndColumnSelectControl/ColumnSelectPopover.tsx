@@ -20,7 +20,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import Tabs from 'src/components/Tabs';
 import Button from 'src/components/Button';
-import { NativeSelect as Select } from 'src/components/Select';
+import { Select } from 'src/components';
 import { t, styled } from '@superset-ui/core';
 
 import { Form, FormItem } from 'src/components/Form';
@@ -126,17 +126,8 @@ const ColumnSelectPopover = ({
     selectedCalculatedColumn?.column_name !==
       initialCalculatedColumn?.column_name ||
     selectedSimpleColumn?.column_name !== initialSimpleColumn?.column_name;
-
-  const filterOption = useCallback(
-    (input, option) =>
-      option?.filterBy.toLowerCase().indexOf(input.toLowerCase()) >= 0,
-    [],
-  );
-
-  const getPopupContainer = useCallback(
-    (triggerNode: any) => triggerNode.parentNode,
-    [],
-  );
+  const savedExpressionsLabel = t('Saved expressions');
+  const simpleColumnsLabel = t('Column');
 
   return (
     <Form layout="vertical" id="metrics-edit-popover">
@@ -147,56 +138,44 @@ const ColumnSelectPopover = ({
         allowOverflow
       >
         <Tabs.TabPane key="saved" tab={t('Saved')}>
-          <FormItem label={t('Saved expressions')}>
+          <FormItem label={savedExpressionsLabel}>
             <StyledSelect
+              ariaLabel={savedExpressionsLabel}
               value={selectedCalculatedColumn?.column_name}
-              getPopupContainer={getPopupContainer}
               onChange={onCalculatedColumnChange}
               allowClear
-              showSearch
               autoFocus={!selectedCalculatedColumn}
-              filterOption={filterOption}
               placeholder={t('%s column(s)', calculatedColumns.length)}
-            >
-              {calculatedColumns.map(calculatedColumn => (
-                <Select.Option
-                  value={calculatedColumn.column_name}
-                  filterBy={
-                    calculatedColumn.verbose_name ||
-                    calculatedColumn.column_name
-                  }
-                  key={calculatedColumn.column_name}
-                >
+              options={calculatedColumns.map(calculatedColumn => ({
+                value: calculatedColumn.column_name,
+                label:
+                  calculatedColumn.verbose_name || calculatedColumn.column_name,
+                customLabel: (
                   <StyledColumnOption column={calculatedColumn} showType />
-                </Select.Option>
-              ))}
-            </StyledSelect>
+                ),
+                key: calculatedColumn.column_name,
+              }))}
+            />
           </FormItem>
         </Tabs.TabPane>
         <Tabs.TabPane key="simple" tab={t('Simple')}>
-          <FormItem label={t('Column')}>
+          <FormItem label={simpleColumnsLabel}>
             <Select
+              ariaLabel={simpleColumnsLabel}
               value={selectedSimpleColumn?.column_name}
-              getPopupContainer={getPopupContainer}
               onChange={onSimpleColumnChange}
               allowClear
-              showSearch
               autoFocus={!selectedSimpleColumn}
-              filterOption={filterOption}
               placeholder={t('%s column(s)', simpleColumns.length)}
-            >
-              {simpleColumns.map(simpleColumn => (
-                <Select.Option
-                  value={simpleColumn.column_name}
-                  filterBy={
-                    simpleColumn.verbose_name || simpleColumn.column_name
-                  }
-                  key={simpleColumn.column_name}
-                >
+              options={simpleColumns.map(simpleColumn => ({
+                value: simpleColumn.column_name,
+                label: simpleColumn.verbose_name || simpleColumn.column_name,
+                customLabel: (
                   <StyledColumnOption column={simpleColumn} showType />
-                </Select.Option>
-              ))}
-            </Select>
+                ),
+                key: simpleColumn.column_name,
+              }))}
+            />
           </FormItem>
         </Tabs.TabPane>
       </Tabs>

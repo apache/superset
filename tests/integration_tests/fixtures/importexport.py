@@ -14,8 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=line-too-long
-
 from typing import Any, Dict, List
 
 # example V0 import/export format
@@ -349,7 +347,7 @@ saved_queries_metadata_config: Dict[str, Any] = {
     "timestamp": "2021-03-30T20:37:54.791187+00:00",
 }
 database_config: Dict[str, Any] = {
-    "allow_csv_upload": True,
+    "allow_file_upload": True,
     "allow_ctas": True,
     "allow_cvas": True,
     "allow_run_async": False,

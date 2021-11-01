@@ -215,7 +215,7 @@ describe('AlertReportModal', () => {
     const editWrapper = await mountAndWait(props);
     const input = editWrapper.find(TextAreaControl);
     expect(input).toExist();
-    expect(input.props().value).toEqual('SELECT NaN');
+    expect(input.props().initialValue).toEqual('SELECT NaN');
   });
 
   it('renders five select element when in report mode', () => {

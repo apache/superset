@@ -78,6 +78,7 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):
         "expression",
         "is_dttm",
         "python_date_format",
+        "extra",
     ]
     add_columns = edit_columns
     list_columns = [
@@ -127,6 +128,14 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):
                 "defaults on a per database/column name level via the extra parameter."
                 ""
             ),
+            True,
+        ),
+        "extra": utils.markdown(
+            "Extra data to specify column metadata. Currently supports "
+            'certification data of the format: `{ "certification": "certified_by": '
+            '"Taylor Swift", "details": "This column is the source of truth." '
+            "} }`. This should be modified from the edit datasource model in "
+            "Explore to ensure correct formatting.",
             True,
         ),
     }

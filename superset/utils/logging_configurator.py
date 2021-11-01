@@ -24,8 +24,7 @@ import flask.config
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=too-few-public-methods
-class LoggingConfigurator(abc.ABC):
+class LoggingConfigurator(abc.ABC):  # pylint: disable=too-few-public-methods
     @abc.abstractmethod
     def configure_logging(
         self, app_config: flask.config.Config, debug_mode: bool
@@ -33,7 +32,9 @@ class LoggingConfigurator(abc.ABC):
         pass
 
 
-class DefaultLoggingConfigurator(LoggingConfigurator):
+class DefaultLoggingConfigurator(  # pylint: disable=too-few-public-methods
+    LoggingConfigurator
+):
     def configure_logging(
         self, app_config: flask.config.Config, debug_mode: bool
     ) -> None:
