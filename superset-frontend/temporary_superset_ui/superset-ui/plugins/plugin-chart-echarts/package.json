@@ -29,7 +29,7 @@
     "@superset-ui/chart-controls": "0.18.17",
     "@superset-ui/core": "0.18.17",
     "d3-array": "^1.2.0",
-    "echarts": "^5.2.1",
+    "echarts": "^5.2.2",
     "lodash": "^4.17.15"
   },
   "peerDependencies": {
