@@ -57,8 +57,6 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
   zoomable: boolean;
   richTooltip: boolean;
   xAxisLabelRotation: number;
-  xAxisShowMinLabel?: boolean;
-  xAxisShowMaxLabel?: boolean;
   colorScheme?: string;
   // types specific to Query A and Query B
   area: boolean;
@@ -127,8 +125,6 @@ export const DEFAULT_FORM_DATA: EchartsMixedTimeseriesFormData = {
   yAxisIndexB: 0,
   groupby: [],
   groupbyB: [],
-  xAxisShowMinLabel: TIMESERIES_DEFAULTS.xAxisShowMinLabel,
-  xAxisShowMaxLabel: TIMESERIES_DEFAULTS.xAxisShowMaxLabel,
   zoomable: TIMESERIES_DEFAULTS.zoomable,
   richTooltip: TIMESERIES_DEFAULTS.richTooltip,
   xAxisLabelRotation: TIMESERIES_DEFAULTS.xAxisLabelRotation,

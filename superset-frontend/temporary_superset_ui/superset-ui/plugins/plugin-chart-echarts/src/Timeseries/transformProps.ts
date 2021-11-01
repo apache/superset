@@ -268,14 +268,14 @@ export default function transformProps(
       appendToBody: true,
       trigger: richTooltip ? 'axis' : 'item',
       formatter: (params: any) => {
-        const value: number = !richTooltip ? params.value : params[0].value[0];
-        const prophetValue: any[] = !richTooltip ? [params] : params;
+        const xValue: number = richTooltip ? params[0].value[0] : params.value[0];
+        const prophetValue: any[] = richTooltip ? params : [params];
 
         if (richTooltip && tooltipSortByMetric) {
           prophetValue.sort((a, b) => b.data[1] - a.data[1]);
         }
 
-        const rows: Array<string> = [`${tooltipFormatter(value)}`];
+        const rows: Array<string> = [`${tooltipFormatter(xValue)}`];
         const prophetValues: Record<string, ProphetValue> =
           extractProphetValuesFromTooltipParams(prophetValue);
 
