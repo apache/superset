@@ -18,7 +18,7 @@
  */
 import React, { FC, useMemo } from 'react';
 import { styled, t } from '@superset-ui/core';
-import { useEmbedded } from 'src/components/Emmbedded';
+import { useUiConfig } from 'src/components/UiConfigContext';
 import { Tooltip } from 'src/components/Tooltip';
 import { useDispatch, useSelector } from 'react-redux';
 import EditableTitle from 'src/components/EditableTitle';
@@ -84,7 +84,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   formData,
 }) => {
   const dispatch = useDispatch();
-  const embedded = useEmbedded();
+  const uiConfig = useUiConfig();
   // TODO: change to indicator field after it will be implemented
   const crossFilterValue = useSelector<RootState, any>(
     state => state.dataMask[slice?.slice_id]?.filterState?.value,
@@ -158,10 +158,10 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 />
               </Tooltip>
             )}
-            {!embedded.hideChartFilter && (
+            {!uiConfig.hideChartControls && (
               <FiltersBadge chartId={slice.slice_id} />
             )}
-            {!embedded.hideChartFilter && (
+            {!uiConfig.hideChartControls && (
               <SliceHeaderControls
                 slice={slice}
                 isCached={isCached}

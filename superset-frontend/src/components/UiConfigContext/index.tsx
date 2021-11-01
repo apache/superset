@@ -17,41 +17,42 @@
  * under the License.
  */
 import React, { createContext, useContext, useState } from 'react';
+import { URL_PARAMS } from 'src/constants';
+import { getUrlParam } from 'src/utils/urlUtils';
 
-interface EmbeddedConfigType {
+interface UiConfigType {
   hideTitle: boolean;
   hideTab: boolean;
   hideNav: boolean;
-  hideChartFilter: boolean;
+  hideChartControls: boolean;
 }
-interface EmbeddedProviderProps {
+interface EmbeddedUiConfigProviderProps {
   children: JSX.Element;
-  config: number;
 }
 
-export const EmbeddedContext = createContext<EmbeddedConfigType>({
+export const UiConfigContext = createContext<UiConfigType>({
   hideTitle: false,
   hideTab: false,
   hideNav: false,
-  hideChartFilter: false,
+  hideChartControls: false,
 });
 
-export const useEmbedded = () => useContext(EmbeddedContext);
+export const useUiConfig = () => useContext(UiConfigContext);
 
-export const EmbeddedProvider: React.FC<EmbeddedProviderProps> = ({
+export const EmbeddedUiConfigProvider: React.FC<EmbeddedUiConfigProviderProps> = ({
   children,
-  config,
 }) => {
-  const formattedConfig = (config >>> 0).toString(2);
+  const config = getUrlParam(URL_PARAMS.uiConfig);
   const [embeddedConfig] = useState({
-    hideTitle: formattedConfig[0] === '1',
-    hideTab: formattedConfig[1] === '1',
-    hideNav: formattedConfig[2] === '1',
-    hideChartFilter: formattedConfig[3] === '1',
+    hideTitle: (config & 1) !== 0,
+    hideTab: (config & 2) !== 0,
+    hideNav: (config & 4) !== 0,
+    hideChartControls: (config & 8) !== 0,
   });
+
   return (
-    <EmbeddedContext.Provider value={embeddedConfig}>
+    <UiConfigContext.Provider value={embeddedConfig}>
       {children}
-    </EmbeddedContext.Provider>
+    </UiConfigContext.Provider>
   );
 };
