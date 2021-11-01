@@ -285,30 +285,6 @@ const config: ControlPanelConfig = {
         ['x_axis_time_format'],
         [
           {
-            name: 'xAxisShowMinLabel',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Show Min Label'),
-              default: true,
-              renderTrigger: true,
-              description: t('Show Min Label'),
-            },
-          },
-        ],
-        [
-          {
-            name: 'xAxisShowMaxLabel',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Show Max Label'),
-              default: true,
-              renderTrigger: true,
-              description: t('Show Max Label'),
-            },
-          },
-        ],
-        [
-          {
             name: 'xAxisLabelRotation',
             config: {
               type: 'SelectControl',

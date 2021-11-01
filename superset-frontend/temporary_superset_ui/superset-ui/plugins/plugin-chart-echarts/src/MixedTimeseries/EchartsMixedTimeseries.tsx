@@ -95,11 +95,11 @@ export default function EchartsMixedTimeseries({
         handleChange([seriesName], seriesIndex);
       }
     },
-    mousemove: params => {
-      currentSeries.name = params.seriesName;
-    },
     mouseout: () => {
       currentSeries.name = '';
+    },
+    mouseover: params => {
+      currentSeries.name = params.seriesName;
     },
   };
 
