@@ -146,6 +146,10 @@ class ParsedQuery:
         ):
             return False
 
+        # return false on `EXPLAIN`, `SET`, `SHOW`, etc.
+        if parsed[0][0].ttype == Keyword:
+            return False
+
         return any(
             token.ttype == DML and token.value == "SELECT" for token in parsed[0]
         )
@@ -165,7 +169,7 @@ class ParsedQuery:
         )
 
         # Explain statements will only be the first statement
-        return statements_without_comments.startswith("EXPLAIN")
+        return statements_without_comments.upper().startswith("EXPLAIN")
 
     def is_show(self) -> bool:
         # Remove comments
