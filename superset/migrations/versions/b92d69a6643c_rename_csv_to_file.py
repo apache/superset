@@ -111,7 +111,6 @@ def downgrade():
 
         database.extra = json.dumps(extra)
 
-
     with op.batch_alter_table("dbs") as batch_op:
         batch_op.alter_column(
             "allow_file_upload",
