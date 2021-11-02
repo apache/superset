@@ -29,7 +29,7 @@ from sqlparse.sql import (
     Token,
     TokenList,
 )
-from sqlparse.tokens import Keyword, Name, Punctuation, String, Whitespace
+from sqlparse.tokens import DDL, DML, Keyword, Name, Punctuation, String, Whitespace
 from sqlparse.utils import imt
 
 RESULT_OPERATIONS = {"UNION", "INTERSECT", "EXCEPT", "SELECT"}
@@ -133,7 +133,22 @@ class ParsedQuery:
     def is_select(self) -> bool:
         # make sure we strip comments; prevents a bug with coments in the CTE
         parsed = sqlparse.parse(self.strip_comments())
-        return parsed[0].get_type() == "SELECT"
+        if parsed[0].get_type() == "SELECT":
+            return True
+
+        if parsed[0].get_type() != "UNKNOWN":
+            return False
+
+        # for `UNKNOWN`, check all DDL/DML explicitly: only `SELECT` DML is allowed,
+        # and no DDL is allowed
+        if any(token.ttype == DDL for token in parsed[0]) or any(
+            token.ttype == DML and token.value != "SELECT" for token in parsed[0]
+        ):
+            return False
+
+        return any(
+            token.ttype == DML and token.value == "SELECT" for token in parsed[0]
+        )
 
     def is_valid_ctas(self) -> bool:
         parsed = sqlparse.parse(self.strip_comments())
