@@ -21,7 +21,7 @@ import { Input } from 'src/common/components';
 
 interface HiddenControlsProps {
   onChange: () => void;
-  value: string | number | Record<string, any> | boolean | any[] | Function;
+  value: 'string | number | readonly string[] | undefined';
 }
 
 export default function HiddenControl(props: HiddenControlsProps) {
