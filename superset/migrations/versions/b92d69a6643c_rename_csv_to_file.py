@@ -61,7 +61,7 @@ def upgrade():
                 "schemas_allowed_for_csv_upload"
             )
 
-        database.extra = json.dumps(extra)
+            database.extra = json.dumps(extra)
 
     try:
         with op.batch_alter_table("dbs") as batch_op:
@@ -109,7 +109,7 @@ def downgrade():
                 "schemas_allowed_for_file_upload"
             )
 
-        database.extra = json.dumps(extra)
+            database.extra = json.dumps(extra)
 
     with op.batch_alter_table("dbs") as batch_op:
         batch_op.alter_column(
