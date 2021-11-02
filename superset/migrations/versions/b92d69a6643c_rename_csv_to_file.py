@@ -27,8 +27,8 @@ down_revision = "32646df09c64"
 import json
 import logging
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy import Column, Integer, Text
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.ext.declarative import declarative_base
