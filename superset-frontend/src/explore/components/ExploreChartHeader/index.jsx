@@ -31,16 +31,16 @@ import {
 } from 'src/reports/actions/reports';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import HeaderReportActionsDropdown from 'src/components/ReportModal/HeaderReportActionsDropdown';
-import { chartPropShape } from '../../dashboard/util/propShapes';
-import ExploreActionButtons from './ExploreActionButtons';
-import RowCountLabel from './RowCountLabel';
-import EditableTitle from '../../components/EditableTitle';
-import AlteredSliceTag from '../../components/AlteredSliceTag';
-import FaveStar from '../../components/FaveStar';
-import Timer from '../../components/Timer';
-import CachedLabel from '../../components/CachedLabel';
-import PropertiesModal from './PropertiesModal';
-import { sliceUpdated } from '../actions/exploreActions';
+import { chartPropShape } from 'src/dashboard/util/propShapes';
+import EditableTitle from 'src/components/EditableTitle';
+import AlteredSliceTag from 'src/components/AlteredSliceTag';
+import FaveStar from 'src/components/FaveStar';
+import Timer from 'src/components/Timer';
+import CachedLabel from 'src/components/CachedLabel';
+import PropertiesModal from 'src/explore/components/PropertiesModal';
+import { sliceUpdated } from 'src/explore/actions/exploreActions';
+import ExploreActionButtons from '../ExploreActionButtons';
+import RowCountLabel from '../RowCountLabel';
 
 const CHART_STATUS_MAP = {
   failed: 'danger',
@@ -245,17 +245,20 @@ export class ExploreChartHeader extends React.PureComponent {
                   showTooltip
                 />
               )}
-              <PropertiesModal
-                show={this.state.isPropertiesModalOpen}
-                onHide={this.closePropertiesModal}
-                onSave={this.props.sliceUpdated}
-                slice={this.props.slice}
-              />
+              {this.state.isPropertiesModalOpen && (
+                <PropertiesModal
+                  show={this.state.isPropertiesModalOpen}
+                  onHide={this.closePropertiesModal}
+                  onSave={this.props.sliceUpdated}
+                  slice={this.props.slice}
+                />
+              )}
               <Tooltip
                 id="edit-desc-tooltip"
                 title={t('Edit chart properties')}
               >
                 <span
+                  aria-label={t('Edit chart properties')}
                   role="button"
                   tabIndex={0}
                   className="edit-desc-icon"
