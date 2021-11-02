@@ -20,6 +20,7 @@ import json
 from typing import Any, Dict, List, Optional
 
 from pandas import DataFrame
+from sqlalchemy import inspect
 
 from superset import ConnectorRegistry, db
 from superset.connectors.sqla.models import SqlaTable
@@ -37,6 +38,9 @@ def create_table_for_dashboard(
     fetch_values_predicate: Optional[str] = None,
     schema: Optional[str] = None,
 ) -> SqlaTable:
+    engine = database.get_sqla_engine()
+    schema = schema or inspect(engine).default_schema_name
+
     df.to_sql(
         table_name,
         database.get_sqla_engine(),

@@ -23,7 +23,7 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 import pytest
 from pandas import DataFrame
-from sqlalchemy import DateTime, String, TIMESTAMP
+from sqlalchemy import DateTime, inspect, String, TIMESTAMP
 
 from superset import ConnectorRegistry, db
 from superset.connectors.sqla.models import SqlaTable
@@ -103,12 +103,19 @@ def _create_table(
 
 
 def _cleanup(dash_id: int, slices_ids: List[int]) -> None:
-    table_id = db.session.query(SqlaTable).filter_by(table_name="birth_names").one().id
+    engine = get_example_database().get_sqla_engine()
+    schema = inspect(engine).default_schema_name
+
+    table_id = (
+        db.session.query(SqlaTable)
+        .filter_by(table_name="birth_names", schema=schema)
+        .one()
+        .id
+    )
     datasource = ConnectorRegistry.get_datasource("table", table_id, db.session)
     columns = [column for column in datasource.columns]
     metrics = [metric for metric in datasource.metrics]
 
-    engine = get_example_database().get_sqla_engine()
     engine.execute("DROP TABLE IF EXISTS birth_names")
     for column in columns:
         db.session.delete(column)

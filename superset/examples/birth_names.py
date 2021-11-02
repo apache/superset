@@ -101,18 +101,21 @@ def load_birth_names(
     only_metadata: bool = False, force: bool = False, sample: bool = False
 ) -> None:
     """Loading birth name dataset from a zip file in the repo"""
-    tbl_name = "birth_names"
     database = get_example_database()
+    engine = database.get_sqla_engine()
+    schema = inspect(engine).default_schema_name
+
+    tbl_name = "birth_names"
     table_exists = database.has_table_by_name(tbl_name)
 
     if not only_metadata and (not table_exists or force):
         load_data(tbl_name, database, sample=sample)
 
     table = get_table_connector_registry()
-    obj = db.session.query(table).filter_by(table_name=tbl_name).first()
+    obj = db.session.query(table).filter_by(table_name=tbl_name, schema=schema).first()
     if not obj:
         print(f"Creating table [{tbl_name}] reference")
-        obj = table(table_name=tbl_name)
+        obj = table(table_name=tbl_name, schema=schema)
         db.session.add(obj)
 
     _set_table_metadata(obj, database)
@@ -125,13 +128,8 @@ def load_birth_names(
 
 
 def _set_table_metadata(datasource: SqlaTable, database: "Database") -> None:
-    engine = database.get_sqla_engine()
-    schema = inspect(engine).default_schema_name
-
     datasource.main_dttm_col = "ds"
     datasource.database = database
-    if schema:
-        datasource.schema = schema
     datasource.filter_select_enabled = True
     datasource.fetch_metadata()
 
