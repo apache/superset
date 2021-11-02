@@ -69,10 +69,7 @@ const config: ControlPanelConfig = {
       label: t('Chart Options'),
       expanded: true,
       tabOverride: 'customize',
-      controlSetRows: [
-        ['color_scheme', 'label_colors'],
-        [showLegend, null],
-      ],
+      controlSetRows: [['color_scheme'], [showLegend, null]],
     },
     {
       label: t('X Axis'),

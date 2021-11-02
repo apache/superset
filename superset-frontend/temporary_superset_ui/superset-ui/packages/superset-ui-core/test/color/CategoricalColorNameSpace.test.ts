@@ -81,15 +81,6 @@ describe('CategoricalColorNamespace', () => {
       expect(scale).toBeDefined();
       getCategoricalSchemeRegistry().setDefaultKey('testColors');
     });
-    it('returns same scale if the scale with that name already exists in this namespace', () => {
-      const namespace = getNamespace('test-get-scale2');
-      const scale1 = namespace.getScale('testColors');
-      const scale2 = namespace.getScale('testColors2');
-      const scale3 = namespace.getScale('testColors2');
-      const scale4 = namespace.getScale('testColors');
-      expect(scale1).toBe(scale4);
-      expect(scale2).toBe(scale3);
-    });
   });
   describe('.setColor()', () => {
     it('overwrites color for all CategoricalColorScales in this namespace', () => {
@@ -127,19 +118,15 @@ describe('CategoricalColorNamespace', () => {
       const scale = getScale();
       expect(scale).toBeDefined();
       const scale2 = getNamespace().getScale();
-      expect(scale).toBe(scale2);
+      expect(scale2).toBeDefined();
     });
     it('getScale(scheme) returns a CategoricalColorScale with specified scheme in default namespace', () => {
-      const scale = getScale('testColors');
+      const scale = getNamespace().getScale('testColors');
       expect(scale).toBeDefined();
-      const scale2 = getNamespace().getScale('testColors');
-      expect(scale).toBe(scale2);
     });
     it('getScale(scheme, namespace) returns a CategoricalColorScale with specified scheme in specified namespace', () => {
-      const scale = getScale('testColors', 'test-getScale');
+      const scale = getNamespace('test-getScale').getScale('testColors');
       expect(scale).toBeDefined();
-      const scale2 = getNamespace('test-getScale').getScale('testColors');
-      expect(scale).toBe(scale2);
     });
   });
   describe('static getColor()', () => {

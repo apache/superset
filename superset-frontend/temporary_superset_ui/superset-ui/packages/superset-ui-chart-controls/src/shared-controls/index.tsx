@@ -478,19 +478,6 @@ const color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
   schemes: () => categoricalSchemeRegistry.getMap(),
 };
 
-const label_colors: SharedControlConfig<'ColorMapControl'> = {
-  type: 'ColorMapControl',
-  label: t('Color Map'),
-  default: {},
-  renderTrigger: true,
-  mapStateToProps: ({
-    form_data: { color_namespace: colorNamespace, color_scheme: colorScheme },
-  }) => ({
-    colorNamespace,
-    colorScheme,
-  }),
-};
-
 const enableExploreDnd = isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP);
 
 const sharedControls = {
@@ -522,7 +509,6 @@ const sharedControls = {
   x_axis_time_format,
   adhoc_filters: enableExploreDnd ? dnd_adhoc_filters : adhoc_filters,
   color_scheme,
-  label_colors,
   series_columns: enableExploreDnd ? dndColumnsControl : columnsControl,
   series_limit,
   series_limit_metric: enableExploreDnd ? dnd_sort_by : sort_by,
