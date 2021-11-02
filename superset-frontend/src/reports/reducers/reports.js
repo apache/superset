@@ -17,7 +17,13 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { SET_REPORT, ADD_REPORT, EDIT_REPORT } from '../actions/reports';
+import { allowCrossDomain } from 'src/utils/hostNamesConfig';
+import {
+  SET_REPORT,
+  ADD_REPORT,
+  EDIT_REPORT,
+  DELETE_REPORT,
+} from '../actions/reports';
 
 // Talk about the delete
 
@@ -46,6 +52,13 @@ export default function reportsReducer(state = {}, action) {
       return {
         ...state,
         [action.json.id]: report,
+      };
+    },
+    [DELETE_REPORT]() {
+      console.log('findme REPORT IN REDUCER', action.reportId);
+      // state.users.filter(item => item.id !== action.payload)
+      return {
+        ...state.filter(report => report.id !== action.reportId),
       };
     },
   };
