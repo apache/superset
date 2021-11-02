@@ -20,7 +20,11 @@
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
+
+import fetchMock from 'fetch-mock';
 import ExploreHeader from '.';
+
+fetchMock.get('http://localhost/api/v1/chart/318', {});
 
 const createProps = () => ({
   chart: {
