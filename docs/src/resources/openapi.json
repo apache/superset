@@ -205,6 +205,7 @@
         "required": [
           "name",
           "show",
+          "showLabel",
           "showMarkers",
           "value"
         ],
