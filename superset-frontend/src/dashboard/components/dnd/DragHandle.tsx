@@ -16,23 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
+import React, { LegacyRef } from 'react';
 import cx from 'classnames';
 
-const propTypes = {
-  position: PropTypes.oneOf(['left', 'top']),
-  innerRef: PropTypes.func,
-  dotCount: PropTypes.number,
-};
+interface DragHandleProps {
+  position: 'left' | 'top';
+  innerRef: LegacyRef<HTMLDivElement> | undefined;
+  dotCount: number;
+}
 
-const defaultProps = {
-  position: 'left',
-  innerRef: null,
-  dotCount: 8,
-};
+export default class DragHandle extends React.PureComponent<DragHandleProps> {
+  static defaultProps = {
+    position: 'left',
+    innerRef: null,
+    dotCount: 8,
+  };
 
-export default class DragHandle extends React.PureComponent {
   render() {
     const { innerRef, position, dotCount } = this.props;
     return (
@@ -53,6 +52,3 @@ export default class DragHandle extends React.PureComponent {
     );
   }
 }
-
-DragHandle.propTypes = propTypes;
-DragHandle.defaultProps = defaultProps;
