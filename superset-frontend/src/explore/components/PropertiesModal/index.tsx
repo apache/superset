@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import Modal from 'src/components/Modal';
 import { Row, Col, Input, TextArea } from 'src/common/components';
 import Button from 'src/components/Button';
@@ -42,8 +42,6 @@ export default function PropertiesModal({
   onHide,
   onSave,
   show,
-  permissionsError,
-  existingOwners,
 }: PropertiesModalProps) {
   const [submitting, setSubmitting] = useState(false);
   const [selectedOwners, setSelectedOwners] = useState<SelectValue | null>(
@@ -67,6 +65,27 @@ export default function PropertiesModal({
       okButtonProps: { danger: true, className: 'btn-danger' },
     });
   }
+
+  const fetchChartOwners = useCallback(
+    async function fetchChartOwners() {
+      try {
+        const response = await SupersetClient.get({
+          endpoint: `/api/v1/chart/${slice.slice_id}`,
+        });
+        const chart = response.json.result;
+        setSelectedOwners(
+          chart.owners.map((owner: any) => ({
+            value: owner.id,
+            label: `${owner.first_name} ${owner.last_name}`,
+          })),
+        );
+      } catch (response) {
+        const clientError = await getClientErrorObject(response);
+        showError(clientError);
+      }
+    },
+    [slice.slice_id],
+  );
 
   const loadOptions = useMemo(
     () => (input = '', page: number, pageSize: number) => {
@@ -123,17 +142,10 @@ export default function PropertiesModal({
 
   const ownersLabel = t('Owners');
 
+  // get the owners of this slice
   useEffect(() => {
-    if (permissionsError) {
-      showError(permissionsError);
-    }
-  }, [permissionsError]);
-
-  useEffect(() => {
-    if (existingOwners) {
-      setSelectedOwners(existingOwners);
-    }
-  }, [existingOwners]);
+    fetchChartOwners();
+  }, [fetchChartOwners]);
 
   // update name after it's changed in another modal
   useEffect(() => {

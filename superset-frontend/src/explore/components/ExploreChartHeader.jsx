@@ -115,18 +115,17 @@ export class ExploreChartHeader extends React.PureComponent {
     this.state = {
       isPropertiesModalOpen: false,
       showingReportModal: false,
-      existingOwners: [],
-      permissionsError: null,
     };
     this.openPropertiesModal = this.openPropertiesModal.bind(this);
     this.closePropertiesModal = this.closePropertiesModal.bind(this);
     this.showReportModal = this.showReportModal.bind(this);
     this.hideReportModal = this.hideReportModal.bind(this);
     this.renderReportModal = this.renderReportModal.bind(this);
-    this.fetchChartData = this.fetchChartData.bind(this);
+    this.fetchChartDashboardData = this.fetchChartDashboardData.bind(this);
   }
 
   componentDidMount() {
+    const { dashboardId } = this.props;
     if (this.canAddReports()) {
       const { user, chart } = this.props;
       // this is in the case that there is an anonymous user.
@@ -137,45 +136,31 @@ export class ExploreChartHeader extends React.PureComponent {
         chart.id,
       );
     }
-    this.fetchChartData();
+    if (dashboardId) {
+      this.fetchChartDashboardData();
+    }
   }
 
-  async fetchChartData() {
-    try {
-      const { dashboardId, slice } = this.props;
-      const response = await SupersetClient.get({
-        endpoint: `/api/v1/chart/${slice.slice_id}`,
-      });
-      const chart = response.json.result;
-      const dashboards = chart.dashboards || [];
-      const dashboard =
-        dashboardId &&
-        dashboards.length &&
-        dashboards.find(d => d.id === dashboardId);
+  async fetchChartDashboardData() {
+    const { dashboardId, slice } = this.props;
+    const response = await SupersetClient.get({
+      endpoint: `/api/v1/chart/${slice.slice_id}`,
+    });
+    const chart = response.json.result;
+    const dashboards = chart.dashboards || [];
+    const dashboard =
+      dashboardId &&
+      dashboards.length &&
+      dashboards.find(d => d.id === dashboardId);
 
-      if (dashboard && dashboard.json_metadata) {
-        // setting the chart to use the dashboard custom label colors if any
-        const labelColors =
-          JSON.parse(dashboard.json_metadata).label_colors || {};
-        const categoricalNamespace = CategoricalColorNamespace.getNamespace();
+    if (dashboard && dashboard.json_metadata) {
+      // setting the chart to use the dashboard custom label colors if any
+      const labelColors =
+        JSON.parse(dashboard.json_metadata).label_colors || {};
+      const categoricalNamespace = CategoricalColorNamespace.getNamespace();
 
-        Object.keys(labelColors).forEach(label => {
-          categoricalNamespace.setColor(label, labelColors[label]);
-        });
-      }
-
-      const existingOwners = chart.owners.map(owner => ({
-        value: owner.id,
-        label: `${owner.first_name} ${owner.last_name}`,
-      }));
-
-      this.setState({
-        existingOwners,
-      });
-    } catch (response) {
-      const clientError = await getClientErrorObject(response);
-      this.setState({
-        permissionsError: clientError,
+      Object.keys(labelColors).forEach(label => {
+        categoricalNamespace.setColor(label, labelColors[label]);
       });
     }
   }
@@ -301,8 +286,6 @@ export class ExploreChartHeader extends React.PureComponent {
                 onHide={this.closePropertiesModal}
                 onSave={this.props.sliceUpdated}
                 slice={this.props.slice}
-                error={this.state.permissionsError}
-                existingOwners={this.state.existingOwners}
               />
               <Tooltip
                 id="edit-desc-tooltip"
