@@ -62,7 +62,7 @@ const config: ControlPanelConfig = {
     {
       label: t('Chart Options'),
       expanded: true,
-      controlSetRows: [['color_scheme', 'label_colors']],
+      controlSetRows: [['color_scheme']],
     },
   ],
 };

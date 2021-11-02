@@ -117,7 +117,6 @@ export type InternalControlType =
   | 'BoundsControl'
   | 'CheckboxControl'
   | 'CollectionControl'
-  | 'ColorMapControl'
   | 'ColorPickerControl'
   | 'ColorSchemeControl'
   | 'DatasourceControl'

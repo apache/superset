@@ -61,7 +61,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['color_scheme', 'label_colors'],
+        ['color_scheme'],
         [richTooltip, showControls],
       ],
     },

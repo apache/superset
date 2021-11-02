@@ -46,10 +46,7 @@ const config: ControlPanelConfig = {
     {
       label: t('Chart Options'),
       expanded: true,
-      controlSetRows: [
-        ['y_axis_format', null],
-        ['color_scheme', 'label_colors'],
-      ],
+      controlSetRows: [['y_axis_format', null], ['color_scheme']],
     },
   ],
   controlOverrides: {

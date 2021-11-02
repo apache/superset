@@ -55,7 +55,7 @@ const config: ControlPanelConfig = {
       tabOverride: 'customize',
       expanded: true,
       controlSetRows: [
-        ['color_scheme', 'label_colors'],
+        ['color_scheme'],
         [
           {
             name: 'prefix_metric_with_slice_name',

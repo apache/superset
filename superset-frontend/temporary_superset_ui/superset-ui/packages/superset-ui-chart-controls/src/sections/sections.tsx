@@ -104,7 +104,7 @@ export const datasourceAndVizType: ControlPanelSectionConfig = {
 
 export const colorScheme: ControlPanelSectionConfig = {
   label: t('Color Scheme'),
-  controlSetRows: [['color_scheme', 'label_colors']],
+  controlSetRows: [['color_scheme']],
 };
 
 export const annotations: ControlPanelSectionConfig = {

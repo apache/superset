@@ -49,7 +49,6 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         ['color_scheme'],
-        ['label_colors'],
         [showBrush],
         [showLegend],
         [showBarValue],
