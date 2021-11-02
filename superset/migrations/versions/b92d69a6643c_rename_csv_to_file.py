@@ -15,23 +15,54 @@
 # specific language governing permissions and limitations
 # under the License.
 """rename_csv_to_file
-
 Revision ID: b92d69a6643c
 Revises: 32646df09c64
 Create Date: 2021-09-19 14:42:20.130368
-
 """
 
 # revision identifiers, used by Alembic.
 revision = "b92d69a6643c"
 down_revision = "32646df09c64"
 
-import sqlalchemy as sa
+import json
+import logging
+
 from alembic import op
+import sqlalchemy as sa
+from sqlalchemy import Column, Integer, Text
 from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy.ext.declarative import declarative_base
+
+from superset import db
+
+Base = declarative_base()
+
+
+class Database(Base):
+
+    __tablename__ = "dbs"
+    id = Column(Integer, primary_key=True)
+    extra = Column(Text)
 
 
 def upgrade():
+    bind = op.get_bind()
+    session = db.Session(bind=bind)
+
+    for database in session.query(Database).all():
+        try:
+            extra = json.loads(database.extra)
+        except json.decoder.JSONDecodeError as ex:
+            logging.warning(str(ex))
+            continue
+
+        if "schemas_allowed_for_csv_upload" in extra:
+            extra["schemas_allowed_for_file_upload"] = extra.pop(
+                "schemas_allowed_for_csv_upload"
+            )
+
+        database.extra = json.dumps(extra)
+
     try:
         with op.batch_alter_table("dbs") as batch_op:
             batch_op.alter_column(
@@ -43,7 +74,6 @@ def upgrade():
         # In MySQL 8.0 renaming the column rename fails because it has
         # a constraint check; we can safely remove it in that case, see
         # https://github.com/sqlalchemy/alembic/issues/699
-        bind = op.get_bind()
         inspector = Inspector.from_engine(bind)
         check_constraints = inspector.get_check_constraints("dbs")
         for check_constraint in check_constraints:
@@ -59,11 +89,35 @@ def upgrade():
                 existing_type=sa.Boolean(),
             )
 
+    session.commit()
+    session.close()
+
 
 def downgrade():
+    bind = op.get_bind()
+    session = db.Session(bind=bind)
+
+    for database in session.query(Database).all():
+        try:
+            extra = json.loads(database.extra)
+        except json.decoder.JSONDecodeError as ex:
+            logging.warning(str(ex))
+            continue
+
+        if "schemas_allowed_for_file_upload" in extra:
+            extra["schemas_allowed_for_csv_upload"] = extra.pop(
+                "schemas_allowed_for_file_upload"
+            )
+
+        database.extra = json.dumps(extra)
+
+
     with op.batch_alter_table("dbs") as batch_op:
         batch_op.alter_column(
             "allow_file_upload",
             new_column_name="allow_csv_upload",
             existing_type=sa.Boolean(),
         )
+
+    session.commit()
+    session.close()
