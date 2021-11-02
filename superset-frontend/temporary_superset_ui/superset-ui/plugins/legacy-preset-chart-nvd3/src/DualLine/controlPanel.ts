@@ -34,7 +34,7 @@ const config: ControlPanelConfig = {
     {
       label: t('Chart Options'),
       expanded: true,
-      controlSetRows: [['color_scheme', 'label_colors'], [showLegend], [xAxisFormat]],
+      controlSetRows: [['color_scheme'], [showLegend], [xAxisFormat]],
     },
     {
       label: t('Y Axis 1'),
