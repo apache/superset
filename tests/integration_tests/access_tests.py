@@ -170,7 +170,7 @@ class TestRequestAccess(SupersetTestCase):
 
         updated_override_me = security_manager.find_role("override_me")
         self.assertEqual(1, len(updated_override_me.permissions))
-        birth_names = self.get_table(name="birth_names", schema=schema)
+        birth_names = self.get_table(name="birth_names")
         self.assertEqual(
             birth_names.perm, updated_override_me.permissions[0].view_menu.name
         )
@@ -205,7 +205,7 @@ class TestRequestAccess(SupersetTestCase):
             "datasource_access", updated_role.permissions[1].permission.name
         )
 
-        birth_names = self.get_table(name="birth_names", schema=schema)
+        birth_names = self.get_table(name="birth_names")
         self.assertEqual(birth_names.perm, perms[2].view_menu.name)
         self.assertEqual(
             "datasource_access", updated_role.permissions[2].permission.name
@@ -223,7 +223,7 @@ class TestRequestAccess(SupersetTestCase):
         override_me = security_manager.find_role("override_me")
         override_me.permissions.append(
             security_manager.find_permission_view_menu(
-                view_menu_name=self.get_table(name="energy_usage", schema=schema).perm,
+                view_menu_name=self.get_table(name="energy_usage").perm,
                 permission_name="datasource_access",
             )
         )
@@ -240,7 +240,7 @@ class TestRequestAccess(SupersetTestCase):
         self.assertEqual(201, response.status_code)
         updated_override_me = security_manager.find_role("override_me")
         self.assertEqual(1, len(updated_override_me.permissions))
-        birth_names = self.get_table(name="birth_names", schema=schema)
+        birth_names = self.get_table(name="birth_names")
         self.assertEqual(
             birth_names.perm, updated_override_me.permissions[0].view_menu.name
         )

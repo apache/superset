@@ -28,6 +28,7 @@ import pytest
 from flask import Response
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
+from sqlalchemy import inspect
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.ext.declarative.api import DeclarativeMeta
 from sqlalchemy.orm import Session
@@ -250,6 +251,10 @@ class SupersetTestCase(TestCase):
     def get_table(
         name: str, database_id: Optional[int] = None, schema: Optional[str] = None
     ) -> SqlaTable:
+        database = get_example_database()
+        engine = database.get_sqla_engine()
+        schema = schema or inspect(engine).default_schema_name
+
         return (
             db.session.query(SqlaTable)
             .filter_by(

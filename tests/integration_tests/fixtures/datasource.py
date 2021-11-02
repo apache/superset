@@ -17,8 +17,16 @@
 """Fixtures for test_datasource.py"""
 from typing import Any, Dict
 
+from sqlalchemy import inspect
+
+from superset.utils.core import get_example_database
+
 
 def get_datasource_post() -> Dict[str, Any]:
+    database = get_example_database()
+    engine = database.get_sqla_engine()
+    schema = inspect(engine).default_schema_name
+
     return {
         "id": None,
         "column_formats": {"ratio": ".2%"},
@@ -30,7 +38,7 @@ def get_datasource_post() -> Dict[str, Any]:
         "table_name": "birth_names",
         "datasource_name": "birth_names",
         "type": "table",
-        "schema": None,
+        "schema": schema,
         "offset": 66,
         "cache_timeout": 55,
         "sql": "",

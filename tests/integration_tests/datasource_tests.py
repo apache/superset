@@ -279,12 +279,8 @@ class TestDatasource(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_change_database(self):
-        database = get_example_database()
-        engine = database.get_sqla_engine()
-        schema = inspect(engine).default_schema_name
-
         self.login(username="admin")
-        tbl = self.get_table(name="birth_names", schema=schema)
+        tbl = self.get_table(name="birth_names")
         tbl_id = tbl.id
         db_id = tbl.database_id
         datasource_post = get_datasource_post()
