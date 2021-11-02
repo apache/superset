@@ -106,7 +106,7 @@ def load_birth_names(
     schema = inspect(engine).default_schema_name
 
     tbl_name = "birth_names"
-    table_exists = database.has_table_by_name(tbl_name)
+    table_exists = database.has_table_by_name(tbl_name, schema=schema)
 
     if not only_metadata and (not table_exists or force):
         load_data(tbl_name, database, sample=sample)
