@@ -57,7 +57,6 @@ class CategoricalColorScale extends ExtensibleFunction {
 
   getColor(value?: string) {
     const cleanedValue = stringifyAndTrim(value);
-
     const parentColor = this.parentForcedColors && this.parentForcedColors[cleanedValue];
     if (parentColor) {
       return parentColor;
@@ -78,7 +77,6 @@ class CategoricalColorScale extends ExtensibleFunction {
    */
   setColor(value: string, forcedColor: string) {
     this.forcedColors[stringifyAndTrim(value)] = forcedColor;
-
     return this;
   }
 
