@@ -15,67 +15,33 @@
 # specific language governing permissions and limitations
 # under the License.
 import functools
-from typing import Any, Callable, Dict, Optional, Tuple, Type
+from datetime import datetime, timedelta
+from typing import Any, Callable
 
 
-class _memoized:
-    """Decorator that caches a function's return value each time it is called
-
-    If called later with the same arguments, the cached value is returned, and
-    not re-evaluated.
-
-    Define ``watch`` as a tuple of attribute names if this Decorator
-    should account for instance variable changes.
+def _memoized(seconds: int = 24 * 60 * 60, maxsize: int = 1024,) -> Callable[..., Any]:
+    """
+    A simple wrapper of functools.lru_cache, encapsulated for thread safety
+    :param seconds: LRU expired time, seconds
+    :param maxsize: LRU size
+    :return: a wrapped function by LRU
     """
 
-    def __init__(
-        self, func: Callable[..., Any], watch: Optional[Tuple[str, ...]] = None
-    ) -> None:
-        self.func = func
-        self.cache: Dict[Any, Any] = {}
-        self.is_method = False
-        self.watch = watch or ()
+    def wrapper_cache(func: Callable[..., Any]) -> Callable[..., Any]:
+        lru: Any = functools.lru_cache(maxsize=maxsize)(func)
+        lru.lifetime = timedelta(seconds=seconds)
+        lru.expiration = datetime.utcnow() + lru.lifetime
 
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        key = [args, frozenset(kwargs.items())]
-        if self.is_method:
-            key.append(tuple(getattr(args[0], v, None) for v in self.watch))
-        key = tuple(key)  # type: ignore
-        try:
-            if key in self.cache:
-                return self.cache[key]
-        except TypeError as ex:
-            # Uncachable -- for instance, passing a list as an argument.
-            raise TypeError("Function cannot be memoized") from ex
-        value = self.func(*args, **kwargs)
-        try:
-            self.cache[key] = value
-        except TypeError as ex:
-            raise TypeError("Function cannot be memoized") from ex
-        return value
+        @functools.wraps(func)
+        def wrapped_func(*args: Any, **kwargs: Any) -> Callable[..., Any]:
+            if datetime.utcnow() >= lru.expiration:
+                lru.cache_clear()
+                lru.expiration = datetime.utcnow() + lru.lifetime
+            return lru(*args, **kwargs)
 
-    def __repr__(self) -> str:
-        """Return the function's docstring."""
-        return self.func.__doc__ or ""
+        return wrapped_func
 
-    def __get__(
-        self, obj: Any, objtype: Type[Any]
-    ) -> functools.partial:  # type: ignore
-        if not self.is_method:
-            self.is_method = True
-        # Support instance methods.
-        func = functools.partial(self.__call__, obj)
-        func.__func__ = self.func  # type: ignore
-        return func
+    return wrapper_cache
 
 
-def memoized(
-    func: Optional[Callable[..., Any]] = None, watch: Optional[Tuple[str, ...]] = None
-) -> Callable[..., Any]:
-    if func:
-        return _memoized(func)
-
-    def wrapper(f: Callable[..., Any]) -> Callable[..., Any]:
-        return _memoized(f, watch)
-
-    return wrapper
+memoized = _memoized()

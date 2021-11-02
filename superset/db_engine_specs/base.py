@@ -372,7 +372,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls,
         database: "Database",
         schema: Optional[str] = None,
-        source: Optional[str] = None,
+        source: Optional[utils.QuerySource] = None,
     ) -> Engine:
         user_name = utils.get_username()
         return database.get_sqla_engine(
@@ -1144,7 +1144,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def estimate_query_cost(
-        cls, database: "Database", schema: str, sql: str, source: Optional[str] = None
+        cls,
+        database: "Database",
+        schema: str,
+        sql: str,
+        source: Optional[utils.QuerySource] = None,
     ) -> List[Dict[str, Any]]:
         """
         Estimate the cost of a multiple statement SQL query.
