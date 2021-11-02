@@ -77,7 +77,7 @@ from flask_babel import gettext as __
 from flask_babel.speaklater import LazyString
 from pandas.api.types import infer_dtype
 from pandas.core.dtypes.common import is_numeric_dtype
-from sqlalchemy import event, exc, select, Text
+from sqlalchemy import event, exc, inspect, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.reflection import Inspector
@@ -1274,6 +1274,15 @@ def get_example_database() -> "Database":
 def get_main_database() -> "Database":
     db_uri = current_app.config["SQLALCHEMY_DATABASE_URI"]
     return get_or_create_db("main", db_uri)
+
+
+def get_example_default_schema() -> Optional[str]:
+    """
+    Return the default schema of the examples database, if any.
+    """
+    database = get_example_database()
+    engine = database.get_sqla_engine()
+    return inspect(engine).default_schema_name
 
 
 def backend() -> str:

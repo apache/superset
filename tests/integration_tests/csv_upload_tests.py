@@ -126,6 +126,7 @@ def upload_csv(filename: str, table_name: str, extra: Optional[Dict[str, str]] =
         "sep": ",",
         "name": table_name,
         "con": csv_upload_db_id,
+        "schema": utils.get_example_default_schema(),
         "if_exists": "fail",
         "index_label": "test_label",
         "mangle_dupe_cols": False,
