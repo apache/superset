@@ -190,6 +190,7 @@ export default function PropertiesModal({
             <h3>{t('Basic information')}</h3>
             <FormItem label={t('Name')} required>
               <Input
+                aria-label={t('Name')}
                 name="name"
                 data-test="properties-modal-name-input"
                 type="text"
