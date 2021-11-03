@@ -268,7 +268,8 @@ class BaseSupersetModelRestApi(ModelRestApi):
     ) -> Filters:
         filter_field = self.related_field_filters.get(column_name)
         if isinstance(filter_field, str):
-            filter_field = RelatedFieldFilter(cast(str, filter_field), FilterStartsWith)
+            filter_field = RelatedFieldFilter(
+                cast(str, filter_field), FilterStartsWith)
         filter_field = cast(RelatedFieldFilter, filter_field)
         search_columns = [filter_field.field_name] if filter_field else None
         filters = datamodel.get_filters(search_columns)
@@ -324,8 +325,10 @@ class BaseSupersetModelRestApi(ModelRestApi):
             ids = [id_ for id_ in ids if id_ not in values]
             pk_col = datamodel.get_pk()
             # Fetch requested values from ids
-            extra_rows = db.session.query(datamodel.obj).filter(pk_col.in_(ids)).all()
-            result += self._get_result_from_rows(datamodel, extra_rows, column_name)
+            extra_rows = db.session.query(
+                datamodel.obj).filter(pk_col.in_(ids)).all()
+            result += self._get_result_from_rows(
+                datamodel, extra_rows, column_name)
 
     def incr_stats(self, action: str, func_name: str) -> None:
         """
@@ -334,7 +337,8 @@ class BaseSupersetModelRestApi(ModelRestApi):
         :param action: String with an action name eg: error, success
         :param func_name: The function name
         """
-        self.stats_logger.incr(f"{self.__class__.__name__}.{func_name}.{action}")
+        self.stats_logger.incr(
+            f"{self.__class__.__name__}.{func_name}.{action}")
 
     def timing_stats(self, action: str, func_name: str, value: float) -> None:
         """
@@ -392,7 +396,8 @@ class BaseSupersetModelRestApi(ModelRestApi):
         return response
 
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_list",
+        action=lambda self, *
+        args, **kwargs: f"{self.__class__.__name__}.get_list",
         object_ref=False,
         log_to_statsd=False,
     )
@@ -431,7 +436,8 @@ class BaseSupersetModelRestApi(ModelRestApi):
         return response
 
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
+        action=lambda self, *
+        args, **kwargs: f"{self.__class__.__name__}.delete",
         object_ref=False,
         log_to_statsd=False,
     )
@@ -505,7 +511,8 @@ class BaseSupersetModelRestApi(ModelRestApi):
         else:
             order_column, order_direction = "", ""
         # handle filters
-        filters = self._get_related_filter(datamodel, column_name, args.get("filter"))
+        filters = self._get_related_filter(
+            datamodel, column_name, args.get("filter"))
         # Make the query
         total_rows, rows = datamodel.query(
             filters, order_column, order_direction, page=page, page_size=page_size
@@ -563,7 +570,8 @@ class BaseSupersetModelRestApi(ModelRestApi):
             return self.response_404()
         args = kwargs.get("rison", {})
         # handle pagination
-        page, page_size = self._sanitize_page_args(*self._handle_page_args(args))
+        page, page_size = self._sanitize_page_args(
+            *self._handle_page_args(args))
         # Create generic base filters with added request filter
         filters = self._get_distinct_filter(column_name, args.get("filter"))
         # Make the query

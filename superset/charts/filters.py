@@ -17,7 +17,7 @@
 from typing import Any
 
 from flask_babel import lazy_gettext as _
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 from sqlalchemy.orm.query import Query
 
 from superset import security_manager
@@ -55,6 +55,30 @@ class ChartFavoriteFilter(BaseFavoriteFilter):  # pylint: disable=too-few-public
     model = Slice
 
 
+class ChartCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+    Custom filter for the GET list that filters all certified charts
+    """
+
+    name = _("Is certified")
+    arg_name = "chart_is_certified"
+
+    def apply(self, query: Query, value: Any) -> Query:
+        if not value:
+            return query
+        if value == 'certified':
+            return query.filter(
+                and_(
+                    Slice.certified_by.isnot(None)
+                )
+            )
+        return query.filter(
+            and_(
+                Slice.certified_by.is_(None)
+            )
+        )
+
+
 class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: Query, value: Any) -> Query:
         if security_manager.can_access_all_datasources():
@@ -62,5 +86,6 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         perms = security_manager.user_view_menu_names("datasource_access")
         schema_perms = security_manager.user_view_menu_names("schema_access")
         return query.filter(
-            or_(self.model.perm.in_(perms), self.model.schema_perm.in_(schema_perms))
+            or_(self.model.perm.in_(perms),
+                self.model.schema_perm.in_(schema_perms))
         )

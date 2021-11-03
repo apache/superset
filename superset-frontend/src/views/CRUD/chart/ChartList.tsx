@@ -58,6 +58,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 import setupPlugins from 'src/setup/setupPlugins';
+import CertifiedIcon from 'src/components/CertifiedIcon';
 import ChartCard from './ChartCard';
 
 const PAGE_SIZE = 25;
@@ -237,11 +238,22 @@ function ChartList(props: ChartListProps) {
       {
         Cell: ({
           row: {
-            original: { url, slice_name: sliceName },
+            original: {
+              url,
+              slice_name: sliceName,
+              certified_by: certifiedBy,
+              certification_details: certificationDetails,
+            },
           },
         }: any) => (
           <a href={url} data-test={`${sliceName}-list-chart-title`}>
-            {sliceName}
+            {sliceName}{' '}
+            {certifiedBy && (
+              <CertifiedIcon
+                certifiedBy={certifiedBy}
+                details={certificationDetails}
+              />
+            )}
           </a>
         ),
         Header: t('Chart'),
@@ -512,6 +524,18 @@ function ChartList(props: ChartListProps) {
         paginate: true,
       },
       ...(props.user.userId ? [favoritesFilter] : []),
+      {
+        Header: t('Certified'),
+        id: 'id',
+        urlDisplay: 'certified',
+        input: 'select',
+        operator: FilterOperator.chartIsCertified,
+        unfilteredLabel: t('Any'),
+        selects: [
+          { label: t('Yes'), value: 'certified' },
+          { label: t('No'), value: 'not-certified' },
+        ],
+      },
       {
         Header: t('Search'),
         id: 'slice_name',

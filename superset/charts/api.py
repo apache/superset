@@ -52,7 +52,7 @@ from superset.charts.commands.export import ExportChartsCommand
 from superset.charts.commands.importers.dispatcher import ImportChartsCommand
 from superset.charts.commands.update import UpdateChartCommand
 from superset.charts.dao import ChartDAO
-from superset.charts.filters import ChartAllTextFilter, ChartFavoriteFilter, ChartFilter
+from superset.charts.filters import ChartAllTextFilter, ChartCertifiedFilter, ChartFavoriteFilter, ChartFilter
 from superset.charts.post_processing import apply_post_process
 from superset.charts.schemas import (
     CHART_SCHEMAS,
@@ -121,6 +121,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
     show_columns = [
         "cache_timeout",
+        "certified_by",
+        "certification_details",
         "dashboards.dashboard_title",
         "dashboards.id",
         "description",
@@ -135,6 +137,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
     ]
     show_select_columns = show_columns + ["table.id"]
     list_columns = [
+        "certified_by",
+        "certification_details",
         "cache_timeout",
         "changed_by.first_name",
         "changed_by.last_name",
@@ -201,7 +205,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     base_order = ("changed_on", "desc")
     base_filters = [["id", ChartFilter, lambda: []]]
     search_filters = {
-        "id": [ChartFavoriteFilter],
+        "id": [ChartFavoriteFilter, ChartCertifiedFilter],
         "slice_name": [ChartAllTextFilter],
     }
 
@@ -384,7 +388,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
+        action=lambda self, *
+        args, **kwargs: f"{self.__class__.__name__}.delete",
         log_to_statsd=False,
     )
     def delete(self, pk: int) -> Response:
@@ -441,7 +446,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @rison(get_delete_ids_schema)
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
+        action=lambda self, *
+        args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
         log_to_statsd=False,
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
@@ -614,7 +620,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         json_body["result_format"] = request.args.get(
             "format", ChartDataResultFormat.JSON
         )
-        json_body["result_type"] = request.args.get("type", ChartDataResultType.FULL)
+        json_body["result_type"] = request.args.get(
+            "type", ChartDataResultType.FULL)
 
         try:
             command = ChartDataCommand()
@@ -802,7 +809,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except ValidationError as error:
             return self.response_400(
-                message=_("Request is incorrect: %(error)s", error=error.messages)
+                message=_("Request is incorrect: %(error)s",
+                          error=error.messages)
             )
 
         return self.get_data_response(command, True)
@@ -861,7 +869,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         if not chart:
             return self.response_404()
 
-        chart_url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
+        chart_url = get_url_path(
+            "Superset.slice", slice_id=chart.id, standalone="true")
         screenshot_obj = ChartScreenshot(chart_url, chart.digest)
         cache_key = screenshot_obj.cache_key(window_size, thumb_size)
         image_url = get_url_path(
@@ -889,7 +898,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.screenshot",
+        action=lambda self, *
+        args, **kwargs: f"{self.__class__.__name__}.screenshot",
         log_to_statsd=False,
     )
     def screenshot(self, pk: int, digest: str) -> WerkzeugResponse:
@@ -946,7 +956,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.thumbnail",
+        action=lambda self, *
+        args, **kwargs: f"{self.__class__.__name__}.thumbnail",
         log_to_statsd=False,
     )
     def thumbnail(self, pk: int, digest: str, **kwargs: Any) -> WerkzeugResponse:
@@ -986,10 +997,12 @@ class ChartRestApi(BaseSupersetModelRestApi):
         if not chart:
             return self.response_404()
 
-        url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
+        url = get_url_path(
+            "Superset.slice", slice_id=chart.id, standalone="true")
         if kwargs["rison"].get("force", False):
             logger.info(
-                "Triggering thumbnail compute (chart id: %s) ASYNC", str(chart.id)
+                "Triggering thumbnail compute (chart id: %s) ASYNC", str(
+                    chart.id)
             )
             cache_chart_thumbnail.delay(url, chart.digest, force=True)
             return self.response(202, message="OK Async")
@@ -1001,7 +1014,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         if not screenshot:
             self.incr_stats("async", self.thumbnail.__name__)
             logger.info(
-                "Triggering thumbnail compute (chart id: %s) ASYNC", str(chart.id)
+                "Triggering thumbnail compute (chart id: %s) ASYNC", str(
+                    chart.id)
             )
             cache_chart_thumbnail.delay(url, chart.digest, force=True)
             return self.response(202, message="OK Async")
@@ -1024,7 +1038,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @rison(get_export_ids_schema)
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
+        action=lambda self, *
+        args, **kwargs: f"{self.__class__.__name__}.export",
         log_to_statsd=False,
     )
     def export(self, **kwargs: Any) -> Response:
@@ -1137,7 +1152,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
+        action=lambda self, *
+        args, **kwargs: f"{self.__class__.__name__}.import_",
         log_to_statsd=False,
     )
     def import_(self) -> Response:
