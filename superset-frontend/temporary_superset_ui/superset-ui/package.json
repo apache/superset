@@ -125,6 +125,7 @@
     "react-loadable": "^5.5.0",
     "react-test-renderer": "^16.13.1",
     "rimraf": "^3.0.2",
+    "semver": "^7.3.5",
     "ts-jest": "^26.4.2",
     "ts-loader": "^8.0.7",
     "typescript": "^4.1.2",
