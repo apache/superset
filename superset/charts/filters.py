@@ -17,7 +17,7 @@
 from typing import Any
 
 from flask_babel import lazy_gettext as _
-from sqlalchemy import or_, and_
+from sqlalchemy import and_, or_
 from sqlalchemy.orm.query import Query
 
 from superset import security_manager
@@ -66,17 +66,9 @@ class ChartCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-method
     def apply(self, query: Query, value: Any) -> Query:
         if not value:
             return query
-        if value == 'certified':
-            return query.filter(
-                and_(
-                    Slice.certified_by.isnot(None)
-                )
-            )
-        return query.filter(
-            and_(
-                Slice.certified_by.is_(None)
-            )
-        )
+        if value == "certified":
+            return query.filter(and_(Slice.certified_by.isnot(None)))
+        return query.filter(and_(Slice.certified_by.is_(None)))
 
 
 class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -86,6 +78,5 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         perms = security_manager.user_view_menu_names("datasource_access")
         schema_perms = security_manager.user_view_menu_names("schema_access")
         return query.filter(
-            or_(self.model.perm.in_(perms),
-                self.model.schema_perm.in_(schema_perms))
+            or_(self.model.perm.in_(perms), self.model.schema_perm.in_(schema_perms))
         )

@@ -25,12 +25,13 @@ Create Date: 2021-11-03 14:07:09.905194
 # revision identifiers, used by Alembic.
 import sqlalchemy as sa
 from alembic import op
-revision = 'f9847149153d'
-down_revision = 'b92d69a6643c'
+
+revision = "f9847149153d"
+down_revision = "b92d69a6643c"
 
 
 def upgrade():
-    op.add_column('slices', sa.Column(
-        'certified_by', sa.Text(), nullable=True))
-    op.add_column('slices', sa.Column(
-        'certification_details', sa.Text(), nullable=True))
+    op.add_column("slices", sa.Column("certified_by", sa.Text(), nullable=True))
+    op.add_column(
+        "slices", sa.Column("certification_details", sa.Text(), nullable=True)
+    )
