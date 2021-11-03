@@ -105,6 +105,7 @@ FRONTEND_CONF_KEYS = (
 logger = logging.getLogger(__name__)
 config = superset_app.config
 
+
 def get_error_msg() -> str:
     if conf.get("SHOW_STACKTRACE"):
         error_msg = traceback.format_exc()
