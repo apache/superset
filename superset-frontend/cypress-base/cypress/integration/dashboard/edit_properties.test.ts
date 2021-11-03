@@ -25,7 +25,7 @@ import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 function selectColorScheme(color: string) {
   // open color scheme dropdown
   cy.get('.modal-body')
-    .contains('Color Scheme')
+    .contains('Color scheme')
     .parents('.ControlHeader')
     .next('.Select')
     .click()
