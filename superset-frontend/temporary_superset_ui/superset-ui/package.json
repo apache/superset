@@ -32,6 +32,7 @@
     "list-changed-packages": "lerna changed",
     "manual-release": "lerna publish --force-publish && npm run postrelease",
     "clean-npm-lock": "rm -rf ./{packages,plugins}/*/package-lock.json",
+    "prune": "rm -rf ./{packages,plugins}/*/{lib,esm,tsconfig.tsbuildinfo}",
     "ci:create-patch-version": "npm run clean-npm-lock && ./scripts/lernaVersion.sh patch",
     "ci:create-minor-version": "npm run clean-npm-lock && ./scripts/lernaVersion.sh minor",
     "ci:create-conventional-version": "npm run clean-npm-lock && ./scripts/lernaVersion.sh '--conventional-commits --create-release github'",

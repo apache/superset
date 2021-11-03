@@ -112,6 +112,12 @@ describe('CategoricalColorNamespace', () => {
       const ns2 = ns1.setColor('dog', 'black');
       expect(ns1).toBe(ns2);
     });
+    it('should reset colors', () => {
+      const ns1 = getNamespace('test-set-scale3.1');
+      ns1.setColor('dog', 'black');
+      ns1.resetColors();
+      expect(ns1.forcedItems).toMatchObject({});
+    });
   });
   describe('static getScale()', () => {
     it('getScale() returns a CategoricalColorScale with default scheme in default namespace', () => {
