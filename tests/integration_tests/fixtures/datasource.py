@@ -30,7 +30,7 @@ def get_datasource_post() -> Dict[str, Any]:
         "description": "Adding a DESCRip",
         "default_endpoint": "",
         "filter_select_enabled": True,
-        "name": "birth_names",
+        "name": f"{schema}.birth_names" if schema else "birth_names",
         "table_name": "birth_names",
         "datasource_name": "birth_names",
         "type": "table",
