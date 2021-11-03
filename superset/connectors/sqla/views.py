@@ -152,7 +152,7 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):
         "is_dttm": _("Is temporal"),
         "python_date_format": _("Datetime Format"),
         "type": _("Type"),
-        "business_type": _("Business Type")
+        "business_type": _("Business Type"),
     }
     validators_columns = {
         "python_date_format": [
