@@ -558,11 +558,19 @@ class ImportV1DatabaseExtraSchema(Schema):
         self, data: Dict[str, Any], **kwargs: Any
     ) -> Dict[str, Any]:
         """
-        Fix ``schemas_allowed_for_file_upload`` being a string.
-
-        Due to a bug in the database modal, some databases might have been
-        saved and exported with a string for ``schemas_allowed_for_file_upload``.
+        Fixes for ``schemas_allowed_for_file_upload``.
         """
+        # Fix for https://github.com/apache/superset/pull/16756.
+        # The PR changed the V1 schema. We need to support old fields for backwards
+        # compatibility.
+        if "schemas_allowed_for_csv_upload" in data:
+            data["schemas_allowed_for_file_upload"] = data.pop(
+                "schemas_allowed_for_csv_upload"
+            )
+
+        # Fix ``schemas_allowed_for_file_upload`` being a string.
+        # Due to a bug in the database modal, some databases might have been
+        # saved and exported with a string for ``schemas_allowed_for_file_upload``.
         schemas_allowed_for_file_upload = data.get("schemas_allowed_for_file_upload")
         if isinstance(schemas_allowed_for_file_upload, str):
             data["schemas_allowed_for_file_upload"] = json.loads(
@@ -579,6 +587,21 @@ class ImportV1DatabaseExtraSchema(Schema):
 
 
 class ImportV1DatabaseSchema(Schema):
+    @pre_load
+    def fix_allow_file_upload(
+        self, data: Dict[str, Any], **kwargs: Any
+    ) -> Dict[str, Any]:
+        """
+        Fixes for ``allow_file_upload`` and ``schemas_allowed_for_file_upload``.
+        """
+        # Fix for https://github.com/apache/superset/pull/16756.
+        # The PR changed the V1 schema. We need to support old fields for backwards
+        # compatibility.
+        if "allow_csv_upload" in data:
+            data["allow_file_upload"] = data.pop("allow_csv_upload")
+
+        return data
+
     database_name = fields.String(required=True)
     sqlalchemy_uri = fields.String(required=True)
     password = fields.String(allow_none=True)

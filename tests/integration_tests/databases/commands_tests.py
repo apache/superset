@@ -338,6 +338,37 @@ class TestImportDatabasesCommand(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
+    def test_import_v1_database_old_csv_fields(self):
+        """
+        Test that a database can be imported with the old csv fields.
+        """
+        old_config = database_config.copy()
+        old_config["allow_csv_upload"] = old_config.pop("allow_file_upload")
+        old_config["extra"] = {"schemas_allowed_for_csv_upload": ["upload"]}
+
+        contents = {
+            "metadata.yaml": yaml.safe_dump(database_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(old_config),
+        }
+        command = ImportDatabasesCommand(contents)
+        command.run()
+
+        database = (
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+        )
+        assert database.allow_file_upload
+        assert database.allow_ctas
+        assert database.allow_cvas
+        assert not database.allow_run_async
+        assert database.cache_timeout is None
+        assert database.database_name == "imported_database"
+        assert database.expose_in_sqllab
+        assert database.extra == '{"schemas_allowed_for_file_upload": ["upload"]}'
+        assert database.sqlalchemy_uri == "sqlite:///test.db"
+
+        db.session.delete(database)
+        db.session.commit()
+
     def test_import_v1_database_multiple(self):
         """Test that a database can be imported multiple times"""
         num_databases = db.session.query(Database).count()
