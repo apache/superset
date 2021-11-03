@@ -97,7 +97,9 @@ describe('PropertiesModal', () => {
         it('updates the color scheme in the metadata', () => {
           const spy = jest.spyOn(modalInstance, 'onMetadataChange');
           modalInstance.onColorSchemeChange('SUPERSET_DEFAULT');
-          expect(spy).toHaveBeenCalledWith('{"something": "foo", "color_scheme": "SUPERSET_DEFAULT", "label_colors": {}}');
+          expect(spy).toHaveBeenCalledWith(
+            '{"something": "foo", "color_scheme": "SUPERSET_DEFAULT", "label_colors": {}}',
+          );
         });
       });
       describe('with metadata', () => {
@@ -128,7 +130,9 @@ describe('PropertiesModal', () => {
           it('will update the metadata', () => {
             const spy = jest.spyOn(modalInstance, 'onMetadataChange');
             modalInstance.onColorSchemeChange('SUPERSET_DEFAULT');
-            expect(spy).toHaveBeenCalledWith('{"something": "foo", "color_scheme": "SUPERSET_DEFAULT", "label_colors": {}}');
+            expect(spy).toHaveBeenCalledWith(
+              '{"something": "foo", "color_scheme": "SUPERSET_DEFAULT", "label_colors": {}}',
+            );
           });
         });
       });
