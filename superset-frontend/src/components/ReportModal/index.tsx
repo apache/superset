@@ -178,6 +178,8 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   const reports = useSelector<any, AlertObject>(state => state.reports);
   const isEditMode = reports && Object.keys(reports).length;
 
+  console.log('---------- REPORT ---------- ', reports);
+
   useEffect(() => {
     if (isEditMode) {
       const reportsIds = Object.keys(reports);
