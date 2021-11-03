@@ -35,7 +35,7 @@ import {
   t,
 } from '@superset-ui/core';
 import { FormInstance } from 'antd/lib/form';
-import { isEmpty, isEqual } from 'lodash';
+import { isEqual } from 'lodash';
 import React, {
   forwardRef,
   useCallback,
@@ -73,6 +73,7 @@ import {
   Filter,
   NativeFilterType,
 } from 'src/dashboard/components/nativeFilters/types';
+import { SingleValueType } from 'src/filters/components/Range/SingleValueType';
 import { getFormData } from 'src/dashboard/components/nativeFilters/utils';
 import {
   CASCADING_FILTERS,
@@ -547,6 +548,15 @@ const FiltersConfigForm = (
     !!filterToEdit?.adhoc_filters?.length ||
     !!filterToEdit?.time_range;
 
+  const hasEnableSingleValue =
+    formFilter?.controlValues?.enableSingleValue !== undefined ||
+    filterToEdit?.controlValues?.enableSingleValue !== undefined;
+
+  let enableSingleValue = filterToEdit?.controlValues?.enableSingleValue;
+  if (formFilter?.controlValues?.enableSingleMaxValue !== undefined) {
+    ({ enableSingleValue } = formFilter.controlValues);
+  }
+
   const hasSorting =
     typeof formFilter?.controlValues?.sortAscending === 'boolean' ||
     typeof filterToEdit?.controlValues?.sortAscending === 'boolean';
@@ -567,6 +577,17 @@ const FiltersConfigForm = (
       controlValues: {
         ...previous,
         sortAscending: value,
+      },
+    });
+    forceUpdate();
+  };
+
+  const onEnableSingleValueChanged = (value: SingleValueType | undefined) => {
+    const previous = form.getFieldValue('filters')?.[filterId].controlValues;
+    setNativeFilterFieldValues(form, filterId, {
+      controlValues: {
+        ...previous,
+        enableSingleValue: value,
       },
     });
     forceUpdate();
@@ -673,12 +694,13 @@ const FiltersConfigForm = (
   ]);
 
   useEffect(() => {
-    // Run only once when the control items are available
-    if (isActive && !isEmpty(controlItems)) {
+    // Run only once
+    if (isActive) {
       const hasCheckedAdvancedControl =
         hasParentFilter ||
         hasPreFilter ||
         hasSorting ||
+        hasEnableSingleValue ||
         Object.keys(controlItems)
           .filter(key => !BASIC_CONTROL_ITEMS.includes(key))
           .some(key => controlItems[key].checked);
@@ -1141,7 +1163,7 @@ const FiltersConfigForm = (
                   </CollapsibleControl>
                 </CleanFormItem>
               )}
-              {formFilter?.filterType !== 'filter_range' && (
+              {formFilter?.filterType !== 'filter_range' ? (
                 <CleanFormItem name={['filters', filterId, 'sortFilter']}>
                   <CollapsibleControl
                     initialValue={hasSorting}
@@ -1206,6 +1228,48 @@ const FiltersConfigForm = (
                         />
                       </StyledRowSubFormItem>
                     )}
+                  </CollapsibleControl>
+                </CleanFormItem>
+              ) : (
+                <CleanFormItem name={['filters', filterId, 'rangeFilter']}>
+                  <CollapsibleControl
+                    initialValue={hasEnableSingleValue}
+                    title={t('Single Value')}
+                    onChange={checked => {
+                      onEnableSingleValueChanged(
+                        checked ? SingleValueType.Exact : undefined,
+                      );
+                      formChanged();
+                    }}
+                  >
+                    <StyledRowFormItem
+                      name={[
+                        'filters',
+                        filterId,
+                        'controlValues',
+                        'enableSingleValue',
+                      ]}
+                      initialValue={enableSingleValue}
+                      label={
+                        <StyledLabel>{t('Single value type')}</StyledLabel>
+                      }
+                    >
+                      <Radio.Group
+                        onChange={value =>
+                          onEnableSingleValueChanged(value.target.value)
+                        }
+                      >
+                        <Radio value={SingleValueType.Minimum}>
+                          {t('Minimum')}
+                        </Radio>
+                        <Radio value={SingleValueType.Exact}>
+                          {t('Exact')}
+                        </Radio>
+                        <Radio value={SingleValueType.Maximum}>
+                          {t('Maximum')}
+                        </Radio>
+                      </Radio.Group>
+                    </StyledRowFormItem>
                   </CollapsibleControl>
                 </CleanFormItem>
               )}

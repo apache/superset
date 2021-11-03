@@ -125,6 +125,16 @@ test('Should render null empty when "getControlItems" return []', () => {
   expect(container.children).toHaveLength(0);
 });
 
+test('Should render null empty when "getControlItems" return enableSingleValue', () => {
+  const props = createProps();
+  (getControlItems as jest.Mock).mockReturnValue([
+    { name: 'enableSingleValue', config: { renderTrigger: true } },
+  ]);
+  const controlItemsMap = getControlItemsMap(props);
+  const { container } = renderControlItems(controlItemsMap);
+  expect(container.children).toHaveLength(0);
+});
+
 test('Should render null empty when "controlItems" are falsy', () => {
   const props = createProps();
   const controlItems = [null, false, {}, { config: { renderTrigger: false } }];
