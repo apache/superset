@@ -27,7 +27,7 @@ function selectColorScheme(color: string) {
   cy.get('.modal-body')
     .contains('Color scheme')
     .parents('.ControlHeader')
-    .next('.Select')
+    .next('.ant-select')
     .click()
     .then($colorSelect => {
       // select a new color scheme
