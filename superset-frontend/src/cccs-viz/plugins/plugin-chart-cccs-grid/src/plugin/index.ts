@@ -21,6 +21,7 @@ import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from '../images/thumbnail.png';
+import example1 from '../images/Table1.png';
 
 export default class CccsGridChartPlugin extends ChartPlugin {
   /**
@@ -35,8 +36,18 @@ export default class CccsGridChartPlugin extends ChartPlugin {
    */
   constructor() {
     const metadata = new ChartMetadata({
-      description: 'CCCS Grid',
-      name: t('CCCS Grid'),
+      description: t('Hogwarts Table: An AG Grid control for Hogwarts data.'),
+      name: t('Hogwarts Table'),
+      category: t('Table'),
+      tags: [
+        t('Hogwarts'),
+        t('Table'),
+        t('Grid'),
+        t('Popular'),
+        t('Report'),
+        t('Tabular')
+      ],
+      exampleGallery: [{url: example1}],
       thumbnail,
       behaviors: [Behavior.INTERACTIVE_CHART],
    });

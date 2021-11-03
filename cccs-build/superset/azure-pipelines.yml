@@ -11,6 +11,9 @@ variables:
   buildTimestamp: $[format('{0:yyyyMMddHHmmss}', pipeline.startTime)]
   DOCKER_BUILDKIT: 1
 
+pool:
+  vmImage: ubuntu-latest
+
 steps:
   - bash: |
       BRANCH_NAME=$(echo "$SYSTEM_PULLREQUEST_SOURCEBRANCH $BUILD_SOURCEBRANCH" | sed -r 's/^\s*(refs\/heads\/)?(\S*).*$/\2/' | sed 's/\//_/g')
