@@ -121,6 +121,7 @@ def get_upload_db():
 
 def upload_csv(filename: str, table_name: str, extra: Optional[Dict[str, str]] = None):
     csv_upload_db_id = get_upload_db().id
+    schema = utils.get_example_default_schema()
     form_data = {
         "csv_file": open(filename, "rb"),
         "sep": ",",
@@ -130,7 +131,6 @@ def upload_csv(filename: str, table_name: str, extra: Optional[Dict[str, str]] =
         "index_label": "test_label",
         "mangle_dupe_cols": False,
     }
-    schema = utils.get_example_default_schema()
     if schema:
         form_data["schema"] = schema
     if extra:
@@ -211,7 +211,7 @@ def test_import_csv_enforced_schema(mock_event_logger):
     full_table_name = f"admin_database.{CSV_UPLOAD_TABLE_W_SCHEMA}"
 
     # no schema specified, fail upload
-    resp = upload_csv(CSV_FILENAME1, CSV_UPLOAD_TABLE_W_SCHEMA)
+    resp = upload_csv(CSV_FILENAME1, CSV_UPLOAD_TABLE_W_SCHEMA, extra={"schema": None})
     assert (
         f'Database "{CSV_UPLOAD_DATABASE}" schema "None" is not allowed for csv uploads'
         in resp
