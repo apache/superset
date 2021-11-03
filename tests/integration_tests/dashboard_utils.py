@@ -20,13 +20,13 @@ import json
 from typing import Any, Dict, List, Optional
 
 from pandas import DataFrame
-from sqlalchemy import inspect
 
 from superset import ConnectorRegistry, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.utils.core import get_example_default_schema
 
 
 def create_table_for_dashboard(
@@ -38,8 +38,7 @@ def create_table_for_dashboard(
     fetch_values_predicate: Optional[str] = None,
     schema: Optional[str] = None,
 ) -> SqlaTable:
-    engine = database.get_sqla_engine()
-    schema = schema or inspect(engine).default_schema_name
+    schema = schema or get_example_default_schema()
 
     df.to_sql(
         table_name,

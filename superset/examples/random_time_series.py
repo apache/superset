@@ -65,10 +65,9 @@ def load_random_time_series_data(
     table = get_table_connector_registry()
     obj = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not obj:
-        obj = table(table_name=tbl_name)
+        obj = table(table_name=tbl_name, schema=schema)
     obj.main_dttm_col = "ds"
     obj.database = database
-    obj.schema = schema
     obj.filter_select_enabled = True
     db.session.merge(obj)
     db.session.commit()

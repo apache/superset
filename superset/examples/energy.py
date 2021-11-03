@@ -63,10 +63,9 @@ def load_energy(
     table = get_table_connector_registry()
     tbl = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not tbl:
-        tbl = table(table_name=tbl_name)
+        tbl = table(table_name=tbl_name, schema=schema)
     tbl.description = "Energy consumption"
     tbl.database = database
-    tbl.schema = schema
     tbl.filter_select_enabled = True
 
     if not any(col.metric_name == "sum__value" for col in tbl.metrics):

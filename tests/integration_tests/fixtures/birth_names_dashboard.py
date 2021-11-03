@@ -23,14 +23,14 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 import pytest
 from pandas import DataFrame
-from sqlalchemy import DateTime, inspect, String, TIMESTAMP
+from sqlalchemy import DateTime, String, TIMESTAMP
 
 from superset import ConnectorRegistry, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.core import get_example_database
+from superset.utils.core import get_example_database, get_example_default_schema
 from tests.integration_tests.dashboard_utils import create_table_for_dashboard
 from tests.integration_tests.test_app import app
 
@@ -103,8 +103,7 @@ def _create_table(
 
 
 def _cleanup(dash_id: int, slices_ids: List[int]) -> None:
-    engine = get_example_database().get_sqla_engine()
-    schema = inspect(engine).default_schema_name
+    schema = get_example_default_schema()
 
     table_id = (
         db.session.query(SqlaTable)
@@ -116,6 +115,7 @@ def _cleanup(dash_id: int, slices_ids: List[int]) -> None:
     columns = [column for column in datasource.columns]
     metrics = [metric for metric in datasource.metrics]
 
+    engine = get_example_database().get_sqla_engine()
     engine.execute("DROP TABLE IF EXISTS birth_names")
     for column in columns:
         db.session.delete(column)

@@ -17,15 +17,11 @@
 """Fixtures for test_datasource.py"""
 from typing import Any, Dict
 
-from sqlalchemy import inspect
-
-from superset.utils.core import get_example_database
+from superset.utils.core import get_example_database, get_example_default_schema
 
 
 def get_datasource_post() -> Dict[str, Any]:
-    database = get_example_database()
-    engine = database.get_sqla_engine()
-    schema = inspect(engine).default_schema_name
+    schema = get_example_default_schema()
 
     return {
         "id": None,

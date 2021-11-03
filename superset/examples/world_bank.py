@@ -83,13 +83,12 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
     table = get_table_connector_registry()
     tbl = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not tbl:
-        tbl = table(table_name=tbl_name)
+        tbl = table(table_name=tbl_name, schema=schema)
     tbl.description = utils.readfile(
         os.path.join(get_examples_folder(), "countries.md")
     )
     tbl.main_dttm_col = "year"
     tbl.database = database
-    tbl.schema = schema
     tbl.filter_select_enabled = True
 
     metrics = [

@@ -28,7 +28,6 @@ import pytest
 from flask import Response
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
-from sqlalchemy import inspect
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.ext.declarative.api import DeclarativeMeta
 from sqlalchemy.orm import Session
@@ -46,7 +45,7 @@ from superset.models.slice import Slice
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.datasource_access_request import DatasourceAccessRequest
-from superset.utils.core import get_example_database
+from superset.utils.core import get_example_database, get_example_default_schema
 from superset.views.base_api import BaseSupersetModelRestApi
 
 FAKE_DB_NAME = "fake_db_100"
@@ -251,9 +250,7 @@ class SupersetTestCase(TestCase):
     def get_table(
         name: str, database_id: Optional[int] = None, schema: Optional[str] = None
     ) -> SqlaTable:
-        database = get_example_database()
-        engine = database.get_sqla_engine()
-        schema = schema or inspect(engine).default_schema_name
+        schema = schema or get_example_default_schema()
 
         return (
             db.session.query(SqlaTable)

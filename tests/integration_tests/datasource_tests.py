@@ -21,7 +21,6 @@ from unittest import mock
 
 import prison
 import pytest
-from sqlalchemy import inspect
 
 from superset import app, ConnectorRegistry, db
 from superset.connectors.sqla.models import SqlaTable

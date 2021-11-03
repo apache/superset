@@ -17,7 +17,6 @@
 from typing import Any, Dict, List, Set, Tuple
 
 from marshmallow import Schema
-from sqlalchemy import inspect
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.sql import select
@@ -43,7 +42,7 @@ from superset.datasets.commands.importers.v1 import ImportDatasetsCommand
 from superset.datasets.commands.importers.v1.utils import import_dataset
 from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.models.dashboard import dashboard_slices
-from superset.utils.core import get_example_database
+from superset.utils.core import get_example_database, get_example_default_schema
 
 
 class ImportExamplesCommand(ImportModelsCommand):
@@ -117,10 +116,7 @@ class ImportExamplesCommand(ImportModelsCommand):
 
                 # set schema
                 if config["schema"] is None:
-                    database = get_example_database()
-                    engine = database.get_sqla_engine()
-                    insp = inspect(engine)
-                    config["schema"] = insp.default_schema_name
+                    config["schema"] = get_example_default_schema()
 
                 dataset = import_dataset(
                     session, config, overwrite=overwrite, force_data=force_data

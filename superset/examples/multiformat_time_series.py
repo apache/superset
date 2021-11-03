@@ -80,10 +80,9 @@ def load_multiformat_time_series(  # pylint: disable=too-many-locals
     table = get_table_connector_registry()
     obj = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not obj:
-        obj = table(table_name=tbl_name)
+        obj = table(table_name=tbl_name, schema=schema)
     obj.main_dttm_col = "ds"
     obj.database = database
-    obj.schema = schema
     obj.filter_select_enabled = True
     dttm_and_expr_dict: Dict[str, Tuple[Optional[str], None]] = {
         "ds": (None, None),
