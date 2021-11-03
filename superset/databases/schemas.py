@@ -587,6 +587,7 @@ class ImportV1DatabaseExtraSchema(Schema):
 
 
 class ImportV1DatabaseSchema(Schema):
+    # pylint: disable=no-self-use, unused-argument
     @pre_load
     def fix_allow_file_upload(
         self, data: Dict[str, Any], **kwargs: Any
