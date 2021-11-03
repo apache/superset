@@ -126,11 +126,13 @@ def upload_csv(filename: str, table_name: str, extra: Optional[Dict[str, str]] =
         "sep": ",",
         "name": table_name,
         "con": csv_upload_db_id,
-        "schema": utils.get_example_default_schema(),
         "if_exists": "fail",
         "index_label": "test_label",
         "mangle_dupe_cols": False,
     }
+    schema = utils.get_example_default_schema()
+    if schema:
+        form_data["schema"] = schema
     if extra:
         form_data.update(extra)
     return get_resp(test_client, "/csvtodatabaseview/form", data=form_data)
