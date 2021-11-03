@@ -71,7 +71,9 @@ export default function Control(props: ControlProps) {
 
   const ControlComponent = typeof type === 'string' ? controlMap[type] : type;
   if (!ControlComponent) {
-    return <>Unknown controlType: {type}</>;
+    // eslint-disable-next-line no-console
+    console.warn(`Unknown controlType: ${type}`);
+    return null;
   }
 
   return (
