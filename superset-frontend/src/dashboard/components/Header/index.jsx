@@ -30,6 +30,7 @@ import {
   LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD,
 } from 'src/logger/LogUtils';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { canAddReports } from 'src/utils/permissionsUtils';
 
 import Icons from 'src/components/Icons';
 import Button from 'src/components/Button';
@@ -172,7 +173,7 @@ class Header extends React.PureComponent {
   componentDidMount() {
     const { refreshFrequency, user, dashboardInfo } = this.props;
     this.startPeriodicRender(refreshFrequency * 1000);
-    if (this.canAddReports()) {
+    if (canAddReports(user)) {
       // this is in case there is an anonymous user.
       this.props.fetchUISpecificReport(
         user.userId,
@@ -207,7 +208,7 @@ class Header extends React.PureComponent {
       this.props.setMaxUndoHistoryExceeded();
     }
     if (
-      this.canAddReports() &&
+      canAddReports(user) &&
       nextProps.dashboardInfo.id !== this.props.dashboardInfo.id
     ) {
       // this is in case there is an anonymous user.
@@ -431,24 +432,6 @@ class Header extends React.PureComponent {
     );
   }
 
-  canAddReports() {
-    if (!isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
-      return false;
-    }
-    const { user } = this.props;
-    if (!user?.userId) {
-      // this is in the case that there is an anonymous user.
-      return false;
-    }
-    const roles = Object.keys(user.roles || []);
-    const permissions = roles.map(key =>
-      user.roles[key].filter(
-        perms => perms[0] === 'menu_access' && perms[1] === 'Manage',
-      ),
-    );
-    return permissions[0].length > 0;
-  }
-
   render() {
     const {
       dashboardTitle,
@@ -485,7 +468,7 @@ class Header extends React.PureComponent {
     const userCanSaveAs =
       dashboardInfo.dash_save_perm &&
       filterboxMigrationState !== FILTER_BOX_MIGRATION_STATES.REVIEWING;
-    const shouldShowReport = !editMode && this.canAddReports();
+    const shouldShowReport = !editMode && canAddReports(user);
     const refreshLimit =
       dashboardInfo.common.conf.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
     const refreshWarning =

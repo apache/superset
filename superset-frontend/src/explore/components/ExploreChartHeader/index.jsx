@@ -35,6 +35,7 @@ import {
   deleteActiveReport,
 } from 'src/reports/actions/reports';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { canAddReports } from 'src/utils/permissionsUtils';
 import HeaderReportActionsDropdown from 'src/components/ReportModal/HeaderReportActionsDropdown';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import EditableTitle from 'src/components/EditableTitle';
@@ -125,9 +126,9 @@ export class ExploreChartHeader extends React.PureComponent {
   }
 
   componentDidMount() {
-    const { dashboardId } = this.props;
-    if (this.canAddReports()) {
-      const { user, chart } = this.props;
+    const { dashboardId, user } = this.props;
+    if (canAddReports(user)) {
+      const { chart } = this.props;
       // this is in the case that there is an anonymous user.
       this.props.fetchUISpecificReport(
         user.userId,
@@ -224,24 +225,6 @@ export class ExploreChartHeader extends React.PureComponent {
         </span>
       </>
     );
-  }
-
-  canAddReports() {
-    if (!isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
-      return false;
-    }
-    const { user } = this.props;
-    if (!user?.userId) {
-      // this is in the case that there is an anonymous user.
-      return false;
-    }
-    const roles = Object.keys(user.roles || []);
-    const permissions = roles.map(key =>
-      user.roles[key].filter(
-        perms => perms[0] === 'menu_access' && perms[1] === 'Manage',
-      ),
-    );
-    return permissions[0].length > 0;
   }
 
   render() {
@@ -343,7 +326,7 @@ export class ExploreChartHeader extends React.PureComponent {
             isRunning={chartStatus === 'loading'}
             status={CHART_STATUS_MAP[chartStatus]}
           />
-          {this.canAddReports() && this.renderReportModal()}
+          {canAddReports(user) && this.renderReportModal()}
           <ReportModal
             show={this.state.showingReportModal}
             onHide={this.hideReportModal}
