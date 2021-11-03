@@ -36,7 +36,6 @@ import {
 } from 'src/reports/actions/reports';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import HeaderReportActionsDropdown from 'src/components/ReportModal/HeaderReportActionsDropdown';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { chartPropShape } from '../../dashboard/util/propShapes';
 import ExploreActionButtons from './ExploreActionButtons';
 import RowCountLabel from './RowCountLabel';
