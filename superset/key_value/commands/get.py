@@ -39,7 +39,7 @@ class GetKeyValueCommand(BaseCommand):
             model = KeyValueDAO.find_by_id(self._key)
             if not model:
                 return None
-            setattr(model, 'retrieved', datetime.utcnow())
+            setattr(model, 'retrieved_on', datetime.utcnow())
             KeyValueDAO.update(model)
         except DAOCreateFailedError as ex:
             logger.exception(ex.exception)

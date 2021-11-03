@@ -25,7 +25,6 @@ from contextlib import closing
 from copy import deepcopy
 from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type
-from uuid import uuid4
 
 import numpy
 import pandas as pd
@@ -92,15 +91,6 @@ class KeyValue(Model):  # pylint: disable=too-few-public-methods
     id = Column(Integer, primary_key=True)
     value = Column(Text, nullable=False)
 
-class KeyValuePair(Model):
-
-    """Key value store entity"""
-
-    __tablename__ = "key_value"
-    key = Column(UUIDType(binary=True), primary_key=True, default=uuid4)
-    value = Column(Text, nullable=False)
-    created = Column(DateTime, default=datetime.utcnow)
-    retrieved = Column(DateTime, default=datetime.utcnow)
 
 class CssTemplate(Model, AuditMixinNullable):
 

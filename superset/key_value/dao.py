@@ -20,7 +20,7 @@ from typing import Optional
 
 from sqlalchemy.exc import SQLAlchemyError
 from superset.extensions import db
-from superset.models.core import KeyValuePair
+from superset.models.key_value import KeyValue
 
 logger = logging.getLogger(__name__)
 
@@ -33,17 +33,19 @@ class KeyValueDAO:
         Finds a value that has been stored using a particular UUID
         """
         try:
-            return db.session.query(KeyValuePair).filter_by(key=id).one_or_none()
+            # TODO: Returns None if expired. This will eliminate the need to
+            # run the clean up worker constantly
+            return db.session.query(KeyValue).filter_by(key=id).one_or_none()
         except SQLAlchemyError as ex:  # pragma: no cover
             logger.error("Could not get value by UUID: %s", str(ex), exc_info=True)
             return None
 
     @staticmethod
-    def create(id: UUID, value: str) -> Optional[KeyValuePair]:
+    def create(user: int, id: UUID, value: str) -> Optional[KeyValue]:
         """
         Creates a value for a particular UUID
         """
-        model = KeyValuePair(key=id, value=value)
+        model = KeyValue(created_by_fk=user, key=id, value=value)
         db.session.add(model)
         db.session.commit()
         return model
@@ -58,7 +60,7 @@ class KeyValueDAO:
         db.session.commit()
 
     @staticmethod
-    def update(model: KeyValuePair) -> Optional[KeyValuePair]:
+    def update(model: KeyValue) -> Optional[KeyValue]:
         """
         Updates a value for a particular UUID
         """

@@ -16,7 +16,6 @@
 # under the License.
 import logging
 from typing import Any, Dict, List
-
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
@@ -36,7 +35,8 @@ class CreateKeyValueCommand(BaseCommand):
 
     def run(self) -> Model:
         try:
-            keyValue = KeyValueDAO.create(self._properties['uuid'], self._properties['value'])
+            # FIXME: Get user id
+            keyValue = KeyValueDAO.create(1, self._properties['uuid'], self._properties['value'])
         except DAOCreateFailedError as ex:
             logger.exception(ex.exception)
             raise KeyValueCreateFailedError() from ex

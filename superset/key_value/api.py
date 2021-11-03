@@ -33,14 +33,14 @@ from superset.key_value.schemas import (
     KeyValueGetSchema,
 )
 from superset.extensions import event_logger
-from superset.models.core import KeyValuePair
+from superset.models.key_value import KeyValue
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
 
 logger = logging.getLogger(__name__)
 
 
 class KeyValueRestApi(BaseSupersetModelRestApi):
-    datamodel = SQLAInterface(KeyValuePair)
+    datamodel = SQLAInterface(KeyValue)
     post_schema = KeyValuePostSchema()
     get_schema = KeyValueGetSchema()
     class_permission_name = "KeyValue"
