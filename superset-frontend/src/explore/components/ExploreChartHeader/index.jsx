@@ -21,7 +21,12 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import Icons from 'src/components/Icons';
-import { styled, t } from '@superset-ui/core';
+import {
+  CategoricalColorNamespace,
+  SupersetClient,
+  styled,
+  t,
+} from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import ReportModal from 'src/components/ReportModal';
 import {
@@ -31,16 +36,16 @@ import {
 } from 'src/reports/actions/reports';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import HeaderReportActionsDropdown from 'src/components/ReportModal/HeaderReportActionsDropdown';
-import { chartPropShape } from '../../dashboard/util/propShapes';
-import ExploreActionButtons from './ExploreActionButtons';
-import RowCountLabel from './RowCountLabel';
-import EditableTitle from '../../components/EditableTitle';
-import AlteredSliceTag from '../../components/AlteredSliceTag';
-import FaveStar from '../../components/FaveStar';
-import Timer from '../../components/Timer';
-import CachedLabel from '../../components/CachedLabel';
-import PropertiesModal from './PropertiesModal';
-import { sliceUpdated } from '../actions/exploreActions';
+import { chartPropShape } from 'src/dashboard/util/propShapes';
+import EditableTitle from 'src/components/EditableTitle';
+import AlteredSliceTag from 'src/components/AlteredSliceTag';
+import FaveStar from 'src/components/FaveStar';
+import Timer from 'src/components/Timer';
+import CachedLabel from 'src/components/CachedLabel';
+import PropertiesModal from 'src/explore/components/PropertiesModal';
+import { sliceUpdated } from 'src/explore/actions/exploreActions';
+import ExploreActionButtons from '../ExploreActionButtons';
+import RowCountLabel from '../RowCountLabel';
 
 const CHART_STATUS_MAP = {
   failed: 'danger',
@@ -53,6 +58,7 @@ const propTypes = {
   addHistory: PropTypes.func,
   can_overwrite: PropTypes.bool.isRequired,
   can_download: PropTypes.bool.isRequired,
+  dashboardId: PropTypes.number,
   isStarred: PropTypes.bool.isRequired,
   slice: PropTypes.object,
   sliceName: PropTypes.string,
@@ -114,9 +120,11 @@ export class ExploreChartHeader extends React.PureComponent {
     this.showReportModal = this.showReportModal.bind(this);
     this.hideReportModal = this.hideReportModal.bind(this);
     this.renderReportModal = this.renderReportModal.bind(this);
+    this.fetchChartDashboardData = this.fetchChartDashboardData.bind(this);
   }
 
   componentDidMount() {
+    const { dashboardId } = this.props;
     if (this.canAddReports()) {
       const { user, chart } = this.props;
       // this is in the case that there is an anonymous user.
@@ -126,6 +134,33 @@ export class ExploreChartHeader extends React.PureComponent {
         'charts',
         chart.id,
       );
+    }
+    if (dashboardId) {
+      this.fetchChartDashboardData();
+    }
+  }
+
+  async fetchChartDashboardData() {
+    const { dashboardId, slice } = this.props;
+    const response = await SupersetClient.get({
+      endpoint: `/api/v1/chart/${slice.slice_id}`,
+    });
+    const chart = response.json.result;
+    const dashboards = chart.dashboards || [];
+    const dashboard =
+      dashboardId &&
+      dashboards.length &&
+      dashboards.find(d => d.id === dashboardId);
+
+    if (dashboard && dashboard.json_metadata) {
+      // setting the chart to use the dashboard custom label colors if any
+      const labelColors =
+        JSON.parse(dashboard.json_metadata).label_colors || {};
+      const categoricalNamespace = CategoricalColorNamespace.getNamespace();
+
+      Object.keys(labelColors).forEach(label => {
+        categoricalNamespace.setColor(label, labelColors[label]);
+      });
     }
   }
 
@@ -245,17 +280,20 @@ export class ExploreChartHeader extends React.PureComponent {
                   showTooltip
                 />
               )}
-              <PropertiesModal
-                show={this.state.isPropertiesModalOpen}
-                onHide={this.closePropertiesModal}
-                onSave={this.props.sliceUpdated}
-                slice={this.props.slice}
-              />
+              {this.state.isPropertiesModalOpen && (
+                <PropertiesModal
+                  show={this.state.isPropertiesModalOpen}
+                  onHide={this.closePropertiesModal}
+                  onSave={this.props.sliceUpdated}
+                  slice={this.props.slice}
+                />
+              )}
               <Tooltip
                 id="edit-desc-tooltip"
                 title={t('Edit chart properties')}
               >
                 <span
+                  aria-label={t('Edit chart properties')}
                   role="button"
                   tabIndex={0}
                   className="edit-desc-icon"

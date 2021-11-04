@@ -36,6 +36,7 @@ from typing import (
 )
 
 import dateutil.parser
+import numpy as np
 import pandas as pd
 import sqlalchemy as sa
 import sqlparse
@@ -303,7 +304,10 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         return and_(*l)
 
     def get_timestamp_expression(
-        self, time_grain: Optional[str], label: Optional[str] = None
+        self,
+        time_grain: Optional[str],
+        label: Optional[str] = None,
+        template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> Union[TimestampExpression, Label]:
         """
         Return a SQLAlchemy Core element representation of self to be used in a query.
@@ -322,7 +326,10 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
             sqla_col = column(self.column_name, type_=type_)
             return self.table.make_sqla_column_compatible(sqla_col, label)
         if self.expression:
-            col = literal_column(self.expression, type_=type_)
+            expression = self.expression
+            if template_processor:
+                expression = template_processor.process_template(self.expression)
+            col = literal_column(expression, type_=type_)
         else:
             col = column(self.column_name, type_=type_)
         time_expr = self.db_engine_spec.get_timestamp_expr(
@@ -1086,12 +1093,16 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             columns = groupby or columns
             for selected in columns:
                 # if groupby field/expr equals granularity field/expr
-                table_col = columns_by_name.get(selected)
-                if table_col and table_col.type_generic == GenericDataType.TEMPORAL:
-                    outer = table_col.get_timestamp_expression(time_grain, selected)
+                if selected == granularity:
+                    sqla_col = columns_by_name[selected]
+                    outer = sqla_col.get_timestamp_expression(
+                        time_grain=time_grain,
+                        label=selected,
+                        template_processor=template_processor,
+                    )
                 # if groupby field equals a selected column
-                elif table_col:
-                    outer = table_col.get_sqla_col()
+                elif selected in columns_by_name:
+                    outer = columns_by_name[selected].get_sqla_col()
                 else:
                     outer = literal_column(f"({selected})")
                     outer = self.make_sqla_column_compatible(outer, selected)
@@ -1121,7 +1132,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             time_filters = []
 
             if is_timeseries:
-                timestamp = dttm_col.get_timestamp_expression(time_grain)
+                timestamp = dttm_col.get_timestamp_expression(
+                    time_grain=time_grain, template_processor=template_processor
+                )
                 # always put timestamp as the first column
                 select_exprs.insert(0, timestamp)
                 groupby_all_columns[timestamp.name] = timestamp
@@ -1186,7 +1199,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
             if col_obj:
                 if filter_grain:
-                    sqla_col = col_obj.get_timestamp_expression(filter_grain)
+                    sqla_col = col_obj.get_timestamp_expression(
+                        time_grain=filter_grain, template_processor=template_processor
+                    )
                 else:
                     sqla_col = col_obj.get_sqla_col()
                 col_spec = db_engine_spec.get_column_spec(col_obj.type)
@@ -1441,6 +1456,39 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             )
         return ob
 
+    def _normalize_prequery_result_type(
+        self, row: pd.Series, dimension: str, columns_by_name: Dict[str, TableColumn],
+    ) -> Union[str, int, float, bool, Text]:
+        """
+        Convert a prequery result type to its equivalent Python type.
+
+        Some databases like Druid will return timestamps as strings, but do not perform
+        automatic casting when comparing these strings to a timestamp. For cases like
+        this we convert the value via the appropriate SQL transform.
+
+        :param row: A prequery record
+        :param dimension: The dimension name
+        :param columns_by_name: The mapping of columns by name
+        :return: equivalent primitive python type
+        """
+
+        value = row[dimension]
+
+        if isinstance(value, np.generic):
+            value = value.item()
+
+        column_ = columns_by_name[dimension]
+
+        if column_.type and column_.is_temporal and isinstance(value, str):
+            sql = self.db_engine_spec.convert_dttm(
+                column_.type, dateutil.parser.parse(value),
+            )
+
+            if sql:
+                value = text(sql)
+
+        return value
+
     def _get_top_groups(
         self,
         df: pd.DataFrame,
@@ -1452,15 +1500,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         for _unused, row in df.iterrows():
             group = []
             for dimension in dimensions:
-                value = utils.normalize_prequery_result_type(row[dimension])
-
-                # Some databases like Druid will return timestamps as strings, but
-                # do not perform automatic casting when comparing these strings to
-                # a timestamp. For cases like this we convert the value from a
-                # string into a timestamp.
-                if columns_by_name[dimension].is_temporal and isinstance(value, str):
-                    dttm = dateutil.parser.parse(value)
-                    value = text(self.db_engine_spec.convert_dttm("TIMESTAMP", dttm))
+                value = self._normalize_prequery_result_type(
+                    row, dimension, columns_by_name,
+                )
 
                 group.append(groupby_exprs[dimension] == value)
             groups.append(and_(*group))

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { getChartControlPanelRegistry, t } from '@superset-ui/core';
+import { getChartControlPanelRegistry } from '@superset-ui/core';
 import getControlsForVizType from 'src/utils/getControlsForVizType';
 
 const fakePluginControls = {
@@ -26,7 +26,6 @@ const fakePluginControls = {
       label: 'Fake Control Panel Sections',
       expanded: true,
       controlSetRows: [
-        ['label_colors'],
         [
           {
             name: 'y_axis_bounds',
@@ -81,16 +80,6 @@ describe('getControlsForVizType', () => {
       JSON.stringify(getControlsForVizType('chart_controls_inventory_fake')),
     ).toEqual(
       JSON.stringify({
-        label_colors: {
-          type: 'ColorMapControl',
-          label: t('Color map'),
-          default: {},
-          renderTrigger: true,
-          mapStateToProps: state => ({
-            colorNamespace: state.form_data.color_namespace,
-            colorScheme: state.form_data.color_scheme,
-          }),
-        },
         y_axis_bounds: {
           type: 'BoundsControl',
           label: 'Value bounds',

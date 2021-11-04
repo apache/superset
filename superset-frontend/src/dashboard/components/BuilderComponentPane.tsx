@@ -35,31 +35,66 @@ import dashboardComponents from '../../visualizations/presets/dashboardComponent
 import NewDynamicComponent from './gridComponents/new/NewDynamicComponent';
 
 export interface BCPProps {
+  isStandalone: boolean;
   topOffset: number;
 }
 
 const SUPERSET_HEADER_HEIGHT = 59;
+const SIDEPANE_ADJUST_OFFSET = 4;
+const SIDEPANE_HEADER_HEIGHT = 64; // including margins
+const SIDEPANE_FILTERBAR_HEIGHT = 56;
 
 const BuilderComponentPaneTabs = styled(Tabs)`
   line-height: inherit;
   margin-top: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
-const BuilderComponentPane: React.FC<BCPProps> = ({ topOffset = 0 }) => (
-  <div
+const DashboardBuilderSidepane = styled.div<{
+  topOffset: number;
+}>`
+  height: 100%;
+  position: fixed;
+  right: 0;
+  top: 0;
+
+  .ReactVirtualized__List {
+    padding-bottom: ${({ topOffset }) =>
+      `${
+        SIDEPANE_HEADER_HEIGHT +
+        SIDEPANE_FILTERBAR_HEIGHT +
+        SIDEPANE_ADJUST_OFFSET +
+        topOffset
+      }px`};
+  }
+`;
+
+const BuilderComponentPane: React.FC<BCPProps> = ({
+  isStandalone,
+  topOffset = 0,
+}) => (
+  <DashboardBuilderSidepane
+    topOffset={topOffset}
     className="dashboard-builder-sidepane"
-    style={{
-      height: `calc(100vh - ${topOffset + SUPERSET_HEADER_HEIGHT}px)`,
-    }}
   >
     <ParentSize>
       {({ height }) => (
         <StickyContainer>
           <Sticky topOffset={-topOffset} bottomOffset={Infinity}>
-            {({ style, isSticky }: { style: any; isSticky: boolean }) => (
-              <div
-                className="viewport"
-                style={isSticky ? { ...style, top: topOffset } : null}
+            {({ style, isSticky }: { style: any; isSticky: boolean }) => {
+              const { pageYOffset } = window;
+              const hasHeader =
+                pageYOffset < SUPERSET_HEADER_HEIGHT && !isStandalone;
+              const withHeaderTopOffset =
+                topOffset +
+                (SUPERSET_HEADER_HEIGHT - pageYOffset - SIDEPANE_ADJUST_OFFSET);
+
+              return (
+                <div
+                  className="viewport"
+                  style={{
+                    ...style,
+                    top: hasHeader ? withHeaderTopOffset : topOffset,
+                  }}
               >
                 <BuilderComponentPaneTabs
                   id="tabs"
@@ -93,12 +128,13 @@ const BuilderComponentPane: React.FC<BCPProps> = ({ topOffset = 0 }) => (
                   </Tabs.TabPane>
                 </BuilderComponentPaneTabs>
               </div>
-            )}
+            );
+            }}
           </Sticky>
         </StickyContainer>
       )}
     </ParentSize>
-  </div>
+  </DashboardBuilderSidepane>
 );
 
 export default BuilderComponentPane;
