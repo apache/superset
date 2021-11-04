@@ -27,7 +27,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.exceptions import SupersetGenericDBErrorException
 from superset.models.core import Database
-from superset.utils.core import get_example_database
+from superset.utils.core import get_example_database, get_example_default_schema
 from tests.integration_tests.base_tests import db_insert_temp_object, SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -37,18 +37,21 @@ from tests.integration_tests.fixtures.datasource import get_datasource_post
 
 @contextmanager
 def create_test_table_context(database: Database):
+    schema = get_example_default_schema()
+    full_table_name = f"{schema}.test_table" if schema else "test_table"
+
     database.get_sqla_engine().execute(
-        "CREATE TABLE test_table AS SELECT 1 as first, 2 as second"
+        f"CREATE TABLE IF NOT EXISTS {full_table_name} AS SELECT 1 as first, 2 as second"
     )
     database.get_sqla_engine().execute(
-        "INSERT INTO test_table (first, second) VALUES (1, 2)"
+        f"INSERT INTO {full_table_name} (first, second) VALUES (1, 2)"
     )
     database.get_sqla_engine().execute(
-        "INSERT INTO test_table (first, second) VALUES (3, 4)"
+        f"INSERT INTO {full_table_name} (first, second) VALUES (3, 4)"
     )
 
     yield db.session
-    database.get_sqla_engine().execute("DROP TABLE test_table")
+    database.get_sqla_engine().execute(f"DROP TABLE {full_table_name}")
 
 
 class TestDatasource(SupersetTestCase):
@@ -75,6 +78,7 @@ class TestDatasource(SupersetTestCase):
         table = SqlaTable(
             table_name="dummy_sql_table",
             database=get_example_database(),
+            schema=get_example_default_schema(),
             sql="select 123 as intcol, 'abc' as strcol",
         )
         session.add(table)
@@ -112,6 +116,7 @@ class TestDatasource(SupersetTestCase):
         table = SqlaTable(
             table_name="dummy_sql_table",
             database=get_example_database(),
+            schema=get_example_default_schema(),
             sql="select 123 as intcol, 'abc' as strcol",
         )
         session.add(table)
@@ -141,6 +146,7 @@ class TestDatasource(SupersetTestCase):
                     "datasource_type": "table",
                     "database_name": example_database.database_name,
                     "table_name": "test_table",
+                    "schema_name": get_example_default_schema(),
                 }
             )
             url = f"/datasource/external_metadata_by_name/?q={params}"
@@ -188,6 +194,7 @@ class TestDatasource(SupersetTestCase):
         table = SqlaTable(
             table_name="dummy_sql_table_with_template_params",
             database=get_example_database(),
+            schema=get_example_default_schema(),
             sql="select {{ foo }} as intcol",
             template_params=json.dumps({"foo": "123"}),
         )
@@ -206,6 +213,7 @@ class TestDatasource(SupersetTestCase):
         table = SqlaTable(
             table_name="malicious_sql_table",
             database=get_example_database(),
+            schema=get_example_default_schema(),
             sql="delete table birth_names",
         )
         with db_insert_temp_object(table):
@@ -218,6 +226,7 @@ class TestDatasource(SupersetTestCase):
         table = SqlaTable(
             table_name="multistatement_sql_table",
             database=get_example_database(),
+            schema=get_example_default_schema(),
             sql="select 123 as intcol, 'abc' as strcol;"
             "select 123 as intcol, 'abc' as strcol",
         )
@@ -269,6 +278,7 @@ class TestDatasource(SupersetTestCase):
             elif k == "database":
                 self.assertEqual(resp[k]["id"], datasource_post[k]["id"])
             else:
+                print(k)
                 self.assertEqual(resp[k], datasource_post[k])
 
     def save_datasource_from_dict(self, datasource_post):

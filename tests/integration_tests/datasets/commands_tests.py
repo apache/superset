@@ -30,7 +30,7 @@ from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.datasets.commands.export import ExportDatasetsCommand
 from superset.datasets.commands.importers import v0, v1
 from superset.models.core import Database
-from superset.utils.core import get_example_database
+from superset.utils.core import get_example_database, get_example_default_schema
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_with_slice,
@@ -152,7 +152,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
             ],
             "offset": 0,
             "params": None,
-            "schema": None,
+            "schema": get_example_default_schema(),
             "sql": None,
             "table_name": "energy_usage",
             "template_params": None,
