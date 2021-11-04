@@ -262,9 +262,28 @@ def pivot_table(df: pd.DataFrame, form_data: Dict[str, Any]) -> pd.DataFrame:
     )
 
 
+def table(df: pd.DataFrame, form_data: Dict[str, Any]) -> pd.DataFrame:
+    """
+    Table.
+    """
+    # apply `d3NumberFormat` to columns, if present
+    column_config = form_data.get("column_config", {})
+    for column, config in column_config.items():
+        if "d3NumberFormat" in config:
+            format_ = "{:" + config["d3NumberFormat"] + "}"
+            try:
+                df[column] = df[column].apply(format_.format)
+            except Exception:  # pylint: disable=broad-except
+                # if we can't format the column for any reason, send as is
+                pass
+
+    return df
+
+
 post_processors = {
     "pivot_table": pivot_table,
     "pivot_table_v2": pivot_table_v2,
+    "table": table,
 }
 
 
