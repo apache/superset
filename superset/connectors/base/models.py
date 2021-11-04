@@ -51,8 +51,6 @@ COLUMN_FORM_DATA_PARAMS = [
     "columns",
     "entity",
     "groupby",
-    "groupbyRows",
-    "groupbyColumns",
     "order_by_cols",
     "series",
 ]
@@ -319,11 +317,23 @@ class BaseDatasource(
                 if "column" in filter_config
             )
 
-            column_names.update(
-                column
-                for column_param in COLUMN_FORM_DATA_PARAMS
-                for column in utils.get_iterable(form_data.get(column_param) or [])
-            )
+            # legacy charts don't have query_context charts
+            if slc.query_context:
+                query_context = slc.get_query_context()
+                column_names.update(
+                    [
+                        column
+                        for query in query_context.get("queries", [])
+                        for column in query.get("columns", [])
+                    ]
+                    or []
+                )
+            else:
+                column_names.update(
+                    column
+                    for column_param in COLUMN_FORM_DATA_PARAMS
+                    for column in utils.get_iterable(form_data.get(column_param) or [])
+                )
 
         filtered_metrics = [
             metric

@@ -358,6 +358,21 @@ def create_slices(
                 metrics=metrics,
             ),
         ),
+        Slice(
+            **slice_props,
+            slice_name="Pivot Table v2",
+            viz_type="pivot_table_v2",
+            params=get_slice_json(
+                defaults,
+                viz_type="pivot_table_v2",
+                groupbyRows=["name"],
+                groupbyColumns=["state"],
+                metrics=[metric],
+            ),
+            query_context=get_slice_json(
+                {"queries": [{"columns": ["name", "state"], "metrics": [metric],}]}
+            ),
+        ),
     ]
     misc_slices = [
         Slice(

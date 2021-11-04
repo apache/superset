@@ -247,6 +247,17 @@ class Slice(  # pylint: disable=too-many-public-methods
         update_time_range(form_data)
         return form_data
 
+    def get_query_context(self) -> Dict[str, Any]:
+        query_context: Dict[str, Any] = {}
+        if not self.query_context:
+            return query_context
+        try:
+            query_context = json.loads(self.query_context)
+        except json.decoder.JSONDecodeError as ex:
+            logger.error("Malformed json in slice's query context", exc_info=True)
+            logger.exception(ex)
+        return query_context
+
     def get_explore_url(
         self,
         base_url: str = "/superset/explore",
