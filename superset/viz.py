@@ -1251,9 +1251,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
     def query_obj(self) -> QueryObjectDict:
         query_obj = super().query_obj()
-        sort_by = self.form_data.get(
-            "timeseries_limit_metric"
-        ) or utils.get_first_metric_name(query_obj.get("metrics") or [])
+        sort_by = self.form_data.get("timeseries_limit_metric")
         is_asc = not self.form_data.get("order_desc")
         if sort_by:
             sort_by_label = utils.get_metric_name(sort_by)

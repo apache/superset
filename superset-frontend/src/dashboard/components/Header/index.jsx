@@ -20,7 +20,7 @@
 import moment from 'moment';
 import React from 'react';
 import PropTypes from 'prop-types';
-import { styled, CategoricalColorNamespace, t } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import ButtonGroup from 'src/components/ButtonGroup';
 
 import {
@@ -348,19 +348,10 @@ class Header extends React.PureComponent {
       lastModifiedTime,
     } = this.props;
 
-    const scale = CategoricalColorNamespace.getScale(
-      colorScheme,
-      colorNamespace,
-    );
-
-    // use the colorScheme for default labels
-    let labelColors = colorScheme ? scale.getColorMap() : {};
-    // but allow metadata to overwrite if it exists
-    // eslint-disable-next-line camelcase
-    const metadataLabelColors = dashboardInfo.metadata?.label_colors;
-    if (metadataLabelColors) {
-      labelColors = { ...labelColors, ...metadataLabelColors };
-    }
+    const labelColors =
+      colorScheme && dashboardInfo?.metadata?.label_colors
+        ? dashboardInfo.metadata.label_colors
+        : {};
 
     // check refresh frequency is for current session or persist
     const refreshFrequency = shouldPersistRefreshFrequency
