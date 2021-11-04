@@ -39,7 +39,7 @@ def upgrade():
         sa.Column('value', sa.Text(), nullable=False),
         sa.Column("created_by_fk", sa.Integer(), nullable=False),
         sa.Column("created_on", sa.DateTime(), nullable=False),
-        sa.Column("duration", sa.Integer(), nullable=True),
+        sa.Column("duration_ms", sa.Integer(), nullable=True),
         sa.Column("reset_duration_on_retrieval", sa.Boolean(), nullable=False),
         sa.Column("retrieved_on", sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint('key'),

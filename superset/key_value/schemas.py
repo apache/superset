@@ -16,9 +16,8 @@
 # under the License.
 from marshmallow import fields, Schema
 
-class KeyValueGetSchema(Schema):
-    value = fields.String(required=True, allow_none=False)
-
-class KeyValuePostSchema(Schema):
+class KeyValueSchema(Schema):
     uuid = fields.UUID(required=True, allow_none=False)
     value = fields.String(required=True, allow_none=False)
+    duration_ms = fields.Integer(required=False, allow_none=True)
+    reset_duration_on_retrieval = fields.Boolean(required=False, allow_none=False)

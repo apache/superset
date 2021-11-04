@@ -20,18 +20,19 @@ from flask import g, request, Response
 from flask_appbuilder.api import expose, permission_name, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.key_value.commands.create import CreateKeyValueCommand
 from superset.key_value.commands.get import GetKeyValueCommand
+from superset.key_value.commands.delete import DeleteKeyValueCommand
+from superset.key_value.commands.update import UpdateKeyValueCommand
 from superset.key_value.commands.exceptions import (
     KeyValueCreateFailedError,
     KeyValueGetFailedError,
+    KeyValueDeleteFailedError,
+    KeyValueUpdateFailedError
 )
 from superset.key_value.dao import KeyValueDAO
-from superset.key_value.schemas import (
-    KeyValuePostSchema,
-    KeyValueGetSchema,
-)
+from superset.key_value.schemas import KeyValueSchema
 from superset.extensions import event_logger
 from superset.models.key_value import KeyValue
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
@@ -41,14 +42,15 @@ logger = logging.getLogger(__name__)
 
 class KeyValueRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(KeyValue)
-    post_schema = KeyValuePostSchema()
-    get_schema = KeyValueGetSchema()
+    schema = KeyValueSchema()
     class_permission_name = "KeyValue"
     resource_name = "key_value_store"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
+    include_route_methods = {RouteMethod.POST, RouteMethod.PUT, RouteMethod.GET, RouteMethod.DELETE}
+    allow_browser_login = True
 
     @expose("/", methods=["POST"])
-    # @protect()
+    @protect()
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -56,43 +58,12 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def post(self) -> Response:
-        """Creates a new value
-        ---
-        post:
-          description: >-
-            Create a new value
-          requestBody:
-            description: Key value schema
-            required: true
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
-          responses:
-            201:
-              description: Value added
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      id:
-                        type: UUID
-                      result:
-                        $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            500:
-              $ref: '#/components/responses/500'
-        """
+        # TODO Add docs
+        # TODO Generate the UUID on the server side and return it?
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
         try:
-            item = self.post_schema.load(request.json)
+            item = self.schema.load(request.json)
             new_model = CreateKeyValueCommand(g.user, item).run()
             return self.response(201, result=item)
         except KeyValueCreateFailedError as ex:
@@ -104,8 +75,38 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
+    # TODO: If we decide to generate the key on the client-side, we should
+    # delete the POST endpoint and only support PUT. We also don't need a key parameter.
+    @expose("/<string:key>/", methods=["PUT"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}",
+        log_to_statsd=False,
+    )
+    def put(self, key: str) -> Response:
+        # TODO Add docs
+        if not request.is_json:
+            return self.response_400(message="Request is not JSON")
+        try:
+            item = self.schema.load(request.json)
+            model = UpdateKeyValueCommand(g.user, item).run()
+            if not model:
+                return self.response_404()
+            result = self.schema.dump(model)
+            return self.response(200, result=result)
+        except KeyValueGetFailedError as ex:
+            logger.error(
+                "Error updating the value %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))
+
     @expose("/<string:key>/", methods=["GET"])
-    #@protect()
+    @protect()
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -113,40 +114,38 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def get(self, key: str) -> Response:
-        """Get charts and dashboards count associated to a dataset
-        ---
-        get:
-          description:
-            Get the value for a particular key
-          parameters:
-          - in: path
-            name: pk
-            schema:
-              type: integer
-          responses:
-            200:
-            200:
-              description: Query result
-              content:
-                application/json:
-                  schema:
-                    $ref: "#/components/schemas/DatasetRelatedObjectsResponse"
-            401:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            500:
-              $ref: '#/components/responses/500'
-        """
+        # TODO Add docs
         try:
             model = GetKeyValueCommand(g.user, key).run()
             if not model:
                 return self.response_404()
-            result = self.get_schema.dump(model)
+            result = self.schema.dump(model)
             return self.response(200, result=result)
         except KeyValueGetFailedError as ex:
             logger.error(
                 "Error accessing the value %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))
+
+    @expose("/<string:key>/", methods=["DELETE"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}",
+        log_to_statsd=False,
+    )
+    def delete(self, key: str) -> Response:
+        # TODO Add docs
+        try:
+            DeleteKeyValueCommand(g.user, key).run()
+            return self.response(200, message="Deleted successfully")
+        except KeyValueDeleteFailedError as ex:
+            logger.error(
+                "Error deleting the value %s: %s",
                 self.__class__.__name__,
                 str(ex),
                 exc_info=True,

@@ -29,19 +29,14 @@ from superset.dao.exceptions import DAOException
 logger = logging.getLogger(__name__)
 
 
-class GetKeyValueCommand(BaseCommand):
+class DeleteKeyValueCommand(BaseCommand):
     def __init__(self, user: User, key: str):
         self._actor = user
         self._key = key
 
     def run(self) -> Model:
         try:
-            model = KeyValueDAO.find_by_id(self._key)
-            if not model:
-                return None
-            setattr(model, 'retrieved_on', datetime.utcnow())
-            KeyValueDAO.update(model)
-            return model
+            return KeyValueDAO.delete(self._key)
         except DAOException as ex:
             logger.exception(ex.exception)
             raise KeyValueGetFailedError() from ex

@@ -23,7 +23,7 @@ from marshmallow import ValidationError
 from superset.key_value.commands.exceptions import KeyValueCreateFailedError
 from superset.key_value.dao import KeyValueDAO
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAOCreateFailedError
+from superset.dao.exceptions import DAOException
 
 logger = logging.getLogger(__name__)
 
@@ -36,11 +36,10 @@ class CreateKeyValueCommand(BaseCommand):
     def run(self) -> Model:
         try:
             # FIXME: Get user id
-            keyValue = KeyValueDAO.create(1, self._properties['uuid'], self._properties['value'])
-        except DAOCreateFailedError as ex:
+            return KeyValueDAO.create(1, self._properties['uuid'], self._properties['value'])
+        except DAOException as ex:
             logger.exception(ex.exception)
             raise KeyValueCreateFailedError() from ex
-        return keyValue
 
     def validate(self) -> None:
-        return
+        pass

@@ -21,7 +21,7 @@ from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
-from superset.key_value.commands.exceptions import KeyValueGetFailedError
+from superset.key_value.commands.exceptions import KeyValueUpdateFailedError
 from superset.key_value.dao import KeyValueDAO
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAOException
@@ -29,22 +29,24 @@ from superset.dao.exceptions import DAOException
 logger = logging.getLogger(__name__)
 
 
-class GetKeyValueCommand(BaseCommand):
-    def __init__(self, user: User, key: str):
+class UpdateKeyValueCommand(BaseCommand):
+    def __init__(self, user: User, data: Dict[str, Any]):
         self._actor = user
-        self._key = key
+        self._properties = data.copy()
 
     def run(self) -> Model:
         try:
-            model = KeyValueDAO.find_by_id(self._key)
+            model = KeyValueDAO.find_by_id(self._properties['uuid']);
             if not model:
                 return None
             setattr(model, 'retrieved_on', datetime.utcnow())
+            setattr(model, 'value', self._properties['value'])
+            setattr(model, 'duration_ms', self._properties['duration_ms'])
             KeyValueDAO.update(model)
             return model
         except DAOException as ex:
             logger.exception(ex.exception)
-            raise KeyValueGetFailedError() from ex
+            raise KeyValueUpdateFailedError() from ex
 
     def validate(self) -> None:
         pass

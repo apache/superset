@@ -29,6 +29,6 @@ class KeyValue(Model):
     value = Column(Text, nullable=False)
     created_by_fk = Column(Integer, ForeignKey("ab_user.id"))
     created_on = Column(DateTime, default=datetime.utcnow)
-    duration = Column(Integer, nullable=True)
+    duration_ms = Column(Integer, nullable=True)
     reset_duration_on_retrieval = Column(Boolean, nullable=False, default=True)
     retrieved_on = Column(DateTime, default=datetime.utcnow)

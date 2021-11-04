@@ -24,3 +24,9 @@ class KeyValueCreateFailedError(CreateFailedError):
 
 class KeyValueGetFailedError(CreateFailedError):
     message = _("An error occurred while accessing the value.")
+
+class KeyValueDeleteFailedError(CreateFailedError):
+    message = _("An error occurred while deleting the value.")
+
+class KeyValueUpdateFailedError(CreateFailedError):
+    message = _("An error occurred while updating the value.")

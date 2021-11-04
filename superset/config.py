@@ -733,6 +733,10 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
             "task": "reports.prune_log",
             "schedule": crontab(minute=0, hour=0),
         },
+        "key_value.cleanup": {
+            "task": "key_value.cleanup",
+            "schedule": timedelta(seconds=10),
+        },
     }
 
 
