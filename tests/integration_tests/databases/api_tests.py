@@ -161,10 +161,10 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
         expected_columns = [
-            "allow_csv_upload",
             "allow_ctas",
             "allow_cvas",
             "allow_dml",
+            "allow_file_upload",
             "allow_multi_schema_metadata_fetch",
             "allow_run_async",
             "allows_cost_estimate",
@@ -232,7 +232,7 @@ class TestDatabaseApi(SupersetTestCase):
             "metadata_params": {},
             "engine_params": {},
             "metadata_cache_timeout": {},
-            "schemas_allowed_for_csv_upload": [],
+            "schemas_allowed_for_file_upload": [],
         }
 
         self.login(username="admin")
@@ -265,7 +265,7 @@ class TestDatabaseApi(SupersetTestCase):
             "metadata_params": {},
             "engine_params": {},
             "metadata_cache_timeout": {},
-            "schemas_allowed_for_csv_upload": [],
+            "schemas_allowed_for_file_upload": [],
         }
 
         self.login(username="admin")
@@ -296,7 +296,7 @@ class TestDatabaseApi(SupersetTestCase):
             "metadata_params": {},
             "engine_params": {},
             "metadata_cache_timeout": {},
-            "schemas_allowed_for_csv_upload": [],
+            "schemas_allowed_for_file_upload": [],
         }
 
         self.login(username="admin")
@@ -386,7 +386,7 @@ class TestDatabaseApi(SupersetTestCase):
             "metadata_params": {"wrong_param": "some_value"},
             "engine_params": {},
             "metadata_cache_timeout": {},
-            "schemas_allowed_for_csv_upload": [],
+            "schemas_allowed_for_file_upload": [],
         }
         self.login(username="admin")
         database_data = {
@@ -906,7 +906,7 @@ class TestDatabaseApi(SupersetTestCase):
             "metadata_params": {},
             "engine_params": {},
             "metadata_cache_timeout": {},
-            "schemas_allowed_for_csv_upload": [],
+            "schemas_allowed_for_file_upload": [],
         }
         # need to temporarily allow sqlite dbs, teardown will undo this
         app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
@@ -1576,7 +1576,14 @@ class TestDatabaseApi(SupersetTestCase):
                     "engine": "gsheets",
                     "name": "Google Sheets",
                     "parameters": {
-                        "properties": {"catalog": {"type": "object"},},
+                        "properties": {
+                            "catalog": {"type": "object"},
+                            "service_account_info": {
+                                "description": "Contents of GSheets JSON credentials.",
+                                "type": "string",
+                                "x-encrypted-extra": True,
+                            },
+                        },
                         "type": "object",
                     },
                     "preferred": False,

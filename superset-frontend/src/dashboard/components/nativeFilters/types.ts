@@ -60,6 +60,7 @@ export interface Filter {
   tabsInScope?: string[];
   chartsInScope?: number[];
   type: NativeFilterType;
+  description: string;
 }
 
 export type FilterConfiguration = Filter[];

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import Modal from 'src/components/Modal';
 import { Row, Col, Input, TextArea } from 'src/common/components';
 import Button from 'src/components/Button';
@@ -33,6 +33,8 @@ type PropertiesModalProps = {
   show: boolean;
   onHide: () => void;
   onSave: (chart: Chart) => void;
+  permissionsError?: string;
+  existingOwners?: SelectValue;
 };
 
 export default function PropertiesModal({
@@ -42,15 +44,14 @@ export default function PropertiesModal({
   show,
 }: PropertiesModalProps) {
   const [submitting, setSubmitting] = useState(false);
-
+  const [selectedOwners, setSelectedOwners] = useState<SelectValue | null>(
+    null,
+  );
   // values of form inputs
   const [name, setName] = useState(slice.slice_name || '');
   const [description, setDescription] = useState(slice.description || '');
   const [cacheTimeout, setCacheTimeout] = useState(
     slice.cache_timeout != null ? slice.cache_timeout : '',
-  );
-  const [selectedOwners, setSelectedOwners] = useState<SelectValue | null>(
-    null,
   );
 
   function showError({ error, statusText, message }: any) {
@@ -65,8 +66,8 @@ export default function PropertiesModal({
     });
   }
 
-  const fetchChartData = useCallback(
-    async function fetchChartData() {
+  const fetchChartOwners = useCallback(
+    async function fetchChartOwners() {
       try {
         const response = await SupersetClient.get({
           endpoint: `/api/v1/chart/${slice.slice_id}`,
@@ -143,8 +144,8 @@ export default function PropertiesModal({
 
   // get the owners of this slice
   useEffect(() => {
-    fetchChartData();
-  }, [fetchChartData]);
+    fetchChartOwners();
+  }, [fetchChartOwners]);
 
   // update name after it's changed in another modal
   useEffect(() => {
@@ -190,6 +191,7 @@ export default function PropertiesModal({
             <h3>{t('Basic information')}</h3>
             <FormItem label={t('Name')} required>
               <Input
+                aria-label={t('Name')}
                 name="name"
                 data-test="properties-modal-name-input"
                 type="text"
@@ -241,8 +243,8 @@ export default function PropertiesModal({
                 mode="multiple"
                 name="owners"
                 value={selectedOwners || []}
-                options={loadOptions}
                 onChange={setSelectedOwners}
+                options={loadOptions}
                 disabled={!selectedOwners}
                 allowClear
               />

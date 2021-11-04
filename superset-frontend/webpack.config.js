@@ -129,7 +129,7 @@ const plugins = [
     patterns: [
       'package.json',
       { from: 'src/assets/images', to: 'images' },
-      { from: 'stylesheets', to: 'stylesheets' },
+      { from: 'src/assets/stylesheets', to: 'stylesheets' },
     ],
   }),
 
@@ -273,7 +273,8 @@ const config = {
         },
       },
     },
-    minimizer: [new CssMinimizerPlugin()],
+    usedExports: 'global',
+    minimizer: [new CssMinimizerPlugin(), '...'],
   },
   resolve: {
     modules: [APP_DIR, 'node_modules', ROOT_DIR],
@@ -289,9 +290,9 @@ const config = {
         APP_DIR,
         './node_modules/@superset-ui/chart-controls',
       ),
+      react: path.resolve('./node_modules/react'),
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
-    symlinks: false,
     fallback: {
       fs: false,
       vm: false,

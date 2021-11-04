@@ -104,7 +104,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "cache_timeout",
         "expose_in_sqllab",
         "allow_run_async",
-        "allow_csv_upload",
+        "allow_file_upload",
         "configuration_method",
         "allow_ctas",
         "allow_cvas",
@@ -116,11 +116,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "encrypted_extra",
         "extra",
         "parameters",
+        "parameters_schema",
         "server_cert",
         "sqlalchemy_uri",
     ]
     list_columns = [
-        "allow_csv_upload",
+        "allow_file_upload",
         "allow_ctas",
         "allow_cvas",
         "allow_dml",
@@ -147,7 +148,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "cache_timeout",
         "expose_in_sqllab",
         "allow_run_async",
-        "allow_csv_upload",
+        "allow_file_upload",
         "allow_ctas",
         "allow_cvas",
         "allow_dml",
@@ -163,7 +164,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     list_select_columns = list_columns + ["extra", "sqlalchemy_uri", "password"]
     order_columns = [
-        "allow_csv_upload",
+        "allow_file_upload",
         "allow_dml",
         "allow_run_async",
         "changed_on",
@@ -330,6 +331,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             changed_model = UpdateDatabaseCommand(g.user, pk, item).run()
             # Return censored version for sqlalchemy URI
             item["sqlalchemy_uri"] = changed_model.sqlalchemy_uri
+            if changed_model.parameters:
+                item["parameters"] = changed_model.parameters
             return self.response(200, id=changed_model.id, result=item)
         except DatabaseNotFoundError:
             return self.response_404()

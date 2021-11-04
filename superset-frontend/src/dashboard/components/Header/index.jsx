@@ -20,7 +20,7 @@
 import moment from 'moment';
 import React from 'react';
 import PropTypes from 'prop-types';
-import { styled, CategoricalColorNamespace, t } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import ButtonGroup from 'src/components/ButtonGroup';
 
 import {
@@ -182,6 +182,13 @@ class Header extends React.PureComponent {
     }
   }
 
+  componentDidUpdate(prevProps) {
+    if (this.props.refreshFrequency !== prevProps.refreshFrequency) {
+      const { refreshFrequency } = this.props;
+      this.startPeriodicRender(refreshFrequency * 1000);
+    }
+  }
+
   UNSAFE_componentWillReceiveProps(nextProps) {
     const { user } = this.props;
     if (
@@ -292,11 +299,19 @@ class Header extends React.PureComponent {
       });
       this.props.addWarningToast(
         t(
-          `This dashboard is currently force refreshing; the next force refresh will be in %s.`,
+          `This dashboard is currently auto refreshing; the next auto refresh will be in %s.`,
           intervalMessage,
         ),
       );
-
+      if (dashboardInfo.common.conf.DASHBOARD_AUTO_REFRESH_MODE === 'fetch') {
+        // force-refresh while auto-refresh in dashboard
+        return fetchCharts(
+          affectedCharts,
+          false,
+          interval * 0.2,
+          dashboardInfo.id,
+        );
+      }
       return fetchCharts(
         affectedCharts,
         true,
@@ -333,19 +348,10 @@ class Header extends React.PureComponent {
       lastModifiedTime,
     } = this.props;
 
-    const scale = CategoricalColorNamespace.getScale(
-      colorScheme,
-      colorNamespace,
-    );
-
-    // use the colorScheme for default labels
-    let labelColors = colorScheme ? scale.getColorMap() : {};
-    // but allow metadata to overwrite if it exists
-    // eslint-disable-next-line camelcase
-    const metadataLabelColors = dashboardInfo.metadata?.label_colors;
-    if (metadataLabelColors) {
-      labelColors = { ...labelColors, ...metadataLabelColors };
-    }
+    const labelColors =
+      colorScheme && dashboardInfo?.metadata?.label_colors
+        ? dashboardInfo.metadata.label_colors
+        : {};
 
     // check refresh frequency is for current session or persist
     const refreshFrequency = shouldPersistRefreshFrequency

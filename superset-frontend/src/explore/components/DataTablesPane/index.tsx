@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { JsonObject, styled, t } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
 import Tabs from 'src/components/Tabs';
@@ -35,6 +35,7 @@ import {
   useFilteredTableData,
   useTableColumns,
 } from 'src/explore/components/DataTableControl';
+import { applyFormattingToTabularData } from 'src/utils/common';
 
 const RESULT_TYPES = {
   results: 'results' as const,
@@ -202,6 +203,18 @@ export const DataTablesPane = ({
     getFromLocalStorage(STORAGE_KEYS.isOpen, false),
   );
 
+  const formattedData = useMemo(
+    () => ({
+      [RESULT_TYPES.results]: applyFormattingToTabularData(
+        data[RESULT_TYPES.results],
+      ),
+      [RESULT_TYPES.samples]: applyFormattingToTabularData(
+        data[RESULT_TYPES.samples],
+      ),
+    }),
+    [data],
+  );
+
   const getData = useCallback(
     (resultType: string) => {
       setIsLoading(prevIsLoading => ({
@@ -346,7 +359,7 @@ export const DataTablesPane = ({
     <TableControlsWrapper>
       <RowCount data={data[activeTabKey]} loading={isLoading[activeTabKey]} />
       <CopyToClipboardButton
-        data={data[activeTabKey]}
+        data={formattedData[activeTabKey]}
         columns={columnNames[activeTabKey]}
       />
       <FilterInput onChangeHandler={setFilterText} />
