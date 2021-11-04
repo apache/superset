@@ -24,6 +24,7 @@ from marshmallow_enum import EnumField
 
 from superset import app
 from superset.common.query_context import QueryContext
+from superset.common.query_factory import QueryContextFactory
 from superset.db_engine_specs.base import builtin_time_grains
 from superset.utils import schema as utils
 from superset.utils.core import (
@@ -1139,10 +1140,9 @@ class ChartDataQueryContextSchema(Schema):
     # pylint: disable=no-self-use,unused-argument
     @post_load
     def make_query_context(self, data: Dict[str, Any], **kwargs: Any) -> QueryContext:
-        query_context = QueryContext(**data)
-        return query_context
-
-    # pylint: enable=no-self-use,unused-argument
+        data["datasource_dict"] = data.pop("datasource", {})
+        data["queries_dicts"] = data.pop("queries", [])
+        return QueryContextFactory.create(**data)
 
 
 class AnnotationDataSchema(Schema):

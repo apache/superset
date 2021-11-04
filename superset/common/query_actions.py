@@ -14,8 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=import-outside-toplevel
 import copy
-from typing import Any, Callable, cast, Dict, List, Optional, TYPE_CHECKING
+from typing import Any, Callable, cast, Dict, List, TYPE_CHECKING
 
 from flask_babel import _
 
@@ -88,14 +89,17 @@ def _get_query(
     return result
 
 
-def _get_full(
-    query_context: "QueryContext",
-    query_obj: "QueryObject",
-    force_cached: Optional[bool] = False,
+def _get_full(  # pylint: disable=too-many-locals
+    query_context: "QueryContext", query_obj: "QueryObject", force_cached: bool = False,
 ) -> Dict[str, Any]:
+    from superset.common.query_context_processor import QueryContextProcessor
+
     datasource = _get_datasource(query_context, query_obj)
     result_type = query_obj.result_type or query_context.result_type
-    payload = query_context.get_df_payload(query_obj, force_cached=force_cached)
+    query_context_processor = QueryContextProcessor()
+    payload = query_context_processor.get_df_payload(
+        query_context, query_obj, force_cached=force_cached
+    )
     applied_template_filters = payload.get("applied_template_filters", [])
     df = payload["df"]
     status = payload["status"]
@@ -103,7 +107,9 @@ def _get_full(
         payload["colnames"] = list(df.columns)
         payload["indexnames"] = list(df.index)
         payload["coltypes"] = extract_dataframe_dtypes(df)
-        payload["data"] = query_context.get_data(df)
+        payload["data"] = query_context_processor.get_data(
+            query_context.result_format, df
+        )
         payload["result_format"] = query_context.result_format
     del payload["df"]
 

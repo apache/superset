@@ -2080,7 +2080,8 @@ class FilterBoxViz(BaseViz):
 
     def run_extra_queries(self) -> None:
         # pylint: disable=import-outside-toplevel
-        from superset.common.query_context import QueryContext
+        from superset.common.query_context_processor import QueryContextProcessor
+        from superset.common.query_factory import QueryContextFactory
 
         query_obj = super().query_obj()
         filters = self.form_data.get("filter_configs") or []
@@ -2098,10 +2099,14 @@ class FilterBoxViz(BaseViz):
             asc = flt.get("asc")
             if metric and asc is not None:
                 query_obj["orderby"] = [(metric, asc)]
-            QueryContext(
-                datasource={"id": self.datasource.id, "type": self.datasource.type},
-                queries=[query_obj],
-            ).raise_for_access()
+            query_context = QueryContextFactory.create(
+                datasource_dict={
+                    "id": self.datasource.id,
+                    "type": self.datasource.type,
+                },
+                queries_dicts=[query_obj],
+            )
+            QueryContextProcessor().raise_for_access(query_context)
             df = self.get_df_payload(query_obj=query_obj).get("df")
             self.dataframes[col] = df
 

@@ -28,6 +28,7 @@ from superset.charts.commands.exceptions import (
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.commands.base import BaseCommand
 from superset.common.query_context import QueryContext
+from superset.common.query_context_processor import QueryContextProcessor
 from superset.exceptions import CacheLoadError
 from superset.extensions import async_query_manager
 from superset.tasks.async_queries import load_chart_data_into_cache
@@ -40,6 +41,7 @@ class ChartDataCommand(BaseCommand):
         self._form_data: Dict[str, Any]
         self._query_context: QueryContext
         self._async_channel_id: str
+        self._query_context_processor = QueryContextProcessor()
 
     def run(self, **kwargs: Any) -> Dict[str, Any]:
         # caching is handled in query_context.get_df_payload
@@ -47,8 +49,11 @@ class ChartDataCommand(BaseCommand):
         cache_query_context = kwargs.get("cache", False)
         force_cached = kwargs.get("force_cached", False)
         try:
-            payload = self._query_context.get_payload(
-                cache_query_context=cache_query_context, force_cached=force_cached
+
+            payload = QueryContextProcessor().get_payload(
+                query_context=self._query_context,
+                cache_query_context=cache_query_context,
+                force_cached=force_cached,
             )
         except CacheLoadError as ex:
             raise ChartDataCacheLoadError(ex.message) from ex
@@ -85,7 +90,7 @@ class ChartDataCommand(BaseCommand):
         return self._query_context
 
     def validate(self) -> None:
-        self._query_context.raise_for_access()
+        self._query_context_processor.raise_for_access(self._query_context)
 
     def validate_async_request(self, request: Request) -> None:
         jwt_data = async_query_manager.parse_jwt_from_request(request)

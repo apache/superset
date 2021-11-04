@@ -27,7 +27,8 @@ from superset.charts.commands.exceptions import (
     TimeRangeAmbiguousError,
     TimeRangeParseFailError,
 )
-from superset.common.query_context import QueryContext
+from superset.common.query_context_processor import QueryContextProcessor
+from superset.common.query_factory import QueryContextFactory
 from superset.legacy import update_time_range
 from superset.models.slice import Slice
 from superset.typing import FlaskResponse
@@ -51,9 +52,12 @@ class Api(BaseSupersetView):
 
         raises SupersetSecurityException: If the user cannot access the resource
         """
-        query_context = QueryContext(**json.loads(request.form["query_context"]))
-        query_context.raise_for_access()
-        result = query_context.get_payload()
+        query_context = QueryContextFactory.create(
+            **json.loads(request.form["query_context"])
+        )
+        query_context_processor = QueryContextProcessor()
+        query_context_processor.raise_for_access(query_context)
+        result = query_context_processor.get_payload(query_context)
         payload_json = result["queries"]
         return json.dumps(
             payload_json, default=utils.json_int_dttm_ser, ignore_nan=True

@@ -17,11 +17,14 @@
 import logging
 from typing import Any, Dict, List, Optional
 
+import numpy as np
+import pandas as pd
 from flask_caching import Cache
 from pandas import DataFrame
 
 from superset import app
 from superset.common.db_query_status import QueryStatus
+from superset.common.query_object import QueryObject
 from superset.constants import CacheRegion
 from superset.exceptions import CacheLoadError
 from superset.extensions import cache_manager
@@ -185,3 +188,20 @@ class QueryCacheManager:
         """
         if key:
             set_and_log_cache(_cache[region], key, value, timeout, datasource_uid)
+
+
+def left_join_df(
+    left_df: pd.DataFrame, right_df: pd.DataFrame, join_keys: List[str],
+) -> pd.DataFrame:
+    df = left_df.set_index(join_keys).join(right_df.set_index(join_keys))
+    df.reset_index(inplace=True)
+    return df
+
+
+def df_metrics_to_num(df: pd.DataFrame, query_object: QueryObject) -> None:
+    """Converting metrics to numeric when pandas.read_sql cannot"""
+    for col, dtype in df.dtypes.items():
+        if dtype.type == np.object_ and col in query_object.metric_names:
+            # soft-convert a metric column to numeric
+            # will stay as strings if conversion fails
+            df[col] = df[col].infer_objects()

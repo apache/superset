@@ -1194,7 +1194,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
-        "superset.common.query_object.config", {**app.config, "ROW_LIMIT": 7},
+        "superset.common.query_factory.config", {**app.config, "ROW_LIMIT": 7},
     )
     def test_chart_data_default_row_limit(self):
         """
@@ -1227,7 +1227,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
-        "superset.common.query_object.config", {**app.config, "SAMPLES_ROW_LIMIT": 5},
+        "superset.common.query_factory.config", {**app.config, "SAMPLES_ROW_LIMIT": 5},
     )
     def test_chart_data_sample_default_limit(self):
         """
