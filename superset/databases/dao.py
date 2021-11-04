@@ -23,7 +23,7 @@ from superset.extensions import db
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.models.sql_lab import Query, SavedQuery, TableSchema, TabState
+from superset.models.sql_lab import TabState
 
 logger = logging.getLogger(__name__)
 

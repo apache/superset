@@ -1989,3 +1989,29 @@ class TestDatabaseApi(SupersetTestCase):
                 },
             ]
         }
+
+    def test_get_related_objects(self):
+        username = "admin"
+        self.login(username)
+        example_db = get_example_database()
+
+        # Create a tab
+        data = {
+            "queryEditor": json.dumps(
+                {
+                    "title": "Untitled Query 1",
+                    "dbId": example_db.id,
+                    "schema": None,
+                    "autorun": False,
+                    "sql": "SELECT ...",
+                    "queryLimit": 1000,
+                }
+            )
+        }
+        self.get_json_resp("/tabstateview/", data=data)
+
+        self.login(username="admin")
+        uri = f"api/v1/database/{example_db.id}/related_objects/"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        assert rv.json["sqllab_tab_states"]["count"] == 1
