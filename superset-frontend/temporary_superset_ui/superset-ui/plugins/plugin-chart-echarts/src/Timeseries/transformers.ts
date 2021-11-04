@@ -40,6 +40,8 @@ import {
   ItemStyleOption,
   LineStyleOption,
   OptionName,
+  SeriesLabelOption,
+  SeriesLineLabelOption,
   ZRLineType,
 } from 'echarts/types/src/util/types';
 import {
@@ -244,7 +246,7 @@ export function transformIntervalAnnotation(
   const series: SeriesOption[] = [];
   const annotations = extractRecordAnnotations(layer, annotationData);
   annotations.forEach(annotation => {
-    const { name, color, opacity } = layer;
+    const { name, color, opacity, showLabel } = layer;
     const { descriptions, intervalEnd, time, title } = annotation;
     const label = formatAnnotationLabel(name, title, descriptions);
     const intervalData: (MarkArea1DDataItemOption | MarkArea2DDataItemOption)[] = [
@@ -258,6 +260,32 @@ export function transformIntervalAnnotation(
         },
       ],
     ];
+    const intervalLabel: SeriesLabelOption = showLabel
+      ? {
+          show: true,
+          color: '#000000',
+          position: 'insideTop',
+          verticalAlign: 'top',
+          fontWeight: 'bold',
+          // @ts-ignore
+          emphasis: {
+            position: 'insideTop',
+            verticalAlign: 'top',
+            backgroundColor: '#ffffff',
+          },
+        }
+      : {
+          show: false,
+          color: '#000000',
+          // @ts-ignore
+          emphasis: {
+            fontWeight: 'bold',
+            show: true,
+            position: 'insideTop',
+            verticalAlign: 'top',
+            backgroundColor: '#ffffff',
+          },
+        };
     series.push({
       id: `Interval - ${label}`,
       type: 'line',
@@ -271,18 +299,7 @@ export function transformIntervalAnnotation(
             opacity: 0.8,
           },
         } as ItemStyleOption,
-        label: {
-          show: false,
-          color: '#000000',
-          // @ts-ignore
-          emphasis: {
-            fontWeight: 'bold',
-            show: true,
-            position: 'insideTop',
-            verticalAlign: 'top',
-            backgroundColor: '#ffffff',
-          },
-        },
+        label: intervalLabel,
         data: intervalData,
       },
     });
@@ -299,7 +316,7 @@ export function transformEventAnnotation(
   const series: SeriesOption[] = [];
   const annotations = extractRecordAnnotations(layer, annotationData);
   annotations.forEach(annotation => {
-    const { name, color, opacity, style, width } = layer;
+    const { name, color, opacity, style, width, showLabel } = layer;
     const { descriptions, time, title } = annotation;
     const label = formatAnnotationLabel(name, title, descriptions);
     const eventData: MarkLine1DDataItemOption[] = [
@@ -320,15 +337,19 @@ export function transformEventAnnotation(
       },
     };
 
-    series.push({
-      id: `Event - ${label}`,
-      type: 'line',
-      animation: false,
-      markLine: {
-        silent: false,
-        symbol: 'none',
-        lineStyle,
-        label: {
+    const eventLabel: SeriesLineLabelOption = showLabel
+      ? {
+          show: true,
+          color: '#000000',
+          position: 'insideEndTop',
+          fontWeight: 'bold',
+          formatter: (params: CallbackDataParams) => params.name,
+          // @ts-ignore
+          emphasis: {
+            backgroundColor: '#ffffff',
+          },
+        }
+      : {
           show: false,
           color: '#000000',
           position: 'insideEndTop',
@@ -339,7 +360,17 @@ export function transformEventAnnotation(
             show: true,
             backgroundColor: '#ffffff',
           },
-        },
+        };
+
+    series.push({
+      id: `Event - ${label}`,
+      type: 'line',
+      animation: false,
+      markLine: {
+        silent: false,
+        symbol: 'none',
+        lineStyle,
+        label: eventLabel,
         data: eventData,
       },
     });
