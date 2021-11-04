@@ -975,7 +975,7 @@ Once the pod is running as root and has the SYS_PTRACE capability it will be abl
 
 You can follow the same instructions as in the docker-compose. Enter the pod and install the required library and packages; gdb, netstat and debugpy.
 
-Often in a kuernetes environment nodes are not addressable from outside the cluster. VSCode will thus be unable to remotely connect to port 5678 on a kubernetes node. In order to do this you need to create a tunnel that port forwards 5678 to your local machine.
+Often in a Kubernetes environment nodes are not addressable from outside the cluster. VSCode will thus be unable to remotely connect to port 5678 on a Kubernetes node. In order to do this you need to create a tunnel that port forwards 5678 to your local machine.
 
 ```
 kubectl port-forward  pod/superset-<some random id> 5678:5678
