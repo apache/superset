@@ -17,8 +17,9 @@
  * under the License.
  */
 /* eslint-disable camelcase */
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { report } from 'process';
-import { allowCrossDomain } from 'src/utils/hostNamesConfig';
+// import { allowCrossDomain } from 'src/utils/hostNamesConfig';
 import {
   SET_REPORT,
   ADD_REPORT,
@@ -54,7 +55,7 @@ export default function reportsReducer(state = {}, action) {
 
       // This organizes report by its type, dashboard or chart
       // and indexes it by the dashboard/chart id
-      if (reportWithDashboard)
+      if (reportWithDashboard) {
         return {
           ...state,
           dashboards: {
@@ -62,6 +63,7 @@ export default function reportsReducer(state = {}, action) {
             [reportWithDashboard.dashboard_id]: reportWithDashboard,
           },
         };
+      }
       return {
         ...state,
         charts: {
@@ -87,7 +89,7 @@ export default function reportsReducer(state = {}, action) {
       reportWithChart.id = action.json.id;
 
       // This adds the report by its type, dashboard or chart
-      if (reportWithDashboard)
+      if (reportWithDashboard) {
         return {
           ...state,
           dashboards: {
@@ -95,6 +97,7 @@ export default function reportsReducer(state = {}, action) {
             [reportWithDashboard.dashboard_id]: report,
           },
         };
+      }
       return {
         ...state,
         charts: {
@@ -120,7 +123,7 @@ export default function reportsReducer(state = {}, action) {
       reportWithChart.id = action.json.id;
 
       // This updates the report by its type, dashboard or chart
-      if (reportWithDashboard)
+      if (reportWithDashboard) {
         return {
           ...state,
           dashboards: {
@@ -128,6 +131,7 @@ export default function reportsReducer(state = {}, action) {
             [reportWithDashboard.dashboard_id]: report,
           },
         };
+      }
       return {
         ...state,
         charts: {
@@ -145,13 +149,14 @@ export default function reportsReducer(state = {}, action) {
       );
 
       // This deletes the report by its type, dashboard or chart
-      if (reportWithDashboard)
+      if (reportWithDashboard) {
         return {
           ...state,
           dashboards: {
             ...state.dashboards.filter(report => report.id !== action.reportId),
           },
         };
+      }
       return {
         ...state,
         charts: {
