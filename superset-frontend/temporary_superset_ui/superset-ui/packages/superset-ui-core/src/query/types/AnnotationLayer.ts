@@ -54,6 +54,7 @@ type BaseAnnotationLayer = {
   name: string;
   opacity?: AnnotationOpacity;
   show: boolean;
+  showLabel: boolean;
   style: AnnotationStyle;
   width?: number;
 };
