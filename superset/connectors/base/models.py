@@ -282,7 +282,9 @@ class BaseDatasource(
             "select_star": self.select_star,
         }
 
-    def data_for_slices(self, slices: List[Slice]) -> Dict[str, Any]:
+    def data_for_slices(  # pylint: disable=too-many-locals
+        self, slices: List[Slice]
+    ) -> Dict[str, Any]:
         """
         The representation of the datasource containing only the required data
         to render the provided slices.
@@ -651,7 +653,6 @@ class BaseColumn(AuditMixinNullable, ImportExportMixin):
 
 
 class BaseMetric(AuditMixinNullable, ImportExportMixin):
-
     """Interface for Metrics"""
 
     __tablename__: Optional[str] = None  # {connector_name}_metric
