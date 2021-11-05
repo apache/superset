@@ -17,27 +17,23 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { formatNumber } from '@superset-ui/core';
 
-const propTypes = {
-  num: PropTypes.number,
-  format: PropTypes.string,
-};
+interface FormattedNumberProps {
+  num?: string | number;
+  format?: string;
+}
 
-const defaultProps = {
-  num: 0,
-  format: undefined,
-};
-
-function FormattedNumber({ num, format }) {
+function FormattedNumber({
+  num = 0,
+  format = undefined,
+}: FormattedNumberProps) {
   if (format) {
-    return <span title={num}>{formatNumber(format, num)}</span>;
+    return (
+      <span title={num as string}>{formatNumber(format, num as number)}</span>
+    );
   }
   return <span>{num}</span>;
 }
-
-FormattedNumber.propTypes = propTypes;
-FormattedNumber.defaultProps = defaultProps;
 
 export default FormattedNumber;
