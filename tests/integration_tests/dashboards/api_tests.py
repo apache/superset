@@ -133,7 +133,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
                     certification_details="Sample certification",
                 )
                 if cx < half_dash_count:
-                    chart = self.insert_chart(f"slice{cx}", [admin.id], 1, params="{}")
+                    chart = self.insert_chart(
+                        f"slice{cx}", [admin.id], 1, params="{}")
                     charts.append(chart)
                     dashboard.slices = [chart]
                     db.session.add(dashboard)
@@ -327,7 +328,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             "changed_by_name": "",
             "changed_by_url": "",
             "charts": [],
-            "created_by": {"id": 1, "first_name": "admin", "last_name": "user",},
+            "created_by": {"id": 1, "first_name": "admin", "last_name": "user", },
             "id": dashboard.id,
             "css": "",
             "dashboard_title": "title",
@@ -445,7 +446,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         """
         admin = self.get_user("admin")
         gamma = self.get_user("gamma")
-        dashboard = self.insert_dashboard("title", "slug1", [admin.id, gamma.id])
+        dashboard = self.insert_dashboard(
+            "title", "slug1", [admin.id, gamma.id])
 
         self.login(username="admin")
 
@@ -461,7 +463,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
 
         arguments = {
             "filters": [
-                {"col": "owners", "opr": "rel_m_m", "value": [admin.id, gamma.id]}
+                {"col": "owners", "opr": "rel_m_m",
+                    "value": [admin.id, gamma.id]}
             ]
         }
         uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
@@ -622,7 +625,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
     @pytest.mark.usefixtures("create_dashboards")
     def test_gets_certified_dashboards_filter(self):
         arguments = {
-            "filters": [{"col": "id", "opr": "dashboard_is_certified", "value": True,}],
+            "filters": [{"col": "id", "opr": "dashboard_is_certified", "value": True, }],
             "keys": ["none"],
             "columns": ["dashboard_title"],
         }
@@ -638,7 +641,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
     def test_gets_not_certified_dashboards_filter(self):
         arguments = {
             "filters": [
-                {"col": "id", "opr": "dashboard_is_certified", "value": False,}
+                {"col": "id", "opr": "dashboard_is_certified", "value": False, }
             ],
             "keys": ["none"],
             "columns": ["dashboard_title"],
@@ -649,7 +652,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         rv = self.get_assert_metric(uri, "get_list")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["count"], 0)
+        self.assertEqual(data["count"], 6)
 
     def create_dashboard_import(self):
         buf = BytesIO()
@@ -715,7 +718,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         rv = self.delete_assert_metric(uri, "bulk_delete")
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
-        expected_response = {"message": f"Deleted {dashboard_count} dashboards"}
+        expected_response = {
+            "message": f"Deleted {dashboard_count} dashboards"}
         self.assertEqual(response, expected_response)
         for dashboard_id in dashboard_ids:
             model = db.session.query(Dashboard).get(dashboard_id)
@@ -837,7 +841,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         rv = self.client.delete(uri)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 200)
-        expected_response = {"message": f"Deleted {dashboard_count} dashboards"}
+        expected_response = {
+            "message": f"Deleted {dashboard_count} dashboards"}
         self.assertEqual(response, expected_response)
 
         for dashboard_id in dashboard_ids:
@@ -856,7 +861,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             "alpha2", "password", "Alpha", email="alpha2@superset.org"
         )
         existing_slice = (
-            db.session.query(Slice).filter_by(slice_name="Girl Name Cloud").first()
+            db.session.query(Slice).filter_by(
+                slice_name="Girl Name Cloud").first()
         )
         dashboard = self.insert_dashboard(
             "title", "slug1", [user_alpha1.id], slices=[existing_slice], published=True
@@ -882,7 +888,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             "alpha2", "password", "Alpha", email="alpha2@superset.org"
         )
         existing_slice = (
-            db.session.query(Slice).filter_by(slice_name="Girl Name Cloud").first()
+            db.session.query(Slice).filter_by(
+                slice_name="Girl Name Cloud").first()
         )
 
         dashboard_count = 4
@@ -918,7 +925,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.assertEqual(response, expected_response)
 
         # nothing is deleted in bulk with a list of owned and not owned dashboards
-        arguments = [dashboard.id for dashboard in dashboards] + [owned_dashboard.id]
+        arguments = [dashboard.id for dashboard in dashboards] + \
+            [owned_dashboard.id]
         uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 403)
@@ -1032,7 +1040,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         rv = self.client.post(uri, json=dashboard_data)
         self.assertEqual(rv.status_code, 400)
         response = json.loads(rv.data.decode("utf-8"))
-        expected_response = {"message": {"slug": ["Length must be between 1 and 255."]}}
+        expected_response = {"message": {
+            "slug": ["Length must be between 1 and 255."]}}
         self.assertEqual(response, expected_response)
 
         db.session.delete(dashboard)
@@ -1068,13 +1077,15 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         """
         Dashboard API: Test create validate json
         """
-        dashboard_data = {"dashboard_title": "title1", "position_json": '{"A:"a"}'}
+        dashboard_data = {"dashboard_title": "title1",
+                          "position_json": '{"A:"a"}'}
         self.login(username="admin")
         uri = "api/v1/dashboard/"
         rv = self.client.post(uri, json=dashboard_data)
         self.assertEqual(rv.status_code, 400)
 
-        dashboard_data = {"dashboard_title": "title1", "json_metadata": '{"A:"a"}'}
+        dashboard_data = {"dashboard_title": "title1",
+                          "json_metadata": '{"A:"a"}'}
         self.login(username="admin")
         uri = "api/v1/dashboard/"
         rv = self.client.post(uri, json=dashboard_data)
@@ -1103,11 +1114,14 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         rv = self.put_assert_metric(uri, self.dashboard_data, "put")
         self.assertEqual(rv.status_code, 200)
         model = db.session.query(Dashboard).get(dashboard_id)
-        self.assertEqual(model.dashboard_title, self.dashboard_data["dashboard_title"])
+        self.assertEqual(model.dashboard_title,
+                         self.dashboard_data["dashboard_title"])
         self.assertEqual(model.slug, self.dashboard_data["slug"])
-        self.assertEqual(model.position_json, self.dashboard_data["position_json"])
+        self.assertEqual(model.position_json,
+                         self.dashboard_data["position_json"])
         self.assertEqual(model.css, self.dashboard_data["css"])
-        self.assertEqual(model.json_metadata, self.dashboard_data["json_metadata"])
+        self.assertEqual(model.json_metadata,
+                         self.dashboard_data["json_metadata"])
         self.assertEqual(model.published, self.dashboard_data["published"])
         self.assertEqual(model.owners, [admin])
         self.assertEqual(model.roles, [admin_role])
@@ -1129,12 +1143,16 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         admin = self.get_user("admin")
         slices = []
         slices.append(
-            db.session.query(Slice).filter_by(slice_name="Girl Name Cloud").first()
+            db.session.query(Slice).filter_by(
+                slice_name="Girl Name Cloud").first()
         )
-        slices.append(db.session.query(Slice).filter_by(slice_name="Trends").first())
-        slices.append(db.session.query(Slice).filter_by(slice_name="Boys").first())
+        slices.append(db.session.query(Slice).filter_by(
+            slice_name="Trends").first())
+        slices.append(db.session.query(
+            Slice).filter_by(slice_name="Boys").first())
 
-        dashboard = self.insert_dashboard("title1", "slug1", [admin.id], slices=slices,)
+        dashboard = self.insert_dashboard(
+            "title1", "slug1", [admin.id], slices=slices,)
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard.id}"
         dashboard_data = {"owners": [user_alpha1.id, user_alpha2.id]}
@@ -1173,7 +1191,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.assertEqual(rv.status_code, 200)
 
         rv = self.client.put(
-            uri, json={"dashboard_title": self.dashboard_data["dashboard_title"]}
+            uri, json={
+                "dashboard_title": self.dashboard_data["dashboard_title"]}
         )
         self.assertEqual(rv.status_code, 200)
 
@@ -1181,8 +1200,10 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.assertEqual(rv.status_code, 200)
 
         model = db.session.query(Dashboard).get(dashboard_id)
-        self.assertEqual(model.json_metadata, self.dashboard_data["json_metadata"])
-        self.assertEqual(model.dashboard_title, self.dashboard_data["dashboard_title"])
+        self.assertEqual(model.json_metadata,
+                         self.dashboard_data["json_metadata"])
+        self.assertEqual(model.dashboard_title,
+                         self.dashboard_data["dashboard_title"])
         self.assertEqual(model.slug, self.dashboard_data["slug"])
 
         db.session.delete(model)
@@ -1195,7 +1216,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         gamma = self.get_user("gamma")
         alpha = self.get_user("alpha")
         dashboard_id = self.insert_dashboard("title1", "slug1", [alpha.id]).id
-        dashboard_data = {"dashboard_title": "title1_changed", "owners": [gamma.id]}
+        dashboard_data = {
+            "dashboard_title": "title1_changed", "owners": [gamma.id]}
         self.login(username="alpha")
         uri = f"api/v1/dashboard/{dashboard_id}"
         rv = self.client.put(uri, json=dashboard_data)
@@ -1216,7 +1238,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         gamma = self.get_user("gamma")
         admin = self.get_user("admin")
         dashboard_id = self.insert_dashboard("title1", "slug1", [admin.id]).id
-        dashboard_data = {"dashboard_title": "title1_changed", "owners": [gamma.id]}
+        dashboard_data = {
+            "dashboard_title": "title1_changed", "owners": [gamma.id]}
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard_id}"
         rv = self.client.put(uri, json=dashboard_data)
@@ -1236,7 +1259,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         """
         admin_id = self.get_user("admin").id
         dashboard_id = self.insert_dashboard("title1", "slug1", [admin_id]).id
-        dashboard_data = {"dashboard_title": "title1_changed", "slug": "slug1 changed"}
+        dashboard_data = {
+            "dashboard_title": "title1_changed", "slug": "slug1 changed"}
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard_id}"
         rv = self.client.put(uri, json=dashboard_data)
@@ -1289,7 +1313,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         admin = self.get_user("admin")
         gamma = self.get_user("gamma")
 
-        dashboard = self.insert_dashboard("title1", "slug1", [admin.id, gamma.id])
+        dashboard = self.insert_dashboard(
+            "title1", "slug1", [admin.id, gamma.id])
         dashboard_data = {"published": True}
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard.id}"
@@ -1316,13 +1341,15 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             "alpha2", "password", "Alpha", email="alpha2@superset.org"
         )
         existing_slice = (
-            db.session.query(Slice).filter_by(slice_name="Girl Name Cloud").first()
+            db.session.query(Slice).filter_by(
+                slice_name="Girl Name Cloud").first()
         )
         dashboard = self.insert_dashboard(
             "title", "slug1", [user_alpha1.id], slices=[existing_slice], published=True
         )
         self.login(username="alpha2", password="password")
-        dashboard_data = {"dashboard_title": "title1_changed", "slug": "slug1 changed"}
+        dashboard_data = {
+            "dashboard_title": "title1_changed", "slug": "slug1 changed"}
         uri = f"api/v1/dashboard/{dashboard.id}"
         rv = self.put_assert_metric(uri, dashboard_data, "put")
         self.assertEqual(rv.status_code, 403)
@@ -1366,7 +1393,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         Dashboard API: Test dashboard export not allowed
         """
         admin_id = self.get_user("admin").id
-        dashboard = self.insert_dashboard("title", "slug1", [admin_id], published=False)
+        dashboard = self.insert_dashboard(
+            "title", "slug1", [admin_id], published=False)
 
         self.login(username="gamma")
         argument = [dashboard.id]
@@ -1421,7 +1449,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         Dashboard API: Test dashboard export not allowed
         """
         admin_id = self.get_user("admin").id
-        dashboard = self.insert_dashboard("title", "slug1", [admin_id], published=False)
+        dashboard = self.insert_dashboard(
+            "title", "slug1", [admin_id], published=False)
 
         self.login(username="gamma")
         argument = [dashboard.id]
@@ -1443,14 +1472,16 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         form_data = {
             "formData": (buf, "dashboard_export.zip"),
         }
-        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        rv = self.client.post(uri, data=form_data,
+                              content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 200
         assert response == {"message": "OK"}
 
         dashboard = (
-            db.session.query(Dashboard).filter_by(uuid=dashboard_config["uuid"]).one()
+            db.session.query(Dashboard).filter_by(
+                uuid=dashboard_config["uuid"]).one()
         )
         assert dashboard.dashboard_title == "Test dash"
 
@@ -1481,7 +1512,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         form_data = {
             "formData": (buf, "dashboard_export.zip"),
         }
-        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        rv = self.client.post(uri, data=form_data,
+                              content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 400
@@ -1518,7 +1550,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         form_data = {
             "formData": (buf, "20201119_181105.json"),
         }
-        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        rv = self.client.post(uri, data=form_data,
+                              content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 200
@@ -1526,7 +1559,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         assert db.session.query(Dashboard).count() == num_dashboards + 1
 
         dashboard = (
-            db.session.query(Dashboard).filter_by(dashboard_title="Births 2").one()
+            db.session.query(Dashboard).filter_by(
+                dashboard_title="Births 2").one()
         )
         chart = dashboard.slices[0]
         dataset = chart.table
@@ -1547,7 +1581,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         form_data = {
             "formData": (buf, "dashboard_export.zip"),
         }
-        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        rv = self.client.post(uri, data=form_data,
+                              content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 200
@@ -1558,7 +1593,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         form_data = {
             "formData": (buf, "dashboard_export.zip"),
         }
-        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        rv = self.client.post(uri, data=form_data,
+                              content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 422
@@ -1590,7 +1626,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             "formData": (buf, "dashboard_export.zip"),
             "overwrite": "true",
         }
-        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        rv = self.client.post(uri, data=form_data,
+                              content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 200
@@ -1598,7 +1635,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
 
         # cleanup
         dashboard = (
-            db.session.query(Dashboard).filter_by(uuid=dashboard_config["uuid"]).one()
+            db.session.query(Dashboard).filter_by(
+                uuid=dashboard_config["uuid"]).one()
         )
         chart = dashboard.slices[0]
         dataset = chart.table
@@ -1640,7 +1678,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         form_data = {
             "formData": (buf, "dashboard_export.zip"),
         }
-        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        rv = self.client.post(uri, data=form_data,
+                              content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 422
