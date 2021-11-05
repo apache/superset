@@ -249,6 +249,7 @@ class Slice(  # pylint: disable=too-many-public-methods
         return form_data
 
     def get_query_context(self) -> Optional["QueryContext"]:
+        # pylint: disable=import-outside-toplevel
         from superset.common.query_context import QueryContext
 
         if self.query_context:
