@@ -512,6 +512,7 @@ class PropertiesModal extends React.PureComponent {
             <Col xs={24} md={12}>
               <FormItem label={t('Certified by')}>
                 <Input
+                  aria-label={t('Certified by')}
                   name="certified_by"
                   type="text"
                   value={values.certified_by}
@@ -526,6 +527,7 @@ class PropertiesModal extends React.PureComponent {
             <Col xs={24} md={12}>
               <FormItem label={t('Certification details')}>
                 <Input
+                  aria-label={t('Certification details')}
                   name="certification_details"
                   type="text"
                   value={values.certification_details || ''}

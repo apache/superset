@@ -211,7 +211,10 @@ export default function PropertiesModal({
           description: slice.description || '',
           cache_timeout: slice.cache_timeout != null ? slice.cache_timeout : '',
           certified_by: slice.certified_by || '',
-          certification_details: slice.certification_details || '',
+          certification_details:
+            slice.certified_by && slice.certification_details
+              ? slice.certification_details
+              : '',
         }}
       >
         <Row gutter={16}>
