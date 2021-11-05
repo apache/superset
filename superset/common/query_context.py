@@ -290,7 +290,7 @@ class QueryContext:
         if self.result_format == ChartDataResultFormat.CSV:
             include_index = not isinstance(df.index, pd.RangeIndex)
             columns = list(df.columns)
-            verbose_map = self.datasource.data.get('verbose_map', {})
+            verbose_map = self.datasource.data.get("verbose_map", {})
             if verbose_map:
                 df.columns = [verbose_map.get(column, column) for column in columns]
             result = csv.df_to_escaped_csv(
