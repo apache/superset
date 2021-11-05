@@ -24,7 +24,7 @@ from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAOException
-from superset.key_value.commands.exceptions import KeyValueGetFailedError
+from superset.key_value.commands.exceptions import KeyValueDeleteFailedError
 from superset.key_value.dao import KeyValueDAO
 
 logger = logging.getLogger(__name__)
@@ -43,7 +43,7 @@ class DeleteKeyValueCommand(BaseCommand):
             return KeyValueDAO.delete(model)
         except DAOException as ex:
             logger.exception(ex.exception)
-            raise KeyValueGetFailedError() from ex
+            raise KeyValueDeleteFailedError() from ex
 
     def validate(self) -> None:
         pass

@@ -30,18 +30,19 @@ logger = logging.getLogger(__name__)
 
 
 class UpdateKeyValueCommand(BaseCommand):
-    def __init__(self, user: User, data: Dict[str, Any]):
+    def __init__(self, user: User, key: str, data: Dict[str, Any]):
         self._actor = user
+        self._key = key
         self._properties = data.copy()
 
     def run(self) -> Model:
         try:
-            model = KeyValueDAO.find_by_id(self._properties['uuid']);
+            model = KeyValueDAO.find_by_id(self._key)
             if not model:
                 return None
             setattr(model, 'retrieved_on', datetime.utcnow())
-            setattr(model, 'value', self._properties['value'])
-            setattr(model, 'duration_ms', self._properties['duration_ms'])
+            setattr(model, 'value', self._properties.get('value'))
+            setattr(model, 'duration_ms', self._properties.get('duration_ms'))
             KeyValueDAO.update(model)
             return model
         except DAOException as ex:

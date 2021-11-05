@@ -93,7 +93,7 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
             return self.response_400(message="Request is not JSON")
         try:
             item = self.schema.load(request.json)
-            model = UpdateKeyValueCommand(g.user, item).run()
+            model = UpdateKeyValueCommand(g.user, key, item).run()
             if not model:
                 return self.response_404()
             result = self.schema.dump(model)
