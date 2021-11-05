@@ -755,7 +755,7 @@ The connection string for Teradata looks like this ::
 
 The recommended connector library is
 [teradatasql](https://github.com/Teradata/python-driver).
-Also, see the latest on [PyPi](https://pypi.org/project/teradatasql/) 
+Also, see the latest on [PyPi](https://pypi.org/project/teradatasql/)
 
 The connection string for Teradata looks like this:
 
