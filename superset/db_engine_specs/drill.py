@@ -68,3 +68,12 @@ class DrillEngineSpec(BaseEngineSpec):
     def adjust_database_uri(cls, uri: URL, selected_schema: Optional[str]) -> None:
         if selected_schema:
             uri.database = parse.quote(selected_schema, safe="")
+
+    @classmethod
+    def modify_url_for_impersonation(cls, url: URL, impersonate_user: bool, username: Optional[str]) -> None:
+        if impersonate_user and username is not None:
+            if url.drivername == "drill+odbc":
+                url.query["DelegationUID"] = username
+            else: 
+                url.username = username
+
