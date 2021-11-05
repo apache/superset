@@ -1734,14 +1734,13 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         for attr in ["database_id", "schema", "table_name"]:
             history = state.get_history(attr, True)
-
             if history.has_changes():
                 break
         else:
             return None
 
         if not DatasetDAO.validate_uniqueness(
-            target.database_id, target.schema, target.table_name
+            target.database_id, target.schema, target.table_name, target.id
         ):
             raise Exception(get_dataset_exist_error_msg(target.full_name))
 
