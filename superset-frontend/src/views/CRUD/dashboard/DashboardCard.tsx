@@ -29,7 +29,6 @@ import Label from 'src/components/Label';
 import FacePile from 'src/components/FacePile';
 import FaveStar from 'src/components/FaveStar';
 import { Dashboard } from 'src/views/CRUD/types';
-import CertifiedIcon from 'src/components/CertifiedIcon';
 
 interface DashboardCardProps {
   isChart?: boolean;
@@ -147,19 +146,9 @@ function DashboardCard({
     >
       <ListViewCard
         loading={dashboard.loading || false}
-        title={
-          dashboard.certified_by ? (
-            <>
-              <CertifiedIcon
-                certifiedBy={dashboard.certified_by}
-                details={dashboard.certification_details}
-              />{' '}
-              {dashboard.dashboard_title}
-            </>
-          ) : (
-            dashboard.dashboard_title
-          )
-        }
+        title={dashboard.dashboard_title}
+        certifiedBy={dashboard.certified_by}
+        certificationDetails={dashboard.certification_details}
         titleRight={
           <Label>{dashboard.published ? t('published') : t('draft')}</Label>
         }
