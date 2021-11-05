@@ -147,7 +147,8 @@ class PropertiesModal extends React.PureComponent {
       ? JSON.parse(jsonMetadata)
       : {};
 
-    if (!colorScheme || !colorChoices.includes(colorScheme)) {
+    // only fire if the color_scheme is present and invalid
+    if (colorScheme && !colorChoices.includes(colorScheme)) {
       Modal.error({
         title: 'Error',
         content: t('A valid color scheme is required'),
