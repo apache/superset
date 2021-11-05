@@ -190,7 +190,7 @@ export default function PropertiesModal({
             htmlType="submit"
             buttonSize="small"
             buttonStyle="primary"
-            onClick={() => form.submit()}
+            onClick={form.submit}
             disabled={submitting || !name}
             cta
           >

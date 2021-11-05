@@ -119,6 +119,8 @@ class PropertiesModal extends React.PureComponent {
         roles: [],
         json_metadata: '',
         colorScheme: props.colorScheme,
+        certified_by: '',
+        certification_details: '',
       },
       isDashboardLoaded: false,
       isAdvancedOpen: false,
@@ -208,6 +210,8 @@ class PropertiesModal extends React.PureComponent {
             ? jsonStringify(jsonMetadataObj)
             : '',
           colorScheme: jsonMetadataObj.color_scheme,
+          certified_by: dashboard.certified_by || '',
+          certification_details: dashboard.certification_details || '',
         },
       }));
       const initialSelectedOwners = dashboard.owners.map(owner => ({
@@ -247,6 +251,8 @@ class PropertiesModal extends React.PureComponent {
         slug,
         dashboard_title: dashboardTitle,
         colorScheme,
+        certified_by: certifiedBy,
+        certification_details: certificationDetails,
         owners: ownersValue,
         roles: rolesValue,
       },
@@ -281,6 +287,8 @@ class PropertiesModal extends React.PureComponent {
         jsonMetadata,
         ownerIds: owners,
         colorScheme: currentColorScheme,
+        certifiedBy,
+        certificationDetails,
         ...moreProps,
       });
       this.props.onHide();
@@ -293,6 +301,8 @@ class PropertiesModal extends React.PureComponent {
           slug: slug || null,
           json_metadata: jsonMetadata || null,
           owners,
+          certified_by: certifiedBy,
+          certification_details: certificationDetails,
           ...morePutProps,
         }),
       }).then(({ json: { result } }) => {
@@ -308,6 +318,8 @@ class PropertiesModal extends React.PureComponent {
           jsonMetadata: result.json_metadata,
           ownerIds: result.owners,
           colorScheme: currentColorScheme,
+          certifiedBy: result.certified_by,
+          certificationDetails: result.certification_details,
           ...moreResultProps,
         });
         this.props.onHide();
@@ -490,6 +502,43 @@ class PropertiesModal extends React.PureComponent {
           {isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC)
             ? this.getRowsWithRoles()
             : this.getRowsWithoutRoles()}
+          <Row>
+            <Col xs={24} md={24}>
+              <h3>{t('Certification')}</h3>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col xs={24} md={12}>
+              <FormItem label={t('Certified by')}>
+                <Input
+                  name="certified_by"
+                  type="text"
+                  value={values.certified_by}
+                  onChange={this.onChange}
+                  disabled={!isDashboardLoaded}
+                />
+                <p className="help-block">
+                  {t('Person or group that has certified this chart.')}
+                </p>
+              </FormItem>
+            </Col>
+            <Col xs={24} md={12}>
+              <FormItem label={t('Certification details')}>
+                <Input
+                  name="certification_details"
+                  type="text"
+                  value={values.certification_details || ''}
+                  onChange={this.onChange}
+                  disabled={!isDashboardLoaded}
+                />
+                <p className="help-block">
+                  {t(
+                    'Any additional detail to show in the certification tooltip.',
+                  )}
+                </p>
+              </FormItem>
+            </Col>
+          </Row>
           <Row>
             <Col xs={24} md={24}>
               <h3 style={{ marginTop: '1em' }}>

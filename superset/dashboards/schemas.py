@@ -64,6 +64,8 @@ published_description = (
 charts_description = (
     "The names of the dashboard's charts. Names are used for legacy reasons."
 )
+certified_by_description = "Person or group that has certified this dashboard"
+certification_details_description = "Details of the certification"
 
 openapi_spec_methods_override = {
     "get": {"get": {"description": "Get a dashboard detail information."}},
@@ -151,6 +153,9 @@ class DashboardGetResponseSchema(Schema):
     css = fields.String(description=css_description)
     json_metadata = fields.String(description=json_metadata_description)
     position_json = fields.String(description=position_json_description)
+    certified_by = fields.String(description=certified_by_description)
+    certification_details = fields.String(
+        description=certification_details_description)
     changed_by_name = fields.String()
     changed_by_url = fields.String()
     changed_by = fields.Nested(UserSchema)
@@ -237,6 +242,9 @@ class DashboardPostSchema(BaseDashboardSchema):
         description=json_metadata_description, validate=validate_json_metadata,
     )
     published = fields.Boolean(description=published_description)
+    certified_by = fields.String(description=certified_by_description)
+    certification_details = fields.String(
+        description=certification_details_description)
 
 
 class DashboardPutSchema(BaseDashboardSchema):
@@ -251,7 +259,8 @@ class DashboardPutSchema(BaseDashboardSchema):
     owners = fields.List(
         fields.Integer(description=owners_description, allow_none=True)
     )
-    roles = fields.List(fields.Integer(description=roles_description, allow_none=True))
+    roles = fields.List(fields.Integer(
+        description=roles_description, allow_none=True))
     position_json = fields.String(
         description=position_json_description, allow_none=True, validate=validate_json
     )
@@ -261,7 +270,11 @@ class DashboardPutSchema(BaseDashboardSchema):
         allow_none=True,
         validate=validate_json_metadata,
     )
-    published = fields.Boolean(description=published_description, allow_none=True)
+    published = fields.Boolean(
+        description=published_description, allow_none=True)
+    certified_by = fields.String(description=certified_by_description)
+    certification_details = fields.String(
+        description=certification_details_description)
 
 
 class ChartFavStarResponseResult(Schema):

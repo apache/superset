@@ -73,7 +73,8 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
         if is_user_admin():
             return query
 
-        datasource_perms = security_manager.user_view_menu_names("datasource_access")
+        datasource_perms = security_manager.user_view_menu_names(
+            "datasource_access")
         schema_perms = security_manager.user_view_menu_names("schema_access")
 
         is_rbac_disabled_filter = []
@@ -126,7 +127,8 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
                 )
             )
 
-            dashboard_rbac_or_filters.append(Dashboard.id.in_(roles_based_query))
+            dashboard_rbac_or_filters.append(
+                Dashboard.id.in_(roles_based_query))
 
         query = query.filter(
             or_(
@@ -157,4 +159,20 @@ class FilterRelatedRoles(BaseFilter):  # pylint: disable=too-few-public-methods
         role_model = security_manager.role_model
         if value:
             return query.filter(role_model.name.ilike(f"%{value}%"),)
+        return query
+
+
+class DashboardCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+    Custom filter for the GET list that filters all certified dashboards
+    """
+
+    name = _("Is certified")
+    arg_name = "dashboard_is_certified"
+
+    def apply(self, query: Query, value: Any) -> Query:
+        if value == True:
+            return query.filter(and_(Dashboard.certified_by.isnot(None)))
+        if value == False:
+            return query.filter(and_(Dashboard.certified_by.is_(None)))
         return query

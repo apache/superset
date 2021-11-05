@@ -612,6 +612,8 @@ class Header extends React.PureComponent {
                 dashboardInfoChanged({
                   slug: updates.slug,
                   metadata: JSON.parse(updates.jsonMetadata),
+                  certifiedBy: updates.certifiedBy,
+                  certification_details: updates.certificationDetails,
                 });
                 setColorSchemeAndUnsavedChanges(updates.colorScheme);
                 dashboardTitleChanged(updates.title);

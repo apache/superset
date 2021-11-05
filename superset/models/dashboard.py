@@ -127,7 +127,8 @@ DashboardRoles = Table(
     "dashboard_roles",
     metadata,
     Column("id", Integer, primary_key=True),
-    Column("dashboard_id", Integer, ForeignKey("dashboards.id"), nullable=False),
+    Column("dashboard_id", Integer, ForeignKey(
+        "dashboards.id"), nullable=False),
     Column("role_id", Integer, ForeignKey("ab_role.id"), nullable=False),
 )
 
@@ -142,10 +143,14 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     position_json = Column(utils.MediumText())
     description = Column(Text)
     css = Column(Text)
+    certified_by = Column(Text)
+    certification_details = Column(Text)
     json_metadata = Column(Text)
     slug = Column(String(255), unique=True)
-    slices = relationship(Slice, secondary=dashboard_slices, backref="dashboards")
-    owners = relationship(security_manager.user_model, secondary=dashboard_user)
+    slices = relationship(
+        Slice, secondary=dashboard_slices, backref="dashboards")
+    owners = relationship(security_manager.user_model,
+                          secondary=dashboard_user)
     published = Column(Boolean, default=False)
     roles = relationship(security_manager.role_model, secondary=DashboardRoles)
     _filter_sets = relationship(
@@ -194,7 +199,8 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         if is_user_admin():
             return self._filter_sets
         current_user = g.user.id
-        filter_sets_by_owner_type: Dict[str, List[Any]] = {"Dashboard": [], "User": []}
+        filter_sets_by_owner_type: Dict[str, List[Any]] = {
+            "Dashboard": [], "User": []}
         for fs in self._filter_sets:
             filter_sets_by_owner_type[fs.owner_type].append(fs)
         user_filter_sets = list(
@@ -265,6 +271,8 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         return {
             "id": self.id,
             "metadata": self.params_dict,
+            "certified_by": self.certified_by,
+            "certification_details": self.certification_details,
             "css": self.css,
             "dashboard_title": self.dashboard_title,
             "published": self.published,
@@ -292,7 +300,8 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
 
         for (cls_model, datasource_id), slices in slices_by_datasource.items():
             datasource = (
-                db.session.query(cls_model).filter_by(id=datasource_id).one_or_none()
+                db.session.query(cls_model).filter_by(
+                    id=datasource_id).one_or_none()
             )
 
             if datasource:
@@ -321,7 +330,8 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
 
     @debounce(0.1)
     def clear_cache(self) -> None:
-        cache_manager.cache.delete_memoized(Dashboard.datasets_trimmed_for_slices, self)
+        cache_manager.cache.delete_memoized(
+            Dashboard.datasets_trimmed_for_slices, self)
 
     @classmethod
     @debounce(0.1)
@@ -392,7 +402,8 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
                     id_ = target.get("datasetId")
                     if id_ is None:
                         continue
-                    datasource = ConnectorRegistry.get_datasource_by_id(session, id_)
+                    datasource = ConnectorRegistry.get_datasource_by_id(
+                        session, id_)
                     datasource_ids.add((datasource.id, datasource.type))
 
             copied_dashboard.alter_params(remote_id=dashboard_id)
@@ -472,11 +483,13 @@ if is_feature_enabled("DASHBOARD_CACHE"):
         elif isinstance(obj, (SqlMetric, TableColumn)):
             Dashboard.clear_cache_for_datasource(datasource_id=obj.table_id)
         elif isinstance(obj, (DruidMetric, DruidColumn)):
-            Dashboard.clear_cache_for_datasource(datasource_id=obj.datasource_id)
+            Dashboard.clear_cache_for_datasource(
+                datasource_id=obj.datasource_id)
 
     sqla.event.listen(Dashboard, "after_update", clear_dashboard_cache)
     sqla.event.listen(
-        Dashboard, "after_delete", partial(clear_dashboard_cache, check_modified=False)
+        Dashboard, "after_delete", partial(
+            clear_dashboard_cache, check_modified=False)
     )
     sqla.event.listen(Slice, "after_update", clear_dashboard_cache)
     sqla.event.listen(Slice, "after_delete", clear_dashboard_cache)
