@@ -72,6 +72,7 @@ RUN nohup bash -c "sinopia &" && sleep 2 \
     && cd /app/superset-ui/plugins/legacy-preset-chart-nvd3 && npm publish \
     && cd /app/superset-ui/plugins/plugin-chart-echarts && npm publish \
     && cd /app/superset-ui/plugins/plugin-chart-stylo-pie-table && npm publish \
+    && cd /app/superset-ui/plugins/plugin-chart-concise-card && npm publish \
     && /frontend-mem-nag.sh \
     && cd /app/superset-frontend \
     && npm ci
