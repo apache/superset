@@ -247,13 +247,15 @@ function ChartList(props: ChartListProps) {
           },
         }: any) => (
           <a href={url} data-test={`${sliceName}-list-chart-title`}>
-            {sliceName}{' '}
             {certifiedBy && (
-              <CertifiedIcon
-                certifiedBy={certifiedBy}
-                details={certificationDetails}
-              />
+              <>
+                <CertifiedIcon
+                  certifiedBy={certifiedBy}
+                  details={certificationDetails}
+                />{' '}
+              </>
             )}
+            {sliceName}
           </a>
         ),
         Header: t('Chart'),
@@ -532,8 +534,8 @@ function ChartList(props: ChartListProps) {
         operator: FilterOperator.chartIsCertified,
         unfilteredLabel: t('Any'),
         selects: [
-          { label: t('Yes'), value: 'certified' },
-          { label: t('No'), value: 'not-certified' },
+          { label: t('Yes'), value: true },
+          { label: t('No'), value: false },
         ],
       },
       {

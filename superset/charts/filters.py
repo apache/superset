@@ -64,11 +64,11 @@ class ChartCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-method
     arg_name = "chart_is_certified"
 
     def apply(self, query: Query, value: Any) -> Query:
-        if not value:
-            return query
-        if value == "certified":
+        if value == True:
             return query.filter(and_(Slice.certified_by.isnot(None)))
-        return query.filter(and_(Slice.certified_by.is_(None)))
+        if value == False:
+            return query.filter(and_(Slice.certified_by.is_(None)))
+        return query
 
 
 class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -78,5 +78,6 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         perms = security_manager.user_view_menu_names("datasource_access")
         schema_perms = security_manager.user_view_menu_names("schema_access")
         return query.filter(
-            or_(self.model.perm.in_(perms), self.model.schema_perm.in_(schema_perms))
+            or_(self.model.perm.in_(perms),
+                self.model.schema_perm.in_(schema_perms))
         )

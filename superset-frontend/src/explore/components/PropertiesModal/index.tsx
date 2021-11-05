@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import Modal from 'src/components/Modal';
 import { Form, Row, Col, Input, TextArea } from 'src/common/components';
 import Button from 'src/components/Button';
@@ -32,11 +32,17 @@ type PropertiesModalProps = {
   show: boolean;
   onHide: () => void;
   onSave: (chart: Chart) => void;
+  permissionsError?: string;
+  existingOwners?: SelectValue;
 };
 
 const FormItem = Form.Item;
 
 const StyledFormItem = styled(Form.Item)`
+  margin-bottom: 0;
+`;
+
+const StyledHelpBlock = styled.span`
   margin-bottom: 0;
 `;
 
@@ -66,8 +72,8 @@ export default function PropertiesModal({
     });
   }
 
-  const fetchChartData = useCallback(
-    async function fetchChartData() {
+  const fetchChartOwners = useCallback(
+    async function fetchChartOwners() {
       try {
         const response = await SupersetClient.get({
           endpoint: `/api/v1/chart/${slice.slice_id}`,
@@ -155,8 +161,8 @@ export default function PropertiesModal({
 
   // get the owners of this slice
   useEffect(() => {
-    fetchChartData();
-  }, [fetchChartData]);
+    fetchChartOwners();
+  }, [fetchChartOwners]);
 
   // update name after it's changed in another modal
   useEffect(() => {
@@ -212,6 +218,7 @@ export default function PropertiesModal({
             <h3>{t('Basic information')}</h3>
             <FormItem label={t('Name')} required>
               <Input
+                aria-label={t('Name')}
                 name="name"
                 data-test="properties-modal-name-input"
                 type="text"
@@ -225,19 +232,20 @@ export default function PropertiesModal({
               <StyledFormItem label={t('Description')} name="description">
                 <TextArea rows={3} style={{ maxWidth: '100%' }} />
               </StyledFormItem>
-              <span className="help-block">
+              <StyledHelpBlock className="help-block">
                 {t(
                   'The description can be displayed as widget headers in the dashboard view. Supports markdown.',
                 )}
-              </span>
+              </StyledHelpBlock>
             </FormItem>
+            <h3>{t('Certification')}</h3>
             <FormItem>
               <StyledFormItem label={t('Certified by')} name="certified_by">
                 <Input />
               </StyledFormItem>
-              <span className="help-block">
+              <StyledHelpBlock className="help-block">
                 {t('Person or group that has certified this chart.')}
-              </span>
+              </StyledHelpBlock>
             </FormItem>
             <FormItem>
               <StyledFormItem
@@ -246,9 +254,11 @@ export default function PropertiesModal({
               >
                 <Input />
               </StyledFormItem>
-              <span className="help-block">
-                {t('Details of the certification.')}
-              </span>
+              <StyledHelpBlock className="help-block">
+                {t(
+                  'Any additional detail to show in the certification tooltip.',
+                )}
+              </StyledHelpBlock>
             </FormItem>
           </Col>
           <Col xs={24} md={12}>
@@ -257,11 +267,11 @@ export default function PropertiesModal({
               <StyledFormItem label={t('Cache timeout')} name="cacheTimeout">
                 <Input />
               </StyledFormItem>
-              <span className="help-block">
+              <StyledHelpBlock className="help-block">
                 {t(
                   "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the dataset's timeout if undefined.",
                 )}
-              </span>
+              </StyledHelpBlock>
             </FormItem>
             <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
             <FormItem label={ownersLabel}>
@@ -270,16 +280,16 @@ export default function PropertiesModal({
                 mode="multiple"
                 name="owners"
                 value={selectedOwners || []}
-                options={loadOptions}
                 onChange={setSelectedOwners}
+                options={loadOptions}
                 disabled={!selectedOwners}
                 allowClear
               />
-              <p className="help-block">
+              <StyledHelpBlock className="help-block">
                 {t(
                   'A list of users who can alter the chart. Searchable by name or username.',
                 )}
-              </p>
+              </StyledHelpBlock>
             </FormItem>
           </Col>
         </Row>

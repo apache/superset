@@ -1223,7 +1223,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   ariaLabel={t('Log retention')}
                   placeholder={t('Log retention')}
                   onChange={onLogRetentionChange}
-                  value={currentAlert?.log_retention || DEFAULT_RETENTION}
+                  value={
+                    typeof currentAlert?.log_retention === 'number'
+                      ? currentAlert?.log_retention
+                      : DEFAULT_RETENTION
+                  }
                   options={RETENTION_OPTIONS}
                   sortComparator={propertyComparator('value')}
                 />

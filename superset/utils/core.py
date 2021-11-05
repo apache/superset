@@ -77,7 +77,7 @@ from flask_babel import gettext as __
 from flask_babel.speaklater import LazyString
 from pandas.api.types import infer_dtype
 from pandas.core.dtypes.common import is_numeric_dtype
-from sqlalchemy import event, exc, select, Text
+from sqlalchemy import event, exc, inspect, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.reflection import Inspector
@@ -1276,6 +1276,15 @@ def get_main_database() -> "Database":
     return get_or_create_db("main", db_uri)
 
 
+def get_example_default_schema() -> Optional[str]:
+    """
+    Return the default schema of the examples database, if any.
+    """
+    database = get_example_database()
+    engine = database.get_sqla_engine()
+    return inspect(engine).default_schema_name
+
+
 def backend() -> str:
     return get_example_database().backend
 
@@ -1315,11 +1324,6 @@ def get_metric_name(metric: Metric) -> str:
 
 def get_metric_names(metrics: Sequence[Metric]) -> List[str]:
     return [metric for metric in map(get_metric_name, metrics) if metric]
-
-
-def get_first_metric_name(metrics: Sequence[Metric]) -> Optional[str]:
-    metric_labels = get_metric_names(metrics)
-    return metric_labels[0] if metric_labels else None
 
 
 def ensure_path_exists(path: str) -> None:
@@ -1813,35 +1817,3 @@ def escape_sqla_query_binds(sql: str) -> str:
             sql = sql.replace(bind, bind.replace(":", "\\:"))
             processed_binds.add(bind)
     return sql
-
-
-def normalize_prequery_result_type(
-    value: Union[str, int, float, bool, np.generic]
-) -> Union[str, int, float, bool]:
-    """
-    Convert a value that is potentially a numpy type into its equivalent Python type.
-
-    :param value: primitive datatype in either numpy or python format
-    :return: equivalent primitive python type
-    >>> normalize_prequery_result_type('abc')
-    'abc'
-    >>> normalize_prequery_result_type(True)
-    True
-    >>> normalize_prequery_result_type(123)
-    123
-    >>> normalize_prequery_result_type(np.int16(123))
-    123
-    >>> normalize_prequery_result_type(np.uint32(123))
-    123
-    >>> normalize_prequery_result_type(np.int64(123))
-    123
-    >>> normalize_prequery_result_type(123.456)
-    123.456
-    >>> normalize_prequery_result_type(np.float32(123.456))
-    123.45600128173828
-    >>> normalize_prequery_result_type(np.float64(123.456))
-    123.456
-    """
-    if isinstance(value, np.generic):
-        return value.item()
-    return value
