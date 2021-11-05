@@ -1989,3 +1989,13 @@ class TestDatabaseApi(SupersetTestCase):
                 },
             ]
         }
+
+    def test_get_related_objects(self):
+        example_db = get_example_database()
+        self.login(username="admin")
+        uri = f"api/v1/database/{example_db.id}/related_objects/"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        assert "charts" in rv.json
+        assert "dashboards" in rv.json
+        assert "sqllab_tab_states" in rv.json
