@@ -293,7 +293,6 @@ class QueryContext:
             verbose_map = self.datasource.data.get('verbose_map', {})
             if verbose_map:
                 df.columns = [verbose_map.get(column, column) for column in columns]
-
             result = csv.df_to_escaped_csv(
                 df, index=include_index, **config["CSV_EXPORT"]
             )
