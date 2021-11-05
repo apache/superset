@@ -282,7 +282,9 @@ class BaseDatasource(
             "select_star": self.select_star,
         }
 
-    def data_for_slices(self, slices: List[Slice]) -> Dict[str, Any]:
+    def data_for_slices(  # pylint: disable=too-many-locals
+        self, slices: List[Slice]
+    ) -> Dict[str, Any]:
         """
         The representation of the datasource containing only the required data
         to render the provided slices.
@@ -317,11 +319,23 @@ class BaseDatasource(
                 if "column" in filter_config
             )
 
-            column_names.update(
-                column
-                for column_param in COLUMN_FORM_DATA_PARAMS
-                for column in utils.get_iterable(form_data.get(column_param) or [])
-            )
+            # legacy charts don't have query_context charts
+            query_context = slc.get_query_context()
+            if query_context:
+                column_names.update(
+                    [
+                        column
+                        for query in query_context.queries
+                        for column in query.columns
+                    ]
+                    or []
+                )
+            else:
+                column_names.update(
+                    column
+                    for column_param in COLUMN_FORM_DATA_PARAMS
+                    for column in utils.get_iterable(form_data.get(column_param) or [])
+                )
 
         filtered_metrics = [
             metric
@@ -639,7 +653,6 @@ class BaseColumn(AuditMixinNullable, ImportExportMixin):
 
 
 class BaseMetric(AuditMixinNullable, ImportExportMixin):
-
     """Interface for Metrics"""
 
     __tablename__: Optional[str] = None  # {connector_name}_metric
