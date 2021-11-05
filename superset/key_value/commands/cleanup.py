@@ -20,6 +20,7 @@ from datetime import datetime, timedelta
 from superset.commands.base import BaseCommand
 from superset.models.key_value import KeyValue
 from superset.key_value.dao import KeyValueDAO
+from superset.key_value.utils import is_expired
 from superset.utils.celery import session_scope
 
 logger = logging.getLogger(__name__)
@@ -37,11 +38,9 @@ class CleanupCommand(BaseCommand):
         logger.info("Key value store cleanup starting")
         with session_scope(nullpool=True) as session:
            for keyValue in session.query(KeyValue).all():
-                if keyValue.duration_ms is not None:
-                    compare = keyValue.retrieved_on if keyValue.reset_duration_on_retrieval else keyValue.created_on
-                    if datetime.utcnow() > compare + timedelta(milliseconds=keyValue.duration_ms):
-                        KeyValueDAO.delete(keyValue.key)
-                        logger.info("Deleted expired value: %s", keyValue.key)
+                if is_expired(keyValue):
+                    KeyValueDAO.delete(keyValue.key)
+                    logger.info("Deleted expired value: %s", keyValue.key)
         logger.info("Key value store cleanup ended")
 
     def validate(self) -> None:

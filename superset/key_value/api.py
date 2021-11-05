@@ -79,8 +79,6 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    # TODO: If we decide to generate the key on the client-side, we should
-    # delete the POST endpoint and only support PUT. We also don't need a key parameter.
     @expose("/<string:key>/", methods=["PUT"])
     @protect()
     @safe

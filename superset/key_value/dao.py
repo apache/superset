@@ -26,6 +26,7 @@ from superset.dao.exceptions import (
 )
 from superset.extensions import db
 from superset.models.key_value import KeyValue
+from superset.key_value.utils import is_expired
 
 logger = logging.getLogger(__name__)
 
@@ -37,9 +38,10 @@ class KeyValueDAO:
         Finds a value that has been stored using a particular key
         """
         try:
-            # TODO: Returns None if expired. This will eliminate the need to
-            # run the clean up worker constantly
-            return db.session.query(KeyValue).filter_by(key=id).one_or_none()
+            model = db.session.query(KeyValue).filter_by(key=id).one_or_none()
+            if model and is_expired(model):
+                return None
+            return model
         except SQLAlchemyError as ex:  # pragma: no cover
             logger.error("Could not get value by UUID: %s", str(ex), exc_info=True)
             return None
