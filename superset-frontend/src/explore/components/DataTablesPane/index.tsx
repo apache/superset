@@ -247,8 +247,22 @@ export const DataTablesPane = ({
           } else {
             setData(prevData => ({
               ...prevData,
+              // [{....}]
               [resultType]: json.result[0].data,
             }));
+          }
+          const checkCols = json?.result[0]?.data?.length
+            ? Object.keys(json.result[0].data[0])
+            : null;
+          if (!json.result[0].colnames && checkCols?.length) {
+            let tabKey: string = RESULT_TYPES.results;
+            if (resultType === RESULT_TYPES.samples) {
+              tabKey = RESULT_TYPES.samples;
+            }
+            setColumnNames({
+              ...columnNames,
+              [tabKey]: checkCols,
+            });
           }
           if (json.result[0].colnames) {
             setColumnNames({
