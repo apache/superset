@@ -180,6 +180,13 @@ def create_slices(
         "markup_type": "markdown",
     }
 
+    default_query_context = {
+        "result_format": "json",
+        "result_type": "full",
+        "datasource": {"id": tbl.id, "type": "table",},
+        "queries": [{"columns": [], "metrics": [],},],
+    }
+
     admin = get_admin_user()
     if admin_owner:
         slice_props = dict(
@@ -370,7 +377,8 @@ def create_slices(
                 metrics=[metric],
             ),
             query_context=get_slice_json(
-                {"queries": [{"columns": ["name", "state"], "metrics": [metric],}]}
+                default_query_context,
+                queries=[{"columns": ["name", "state"], "metrics": [metric],}],
             ),
         ),
     ]

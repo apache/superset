@@ -40,6 +40,7 @@ from superset.utils.urls import get_url_path
 from superset.viz import BaseViz, viz_types
 
 if TYPE_CHECKING:
+    from superset.common.query_context import QueryContext
     from superset.connectors.base.models import BaseDatasource
 
 metadata = Model.metadata  # pylint: disable=no-member
@@ -247,16 +248,16 @@ class Slice(  # pylint: disable=too-many-public-methods
         update_time_range(form_data)
         return form_data
 
-    def get_query_context(self) -> Dict[str, Any]:
-        query_context: Dict[str, Any] = {}
-        if not self.query_context:
-            return query_context
-        try:
-            query_context = json.loads(self.query_context)
-        except json.decoder.JSONDecodeError as ex:
-            logger.error("Malformed json in slice's query context", exc_info=True)
-            logger.exception(ex)
-        return query_context
+    def get_query_context(self) -> Optional["QueryContext"]:
+        from superset.common.query_context import QueryContext
+
+        if self.query_context:
+            try:
+                return QueryContext(**json.loads(self.query_context))
+            except json.decoder.JSONDecodeError as ex:
+                logger.error("Malformed json in slice's query context", exc_info=True)
+                logger.exception(ex)
+        return None
 
     def get_explore_url(
         self,

@@ -320,13 +320,13 @@ class BaseDatasource(
             )
 
             # legacy charts don't have query_context charts
-            if slc.query_context:
-                query_context = slc.get_query_context()
+            query_context = slc.get_query_context()
+            if query_context:
                 column_names.update(
                     [
                         column
-                        for query in query_context.get("queries", [])
-                        for column in query.get("columns", [])
+                        for query in query_context.queries
+                        for column in query.columns
                     ]
                     or []
                 )
