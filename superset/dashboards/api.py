@@ -234,8 +234,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         raise_for_access=lambda _self, id_or_slug: DashboardDAO.get_by_id_or_slug(
             id_or_slug
         ),
-        skip=lambda _self, id_or_slug: not is_feature_enabled(
-            "DASHBOARD_CACHE"),
+        skip=lambda _self, id_or_slug: not is_feature_enabled("DASHBOARD_CACHE"),
     )
     @expose("/<id_or_slug>", methods=["GET"])
     @protect()
@@ -292,16 +291,14 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         raise_for_access=lambda _self, id_or_slug: DashboardDAO.get_by_id_or_slug(
             id_or_slug
         ),
-        skip=lambda _self, id_or_slug: not is_feature_enabled(
-            "DASHBOARD_CACHE"),
+        skip=lambda _self, id_or_slug: not is_feature_enabled("DASHBOARD_CACHE"),
     )
     @expose("/<id_or_slug>/datasets", methods=["GET"])
     @protect()
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *
-        args, **kwargs: f"{self.__class__.__name__}.get_datasets",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_datasets",
         log_to_statsd=False,
     )
     def get_datasets(self, id_or_slug: str) -> Response:
@@ -355,16 +352,14 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         raise_for_access=lambda _self, id_or_slug: DashboardDAO.get_by_id_or_slug(
             id_or_slug
         ),
-        skip=lambda _self, id_or_slug: not is_feature_enabled(
-            "DASHBOARD_CACHE"),
+        skip=lambda _self, id_or_slug: not is_feature_enabled("DASHBOARD_CACHE"),
     )
     @expose("/<id_or_slug>/charts", methods=["GET"])
     @protect()
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *
-        args, **kwargs: f"{self.__class__.__name__}.get_charts",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_charts",
         log_to_statsd=False,
     )
     def get_charts(self, id_or_slug: str) -> Response:
@@ -401,8 +396,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         """
         try:
             charts = DashboardDAO.get_charts_for_dashboard(id_or_slug)
-            result = [self.chart_entity_response_schema.dump(
-                chart) for chart in charts]
+            result = [self.chart_entity_response_schema.dump(chart) for chart in charts]
 
             if is_feature_enabled("REMOVE_SLICE_LEVEL_LABEL_COLORS"):
                 # dashboard metadata has dashboard-level label_colors,
@@ -562,8 +556,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *
-        args, **kwargs: f"{self.__class__.__name__}.delete",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
         log_to_statsd=False,
     )
     def delete(self, pk: int) -> Response:
@@ -620,8 +613,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @rison(get_delete_ids_schema)
     @event_logger.log_this_with_context(
-        action=lambda self, *
-        args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
         log_to_statsd=False,
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
@@ -682,8 +674,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @rison(get_export_ids_schema)
     @event_logger.log_this_with_context(
-        action=lambda self, *
-        args, **kwargs: f"{self.__class__.__name__}.export",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
         log_to_statsd=False,
     )  # pylint: disable=too-many-locals
     def export(self, **kwargs: Any) -> Response:
@@ -766,8 +757,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @safe
     @rison(thumbnail_query_schema)
     @event_logger.log_this_with_context(
-        action=lambda self, *
-        args, **kwargs: f"{self.__class__.__name__}.thumbnail",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.thumbnail",
         log_to_statsd=False,
     )
     def thumbnail(self, pk: int, digest: str, **kwargs: Any) -> WerkzeugResponse:
@@ -827,8 +817,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         )
         # If force, request a screenshot from the workers
         if kwargs["rison"].get("force", False):
-            cache_dashboard_thumbnail.delay(
-                dashboard_url, dashboard.digest, force=True)
+            cache_dashboard_thumbnail.delay(dashboard_url, dashboard.digest, force=True)
             return self.response(202, message="OK Async")
         # fetch the dashboard screenshot using the current user and cache if set
         screenshot = DashboardScreenshot(
@@ -837,8 +826,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         # If the screenshot does not exist, request one from the workers
         if not screenshot:
             self.incr_stats("async", self.thumbnail.__name__)
-            cache_dashboard_thumbnail.delay(
-                dashboard_url, dashboard.digest, force=True)
+            cache_dashboard_thumbnail.delay(dashboard_url, dashboard.digest, force=True)
             return self.response(202, message="OK Async")
         # If digests
         if dashboard.digest != digest:
@@ -911,8 +899,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *
-        args, **kwargs: f"{self.__class__.__name__}.import_",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
         log_to_statsd=False,
     )
     def import_(self) -> Response:

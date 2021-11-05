@@ -73,8 +73,7 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
         if is_user_admin():
             return query
 
-        datasource_perms = security_manager.user_view_menu_names(
-            "datasource_access")
+        datasource_perms = security_manager.user_view_menu_names("datasource_access")
         schema_perms = security_manager.user_view_menu_names("schema_access")
 
         is_rbac_disabled_filter = []
@@ -127,8 +126,7 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
                 )
             )
 
-            dashboard_rbac_or_filters.append(
-                Dashboard.id.in_(roles_based_query))
+            dashboard_rbac_or_filters.append(Dashboard.id.in_(roles_based_query))
 
         query = query.filter(
             or_(
