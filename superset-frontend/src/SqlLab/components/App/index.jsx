@@ -50,6 +50,11 @@ class App extends React.PureComponent {
 
   componentDidMount() {
     window.addEventListener('hashchange', this.onHashChanged.bind(this));
+
+    // Horrible hack to disable side swipe navigation when in SQL Lab. Even though the
+    // docs say setting this style on any div will prevent it, turns out it only works
+    // when set on the body element.
+    document.body.style.overscrollBehaviorX = 'none';
   }
 
   componentDidUpdate() {
@@ -65,6 +70,9 @@ class App extends React.PureComponent {
 
   componentWillUnmount() {
     window.removeEventListener('hashchange', this.onHashChanged.bind(this));
+
+    // And now we need to reset the overscroll behavior back to the default.
+    document.body.style.overscrollBehaviorX = 'auto';
   }
 
   onHashChanged() {
