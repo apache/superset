@@ -15,16 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, List
 from datetime import datetime
+from typing import Any, Dict, List
+
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
-from superset.key_value.commands.exceptions import KeyValueGetFailedError
-from superset.key_value.dao import KeyValueDAO
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAOException
+from superset.key_value.commands.exceptions import KeyValueGetFailedError
+from superset.key_value.dao import KeyValueDAO
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,10 @@ class DeleteKeyValueCommand(BaseCommand):
 
     def run(self) -> Model:
         try:
-            return KeyValueDAO.delete(self._key)
+            model = KeyValueDAO.find_by_id(self._key)
+            if not model:
+                return None
+            return KeyValueDAO.delete(model)
         except DAOException as ex:
             logger.exception(ex.exception)
             raise KeyValueGetFailedError() from ex

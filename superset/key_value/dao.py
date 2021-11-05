@@ -15,10 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from uuid import UUID
 from typing import Optional
 
 from sqlalchemy.exc import SQLAlchemyError
+
+from superset.dao.exceptions import (
+    DAOCreateFailedError,
+    DAODeleteFailedError,
+    DAOUpdateFailedError,
+)
 from superset.extensions import db
 from superset.models.key_value import KeyValue
 
@@ -26,11 +31,10 @@ logger = logging.getLogger(__name__)
 
 # TODO: Extend from BaseDAO when it supports generic IDs.
 class KeyValueDAO:
-
     @staticmethod
-    def find_by_id(id: UUID) -> Optional[UUID]:
+    def find_by_id(id: str) -> Optional[KeyValue]:
         """
-        Finds a value that has been stored using a particular UUID
+        Finds a value that has been stored using a particular key
         """
         try:
             # TODO: Returns None if expired. This will eliminate the need to
@@ -41,28 +45,40 @@ class KeyValueDAO:
             return None
 
     @staticmethod
-    def create(user: int, id: UUID, value: str) -> Optional[KeyValue]:
+    def create(model: KeyValue) -> KeyValue:
         """
-        Creates a value for a particular UUID
+        Creates a value for a particular key
         """
-        model = KeyValue(created_by_fk=user, key=id, value=value)
-        db.session.add(model)
-        db.session.commit()
-        return model
+        try:
+            db.session.add(model)
+            db.session.commit()
+            return model
+        except SQLAlchemyError as ex:  # pragma: no cover
+            db.session.rollback()
+            raise DAOCreateFailedError(exception=ex) from ex
 
     @staticmethod
-    def delete(id: UUID) -> None:
+    def delete(model: KeyValue) -> KeyValue:
         """
-        Deletes a value for a particular UUID
+        Deletes a value for a particular key
         """
-        model = KeyValueDAO.find_by_id(id)
-        db.session.delete(model)
-        db.session.commit()
+        try:
+            db.session.delete(model)
+            db.session.commit()
+            return model
+        except SQLAlchemyError as ex:  # pragma: no cover
+            db.session.rollback()
+            raise DAODeleteFailedError(exception=ex) from ex
 
     @staticmethod
-    def update(model: KeyValue) -> Optional[KeyValue]:
+    def update(model: KeyValue) -> KeyValue:
         """
-        Updates a value for a particular UUID
+        Updates a value for a particular key
         """
-        db.session.merge(model)
-        db.session.commit()
+        try:
+            db.session.merge(model)
+            db.session.commit()
+            return model
+        except SQLAlchemyError as ex:  # pragma: no cover
+            db.session.rollback()
+            raise DAOUpdateFailedError(exception=ex) from ex

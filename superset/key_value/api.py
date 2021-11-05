@@ -21,19 +21,19 @@ from flask_appbuilder.api import expose, permission_name, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.extensions import event_logger
 from superset.key_value.commands.create import CreateKeyValueCommand
-from superset.key_value.commands.get import GetKeyValueCommand
 from superset.key_value.commands.delete import DeleteKeyValueCommand
-from superset.key_value.commands.update import UpdateKeyValueCommand
 from superset.key_value.commands.exceptions import (
     KeyValueCreateFailedError,
-    KeyValueGetFailedError,
     KeyValueDeleteFailedError,
-    KeyValueUpdateFailedError
+    KeyValueGetFailedError,
+    KeyValueUpdateFailedError,
 )
+from superset.key_value.commands.get import GetKeyValueCommand
+from superset.key_value.commands.update import UpdateKeyValueCommand
 from superset.key_value.dao import KeyValueDAO
 from superset.key_value.schemas import KeyValueSchema
-from superset.extensions import event_logger
 from superset.models.key_value import KeyValue
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
 
@@ -46,7 +46,12 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
     class_permission_name = "KeyValue"
     resource_name = "key_value_store"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
-    include_route_methods = {RouteMethod.POST, RouteMethod.PUT, RouteMethod.GET, RouteMethod.DELETE}
+    include_route_methods = {
+        RouteMethod.POST,
+        RouteMethod.PUT,
+        RouteMethod.GET,
+        RouteMethod.DELETE,
+    }
     allow_browser_login = True
 
     @expose("/", methods=["POST"])
@@ -59,13 +64,12 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
     )
     def post(self) -> Response:
         # TODO Add docs
-        # TODO Generate the UUID on the server side and return it?
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
         try:
             item = self.schema.load(request.json)
-            new_model = CreateKeyValueCommand(g.user, item).run()
-            return self.response(201, result=item)
+            key = CreateKeyValueCommand(g.user, item).run()
+            return self.response(201, key=key)
         except KeyValueCreateFailedError as ex:
             logger.error(
                 "Error creating value %s: %s",
@@ -141,7 +145,9 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
     def delete(self, key: str) -> Response:
         # TODO Add docs
         try:
-            DeleteKeyValueCommand(g.user, key).run()
+            model = DeleteKeyValueCommand(g.user, key).run()
+            if not model:
+                return self.response_404()
             return self.response(200, message="Deleted successfully")
         except KeyValueDeleteFailedError as ex:
             logger.error(

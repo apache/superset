@@ -14,18 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask_appbuilder import Model
-from sqlalchemy import Column, ForeignKey, Integer, Text, Boolean, DateTime
-from sqlalchemy_utils import UUIDType
 from datetime import datetime
-from uuid import uuid4
+
+from flask_appbuilder import Model
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, Text
+
 
 class KeyValue(Model):
 
     """Key value store entity"""
 
     __tablename__ = "key_value"
-    key = Column(UUIDType(binary=True), primary_key=True, default=uuid4)
+    key = Column(Text, primary_key=True)
     value = Column(Text, nullable=False)
     created_by_fk = Column(Integer, ForeignKey("ab_user.id"))
     created_on = Column(DateTime, default=datetime.utcnow)
