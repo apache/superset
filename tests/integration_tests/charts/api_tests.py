@@ -126,6 +126,21 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             db.session.commit()
 
     @pytest.fixture()
+    def create_certified_charts(self):
+        with self.create_app().app_context():
+            charts = []
+            admin = self.get_user("admin")
+            for cx in range(CHARTS_FIXTURE_COUNT - 1):
+                charts.append(self.insert_chart(f"name{cx}", [
+                              admin.id], 1, certified_by="John Doe", certification_details="Sample certification"))
+            yield charts
+
+            # rollback changes
+            for chart in charts:
+                db.session.delete(chart)
+            db.session.commit()
+
+    @pytest.fixture()
     def create_chart_with_report(self):
         with self.create_app().app_context():
             admin = self.get_user("admin")
@@ -230,7 +245,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         chart_ids = list()
         for chart_name_index in range(chart_count):
             chart_ids.append(
-                self.insert_chart(f"title{chart_name_index}", [admin.id], 1, admin).id
+                self.insert_chart(f"title{chart_name_index}", [
+                                  admin.id], 1, admin).id
             )
         self.login(username="admin")
         argument = chart_ids
@@ -308,7 +324,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             .one_or_none()
         )
 
-        charts = db.session.query(Slice.id).filter(Slice.slice_name.like("name%")).all()
+        charts = db.session.query(Slice.id).filter(
+            Slice.slice_name.like("name%")).all()
         chart_ids = [chart.id for chart in charts]
         chart_ids.append(chart_with_report.id)
 
@@ -395,7 +412,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         charts = list()
         for chart_name_index in range(chart_count):
             charts.append(
-                self.insert_chart(f"title{chart_name_index}", [user_alpha1.id], 1)
+                self.insert_chart(f"title{chart_name_index}", [
+                                  user_alpha1.id], 1)
             )
 
         owned_chart = self.insert_chart("title_owned", [user_alpha2.id], 1)
@@ -447,6 +465,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             "datasource_id": 1,
             "datasource_type": "table",
             "dashboards": dashboards_ids,
+            "certified_by": "John Doe",
+            "certification_details": "Sample certification",
         }
         self.login(username="admin")
         uri = f"api/v1/chart/"
@@ -523,7 +543,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
             response,
-            {"message": {"datasource_type": ["Must be one of: druid, table, view."]}},
+            {"message": {"datasource_type": [
+                "Must be one of: druid, table, view."]}},
         )
         chart_data = {
             "slice_name": "title1",
@@ -534,7 +555,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(rv.status_code, 422)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
-            response, {"message": {"datasource_id": ["Dataset does not exist"]}}
+            response, {"message": {
+                "datasource_id": ["Dataset does not exist"]}}
         )
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -547,11 +569,13 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
 
         admin = self.get_user("admin")
         gamma = self.get_user("gamma")
-        birth_names_table_id = SupersetTestCase.get_table(name="birth_names").id
+        birth_names_table_id = SupersetTestCase.get_table(
+            name="birth_names").id
         chart_id = self.insert_chart(
             "title", [admin.id], birth_names_table_id, admin
         ).id
-        dash_id = db.session.query(Dashboard.id).filter_by(slug="births").first()[0]
+        dash_id = db.session.query(Dashboard.id).filter_by(
+            slug="births").first()[0]
         chart_data = {
             "slice_name": "title1_changed",
             "description": "description1",
@@ -562,13 +586,16 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             "datasource_id": birth_names_table_id,
             "datasource_type": "table",
             "dashboards": [dash_id],
+            "certified_by": "Mario Rossi",
+            "certification_details": "Edited certification",
         }
         self.login(username="admin")
         uri = f"api/v1/chart/{chart_id}"
         rv = self.put_assert_metric(uri, chart_data, "put")
         self.assertEqual(rv.status_code, 200)
         model = db.session.query(Slice).get(chart_id)
-        related_dashboard = db.session.query(Dashboard).filter_by(slug="births").first()
+        related_dashboard = db.session.query(
+            Dashboard).filter_by(slug="births").first()
         self.assertEqual(model.created_by, admin)
         self.assertEqual(model.slice_name, "title1_changed")
         self.assertEqual(model.description, "description1")
@@ -580,7 +607,10 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(model.datasource_id, birth_names_table_id)
         self.assertEqual(model.datasource_type, "table")
         self.assertEqual(model.datasource_name, full_table_name)
-        self.assertIn(model.id, [slice.id for slice in related_dashboard.slices])
+        self.assertEqual(model.certified_by, "Mario Rossi")
+        self.assertEqual(model.certification_details, "Edited certification")
+        self.assertIn(
+            model.id, [slice.id for slice in related_dashboard.slices])
         db.session.delete(model)
         db.session.commit()
 
@@ -680,20 +710,24 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.login(username="admin")
 
         chart_data = {"datasource_id": 1, "datasource_type": "unknown"}
-        rv = self.put_assert_metric(f"/api/v1/chart/{chart.id}", chart_data, "put")
+        rv = self.put_assert_metric(
+            f"/api/v1/chart/{chart.id}", chart_data, "put")
         self.assertEqual(rv.status_code, 400)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
             response,
-            {"message": {"datasource_type": ["Must be one of: druid, table, view."]}},
+            {"message": {"datasource_type": [
+                "Must be one of: druid, table, view."]}},
         )
 
         chart_data = {"datasource_id": 0, "datasource_type": "table"}
-        rv = self.put_assert_metric(f"/api/v1/chart/{chart.id}", chart_data, "put")
+        rv = self.put_assert_metric(
+            f"/api/v1/chart/{chart.id}", chart_data, "put")
         self.assertEqual(rv.status_code, 422)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
-            response, {"message": {"datasource_id": ["Dataset does not exist"]}}
+            response, {"message": {
+                "datasource_id": ["Dataset does not exist"]}}
         )
 
         db.session.delete(chart)
@@ -730,6 +764,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(rv.status_code, 200)
         expected_result = {
             "cache_timeout": None,
+            "certified_by": "John Doe",
+            "certification_details": "Sample certification",
             "dashboards": [],
             "description": None,
             "owners": [
@@ -829,7 +865,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         Chart API: Test get charts filter
         """
         self.login(username="admin")
-        arguments = {"filters": [{"col": "slice_name", "opr": "sw", "value": "G"}]}
+        arguments = {"filters": [
+            {"col": "slice_name", "opr": "sw", "value": "G"}]}
         uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         self.assertEqual(rv.status_code, 200)
@@ -903,15 +940,35 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             self.assertEqual(
                 item["description"], expected_response[index]["description"]
             )
-            self.assertEqual(item["slice_name"], expected_response[index]["slice_name"])
-            self.assertEqual(item["viz_type"], expected_response[index]["viz_type"])
+            self.assertEqual(item["slice_name"],
+                             expected_response[index]["slice_name"])
+            self.assertEqual(item["viz_type"],
+                             expected_response[index]["viz_type"])
 
     @pytest.mark.usefixtures("load_energy_table_with_slice", "load_energy_charts")
     def test_admin_gets_filtered_energy_slices(self):
         # test filtering on datasource_name
         arguments = {
             "filters": [
-                {"col": "slice_name", "opr": "chart_all_text", "value": "energy",}
+                {"col": "slice_name", "opr": "chart_all_text", "value": "energy", }
+            ],
+            "keys": ["none"],
+            "columns": ["slice_name"],
+        }
+        self.login(username="admin")
+
+        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        rv = self.get_assert_metric(uri, "get_list")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data["count"], 8)
+
+    @pytest.mark.usefixtures("create_certified_charts")
+    def test_admin_gets_filtered_energy_slices(self):
+        # test filtering on datasource_name
+        arguments = {
+            "filters": [
+                {"col": "slice_name", "opr": "chart_is_certified", "value": True, }
             ],
             "keys": ["none"],
             "columns": ["slice_name"],
@@ -929,7 +986,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         # test filtering on datasource_name
         arguments = {
             "filters": [
-                {"col": "slice_name", "opr": "chart_all_text", "value": "energy",}
+                {"col": "slice_name", "opr": "chart_all_text", "value": "energy", }
             ],
             "keys": ["none"],
             "columns": ["slice_name"],
@@ -1087,7 +1144,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         """
         self.login(username="admin")
         chart = db.session.query(Slice).filter_by(slice_name="Genders").one()
-        rv = self.get_assert_metric(f"api/v1/chart/{chart.id}/data/", "get_data")
+        rv = self.get_assert_metric(
+            f"api/v1/chart/{chart.id}/data/", "get_data")
         data = json.loads(rv.data.decode("utf-8"))
         assert data == {
             "message": "Chart has no query context saved. Please save the chart again."
@@ -1132,7 +1190,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
                 "result_type": "full",
             }
         )
-        rv = self.get_assert_metric(f"api/v1/chart/{chart.id}/data/", "get_data")
+        rv = self.get_assert_metric(
+            f"api/v1/chart/{chart.id}/data/", "get_data")
         data = json.loads(rv.data.decode("utf-8"))
         assert data["result"][0]["status"] == "success"
         assert data["result"][0]["rowcount"] == 2
@@ -1162,7 +1221,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         )
         self.assertEqual(
             data["result"][0]["rejected_filters"],
-            [{"column": "__time_origin", "reason": "not_druid_datasource"},],
+            [{"column": "__time_origin", "reason": "not_druid_datasource"}, ],
         )
         expected_row_count = self.get_expected_row_count("client_id_2")
         self.assertEqual(data["result"][0]["rowcount"], expected_row_count)
@@ -1215,7 +1274,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
-        "superset.utils.core.current_app.config", {**app.config, "SQL_MAX_ROW": 10},
+        "superset.utils.core.current_app.config", {
+            **app.config, "SQL_MAX_ROW": 10},
     )
     def test_chart_data_sql_max_row_limit(self):
         """
@@ -1231,7 +1291,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
-        "superset.common.query_object.config", {**app.config, "SAMPLES_ROW_LIMIT": 5},
+        "superset.common.query_object.config", {
+            **app.config, "SAMPLES_ROW_LIMIT": 5},
     )
     def test_chart_data_sample_default_limit(self):
         """
@@ -1267,7 +1328,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
-        "superset.utils.core.current_app.config", {**app.config, "SQL_MAX_ROW": 5},
+        "superset.utils.core.current_app.config", {
+            **app.config, "SQL_MAX_ROW": 5},
     )
     def test_chart_data_sql_max_row_sample_limit(self):
         """
@@ -1419,7 +1481,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         time_grain = "P1Y"
         request_payload["queries"][0]["is_timeseries"] = True
         request_payload["queries"][0]["groupby"] = []
-        request_payload["queries"][0]["extras"] = {"time_grain_sqla": time_grain}
+        request_payload["queries"][0]["extras"] = {
+            "time_grain_sqla": time_grain}
         request_payload["queries"][0]["granularity"] = "ds"
         request_payload["queries"][0]["post_processing"] = [
             {
@@ -1559,7 +1622,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         data = json.loads(rv.data.decode("utf-8"))
         keys = list(data.keys())
         self.assertCountEqual(
-            keys, ["channel_id", "job_id", "user_id", "status", "errors", "result_url"]
+            keys, ["channel_id", "job_id", "user_id",
+                   "status", "errors", "result_url"]
         )
 
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
@@ -1586,11 +1650,13 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         ) as patched_run:
             request_payload = get_query_context("birth_names")
             request_payload["result_type"] = utils.ChartDataResultType.FULL
-            rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+            rv = self.post_assert_metric(
+                CHART_DATA_URI, request_payload, "data")
             self.assertEqual(rv.status_code, 200)
             data = json.loads(rv.data.decode("utf-8"))
             patched_run.assert_called_once_with(force_cached=True)
-            self.assertEqual(data, {"result": [{"query": "select * from foo"}]})
+            self.assertEqual(
+                data, {"result": [{"query": "select * from foo"}]})
 
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -1754,14 +1820,16 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         form_data = {
             "formData": (buf, "chart_export.zip"),
         }
-        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        rv = self.client.post(uri, data=form_data,
+                              content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 200
         assert response == {"message": "OK"}
 
         database = (
-            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+            db.session.query(Database).filter_by(
+                uuid=database_config["uuid"]).one()
         )
         assert database.database_name == "imported_database"
 
@@ -1770,7 +1838,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         assert dataset.table_name == "imported_dataset"
         assert str(dataset.uuid) == dataset_config["uuid"]
 
-        chart = db.session.query(Slice).filter_by(uuid=chart_config["uuid"]).one()
+        chart = db.session.query(Slice).filter_by(
+            uuid=chart_config["uuid"]).one()
         assert chart.table == dataset
 
         chart.owners = []
@@ -1792,7 +1861,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         form_data = {
             "formData": (buf, "chart_export.zip"),
         }
-        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        rv = self.client.post(uri, data=form_data,
+                              content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 200
@@ -1803,7 +1873,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         form_data = {
             "formData": (buf, "chart_export.zip"),
         }
-        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        rv = self.client.post(uri, data=form_data,
+                              content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 422
@@ -1832,7 +1903,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             "formData": (buf, "chart_export.zip"),
             "overwrite": "true",
         }
-        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        rv = self.client.post(uri, data=form_data,
+                              content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 200
@@ -1840,10 +1912,12 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
 
         # clean up
         database = (
-            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+            db.session.query(Database).filter_by(
+                uuid=database_config["uuid"]).one()
         )
         dataset = database.tables[0]
-        chart = db.session.query(Slice).filter_by(uuid=chart_config["uuid"]).one()
+        chart = db.session.query(Slice).filter_by(
+            uuid=chart_config["uuid"]).one()
 
         chart.owners = []
         dataset.owners = []
@@ -1877,7 +1951,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         form_data = {
             "formData": (buf, "chart_export.zip"),
         }
-        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        rv = self.client.post(uri, data=form_data,
+                              content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 422
@@ -2033,5 +2108,6 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.maxDiff = None
         self.assertEqual(len(unique_names), SERIES_LIMIT)
         self.assertEqual(
-            set(column for column in data[0].keys()), {"state", "name", "sum__num"}
+            set(column for column in data[0].keys()), {
+                "state", "name", "sum__num"}
         )

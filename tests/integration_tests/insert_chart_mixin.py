@@ -36,6 +36,8 @@ class InsertChartMixin:
         viz_type: Optional[str] = None,
         params: Optional[str] = None,
         cache_timeout: Optional[int] = None,
+        certified_by: Optional[str] = None,
+        certification_details: Optional[str] = None,
     ) -> Slice:
         obj_owners = list()
         for owner in owners:
@@ -46,6 +48,8 @@ class InsertChartMixin:
         )
         slice = Slice(
             cache_timeout=cache_timeout,
+            certified_by=certified_by,
+            certification_details=certification_details,
             created_by=created_by,
             datasource_id=datasource.id,
             datasource_name=datasource.name,
