@@ -170,7 +170,17 @@ class DashboardCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-me
 
     def apply(self, query: Query, value: Any) -> Query:
         if value == True:
-            return query.filter(and_(Dashboard.certified_by.isnot(None)))
+            return query.filter(
+                and_(
+                    Dashboard.certified_by.isnot(None),
+                    Dashboard.certified_by.isnot(""),
+                )
+            )
         if value == False:
-            return query.filter(and_(Dashboard.certified_by.is_(None)))
+            return query.filter(
+                and_(
+                    (Dashboard.certified_by.is_(None))
+                    | (Dashboard.certified_by.is_("")),
+                )
+            )
         return query

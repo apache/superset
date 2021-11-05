@@ -65,9 +65,13 @@ class ChartCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-method
 
     def apply(self, query: Query, value: Any) -> Query:
         if value == True:
-            return query.filter(and_(Slice.certified_by.isnot(None)))
+            return query.filter(
+                and_(Slice.certified_by.isnot(None), Slice.certified_by.isnot(""),)
+            )
         if value == False:
-            return query.filter(and_(Slice.certified_by.is_(None)))
+            return query.filter(
+                and_((Slice.certified_by.is_(None)) | (Slice.certified_by.is_("")),)
+            )
         return query
 
 
