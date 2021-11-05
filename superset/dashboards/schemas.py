@@ -241,8 +241,10 @@ class DashboardPostSchema(BaseDashboardSchema):
         description=json_metadata_description, validate=validate_json_metadata,
     )
     published = fields.Boolean(description=published_description)
-    certified_by = fields.String(description=certified_by_description)
-    certification_details = fields.String(description=certification_details_description)
+    certified_by = fields.String(description=certified_by_description, allow_none=True)
+    certification_details = fields.String(
+        description=certification_details_description, allow_none=True
+    )
 
 
 class DashboardPutSchema(BaseDashboardSchema):
@@ -268,8 +270,10 @@ class DashboardPutSchema(BaseDashboardSchema):
         validate=validate_json_metadata,
     )
     published = fields.Boolean(description=published_description, allow_none=True)
-    certified_by = fields.String(description=certified_by_description)
-    certification_details = fields.String(description=certification_details_description)
+    certified_by = fields.String(description=certified_by_description, allow_none=True)
+    certification_details = fields.String(
+        description=certification_details_description, allow_none=True
+    )
 
 
 class ChartFavStarResponseResult(Schema):

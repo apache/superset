@@ -119,17 +119,18 @@ export default function PropertiesModal({
   }) => {
     setSubmitting(true);
     const {
-      certified_by,
-      certification_details,
+      certified_by: certifiedBy,
+      certification_details: certificationDetails,
       description,
-      cache_timeout,
+      cache_timeout: cacheTimeout,
     } = values;
     const payload: { [key: string]: any } = {
       slice_name: name || null,
       description: description || null,
-      cache_timeout: cache_timeout || null,
-      certified_by: certified_by || null,
-      certification_details: certification_details || null,
+      cache_timeout: cacheTimeout || null,
+      certified_by: certifiedBy || null,
+      certification_details:
+        certifiedBy && certificationDetails ? certificationDetails : null,
     };
     if (selectedOwners) {
       payload.owners = (selectedOwners as {

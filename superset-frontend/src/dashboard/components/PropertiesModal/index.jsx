@@ -302,7 +302,8 @@ class PropertiesModal extends React.PureComponent {
           json_metadata: jsonMetadata || null,
           owners,
           certified_by: certifiedBy,
-          certification_details: certificationDetails,
+          certification_details:
+            certifiedBy && certificationDetails ? certificationDetails : null,
           ...morePutProps,
         }),
       }).then(({ json: { result } }) => {
