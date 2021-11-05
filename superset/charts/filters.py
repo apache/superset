@@ -64,11 +64,11 @@ class ChartCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-method
     arg_name = "chart_is_certified"
 
     def apply(self, query: Query, value: Any) -> Query:
-        if value == True:
+        if value is True:
             return query.filter(
                 and_(Slice.certified_by.isnot(None), Slice.certified_by.isnot(""),)
             )
-        if value == False:
+        if value is False:
             return query.filter(
                 and_((Slice.certified_by.is_(None)) | (Slice.certified_by.is_("")),)
             )
