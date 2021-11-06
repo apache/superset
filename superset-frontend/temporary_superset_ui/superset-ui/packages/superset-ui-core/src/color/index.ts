@@ -27,5 +27,6 @@ export { default as getSequentialSchemeRegistry } from './SequentialSchemeRegist
 export { default as SequentialScheme } from './SequentialScheme';
 export { default as ColorSchemeRegistry } from './ColorSchemeRegistry';
 export * from './colorSchemes';
+export * from './utils';
 
 export const BRAND_COLOR = '#00A699';
