@@ -9,6 +9,7 @@
 /* eslint-disable */
 
 import d3tip from 'd3-tip';
+import { getContrastingColor } from '@superset-ui/core';
 import './d3tip.css';
 
 var d3 = typeof require === 'function' ? require('d3') : window.d3;
@@ -1664,7 +1665,12 @@ CalHeatMap.prototype = {
       .attr('class', function (d) {
         return 'subdomain-text' + parent.getHighlightClassName(d.t);
       })
-      .call(formatSubDomainText);
+      .call(formatSubDomainText)
+      .attr('fill', d => {
+        if (!d.v) return '#000';
+        const rgb = parent.legendScale(Math.min(d.v, options.legend[options.legend.length - 1]));
+        return getContrastingColor(rgb, 135);
+      });
   },
 
   /**
