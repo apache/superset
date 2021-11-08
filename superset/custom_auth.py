@@ -1,17 +1,15 @@
 import functools
-from datetime import timedelta, datetime
-from json import loads
 from os import environ
 import logging
 from flask import redirect, g, flash, request, make_response, jsonify
 from flask_appbuilder.security.views import AuthDBView
 from flask_appbuilder.security.views import expose
-from flask_login import login_user
 import boto3
 from botocore.config import Config
 import json
 
 from superset.security import SupersetSecurityManager
+from superset.peak import authorizer
 
 BOTO_READ_TIMEOUT = float(environ.get('BOTO_READ_TIMEOUT', 10))
 BOTO_MAX_ATTEMPTS = int(environ.get('BOTO_MAX_ATTEMPTS', 3))
@@ -20,16 +18,6 @@ config = Config(
     retries={'total_max_attempts': BOTO_MAX_ATTEMPTS})
 
 lambda_client = boto3.client('lambda', config=config)
-
-
-def has_solution_write_access(privileges):
-    for config in privileges['level']['tenant']['tenants']:
-        if config['tenant'] == environ['TENANT']:
-            for resource in config['resources']:
-                if (resource['name'] == 'SOLUTION MANAGER') and (resource['action'] == 'write'):
-                    return True
-    return False
-
 
 def use_ip_auth(f):
     """
@@ -71,37 +59,13 @@ class CustomAuthDBView(AuthDBView):
     @expose('/login/', methods=['GET', 'POST'])
     def login(self):
         redirect_url = self.appbuilder.get_url_for_index
-        user = 'guest'
         try:
             if request.args.get('redirect') is not None:
                 redirect_url = request.args.get('redirect')
 
             if request.args.get('authToken') is not None:
                 token = 'Bearer {}'.format(request.args.get('authToken'))
-                lambda_payload = json.dumps({
-                        'authorizationToken': token
-                    })
-                response = lambda_client.invoke(
-                    FunctionName='ais-service-authentication-{}-auth'.format(environ['STAGE']),
-                    Payload=lambda_payload)
-                result = json.loads(response['Payload'].read())
-                auth_response = result['context']
-                if not auth_response['tenant'] == environ['TENANT']:
-                    raise Exception('Tenant mismatch in token')
-                if (auth_response['role'] == 'tenantManager'):
-                    user = 'admin'
-                elif (auth_response['role'] == 'tenantAdmin'):
-                    user = 'peakadmin'
-                else:
-                    privileges = loads(auth_response['privileges'])
-                    if has_solution_write_access(privileges):
-                        user = 'peakuser'
-                # TODO: If user does not have dashboard "authentication failed"
-                user = self.appbuilder.sm.find_user(user)
-                login_user(user, remember=False,
-                           duration=timedelta(
-                            auth_response['exp'] - int(
-                                datetime.now().timestamp())))
+                authorizer.authorize(token, self.appbuilder.sm)
                 return redirect(redirect_url)
             elif g.user is not None and g.user.is_authenticated:
                 return redirect(redirect_url)

@@ -23,8 +23,8 @@ from typing import Any, Callable, cast, Dict, List, Optional, Union
 import os
 from urllib import parse
 
+from superset import security_manager
 from superset.custom_auth import use_ip_auth
-from json import loads
 
 import backoff
 import humanize
@@ -38,6 +38,8 @@ from flask_appbuilder.security.decorators import (
     has_access_api,
     permission_name,
 )
+
+from superset.peak.decorators import has_superset_api_access, check_access_and_create_session
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __, lazy_gettext as _, ngettext
 from jinja2.exceptions import TemplateError
@@ -671,7 +673,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "superset/import_dashboards.html", databases=databases
         )
 
-    @has_access
+    @check_access_and_create_session
     @event_logger.log_this
     @expose("/explore/<datasource_type>/<int:datasource_id>/", methods=["GET", "POST"])
     @expose("/explore/", methods=["GET", "POST"])
@@ -1856,17 +1858,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             dashboard, raise_if_false=False
         ) and security_manager.can_access("can_save_dash", "Superset")
 
-        #  CHECK - Commented for now need to bas chart_only_mode to frontend
-
-        # dash_save_perm = security_manager.can_access("can_save_dash", "Superset")
-        # superset_can_explore = security_manager.can_access("can_explore", "Superset")
-        # superset_can_csv = security_manager.can_access("can_csv", "Superset")
-        # slice_can_edit = security_manager.can_access("can_edit", "SliceModelView")
-
-        # charts_only_mode = request.args.get("chartsOnly") == "true"
-        # standalone_mode = request.args.get("standalone") == "true" or charts_only_mode
-        # edit_mode = request.args.get("edit") == "true"
-
         charts_only_mode = request.args.get("chartsOnly") == "true"
         standalone_mode = ReservedUrlParameters.is_standalone_mode() or charts_only_mode
         edit_mode = (
@@ -1878,28 +1869,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             dash_edit_perm=dash_edit_perm,
             edit_mode=edit_mode,
         )
-
-        # dashboard_data = dash.data
-        # dashboard_data.update(
-        #     {
-        #         "standalone_mode": standalone_mode,
-        #         "dash_save_perm": dash_save_perm,
-        #         "dash_edit_perm": dash_edit_perm,
-        #         "superset_can_explore": superset_can_explore,
-        #         "superset_can_csv": superset_can_csv,
-        #         "slice_can_edit": slice_can_edit,
-        #         "charts_only_mode": charts_only_mode,
-        #     }
-        # )
-        # isGammaUser = security_manager.contains_gamma_role([role.name for role in list(get_user_roles())])
-        # bootstrap_data = {
-        #     "user_id": g.user.get_id(),
-        #     "isGammaUser" : isGammaUser,
-        #     "dashboard_data": dashboard_data,
-        #     "datasources": {ds.uid: ds.data for ds in datasources},
-        #     "common": self.common_bootstrap_payload(),
-        #     "editMode": edit_mode,
-        # }
 
         bootstrap_data = {
             "user": bootstrap_user_data(g.user, include_perms=True),
@@ -2025,7 +1994,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         return json_success(json.dumps({"table_id": table.id}))
 
-    @has_access
+    @expose("/version/", methods=["GET"])
+    def version(self) -> FlaskResponse:
+        return json_success(json.dumps({"version": config.get("SUPERSET_VERSION")}))
+
+    @has_superset_api_access
     @expose("/sqllab_viz/", methods=["POST"])
     @event_logger.log_this
     def sqllab_viz(self) -> FlaskResponse:  # pylint: disable=no-self-use
