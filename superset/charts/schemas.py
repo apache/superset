@@ -1014,7 +1014,7 @@ class ChartDataQueryObjectSchema(Schema):
         description="Is the `query_object` a timeseries.", allow_none=True,
     )
     series_columns = fields.List(
-        fields.String(),
+        fields.Raw(),
         description="Columns to use when limiting series count. "
         "All columns must be present in the `columns` property. "
         "Requires `series_limit` and `series_limit_metric` to be set.",
