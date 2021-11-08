@@ -94,7 +94,7 @@ export default class TextControl<
     });
   };
 
-  render = () => {
+  render() {
     let { value } = this.state;
     if (this.initialValue !== this.props.value) {
       this.initialValue = this.props.value;
@@ -115,5 +115,5 @@ export default class TextControl<
         />
       </div>
     );
-  };
+  }
 }
