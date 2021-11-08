@@ -324,6 +324,42 @@ describe('Nativefilters Sanity test', () => {
       .type("CA{enter}");
     cy.contains("Filter has default value").click();
   });
+  it("User can check 'Filter has default value'", () => {
+    cy.get(nativeFilters.filterFromDashboardView.expand)
+      .should("be.visible")
+      .click();
+    cy.get(nativeFilters.createFilterButton).should("be.visible").click();
+    cy.get(nativeFilters.modal.container).should("be.visible");
+    cy.contains("Filter has default value").click();
+    cy.contains('Fill all required fields to enable "Default Value"').should(
+      "be.visible"
+    );
+    cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.filterName)
+      .click()
+      .type("name");
+    cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.datasetName)
+      .click()
+      .type("Video Games Sales{enter}");
+
+    cy.get(".loading inline-centered css-101mkpk").should("not.exist");
+    // hack for unclickable datetime
+    cy.wait(5000);
+    cy.get(nativeFilters.filtersPanel.filterInfoInput)
+      .last()
+      .should("be.visible")
+      .click({ force: true });
+    cy.get(nativeFilters.filtersPanel.filterInfoInput).last().type("name");
+    cy.get(nativeFilters.filtersPanel.inputDropdown)
+      .should("be.visible", { timeout: 20000 })
+      .last()
+      .click();
+    cy.get(nativeFilters.filtersPanel.columnEmptyInput)
+      .should("be.visible")
+      .type("CA{enter}");
+    cy.contains("Filter has default value").click();
+  });
 });
 
 xdescribe('Nativefilters', () => {
