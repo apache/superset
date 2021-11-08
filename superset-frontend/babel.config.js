@@ -38,6 +38,7 @@ module.exports = {
       '@babel/preset-react',
       { development: process.env.BABEL_ENV === 'development' },
     ],
+    ['@emotion/babel-preset-css-prop'],
   ],
   plugins: [
     'lodash',
@@ -64,7 +65,6 @@ module.exports = {
             targets: { node: 'current' },
           },
         ],
-        ['@emotion/babel-preset-css-prop'],
       ],
       plugins: ['babel-plugin-dynamic-import-node'],
     },
