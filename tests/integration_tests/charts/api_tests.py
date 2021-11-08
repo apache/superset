@@ -56,6 +56,7 @@ from superset.utils.core import (
     AnnotationType,
     ChartDataResultFormat,
     get_example_database,
+    get_example_default_schema,
     get_main_database,
 )
 
@@ -541,6 +542,9 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         """
         Chart API: Test update
         """
+        schema = get_example_default_schema()
+        full_table_name = f"{schema}.birth_names" if schema else "birth_names"
+
         admin = self.get_user("admin")
         gamma = self.get_user("gamma")
         birth_names_table_id = SupersetTestCase.get_table(name="birth_names").id
@@ -575,7 +579,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(model.cache_timeout, 1000)
         self.assertEqual(model.datasource_id, birth_names_table_id)
         self.assertEqual(model.datasource_type, "table")
-        self.assertEqual(model.datasource_name, "birth_names")
+        self.assertEqual(model.datasource_name, full_table_name)
         self.assertIn(model.id, [slice.id for slice in related_dashboard.slices])
         db.session.delete(model)
         db.session.commit()
@@ -786,7 +790,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         rv = self.get_assert_metric(uri, "get_list")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["count"], 33)
+        self.assertEqual(data["count"], 34)
 
     def test_get_charts_changed_on(self):
         """
@@ -1036,7 +1040,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         """
         Chart API: Test get charts filter
         """
-        # Assuming we have 33 sample charts
+        # Assuming we have 34 sample charts
         self.login(username="admin")
         arguments = {"page_size": 10, "page": 0}
         uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
@@ -1050,7 +1054,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         rv = self.get_assert_metric(uri, "get_list")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(len(data["result"]), 3)
+        self.assertEqual(len(data["result"]), 4)
 
     def test_get_charts_no_data_access(self):
         """

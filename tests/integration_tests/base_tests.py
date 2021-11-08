@@ -45,7 +45,7 @@ from superset.models.slice import Slice
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.datasource_access_request import DatasourceAccessRequest
-from superset.utils.core import get_example_database
+from superset.utils.core import get_example_database, get_example_default_schema
 from superset.views.base_api import BaseSupersetModelRestApi
 
 FAKE_DB_NAME = "fake_db_100"
@@ -250,6 +250,8 @@ class SupersetTestCase(TestCase):
     def get_table(
         name: str, database_id: Optional[int] = None, schema: Optional[str] = None
     ) -> SqlaTable:
+        schema = schema or get_example_default_schema()
+
         return (
             db.session.query(SqlaTable)
             .filter_by(
