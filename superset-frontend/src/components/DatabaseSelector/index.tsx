@@ -41,6 +41,7 @@ const DatabaseSelectorWrapper = styled.div`
     }
 
     .select {
+      width: calc(100% - 30px - ${theme.gridUnit}px);
       flex: 1;
     }
 
@@ -55,6 +56,15 @@ const LabelStyle = styled.div`
   flex-direction: row;
   align-items: center;
   margin-left: ${({ theme }) => theme.gridUnit - 2}px;
+
+  .backend {
+    overflow: visible;
+  }
+
+  .name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 `;
 
 type DatabaseValue = {
@@ -97,8 +107,10 @@ const SelectLabel = ({
   databaseName: string;
 }) => (
   <LabelStyle>
-    <Label>{backend}</Label>
-    {databaseName}
+    <Label className="backend">{backend}</Label>
+    <span className="name" title={databaseName}>
+      {databaseName}
+    </span>
   </LabelStyle>
 );
 

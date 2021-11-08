@@ -54,9 +54,7 @@ describe('TimezoneSelector', () => {
     });
     expect(select).toBeInTheDocument();
     userEvent.click(select);
-    const selection = await screen.findByTitle(
-      'GMT -06:00 (Mountain Daylight Time)',
-    );
+    const selection = await screen.findByTitle('GMT -06:00 (America/Belize)');
     expect(selection).toBeInTheDocument();
     userEvent.click(selection);
     expect(selection).toBeVisible();
