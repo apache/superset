@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import json
 import logging
 from typing import Any, Dict, Optional, Type, TYPE_CHECKING
@@ -106,11 +108,11 @@ class Slice(  # pylint: disable=too-many-public-methods
         return self.slice_name or str(self.id)
 
     @property
-    def cls_model(self) -> Type["BaseDatasource"]:
+    def cls_model(self) -> Type[BaseDatasource]:
         return ConnectorRegistry.sources[self.datasource_type]
 
     @property
-    def datasource(self) -> Optional["BaseDatasource"]:
+    def datasource(self) -> Optional[BaseDatasource]:
         return self.get_datasource
 
     def clone(self) -> "Slice":
@@ -128,7 +130,7 @@ class Slice(  # pylint: disable=too-many-public-methods
     # pylint: disable=using-constant-test
     @datasource.getter  # type: ignore
     @memoized
-    def get_datasource(self) -> Optional["BaseDatasource"]:
+    def get_datasource(self) -> Optional[BaseDatasource]:
         return db.session.query(self.cls_model).filter_by(id=self.datasource_id).first()
 
     @renders("datasource_name")
@@ -248,13 +250,14 @@ class Slice(  # pylint: disable=too-many-public-methods
         update_time_range(form_data)
         return form_data
 
-    def get_query_context(self) -> Optional["QueryContext"]:
+    def get_query_context(self) -> Optional[QueryContext]:
+        # todo: remove the circular dependency that was added in fa51b32
         # pylint: disable=import-outside-toplevel
-        from superset.common.query_context import QueryContext
+        from superset.common.query_factory import QueryContextFactory
 
         if self.query_context:
             try:
-                return QueryContext(**json.loads(self.query_context))
+                return QueryContextFactory.create_from_json(self.query_context)
             except json.decoder.JSONDecodeError as ex:
                 logger.error("Malformed json in slice's query context", exc_info=True)
                 logger.exception(ex)

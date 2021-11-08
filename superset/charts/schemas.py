@@ -1140,9 +1140,7 @@ class ChartDataQueryContextSchema(Schema):
     # pylint: disable=no-self-use,unused-argument
     @post_load
     def make_query_context(self, data: Dict[str, Any], **kwargs: Any) -> QueryContext:
-        data["datasource_dict"] = data.pop("datasource", {})
-        data["queries_dicts"] = data.pop("queries", [])
-        return QueryContextFactory.create(**data)
+        return QueryContextFactory.create_from_dict(data)
 
 
 class AnnotationDataSchema(Schema):

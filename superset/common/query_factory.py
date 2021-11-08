@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any, Dict, List, Optional
 
@@ -62,6 +63,21 @@ class QueryContextFactory:
             raw_datasource=datasource_dict,  # type: ignore
             raw_queries=queries_dicts,
         )
+
+    @classmethod
+    def create_from_dict(cls, raw_query_context: Dict[str, Any]) -> QueryContext:
+        if "datasource" in raw_query_context:
+            raw_query_context["datasource_dict"] = raw_query_context.pop(
+                "datasource", {}
+            )
+        if "queries" in raw_query_context:
+            raw_query_context["queries_dicts"] = raw_query_context.pop("queries", [])
+        return cls.create(**raw_query_context)
+
+    @classmethod
+    def create_from_json(cls, raw_query_context: str) -> QueryContext:
+        raw_data = json.loads(raw_query_context)
+        return cls.create_from_dict(raw_data)
 
     @staticmethod
     def create_queries_object(
