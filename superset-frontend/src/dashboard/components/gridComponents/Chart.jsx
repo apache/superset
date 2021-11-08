@@ -22,7 +22,10 @@ import PropTypes from 'prop-types';
 import { styled } from '@superset-ui/core';
 import { isEqual } from 'lodash';
 
-import { exportChart, getExploreLongUrl } from 'src/explore/exploreUtils';
+import {
+  exportChart,
+  getExploreUrlFromDashboard,
+} from 'src/explore/exploreUtils';
 import ChartContainer from 'src/chart/ChartContainer';
 import {
   LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
@@ -52,6 +55,7 @@ const propTypes = {
   // from redux
   chart: chartPropShape.isRequired,
   formData: PropTypes.object.isRequired,
+  labelColors: PropTypes.object,
   datasource: PropTypes.object,
   slice: slicePropShape.isRequired,
   sliceName: PropTypes.string.isRequired,
@@ -230,7 +234,7 @@ export default class Chart extends React.Component {
     });
   };
 
-  getChartUrl = () => getExploreLongUrl(this.props.formData);
+  getChartUrl = () => getExploreUrlFromDashboard(this.props.formData);
 
   exportCSV(isFullCSV = false) {
     this.props.logEvent(LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART, {
@@ -274,6 +278,7 @@ export default class Chart extends React.Component {
       editMode,
       filters,
       formData,
+      labelColors,
       updateSliceName,
       sliceName,
       toggleExpandSlice,
@@ -396,6 +401,7 @@ export default class Chart extends React.Component {
             dashboardId={dashboardId}
             initialValues={initialValues}
             formData={formData}
+            labelColors={labelColors}
             ownState={ownState}
             filterState={filterState}
             queriesResponse={chart.queriesResponse}

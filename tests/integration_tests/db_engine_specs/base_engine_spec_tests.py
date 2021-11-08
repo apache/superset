@@ -19,6 +19,7 @@ from unittest import mock
 
 import pytest
 
+from superset.connectors.sqla.models import TableColumn
 from superset.db_engine_specs import get_engine_specs
 from superset.db_engine_specs.base import (
     BaseEngineSpec,
@@ -34,6 +35,7 @@ from superset.utils.core import get_example_database
 from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 from tests.integration_tests.test_app import app
 
+from ..fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 from ..fixtures.energy_dashboard import load_energy_table_with_slice
 from ..fixtures.pyodbcRow import Row
 
@@ -206,7 +208,7 @@ class TestDbEngineSpecs(TestDbEngineSpec):
                 "P1D",
                 "P1W",
                 "P1M",
-                "P0.25Y",
+                "P3M",
                 "P1Y",
                 "1969-12-29T00:00:00Z/P1W",
             ],
@@ -273,6 +275,38 @@ class TestDbEngineSpecs(TestDbEngineSpec):
         result = BaseEngineSpec.pyodbc_rows_to_tuples(data)
         self.assertListEqual(result, data)
 
+    @mock.patch("superset.models.core.Database.db_engine_spec", BaseEngineSpec)
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_calculated_column_in_order_by_base_engine_spec(self):
+        table = self.get_table(name="birth_names")
+        TableColumn(
+            column_name="gender_cc",
+            type="VARCHAR(255)",
+            table=table,
+            expression="""
+            case
+              when gender=true then "male"
+              else "female"
+            end
+            """,
+        )
+
+        table.database.sqlalchemy_uri = "sqlite://"
+        query_obj = {
+            "groupby": ["gender_cc"],
+            "is_timeseries": False,
+            "filter": [],
+            "orderby": [["gender_cc", True]],
+        }
+        sql = table.get_query_str(query_obj)
+        assert (
+            """ORDER BY case
+             when gender=true then "male"
+             else "female"
+         end ASC;"""
+            in sql
+        )
+
 
 def test_is_readonly():
     def is_readonly(sql: str) -> bool:
@@ -314,7 +348,7 @@ def test_time_grain_addons():
 
 
 def test_get_time_grain_with_config():
-    """ Should concatenate from configs and then sort in the proper order """
+    """Should concatenate from configs and then sort in the proper order"""
     config = app.config.copy()
 
     app.config["TIME_GRAIN_ADDON_EXPRESSIONS"] = {
@@ -345,7 +379,7 @@ def test_get_time_grain_with_config():
             "P1D",
             "P1W",
             "P1M",
-            "P0.25Y",
+            "P3M",
             "P1Y",
             "1969-12-29T00:00:00Z/P1W",
         }

@@ -16,12 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isEqual } from 'lodash';
-import {
-  CategoricalColorNamespace,
-  DataRecordFilters,
-  JsonObject,
-} from '@superset-ui/core';
+import { DataRecordFilters, JsonObject } from '@superset-ui/core';
 import { ChartQueryPayload, Charts, LayoutItem } from 'src/dashboard/types';
 import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
 import { DataMaskStateWithId } from 'src/dataMask/types';
@@ -46,6 +41,7 @@ export interface GetFormDataWithExtraFiltersArguments {
   sliceId: number;
   dataMask: DataMaskStateWithId;
   nativeFilters: NativeFiltersState;
+  labelColors?: Record<string, string>;
 }
 
 // this function merge chart's formData with dashboard filters value,
@@ -62,18 +58,21 @@ export default function getFormDataWithExtraFilters({
   sliceId,
   layout,
   dataMask,
+  labelColors,
 }: GetFormDataWithExtraFiltersArguments) {
-  // Propagate color mapping to chart
-  const scale = CategoricalColorNamespace.getScale(colorScheme, colorNamespace);
-  const labelColors = scale.getColorMap();
-
   // if dashboard metadata + filters have not changed, use cache if possible
   const cachedFormData = cachedFormdataByChart[sliceId];
   if (
     cachedFiltersByChart[sliceId] === filters &&
-    cachedFormData?.color_scheme === colorScheme &&
-    cachedFormData?.color_namespace === colorNamespace &&
-    isEqual(cachedFormData?.label_colors, labelColors) &&
+    areObjectsEqual(cachedFormData?.color_scheme, colorScheme, {
+      ignoreUndefined: true,
+    }) &&
+    areObjectsEqual(cachedFormData?.color_namespace, colorNamespace, {
+      ignoreUndefined: true,
+    }) &&
+    areObjectsEqual(cachedFormData?.label_colors, labelColors, {
+      ignoreUndefined: true,
+    }) &&
     !!cachedFormData &&
     areObjectsEqual(cachedFormData?.dataMask, dataMask, {
       ignoreUndefined: true,
@@ -104,13 +103,14 @@ export default function getFormDataWithExtraFilters({
 
   const formData = {
     ...chart.formData,
-    ...(colorScheme && { color_scheme: colorScheme }),
     label_colors: labelColors,
+    ...(colorScheme && { color_scheme: colorScheme }),
     extra_filters: getEffectiveExtraFilters(filters),
     ...extraData,
   };
+
   cachedFiltersByChart[sliceId] = filters;
-  cachedFormdataByChart[sliceId] = formData;
+  cachedFormdataByChart[sliceId] = { ...formData, dataMask };
 
   return formData;
 }

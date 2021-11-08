@@ -29,7 +29,7 @@ from sqlparse.sql import (
     Token,
     TokenList,
 )
-from sqlparse.tokens import Keyword, Name, Punctuation, String, Whitespace
+from sqlparse.tokens import DDL, DML, Keyword, Name, Punctuation, String, Whitespace
 from sqlparse.utils import imt
 
 RESULT_OPERATIONS = {"UNION", "INTERSECT", "EXCEPT", "SELECT"}
@@ -131,13 +131,36 @@ class ParsedQuery:
         return self._limit
 
     def is_select(self) -> bool:
-        return self._parsed[0].get_type() == "SELECT"
+        # make sure we strip comments; prevents a bug with coments in the CTE
+        parsed = sqlparse.parse(self.strip_comments())
+        if parsed[0].get_type() == "SELECT":
+            return True
+
+        if parsed[0].get_type() != "UNKNOWN":
+            return False
+
+        # for `UNKNOWN`, check all DDL/DML explicitly: only `SELECT` DML is allowed,
+        # and no DDL is allowed
+        if any(token.ttype == DDL for token in parsed[0]) or any(
+            token.ttype == DML and token.value != "SELECT" for token in parsed[0]
+        ):
+            return False
+
+        # return false on `EXPLAIN`, `SET`, `SHOW`, etc.
+        if parsed[0][0].ttype == Keyword:
+            return False
+
+        return any(
+            token.ttype == DML and token.value == "SELECT" for token in parsed[0]
+        )
 
     def is_valid_ctas(self) -> bool:
-        return self._parsed[-1].get_type() == "SELECT"
+        parsed = sqlparse.parse(self.strip_comments())
+        return parsed[-1].get_type() == "SELECT"
 
     def is_valid_cvas(self) -> bool:
-        return len(self._parsed) == 1 and self._parsed[0].get_type() == "SELECT"
+        parsed = sqlparse.parse(self.strip_comments())
+        return len(parsed) == 1 and parsed[0].get_type() == "SELECT"
 
     def is_explain(self) -> bool:
         # Remove comments
@@ -146,7 +169,7 @@ class ParsedQuery:
         )
 
         # Explain statements will only be the first statement
-        return statements_without_comments.startswith("EXPLAIN")
+        return statements_without_comments.upper().startswith("EXPLAIN")
 
     def is_show(self) -> bool:
         # Remove comments

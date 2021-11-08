@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=too-few-public-methods
+# pylint: disable=too-many-lines
 """A set of constants and methods to manage permissions and security"""
 import logging
 import re
@@ -69,8 +69,8 @@ if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.connectors.base.models import BaseDatasource
     from superset.connectors.druid.models import DruidCluster
-    from superset.models.dashboard import Dashboard
     from superset.models.core import Database
+    from superset.models.dashboard import Dashboard
     from superset.models.sql_lab import Query
     from superset.sql_parse import Table
     from superset.viz import BaseViz
@@ -78,7 +78,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class SupersetSecurityListWidget(ListWidget):
+class SupersetSecurityListWidget(ListWidget):  # pylint: disable=too-few-public-methods
     """
     Redeclaring to avoid circular imports
     """
@@ -86,7 +86,7 @@ class SupersetSecurityListWidget(ListWidget):
     template = "superset/fab_overrides/list.html"
 
 
-class SupersetRoleListWidget(ListWidget):
+class SupersetRoleListWidget(ListWidget):  # pylint: disable=too-few-public-methods
     """
     Role model view from FAB already uses a custom list widget override
     So we override the override
@@ -1169,10 +1169,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :raises DashboardAccessDeniedError: If the user cannot access the resource
         """
         # pylint: disable=import-outside-toplevel
+        from superset import is_feature_enabled
         from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
         from superset.views.base import get_user_roles, is_user_admin
         from superset.views.utils import is_owner
-        from superset import is_feature_enabled
 
         if is_feature_enabled("DASHBOARD_RBAC"):
             has_rbac_access = any(
@@ -1193,8 +1193,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # pylint: disable=import-outside-toplevel
         from superset import db
         from superset.dashboards.filters import DashboardAccessFilter
-        from superset.models.slice import Slice
         from superset.models.dashboard import Dashboard
+        from superset.models.slice import Slice
 
         datasource_class = type(datasource)
         query = (

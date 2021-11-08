@@ -137,7 +137,6 @@ class Header extends React.PureComponent {
                   <DragHandle position="left" />
                 </HoverMenu>
               )}
-
             <WithPopoverMenu
               onChangeFocus={this.handleChangeFocus}
               menuItems={[
@@ -152,7 +151,6 @@ class Header extends React.PureComponent {
                   value={component.meta.background}
                   onChange={this.handleChangeBackground}
                 />,
-                <DeleteComponentButton onDelete={this.handleDeleteComponent} />,
               ]}
               editMode={editMode}
             >
@@ -164,6 +162,13 @@ class Header extends React.PureComponent {
                   rowStyle.className,
                 )}
               >
+                {editMode && (
+                  <HoverMenu position="top">
+                    <DeleteComponentButton
+                      onDelete={this.handleDeleteComponent}
+                    />
+                  </HoverMenu>
+                )}
                 <EditableTitle
                   title={component.meta.text}
                   canEdit={editMode}

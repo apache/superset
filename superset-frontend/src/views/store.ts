@@ -18,7 +18,7 @@
  */
 import { applyMiddleware, combineReducers, compose, createStore } from 'redux';
 import thunk from 'redux-thunk';
-import messageToastReducer from 'src/messageToasts/reducers';
+import messageToastReducer from 'src/components/MessageToasts/reducers';
 import { initEnhancer } from 'src/reduxUtils';
 import charts from 'src/chart/chartReducer';
 import dataMask from 'src/dataMask/reducer';

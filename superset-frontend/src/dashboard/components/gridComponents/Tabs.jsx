@@ -47,7 +47,6 @@ const propTypes = {
   editMode: PropTypes.bool.isRequired,
   renderHoverMenu: PropTypes.bool,
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
-  activeTabs: PropTypes.arrayOf(PropTypes.string),
 
   // actions (from DashboardComponent.jsx)
   logEvent: PropTypes.func.isRequired,
@@ -74,7 +73,6 @@ const defaultProps = {
   availableColumnCount: 0,
   columnWidth: 0,
   directPathToChild: [],
-  activeTabs: [],
   setActiveTabs() {},
   onResizeStart() {},
   onResize() {},
@@ -129,18 +127,16 @@ export class Tabs extends React.PureComponent {
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleDeleteTab = this.handleDeleteTab.bind(this);
     this.handleDropOnTab = this.handleDropOnTab.bind(this);
+    this.handleDrop = this.handleDrop.bind(this);
   }
 
   componentDidMount() {
-    this.props.setActiveTabs([...this.props.activeTabs, this.state.activeKey]);
+    this.props.setActiveTabs(this.state.activeKey);
   }
 
   componentDidUpdate(prevProps, prevState) {
     if (prevState.activeKey !== this.state.activeKey) {
-      this.props.setActiveTabs([
-        ...this.props.activeTabs.filter(tabId => tabId !== prevState.activeKey),
-        this.state.activeKey,
-      ]);
+      this.props.setActiveTabs(this.state.activeKey, prevState.activeKey);
     }
   }
 
@@ -281,6 +277,12 @@ export class Tabs extends React.PureComponent {
     }
   }
 
+  handleDrop(dropResult) {
+    if (dropResult.dragging.type !== TABS_TYPE) {
+      this.props.handleComponentDrop(dropResult);
+    }
+  }
+
   render() {
     const {
       depth,
@@ -292,7 +294,6 @@ export class Tabs extends React.PureComponent {
       onResizeStart,
       onResize,
       onResizeStop,
-      handleComponentDrop,
       renderTabContent,
       renderHoverMenu,
       isComponentVisible: isCurrentTabVisible,
@@ -315,11 +316,7 @@ export class Tabs extends React.PureComponent {
         orientation="row"
         index={index}
         depth={depth}
-        onDrop={dropResult => {
-          if (dropResult.dragging.type !== TABS_TYPE) {
-            handleComponentDrop(dropResult);
-          }
-        }}
+        onDrop={this.handleDrop}
         editMode={editMode}
       >
         {({
@@ -408,7 +405,6 @@ function mapStateToProps(state) {
   return {
     nativeFilters: state.nativeFilters,
     directPathToChild: state.dashboardState.directPathToChild,
-    activeTabs: state.dashboardState.activeTabs,
   };
 }
 export default connect(mapStateToProps)(Tabs);

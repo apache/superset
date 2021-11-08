@@ -21,7 +21,7 @@ import { HandlerFunction, styled, t } from '@superset-ui/core';
 import { Typography, Tooltip } from 'src/common/components';
 import { useDispatch } from 'react-redux';
 import Button from 'src/components/Button';
-import { setFilterSetsConfiguration } from 'src/dashboard/actions/nativeFilters';
+import { updateFilterSet } from 'src/dashboard/actions/nativeFilters';
 import { DataMaskState } from 'src/dataMask/types';
 import { WarningOutlined } from '@ant-design/icons';
 import { ActionButtons } from './Footer';
@@ -60,7 +60,7 @@ const ActionButton = styled.div<{ disabled?: boolean }>`
 `;
 
 export type EditSectionProps = {
-  filterSetId: string;
+  filterSetId: number;
   dataMaskSelected: DataMaskState;
   onCancel: HandlerFunction;
   disabled: boolean;
@@ -89,17 +89,12 @@ const EditSection: FC<EditSectionProps> = ({
 
   const handleSave = () => {
     dispatch(
-      setFilterSetsConfiguration(
-        filterSetFilterValues.map(filterSet => {
-          const newFilterSet = {
-            ...filterSet,
-            name: filterSetName,
-            nativeFilters: filters,
-            dataMask: { ...dataMaskApplied },
-          };
-          return filterSetId === filterSet.id ? newFilterSet : filterSet;
-        }),
-      ),
+      updateFilterSet({
+        id: filterSetId,
+        name: filterSetName,
+        nativeFilters: filters,
+        dataMask: { ...dataMaskApplied },
+      }),
     );
     onCancel();
   };

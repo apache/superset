@@ -19,6 +19,7 @@ import json
 import logging
 from typing import Any, Dict, Set
 
+from flask import g
 from sqlalchemy.orm import Session
 
 from superset.models.dashboard import Dashboard
@@ -154,5 +155,8 @@ def import_dashboard(
     dashboard = Dashboard.import_from_dict(session, config, recursive=False)
     if dashboard.id is None:
         session.flush()
+
+    if hasattr(g, "user") and g.user:
+        dashboard.owners.append(g.user)
 
     return dashboard

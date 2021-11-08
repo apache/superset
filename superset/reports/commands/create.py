@@ -25,12 +25,13 @@ from marshmallow import ValidationError
 from superset.commands.base import CreateMixin
 from superset.dao.exceptions import DAOCreateFailedError
 from superset.databases.dao import DatabaseDAO
-from superset.models.reports import ReportScheduleType
+from superset.models.reports import ReportCreationMethodType, ReportScheduleType
 from superset.reports.commands.base import BaseReportScheduleCommand
 from superset.reports.commands.exceptions import (
     DatabaseNotFoundValidationError,
     ReportScheduleAlertRequiredDatabaseValidationError,
     ReportScheduleCreateFailedError,
+    ReportScheduleCreationMethodUniquenessValidationError,
     ReportScheduleInvalidError,
     ReportScheduleNameUniquenessValidationError,
     ReportScheduleRequiredTypeValidationError,
@@ -59,6 +60,10 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
         owner_ids: Optional[List[int]] = self._properties.get("owners")
         name = self._properties.get("name", "")
         report_type = self._properties.get("type")
+        creation_method = self._properties.get("creation_method")
+        chart_id = self._properties.get("chart")
+        dashboard_id = self._properties.get("dashboard")
+        user_id = self._actor.id
 
         # Validate type is required
         if not report_type:
@@ -83,6 +88,16 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
 
         # Validate chart or dashboard relations
         self.validate_chart_dashboard(exceptions)
+
+        # Validate that each chart or dashboard only has one report with
+        # the respective creation method.
+        if (
+            creation_method != ReportCreationMethodType.ALERTS_REPORTS
+            and not ReportScheduleDAO.validate_unique_creation_method(
+                user_id, dashboard_id, chart_id
+            )
+        ):
+            raise ReportScheduleCreationMethodUniquenessValidationError()
 
         if "validator_config_json" in self._properties:
             self._properties["validator_config_json"] = json.dumps(

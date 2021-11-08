@@ -125,17 +125,23 @@ const RECOMMENDED_TAGS = [t('Popular'), t('ECharts'), t('Advanced-Analytics')];
 
 export const VIZ_TYPE_CONTROL_TEST_ID = 'viz-type-control';
 
-const VizPickerLayout = styled.div`
-  display: grid;
-  grid-template-rows: auto minmax(100px, 1fr) minmax(200px, 35%);
-  // em is used here because the sidebar should be sized to fit the longest standard tag
-  grid-template-columns: minmax(14em, auto) 5fr;
-  grid-template-areas:
-    'sidebar search'
-    'sidebar main'
-    'details details';
-  height: 70vh;
-  overflow: auto;
+const VizPickerLayout = styled.div<{ isSelectedVizMetadata: boolean }>`
+  ${({ isSelectedVizMetadata }) => `
+    display: grid;
+    grid-template-rows: ${
+      isSelectedVizMetadata
+        ? `auto minmax(100px, 1fr) minmax(200px, 35%)`
+        : 'auto minmax(100px, 1fr)'
+    };
+    // em is used here because the sidebar should be sized to fit the longest standard tag
+    grid-template-columns: minmax(14em, auto) 5fr;
+    grid-template-areas:
+      'sidebar search'
+      'sidebar main'
+      'details details';
+    height: 70vh;
+    overflow: auto;
+  `}
 `;
 
 const SectionTitle = styled.h3`
@@ -267,15 +273,6 @@ const DetailsPopulated = (theme: SupersetTheme) => css`
     'viz-name examples-header'
     'viz-tags examples'
     'description examples';
-`;
-
-const DetailsEmpty = (theme: SupersetTheme) => css`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  font-style: italic;
-  color: ${theme.colors.grayscale.light1};
 `;
 
 // overflow hidden on the details pane and overflow auto on the description
@@ -642,7 +639,10 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
   };
 
   return (
-    <VizPickerLayout className={className}>
+    <VizPickerLayout
+      className={className}
+      isSelectedVizMetadata={Boolean(selectedVizMetadata)}
+    >
       <LeftPane>
         <Selector
           css={({ gridUnit }) =>
@@ -769,16 +769,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
             </Examples>
           </>
         </div>
-      ) : (
-        <div
-          css={(theme: SupersetTheme) => [
-            DetailsPane(theme),
-            DetailsEmpty(theme),
-          ]}
-        >
-          {t('Select a visualization type')}
-        </div>
-      )}
+      ) : null}
     </VizPickerLayout>
   );
 }

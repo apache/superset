@@ -167,6 +167,11 @@ class ReportScheduleNameUniquenessValidationError(ValidationError):
         super().__init__([_("Name must be unique")], field_name="name")
 
 
+class ReportScheduleCreationMethodUniquenessValidationError(CommandException):
+    status = 409
+    message = "Resource already has an attached report."
+
+
 class AlertQueryMultipleRowsError(CommandException):
 
     message = _("Alert query returned more then one row.")

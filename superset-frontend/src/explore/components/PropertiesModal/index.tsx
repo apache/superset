@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import Modal from 'src/components/Modal';
 import { Row, Col, Input, TextArea } from 'src/common/components';
 import Button from 'src/components/Button';
-import { OptionsType } from 'react-select/src/types';
-import { AsyncSelect } from 'src/components/Select';
+import { Select } from 'src/components';
+import { SelectValue } from 'antd/lib/select';
 import rison from 'rison';
 import { t, SupersetClient } from '@superset-ui/core';
 import Chart, { Slice } from 'src/types/Chart';
@@ -33,11 +33,8 @@ type PropertiesModalProps = {
   show: boolean;
   onHide: () => void;
   onSave: (chart: Chart) => void;
-};
-
-type OwnerOption = {
-  label: string;
-  value: number;
+  permissionsError?: string;
+  existingOwners?: SelectValue;
 };
 
 export default function PropertiesModal({
@@ -47,14 +44,15 @@ export default function PropertiesModal({
   show,
 }: PropertiesModalProps) {
   const [submitting, setSubmitting] = useState(false);
-
+  const [selectedOwners, setSelectedOwners] = useState<SelectValue | null>(
+    null,
+  );
   // values of form inputs
   const [name, setName] = useState(slice.slice_name || '');
   const [description, setDescription] = useState(slice.description || '');
   const [cacheTimeout, setCacheTimeout] = useState(
     slice.cache_timeout != null ? slice.cache_timeout : '',
   );
-  const [owners, setOwners] = useState<OptionsType<OwnerOption> | null>(null);
 
   function showError({ error, statusText, message }: any) {
     let errorText = error || statusText || t('An error has occurred');
@@ -68,14 +66,14 @@ export default function PropertiesModal({
     });
   }
 
-  const fetchChartData = useCallback(
-    async function fetchChartData() {
+  const fetchChartOwners = useCallback(
+    async function fetchChartOwners() {
       try {
         const response = await SupersetClient.get({
           endpoint: `/api/v1/chart/${slice.slice_id}`,
         });
         const chart = response.json.result;
-        setOwners(
+        setSelectedOwners(
           chart.owners.map((owner: any) => ({
             value: owner.id,
             label: `${owner.first_name} ${owner.last_name}`,
@@ -89,36 +87,23 @@ export default function PropertiesModal({
     [slice.slice_id],
   );
 
-  // get the owners of this slice
-  useEffect(() => {
-    fetchChartData();
-  }, [fetchChartData]);
-
-  // update name after it's changed in another modal
-  useEffect(() => {
-    setName(slice.slice_name || '');
-  }, [slice.slice_name]);
-
-  const loadOptions = (input = '') => {
-    const query = rison.encode({
-      filter: input,
-    });
-    return SupersetClient.get({
-      endpoint: `/api/v1/chart/related/owners?q=${query}`,
-    }).then(
-      response => {
-        const { result } = response.json;
-        return result.map((item: any) => ({
-          value: item.value,
-          label: item.text,
-        }));
-      },
-      badResponse => {
-        getClientErrorObject(badResponse).then(showError);
-        return [];
-      },
-    );
-  };
+  const loadOptions = useMemo(
+    () => (input = '', page: number, pageSize: number) => {
+      const query = rison.encode({ filter: input, page, page_size: pageSize });
+      return SupersetClient.get({
+        endpoint: `/api/v1/chart/related/owners?q=${query}`,
+      }).then(response => ({
+        data: response.json.result.map(
+          (item: { value: number; text: string }) => ({
+            value: item.value,
+            label: item.text,
+          }),
+        ),
+        totalCount: response.json.count,
+      }));
+    },
+    [],
+  );
 
   const onSubmit = async (event: React.FormEvent) => {
     event.stopPropagation();
@@ -129,8 +114,11 @@ export default function PropertiesModal({
       description: description || null,
       cache_timeout: cacheTimeout || null,
     };
-    if (owners) {
-      payload.owners = owners.map(o => o.value);
+    if (selectedOwners) {
+      payload.owners = (selectedOwners as {
+        value: number;
+        label: string;
+      }[]).map(o => o.value);
     }
     try {
       const res = await SupersetClient.put({
@@ -151,6 +139,18 @@ export default function PropertiesModal({
     }
     setSubmitting(false);
   };
+
+  const ownersLabel = t('Owners');
+
+  // get the owners of this slice
+  useEffect(() => {
+    fetchChartOwners();
+  }, [fetchChartOwners]);
+
+  // update name after it's changed in another modal
+  useEffect(() => {
+    setName(slice.slice_name || '');
+  }, [slice.slice_name]);
 
   return (
     <Modal
@@ -191,6 +191,7 @@ export default function PropertiesModal({
             <h3>{t('Basic information')}</h3>
             <FormItem label={t('Name')} required>
               <Input
+                aria-label={t('Name')}
                 name="name"
                 data-test="properties-modal-name-input"
                 type="text"
@@ -236,17 +237,16 @@ export default function PropertiesModal({
               </p>
             </FormItem>
             <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
-            <FormItem label={t('Owners')}>
-              <AsyncSelect
-                isMulti
+            <FormItem label={ownersLabel}>
+              <Select
+                ariaLabel={ownersLabel}
+                mode="multiple"
                 name="owners"
-                value={owners || []}
-                loadOptions={loadOptions}
-                defaultOptions // load options on render
-                cacheOptions
-                onChange={setOwners}
-                disabled={!owners}
-                filterOption={null} // options are filtered at the api
+                value={selectedOwners || []}
+                onChange={setSelectedOwners}
+                options={loadOptions}
+                disabled={!selectedOwners}
+                allowClear
               />
               <p className="help-block">
                 {t(

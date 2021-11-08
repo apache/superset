@@ -23,8 +23,8 @@ import {
   isPhysicalColumn,
   QueryObject,
   QueryObjectFilterClause,
+  BuildQuery,
 } from '@superset-ui/core';
-import { BuildQuery } from '@superset-ui/core/lib/chart/registries/ChartBuildQueryRegistrySingleton';
 import { DEFAULT_FORM_DATA, PluginFilterSelectQueryFormData } from './types';
 
 const buildQuery: BuildQuery<PluginFilterSelectQueryFormData> = (

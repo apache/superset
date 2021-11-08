@@ -30,39 +30,23 @@ from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
 from flask_babel import gettext as __
 from sqlalchemy.orm import Session
-from werkzeug.local import LocalProxy
 
 from superset import app, results_backend, results_backend_use_msgpack, security_manager
+from superset.common.db_query_status import QueryStatus
 from superset.dataframe import df_to_records
 from superset.db_engine_specs import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException, SupersetErrorsException
 from superset.extensions import celery_app
 from superset.models.core import Database
-from superset.models.sql_lab import LimitingFactor, Query
+from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
 from superset.sql_parse import CtasMethod, ParsedQuery
+from superset.sqllab.limiting_factor import LimitingFactor
 from superset.utils.celery import session_scope
-from superset.utils.core import (
-    json_iso_dttm_ser,
-    QuerySource,
-    QueryStatus,
-    zlib_compress,
-)
+from superset.utils.core import json_iso_dttm_ser, QuerySource, zlib_compress
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import stats_timing
-
-
-# pylint: disable=unused-argument, redefined-outer-name
-def dummy_sql_query_mutator(
-    sql: str,
-    user_name: Optional[str],
-    security_manager: LocalProxy,
-    database: Database,
-) -> str:
-    """A no-op version of SQL_QUERY_MUTATOR"""
-    return sql
-
 
 config = app.config
 stats_logger = config["STATS_LOGGER"]
@@ -70,7 +54,7 @@ SQLLAB_TIMEOUT = config["SQLLAB_ASYNC_TIME_LIMIT_SEC"]
 SQLLAB_HARD_TIMEOUT = SQLLAB_TIMEOUT + 60
 SQL_MAX_ROW = config["SQL_MAX_ROW"]
 SQLLAB_CTAS_NO_LIMIT = config["SQLLAB_CTAS_NO_LIMIT"]
-SQL_QUERY_MUTATOR = config.get("SQL_QUERY_MUTATOR") or dummy_sql_query_mutator
+SQL_QUERY_MUTATOR = config["SQL_QUERY_MUTATOR"]
 log_query = config["QUERY_LOGGER"]
 logger = logging.getLogger(__name__)
 cancel_query_key = "cancel_query"
@@ -192,8 +176,7 @@ def get_sql_results(  # pylint: disable=too-many-arguments
             return handle_query_error(ex, query, session)
 
 
-# pylint: disable=too-many-arguments, too-many-locals, too-many-statements
-def execute_sql_statement(
+def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-locals
     sql_statement: str,
     query: Query,
     user_name: Optional[str],
@@ -239,12 +222,7 @@ def execute_sql_statement(
     ):
         if SQL_MAX_ROW and (not query.limit or query.limit > SQL_MAX_ROW):
             query.limit = SQL_MAX_ROW
-        if query.limit:
-            # We are fetching one more than the requested limit in order
-            # to test whether there are more rows than the limit.
-            # Later, the extra row will be dropped before sending
-            # the results back to the user.
-            sql = database.apply_limit_to_sql(sql, increased_limit, force=True)
+        sql = apply_limit_if_exists(database, increased_limit, query, sql)
 
     # Hook to allow environment-specific mutation (usually comments) to the SQL
     sql = SQL_QUERY_MUTATOR(sql, user_name, security_manager, database)
@@ -285,8 +263,9 @@ def execute_sql_statement(
         raise SupersetErrorException(
             SupersetError(
                 message=__(
-                    f"The query was killed after {SQLLAB_TIMEOUT} seconds. It might "
-                    "be too complex, or the database might be under heavy load."
+                    "The query was killed after %(sqllab_timeout)s seconds. It might "
+                    "be too complex, or the database might be under heavy load.",
+                    sqllab_timeout=SQLLAB_TIMEOUT,
                 ),
                 error_type=SupersetErrorType.SQLLAB_TIMEOUT_ERROR,
                 level=ErrorLevel.ERROR,
@@ -306,6 +285,18 @@ def execute_sql_statement(
     logger.debug("Query %d: Fetching cursor description", query.id)
     cursor_description = cursor.description
     return SupersetResultSet(data, cursor_description, db_engine_spec)
+
+
+def apply_limit_if_exists(
+    database: Database, increased_limit: Optional[int], query: Query, sql: str
+) -> str:
+    if query.limit and increased_limit:
+        # We are fetching one more than the requested limit in order
+        # to test whether there are more rows than the limit.
+        # Later, the extra row will be dropped before sending
+        # the results back to the user.
+        sql = database.apply_limit_to_sql(sql, increased_limit, force=True)
+    return sql
 
 
 def _serialize_payload(

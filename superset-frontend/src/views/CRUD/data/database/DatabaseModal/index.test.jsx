@@ -42,6 +42,8 @@ const dbProps = {
 const DATABASE_FETCH_ENDPOINT = 'glob:*/api/v1/database/10';
 // const DATABASE_POST_ENDPOINT = 'glob:*/api/v1/database/';
 const AVAILABLE_DB_ENDPOINT = 'glob:*/api/v1/database/available*';
+const VALIDATE_PARAMS_ENDPOINT = 'glob:*/api/v1/database/validate_parameters*';
+
 fetchMock.config.overwriteRoutes = true;
 fetchMock.get(DATABASE_FETCH_ENDPOINT, {
   result: {
@@ -193,6 +195,9 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       sqlalchemy_uri_placeholder: 'bigquery://{project_id}',
     },
   ],
+});
+fetchMock.post(VALIDATE_PARAMS_ENDPOINT, {
+  message: 'OK',
 });
 
 describe('DatabaseModal', () => {

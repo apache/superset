@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=too-many-lines
 import json
 import logging
 from datetime import datetime
@@ -122,6 +123,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "cache_timeout",
         "dashboards.dashboard_title",
         "dashboards.id",
+        "dashboards.json_metadata",
         "description",
         "owners.first_name",
         "owners.id",

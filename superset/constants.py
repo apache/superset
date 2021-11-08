@@ -165,7 +165,7 @@ class PandasAxis(int, Enum):
 
 
 class PandasPostprocessingCompare(str, Enum):
-    ABS = "absolute"
+    DIFF = "difference"
     PCT = "percentage"
     RAT = "ratio"
 

@@ -15,19 +15,20 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from flask_caching import Cache
 from pandas import DataFrame
 
 from superset import app
+from superset.common.db_query_status import QueryStatus
 from superset.constants import CacheRegion
 from superset.exceptions import CacheLoadError
 from superset.extensions import cache_manager
 from superset.models.helpers import QueryResult
 from superset.stats_logger import BaseStatsLogger
 from superset.utils.cache import set_and_log_cache
-from superset.utils.core import error_msg_from_exception, get_stacktrace, QueryStatus
+from superset.utils.core import error_msg_from_exception, get_stacktrace
 
 config = app.config
 stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
@@ -50,6 +51,7 @@ class QueryCacheManager:
         df: DataFrame = DataFrame(),
         query: str = "",
         annotation_data: Optional[Dict[str, Any]] = None,
+        applied_template_filters: Optional[List[str]] = None,
         status: Optional[str] = None,
         error_message: Optional[str] = None,
         is_loaded: bool = False,
@@ -61,6 +63,7 @@ class QueryCacheManager:
         self.df = df
         self.query = query
         self.annotation_data = {} if annotation_data is None else annotation_data
+        self.applied_template_filters = applied_template_filters or []
         self.status = status
         self.error_message = error_message
 
@@ -87,6 +90,7 @@ class QueryCacheManager:
         try:
             self.status = query_result.status
             self.query = query_result.query
+            self.applied_template_filters = query_result.applied_template_filters
             self.error_message = query_result.error_message
             self.df = query_result.df
             self.annotation_data = {} if annotation_data is None else annotation_data
@@ -100,6 +104,7 @@ class QueryCacheManager:
             value = {
                 "df": self.df,
                 "query": self.query,
+                "applied_template_filters": self.applied_template_filters,
                 "annotation_data": self.annotation_data,
             }
             if self.is_loaded and key and self.status != QueryStatus.FAILED:
@@ -140,6 +145,9 @@ class QueryCacheManager:
                 query_cache.df = cache_value["df"]
                 query_cache.query = cache_value["query"]
                 query_cache.annotation_data = cache_value.get("annotation_data", {})
+                query_cache.applied_template_filters = cache_value.get(
+                    "applied_template_filters", []
+                )
                 query_cache.status = QueryStatus.SUCCESS
                 query_cache.is_loaded = True
                 query_cache.is_cached = cache_value is not None

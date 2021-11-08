@@ -43,7 +43,7 @@ const defaultProps: DndFilterSelectProps = {
   actions: { setControlValue: jest.fn() },
 };
 
-const extraFormData = {
+const baseFormData = {
   viz_type: 'my_viz',
   datasource: 'table__1',
 };
@@ -69,8 +69,8 @@ test('renders options with saved metric', () => {
     <DndFilterSelect
       {...defaultProps}
       formData={{
+        ...baseFormData,
         ...DEFAULT_FORM_DATA,
-        ...extraFormData,
         metrics: ['saved_metric'],
       }}
     />,
@@ -110,8 +110,8 @@ test('renders options with adhoc metric', () => {
     <DndFilterSelect
       {...defaultProps}
       formData={{
+        ...baseFormData,
         ...DEFAULT_FORM_DATA,
-        ...extraFormData,
         metrics: [adhocMetric],
       }}
     />,
