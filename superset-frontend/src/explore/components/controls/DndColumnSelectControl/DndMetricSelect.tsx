@@ -284,7 +284,7 @@ export const DndMetricSelect = (props: any) => {
         columns={props.columns}
         savedMetrics={props.savedMetrics}
         savedMetricsOptions={getSavedMetricOptionsForMetric(index)}
-        datasourceType={props.datasourceType}
+        datasource={props.datasource}
         onMoveLabel={moveLabel}
         onDropLabel={handleDropLabel}
         type={`${DndItemType.AdhocMetricOption}_${props.name}_${props.label}`}
@@ -299,7 +299,7 @@ export const DndMetricSelect = (props: any) => {
       onMetricEdit,
       onRemoveMetric,
       props.columns,
-      props.datasourceType,
+      props.datasource,
       props.label,
       props.name,
       props.savedMetrics,
@@ -396,7 +396,7 @@ export const DndMetricSelect = (props: any) => {
         columns={props.columns}
         savedMetricsOptions={newSavedMetricOptions}
         savedMetric={EMPTY_OBJECT as savedMetricType}
-        datasourceType={props.datasourceType}
+        datasource={props.datasource}
         isControlledComponent
         visible={newMetricPopoverVisible}
         togglePopover={togglePopover}
