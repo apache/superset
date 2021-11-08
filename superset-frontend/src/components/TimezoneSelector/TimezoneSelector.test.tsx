@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import moment from 'moment-timezone';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, wait, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import TimezoneSelector from './index';
 
@@ -42,7 +42,7 @@ describe('TimezoneSelector', () => {
   });
   it('should properly select values from the offsetsToName map', async () => {
     jest.spyOn(moment.tz, 'guess').mockReturnValue('America/New_York');
-    render(
+    const { debug } = render(
       <TimezoneSelector
         onTimezoneChange={onTimezoneChange}
         timezone={timezone}
@@ -54,9 +54,7 @@ describe('TimezoneSelector', () => {
     });
     expect(select).toBeInTheDocument();
     userEvent.click(select);
-    const selection = await screen.findByTitle(
-      'GMT -06:00 (Mountain Daylight Time)',
-    );
+    const selection = await screen.findByTitle('GMT -06:00 (America/Belize)');
     expect(selection).toBeInTheDocument();
     userEvent.click(selection);
     expect(selection).toBeVisible();
