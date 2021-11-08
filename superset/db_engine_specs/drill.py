@@ -82,5 +82,7 @@ class DrillEngineSpec(BaseEngineSpec):
         if impersonate_user and username is not None:
             if url.drivername == "drill+odbc":
                 url.query["DelegationUID"] = username
+            elif url.drivername == "drill+jdbc":
+                url.query["impersonation_target"] = username
             else:
                 url.username = username
