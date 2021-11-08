@@ -142,7 +142,7 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
     >
       {latestQueryFormData && (
         <>
-          <ActionButton
+          {/* <ActionButton
             icon={
               <Icon
                 name="link"
@@ -157,8 +157,8 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
             onTooltipVisibilityChange={value =>
               !value && setTimeout(() => setCopyTooltip(copyTooltipText), 200)
             }
-          />
-          <ActionButton
+          /> */}
+          {/* <ActionButton
             icon={
               <Icon
                 name="email"
@@ -169,7 +169,7 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
             }
             tooltip={t('Share chart by email')}
             onClick={doShareEmail}
-          />
+          /> */}
           <EmbedCodeButton latestQueryFormData={latestQueryFormData} />
           <ActionButton
             icon={<i className="fa fa-file-code-o" />}

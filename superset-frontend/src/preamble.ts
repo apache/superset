@@ -59,7 +59,21 @@ setupColors(
 // Setup number formatters
 setupFormatters();
 
+const peakTheme = {
+  borderRadius: 2,
+  colors : {
+    primary: {
+      base: 'rgb(42, 68, 212)',
+      dark1: 'rgb(42, 68, 212)',
+    },
+    success: {
+      base: 'rgb(65, 117, 5)',
+    }
+  }
+}
+
 export const theme = merge(
   supersetTheme,
   bootstrapData?.common?.theme_overrides ?? {},
+  peakTheme,
 );

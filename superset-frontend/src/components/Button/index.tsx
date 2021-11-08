@@ -92,21 +92,21 @@ export default function Button(props: ButtonProps) {
     padding = 10;
   }
 
-  let backgroundColor = primary.light4;
-  let backgroundColorHover = mix(0.1, primary.base, primary.light4);
+  let backgroundColor = 'transparent';
+  let backgroundColorHover = 'rgb(233, 236, 250)';
   let backgroundColorActive = mix(0.25, primary.base, primary.light4);
   let backgroundColorDisabled = grayscale.light2;
   let color = primary.dark1;
   let colorHover = color;
-  let borderWidth = 0;
-  let borderStyle = 'none';
-  let borderColor = 'transparent';
-  let borderColorHover = 'transparent';
+  let borderWidth = 1;
+  let borderStyle = 'solid';
+  let borderColor = primary.dark1;
+  let borderColorHover = primary.dark1;
   let borderColorDisabled = 'transparent';
 
   if (buttonStyle === 'primary') {
     backgroundColor = primary.dark1;
-    backgroundColorHover = mix(0.1, grayscale.light5, primary.dark1);
+    backgroundColorHover = 'rgb(11, 32, 148)';
     backgroundColorActive = mix(0.2, grayscale.dark2, primary.dark1);
     color = grayscale.light5;
     colorHover = color;
@@ -174,7 +174,7 @@ export default function Button(props: ButtonProps) {
         transition: `all ${transitionTiming}s`,
         minWidth: cta ? theme.gridUnit * 36 : undefined,
         minHeight: cta ? theme.gridUnit * 8 : undefined,
-        boxShadow: 'none',
+        boxShadow: 'rgb(0 0 0 / 20%) 0px 3px 1px -2px, rgb(0 0 0 / 14%) 0px 2px 2px 0px, rgb(0 0 0 / 12%) 0px 1px 5px 0px',
         borderWidth,
         borderStyle,
         borderColor,
@@ -185,6 +185,7 @@ export default function Button(props: ButtonProps) {
           color: colorHover,
           backgroundColor: backgroundColorHover,
           borderColor: borderColorHover,
+          boxShadow: 'rgb(0 0 0 / 20%) 0px 2px 4px -1px, rgb(0 0 0 / 14%) 0px 4px 5px 0px, rgb(0 0 0 / 12%) 0px 1px 10px 0px'
         },
         '&:active': {
           color,
