@@ -1710,7 +1710,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         target: "SqlaTable",
     ) -> None:
         """
-        Check whether before update if the target table already exists.
+        Check before update if the target table already exists.
 
         Note this listener is called when any fields are being updated and thus it is
         necessary to first check whether the reference table is being updated.
