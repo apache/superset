@@ -69,7 +69,7 @@ describe('Nativefilters Sanity test', () => {
       cy.visit(testDashboard.url);
     });
   });
-  xit('User can expand / retract native filter sidebar on a dashboard', () => {
+  it('User can expand / retract native filter sidebar on a dashboard', () => {
     cy.get(nativeFilters.createFilterButton).should('not.exist');
     cy.get(nativeFilters.filterFromDashboardView.expand)
       .should('be.visible')
@@ -85,14 +85,14 @@ describe('Nativefilters Sanity test', () => {
       'not.be.visible',
     );
   });
-  xit('User can enter filter edit pop-up by clicking on pencil icon', () => {
+  it('User can enter filter edit pop-up by clicking on pencil icon', () => {
     cy.get(nativeFilters.filterFromDashboardView.expand)
       .should('be.visible')
       .click();
     cy.get(nativeFilters.createFilterButton).should('be.visible').click();
     cy.get(nativeFilters.modal.container).should('be.visible');
   });
-  xit('User can add a new native filter', () => {
+  it('User can add a new native filter', () => {
     cy.get(nativeFilters.filterFromDashboardView.expand)
       .should('be.visible')
       .click();
@@ -132,7 +132,7 @@ describe('Nativefilters Sanity test', () => {
       .click();
     cy.get(nativeFilters.modal.container).should('not.exist');
   });
-  xit('User can delete a native filter', () => {
+  it('User can delete a native filter', () => {
     cy.get(nativeFilters.createFilterButton).click({ force: true });
     cy.get(nativeFilters.modal.container).should('be.visible');
 
@@ -144,7 +144,7 @@ describe('Nativefilters Sanity test', () => {
       .should('be.visible')
       .click();
   });
-  xit('User can cancel changes in native filter', () => {
+  it('User can cancel changes in native filter', () => {
     cy.get(nativeFilters.createFilterButton).click({ force: true });
     cy.get(nativeFilters.modal.container)
       .find(nativeFilters.filtersPanel.filterName)
@@ -174,7 +174,7 @@ describe('Nativefilters Sanity test', () => {
       .click();
     cy.get(nativeFilters.filtersPanel.filterName).should('not.exist');
   });
-  xit('User can cancel creating a new filter', () => {
+  it('User can cancel creating a new filter', () => {
     cy.get(nativeFilters.filterFromDashboardView.expand)
       .should('be.visible')
       .click();
@@ -195,7 +195,7 @@ describe('Nativefilters Sanity test', () => {
       .click();
     cy.get(nativeFilters.modal.container).should('not.exist');
   });
-  xit('User can undo deleting a native filter', () => {
+  it('User can undo deleting a native filter', () => {
     cy.get(nativeFilters.filterFromDashboardView.expand)
       .should('be.visible')
       .click();
@@ -236,7 +236,7 @@ describe('Nativefilters Sanity test', () => {
     cy.get(nativeFilters.filtersList.removeIcon).first().click();
     cy.contains('Undo?').click();
   });
-  xit('Verify setting options and tooltips for value filter', () => {
+  it('Verify setting options and tooltips for value filter', () => {
     cy.get(nativeFilters.filterFromDashboardView.expand).click({ force: true });
     cy.get(nativeFilters.createFilterButton).should('be.visible').click();
     cy.get(nativeFilters.modal.container).should('be.visible');
