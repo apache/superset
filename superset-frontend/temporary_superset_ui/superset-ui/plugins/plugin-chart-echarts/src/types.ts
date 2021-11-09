@@ -132,3 +132,5 @@ export const DEFAULT_TITLE_FORM_DATA: EchartsTitleFormData = {
   yAxisTitleMargin: 0,
   yAxisTitlePosition: 'Top',
 };
+
+export * from './Timeseries/types';

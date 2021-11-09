@@ -33,6 +33,8 @@ export { default as EchartsFunnelChartPlugin } from './Funnel';
 export { default as EchartsTreeChartPlugin } from './Tree';
 export { default as EchartsTreemapChartPlugin } from './Treemap';
 
+export * from './types';
+
 /**
  * Note: this file exports the default export from EchartsTimeseries.tsx.
  * If you want to export multiple visualization modules, you will need to
