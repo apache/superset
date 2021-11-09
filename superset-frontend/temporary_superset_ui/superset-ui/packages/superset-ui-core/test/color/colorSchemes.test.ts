@@ -42,7 +42,9 @@ describe('Color Schemes', () => {
         categoricalPreset,
       ].forEach(group => {
         expect(group).toBeInstanceOf(Array);
-        group.forEach(scheme => expect(scheme).toBeInstanceOf(CategoricalScheme));
+        group.forEach(scheme =>
+          expect(scheme).toBeInstanceOf(CategoricalScheme),
+        );
       });
     });
   });
@@ -50,7 +52,9 @@ describe('Color Schemes', () => {
     it('returns an array of SequentialScheme', () => {
       [sequentialCommon, sequentialD3].forEach(group => {
         expect(group).toBeInstanceOf(Array);
-        group.forEach(scheme => expect(scheme).toBeInstanceOf(SequentialScheme));
+        group.forEach(scheme =>
+          expect(scheme).toBeInstanceOf(SequentialScheme),
+        );
       });
     });
   });

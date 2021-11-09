@@ -26,7 +26,9 @@ import {
 } from '@superset-ui/legacy-preset-chart-big-number';
 
 new BigNumberChartPlugin().configure({ key: 'big-number' }).register();
-new BigNumberTotalChartPlugin().configure({ key: 'big-number-total' }).register();
+new BigNumberTotalChartPlugin()
+  .configure({ key: 'big-number-total' })
+  .register();
 ```
 
 Then use it via `SuperChart`. See

@@ -98,7 +98,9 @@ function getPackages(packagePattern, tsOnly = false) {
   if (packages.length === 0) {
     throw new Error('No matching packages');
   }
-  return `@superset-ui/${packages.length > 1 ? `{${packages.join(',')}}` : packages[0]}`;
+  return `@superset-ui/${
+    packages.length > 1 ? `{${packages.join(',')}}` : packages[0]
+  }`;
 }
 
 let scope = getPackages(glob);
@@ -123,7 +125,9 @@ if (shouldRunBabel) {
 
   console.log('--- Run babel esm ---');
   // run again with
-  run(`${babelCommand} --out-dir esm`, { env: { ...process.env, BABEL_OUTPUT: 'esm' } });
+  run(`${babelCommand} --out-dir esm`, {
+    env: { ...process.env, BABEL_OUTPUT: 'esm' },
+  });
 }
 
 if (shouldRunTyping) {

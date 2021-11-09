@@ -193,7 +193,9 @@ export function isPostProcessingAggregation(
   return rule?.operation === 'aggregation';
 }
 
-export function isPostProcessingBoxplot(rule?: PostProcessingRule): rule is PostProcessingBoxplot {
+export function isPostProcessingBoxplot(
+  rule?: PostProcessingRule,
+): rule is PostProcessingBoxplot {
   return rule?.operation === 'boxplot';
 }
 
@@ -203,31 +205,45 @@ export function isPostProcessingContribution(
   return rule?.operation === 'contribution';
 }
 
-export function isPostProcessingPivot(rule?: PostProcessingRule): rule is PostProcessingPivot {
+export function isPostProcessingPivot(
+  rule?: PostProcessingRule,
+): rule is PostProcessingPivot {
   return rule?.operation === 'pivot';
 }
 
-export function isPostProcessingProphet(rule?: PostProcessingRule): rule is PostProcessingProphet {
+export function isPostProcessingProphet(
+  rule?: PostProcessingRule,
+): rule is PostProcessingProphet {
   return rule?.operation === 'prophet';
 }
 
-export function isPostProcessingDiff(rule?: PostProcessingRule): rule is PostProcessingDiff {
+export function isPostProcessingDiff(
+  rule?: PostProcessingRule,
+): rule is PostProcessingDiff {
   return rule?.operation === 'diff';
 }
 
-export function isPostProcessingRolling(rule?: PostProcessingRule): rule is PostProcessingRolling {
+export function isPostProcessingRolling(
+  rule?: PostProcessingRule,
+): rule is PostProcessingRolling {
   return rule?.operation === 'rolling';
 }
 
-export function isPostProcessingCum(rule?: PostProcessingRule): rule is PostProcessingCum {
+export function isPostProcessingCum(
+  rule?: PostProcessingRule,
+): rule is PostProcessingCum {
   return rule?.operation === 'cum';
 }
 
-export function isPostProcessingCompare(rule?: PostProcessingRule): rule is PostProcessingCompare {
+export function isPostProcessingCompare(
+  rule?: PostProcessingRule,
+): rule is PostProcessingCompare {
   return rule?.operation === 'compare';
 }
 
-export function isPostProcessingSort(rule?: PostProcessingRule): rule is PostProcessingSort {
+export function isPostProcessingSort(
+  rule?: PostProcessingRule,
+): rule is PostProcessingSort {
   return rule?.operation === 'sort';
 }
 

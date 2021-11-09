@@ -133,10 +133,15 @@ class TTestTable extends React.Component {
       }
     });
     const tvalue = -Math.abs(
-      diffSum * Math.sqrt((finiteCount - 1) / (finiteCount * diffSqSum - diffSum * diffSum)),
+      diffSum *
+        Math.sqrt(
+          (finiteCount - 1) / (finiteCount * diffSqSum - diffSum * diffSum),
+        ),
     );
     try {
-      return (2 * new dist.Studentt(finiteCount - 1).cdf(tvalue)).toFixed(pValPrec); // two-sided test
+      return (2 * new dist.Studentt(finiteCount - 1).cdf(tvalue)).toFixed(
+        pValPrec,
+      ); // two-sided test
     } catch (error) {
       return NaN;
     }

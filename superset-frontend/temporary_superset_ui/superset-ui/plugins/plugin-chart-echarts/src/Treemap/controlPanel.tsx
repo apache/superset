@@ -28,7 +28,8 @@ import {
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 
-const { labelType, numberFormat, showLabels, showUpperLabels, dateFormat } = DEFAULT_FORM_DATA;
+const { labelType, numberFormat, showLabels, showUpperLabels, dateFormat } =
+  DEFAULT_FORM_DATA;
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -46,7 +47,9 @@ const config: ControlPanelConfig = {
             config: {
               type: 'CheckboxControl',
               label: t('Sort by metric'),
-              description: t('Whether to sort results by the selected metric in descending order.'),
+              description: t(
+                'Whether to sort results by the selected metric in descending order.',
+              ),
             },
           },
         ],
@@ -111,9 +114,9 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: numberFormat,
               choices: D3_FORMAT_OPTIONS,
-              description: `${t('D3 format syntax: https://github.com/d3/d3-format. ')} ${t(
-                'Only applies when "Label Type" is set to show values.',
-              )}`,
+              description: `${t(
+                'D3 format syntax: https://github.com/d3/d3-format. ',
+              )} ${t('Only applies when "Label Type" is set to show values.')}`,
             },
           },
         ],

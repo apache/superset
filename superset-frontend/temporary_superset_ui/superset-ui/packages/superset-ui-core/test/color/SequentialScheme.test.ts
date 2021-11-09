@@ -74,7 +74,10 @@ describe('SequentialScheme', () => {
       it('modifies range instead of domain if set to true', () => {
         const scale = scheme3.createLinearScale([0, 100], true);
         expect(scale.domain()).toEqual([0, 100]);
-        expect(scale.range()).toEqual(['rgb(254, 224, 135)', 'rgb(128, 0, 38)']);
+        expect(scale.range()).toEqual([
+          'rgb(254, 224, 135)',
+          'rgb(128, 0, 38)',
+        ]);
       });
     });
   });
@@ -100,8 +103,14 @@ describe('SequentialScheme', () => {
     });
     describe('extent', () => {
       it('adjust the range if extent is specified', () => {
-        expect(scheme.getColors(2, [0, 0.5])).toEqual(['rgb(255, 255, 255)', 'rgb(119, 119, 119)']);
-        expect(scheme.getColors(2, [0.5, 1])).toEqual(['rgb(119, 119, 119)', 'rgb(0, 0, 0)']);
+        expect(scheme.getColors(2, [0, 0.5])).toEqual([
+          'rgb(255, 255, 255)',
+          'rgb(119, 119, 119)',
+        ]);
+        expect(scheme.getColors(2, [0.5, 1])).toEqual([
+          'rgb(119, 119, 119)',
+          'rgb(0, 0, 0)',
+        ]);
       });
     });
   });

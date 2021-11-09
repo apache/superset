@@ -20,14 +20,20 @@ import { QueryObject, SqlaFormData } from '@superset-ui/core';
 import { resampleOperator } from '../../../src';
 
 const formData: SqlaFormData = {
-  metrics: ['count(*)', { label: 'sum(val)', expressionType: 'SQL', sqlExpression: 'sum(val)' }],
+  metrics: [
+    'count(*)',
+    { label: 'sum(val)', expressionType: 'SQL', sqlExpression: 'sum(val)' },
+  ],
   time_range: '2015 : 2016',
   granularity: 'month',
   datasource: 'foo',
   viz_type: 'table',
 };
 const queryObject: QueryObject = {
-  metrics: ['count(*)', { label: 'sum(val)', expressionType: 'SQL', sqlExpression: 'sum(val)' }],
+  metrics: [
+    'count(*)',
+    { label: 'sum(val)', expressionType: 'SQL', sqlExpression: 'sum(val)' },
+  ],
   time_range: '2015 : 2016',
   granularity: 'month',
   post_processing: [
@@ -48,15 +54,20 @@ const queryObject: QueryObject = {
 
 test('should skip resampleOperator', () => {
   expect(resampleOperator(formData, queryObject)).toEqual(undefined);
-  expect(resampleOperator({ ...formData, resample_method: 'ffill' }, queryObject)).toEqual(
-    undefined,
-  );
-  expect(resampleOperator({ ...formData, resample_rule: '1D' }, queryObject)).toEqual(undefined);
+  expect(
+    resampleOperator({ ...formData, resample_method: 'ffill' }, queryObject),
+  ).toEqual(undefined);
+  expect(
+    resampleOperator({ ...formData, resample_rule: '1D' }, queryObject),
+  ).toEqual(undefined);
 });
 
 test('should do resample', () => {
   expect(
-    resampleOperator({ ...formData, resample_method: 'ffill', resample_rule: '1D' }, queryObject),
+    resampleOperator(
+      { ...formData, resample_method: 'ffill', resample_rule: '1D' },
+      queryObject,
+    ),
   ).toEqual({
     operation: 'resample',
     options: {

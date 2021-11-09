@@ -20,14 +20,20 @@ import { QueryObject, SqlaFormData } from '@superset-ui/core';
 import { prophetOperator } from '../../../src';
 
 const formData: SqlaFormData = {
-  metrics: ['count(*)', { label: 'sum(val)', expressionType: 'SQL', sqlExpression: 'sum(val)' }],
+  metrics: [
+    'count(*)',
+    { label: 'sum(val)', expressionType: 'SQL', sqlExpression: 'sum(val)' },
+  ],
   time_range: '2015 : 2016',
   time_grain_sqla: 'P1Y',
   datasource: 'foo',
   viz_type: 'table',
 };
 const queryObject: QueryObject = {
-  metrics: ['count(*)', { label: 'sum(val)', expressionType: 'SQL', sqlExpression: 'sum(val)' }],
+  metrics: [
+    'count(*)',
+    { label: 'sum(val)', expressionType: 'SQL', sqlExpression: 'sum(val)' },
+  ],
   time_range: '2015 : 2016',
   granularity: 'P1Y',
 };

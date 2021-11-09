@@ -28,15 +28,17 @@ export default function transformProps(chartProps: ChartProps) {
   const { margin, theme } = formData;
   const encoding = formData.encoding as BoxPlotEncoding;
 
-  const data = (queriesData[0].data as RawBoxPlotDataRow[]).map(({ label, values }) => ({
-    label,
-    min: values.whisker_low,
-    max: values.whisker_high,
-    firstQuartile: values.Q1,
-    median: values.Q2,
-    thirdQuartile: values.Q3,
-    outliers: values.outliers,
-  }));
+  const data = (queriesData[0].data as RawBoxPlotDataRow[]).map(
+    ({ label, values }) => ({
+      label,
+      min: values.whisker_low,
+      max: values.whisker_high,
+      firstQuartile: values.Q1,
+      median: values.Q2,
+      thirdQuartile: values.Q3,
+      outliers: values.outliers,
+    }),
+  );
 
   const isHorizontal = encoding.y.type === 'nominal';
 

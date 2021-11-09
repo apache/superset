@@ -25,7 +25,11 @@ import {
   PostProcessingCum,
   ComparisionType,
 } from '@superset-ui/core';
-import { getMetricOffsetsMap, isValidTimeCompare, TIME_COMPARISON_SEPARATOR } from './utils';
+import {
+  getMetricOffsetsMap,
+  isValidTimeCompare,
+  TIME_COMPARISON_SEPARATOR,
+} from './utils';
 import { PostProcessingFactory } from './types';
 
 export const rollingWindowOperator: PostProcessingFactory<
@@ -37,7 +41,10 @@ export const rollingWindowOperator: PostProcessingFactory<
     const comparisonType = formData.comparison_type;
     if (comparisonType === ComparisionType.Values) {
       // time compare type: actual values
-      columns = [...Array.from(metricsMap.values()), ...Array.from(metricsMap.keys())];
+      columns = [
+        ...Array.from(metricsMap.values()),
+        ...Array.from(metricsMap.keys()),
+      ];
     } else {
       // time compare type: difference / percentage / ratio
       columns = Array.from(metricsMap.entries()).map(([offset, metric]) =>
@@ -65,7 +72,11 @@ export const rollingWindowOperator: PostProcessingFactory<
     };
   }
 
-  if ([RollingType.Sum, RollingType.Mean, RollingType.Std].includes(formData.rolling_type)) {
+  if (
+    [RollingType.Sum, RollingType.Mean, RollingType.Std].includes(
+      formData.rolling_type,
+    )
+  ) {
     return {
       operation: 'rolling',
       options: {

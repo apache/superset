@@ -59,8 +59,9 @@ class TimeFormatValidator extends React.PureComponent {
           <div className="col-sm">
             <p>
               This <code>@superset-ui/time-format</code> package enriches
-              <code>d3-time-format</code> to handle invalid formats as well as edge case values. Use
-              the validator below to preview outputs from the specified format string. See
+              <code>d3-time-format</code> to handle invalid formats as well as
+              edge case values. Use the validator below to preview outputs from
+              the specified format string. See
               <a
                 href="https://github.com/d3/d3-time-format#locale_format"
                 target="_blank"
@@ -103,7 +104,9 @@ class TimeFormatValidator extends React.PureComponent {
                 {testValues.map(v => (
                   <tr key={v}>
                     <td>
-                      <code>{v instanceof Date ? v.toUTCString() : `${v}`}</code>
+                      <code>
+                        {v instanceof Date ? v.toUTCString() : `${v}`}
+                      </code>
                     </td>
                     <td>
                       <code>&quot;{formatTime(formatString, v)}&quot;</code>

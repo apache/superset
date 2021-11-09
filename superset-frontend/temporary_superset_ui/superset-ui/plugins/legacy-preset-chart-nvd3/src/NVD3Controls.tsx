@@ -78,7 +78,9 @@ export const leftMargin: CustomControlItem = {
     choices: formatSelectOptions(['auto', 50, 75, 100, 125, 150, 200]),
     default: 'auto',
     renderTrigger: true,
-    description: t('Left margin, in pixels, allowing for more room for axis labels'),
+    description: t(
+      'Left margin, in pixels, allowing for more room for axis labels',
+    ),
   },
 };
 
@@ -186,7 +188,9 @@ export const bottomMargin: CustomControlItem = {
     choices: formatSelectOptions(['auto', 50, 75, 100, 125, 150, 200]),
     default: 'auto',
     renderTrigger: true,
-    description: t('Bottom margin, in pixels, allowing for more room for axis labels'),
+    description: t(
+      'Bottom margin, in pixels, allowing for more room for axis labels',
+    ),
   },
 };
 
@@ -277,7 +281,9 @@ export const richTooltip: CustomControlItem = {
     label: t('Rich Tooltip'),
     renderTrigger: true,
     default: true,
-    description: t('The rich tooltip shows a list of all series for that point in time'),
+    description: t(
+      'The rich tooltip shows a list of all series for that point in time',
+    ),
   },
 };
 
@@ -382,7 +388,13 @@ export const timeSeriesSection: ControlPanelSectionConfig[] = [
             type: 'SelectControl',
             label: t('Rolling Function'),
             default: 'None',
-            choices: formatSelectOptions(['None', 'mean', 'sum', 'std', 'cumsum']),
+            choices: formatSelectOptions([
+              'None',
+              'mean',
+              'sum',
+              'std',
+              'cumsum',
+            ]),
             description: t(
               'Defines a rolling window function to apply, works along ' +
                 'with the [Periods] text box',
@@ -493,7 +505,14 @@ export const timeSeriesSection: ControlPanelSectionConfig[] = [
             freeForm: true,
             label: t('Method'),
             default: null,
-            choices: formatSelectOptions(['asfreq', 'bfill', 'ffill', 'median', 'mean', 'sum']),
+            choices: formatSelectOptions([
+              'asfreq',
+              'bfill',
+              'ffill',
+              'median',
+              'mean',
+              'sum',
+            ]),
             description: t('Pandas resample method'),
           },
         },

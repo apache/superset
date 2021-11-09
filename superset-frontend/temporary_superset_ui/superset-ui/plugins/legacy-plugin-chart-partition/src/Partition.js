@@ -21,7 +21,11 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { hierarchy } from 'd3-hierarchy';
-import { getNumberFormatter, getTimeFormatter, CategoricalColorNamespace } from '@superset-ui/core';
+import {
+  getNumberFormatter,
+  getTimeFormatter,
+  CategoricalColorNamespace,
+} from '@superset-ui/core';
 import './Partition.css';
 
 // Compute dx, dy, x, y for each node and
@@ -59,7 +63,10 @@ const parentShape = {
   name: PropTypes.string,
   val: PropTypes.number.isRequired,
   children: PropTypes.arrayOf(
-    PropTypes.oneOfType([PropTypes.shape(lazyFunction(() => parentShape)), leafType]),
+    PropTypes.oneOfType([
+      PropTypes.shape(lazyFunction(() => parentShape)),
+      leafType,
+    ]),
   ),
 };
 const nodeType = PropTypes.oneOfType([PropTypes.shape(parentShape), leafType]);
@@ -72,7 +79,9 @@ const propTypes = {
   dateTimeFormat: PropTypes.string,
   equalDateSize: PropTypes.bool,
   levels: PropTypes.arrayOf(PropTypes.string),
-  metrics: PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, PropTypes.object])),
+  metrics: PropTypes.arrayOf(
+    PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+  ),
   numberFormat: PropTypes.string,
   partitionLimit: PropTypes.number,
   partitionThreshold: PropTypes.number,
@@ -185,7 +194,10 @@ function Icicle(element, props) {
         n.name = timeFormat(n.name);
       }
       if (useLogScale) n.weight = Math.log(n.weight + 1);
-      n.disp = n.disp && !Number.isNaN(n.disp) && Number.isFinite(n.disp) ? format(n.disp) : '';
+      n.disp =
+        n.disp && !Number.isNaN(n.disp) && Number.isFinite(n.disp)
+          ? format(n.disp)
+          : '';
     });
     // Perform sort by weight
     root.sort((a, b) => {
@@ -202,7 +214,9 @@ function Icicle(element, props) {
     if (partitionThreshold && partitionThreshold >= 0) {
       // Compute weight sums as we go
       root.each(n => {
-        n.sum = n.children ? n.children.reduce((a, v) => a + v.weight, 0) || 1 : 1;
+        n.sum = n.children
+          ? n.children.reduce((a, v) => a + v.weight, 0) || 1
+          : 1;
         if (n.children) {
           // Dates are not ordered by weight
           if (hasDateNode(n)) {
@@ -243,7 +257,9 @@ function Icicle(element, props) {
     }
     // Compute final weight sums
     root.eachAfter(n => {
-      n.sum = n.children ? n.children.reduce((a, v) => a + v.weight, 0) || 1 : 1;
+      n.sum = n.children
+        ? n.children.reduce((a, v) => a + v.weight, 0) || 1
+        : 1;
     });
 
     function positionAndPopulate(tip, d) {

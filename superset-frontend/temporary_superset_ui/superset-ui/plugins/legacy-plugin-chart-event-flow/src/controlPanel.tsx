@@ -47,7 +47,9 @@ const config: ControlPanelConfig = {
               }),
               // choices is from `mapStateToProps`
               default: (control: { choices?: string[] }) =>
-                control.choices && control.choices.length > 0 ? control.choices[0][0] : null,
+                control.choices && control.choices.length > 0
+                  ? control.choices[0][0]
+                  : null,
               validators: [validateNonEmpty],
             },
           },
@@ -125,7 +127,9 @@ const config: ControlPanelConfig = {
     },
     row_limit: {
       label: t('Max Events'),
-      description: t('The maximum number of events to return, equivalent to the number of rows'),
+      description: t(
+        'The maximum number of events to return, equivalent to the number of rows',
+      ),
     },
   },
 };

@@ -42,7 +42,11 @@ export default () => (
             type: 'linear',
           },
           axis: {
-            orient: radios('x.axis.orient', { top: 'top', bottom: 'bottom' }, 'bottom'),
+            orient: radios(
+              'x.axis.orient',
+              { top: 'top', bottom: 'bottom' },
+              'bottom',
+            ),
           },
         },
         y: {
@@ -52,7 +56,11 @@ export default () => (
             type: 'linear',
           },
           axis: {
-            orient: radios('y.axis.orient', { left: 'left', right: 'right' }, 'left'),
+            orient: radios(
+              'y.axis.orient',
+              { left: 'left', right: 'right' },
+              'left',
+            ),
           },
         },
         fill: {

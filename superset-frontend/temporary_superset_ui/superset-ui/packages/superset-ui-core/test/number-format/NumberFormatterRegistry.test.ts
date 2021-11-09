@@ -17,7 +17,11 @@
  * under the License.
  */
 
-import { NumberFormats, NumberFormatter, NumberFormatterRegistry } from '@superset-ui/core/src';
+import {
+  NumberFormats,
+  NumberFormatter,
+  NumberFormatterRegistry,
+} from '@superset-ui/core/src';
 
 describe('NumberFormatterRegistry', () => {
   let registry: NumberFormatterRegistry;

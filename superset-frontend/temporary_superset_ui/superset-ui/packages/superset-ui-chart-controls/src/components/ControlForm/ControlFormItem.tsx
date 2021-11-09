@@ -29,7 +29,8 @@ export type ControlFormItemProps = ControlFormItemSpec & {
   onChange?: (fieldValue: JsonValue) => void;
 };
 
-export type ControlFormItemNode = FunctionComponentElement<ControlFormItemProps>;
+export type ControlFormItemNode =
+  FunctionComponentElement<ControlFormItemProps>;
 
 /**
  * Accept `false` or `0`, but not empty string.
@@ -53,7 +54,9 @@ export function ControlFormItem({
 }: ControlFormItemProps) {
   const { gridUnit } = useTheme();
   const [hovered, setHovered] = useState(false);
-  const [value, setValue] = useState(initialValue === undefined ? defaultValue : initialValue);
+  const [value, setValue] = useState(
+    initialValue === undefined ? defaultValue : initialValue,
+  );
   const [validationErrors, setValidationErrors] =
     useState<ControlHeaderProps['validationErrors']>();
 
@@ -66,7 +69,9 @@ export function ControlFormItem({
         : e;
     const errors =
       (validators
-        ?.map(validator => (!required && isEmptyValue(fieldValue) ? false : validator(fieldValue)))
+        ?.map(validator =>
+          !required && isEmptyValue(fieldValue) ? false : validator(fieldValue),
+        )
         .filter(x => !!x) as string[]) || [];
     setValidationErrors(errors);
     setValue(fieldValue);
@@ -87,8 +92,14 @@ export function ControlFormItem({
       onMouseLeave={() => setHovered(false)}
     >
       {controlType === 'Checkbox' ? (
-        <ControlFormItemComponents.Checkbox checked={value as boolean} onChange={handleChange}>
-          {label} {hovered && description && <InfoTooltipWithTrigger tooltip={description} />}
+        <ControlFormItemComponents.Checkbox
+          checked={value as boolean}
+          onChange={handleChange}
+        >
+          {label}{' '}
+          {hovered && description && (
+            <InfoTooltipWithTrigger tooltip={description} />
+          )}
         </ControlFormItemComponents.Checkbox>
       ) : (
         <>

@@ -16,8 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, LegacyQueryData, QueryFormData, QueryFormMetric } from '@superset-ui/core';
-import { RawBoxPlotDataRow, BoxPlotDataRow } from '../../components/BoxPlot/types';
+import {
+  ChartProps,
+  LegacyQueryData,
+  QueryFormData,
+  QueryFormMetric,
+} from '@superset-ui/core';
+import {
+  RawBoxPlotDataRow,
+  BoxPlotDataRow,
+} from '../../components/BoxPlot/types';
 
 export type LegacyBoxPlotFormData = {
   groupby?: QueryFormData['groupby'];
@@ -55,7 +63,8 @@ export default function transformProps(chartProps: LegacyBoxPlotChartProps) {
   } else {
     metric = metrics;
   }
-  const yAxisLabel = typeof metric === 'string' ? verboseMap[metric] || metric : metric.label;
+  const yAxisLabel =
+    typeof metric === 'string' ? verboseMap[metric] || metric : metric.label;
 
   const boxPlotValues = data.reduce((r: number[], e: BoxPlotDataRow) => {
     r.push(e.min, e.max, ...e.outliers);

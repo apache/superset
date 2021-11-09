@@ -37,7 +37,12 @@ export default function wrapSvgText(text, width, adjustedY) {
     const x = d3Text.attr('x');
     const y = d3Text.attr('y');
     const dy = parseFloat(d3Text.attr('dy'));
-    let tspan = d3Text.text(null).append('tspan').attr('x', x).attr('y', y).attr('dy', `${dy}em`);
+    let tspan = d3Text
+      .text(null)
+      .append('tspan')
+      .attr('x', x)
+      .attr('y', y)
+      .attr('dy', `${dy}em`);
 
     let didWrap = false;
     words.forEach(word => {

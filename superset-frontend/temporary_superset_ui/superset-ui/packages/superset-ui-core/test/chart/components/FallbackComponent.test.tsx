@@ -26,7 +26,9 @@ describe('FallbackComponent', () => {
   const STACK_TRACE = 'Error at line 1: x.drink(coffee)';
 
   it('renders error and stack trace', () => {
-    const wrapper = shallow(<FallbackComponent componentStack={STACK_TRACE} error={ERROR} />);
+    const wrapper = shallow(
+      <FallbackComponent componentStack={STACK_TRACE} error={ERROR} />,
+    );
     const messages = wrapper.find('code');
     expect(messages).toHaveLength(2);
     expect(messages.at(0).text()).toEqual('Error: CaffeineOverLoadException');

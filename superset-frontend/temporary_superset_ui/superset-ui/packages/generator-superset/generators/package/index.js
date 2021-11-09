@@ -66,7 +66,10 @@ module.exports = class extends Generator {
       this.answers,
     );
     const ext = this.answers.language === 'typescript' ? 'ts' : 'js';
-    this.fs.copy(this.templatePath('src/index.txt'), this.destinationPath(`src/index.${ext}`));
+    this.fs.copy(
+      this.templatePath('src/index.txt'),
+      this.destinationPath(`src/index.${ext}`),
+    );
     this.fs.copy(
       this.templatePath('test/index.txt'),
       this.destinationPath(`test/index.test.${ext}`),

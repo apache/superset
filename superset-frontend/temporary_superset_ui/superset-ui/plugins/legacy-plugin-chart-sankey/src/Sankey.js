@@ -21,7 +21,11 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { sankey as d3Sankey } from 'd3-sankey';
-import { getNumberFormatter, NumberFormats, CategoricalColorNamespace } from '@superset-ui/core';
+import {
+  getNumberFormatter,
+  NumberFormats,
+  CategoricalColorNamespace,
+} from '@superset-ui/core';
 import { getOverlappingElements } from './utils';
 
 const propTypes = {
@@ -53,7 +57,10 @@ function Sankey(element, props) {
   const innerHeight = height - margin.top - margin.bottom;
 
   div.selectAll('*').remove();
-  const tooltip = div.append('div').attr('class', 'sankey-tooltip').style('opacity', 0);
+  const tooltip = div
+    .append('div')
+    .attr('class', 'sankey-tooltip')
+    .style('opacity', 0);
   const svg = div
     .append('svg')
     .attr('width', innerWidth + margin.left + margin.right)
@@ -63,7 +70,10 @@ function Sankey(element, props) {
 
   const colorFn = CategoricalColorNamespace.getScale(colorScheme);
 
-  const sankey = d3Sankey().nodeWidth(15).nodePadding(10).size([innerWidth, innerHeight]);
+  const sankey = d3Sankey()
+    .nodeWidth(15)
+    .nodePadding(10)
+    .size([innerWidth, innerHeight]);
 
   const path = sankey.link();
 
@@ -71,8 +81,10 @@ function Sankey(element, props) {
   // Compute the distinct nodes from the links.
   const links = data.map(row => {
     const link = { ...row };
-    link.source = nodes[link.source] || (nodes[link.source] = { name: link.source });
-    link.target = nodes[link.target] || (nodes[link.target] = { name: link.target });
+    link.source =
+      nodes[link.source] || (nodes[link.source] = { name: link.source });
+    link.target =
+      nodes[link.target] || (nodes[link.target] = { name: link.target });
     link.value = Number(link.value);
 
     return link;
@@ -86,7 +98,9 @@ function Sankey(element, props) {
 
     if (d.sourceLinks) {
       // is node
-      html = `${d.name} Value: <span class='emph'>${formatNumber(d.value)}</span>`;
+      html = `${d.name} Value: <span class='emph'>${formatNumber(
+        d.value,
+      )}</span>`;
     } else {
       const val = formatNumber(d.value);
       const sourcePercent = d3.round((d.value / d.source.value) * 100, 1);
@@ -102,7 +116,9 @@ function Sankey(element, props) {
         '%</span> of ',
         d.source.name,
         '<br/>',
-        `<span class='emph'>${Number.isFinite(targetPercent) ? targetPercent : '--'}%</span> of `,
+        `<span class='emph'>${
+          Number.isFinite(targetPercent) ? targetPercent : '--'
+        }%</span> of `,
         d.target.name,
         '</div>',
       ].join('');
@@ -116,10 +132,18 @@ function Sankey(element, props) {
       .html(() => getTooltipHtml(d))
       .transition()
       .duration(200);
-    const { height: tooltipHeight, width: tooltipWidth } = tooltip.node().getBoundingClientRect();
+    const { height: tooltipHeight, width: tooltipWidth } = tooltip
+      .node()
+      .getBoundingClientRect();
     tooltip
-      .style('left', `${Math.min(d3.event.offsetX + 10, width - tooltipWidth)}px`)
-      .style('top', `${Math.min(d3.event.offsetY + 10, height - tooltipHeight)}px`)
+      .style(
+        'left',
+        `${Math.min(d3.event.offsetX + 10, width - tooltipWidth)}px`,
+      )
+      .style(
+        'top',
+        `${Math.min(d3.event.offsetY + 10, height - tooltipHeight)}px`,
+      )
       .style('position', 'absolute')
       .style('opacity', 0.95);
   }
@@ -144,7 +168,10 @@ function Sankey(element, props) {
   function dragmove(d) {
     d3.select(this).attr(
       'transform',
-      `translate(${d.x},${(d.y = Math.max(0, Math.min(height - d.dy, d3.event.y)))})`,
+      `translate(${d.x},${(d.y = Math.max(
+        0,
+        Math.min(height - d.dy, d3.event.y),
+      ))})`,
     );
     sankey.relayout();
     link.attr('d', path);

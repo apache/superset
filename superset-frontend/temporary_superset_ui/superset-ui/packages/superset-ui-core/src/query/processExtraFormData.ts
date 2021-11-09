@@ -28,12 +28,14 @@ export function overrideExtraFormData(
 ): QueryObject {
   const overriddenFormData: QueryObject = { ...queryObject };
   const { extras: overriddenExtras = {} } = overriddenFormData;
-  Object.entries(EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS).forEach(([key, target]) => {
-    const value = overrideFormData[key as keyof ExtraFormDataOverride];
-    if (value !== undefined) {
-      overriddenFormData[target] = value;
-    }
-  });
+  Object.entries(EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS).forEach(
+    ([key, target]) => {
+      const value = overrideFormData[key as keyof ExtraFormDataOverride];
+      if (value !== undefined) {
+        overriddenFormData[target] = value;
+      }
+    },
+  );
   EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS.forEach(key => {
     if (key in overrideFormData) {
       // @ts-ignore

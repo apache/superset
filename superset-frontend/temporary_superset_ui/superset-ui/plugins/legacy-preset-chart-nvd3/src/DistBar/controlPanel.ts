@@ -104,7 +104,12 @@ const config: ControlPanelConfig = {
     {
       label: t('X Axis'),
       expanded: true,
-      controlSetRows: [[xAxisLabel], [bottomMargin], [xTicksLayout], [reduceXTicks]],
+      controlSetRows: [
+        [xAxisLabel],
+        [bottomMargin],
+        [xTicksLayout],
+        [reduceXTicks],
+      ],
     },
   ],
   controlOverrides: {
@@ -112,9 +117,12 @@ const config: ControlPanelConfig = {
       label: t('Series'),
       validators: [validateNonEmpty],
       mapStateToProps: (state, controlState) => {
-        const groupbyProps = sharedControls.groupby.mapStateToProps?.(state, controlState) || {};
+        const groupbyProps =
+          sharedControls.groupby.mapStateToProps?.(state, controlState) || {};
         groupbyProps.canDropValue = (column: ColumnMeta) =>
-          !ensureIsArray(state.controls?.columns?.value).includes(column.column_name);
+          !ensureIsArray(state.controls?.columns?.value).includes(
+            column.column_name,
+          );
         return groupbyProps;
       },
       rerender: ['columns'],
@@ -123,9 +131,12 @@ const config: ControlPanelConfig = {
       label: t('Breakdowns'),
       description: t('Defines how each series is broken down'),
       mapStateToProps: (state, controlState) => {
-        const columnsProps = sharedControls.columns.mapStateToProps?.(state, controlState) || {};
+        const columnsProps =
+          sharedControls.columns.mapStateToProps?.(state, controlState) || {};
         columnsProps.canDropValue = (column: ColumnMeta) =>
-          !ensureIsArray(state.controls?.groupby?.value).includes(column.column_name);
+          !ensureIsArray(state.controls?.groupby?.value).includes(
+            column.column_name,
+          );
         return columnsProps;
       },
       rerender: ['groupby'],

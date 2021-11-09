@@ -17,7 +17,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FeatureFlag, isFeatureEnabled, t, validateNonEmpty } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  isFeatureEnabled,
+  t,
+  validateNonEmpty,
+} from '@superset-ui/core';
 import { ExtraControlProps, SharedControlConfig } from '../types';
 import { TIME_COLUMN_OPTION, TIME_FILTER_LABELS } from '../constants';
 
@@ -36,7 +41,9 @@ export const dndGroupByControl: SharedControlConfig<'DndColumnSelect'> = {
       if (includeTime) {
         options.unshift(TIME_COLUMN_OPTION);
       }
-      newState.options = Object.fromEntries(options.map(option => [option.column_name, option]));
+      newState.options = Object.fromEntries(
+        options.map(option => [option.column_name, option]),
+      );
       newState.savedMetrics = state.datasource.metrics || [];
     }
     return newState;
@@ -79,7 +86,8 @@ export const dnd_adhoc_filters: SharedControlConfig<'DndFilterSelect'> = {
     columns: datasource?.columns.filter(c => c.filterable) || [],
     savedMetrics: datasource?.metrics || [],
     // current active adhoc metrics
-    selectedMetrics: form_data.metrics || (form_data.metric ? [form_data.metric] : []),
+    selectedMetrics:
+      form_data.metrics || (form_data.metric ? [form_data.metric] : []),
     datasource,
   }),
   provideFormDataToProps: true,
@@ -171,10 +179,13 @@ export const dnd_granularity_sqla: typeof dndGroupByControl = {
   ),
   mapStateToProps: ({ datasource }) => {
     const temporalColumns = datasource?.columns.filter(c => c.is_dttm) ?? [];
-    const options = Object.fromEntries(temporalColumns.map(option => [option.column_name, option]));
+    const options = Object.fromEntries(
+      temporalColumns.map(option => [option.column_name, option]),
+    );
     return {
       options,
-      default: datasource?.main_dttm_col || temporalColumns[0]?.column_name || null,
+      default:
+        datasource?.main_dttm_col || temporalColumns[0]?.column_name || null,
     };
   },
 };

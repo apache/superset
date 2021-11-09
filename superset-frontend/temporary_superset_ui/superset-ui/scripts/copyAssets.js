@@ -45,7 +45,9 @@ packages.forEach(pkg => {
   });
   if (assets.length > 0) {
     console.log(
-      `  Copied ${assets.length.toString().padStart(2)} asset files for ${pkg.replace(
+      `  Copied ${assets.length
+        .toString()
+        .padStart(2)} asset files for ${pkg.replace(
         'packages/superset-ui-',
         '',
       )}`,

@@ -20,14 +20,20 @@ import { QueryObject, SqlaFormData } from '@superset-ui/core';
 import { rollingWindowOperator } from '../../../src';
 
 const formData: SqlaFormData = {
-  metrics: ['count(*)', { label: 'sum(val)', expressionType: 'SQL', sqlExpression: 'sum(val)' }],
+  metrics: [
+    'count(*)',
+    { label: 'sum(val)', expressionType: 'SQL', sqlExpression: 'sum(val)' },
+  ],
   time_range: '2015 : 2016',
   granularity: 'month',
   datasource: 'foo',
   viz_type: 'table',
 };
 const queryObject: QueryObject = {
-  metrics: ['count(*)', { label: 'sum(val)', expressionType: 'SQL', sqlExpression: 'sum(val)' }],
+  metrics: [
+    'count(*)',
+    { label: 'sum(val)', expressionType: 'SQL', sqlExpression: 'sum(val)' },
+  ],
   time_range: '2015 : 2016',
   granularity: 'month',
   post_processing: [
@@ -48,20 +54,24 @@ const queryObject: QueryObject = {
 
 test('skip transformation', () => {
   expect(rollingWindowOperator(formData, queryObject)).toEqual(undefined);
-  expect(rollingWindowOperator({ ...formData, rolling_type: 'None' }, queryObject)).toEqual(
-    undefined,
-  );
-  expect(rollingWindowOperator({ ...formData, rolling_type: 'foobar' }, queryObject)).toEqual(
-    undefined,
-  );
+  expect(
+    rollingWindowOperator({ ...formData, rolling_type: 'None' }, queryObject),
+  ).toEqual(undefined);
+  expect(
+    rollingWindowOperator({ ...formData, rolling_type: 'foobar' }, queryObject),
+  ).toEqual(undefined);
 
   const formDataWithoutMetrics = { ...formData };
   delete formDataWithoutMetrics.metrics;
-  expect(rollingWindowOperator(formDataWithoutMetrics, queryObject)).toEqual(undefined);
+  expect(rollingWindowOperator(formDataWithoutMetrics, queryObject)).toEqual(
+    undefined,
+  );
 });
 
 test('rolling_type: cumsum', () => {
-  expect(rollingWindowOperator({ ...formData, rolling_type: 'cumsum' }, queryObject)).toEqual({
+  expect(
+    rollingWindowOperator({ ...formData, rolling_type: 'cumsum' }, queryObject),
+  ).toEqual({
     operation: 'cum',
     options: {
       operator: 'sum',
@@ -77,7 +87,12 @@ test('rolling_type: cumsum', () => {
 test('rolling_type: sum/mean/std', () => {
   const rollingTypes = ['sum', 'mean', 'std'];
   rollingTypes.forEach(rollingType => {
-    expect(rollingWindowOperator({ ...formData, rolling_type: rollingType }, queryObject)).toEqual({
+    expect(
+      rollingWindowOperator(
+        { ...formData, rolling_type: rollingType },
+        queryObject,
+      ),
+    ).toEqual({
       operation: 'rolling',
       options: {
         rolling_type: rollingType,

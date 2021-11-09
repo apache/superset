@@ -103,7 +103,9 @@ export default function getRenderer({
   return ({ keyName, row }: RendererProps) => {
     const value = row.rowData.data[keyName];
     const cell = { key: keyName as string, value };
-    const handleClick = isMetric ? NOOP : useMemo(() => handleCellSelected(cell), [cell]);
+    const handleClick = isMetric
+      ? NOOP
+      : useMemo(() => handleCellSelected(cell), [cell]);
 
     let Parent;
     if (isMetric) {
@@ -112,13 +114,22 @@ export default function getRenderer({
       const numericValue = value as number;
       if (alignPositiveNegative) {
         width = Math.abs(
-          Math.round((numericValue / Math.max(column.maxValue!, Math.abs(column.minValue!))) * 100),
+          Math.round(
+            (numericValue /
+              Math.max(column.maxValue!, Math.abs(column.minValue!))) *
+              100,
+          ),
         );
       } else {
-        left = Math.round((Math.min(negExtent + numericValue, negExtent) / total) * 100);
+        left = Math.round(
+          (Math.min(negExtent + numericValue, negExtent) / total) * 100,
+        );
         width = Math.round((Math.abs(numericValue) / total) * 100);
       }
-      const color = colorPositiveNegative && numericValue < 0 ? NEGATIVE_COLOR : POSITIVE_COLOR;
+      const color =
+        colorPositiveNegative && numericValue < 0
+          ? NEGATIVE_COLOR
+          : POSITIVE_COLOR;
 
       Parent = ({ children }: { children: React.ReactNode }) => {
         const barStyle: CSSProperties = {

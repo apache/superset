@@ -98,7 +98,8 @@ const config: ControlPanelConfig = {
               validators: [validateNonEmpty],
               default: [],
               description: t('Choose one or more charts for left axis'),
-              dataEndpoint: '/sliceasync/api/read?_flt_0_viz_type=line&_flt_7_viz_type=line_multi',
+              dataEndpoint:
+                '/sliceasync/api/read?_flt_0_viz_type=line&_flt_7_viz_type=line_multi',
               placeholder: t('Select charts'),
               onAsyncErrorMessage: t('Error while fetching charts'),
               mutator: (data?: Data) => {
@@ -132,7 +133,8 @@ const config: ControlPanelConfig = {
               validators: [],
               default: [],
               description: t('Choose one or more charts for right axis'),
-              dataEndpoint: '/sliceasync/api/read?_flt_0_viz_type=line&_flt_7_viz_type=line_multi',
+              dataEndpoint:
+                '/sliceasync/api/read?_flt_0_viz_type=line&_flt_7_viz_type=line_multi',
               placeholder: t('Select charts'),
               onAsyncErrorMessage: t('Error while fetching charts'),
               mutator: (data: Data) => {

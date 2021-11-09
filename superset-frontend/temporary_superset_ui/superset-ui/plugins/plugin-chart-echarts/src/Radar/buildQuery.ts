@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { buildQueryContext, QueryFormData, ensureIsArray } from '@superset-ui/core';
+import {
+  buildQueryContext,
+  QueryFormData,
+  ensureIsArray,
+} from '@superset-ui/core';
 
 export default function buildQuery(formData: QueryFormData) {
   const { timeseries_limit_metric } = formData;

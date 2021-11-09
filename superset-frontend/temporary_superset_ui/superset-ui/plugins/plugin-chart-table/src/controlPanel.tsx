@@ -56,7 +56,9 @@ function getQueryMode(controls: ControlStateMapping): QueryMode {
   if (mode === QueryMode.aggregate || mode === QueryMode.raw) {
     return mode as QueryMode;
   }
-  const rawColumns = controls?.all_columns?.value as QueryFormColumn[] | undefined;
+  const rawColumns = controls?.all_columns?.value as
+    | QueryFormColumn[]
+    | undefined;
   const hasRawColumns = rawColumns && rawColumns.length > 0;
   return hasRawColumns ? QueryMode.raw : QueryMode.aggregate;
 }
@@ -72,7 +74,10 @@ function isQueryMode(mode: QueryMode) {
 const isAggMode = isQueryMode(QueryMode.aggregate);
 const isRawMode = isQueryMode(QueryMode.raw);
 
-const validateAggControlValues = (controls: ControlStateMapping, values: any[]) => {
+const validateAggControlValues = (
+  controls: ControlStateMapping,
+  values: any[],
+) => {
   const areControlsEmpty = values.every(val => ensureIsArray(val).length === 0);
   return areControlsEmpty && isAggMode({ controls })
     ? [t('Group By, Metrics or Percentage Metrics must have a value')]
@@ -123,7 +128,9 @@ const dnd_all_columns: typeof sharedControls.groupby = {
     const newState: ExtraControlProps = {};
     if (datasource) {
       const options = datasource.columns;
-      newState.options = Object.fromEntries(options.map(option => [option.column_name, option]));
+      newState.options = Object.fromEntries(
+        options.map(option => [option.column_name, option]),
+      );
     }
     newState.queryMode = getQueryMode(controls);
     newState.externalValidationErrors =
@@ -183,15 +190,23 @@ const config: ControlPanelConfig = {
             name: 'groupby',
             override: {
               visibility: isAggMode,
-              mapStateToProps: (state: ControlPanelState, controlState: ControlState) => {
+              mapStateToProps: (
+                state: ControlPanelState,
+                controlState: ControlState,
+              ) => {
                 const { controls } = state;
-                const originalMapStateToProps = sharedControls?.groupby?.mapStateToProps;
-                const newState = originalMapStateToProps?.(state, controlState) ?? {};
-                newState.externalValidationErrors = validateAggControlValues(controls, [
-                  controls.metrics?.value,
-                  controls.percent_metrics?.value,
-                  controlState.value,
-                ]);
+                const originalMapStateToProps =
+                  sharedControls?.groupby?.mapStateToProps;
+                const newState =
+                  originalMapStateToProps?.(state, controlState) ?? {};
+                newState.externalValidationErrors = validateAggControlValues(
+                  controls,
+                  [
+                    controls.metrics?.value,
+                    controls.percent_metrics?.value,
+                    controlState.value,
+                  ],
+                );
 
                 return newState;
               },
@@ -212,7 +227,9 @@ const config: ControlPanelConfig = {
                 columns: datasource?.columns.filter(c => c.filterable) || [],
                 savedMetrics: datasource?.metrics || [],
                 // current active adhoc metrics
-                selectedMetrics: form_data.metrics || (form_data.metric ? [form_data.metric] : []),
+                selectedMetrics:
+                  form_data.metrics ||
+                  (form_data.metric ? [form_data.metric] : []),
                 datasource,
                 externalValidationErrors: validateAggControlValues(controls, [
                   controls.groupby?.value,
@@ -270,7 +287,9 @@ const config: ControlPanelConfig = {
                 config: {
                   type: 'CheckboxControl',
                   label: t('Server pagination'),
-                  description: t('Enable server side pagination of results (experimental feature)'),
+                  description: t(
+                    'Enable server side pagination of results (experimental feature)',
+                  ),
                   default: false,
                 },
               },
@@ -394,7 +413,9 @@ const config: ControlPanelConfig = {
               label: t('Cell bars'),
               renderTrigger: true,
               default: true,
-              description: t('Whether to display a bar chart background in table columns'),
+              description: t(
+                'Whether to display a bar chart background in table columns',
+              ),
             },
           },
         ],
@@ -434,7 +455,9 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               mapStateToProps(explore, control, chart) {
                 return {
-                  queryResponse: chart?.queriesResponse?.[0] as ChartDataResponseResult | undefined,
+                  queryResponse: chart?.queriesResponse?.[0] as
+                    | ChartDataResponseResult
+                    | undefined,
                   emitFilter: explore?.controls?.table_filter?.value,
                 };
               },
@@ -448,10 +471,13 @@ const config: ControlPanelConfig = {
               type: 'ConditionalFormattingControl',
               renderTrigger: true,
               label: t('Conditional formatting'),
-              description: t('Apply conditional color formatting to numeric columns'),
+              description: t(
+                'Apply conditional color formatting to numeric columns',
+              ),
               mapStateToProps(explore, control, chart) {
                 const verboseMap = explore?.datasource?.verbose_map ?? {};
-                const { colnames, coltypes } = chart?.queriesResponse?.[0] ?? {};
+                const { colnames, coltypes } =
+                  chart?.queriesResponse?.[0] ?? {};
                 const numericColumns =
                   Array.isArray(colnames) && Array.isArray(coltypes)
                     ? colnames
@@ -459,7 +485,10 @@ const config: ControlPanelConfig = {
                           (colname: string, index: number) =>
                             coltypes[index] === GenericDataType.NUMERIC,
                         )
-                        .map(colname => ({ value: colname, label: verboseMap[colname] ?? colname }))
+                        .map(colname => ({
+                          value: colname,
+                          label: verboseMap[colname] ?? colname,
+                        }))
                     : [];
                 return {
                   columnOptions: numericColumns,

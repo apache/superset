@@ -43,7 +43,10 @@ export function extractTimeseriesSeries(
   if (data.length === 0) return [];
   const rows: TimeseriesDataRecord[] = data.map(datum => ({
     ...datum,
-    __timestamp: datum.__timestamp || datum.__timestamp === 0 ? new Date(datum.__timestamp) : null,
+    __timestamp:
+      datum.__timestamp || datum.__timestamp === 0
+        ? new Date(datum.__timestamp)
+        : null,
   }));
 
   return Object.keys(rows[0])
@@ -56,7 +59,9 @@ export function extractTimeseriesSeries(
           isDefined(rows[idx - 1]?.[key]) || isDefined(rows[idx + 1]?.[key]);
         return [
           row.__timestamp,
-          !isDefined(row[key]) && isNextToDefinedValue && fillNeighborValue !== undefined
+          !isDefined(row[key]) &&
+          isNextToDefinedValue &&
+          fillNeighborValue !== undefined
             ? fillNeighborValue
             : row[key],
         ];
@@ -97,7 +102,10 @@ export const getColtypesMapping = ({
   coltypes = [],
   colnames = [],
 }: ChartDataResponseResult): Record<string, GenericDataType> =>
-  colnames.reduce((accumulator, item, index) => ({ ...accumulator, [item]: coltypes[index] }), {});
+  colnames.reduce(
+    (accumulator, item, index) => ({ ...accumulator, [item]: coltypes[index] }),
+    {},
+  );
 
 export function extractGroupbyLabel({
   datum = {},
@@ -130,7 +138,9 @@ export function getLegendProps(
   zoomable = false,
 ): LegendComponentOption | LegendComponentOption[] {
   const legend: LegendComponentOption | LegendComponentOption[] = {
-    orient: [LegendOrientation.Top, LegendOrientation.Bottom].includes(orientation)
+    orient: [LegendOrientation.Top, LegendOrientation.Bottom].includes(
+      orientation,
+    )
       ? 'horizontal'
       : 'vertical',
     show,
@@ -170,7 +180,11 @@ export function getChartPadding(
   let legendMargin;
   if (!show) {
     legendMargin = 0;
-  } else if (margin === null || margin === undefined || typeof margin === 'string') {
+  } else if (
+    margin === null ||
+    margin === undefined ||
+    typeof margin === 'string'
+  ) {
     legendMargin = defaultLegendPadding[orientation];
   } else {
     legendMargin = margin;
@@ -181,7 +195,8 @@ export function getChartPadding(
     left: left + (orientation === LegendOrientation.Left ? legendMargin : 0),
     right: right + (orientation === LegendOrientation.Right ? legendMargin : 0),
     top: top + (orientation === LegendOrientation.Top ? legendMargin : 0),
-    bottom: bottom + (orientation === LegendOrientation.Bottom ? legendMargin : 0),
+    bottom:
+      bottom + (orientation === LegendOrientation.Bottom ? legendMargin : 0),
   };
 }
 

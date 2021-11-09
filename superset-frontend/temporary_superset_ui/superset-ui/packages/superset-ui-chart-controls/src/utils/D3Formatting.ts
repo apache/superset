@@ -19,7 +19,9 @@
 import { t, smartDateFormatter, NumberFormats } from '@superset-ui/core';
 
 // D3 specific formatting config
-export const D3_FORMAT_DOCS = t('D3 format syntax: https://github.com/d3/d3-format');
+export const D3_FORMAT_DOCS = t(
+  'D3 format syntax: https://github.com/d3/d3-format',
+);
 
 // input choices & options
 export const D3_FORMAT_OPTIONS: [string, string][] = [
@@ -39,7 +41,9 @@ export const D3_FORMAT_OPTIONS: [string, string][] = [
   ['DURATION_SUB', t('Duration in ms (1.40008 => 1ms 400µs 80ns)')],
 ];
 
-export const D3_TIME_FORMAT_DOCS = t('D3 time format syntax: https://github.com/d3/d3-time-format');
+export const D3_TIME_FORMAT_DOCS = t(
+  'D3 time format syntax: https://github.com/d3/d3-time-format',
+);
 
 export const D3_TIME_FORMAT_OPTIONS: [string, string][] = [
   [smartDateFormatter.id, t('Adaptative formating')],

@@ -45,7 +45,9 @@ export default {
               type: 'TextControl',
               label: t('Subheader'),
               renderTrigger: true,
-              description: t('Description text that shows up below your Big Number'),
+              description: t(
+                'Description text that shows up below your Big Number',
+              ),
             },
           },
         ],

@@ -32,7 +32,10 @@ describe('getFormData()', () => {
       field2: 'def',
     };
 
-    fetchMock.get('glob:*/superset/fetch_datasource_metadata?datasourceKey=1__table', mockData);
+    fetchMock.get(
+      'glob:*/superset/fetch_datasource_metadata?datasourceKey=1__table',
+      mockData,
+    );
 
     return expect(
       getDatasourceMetadata({

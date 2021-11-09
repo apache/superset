@@ -25,18 +25,19 @@ export type BoxPlotEncodingConfig = {
   color: ['Color', string];
 };
 
-export const boxPlotEncoderFactory = createEncoderFactory<BoxPlotEncodingConfig>({
-  channelTypes: {
-    x: 'XBand',
-    y: 'YBand',
-    color: 'Color',
-  },
-  defaultEncoding: {
-    x: { field: 'x', type: 'nominal' },
-    y: { field: 'y', type: 'quantitative' },
-    color: { value: '#222' },
-  },
-});
+export const boxPlotEncoderFactory =
+  createEncoderFactory<BoxPlotEncodingConfig>({
+    channelTypes: {
+      x: 'XBand',
+      y: 'YBand',
+      color: 'Color',
+    },
+    defaultEncoding: {
+      x: { field: 'x', type: 'nominal' },
+      y: { field: 'y', type: 'quantitative' },
+      color: { value: '#222' },
+    },
+  });
 
 export type BoxPlotEncoding = DeriveEncoding<BoxPlotEncodingConfig>;
 
