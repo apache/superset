@@ -38,7 +38,7 @@ module.exports = {
       version: 'detect',
     },
   },
-  plugins: ['prettier', 'react'],
+  plugins: ['prettier', 'react', 'file-progress'],
   overrides: [
     {
       files: ['cypress-base/**/*'],
@@ -145,6 +145,7 @@ module.exports = {
         'react/sort-comp': 0, // TODO: re-enable in separate PR
         'react/static-property-placement': 0, // re-enable up for discussion
         'prettier/prettier': 'error',
+        'file-progress/activate': 1,
       },
       settings: {
         'import/resolver': {

@@ -148,6 +148,15 @@ describe('PropertiesModal', () => {
         expect(spy).toHaveBeenCalled();
       });
     });
+    describe('with an empty color scheme as an arg', () => {
+      const wrapper = setup();
+      const modalInstance = wrapper.find('PropertiesModal').instance();
+      it('will not raise an error', () => {
+        const spy = jest.spyOn(Modal, 'error');
+        modalInstance.onColorSchemeChange('');
+        expect(spy).not.toHaveBeenCalled();
+      });
+    });
   });
   describe('onOwnersChange', () => {
     it('should update the state with the value passed', () => {

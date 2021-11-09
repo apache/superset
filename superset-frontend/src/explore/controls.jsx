@@ -156,7 +156,7 @@ const metrics = {
     return {
       columns: datasource ? datasource.columns : [],
       savedMetrics: datasource ? datasource.metrics : [],
-      datasourceType: datasource && datasource.type,
+      datasource,
     };
   },
   description: t('One or many metrics to display'),
@@ -395,7 +395,7 @@ export const controls = {
     mapStateToProps: state => ({
       columns: state.datasource ? state.datasource.columns : [],
       savedMetrics: state.datasource ? state.datasource.metrics : [],
-      datasourceType: state.datasource && state.datasource.type,
+      datasource: state.datasource,
     }),
   },
 

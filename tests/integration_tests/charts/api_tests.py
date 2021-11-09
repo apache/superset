@@ -790,7 +790,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         rv = self.get_assert_metric(uri, "get_list")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["count"], 33)
+        self.assertEqual(data["count"], 34)
 
     def test_get_charts_changed_on(self):
         """
@@ -1040,7 +1040,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         """
         Chart API: Test get charts filter
         """
-        # Assuming we have 33 sample charts
+        # Assuming we have 34 sample charts
         self.login(username="admin")
         arguments = {"page_size": 10, "page": 0}
         uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
@@ -1054,7 +1054,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         rv = self.get_assert_metric(uri, "get_list")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(len(data["result"]), 3)
+        self.assertEqual(len(data["result"]), 4)
 
     def test_get_charts_no_data_access(self):
         """
