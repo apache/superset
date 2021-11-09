@@ -25,8 +25,9 @@ def test_odbc_impersonation(app_context: AppContext) -> None:
 
     The method adds the parameter ``DelegationUID`` to the query string.
     """
-    from superset.db_engine_specs.drill import DrillEngineSpec
     from sqlalchemy.engine.url import URL
+
+    from superset.db_engine_specs.drill import DrillEngineSpec
 
     url = URL("drill+odbc")
     username = "DoAsUser"
@@ -40,8 +41,9 @@ def test_jdbc_impersonation(app_context: AppContext) -> None:
 
     The method adds the parameter ``impersonation_target`` to the query string.
     """
-    from superset.db_engine_specs.drill import DrillEngineSpec
     from sqlalchemy.engine.url import URL
+
+    from superset.db_engine_specs.drill import DrillEngineSpec
 
     url = URL("drill+jdbc")
     username = "DoAsUser"
@@ -55,8 +57,9 @@ def test_sadrill_impersonation(app_context: AppContext) -> None:
 
     The method changes the username of URL Object.
     """
-    from superset.db_engine_specs.drill import DrillEngineSpec
     from sqlalchemy.engine.url import URL
+
+    from superset.db_engine_specs.drill import DrillEngineSpec
 
     url = URL("drill+sadrill")
     username = "DoAsUser"
