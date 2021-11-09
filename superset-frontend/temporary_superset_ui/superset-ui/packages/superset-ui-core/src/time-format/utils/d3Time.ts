@@ -117,13 +117,20 @@ function createUtils(useLocalTime = false) {
     hasHour: (date: Date) => floorDay(date) < date,
     isNotFirstDayOfMonth: (date: Date) => floorMonth(date) < date,
     isNotFirstDayOfWeek: (date: Date) => floorWeek(date) < date,
-    isNotFirstDayOfWeekStartOnSunday: (date: Date) => floorWeekStartOnSunday(date) < date,
-    isNotFirstDayOfWeekStartOnMonday: (date: Date) => floorWeekStartOnMonday(date) < date,
-    isNotFirstDayOfWeekStartOnTuesday: (date: Date) => floorWeekStartOnTuesday(date) < date,
-    isNotFirstDayOfWeekStartOnWednesday: (date: Date) => floorWeekStartOnWednesday(date) < date,
-    isNotFirstDayOfWeekStartOnThursday: (date: Date) => floorWeekStartOnThursday(date) < date,
-    isNotFirstDayOfWeekStartOnFriday: (date: Date) => floorWeekStartOnFriday(date) < date,
-    isNotFirstDayOfWeekStartOnSaturday: (date: Date) => floorWeekStartOnSaturday(date) < date,
+    isNotFirstDayOfWeekStartOnSunday: (date: Date) =>
+      floorWeekStartOnSunday(date) < date,
+    isNotFirstDayOfWeekStartOnMonday: (date: Date) =>
+      floorWeekStartOnMonday(date) < date,
+    isNotFirstDayOfWeekStartOnTuesday: (date: Date) =>
+      floorWeekStartOnTuesday(date) < date,
+    isNotFirstDayOfWeekStartOnWednesday: (date: Date) =>
+      floorWeekStartOnWednesday(date) < date,
+    isNotFirstDayOfWeekStartOnThursday: (date: Date) =>
+      floorWeekStartOnThursday(date) < date,
+    isNotFirstDayOfWeekStartOnFriday: (date: Date) =>
+      floorWeekStartOnFriday(date) < date,
+    isNotFirstDayOfWeekStartOnSaturday: (date: Date) =>
+      floorWeekStartOnSaturday(date) < date,
     isNotFirstMonth: (date: Date) => floorYear(date) < date,
   };
 }

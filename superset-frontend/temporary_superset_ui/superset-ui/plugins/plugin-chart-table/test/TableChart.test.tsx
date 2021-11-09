@@ -43,7 +43,9 @@ describe('plugin-chart-table', () => {
     });
 
     it('should memoize data records', () => {
-      expect(transformProps(testData.basic).data).toBe(transformProps(testData.basic).data);
+      expect(transformProps(testData.basic).data).toBe(
+        transformProps(testData.basic).data,
+      );
     });
 
     it('should memoize columns meta', () => {
@@ -57,7 +59,8 @@ describe('plugin-chart-table', () => {
 
     it('should format timestamp', () => {
       // eslint-disable-next-line no-underscore-dangle
-      const parsedDate = transformProps(testData.basic).data[0].__timestamp as DateWithFormatter;
+      const parsedDate = transformProps(testData.basic).data[0]
+        .__timestamp as DateWithFormatter;
       expect(String(parsedDate)).toBe('2020-01-01 12:34:56');
       expect(parsedDate.getTime()).toBe(1577882096000);
     });
@@ -68,7 +71,9 @@ describe('plugin-chart-table', () => {
     let tree: Cheerio;
 
     it('render basic data', () => {
-      wrap = mount(<TableChart {...transformProps(testData.basic)} sticky={false} />);
+      wrap = mount(
+        <TableChart {...transformProps(testData.basic)} sticky={false} />,
+      );
       tree = wrap.render(); // returns a CheerioWrapper with jQuery-like API
       const cells = tree.find('td');
       expect(cells).toHaveLength(8);
@@ -83,7 +88,9 @@ describe('plugin-chart-table', () => {
     });
 
     it('render advanced data', () => {
-      wrap = mount(<TableChart {...transformProps(testData.advanced)} sticky={false} />);
+      wrap = mount(
+        <TableChart {...transformProps(testData.advanced)} sticky={false} />,
+      );
       tree = wrap.render();
       // should successfull rerender with new props
       const cells = tree.find('td');

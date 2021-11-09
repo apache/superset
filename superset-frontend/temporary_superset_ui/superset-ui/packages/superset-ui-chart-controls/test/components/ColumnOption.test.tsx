@@ -104,6 +104,8 @@ describe('ColumnOption', () => {
     props.column.type_generic = GenericDataType.TEMPORAL;
     wrapper = shallow(factory(props));
     expect(wrapper.find(ColumnTypeLabel)).toHaveLength(1);
-    expect(wrapper.find(ColumnTypeLabel).props().type).toBe(GenericDataType.TEMPORAL);
+    expect(wrapper.find(ColumnTypeLabel).props().type).toBe(
+      GenericDataType.TEMPORAL,
+    );
   });
 });

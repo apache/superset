@@ -33,7 +33,9 @@ const propTypes = {
   locations: PropTypes.arrayOf(PropTypes.object).isRequired,
   pointRadiusUnit: PropTypes.string,
   renderWhileDragging: PropTypes.bool,
-  rgb: PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, PropTypes.number])),
+  rgb: PropTypes.arrayOf(
+    PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  ),
   zoom: PropTypes.number,
 };
 
@@ -79,7 +81,13 @@ class ScatterPlotGlowOverlay extends React.PureComponent {
 
   drawText(ctx, pixel, options = {}) {
     const IS_DARK_THRESHOLD = 110;
-    const { fontHeight = 0, label = '', radius = 0, rgb = [0, 0, 0], shadow = false } = options;
+    const {
+      fontHeight = 0,
+      label = '',
+      radius = 0,
+      rgb = [0, 0, 0],
+      shadow = false,
+    } = options;
     const maxWidth = radius * 1.8;
     const luminance = luminanceFromRGB(rgb[1], rgb[2], rgb[3]);
 
@@ -126,7 +134,10 @@ class ScatterPlotGlowOverlay extends React.PureComponent {
 
     locations.forEach((location, i) => {
       if (location.properties.cluster) {
-        clusterLabelMap[i] = computeClusterLabel(location.properties, aggregation);
+        clusterLabelMap[i] = computeClusterLabel(
+          location.properties,
+          aggregation,
+        );
       }
     }, this);
 
@@ -138,7 +149,10 @@ class ScatterPlotGlowOverlay extends React.PureComponent {
     if ((renderWhileDragging || !isDragging) && locations) {
       locations.forEach(function _forEach(location, i) {
         const pixel = project(lngLatAccessor(location));
-        const pixelRounded = [roundDecimal(pixel[0], 1), roundDecimal(pixel[1], 1)];
+        const pixelRounded = [
+          roundDecimal(pixel[0], 1),
+          roundDecimal(pixel[1], 1),
+        ];
 
         if (
           pixelRounded[0] + radius >= 0 &&
@@ -149,14 +163,36 @@ class ScatterPlotGlowOverlay extends React.PureComponent {
           ctx.beginPath();
           if (location.properties.cluster) {
             let clusterLabel = clusterLabelMap[i];
-            const scaledRadius = roundDecimal((clusterLabel / maxLabel) ** 0.5 * radius, 1);
+            const scaledRadius = roundDecimal(
+              (clusterLabel / maxLabel) ** 0.5 * radius,
+              1,
+            );
             const fontHeight = roundDecimal(scaledRadius * 0.5, 1);
             const [x, y] = pixelRounded;
-            const gradient = ctx.createRadialGradient(x, y, scaledRadius, x, y, 0);
+            const gradient = ctx.createRadialGradient(
+              x,
+              y,
+              scaledRadius,
+              x,
+              y,
+              0,
+            );
 
-            gradient.addColorStop(1, `rgba(${rgb[1]}, ${rgb[2]}, ${rgb[3]}, 0.8)`);
-            gradient.addColorStop(0, `rgba(${rgb[1]}, ${rgb[2]}, ${rgb[3]}, 0)`);
-            ctx.arc(pixelRounded[0], pixelRounded[1], scaledRadius, 0, Math.PI * 2);
+            gradient.addColorStop(
+              1,
+              `rgba(${rgb[1]}, ${rgb[2]}, ${rgb[3]}, 0.8)`,
+            );
+            gradient.addColorStop(
+              0,
+              `rgba(${rgb[1]}, ${rgb[2]}, ${rgb[3]}, 0)`,
+            );
+            ctx.arc(
+              pixelRounded[0],
+              pixelRounded[1],
+              scaledRadius,
+              0,
+              Math.PI * 2,
+            );
             ctx.fillStyle = gradient;
             ctx.fill();
 
@@ -178,7 +214,8 @@ class ScatterPlotGlowOverlay extends React.PureComponent {
             const defaultRadius = radius / 6;
             const radiusProperty = location.properties.radius;
             const pointMetric = location.properties.metric;
-            let pointRadius = radiusProperty === null ? defaultRadius : radiusProperty;
+            let pointRadius =
+              radiusProperty === null ? defaultRadius : radiusProperty;
             let pointLabel;
 
             if (radiusProperty !== null) {
@@ -188,7 +225,11 @@ class ScatterPlotGlowOverlay extends React.PureComponent {
                 pointRadius = kmToPixels(pointRadius, pointLatitude, zoom);
               } else if (pointRadiusUnit === 'Miles') {
                 pointLabel = `${roundDecimal(pointRadius, 2)}mi`;
-                pointRadius = kmToPixels(pointRadius * MILES_PER_KM, pointLatitude, zoom);
+                pointRadius = kmToPixels(
+                  pointRadius * MILES_PER_KM,
+                  pointLatitude,
+                  zoom,
+                );
               }
             }
 
@@ -203,7 +244,13 @@ class ScatterPlotGlowOverlay extends React.PureComponent {
               pointRadius = defaultRadius;
             }
 
-            ctx.arc(pixelRounded[0], pixelRounded[1], roundDecimal(pointRadius, 1), 0, Math.PI * 2);
+            ctx.arc(
+              pixelRounded[0],
+              pixelRounded[1],
+              roundDecimal(pointRadius, 1),
+              0,
+              Math.PI * 2,
+            );
             ctx.fillStyle = `rgb(${rgb[1]}, ${rgb[2]}, ${rgb[3]})`;
             ctx.fill();
 

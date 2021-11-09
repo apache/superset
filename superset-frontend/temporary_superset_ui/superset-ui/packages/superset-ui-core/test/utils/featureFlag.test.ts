@@ -24,7 +24,9 @@ describe('isFeatureFlagEnabled', () => {
     [FeatureFlag.CLIENT_CACHE]: true,
   };
   it('returns false for unset feature flag', () => {
-    expect(isFeatureEnabled(FeatureFlag.ALLOW_DASHBOARD_DOMAIN_SHARDING)).toEqual(false);
+    expect(
+      isFeatureEnabled(FeatureFlag.ALLOW_DASHBOARD_DOMAIN_SHARDING),
+    ).toEqual(false);
   });
 
   it('returns true for set feature flag', () => {

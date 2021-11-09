@@ -28,7 +28,14 @@ const metadata = new ChartMetadata({
     "Visualizes how a metric has changed over a time using a color scale and a calendar view. Gray values are used to indicate missing values and the linear color scheme is used to encode the magnitude of each day's value.",
   ),
   name: t('Calendar Heatmap'),
-  tags: [t('Business'), t('Comparison'), t('Intensity'), t('Pattern'), t('Report'), t('Trend')],
+  tags: [
+    t('Business'),
+    t('Comparison'),
+    t('Intensity'),
+    t('Pattern'),
+    t('Report'),
+    t('Trend'),
+  ],
   thumbnail,
   useLegacyApi: true,
 });

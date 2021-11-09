@@ -17,7 +17,12 @@
  * under the License.
  */
 
-import { ChartProps, QueryFormMetric, AdhocMetric, DTTM_ALIAS } from '@superset-ui/core';
+import {
+  ChartProps,
+  QueryFormMetric,
+  AdhocMetric,
+  DTTM_ALIAS,
+} from '@superset-ui/core';
 import getProcessColumnsFunction from './processColumns';
 import getProcessMetricsFunction from './processMetrics';
 import getProcessDataFunction from './processData';
@@ -34,7 +39,9 @@ function transformData(data: PlainObject[], formData: PlainObject) {
   const { groupby = [], metrics = [], allColumns = [] } = formData;
 
   const columns = new Set(
-    [...groupby, ...metrics, ...allColumns].map(column => column.label || column),
+    [...groupby, ...metrics, ...allColumns].map(
+      column => column.label || column,
+    ),
   );
 
   let records = data;
@@ -46,7 +53,8 @@ function transformData(data: PlainObject[], formData: PlainObject) {
 
   // handle percentage columns.
   const percentMetrics: string[] = (formData.percentMetrics || []).map(
-    (metric: QueryFormMetric) => (metric as AdhocMetric).label ?? (metric as string),
+    (metric: QueryFormMetric) =>
+      (metric as AdhocMetric).label ?? (metric as string),
   );
 
   if (percentMetrics.length > 0) {
@@ -62,7 +70,9 @@ function transformData(data: PlainObject[], formData: PlainObject) {
       const newItem = { ...item };
       percentMetrics.forEach(metric => {
         newItem[`%${metric}`] =
-          sumPercentMetrics[metric] === 0 ? null : newItem[metric] / sumPercentMetrics[metric];
+          sumPercentMetrics[metric] === 0
+            ? null
+            : newItem[metric] / sumPercentMetrics[metric];
       });
 
       return newItem;
@@ -74,7 +84,8 @@ function transformData(data: PlainObject[], formData: PlainObject) {
 
   // handle sortedby column
   if (formData.timeseriesLimitMetric) {
-    const metric = formData.timeseriesLimitMetric.label || formData.timeseriesLimitMetric;
+    const metric =
+      formData.timeseriesLimitMetric.label || formData.timeseriesLimitMetric;
     columns.add(metric);
   }
 
@@ -87,7 +98,15 @@ function transformData(data: PlainObject[], formData: PlainObject) {
 const NOOP = () => {};
 
 export default function transformProps(chartProps: ChartProps) {
-  const { height, width, datasource, initialValues, formData, hooks, queriesData } = chartProps;
+  const {
+    height,
+    width,
+    datasource,
+    initialValues,
+    formData,
+    hooks,
+    queriesData,
+  } = chartProps;
 
   const { onAddFilter = NOOP } = hooks;
 

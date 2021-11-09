@@ -40,7 +40,9 @@ export default function ResizeObserver(callback: ObserveCallback) {
   };
 }
 
-export const DEFAULT_OUTPUT: ResizeObserverEntry[] = [{ contentRect: { height: 300, width: 300 } }];
+export const DEFAULT_OUTPUT: ResizeObserverEntry[] = [
+  { contentRect: { height: 300, width: 300 } },
+];
 
 export function triggerResizeObserver(entries = DEFAULT_OUTPUT) {
   allCallbacks.forEach(fn => {

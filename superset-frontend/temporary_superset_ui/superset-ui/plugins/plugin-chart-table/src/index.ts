@@ -53,7 +53,10 @@ const metadata = new ChartMetadata({
   thumbnail,
 });
 
-export default class TableChartPlugin extends ChartPlugin<TableChartFormData, TableChartProps> {
+export default class TableChartPlugin extends ChartPlugin<
+  TableChartFormData,
+  TableChartProps
+> {
   constructor() {
     super({
       loadChart: () => import('./TableChart'),

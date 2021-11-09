@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin, AnnotationType, Behavior } from '@superset-ui/core';
+import {
+  t,
+  ChartMetadata,
+  ChartPlugin,
+  AnnotationType,
+  Behavior,
+} from '@superset-ui/core';
 import buildQuery from '../../buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from '../../transformProps';
@@ -31,7 +37,10 @@ import example1 from './images/Scatter1.png';
 const scatterTransformProps = (chartProps: EchartsTimeseriesChartProps) =>
   transformProps({
     ...chartProps,
-    formData: { ...chartProps.formData, seriesType: EchartsTimeseriesSeriesType.Scatter },
+    formData: {
+      ...chartProps.formData,
+      seriesType: EchartsTimeseriesSeriesType.Scatter,
+    },
   });
 
 export default class EchartsTimeseriesScatterChartPlugin extends ChartPlugin<

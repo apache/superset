@@ -39,7 +39,9 @@ module.exports = class extends Generator {
         name: 'description',
         message: 'Description:',
         // Default to current folder name
-        default: _.upperFirst(_.startCase(this.appname.replace('plugin chart', '').trim())),
+        default: _.upperFirst(
+          _.startCase(this.appname.replace('plugin chart', '').trim()),
+        ),
       },
       {
         type: 'list',
@@ -106,9 +108,16 @@ module.exports = class extends Generator {
       ['src/MyChart.erb', `src/${packageLabel}.tsx`],
       ['test/index.erb', 'test/index.test.ts'],
       ['test/plugin/buildQuery.test.erb', 'test/plugin/buildQuery.test.ts'],
-      ['test/plugin/transformProps.test.erb', 'test/plugin/transformProps.test.ts'],
+      [
+        'test/plugin/transformProps.test.erb',
+        'test/plugin/transformProps.test.ts',
+      ],
     ].forEach(([src, dest]) => {
-      this.fs.copyTpl(this.templatePath(src), this.destinationPath(dest), params);
+      this.fs.copyTpl(
+        this.templatePath(src),
+        this.destinationPath(dest),
+        params,
+      );
     });
 
     ['types/external.d.ts', 'src/images/thumbnail.png'].forEach(file => {

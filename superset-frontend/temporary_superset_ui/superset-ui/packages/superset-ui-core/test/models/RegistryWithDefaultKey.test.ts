@@ -49,7 +49,10 @@ describe('RegistryWithDefaultKey', () => {
 
   describe('.get()', () => {
     beforeEach(() => {
-      registry.registerValue('abc', 100).registerValue('def', 200).setDefaultKey('abc');
+      registry
+        .registerValue('abc', 100)
+        .registerValue('def', 200)
+        .setDefaultKey('abc');
     });
     it('.get() returns value from default key', () => {
       expect(registry.get()).toEqual(100);
@@ -118,7 +121,9 @@ describe('RegistryWithDefaultKey', () => {
 
   describe('config.setFirstItemAsDefault', () => {
     describe('when true', () => {
-      const registry2 = new RegistryWithDefaultKey({ setFirstItemAsDefault: true });
+      const registry2 = new RegistryWithDefaultKey({
+        setFirstItemAsDefault: true,
+      });
       beforeEach(() => {
         registry2.clear();
       });
@@ -150,7 +155,9 @@ describe('RegistryWithDefaultKey', () => {
       });
     });
     describe('when false', () => {
-      const registry2 = new RegistryWithDefaultKey({ setFirstItemAsDefault: false });
+      const registry2 = new RegistryWithDefaultKey({
+        setFirstItemAsDefault: false,
+      });
       beforeEach(() => {
         registry2.clear();
       });

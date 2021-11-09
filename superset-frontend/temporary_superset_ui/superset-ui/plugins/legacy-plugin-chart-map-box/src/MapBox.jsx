@@ -102,7 +102,8 @@ class MapBox extends React.Component {
       bounds,
     } = this.props;
     const { viewport } = this.state;
-    const isDragging = viewport.isDragging === undefined ? false : viewport.isDragging;
+    const isDragging =
+      viewport.isDragging === undefined ? false : viewport.isDragging;
 
     // Compute the clusters based on the original bounds and current zoom level. Note when zoom/pan
     // to an area outside of the original bounds, no additional queries are made to the backend to

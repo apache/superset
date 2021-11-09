@@ -36,7 +36,13 @@ export default class ColorScheme {
 
   isDefault?: boolean;
 
-  constructor({ colors, description = '', id, label, isDefault }: ColorSchemeConfig) {
+  constructor({
+    colors,
+    description = '',
+    id,
+    label,
+    isDefault,
+  }: ColorSchemeConfig) {
     this.id = id;
     this.label = label ?? id;
     this.colors = colors;

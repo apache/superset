@@ -28,9 +28,17 @@ const metadata = new ChartMetadata({
   description: t(
     'Showcases the flow or link between categories using thickness of chords. The value and corresponding thickness can be different for each side.',
   ),
-  exampleGallery: [{ url: example, caption: t('Relationships between community channels') }],
+  exampleGallery: [
+    { url: example, caption: t('Relationships between community channels') },
+  ],
   name: t('Chord Diagram'),
-  tags: [t('Aesthetic'), t('Circular'), t('Legacy'), t('Proportional'), t('Relational')],
+  tags: [
+    t('Aesthetic'),
+    t('Circular'),
+    t('Legacy'),
+    t('Proportional'),
+    t('Relational'),
+  ],
   thumbnail,
   useLegacyApi: true,
 });

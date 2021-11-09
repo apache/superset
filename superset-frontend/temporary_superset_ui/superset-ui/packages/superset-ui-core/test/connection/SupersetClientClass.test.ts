@@ -17,7 +17,10 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { SupersetClientClass, ClientConfig } from '@superset-ui/core/src/connection';
+import {
+  SupersetClientClass,
+  ClientConfig,
+} from '@superset-ui/core/src/connection';
 import { LOGIN_GLOB } from './fixtures/constants';
 
 describe('SupersetClientClass', () => {
@@ -38,24 +41,37 @@ describe('SupersetClientClass', () => {
     let client = new SupersetClientClass();
 
     beforeEach(() => {
-      client = new SupersetClientClass({ protocol: 'https:', host: 'CONFIG_HOST' });
+      client = new SupersetClientClass({
+        protocol: 'https:',
+        host: 'CONFIG_HOST',
+      });
     });
 
     it('uses url if passed', () => {
-      expect(client.getUrl({ url: 'myUrl', endpoint: 'blah', host: 'blah' })).toBe('myUrl');
+      expect(
+        client.getUrl({ url: 'myUrl', endpoint: 'blah', host: 'blah' }),
+      ).toBe('myUrl');
     });
 
     it('constructs a valid url from config.protocol + host + endpoint if passed', () => {
-      expect(client.getUrl({ endpoint: '/test', host: 'myhost' })).toBe('https://myhost/test');
-      expect(client.getUrl({ endpoint: '/test', host: 'myhost/' })).toBe('https://myhost/test');
-      expect(client.getUrl({ endpoint: 'test', host: 'myhost' })).toBe('https://myhost/test');
+      expect(client.getUrl({ endpoint: '/test', host: 'myhost' })).toBe(
+        'https://myhost/test',
+      );
+      expect(client.getUrl({ endpoint: '/test', host: 'myhost/' })).toBe(
+        'https://myhost/test',
+      );
+      expect(client.getUrl({ endpoint: 'test', host: 'myhost' })).toBe(
+        'https://myhost/test',
+      );
       expect(client.getUrl({ endpoint: '/test/test//', host: 'myhost/' })).toBe(
         'https://myhost/test/test//',
       );
     });
 
     it('constructs a valid url from config.host + endpoint if host is omitted', () => {
-      expect(client.getUrl({ endpoint: '/test' })).toBe('https://config_host/test');
+      expect(client.getUrl({ endpoint: '/test' })).toBe(
+        'https://config_host/test',
+      );
     });
 
     it('does not throw if url, endpoint, and host are all empty', () => {
@@ -126,7 +142,9 @@ describe('SupersetClientClass', () => {
       } catch (err) {
         error = err;
       } finally {
-        expect(error as typeof invalidCsrfTokenError).toEqual(invalidCsrfTokenError);
+        expect(error as typeof invalidCsrfTokenError).toEqual(
+          invalidCsrfTokenError,
+        );
       }
     });
 
@@ -142,7 +160,9 @@ describe('SupersetClientClass', () => {
       } catch (err) {
         error = err;
       } finally {
-        expect(error as typeof invalidCsrfTokenError).toEqual(invalidCsrfTokenError);
+        expect(error as typeof invalidCsrfTokenError).toEqual(
+          invalidCsrfTokenError,
+        );
       }
     });
   });
@@ -160,7 +180,9 @@ describe('SupersetClientClass', () => {
 
     it('returns true if a token is passed at configuration', () => {
       expect.assertions(2);
-      const clientWithoutToken = new SupersetClientClass({ csrfToken: undefined });
+      const clientWithoutToken = new SupersetClientClass({
+        csrfToken: undefined,
+      });
       const clientWithToken = new SupersetClientClass({ csrfToken: 'token' });
       expect(clientWithoutToken.isAuthenticated()).toBe(false);
       expect(clientWithToken.isAuthenticated()).toBe(true);
@@ -303,7 +325,9 @@ describe('SupersetClientClass', () => {
       expect(fetchRequest.mode).toBe(clientConfig.mode);
       expect(fetchRequest.credentials).toBe(clientConfig.credentials);
       expect(fetchRequest.headers).toEqual(
-        expect.objectContaining(clientConfig.headers) as typeof fetchRequest.headers,
+        expect.objectContaining(
+          clientConfig.headers,
+        ) as typeof fetchRequest.headers,
       );
     });
 
@@ -325,7 +349,10 @@ describe('SupersetClientClass', () => {
         expect.assertions(2);
         const client = new SupersetClientClass({ protocol, host });
         await client.init();
-        const { text } = await client.get({ url: mockTextUrl, parseMethod: 'text' });
+        const { text } = await client.get({
+          url: mockTextUrl,
+          parseMethod: 'text',
+        });
         expect(fetchMock.calls(mockTextUrl)).toHaveLength(1);
         expect(text).toBe(mockTextJsonResponse);
       });
@@ -355,7 +382,9 @@ describe('SupersetClientClass', () => {
         expect(fetchRequest.mode).toBe(overrideConfig.mode);
         expect(fetchRequest.credentials).toBe(overrideConfig.credentials);
         expect(fetchRequest.headers).toEqual(
-          expect.objectContaining(overrideConfig.headers) as typeof fetchRequest.headers,
+          expect.objectContaining(
+            overrideConfig.headers,
+          ) as typeof fetchRequest.headers,
         );
       });
     });
@@ -399,7 +428,9 @@ describe('SupersetClientClass', () => {
         expect(fetchRequest.mode).toBe(overrideConfig.mode);
         expect(fetchRequest.credentials).toBe(overrideConfig.credentials);
         expect(fetchRequest.headers).toEqual(
-          expect.objectContaining(overrideConfig.headers) as typeof fetchRequest.headers,
+          expect.objectContaining(
+            overrideConfig.headers,
+          ) as typeof fetchRequest.headers,
         );
       });
 
@@ -407,7 +438,10 @@ describe('SupersetClientClass', () => {
         expect.assertions(2);
         const client = new SupersetClientClass({ protocol, host });
         await client.init();
-        const { text } = await client.post({ url: mockTextUrl, parseMethod: 'text' });
+        const { text } = await client.post({
+          url: mockTextUrl,
+          parseMethod: 'text',
+        });
         expect(fetchMock.calls(mockTextUrl)).toHaveLength(1);
         expect(text).toBe(mockTextJsonResponse);
       });

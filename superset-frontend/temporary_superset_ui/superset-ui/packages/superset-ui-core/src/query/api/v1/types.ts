@@ -119,10 +119,14 @@ export class SupersetApiError extends Error {
   }) {
     super(message);
     const originalErrorStack =
-      stack || (originalError instanceof Error ? originalError.stack : undefined);
+      stack ||
+      (originalError instanceof Error ? originalError.stack : undefined);
     this.stack =
       originalErrorStack && this.stack
-        ? [this.stack.split('\n')[0], ...originalErrorStack.split('\n').slice(1)].join('\n')
+        ? [
+            this.stack.split('\n')[0],
+            ...originalErrorStack.split('\n').slice(1),
+          ].join('\n')
         : this.stack;
     this.name = 'SupersetApiError';
     this.errorType = errorType || SupersetApiErrorType.UNKNOWN_ERROR;

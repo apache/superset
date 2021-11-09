@@ -53,12 +53,16 @@ describe('parseResponse()', () => {
 
   it('resolves to { json, response } if the request succeeds', async () => {
     expect.assertions(4);
-    const args = await parseResponse(callApi({ url: mockGetUrl, method: 'GET' }));
+    const args = await parseResponse(
+      callApi({ url: mockGetUrl, method: 'GET' }),
+    );
     expect(fetchMock.calls(mockGetUrl)).toHaveLength(1);
     const keys = Object.keys(args);
     expect(keys).toContain('response');
     expect(keys).toContain('json');
-    expect(args.json).toEqual(expect.objectContaining(mockGetPayload) as typeof args.json);
+    expect(args.json).toEqual(
+      expect.objectContaining(mockGetPayload) as typeof args.json,
+    );
   });
 
   it('throws if `parseMethod=json` and .json() fails', async () => {
@@ -89,7 +93,10 @@ describe('parseResponse()', () => {
     const mockTextJsonResponse = '{ "value": 9223372036854775807 }';
     fetchMock.get(mockTextParseUrl, mockTextJsonResponse);
 
-    const args = await parseResponse(callApi({ url: mockTextParseUrl, method: 'GET' }), 'text');
+    const args = await parseResponse(
+      callApi({ url: mockTextParseUrl, method: 'GET' }),
+      'text',
+    );
     expect(fetchMock.calls(mockTextParseUrl)).toHaveLength(1);
     const keys = Object.keys(args);
     expect(keys).toContain('response');
@@ -109,14 +116,22 @@ describe('parseResponse()', () => {
     } catch (err) {
       error = err;
     } finally {
-      expect(error.message).toEqual(expect.stringContaining('Expected parseResponse=json'));
+      expect(error.message).toEqual(
+        expect.stringContaining('Expected parseResponse=json'),
+      );
     }
   });
 
   it('resolves to unmodified `Response` object if `parseMethod=null|raw`', async () => {
     expect.assertions(3);
-    const responseNull = await parseResponse(callApi({ url: mockNoParseUrl, method: 'GET' }), null);
-    const responseRaw = await parseResponse(callApi({ url: mockNoParseUrl, method: 'GET' }), 'raw');
+    const responseNull = await parseResponse(
+      callApi({ url: mockNoParseUrl, method: 'GET' }),
+      null,
+    );
+    const responseRaw = await parseResponse(
+      callApi({ url: mockNoParseUrl, method: 'GET' }),
+      'raw',
+    );
     expect(fetchMock.calls(mockNoParseUrl)).toHaveLength(2);
     expect(responseNull.bodyUsed).toBe(false);
     expect(responseRaw.bodyUsed).toBe(false);

@@ -48,13 +48,23 @@ export default function (config) {
       .attr('width', __.width)
       .attr('height', __.height)
       .append('svg:g')
-      .attr('transform', 'translate(' + __.margin.left + ',' + __.margin.top + ')');
+      .attr(
+        'transform',
+        'translate(' + __.margin.left + ',' + __.margin.top + ')',
+      );
 
     return pc;
   };
   var events = d3.dispatch.apply(
       this,
-      ['render', 'resize', 'highlight', 'brush', 'brushend', 'axesreorder'].concat(d3.keys(__)),
+      [
+        'render',
+        'resize',
+        'highlight',
+        'brush',
+        'brushend',
+        'axesreorder',
+      ].concat(d3.keys(__)),
     ),
     w = function () {
       return __.width - __.margin.right - __.margin.left;
@@ -173,9 +183,20 @@ export default function (config) {
   /** adjusts an axis' default range [h()+1, 1] if a NullValueSeparator is set */
   function getRange() {
     if (__.nullValueSeparator == 'bottom') {
-      return [h() + 1 - __.nullValueSeparatorPadding.bottom - __.nullValueSeparatorPadding.top, 1];
+      return [
+        h() +
+          1 -
+          __.nullValueSeparatorPadding.bottom -
+          __.nullValueSeparatorPadding.top,
+        1,
+      ];
     } else if (__.nullValueSeparator == 'top') {
-      return [h() + 1, 1 + __.nullValueSeparatorPadding.bottom + __.nullValueSeparatorPadding.top];
+      return [
+        h() + 1,
+        1 +
+          __.nullValueSeparatorPadding.bottom +
+          __.nullValueSeparatorPadding.top,
+      ];
     }
     return [h() + 1, 1];
   }
@@ -501,7 +522,10 @@ export default function (config) {
 
     cps.push(centroids[0]);
     cps.push(
-      $V([centroids[0].e(1) + a * 2 * (centroids[1].e(1) - centroids[0].e(1)), centroids[0].e(2)]),
+      $V([
+        centroids[0].e(1) + a * 2 * (centroids[1].e(1) - centroids[0].e(1)),
+        centroids[0].e(2),
+      ]),
     );
     for (var col = 1; col < cols - 1; ++col) {
       var mid = centroids[col];
@@ -515,7 +539,8 @@ export default function (config) {
     }
     cps.push(
       $V([
-        centroids[cols - 1].e(1) + a * 2 * (centroids[cols - 2].e(1) - centroids[cols - 1].e(1)),
+        centroids[cols - 1].e(1) +
+          a * 2 * (centroids[cols - 2].e(1) - centroids[cols - 1].e(1)),
         centroids[cols - 1].e(2),
       ]),
     );
@@ -575,7 +600,10 @@ export default function (config) {
   // draw single polyline
   function color_path(d, ctx) {
     ctx.beginPath();
-    if ((__.bundleDimension !== null && __.bundlingStrength > 0) || __.smoothness > 0) {
+    if (
+      (__.bundleDimension !== null && __.bundlingStrength > 0) ||
+      __.smoothness > 0
+    ) {
       single_curve(d, ctx);
     } else {
       single_path(d, ctx);
@@ -588,7 +616,10 @@ export default function (config) {
     ctx.clearRect(-1, -1, w() + 2, h() + 2);
     ctx.beginPath();
     data.forEach(function (d) {
-      if ((__.bundleDimension !== null && __.bundlingStrength > 0) || __.smoothness > 0) {
+      if (
+        (__.bundleDimension !== null && __.bundlingStrength > 0) ||
+        __.smoothness > 0
+      ) {
         single_curve(d, ctx);
       } else {
         single_path(d, ctx);
@@ -614,9 +645,15 @@ export default function (config) {
   function single_path(d, ctx) {
     __.dimensions.map(function (p, i) {
       if (i == 0) {
-        ctx.moveTo(position(p), typeof d[p] == 'undefined' ? getNullPosition() : yscale[p](d[p]));
+        ctx.moveTo(
+          position(p),
+          typeof d[p] == 'undefined' ? getNullPosition() : yscale[p](d[p]),
+        );
       } else {
-        ctx.lineTo(position(p), typeof d[p] == 'undefined' ? getNullPosition() : yscale[p](d[p]));
+        ctx.lineTo(
+          position(p),
+          typeof d[p] == 'undefined' ? getNullPosition() : yscale[p](d[p]),
+        );
       }
     });
   }
@@ -671,7 +708,10 @@ export default function (config) {
 
     pc.flip(dimension);
 
-    d3.select(this.parentElement).transition().duration(1100).call(axis.scale(yscale[dimension]));
+    d3.select(this.parentElement)
+      .transition()
+      .duration(1100)
+      .call(axis.scale(yscale[dimension]));
 
     pc.render();
   }
@@ -684,7 +724,10 @@ export default function (config) {
     __.dimensionTitleRotation += delta;
     pc.svg
       .selectAll('text.label')
-      .attr('transform', 'translate(0,-5) rotate(' + __.dimensionTitleRotation + ')');
+      .attr(
+        'transform',
+        'translate(0,-5) rotate(' + __.dimensionTitleRotation + ')',
+      );
     d3.event.preventDefault();
   }
 
@@ -804,7 +847,10 @@ export default function (config) {
       .transition()
       .duration(1100)
       .text(dimensionLabels)
-      .attr('transform', 'translate(0,-5) rotate(' + __.dimensionTitleRotation + ')');
+      .attr(
+        'transform',
+        'translate(0,-5) rotate(' + __.dimensionTitleRotation + ')',
+      );
 
     // Exit
     g_data.exit().remove();
@@ -846,7 +892,10 @@ export default function (config) {
           dragging[d] = this.__origin__ = xscale(d);
         })
         .on('drag', function (d) {
-          dragging[d] = Math.min(w(), Math.max(0, (this.__origin__ += d3.event.dx)));
+          dragging[d] = Math.min(
+            w(),
+            Math.max(0, (this.__origin__ += d3.event.dx)),
+          );
           __.dimensions.sort(function (a, b) {
             return position(a) - position(b);
           });
@@ -1069,25 +1118,32 @@ export default function (config) {
           if (typeof yscale[p].rangePoints === 'function') {
             // if it is ordinal
             return (
-              extents[dimension][0] <= yscale[p](d[p]) && yscale[p](d[p]) <= extents[dimension][1]
+              extents[dimension][0] <= yscale[p](d[p]) &&
+              yscale[p](d[p]) <= extents[dimension][1]
             );
           } else {
-            return extents[dimension][0] <= d[p] && d[p] <= extents[dimension][1];
+            return (
+              extents[dimension][0] <= d[p] && d[p] <= extents[dimension][1]
+            );
           }
         },
         number: function (d, p, dimension) {
           if (typeof yscale[p].rangePoints === 'function') {
             // if it is ordinal
             return (
-              extents[dimension][0] <= yscale[p](d[p]) && yscale[p](d[p]) <= extents[dimension][1]
+              extents[dimension][0] <= yscale[p](d[p]) &&
+              yscale[p](d[p]) <= extents[dimension][1]
             );
           } else {
-            return extents[dimension][0] <= d[p] && d[p] <= extents[dimension][1];
+            return (
+              extents[dimension][0] <= d[p] && d[p] <= extents[dimension][1]
+            );
           }
         },
         string: function (d, p, dimension) {
           return (
-            extents[dimension][0] <= yscale[p](d[p]) && yscale[p](d[p]) <= extents[dimension][1]
+            extents[dimension][0] <= yscale[p](d[p]) &&
+            yscale[p](d[p]) <= extents[dimension][1]
           );
         },
       };
@@ -1253,7 +1309,10 @@ export default function (config) {
         .on('drag', function (d, i) {
           var ev = d3.event;
           i = i + 1;
-          strum['p' + i][0] = Math.min(Math.max(strum.minX + 1, ev.x), strum.maxX);
+          strum['p' + i][0] = Math.min(
+            Math.max(strum.minX + 1, ev.x),
+            strum.maxX,
+          );
           strum['p' + i][1] = Math.min(Math.max(strum.minY, ev.y), strum.maxY);
           drawStrum(strum, i - 1);
         })
@@ -1351,8 +1410,14 @@ export default function (config) {
           strum = strums[strums.active];
 
         // Make sure that the point is within the bounds
-        strum.p2[0] = Math.min(Math.max(strum.minX + 1, ev.x - __.margin.left), strum.maxX);
-        strum.p2[1] = Math.min(Math.max(strum.minY, ev.y - __.margin.top), strum.maxY);
+        strum.p2[0] = Math.min(
+          Math.max(strum.minX + 1, ev.x - __.margin.left),
+          strum.maxX,
+        );
+        strum.p2[1] = Math.min(
+          Math.max(strum.minY, ev.y - __.margin.top),
+          strum.maxY,
+        );
         drawStrum(strum, 1);
       };
     }
@@ -1437,7 +1502,11 @@ export default function (config) {
 
         // Okay, somewhat unexpected, but not totally unsurprising, a mousclick is
         // considered a drag without move. So we have to deal with that case
-        if (strum && strum.p1[0] === strum.p2[0] && strum.p1[1] === strum.p2[1]) {
+        if (
+          strum &&
+          strum.p1[0] === strum.p2[0] &&
+          strum.p1[1] === strum.p2[1]
+        ) {
           removeStrum(strums);
         }
 
@@ -1492,7 +1561,9 @@ export default function (config) {
         function consecutive(first, second) {
           var length = __.dimensions.length;
           return __.dimensions.some(function (d, i) {
-            return d === first ? i + i < length && __.dimensions[i + 1] === second : false;
+            return d === first
+              ? i + i < length && __.dimensions[i + 1] === second
+              : false;
           });
         }
 
@@ -1516,7 +1587,10 @@ export default function (config) {
         .select('svg')
         .append('g')
         .attr('id', 'strums')
-        .attr('transform', 'translate(' + __.margin.left + ',' + __.margin.top + ')');
+        .attr(
+          'transform',
+          'translate(' + __.margin.left + ',' + __.margin.top + ')',
+        );
 
       // Install the required brushReset function
       pc.brushReset = brushReset(strums);
@@ -1742,7 +1816,9 @@ export default function (config) {
         .style('fill', 'orange')
         .style('opacity', 0.5);
 
-      path.attr('d', arc.arc).attr('transform', 'translate(' + arc.p1[0] + ',' + arc.p1[1] + ')');
+      path
+        .attr('d', arc.arc)
+        .attr('transform', 'translate(' + arc.p1[0] + ',' + arc.p1[1] + ')');
 
       line
         .enter()
@@ -1779,8 +1855,12 @@ export default function (config) {
           angle = i === 3 ? arcs.startAngle(id) : arcs.endAngle(id);
 
           if (
-            (arc.startAngle < Math.PI && arc.endAngle < Math.PI && angle < Math.PI) ||
-            (arc.startAngle >= Math.PI && arc.endAngle >= Math.PI && angle >= Math.PI)
+            (arc.startAngle < Math.PI &&
+              arc.endAngle < Math.PI &&
+              angle < Math.PI) ||
+            (arc.startAngle >= Math.PI &&
+              arc.endAngle >= Math.PI &&
+              angle >= Math.PI)
           ) {
             if (i === 2) {
               arc.endAngle = angle;
@@ -1891,8 +1971,14 @@ export default function (config) {
           arc = arcs[arcs.active];
 
         // Make sure that the point is within the bounds
-        arc.p2[0] = Math.min(Math.max(arc.minX + 1, ev.x - __.margin.left), arc.maxX);
-        arc.p2[1] = Math.min(Math.max(arc.minY, ev.y - __.margin.top), arc.maxY);
+        arc.p2[0] = Math.min(
+          Math.max(arc.minX + 1, ev.x - __.margin.left),
+          arc.maxX,
+        );
+        arc.p2[1] = Math.min(
+          Math.max(arc.minY, ev.y - __.margin.top),
+          arc.maxY,
+        );
         arc.p3 = arc.p2.slice();
         drawStrum(arc, 1);
       };
@@ -2026,7 +2112,10 @@ export default function (config) {
 
           arc.startAngle = angle;
           arc.endAngle = angle;
-          arc.arc.outerRadius(arcs.length(arcs.active)).startAngle(angle).endAngle(angle);
+          arc.arc
+            .outerRadius(arcs.length(arcs.active))
+            .startAngle(angle)
+            .endAngle(angle);
         }
 
         brushed = selected(arcs);
@@ -2135,7 +2224,9 @@ export default function (config) {
         function consecutive(first, second) {
           var length = __.dimensions.length;
           return __.dimensions.some(function (d, i) {
-            return d === first ? i + i < length && __.dimensions[i + 1] === second : false;
+            return d === first
+              ? i + i < length && __.dimensions[i + 1] === second
+              : false;
           });
         }
 
@@ -2159,7 +2250,10 @@ export default function (config) {
         .select('svg')
         .append('g')
         .attr('id', 'arcs')
-        .attr('transform', 'translate(' + __.margin.left + ',' + __.margin.top + ')');
+        .attr(
+          'transform',
+          'translate(' + __.margin.left + ',' + __.margin.top + ')',
+        );
 
       // Install the required brushReset function
       pc.brushReset = brushReset(arcs);
@@ -2219,8 +2313,14 @@ export default function (config) {
   // TODO currently assumes chart is brushable, and destroys old brushes
   pc.resize = function () {
     // selection size
-    pc.selection.select('svg').attr('width', __.width).attr('height', __.height);
-    pc.svg.attr('transform', 'translate(' + __.margin.left + ',' + __.margin.top + ')');
+    pc.selection
+      .select('svg')
+      .attr('width', __.width)
+      .attr('height', __.height);
+    pc.svg.attr(
+      'transform',
+      'translate(' + __.margin.left + ',' + __.margin.top + ')',
+    );
 
     // FIXME: the current brush state should pass through
     if (flags.brushable) pc.brushReset();
@@ -2233,7 +2333,11 @@ export default function (config) {
     if (flags.brushable) pc.brushable();
     if (flags.reorderable) pc.reorderable();
 
-    events.resize.call(this, { width: __.width, height: __.height, margin: __.margin });
+    events.resize.call(this, {
+      width: __.width,
+      height: __.height,
+      margin: __.margin,
+    });
     return this;
   };
 
@@ -2264,10 +2368,12 @@ export default function (config) {
   pc.intersection = function (a, b, c, d) {
     return {
       x:
-        ((a.x * b.y - a.y * b.x) * (c.x - d.x) - (a.x - b.x) * (c.x * d.y - c.y * d.x)) /
+        ((a.x * b.y - a.y * b.x) * (c.x - d.x) -
+          (a.x - b.x) * (c.x * d.y - c.y * d.x)) /
         ((a.x - b.x) * (c.y - d.y) - (a.y - b.y) * (c.x - d.x)),
       y:
-        ((a.x * b.y - a.y * b.x) * (c.y - d.y) - (a.y - b.y) * (c.x * d.y - c.y * d.x)) /
+        ((a.x * b.y - a.y * b.x) * (c.y - d.y) -
+          (a.y - b.y) * (c.x * d.y - c.y * d.x)) /
         ((a.x - b.x) * (c.y - d.y) - (a.y - b.y) * (c.x - d.x)),
     };
   };

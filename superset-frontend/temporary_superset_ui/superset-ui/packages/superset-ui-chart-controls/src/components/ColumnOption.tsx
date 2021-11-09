@@ -64,7 +64,10 @@ export function ColumnOption({
           trigger={['hover']}
           placement="top"
         >
-          <span className="m-r-5 option-label column-option-label" ref={labelRef}>
+          <span
+            className="m-r-5 option-label column-option-label"
+            ref={labelRef}
+          >
             {column.verbose_name || column.column_name}
           </span>
         </Tooltip>

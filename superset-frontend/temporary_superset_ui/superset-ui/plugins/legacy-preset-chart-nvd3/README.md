@@ -19,7 +19,10 @@ or register charts one by one. Configure `key`, which can be any `string`, and r
 This `key` will be used to lookup this chart throughout the app.
 
 ```js
-import { AreaChartPlugin, LineChartPlugin } from '@superset-ui/legacy-preset-chart-nvd3';
+import {
+  AreaChartPlugin,
+  LineChartPlugin,
+} from '@superset-ui/legacy-preset-chart-nvd3';
 
 new AreaChartPlugin().configure({ key: 'area' }).register();
 new LineChartPlugin().configure({ key: 'line' }).register();

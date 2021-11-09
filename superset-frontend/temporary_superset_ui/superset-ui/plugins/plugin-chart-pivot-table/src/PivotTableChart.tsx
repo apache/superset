@@ -28,8 +28,11 @@ import {
 } from '@superset-ui/core';
 // @ts-ignore
 import PivotTable from '@superset-ui/react-pivottable/PivotTable';
-// @ts-ignore
-import { sortAs, aggregatorTemplates } from '@superset-ui/react-pivottable/Utilities';
+import {
+  sortAs,
+  aggregatorTemplates,
+  // @ts-ignore
+} from '@superset-ui/react-pivottable/Utilities';
 import '@superset-ui/react-pivottable/pivottable.css';
 import {
   FilterType,
@@ -43,7 +46,9 @@ const Styles = styled.div<PivotTableStylesProps>`
   ${({ height, width, margin }) => `
       margin: ${margin}px;
       height: ${height - margin * 2}px;
-      width: ${typeof width === 'string' ? parseInt(width, 10) : width - margin * 2}px;
+      width: ${
+        typeof width === 'string' ? parseInt(width, 10) : width - margin * 2
+      }px;
  `}
 `;
 
@@ -140,7 +145,10 @@ export default function PivotTableChart(props: PivotTableProps) {
   const metricFormatters =
     hasCustomMetricFormatters &&
     Object.fromEntries(
-      columnFormatsArray.map(([metric, format]) => [metric, getNumberFormatter(format)]),
+      columnFormatsArray.map(([metric, format]) => [
+        metric,
+        getNumberFormatter(format),
+      ]),
     );
 
   const metricNames = useMemo(
@@ -169,7 +177,9 @@ export default function PivotTableChart(props: PivotTableProps) {
     [data, metricNames],
   );
 
-  let [rows, cols] = transposePivot ? [groupbyColumns, groupbyRows] : [groupbyRows, groupbyColumns];
+  let [rows, cols] = transposePivot
+    ? [groupbyColumns, groupbyRows]
+    : [groupbyRows, groupbyColumns];
 
   if (metricsLayout === MetricsLayoutEnum.ROWS) {
     rows = combineMetric ? [...rows, METRIC_KEY] : [METRIC_KEY, ...rows];
@@ -200,8 +210,12 @@ export default function PivotTableChart(props: PivotTableProps) {
                 }),
         },
         filterState: {
-          value: filters && Object.keys(filters).length ? Object.values(filters) : null,
-          selectedFilters: filters && Object.keys(filters).length ? filters : null,
+          value:
+            filters && Object.keys(filters).length
+              ? Object.values(filters)
+              : null,
+          selectedFilters:
+            filters && Object.keys(filters).length ? filters : null,
         },
       });
     },
@@ -249,7 +263,10 @@ export default function PivotTableChart(props: PivotTableProps) {
           [key]: [val],
         };
       }
-      if (Array.isArray(updatedFilters[key]) && updatedFilters[key].length === 0) {
+      if (
+        Array.isArray(updatedFilters[key]) &&
+        updatedFilters[key].length === 0
+      ) {
         delete updatedFilters[key];
       }
       handleChange(updatedFilters);
@@ -267,7 +284,9 @@ export default function PivotTableChart(props: PivotTableProps) {
           aggregatorsFactory={aggregatorsFactory}
           defaultFormatter={defaultFormatter}
           customFormatters={
-            hasCustomMetricFormatters ? { [METRIC_KEY]: metricFormatters } : undefined
+            hasCustomMetricFormatters
+              ? { [METRIC_KEY]: metricFormatters }
+              : undefined
           }
           aggregatorName={aggregateFunction}
           vals={['value']}

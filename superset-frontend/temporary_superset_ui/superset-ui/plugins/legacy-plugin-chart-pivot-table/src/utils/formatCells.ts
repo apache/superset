@@ -51,7 +51,12 @@ function formatCellValue(
   return { textContent, sortAttributeValue };
 }
 
-function formatDateCellValue(text: string, verboseMap: any, dateRegex: RegExp, dateFormatter: any) {
+function formatDateCellValue(
+  text: string,
+  verboseMap: any,
+  dateRegex: RegExp,
+  dateFormatter: any,
+) {
   const regexMatch = dateRegex.exec(text);
   let cellValue;
   if (regexMatch) {

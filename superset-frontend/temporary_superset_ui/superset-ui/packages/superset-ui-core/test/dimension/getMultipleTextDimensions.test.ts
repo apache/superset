@@ -17,7 +17,10 @@
  * under the License.
  */
 
-import { getMultipleTextDimensions, promiseTimeout } from '@superset-ui/core/src';
+import {
+  getMultipleTextDimensions,
+  promiseTimeout,
+} from '@superset-ui/core/src';
 import { addDummyFill, removeDummyFill, SAMPLE_TEXT } from './getBBoxDummyFill';
 
 describe('getMultipleTextDimension(input)', () => {

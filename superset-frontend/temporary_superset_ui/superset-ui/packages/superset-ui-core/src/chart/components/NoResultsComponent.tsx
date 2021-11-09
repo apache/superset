@@ -21,21 +21,27 @@ import React, { CSSProperties, useMemo } from 'react';
 import { t } from '../../translation';
 
 const MESSAGE_STYLES: CSSProperties = { maxWidth: 800 };
-const TITLE_STYLES: CSSProperties = { fontSize: 16, fontWeight: 'bold', paddingBottom: 8 };
+const TITLE_STYLES: CSSProperties = {
+  fontSize: 16,
+  fontWeight: 'bold',
+  paddingBottom: 8,
+};
 const BODY_STYLES: CSSProperties = { fontSize: 14 };
 const MIN_WIDTH_FOR_BODY = 250;
 
-const generateContainerStyles: (height: number | string, width: number | string) => CSSProperties =
-  (height: number | string, width: number | string) => ({
-    alignItems: 'center',
-    display: 'flex',
-    flexDirection: 'column',
-    height,
-    justifyContent: 'center',
-    padding: 16,
-    textAlign: 'center',
-    width,
-  });
+const generateContainerStyles: (
+  height: number | string,
+  width: number | string,
+) => CSSProperties = (height: number | string, width: number | string) => ({
+  alignItems: 'center',
+  display: 'flex',
+  flexDirection: 'column',
+  height,
+  justifyContent: 'center',
+  padding: 16,
+  textAlign: 'center',
+  width,
+});
 
 type Props = {
   className?: string;
@@ -45,10 +51,14 @@ type Props = {
 };
 
 const NoResultsComponent = ({ className, height, id, width }: Props) => {
-  const containerStyles = useMemo(() => generateContainerStyles(height, width), [height, width]);
+  const containerStyles = useMemo(
+    () => generateContainerStyles(height, width),
+    [height, width],
+  );
 
   // render the body if the width is auto/100% or greater than 250 pixels
-  const shouldRenderBody = typeof width === 'string' || width > MIN_WIDTH_FOR_BODY;
+  const shouldRenderBody =
+    typeof width === 'string' || width > MIN_WIDTH_FOR_BODY;
 
   const BODY_STRING = t(
     'No results were returned for this query. If you expected results to be returned, ensure any filters are configured properly and the datasource contains data for the selected time range.',

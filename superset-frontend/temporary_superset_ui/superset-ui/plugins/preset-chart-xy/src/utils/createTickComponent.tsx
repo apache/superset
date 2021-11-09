@@ -51,7 +51,11 @@ export default function createTickComponent({
       textStyle: CSSProperties;
     }) => (
       <g transform={`translate(${x + xOffset}, ${y + yOffset})`}>
-        <text transform={`rotate(${labelAngle})`} {...textStyle} textAnchor={tickTextAnchor}>
+        <text
+          transform={`rotate(${labelAngle})`}
+          {...textStyle}
+          textAnchor={tickTextAnchor}
+        >
           {formattedValue}
         </text>
       </g>

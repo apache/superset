@@ -22,7 +22,10 @@ import { TooltipFrame, TooltipTable } from '@superset-ui/core';
 import { isFieldDef } from 'encodable';
 import { TooltipProps } from './ScatterPlot';
 
-export default function DefaultTooltipRenderer({ datum, encoder }: TooltipProps) {
+export default function DefaultTooltipRenderer({
+  datum,
+  encoder,
+}: TooltipProps) {
   const { channels } = encoder;
   const { x, y, size, fill, stroke } = channels;
 

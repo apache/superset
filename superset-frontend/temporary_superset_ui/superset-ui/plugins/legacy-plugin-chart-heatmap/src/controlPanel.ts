@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FeatureFlag, isFeatureEnabled, t, validateNonEmpty } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  isFeatureEnabled,
+  t,
+  validateNonEmpty,
+} from '@superset-ui/core';
 import {
   columnChoices,
   ControlPanelConfig,
@@ -87,7 +92,9 @@ const config: ControlPanelConfig = {
             config: {
               type: 'CheckboxControl',
               label: t('Sort by metric'),
-              description: t('Whether to sort results by the selected metric in descending order.'),
+              description: t(
+                'Whether to sort results by the selected metric in descending order.',
+              ),
             },
           },
         ],
@@ -109,7 +116,9 @@ const config: ControlPanelConfig = {
               choices: formatSelectOptionsForRange(1, 50),
               default: '1',
               clearable: false,
-              description: t('Number of steps to take between ticks when displaying the X scale'),
+              description: t(
+                'Number of steps to take between ticks when displaying the X scale',
+              ),
             },
           },
         ],
@@ -123,7 +132,9 @@ const config: ControlPanelConfig = {
               default: '1',
               clearable: false,
               renderTrigger: true,
-              description: t('Number of steps to take between ticks when displaying the Y scale'),
+              description: t(
+                'Number of steps to take between ticks when displaying the Y scale',
+              ),
             },
           },
         ],
@@ -174,10 +185,20 @@ const config: ControlPanelConfig = {
               freeForm: true,
               clearable: false,
               label: t('Left Margin'),
-              choices: formatSelectOptions(['auto', 50, 75, 100, 125, 150, 200]),
+              choices: formatSelectOptions([
+                'auto',
+                50,
+                75,
+                100,
+                125,
+                150,
+                200,
+              ]),
               default: 'auto',
               renderTrigger: true,
-              description: t('Left margin, in pixels, allowing for more room for axis labels'),
+              description: t(
+                'Left margin, in pixels, allowing for more room for axis labels',
+              ),
             },
           },
         ],
@@ -189,10 +210,20 @@ const config: ControlPanelConfig = {
               clearable: false,
               freeForm: true,
               label: t('Bottom Margin'),
-              choices: formatSelectOptions(['auto', 50, 75, 100, 125, 150, 200]),
+              choices: formatSelectOptions([
+                'auto',
+                50,
+                75,
+                100,
+                125,
+                150,
+                200,
+              ]),
               default: 'auto',
               renderTrigger: true,
-              description: t('Bottom margin, in pixels, allowing for more room for axis labels'),
+              description: t(
+                'Bottom margin, in pixels, allowing for more room for axis labels',
+              ),
             },
           },
         ],
@@ -255,7 +286,9 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Show percentage'),
               renderTrigger: true,
-              description: t('Whether to include the percentage in the tooltip'),
+              description: t(
+                'Whether to include the percentage in the tooltip',
+              ),
               default: true,
             },
           },
@@ -268,7 +301,9 @@ const config: ControlPanelConfig = {
               label: t('Show Values'),
               renderTrigger: true,
               default: false,
-              description: t('Whether to display the numerical values within the cells'),
+              description: t(
+                'Whether to display the numerical values within the cells',
+              ),
             },
           },
         ],

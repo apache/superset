@@ -31,7 +31,8 @@ export default function DefaultTooltipRenderer({
   color: string;
   encoder: BoxPlotEncoder;
 }) {
-  const { label, min, max, median, firstQuartile, thirdQuartile, outliers } = datum;
+  const { label, min, max, median, firstQuartile, thirdQuartile, outliers } =
+    datum;
   const { channels } = encoder;
 
   const { formatValue } = channels.y;

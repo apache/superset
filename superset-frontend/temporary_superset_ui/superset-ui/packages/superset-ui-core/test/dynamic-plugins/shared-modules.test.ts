@@ -30,7 +30,9 @@ describe('shared modules', () => {
 
     await defineSharedModule('test-module', fetchModule);
 
-    expect((window as any)['__superset__/test-module']).toStrictEqual(fakeModule);
+    expect((window as any)['__superset__/test-module']).toStrictEqual(
+      fakeModule,
+    );
   });
 
   it('resolves to the same reference every time', async () => {
@@ -50,7 +52,10 @@ describe('shared modules', () => {
     const duplicateFetchModule = jest.fn().mockResolvedValue(fakeModule);
 
     const result1 = await defineSharedModule('test-module', fetchModule);
-    const result2 = await defineSharedModule('test-module', duplicateFetchModule);
+    const result2 = await defineSharedModule(
+      'test-module',
+      duplicateFetchModule,
+    );
 
     expect(result1).toStrictEqual(fakeModule);
     expect(result2).toStrictEqual(fakeModule);
@@ -62,7 +67,9 @@ describe('shared modules', () => {
     // get a promise that actually takes a moment;
     const fetchModule = jest
       .fn()
-      .mockImplementation(() => Promise.resolve(setImmediate).then(() => fakeModule));
+      .mockImplementation(() =>
+        Promise.resolve(setImmediate).then(() => fakeModule),
+      );
 
     const promise1 = defineSharedModule('test-module', fetchModule);
     const promise2 = defineSharedModule('test-module', fetchModule);

@@ -33,7 +33,8 @@ import { AnnotationLayerMetadata } from '../types/Annotation';
 import { PlainObject } from '../types/Base';
 
 // This expands to Partial<All> & (union of all possible single-property types)
-type AtLeastOne<All, Each = { [K in keyof All]: Pick<All, K> }> = Partial<All> & Each[keyof Each];
+type AtLeastOne<All, Each = { [K in keyof All]: Pick<All, K> }> = Partial<All> &
+  Each[keyof Each];
 
 export type SliceIdAndOrFormData = AtLeastOne<{
   sliceId: number;
@@ -89,7 +90,9 @@ export default class ChartClient {
     /* If sliceId is not provided, returned formData wrapped in a Promise */
     return input.formData
       ? Promise.resolve(input.formData as QueryFormData)
-      : Promise.reject(new Error('At least one of sliceId or formData must be specified'));
+      : Promise.reject(
+          new Error('At least one of sliceId or formData must be specified'),
+        );
   }
 
   async loadQueryData(
@@ -102,7 +105,8 @@ export default class ChartClient {
 
     if (metaDataRegistry.has(visType)) {
       const { useLegacyApi } = metaDataRegistry.get(visType)!;
-      const buildQuery = (await buildQueryRegistry.get(visType)) ?? (() => formData);
+      const buildQuery =
+        (await buildQueryRegistry.get(visType)) ?? (() => formData);
       const requestConfig: RequestConfig = useLegacyApi
         ? {
             endpoint: '/superset/explore_json/',
@@ -121,13 +125,18 @@ export default class ChartClient {
 
       return this.client
         .post(requestConfig)
-        .then(response => (Array.isArray(response.json) ? response.json : [response.json]));
+        .then(response =>
+          Array.isArray(response.json) ? response.json : [response.json],
+        );
     }
 
     return Promise.reject(new Error(`Unknown chart type: ${visType}`));
   }
 
-  loadDatasource(datasourceKey: string, options?: Partial<RequestConfig>): Promise<Datasource> {
+  loadDatasource(
+    datasourceKey: string,
+    options?: Partial<RequestConfig>,
+  ): Promise<Datasource> {
     return this.client
       .get({
         endpoint: `/superset/fetch_datasource_metadata?datasourceKey=${datasourceKey}`,
@@ -137,7 +146,9 @@ export default class ChartClient {
   }
 
   // eslint-disable-next-line class-methods-use-this
-  loadAnnotation(annotationLayer: AnnotationLayerMetadata): Promise<AnnotationData> {
+  loadAnnotation(
+    annotationLayer: AnnotationLayerMetadata,
+  ): Promise<AnnotationData> {
     /* When annotation does not require query */
     if (!isDefined(annotationLayer.sourceType)) {
       return Promise.resolve({} as AnnotationData);
@@ -147,9 +158,13 @@ export default class ChartClient {
     return Promise.reject(new Error('This feature is not implemented yet.'));
   }
 
-  loadAnnotations(annotationLayers?: AnnotationLayerMetadata[]): Promise<AnnotationData> {
+  loadAnnotations(
+    annotationLayers?: AnnotationLayerMetadata[],
+  ): Promise<AnnotationData> {
     if (Array.isArray(annotationLayers) && annotationLayers.length > 0) {
-      return Promise.all(annotationLayers.map(layer => this.loadAnnotation(layer))).then(results =>
+      return Promise.all(
+        annotationLayers.map(layer => this.loadAnnotation(layer)),
+      ).then(results =>
         annotationLayers.reduce((prev, layer, i) => {
           const output: AnnotationData = prev;
           output[layer.name] = results[i];

@@ -31,7 +31,15 @@ describe('formatSelectOptions', () => {
   });
   it('formats a mix of values and already formated options', () => {
     expect(
-      formatSelectOptions<number | string>([[0, 'all'], 1, 5, 10, 25, 50, 'unlimited']),
+      formatSelectOptions<number | string>([
+        [0, 'all'],
+        1,
+        5,
+        10,
+        25,
+        50,
+        'unlimited',
+      ]),
     ).toEqual([
       [0, 'all'],
       [1, '1'],

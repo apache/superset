@@ -87,7 +87,9 @@ describe('EchartsTree tranformProps', () => {
                         {
                           name: 'second_child',
                           value: 10,
-                          children: [{ name: 'third_child', value: 10, children: [] }],
+                          children: [
+                            { name: 'third_child', value: 10, children: [] },
+                          ],
                         },
                       ],
                     },

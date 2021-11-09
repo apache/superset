@@ -18,14 +18,22 @@
  */
 export default function transformProps(chartProps) {
   const { formData, queriesData } = chartProps;
-  const { groupby, liftvaluePrecision, metrics, pvaluePrecision, significanceLevel } = formData;
+  const {
+    groupby,
+    liftvaluePrecision,
+    metrics,
+    pvaluePrecision,
+    significanceLevel,
+  } = formData;
 
   return {
     alpha: significanceLevel,
     data: queriesData[0].data,
     groups: groupby,
     liftValPrec: parseInt(liftvaluePrecision, 10),
-    metrics: metrics.map(metric => (typeof metric === 'string' ? metric : metric.label)),
+    metrics: metrics.map(metric =>
+      typeof metric === 'string' ? metric : metric.label,
+    ),
     pValPrec: parseInt(pvaluePrecision, 10),
   };
 }

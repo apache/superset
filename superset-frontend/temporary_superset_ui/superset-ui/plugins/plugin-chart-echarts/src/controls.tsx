@@ -25,7 +25,8 @@ import {
 } from '@superset-ui/chart-controls';
 import { DEFAULT_LEGEND_FORM_DATA } from './types';
 
-const { legendMargin, legendOrientation, legendType, showLegend } = DEFAULT_LEGEND_FORM_DATA;
+const { legendMargin, legendOrientation, legendType, showLegend } =
+  DEFAULT_LEGEND_FORM_DATA;
 
 const showLegendControl = {
   name: 'show_legend',
@@ -135,7 +136,11 @@ const onlyTotalControl = {
   },
 };
 
-export const showValueSection = [[showValueControl], [stackControl], [onlyTotalControl]];
+export const showValueSection = [
+  [showValueControl],
+  [stackControl],
+  [onlyTotalControl],
+];
 
 const richTooltipControl = {
   name: 'rich_tooltip',
@@ -144,7 +149,9 @@ const richTooltipControl = {
     label: t('Rich tooltip'),
     renderTrigger: true,
     default: true,
-    description: t('Shows a list of all series available at that point in time'),
+    description: t(
+      'Shows a list of all series available at that point in time',
+    ),
   },
 };
 
@@ -165,7 +172,9 @@ const tooltipSortByMetricControl = {
     label: t('Tooltip sort by metric'),
     renderTrigger: true,
     default: false,
-    description: t('Whether to sort tooltip by the selected metric in descending order.'),
+    description: t(
+      'Whether to sort tooltip by the selected metric in descending order.',
+    ),
     visibility: ({ controls }: ControlPanelsContainerProps) =>
       Boolean(controls?.rich_tooltip?.value),
   },

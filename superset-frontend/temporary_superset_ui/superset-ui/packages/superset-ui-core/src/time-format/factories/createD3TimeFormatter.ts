@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { utcFormat, timeFormat, timeFormatLocale, TimeLocaleDefinition } from 'd3-time-format';
+import {
+  utcFormat,
+  timeFormat,
+  timeFormatLocale,
+  TimeLocaleDefinition,
+} from 'd3-time-format';
 import { isRequired } from '../../utils';
 import TimeFormatter from '../TimeFormatter';
 import { LOCAL_PREFIX } from '../TimeFormats';

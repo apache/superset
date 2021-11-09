@@ -47,7 +47,10 @@ type Tfoot = ReactElementWithChildren<'tfoot', TrWithTd>;
 type Col = ReactElementWithChildren<'col', null>;
 type ColGroup = ReactElementWithChildren<'colgroup', Col>;
 
-export type Table = ReactElementWithChildren<'table', (Thead | Tbody | Tfoot | ColGroup)[]>;
+export type Table = ReactElementWithChildren<
+  'table',
+  (Thead | Tbody | Tfoot | ColGroup)[]
+>;
 export type TableRenderer = () => Table;
 export type GetTableSize = () => Partial<StickyState> | undefined;
 export type SetStickyState = (size?: Partial<StickyState>) => void;
@@ -57,7 +60,10 @@ export enum ReducerActions {
   setStickyState = 'setStickyState',
 }
 
-export type ReducerAction<T extends string, P extends Record<string, unknown>> = P & { type: T };
+export type ReducerAction<
+  T extends string,
+  P extends Record<string, unknown>,
+> = P & { type: T };
 
 export type ColumnWidths = number[];
 
@@ -90,7 +96,10 @@ export type UseStickyState = {
 };
 
 const sum = (a: number, b: number) => a + b;
-const mergeStyleProp = (node: ReactElement<{ style?: CSSProperties }>, style: CSSProperties) => ({
+const mergeStyleProp = (
+  node: ReactElement<{ style?: CSSProperties }>,
+  style: CSSProperties,
+) => ({
   style: {
     ...node.props.style,
     ...style,
@@ -134,10 +143,14 @@ function StickyWrap({
     }
   });
   if (!thead || !tbody) {
-    throw new Error('<table> in <StickyWrap> must contain both thead and tbody.');
+    throw new Error(
+      '<table> in <StickyWrap> must contain both thead and tbody.',
+    );
   }
   const columnCount = useMemo(() => {
-    const headerRows = React.Children.toArray(thead?.props.children).pop() as TrWithTh;
+    const headerRows = React.Children.toArray(
+      thead?.props.children,
+    ).pop() as TrWithTh;
     return headerRows.props.children.length;
   }, [thead]);
 
@@ -166,8 +179,10 @@ function StickyWrap({
     if (!theadHeight) {
       return;
     }
-    const fullTableHeight = (bodyThead.parentNode as HTMLTableElement).clientHeight;
-    const ths = bodyThead.childNodes[0].childNodes as NodeListOf<HTMLTableHeaderCellElement>;
+    const fullTableHeight = (bodyThead.parentNode as HTMLTableElement)
+      .clientHeight;
+    const ths = bodyThead.childNodes[0]
+      .childNodes as NodeListOf<HTMLTableHeaderCellElement>;
     const widths = Array.from(ths).map(th => th.clientWidth);
     const [hasVerticalScroll, hasHorizontalScroll] = needScrollBar({
       width: maxWidth,
@@ -236,7 +251,10 @@ function StickyWrap({
         <colgroup>
           {colWidths.map((x, i) => (
             // eslint-disable-next-line react/no-array-index-key
-            <col key={i} width={x + (i === colWidths.length - 1 ? scrollBarSize : 0)} />
+            <col
+              key={i}
+              width={x + (i === colWidths.length - 1 ? scrollBarSize : 0)}
+            />
           ))}
         </colgroup>
       ) : (
@@ -251,7 +269,12 @@ function StickyWrap({
           overflow: 'hidden',
         }}
       >
-        {React.cloneElement(table, mergeStyleProp(table, fixedTableLayout), headerColgroup, thead)}
+        {React.cloneElement(
+          table,
+          mergeStyleProp(table, fixedTableLayout),
+          headerColgroup,
+          thead,
+        )}
         {headerTable}
       </div>
     );
@@ -264,7 +287,12 @@ function StickyWrap({
           overflow: 'hidden',
         }}
       >
-        {React.cloneElement(table, mergeStyleProp(table, fixedTableLayout), headerColgroup, tfoot)}
+        {React.cloneElement(
+          table,
+          mergeStyleProp(table, fixedTableLayout),
+          headerColgroup,
+          tfoot,
+        )}
         {footerTable}
       </div>
     );
@@ -287,7 +315,12 @@ function StickyWrap({
         }}
         onScroll={sticky.hasHorizontalScroll ? onScroll : undefined}
       >
-        {React.cloneElement(table, mergeStyleProp(table, fixedTableLayout), bodyColgroup, tbody)}
+        {React.cloneElement(
+          table,
+          mergeStyleProp(table, fixedTableLayout),
+          bodyColgroup,
+          tbody,
+        )}
       </div>
     );
   }
@@ -331,7 +364,8 @@ function useInstance<D extends object>(instance: TableInstance<D>) {
   );
 
   const useStickyWrap = (renderer: TableRenderer) => {
-    const { width, height } = useMountedMemo(getTableSize, [getTableSize]) || sticky;
+    const { width, height } =
+      useMountedMemo(getTableSize, [getTableSize]) || sticky;
     // only change of data should trigger re-render
     // eslint-disable-next-line react-hooks/exhaustive-deps
     const table = useMemo(renderer, [page, rows]);
@@ -349,7 +383,12 @@ function useInstance<D extends object>(instance: TableInstance<D>) {
       return table;
     }
     return (
-      <StickyWrap width={width} height={height} sticky={sticky} setStickyState={setStickyState}>
+      <StickyWrap
+        width={width}
+        height={height}
+        sticky={sticky}
+        setStickyState={setStickyState}
+      >
         {table}
       </StickyWrap>
     );
@@ -364,7 +403,10 @@ function useInstance<D extends object>(instance: TableInstance<D>) {
 export default function useSticky<D extends object>(hooks: Hooks<D>) {
   hooks.useInstance.push(useInstance);
   hooks.stateReducers.push((newState, action_, prevState) => {
-    const action = action_ as ReducerAction<ReducerActions, { size: StickyState }>;
+    const action = action_ as ReducerAction<
+      ReducerActions,
+      { size: StickyState }
+    >;
     if (action.type === ReducerActions.init) {
       return {
         ...newState,

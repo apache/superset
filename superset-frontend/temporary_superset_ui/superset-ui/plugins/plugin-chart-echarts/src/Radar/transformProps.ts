@@ -36,7 +36,11 @@ import {
   RadarChartTransformedProps,
 } from './types';
 import { DEFAULT_LEGEND_FORM_DATA } from '../types';
-import { extractGroupbyLabel, getColtypesMapping, getLegendProps } from '../utils/series';
+import {
+  extractGroupbyLabel,
+  getColtypesMapping,
+  getLegendProps,
+} from '../utils/series';
 import { defaultGrid, defaultTooltip } from '../defaults';
 import { OpacityEnum } from '../constants';
 
@@ -65,7 +69,8 @@ export function formatLabel({
 export default function transformProps(
   chartProps: EchartsRadarChartProps,
 ): RadarChartTransformedProps {
-  const { formData, height, hooks, filterState, queriesData, width } = chartProps;
+  const { formData, height, hooks, filterState, queriesData, width } =
+    chartProps;
   const { data = [] } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
 
@@ -125,7 +130,10 @@ export default function transformProps(
           metricLabel,
           Math.max(
             value as number,
-            ensureIsInt(metricLabelAndMaxValueMap.get(metricLabel), Number.MIN_SAFE_INTEGER),
+            ensureIsInt(
+              metricLabelAndMaxValueMap.get(metricLabel),
+              Number.MIN_SAFE_INTEGER,
+            ),
           ),
         );
       } else {
@@ -134,7 +142,8 @@ export default function transformProps(
     }
 
     const isFiltered =
-      filterState.selectedValues && !filterState.selectedValues.includes(joinedName);
+      filterState.selectedValues &&
+      !filterState.selectedValues.includes(joinedName);
 
     // generate transformedData
     transformedData.push({
@@ -142,10 +151,14 @@ export default function transformProps(
       name: joinedName,
       itemStyle: {
         color: colorFn(joinedName),
-        opacity: isFiltered ? OpacityEnum.Transparent : OpacityEnum.NonTransparent,
+        opacity: isFiltered
+          ? OpacityEnum.Transparent
+          : OpacityEnum.NonTransparent,
       },
       lineStyle: {
-        opacity: isFiltered ? OpacityEnum.SemiTransparent : OpacityEnum.NonTransparent,
+        opacity: isFiltered
+          ? OpacityEnum.SemiTransparent
+          : OpacityEnum.NonTransparent,
       },
       label: {
         show: showLabels,
@@ -157,7 +170,9 @@ export default function transformProps(
 
   const selectedValues = (filterState.selectedValues || []).reduce(
     (acc: Record<string, number>, selectedValue: string) => {
-      const index = transformedData.findIndex(({ name }) => name === selectedValue);
+      const index = transformedData.findIndex(
+        ({ name }) => name === selectedValue,
+      );
       return {
         ...acc,
         [index]: selectedValue,
@@ -173,7 +188,8 @@ export default function transformProps(
       metricLabelAndMaxValueMap.get(metricLabel) === 0
         ? Number.MAX_SAFE_INTEGER
         : metricLabelAndMaxValueMap.get(metricLabel);
-    const max = maxValueInControl === null ? metricValueAsMax : maxValueInControl;
+    const max =
+      maxValueInControl === null ? metricValueAsMax : maxValueInControl;
     return {
       name: metricLabel,
       max,

@@ -160,13 +160,17 @@ describe('Registry', () => {
       const registry = new Registry();
       registry.registerValue('a', 'testValue');
 
-      return registry.getAsPromise('a').then(value => expect(value).toBe('testValue'));
+      return registry
+        .getAsPromise('a')
+        .then(value => expect(value).toBe('testValue'));
     });
     it('given the key, returns a promise of result of the loader function if the item is a loader', () => {
       const registry = new Registry();
       registry.registerLoader('a', () => 'testValue');
 
-      return registry.getAsPromise('a').then(value => expect(value).toBe('testValue'));
+      return registry
+        .getAsPromise('a')
+        .then(value => expect(value).toBe('testValue'));
     });
     it('returns same promise object for the same key unless user re-registers new value with the key.', () => {
       const registry = new Registry();
@@ -179,7 +183,9 @@ describe('Registry', () => {
       const registry = new Registry();
 
       return registry.getAsPromise('a').then(null, (err: Error) => {
-        expect(err.toString()).toEqual('Error: Item with key "a" is not registered.');
+        expect(err.toString()).toEqual(
+          'Error: Item with key "a" is not registered.',
+        );
       });
     });
     it('If the key was registered multiple times, returns a promise of the most recent item.', async () => {
@@ -316,7 +322,9 @@ describe('Registry', () => {
           const restoreConsole = mockConsole();
           const registry = new Registry();
           registry.registerLoader('a', () => 'testValue');
-          expect(() => registry.registerLoader('a', () => 'testValue2')).not.toThrow();
+          expect(() =>
+            registry.registerLoader('a', () => 'testValue2'),
+          ).not.toThrow();
           expect(registry.get('a')).toEqual('testValue2');
           expect(console.warn).not.toHaveBeenCalled();
           restoreConsole();
@@ -344,7 +352,9 @@ describe('Registry', () => {
             overwritePolicy: OverwritePolicy.WARN,
           });
           registry.registerLoader('a', () => 'testValue');
-          expect(() => registry.registerLoader('a', () => 'testValue2')).not.toThrow();
+          expect(() =>
+            registry.registerLoader('a', () => 'testValue2'),
+          ).not.toThrow();
           expect(registry.get('a')).toEqual('testValue2');
           expect(console.warn).toHaveBeenCalled();
           restoreConsole();
@@ -367,7 +377,9 @@ describe('Registry', () => {
             overwritePolicy: OverwritePolicy.PROHIBIT,
           });
           registry.registerLoader('a', () => 'testValue');
-          expect(() => registry.registerLoader('a', () => 'testValue2')).toThrow();
+          expect(() =>
+            registry.registerLoader('a', () => 'testValue2'),
+          ).toThrow();
         });
       });
     });

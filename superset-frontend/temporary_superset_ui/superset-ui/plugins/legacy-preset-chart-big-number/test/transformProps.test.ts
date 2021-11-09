@@ -117,7 +117,9 @@ describe('BigNumber', () => {
       expect(transformed.bigNumberFallback).not.toBeNull();
 
       // should successfully formatTime by ganularity
-      expect(transformed.formatTime(new Date('2020-01-01'))).toStrictEqual('2020-01-01 00:00:00');
+      expect(transformed.formatTime(new Date('2020-01-01'))).toStrictEqual(
+        '2020-01-01 00:00:00',
+      );
     });
 
     it('should respect datasource d3 format', () => {
@@ -135,7 +137,9 @@ describe('BigNumber', () => {
         },
       };
       const transformed = transformProps(propsWithDatasource);
-      expect(transformed.headerFormatter(transformed.bigNumber)).toStrictEqual('1.23');
+      expect(transformed.headerFormatter(transformed.bigNumber)).toStrictEqual(
+        '1.23',
+      );
     });
   });
 });

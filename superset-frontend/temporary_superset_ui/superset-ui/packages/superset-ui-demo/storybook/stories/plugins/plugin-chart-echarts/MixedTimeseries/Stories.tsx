@@ -19,15 +19,26 @@
 
 import React from 'react';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import { boolean, number, text, select, withKnobs } from '@storybook/addon-knobs';
+import {
+  boolean,
+  number,
+  text,
+  select,
+  withKnobs,
+} from '@storybook/addon-knobs';
 import { EchartsTimeseriesChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import transformProps from '@superset-ui/plugin-chart-echarts/lib/MixedTimeseries/transformProps';
 import data from '../Timeseries/data';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 
-new EchartsTimeseriesChartPlugin().configure({ key: 'mixed-timeseries' }).register();
+new EchartsTimeseriesChartPlugin()
+  .configure({ key: 'mixed-timeseries' })
+  .register();
 
-getChartTransformPropsRegistry().registerValue('mixed-timeseries', transformProps);
+getChartTransformPropsRegistry().registerValue(
+  'mixed-timeseries',
+  transformProps,
+);
 
 export default {
   title: 'Chart Plugins/plugin-chart-echarts/MixedTimeseries',

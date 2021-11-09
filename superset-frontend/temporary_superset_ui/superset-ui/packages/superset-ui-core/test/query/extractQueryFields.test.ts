@@ -34,7 +34,11 @@ describe('extractQueryFields', () => {
 
   it('should group single value to arrays', () => {
     expect(
-      extractQueryFields({ metric: 'my_metric', columns: 'abc', orderby: '["ccc",true]' }),
+      extractQueryFields({
+        metric: 'my_metric',
+        columns: 'abc',
+        orderby: '["ccc",true]',
+      }),
     ).toEqual({
       metrics: ['my_metric'],
       columns: ['abc'],
@@ -45,7 +49,11 @@ describe('extractQueryFields', () => {
   it('should combine field aliases', () => {
     expect(
       extractQueryFields(
-        { metric: 'metric_1', metric_2: 'metric_2', my_custom_metric: 'my_custom_metric' },
+        {
+          metric: 'metric_1',
+          metric_2: 'metric_2',
+          my_custom_metric: 'my_custom_metric',
+        },
         { my_custom_metric: 'metrics' },
       ).metrics,
     ).toEqual(['metric_1', 'metric_2', 'my_custom_metric']);
@@ -69,7 +77,9 @@ describe('extractQueryFields', () => {
 
   it('should remove duplicate metrics', () => {
     expect(
-      extractQueryFields({ metrics: ['col_1', { ...NUM_METRIC }, { ...NUM_METRIC }] }),
+      extractQueryFields({
+        metrics: ['col_1', { ...NUM_METRIC }, { ...NUM_METRIC }],
+      }),
     ).toEqual({
       columns: [],
       metrics: ['col_1', NUM_METRIC],
@@ -79,7 +89,10 @@ describe('extractQueryFields', () => {
 
   it('should extract custom columns fields', () => {
     expect(
-      extractQueryFields({ series: 'col_1', metric: 'metric_1' }, { series: 'groupby' }),
+      extractQueryFields(
+        { series: 'col_1', metric: 'metric_1' },
+        { series: 'groupby' },
+      ),
     ).toEqual({
       columns: ['col_1'],
       metrics: ['metric_1'],
@@ -101,17 +114,21 @@ describe('extractQueryFields', () => {
   });
 
   it('should include time', () => {
-    expect(extractQueryFields({ groupby: 'col_1', include_time: true }).columns).toEqual([
-      DTTM_ALIAS,
-      'col_1',
-    ]);
     expect(
-      extractQueryFields({ groupby: ['col_1', DTTM_ALIAS, ''], include_time: true }).columns,
+      extractQueryFields({ groupby: 'col_1', include_time: true }).columns,
+    ).toEqual([DTTM_ALIAS, 'col_1']);
+    expect(
+      extractQueryFields({
+        groupby: ['col_1', DTTM_ALIAS, ''],
+        include_time: true,
+      }).columns,
     ).toEqual(['col_1', DTTM_ALIAS]);
   });
 
   it('should ignore null values', () => {
-    expect(extractQueryFields({ series: ['a'], columns: null }).columns).toEqual(['a']);
+    expect(
+      extractQueryFields({ series: ['a'], columns: null }).columns,
+    ).toEqual(['a']);
   });
 
   it('should ignore groupby and metrics when in raw QueryMode', () => {

@@ -33,7 +33,8 @@ export function addDummyFill() {
 
   // @ts-ignore - fix jsdom
   SVGElement.prototype.getBBox = function getBBox() {
-    let width = textToWidth[this.textContent as keyof typeof textToWidth] || 200;
+    let width =
+      textToWidth[this.textContent as keyof typeof textToWidth] || 200;
     let height = 20;
 
     if (this.getAttribute('class') === 'test-class') {

@@ -39,7 +39,13 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               label: t('Domain'),
               default: 'month',
-              choices: formatSelectOptions(['hour', 'day', 'week', 'month', 'year']),
+              choices: formatSelectOptions([
+                'hour',
+                'day',
+                'week',
+                'month',
+                'year',
+              ]),
               description: t('The time unit used for the grouping of blocks'),
             },
           },
@@ -49,7 +55,13 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               label: t('Subdomain'),
               default: 'day',
-              choices: formatSelectOptions(['min', 'hour', 'day', 'week', 'month']),
+              choices: formatSelectOptions([
+                'min',
+                'hour',
+                'day',
+                'week',
+                'month',
+              ]),
               description: t(
                 'The time unit for each block. Should be a smaller unit than ' +
                   'domain_granularity. Should be larger or equal to Time Grain',
@@ -152,7 +164,9 @@ const config: ControlPanelConfig = {
               label: t('Show Values'),
               renderTrigger: true,
               default: false,
-              description: t('Whether to display the numerical values within the cells'),
+              description: t(
+                'Whether to display the numerical values within the cells',
+              ),
             },
           },
         ],

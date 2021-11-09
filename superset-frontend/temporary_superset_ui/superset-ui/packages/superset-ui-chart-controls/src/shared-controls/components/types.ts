@@ -24,7 +24,9 @@ import { ReactNode } from 'react';
  *
  * Ref: superset-frontend/src/explore/components/Control.tsx
  */
-export interface ControlComponentProps<ValueType extends JsonValue = JsonValue> {
+export interface ControlComponentProps<
+  ValueType extends JsonValue = JsonValue,
+> {
   name: string;
   label?: ReactNode;
   description?: ReactNode;

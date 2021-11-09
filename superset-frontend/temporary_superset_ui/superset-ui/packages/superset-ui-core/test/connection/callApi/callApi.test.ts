@@ -100,7 +100,9 @@ describe('callApi()', () => {
       expect(fetchParams.cache).toBe(mockRequest.cache);
       expect(fetchParams.credentials).toBe(mockRequest.credentials);
       expect(fetchParams.headers).toEqual(
-        expect.objectContaining(mockRequest.headers) as typeof fetchParams.headers,
+        expect.objectContaining(
+          mockRequest.headers,
+        ) as typeof fetchParams.headers,
       );
       expect(fetchParams.redirect).toBe(mockRequest.redirect);
       expect(fetchParams.signal).toBe(mockRequest.signal);
@@ -154,7 +156,12 @@ describe('callApi()', () => {
 
       await Promise.all([
         callApi({ url: mockPostUrl, method: 'POST', postPayload }),
-        callApi({ url: mockPostUrl, method: 'POST', postPayload, stringify: false }),
+        callApi({
+          url: mockPostUrl,
+          method: 'POST',
+          postPayload,
+          stringify: false,
+        }),
         callApi({ url: mockPostUrl, method: 'POST', jsonPayload: postPayload }),
       ]);
       const calls = fetchMock.calls(mockPostUrl);
@@ -162,7 +169,9 @@ describe('callApi()', () => {
 
       const stringified = calls[0][1].body as FormData;
       const unstringified = calls[1][1].body as FormData;
-      const jsonRequestBody = JSON.parse(calls[2][1].body as string) as JsonObject;
+      const jsonRequestBody = JSON.parse(
+        calls[2][1].body as string,
+      ) as JsonObject;
 
       Object.entries(postPayload).forEach(([key, value]) => {
         expect(stringified.get(key)).toBe(JSON.stringify(value));
@@ -218,7 +227,12 @@ describe('callApi()', () => {
 
       await Promise.all([
         callApi({ url: mockPutUrl, method: 'PUT', postPayload }),
-        callApi({ url: mockPutUrl, method: 'PUT', postPayload, stringify: false }),
+        callApi({
+          url: mockPutUrl,
+          method: 'PUT',
+          postPayload,
+          stringify: false,
+        }),
       ]);
       const calls = fetchMock.calls(mockPutUrl);
       expect(calls).toHaveLength(2);
@@ -279,7 +293,12 @@ describe('callApi()', () => {
 
       await Promise.all([
         callApi({ url: mockPatchUrl, method: 'PATCH', postPayload }),
-        callApi({ url: mockPatchUrl, method: 'PATCH', postPayload, stringify: false }),
+        callApi({
+          url: mockPatchUrl,
+          method: 'PATCH',
+          postPayload,
+          stringify: false,
+        }),
       ]);
       const calls = fetchMock.calls(mockPatchUrl);
       expect(calls).toHaveLength(2);
@@ -344,7 +363,10 @@ describe('callApi()', () => {
       const firstBody = await firstResponse.text();
       expect(firstBody).toEqual('BODY');
 
-      const secondResponse = await callApi({ url: mockCacheUrl, method: 'GET' });
+      const secondResponse = await callApi({
+        url: mockCacheUrl,
+        method: 'GET',
+      });
       const fetchParams = calls[1][1];
       expect(calls).toHaveLength(2);
       // second call should not have If-None-Match header
@@ -383,7 +405,10 @@ describe('callApi()', () => {
       const mockCachedPayload = { status: 304 };
       fetchMock.get(mockCacheUrl, mockCachedPayload, { overwriteRoutes: true });
 
-      const secondResponse = await callApi({ url: mockCacheUrl, method: 'GET' });
+      const secondResponse = await callApi({
+        url: mockCacheUrl,
+        method: 'GET',
+      });
       expect(calls).toHaveLength(2);
       const secondBody = await secondResponse.text();
       expect(secondBody).toEqual('BODY');
@@ -552,7 +577,9 @@ describe('callApi()', () => {
     } catch (err) {
       error = err;
     } finally {
-      expect((error as Error).message).toContain('provide only one of jsonPayload or postPayload');
+      expect((error as Error).message).toContain(
+        'provide only one of jsonPayload or postPayload',
+      );
     }
   });
 

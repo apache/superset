@@ -17,7 +17,12 @@
  * under the License.
  */
 
-import { geoMercator, geoEquirectangular, geoAlbers, geoAlbersUsa } from 'd3-geo';
+import {
+  geoMercator,
+  geoEquirectangular,
+  geoAlbers,
+  geoAlbersUsa,
+} from 'd3-geo';
 
 const Projection = {
   Mercator: geoMercator,

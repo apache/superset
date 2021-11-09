@@ -127,11 +127,15 @@ export type AnnotationLayer =
   | FormulaAnnotationLayer
   | TimeseriesAnnotationLayer;
 
-export function isFormulaAnnotationLayer(layer: AnnotationLayer): layer is FormulaAnnotationLayer {
+export function isFormulaAnnotationLayer(
+  layer: AnnotationLayer,
+): layer is FormulaAnnotationLayer {
   return layer.annotationType === AnnotationType.Formula;
 }
 
-export function isEventAnnotationLayer(layer: AnnotationLayer): layer is EventAnnotationLayer {
+export function isEventAnnotationLayer(
+  layer: AnnotationLayer,
+): layer is EventAnnotationLayer {
   return layer.annotationType === AnnotationType.Event;
 }
 
@@ -147,7 +151,9 @@ export function isTimeseriesAnnotationLayer(
   return layer.annotationType === AnnotationType.Timeseries;
 }
 
-export function isTableAnnotationLayer(layer: AnnotationLayer): layer is TableAnnotationLayer {
+export function isTableAnnotationLayer(
+  layer: AnnotationLayer,
+): layer is TableAnnotationLayer {
   return layer.sourceType === AnnotationSourceType.Table;
 }
 
@@ -160,7 +166,9 @@ export type TimeseriesAnnotationResult = [
   { key: string; values: { x: string | number; y?: number }[] },
 ];
 
-export type AnnotationResult = RecordAnnotationResult | TimeseriesAnnotationResult;
+export type AnnotationResult =
+  | RecordAnnotationResult
+  | TimeseriesAnnotationResult;
 
 export function isTimeseriesAnnotationResult(
   result: AnnotationResult,

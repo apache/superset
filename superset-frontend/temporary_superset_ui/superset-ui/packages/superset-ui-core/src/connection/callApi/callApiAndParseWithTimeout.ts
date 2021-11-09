@@ -22,7 +22,9 @@ import rejectAfterTimeout from './rejectAfterTimeout';
 import parseResponse from './parseResponse';
 import { CallApi, ClientTimeout, ParseMethod } from '../types';
 
-export default async function callApiAndParseWithTimeout<T extends ParseMethod = 'json'>({
+export default async function callApiAndParseWithTimeout<
+  T extends ParseMethod = 'json',
+>({
   timeout,
   parseMethod,
   ...rest

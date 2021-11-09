@@ -20,7 +20,9 @@ import React from 'react';
 import { useTheme } from '@superset-ui/core';
 import { Popover } from 'antd';
 import ColumnTypeLabel from '../../../components/ColumnTypeLabel';
-import ColumnConfigPopover, { ColumnConfigPopoverProps } from './ColumnConfigPopover';
+import ColumnConfigPopover, {
+  ColumnConfigPopoverProps,
+} from './ColumnConfigPopover';
 
 export type ColumnConfigItemProps = ColumnConfigPopoverProps;
 

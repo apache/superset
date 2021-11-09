@@ -19,7 +19,10 @@
 /**
  * Remove duplicate items from a list.
  */
-export function removeDuplicates<T>(items: T[], hash?: (item: T) => unknown): T[] {
+export function removeDuplicates<T>(
+  items: T[],
+  hash?: (item: T) => unknown,
+): T[] {
   if (hash) {
     const seen = new Set();
     return items.filter(x => {

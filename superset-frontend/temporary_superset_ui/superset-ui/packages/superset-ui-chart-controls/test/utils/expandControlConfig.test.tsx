@@ -68,9 +68,9 @@ describe('expandControlConfig()', () => {
         label: 'Custom Metric',
       },
     };
-    expect((expandControlConfig(input) as CustomControlItem).config.type).toEqual(
-      sharedControlComponents.RadioButtonControl,
-    );
+    expect(
+      (expandControlConfig(input) as CustomControlItem).config.type,
+    ).toEqual(sharedControlComponents.RadioButtonControl);
   });
 
   it('leave NULL and ReactElement untouched', () => {
@@ -85,6 +85,8 @@ describe('expandControlConfig()', () => {
   });
 
   it('return null for invalid configs', () => {
-    expect(expandControlConfig({ type: 'SelectControl', label: 'Hello' } as never)).toBeNull();
+    expect(
+      expandControlConfig({ type: 'SelectControl', label: 'Hello' } as never),
+    ).toBeNull();
   });
 });
