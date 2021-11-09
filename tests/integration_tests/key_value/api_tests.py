@@ -47,28 +47,24 @@ class KeyValueTests(SupersetTestCase):
     def test_post(self):
         key = self.post()
         result = db.session.query(KeyValue).first()
-        self.assertEqual(key, str(result.key))
-        self.assertEqual(duration_ms, result.duration_ms)
-        self.assertEqual(
-            reset_duration_on_retrieval, result.reset_duration_on_retrieval
-        )
-        self.assertEqual(value, result.value)
+        assert key == str(result.key)
+        assert duration_ms == result.duration_ms
+        assert reset_duration_on_retrieval == result.reset_duration_on_retrieval
+        assert value == result.value
 
     def test_get_not_found(self):
         key = self.post()
         resp = self.client.get(key)
-        self.assertEqual(404, resp.status_code)
+        assert resp.status_code == 404
 
     def test_get(self):
         key = self.post()
         resp = self.client.get(f"api/v1/key_value_store/{key}/")
-        self.assertEqual(resp.status_code, 200)
+        assert resp.status_code == 200
         data = json.loads(resp.data.decode("utf-8"))
-        self.assertEqual(duration_ms, data.get("duration_ms"))
-        self.assertEqual(
-            reset_duration_on_retrieval, data.get("reset_duration_on_retrieval")
-        )
-        self.assertEqual(value, data.get("value"))
+        assert duration_ms == data.get("duration_ms")
+        assert reset_duration_on_retrieval == data.get("reset_duration_on_retrieval")
+        assert value == data.get("value")
 
     def test_get_retrieved_on(self):
         key = self.post()
@@ -76,4 +72,4 @@ class KeyValueTests(SupersetTestCase):
         retrieved1 = db.session.query(KeyValue).first().retrieved_on
         self.client.get(f"api/v1/key_value_store/{key}/")
         retrieved2 = db.session.query(KeyValue).first().retrieved_on
-        self.assertGreater(retrieved2, retrieved1)
+        assert retrieved2 > retrieved1

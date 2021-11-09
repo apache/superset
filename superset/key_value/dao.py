@@ -43,7 +43,7 @@ class KeyValueDAO:
                 return None
             return model
         except SQLAlchemyError as ex:  # pragma: no cover
-            logger.error("Could not get value by UUID: %s", str(ex), exc_info=True)
+            logger.error("Could not get value for the key: %s", str(ex), exc_info=True)
             return None
 
     @staticmethod
