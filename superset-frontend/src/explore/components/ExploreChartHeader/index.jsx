@@ -261,7 +261,7 @@ export class ExploreChartHeader extends React.PureComponent {
     return (
       <StyledHeader id="slice-header" className="panel-title-large">
         <div className="title-panel">
-          {slice.certified_by && (
+          {slice?.certified_by && (
             <>
               <CertifiedIcon
                 certifiedBy={slice.certified_by}
