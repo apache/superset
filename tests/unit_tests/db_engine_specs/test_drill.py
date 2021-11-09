@@ -21,41 +21,44 @@ from flask.ctx import AppContext
 
 def test_odbc_impersonation(app_context: AppContext) -> None:
     """
-        Test ``modify_url_for_impersonation`` method when driver == odbc.
+    Test ``modify_url_for_impersonation`` method when driver == odbc.
 
-        The method adds the parameter ``DelegationUID`` to the query string.
+    The method adds the parameter ``DelegationUID`` to the query string.
     """
     from superset.db_engine_specs.drill import DrillEngineSpec
     from sqlalchemy.engine.url import URL
+
     url = URL("drill+odbc")
     username = "DoAsUser"
     DrillEngineSpec.modify_url_for_impersonation(url, True, username)
-    assert (url.query["DelegationUID"] == username)
+    assert url.query["DelegationUID"] == username
 
 
 def test_jdbc_impersonation(app_context: AppContext) -> None:
     """
-        Test ``modify_url_for_impersonation`` method when driver == jdbc.
+    Test ``modify_url_for_impersonation`` method when driver == jdbc.
 
-        The method adds the parameter ``impersonation_target`` to the query string.
+    The method adds the parameter ``impersonation_target`` to the query string.
     """
     from superset.db_engine_specs.drill import DrillEngineSpec
     from sqlalchemy.engine.url import URL
+
     url = URL("drill+jdbc")
     username = "DoAsUser"
     DrillEngineSpec.modify_url_for_impersonation(url, True, username)
-    assert (url.query["impersonation_target"] == username)
+    assert url.query["impersonation_target"] == username
 
 
 def test_sadrill_impersonation(app_context: AppContext) -> None:
     """
-        Test ``modify_url_for_impersonation`` method when driver == sadrill.
+    Test ``modify_url_for_impersonation`` method when driver == sadrill.
 
-        The method changes the username of URL Object.
+    The method changes the username of URL Object.
     """
     from superset.db_engine_specs.drill import DrillEngineSpec
     from sqlalchemy.engine.url import URL
+
     url = URL("drill+sadrill")
     username = "DoAsUser"
     DrillEngineSpec.modify_url_for_impersonation(url, True, username)
-    assert (url.username == username)
+    assert url.username == username
