@@ -16,17 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import React from 'react';
 import cx from 'classnames';
 import { t } from '@superset-ui/core';
-import Icon from 'src/components/Icon';
 import { Tooltip } from 'src/components/Tooltip';
-import copyTextToClipboard from 'src/utils/copy';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import { useUrlShortener } from 'src/common/hooks/useUrlShortener';
 import EmbedCodeButton from './EmbedCodeButton';
 import ConnectedDisplayQueryButton from './DisplayQueryButton';
-import { exportChart, getExploreLongUrl } from '../exploreUtils';
+import { exportChart } from '../exploreUtils';
 
 type ActionButtonProps = {
   icon: React.ReactElement;
@@ -82,41 +79,9 @@ const ActionButton = (props: ActionButtonProps) => {
 
 const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
   const {
-    actions,
     canDownload,
-    chartStatus,
     latestQueryFormData,
-    queriesResponse,
-    slice,
-    addDangerToast,
   } = props;
-
-  const copyTooltipText = t('Copy chart URL to clipboard');
-  const [copyTooltip, setCopyTooltip] = useState(copyTooltipText);
-  const longUrl = getExploreLongUrl(latestQueryFormData);
-  const getShortUrl = useUrlShortener(longUrl);
-
-  const doCopyLink = async () => {
-    try {
-      setCopyTooltip(t('Loading...'));
-      const shortUrl = await getShortUrl();
-      await copyTextToClipboard(shortUrl);
-      setCopyTooltip(t('Copied to clipboard!'));
-    } catch (error) {
-      setCopyTooltip(t('Sorry, your browser does not support copying.'));
-    }
-  };
-
-  const doShareEmail = async () => {
-    try {
-      const subject = t('Superset Chart');
-      const shortUrl = await getShortUrl();
-      const body = t('%s%s', 'Check out this chart: ', shortUrl);
-      window.location.href = `mailto:?Subject=${subject}%20&Body=${body}`;
-    } catch (error) {
-      addDangerToast(t('Sorry, something went wrong. Try again later.'));
-    }
-  };
 
   const doExportCSV = exportChart.bind(this, {
     formData: latestQueryFormData,
@@ -141,35 +106,6 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
       data-test="btn-group-results"
     >
       {latestQueryFormData && (
-        <>
-          {/* <ActionButton
-            icon={
-              <Icon
-                name="link"
-                width={15}
-                height={15}
-                style={{ marginTop: 1 }}
-              />
-            }
-            tooltip={copyTooltip}
-            onClick={doCopyLink}
-            data-test="short-link-button"
-            onTooltipVisibilityChange={value =>
-              !value && setTimeout(() => setCopyTooltip(copyTooltipText), 200)
-            }
-          /> */}
-          {/* <ActionButton
-            icon={
-              <Icon
-                name="email"
-                width={15}
-                height={15}
-                style={{ marginTop: 1 }}
-              />
-            }
-            tooltip={t('Share chart by email')}
-            onClick={doShareEmail}
-          /> */}
           <EmbedCodeButton latestQueryFormData={latestQueryFormData} />
           <ActionButton
             icon={<i className="fa fa-file-code-o" />}

@@ -13,7 +13,7 @@
     "noImplicitAny": true,
     "noImplicitReturns": true,
     "noImplicitThis": true,
-    "noUnusedLocals": false,
+    "noUnusedLocals": true,
     "outDir": "./dist",
     "pretty": true,
     "paths": {
