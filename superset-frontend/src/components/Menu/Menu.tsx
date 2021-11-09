@@ -29,6 +29,7 @@ import Icons from 'src/components/Icons';
 import { URL_PARAMS } from 'src/constants';
 import RightMenu from './MenuRight';
 import { Languages } from './LanguagePicker';
+import { useUiConfig } from '../UiConfigContext';
 
 interface BrandProps {
   path: string;
@@ -177,6 +178,7 @@ export function Menu({
 }: MenuProps) {
   const [showMenu, setMenu] = useState<MenuMode>('horizontal');
   const screens = useBreakpoint();
+  const uiConig = useUiConfig();
 
   useEffect(() => {
     function handleResize() {
@@ -191,7 +193,7 @@ export function Menu({
   }, []);
 
   const standalone = getUrlParam(URL_PARAMS.standalone);
-  if (standalone) return <></>;
+  if (standalone || uiConig.hideNav) return <></>;
 
   const renderSubMenu = ({
     label,
