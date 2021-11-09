@@ -184,6 +184,13 @@ def create_slices(tbl: SqlaTable, admin_owner: bool) -> Tuple[List[Slice], List[
         "markup_type": "markdown",
     }
 
+    default_query_context = {
+        "result_format": "json",
+        "result_type": "full",
+        "datasource": {"id": tbl.id, "type": "table",},
+        "queries": [{"columns": [], "metrics": [],},],
+    }
+
     admin = get_admin_user()
     if admin_owner:
         slice_props = dict(
@@ -360,6 +367,22 @@ def create_slices(tbl: SqlaTable, admin_owner: bool) -> Tuple[List[Slice], List[
                 viz_type="area",
                 x_axis_forma="smart_date",
                 metrics=metrics,
+            ),
+        ),
+        Slice(
+            **slice_props,
+            slice_name="Pivot Table v2",
+            viz_type="pivot_table_v2",
+            params=get_slice_json(
+                defaults,
+                viz_type="pivot_table_v2",
+                groupbyRows=["name"],
+                groupbyColumns=["state"],
+                metrics=[metric],
+            ),
+            query_context=get_slice_json(
+                default_query_context,
+                queries=[{"columns": ["name", "state"], "metrics": [metric],}],
             ),
         ),
     ]

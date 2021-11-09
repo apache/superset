@@ -48,7 +48,7 @@ const propTypes = {
   isLoading: PropTypes.bool,
   multi: PropTypes.bool,
   clearable: PropTypes.bool,
-  datasourceType: PropTypes.string,
+  datasource: PropTypes.object,
 };
 
 const defaultProps = {
@@ -122,7 +122,6 @@ const MetricsControl = ({
   columns,
   savedMetrics,
   datasource,
-  datasourceType,
   ...props
 }) => {
   const [value, setValue] = useState(coerceAdhocMetrics(propsValue));
@@ -232,9 +231,8 @@ const MetricsControl = ({
           onMetricEdit={onNewMetric}
           columns={columns}
           savedMetricsOptions={savedMetricOptions}
-          datasource={datasource}
           savedMetric={emptySavedMetric}
-          datasourceType={datasourceType}
+          datasource={datasource}
         >
           {trigger}
         </AdhocMetricPopoverTrigger>
@@ -243,7 +241,6 @@ const MetricsControl = ({
     [
       columns,
       datasource,
-      datasourceType,
       isAddNewMetricDisabled,
       newAdhocMetric,
       onNewMetric,
@@ -295,7 +292,6 @@ const MetricsControl = ({
           value,
           value?.[index],
         )}
-        datasourceType={datasourceType}
         onMoveLabel={moveLabel}
         onDropLabel={onDropLabel}
         multi={multi}
@@ -304,7 +300,6 @@ const MetricsControl = ({
     [
       columns,
       datasource,
-      datasourceType,
       moveLabel,
       multi,
       onDropLabel,
