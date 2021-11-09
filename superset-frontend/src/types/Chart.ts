@@ -38,6 +38,9 @@ export interface Chart {
   thumbnail_url?: string;
   owners?: Owner[];
   datasource_name_text?: string;
+  form_data: {
+    viz_type: string;
+  };
 }
 
 export type Slice = {
