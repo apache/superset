@@ -18,7 +18,6 @@
  */
 import React, { useCallback, useState } from 'react';
 import { t } from '@superset-ui/core';
-import PropTypes from 'prop-types';
 import { Input } from 'src/common/components';
 import { Tooltip } from 'src/components/Tooltip';
 
