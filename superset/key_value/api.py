@@ -53,6 +53,7 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
         RouteMethod.DELETE,
     }
     allow_browser_login = True
+    openapi_spec_tag = "Key Value Store"
 
     @expose("/", methods=["POST"])
     @protect()
@@ -63,7 +64,53 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def post(self) -> Response:
-        # TODO Add docs
+        """Stores a new value.
+        ---
+        post:
+          description: >-
+            Stores a new value.
+          requestBody:
+            description: Key value schema
+            required: true
+            content:
+              application/json:
+                schema:
+                    type: object
+                    properties:
+                      value:
+                        type: string
+                        description: Any type of JSON supported value.
+                        required: true
+                      duration_ms:
+                        type: number
+                        description: The duration of the value on the key store. If no duration is specified the value won't expire.
+                        required: false
+                        default: null
+                      reset_duration_on_retrieval:
+                        type: boolean
+                        description: If the duration should be reset when the value is retrieved. This is useful if you wish to expire unused values but keep the ones that are actively retrieved.
+                        required: false
+                        default: true
+          responses:
+            201:
+              description: The value was stored successfully. It returns the key to retrieve the value.
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      key:
+                        type: string
+                        description: The key to retrieve the value.
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
         try:
@@ -88,7 +135,58 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def put(self, key: str) -> Response:
-        # TODO Add docs
+        """Updates an existing value.
+        ---
+        put:
+          description: >-
+            Updates an existing value.
+          parameters:
+          - in: key
+            schema:
+              type: string
+            name: key
+          requestBody:
+            description: Key value schema
+            required: true
+            content:
+              application/json:
+                schema:
+                    type: object
+                    properties:
+                      value:
+                        type: string
+                        description: Any type of JSON supported value.
+                        required: true
+                      duration_ms:
+                        type: number
+                        description: The duration of the value on the key store. If no duration is specified the value won't expire.
+                        required: false
+                        default: null
+                      reset_duration_on_retrieval:
+                        type: boolean
+                        description: If the duration should be reset when the value is retrieved. This is useful if you wish to expire unused values but keep the ones that are actively retrieved.
+                        required: false
+                        default: true
+          responses:
+            201:
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
         try:
@@ -96,8 +194,7 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
             model = UpdateKeyValueCommand(g.user, key, item).run()
             if not model:
                 return self.response_404()
-            result = self.schema.dump(model)
-            return self.response(200, result=result)
+            return self.response(200, message="Value updated successfully.",)
         except KeyValueGetFailedError as ex:
             logger.error(
                 "Error updating the value %s: %s",
@@ -116,13 +213,54 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def get(self, key: str) -> Response:
-        # TODO Add docs
+        """Retrives a value.
+        ---
+        get:
+          description: >-
+            Retrives a value.
+          parameters:
+          - in: key
+            schema:
+              type: string
+            name: key
+          responses:
+            201:
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      value:
+                        type: string
+                        description: Any type of JSON supported value.
+                      duration_ms:
+                        type: number
+                        description: The duration of the value on the key store. If no duration is specified the value won't expire.
+                      reset_duration_on_retrieval:
+                        type: boolean
+                        description: If the duration should be reset when the value is retrieved. This is useful if you wish to expire unused values but keep the ones that are actively retrieved.
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
         try:
             model = GetKeyValueCommand(g.user, key).run()
             if not model:
                 return self.response_404()
             result = self.schema.dump(model)
-            return self.response(200, result=result)
+            return self.response(
+                200,
+                duration_ms=result.get("duration_ms"),
+                reset_duration_on_retrieval=result.get("reset_duration_on_retrieval"),
+                value=result.get("value"),
+            )
         except KeyValueGetFailedError as ex:
             logger.error(
                 "Error accessing the value %s: %s",
@@ -141,7 +279,36 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def delete(self, key: str) -> Response:
-        # TODO Add docs
+        """Deletes a value.
+        ---
+        delete:
+          description: >-
+            Deletes a value.
+          parameters:
+          - in: key
+            schema:
+              type: string
+            name: key
+          responses:
+            201:
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
         try:
             model = DeleteKeyValueCommand(g.user, key).run()
             if not model:
