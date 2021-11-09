@@ -28,7 +28,13 @@ import {
   SortIndicator,
   Table,
 } from 'react-virtualized';
-import { getMultipleTextDimensions, t, styled } from '@superset-ui/core';
+import {
+  getMultipleTextDimensions,
+  t,
+  styled,
+  SupersetTheme,
+  css,
+} from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import Button from '../Button';
 import CopyToClipboard from '../CopyToClipboard';
@@ -426,14 +432,7 @@ export default class FilterableTable extends PureComponent<
   }) {
     const columnKey = this.props.orderedColumnKeys[columnIndex];
     const cellData = this.list[rowIndex][columnKey];
-    const content =
-      cellData === null ? (
-        <i className="text-muted">
-          {this.getCellContent({ cellData, columnKey })}
-        </i>
-      ) : (
-        this.getCellContent({ cellData, columnKey })
-      );
+    const content = this.getCellContent({ cellData, columnKey });
     const cellNode = (
       <div
         key={key}
@@ -530,12 +529,19 @@ export default class FilterableTable extends PureComponent<
     cellData: CellDataType;
     columnKey: string;
   }) {
-    const cellNode = this.getCellContent({ cellData, columnKey });
+    const content =
+      cellData === null ? (
+        <i className="text-muted">
+          {this.getCellContent({ cellData, columnKey })}
+        </i>
+      ) : (
+        this.getCellContent({ cellData, columnKey })
+      );
     const jsonObject = safeJsonObjectParse(cellData);
     if (jsonObject) {
-      return this.addJsonModal(cellNode, jsonObject, cellData);
+      return this.addJsonModal(content, jsonObject, cellData);
     }
-    return cellNode;
+    return content;
   }
 
   renderTable() {
