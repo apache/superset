@@ -30,10 +30,15 @@ import {
   useDashboardHasTabs,
   useSelectFiltersInScope,
 } from 'src/dashboard/components/nativeFilters/state';
-import { Filter } from 'src/dashboard/components/nativeFilters/types';
+import {
+  Filter,
+  NativeFilterType,
+  Section,
+} from 'src/dashboard/components/nativeFilters/types';
 import CascadePopover from '../CascadeFilters/CascadePopover';
 import { useFilters } from '../state';
 import { buildCascadeFiltersTree } from './utils';
+import { CascadeFilter } from '../CascadeFilters/types';
 
 const Wrapper = styled.div`
   padding: ${({ theme }) => theme.gridUnit * 4}px;
@@ -80,21 +85,32 @@ const FilterControls: FC<FilterControlsProps> = ({
   const showCollapsePanel = dashboardHasTabs && cascadeFilters.length > 0;
 
   const cascadePopoverFactory = useCallback(
-    index => (
-      <CascadePopover
-        data-test="cascade-filters-control"
-        key={cascadeFilters[index].id}
-        dataMaskSelected={dataMaskSelected}
-        visible={visiblePopoverId === cascadeFilters[index].id}
-        onVisibleChange={visible =>
-          setVisiblePopoverId(visible ? cascadeFilters[index].id : null)
-        }
-        filter={cascadeFilters[index]}
-        onFilterSelectionChange={onFilterSelectionChange}
-        directPathToChild={directPathToChild}
-        inView={false}
-      />
-    ),
+    index => {
+      const filter = cascadeFilters[index];
+      if (filter.type === NativeFilterType.SECTION) {
+        return (
+          <div>
+            <h3>{(filter as Section).title}</h3>
+            <p>{(filter as Section).description}</p>
+          </div>
+        );
+      }
+      return (
+        <CascadePopover
+          data-test="cascade-filters-control"
+          key={filter.id}
+          dataMaskSelected={dataMaskSelected}
+          visible={visiblePopoverId === filter.id}
+          onVisibleChange={visible =>
+            setVisiblePopoverId(visible ? filter.id : null)
+          }
+          filter={filter as CascadeFilter}
+          onFilterSelectionChange={onFilterSelectionChange}
+          directPathToChild={directPathToChild}
+          inView={false}
+        />
+      );
+    },
     [
       cascadeFilters,
       JSON.stringify(dataMaskSelected),

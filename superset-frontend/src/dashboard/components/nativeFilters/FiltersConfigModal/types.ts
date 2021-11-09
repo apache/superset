@@ -47,9 +47,15 @@ export interface NativeFiltersFormItem {
   type: NativeFilterType;
   hierarchicalFilter?: boolean;
 }
+export interface NativeFilterSectionItem {
+  id: string;
+  type: NativeFilterType;
+  title: string;
+  description: string;
+}
 
 export interface NativeFiltersForm {
-  filters: Record<string, NativeFiltersFormItem>;
+  filters: Record<string, NativeFiltersFormItem | NativeFilterSectionItem>;
   changed?: boolean;
 }
 

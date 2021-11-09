@@ -61,8 +61,14 @@ export interface Filter {
   chartsInScope?: number[];
   type: NativeFilterType;
 }
+export interface Section {
+  id: string;
+  title: string;
+  description: string;
+  type: NativeFilterType;
+}
 
-export type FilterConfiguration = Filter[];
+export type FilterConfiguration = Array<Filter | Section>;
 
 export enum NativeFilterType {
   NATIVE_FILTER = 'NATIVE_FILTER',

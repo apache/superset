@@ -22,12 +22,14 @@ import {
   setFocusedNativeFilter,
   unsetFocusedNativeFilter,
 } from 'src/dashboard/actions/nativeFilters';
-import { Filter } from '../../types';
+import { Filter, NativeFilterType, Section } from '../../types';
 import { CascadeFilter } from '../CascadeFilters/types';
 import { mapParentFiltersToChildren } from '../utils';
 
 // eslint-disable-next-line import/prefer-default-export
-export function buildCascadeFiltersTree(filters: Filter[]): CascadeFilter[] {
+export function buildCascadeFiltersTree(
+  filters: Array<Section | Filter>,
+): Array<CascadeFilter | Section> {
   const cascadeChildren = mapParentFiltersToChildren(filters);
 
   const getCascadeFilter = (filter: Filter): CascadeFilter => {
@@ -39,7 +41,11 @@ export function buildCascadeFiltersTree(filters: Filter[]): CascadeFilter[] {
   };
 
   return filters
-    .filter(filter => !filter.cascadeParentIds?.length)
+    .filter(
+      filter =>
+        filter.type === NativeFilterType.SECTION ||
+        !(filter as Filter).cascadeParentIds?.length,
+    )
     .map(getCascadeFilter);
 }
 

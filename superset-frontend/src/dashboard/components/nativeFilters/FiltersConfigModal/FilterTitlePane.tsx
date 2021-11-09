@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PlusOutlined } from '@ant-design/icons';
 import { styled, t, useTheme } from '@superset-ui/core';
 import React from 'react';
+import { Dropdown, MainNav as Menu } from 'src/common/components';
+import { NativeFilterType } from '../types';
 import FilterTitleContainer from './FilterTitleContainer';
 import { FilterRemoval } from './types';
 
@@ -28,12 +29,16 @@ interface Props {
   onRearrage: (dragIndex: number, targetIndex: number) => void;
   onRemove: (id: string) => void;
   onChange: (id: string) => void;
-  onEdit: (filterId: string, action: 'add' | 'remove') => void;
+  onAdd: (type: NativeFilterType) => void;
   removedFilters: Record<string, FilterRemoval>;
   currentFilterId: string;
   filterGroups: string[][];
   erroredFilters: string[];
 }
+
+const StyledI = styled.div`
+  color: ${({ theme }) => theme.colors.primary.dark1};
+`;
 
 const StyledHeader = styled.div`
   ${({ theme }) => `
@@ -52,21 +57,10 @@ const TabsContainer = styled.div`
   flex-direction: column;
 `;
 
-const StyledAddFilterBox = styled.div`
-  color: ${({ theme }) => theme.colors.primary.dark1};
-  padding: ${({ theme }) => theme.gridUnit * 2}px;
-  border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  cursor: pointer;
-  margin-top: auto;
-  &:hover {
-    color: ${({ theme }) => theme.colors.primary.base};
-  }
-`;
-
 const FilterTitlePane: React.FC<Props> = ({
   getFilterTitle,
   onChange,
-  onEdit,
+  onAdd,
   onRemove,
   onRearrage,
   restoreFilter,
@@ -76,6 +70,29 @@ const FilterTitlePane: React.FC<Props> = ({
   erroredFilters,
 }) => {
   const theme = useTheme();
+  const options = [
+    { label: 'Filter', type: NativeFilterType.NATIVE_FILTER },
+    { label: 'Section', type: NativeFilterType.SECTION },
+  ];
+  const handleOnAdd = (type: NativeFilterType) => {
+    onAdd(type);
+    setTimeout(() => {
+      const element = document.getElementById('native-filters-tabs');
+      if (element) {
+        const navList = element.getElementsByClassName('ant-tabs-nav-list')[0];
+        navList.scrollTop = navList.scrollHeight;
+      }
+    }, 0);
+  };
+  const menu = (
+    <Menu mode="horizontal">
+      {options.map(item => (
+        <Menu.Item onClick={() => handleOnAdd(item.type)}>
+          {item.label}
+        </Menu.Item>
+      ))}
+    </Menu>
+  );
   return (
     <TabsContainer>
       <StyledHeader>Filters</StyledHeader>
@@ -98,29 +115,12 @@ const FilterTitlePane: React.FC<Props> = ({
           restoreFilter={restoreFilter}
         />
       </div>
-      <StyledAddFilterBox
-        onClick={() => {
-          onEdit('', 'add');
-          setTimeout(() => {
-            const element = document.getElementById('native-filters-tabs');
-            if (element) {
-              const navList = element.getElementsByClassName(
-                'ant-tabs-nav-list',
-              )[0];
-              navList.scrollTop = navList.scrollHeight;
-            }
-          }, 0);
-        }}
-      >
-        <PlusOutlined />{' '}
-        <span
-          data-test="add-filter-button"
-          aria-label="Add filter"
-          role="button"
-        >
-          {t('Add filter')}
-        </span>
-      </StyledAddFilterBox>
+      <Dropdown overlay={menu} arrow placement="topRight" trigger={['hover']}>
+        <div css={{ cursor: 'pointer', padding: '16px', paddingTop: '4px' }}>
+          <StyledI data-test="new-dropdown-icon" className="fa fa-plus" />{' '}
+          <span>{t('Add')}</span>
+        </div>
+      </Dropdown>
     </TabsContainer>
   );
 };
