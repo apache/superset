@@ -17,7 +17,7 @@
 from datetime import datetime
 
 from flask_appbuilder import Model
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, Text
+from sqlalchemy import Boolean, Column, DateTime, String, ForeignKey, Integer, Text
 
 
 class KeyValue(Model):
@@ -25,7 +25,7 @@ class KeyValue(Model):
     """Key value store entity"""
 
     __tablename__ = "key_value"
-    key = Column(Text, primary_key=True)
+    key = Column(String(256), primary_key=True)
     value = Column(Text, nullable=False)
     created_by_fk = Column(Integer, ForeignKey("ab_user.id"))
     created_on = Column(DateTime, default=datetime.utcnow)
