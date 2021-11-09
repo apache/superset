@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/* eslint-disable react-hooks/rules-of-hooks */
 import {
   ColumnMeta,
   InfoTooltipWithTrigger,
