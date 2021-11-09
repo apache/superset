@@ -15,11 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=too-many-lines
+from __future__ import annotations
 import json
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, TYPE_CHECKING
 from zipfile import ZipFile
 
 import simplejson
@@ -63,7 +64,7 @@ from superset.charts.schemas import (
     get_fav_star_ids_schema,
     openapi_spec_methods_override,
     screenshot_query_schema,
-    thumbnail_query_schema,
+    thumbnail_query_schema, ChartDataQueryContextSchema,
 )
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
@@ -88,12 +89,15 @@ from superset.views.base_api import (
 from superset.views.core import CsvResponse, generate_download_headers
 from superset.views.filters import FilterRelatedOwners
 
+if TYPE_CHECKING:
+    from superset.common.query_factory import QueryContextFactory
+
 logger = logging.getLogger(__name__)
 
-
 class ChartRestApi(BaseSupersetModelRestApi):
-    datamodel = SQLAInterface(Slice)
 
+    datamodel = SQLAInterface(Slice)
+    query_context_factory: QueryContextFactory
     resource_name = "chart"
     allow_browser_login = True
 
@@ -619,7 +623,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
         try:
             command = ChartDataCommand()
-            query_context = command.set_query_context(json_body)
+            query_context = command.set_query_context(self._convert_to_dict(json_body))
             command.validate()
         except QueryObjectValidationError as error:
             return self.response_400(message=error.message)
@@ -705,7 +709,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
         try:
             command = ChartDataCommand()
-            query_context = command.set_query_context(json_body)
+            raw_query_context = self._convert_to_dict(json_body)
+            command.set_form_data(json_body)
+            query_context = command.set_query_context(raw_query_context)
             command.validate()
         except QueryObjectValidationError as error:
             return self.response_400(message=error.message)
@@ -725,6 +731,11 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self._run_async(command)
 
         return self.get_data_response(command)
+
+    def _convert_to_dict(self, json_body):
+        raw_data = ChartDataQueryContextSchema().load(json_body)
+        query_context = self.query_context_factory.create_from_dict(raw_data)
+        return query_context
 
     def _run_async(self, command: ChartDataCommand) -> Response:
         """
@@ -797,7 +808,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         command = ChartDataCommand()
         try:
             cached_data = command.load_query_context_from_cache(cache_key)
-            command.set_query_context(cached_data)
+            query_context = self._convert_to_dict(cached_data)
+            command.set_query_context(query_context)
             command.validate()
         except ChartDataCacheLoadError:
             return self.response_404()
@@ -1202,3 +1214,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
         )
         command.run()
         return self.response(200, message="OK")
+
+    def set_query_context_factory(self, query_context_factory: QueryContextFactory):
+        self.query_context_factory = query_context_factory

@@ -353,7 +353,6 @@ class TestDatabaseModel(SupersetTestCase):
             model.get_sqla_engine()
 
 
-@pytest.mark.ofek
 class TestSqlaTableModel(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_timestamp_expression(self):

@@ -37,9 +37,10 @@ logger = logging.getLogger(__name__)
 
 
 class ChartDataCommand(BaseCommand):
+    _query_context: QueryContext
+    _form_data: Dict[str, Any]
+
     def __init__(self) -> None:
-        self._form_data: Dict[str, Any]
-        self._query_context: QueryContext
         self._async_channel_id: str
         self._query_context_processor = QueryContextProcessor()
 
@@ -78,16 +79,12 @@ class ChartDataCommand(BaseCommand):
 
         return job_metadata
 
-    def set_query_context(self, form_data: Dict[str, Any]) -> QueryContext:
-        self._form_data = form_data
-        try:
-            self._query_context = ChartDataQueryContextSchema().load(self._form_data)
-        except KeyError as ex:
-            raise ValidationError("Request is incorrect") from ex
-        except ValidationError as error:
-            raise error
-
+    def set_query_context(self, query_context: QueryContext) -> QueryContext:
+        self._query_context = query_context
         return self._query_context
+
+    def set_form_data(self, form_data: Dict[str, Any]):
+        self._form_data = form_data
 
     def validate(self) -> None:
         self._query_context_processor.raise_for_access(self._query_context)

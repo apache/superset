@@ -22,10 +22,11 @@ from typing import Any, Dict
 import pytest
 from pandas import DateOffset
 
-from superset import db
+from superset import app, db
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.common.query_context import QueryContext
 from superset.common.query_context_processor import QueryContextProcessor
+from superset.common.query_factory import QueryContextFactory
 from superset.common.query_object import QueryObject
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import SqlMetric
@@ -44,11 +45,20 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
 from tests.integration_tests.fixtures.query_context import get_query_context
 
 
+@pytest.mark.chart_data_flow
 class TestQueryContext(SupersetTestCase):
     query_context_processor: QueryContextProcessor
+    query_context_factory: QueryContextFactory
 
     def setUp(self) -> None:
         self.query_context_processor = QueryContextProcessor()
+        self.query_context_factory = QueryContextFactory(
+            app.config, ConnectorRegistry(), db.session
+        )
+
+    def convert_payload_to_query_context(self, payload):
+        query_context = ChartDataQueryContextSchema().load(payload)
+        return self.query_context_factory.create_from_dict(query_context)
 
     def test_schema_deserialization(self):
         """
@@ -56,7 +66,7 @@ class TestQueryContext(SupersetTestCase):
         """
 
         payload = get_query_context("birth_names", add_postprocessing_operations=True)
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         self.assertEqual(len(query_context.queries), len(payload["queries"]))
 
         for query_idx, query in enumerate(query_context.queries):
@@ -93,7 +103,7 @@ class TestQueryContext(SupersetTestCase):
         payload = get_query_context(table_name, table.id)
         payload["force"] = True
 
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         query_object = query_context.queries[0]
         query_cache_key = self.query_context_processor.query_cache_key(
             query_context.datasource, query_object
@@ -108,7 +118,7 @@ class TestQueryContext(SupersetTestCase):
         cached = cache_manager.cache.get(cache_key)
         assert cached is not None
 
-        rehydrated_qc = ChartDataQueryContextSchema().load(cached["data"])
+        rehydrated_qc = self.convert_payload_to_query_context(cached["data"])
         rehydrated_qo = rehydrated_qc.queries[0]
         rehydrated_query_cache_key = self.query_context_processor.query_cache_key(
             rehydrated_qc.datasource, rehydrated_qo
@@ -126,7 +136,7 @@ class TestQueryContext(SupersetTestCase):
         payload = get_query_context("birth_names")
 
         # construct baseline query_cache_key
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         query_object = query_context.queries[0]
         cache_key_original = self.query_context_processor.query_cache_key(
             query_context.datasource, query_object
@@ -145,7 +155,7 @@ class TestQueryContext(SupersetTestCase):
         db.session.commit()
 
         # create new QueryContext with unchanged attributes, extract new query_cache_key
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         query_object = query_context.queries[0]
         cache_key_new = self.query_context_processor.query_cache_key(
             query_context.datasource, query_object
@@ -169,7 +179,7 @@ class TestQueryContext(SupersetTestCase):
         db.session.commit()
 
         # construct baseline query_cache_key
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         query_object = query_context.queries[0]
         cache_key_original = self.query_context_processor.query_cache_key(
             query_context.datasource, query_object
@@ -182,7 +192,7 @@ class TestQueryContext(SupersetTestCase):
         db.session.commit()
 
         # create new QueryContext with unchanged attributes, extract new query_cache_key
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         query_object = query_context.queries[0]
         cache_key_new = self.query_context_processor.query_cache_key(
             query_context.datasource, query_object
@@ -200,14 +210,14 @@ class TestQueryContext(SupersetTestCase):
         del payload["queries"][0]["granularity"]
 
         # construct baseline query_cache_key from query_context with post processing operation
-        query_context: QueryContext = ChartDataQueryContextSchema().load(payload)
+        query_context: QueryContext = self.convert_payload_to_query_context(payload)
         query_object: QueryObject = query_context.queries[0]
         cache_key_original = self.query_context_processor.query_cache_key(
             query_context.datasource, query_object
         )
 
         payload["queries"][0]["granularity"] = None
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         query_object = query_context.queries[0]
 
         assert (
@@ -222,7 +232,7 @@ class TestQueryContext(SupersetTestCase):
         payload = get_query_context("birth_names", add_postprocessing_operations=True)
 
         # construct baseline query_cache_key from query_context with post processing operation
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         query_object = query_context.queries[0]
         cache_key_original = self.query_context_processor.query_cache_key(
             query_context.datasource, query_object
@@ -230,7 +240,7 @@ class TestQueryContext(SupersetTestCase):
 
         # ensure added None post_processing operation doesn't change query_cache_key
         payload["queries"][0]["post_processing"].append(None)
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         query_object = query_context.queries[0]
         cache_key = self.query_context_processor.query_cache_key(
             query_context.datasource, query_object
@@ -239,7 +249,7 @@ class TestQueryContext(SupersetTestCase):
 
         # ensure query without post processing operation is different
         payload["queries"][0].pop("post_processing")
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         query_object = query_context.queries[0]
         cache_key = self.query_context_processor.query_cache_key(
             query_context.datasource, query_object
@@ -250,14 +260,14 @@ class TestQueryContext(SupersetTestCase):
         self.login(username="admin")
         payload = get_query_context("birth_names", add_time_offsets=True)
 
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         query_object = query_context.queries[0]
         cache_key_original = self.query_context_processor.query_cache_key(
             query_context.datasource, query_object
         )
 
         payload["queries"][0]["time_offsets"].pop()
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         query_object = query_context.queries[0]
         cache_key = self.query_context_processor.query_cache_key(
             query_context.datasource, query_object
@@ -272,7 +282,7 @@ class TestQueryContext(SupersetTestCase):
         self.login(username="admin")
         payload = get_query_context("birth_names")
         del payload["queries"][0]["extras"]["time_range_endpoints"]
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         query_object = query_context.queries[0]
         extras = query_object.to_dict()["extras"]
         assert "time_range_endpoints" in extras
@@ -295,7 +305,7 @@ class TestQueryContext(SupersetTestCase):
         }
         payload = get_query_context("birth_names")
         payload["queries"][0]["metrics"] = ["sum__num", {"label": "abc"}, adhoc_metric]
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         query_object = query_context.queries[0]
         self.assertEqual(query_object.metrics, ["sum__num", "abc", adhoc_metric])
 
@@ -312,7 +322,7 @@ class TestQueryContext(SupersetTestCase):
         del payload["queries"][0]["columns"]
         payload["queries"][0]["granularity_sqla"] = "timecol"
         payload["queries"][0]["having_filters"] = [{"col": "a", "op": "==", "val": "b"}]
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         self.assertEqual(len(query_context.queries), 1)
         query_object = query_context.queries[0]
         self.assertEqual(query_object.granularity, "timecol")
@@ -330,7 +340,7 @@ class TestQueryContext(SupersetTestCase):
         payload = get_query_context("birth_names")
         payload["result_format"] = ChartDataResultFormat.CSV.value
         payload["queries"][0]["row_limit"] = 10
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         responses = self.query_context_processor.get_payload(query_context)
         self.assertEqual(len(responses), 1)
         data = responses["queries"][0]["data"]
@@ -344,7 +354,7 @@ class TestQueryContext(SupersetTestCase):
         self.login(username="admin")
         payload = get_query_context("birth_names")
         payload["queries"][0]["groupby"] = ["currentDatabase()"]
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         query_payload = self.query_context_processor.get_payload(query_context)
         assert query_payload["queries"][0].get("error") is not None
 
@@ -357,7 +367,7 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["groupby"] = []
         payload["queries"][0]["metrics"] = []
         payload["queries"][0]["columns"] = ["*, 'extra'"]
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         query_payload = self.query_context_processor.get_payload(query_context)
         assert query_payload["queries"][0].get("error") is not None
 
@@ -376,7 +386,7 @@ class TestQueryContext(SupersetTestCase):
                 "label": "My Simple Label",
             }
         ]
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         query_payload = self.query_context_processor.get_payload(query_context)
         assert query_payload["queries"][0].get("error") is not None
 
@@ -389,7 +399,7 @@ class TestQueryContext(SupersetTestCase):
         payload = get_query_context("birth_names")
         payload["result_type"] = ChartDataResultType.SAMPLES.value
         payload["queries"][0]["row_limit"] = 5
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         responses = self.query_context_processor.get_payload(query_context)
         self.assertEqual(len(responses), 1)
         data = responses["queries"][0]["data"]
@@ -520,11 +530,11 @@ class TestQueryContext(SupersetTestCase):
         """
         self.login(username="admin")
         payload = get_query_context("birth_names")
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         responses = self.query_context_processor.get_payload(query_context)
         orig_cache_key = responses["queries"][0]["cache_key"]
         payload["queries"][0]["foo"] = "bar"
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         responses = self.query_context_processor.get_payload(query_context)
         new_cache_key = responses["queries"][0]["cache_key"]
         self.assertEqual(orig_cache_key, new_cache_key)
@@ -542,7 +552,7 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["timeseries_limit"] = 5
         payload["queries"][0]["time_offsets"] = ["1 year ago", "1 year later"]
         payload["queries"][0]["time_range"] = "1990 : 1991"
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         responses = self.query_context_processor.get_payload(query_context)
         self.assertEqual(
             responses["queries"][0]["colnames"],
@@ -584,7 +594,7 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["time_range"] = "1990 : 1991"
         payload["queries"][0]["granularity"] = "ds"
         payload["queries"][0]["extras"]["time_grain_sqla"] = "P1Y"
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         query_object = query_context.queries[0]
         query_result = self.query_context_processor.get_query_result(
             query_context, query_object
@@ -593,7 +603,7 @@ class TestQueryContext(SupersetTestCase):
         df = query_result.df
 
         payload["queries"][0]["time_offsets"] = ["1 year ago", "1 year later"]
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         query_object = query_context.queries[0]
         # query without cache
         self.query_context_processor.processing_time_offsets(
@@ -612,7 +622,7 @@ class TestQueryContext(SupersetTestCase):
 
         # swap offsets
         payload["queries"][0]["time_offsets"] = ["1 year later", "1 year ago"]
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         query_object = query_context.queries[0]
         rv = self.query_context_processor.processing_time_offsets(
             query_context, df, query_object
@@ -623,7 +633,7 @@ class TestQueryContext(SupersetTestCase):
 
         # remove all offsets
         payload["queries"][0]["time_offsets"] = []
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         query_object = query_context.queries[0]
         rv = self.query_context_processor.processing_time_offsets(
             query_context, df, query_object,
@@ -643,7 +653,7 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["time_range"] = "1980 : 1991"
         payload["queries"][0]["granularity"] = "ds"
         payload["queries"][0]["extras"]["time_grain_sqla"] = "P1Y"
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         query_object = query_context.queries[0]
         query_result = self.query_context_processor.get_query_result(
             query_context, query_object
@@ -653,7 +663,7 @@ class TestQueryContext(SupersetTestCase):
 
         # set time_offsets to query_object
         payload["queries"][0]["time_offsets"] = ["3 years ago", "3 years later"]
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         query_object = query_context.queries[0]
         time_offsets_obj = self.query_context_processor.processing_time_offsets(
             query_context, df, query_object
@@ -678,7 +688,7 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["time_range"] = "1980 : 1991"
         payload["queries"][0]["granularity"] = "ds"
         payload["queries"][0]["extras"]["time_grain_sqla"] = "P1Y"
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         query_object = query_context.queries[0]
         query_result = self.query_context_processor.get_query_result(
             query_context, query_object
@@ -688,7 +698,7 @@ class TestQueryContext(SupersetTestCase):
 
         # set time_offsets to query_object
         payload["queries"][0]["time_offsets"] = ["3 years ago", "3 years later"]
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         query_object = query_context.queries[0]
         time_offsets_obj = self.query_context_processor.processing_time_offsets(
             query_context, df, query_object
@@ -699,7 +709,7 @@ class TestQueryContext(SupersetTestCase):
         # should get correct data when apply "3 years ago"
         payload["queries"][0]["time_offsets"] = []
         payload["queries"][0]["time_range"] = "1977 : 1988"
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         query_object = query_context.queries[0]
         query_result = self.query_context_processor.get_query_result(
             query_context, query_object
@@ -720,7 +730,7 @@ class TestQueryContext(SupersetTestCase):
         # should get correct data when apply "3 years later"
         payload["queries"][0]["time_offsets"] = []
         payload["queries"][0]["time_range"] = "1983 : 1994"
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         query_object = query_context.queries[0]
         query_result = self.query_context_processor.get_query_result(
             query_context, query_object
@@ -740,7 +750,7 @@ class TestQueryContext(SupersetTestCase):
 
     def _get_sql_text(self, payload: Dict[str, Any]) -> str:
         payload["result_type"] = ChartDataResultType.QUERY.value
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context = self.convert_payload_to_query_context(payload)
         responses = self.query_context_processor.get_payload(query_context)
         assert len(responses) == 1
         response = responses["queries"][0]

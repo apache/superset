@@ -22,7 +22,7 @@ from flask_appbuilder import expose
 from flask_appbuilder.api import rison
 from flask_appbuilder.security.decorators import has_access_api
 
-from superset import db, event_logger
+from superset import app, ConnectorRegistry, db, event_logger
 from superset.charts.commands.exceptions import (
     TimeRangeAmbiguousError,
     TimeRangeParseFailError,
@@ -52,9 +52,9 @@ class Api(BaseSupersetView):
 
         raises SupersetSecurityException: If the user cannot access the resource
         """
-        query_context = QueryContextFactory.create(
-            **json.loads(request.form["query_context"])
-        )
+        query_context = QueryContextFactory(
+            app.config, ConnectorRegistry(), db.session
+        ).create(**json.loads(request.form["query_context"]))
         query_context_processor = QueryContextProcessor()
         query_context_processor.raise_for_access(query_context)
         result = query_context_processor.get_payload(query_context)

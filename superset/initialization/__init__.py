@@ -116,7 +116,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.annotation_layers.api import AnnotationLayerRestApi
         from superset.async_events.api import AsyncEventsRestApi
         from superset.cachekeys.api import CacheRestApi
-        from superset.charts.api import ChartRestApi
         from superset.connectors.druid.views import (
             Druid,
             DruidClusterModelView,
@@ -198,7 +197,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(AnnotationLayerRestApi)
         appbuilder.add_api(AsyncEventsRestApi)
         appbuilder.add_api(CacheRestApi)
-        appbuilder.add_api(ChartRestApi)
+        self._add_chart_rest_api()
         appbuilder.add_api(CssTemplateRestApi)
         appbuilder.add_api(DashboardRestApi)
         appbuilder.add_api(DatabaseRestApi)
@@ -549,6 +548,15 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_separator(
             "Data", cond=lambda: bool(self.config["DRUID_IS_ACTIVE"])
         )
+
+    def _add_chart_rest_api(self) -> None:
+        # pylint: disable=import-outside-toplevel
+        from superset.charts.api import ChartRestApi
+        from superset.common.query_factory import QueryContextFactory
+
+        factory = QueryContextFactory(self.config, ConnectorRegistry(), db.session)
+        chart_rest_api = appbuilder.add_api(ChartRestApi)
+        chart_rest_api.set_query_context_factory(factory)
 
     def init_app_in_ctx(self) -> None:
         """

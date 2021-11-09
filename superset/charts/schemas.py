@@ -15,16 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=too-many-lines
-from typing import Any, Dict
 
 from flask_babel import gettext as _
-from marshmallow import EXCLUDE, fields, post_load, Schema, validate
+from marshmallow import EXCLUDE, fields, Schema, validate
 from marshmallow.validate import Length, Range
 from marshmallow_enum import EnumField
 
 from superset import app
-from superset.common.query_context import QueryContext
-from superset.common.query_factory import QueryContextFactory
 from superset.db_engine_specs.base import builtin_time_grains
 from superset.utils import schema as utils
 from superset.utils.core import (
@@ -1136,11 +1133,6 @@ class ChartDataQueryContextSchema(Schema):
 
     result_type = EnumField(ChartDataResultType, by_value=True)
     result_format = EnumField(ChartDataResultFormat, by_value=True)
-
-    # pylint: disable=no-self-use,unused-argument
-    @post_load
-    def make_query_context(self, data: Dict[str, Any], **kwargs: Any) -> QueryContext:
-        return QueryContextFactory.create_from_dict(data)
 
 
 class AnnotationDataSchema(Schema):

@@ -30,7 +30,7 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.mapper import Mapper
 
-from superset import ConnectorRegistry, db, is_feature_enabled, security_manager
+from superset import app, ConnectorRegistry, db, is_feature_enabled, security_manager
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.tags import ChartUpdater
@@ -257,7 +257,9 @@ class Slice(  # pylint: disable=too-many-public-methods
 
         if self.query_context:
             try:
-                return QueryContextFactory.create_from_json(self.query_context)
+                return QueryContextFactory(
+                    app.config, ConnectorRegistry(), db.session
+                ).create_from_json(self.query_context)
             except json.decoder.JSONDecodeError as ex:
                 logger.error("Malformed json in slice's query context", exc_info=True)
                 logger.exception(ex)

@@ -53,7 +53,7 @@ from flask_babel import lazy_gettext as _
 from geopy.point import Point
 from pandas.tseries.frequencies import to_offset
 
-from superset import app, is_feature_enabled
+from superset import app, db, is_feature_enabled
 from superset.common.db_query_status import QueryStatus
 from superset.constants import NULL_STRING
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -2080,8 +2080,13 @@ class FilterBoxViz(BaseViz):
 
     def run_extra_queries(self) -> None:
         # pylint: disable=import-outside-toplevel
+        from superset import ConnectorRegistry
         from superset.common.query_context_processor import QueryContextProcessor
         from superset.common.query_factory import QueryContextFactory
+
+        query_context_factory = QueryContextFactory(
+            config, ConnectorRegistry(), lambda: db.session
+        )
 
         query_obj = super().query_obj()
         filters = self.form_data.get("filter_configs") or []
@@ -2099,7 +2104,7 @@ class FilterBoxViz(BaseViz):
             asc = flt.get("asc")
             if metric and asc is not None:
                 query_obj["orderby"] = [(metric, asc)]
-            query_context = QueryContextFactory.create(
+            query_context = query_context_factory.create(
                 datasource_dict={
                     "id": self.datasource.id,
                     "type": self.datasource.type,
@@ -2406,7 +2411,6 @@ class DeckGLMultiLayer(BaseViz):
     def get_data(self, df: pd.DataFrame) -> VizData:
         # Late imports to avoid circular import issues
         # pylint: disable=import-outside-toplevel
-        from superset import db
         from superset.models.slice import Slice
 
         slice_ids = self.form_data.get("deck_slices")

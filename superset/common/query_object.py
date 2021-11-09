@@ -15,14 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=invalid-name
+from __future__ import annotations
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, NamedTuple, Optional
+from typing import Any, Dict, List, NamedTuple, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as _
 from pandas import DataFrame
 
-from superset.connectors.base.models import BaseDatasource
+
 from superset.exceptions import QueryObjectValidationError
 from superset.typing import Metric, OrderBy
 from superset.utils import pandas_postprocessing
@@ -36,6 +37,10 @@ from superset.utils.core import (
     QueryObjectFilterClause,
 )
 from superset.utils.hashing import md5_sha_from_dict
+
+if TYPE_CHECKING:
+    from superset.connectors.base.models import BaseDatasource
+
 
 logger = logging.getLogger(__name__)
 

@@ -78,9 +78,9 @@ from tests.integration_tests.fixtures.importexport import (
 from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_with_slice,
 )
+from tests.common.query_context_generator import ANNOTATION_LAYERS
 from tests.integration_tests.fixtures.query_context import (
-    get_query_context,
-    ANNOTATION_LAYERS,
+    get_query_context
 )
 from tests.integration_tests.fixtures.unicode_dashboard import (
     load_unicode_dashboard_with_slice,
@@ -1197,13 +1197,12 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(result["data"][0]["name"], expected_name)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @mock.patch(
-        "superset.common.query_factory.config", {**app.config, "ROW_LIMIT": 7},
-    )
     def test_chart_data_default_row_limit(self):
         """
         Chart data API: Ensure row count doesn't exceed default limit
         """
+        row_limit_before = app.config["ROW_LIMIT"]
+        app.config["ROW_LIMIT"] = 7
         self.login(username="admin")
         request_payload = get_query_context("birth_names")
         del request_payload["queries"][0]["row_limit"]
@@ -1212,15 +1211,15 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         response_payload = json.loads(rv.data.decode("utf-8"))
         result = response_payload["result"][0]
         self.assertEqual(result["rowcount"], 7)
+        app.config["ROW_LIMIT"] = row_limit_before
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @mock.patch(
-        "superset.utils.core.current_app.config", {**app.config, "SQL_MAX_ROW": 10},
-    )
     def test_chart_data_sql_max_row_limit(self):
         """
         Chart data API: Ensure row count doesn't exceed max global row limit
         """
+        max_row_before = app.config["SQL_MAX_ROW"]
+        app.config["SQL_MAX_ROW"] = 10
         self.login(username="admin")
         request_payload = get_query_context("birth_names")
         request_payload["queries"][0]["row_limit"] = 10000000
@@ -1228,15 +1227,15 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         response_payload = json.loads(rv.data.decode("utf-8"))
         result = response_payload["result"][0]
         self.assertEqual(result["rowcount"], 10)
+        app.config["SQL_MAX_ROW"] = max_row_before
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @mock.patch(
-        "superset.common.query_factory.config", {**app.config, "SAMPLES_ROW_LIMIT": 5},
-    )
     def test_chart_data_sample_default_limit(self):
         """
         Chart data API: Ensure sample response row count defaults to config defaults
         """
+        samples_row_limit_before = app.config["SAMPLES_ROW_LIMIT"]
+        app.config["SAMPLES_ROW_LIMIT"] = 5
         self.login(username="admin")
         request_payload = get_query_context("birth_names")
         request_payload["result_type"] = utils.ChartDataResultType.SAMPLES
@@ -1245,6 +1244,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         response_payload = json.loads(rv.data.decode("utf-8"))
         result = response_payload["result"][0]
         self.assertEqual(result["rowcount"], 5)
+        app.config["SAMPLES_ROW_LIMIT"] = samples_row_limit_before
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
@@ -1545,6 +1545,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         if get_example_database().backend != "presto":
             assert "('boy' = 'boy')" in result
 
+    @pytest.mark.ofek
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_async(self):
