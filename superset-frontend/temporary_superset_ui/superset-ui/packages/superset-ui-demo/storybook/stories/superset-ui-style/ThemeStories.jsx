@@ -26,7 +26,7 @@ export default {
 };
 
 export const ThemeColors = () => {
-  const colors = supersetTheme.colors;
+  const { colors } = supersetTheme;
   return Object.keys(colors).map(collection => (
     <div>
       <h2>{collection}</h2>
@@ -39,7 +39,7 @@ export const ThemeColors = () => {
               <td>
                 <code>{hex}</code>
               </td>
-              <td style={{ width: '150px', backgroundColor: hex }}></td>
+              <td style={{ width: '150px', backgroundColor: hex }} />
             </tr>
           );
         })}
