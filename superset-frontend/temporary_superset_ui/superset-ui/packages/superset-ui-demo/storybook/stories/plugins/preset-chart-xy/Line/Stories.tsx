@@ -18,8 +18,8 @@
  */
 
 import { LineChartPlugin, LegacyLineChartPlugin } from '@superset-ui/preset-chart-xy';
-import { LINE_PLUGIN_TYPE, LINE_PLUGIN_LEGACY_TYPE } from './constants';
 import { withKnobs } from '@storybook/addon-knobs';
+import { LINE_PLUGIN_TYPE, LINE_PLUGIN_LEGACY_TYPE } from './constants';
 
 new LegacyLineChartPlugin().configure({ key: LINE_PLUGIN_LEGACY_TYPE }).register();
 new LineChartPlugin().configure({ key: LINE_PLUGIN_TYPE }).register();

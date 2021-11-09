@@ -34,30 +34,28 @@ export default {
   decorators: [withKnobs, withResizableChartDemo],
 };
 
-export const Funnel = ({ width, height }) => {
-  return (
-    <SuperChart
-      chartType="echarts-funnel"
-      width={width}
-      height={height}
-      queriesData={[{ data: dataSource }]}
-      formData={{
-        colorScheme: 'supersetColors',
-        groupby: ['name'],
-        metric: 'value',
-        numberFormat: 'SMART_NUMBER',
-        orient: select('orient', ['horizontal', 'vertical'], 'vertical'),
-        sort: select('sort', ['descending', 'ascending', 'none'], 'descending'),
-        gap: number('gap', 0),
-        labelType: select(
-          'label type',
-          ['key', 'value', 'percent', 'key_value', 'key_percent', 'key_value_percent'],
-          'key',
-        ),
-        labelLine: boolean('Label line', true),
-        showLabels: boolean('Show labels', true),
-        showLegend: boolean('Show legend', false),
-      }}
-    />
-  );
-};
+export const Funnel = ({ width, height }) => (
+  <SuperChart
+    chartType="echarts-funnel"
+    width={width}
+    height={height}
+    queriesData={[{ data: dataSource }]}
+    formData={{
+      colorScheme: 'supersetColors',
+      groupby: ['name'],
+      metric: 'value',
+      numberFormat: 'SMART_NUMBER',
+      orient: select('orient', ['horizontal', 'vertical'], 'vertical'),
+      sort: select('sort', ['descending', 'ascending', 'none'], 'descending'),
+      gap: number('gap', 0),
+      labelType: select(
+        'label type',
+        ['key', 'value', 'percent', 'key_value', 'key_percent', 'key_value_percent'],
+        'key',
+      ),
+      labelLine: boolean('Label line', true),
+      showLabels: boolean('Show labels', true),
+      showLegend: boolean('Show legend', false),
+    }}
+  />
+);

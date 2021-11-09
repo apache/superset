@@ -34,20 +34,18 @@ export default {
   decorators: [withKnobs, withResizableChartDemo],
 };
 
-export const Graph = ({ width, height }) => {
-  return (
-    <SuperChart
-      chartType="echarts-graph"
-      width={width}
-      height={height}
-      queriesData={[{ data: basic }]}
-      formData={{
-        source: 'source',
-        target: 'target',
-        sourceCategory: 'sourceCategory',
-        targetCategory: 'targetCategory',
-        metric: 'value',
-      }}
-    />
-  );
-};
+export const Graph = ({ width, height }) => (
+  <SuperChart
+    chartType="echarts-graph"
+    width={width}
+    height={height}
+    queriesData={[{ data: basic }]}
+    formData={{
+      source: 'source',
+      target: 'target',
+      sourceCategory: 'sourceCategory',
+      targetCategory: 'targetCategory',
+      metric: 'value',
+    }}
+  />
+);
