@@ -91,9 +91,12 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   forecastEnabled: sections.FORECAST_DEFAULT_DATA.forecastEnabled,
   forecastInterval: sections.FORECAST_DEFAULT_DATA.forecastInterval,
   forecastPeriods: sections.FORECAST_DEFAULT_DATA.forecastPeriods,
-  forecastSeasonalityDaily: sections.FORECAST_DEFAULT_DATA.forecastSeasonalityDaily,
-  forecastSeasonalityWeekly: sections.FORECAST_DEFAULT_DATA.forecastSeasonalityWeekly,
-  forecastSeasonalityYearly: sections.FORECAST_DEFAULT_DATA.forecastSeasonalityYearly,
+  forecastSeasonalityDaily:
+    sections.FORECAST_DEFAULT_DATA.forecastSeasonalityDaily,
+  forecastSeasonalityWeekly:
+    sections.FORECAST_DEFAULT_DATA.forecastSeasonalityWeekly,
+  forecastSeasonalityYearly:
+    sections.FORECAST_DEFAULT_DATA.forecastSeasonalityYearly,
   logAxis: false,
   markerEnabled: false,
   markerSize: 6,
@@ -121,4 +124,5 @@ export interface EchartsTimeseriesChartProps extends ChartProps {
   queriesData: ChartDataResponseResult[];
 }
 
-export type TimeseriesChartTransformedProps = EChartTransformedProps<EchartsTimeseriesFormData>;
+export type TimeseriesChartTransformedProps =
+  EChartTransformedProps<EchartsTimeseriesFormData>;

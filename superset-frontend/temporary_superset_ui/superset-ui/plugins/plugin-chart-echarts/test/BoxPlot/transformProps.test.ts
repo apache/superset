@@ -79,11 +79,29 @@ describe('BoxPlot tranformProps', () => {
               data: expect.arrayContaining([
                 expect.objectContaining({
                   name: 'organic, Charlotte',
-                  value: [1.4775, 1.73875, 1.9025, 2.105, 2.505, 1.9405512820512825, 39, [2.735]],
+                  value: [
+                    1.4775,
+                    1.73875,
+                    1.9025,
+                    2.105,
+                    2.505,
+                    1.9405512820512825,
+                    39,
+                    [2.735],
+                  ],
                 }),
                 expect.objectContaining({
                   name: 'organic, Hartford Springfield',
-                  value: [1.862, 2.1285, 2.265, 2.32625, 2.595, 2.231141025641026, 39, []],
+                  value: [
+                    1.862,
+                    2.1285,
+                    2.265,
+                    2.32625,
+                    2.595,
+                    2.231141025641026,
+                    39,
+                    [],
+                  ],
                 }),
               ]),
             }),

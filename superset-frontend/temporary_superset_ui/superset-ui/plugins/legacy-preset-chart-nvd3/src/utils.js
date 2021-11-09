@@ -42,7 +42,9 @@ export function cleanColorInput(value) {
  * @param {*} format
  */
 export function getTimeOrNumberFormatter(format) {
-  return format === 'smart_date' ? smartDateFormatter : getNumberFormatter(format);
+  return format === 'smart_date'
+    ? smartDateFormatter
+    : getNumberFormatter(format);
 }
 
 export function drawBarValues(svg, data, stacked, axisFormat) {
@@ -51,7 +53,9 @@ export function drawBarValues(svg, data, stacked, axisFormat) {
   const totalStackedValues =
     stacked && data.length !== 0
       ? data[0].values.map((bar, iBar) => {
-          const bars = data.filter(series => !series.disabled).map(series => series.values[iBar]);
+          const bars = data
+            .filter(series => !series.disabled)
+            .map(series => series.values[iBar]);
 
           return d3.sum(bars, d => d.y);
         })
@@ -105,7 +109,11 @@ function getFormattedKey(seriesKey, shouldDompurify) {
 
 // Custom sorted tooltip
 // use a verbose formatter for times
-export function generateRichLineTooltipContent(d, timeFormatter, valueFormatter) {
+export function generateRichLineTooltipContent(
+  d,
+  timeFormatter,
+  valueFormatter,
+) {
   let tooltip = '';
   tooltip +=
     "<table><thead><tr><td colspan='3'>" +
@@ -116,11 +124,13 @@ export function generateRichLineTooltipContent(d, timeFormatter, valueFormatter)
     const key = getFormattedKey(series.key, true);
     tooltip +=
       `<tr class="${series.highlight ? 'emph' : ''}">` +
-      `<td class='legend-color-guide' style="opacity: ${series.highlight ? '1' : '0.75'};"">` +
+      `<td class='legend-color-guide' style="opacity: ${
+        series.highlight ? '1' : '0.75'
+      };"">` +
       '<div ' +
-      `style="border: 2px solid ${series.highlight ? 'black' : 'transparent'}; background-color: ${
-        series.color
-      };"` +
+      `style="border: 2px solid ${
+        series.highlight ? 'black' : 'transparent'
+      }; background-color: ${series.color};"` +
       '></div>' +
       '</td>' +
       `<td>${key}</td>` +
@@ -143,11 +153,13 @@ export function generateCompareTooltipContent(d, valueFormatter) {
     const key = getFormattedKey(series.key, true);
     tooltip +=
       `<tr class="${series.highlight ? 'emph' : ''}">` +
-      `<td class='legend-color-guide' style="opacity: ${series.highlight ? '1' : '0.75'};"">` +
+      `<td class='legend-color-guide' style="opacity: ${
+        series.highlight ? '1' : '0.75'
+      };"">` +
       '<div ' +
-      `style="border: 2px solid ${series.highlight ? 'black' : 'transparent'}; background-color: ${
-        series.color
-      };"` +
+      `style="border: 2px solid ${
+        series.highlight ? 'black' : 'transparent'
+      }; background-color: ${series.color};"` +
       '></div>' +
       '</td>' +
       `<td>${key}</td>` +
@@ -159,7 +171,12 @@ export function generateCompareTooltipContent(d, valueFormatter) {
   return dompurify.sanitize(tooltip);
 }
 
-export function generateAreaChartTooltipContent(d, timeFormatter, valueFormatter, chart) {
+export function generateAreaChartTooltipContent(
+  d,
+  timeFormatter,
+  valueFormatter,
+  chart,
+) {
   const total =
     chart.style() === 'expand'
       ? // expand mode does not include total row
@@ -182,7 +199,9 @@ export function generateAreaChartTooltipContent(d, timeFormatter, valueFormatter
     }
     tooltip +=
       `<tr class="${trClass}" style="border-color: ${series.color}">` +
-      `<td style="color: ${series.color}">${series.key === 'TOTAL' ? '' : '&#9724;'}</td>` +
+      `<td style="color: ${series.color}">${
+        series.key === 'TOTAL' ? '' : '&#9724;'
+      }</td>` +
       `<td>${key}</td>` +
       `<td>${valueFormatter(series.value)}</td>` +
       `<td>${((100 * series.value) / total).toFixed(2)}%</td>` +
@@ -339,7 +358,9 @@ export function tipFactory(layer) {
         ? layer.descriptionColumns.map(c => d[c])
         : Object.values(d);
 
-      return `<div><strong>${title}</strong></div><br/><div>${body.join(', ')}</div>`;
+      return `<div><strong>${title}</strong></div><br/><div>${body.join(
+        ', ',
+      )}</div>`;
     });
 }
 
@@ -362,7 +383,9 @@ export function formatLabel(input, verboseMap = {}) {
   const verboseLookup = s => verboseMap[s] || s;
 
   return Array.isArray(input) && input.length > 0
-    ? input.map(l => (TIME_SHIFT_PATTERN.test(l) ? l : verboseLookup(l))).join(', ')
+    ? input
+        .map(l => (TIME_SHIFT_PATTERN.test(l) ? l : verboseLookup(l)))
+        .join(', ')
     : verboseLookup(input);
 }
 
@@ -401,7 +424,9 @@ export function setAxisShowMaxMin(axis, showminmax) {
 
 export function computeYDomain(data) {
   if (Array.isArray(data) && data.length > 0 && Array.isArray(data[0].values)) {
-    const extents = data.filter(d => !d.disabled).map(row => d3.extent(row.values, v => v.y));
+    const extents = data
+      .filter(d => !d.disabled)
+      .map(row => d3.extent(row.values, v => v.y));
     const minOfMin = d3.min(extents, ([min]) => min);
     const maxOfMax = d3.max(extents, ([, max]) => max);
 
@@ -413,8 +438,12 @@ export function computeYDomain(data) {
 
 export function computeStackedYDomain(data) {
   if (Array.isArray(data) && data.length > 0 && Array.isArray(data[0].values)) {
-    const series = data.filter(d => !d.disabled).map(d => d.values.map(v => v.y));
-    const stackedValues = series[0].map((_, i) => series.reduce((acc, cur) => acc + cur[i], 0));
+    const series = data
+      .filter(d => !d.disabled)
+      .map(d => d.values.map(v => v.y));
+    const stackedValues = series[0].map((_, i) =>
+      series.reduce((acc, cur) => acc + cur[i], 0),
+    );
 
     return [Math.min(0, ...stackedValues), Math.max(0, ...stackedValues)];
   }

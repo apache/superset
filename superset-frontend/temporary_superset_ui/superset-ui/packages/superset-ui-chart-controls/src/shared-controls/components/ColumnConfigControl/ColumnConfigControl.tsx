@@ -17,23 +17,31 @@
  * under the License.
  */
 import React, { useMemo, useState } from 'react';
-import { ChartDataResponseResult, useTheme, t, GenericDataType } from '@superset-ui/core';
+import {
+  ChartDataResponseResult,
+  useTheme,
+  t,
+  GenericDataType,
+} from '@superset-ui/core';
 import ControlHeader from '../../../components/ControlHeader';
 import { ControlComponentProps } from '../types';
 
 import ColumnConfigItem from './ColumnConfigItem';
-import { ColumnConfigInfo, ColumnConfig, ColumnConfigFormLayout } from './types';
+import {
+  ColumnConfigInfo,
+  ColumnConfig,
+  ColumnConfigFormLayout,
+} from './types';
 import { DEFAULT_CONFIG_FORM_LAYOUT } from './constants';
 import { COLUMN_NAME_ALIASES } from '../../../constants';
 
-export type ColumnConfigControlProps<T extends ColumnConfig> = ControlComponentProps<
-  Record<string, T>
-> & {
-  queryResponse?: ChartDataResponseResult;
-  configFormLayout?: ColumnConfigFormLayout;
-  appliedColumnNames?: string[];
-  emitFilter: boolean;
-};
+export type ColumnConfigControlProps<T extends ColumnConfig> =
+  ControlComponentProps<Record<string, T>> & {
+    queryResponse?: ChartDataResponseResult;
+    configFormLayout?: ColumnConfigFormLayout;
+    appliedColumnNames?: string[];
+    emitFilter: boolean;
+  };
 
 /**
  * Max number of columns to show by default.
@@ -102,7 +110,9 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
       // Only keep configs for known columns
       const validConfigs: Record<string, T> =
         colnames && value
-          ? Object.fromEntries(Object.entries(value).filter(([key]) => colnames.includes(key)))
+          ? Object.fromEntries(
+              Object.entries(value).filter(([key]) => colnames.includes(key)),
+            )
           : { ...value };
       onChange({
         ...validConfigs,
@@ -114,7 +124,10 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
   if (!colnames || colnames.length === 0) return null;
 
   const needShowMoreButton = colnames.length > MAX_NUM_COLS + 2;
-  const cols = needShowMoreButton && !showAllColumns ? colnames.slice(0, MAX_NUM_COLS) : colnames;
+  const cols =
+    needShowMoreButton && !showAllColumns
+      ? colnames.slice(0, MAX_NUM_COLS)
+      : colnames;
 
   return (
     <>

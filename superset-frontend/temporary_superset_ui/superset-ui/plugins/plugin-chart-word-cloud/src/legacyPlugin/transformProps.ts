@@ -21,7 +21,9 @@ import { ChartProps } from '@superset-ui/core';
 import { WordCloudProps, WordCloudEncoding } from '../chart/WordCloud';
 import { LegacyWordCloudFormData } from './types';
 
-function getMetricLabel(metric: LegacyWordCloudFormData['metric']): string | undefined {
+function getMetricLabel(
+  metric: LegacyWordCloudFormData['metric'],
+): string | undefined {
   if (typeof metric === 'string' || typeof metric === 'undefined') {
     return metric;
   }

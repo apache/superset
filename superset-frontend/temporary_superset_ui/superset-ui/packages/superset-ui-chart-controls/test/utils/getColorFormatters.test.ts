@@ -359,14 +359,20 @@ describe('getColorFormatters()', () => {
     expect(colorFormatters.length).toEqual(3);
 
     expect(colorFormatters[0].column).toEqual('count');
-    expect(colorFormatters[0].getColorFromValue(100)).toEqual('rgba(255,0,0,1)');
+    expect(colorFormatters[0].getColorFromValue(100)).toEqual(
+      'rgba(255,0,0,1)',
+    );
 
     expect(colorFormatters[1].column).toEqual('sum');
-    expect(colorFormatters[1].getColorFromValue(200)).toEqual('rgba(255,0,0,1)');
+    expect(colorFormatters[1].getColorFromValue(200)).toEqual(
+      'rgba(255,0,0,1)',
+    );
     expect(colorFormatters[1].getColorFromValue(400)).toBeUndefined();
 
     expect(colorFormatters[2].column).toEqual('count');
-    expect(colorFormatters[2].getColorFromValue(100)).toEqual('rgba(255,0,0,0.53)');
+    expect(colorFormatters[2].getColorFromValue(100)).toEqual(
+      'rgba(255,0,0,0.53)',
+    );
   });
 
   it('undefined column config', () => {

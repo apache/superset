@@ -39,7 +39,10 @@ export const getMetricOffsetsMap: PostProcessingFactory<Map<string, string>> = (
   const metricOffsetMap = new Map<string, string>();
   metricLabels.forEach((metric: string) => {
     timeOffsets.forEach((offset: string) => {
-      metricOffsetMap.set([metric, offset].join(TIME_COMPARISON_SEPARATOR), metric);
+      metricOffsetMap.set(
+        [metric, offset].join(TIME_COMPARISON_SEPARATOR),
+        metric,
+      );
     });
   });
 

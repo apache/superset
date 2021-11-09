@@ -60,7 +60,8 @@ export const TextButton = styled.button`
   color: #222;
   margin: 0px;
   background: #f5f8fb;
-  padding: ${({ theme }) => theme.gridUnit / 2}px ${({ theme }) => theme.gridUnit * 1.5}px;
+  padding: ${({ theme }) => theme.gridUnit / 2}px
+    ${({ theme }) => theme.gridUnit * 1.5}px;
   border-radius: ${({ theme }) => theme.borderRadius}px;
   border: none;
 `;

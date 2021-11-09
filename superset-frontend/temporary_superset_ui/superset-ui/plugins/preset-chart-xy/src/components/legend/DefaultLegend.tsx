@@ -34,9 +34,9 @@ const LEGEND_CONTAINER_STYLE: CSSProperties = {
 
 export type Props<Config extends EncodingConfig> = LegendRendererProps<Config>;
 
-export default class DefaultLegend<Config extends EncodingConfig> extends PureComponent<
-  Props<Config>
-> {
+export default class DefaultLegend<
+  Config extends EncodingConfig,
+> extends PureComponent<Props<Config>> {
   render() {
     const {
       groups,

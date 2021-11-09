@@ -21,7 +21,9 @@ import React from 'react';
 import memoizeOne from 'memoize-one';
 import { withKnobs, number, boolean } from '@storybook/addon-knobs';
 import { SuperChart } from '@superset-ui/core';
-import TableChartPlugin, { TableChartProps } from '@superset-ui/plugin-chart-table/src';
+import TableChartPlugin, {
+  TableChartProps,
+} from '@superset-ui/plugin-chart-table/src';
 import { basicFormData, basicData, birthNames } from './testData';
 import { withResizableChartDemo } from '../../../shared/components/ResizableChartDemo';
 
@@ -125,7 +127,14 @@ export const BigTable = ({ width, height }) => {
     showCellBars,
     includeSearch,
   });
-  return <SuperChart chartType="table" {...chartProps} width={width} height={height} />;
+  return (
+    <SuperChart
+      chartType="table"
+      {...chartProps}
+      width={width}
+      height={height}
+    />
+  );
 };
 BigTable.story = {
   parameters: {

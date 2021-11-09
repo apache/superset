@@ -32,7 +32,11 @@ import {
   EchartsTimeseriesContributionType,
   EchartsTimeseriesSeriesType,
 } from '../types';
-import { legendSection, richTooltipSection, showValueSection } from '../../controls';
+import {
+  legendSection,
+  richTooltipSection,
+  showValueSection,
+} from '../../controls';
 
 const {
   area,
@@ -128,7 +132,9 @@ const config: ControlPanelConfig = {
               label: t('Area Chart'),
               renderTrigger: true,
               default: area,
-              description: t('Draw area under curves. Only applicable for line types.'),
+              description: t(
+                'Draw area under curves. Only applicable for line types.',
+              ),
             },
           },
         ],
@@ -143,7 +149,9 @@ const config: ControlPanelConfig = {
               max: 1,
               step: 0.1,
               default: opacity,
-              description: t('Opacity of Area Chart. Also applies to confidence band.'),
+              description: t(
+                'Opacity of Area Chart. Also applies to confidence band.',
+              ),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 Boolean(controls?.area?.value),
             },
@@ -157,7 +165,9 @@ const config: ControlPanelConfig = {
               label: t('Marker'),
               renderTrigger: true,
               default: markerEnabled,
-              description: t('Draw a marker on data points. Only applicable for line types.'),
+              description: t(
+                'Draw a marker on data points. Only applicable for line types.',
+              ),
             },
           },
         ],
@@ -171,7 +181,9 @@ const config: ControlPanelConfig = {
               min: 0,
               max: 20,
               default: markerSize,
-              description: t('Size of marker. Also applies to forecast observations.'),
+              description: t(
+                'Size of marker. Also applies to forecast observations.',
+              ),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 Boolean(controls?.markerEnabled?.value),
             },
@@ -217,7 +229,9 @@ const config: ControlPanelConfig = {
               ],
               default: xAxisLabelRotation,
               renderTrigger: true,
-              description: t('Input field supports custom rotation. e.g. 30 for 30°'),
+              description: t(
+                'Input field supports custom rotation. e.g. 30 for 30°',
+              ),
             },
           },
         ],

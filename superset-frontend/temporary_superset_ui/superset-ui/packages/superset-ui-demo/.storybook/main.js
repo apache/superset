@@ -12,7 +12,10 @@ const packages = readdirSync(basePath).filter(name => {
 const rootPath = path.resolve(__dirname, '../../../');
 
 const PLUGIN_PACKAGES_PATH_REGEXP = new RegExp(
-  `${path.resolve(__dirname, '../../../plugins/(legacy-)*(plugin|preset)-')}.+/src`,
+  `${path.resolve(
+    __dirname,
+    '../../../plugins/(legacy-)*(plugin|preset)-',
+  )}.+/src`,
 );
 
 module.exports = {
@@ -66,7 +69,10 @@ module.exports = {
       rootPath,
       './node_modules/@emotion/styled',
     );
-    config.resolve.alias['@emotion/core'] = path.resolve(rootPath, './node_modules/@emotion/core');
+    config.resolve.alias['@emotion/core'] = path.resolve(
+      rootPath,
+      './node_modules/@emotion/core',
+    );
 
     config.devtool = 'eval-cheap-module-source-map';
     config.devServer = {

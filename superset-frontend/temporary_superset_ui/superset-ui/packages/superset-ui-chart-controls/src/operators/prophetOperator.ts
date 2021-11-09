@@ -19,10 +19,9 @@
 import { PostProcessingProphet } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 
-export const prophetOperator: PostProcessingFactory<PostProcessingProphet | undefined> = (
-  formData,
-  queryObject,
-) => {
+export const prophetOperator: PostProcessingFactory<
+  PostProcessingProphet | undefined
+> = (formData, queryObject) => {
   if (formData.forecastEnabled) {
     return {
       operation: 'prophet',

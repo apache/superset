@@ -17,7 +17,12 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import { JsonObject, seedRandom, SuperChart, SequentialD3 } from '@superset-ui/core';
+import {
+  JsonObject,
+  seedRandom,
+  SuperChart,
+  SequentialD3,
+} from '@superset-ui/core';
 import CountryMapChartPlugin from '@superset-ui/legacy-plugin-chart-country-map/src';
 import countries from '@superset-ui/legacy-plugin-chart-country-map/src/countries';
 import { withKnobs, select } from '@storybook/addon-knobs';
@@ -60,7 +65,11 @@ export const basic = function BasicCountryMapStory({ width, height }) {
   }, [country]);
 
   if (!data) {
-    return <div style={{ color: '#aaa', textAlign: 'center', padding: 20 }}>Loading...</div>;
+    return (
+      <div style={{ color: '#aaa', textAlign: 'center', padding: 20 }}>
+        Loading...
+      </div>
+    );
   }
 
   return (

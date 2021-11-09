@@ -107,7 +107,9 @@ describe('AnnotationLayer type guards', () => {
     it('should return false otherwise', () => {
       expect(isFormulaAnnotationLayer(eventAnnotationLayer)).toEqual(false);
       expect(isFormulaAnnotationLayer(intervalAnnotationLayer)).toEqual(false);
-      expect(isFormulaAnnotationLayer(timeseriesAnnotationLayer)).toEqual(false);
+      expect(isFormulaAnnotationLayer(timeseriesAnnotationLayer)).toEqual(
+        false,
+      );
     });
   });
 
@@ -129,18 +131,26 @@ describe('AnnotationLayer type guards', () => {
     it('should return false otherwise', () => {
       expect(isIntervalAnnotationLayer(formulaAnnotationLayer)).toEqual(false);
       expect(isIntervalAnnotationLayer(eventAnnotationLayer)).toEqual(false);
-      expect(isIntervalAnnotationLayer(timeseriesAnnotationLayer)).toEqual(false);
+      expect(isIntervalAnnotationLayer(timeseriesAnnotationLayer)).toEqual(
+        false,
+      );
     });
   });
 
   describe('isTimeseriesAnnotationLayer', () => {
     it('should return true when it is the correct type', () => {
-      expect(isTimeseriesAnnotationLayer(timeseriesAnnotationLayer)).toEqual(true);
+      expect(isTimeseriesAnnotationLayer(timeseriesAnnotationLayer)).toEqual(
+        true,
+      );
     });
     it('should return false otherwise', () => {
-      expect(isTimeseriesAnnotationLayer(formulaAnnotationLayer)).toEqual(false);
+      expect(isTimeseriesAnnotationLayer(formulaAnnotationLayer)).toEqual(
+        false,
+      );
       expect(isTimeseriesAnnotationLayer(eventAnnotationLayer)).toEqual(false);
-      expect(isTimeseriesAnnotationLayer(intervalAnnotationLayer)).toEqual(false);
+      expect(isTimeseriesAnnotationLayer(intervalAnnotationLayer)).toEqual(
+        false,
+      );
     });
   });
 
@@ -155,10 +165,14 @@ describe('AnnotationLayer type guards', () => {
 
   describe('isTimeseriesAnnotationResult', () => {
     it('should return true when it is the correct type', () => {
-      expect(isTimeseriesAnnotationResult(timeseriesAnnotationResult)).toEqual(true);
+      expect(isTimeseriesAnnotationResult(timeseriesAnnotationResult)).toEqual(
+        true,
+      );
     });
     it('should return false otherwise', () => {
-      expect(isTimeseriesAnnotationResult(recordAnnotationResult)).toEqual(false);
+      expect(isTimeseriesAnnotationResult(recordAnnotationResult)).toEqual(
+        false,
+      );
     });
   });
 
@@ -167,7 +181,9 @@ describe('AnnotationLayer type guards', () => {
       expect(isRecordAnnotationResult(recordAnnotationResult)).toEqual(true);
     });
     it('should return false otherwise', () => {
-      expect(isRecordAnnotationResult(timeseriesAnnotationResult)).toEqual(false);
+      expect(isRecordAnnotationResult(timeseriesAnnotationResult)).toEqual(
+        false,
+      );
     });
   });
 });

@@ -16,14 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { tokenizeToNumericArray, tokenizeToStringArray } from '../../src/utils/tokenize';
+import {
+  tokenizeToNumericArray,
+  tokenizeToStringArray,
+} from '../../src/utils/tokenize';
 
 describe('tokenizeToNumericArray', () => {
   it('evals numeric strings properly', () => {
     expect(tokenizeToNumericArray('1')).toStrictEqual([1]);
     expect(tokenizeToNumericArray('1,2,3,4')).toStrictEqual([1, 2, 3, 4]);
-    expect(tokenizeToNumericArray('1.1,2.2,3.0,4')).toStrictEqual([1.1, 2.2, 3, 4]);
-    expect(tokenizeToNumericArray('   1, 2,   3,    4 ')).toStrictEqual([1, 2, 3, 4]);
+    expect(tokenizeToNumericArray('1.1,2.2,3.0,4')).toStrictEqual([
+      1.1, 2.2, 3, 4,
+    ]);
+    expect(tokenizeToNumericArray('   1, 2,   3,    4 ')).toStrictEqual([
+      1, 2, 3, 4,
+    ]);
   });
 
   it('evals undefined to null', () => {
@@ -43,8 +50,19 @@ describe('tokenizeToNumericArray', () => {
 describe('tokenizeToStringArray', () => {
   it('evals numeric strings properly', () => {
     expect(tokenizeToStringArray('a')).toStrictEqual(['a']);
-    expect(tokenizeToStringArray('1.1 , 2.2, 3.0 ,4')).toStrictEqual(['1.1', '2.2', '3.0', '4']);
-    expect(tokenizeToStringArray('1.1,a,3, bc ,d')).toStrictEqual(['1.1', 'a', '3', 'bc', 'd']);
+    expect(tokenizeToStringArray('1.1 , 2.2, 3.0 ,4')).toStrictEqual([
+      '1.1',
+      '2.2',
+      '3.0',
+      '4',
+    ]);
+    expect(tokenizeToStringArray('1.1,a,3, bc ,d')).toStrictEqual([
+      '1.1',
+      'a',
+      '3',
+      'bc',
+      'd',
+    ]);
   });
 
   it('evals undefined to null', () => {

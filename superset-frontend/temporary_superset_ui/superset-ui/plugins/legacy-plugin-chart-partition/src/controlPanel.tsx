@@ -100,17 +100,23 @@ const config: ControlPanelConfig = {
                 {
                   label: t('Difference'),
                   value: 'point_diff',
-                  description: t('Metric change in value from `since` to `until`'),
+                  description: t(
+                    'Metric change in value from `since` to `until`',
+                  ),
                 },
                 {
                   label: t('Percent Change'),
                   value: 'point_percent',
-                  description: t('Metric percent change in value from `since` to `until`'),
+                  description: t(
+                    'Metric percent change in value from `since` to `until`',
+                  ),
                 },
                 {
                   label: t('Factor'),
                   value: 'point_factor',
-                  description: t('Metric factor change from `since` to `until`'),
+                  description: t(
+                    'Metric factor change from `since` to `until`',
+                  ),
                 },
                 {
                   label: t('Advanced Analytics'),
@@ -118,8 +124,12 @@ const config: ControlPanelConfig = {
                   description: t('Use the Advanced Analytics options below'),
                 },
               ],
-              optionRenderer: (op: ColumnMeta) => <OptionDescription option={op} />,
-              valueRenderer: (op: ColumnMeta) => <OptionDescription option={op} />,
+              optionRenderer: (op: ColumnMeta) => (
+                <OptionDescription option={op} />
+              ),
+              valueRenderer: (op: ColumnMeta) => (
+                <OptionDescription option={op} />
+              ),
               description: t('Settings for time series'),
             },
           },
@@ -206,7 +216,9 @@ const config: ControlPanelConfig = {
               label: t('Equal Date Sizes'),
               default: true,
               renderTrigger: true,
-              description: t('Check to force date partitions to have the same height'),
+              description: t(
+                'Check to force date partitions to have the same height',
+              ),
             },
           },
         ],
@@ -218,7 +230,9 @@ const config: ControlPanelConfig = {
               label: t('Rich Tooltip'),
               renderTrigger: true,
               default: true,
-              description: t('The rich tooltip shows a list of all series for that point in time'),
+              description: t(
+                'The rich tooltip shows a list of all series for that point in time',
+              ),
             },
           },
         ],
@@ -242,7 +256,13 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               label: t('Rolling Function'),
               default: 'None',
-              choices: formatSelectOptions(['None', 'mean', 'sum', 'std', 'cumsum']),
+              choices: formatSelectOptions([
+                'None',
+                'mean',
+                'sum',
+                'std',
+                'cumsum',
+              ]),
               description: t(
                 'Defines a rolling window function to apply, works along ' +
                   'with the [Periods] text box',
@@ -339,7 +359,14 @@ const config: ControlPanelConfig = {
               freeForm: true,
               label: t('Rule'),
               default: null,
-              choices: formatSelectOptions(['1T', '1H', '1D', '7D', '1M', '1AS']),
+              choices: formatSelectOptions([
+                '1T',
+                '1H',
+                '1D',
+                '7D',
+                '1M',
+                '1AS',
+              ]),
               description: t('Pandas resample rule'),
             },
           },
@@ -350,7 +377,14 @@ const config: ControlPanelConfig = {
               freeForm: true,
               label: t('Method'),
               default: null,
-              choices: formatSelectOptions(['asfreq', 'bfill', 'ffill', 'median', 'mean', 'sum']),
+              choices: formatSelectOptions([
+                'asfreq',
+                'bfill',
+                'ffill',
+                'median',
+                'mean',
+                'sum',
+              ]),
               description: t('Pandas resample method'),
             },
           },

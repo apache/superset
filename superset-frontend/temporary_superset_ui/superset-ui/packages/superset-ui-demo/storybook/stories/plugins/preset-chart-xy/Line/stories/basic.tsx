@@ -39,8 +39,16 @@ export default () => (
             type: 'time',
           },
           axis: {
-            orient: radios('x.axis.orient', { top: 'top', bottom: 'bottom' }, 'bottom'),
-            title: radios('x.axis.title', { enable: 'Time', disable: '', '': undefined }, 'Time'),
+            orient: radios(
+              'x.axis.orient',
+              { top: 'top', bottom: 'bottom' },
+              'bottom',
+            ),
+            title: radios(
+              'x.axis.title',
+              { enable: 'Time', disable: '', '': undefined },
+              'Time',
+            ),
           },
         },
         y: {
@@ -55,7 +63,11 @@ export default () => (
               { left: 'left', right: 'right', '': undefined },
               'left',
             ),
-            title: radios('y.axis.title', { enable: 'Score', disable: '', '': undefined }, 'Score'),
+            title: radios(
+              'y.axis.title',
+              { enable: 'Score', disable: '', '': undefined },
+              'Score',
+            ),
           },
         },
         stroke: {

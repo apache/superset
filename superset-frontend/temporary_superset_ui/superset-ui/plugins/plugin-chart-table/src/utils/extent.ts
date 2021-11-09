@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export default function extent<T = number | string | Date | undefined | null>(values: T[]) {
+export default function extent<T = number | string | Date | undefined | null>(
+  values: T[],
+) {
   let min: T | undefined;
   let max: T | undefined;
   // eslint-disable-next-line no-restricted-syntax

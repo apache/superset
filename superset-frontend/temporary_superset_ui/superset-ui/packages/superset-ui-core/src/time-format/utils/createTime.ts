@@ -27,6 +27,14 @@ export default function createTime(
   seconds = 0,
   milliseconds = 0,
 ): Date {
-  const args = [year, month, date, hours, minutes, seconds, milliseconds] as const;
+  const args = [
+    year,
+    month,
+    date,
+    hours,
+    minutes,
+    seconds,
+    milliseconds,
+  ] as const;
   return mode === 'local' ? new Date(...args) : new Date(Date.UTC(...args));
 }

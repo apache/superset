@@ -17,7 +17,10 @@
  * under the License.
  */
 
-import { evalExpression, isValidExpression } from '@superset-ui/core/src/math-expression';
+import {
+  evalExpression,
+  isValidExpression,
+} from '@superset-ui/core/src/math-expression';
 
 test('evalExpression evaluates constants correctly', () => {
   expect(evalExpression('0', 10)).toEqual(0);
@@ -74,7 +77,8 @@ test('evalExpression evaluates custom operators correctly', () => {
   expect(evalExpression('5 xor x', 2)).toEqual(7);
 
   // complex combinations
-  const complexExpression = '20.51*(x<1577836800000)+20.2((x<15805152000000)&(x>=1577836800000))';
+  const complexExpression =
+    '20.51*(x<1577836800000)+20.2((x<15805152000000)&(x>=1577836800000))';
   expect(evalExpression(complexExpression, 0)).toEqual(20.51);
   expect(evalExpression(complexExpression, 1000)).toEqual(20.51);
   expect(evalExpression(complexExpression, 1577836800000)).toEqual(20.2);

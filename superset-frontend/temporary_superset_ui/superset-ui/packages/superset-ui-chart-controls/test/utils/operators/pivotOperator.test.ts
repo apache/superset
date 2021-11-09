@@ -20,14 +20,20 @@ import { QueryObject, SqlaFormData } from '@superset-ui/core';
 import { pivotOperator } from '../../../src';
 
 const formData: SqlaFormData = {
-  metrics: ['count(*)', { label: 'sum(val)', expressionType: 'SQL', sqlExpression: 'sum(val)' }],
+  metrics: [
+    'count(*)',
+    { label: 'sum(val)', expressionType: 'SQL', sqlExpression: 'sum(val)' },
+  ],
   time_range: '2015 : 2016',
   granularity: 'month',
   datasource: 'foo',
   viz_type: 'table',
 };
 const queryObject: QueryObject = {
-  metrics: ['count(*)', { label: 'sum(val)', expressionType: 'SQL', sqlExpression: 'sum(val)' }],
+  metrics: [
+    'count(*)',
+    { label: 'sum(val)', expressionType: 'SQL', sqlExpression: 'sum(val)' },
+  ],
   time_range: '2015 : 2016',
   granularity: 'month',
   post_processing: [
@@ -49,14 +55,22 @@ const queryObject: QueryObject = {
 
 test('skip pivot', () => {
   expect(pivotOperator(formData, queryObject)).toEqual(undefined);
-  expect(pivotOperator(formData, { ...queryObject, is_timeseries: false })).toEqual(undefined);
-  expect(pivotOperator(formData, { ...queryObject, is_timeseries: true, metrics: [] })).toEqual(
-    undefined,
-  );
+  expect(
+    pivotOperator(formData, { ...queryObject, is_timeseries: false }),
+  ).toEqual(undefined);
+  expect(
+    pivotOperator(formData, {
+      ...queryObject,
+      is_timeseries: true,
+      metrics: [],
+    }),
+  ).toEqual(undefined);
 });
 
 test('pivot by __timestamp without groupby', () => {
-  expect(pivotOperator(formData, { ...queryObject, is_timeseries: true })).toEqual({
+  expect(
+    pivotOperator(formData, { ...queryObject, is_timeseries: true }),
+  ).toEqual({
     operation: 'pivot',
     options: {
       index: ['__timestamp'],
@@ -72,7 +86,11 @@ test('pivot by __timestamp without groupby', () => {
 
 test('pivot by __timestamp with groupby', () => {
   expect(
-    pivotOperator(formData, { ...queryObject, columns: ['foo', 'bar'], is_timeseries: true }),
+    pivotOperator(formData, {
+      ...queryObject,
+      columns: ['foo', 'bar'],
+      is_timeseries: true,
+    }),
   ).toEqual({
     operation: 'pivot',
     options: {

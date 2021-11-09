@@ -35,20 +35,28 @@ describe('ColumnOption', () => {
   }
 
   it('is a valid element', () => {
-    expect(React.isValidElement(<ColumnTypeLabel {...defaultProps} />)).toBe(true);
+    expect(React.isValidElement(<ColumnTypeLabel {...defaultProps} />)).toBe(
+      true,
+    );
   });
   it('string type shows ABC icon', () => {
-    const lbl = getWrapper({ type: GenericDataType.STRING }).find('.type-label');
+    const lbl = getWrapper({ type: GenericDataType.STRING }).find(
+      '.type-label',
+    );
     expect(lbl).toHaveLength(1);
     expect(lbl.first().text()).toBe('ABC');
   });
   it('int type shows # icon', () => {
-    const lbl = getWrapper({ type: GenericDataType.NUMERIC }).find('.type-label');
+    const lbl = getWrapper({ type: GenericDataType.NUMERIC }).find(
+      '.type-label',
+    );
     expect(lbl).toHaveLength(1);
     expect(lbl.first().text()).toBe('#');
   });
   it('bool type shows T/F icon', () => {
-    const lbl = getWrapper({ type: GenericDataType.BOOLEAN }).find('.type-label');
+    const lbl = getWrapper({ type: GenericDataType.BOOLEAN }).find(
+      '.type-label',
+    );
     expect(lbl).toHaveLength(1);
     expect(lbl.first().text()).toBe('T/F');
   });
@@ -63,7 +71,9 @@ describe('ColumnOption', () => {
     expect(lbl.first().text()).toBe('?');
   });
   it('datetime type displays', () => {
-    const lbl = getWrapper({ type: GenericDataType.TEMPORAL }).find('.fa-clock-o');
+    const lbl = getWrapper({ type: GenericDataType.TEMPORAL }).find(
+      '.fa-clock-o',
+    );
     expect(lbl).toHaveLength(1);
   });
 });

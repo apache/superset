@@ -24,7 +24,8 @@ const NOOP = () => {};
 export default function transformProps(chartProps) {
   const { width, height, formData, hooks, queriesData } = chartProps;
   const { onError = NOOP, setControlValue = NOOP } = hooks;
-  const { bounds, geoJSON, hasCustomMetric, mapboxApiKey } = queriesData[0].data;
+  const { bounds, geoJSON, hasCustomMetric, mapboxApiKey } =
+    queriesData[0].data;
   const {
     clusteringRadius,
     globalOpacity,

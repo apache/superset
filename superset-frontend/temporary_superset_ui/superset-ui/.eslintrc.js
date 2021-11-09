@@ -17,7 +17,12 @@
  * under the License.
  */
 module.exports = {
-  extends: ['airbnb', 'prettier', 'prettier/react', 'plugin:react-hooks/recommended'],
+  extends: [
+    'airbnb',
+    'prettier',
+    'prettier/react',
+    'plugin:react-hooks/recommended',
+  ],
   parser: '@babel/eslint-parser',
   parserOptions: {
     ecmaFeatures: {
@@ -82,7 +87,8 @@ module.exports = {
         paths: [
           {
             name: 'antd',
-            message: 'Please import Ant components from the index of common/components',
+            message:
+              'Please import Ant components from the index of common/components',
           },
         ],
       },
@@ -196,7 +202,10 @@ module.exports = {
       rules: {
         // this is to keep eslint from complaining about storybook addons,
         // since they are included as dev dependencies rather than direct dependencies.
-        'import/no-extraneous-dependencies': ['error', { devDependencies: true }],
+        'import/no-extraneous-dependencies': [
+          'error',
+          { devDependencies: true },
+        ],
       },
     },
     {

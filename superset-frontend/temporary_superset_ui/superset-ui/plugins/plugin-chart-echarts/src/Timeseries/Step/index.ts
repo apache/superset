@@ -16,12 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin, AnnotationType, Behavior } from '@superset-ui/core';
+import {
+  t,
+  ChartMetadata,
+  ChartPlugin,
+  AnnotationType,
+  Behavior,
+} from '@superset-ui/core';
 import buildQuery from '../buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from '../transformProps';
 import thumbnail from './images/thumbnail.png';
-import { EchartsTimeseriesChartProps, EchartsTimeseriesFormData } from '../types';
+import {
+  EchartsTimeseriesChartProps,
+  EchartsTimeseriesFormData,
+} from '../types';
 import example1 from './images/Step1.png';
 import example2 from './images/Step2.png';
 

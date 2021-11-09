@@ -25,9 +25,14 @@ import transformProps from '@superset-ui/plugin-chart-echarts/lib/BoxPlot/transf
 import data from './data';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 
-new EchartsBoxPlotChartPlugin().configure({ key: 'echarts-boxplot' }).register();
+new EchartsBoxPlotChartPlugin()
+  .configure({ key: 'echarts-boxplot' })
+  .register();
 
-getChartTransformPropsRegistry().registerValue('echarts-boxplot', transformProps);
+getChartTransformPropsRegistry().registerValue(
+  'echarts-boxplot',
+  transformProps,
+);
 
 export default {
   title: 'Chart Plugins/plugin-chart-echarts/BoxPlot',
@@ -45,7 +50,11 @@ export const BoxPlot = ({ width, height }) => (
       groupby: ['type', 'region'],
       metrics: ['AVG(averageprice)'],
       whiskerOptions: 'Tukey',
-      xTicksLayout: select('X Tick Layout', ['auto', 'flat', '45°', '90°', 'staggered'], '45°'),
+      xTicksLayout: select(
+        'X Tick Layout',
+        ['auto', 'flat', '45°', '90°', 'staggered'],
+        '45°',
+      ),
       yAxisFormat: 'SMART_NUMBER',
     }}
   />

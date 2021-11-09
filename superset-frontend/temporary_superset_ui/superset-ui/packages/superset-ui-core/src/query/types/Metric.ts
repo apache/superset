@@ -20,7 +20,13 @@
 import { Maybe } from '../../types';
 import { Column } from './Column';
 
-export type Aggregate = 'AVG' | 'COUNT' | 'COUNT_DISTINCT' | 'MAX' | 'MIN' | 'SUM';
+export type Aggregate =
+  | 'AVG'
+  | 'COUNT'
+  | 'COUNT_DISTINCT'
+  | 'MAX'
+  | 'MIN'
+  | 'SUM';
 
 export interface AdhocMetricBase {
   label?: string;

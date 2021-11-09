@@ -125,7 +125,9 @@ const showCellBars: ControlFormItemSpec<'Checkbox'> = {
 const alignPositiveNegative: ControlFormItemSpec<'Checkbox'> = {
   controlType: 'Checkbox',
   label: t('Align +/-'),
-  description: t('Whether to align positive and negative values in cell bar chart at 0'),
+  description: t(
+    'Whether to align positive and negative values in cell bar chart at 0',
+  ),
   defaultValue: false,
   debounceDelay: 200,
 };
@@ -133,7 +135,9 @@ const alignPositiveNegative: ControlFormItemSpec<'Checkbox'> = {
 const colorPositiveNegative: ControlFormItemSpec<'Checkbox'> = {
   controlType: 'Checkbox',
   label: t('Color +/-'),
-  description: t('Whether to colorize numeric values by if they are positive or negative'),
+  description: t(
+    'Whether to colorize numeric values by if they are positive or negative',
+  ),
   defaultValue: false,
   debounceDelay: 200,
 };
@@ -167,20 +171,32 @@ export type SharedColumnConfig = {
 
 export const DEFAULT_CONFIG_FORM_LAYOUT: ColumnConfigFormLayout = {
   [GenericDataType.STRING]: [
-    ['columnWidth', { name: 'horizontalAlign', override: { defaultValue: 'left' } }],
+    [
+      'columnWidth',
+      { name: 'horizontalAlign', override: { defaultValue: 'left' } },
+    ],
   ],
   [GenericDataType.NUMERIC]: [
-    ['columnWidth', { name: 'horizontalAlign', override: { defaultValue: 'right' } }],
+    [
+      'columnWidth',
+      { name: 'horizontalAlign', override: { defaultValue: 'right' } },
+    ],
     ['d3NumberFormat'],
     ['d3SmallNumberFormat'],
     ['alignPositiveNegative', 'colorPositiveNegative'],
     ['showCellBars'],
   ],
   [GenericDataType.TEMPORAL]: [
-    ['columnWidth', { name: 'horizontalAlign', override: { defaultValue: 'left' } }],
+    [
+      'columnWidth',
+      { name: 'horizontalAlign', override: { defaultValue: 'left' } },
+    ],
     ['d3TimeFormat'],
   ],
   [GenericDataType.BOOLEAN]: [
-    ['columnWidth', { name: 'horizontalAlign', override: { defaultValue: 'left' } }],
+    [
+      'columnWidth',
+      { name: 'horizontalAlign', override: { defaultValue: 'left' } },
+    ],
   ],
 };

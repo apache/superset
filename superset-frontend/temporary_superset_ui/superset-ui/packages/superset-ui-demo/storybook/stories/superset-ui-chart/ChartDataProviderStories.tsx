@@ -20,7 +20,11 @@
 import React from 'react';
 import { text, select, withKnobs } from '@storybook/addon-knobs';
 
-import { SuperChart, ChartDataProvider, SupersetClient } from '@superset-ui/core';
+import {
+  SuperChart,
+  ChartDataProvider,
+  SupersetClient,
+} from '@superset-ui/core';
 import { BigNumberChartPlugin as LegacyBigNumberPlugin } from '@superset-ui/legacy-preset-chart-big-number';
 import LegacySankeyPlugin from '@superset-ui/legacy-plugin-chart-sankey';
 import LegacySunburstPlugin from '@superset-ui/legacy-plugin-chart-sunburst';
@@ -73,13 +77,19 @@ export const dataProvider = () => {
   const visType = select('Chart Plugin Type', VIS_TYPES, VIS_TYPES[0]);
   const width = text('Vis width', '500');
   const height = text('Vis height', '300');
-  const formData = text('Override formData', JSON.stringify(FORM_DATA_LOOKUP[visType]));
+  const formData = text(
+    'Override formData',
+    JSON.stringify(FORM_DATA_LOOKUP[visType]),
+  );
 
   return (
     <div style={{ margin: 16 }}>
       <VerifyCORS host={host}>
         {() => (
-          <ChartDataProvider client={SupersetClient} formData={JSON.parse(formData)}>
+          <ChartDataProvider
+            client={SupersetClient}
+            formData={JSON.parse(formData)}
+          >
             {({ loading, payload, error }) => {
               if (loading) return <div>Loading!</div>;
 
@@ -99,7 +109,9 @@ export const dataProvider = () => {
                     />
                     <br />
                     <Expandable expandableWhat="payload">
-                      <pre style={{ fontSize: 11 }}>{JSON.stringify(payload, null, 2)}</pre>
+                      <pre style={{ fontSize: 11 }}>
+                        {JSON.stringify(payload, null, 2)}
+                      </pre>
                     </Expandable>
                   </>
                 );

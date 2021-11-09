@@ -17,7 +17,11 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { ControlPanelConfig, formatSelectOptions, sections } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  formatSelectOptions,
+  sections,
+} from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -66,7 +70,16 @@ const config: ControlPanelConfig = {
               freeForm: true,
               label: t('Series Height'),
               default: '25',
-              choices: formatSelectOptions(['10', '25', '40', '50', '75', '100', '150', '200']),
+              choices: formatSelectOptions([
+                '10',
+                '25',
+                '40',
+                '50',
+                '75',
+                '100',
+                '150',
+                '200',
+              ]),
               description: t('Pixel height of each series'),
             },
           },

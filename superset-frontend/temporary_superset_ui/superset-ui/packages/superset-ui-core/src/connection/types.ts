@@ -24,8 +24,12 @@ export type Credentials = RequestInit['credentials'];
 export type Endpoint = string;
 export type FetchRetryOptions = {
   retries?: number;
-  retryDelay?: number | ((attempt: number, error: Error, response: Response) => number);
-  retryOn?: number[] | ((attempt: number, error: Error, response: Response) => boolean);
+  retryDelay?:
+    | number
+    | ((attempt: number, error: Error, response: Response) => number);
+  retryOn?:
+    | number[]
+    | ((attempt: number, error: Error, response: Response) => boolean);
 };
 export type Headers = { [k: string]: string };
 export type Host = string;
@@ -38,7 +42,10 @@ export type JsonPrimitive = string | number | boolean | null;
  * used as function arguments.
  * (Ref: https://github.com/microsoft/TypeScript/issues/15300).
  */
-export type StrictJsonValue = JsonPrimitive | StrictJsonObject | StrictJsonArray;
+export type StrictJsonValue =
+  | JsonPrimitive
+  | StrictJsonObject
+  | StrictJsonArray;
 export type StrictJsonArray = StrictJsonValue[];
 /**
  * More strict JSON objects that makes sure all values are plain objects.
@@ -132,7 +139,14 @@ export interface ClientConfig {
 export interface SupersetClientInterface
   extends Pick<
     SupersetClientClass,
-    'delete' | 'get' | 'post' | 'put' | 'request' | 'init' | 'isAuthenticated' | 'reAuthenticate'
+    | 'delete'
+    | 'get'
+    | 'post'
+    | 'put'
+    | 'request'
+    | 'init'
+    | 'isAuthenticated'
+    | 'reAuthenticate'
   > {
   configure: (config?: ClientConfig) => SupersetClientClass;
   getInstance: (maybeClient?: SupersetClientClass) => SupersetClientClass;

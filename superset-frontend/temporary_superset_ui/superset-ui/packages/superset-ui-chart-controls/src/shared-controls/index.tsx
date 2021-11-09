@@ -111,8 +111,10 @@ const groupByControl: SharedControlConfig<'SelectControl', ColumnMeta> = {
   valueKey: 'column_name',
   allowAll: true,
   filterOption: ({ data: opt }, text: string) =>
-    (opt.column_name && opt.column_name.toLowerCase().includes(text.toLowerCase())) ||
-    (opt.verbose_name && opt.verbose_name.toLowerCase().includes(text.toLowerCase())) ||
+    (opt.column_name &&
+      opt.column_name.toLowerCase().includes(text.toLowerCase())) ||
+    (opt.verbose_name &&
+      opt.verbose_name.toLowerCase().includes(text.toLowerCase())) ||
     false,
   promptTextCreator: (label: unknown) => label,
   mapStateToProps(state, { includeTime }) {
@@ -187,7 +189,10 @@ const linear_color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
   type: 'ColorSchemeControl',
   label: t('Linear Color Scheme'),
   choices: () =>
-    (sequentialSchemeRegistry.values() as SequentialScheme[]).map(value => [value.id, value.label]),
+    (sequentialSchemeRegistry.values() as SequentialScheme[]).map(value => [
+      value.id,
+      value.label,
+    ]),
   default: sequentialSchemeRegistry.getDefaultKey(),
   clearable: false,
   description: '',
@@ -463,7 +468,8 @@ const adhoc_filters: SharedControlConfig<'AdhocFilterControl'> = {
     columns: datasource?.columns.filter(c => c.filterable) || [],
     savedMetrics: datasource?.metrics || [],
     // current active adhoc metrics
-    selectedMetrics: form_data.metrics || (form_data.metric ? [form_data.metric] : []),
+    selectedMetrics:
+      form_data.metrics || (form_data.metric ? [form_data.metric] : []),
     datasource,
   }),
 };
@@ -478,7 +484,9 @@ const color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
   schemes: () => categoricalSchemeRegistry.getMap(),
 };
 
-const enableExploreDnd = isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP);
+const enableExploreDnd = isFeatureEnabled(
+  FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP,
+);
 
 const sharedControls = {
   metrics: enableExploreDnd ? dnd_adhoc_metrics : metrics,

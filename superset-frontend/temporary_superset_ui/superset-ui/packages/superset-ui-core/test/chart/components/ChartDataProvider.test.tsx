@@ -20,7 +20,9 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 import ChartClient from '@superset-ui/core/src/chart/clients/ChartClient';
-import ChartDataProvider, { Props } from '@superset-ui/core/src/chart/components/ChartDataProvider';
+import ChartDataProvider, {
+  Props,
+} from '@superset-ui/core/src/chart/components/ChartDataProvider';
 import { bigNumberFormData } from '../fixtures/formData';
 
 // Note: the mock implementation of these function directly affects the expected results below
@@ -28,7 +30,9 @@ const defaultMockLoadFormData = jest.fn(({ formData }: { formData: unknown }) =>
   Promise.resolve(formData),
 );
 
-type MockLoadFormData = typeof defaultMockLoadFormData | jest.Mock<Promise<unknown>, unknown[]>;
+type MockLoadFormData =
+  | typeof defaultMockLoadFormData
+  | jest.Mock<Promise<unknown>, unknown[]>;
 
 let mockLoadFormData: MockLoadFormData = defaultMockLoadFormData;
 
@@ -41,7 +45,9 @@ function createArrayPromise<T>(input: T) {
 }
 
 const mockLoadDatasource = jest.fn<Promise<unknown>, unknown[]>(createPromise);
-const mockLoadQueryData = jest.fn<Promise<unknown>, unknown[]>(createArrayPromise);
+const mockLoadQueryData = jest.fn<Promise<unknown>, unknown[]>(
+  createArrayPromise,
+);
 
 // ChartClient is now a mock
 jest.mock('@superset-ui/core/src/chart/clients/ChartClient', () =>
@@ -123,7 +129,9 @@ describe('ChartDataProvider', () => {
         setup({ loadDatasource: true });
         setTimeout(() => {
           expect(mockLoadDatasource.mock.calls).toHaveLength(1);
-          expect(mockLoadDatasource.mock.calls[0][0]).toEqual(props.formData.datasource);
+          expect(mockLoadDatasource.mock.calls[0][0]).toEqual(
+            props.formData.datasource,
+          );
           done();
         }, 0);
       }));
@@ -145,11 +153,16 @@ describe('ChartDataProvider', () => {
         expect.assertions(3);
         const newDatasource = 'test';
         const wrapper = setup({ loadDatasource: true });
-        wrapper.setProps({ formData: { datasource: newDatasource }, sliceId: undefined });
+        wrapper.setProps({
+          formData: { datasource: newDatasource },
+          sliceId: undefined,
+        });
 
         setTimeout(() => {
           expect(mockLoadDatasource.mock.calls).toHaveLength(2);
-          expect(mockLoadDatasource.mock.calls[0][0]).toEqual(props.formData.datasource);
+          expect(mockLoadDatasource.mock.calls[0][0]).toEqual(
+            props.formData.datasource,
+          );
           expect(mockLoadDatasource.mock.calls[1][0]).toEqual(newDatasource);
           done();
         }, 0);
@@ -235,7 +248,9 @@ describe('ChartDataProvider', () => {
 
         setTimeout(() => {
           expect(children.mock.calls).toHaveLength(2); // loading + error
-          expect(children.mock.calls[1][0]).toEqual({ error: new Error('error') });
+          expect(children.mock.calls[1][0]).toEqual({
+            error: new Error('error'),
+          });
           done();
         }, 0);
       }));
@@ -253,7 +268,9 @@ describe('ChartDataProvider', () => {
 
         setTimeout(() => {
           expect(children.mock.calls).toHaveLength(2); // loading + error
-          expect(children.mock.calls[1][0]).toEqual({ error: new Error('non-async error') });
+          expect(children.mock.calls[1][0]).toEqual({
+            error: new Error('non-async error'),
+          });
           done();
         }, 0);
       }));
@@ -303,7 +320,9 @@ describe('ChartDataProvider', () => {
         setup({ onError });
         setTimeout(() => {
           expect(onError.mock.calls).toHaveLength(1);
-          expect(onError.mock.calls[0][0]).toEqual(new Error('non-async error'));
+          expect(onError.mock.calls[0][0]).toEqual(
+            new Error('non-async error'),
+          );
           done();
         }, 0);
       }));

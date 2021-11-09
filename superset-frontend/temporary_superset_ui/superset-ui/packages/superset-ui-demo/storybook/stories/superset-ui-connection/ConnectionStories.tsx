@@ -21,7 +21,9 @@ import React from 'react';
 import { select, text, withKnobs } from '@storybook/addon-knobs';
 import { bigNumberFormData } from '@superset-ui/core/test/chart/fixtures/formData';
 
-import VerifyCORS, { Props as VerifyCORSProps } from '../../shared/components/VerifyCORS';
+import VerifyCORS, {
+  Props as VerifyCORSProps,
+} from '../../shared/components/VerifyCORS';
 import Expandable from '../../shared/components/Expandable';
 
 const REQUEST_METHODS = ['GET', 'POST'];
@@ -44,7 +46,9 @@ export const configureCORS = () => {
   const selectEndpoint = select('Endpoint', ENDPOINTS, '');
   const customEndpoint = text('Custom Endpoint (override above)', '');
   const endpoint = customEndpoint || selectEndpoint;
-  const method = endpoint ? select('Request method', REQUEST_METHODS, 'POST') : undefined;
+  const method = endpoint
+    ? select('Request method', REQUEST_METHODS, 'POST')
+    : undefined;
   const postPayload =
     endpoint && method === 'POST'
       ? text('POST payload', JSON.stringify({ form_data: bigNumberFormData }))
@@ -60,11 +64,15 @@ export const configureCORS = () => {
       >
         {({ payload }) => (
           <>
-            <div className="alert alert-success">Success! Update knobs below to try again</div>
+            <div className="alert alert-success">
+              Success! Update knobs below to try again
+            </div>
             <br />
             <Expandable expandableWhat="payload">
               <br />
-              <pre style={{ fontSize: 11 }}>{JSON.stringify(payload, null, 2)}</pre>
+              <pre style={{ fontSize: 11 }}>
+                {JSON.stringify(payload, null, 2)}
+              </pre>
             </Expandable>
           </>
         )}

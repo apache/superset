@@ -42,7 +42,9 @@ describe('getBBoxCeil(node, defaultDimension)', () => {
   });
   describe('returns ceiling of the svg element', () => {
     it('converts to ceiling if value is not integer', () => {
-      expect(getBBoxCeil(createTextNode(), { height: 10.6, width: 11.1 })).toEqual({
+      expect(
+        getBBoxCeil(createTextNode(), { height: 10.6, width: 11.1 }),
+      ).toEqual({
         height: 11,
         width: 12,
       });

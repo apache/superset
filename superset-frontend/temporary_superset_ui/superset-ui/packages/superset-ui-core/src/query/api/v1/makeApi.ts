@@ -28,7 +28,11 @@ import {
   RequestBase,
 } from '../../../connection';
 import handleError, { ErrorInput } from './handleError';
-import { SupersetApiRequestOptions, SupersetApiErrorPayload, ParsedResponseType } from './types';
+import {
+  SupersetApiRequestOptions,
+  SupersetApiErrorPayload,
+  ParsedResponseType,
+} from './types';
 
 const validRequestTypes = new Set(['form', 'json', 'search', 'rison']);
 
@@ -51,7 +55,9 @@ interface SupersetApiFactoryOptions extends Omit<RequestBase, 'url'> {
 }
 
 function isPayloadless(method?: Method) {
-  return !method || method === 'GET' || method === 'DELETE' || method === 'HEAD';
+  return (
+    !method || method === 'GET' || method === 'DELETE' || method === 'HEAD'
+  );
 }
 
 /**
@@ -80,16 +86,21 @@ export default function makeApi<
   processResponse?(result: ParsedResponseType<T>): Result;
 }) {
   // use `search` payload (searchParams) when it's a GET request
-  const requestType = requestType_ || (isPayloadless(method) ? 'search' : 'json');
+  const requestType =
+    requestType_ || (isPayloadless(method) ? 'search' : 'json');
   if (!validRequestTypes.has(requestType)) {
     throw new Error(
-      `Invalid request payload type, choose from: ${[...validRequestTypes].join(' | ')}`,
+      `Invalid request payload type, choose from: ${[...validRequestTypes].join(
+        ' | ',
+      )}`,
     );
   }
 
   async function request(
     payload: Payload,
-    { client = SupersetClient }: SupersetApiRequestOptions = { client: SupersetClient },
+    { client = SupersetClient }: SupersetApiRequestOptions = {
+      client: SupersetClient,
+    },
   ): Promise<Result> {
     try {
       const requestConfig = {
@@ -108,7 +119,10 @@ export default function makeApi<
       }
 
       let result: JsonValue | Response;
-      const response = await client.request({ ...requestConfig, parseMethod: 'raw' });
+      const response = await client.request({
+        ...requestConfig,
+        parseMethod: 'raw',
+      });
 
       if (responseType === 'text') {
         result = await response.text();
@@ -122,7 +136,9 @@ export default function makeApi<
         }
       }
       const typedResult = result as ParsedResponseType<T>;
-      return (processResponse ? processResponse(typedResult) : typedResult) as Result;
+      return (
+        processResponse ? processResponse(typedResult) : typedResult
+      ) as Result;
     } catch (error) {
       return handleError(error as ErrorInput);
     }

@@ -18,7 +18,13 @@
  */
 export default function transformProps(chartProps) {
   const { width, height, formData, queriesData } = chartProps;
-  const { colorScheme, dateTimeFormat, numberFormat, richTooltip, roseAreaProportion } = formData;
+  const {
+    colorScheme,
+    dateTimeFormat,
+    numberFormat,
+    richTooltip,
+    roseAreaProportion,
+  } = formData;
 
   return {
     width,
