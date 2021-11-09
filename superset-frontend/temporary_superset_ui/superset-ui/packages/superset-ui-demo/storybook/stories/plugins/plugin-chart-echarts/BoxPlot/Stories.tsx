@@ -34,21 +34,19 @@ export default {
   decorators: [withKnobs, withResizableChartDemo],
 };
 
-export const BoxPlot = ({ width, height }) => {
-  return (
-    <SuperChart
-      chartType="echarts-boxplot"
-      width={width}
-      height={height}
-      queriesData={[{ data }]}
-      formData={{
-        columns: [],
-        groupby: ['type', 'region'],
-        metrics: ['AVG(averageprice)'],
-        whiskerOptions: 'Tukey',
-        xTicksLayout: select('X Tick Layout', ['auto', 'flat', '45°', '90°', 'staggered'], '45°'),
-        yAxisFormat: 'SMART_NUMBER',
-      }}
-    />
-  );
-};
+export const BoxPlot = ({ width, height }) => (
+  <SuperChart
+    chartType="echarts-boxplot"
+    width={width}
+    height={height}
+    queriesData={[{ data }]}
+    formData={{
+      columns: [],
+      groupby: ['type', 'region'],
+      metrics: ['AVG(averageprice)'],
+      whiskerOptions: 'Tukey',
+      xTicksLayout: select('X Tick Layout', ['auto', 'flat', '45°', '90°', 'staggered'], '45°'),
+      yAxisFormat: 'SMART_NUMBER',
+    }}
+  />
+);

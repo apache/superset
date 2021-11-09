@@ -18,7 +18,7 @@
  */
 module.exports = {
   extends: ['airbnb', 'prettier', 'prettier/react', 'plugin:react-hooks/recommended'],
-  parser: 'babel-eslint',
+  parser: '@babel/eslint-parser',
   parserOptions: {
     ecmaFeatures: {
       experimentalObjectRestSpread: true,
@@ -178,6 +178,7 @@ module.exports = {
         'react/prop-types': 0,
         'react/require-default-props': 0,
         'react/static-property-placement': 0, // re-enable up for discussion
+        'react/sort-comp': 0,
         'prettier/prettier': 'error',
       },
       settings: {

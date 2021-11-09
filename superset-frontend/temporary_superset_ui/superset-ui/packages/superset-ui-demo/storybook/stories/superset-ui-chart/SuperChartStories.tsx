@@ -67,20 +67,18 @@ export const container50pct = () => {
 };
 container50pct.story = { name: '50% of container' };
 
-export const Resizable = () => {
-  return (
-    <ResizableChartDemo>
-      {size => (
-        <SuperChart
-          chartType={ChartKeys.DILIGENT}
-          width={size.width}
-          height={size.height}
-          queriesData={[DEFAULT_QUERY_DATA]}
-        />
-      )}
-    </ResizableChartDemo>
-  );
-};
+export const Resizable = () => (
+  <ResizableChartDemo>
+    {size => (
+      <SuperChart
+        chartType={ChartKeys.DILIGENT}
+        width={size.width}
+        height={size.height}
+        queriesData={[DEFAULT_QUERY_DATA]}
+      />
+    )}
+  </ResizableChartDemo>
+);
 
 export const fixedWidth100height = () => {
   const width = text('Vis width', '500');

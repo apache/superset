@@ -34,21 +34,19 @@ export default {
   decorators: [withKnobs, withResizableChartDemo],
 };
 
-export const Treemap = ({ width, height }) => {
-  return (
-    <SuperChart
-      chartType="echarts-treemap"
-      width={width}
-      height={height}
-      queriesData={[{ data }]}
-      formData={{
-        colorScheme: 'supersetColors',
-        groupby: ['genre'],
-        metric: 'count',
-        showLabels: boolean('Show labels', true),
-        showUpperLabels: boolean('Show upperLabels', true),
-        labelType: select('Treemap label type', ['key', 'value', 'key_value'], 'key_value'),
-      }}
-    />
-  );
-};
+export const Treemap = ({ width, height }) => (
+  <SuperChart
+    chartType="echarts-treemap"
+    width={width}
+    height={height}
+    queriesData={[{ data }]}
+    formData={{
+      colorScheme: 'supersetColors',
+      groupby: ['genre'],
+      metric: 'count',
+      showLabels: boolean('Show labels', true),
+      showUpperLabels: boolean('Show upperLabels', true),
+      labelType: select('Treemap label type', ['key', 'value', 'key_value'], 'key_value'),
+    }}
+  />
+);
