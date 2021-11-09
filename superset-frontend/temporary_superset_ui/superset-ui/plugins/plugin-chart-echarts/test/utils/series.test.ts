@@ -28,7 +28,7 @@ import {
 } from '../../src/utils/series';
 import { LegendOrientation, LegendType } from '../../src/types';
 import { defaultLegendPadding } from '../../src/defaults';
-import { NULL_STRING } from '../../lib/constants';
+import { NULL_STRING } from '../../src/constants';
 
 describe('extractTimeseriesSeries', () => {
   it('should generate a valid ECharts timeseries series object', () => {

@@ -44,6 +44,7 @@ describe('AnnotationLayer type guards', () => {
     value: 'sin(2*x)',
     style: AnnotationStyle.Solid,
     show: true,
+    showLabel: false,
   };
   const eventAnnotationLayer: EventAnnotationLayer = {
     annotationType: AnnotationType.Event,
@@ -51,6 +52,7 @@ describe('AnnotationLayer type guards', () => {
     value: 1,
     style: AnnotationStyle.Solid,
     show: true,
+    showLabel: false,
     sourceType: AnnotationSourceType.Native,
   };
   const intervalAnnotationLayer: IntervalAnnotationLayer = {
@@ -60,6 +62,7 @@ describe('AnnotationLayer type guards', () => {
     value: 1,
     style: AnnotationStyle.Solid,
     show: true,
+    showLabel: false,
   };
   const timeseriesAnnotationLayer: TimeseriesAnnotationLayer = {
     annotationType: AnnotationType.Timeseries,
@@ -68,6 +71,7 @@ describe('AnnotationLayer type guards', () => {
     value: 1,
     style: AnnotationStyle.Solid,
     show: true,
+    showLabel: false,
   };
   const tableAnnotationLayer: TableAnnotationLayer = {
     annotationType: AnnotationType.Interval,
@@ -76,6 +80,7 @@ describe('AnnotationLayer type guards', () => {
     value: 1,
     style: AnnotationStyle.Solid,
     show: true,
+    showLabel: false,
   };
   const timeseriesAnnotationResult: TimeseriesAnnotationResult = [
     {
