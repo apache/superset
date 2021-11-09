@@ -302,7 +302,7 @@ class PropertiesModal extends React.PureComponent {
           slug: slug || null,
           json_metadata: jsonMetadata || null,
           owners,
-          certified_by: certifiedBy,
+          certified_by: certifiedBy || null,
           certification_details:
             certifiedBy && certificationDetails ? certificationDetails : null,
           ...morePutProps,
