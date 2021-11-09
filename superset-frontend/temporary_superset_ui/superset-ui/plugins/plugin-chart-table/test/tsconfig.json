@@ -5,7 +5,7 @@
     "noEmit": true,
     "rootDir": "../../../"
   },
-  "extends": "../../../tsconfig.options.json",
+  "extends": "../../../tsconfig.json",
   "include": [
     "**/*",
     "../types/**/*",
