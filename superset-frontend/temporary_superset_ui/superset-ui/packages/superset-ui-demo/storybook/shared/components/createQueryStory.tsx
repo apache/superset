@@ -19,7 +19,11 @@
 
 import React from 'react';
 import { text, select } from '@storybook/addon-knobs';
-import { SuperChart, ChartDataProvider, SupersetClient } from '@superset-ui/core';
+import {
+  SuperChart,
+  ChartDataProvider,
+  SupersetClient,
+} from '@superset-ui/core';
 import Expandable from './Expandable';
 import VerifyCORS, { renderError } from './VerifyCORS';
 
@@ -37,12 +41,18 @@ export default function createQueryStory({
 }) {
   const keys = Object.keys(choices);
   const story = () => {
-    const host = text('Set Superset App host for CORS request', 'localhost:8088');
+    const host = text(
+      'Set Superset App host for CORS request',
+      'localhost:8088',
+    );
     const mode = select('Choose mode:', keys, keys[0]);
     const { formData: presetFormData, chartType } = choices[mode];
     const width = text('Vis width', '400');
     const height = text('Vis height', '400');
-    const formData = text('Override formData', JSON.stringify(presetFormData, null, 2));
+    const formData = text(
+      'Override formData',
+      JSON.stringify(presetFormData, null, 2),
+    );
 
     return (
       <div style={{ margin: 16 }}>
@@ -71,7 +81,9 @@ export default function createQueryStory({
                       />
                       <br />
                       <Expandable expandableWhat="payload">
-                        <pre style={{ fontSize: 11 }}>{JSON.stringify(payload, null, 2)}</pre>
+                        <pre style={{ fontSize: 11 }}>
+                          {JSON.stringify(payload, null, 2)}
+                        </pre>
                       </Expandable>
                     </>
                   );

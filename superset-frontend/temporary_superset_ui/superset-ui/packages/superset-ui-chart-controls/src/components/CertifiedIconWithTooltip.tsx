@@ -42,7 +42,9 @@ function CertifiedIconWithTooltip({
       id={`${kebabCase(metricName)}-tooltip`}
       title={
         <div>
-          {certifiedBy && <StyledDiv>{t('Certified by %s', certifiedBy)}</StyledDiv>}
+          {certifiedBy && (
+            <StyledDiv>{t('Certified by %s', certifiedBy)}</StyledDiv>
+          )}
           <div>{details}</div>
         </div>
       }

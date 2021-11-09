@@ -38,7 +38,9 @@ const WRAP_IN_ARRAY = (
   },
 ) => [baseQueryObject];
 
-export type BuildFinalQueryObjects = (baseQueryObject: QueryObject) => QueryObject[];
+export type BuildFinalQueryObjects = (
+  baseQueryObject: QueryObject,
+) => QueryObject[];
 
 export default function buildQueryContext(
   formData: QueryFormData,
@@ -56,7 +58,9 @@ export default function buildQueryContext(
     buildQuery = WRAP_IN_ARRAY,
     hooks = {},
     ownState = {},
-  } = typeof options === 'function' ? { buildQuery: options, queryFields: {} } : options || {};
+  } = typeof options === 'function'
+    ? { buildQuery: options, queryFields: {} }
+    : options || {};
   return {
     datasource: new DatasourceKey(formData.datasource).toObject(),
     force: formData.force || false,

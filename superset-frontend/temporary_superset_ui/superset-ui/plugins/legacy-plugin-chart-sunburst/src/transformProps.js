@@ -31,7 +31,8 @@ export default function transformProps(chartProps) {
 
   if (datasource && datasource.metrics) {
     const metricWithFormat = datasource.metrics.find(
-      ({ metric_name: metricName, d3format }) => metricName === formData.metric && d3format,
+      ({ metric_name: metricName, d3format }) =>
+        metricName === formData.metric && d3format,
     );
     if (metricWithFormat) {
       Object.assign(returnProps, { numberFormat: metricWithFormat.d3format });

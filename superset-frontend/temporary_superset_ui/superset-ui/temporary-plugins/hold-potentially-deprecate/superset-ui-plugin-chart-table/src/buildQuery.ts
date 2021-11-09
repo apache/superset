@@ -32,7 +32,8 @@ export default function buildQuery(formData: TableFormData) {
       columns = [...formData.all_columns];
       const orderByColumns = formData.order_by_cols || [];
       orderByColumns.forEach(columnOrder => {
-        const parsedColumnOrder: [QueryFormMetric, boolean] = JSON.parse(columnOrder);
+        const parsedColumnOrder: [QueryFormMetric, boolean] =
+          JSON.parse(columnOrder);
         orderby.push([parsedColumnOrder[0], parsedColumnOrder[1]]);
       });
       groupby = [];

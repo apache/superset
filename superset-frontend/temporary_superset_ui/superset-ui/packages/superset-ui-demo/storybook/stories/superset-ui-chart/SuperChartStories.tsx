@@ -147,17 +147,23 @@ export const withNoResults = () => {
   const width = text('Vis width', '100%');
   const height = text('Vis height', '100%');
 
-  return <SuperChart chartType={ChartKeys.DILIGENT} width={width} height={height} />;
+  return (
+    <SuperChart chartType={ChartKeys.DILIGENT} width={width} height={height} />
+  );
 };
 export const withNoResultsAndMedium = () => {
   const width = text('Vis width', '400');
   const height = text('Vis height', '300');
 
-  return <SuperChart chartType={ChartKeys.DILIGENT} width={width} height={height} />;
+  return (
+    <SuperChart chartType={ChartKeys.DILIGENT} width={width} height={height} />
+  );
 };
 export const withNoResultsAndSmall = () => {
   const width = text('Vis width', '150');
   const height = text('Vis height', '200');
 
-  return <SuperChart chartType={ChartKeys.DILIGENT} width={width} height={height} />;
+  return (
+    <SuperChart chartType={ChartKeys.DILIGENT} width={width} height={height} />
+  );
 };

@@ -92,14 +92,18 @@ export default function reactify<Props extends object>(
     }
   }
 
-  const ReactifiedClass: React.ComponentClass<Props & ReactifyProps> = ReactifiedComponent;
+  const ReactifiedClass: React.ComponentClass<Props & ReactifyProps> =
+    ReactifiedComponent;
 
   if (renderFn.displayName) {
     ReactifiedClass.displayName = renderFn.displayName;
   }
   // eslint-disable-next-line react/forbid-foreign-prop-types
   if (renderFn.propTypes) {
-    ReactifiedClass.propTypes = { ...ReactifiedClass.propTypes, ...renderFn.propTypes };
+    ReactifiedClass.propTypes = {
+      ...ReactifiedClass.propTypes,
+      ...renderFn.propTypes,
+    };
   }
   if (renderFn.defaultProps) {
     ReactifiedClass.defaultProps = renderFn.defaultProps;

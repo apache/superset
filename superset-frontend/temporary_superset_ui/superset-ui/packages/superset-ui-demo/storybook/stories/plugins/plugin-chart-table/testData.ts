@@ -16,8 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartDataResponseResult, GenericDataType } from '@superset-ui/core/src';
-import { TableChartFormData, TableChartProps } from '@superset-ui/plugin-chart-table/src';
+import {
+  ChartDataResponseResult,
+  GenericDataType,
+} from '@superset-ui/core/src';
+import {
+  TableChartFormData,
+  TableChartProps,
+} from '@superset-ui/plugin-chart-table/src';
 // @ts-ignore
 // eslint-disable-next-line import/extensions
 import birthNamesJson from './birthNames.json';

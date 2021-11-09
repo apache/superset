@@ -20,11 +20,18 @@
 import 'whatwg-fetch';
 import fetchRetry from 'fetch-retry';
 import { CallApi, Payload, JsonValue, JsonObject } from '../types';
-import { CACHE_AVAILABLE, CACHE_KEY, HTTP_STATUS_NOT_MODIFIED, HTTP_STATUS_OK } from '../constants';
+import {
+  CACHE_AVAILABLE,
+  CACHE_KEY,
+  HTTP_STATUS_NOT_MODIFIED,
+  HTTP_STATUS_OK,
+} from '../constants';
 
 function tryParsePayload(payload: Payload) {
   try {
-    return typeof payload === 'string' ? (JSON.parse(payload) as JsonValue) : payload;
+    return typeof payload === 'string'
+      ? (JSON.parse(payload) as JsonValue)
+      : payload;
   } catch (error) {
     throw new Error(`Invalid payload:\n\n${payload}`);
   }
@@ -36,7 +43,8 @@ function tryParsePayload(payload: Payload) {
 function getFullUrl(partialUrl: string, params: CallApi['searchParams']) {
   if (params) {
     const url = new URL(partialUrl, window.location.href);
-    const search = params instanceof URLSearchParams ? params : new URLSearchParams(params);
+    const search =
+      params instanceof URLSearchParams ? params : new URLSearchParams(params);
     // will completely override any existing search params
     url.search = search.toString();
     return url.href;
@@ -129,7 +137,10 @@ export default async function callApi({
         Object.keys(payload).forEach(key => {
           const value = (payload as JsonObject)[key] as JsonValue;
           if (typeof value !== 'undefined') {
-            formData.append(key, stringify ? JSON.stringify(value) : String(value));
+            formData.append(
+              key,
+              stringify ? JSON.stringify(value) : String(value),
+            );
           }
         });
         request.body = formData;
@@ -137,7 +148,10 @@ export default async function callApi({
     }
     if (jsonPayload !== undefined) {
       request.body = JSON.stringify(jsonPayload);
-      request.headers = { ...request.headers, 'Content-Type': 'application/json' };
+      request.headers = {
+        ...request.headers,
+        'Content-Type': 'application/json',
+      };
     }
   }
 

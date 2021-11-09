@@ -44,7 +44,8 @@ export const getOpacity = (
     ? maxOpacity
     : round(
         Math.abs(
-          ((maxOpacity - minOpacity) / (extremeValue - cutoffPoint)) * (value - cutoffPoint),
+          ((maxOpacity - minOpacity) / (extremeValue - cutoffPoint)) *
+            (value - cutoffPoint),
         ) + minOpacity,
         2,
       );
@@ -119,7 +120,9 @@ export const getColorFunction = (
       break;
     case COMPARATOR.EQUAL:
       comparatorFunction = (value: number) =>
-        value === targetValue! ? { cutoffValue: targetValue!, extremeValue: targetValue! } : false;
+        value === targetValue!
+          ? { cutoffValue: targetValue!, extremeValue: targetValue! }
+          : false;
       break;
     case COMPARATOR.NOT_EQUAL:
       comparatorFunction = (value: number, allValues: number[]) => {
@@ -130,7 +133,10 @@ export const getColorFunction = (
         const min = Math.min(...allValues);
         return {
           cutoffValue: targetValue!,
-          extremeValue: Math.abs(targetValue! - min) > Math.abs(max - targetValue!) ? min : max,
+          extremeValue:
+            Math.abs(targetValue! - min) > Math.abs(max - targetValue!)
+              ? min
+              : max,
         };
       };
       break;
@@ -178,22 +184,26 @@ export const getColorFormatters = (
   columnConfig: ConditionalFormattingConfig[] | undefined,
   data: DataRecord[],
 ) =>
-  columnConfig?.reduce((acc: ColorFormatters, config: ConditionalFormattingConfig) => {
-    if (
-      config?.column !== undefined &&
-      (config?.operator === COMPARATOR.NONE ||
-        (config?.operator !== undefined &&
-          (MULTIPLE_VALUE_COMPARATORS.includes(config?.operator)
-            ? config?.targetValueLeft !== undefined && config?.targetValueRight !== undefined
-            : config?.targetValue !== undefined)))
-    ) {
-      acc.push({
-        column: config?.column,
-        getColorFromValue: getColorFunction(
-          config,
-          data.map(row => row[config.column!] as number),
-        ),
-      });
-    }
-    return acc;
-  }, []) ?? [];
+  columnConfig?.reduce(
+    (acc: ColorFormatters, config: ConditionalFormattingConfig) => {
+      if (
+        config?.column !== undefined &&
+        (config?.operator === COMPARATOR.NONE ||
+          (config?.operator !== undefined &&
+            (MULTIPLE_VALUE_COMPARATORS.includes(config?.operator)
+              ? config?.targetValueLeft !== undefined &&
+                config?.targetValueRight !== undefined
+              : config?.targetValue !== undefined)))
+      ) {
+        acc.push({
+          column: config?.column,
+          getColorFromValue: getColorFunction(
+            config,
+            data.map(row => row[config.column!] as number),
+          ),
+        });
+      }
+      return acc;
+    },
+    [],
+  ) ?? [];

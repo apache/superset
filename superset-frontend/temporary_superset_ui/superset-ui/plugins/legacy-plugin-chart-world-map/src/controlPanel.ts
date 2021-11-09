@@ -17,7 +17,11 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { ControlPanelConfig, formatSelectOptions, sections } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  formatSelectOptions,
+  sections,
+} from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -56,7 +60,9 @@ const config: ControlPanelConfig = {
             config: {
               type: 'CheckboxControl',
               label: t('Sort by metric'),
-              description: t('Whether to sort results by the selected metric in descending order.'),
+              description: t(
+                'Whether to sort results by the selected metric in descending order.',
+              ),
             },
           },
         ],
@@ -87,7 +93,15 @@ const config: ControlPanelConfig = {
               freeForm: true,
               label: t('Max Bubble Size'),
               default: '25',
-              choices: formatSelectOptions(['5', '10', '15', '25', '50', '75', '100']),
+              choices: formatSelectOptions([
+                '5',
+                '10',
+                '15',
+                '25',
+                '50',
+                '75',
+                '100',
+              ]),
             },
           },
         ],

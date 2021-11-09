@@ -57,7 +57,8 @@ class CategoricalColorScale extends ExtensibleFunction {
 
   getColor(value?: string) {
     const cleanedValue = stringifyAndTrim(value);
-    const parentColor = this.parentForcedColors && this.parentForcedColors[cleanedValue];
+    const parentColor =
+      this.parentForcedColors && this.parentForcedColors[cleanedValue];
     if (parentColor) {
       return parentColor;
     }
@@ -101,7 +102,10 @@ class CategoricalColorScale extends ExtensibleFunction {
    * Returns an exact copy of this scale. Changes to this scale will not affect the returned scale, and vice versa.
    */
   copy() {
-    const copy = new CategoricalColorScale(this.scale.range(), this.parentForcedColors);
+    const copy = new CategoricalColorScale(
+      this.scale.range(),
+      this.parentForcedColors,
+    );
     copy.forcedColors = { ...this.forcedColors };
     copy.domain(this.domain());
     copy.unknown(this.unknown());

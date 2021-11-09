@@ -41,7 +41,8 @@ const defaultProps = {
 
 class PairedTTest extends React.PureComponent {
   render() {
-    const { className, metrics, groups, data, alpha, pValPrec, liftValPrec } = this.props;
+    const { className, metrics, groups, data, alpha, pValPrec, liftValPrec } =
+      this.props;
 
     return (
       <div className={`superset-legacy-chart-paired-t-test ${className}`}>

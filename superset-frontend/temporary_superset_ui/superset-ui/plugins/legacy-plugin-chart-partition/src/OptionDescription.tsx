@@ -20,7 +20,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import { ColumnMeta, InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import {
+  ColumnMeta,
+  InfoTooltipWithTrigger,
+} from '@superset-ui/chart-controls';
 
 const propTypes = {
   option: PropTypes.object.isRequired,

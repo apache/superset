@@ -18,7 +18,14 @@
  */
 import UntypedJed from 'jed';
 import logging from '../utils/logging';
-import { Jed, TranslatorConfig, Locale, Translations, LocaleData, LanguagePack } from './types';
+import {
+  Jed,
+  TranslatorConfig,
+  Locale,
+  Translations,
+  LocaleData,
+  LanguagePack,
+} from './types';
 
 const DEFAULT_LANGUAGE_PACK: LanguagePack = {
   domain: 'superset',
@@ -60,7 +67,9 @@ export default class Translator {
    */
   addTranslations(translations: Translations) {
     if (translations && !Array.isArray(translations)) {
-      Object.entries(translations).forEach(([key, vals]) => this.addTranslation(key, vals));
+      Object.entries(translations).forEach(([key, vals]) =>
+        this.addTranslation(key, vals),
+      );
     } else {
       logging.warn('Invalid translations');
     }

@@ -20,16 +20,20 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import { mount } from 'enzyme';
-import reactify, { RenderFuncType } from '@superset-ui/core/src/chart/components/reactify';
+import reactify, {
+  RenderFuncType,
+} from '@superset-ui/core/src/chart/components/reactify';
 
 describe('reactify(renderFn)', () => {
-  const renderFn: RenderFuncType<{ content?: string }> = jest.fn((element, props) => {
-    const container = element;
-    container.innerHTML = '';
-    const child = document.createElement('b');
-    child.innerHTML = props.content ?? '';
-    container.append(child);
-  });
+  const renderFn: RenderFuncType<{ content?: string }> = jest.fn(
+    (element, props) => {
+      const container = element;
+      container.innerHTML = '';
+      const child = document.createElement('b');
+      child.innerHTML = props.content ?? '';
+      container.append(child);
+    },
+  );
 
   renderFn.displayName = 'BoldText';
 
@@ -44,7 +48,9 @@ describe('reactify(renderFn)', () => {
   const willUnmountCb = jest.fn();
 
   const TheChart = reactify(renderFn);
-  const TheChartWithWillUnmountHook = reactify(renderFn, { componentWillUnmount: willUnmountCb });
+  const TheChartWithWillUnmountHook = reactify(renderFn, {
+    componentWillUnmount: willUnmountCb,
+  });
 
   class TestComponent extends React.PureComponent<{}, { content: string }> {
     constructor(props = {}) {
@@ -96,12 +102,19 @@ describe('reactify(renderFn)', () => {
   describe('propTypes', () => {
     it('has propTypes if renderFn.propTypes is defined', () => {
       /* eslint-disable-next-line react/forbid-foreign-prop-types */
-      expect(Object.keys(TheChart.propTypes ?? {})).toEqual(['id', 'className', 'content']);
+      expect(Object.keys(TheChart.propTypes ?? {})).toEqual([
+        'id',
+        'className',
+        'content',
+      ]);
     });
     it('does not have propTypes if renderFn.propTypes is not defined', () => {
       const AnotherChart = reactify(() => {});
       /* eslint-disable-next-line react/forbid-foreign-prop-types */
-      expect(Object.keys(AnotherChart.propTypes ?? {})).toEqual(['id', 'className']);
+      expect(Object.keys(AnotherChart.propTypes ?? {})).toEqual([
+        'id',
+        'className',
+      ]);
     });
   });
   describe('defaultProps', () => {

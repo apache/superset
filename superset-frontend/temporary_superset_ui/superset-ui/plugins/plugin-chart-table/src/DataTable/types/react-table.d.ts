@@ -41,7 +41,11 @@ import {
   TableFooterProps,
 } from 'react-table';
 
-import { UseStickyState, UseStickyTableOptions, UseStickyInstanceProps } from '../hooks/useSticky';
+import {
+  UseStickyState,
+  UseStickyTableOptions,
+  UseStickyInstanceProps,
+} from '../hooks/useSticky';
 
 declare module 'react-table' {
   export interface TableOptions<D extends object>
@@ -90,8 +94,12 @@ declare module 'react-table' {
   export interface ColumnInstance<D extends object>
     extends UseGlobalFiltersColumnOptions<D>,
       UseSortByColumnProps<D> {
-    getSortByToggleProps: (props?: Partial<TableSortByToggleProps>) => TableSortByToggleProps;
+    getSortByToggleProps: (
+      props?: Partial<TableSortByToggleProps>,
+    ) => TableSortByToggleProps;
   }
 
-  export interface Hooks<D extends object> extends UseTableHooks<D>, UseSortByHooks<D> {}
+  export interface Hooks<D extends object>
+    extends UseTableHooks<D>,
+      UseSortByHooks<D> {}
 }

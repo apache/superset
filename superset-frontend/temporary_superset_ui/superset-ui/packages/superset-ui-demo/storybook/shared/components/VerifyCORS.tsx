@@ -18,7 +18,12 @@
  */
 
 import React, { ReactNode } from 'react';
-import { SupersetClient, Method, makeApi, SupersetApiError } from '@superset-ui/core';
+import {
+  SupersetClient,
+  Method,
+  makeApi,
+  SupersetApiError,
+} from '@superset-ui/core';
 import ErrorMessage from './ErrorMessage';
 
 export type Props = {
@@ -87,7 +92,9 @@ export default class VerifyCORS extends React.Component<Props, State> {
         }
         return { error: 'Must provide valid endpoint and payload.' };
       })
-      .then(result => this.setState({ didVerify: true, error: undefined, payload: result }))
+      .then(result =>
+        this.setState({ didVerify: true, error: undefined, payload: result }),
+      )
       .catch(error => this.setState({ error }));
   }
 
@@ -102,13 +109,18 @@ export default class VerifyCORS extends React.Component<Props, State> {
         <div className="col-md-10">
           This example requires CORS requests from this domain. <br />
           <br />
-          1) enable CORS requests in your Superset App from {`${window.location.origin}`}
+          1) enable CORS requests in your Superset App from{' '}
+          {`${window.location.origin}`}
           <br />
           2) configure your Superset App host name below <br />
-          3) click below to verify authentication. You may debug CORS further using the
-          `@superset-ui/connection` story. <br />
+          3) click below to verify authentication. You may debug CORS further
+          using the `@superset-ui/connection` story. <br />
           <br />
-          <button type="button" className="btn btn-primary btn-sm" onClick={this.handleVerify}>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={this.handleVerify}
+          >
             Verify
           </button>
           <br />

@@ -56,7 +56,11 @@ describe('Graph buildQuery', () => {
     };
     const queryContext = buildQuery(formDataWithCategories);
     const [query] = queryContext.queries;
-    expect(query.columns).toEqual(['dummy_source', 'dummy_target', 'dummy_source_category']);
+    expect(query.columns).toEqual([
+      'dummy_source',
+      'dummy_target',
+      'dummy_source_category',
+    ]);
     expect(query.metrics).toEqual(['foo', 'bar']);
   });
 
@@ -69,12 +73,20 @@ describe('Graph buildQuery', () => {
     };
     const queryContext = buildQuery(formDataWithCategories);
     const [query] = queryContext.queries;
-    expect(query.columns).toEqual(['dummy_source', 'dummy_target', 'dummy_target_category']);
+    expect(query.columns).toEqual([
+      'dummy_source',
+      'dummy_target',
+      'dummy_target_category',
+    ]);
     expect(query.metrics).toEqual(['foo', 'bar']);
   });
 
   it('should build groupby without any category', () => {
-    const formDataWithCategories = { ...formData, source: 'dummy_source', target: 'dummy_target' };
+    const formDataWithCategories = {
+      ...formData,
+      source: 'dummy_source',
+      target: 'dummy_target',
+    };
     const queryContext = buildQuery(formDataWithCategories);
     const [query] = queryContext.queries;
     expect(query.columns).toEqual(['dummy_source', 'dummy_target']);

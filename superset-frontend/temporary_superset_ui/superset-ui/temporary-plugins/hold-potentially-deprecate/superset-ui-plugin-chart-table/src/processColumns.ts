@@ -125,7 +125,13 @@ const getCreateSelectorFunction = () =>
     data => data.tableTimestampFormat,
     data => data.datasource,
     (columns, metrics, records, tableTimestampFormat, datasource) =>
-      processColumns(columns, metrics, records, tableTimestampFormat, datasource),
+      processColumns(
+        columns,
+        metrics,
+        records,
+        tableTimestampFormat,
+        datasource,
+      ),
   );
 
 export default getCreateSelectorFunction;

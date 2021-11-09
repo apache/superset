@@ -20,7 +20,10 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { extent as d3Extent } from 'd3-array';
-import { getNumberFormatter, getSequentialSchemeRegistry } from '@superset-ui/core';
+import {
+  getNumberFormatter,
+  getSequentialSchemeRegistry,
+} from '@superset-ui/core';
 import Datamap from 'datamaps/dist/datamaps.world.min';
 
 const propTypes = {
@@ -44,7 +47,15 @@ const propTypes = {
 const formatter = getNumberFormatter();
 
 function WorldMap(element, props) {
-  const { data, width, height, maxBubbleSize, showBubbles, linearColorScheme, color } = props;
+  const {
+    data,
+    width,
+    height,
+    maxBubbleSize,
+    showBubbles,
+    linearColorScheme,
+    color,
+  } = props;
   const div = d3.select(element);
   div.classed('superset-legacy-chart-world-map', true);
   div.selectAll('*').remove();
@@ -90,7 +101,9 @@ function WorldMap(element, props) {
       highlightFillColor: color,
       highlightBorderWidth: 1,
       popupTemplate: (geo, d) =>
-        `<div class="hoverinfo"><strong>${d.name}</strong><br>${formatter(d.m1)}</div>`,
+        `<div class="hoverinfo"><strong>${d.name}</strong><br>${formatter(
+          d.m1,
+        )}</div>`,
     },
     bubblesConfig: {
       borderWidth: 1,
@@ -99,7 +112,9 @@ function WorldMap(element, props) {
       popupOnHover: true,
       radius: null,
       popupTemplate: (geo, d) =>
-        `<div class="hoverinfo"><strong>${d.name}</strong><br>${formatter(d.m2)}</div>`,
+        `<div class="hoverinfo"><strong>${d.name}</strong><br>${formatter(
+          d.m2,
+        )}</div>`,
       fillOpacity: 0.5,
       animate: true,
       highlightOnHover: true,
@@ -117,7 +132,10 @@ function WorldMap(element, props) {
 
   if (showBubbles) {
     map.bubbles(processedData);
-    div.selectAll('circle.datamaps-bubble').style('fill', color).style('stroke', color);
+    div
+      .selectAll('circle.datamaps-bubble')
+      .style('fill', color)
+      .style('stroke', color);
   }
 }
 

@@ -26,7 +26,9 @@ var CalHeatMap = function () {
     .offset([-5, 0])
     .html(
       d => `
-      ${self.options.timeFormatter(d.t)}: <strong>${self.options.valueFormatter(d.v)}</strong>
+      ${self.options.timeFormatter(d.t)}: <strong>${self.options.valueFormatter(
+        d.v,
+      )}</strong>
     `,
     );
   self.legendTip = d3tip()
@@ -365,7 +367,12 @@ var CalHeatMap = function () {
           case 'week':
             return 24 * 7;
           case 'month':
-            return 24 * (self.options.domainDynamicDimension ? self.getDayCountInMonth(d) : 31);
+            return (
+              24 *
+              (self.options.domainDynamicDimension
+                ? self.getDayCountInMonth(d)
+                : 31)
+            );
         }
       },
       defaultRowNumber: 6,
@@ -376,7 +383,9 @@ var CalHeatMap = function () {
           case 'week':
             return 28;
           case 'month':
-            return self.options.domainDynamicDimension ? self.getDayCountInMonth(d) : 31;
+            return self.options.domainDynamicDimension
+              ? self.getDayCountInMonth(d)
+              : 31;
         }
       },
       row: function (d) {
@@ -390,17 +399,25 @@ var CalHeatMap = function () {
           if (self.options.domain === 'month') {
             if (self.options.colLimit > 0 || self.options.rowLimit > 0) {
               return Math.floor(
-                (d.getHours() + (d.getDate() - 1) * 24) / self._domainType.hour.row(d),
+                (d.getHours() + (d.getDate() - 1) * 24) /
+                  self._domainType.hour.row(d),
               );
             }
-            return Math.floor(d.getHours() / self._domainType.hour.row(d)) + (d.getDate() - 1) * 4;
+            return (
+              Math.floor(d.getHours() / self._domainType.hour.row(d)) +
+              (d.getDate() - 1) * 4
+            );
           } else if (self.options.domain === 'week') {
             if (self.options.colLimit > 0 || self.options.rowLimit > 0) {
               return Math.floor(
-                (d.getHours() + self.getWeekDay(d) * 24) / self._domainType.hour.row(d),
+                (d.getHours() + self.getWeekDay(d) * 24) /
+                  self._domainType.hour.row(d),
               );
             }
-            return Math.floor(d.getHours() / self._domainType.hour.row(d)) + self.getWeekDay(d) * 4;
+            return (
+              Math.floor(d.getHours() / self._domainType.hour.row(d)) +
+              self.getWeekDay(d) * 4
+            );
           }
           return Math.floor(d.getHours() / self._domainType.hour.row(d));
         },
@@ -425,7 +442,12 @@ var CalHeatMap = function () {
         connector: 'at',
       },
       extractUnit: function (d) {
-        return new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours()).getTime();
+        return new Date(
+          d.getFullYear(),
+          d.getMonth(),
+          d.getDate(),
+          d.getHours(),
+        ).getTime();
       },
     },
     day: {
@@ -436,9 +458,13 @@ var CalHeatMap = function () {
           case 'week':
             return 7;
           case 'month':
-            return self.options.domainDynamicDimension ? self.getDayCountInMonth(d) : 31;
+            return self.options.domainDynamicDimension
+              ? self.getDayCountInMonth(d)
+              : 31;
           case 'year':
-            return self.options.domainDynamicDimension ? self.getDayCountInYear(d) : 366;
+            return self.options.domainDynamicDimension
+              ? self.getDayCountInYear(d)
+              : 366;
         }
       },
       defaultColumnNumber: function (d) {
@@ -447,8 +473,11 @@ var CalHeatMap = function () {
           case 'week':
             return 1;
           case 'month':
-            return self.options.domainDynamicDimension && !self.options.verticalOrientation
-              ? self.getWeekNumber(new Date(d.getFullYear(), d.getMonth() + 1, 0)) -
+            return self.options.domainDynamicDimension &&
+              !self.options.verticalOrientation
+              ? self.getWeekNumber(
+                  new Date(d.getFullYear(), d.getMonth() + 1, 0),
+                ) -
                   self.getWeekNumber(d) +
                   1
               : 6;
@@ -471,17 +500,24 @@ var CalHeatMap = function () {
         x: function (d) {
           switch (self.options.domain) {
             case 'week':
-              return Math.floor(self.getWeekDay(d) / self._domainType.day.row(d));
+              return Math.floor(
+                self.getWeekDay(d) / self._domainType.day.row(d),
+              );
             case 'month':
               if (self.options.colLimit > 0 || self.options.rowLimit > 0) {
-                return Math.floor((d.getDate() - 1) / self._domainType.day.row(d));
+                return Math.floor(
+                  (d.getDate() - 1) / self._domainType.day.row(d),
+                );
               }
               return (
-                self.getWeekNumber(d) - self.getWeekNumber(new Date(d.getFullYear(), d.getMonth()))
+                self.getWeekNumber(d) -
+                self.getWeekNumber(new Date(d.getFullYear(), d.getMonth()))
               );
             case 'year':
               if (self.options.colLimit > 0 || self.options.rowLimit > 0) {
-                return Math.floor((self.getDayOfYear(d) - 1) / self._domainType.day.row(d));
+                return Math.floor(
+                  (self.getDayOfYear(d) - 1) / self._domainType.day.row(d),
+                );
               }
               return self.getWeekNumber(d);
           }
@@ -524,8 +560,9 @@ var CalHeatMap = function () {
             return self._domainType.week.maxItemNumber;
           case 'month':
             return self.options.domainDynamicDimension
-              ? self.getWeekNumber(new Date(d.getFullYear(), d.getMonth() + 1, 0)) -
-                  self.getWeekNumber(d)
+              ? self.getWeekNumber(
+                  new Date(d.getFullYear(), d.getMonth() + 1, 0),
+                ) - self.getWeekNumber(d)
               : 5;
         }
       },
@@ -540,9 +577,13 @@ var CalHeatMap = function () {
         x: function (d) {
           switch (self.options.domain) {
             case 'year':
-              return Math.floor(self.getWeekNumber(d) / self._domainType.week.row(d));
+              return Math.floor(
+                self.getWeekNumber(d) / self._domainType.week.row(d),
+              );
             case 'month':
-              return Math.floor(self.getMonthWeekNumber(d) / self._domainType.week.row(d));
+              return Math.floor(
+                self.getMonthWeekNumber(d) / self._domainType.week.row(d),
+              );
           }
         },
         y: function (d) {
@@ -700,7 +741,10 @@ var CalHeatMap = function () {
         self._domains.set(
           d,
           self.getSubDomain(d).map(function (d) {
-            return { t: self._domainType[self.options.subDomain].extractUnit(d), v: null };
+            return {
+              t: self._domainType[self.options.subDomain].extractUnit(d),
+              v: null,
+            };
           }),
         );
       });
@@ -725,7 +769,8 @@ var CalHeatMap = function () {
 
   function _initCalendar() {
     self.verticalDomainLabel =
-      self.options.label.position === 'top' || self.options.label.position === 'bottom';
+      self.options.label.position === 'top' ||
+      self.options.label.position === 'bottom';
 
     self.domainVerticalLabelHeight =
       self.options.label.height === null
@@ -733,7 +778,10 @@ var CalHeatMap = function () {
         : self.options.label.height;
     self.domainHorizontalLabelWidth = 0;
 
-    if (self.options.domainLabelFormat === '' && self.options.label.height === null) {
+    if (
+      self.options.domainLabelFormat === '' &&
+      self.options.label.height === null
+    ) {
       self.domainVerticalLabelHeight = 0;
     }
 
@@ -748,10 +796,13 @@ var CalHeatMap = function () {
     // ATTACHING DOMAIN NAVIGATION EVENT                    //
     // =========================================================================//
     if (self.options.nextSelector !== false) {
-      d3.select(self.options.nextSelector).on('click.' + self.options.itemNamespace, function () {
-        d3.event.preventDefault();
-        return self.loadNextDomain(1);
-      });
+      d3.select(self.options.nextSelector).on(
+        'click.' + self.options.itemNamespace,
+        function () {
+          d3.event.preventDefault();
+          return self.loadNextDomain(1);
+        },
+      );
     }
 
     if (self.options.previousSelector !== false) {
@@ -764,7 +815,11 @@ var CalHeatMap = function () {
       );
     }
 
-    self.Legend.redraw(self.graphDim.width - self.options.domainGutter - self.options.cellPadding);
+    self.Legend.redraw(
+      self.graphDim.width -
+        self.options.domainGutter -
+        self.options.cellPadding,
+    );
     self.afterLoad();
 
     var domains = self.getDomainKeys();
@@ -792,8 +847,10 @@ var CalHeatMap = function () {
   // @param int d Domain start timestamp
   function w(d, outer) {
     var width =
-      self.options.cellSize * self._domainType[self.options.subDomain].column(d) +
-      self.options.cellPadding * self._domainType[self.options.subDomain].column(d);
+      self.options.cellSize *
+        self._domainType[self.options.subDomain].column(d) +
+      self.options.cellPadding *
+        self._domainType[self.options.subDomain].column(d);
     if (arguments.length === 2 && outer === true) {
       return (width +=
         self.domainHorizontalLabelWidth +
@@ -808,7 +865,8 @@ var CalHeatMap = function () {
   function h(d, outer) {
     var height =
       self.options.cellSize * self._domainType[self.options.subDomain].row(d) +
-      self.options.cellPadding * self._domainType[self.options.subDomain].row(d);
+      self.options.cellPadding *
+        self._domainType[self.options.subDomain].row(d);
     if (arguments.length === 2 && outer === true) {
       height +=
         self.options.domainGutter +
@@ -991,7 +1049,9 @@ var CalHeatMap = function () {
       })
       .call(function (selection) {
         if (options.cellRadius > 0) {
-          selection.attr('rx', options.cellRadius).attr('ry', options.cellRadius);
+          selection
+            .attr('rx', options.cellRadius)
+            .attr('ry', options.cellRadius);
         }
 
         if (
@@ -1040,8 +1100,10 @@ var CalHeatMap = function () {
           return (
             y +
             options.label.offset.y *
-              ((options.label.rotate === 'right' && options.label.position === 'right') ||
-              (options.label.rotate === 'left' && options.label.position === 'left')
+              ((options.label.rotate === 'right' &&
+                options.label.position === 'right') ||
+              (options.label.rotate === 'left' &&
+                options.label.position === 'left')
                 ? -1
                 : 1)
           );
@@ -1061,7 +1123,8 @@ var CalHeatMap = function () {
             return (
               x +
               self.domainHorizontalLabelWidth -
-              options.label.offset.x * (options.label.rotate === 'right' ? -1 : 1)
+              options.label.offset.x *
+                (options.label.rotate === 'right' ? -1 : 1)
             );
           }
           return x + options.label.offset.x;
@@ -1109,7 +1172,12 @@ var CalHeatMap = function () {
             var s = 'rotate(270), ';
             switch (options.label.position) {
               case 'right':
-                s += 'translate(-' + (w(d) + self.domainHorizontalLabelWidth) + ' , ' + w(d) + ')';
+                s +=
+                  'translate(-' +
+                  (w(d) + self.domainHorizontalLabelWidth) +
+                  ' , ' +
+                  w(d) +
+                  ')';
                 break;
               case 'left':
                 s +=
@@ -1158,10 +1226,14 @@ var CalHeatMap = function () {
         .transition()
         .duration(options.animationDuration)
         .attr('x', function (d) {
-          return options.verticalOrientation ? 0 : self.domainPosition.getPosition(d);
+          return options.verticalOrientation
+            ? 0
+            : self.domainPosition.getPosition(d);
         })
         .attr('y', function (d) {
-          return options.verticalOrientation ? self.domainPosition.getPosition(d) : 0;
+          return options.verticalOrientation
+            ? self.domainPosition.getPosition(d)
+            : 0;
         });
     }
 
@@ -1231,12 +1303,16 @@ CalHeatMap.prototype = {
     validateSelector(options.itemSelector, false, 'itemSelector');
 
     if (parent.allowedDataType.indexOf(options.dataType) === -1) {
-      throw new Error("The data type '" + options.dataType + "' is not valid data type");
+      throw new Error(
+        "The data type '" + options.dataType + "' is not valid data type",
+      );
     }
 
     if (d3.select(options.itemSelector)[0][0] === null) {
       throw new Error(
-        "The node '" + options.itemSelector + "' specified in itemSelector does not exists",
+        "The node '" +
+          options.itemSelector +
+          "' specified in itemSelector does not exists",
       );
     }
 
@@ -1254,8 +1330,13 @@ CalHeatMap.prototype = {
       this.options.subDomain = getOptimalSubDomain(settings.domain);
     }
 
-    if (typeof options.itemNamespace !== 'string' || options.itemNamespace === '') {
-      console.log('itemNamespace can not be empty, falling back to cal-heatmap');
+    if (
+      typeof options.itemNamespace !== 'string' ||
+      options.itemNamespace === ''
+    ) {
+      console.log(
+        'itemNamespace can not be empty, falling back to cal-heatmap',
+      );
       options.itemNamespace = 'cal-heatmap';
     }
 
@@ -1288,7 +1369,8 @@ CalHeatMap.prototype = {
         ? options.domainLabelFormat
         : this._domainType[options.domain].format.legend;
     options.subDomainTextFormat =
-      (typeof options.subDomainTextFormat === 'string' && options.subDomainTextFormat !== '') ||
+      (typeof options.subDomainTextFormat === 'string' &&
+        options.subDomainTextFormat !== '') ||
       typeof options.subDomainTextFormat === 'function'
         ? options.subDomainTextFormat
         : null;
@@ -1360,13 +1442,25 @@ CalHeatMap.prototype = {
         throw new Error("The domain '" + options.domain + "' is not valid");
       }
 
-      if (!parent._domainType.hasOwnProperty(options.subDomain) || options.subDomain === 'year') {
-        throw new Error("The subDomain '" + options.subDomain + "' is not valid");
+      if (
+        !parent._domainType.hasOwnProperty(options.subDomain) ||
+        options.subDomain === 'year'
+      ) {
+        throw new Error(
+          "The subDomain '" + options.subDomain + "' is not valid",
+        );
       }
 
-      if (parent._domainType[options.domain].level <= parent._domainType[options.subDomain].level) {
+      if (
+        parent._domainType[options.domain].level <=
+        parent._domainType[options.subDomain].level
+      ) {
         throw new Error(
-          "'" + options.subDomain + "' is not a valid subDomain to '" + options.domain + "'",
+          "'" +
+            options.subDomain +
+            "' is not a valid subDomain to '" +
+            options.domain +
+            "'",
         );
       }
 
@@ -1382,7 +1476,8 @@ CalHeatMap.prototype = {
       // Auto-align label, depending on it's position
       if (
         !settings.hasOwnProperty('label') ||
-        (settings.hasOwnProperty('label') && !settings.label.hasOwnProperty('align'))
+        (settings.hasOwnProperty('label') &&
+          !settings.label.hasOwnProperty('align'))
       ) {
         switch (options.label.position) {
           case 'left':
@@ -1404,9 +1499,13 @@ CalHeatMap.prototype = {
 
       if (
         !settings.hasOwnProperty('label') ||
-        (settings.hasOwnProperty('label') && !settings.label.hasOwnProperty('offset'))
+        (settings.hasOwnProperty('label') &&
+          !settings.label.hasOwnProperty('offset'))
       ) {
-        if (options.label.position === 'left' || options.label.position === 'right') {
+        if (
+          options.label.position === 'left' ||
+          options.label.position === 'right'
+        ) {
           options.label.offset = {
             x: 10,
             y: 15,
@@ -1430,8 +1529,9 @@ CalHeatMap.prototype = {
           break;
         case 'middle':
         case 'center':
-          options.legendMargin[options.legendHorizontalPosition === 'right' ? 3 : 1] =
-            parent.DEFAULT_LEGEND_MARGIN;
+          options.legendMargin[
+            options.legendHorizontalPosition === 'right' ? 3 : 1
+          ] = parent.DEFAULT_LEGEND_MARGIN;
       }
     }
 
@@ -1495,7 +1595,9 @@ CalHeatMap.prototype = {
 
     function parseRowLimit(value) {
       if (value > 0 && options.colLimit > 0) {
-        console.log('colLimit and rowLimit are mutually exclusive, rowLimit will be ignored');
+        console.log(
+          'colLimit and rowLimit are mutually exclusive, rowLimit will be ignored',
+        );
         return null;
       }
       return value > 0 ? value : null;
@@ -1594,7 +1696,9 @@ CalHeatMap.prototype = {
           return options.legendColors.overflow;
         }
 
-        return parent.legendScale(Math.min(d.v, options.legend[options.legend.length - 1]));
+        return parent.legendScale(
+          Math.min(d.v, options.legend[options.legend.length - 1]),
+        );
       });
     }
 
@@ -1624,9 +1728,13 @@ CalHeatMap.prototype = {
         }
 
         if (d.v !== null) {
-          htmlClass.push(parent.Legend.getClass(d.v, parent.legendScale === null));
+          htmlClass.push(
+            parent.Legend.getClass(d.v, parent.legendScale === null),
+          );
         } else if (options.considerMissingDataAsZero && pastDate) {
-          htmlClass.push(parent.Legend.getClass(0, parent.legendScale === null));
+          htmlClass.push(
+            parent.Legend.getClass(0, parent.legendScale === null),
+          );
         }
 
         if (options.onClick !== null) {
@@ -1668,7 +1776,9 @@ CalHeatMap.prototype = {
       .call(formatSubDomainText)
       .attr('fill', d => {
         if (!d.v) return '#000';
-        const rgb = parent.legendScale(Math.min(d.v, options.legend[options.legend.length - 1]));
+        const rgb = parent.legendScale(
+          Math.min(d.v, options.legend[options.legend.length - 1]),
+        );
         return getContrastingColor(rgb, 135);
       });
   },
@@ -1870,9 +1980,15 @@ CalHeatMap.prototype = {
     'use strict';
 
     if (d.v === null && !this.options.considerMissingDataAsZero) {
-      return this.formatStringWithObject(this.options.subDomainTitleFormat.empty, {
-        date: this.formatDate(new Date(d.t), this.options.subDomainDateFormat),
-      });
+      return this.formatStringWithObject(
+        this.options.subDomainTitleFormat.empty,
+        {
+          date: this.formatDate(
+            new Date(d.t),
+            this.options.subDomainDateFormat,
+          ),
+        },
+      );
     } else {
       var value = d.v;
       // Consider null as 0
@@ -1880,12 +1996,18 @@ CalHeatMap.prototype = {
         value = 0;
       }
 
-      return this.formatStringWithObject(this.options.subDomainTitleFormat.filled, {
-        count: this.formatNumber(value),
-        name: this.options.itemName[value !== 1 ? 1 : 0],
-        connector: this._domainType[this.options.subDomain].format.connector,
-        date: this.formatDate(new Date(d.t), this.options.subDomainDateFormat),
-      });
+      return this.formatStringWithObject(
+        this.options.subDomainTitleFormat.filled,
+        {
+          count: this.formatNumber(value),
+          name: this.options.itemName[value !== 1 ? 1 : 0],
+          connector: this._domainType[this.options.subDomain].format.connector,
+          date: this.formatDate(
+            new Date(d.t),
+            this.options.subDomainDateFormat,
+          ),
+        },
+      );
     }
   },
 
@@ -1908,7 +2030,10 @@ CalHeatMap.prototype = {
       return false;
     }
 
-    var bound = this.loadNewDomains(this.NAVIGATE_RIGHT, this.getDomain(this.getNextDomain(), n));
+    var bound = this.loadNewDomains(
+      this.NAVIGATE_RIGHT,
+      this.getDomain(this.getNextDomain(), n),
+    );
 
     this.afterLoadNextDomain(bound.end);
     this.checkIfMaxDomainIsReached(this.getNextDomain().getTime(), bound.start);
@@ -1952,7 +2077,10 @@ CalHeatMap.prototype = {
     var domains = this.getDomainKeys();
 
     function buildSubDomain(d) {
-      return { t: parent._domainType[parent.options.subDomain].extractUnit(d), v: null };
+      return {
+        t: parent._domainType[parent.options.subDomain].extractUnit(d),
+        v: null,
+      };
     }
 
     // Remove out of bound domains from list of new domains to prepend
@@ -2010,7 +2138,10 @@ CalHeatMap.prototype = {
   maxDomainIsReached: function (datetimestamp) {
     'use strict';
 
-    return this.options.maxDate !== null && this.options.maxDate.getTime() < datetimestamp;
+    return (
+      this.options.maxDate !== null &&
+      this.options.maxDate.getTime() < datetimestamp
+    );
   },
 
   /**
@@ -2022,7 +2153,10 @@ CalHeatMap.prototype = {
   minDomainIsReached: function (datetimestamp) {
     'use strict';
 
-    return this.options.minDate !== null && this.options.minDate.getTime() >= datetimestamp;
+    return (
+      this.options.minDate !== null &&
+      this.options.minDate.getTime() >= datetimestamp
+    );
   },
 
   /**
@@ -2050,14 +2184,18 @@ CalHeatMap.prototype = {
   positionSubDomainX: function (d) {
     'use strict';
 
-    var index = this._domainType[this.options.subDomain].position.x(new Date(d));
+    var index = this._domainType[this.options.subDomain].position.x(
+      new Date(d),
+    );
     return index * this.options.cellSize + index * this.options.cellPadding;
   },
 
   positionSubDomainY: function (d) {
     'use strict';
 
-    var index = this._domainType[this.options.subDomain].position.y(new Date(d));
+    var index = this._domainType[this.options.subDomain].position.y(
+      new Date(d),
+    );
     return index * this.options.cellSize + index * this.options.cellPadding;
   },
 
@@ -2111,7 +2249,9 @@ CalHeatMap.prototype = {
     if (this.options.highlight.length > 0) {
       for (var i in this.options.highlight) {
         if (this.dateIsEqual(this.options.highlight[i], d)) {
-          return this.isNow(this.options.highlight[i]) ? ' highlight-now' : ' highlight';
+          return this.isNow(this.options.highlight[i])
+            ? ' highlight-now'
+            : ' highlight';
         }
       }
     }
@@ -2185,7 +2325,10 @@ CalHeatMap.prototype = {
         );
       case 'x_month':
       case 'month':
-        return dateA.getFullYear() === dateB.getFullYear() && dateA.getMonth() === dateB.getMonth();
+        return (
+          dateA.getFullYear() === dateB.getFullYear() &&
+          dateA.getMonth() === dateB.getMonth()
+        );
       default:
         return false;
     }
@@ -2230,7 +2373,11 @@ CalHeatMap.prototype = {
           ).getTime();
         case 'x_day':
         case 'day':
-          return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+          return new Date(
+            date.getFullYear(),
+            date.getMonth(),
+            date.getDate(),
+          ).getTime();
         case 'x_week':
         case 'week':
         case 'x_month':
@@ -2266,7 +2413,10 @@ CalHeatMap.prototype = {
   getWeekNumber: function (d) {
     'use strict';
 
-    var f = this.options.weekStartOnMonday === true ? d3.time.format('%W') : d3.time.format('%U');
+    var f =
+      this.options.weekStartOnMonday === true
+        ? d3.time.format('%W')
+        : d3.time.format('%U');
     return f(d);
   },
 
@@ -2283,7 +2433,9 @@ CalHeatMap.prototype = {
       d = new Date(d);
     }
 
-    var monthFirstWeekNumber = this.getWeekNumber(new Date(d.getFullYear(), d.getMonth()));
+    var monthFirstWeekNumber = this.getWeekNumber(
+      new Date(d.getFullYear(), d.getMonth()),
+    );
     return this.getWeekNumber(d) - monthFirstWeekNumber - 1;
   },
 
@@ -2405,10 +2557,20 @@ CalHeatMap.prototype = {
   getMinuteDomain: function (d, range) {
     'use strict';
 
-    var start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours());
+    var start = new Date(
+      d.getFullYear(),
+      d.getMonth(),
+      d.getDate(),
+      d.getHours(),
+    );
     var stop = null;
     if (range instanceof Date) {
-      stop = new Date(range.getFullYear(), range.getMonth(), range.getDate(), range.getHours());
+      stop = new Date(
+        range.getFullYear(),
+        range.getMonth(),
+        range.getDate(),
+        range.getHours(),
+      );
     } else {
       stop = new Date(+start + range * 1000 * 60);
     }
@@ -2425,10 +2587,20 @@ CalHeatMap.prototype = {
   getHourDomain: function (d, range) {
     'use strict';
 
-    var start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours());
+    var start = new Date(
+      d.getFullYear(),
+      d.getMonth(),
+      d.getDate(),
+      d.getHours(),
+    );
     var stop = null;
     if (range instanceof Date) {
-      stop = new Date(range.getFullYear(), range.getMonth(), range.getDate(), range.getHours());
+      stop = new Date(
+        range.getFullYear(),
+        range.getMonth(),
+        range.getDate(),
+        range.getHours(),
+      );
     } else {
       stop = new Date(start);
       stop.setHours(stop.getHours() + range);
@@ -2493,7 +2665,11 @@ CalHeatMap.prototype = {
     var weekStart;
 
     if (this.options.weekStartOnMonday === false) {
-      weekStart = new Date(d.getFullYear(), d.getMonth(), d.getDate() - d.getDay());
+      weekStart = new Date(
+        d.getFullYear(),
+        d.getMonth(),
+        d.getDate() - d.getDay(),
+      );
     } else {
       if (d.getDay() === 1) {
         weekStart = new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -2501,7 +2677,11 @@ CalHeatMap.prototype = {
         weekStart = new Date(d.getFullYear(), d.getMonth(), d.getDate());
         weekStart.setDate(weekStart.getDate() - 6);
       } else {
-        weekStart = new Date(d.getFullYear(), d.getMonth(), d.getDate() - d.getDay() + 1);
+        weekStart = new Date(
+          d.getFullYear(),
+          d.getMonth(),
+          d.getDate() - d.getDay() + 1,
+        );
       }
     }
 
@@ -2662,7 +2842,9 @@ CalHeatMap.prototype = {
       if (domain === 'month') {
         var endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
         var endWeekNb = parent.getWeekNumber(endOfMonth);
-        var startWeekNb = parent.getWeekNumber(new Date(date.getFullYear(), date.getMonth()));
+        var startWeekNb = parent.getWeekNumber(
+          new Date(date.getFullYear(), date.getMonth()),
+        );
 
         if (startWeekNb > endWeekNb) {
           startWeekNb = 0;
@@ -2678,16 +2860,28 @@ CalHeatMap.prototype = {
     switch (this.options.subDomain) {
       case 'x_min':
       case 'min':
-        return this.getMinuteDomain(date, computeMinSubDomainSize(date, this.options.domain));
+        return this.getMinuteDomain(
+          date,
+          computeMinSubDomainSize(date, this.options.domain),
+        );
       case 'x_hour':
       case 'hour':
-        return this.getHourDomain(date, computeHourSubDomainSize(date, this.options.domain));
+        return this.getHourDomain(
+          date,
+          computeHourSubDomainSize(date, this.options.domain),
+        );
       case 'x_day':
       case 'day':
-        return this.getDayDomain(date, computeDaySubDomainSize(date, this.options.domain));
+        return this.getDayDomain(
+          date,
+          computeDaySubDomainSize(date, this.options.domain),
+        );
       case 'x_week':
       case 'week':
-        return this.getWeekDomain(date, computeWeekSubDomainSize(date, this.options.domain));
+        return this.getWeekDomain(
+          date,
+          computeWeekSubDomainSize(date, this.options.domain),
+        );
       case 'x_month':
       case 'month':
         return this.getMonthDomain(date, 12);
@@ -2705,7 +2899,10 @@ CalHeatMap.prototype = {
     if (arguments.length === 0) {
       n = 1;
     }
-    return this.getDomain(this.jumpDate(this.getDomainKeys().pop(), n, this.options.domain), 1)[0];
+    return this.getDomain(
+      this.jumpDate(this.getDomainKeys().pop(), n, this.options.domain),
+      1,
+    )[0];
   },
 
   /**
@@ -2743,7 +2940,14 @@ CalHeatMap.prototype = {
    * - True if there are no data to load
    * - False if data are loaded asynchronously
    */
-  getDatas: function (source, startDate, endDate, callback, afterLoad, updateMode) {
+  getDatas: function (
+    source,
+    startDate,
+    endDate,
+    callback,
+    afterLoad,
+    updateMode,
+  ) {
     'use strict';
 
     var self = this;
@@ -2762,7 +2966,10 @@ CalHeatMap.prototype = {
         } else {
           console.log('Provided callback for afterLoadData is not a function.');
         }
-      } else if (self.options.dataType === 'csv' || self.options.dataType === 'tsv') {
+      } else if (
+        self.options.dataType === 'csv' ||
+        self.options.dataType === 'tsv'
+      ) {
         data = this.interpretCSV(data);
       }
       self.parseDatas(data, updateMode, startDate, endDate);
@@ -2784,7 +2991,11 @@ CalHeatMap.prototype = {
           }
           var payload = null;
           if (self.options.dataPostPayload !== null) {
-            payload = this.parseURI(self.options.dataPostPayload, startDate, endDate);
+            payload = this.parseURI(
+              self.options.dataPostPayload,
+              startDate,
+              endDate,
+            );
           }
 
           var xhr = null;
@@ -2941,14 +3152,20 @@ CalHeatMap.prototype = {
     var parent = this;
     var options = parent.options;
     var legendWidth = options.displayLegend
-      ? parent.Legend.getDim('width') + options.legendMargin[1] + options.legendMargin[3]
+      ? parent.Legend.getDim('width') +
+        options.legendMargin[1] +
+        options.legendMargin[3]
       : 0;
     var legendHeight = options.displayLegend
-      ? parent.Legend.getDim('height') + options.legendMargin[0] + options.legendMargin[2]
+      ? parent.Legend.getDim('height') +
+        options.legendMargin[0] +
+        options.legendMargin[2]
       : 0;
 
-    var graphWidth = parent.graphDim.width - options.domainGutter - options.cellPadding;
-    var graphHeight = parent.graphDim.height - options.domainGutter - options.cellPadding;
+    var graphWidth =
+      parent.graphDim.width - options.domainGutter - options.cellPadding;
+    var graphHeight =
+      parent.graphDim.height - options.domainGutter - options.cellPadding;
 
     this.root
       .transition()
@@ -3134,7 +3351,11 @@ CalHeatMap.prototype = {
       this.fill();
     }
 
-    this.Legend.redraw(this.graphDim.width - this.options.domainGutter - this.options.cellPadding);
+    this.Legend.redraw(
+      this.graphDim.width -
+        this.options.domainGutter -
+        this.options.cellPadding,
+    );
   },
 
   /**
@@ -3165,7 +3386,11 @@ CalHeatMap.prototype = {
       return false;
     }
     this.options.displayLegend = true;
-    this.Legend.redraw(this.graphDim.width - this.options.domainGutter - this.options.cellPadding);
+    this.Legend.redraw(
+      this.graphDim.width -
+        this.options.domainGutter -
+        this.options.cellPadding,
+    );
     return true;
   },
 
@@ -3237,7 +3462,11 @@ CalHeatMap.prototype = {
       '.qi': {},
     };
 
-    for (var j = 1, total = this.options.legend.length + 1; j <= total; j += 1) {
+    for (
+      var j = 1, total = this.options.legend.length + 1;
+      j <= total;
+      j += 1
+    ) {
       styles['.q' + j] = {};
     }
 
@@ -3591,7 +3820,13 @@ Legend.prototype.redraw = function (width) {
     .duration(options.animationDuration)
     .attr('transform', function () {
       if (options.legendOrientation === 'vertical') {
-        return 'rotate(90 ' + options.legendCellSize / 2 + ' ' + options.legendCellSize / 2 + ')';
+        return (
+          'rotate(90 ' +
+          options.legendCellSize / 2 +
+          ' ' +
+          options.legendCellSize / 2 +
+          ')'
+        );
       }
       return '';
     });
@@ -3680,7 +3915,9 @@ Legend.prototype.buildColors = function () {
     _legend.unshift(0);
   } else if (_legend[0] <= 0) {
     // Let's guess the leftmost value, it we have to add one
-    _legend.unshift(_legend[0] - (_legend[_legend.length - 1] - _legend[0]) / _legend.length);
+    _legend.unshift(
+      _legend[0] - (_legend[_legend.length - 1] - _legend[0]) / _legend.length,
+    );
   }
   var colorScale;
   if (options.legendColors.hasOwnProperty('colorScale')) {
@@ -3696,7 +3933,10 @@ Legend.prototype.buildColors = function () {
   var legendColors = _legend.map(function (element) {
     return colorScale(element);
   });
-  this.calendar.legendScale = d3.scale.threshold().domain(options.legend).range(legendColors);
+  this.calendar.legendScale = d3.scale
+    .threshold()
+    .domain(options.legend)
+    .range(legendColors);
 
   return true;
 };
@@ -3719,7 +3959,11 @@ Legend.prototype.getClass = function (n, withCssClass) {
 
   var index = [this.calendar.options.legend.length + 1];
 
-  for (var i = 0, total = this.calendar.options.legend.length - 1; i <= total; i += 1) {
+  for (
+    var i = 0, total = this.calendar.options.legend.length - 1;
+    i <= total;
+    i += 1
+  ) {
     if (this.calendar.options.legend[0] > 0 && n < 0) {
       index = ['1', 'i'];
       break;

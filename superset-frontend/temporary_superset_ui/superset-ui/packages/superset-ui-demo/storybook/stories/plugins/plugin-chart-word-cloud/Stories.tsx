@@ -29,7 +29,9 @@ import { withResizableChartDemo } from '../../../shared/components/ResizableChar
 import data from './data';
 
 new WordCloudChartPlugin().configure({ key: 'word-cloud2' }).register();
-new LegacyWordCloudChartPlugin().configure({ key: 'legacy-word-cloud2' }).register();
+new LegacyWordCloudChartPlugin()
+  .configure({ key: 'legacy-word-cloud2' })
+  .register();
 
 // Enable the new WordCloud Props to show case its full features
 // if the control panel is updated to be able to pass formData in the new format.

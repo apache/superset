@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { RequestConfig, SupersetClientInterface, SupersetClientClass } from '../../connection';
+import {
+  RequestConfig,
+  SupersetClientInterface,
+  SupersetClientClass,
+} from '../../connection';
 
 export interface BaseParams {
   client?: SupersetClientInterface | SupersetClientClass;

@@ -45,19 +45,31 @@ export default function ResizableChartDemo({
   const [size, setSize] = useState(initialSize);
   return (
     <SupersetBody>
-      <ResizablePanel initialSize={initialSize} onResize={(e, data) => setSize(data.size)}>
-        {children({ width: size.width - panelPadding, height: size.height - panelPadding })}
+      <ResizablePanel
+        initialSize={initialSize}
+        onResize={(e, data) => setSize(data.size)}
+      >
+        {children({
+          width: size.width - panelPadding,
+          height: size.height - panelPadding,
+        })}
       </ResizablePanel>
     </SupersetBody>
   );
 }
 
-export const withResizableChartDemo: DecoratorFunction<ReactNode> = (storyFn, context) => {
+export const withResizableChartDemo: DecoratorFunction<ReactNode> = (
+  storyFn,
+  context,
+) => {
   const {
     parameters: { initialSize, panelPadding },
   } = context;
   return (
-    <ResizableChartDemo initialSize={initialSize as Size | undefined} panelPadding={panelPadding}>
+    <ResizableChartDemo
+      initialSize={initialSize as Size | undefined}
+      panelPadding={panelPadding}
+    >
       {innerSize => storyFn({ ...context, ...innerSize })}
     </ResizableChartDemo>
   );

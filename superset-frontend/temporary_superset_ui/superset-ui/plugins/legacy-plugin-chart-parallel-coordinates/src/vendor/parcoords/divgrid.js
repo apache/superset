@@ -8,7 +8,12 @@ export default function (config) {
     if (columns.length == 0) columns = d3.keys(selection.data()[0][0]);
 
     // header
-    selection.selectAll('.header').data([true]).enter().append('div').attr('class', 'header');
+    selection
+      .selectAll('.header')
+      .data([true])
+      .enter()
+      .append('div')
+      .attr('class', 'header');
 
     var header = selection.select('.header').selectAll('.cell').data(columns);
 

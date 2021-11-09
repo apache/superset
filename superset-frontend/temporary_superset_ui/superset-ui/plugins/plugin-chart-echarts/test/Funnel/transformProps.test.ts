@@ -17,7 +17,9 @@
  * under the License.
  */
 import { ChartProps, getNumberFormatter } from '@superset-ui/core';
-import transformProps, { formatFunnelLabel } from '../../src/Funnel/transformProps';
+import transformProps, {
+  formatFunnelLabel,
+} from '../../src/Funnel/transformProps';
 import { EchartsFunnelLabelTypeType } from '../../src/Funnel/types';
 
 describe('Funnel tranformProps', () => {
@@ -73,13 +75,25 @@ describe('formatFunnelLabel', () => {
     const numberFormatter = getNumberFormatter();
     const params = { name: 'My Label', value: 1234, percent: 12.34 };
     expect(
-      formatFunnelLabel({ params, numberFormatter, labelType: EchartsFunnelLabelTypeType.Key }),
+      formatFunnelLabel({
+        params,
+        numberFormatter,
+        labelType: EchartsFunnelLabelTypeType.Key,
+      }),
     ).toEqual('My Label');
     expect(
-      formatFunnelLabel({ params, numberFormatter, labelType: EchartsFunnelLabelTypeType.Value }),
+      formatFunnelLabel({
+        params,
+        numberFormatter,
+        labelType: EchartsFunnelLabelTypeType.Value,
+      }),
     ).toEqual('1.23k');
     expect(
-      formatFunnelLabel({ params, numberFormatter, labelType: EchartsFunnelLabelTypeType.Percent }),
+      formatFunnelLabel({
+        params,
+        numberFormatter,
+        labelType: EchartsFunnelLabelTypeType.Percent,
+      }),
     ).toEqual('12.34%');
     expect(
       formatFunnelLabel({

@@ -126,7 +126,9 @@ describe('EchartsGraph tranformProps', () => {
                 {
                   emphasis: { lineStyle: { width: 12 } },
                   lineStyle: { width: 6 },
-                  select: { lineStyle: { opacity: 1, width: 9.600000000000001 } },
+                  select: {
+                    lineStyle: { opacity: 1, width: 9.600000000000001 },
+                  },
                   source: '0',
                   target: '1',
                   value: 6,

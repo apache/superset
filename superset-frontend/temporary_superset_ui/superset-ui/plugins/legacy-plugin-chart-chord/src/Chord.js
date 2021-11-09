@@ -19,7 +19,10 @@
 /* eslint-disable no-param-reassign, react/sort-prop-types */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
-import { getNumberFormatter, CategoricalColorNamespace } from '@superset-ui/core';
+import {
+  getNumberFormatter,
+  CategoricalColorNamespace,
+} from '@superset-ui/core';
 
 const propTypes = {
   data: PropTypes.shape({
@@ -102,7 +105,9 @@ function Chord(element, props) {
   // Remove the labels that don't fit. :(
   groupText
     .filter(function filter(d, i) {
-      return groupPath[0][i].getTotalLength() / 2 - 16 < this.getComputedTextLength();
+      return (
+        groupPath[0][i].getTotalLength() / 2 - 16 < this.getComputedTextLength()
+      );
     })
     .remove();
 
@@ -124,9 +129,11 @@ function Chord(element, props) {
     .append('title')
     .text(
       d =>
-        `${nodes[d.source.index]} → ${nodes[d.target.index]}: ${f(d.source.value)}\n${
-          nodes[d.target.index]
-        } → ${nodes[d.source.index]}: ${f(d.target.value)}`,
+        `${nodes[d.source.index]} → ${nodes[d.target.index]}: ${f(
+          d.source.value,
+        )}\n${nodes[d.target.index]} → ${nodes[d.source.index]}: ${f(
+          d.target.value,
+        )}`,
     );
 }
 

@@ -34,7 +34,9 @@ const LEGEND_GROUP_STYLE: CSSProperties = {
   padding: 8,
 };
 
-export default function DefaultLegendGroupRenderer<Config extends EncodingConfig>({
+export default function DefaultLegendGroupRenderer<
+  Config extends EncodingConfig,
+>({
   group,
   ItemRenderer = DefaultLegendItem,
   ItemMarkRenderer,
@@ -42,7 +44,9 @@ export default function DefaultLegendGroupRenderer<Config extends EncodingConfig
   style,
 }: LegendGroupRendererProps<Config>) {
   const combinedStyle =
-    typeof style === 'undefined' ? LEGEND_GROUP_STYLE : { ...LEGEND_GROUP_STYLE, ...style };
+    typeof style === 'undefined'
+      ? LEGEND_GROUP_STYLE
+      : { ...LEGEND_GROUP_STYLE, ...style };
 
   return (
     <div style={combinedStyle}>

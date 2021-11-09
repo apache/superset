@@ -65,7 +65,10 @@ describe('SuperChartCore', () => {
   describe('registered charts', () => {
     it('renders registered chart', () => {
       const wrapper = shallow(
-        <SuperChartCore chartType={ChartKeys.DILIGENT} chartProps={chartProps} />,
+        <SuperChartCore
+          chartType={ChartKeys.DILIGENT}
+          chartProps={chartProps}
+        />,
       );
 
       return promiseTimeout(() => {
@@ -89,7 +92,9 @@ describe('SuperChartCore', () => {
       }, 5);
     });
     it('adds id to container if specified', () => {
-      const wrapper = shallow(<SuperChartCore chartType={ChartKeys.DILIGENT} id="the-chart" />);
+      const wrapper = shallow(
+        <SuperChartCore chartType={ChartKeys.DILIGENT} id="the-chart" />,
+      );
 
       return promiseTimeout(() => {
         expect(wrapper.render().attr('id')).toEqual('the-chart');
@@ -145,7 +150,9 @@ describe('SuperChartCore', () => {
       });
     });
     it('renders if chartProps is not specified', () => {
-      const wrapper = shallow(<SuperChartCore chartType={ChartKeys.DILIGENT} />);
+      const wrapper = shallow(
+        <SuperChartCore chartType={ChartKeys.DILIGENT} />,
+      );
 
       return promiseTimeout(() => {
         expect(wrapper.render().find('div.test-component')).toHaveLength(1);
@@ -167,7 +174,9 @@ describe('SuperChartCore', () => {
       }, 1500);
     });
     it('does not render if chartProps is null', () => {
-      const wrapper = shallow(<SuperChartCore chartType={ChartKeys.DILIGENT} chartProps={null} />);
+      const wrapper = shallow(
+        <SuperChartCore chartType={ChartKeys.DILIGENT} chartProps={null} />,
+      );
 
       return promiseTimeout(() => {
         expect(wrapper.render().find('div.test-component')).toHaveLength(0);
@@ -177,7 +186,9 @@ describe('SuperChartCore', () => {
 
   describe('unregistered charts', () => {
     it('renders error message', () => {
-      const wrapper = mount(<SuperChartCore chartType="4d-pie-chart" chartProps={chartProps} />);
+      const wrapper = mount(
+        <SuperChartCore chartType="4d-pie-chart" chartProps={chartProps} />,
+      );
 
       return promiseTimeout(() => {
         expect(wrapper.render().find('.alert')).toHaveLength(1);
@@ -191,7 +202,9 @@ describe('SuperChartCore', () => {
         chartType: ChartKeys.DILIGENT,
       });
       const chartProps2 = new ChartProps();
-      expect(chart.processChartProps({ chartProps: chartProps2 })).toBe(chartProps2);
+      expect(chart.processChartProps({ chartProps: chartProps2 })).toBe(
+        chartProps2,
+      );
     });
   });
 });

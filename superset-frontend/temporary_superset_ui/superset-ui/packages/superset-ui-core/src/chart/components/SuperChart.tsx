@@ -18,7 +18,10 @@
  */
 
 import React, { ReactNode, RefObject } from 'react';
-import ErrorBoundary, { ErrorBoundaryProps, FallbackProps } from 'react-error-boundary';
+import ErrorBoundary, {
+  ErrorBoundaryProps,
+  FallbackProps,
+} from 'react-error-boundary';
 import { ParentSize } from '@vx/responsive';
 import { createSelector } from 'reselect';
 import { parseLength, Dimension } from '../../dimension';
@@ -94,8 +97,12 @@ export default class SuperChart extends React.PureComponent<Props, {}> {
       const widthInfo = parseLength(width);
       const heightInfo = parseLength(height);
 
-      const boxHeight = heightInfo.isDynamic ? `${heightInfo.multiplier * 100}%` : heightInfo.value;
-      const boxWidth = widthInfo.isDynamic ? `${widthInfo.multiplier * 100}%` : widthInfo.value;
+      const boxHeight = heightInfo.isDynamic
+        ? `${heightInfo.multiplier * 100}%`
+        : heightInfo.value;
+      const boxWidth = widthInfo.isDynamic
+        ? `${widthInfo.multiplier * 100}%`
+        : widthInfo.value;
       const style = {
         height: boxHeight,
         width: boxWidth,
@@ -111,7 +118,9 @@ export default class SuperChart extends React.PureComponent<Props, {}> {
         widthInfo.multiplier === 1 &&
         heightInfo.multiplier === 1
           ? React.Fragment
-          : ({ children }: { children: ReactNode }) => <div style={style}>{children}</div>;
+          : ({ children }: { children: ReactNode }) => (
+              <div style={style}>{children}</div>
+            );
 
       return { BoundingBox, heightInfo, widthInfo };
     },
@@ -154,9 +163,18 @@ export default class SuperChart extends React.PureComponent<Props, {}> {
     const noResultQueries =
       enableNoResults &&
       (!queriesData ||
-        queriesData.every(({ data }) => !data || (Array.isArray(data) && data.length === 0)));
+        queriesData.every(
+          ({ data }) => !data || (Array.isArray(data) && data.length === 0),
+        ));
     if (noResultQueries) {
-      chart = <NoResultsComponent id={id} className={className} height={height} width={width} />;
+      chart = (
+        <NoResultsComponent
+          id={id}
+          className={className}
+          height={height}
+          width={width}
+        />
+      );
     } else {
       const chartWithoutWrapper = (
         <SuperChartCore

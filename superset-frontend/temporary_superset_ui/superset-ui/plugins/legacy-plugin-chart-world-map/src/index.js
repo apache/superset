@@ -26,7 +26,9 @@ import controlPanel from './controlPanel';
 const metadata = new ChartMetadata({
   category: t('Map'),
   credits: ['http://datamaps.github.io/'],
-  description: t('A map of the world, that can indicate values in different countries.'),
+  description: t(
+    'A map of the world, that can indicate values in different countries.',
+  ),
   exampleGallery: [{ url: example1 }, { url: example2 }],
   name: t('World Map'),
   tags: [

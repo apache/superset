@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin, AnnotationType, Behavior } from '@superset-ui/core';
+import {
+  t,
+  ChartMetadata,
+  ChartPlugin,
+  AnnotationType,
+  Behavior,
+} from '@superset-ui/core';
 import buildQuery from '../../buildQuery';
 import controlPanel from '../controlPanel';
 import transformProps from '../../transformProps';
@@ -33,7 +39,10 @@ import example3 from './images/Bar3.png';
 const barTransformProps = (chartProps: EchartsTimeseriesChartProps) =>
   transformProps({
     ...chartProps,
-    formData: { ...chartProps.formData, seriesType: EchartsTimeseriesSeriesType.Bar },
+    formData: {
+      ...chartProps.formData,
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+    },
   });
 
 export default class EchartsTimeseriesBarChartPlugin extends ChartPlugin<
@@ -52,7 +61,11 @@ export default class EchartsTimeseriesBarChartPlugin extends ChartPlugin<
         description: t(
           'Time-series Bar Charts are used to show the changes in a metric over time as a series of bars.',
         ),
-        exampleGallery: [{ url: example1 }, { url: example2 }, { url: example3 }],
+        exampleGallery: [
+          { url: example1 },
+          { url: example2 },
+          { url: example3 },
+        ],
         supportedAnnotationTypes: [
           AnnotationType.Event,
           AnnotationType.Formula,

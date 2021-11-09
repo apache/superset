@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetApiError, SupersetApiErrorPayload, SupersetApiMultiErrorsPayload } from './types';
+import {
+  SupersetApiError,
+  SupersetApiErrorPayload,
+  SupersetApiMultiErrorsPayload,
+} from './types';
 
 export type ErrorInput = string | Error | Response | SupersetApiErrorPayload;
 
@@ -54,7 +58,9 @@ export default async function handleError(error: ErrorInput): Promise<never> {
     statusText = responseStatusText;
     errorMessage = `${status} ${statusText}`;
     try {
-      errorJson = (await error.json()) as SupersetApiErrorPayload | SupersetApiMultiErrorsPayload;
+      errorJson = (await error.json()) as
+        | SupersetApiErrorPayload
+        | SupersetApiMultiErrorsPayload;
       originalError = errorJson;
     } catch (error_) {
       originalError = error;
@@ -65,7 +71,10 @@ export default async function handleError(error: ErrorInput): Promise<never> {
 
   // when API returns 200 but operation fails (see Python API json_error_response(...))
   // or when frontend promise rejects with `{ error: ... }`
-  if (errorJson && ('error' in errorJson || 'message' in errorJson || 'errors' in errorJson)) {
+  if (
+    errorJson &&
+    ('error' in errorJson || 'message' in errorJson || 'errors' in errorJson)
+  ) {
     let err;
     if ('errors' in errorJson) {
       err = errorJson.errors?.[0] || {};
@@ -75,7 +84,10 @@ export default async function handleError(error: ErrorInput): Promise<never> {
       err = errorJson;
     }
     errorMessage =
-      err.message || (err.error as string | undefined) || err.error_type || errorMessage;
+      err.message ||
+      (err.error as string | undefined) ||
+      err.error_type ||
+      errorMessage;
     throw new SupersetApiError({
       status,
       statusText,

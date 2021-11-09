@@ -173,7 +173,13 @@ describe('EchartsTimeseries tranformProps', () => {
           ...queriesData[0],
           annotation_data: {
             'My Event': {
-              columns: ['start_dttm', 'end_dttm', 'short_descr', 'long_descr', 'json_metadata'],
+              columns: [
+                'start_dttm',
+                'end_dttm',
+                'short_descr',
+                'long_descr',
+                'json_metadata',
+              ],
               records: [
                 {
                   start_dttm: 0,

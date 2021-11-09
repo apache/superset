@@ -166,7 +166,11 @@ describe('buildQueryObject', () => {
     expect(query.row_offset).toBeUndefined();
 
     // null value
-    query = buildQueryObject({ ...baseQuery, row_limit: null, row_offset: null });
+    query = buildQueryObject({
+      ...baseQuery,
+      row_limit: null,
+      row_offset: null,
+    });
     expect(query.row_limit).toBeUndefined();
     expect(query.row_offset).toBeUndefined();
 
@@ -175,12 +179,20 @@ describe('buildQueryObject', () => {
     expect(query.row_offset).toStrictEqual(50);
 
     // valid string
-    query = buildQueryObject({ ...baseQuery, row_limit: '200', row_offset: '100' });
+    query = buildQueryObject({
+      ...baseQuery,
+      row_limit: '200',
+      row_offset: '100',
+    });
     expect(query.row_limit).toStrictEqual(200);
     expect(query.row_offset).toStrictEqual(100);
 
     // invalid string
-    query = buildQueryObject({ ...baseQuery, row_limit: 'two hundred', row_offset: 'twenty' });
+    query = buildQueryObject({
+      ...baseQuery,
+      row_limit: 'two hundred',
+      row_offset: 'twenty',
+    });
     expect(query.row_limit).toBeUndefined();
     expect(query.row_offset).toBeUndefined();
   });
@@ -254,7 +266,9 @@ describe('buildQueryObject', () => {
   });
 
   it('should populate custom_params', () => {
-    const customParams: JsonObject = { customObject: { id: 137, name: 'C-137' } };
+    const customParams: JsonObject = {
+      customObject: { id: 137, name: 'C-137' },
+    };
     query = buildQueryObject({
       datasource: '5__table',
       granularity_sqla: 'ds',

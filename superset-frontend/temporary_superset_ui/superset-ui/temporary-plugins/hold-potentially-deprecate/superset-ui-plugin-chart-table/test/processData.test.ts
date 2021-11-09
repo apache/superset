@@ -52,11 +52,15 @@ describe('processData', () => {
     const maxValue = Math.max(...records.map(r => r[timeseriesLimitMetric]));
     const minValue = Math.min(...records.map(r => r[timeseriesLimitMetric]));
     expect(result[0].data[timeseriesLimitMetric]).toEqual(maxValue);
-    expect(result[result.length - 1].data[timeseriesLimitMetric]).toEqual(minValue);
+    expect(result[result.length - 1].data[timeseriesLimitMetric]).toEqual(
+      minValue,
+    );
   });
 
   it('removes the timeseriesLimitMetric column if it is not included in metrics', () => {
-    const filteredMetrics = metrics.filter(metric => metric !== timeseriesLimitMetric);
+    const filteredMetrics = metrics.filter(
+      metric => metric !== timeseriesLimitMetric,
+    );
     const result = processData({
       timeseriesLimitMetric,
       orderDesc,

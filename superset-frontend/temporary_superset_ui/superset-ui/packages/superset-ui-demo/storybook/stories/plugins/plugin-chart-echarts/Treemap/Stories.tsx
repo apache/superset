@@ -25,9 +25,14 @@ import transformProps from '@superset-ui/plugin-chart-echarts/lib/Treemap/transf
 import data from './data';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 
-new EchartsTreemapChartPlugin().configure({ key: 'echarts-treemap' }).register();
+new EchartsTreemapChartPlugin()
+  .configure({ key: 'echarts-treemap' })
+  .register();
 
-getChartTransformPropsRegistry().registerValue('echarts-treemap', transformProps);
+getChartTransformPropsRegistry().registerValue(
+  'echarts-treemap',
+  transformProps,
+);
 
 export default {
   title: 'Chart Plugins/plugin-chart-echarts/Treemap',
@@ -46,7 +51,11 @@ export const Treemap = ({ width, height }) => (
       metric: 'count',
       showLabels: boolean('Show labels', true),
       showUpperLabels: boolean('Show upperLabels', true),
-      labelType: select('Treemap label type', ['key', 'value', 'key_value'], 'key_value'),
+      labelType: select(
+        'Treemap label type',
+        ['key', 'value', 'key_value'],
+        'key_value',
+      ),
     }}
   />
 );

@@ -98,7 +98,9 @@ function Calendar(element, props) {
   container.selectAll('*').remove();
   const div = container.append('div');
 
-  const subDomainTextFormat = showValues ? (date, value) => valueFormatter(value) : null;
+  const subDomainTextFormat = showValues
+    ? (date, value) => valueFormatter(value)
+    : null;
 
   // Trick to convert all timestamps to UTC
   // TODO: Verify if this conversion is really necessary
@@ -107,7 +109,8 @@ function Calendar(element, props) {
   Object.keys(data.data).forEach(metric => {
     metricsData[metric] = {};
     Object.keys(data.data[metric]).forEach(ts => {
-      metricsData[metric][convertUTCTS(ts * 1000) / 1000] = data.data[metric][ts];
+      metricsData[metric][convertUTCTS(ts * 1000) / 1000] =
+        data.data[metric][ts];
     });
   });
 

@@ -29,7 +29,9 @@ import {
   BoxPlotEncoder,
   boxPlotEncoderFactory,
 } from './Encoder';
-import createMarginSelector, { DEFAULT_MARGIN } from '../../utils/createMarginSelector';
+import createMarginSelector, {
+  DEFAULT_MARGIN,
+} from '../../utils/createMarginSelector';
 import { BoxPlotDataRow } from './types';
 import convertScaleToDataUIScale from '../../utils/convertScaleToDataUIScaleShape';
 import createXYChartLayoutWithTheme from '../../utils/createXYChartLayoutWithTheme';
@@ -79,7 +81,8 @@ export default class BoxPlot extends React.PureComponent<Props> {
     const { channels } = encoder;
 
     const isHorizontal =
-      isFieldDef(channels.y.definition) && channels.y.definition.type === 'nominal';
+      isFieldDef(channels.y.definition) &&
+      channels.y.definition.type === 'nominal';
 
     encoder.setDomainFromDataset(data);
 
@@ -99,9 +102,13 @@ export default class BoxPlot extends React.PureComponent<Props> {
         height={chartDim.height}
         ariaLabel="BoxPlot"
         margin={layout.margin}
-        renderTooltip={({ datum, color }: { datum: BoxPlotDataRow; color: string }) => (
-          <TooltipRenderer datum={datum} color={color} encoder={encoder} />
-        )}
+        renderTooltip={({
+          datum,
+          color,
+        }: {
+          datum: BoxPlotDataRow;
+          color: string;
+        }) => <TooltipRenderer datum={datum} color={color} encoder={encoder} />}
         theme={theme}
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         xScale={convertScaleToDataUIScale(channels.x.definition.scale as any)}
@@ -111,14 +118,24 @@ export default class BoxPlot extends React.PureComponent<Props> {
         {layout.renderXAxis()}
         {layout.renderYAxis()}
         <BoxPlotSeries
-          key={isFieldDef(channels.x.definition) ? channels.x.definition.field : ''}
+          key={
+            isFieldDef(channels.x.definition) ? channels.x.definition.field : ''
+          }
           animated
           data={
             isHorizontal
-              ? data.map(row => ({ ...row, y: channels.y.getValueFromDatum(row) }))
-              : data.map(row => ({ ...row, x: channels.x.getValueFromDatum(row) }))
+              ? data.map(row => ({
+                  ...row,
+                  y: channels.y.getValueFromDatum(row),
+                }))
+              : data.map(row => ({
+                  ...row,
+                  x: channels.x.getValueFromDatum(row),
+                }))
           }
-          fill={(datum: PlainObject) => channels.color.encodeDatum(datum, '#55acee')}
+          fill={(datum: PlainObject) =>
+            channels.color.encodeDatum(datum, '#55acee')
+          }
           fillOpacity={0.4}
           stroke={(datum: PlainObject) => channels.color.encodeDatum(datum)}
           strokeWidth={1}
@@ -138,7 +155,11 @@ export default class BoxPlot extends React.PureComponent<Props> {
         width={width}
         height={height}
         position="top"
-        renderLegend={createRenderLegend(this.createEncoder(encoding), data, this.props)}
+        renderLegend={createRenderLegend(
+          this.createEncoder(encoding),
+          data,
+          this.props,
+        )}
         renderChart={this.renderChart}
       />
     );

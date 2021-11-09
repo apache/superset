@@ -38,14 +38,17 @@ import { DEFAULT_FORM_DATA } from './types';
 import { LABEL_POSITION } from '../constants';
 import { legendSection } from '../controls';
 
-const { labelType, labelPosition, numberFormat, showLabels, isCircle } = DEFAULT_FORM_DATA;
+const { labelType, labelPosition, numberFormat, showLabels, isCircle } =
+  DEFAULT_FORM_DATA;
 
 const radarMetricMaxValue: { name: string; config: ControlFormItemSpec } = {
   name: 'radarMetricMaxValue',
   config: {
     controlType: 'InputNumber',
     label: t('Max'),
-    description: t('The maximum value of metrics. It is an optional configuration'),
+    description: t(
+      'The maximum value of metrics. It is an optional configuration',
+    ),
     width: 120,
     placeholder: 'auto',
     debounceDelay: 400,
@@ -135,9 +138,9 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: numberFormat,
               choices: D3_FORMAT_OPTIONS,
-              description: `${t('D3 format syntax: https://github.com/d3/d3-format. ')} ${t(
-                'Only applies when "Label Type" is set to show values.',
-              )}`,
+              description: `${t(
+                'D3 format syntax: https://github.com/d3/d3-format. ',
+              )} ${t('Only applies when "Label Type" is set to show values.')}`,
             },
           },
         ],
@@ -168,7 +171,9 @@ const config: ControlPanelConfig = {
                 [GenericDataType.NUMERIC]: [[radarMetricMaxValue]],
               },
               mapStateToProps(explore, control, chart) {
-                const values = (explore?.controls?.metrics?.value as QueryFormMetric[]) ?? [];
+                const values =
+                  (explore?.controls?.metrics?.value as QueryFormMetric[]) ??
+                  [];
                 const metricColumn = values.map(value => {
                   if (typeof value === 'string') {
                     return value;
@@ -176,7 +181,9 @@ const config: ControlPanelConfig = {
                   return value.label;
                 });
                 return {
-                  queryResponse: chart?.queriesResponse?.[0] as ChartDataResponseResult | undefined,
+                  queryResponse: chart?.queriesResponse?.[0] as
+                    | ChartDataResponseResult
+                    | undefined,
                   appliedColumnNames: metricColumn,
                 };
               },
@@ -191,7 +198,9 @@ const config: ControlPanelConfig = {
               label: t('Circle radar shape'),
               renderTrigger: true,
               default: isCircle,
-              description: t("Radar render type, whether to display 'circle' shape."),
+              description: t(
+                "Radar render type, whether to display 'circle' shape.",
+              ),
             },
           },
         ],

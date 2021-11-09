@@ -34,14 +34,23 @@ describe('WithLegend', () => {
 
   it('sets className', () => {
     const wrapper = shallow(
-      <WithLegend className="test-class" renderChart={renderChart} renderLegend={renderLegend} />,
+      <WithLegend
+        className="test-class"
+        renderChart={renderChart}
+        renderLegend={renderLegend}
+      />,
     );
     expect(wrapper.hasClass('test-class')).toEqual(true);
   });
 
   it('renders when renderLegend is not set', () => {
     const wrapper = mount(
-      <WithLegend debounceTime={1} width={500} height={500} renderChart={renderChart} />,
+      <WithLegend
+        debounceTime={1}
+        width={500}
+        height={500}
+        renderChart={renderChart}
+      />,
     );
 
     triggerResizeObserver();
@@ -76,7 +85,11 @@ describe('WithLegend', () => {
 
   it('renders without width or height', () => {
     const wrapper = mount(
-      <WithLegend debounceTime={1} renderChart={renderChart} renderLegend={renderLegend} />,
+      <WithLegend
+        debounceTime={1}
+        renderChart={renderChart}
+        renderLegend={renderLegend}
+      />,
     );
 
     triggerResizeObserver();

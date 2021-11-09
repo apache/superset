@@ -49,7 +49,9 @@ function DefaultSearchInput({ count, value, onChange }: SearchInputProps) {
   );
 }
 
-export default (React.memo as <T>(fn: T) => T)(function GlobalFilter<D extends object>({
+export default (React.memo as <T>(fn: T) => T)(function GlobalFilter<
+  D extends object,
+>({
   preGlobalFilteredRows,
   filterValue = '',
   searchInput,

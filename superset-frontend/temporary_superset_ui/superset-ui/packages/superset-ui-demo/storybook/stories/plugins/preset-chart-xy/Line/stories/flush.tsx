@@ -48,8 +48,16 @@ export default () => (
             },
             axis: {
               tickCount: 6,
-              orient: radios('x.axis.orient', { top: 'top', bottom: 'bottom' }, 'bottom'),
-              title: radios('x.axis.title', { enable: 'Time', disable: '', '': undefined }, 'Time'),
+              orient: radios(
+                'x.axis.orient',
+                { top: 'top', bottom: 'bottom' },
+                'bottom',
+              ),
+              title: radios(
+                'x.axis.title',
+                { enable: 'Time', disable: '', '': undefined },
+                'Time',
+              ),
             },
           },
           y: {
@@ -100,8 +108,16 @@ export default () => (
             axis: {
               labelFlush: 5,
               tickCount: 6,
-              orient: radios('x.axis.orient', { top: 'top', bottom: 'bottom' }, 'bottom'),
-              title: radios('x.axis.title', { enable: 'Time', disable: '', '': undefined }, 'Time'),
+              orient: radios(
+                'x.axis.orient',
+                { top: 'top', bottom: 'bottom' },
+                'bottom',
+              ),
+              title: radios(
+                'x.axis.title',
+                { enable: 'Time', disable: '', '': undefined },
+                'Time',
+              ),
             },
           },
           y: {

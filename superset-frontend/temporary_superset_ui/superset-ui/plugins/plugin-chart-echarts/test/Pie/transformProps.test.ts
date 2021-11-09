@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, getNumberFormatter, SqlaFormData } from '@superset-ui/core';
+import {
+  ChartProps,
+  getNumberFormatter,
+  SqlaFormData,
+} from '@superset-ui/core';
 import transformProps, { formatPieLabel } from '../../src/Pie/transformProps';
 import { EchartsPieLabelType } from '../../src/Pie/types';
 
@@ -74,23 +78,47 @@ describe('formatPieLabel', () => {
   it('should generate a valid pie chart label', () => {
     const numberFormatter = getNumberFormatter();
     const params = { name: 'My Label', value: 1234, percent: 12.34 };
-    expect(formatPieLabel({ params, numberFormatter, labelType: EchartsPieLabelType.Key })).toEqual(
-      'My Label',
-    );
     expect(
-      formatPieLabel({ params, numberFormatter, labelType: EchartsPieLabelType.Value }),
+      formatPieLabel({
+        params,
+        numberFormatter,
+        labelType: EchartsPieLabelType.Key,
+      }),
+    ).toEqual('My Label');
+    expect(
+      formatPieLabel({
+        params,
+        numberFormatter,
+        labelType: EchartsPieLabelType.Value,
+      }),
     ).toEqual('1.23k');
     expect(
-      formatPieLabel({ params, numberFormatter, labelType: EchartsPieLabelType.Percent }),
+      formatPieLabel({
+        params,
+        numberFormatter,
+        labelType: EchartsPieLabelType.Percent,
+      }),
     ).toEqual('12.34%');
     expect(
-      formatPieLabel({ params, numberFormatter, labelType: EchartsPieLabelType.KeyValue }),
+      formatPieLabel({
+        params,
+        numberFormatter,
+        labelType: EchartsPieLabelType.KeyValue,
+      }),
     ).toEqual('My Label: 1.23k');
     expect(
-      formatPieLabel({ params, numberFormatter, labelType: EchartsPieLabelType.KeyPercent }),
+      formatPieLabel({
+        params,
+        numberFormatter,
+        labelType: EchartsPieLabelType.KeyPercent,
+      }),
     ).toEqual('My Label: 12.34%');
     expect(
-      formatPieLabel({ params, numberFormatter, labelType: EchartsPieLabelType.KeyValuePercent }),
+      formatPieLabel({
+        params,
+        numberFormatter,
+        labelType: EchartsPieLabelType.KeyValuePercent,
+      }),
     ).toEqual('My Label: 1.23k (12.34%)');
     expect(
       formatPieLabel({

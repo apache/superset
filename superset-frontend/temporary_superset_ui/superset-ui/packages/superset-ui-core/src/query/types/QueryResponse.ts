@@ -68,10 +68,18 @@ export interface ChartDataResponseResult {
   query: string;
   rowcount: number;
   stacktrace: string | null;
-  status: 'stopped' | 'failed' | 'pending' | 'running' | 'scheduled' | 'success' | 'timed_out';
+  status:
+    | 'stopped'
+    | 'failed'
+    | 'pending'
+    | 'running'
+    | 'scheduled'
+    | 'success'
+    | 'timed_out';
 }
 
-export interface TimeseriesChartDataResponseResult extends ChartDataResponseResult {
+export interface TimeseriesChartDataResponseResult
+  extends ChartDataResponseResult {
   data: TimeseriesDataRecord[];
 }
 

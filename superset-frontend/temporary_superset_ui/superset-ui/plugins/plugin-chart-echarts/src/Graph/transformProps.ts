@@ -81,12 +81,17 @@ function normalizeStyles(
   const maxNodeSize = baseNodeSize * 2;
   const minEdgeWidth = baseEdgeWidth * 0.5;
   const maxEdgeWidth = baseEdgeWidth * 2;
-  const [nodeMinValue, nodeMaxValue] = d3Extent(nodes, x => x.value) as [number, number];
+  const [nodeMinValue, nodeMaxValue] = d3Extent(nodes, x => x.value) as [
+    number,
+    number,
+  ];
 
   const nodeSpread = nodeMaxValue - nodeMinValue;
   nodes.forEach(node => {
     // eslint-disable-next-line no-param-reassign
-    node.symbolSize = (((node.value - nodeMinValue) / nodeSpread) * maxNodeSize || 0) + minNodeSize;
+    node.symbolSize =
+      (((node.value - nodeMinValue) / nodeSpread) * maxNodeSize || 0) +
+      minNodeSize;
     // eslint-disable-next-line no-param-reassign
     node.label = {
       ...node.label,
@@ -94,11 +99,15 @@ function normalizeStyles(
     };
   });
 
-  const [linkMinValue, linkMaxValue] = d3Extent(links, x => x.value) as [number, number];
+  const [linkMinValue, linkMaxValue] = d3Extent(links, x => x.value) as [
+    number,
+    number,
+  ];
   const linkSpread = linkMaxValue - linkMinValue;
   links.forEach(link => {
     const lineWidth =
-      ((link.value! - linkMinValue) / linkSpread) * maxEdgeWidth || 0 + minEdgeWidth;
+      ((link.value! - linkMinValue) / linkSpread) * maxEdgeWidth ||
+      0 + minEdgeWidth;
     // eslint-disable-next-line no-param-reassign
     link.lineStyle.width = lineWidth;
     // eslint-disable-next-line no-param-reassign
@@ -115,7 +124,10 @@ function normalizeStyles(
   });
 }
 
-function getKeyByValue(object: { [name: string]: number }, value: number): string {
+function getKeyByValue(
+  object: { [name: string]: number },
+  value: number,
+): string {
   return Object.keys(object).find(key => object[key] === value) as string;
 }
 
@@ -238,7 +250,11 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     });
   });
 
-  normalizeStyles(echartNodes, echartLinks, { showSymbolThreshold, baseEdgeWidth, baseNodeSize });
+  normalizeStyles(echartNodes, echartLinks, {
+    showSymbolThreshold,
+    baseEdgeWidth,
+    baseNodeSize,
+  });
 
   const categoryList = [...categories];
 
@@ -246,9 +262,18 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     {
       zoom: DEFAULT_GRAPH_SERIES_OPTION.zoom,
       type: 'graph',
-      categories: categoryList.map(c => ({ name: c, itemStyle: { color: colorFn(c) } })),
+      categories: categoryList.map(c => ({
+        name: c,
+        itemStyle: { color: colorFn(c) },
+      })),
       layout,
-      force: { ...DEFAULT_GRAPH_SERIES_OPTION.force, edgeLength, gravity, repulsion, friction },
+      force: {
+        ...DEFAULT_GRAPH_SERIES_OPTION.force,
+        edgeLength,
+        gravity,
+        repulsion,
+        friction,
+      },
       circular: DEFAULT_GRAPH_SERIES_OPTION.circular,
       data: echartNodes,
       links: echartLinks,
@@ -270,7 +295,12 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     animationEasing: DEFAULT_GRAPH_SERIES_OPTION.animationEasing,
     tooltip: {
       formatter: (params: any): string =>
-        edgeFormatter(params.data.source, params.data.target, params.value, nodes),
+        edgeFormatter(
+          params.data.source,
+          params.data.target,
+          params.value,
+          nodes,
+        ),
     },
     legend: {
       ...getLegendProps(legendType, legendOrientation, showLegend),

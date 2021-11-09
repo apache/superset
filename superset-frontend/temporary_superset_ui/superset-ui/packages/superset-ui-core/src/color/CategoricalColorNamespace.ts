@@ -40,7 +40,10 @@ export default class CategoricalColorNamespace {
   getScale(schemeId?: string) {
     const id = schemeId ?? getCategoricalSchemeRegistry().getDefaultKey() ?? '';
     const scheme = getCategoricalSchemeRegistry().get(id);
-    const newScale = new CategoricalColorScale(scheme?.colors ?? [], this.forcedItems);
+    const newScale = new CategoricalColorScale(
+      scheme?.colors ?? [],
+      this.forcedItems,
+    );
 
     return newScale;
   }
@@ -80,7 +83,11 @@ export function getNamespace(name: string = DEFAULT_NAMESPACE) {
   return newInstance;
 }
 
-export function getColor(value?: string, schemeId?: string, namespace?: string) {
+export function getColor(
+  value?: string,
+  schemeId?: string,
+  namespace?: string,
+) {
   return getNamespace(namespace).getScale(schemeId).getColor(value);
 }
 

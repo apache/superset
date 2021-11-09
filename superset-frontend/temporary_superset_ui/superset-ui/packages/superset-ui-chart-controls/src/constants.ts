@@ -36,7 +36,9 @@ export const TIME_COLUMN_OPTION: ColumnMeta = {
   verbose_name: COLUMN_NAME_ALIASES[DTTM_ALIAS],
   column_name: DTTM_ALIAS,
   type_generic: GenericDataType.TEMPORAL,
-  description: t('A reference to the [Time] configuration, taking granularity into account'),
+  description: t(
+    'A reference to the [Time] configuration, taking granularity into account',
+  ),
 };
 
 export const QueryModeLabel = {

@@ -45,8 +45,12 @@ export function getQueryMode(formData: TableChartFormData) {
   return hasRawColumns ? QueryMode.raw : QueryMode.aggregate;
 }
 
-const buildQuery: BuildQuery<TableChartFormData> = (formData: TableChartFormData, options) => {
-  const { percent_metrics: percentMetrics, order_desc: orderDesc = false } = formData;
+const buildQuery: BuildQuery<TableChartFormData> = (
+  formData: TableChartFormData,
+  options,
+) => {
+  const { percent_metrics: percentMetrics, order_desc: orderDesc = false } =
+    formData;
   const queryMode = getQueryMode(formData);
   const sortByMetric = ensureIsArray(formData.timeseries_limit_metric)[0];
   let formDataCopy = formData;
@@ -74,8 +78,13 @@ const buildQuery: BuildQuery<TableChartFormData> = (formData: TableChartFormData
       }
       // add postprocessing for percent metrics only when in aggregation mode
       if (percentMetrics && percentMetrics.length > 0) {
-        const percentMetricLabels = removeDuplicates(percentMetrics.map(getMetricLabel));
-        metrics = removeDuplicates(metrics.concat(percentMetrics), getMetricLabel);
+        const percentMetricLabels = removeDuplicates(
+          percentMetrics.map(getMetricLabel),
+        );
+        metrics = removeDuplicates(
+          metrics.concat(percentMetrics),
+          getMetricLabel,
+        );
         postProcessing = [
           {
             operation: 'contribution',
@@ -91,8 +100,10 @@ const buildQuery: BuildQuery<TableChartFormData> = (formData: TableChartFormData
     const moreProps: Partial<QueryObject> = {};
     const ownState = options?.ownState ?? {};
     if (formDataCopy.server_pagination) {
-      moreProps.row_limit = ownState.pageSize ?? formDataCopy.server_page_length;
-      moreProps.row_offset = (ownState.currentPage ?? 0) * (ownState.pageSize ?? 0);
+      moreProps.row_limit =
+        ownState.pageSize ?? formDataCopy.server_page_length;
+      moreProps.row_offset =
+        (ownState.currentPage ?? 0) * (ownState.pageSize ?? 0);
     }
 
     let queryObject = {
@@ -110,13 +121,23 @@ const buildQuery: BuildQuery<TableChartFormData> = (formData: TableChartFormData
         JSON.stringify(queryObject.filters)
     ) {
       queryObject = { ...queryObject, row_offset: 0 };
-      updateExternalFormData(options?.hooks?.setDataMask, 0, queryObject.row_limit ?? 0);
+      updateExternalFormData(
+        options?.hooks?.setDataMask,
+        0,
+        queryObject.row_limit ?? 0,
+      );
     }
     // Because we use same buildQuery for all table on the page we need split them by id
-    options?.hooks?.setCachedChanges({ [formData.slice_id]: queryObject.filters });
+    options?.hooks?.setCachedChanges({
+      [formData.slice_id]: queryObject.filters,
+    });
 
     const extraQueries: QueryObject[] = [];
-    if (metrics?.length && formData.show_totals && queryMode === QueryMode.aggregate) {
+    if (
+      metrics?.length &&
+      formData.show_totals &&
+      queryMode === QueryMode.aggregate
+    ) {
       extraQueries.push({
         ...queryObject,
         columns: [],
@@ -128,13 +149,21 @@ const buildQuery: BuildQuery<TableChartFormData> = (formData: TableChartFormData
 
     const interactiveGroupBy = formData.extra_form_data?.interactive_groupby;
     if (interactiveGroupBy && queryObject.columns) {
-      queryObject.columns = [...new Set([...queryObject.columns, ...interactiveGroupBy])];
+      queryObject.columns = [
+        ...new Set([...queryObject.columns, ...interactiveGroupBy]),
+      ];
     }
 
     if (formData.server_pagination) {
       return [
         { ...queryObject },
-        { ...queryObject, row_limit: 0, row_offset: 0, post_processing: [], is_rowcount: true },
+        {
+          ...queryObject,
+          row_limit: 0,
+          row_offset: 0,
+          post_processing: [],
+          is_rowcount: true,
+        },
         ...extraQueries,
       ];
     }

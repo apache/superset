@@ -72,23 +72,33 @@ describe('Translator', () => {
       languagePack: languagePackZh,
     });
     it('returns original text for unknown text', () => {
-      expect(translator.translateWithNumber('fish', 'fishes', 1)).toEqual('fish');
+      expect(translator.translateWithNumber('fish', 'fishes', 1)).toEqual(
+        'fish',
+      );
     });
     it('uses 0 as default value', () => {
       expect(translator.translateWithNumber('box', 'boxes')).toEqual('boxes');
     });
     it('translates simple text', () => {
-      expect(translator.translateWithNumber('second', 'seconds', 1)).toEqual('秒');
+      expect(translator.translateWithNumber('second', 'seconds', 1)).toEqual(
+        '秒',
+      );
     });
     it('translates template text with an argument', () => {
-      expect(translator.translateWithNumber('Copy of %s', 'Copies of %s', 12, 12)).toEqual(
-        '12 的副本',
-      );
+      expect(
+        translator.translateWithNumber('Copy of %s', 'Copies of %s', 12, 12),
+      ).toEqual('12 的副本');
     });
     it('translates template text with multiple arguments', () => {
-      expect(translator.translateWithNumber('%d glass %s', '%d glasses %s', 3, 3, 'abc')).toEqual(
-        '3 glasses abc',
-      );
+      expect(
+        translator.translateWithNumber(
+          '%d glass %s',
+          '%d glasses %s',
+          3,
+          3,
+          'abc',
+        ),
+      ).toEqual('3 glasses abc');
     });
   });
   describe('.translateWithNumber(key, num, ...args)', () => {
@@ -97,7 +107,9 @@ describe('Translator', () => {
     });
     it('translates template text with an argument', () => {
       expect(translator.translateWithNumber('%s copies', 1)).toEqual('1 copy');
-      expect(translator.translateWithNumber('%s copies', 2)).toEqual('2 copies');
+      expect(translator.translateWithNumber('%s copies', 2)).toEqual(
+        '2 copies',
+      );
     });
   });
 
@@ -123,7 +135,9 @@ describe('Translator', () => {
       expect(tn('bar', 2)).toEqual('bar');
     });
     it('throw warning on invalid arguments', () => {
-      expect(() => addTranslations(undefined as never)).toThrow('Invalid translations');
+      expect(() => addTranslations(undefined as never)).toThrow(
+        'Invalid translations',
+      );
       expect(tn('bar', '2 foo', 2)).toEqual('2 foo');
     });
     it('throw warning on duplicates', () => {

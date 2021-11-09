@@ -63,7 +63,9 @@ const config: ControlPanelConfig = {
             config: {
               type: 'CheckboxControl',
               label: t('Sort by metric'),
-              description: t('Whether to sort results by the selected metric in descending order.'),
+              description: t(
+                'Whether to sort results by the selected metric in descending order.',
+              ),
             },
           },
         ],
@@ -129,7 +131,9 @@ const config: ControlPanelConfig = {
             config: {
               type: 'SliderControl',
               label: t('Font size'),
-              description: t('Font size for axis labels, detail value and other text elements'),
+              description: t(
+                'Font size for axis labels, detail value and other text elements',
+              ),
               renderTrigger: true,
               min: 10,
               max: 20,
@@ -143,7 +147,9 @@ const config: ControlPanelConfig = {
             config: {
               type: 'SelectControl',
               label: t('Number format'),
-              description: t('D3 format syntax: https://github.com/d3/d3-format'),
+              description: t(
+                'D3 format syntax: https://github.com/d3/d3-format',
+              ),
               freeForm: true,
               renderTrigger: true,
               default: DEFAULT_FORM_DATA.numberFormat,
@@ -157,7 +163,9 @@ const config: ControlPanelConfig = {
             config: {
               type: 'TextControl',
               label: t('Value format'),
-              description: t('Additional text to add before or after the value, e.g. unit'),
+              description: t(
+                'Additional text to add before or after the value, e.g. unit',
+              ),
               renderTrigger: true,
               default: DEFAULT_FORM_DATA.valueFormatter,
             },
@@ -181,7 +189,9 @@ const config: ControlPanelConfig = {
             config: {
               type: 'CheckboxControl',
               label: t('Animation'),
-              description: t('Whether to animate the progress and the value or just display them'),
+              description: t(
+                'Whether to animate the progress and the value or just display them',
+              ),
               renderTrigger: true,
               default: DEFAULT_FORM_DATA.animation,
             },
@@ -259,7 +269,9 @@ const config: ControlPanelConfig = {
             config: {
               type: 'CheckboxControl',
               label: t('Round cap'),
-              description: t('Style the ends of the progress bar with a round cap'),
+              description: t(
+                'Style the ends of the progress bar with a round cap',
+              ),
               renderTrigger: true,
               default: DEFAULT_FORM_DATA.roundCap,
             },

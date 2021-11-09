@@ -39,7 +39,12 @@ export type BoxPlotFormDataWhiskerOptions =
   | '2/98 percentiles'
   | '9/91 percentiles';
 
-export type BoxPlotFormXTickLayout = '45°' | '90°' | 'auto' | 'flat' | 'staggered';
+export type BoxPlotFormXTickLayout =
+  | '45°'
+  | '90°'
+  | 'auto'
+  | 'flat'
+  | 'staggered';
 
 // @ts-ignore
 export const DEFAULT_FORM_DATA: BoxPlotQueryFormData = {

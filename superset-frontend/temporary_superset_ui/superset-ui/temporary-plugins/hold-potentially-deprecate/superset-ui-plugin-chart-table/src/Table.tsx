@@ -21,7 +21,9 @@ import React from 'react';
 import DataTable from '@airbnb/lunar/lib/components/DataTable';
 import Text from '@airbnb/lunar/lib/components/Text';
 import Input from '@airbnb/lunar/lib/components/Input';
-import withStyles, { WithStylesProps } from '@airbnb/lunar/lib/composers/withStyles';
+import withStyles, {
+  WithStylesProps,
+} from '@airbnb/lunar/lib/composers/withStyles';
 import {
   Renderers,
   ParentRow,
@@ -86,7 +88,10 @@ function getCellHash(cell: Cell) {
   return `${cell.key}#${cell.value}`;
 }
 
-function getText(value: unknown, format: TimeFormatter | NumberFormatter | undefined) {
+function getText(
+  value: unknown,
+  format: TimeFormatter | NumberFormatter | undefined,
+) {
   if (format) {
     return format.format(value as any);
   }
@@ -155,32 +160,34 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
     };
   }
 
-  static getDerivedStateFromProps: React.GetDerivedStateFromProps<InternalTableProps, TableState> =
-    (props: InternalTableProps, state: TableState) => {
-      const { filters } = props;
-      const { selectedCells, filters: prevFilters } = state;
-      if (prevFilters !== filters) {
-        const newSelectedCells = new Set(Array.from(selectedCells));
-        Object.keys(filters).forEach(key => {
-          filters[key].forEach(value => {
-            newSelectedCells.add(
-              getCellHash({
-                key,
-                value,
-              }),
-            );
-          });
+  static getDerivedStateFromProps: React.GetDerivedStateFromProps<
+    InternalTableProps,
+    TableState
+  > = (props: InternalTableProps, state: TableState) => {
+    const { filters } = props;
+    const { selectedCells, filters: prevFilters } = state;
+    if (prevFilters !== filters) {
+      const newSelectedCells = new Set(Array.from(selectedCells));
+      Object.keys(filters).forEach(key => {
+        filters[key].forEach(value => {
+          newSelectedCells.add(
+            getCellHash({
+              key,
+              value,
+            }),
+          );
         });
+      });
 
-        return {
-          ...state,
-          filters,
-          selectedCells: newSelectedCells,
-        };
-      }
+      return {
+        ...state,
+        filters,
+        selectedCells: newSelectedCells,
+      };
+    }
 
-      return state;
-    };
+    return state;
+  };
 
   handleCellSelected = (cell: Cell) => () => {
     const { selectedCells } = this.state;
@@ -266,7 +273,10 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
       }
     });
 
-    const keys = dataToRender && dataToRender.length > 0 ? Object.keys(dataToRender[0].data) : [];
+    const keys =
+      dataToRender && dataToRender.length > 0
+        ? Object.keys(dataToRender[0].data)
+        : [];
     const columnWidthInfo = this.columnWidthSelector({ columns, rows: data });
 
     keys.forEach(key => {

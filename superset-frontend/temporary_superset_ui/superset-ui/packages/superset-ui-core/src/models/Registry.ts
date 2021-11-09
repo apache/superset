@@ -35,7 +35,10 @@ interface ItemWithLoader<T> {
  */
 type InclusiveLoaderResult<V> = V | Promise<V>;
 
-export type RegistryValue<V, W extends InclusiveLoaderResult<V>> = V | W | undefined;
+export type RegistryValue<V, W extends InclusiveLoaderResult<V>> =
+  | V
+  | W
+  | undefined;
 
 export type RegistryEntry<V, W extends InclusiveLoaderResult<V>> = {
   key: string;
@@ -63,7 +66,10 @@ export interface RegistryConfig {
  * By default W is set to V | Promise<V> to support
  * both synchronous and asynchronous loaders.
  */
-export default class Registry<V, W extends InclusiveLoaderResult<V> = InclusiveLoaderResult<V>> {
+export default class Registry<
+  V,
+  W extends InclusiveLoaderResult<V> = InclusiveLoaderResult<V>,
+> {
   name: string;
 
   overwritePolicy: OverwritePolicy;
@@ -106,13 +112,18 @@ export default class Registry<V, W extends InclusiveLoaderResult<V> = InclusiveL
   registerValue(key: string, value: V) {
     const item = this.items[key];
     const willOverwrite =
-      this.has(key) && (('value' in item && item.value !== value) || 'loader' in item);
+      this.has(key) &&
+      (('value' in item && item.value !== value) || 'loader' in item);
     if (willOverwrite) {
       if (this.overwritePolicy === OverwritePolicy.WARN) {
         // eslint-disable-next-line no-console
-        console.warn(`Item with key "${key}" already exists. You are assigning a new value.`);
+        console.warn(
+          `Item with key "${key}" already exists. You are assigning a new value.`,
+        );
       } else if (this.overwritePolicy === OverwritePolicy.PROHIBIT) {
-        throw new Error(`Item with key "${key}" already exists. Cannot overwrite.`);
+        throw new Error(
+          `Item with key "${key}" already exists. Cannot overwrite.`,
+        );
       }
     }
     if (!item || willOverwrite) {
@@ -127,13 +138,18 @@ export default class Registry<V, W extends InclusiveLoaderResult<V> = InclusiveL
   registerLoader(key: string, loader: () => W) {
     const item = this.items[key];
     const willOverwrite =
-      this.has(key) && (('loader' in item && item.loader !== loader) || 'value' in item);
+      this.has(key) &&
+      (('loader' in item && item.loader !== loader) || 'value' in item);
     if (willOverwrite) {
       if (this.overwritePolicy === OverwritePolicy.WARN) {
         // eslint-disable-next-line no-console
-        console.warn(`Item with key "${key}" already exists. You are assigning a new value.`);
+        console.warn(
+          `Item with key "${key}" already exists. You are assigning a new value.`,
+        );
       } else if (this.overwritePolicy === OverwritePolicy.PROHIBIT) {
-        throw new Error(`Item with key "${key}" already exists. Cannot overwrite.`);
+        throw new Error(
+          `Item with key "${key}" already exists. Cannot overwrite.`,
+        );
       }
     }
     if (!item || willOverwrite) {
@@ -172,7 +188,9 @@ export default class Registry<V, W extends InclusiveLoaderResult<V> = InclusiveL
       return newPromise;
     }
 
-    return Promise.reject<V>(new Error(`Item with key "${key}" is not registered.`));
+    return Promise.reject<V>(
+      new Error(`Item with key "${key}" is not registered.`),
+    );
   }
 
   getMap() {

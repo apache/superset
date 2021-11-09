@@ -21,7 +21,11 @@ import d3 from 'd3';
 import PropTypes from 'prop-types';
 import 'd3-svg-legend';
 import d3tip from 'd3-tip';
-import { getNumberFormatter, NumberFormats, getSequentialSchemeRegistry } from '@superset-ui/core';
+import {
+  getNumberFormatter,
+  NumberFormats,
+  getSequentialSchemeRegistry,
+} from '@superset-ui/core';
 
 import './vendor/d3tip.css';
 import './Heatmap.css';
@@ -120,8 +124,14 @@ function Heatmap(element, props) {
     let longestY = 1;
 
     records.forEach(datum => {
-      longestX = Math.max(longestX, (datum.x && datum.x.toString().length) || 1);
-      longestY = Math.max(longestY, (datum.y && datum.y.toString().length) || 1);
+      longestX = Math.max(
+        longestX,
+        (datum.x && datum.x.toString().length) || 1,
+      );
+      longestY = Math.max(
+        longestY,
+        (datum.y && datum.y.toString().length) || 1,
+      );
     });
 
     if (leftMargin === 'auto') {
@@ -148,7 +158,10 @@ function Heatmap(element, props) {
       return;
     }
 
-    if (xAxisNode.getBoundingClientRect().x + 4 < container.node().getBoundingClientRect().x) {
+    if (
+      xAxisNode.getBoundingClientRect().x + 4 <
+      container.node().getBoundingClientRect().x
+    ) {
       container
         .selectAll('.x.axis')
         .selectAll('text')
@@ -173,9 +186,13 @@ function Heatmap(element, props) {
     } else if (sortMethod === 'alpha_desc') {
       domain = keys.sort(cmp).reverse();
     } else if (sortMethod === 'value_desc') {
-      domain = Object.keys(domain).sort((a, b) => (domain[a] > domain[b] ? -1 : 1));
+      domain = Object.keys(domain).sort((a, b) =>
+        domain[a] > domain[b] ? -1 : 1,
+      );
     } else if (sortMethod === 'value_asc') {
-      domain = Object.keys(domain).sort((a, b) => (domain[b] > domain[a] ? -1 : 1));
+      domain = Object.keys(domain).sort((a, b) =>
+        domain[b] > domain[a] ? -1 : 1,
+      );
     }
 
     if (k === 'y' && rangeBands) {
@@ -198,13 +215,15 @@ function Heatmap(element, props) {
   let hmWidth = width - (margin.left + margin.right);
   let hmHeight = height - (margin.bottom + margin.top);
   const hideYLabel = () => {
-    margin.left = leftMargin === 'auto' ? DEFAULT_PROPERTIES.marginLeft : leftMargin;
+    margin.left =
+      leftMargin === 'auto' ? DEFAULT_PROPERTIES.marginLeft : leftMargin;
     hmWidth = width - (margin.left + margin.right);
     showY = false;
   };
 
   const hideXLabel = () => {
-    margin.bottom = bottomMargin === 'auto' ? DEFAULT_PROPERTIES.marginBottom : bottomMargin;
+    margin.bottom =
+      bottomMargin === 'auto' ? DEFAULT_PROPERTIES.marginBottom : bottomMargin;
     hmHeight = height - (margin.bottom + margin.top);
     showX = false;
   };
@@ -215,7 +234,10 @@ function Heatmap(element, props) {
   }
 
   // Hide X Labels
-  if (hmHeight < DEFAULT_PROPERTIES.minChartHeight || hmWidth < DEFAULT_PROPERTIES.minChartWidth) {
+  if (
+    hmHeight < DEFAULT_PROPERTIES.minChartHeight ||
+    hmWidth < DEFAULT_PROPERTIES.minChartWidth
+  ) {
     hideXLabel();
   }
 
@@ -281,7 +303,10 @@ function Heatmap(element, props) {
       .attr('text-anchor', 'middle')
       .attr('dy', '.35em')
       .text(d => valueFormatter(d.v))
-      .attr('font-size', `${Math.min(yRbScale.rangeBand(), xRbScale.rangeBand()) / 3}px`)
+      .attr(
+        'font-size',
+        `${Math.min(yRbScale.rangeBand(), xRbScale.rangeBand()) / 3}px`,
+      )
       .attr('fill', d => (d.v >= extents[1] / 2 ? 'white' : 'black'));
   }
 

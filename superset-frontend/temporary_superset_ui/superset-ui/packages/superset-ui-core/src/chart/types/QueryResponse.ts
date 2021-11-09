@@ -20,7 +20,11 @@
 /**
  * Types for query response
  */
-import { DataRecordValue, DataRecord, ChartDataResponseResult } from '../../types';
+import {
+  DataRecordValue,
+  DataRecord,
+  ChartDataResponseResult,
+} from '../../types';
 import { PlainObject } from './Base';
 
 export interface TimeseriesDataRecord extends DataRecord {

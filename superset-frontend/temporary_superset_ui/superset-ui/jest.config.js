@@ -19,7 +19,10 @@
 
 module.exports = {
   bail: false,
-  collectCoverageFrom: ['**/src/**/*.{ts,tsx,js,jsx}', '**/test/**/*.{ts,tsx,js,jsx}'],
+  collectCoverageFrom: [
+    '**/src/**/*.{ts,tsx,js,jsx}',
+    '**/test/**/*.{ts,tsx,js,jsx}',
+  ],
   coverageDirectory: './coverage',
   coveragePathIgnorePatterns: [
     'coverage/',

@@ -35,7 +35,12 @@ export type MapTooltipProps = {
   tooltipData?: MapDataPoint;
 };
 
-export default function MapTooltip({ encoder, left, top, tooltipData }: MapTooltipProps) {
+export default function MapTooltip({
+  encoder,
+  left,
+  top,
+  tooltipData,
+}: MapTooltipProps) {
   if (!tooltipData) {
     return null;
   }
@@ -45,7 +50,11 @@ export default function MapTooltip({ encoder, left, top, tooltipData }: MapToolt
   const { datum } = tooltipData;
 
   const tooltipRows = [
-    { key: 'key', keyColumn: key.getTitle(), valueColumn: key.formatDatum(datum) },
+    {
+      key: 'key',
+      keyColumn: key.getTitle(),
+      valueColumn: key.formatDatum(datum),
+    },
   ];
 
   [fill, stroke, opacity, strokeWidth].forEach(channel => {

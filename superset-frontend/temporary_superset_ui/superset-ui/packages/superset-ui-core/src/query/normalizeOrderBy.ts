@@ -21,7 +21,9 @@ import isBoolean from 'lodash/isBoolean';
 
 import { QueryObject } from './types';
 
-export default function normalizeOrderBy(queryObject: QueryObject): QueryObject {
+export default function normalizeOrderBy(
+  queryObject: QueryObject,
+): QueryObject {
   if (Array.isArray(queryObject.orderby) && queryObject.orderby.length > 0) {
     // ensure a valid orderby clause
     const orderbyClause = queryObject.orderby[0];

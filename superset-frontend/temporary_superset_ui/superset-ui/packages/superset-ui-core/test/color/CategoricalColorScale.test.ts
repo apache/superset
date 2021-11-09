@@ -32,7 +32,10 @@ describe('CategoricalColorScale', () => {
     });
     it('can create new scale when parentForcedColors is given', () => {
       const parentForcedColors = {};
-      const scale = new CategoricalColorScale(['blue', 'red', 'green'], parentForcedColors);
+      const scale = new CategoricalColorScale(
+        ['blue', 'red', 'green'],
+        parentForcedColors,
+      );
       expect(scale).toBeInstanceOf(CategoricalColorScale);
       expect(scale.parentForcedColors).toBe(parentForcedColors);
     });
@@ -92,7 +95,10 @@ describe('CategoricalColorScale', () => {
     it('does not override parentForcedColors', () => {
       const scale1 = new CategoricalColorScale(['blue', 'red', 'green']);
       scale1.setColor('pig', 'black');
-      const scale2 = new CategoricalColorScale(['blue', 'red', 'green'], scale1.forcedColors);
+      const scale2 = new CategoricalColorScale(
+        ['blue', 'red', 'green'],
+        scale1.forcedColors,
+      );
       scale2.setColor('pig', 'pink');
       expect(scale1.getColor('pig')).toBe('black');
       expect(scale2.getColor('pig')).toBe('black');
@@ -107,7 +113,10 @@ describe('CategoricalColorScale', () => {
     it('returns correct mapping and parentForcedColors and forcedColors are specified', () => {
       const scale1 = new CategoricalColorScale(['blue', 'red', 'green']);
       scale1.setColor('cow', 'black');
-      const scale2 = new CategoricalColorScale(['blue', 'red', 'green'], scale1.forcedColors);
+      const scale2 = new CategoricalColorScale(
+        ['blue', 'red', 'green'],
+        scale1.forcedColors,
+      );
       scale2.setColor('pig', 'pink');
       scale2.getColor('cow');
       scale2.getColor('pig');
@@ -177,11 +186,8 @@ describe('CategoricalColorScale', () => {
 
   describe("is compatible with D3's ScaleOrdinal", () => {
     it('passes type check', () => {
-      const scale: ScaleOrdinal<{ toString(): string }, string> = new CategoricalColorScale([
-        'blue',
-        'red',
-        'green',
-      ]);
+      const scale: ScaleOrdinal<{ toString(): string }, string> =
+        new CategoricalColorScale(['blue', 'red', 'green']);
       expect(scale('pig')).toBe('blue');
     });
   });

@@ -36,7 +36,9 @@ export default {
             config: {
               type: 'CheckboxControl',
               label: t('Sort by metric'),
-              description: t('Whether to sort results by the selected metric in descending order.'),
+              description: t(
+                'Whether to sort results by the selected metric in descending order.',
+              ),
             },
           },
         ],
@@ -55,7 +57,16 @@ export default {
               freeForm: true,
               label: t('Link Length'),
               default: '200',
-              choices: formatSelectOptions(['10', '25', '50', '75', '100', '150', '200', '250']),
+              choices: formatSelectOptions([
+                '10',
+                '25',
+                '50',
+                '75',
+                '100',
+                '150',
+                '200',
+                '250',
+              ]),
               description: t('Link length in the force layout'),
             },
           },

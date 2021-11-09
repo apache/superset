@@ -28,7 +28,11 @@ import {
 } from '@superset-ui/chart-controls';
 
 import { DEFAULT_FORM_DATA } from '../../types';
-import { legendSection, richTooltipSection, showValueSection } from '../../../controls';
+import {
+  legendSection,
+  richTooltipSection,
+  showValueSection,
+} from '../../../controls';
 
 const {
   logAxis,
@@ -86,7 +90,9 @@ const config: ControlPanelConfig = {
               label: t('Marker'),
               renderTrigger: true,
               default: markerEnabled,
-              description: t('Draw a marker on data points. Only applicable for line types.'),
+              description: t(
+                'Draw a marker on data points. Only applicable for line types.',
+              ),
             },
           },
         ],
@@ -100,7 +106,9 @@ const config: ControlPanelConfig = {
               min: 0,
               max: 100,
               default: markerSize,
-              description: t('Size of marker. Also applies to forecast observations.'),
+              description: t(
+                'Size of marker. Also applies to forecast observations.',
+              ),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 Boolean(controls?.markerEnabled?.value),
             },
@@ -147,7 +155,9 @@ const config: ControlPanelConfig = {
               ],
               default: xAxisLabelRotation,
               renderTrigger: true,
-              description: t('Input field supports custom rotation. e.g. 30 for 30°'),
+              description: t(
+                'Input field supports custom rotation. e.g. 30 for 30°',
+              ),
             },
           },
         ],

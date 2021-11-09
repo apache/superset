@@ -31,7 +31,9 @@ export default function ErrorMessage({ error }: Props) {
       {error.stack || error.message}
       {!error.message &&
         !error.stack &&
-        (typeof error === 'object' ? JSON.stringify(error, null, 2) : String(error))}
+        (typeof error === 'object'
+          ? JSON.stringify(error, null, 2)
+          : String(error))}
     </pre>
   );
 }

@@ -46,7 +46,9 @@ const propTypes = {
 };
 
 function metricLabel(metric) {
-  return typeof metric === 'string' || metric instanceof String ? metric : metric.label;
+  return typeof metric === 'string' || metric instanceof String
+    ? metric
+    : metric.label;
 }
 
 // Given a node in a partition layout, return an array of all of its ancestor
@@ -86,7 +88,9 @@ function buildHierarchy(rows) {
       let childNode;
 
       if (!isLeafNode) {
-        childNode = children.find(child => child.name === nodeName && child.level === level);
+        childNode = children.find(
+          child => child.name === nodeName && child.level === level,
+        );
 
         if (!childNode) {
           childNode = {
@@ -158,7 +162,15 @@ function getYOffset(width) {
 // Modified from http://bl.ocks.org/kerryrodden/7090426
 function Sunburst(element, props) {
   const container = d3.select(element);
-  const { data, width, height, colorScheme, linearColorScheme, metrics, numberFormat } = props;
+  const {
+    data,
+    width,
+    height,
+    colorScheme,
+    linearColorScheme,
+    metrics,
+    numberFormat,
+  } = props;
   const responsiveClass = getResponsiveContainerClass(width);
   const isSmallWidth = responsiveClass === 's';
   container.attr('class', `superset-legacy-chart-sunburst ${responsiveClass}`);
@@ -168,7 +180,8 @@ function Sunburst(element, props) {
   const containerHeight = height;
   const breadcrumbHeight = containerHeight * 0.085;
   const visWidth = containerWidth - margin.left - margin.right;
-  const visHeight = containerHeight - margin.top - margin.bottom - breadcrumbHeight;
+  const visHeight =
+    containerHeight - margin.top - margin.bottom - breadcrumbHeight;
   const radius = Math.min(visWidth, visHeight) / 2;
 
   let colorByCategory = true; // color by category if primary/secondary metrics match
@@ -196,7 +209,9 @@ function Sunburst(element, props) {
     .innerRadius(d => Math.sqrt(d.y))
     .outerRadius(d => Math.sqrt(d.y + d.dy));
 
-  const formatNum = getNumberFormatter(numberFormat || NumberFormats.SI_3_DIGIT);
+  const formatNum = getNumberFormatter(
+    numberFormat || NumberFormats.SI_3_DIGIT,
+  );
   const formatPerc = getNumberFormatter(NumberFormats.PERCENT_3_POINT);
 
   container.select('svg').remove();
@@ -241,13 +256,17 @@ function Sunburst(element, props) {
       points.push('0,0');
       points.push(`${breadcrumbDims.width},0`);
       points.push(
-        `${breadcrumbDims.width + breadcrumbDims.tipTailWidth},${breadcrumbDims.height / 2}`,
+        `${breadcrumbDims.width + breadcrumbDims.tipTailWidth},${
+          breadcrumbDims.height / 2
+        }`,
       );
       points.push(`${breadcrumbDims.width},${breadcrumbDims.height}`);
       points.push(`0,${breadcrumbDims.height}`);
       if (i > 0) {
         // Leftmost breadcrumb; don't include 6th vertex.
-        points.push(`${breadcrumbDims.tipTailWidth},${breadcrumbDims.height / 2}`);
+        points.push(
+          `${breadcrumbDims.tipTailWidth},${breadcrumbDims.height / 2}`,
+        );
       }
     }
 
@@ -256,7 +275,9 @@ function Sunburst(element, props) {
 
   function updateBreadcrumbs(sequenceArray, percentageString) {
     const breadcrumbWidth = isSmallWidth ? width : breadcrumbDims.width;
-    const g = breadcrumbs.selectAll('g').data(sequenceArray, d => d.name + d.depth);
+    const g = breadcrumbs
+      .selectAll('g')
+      .data(sequenceArray, d => d.name + d.depth);
 
     // Add breadcrumb and label for entering nodes.
     const entering = g.enter().append('svg:g');
@@ -265,7 +286,9 @@ function Sunburst(element, props) {
       .append('svg:polygon')
       .attr('points', breadcrumbPoints)
       .style('fill', d =>
-        colorByCategory ? categoricalColorScale(d.name) : linearColorScale(d.m2 / d.m1),
+        colorByCategory
+          ? categoricalColorScale(d.name)
+          : linearColorScale(d.m2 / d.m1),
       );
 
     entering
@@ -276,7 +299,9 @@ function Sunburst(element, props) {
       .style('fill', d => {
         // Make text white or black based on the lightness of the background
         const col = d3.hsl(
-          colorByCategory ? categoricalColorScale(d.name) : linearColorScale(d.m2 / d.m1),
+          colorByCategory
+            ? categoricalColorScale(d.name)
+            : linearColorScale(d.m2 / d.m1),
         );
 
         return col.l < 0.5 ? 'white' : 'black';
@@ -288,9 +313,13 @@ function Sunburst(element, props) {
     // Set position for entering and updating nodes.
     g.attr('transform', (d, i) => {
       if (isSmallWidth) {
-        return `translate(0, ${i * (breadcrumbDims.height + breadcrumbDims.spacing)})`;
+        return `translate(0, ${
+          i * (breadcrumbDims.height + breadcrumbDims.spacing)
+        })`;
       }
-      return `translate(${i * (breadcrumbDims.width + breadcrumbDims.spacing)}, 0)`;
+      return `translate(${
+        i * (breadcrumbDims.width + breadcrumbDims.spacing)
+      }, 0)`;
     });
 
     // Remove exiting nodes.
@@ -304,7 +333,10 @@ function Sunburst(element, props) {
           return (breadcrumbWidth + breadcrumbDims.tipTailWidth) / 2;
         }
 
-        return (sequenceArray.length + 0.5) * (breadcrumbDims.width + breadcrumbDims.spacing);
+        return (
+          (sequenceArray.length + 0.5) *
+          (breadcrumbDims.width + breadcrumbDims.spacing)
+        );
       })
       .attr('y', () => {
         if (isSmallWidth) {
@@ -326,10 +358,14 @@ function Sunburst(element, props) {
     const parentOfD = sequenceArray[sequenceArray.length - 2] || null;
 
     const absolutePercentage = (d.m1 / totalSize).toPrecision(3);
-    const conditionalPercentage = parentOfD ? (d.m1 / parentOfD.m1).toPrecision(3) : null;
+    const conditionalPercentage = parentOfD
+      ? (d.m1 / parentOfD.m1).toPrecision(3)
+      : null;
 
     const absolutePercString = formatPerc(absolutePercentage);
-    const conditionalPercString = parentOfD ? formatPerc(conditionalPercentage) : '';
+    const conditionalPercString = parentOfD
+      ? formatPerc(conditionalPercentage)
+      : '';
 
     // 3 levels of text if inner-most level, 4 otherwise
     const yOffsets = getYOffset(width);
@@ -375,11 +411,17 @@ function Sunburst(element, props) {
       .text(
         metricsMatch
           ? ''
-          : `${metricLabel(metrics[1])}/${metricLabel(metrics[0])}: ${formatPerc(d.m2 / d.m1)}`,
+          : `${metricLabel(metrics[1])}/${metricLabel(
+              metrics[0],
+            )}: ${formatPerc(d.m2 / d.m1)}`,
       );
 
     // Reset and fade all the segments.
-    arcs.selectAll('path').style('stroke-width', null).style('stroke', null).style('opacity', 0.3);
+    arcs
+      .selectAll('path')
+      .style('stroke-width', null)
+      .style('stroke', null)
+      .style('opacity', 0.3);
 
     // Then highlight only those that are an ancestor of the current segment.
     arcs
@@ -427,7 +469,9 @@ function Sunburst(element, props) {
           `${margin.left + visWidth / 2},` +
           `${
             margin.top +
-            (isSmallWidth ? breadcrumbHeight * maxBreadcrumbs : breadcrumbHeight) +
+            (isSmallWidth
+              ? breadcrumbHeight * maxBreadcrumbs
+              : breadcrumbHeight) +
             visHeight / 2
           }` +
           ')',
@@ -462,7 +506,9 @@ function Sunburst(element, props) {
       .attr('d', arc)
       .attr('fill-rule', 'evenodd')
       .style('fill', d =>
-        colorByCategory ? categoricalColorScale(d.name) : linearColorScale(d.m2 / d.m1),
+        colorByCategory
+          ? categoricalColorScale(d.name)
+          : linearColorScale(d.m2 / d.m1),
       )
       .style('opacity', 1)
       .on('mouseenter', mouseenter);

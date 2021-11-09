@@ -65,11 +65,16 @@ function ParallelCoordinates(element, props) {
         .createLinearScale(d3.extent(data, d => d[colorMetric]))
     : () => 'grey';
   const color = d => colorScale(d[colorMetric]);
-  const container = d3.select(element).classed('superset-legacy-chart-parallel-coordinates', true);
+  const container = d3
+    .select(element)
+    .classed('superset-legacy-chart-parallel-coordinates', true);
   container.selectAll('*').remove();
   const effHeight = showDatatable ? height / 2 : height;
 
-  const div = container.append('div').style('height', `${effHeight}px`).classed('parcoords', true);
+  const div = container
+    .append('div')
+    .style('height', `${effHeight}px`)
+    .classed('parcoords', true);
 
   const chart = parcoords()(div.node())
     .width(width)

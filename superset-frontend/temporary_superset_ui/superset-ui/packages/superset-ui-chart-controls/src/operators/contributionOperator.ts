@@ -19,10 +19,9 @@
 import { PostProcessingContribution } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 
-export const contributionOperator: PostProcessingFactory<PostProcessingContribution | undefined> = (
-  formData,
-  queryObject,
-) => {
+export const contributionOperator: PostProcessingFactory<
+  PostProcessingContribution | undefined
+> = (formData, queryObject) => {
   if (formData.contributionMode) {
     return {
       operation: 'contribution',

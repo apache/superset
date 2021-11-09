@@ -56,16 +56,25 @@ const queryObject: QueryObject = {
 
 test('time compare: skip transformation', () => {
   expect(timeCompareOperator(formData, queryObject)).toEqual(undefined);
-  expect(timeCompareOperator({ ...formData, time_compare: [] }, queryObject)).toEqual(undefined);
-  expect(timeCompareOperator({ ...formData, comparison_type: null }, queryObject)).toEqual(
-    undefined,
-  );
-  expect(timeCompareOperator({ ...formData, comparison_type: 'foobar' }, queryObject)).toEqual(
-    undefined,
-  );
+  expect(
+    timeCompareOperator({ ...formData, time_compare: [] }, queryObject),
+  ).toEqual(undefined);
+  expect(
+    timeCompareOperator({ ...formData, comparison_type: null }, queryObject),
+  ).toEqual(undefined);
   expect(
     timeCompareOperator(
-      { ...formData, comparison_type: 'values', time_compare: ['1 year ago', '1 year later'] },
+      { ...formData, comparison_type: 'foobar' },
+      queryObject,
+    ),
+  ).toEqual(undefined);
+  expect(
+    timeCompareOperator(
+      {
+        ...formData,
+        comparison_type: 'values',
+        time_compare: ['1 year ago', '1 year later'],
+      },
       queryObject,
     ),
   ).toEqual(undefined);
@@ -76,7 +85,11 @@ test('time compare: difference/percentage/ratio', () => {
   comparisionTypes.forEach(cType => {
     expect(
       timeCompareOperator(
-        { ...formData, comparison_type: cType, time_compare: ['1 year ago', '1 year later'] },
+        {
+          ...formData,
+          comparison_type: cType,
+          time_compare: ['1 year ago', '1 year later'],
+        },
         queryObject,
       ),
     ).toEqual({
@@ -93,21 +106,31 @@ test('time compare: difference/percentage/ratio', () => {
 
 test('time compare pivot: skip transformation', () => {
   expect(timeComparePivotOperator(formData, queryObject)).toEqual(undefined);
-  expect(timeComparePivotOperator({ ...formData, time_compare: [] }, queryObject)).toEqual(
-    undefined,
-  );
-  expect(timeComparePivotOperator({ ...formData, comparison_type: null }, queryObject)).toEqual(
-    undefined,
-  );
-  expect(timeCompareOperator({ ...formData, comparison_type: 'foobar' }, queryObject)).toEqual(
-    undefined,
-  );
+  expect(
+    timeComparePivotOperator({ ...formData, time_compare: [] }, queryObject),
+  ).toEqual(undefined);
+  expect(
+    timeComparePivotOperator(
+      { ...formData, comparison_type: null },
+      queryObject,
+    ),
+  ).toEqual(undefined);
+  expect(
+    timeCompareOperator(
+      { ...formData, comparison_type: 'foobar' },
+      queryObject,
+    ),
+  ).toEqual(undefined);
 });
 
 test('time compare pivot: values', () => {
   expect(
     timeComparePivotOperator(
-      { ...formData, comparison_type: 'values', time_compare: ['1 year ago', '1 year later'] },
+      {
+        ...formData,
+        comparison_type: 'values',
+        time_compare: ['1 year ago', '1 year later'],
+      },
       queryObject,
     ),
   ).toEqual({
@@ -130,7 +153,11 @@ test('time compare pivot: difference/percentage/ratio', () => {
   comparisionTypes.forEach(cType => {
     expect(
       timeComparePivotOperator(
-        { ...formData, comparison_type: cType, time_compare: ['1 year ago', '1 year later'] },
+        {
+          ...formData,
+          comparison_type: cType,
+          time_compare: ['1 year ago', '1 year later'],
+        },
         queryObject,
       ),
     ).toEqual({

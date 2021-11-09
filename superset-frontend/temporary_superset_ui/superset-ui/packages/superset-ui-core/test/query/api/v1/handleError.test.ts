@@ -18,8 +18,13 @@
  */
 import 'whatwg-fetch'; // for adding Response polyfill
 import { JsonObject } from '@superset-ui/core/src/connection';
-import handleError, { ErrorInput } from '@superset-ui/core/src/query/api/v1/handleError';
-import { SupersetApiError, SupersetApiErrorType } from '@superset-ui/core/src/query/api/v1/types';
+import handleError, {
+  ErrorInput,
+} from '@superset-ui/core/src/query/api/v1/handleError';
+import {
+  SupersetApiError,
+  SupersetApiErrorType,
+} from '@superset-ui/core/src/query/api/v1/types';
 
 async function testHandleError(
   inputError: ErrorInput,
@@ -55,13 +60,19 @@ describe('handleError()', () => {
 
   it('should handle HTTP error', async () => {
     expect.assertions(2);
-    const mockResponse = new Response('Ha?', { status: 404, statusText: 'NOT FOUND' });
+    const mockResponse = new Response('Ha?', {
+      status: 404,
+      statusText: 'NOT FOUND',
+    });
     await testHandleError(mockResponse, '404 NOT FOUND');
   });
 
   it('should handle HTTP error with status < 400', async () => {
     expect.assertions(2);
-    const mockResponse = new Response('Ha haha?', { status: 302, statusText: 'Found' });
+    const mockResponse = new Response('Ha haha?', {
+      status: 302,
+      statusText: 'Found',
+    });
     await testHandleError(mockResponse, '302 Found');
   });
 
@@ -105,10 +116,13 @@ describe('handleError()', () => {
 
   it('should process multi errors in HTTP json', async () => {
     expect.assertions(2);
-    const mockResponse = new Response('{ "errors": [{ "error_type": "NOT OK" }] }', {
-      status: 403,
-      statusText: 'Access Denied',
-    });
+    const mockResponse = new Response(
+      '{ "errors": [{ "error_type": "NOT OK" }] }',
+      {
+        status: 403,
+        statusText: 'Access Denied',
+      },
+    );
     await testHandleError(mockResponse, 'NOT OK');
   });
 
@@ -150,7 +164,10 @@ describe('handleError()', () => {
 
   it('should throw unknown error', async () => {
     expect.assertions(4);
-    await testHandleError(Promise.resolve('Some random things') as never, 'Unknown Error');
+    await testHandleError(
+      Promise.resolve('Some random things') as never,
+      'Unknown Error',
+    );
     await testHandleError(undefined as never, 'Unknown Error');
   });
 });

@@ -68,7 +68,10 @@ describe('createLoadableRenderer', () => {
       const onRenderSuccess = jest.fn();
       const onRenderFailure = jest.fn();
       shallow(
-        <LoadableRenderer onRenderSuccess={onRenderSuccess} onRenderFailure={onRenderFailure} />,
+        <LoadableRenderer
+          onRenderSuccess={onRenderSuccess}
+          onRenderFailure={onRenderFailure}
+        />,
       );
       expect(loadChartSuccess).toHaveBeenCalled();
       jest.useRealTimers();
@@ -80,7 +83,9 @@ describe('createLoadableRenderer', () => {
 
     it('calls onRenderFailure when fails', () =>
       new Promise(done => {
-        const loadChartFailure = jest.fn(() => Promise.reject(new Error('Invalid chart')));
+        const loadChartFailure = jest.fn(() =>
+          Promise.reject(new Error('Invalid chart')),
+        );
         const FailedRenderer = createLoadableRenderer({
           loader: {
             Chart: loadChartFailure,
@@ -91,7 +96,10 @@ describe('createLoadableRenderer', () => {
         const onRenderSuccess = jest.fn();
         const onRenderFailure = jest.fn();
         shallow(
-          <FailedRenderer onRenderSuccess={onRenderSuccess} onRenderFailure={onRenderFailure} />,
+          <FailedRenderer
+            onRenderSuccess={onRenderSuccess}
+            onRenderFailure={onRenderFailure}
+          />,
         );
         expect(loadChartFailure).toHaveBeenCalledTimes(1);
         setTimeout(() => {
@@ -104,7 +112,9 @@ describe('createLoadableRenderer', () => {
 
     it('onRenderFailure is optional', () =>
       new Promise(done => {
-        const loadChartFailure = jest.fn(() => Promise.reject(new Error('Invalid chart')));
+        const loadChartFailure = jest.fn(() =>
+          Promise.reject(new Error('Invalid chart')),
+        );
         const FailedRenderer = createLoadableRenderer({
           loader: {
             Chart: loadChartFailure,

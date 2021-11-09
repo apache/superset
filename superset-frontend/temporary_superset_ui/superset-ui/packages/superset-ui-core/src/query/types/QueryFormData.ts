@@ -25,7 +25,11 @@ import { AdhocMetric, SavedMetric } from './Metric';
 import { AdhocFilter } from './Filter';
 import { BinaryOperator, SetOperator } from './Operator';
 import { AnnotationLayer } from './AnnotationLayer';
-import { QueryObject, QueryObjectExtras, QueryObjectFilterClause } from './Query';
+import {
+  QueryObject,
+  QueryObjectExtras,
+  QueryObjectFilterClause,
+} from './Query';
 import { TimeRange, TimeRangeEndpoints } from './Time';
 import { TimeGranularity } from '../../time-format';
 import { JsonObject } from '../../connection';
@@ -123,13 +127,16 @@ export type ExtraFormDataOverrideExtras = Pick<
 >;
 
 /** These parameters override those already present in the form data/query object */
-export type ExtraFormDataOverrideRegular = Partial<Pick<SqlaFormData, 'granularity_sqla'>> &
+export type ExtraFormDataOverrideRegular = Partial<
+  Pick<SqlaFormData, 'granularity_sqla'>
+> &
   Partial<Pick<DruidFormData, 'granularity'>> &
   Partial<Pick<BaseFormData, 'time_range'>> &
   Partial<Pick<QueryObject, 'time_column' | 'time_grain'>>;
 
 /** These parameters override those already present in the form data/query object */
-export type ExtraFormDataOverride = ExtraFormDataOverrideRegular & ExtraFormDataOverrideExtras;
+export type ExtraFormDataOverride = ExtraFormDataOverrideRegular &
+  ExtraFormDataOverrideExtras;
 
 export type ExtraFormData = ExtraFormDataAppend & ExtraFormDataOverride;
 
@@ -209,7 +216,9 @@ export type QueryFormData = DruidFormData | SqlaFormData;
 // Type guards
 //---------------------------------------------------
 
-export function isDruidFormData(formData: QueryFormData): formData is DruidFormData {
+export function isDruidFormData(
+  formData: QueryFormData,
+): formData is DruidFormData {
   return 'granularity' in formData;
 }
 

@@ -38,7 +38,9 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
           type: 'SelectControl',
           label: t('Rolling function'),
           default: null,
-          choices: [[null, t('None')]].concat(formatSelectOptions(Object.values(RollingType))),
+          choices: [[null, t('None')]].concat(
+            formatSelectOptions(Object.values(RollingType)),
+          ),
           description: t(
             'Defines a rolling window function to apply, works along ' +
               'with the [Periods] text box',

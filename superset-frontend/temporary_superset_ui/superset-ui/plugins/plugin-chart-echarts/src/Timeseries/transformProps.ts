@@ -67,7 +67,15 @@ import { TIMESERIES_CONSTANTS } from '../constants';
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
 ): TimeseriesChartTransformedProps {
-  const { width, height, filterState, formData, hooks, queriesData, datasource } = chartProps;
+  const {
+    width,
+    height,
+    filterState,
+    formData,
+    hooks,
+    queriesData,
+    datasource,
+  } = chartProps;
   const { verboseMap = {} } = datasource;
   const { annotation_data: annotationData_, data = [] } =
     queriesData[0] as TimeseriesChartDataResponseResult;
@@ -181,11 +189,27 @@ export default function transformProps(
       if (isFormulaAnnotationLayer(layer))
         series.push(transformFormulaAnnotation(layer, data, colorScale));
       else if (isIntervalAnnotationLayer(layer)) {
-        series.push(...transformIntervalAnnotation(layer, data, annotationData, colorScale));
+        series.push(
+          ...transformIntervalAnnotation(
+            layer,
+            data,
+            annotationData,
+            colorScale,
+          ),
+        );
       } else if (isEventAnnotationLayer(layer)) {
-        series.push(...transformEventAnnotation(layer, data, annotationData, colorScale));
+        series.push(
+          ...transformEventAnnotation(layer, data, annotationData, colorScale),
+        );
       } else if (isTimeseriesAnnotationLayer(layer)) {
-        series.push(...transformTimeseriesAnnotation(layer, markerSize, data, annotationData));
+        series.push(
+          ...transformTimeseriesAnnotation(
+            layer,
+            markerSize,
+            data,
+            annotationData,
+          ),
+        );
       }
     });
 
@@ -201,13 +225,16 @@ export default function transformProps(
   const tooltipFormatter = getTooltipTimeFormatter(tooltipTimeFormat);
   const xAxisFormatter = getXAxisFormatter(xAxisTimeFormat);
 
-  const labelMap = series.reduce((acc: Record<string, DataRecordValue[]>, datum) => {
-    const name: string = datum.name as string;
-    return {
-      ...acc,
-      [name]: [name],
-    };
-  }, {});
+  const labelMap = series.reduce(
+    (acc: Record<string, DataRecordValue[]>, datum) => {
+      const name: string = datum.name as string;
+      return {
+        ...acc,
+        [name]: [name],
+      };
+    },
+    {},
+  );
 
   const { setDataMask = () => {} } = hooks;
 
@@ -228,7 +255,8 @@ export default function transformProps(
   const legendData = rawSeries
     .filter(
       entry =>
-        extractForecastSeriesContext(entry.name || '').type === ForecastSeriesEnum.Observation,
+        extractForecastSeriesContext(entry.name || '').type ===
+        ForecastSeriesEnum.Observation,
     )
     .map(entry => entry.name || '')
     .concat(extractAnnotationLabels(annotationLayers, annotationData));
@@ -268,7 +296,9 @@ export default function transformProps(
       appendToBody: true,
       trigger: richTooltip ? 'axis' : 'item',
       formatter: (params: any) => {
-        const xValue: number = richTooltip ? params[0].value[0] : params.value[0];
+        const xValue: number = richTooltip
+          ? params[0].value[0]
+          : params.value[0];
         const prophetValue: any[] = richTooltip ? params : [params];
 
         if (richTooltip && tooltipSortByMetric) {

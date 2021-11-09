@@ -55,5 +55,7 @@ export default async function parseResponse<T extends ParseMethod = 'json'>(
     };
     return result as ReturnType;
   }
-  throw new Error(`Expected parseResponse=json|text|raw|null, got '${parseMethod}'.`);
+  throw new Error(
+    `Expected parseResponse=json|text|raw|null, got '${parseMethod}'.`,
+  );
 }

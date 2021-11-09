@@ -40,10 +40,16 @@ addParameters({
       if (a[1].kind === b[1].kind) {
         return 0;
       }
-      if (a[1].id.startsWith('core-packages') && !b[1].id.startsWith('core-packages')) {
+      if (
+        a[1].id.startsWith('core-packages') &&
+        !b[1].id.startsWith('core-packages')
+      ) {
         return -1;
       }
-      if (!a[1].id.startsWith('core-packages') && b[1].id.startsWith('core-packages')) {
+      if (
+        !a[1].id.startsWith('core-packages') &&
+        b[1].id.startsWith('core-packages')
+      ) {
         return 1;
       }
       return a[1].id.localeCompare(b[1].id, undefined, { numeric: true });

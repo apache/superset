@@ -33,7 +33,9 @@ export type TimeColumnConfigKey =
   | '__time_origin'
   | '__granularity';
 
-export type AppliedTimeExtras = Partial<Record<TimeColumnConfigKey, keyof QueryObject>>;
+export type AppliedTimeExtras = Partial<
+  Record<TimeColumnConfigKey, keyof QueryObject>
+>;
 
 export type TimeRangeEndpoint = 'unknown' | 'inclusive' | 'exclusive';
 export type TimeRangeEndpoints = [TimeRangeEndpoint, TimeRangeEndpoint];

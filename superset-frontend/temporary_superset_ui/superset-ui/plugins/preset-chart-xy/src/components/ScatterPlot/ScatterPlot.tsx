@@ -29,7 +29,9 @@ import {
   ScatterPlotEncodingConfig,
   ScatterPlotEncoding,
 } from './Encoder';
-import createMarginSelector, { DEFAULT_MARGIN } from '../../utils/createMarginSelector';
+import createMarginSelector, {
+  DEFAULT_MARGIN,
+} from '../../utils/createMarginSelector';
 import DefaultTooltipRenderer from './DefaultTooltipRenderer';
 import convertScaleToDataUIScale from '../../utils/convertScaleToDataUIScaleShape';
 import createXYChartLayoutWithTheme from '../../utils/createXYChartLayoutWithTheme';
@@ -113,7 +115,9 @@ export default class ScatterPlot extends PureComponent<Props> {
         {layout.renderXAxis()}
         {layout.renderYAxis()}
         <PointSeries
-          key={isFieldDef(channels.x.definition) ? channels.x.definition.field : ''}
+          key={
+            isFieldDef(channels.x.definition) ? channels.x.definition.field : ''
+          }
           data={encodedData}
           fill={(d: PlainObject) => channels.fill.encodeDatum(d)}
           fillOpacity={0.5}
@@ -133,7 +137,11 @@ export default class ScatterPlot extends PureComponent<Props> {
         width={width}
         height={height}
         position="top"
-        renderLegend={createRenderLegend(this.createEncoder(encoding), data, this.props)}
+        renderLegend={createRenderLegend(
+          this.createEncoder(encoding),
+          data,
+          this.props,
+        )}
         renderChart={this.renderChart}
       />
     );

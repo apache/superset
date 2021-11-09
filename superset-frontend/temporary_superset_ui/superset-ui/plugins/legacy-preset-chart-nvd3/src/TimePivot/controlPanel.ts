@@ -17,7 +17,11 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { ControlPanelConfig, D3_FORMAT_OPTIONS, sections } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  D3_FORMAT_OPTIONS,
+  sections,
+} from '@superset-ui/chart-controls';
 import {
   lineInterpolation,
   showLegend,
@@ -76,7 +80,11 @@ const config: ControlPanelConfig = {
     {
       label: t('Chart Options'),
       expanded: true,
-      controlSetRows: [[showLegend], [lineInterpolation], ['color_picker', null]],
+      controlSetRows: [
+        [showLegend],
+        [lineInterpolation],
+        ['color_picker', null],
+      ],
     },
     {
       label: t('X Axis'),

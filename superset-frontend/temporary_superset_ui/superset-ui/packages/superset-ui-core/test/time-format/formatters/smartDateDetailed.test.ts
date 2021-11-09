@@ -32,18 +32,26 @@ describe('smartDateDetailedFormatter', () => {
   });
 
   it('shows full date when a regular date', () => {
-    expect(formatter(new Date('2020-03-01T00:00:00.000+00:00'))).toBe('2020-03-01');
+    expect(formatter(new Date('2020-03-01T00:00:00.000+00:00'))).toBe(
+      '2020-03-01',
+    );
   });
 
   it('shows full date including time of day without seconds when hour precision', () => {
-    expect(formatter(new Date('2020-03-01T13:00:00.000+00:00'))).toBe('2020-03-01 13:00');
+    expect(formatter(new Date('2020-03-01T13:00:00.000+00:00'))).toBe(
+      '2020-03-01 13:00',
+    );
   });
 
   it('shows full date including time of day when minute precision', () => {
-    expect(formatter(new Date('2020-03-10T13:10:00.000+00:00'))).toBe('2020-03-10 13:10');
+    expect(formatter(new Date('2020-03-10T13:10:00.000+00:00'))).toBe(
+      '2020-03-10 13:10',
+    );
   });
 
   it('shows full date including time of day when subsecond precision', () => {
-    expect(formatter(new Date('2020-03-10T13:10:00.100+00:00'))).toBe('2020-03-10 13:10:00.100');
+    expect(formatter(new Date('2020-03-10T13:10:00.100+00:00'))).toBe(
+      '2020-03-10 13:10:00.100',
+    );
   });
 });

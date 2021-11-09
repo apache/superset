@@ -26,7 +26,9 @@ describe('createMultiFormatter()', () => {
       useLocalTime: true,
     });
     it('formats millisecond', () => {
-      expect(formatter(new Date(2018, 10, 20, 11, 22, 33, 100))).toEqual('.100');
+      expect(formatter(new Date(2018, 10, 20, 11, 22, 33, 100))).toEqual(
+        '.100',
+      );
     });
     it('formats second', () => {
       expect(formatter(new Date(2018, 10, 20, 11, 22, 33))).toEqual(':33');

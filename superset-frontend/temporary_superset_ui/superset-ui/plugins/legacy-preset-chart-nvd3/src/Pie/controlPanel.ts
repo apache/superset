@@ -17,7 +17,10 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { ControlPanelConfig, D3_FORMAT_OPTIONS } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  D3_FORMAT_OPTIONS,
+} from '@superset-ui/chart-controls';
 import { showLegend } from '../NVD3Controls';
 
 const config: ControlPanelConfig = {
@@ -25,7 +28,12 @@ const config: ControlPanelConfig = {
     {
       label: t('Query'),
       expanded: true,
-      controlSetRows: [['groupby'], ['metric'], ['adhoc_filters'], ['row_limit']],
+      controlSetRows: [
+        ['groupby'],
+        ['metric'],
+        ['adhoc_filters'],
+        ['row_limit'],
+      ],
     },
     {
       label: t('Chart Options'),
@@ -59,7 +67,9 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: 'SMART_NUMBER',
               choices: D3_FORMAT_OPTIONS,
-              description: `${t('D3 format syntax: https://github.com/d3/d3-format')} ${t(
+              description: `${t(
+                'D3 format syntax: https://github.com/d3/d3-format',
+              )} ${t(
                 'Only applies when the "Label Type" is not set to a percentage.',
               )}`,
             },

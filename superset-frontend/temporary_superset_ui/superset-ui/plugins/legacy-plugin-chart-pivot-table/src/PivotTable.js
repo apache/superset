@@ -38,7 +38,10 @@ const propTypes = {
     // TODO: replace this with raw data in SIP-6
     html: PropTypes.string,
     columns: PropTypes.arrayOf(
-      PropTypes.oneOfType([PropTypes.string, PropTypes.arrayOf(PropTypes.string)]),
+      PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.arrayOf(PropTypes.string),
+      ]),
     ),
   }),
   height: PropTypes.number,
@@ -49,7 +52,8 @@ const propTypes = {
 };
 
 const hasOnlyTextChild = node =>
-  node.childNodes.length === 1 && node.childNodes[0].nodeType === Node.TEXT_NODE;
+  node.childNodes.length === 1 &&
+  node.childNodes[0].nodeType === Node.TEXT_NODE;
 
 function PivotTable(element, props) {
   const {
@@ -84,7 +88,12 @@ function PivotTable(element, props) {
 
   $container.find('th').each(function formatTh() {
     if (hasOnlyTextChild(this)) {
-      const cellValue = formatDateCellValue($(this).text(), verboseMap, dateRegex, dateFormatter);
+      const cellValue = formatDateCellValue(
+        $(this).text(),
+        verboseMap,
+        dateRegex,
+        dateFormatter,
+      );
       $(this).text(cellValue);
     }
   });

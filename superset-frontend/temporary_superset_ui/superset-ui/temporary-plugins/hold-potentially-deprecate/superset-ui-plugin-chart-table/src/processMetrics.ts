@@ -32,7 +32,9 @@ function processMetrics(
   percentMetrics: QueryFormMetric[],
   records: PlainObject[],
 ) {
-  const processedMetrics = (metrics || []).map(m => (m as AdhocMetric).label ?? (m as string));
+  const processedMetrics = (metrics || []).map(
+    m => (m as AdhocMetric).label ?? (m as string),
+  );
 
   const processedPercentMetrics = (percentMetrics || [])
     .map(m => (m as AdhocMetric).label ?? (m as string))
@@ -48,7 +50,8 @@ const getCreateSelectorFunction = () =>
     (data: inputType) => data.metrics,
     data => data.percentMetrics,
     data => data.records,
-    (metrics, percentMetrics, records) => processMetrics(metrics, percentMetrics, records),
+    (metrics, percentMetrics, records) =>
+      processMetrics(metrics, percentMetrics, records),
   );
 
 export default getCreateSelectorFunction;

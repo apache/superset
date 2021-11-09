@@ -19,7 +19,10 @@
 import isEqualArray from './isEqualArray';
 import { TableChartProps } from '../types';
 
-export default function isEqualColumns(propsA: TableChartProps[], propsB: TableChartProps[]) {
+export default function isEqualColumns(
+  propsA: TableChartProps[],
+  propsB: TableChartProps[],
+) {
   const a = propsA[0];
   const b = propsB[0];
   return (

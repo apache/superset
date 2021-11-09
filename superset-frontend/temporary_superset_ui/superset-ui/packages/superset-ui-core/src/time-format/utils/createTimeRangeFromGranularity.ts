@@ -62,7 +62,9 @@ function computeEndTimeFromGranularity(
     case TimeGranularity.MONTH:
       return deductOneMs(createTime(mode, year, month + 1));
     case TimeGranularity.QUARTER:
-      return deductOneMs(createTime(mode, year, (Math.floor(month / 3) + 1) * 3));
+      return deductOneMs(
+        createTime(mode, year, (Math.floor(month / 3) + 1) * 3),
+      );
     case TimeGranularity.YEAR:
       return deductOneMs(createTime(mode, year + 1));
     // For the WEEK_ENDING_XXX cases,
@@ -83,7 +85,11 @@ export default function createTimeRangeFromGranularity(
   granularity: TimeGranularity,
   useLocalTime = false,
 ) {
-  const endTime = computeEndTimeFromGranularity(time, granularity, useLocalTime);
+  const endTime = computeEndTimeFromGranularity(
+    time,
+    granularity,
+    useLocalTime,
+  );
 
   if (
     granularity === TimeGranularity.WEEK_ENDING_SATURDAY ||
@@ -92,7 +98,12 @@ export default function createTimeRangeFromGranularity(
     const date = useLocalTime ? time.getDate() : time.getUTCDate();
     const month = useLocalTime ? time.getMonth() : time.getUTCMonth();
     const year = useLocalTime ? time.getFullYear() : time.getUTCFullYear();
-    const startTime = createTime(useLocalTime ? 'local' : 'utc', year, month, date - 6);
+    const startTime = createTime(
+      useLocalTime ? 'local' : 'utc',
+      year,
+      month,
+      date - 6,
+    );
     return [startTime, endTime];
   }
 

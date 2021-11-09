@@ -27,7 +27,10 @@ describe('processFilters', () => {
         datasource: 'boba',
       }),
     ).toEqual(
-      expect.objectContaining({ extras: { having: '', having_druid: [], where: '' }, filters: [] }),
+      expect.objectContaining({
+        extras: { having: '', having_druid: [], where: '' },
+        filters: [],
+      }),
     );
   });
 

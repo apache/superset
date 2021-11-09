@@ -25,7 +25,11 @@ import getChartTransformPropsRegistry from '../registries/ChartTransformPropsReg
 import ChartProps from '../models/ChartProps';
 import createLoadableRenderer from './createLoadableRenderer';
 import { ChartType } from '../models/ChartPlugin';
-import { PreTransformProps, TransformProps, PostTransformProps } from '../types/TransformFunction';
+import {
+  PreTransformProps,
+  TransformProps,
+  PostTransformProps,
+} from '../types/TransformFunction';
 import { HandlerFunction } from '../types/Base';
 
 function IDENTITY<T>(x: T) {
@@ -112,7 +116,8 @@ export default class SuperChartCore extends React.PureComponent<Props, {}> {
    * is changed.
    */
   private createLoadableRenderer = createSelector(
-    (input: { chartType: string; overrideTransformProps?: TransformProps }) => input.chartType,
+    (input: { chartType: string; overrideTransformProps?: TransformProps }) =>
+      input.chartType,
     input => input.overrideTransformProps,
     (chartType, overrideTransformProps) => {
       if (chartType) {
@@ -123,7 +128,8 @@ export default class SuperChartCore extends React.PureComponent<Props, {}> {
               ? () => Promise.resolve(overrideTransformProps)
               : () => getChartTransformPropsRegistry().getAsPromise(chartType),
           },
-          loading: (loadingProps: LoadingProps) => this.renderLoading(loadingProps, chartType),
+          loading: (loadingProps: LoadingProps) =>
+            this.renderLoading(loadingProps, chartType),
           render: this.renderChart,
         });
 

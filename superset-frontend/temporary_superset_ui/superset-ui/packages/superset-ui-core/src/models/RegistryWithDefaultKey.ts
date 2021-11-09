@@ -36,7 +36,8 @@ export default class RegistryWithDefaultKey<
 
   constructor(config: RegistryWithDefaultKeyConfig = {}) {
     super(config);
-    const { initialDefaultKey = undefined, setFirstItemAsDefault = false } = config;
+    const { initialDefaultKey = undefined, setFirstItemAsDefault = false } =
+      config;
     this.initialDefaultKey = initialDefaultKey;
     this.defaultKey = initialDefaultKey;
     this.setFirstItemAsDefault = setFirstItemAsDefault;

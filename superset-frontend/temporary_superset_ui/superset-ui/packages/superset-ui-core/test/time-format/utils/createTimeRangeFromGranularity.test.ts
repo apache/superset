@@ -26,7 +26,9 @@ import {
 
 const formatString = '%Y-%m-%d %H:%M:%S.%L';
 const formatUTCTimeRange = getTimeRangeFormatter(formatString);
-const formatLocalTimeRange = getTimeRangeFormatter(`${LOCAL_PREFIX}${formatString}`);
+const formatLocalTimeRange = getTimeRangeFormatter(
+  `${LOCAL_PREFIX}${formatString}`,
+);
 
 function testUTC(
   granularity: TimeGranularity,
@@ -96,15 +98,15 @@ describe('createTimeRangeFromGranularity(time, granularity, useLocalTime)', () =
       expect(testUTC(TimeGranularity.WEEK, 2020, 4, 15)).toEqual(
         '2020-05-15 00:00:00.000 — 2020-05-21 23:59:59.999',
       );
-      expect(testUTC(TimeGranularity.WEEK_STARTING_SUNDAY, 2020, 4, 17)).toEqual(
-        '2020-05-17 00:00:00.000 — 2020-05-23 23:59:59.999',
-      );
-      expect(testUTC(TimeGranularity.WEEK_STARTING_MONDAY, 2020, 4, 18)).toEqual(
-        '2020-05-18 00:00:00.000 — 2020-05-24 23:59:59.999',
-      );
-      expect(testUTC(TimeGranularity.WEEK_ENDING_SATURDAY, 2020, 4, 16)).toEqual(
-        '2020-05-10 00:00:00.000 — 2020-05-16 23:59:59.999',
-      );
+      expect(
+        testUTC(TimeGranularity.WEEK_STARTING_SUNDAY, 2020, 4, 17),
+      ).toEqual('2020-05-17 00:00:00.000 — 2020-05-23 23:59:59.999');
+      expect(
+        testUTC(TimeGranularity.WEEK_STARTING_MONDAY, 2020, 4, 18),
+      ).toEqual('2020-05-18 00:00:00.000 — 2020-05-24 23:59:59.999');
+      expect(
+        testUTC(TimeGranularity.WEEK_ENDING_SATURDAY, 2020, 4, 16),
+      ).toEqual('2020-05-10 00:00:00.000 — 2020-05-16 23:59:59.999');
       expect(testUTC(TimeGranularity.WEEK_ENDING_SUNDAY, 2020, 4, 17)).toEqual(
         '2020-05-11 00:00:00.000 — 2020-05-17 23:59:59.999',
       );
@@ -157,18 +159,18 @@ describe('createTimeRangeFromGranularity(time, granularity, useLocalTime)', () =
       expect(testLocal(TimeGranularity.WEEK, 2020, 4, 15)).toEqual(
         '2020-05-15 00:00:00.000 — 2020-05-21 23:59:59.999',
       );
-      expect(testLocal(TimeGranularity.WEEK_STARTING_SUNDAY, 2020, 4, 17)).toEqual(
-        '2020-05-17 00:00:00.000 — 2020-05-23 23:59:59.999',
-      );
-      expect(testLocal(TimeGranularity.WEEK_STARTING_MONDAY, 2020, 4, 18)).toEqual(
-        '2020-05-18 00:00:00.000 — 2020-05-24 23:59:59.999',
-      );
-      expect(testLocal(TimeGranularity.WEEK_ENDING_SATURDAY, 2020, 4, 16)).toEqual(
-        '2020-05-10 00:00:00.000 — 2020-05-16 23:59:59.999',
-      );
-      expect(testLocal(TimeGranularity.WEEK_ENDING_SUNDAY, 2020, 4, 17)).toEqual(
-        '2020-05-11 00:00:00.000 — 2020-05-17 23:59:59.999',
-      );
+      expect(
+        testLocal(TimeGranularity.WEEK_STARTING_SUNDAY, 2020, 4, 17),
+      ).toEqual('2020-05-17 00:00:00.000 — 2020-05-23 23:59:59.999');
+      expect(
+        testLocal(TimeGranularity.WEEK_STARTING_MONDAY, 2020, 4, 18),
+      ).toEqual('2020-05-18 00:00:00.000 — 2020-05-24 23:59:59.999');
+      expect(
+        testLocal(TimeGranularity.WEEK_ENDING_SATURDAY, 2020, 4, 16),
+      ).toEqual('2020-05-10 00:00:00.000 — 2020-05-16 23:59:59.999');
+      expect(
+        testLocal(TimeGranularity.WEEK_ENDING_SUNDAY, 2020, 4, 17),
+      ).toEqual('2020-05-11 00:00:00.000 — 2020-05-17 23:59:59.999');
       expect(testLocal(TimeGranularity.MONTH, 2020, 4, 1)).toEqual(
         '2020-05-01 00:00:00.000 — 2020-05-31 23:59:59.999',
       );

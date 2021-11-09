@@ -32,7 +32,10 @@ export default class NumberFormatterRegistry extends RegistryWithDefaultKey<
       overwritePolicy: OverwritePolicy.WARN,
     });
 
-    this.registerValue(NumberFormats.SMART_NUMBER, createSmartNumberFormatter());
+    this.registerValue(
+      NumberFormats.SMART_NUMBER,
+      createSmartNumberFormatter(),
+    );
     this.registerValue(
       NumberFormats.SMART_NUMBER_SIGNED,
       createSmartNumberFormatter({ signed: true }),
@@ -42,7 +45,9 @@ export default class NumberFormatterRegistry extends RegistryWithDefaultKey<
 
   get(formatterId?: string) {
     const targetFormat = `${
-      formatterId === null || typeof formatterId === 'undefined' || formatterId === ''
+      formatterId === null ||
+      typeof formatterId === 'undefined' ||
+      formatterId === ''
         ? this.defaultKey
         : formatterId
     }`.trim();
@@ -60,7 +65,10 @@ export default class NumberFormatterRegistry extends RegistryWithDefaultKey<
     return formatter;
   }
 
-  format(formatterId: string | undefined, value: number | null | undefined): string {
+  format(
+    formatterId: string | undefined,
+    value: number | null | undefined,
+  ): string {
     return this.get(formatterId)(value);
   }
 }

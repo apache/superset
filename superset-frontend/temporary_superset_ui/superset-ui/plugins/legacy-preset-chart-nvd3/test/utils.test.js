@@ -140,13 +140,17 @@ describe('nvd3/utils', () => {
       expect(formatLabel('foo', verboseMap)).toBe('Foo');
       expect(formatLabel('baz', verboseMap)).toBe('baz');
       expect(formatLabel(['foo'], verboseMap)).toBe('Foo');
-      expect(formatLabel(['foo', 'bar', 'baz'], verboseMap)).toBe('Foo, Bar, baz');
+      expect(formatLabel(['foo', 'bar', 'baz'], verboseMap)).toBe(
+        'Foo, Bar, baz',
+      );
     });
     it('deals with time shift properly', () => {
-      expect(formatLabel(['foo', '1 hour offset'], verboseMap)).toBe('Foo, 1 hour offset');
-      expect(formatLabel(['foo', 'bar', 'baz', '2 hours offset'], verboseMap)).toBe(
-        'Foo, Bar, baz, 2 hours offset',
+      expect(formatLabel(['foo', '1 hour offset'], verboseMap)).toBe(
+        'Foo, 1 hour offset',
       );
+      expect(
+        formatLabel(['foo', 'bar', 'baz', '2 hours offset'], verboseMap),
+      ).toBe('Foo, Bar, baz, 2 hours offset');
     });
   });
 
@@ -169,7 +173,9 @@ describe('nvd3/utils', () => {
     });
 
     it('works with some series disabled', () => {
-      expect(computeYDomain(DATA_WITH_DISABLED_SERIES)).toEqual([660881033.0, 668526708.0]);
+      expect(computeYDomain(DATA_WITH_DISABLED_SERIES)).toEqual([
+        660881033.0, 668526708.0,
+      ]);
     });
   });
 
@@ -183,7 +189,9 @@ describe('nvd3/utils', () => {
     });
 
     it('works with some series disabled', () => {
-      expect(computeStackedYDomain(DATA_WITH_DISABLED_SERIES)).toEqual([0, 668526708.0]);
+      expect(computeStackedYDomain(DATA_WITH_DISABLED_SERIES)).toEqual([
+        0, 668526708.0,
+      ]);
     });
   });
 });

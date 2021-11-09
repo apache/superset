@@ -25,16 +25,31 @@ import { triggerResizeObserver } from 'resize-observer-polyfill';
 import ErrorBoundary from 'react-error-boundary';
 import { promiseTimeout } from '@superset-ui/core';
 import { SuperChart } from '@superset-ui/core/src/chart';
-import RealSuperChart, { WrapperProps } from '@superset-ui/core/src/chart/components/SuperChart';
+import RealSuperChart, {
+  WrapperProps,
+} from '@superset-ui/core/src/chart/components/SuperChart';
 import NoResultsComponent from '@superset-ui/core/src/chart/components/NoResultsComponent';
 
-import { ChartKeys, DiligentChartPlugin, BuggyChartPlugin } from './MockChartPlugins';
+import {
+  ChartKeys,
+  DiligentChartPlugin,
+  BuggyChartPlugin,
+} from './MockChartPlugins';
 
 const DEFAULT_QUERY_DATA = { data: ['foo', 'bar'] };
-const DEFAULT_QUERIES_DATA = [{ data: ['foo', 'bar'] }, { data: ['foo2', 'bar2'] }];
+const DEFAULT_QUERIES_DATA = [
+  { data: ['foo', 'bar'] },
+  { data: ['foo2', 'bar2'] },
+];
 
-function expectDimension(renderedWrapper: Cheerio, width: number, height: number) {
-  expect(renderedWrapper.find('.dimension').text()).toEqual([width, height].join('x'));
+function expectDimension(
+  renderedWrapper: Cheerio,
+  width: number,
+  height: number,
+) {
+  expect(renderedWrapper.find('.dimension').text()).toEqual(
+    [width, height].join('x'),
+  );
 }
 
 describe('SuperChart', () => {
@@ -101,12 +116,16 @@ describe('SuperChart', () => {
 
       return promiseTimeout(() => {
         expect(renderedWrapper.find('div.test-component')).toHaveLength(0);
-        expect(RealSuperChart.defaultProps.FallbackComponent).toHaveBeenCalledTimes(1);
+        expect(
+          RealSuperChart.defaultProps.FallbackComponent,
+        ).toHaveBeenCalledTimes(1);
       }, 100);
     });
     it('renders custom FallbackComponent', () => {
       expectedErrors = 1;
-      const CustomFallbackComponent = jest.fn(() => <div>Custom Fallback!</div>);
+      const CustomFallbackComponent = jest.fn(() => (
+        <div>Custom Fallback!</div>
+      ));
       const wrapper = mount(
         <SuperChart
           chartType={ChartKeys.BUGGY}
@@ -219,7 +238,9 @@ describe('SuperChart', () => {
 
   describe('supports NoResultsComponent', () => {
     it('renders NoResultsComponent when queriesData is missing', () => {
-      const wrapper = mount(<SuperChart chartType={ChartKeys.DILIGENT} width="200" height="200" />);
+      const wrapper = mount(
+        <SuperChart chartType={ChartKeys.DILIGENT} width="200" height="200" />,
+      );
 
       expect(wrapper.find(NoResultsComponent)).toHaveLength(1);
     });
@@ -287,7 +308,11 @@ describe('SuperChart', () => {
 
       return promiseTimeout(() => {
         const renderedWrapper = wrapper.render();
-        const boundingBox = renderedWrapper.find('div.test-component').parent().parent().parent();
+        const boundingBox = renderedWrapper
+          .find('div.test-component')
+          .parent()
+          .parent()
+          .parent();
         expect(boundingBox.css('width')).toEqual('50%');
         expect(boundingBox.css('height')).toEqual('125px');
         expect(renderedWrapper.find('div.test-component')).toHaveLength(1);
@@ -308,7 +333,11 @@ describe('SuperChart', () => {
 
       return promiseTimeout(() => {
         const renderedWrapper = wrapper.render();
-        const boundingBox = renderedWrapper.find('div.test-component').parent().parent().parent();
+        const boundingBox = renderedWrapper
+          .find('div.test-component')
+          .parent()
+          .parent()
+          .parent();
         expect(boundingBox.css('width')).toEqual('50px');
         expect(boundingBox.css('height')).toEqual('25%');
         expect(renderedWrapper.find('div.test-component')).toHaveLength(1);
@@ -359,7 +388,9 @@ describe('SuperChart', () => {
       return promiseTimeout(() => {
         const renderedWrapper = wrapper.render();
         expect(renderedWrapper.find('div.wrapper-insert')).toHaveLength(1);
-        expect(renderedWrapper.find('div.wrapper-insert').text()).toEqual('100x100');
+        expect(renderedWrapper.find('div.wrapper-insert').text()).toEqual(
+          '100x100',
+        );
         expect(renderedWrapper.find('div.test-component')).toHaveLength(1);
         expectDimension(renderedWrapper, 100, 100);
       }, 100);
@@ -381,7 +412,9 @@ describe('SuperChart', () => {
       return promiseTimeout(() => {
         const renderedWrapper = wrapper.render();
         expect(renderedWrapper.find('div.wrapper-insert')).toHaveLength(1);
-        expect(renderedWrapper.find('div.wrapper-insert').text()).toEqual('300x300');
+        expect(renderedWrapper.find('div.wrapper-insert').text()).toEqual(
+          '300x300',
+        );
         expect(renderedWrapper.find('div.test-component')).toHaveLength(1);
         expectDimension(renderedWrapper, 300, 300);
       }, 100);

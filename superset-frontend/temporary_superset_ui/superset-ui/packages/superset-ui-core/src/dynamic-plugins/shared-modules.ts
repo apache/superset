@@ -49,7 +49,10 @@ const withNamespace = (name: string) => `__superset__/${name}`;
  * @param name the module's name (should match name in package.json)
  * @param promise the promise resulting from a call to `import(name)`
  */
-export async function defineSharedModule(name: string, fetchModule: () => Promise<Module>) {
+export async function defineSharedModule(
+  name: string,
+  fetchModule: () => Promise<Module>,
+) {
   // this field on window is used by dynamic plugins to reference the module
   const moduleKey = withNamespace(name);
 
@@ -75,9 +78,13 @@ export async function defineSharedModule(name: string, fetchModule: () => Promis
  * @see defineSharedModule
  * @param moduleMap
  */
-export async function defineSharedModules(moduleMap: { [key: string]: () => Promise<Module> }) {
+export async function defineSharedModules(moduleMap: {
+  [key: string]: () => Promise<Module>;
+}) {
   return Promise.all(
-    Object.entries(moduleMap).map(([name, fetchModule]) => defineSharedModule(name, fetchModule)),
+    Object.entries(moduleMap).map(([name, fetchModule]) =>
+      defineSharedModule(name, fetchModule),
+    ),
   );
 }
 

@@ -13,7 +13,9 @@ lookup this chart throughout the app.
 ```js
 import ParallelCoordinatesChartPlugin from '@superset-ui/legacy-plugin-chart-parallel-coordinates';
 
-new ParallelCoordinatesChartPlugin().configure({ key: 'parallel-coordinates' }).register();
+new ParallelCoordinatesChartPlugin()
+  .configure({ key: 'parallel-coordinates' })
+  .register();
 ```
 
 Then use it via `SuperChart`. See

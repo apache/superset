@@ -30,5 +30,10 @@ export default {
 };
 
 export const basic = () => (
-  <SuperChart chartType="force-directed" width={400} height={400} queriesData={[{ data }]} />
+  <SuperChart
+    chartType="force-directed"
+    width={400}
+    height={400}
+    queriesData={[{ data }]}
+  />
 );

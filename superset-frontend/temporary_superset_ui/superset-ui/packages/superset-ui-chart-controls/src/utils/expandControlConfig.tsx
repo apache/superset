@@ -19,11 +19,21 @@
 import React, { ReactElement } from 'react';
 import { sharedControls } from '../shared-controls';
 import sharedControlComponents from '../shared-controls/components';
-import { ControlType, ControlSetItem, ExpandedControlItem, ControlOverrides } from '../types';
+import {
+  ControlType,
+  ControlSetItem,
+  ExpandedControlItem,
+  ControlOverrides,
+} from '../types';
 
 export function expandControlType(controlType: ControlType) {
-  if (typeof controlType === 'string' && controlType in sharedControlComponents) {
-    return sharedControlComponents[controlType as keyof typeof sharedControlComponents];
+  if (
+    typeof controlType === 'string' &&
+    controlType in sharedControlComponents
+  ) {
+    return sharedControlComponents[
+      controlType as keyof typeof sharedControlComponents
+    ];
   }
   return controlType;
 }
@@ -54,7 +64,11 @@ export function expandControlConfig(
     };
   }
   // JSX/React element or NULL
-  if (!control || typeof control === 'string' || React.isValidElement(control)) {
+  if (
+    !control ||
+    typeof control === 'string' ||
+    React.isValidElement(control)
+  ) {
     return control as ReactElement;
   }
   // already fully expanded control config, e.g.

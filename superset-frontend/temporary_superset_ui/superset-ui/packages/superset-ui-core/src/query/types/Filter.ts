@@ -49,7 +49,10 @@ export type SetAdhocFilter = BaseSimpleAdhocFilter & {
   comparator: string[];
 };
 
-export type SimpleAdhocFilter = UnaryAdhocFilter | BinaryAdhocFilter | SetAdhocFilter;
+export type SimpleAdhocFilter =
+  | UnaryAdhocFilter
+  | BinaryAdhocFilter
+  | SetAdhocFilter;
 
 export interface FreeFormAdhocFilter {
   expressionType: 'SQL';
@@ -63,18 +66,26 @@ export type AdhocFilter = SimpleAdhocFilter | FreeFormAdhocFilter;
 // Type guards
 //---------------------------------------------------
 
-export function isSimpleAdhocFilter(filter: AdhocFilter): filter is SimpleAdhocFilter {
+export function isSimpleAdhocFilter(
+  filter: AdhocFilter,
+): filter is SimpleAdhocFilter {
   return filter.expressionType === 'SIMPLE';
 }
 
-export function isUnaryAdhocFilter(filter: SimpleAdhocFilter): filter is UnaryAdhocFilter {
+export function isUnaryAdhocFilter(
+  filter: SimpleAdhocFilter,
+): filter is UnaryAdhocFilter {
   return isUnaryOperator(filter.operator);
 }
 
-export function isBinaryAdhocFilter(filter: SimpleAdhocFilter): filter is BinaryAdhocFilter {
+export function isBinaryAdhocFilter(
+  filter: SimpleAdhocFilter,
+): filter is BinaryAdhocFilter {
   return isBinaryOperator(filter.operator);
 }
 
-export function isSetAdhocFilter(filter: SimpleAdhocFilter): filter is SetAdhocFilter {
+export function isSetAdhocFilter(
+  filter: SimpleAdhocFilter,
+): filter is SetAdhocFilter {
   return isSetOperator(filter.operator);
 }

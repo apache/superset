@@ -33,7 +33,10 @@ const LONG_LABEL =
 
 for (let i = 0; i < 50; i += 1) {
   data[0].values.push({
-    x: `${LONG_LABEL.substring(0, Math.round(seedRandom() * LONG_LABEL.length))} ${i + 1}`,
+    x: `${LONG_LABEL.substring(
+      0,
+      Math.round(seedRandom() * LONG_LABEL.length),
+    )} ${i + 1}`,
     y: Math.round(seedRandom() * 10000),
   });
 }

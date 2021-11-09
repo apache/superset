@@ -36,11 +36,15 @@ import {
 
 export default function buildQuery(formData: QueryFormData) {
   return buildQueryContext(formData, baseQueryObject => {
-    const pivotOperatorInRuntime: PostProcessingPivot | undefined = pivotOperator(formData, {
-      ...baseQueryObject,
-      is_timeseries: true,
-    });
-    if (pivotOperatorInRuntime && Object.values(RollingType).includes(formData.rolling_type)) {
+    const pivotOperatorInRuntime: PostProcessingPivot | undefined =
+      pivotOperator(formData, {
+        ...baseQueryObject,
+        is_timeseries: true,
+      });
+    if (
+      pivotOperatorInRuntime &&
+      Object.values(RollingType).includes(formData.rolling_type)
+    ) {
       pivotOperatorInRuntime.options = {
         ...pivotOperatorInRuntime.options,
         ...{
@@ -56,7 +60,9 @@ export default function buildQuery(formData: QueryFormData) {
         is_timeseries: true,
         // todo: move `normalizeOrderBy to extractQueryFields`
         orderby: normalizeOrderBy(baseQueryObject).orderby,
-        time_offsets: isValidTimeCompare(formData, baseQueryObject) ? formData.time_compare : [],
+        time_offsets: isValidTimeCompare(formData, baseQueryObject)
+          ? formData.time_compare
+          : [],
         post_processing: [
           resampleOperator(formData, baseQueryObject),
           timeCompareOperator(formData, baseQueryObject),

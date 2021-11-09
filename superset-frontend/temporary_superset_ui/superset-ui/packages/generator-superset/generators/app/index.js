@@ -26,7 +26,9 @@ const yosay = require('yosay');
 module.exports = class extends Generator {
   async prompting() {
     // Have Yeoman greet the user.
-    this.log(yosay(`Welcome to the rad ${chalk.red('generator-superset')} generator!`));
+    this.log(
+      yosay(`Welcome to the rad ${chalk.red('generator-superset')} generator!`),
+    );
 
     this.option('skipInstall');
 

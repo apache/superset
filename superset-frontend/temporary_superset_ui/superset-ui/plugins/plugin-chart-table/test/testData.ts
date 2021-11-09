@@ -138,7 +138,11 @@ const advanced: TableChartProps = {
     {
       ...basicQueryResult,
       colnames: ['name', 'sum__num', '%pct_nice'],
-      coltypes: [GenericDataType.STRING, GenericDataType.NUMERIC, GenericDataType.NUMERIC],
+      coltypes: [
+        GenericDataType.STRING,
+        GenericDataType.NUMERIC,
+        GenericDataType.NUMERIC,
+      ],
       data: [...(basic.queriesData[0].data || [])],
     },
   ],

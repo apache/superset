@@ -137,13 +137,18 @@ describe('extractTimeseriesSeries', () => {
 
 describe('extractGroupbyLabel', () => {
   it('should join together multiple groupby labels', () => {
-    expect(extractGroupbyLabel({ datum: { a: 'abc', b: 'qwerty' }, groupby: ['a', 'b'] })).toEqual(
-      'abc, qwerty',
-    );
+    expect(
+      extractGroupbyLabel({
+        datum: { a: 'abc', b: 'qwerty' },
+        groupby: ['a', 'b'],
+      }),
+    ).toEqual('abc, qwerty');
   });
 
   it('should handle a single groupby', () => {
-    expect(extractGroupbyLabel({ datum: { xyz: 'qqq' }, groupby: ['xyz'] })).toEqual('qqq');
+    expect(
+      extractGroupbyLabel({ datum: { xyz: 'qqq' }, groupby: ['xyz'] }),
+    ).toEqual('qqq');
   });
 
   it('should handle mixed types', () => {
@@ -191,7 +196,9 @@ describe('formatSeriesName', () => {
   });
 
   it('should use default formatting for for date values without formatter', () => {
-    expect(formatSeriesName(new Date('2020-09-11'))).toEqual('2020-09-11T00:00:00.000Z');
+    expect(formatSeriesName(new Date('2020-09-11'))).toEqual(
+      '2020-09-11T00:00:00.000Z',
+    );
   });
 
   it('should use timeFormatter for date values when formatter is provided', () => {
@@ -202,7 +209,9 @@ describe('formatSeriesName', () => {
 
   describe('getLegendProps', () => {
     it('should return the correct props for scroll type with top orientation without zoom', () => {
-      expect(getLegendProps(LegendType.Scroll, LegendOrientation.Top, true, false)).toEqual({
+      expect(
+        getLegendProps(LegendType.Scroll, LegendOrientation.Top, true, false),
+      ).toEqual({
         show: true,
         top: 0,
         right: 0,
@@ -212,7 +221,9 @@ describe('formatSeriesName', () => {
     });
 
     it('should return the correct props for scroll type with top orientation with zoom', () => {
-      expect(getLegendProps(LegendType.Scroll, LegendOrientation.Top, true, true)).toEqual({
+      expect(
+        getLegendProps(LegendType.Scroll, LegendOrientation.Top, true, true),
+      ).toEqual({
         show: true,
         top: 0,
         right: 55,
@@ -222,7 +233,9 @@ describe('formatSeriesName', () => {
     });
 
     it('should return the correct props for plain type with left orientation', () => {
-      expect(getLegendProps(LegendType.Plain, LegendOrientation.Left, true)).toEqual({
+      expect(
+        getLegendProps(LegendType.Plain, LegendOrientation.Left, true),
+      ).toEqual({
         show: true,
         left: 0,
         orient: 'vertical',
@@ -231,7 +244,9 @@ describe('formatSeriesName', () => {
     });
 
     it('should return the correct props for plain type with right orientation without zoom', () => {
-      expect(getLegendProps(LegendType.Plain, LegendOrientation.Right, false, false)).toEqual({
+      expect(
+        getLegendProps(LegendType.Plain, LegendOrientation.Right, false, false),
+      ).toEqual({
         show: false,
         right: 0,
         top: 0,
@@ -241,7 +256,9 @@ describe('formatSeriesName', () => {
     });
 
     it('should return the correct props for plain type with right orientation with zoom', () => {
-      expect(getLegendProps(LegendType.Plain, LegendOrientation.Right, false, true)).toEqual({
+      expect(
+        getLegendProps(LegendType.Plain, LegendOrientation.Right, false, true),
+      ).toEqual({
         show: false,
         right: 0,
         top: 30,
@@ -251,7 +268,9 @@ describe('formatSeriesName', () => {
     });
 
     it('should return the correct props for plain type with bottom orientation', () => {
-      expect(getLegendProps(LegendType.Plain, LegendOrientation.Bottom, false)).toEqual({
+      expect(
+        getLegendProps(LegendType.Plain, LegendOrientation.Bottom, false),
+      ).toEqual({
         show: false,
         bottom: 0,
         orient: 'horizontal',
@@ -349,7 +368,12 @@ describe('formatSeriesName', () => {
             id: 'foo',
           },
         ]),
-      ).toEqual([{ id: 'foo' }, { id: 'bar' }, { id: 'foo (1)' }, { id: 'foo (2)' }]);
+      ).toEqual([
+        { id: 'foo' },
+        { id: 'bar' },
+        { id: 'foo (1)' },
+        { id: 'foo (2)' },
+      ]);
     });
   });
 

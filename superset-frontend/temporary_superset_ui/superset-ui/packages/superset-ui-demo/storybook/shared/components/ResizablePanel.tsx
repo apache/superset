@@ -18,7 +18,11 @@
  */
 
 import React, { PropsWithChildren, ReactNode } from 'react';
-import { ResizableBox, ResizableBoxProps, ResizeCallbackData } from 'react-resizable';
+import {
+  ResizableBox,
+  ResizableBoxProps,
+  ResizeCallbackData,
+} from 'react-resizable';
 
 import 'react-resizable/css/styles.css';
 

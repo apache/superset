@@ -36,7 +36,8 @@ function processData(
 ) {
   const sortByKey =
     timeseriesLimitMetric &&
-    ((timeseriesLimitMetric as AdhocMetric).label || (timeseriesLimitMetric as string));
+    ((timeseriesLimitMetric as AdhocMetric).label ||
+      (timeseriesLimitMetric as string));
 
   let processedRecords = records;
 
@@ -44,7 +45,9 @@ function processData(
     processedRecords = records
       .slice()
       .sort(
-        orderDesc ? (a, b) => b[sortByKey] - a[sortByKey] : (a, b) => a[sortByKey] - b[sortByKey],
+        orderDesc
+          ? (a, b) => b[sortByKey] - a[sortByKey]
+          : (a, b) => a[sortByKey] - b[sortByKey],
       );
   }
 

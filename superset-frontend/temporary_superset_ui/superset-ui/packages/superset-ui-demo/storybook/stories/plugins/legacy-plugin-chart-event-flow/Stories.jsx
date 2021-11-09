@@ -28,11 +28,13 @@ export default {
   title: 'Legacy Chart Plugins/legacy-plugin-chart-event-flow',
 };
 
-const data = sampleEvents.twentyUsers.allEvents.map(({ ENTITY_ID, EVENT_NAME, TS }) => ({
-  __timestamp: TS,
-  eventName: EVENT_NAME,
-  userId: ENTITY_ID,
-}));
+const data = sampleEvents.twentyUsers.allEvents.map(
+  ({ ENTITY_ID, EVENT_NAME, TS }) => ({
+    __timestamp: TS,
+    eventName: EVENT_NAME,
+    userId: ENTITY_ID,
+  }),
+);
 
 export const basic = () => (
   <SuperChart

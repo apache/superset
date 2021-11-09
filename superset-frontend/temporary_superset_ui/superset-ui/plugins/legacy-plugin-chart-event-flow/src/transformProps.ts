@@ -33,7 +33,8 @@ export interface EventFlowChartProps extends ChartProps {
 }
 
 export default function transformProps(chartProps: ChartProps) {
-  const { formData, queriesData, width, height } = chartProps as EventFlowChartProps;
+  const { formData, queriesData, width, height } =
+    chartProps as EventFlowChartProps;
   const { allColumnsX, entity, minLeafNodeEventCount } = formData;
   const { data } = queriesData[0];
 
@@ -45,10 +46,14 @@ export default function transformProps(chartProps: ChartProps) {
     // map from the Superset form fields to <EventFlow />'s expected data keys
     const accessorFunctions = {
       [ENTITY_ID]: (datum: TimeseriesDataRecord) => String(datum[userKey]),
-      [EVENT_NAME]: (datum: TimeseriesDataRecord) => datum[eventNameKey] as string,
+      [EVENT_NAME]: (datum: TimeseriesDataRecord) =>
+        datum[eventNameKey] as string,
       [TS]: (datum: TimeseriesDataRecord): Date | null =>
         // eslint-disable-next-line no-underscore-dangle
-        datum.__timestamp || datum.__timestamp === 0 ? new Date(datum.__timestamp) : null,
+        datum.__timestamp || datum.__timestamp === 0
+          ? // eslint-disable-next-line no-underscore-dangle
+            new Date(datum.__timestamp)
+          : null,
     };
 
     const cleanData = cleanEvents(data, accessorFunctions);

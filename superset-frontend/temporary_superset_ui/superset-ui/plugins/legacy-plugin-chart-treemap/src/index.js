@@ -31,9 +31,20 @@ const metadata = new ChartMetadata({
   description: t(
     'Shows the composition of a dataset by segmenting a given rectangle as smaller rectangles with areas proportional to their value or contribution to the whole. Those rectangles may also, in turn, be further segmented hierarchically.',
   ),
-  exampleGallery: [{ url: example1 }, { url: example2 }, { url: example3 }, { url: example4 }],
+  exampleGallery: [
+    { url: example1 },
+    { url: example2 },
+    { url: example3 },
+    { url: example4 },
+  ],
   name: t('Treemap'),
-  tags: [t('Categorical'), t('Legacy'), t('Multi-Levels'), t('Percentages'), t('Proportional')],
+  tags: [
+    t('Categorical'),
+    t('Legacy'),
+    t('Multi-Levels'),
+    t('Percentages'),
+    t('Proportional'),
+  ],
   thumbnail,
   useLegacyApi: true,
 });

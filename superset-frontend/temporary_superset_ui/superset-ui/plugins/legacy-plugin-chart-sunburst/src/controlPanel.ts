@@ -37,7 +37,9 @@ const config: ControlPanelConfig = {
             config: {
               type: 'CheckboxControl',
               label: t('Sort by metric'),
-              description: t('Whether to sort results by the selected metric in descending order.'),
+              description: t(
+                'Whether to sort results by the selected metric in descending order.',
+              ),
             },
           },
         ],
@@ -52,7 +54,9 @@ const config: ControlPanelConfig = {
   controlOverrides: {
     metric: {
       label: t('Primary Metric'),
-      description: t('The primary metric is used to define the arc segment sizes'),
+      description: t(
+        'The primary metric is used to define the arc segment sizes',
+      ),
     },
     secondary_metric: {
       label: t('Secondary Metric'),
@@ -64,10 +68,14 @@ const config: ControlPanelConfig = {
       ),
     },
     color_scheme: {
-      description: t('When only a primary metric is provided, a categorical color scale is used.'),
+      description: t(
+        'When only a primary metric is provided, a categorical color scale is used.',
+      ),
     },
     linear_color_scheme: {
-      description: t('When a secondary metric is provided, a linear color scale is used.'),
+      description: t(
+        'When a secondary metric is provided, a linear color scale is used.',
+      ),
     },
     groupby: {
       label: t('Hierarchy'),

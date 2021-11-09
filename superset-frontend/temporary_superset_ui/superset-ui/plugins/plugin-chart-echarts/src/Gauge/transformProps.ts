@@ -60,7 +60,9 @@ const setIntervalBoundsAndColors = (
     intervalColorIndicesArray = [] as number[];
   }
 
-  const intervalBounds = intervalBoundsNonNormalized.map(bound => bound / normalizer);
+  const intervalBounds = intervalBoundsNonNormalized.map(
+    bound => bound / normalizer,
+  );
   const intervalColors = intervalColorIndicesArray.map(
     ind => colorFn.colors[(ind - 1) % colorFn.colors.length],
   );
@@ -71,13 +73,17 @@ const setIntervalBoundsAndColors = (
   });
 };
 
-const calculateAxisLineWidth = (data: DataRecord[], fontSize: number, overlap: boolean): number =>
-  overlap ? fontSize : data.length * fontSize;
+const calculateAxisLineWidth = (
+  data: DataRecord[],
+  fontSize: number,
+  overlap: boolean,
+): number => (overlap ? fontSize : data.length * fontSize);
 
 export default function transformProps(
   chartProps: EchartsGaugeChartProps,
 ): GaugeChartTransformedProps {
-  const { width, height, formData, queriesData, hooks, filterState } = chartProps;
+  const { width, height, formData, queriesData, hooks, filterState } =
+    chartProps;
   const {
     groupby,
     metric,
@@ -110,11 +116,14 @@ export default function transformProps(
   const axisLabelLength = Math.max(
     ...axisLabels.map(label => numberFormatter(label).length).concat([1]),
   );
-  const formatValue = (value: number) => valueFormatter.replace('{value}', numberFormatter(value));
+  const formatValue = (value: number) =>
+    valueFormatter.replace('{value}', numberFormatter(value));
   const axisTickLength = FONT_SIZE_MULTIPLIERS.axisTickLength * fontSize;
   const splitLineLength = FONT_SIZE_MULTIPLIERS.splitLineLength * fontSize;
-  const titleOffsetFromTitle = FONT_SIZE_MULTIPLIERS.titleOffsetFromTitle * fontSize;
-  const detailOffsetFromTitle = FONT_SIZE_MULTIPLIERS.detailOffsetFromTitle * fontSize;
+  const titleOffsetFromTitle =
+    FONT_SIZE_MULTIPLIERS.titleOffsetFromTitle * fontSize;
+  const detailOffsetFromTitle =
+    FONT_SIZE_MULTIPLIERS.detailOffsetFromTitle * fontSize;
   const intervalBoundsAndColors = setIntervalBoundsAndColors(
     intervals,
     intervalColorIndices,
@@ -123,47 +132,61 @@ export default function transformProps(
   );
   const columnsLabelMap = new Map<string, DataRecordValue[]>();
 
-  const transformedData: GaugeDataItemOption[] = data.map((data_point, index) => {
-    const name = groupby.map(column => `${column}: ${data_point[column]}`).join(', ');
-    columnsLabelMap.set(
-      name,
-      groupby.map(col => data_point[col]),
-    );
-    let item: GaugeDataItemOption = {
-      value: data_point[getMetricLabel(metric as QueryFormMetric)] as number,
-      name,
-      itemStyle: {
-        color: colorFn(index),
-      },
-      title: {
-        offsetCenter: ['0%', `${index * titleOffsetFromTitle + OFFSETS.titleFromCenter}%`],
-        fontSize,
-      },
-      detail: {
-        offsetCenter: [
-          '0%',
-          `${index * titleOffsetFromTitle + OFFSETS.titleFromCenter + detailOffsetFromTitle}%`,
-        ],
-        fontSize: FONT_SIZE_MULTIPLIERS.detailFontSize * fontSize,
-      },
-    };
-    if (filterState.selectedValues && !filterState.selectedValues.includes(name)) {
-      item = {
-        ...item,
+  const transformedData: GaugeDataItemOption[] = data.map(
+    (data_point, index) => {
+      const name = groupby
+        .map(column => `${column}: ${data_point[column]}`)
+        .join(', ');
+      columnsLabelMap.set(
+        name,
+        groupby.map(col => data_point[col]),
+      );
+      let item: GaugeDataItemOption = {
+        value: data_point[getMetricLabel(metric as QueryFormMetric)] as number,
+        name,
         itemStyle: {
           color: colorFn(index),
-          opacity: OpacityEnum.SemiTransparent,
-        },
-        detail: {
-          show: false,
         },
         title: {
-          show: false,
+          offsetCenter: [
+            '0%',
+            `${index * titleOffsetFromTitle + OFFSETS.titleFromCenter}%`,
+          ],
+          fontSize,
+        },
+        detail: {
+          offsetCenter: [
+            '0%',
+            `${
+              index * titleOffsetFromTitle +
+              OFFSETS.titleFromCenter +
+              detailOffsetFromTitle
+            }%`,
+          ],
+          fontSize: FONT_SIZE_MULTIPLIERS.detailFontSize * fontSize,
         },
       };
-    }
-    return item;
-  });
+      if (
+        filterState.selectedValues &&
+        !filterState.selectedValues.includes(name)
+      ) {
+        item = {
+          ...item,
+          itemStyle: {
+            color: colorFn(index),
+            opacity: OpacityEnum.SemiTransparent,
+          },
+          detail: {
+            show: false,
+          },
+          title: {
+            show: false,
+          },
+        };
+      }
+      return item;
+    },
+  );
 
   const { setDataMask = () => {} } = hooks;
 
@@ -207,7 +230,8 @@ export default function transformProps(
     show: showAxisTick,
     distance: -axisLineWidth - axisTickLength - OFFSETS.ticksFromLine,
     length: axisTickLength,
-    lineStyle: DEFAULT_GAUGE_SERIES_OPTION.axisTick?.lineStyle as AxisTickLineStyle,
+    lineStyle: DEFAULT_GAUGE_SERIES_OPTION.axisTick
+      ?.lineStyle as AxisTickLineStyle,
   };
   const detail = {
     valueAnimation: animation,
@@ -217,8 +241,10 @@ export default function transformProps(
   let pointer;
 
   if (intervalBoundsAndColors.length) {
-    splitLine.lineStyle.color = INTERVAL_GAUGE_SERIES_OPTION.splitLine?.lineStyle?.color;
-    axisTick.lineStyle.color = INTERVAL_GAUGE_SERIES_OPTION?.axisTick?.lineStyle?.color as string;
+    splitLine.lineStyle.color =
+      INTERVAL_GAUGE_SERIES_OPTION.splitLine?.lineStyle?.color;
+    axisTick.lineStyle.color = INTERVAL_GAUGE_SERIES_OPTION?.axisTick?.lineStyle
+      ?.color as string;
     axisLabel.color = INTERVAL_GAUGE_SERIES_OPTION.axisLabel?.color;
     axisLine.lineStyle.color = intervalBoundsAndColors;
     pointer = {

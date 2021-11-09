@@ -35,9 +35,15 @@ const MINIMAL_PAGE_ITEM_COUNT = 7;
  *   - Always include first and last page
  *   - Add ellipsis if needed
  */
-export function generatePageItems(total: number, current: number, width: number) {
+export function generatePageItems(
+  total: number,
+  current: number,
+  width: number,
+) {
   if (width < MINIMAL_PAGE_ITEM_COUNT) {
-    throw new Error(`Must allow at least ${MINIMAL_PAGE_ITEM_COUNT} page items`);
+    throw new Error(
+      `Must allow at least ${MINIMAL_PAGE_ITEM_COUNT} page items`,
+    );
   }
   if (width % 2 === 0) {
     throw new Error(`Must allow odd number of page items`);
@@ -45,7 +51,10 @@ export function generatePageItems(total: number, current: number, width: number)
   if (total < width) {
     return [...new Array(total).keys()];
   }
-  const left = Math.max(0, Math.min(total - width, current - Math.floor(width / 2)));
+  const left = Math.max(
+    0,
+    Math.min(total - width, current - Math.floor(width / 2)),
+  );
   const items: (string | number)[] = new Array(width);
   for (let i = 0; i < width; i += 1) {
     items[i] = i + left;
@@ -64,17 +73,30 @@ export function generatePageItems(total: number, current: number, width: number)
 
 export default React.memo(
   React.forwardRef(function Pagination(
-    { style, pageCount, currentPage = 0, maxPageItemCount = 9, onPageChange }: PaginationProps,
+    {
+      style,
+      pageCount,
+      currentPage = 0,
+      maxPageItemCount = 9,
+      onPageChange,
+    }: PaginationProps,
     ref: React.Ref<HTMLDivElement>,
   ) {
-    const pageItems = generatePageItems(pageCount, currentPage, maxPageItemCount);
+    const pageItems = generatePageItems(
+      pageCount,
+      currentPage,
+      maxPageItemCount,
+    );
     return (
       <div ref={ref} className="dt-pagination" style={style}>
         <ul className="pagination pagination-sm">
           {pageItems.map(item =>
             typeof item === 'number' ? (
               // actual page number
-              <li key={item} className={currentPage === item ? 'active' : undefined}>
+              <li
+                key={item}
+                className={currentPage === item ? 'active' : undefined}
+              >
                 <a
                   href={`#page-${item}`}
                   role="button"

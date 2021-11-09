@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { legacyValidateInteger, legacyValidateNumber, t } from '@superset-ui/core';
+import {
+  legacyValidateInteger,
+  legacyValidateNumber,
+  t,
+} from '@superset-ui/core';
 import { ControlPanelSectionConfig } from '../types';
 
 export const FORECAST_DEFAULT_DATA = {
@@ -52,7 +56,9 @@ export const forecastIntervalControls: ControlPanelSectionConfig = {
           label: t('Forecast periods'),
           validators: [legacyValidateInteger],
           default: FORECAST_DEFAULT_DATA.forecastPeriods,
-          description: t('How many periods into the future do we want to predict'),
+          description: t(
+            'How many periods into the future do we want to predict',
+          ),
         },
       },
     ],
@@ -64,7 +70,9 @@ export const forecastIntervalControls: ControlPanelSectionConfig = {
           label: t('Confidence interval'),
           validators: [legacyValidateNumber],
           default: FORECAST_DEFAULT_DATA.forecastInterval,
-          description: t('Width of the confidence interval. Should be between 0 and 1'),
+          description: t(
+            'Width of the confidence interval. Should be between 0 and 1',
+          ),
         },
       },
       {

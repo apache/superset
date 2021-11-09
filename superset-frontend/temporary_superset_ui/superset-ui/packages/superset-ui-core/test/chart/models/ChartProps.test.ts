@@ -54,7 +54,9 @@ describe('ChartProps', () => {
         queriesData: QUERIES_DATA,
       });
       expect(props.formData.someField as number).toEqual(1);
-      expect(props.datasource.columnFormats).toEqual(RAW_DATASOURCE.column_formats);
+      expect(props.datasource.columnFormats).toEqual(
+        RAW_DATASOURCE.column_formats,
+      );
       expect(props.rawFormData).toEqual(RAW_FORM_DATA);
       expect(props.rawDatasource).toEqual(RAW_DATASOURCE);
     });

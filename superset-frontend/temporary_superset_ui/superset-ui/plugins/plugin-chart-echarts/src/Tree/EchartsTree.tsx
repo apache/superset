@@ -20,6 +20,10 @@ import React from 'react';
 import { EchartsProps } from '../types';
 import Echart from '../components/Echart';
 
-export default function EchartsGraph({ height, width, echartOptions }: EchartsProps) {
+export default function EchartsGraph({
+  height,
+  width,
+  echartOptions,
+}: EchartsProps) {
   return <Echart height={height} width={width} echartOptions={echartOptions} />;
 }

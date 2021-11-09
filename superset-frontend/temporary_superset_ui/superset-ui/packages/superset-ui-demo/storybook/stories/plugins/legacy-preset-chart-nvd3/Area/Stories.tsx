@@ -26,6 +26,9 @@ export default {
 };
 
 export { stacked } from './stories/stacked';
-export { stackedWithYAxisBounds, stackedWithYAxisBoundsMinOnly } from './stories/stackedWithBounds';
+export {
+  stackedWithYAxisBounds,
+  stackedWithYAxisBoundsMinOnly,
+} from './stories/stackedWithBounds';
 export { expanded } from './stories/expanded';
 export { controlsShown } from './stories/controlsShown';

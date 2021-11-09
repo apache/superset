@@ -29,7 +29,15 @@ const processData = getProcessDataFunction();
 const NOOP = () => {};
 
 export default function transformProps(chartProps: ChartProps) {
-  const { height, datasource, initialValues, formData, hooks, queriesData, width } = chartProps;
+  const {
+    height,
+    datasource,
+    initialValues,
+    formData,
+    hooks,
+    queriesData,
+    width,
+  } = chartProps;
 
   const { onAddFilter = NOOP } = hooks;
 

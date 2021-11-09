@@ -25,9 +25,14 @@ import transformProps from '@superset-ui/plugin-chart-echarts/lib/Timeseries/tra
 import data from './data';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 
-new EchartsTimeseriesChartPlugin().configure({ key: 'echarts-timeseries' }).register();
+new EchartsTimeseriesChartPlugin()
+  .configure({ key: 'echarts-timeseries' })
+  .register();
 
-getChartTransformPropsRegistry().registerValue('echarts-timeseries', transformProps);
+getChartTransformPropsRegistry().registerValue(
+  'echarts-timeseries',
+  transformProps,
+);
 
 export default {
   title: 'Chart Plugins/plugin-chart-echarts/Timeseries',

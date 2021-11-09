@@ -79,9 +79,13 @@ function getSparklineTextWidth(text: string) {
   );
 }
 
-function isValidBoundValue(value?: number) {
-  // @ts-ignore
-  return value !== null && value !== undefined && value !== '' && !Number.isNaN(value);
+function isValidBoundValue(value?: number | string) {
+  return (
+    value !== null &&
+    value !== undefined &&
+    value !== '' &&
+    !Number.isNaN(value)
+  );
 }
 
 class SparklineCell extends React.Component<Props, {}> {
@@ -133,12 +137,19 @@ class SparklineCell extends React.Component<Props, {}> {
     let labelLength = 0;
     if (showYAxis) {
       const [minBound, maxBound] = yAxisBounds;
-      min = hasMinBound ? minBound : data.reduce((acc, current) => Math.min(acc, current), data[0]);
-      max = hasMaxBound ? maxBound : data.reduce((acc, current) => Math.max(acc, current), data[0]);
+      min = hasMinBound
+        ? minBound
+        : data.reduce((acc, current) => Math.min(acc, current), data[0]);
+      max = hasMaxBound
+        ? maxBound
+        : data.reduce((acc, current) => Math.max(acc, current), data[0]);
 
       minLabel = formatNumber(numberFormat, min);
       maxLabel = formatNumber(numberFormat, max);
-      labelLength = Math.max(getSparklineTextWidth(minLabel), getSparklineTextWidth(maxLabel));
+      labelLength = Math.max(
+        getSparklineTextWidth(minLabel),
+        getSparklineTextWidth(maxLabel),
+      );
     }
 
     const margin = {
@@ -147,7 +158,11 @@ class SparklineCell extends React.Component<Props, {}> {
     };
 
     return (
-      <WithTooltip tooltipProps={tooltipProps} hoverStyles={null} renderTooltip={renderTooltip}>
+      <WithTooltip
+        tooltipProps={tooltipProps}
+        hoverStyles={null}
+        renderTooltip={renderTooltip}
+      >
         {({ onMouseLeave, onMouseMove, tooltipData }: TooltipProps) => (
           <Sparkline
             ariaLabel={ariaLabel}
@@ -170,7 +185,11 @@ class SparklineCell extends React.Component<Props, {}> {
               />
             )}
             {tooltipData && (
-              <PointSeries points={[tooltipData.index]} fill="#767676" strokeWidth={1} />
+              <PointSeries
+                points={[tooltipData.index]}
+                fill="#767676"
+                strokeWidth={1}
+              />
             )}
           </Sparkline>
         )}

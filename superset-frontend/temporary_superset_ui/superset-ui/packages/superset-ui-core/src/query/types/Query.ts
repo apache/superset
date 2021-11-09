@@ -71,7 +71,10 @@ export type ResidualQueryObjectData = {
  * for client-side processing and chart rendering should happen in `buildQuery`
  * and `transformProps`.
  */
-export interface QueryObject extends QueryFields, TimeRange, ResidualQueryObjectData {
+export interface QueryObject
+  extends QueryFields,
+    TimeRange,
+    ResidualQueryObjectData {
   /**
    * Definition for annotation layers.
    */

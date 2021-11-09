@@ -37,11 +37,17 @@ describe('createD3NumberFormatter(config)', () => {
     });
     describe('if it is invalid d3 formatString', () => {
       it('The format function displays error message', () => {
-        const formatter = createD3NumberFormatter({ formatString: 'i-am-groot' });
-        expect(formatter.format(12345.67)).toEqual('12345.67 (Invalid format: i-am-groot)');
+        const formatter = createD3NumberFormatter({
+          formatString: 'i-am-groot',
+        });
+        expect(formatter.format(12345.67)).toEqual(
+          '12345.67 (Invalid format: i-am-groot)',
+        );
       });
       it('also set formatter.isInvalid to true', () => {
-        const formatter = createD3NumberFormatter({ formatString: 'i-am-groot' });
+        const formatter = createD3NumberFormatter({
+          formatString: 'i-am-groot',
+        });
         expect(formatter.isInvalid).toEqual(true);
       });
     });

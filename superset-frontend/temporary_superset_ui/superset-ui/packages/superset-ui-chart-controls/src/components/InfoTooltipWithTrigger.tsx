@@ -41,7 +41,9 @@ export function InfoTooltipWithTrigger({
   className = 'text-muted',
   placement = 'right',
 }: InfoTooltipWithTriggerProps) {
-  const iconClass = `fa fa-${icon} ${className} ${bsStyle ? `text-${bsStyle}` : ''}`;
+  const iconClass = `fa fa-${icon} ${className} ${
+    bsStyle ? `text-${bsStyle}` : ''
+  }`;
   const iconEl = (
     <i
       role="button"
@@ -64,7 +66,11 @@ export function InfoTooltipWithTrigger({
     return iconEl;
   }
   return (
-    <Tooltip id={`${kebabCase(label)}-tooltip`} title={tooltip} placement={placement}>
+    <Tooltip
+      id={`${kebabCase(label)}-tooltip`}
+      title={tooltip}
+      placement={placement}
+    >
       {iconEl}
     </Tooltip>
   );

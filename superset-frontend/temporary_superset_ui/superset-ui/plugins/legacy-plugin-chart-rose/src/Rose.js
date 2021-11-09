@@ -22,7 +22,11 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import nv from 'nvd3';
-import { getTimeFormatter, getNumberFormatter, CategoricalColorNamespace } from '@superset-ui/core';
+import {
+  getTimeFormatter,
+  getNumberFormatter,
+  CategoricalColorNamespace,
+} from '@superset-ui/core';
 import './Rose.css';
 
 const propTypes = {
@@ -142,10 +146,18 @@ function Rose(element, props) {
   const gro = 8; // mouseover radius growth in pixels
   const mini = 0.075;
 
-  const centerTranslate = `translate(${width / 2},${roseHeight / 2 + margin.top})`;
-  const roseWrap = g.append('g').attr('transform', centerTranslate).attr('class', 'roseWrap');
+  const centerTranslate = `translate(${width / 2},${
+    roseHeight / 2 + margin.top
+  })`;
+  const roseWrap = g
+    .append('g')
+    .attr('transform', centerTranslate)
+    .attr('class', 'roseWrap');
 
-  const labelsWrap = g.append('g').attr('transform', centerTranslate).attr('class', 'labelsWrap');
+  const labelsWrap = g
+    .append('g')
+    .attr('transform', centerTranslate)
+    .attr('class', 'labelsWrap');
 
   const groupLabelsWrap = g
     .append('g')
@@ -159,7 +171,10 @@ function Rose(element, props) {
     let grain = 0;
     const sums = [];
     for (const t of times) {
-      const sum = datum[t].reduce((a, v, i) => a + (state.disabled[i] ? 0 : v.value), 0);
+      const sum = datum[t].reduce(
+        (a, v, i) => a + (state.disabled[i] ? 0 : v.value),
+        0,
+      );
       maxSum = sum > maxSum ? sum : maxSum;
       sums[grain] = sum;
       grain += 1;
@@ -206,7 +221,16 @@ function Rose(element, props) {
         const { name, time } = v;
         v.id = arcId;
         outerRadius = computeOuterRadius(val, innerRadius);
-        arcSt.data.push({ startAngle, endAngle, innerRadius, outerRadius, name, arcId, val, time });
+        arcSt.data.push({
+          startAngle,
+          endAngle,
+          innerRadius,
+          outerRadius,
+          name,
+          arcId,
+          val,
+          time,
+        });
         arcSt.extend[arcId] = {
           startAngle,
           endAngle,
@@ -301,7 +325,10 @@ function Rose(element, props) {
       return segmentsInTimeCache[arcId];
     }
     const timeIndex = Math.floor(arcId / numGroups);
-    segmentsInTimeCache[arcId] = [timeIndex * numGroups, (timeIndex + 1) * numGroups - 1];
+    segmentsInTimeCache[arcId] = [
+      timeIndex * numGroups,
+      (timeIndex + 1) * numGroups - 1,
+    ];
 
     return segmentsInTimeCache[arcId];
   }
@@ -465,11 +492,15 @@ function Rose(element, props) {
           })(d),
         )
         .style('opacity', d =>
-          state.disabled[d.arcId] || arcSt.pie[segments[0] + d.arcId].percent < labelThreshold
+          state.disabled[d.arcId] ||
+          arcSt.pie[segments[0] + d.arcId].percent < labelThreshold
             ? 0
             : 1,
         );
-      ae.classed('clickable', d => segments[0] > d.arcId || d.arcId > segments[1]);
+      ae.classed(
+        'clickable',
+        d => segments[0] > d.arcId || d.arcId > segments[1],
+      );
       arcs
         .filter(d => segments[0] <= d.arcId && d.arcId <= segments[1])
         .interrupt()
@@ -496,7 +527,9 @@ function Rose(element, props) {
         .transition()
         .delay(delay)
         .duration(delay)
-        .attrTween('transform', d => translateTween(arcSt.labels[d.arcId / numGroups])(d))
+        .attrTween('transform', d =>
+          translateTween(arcSt.labels[d.arcId / numGroups])(d),
+        )
         .style('opacity', 1);
       groupLabels
         .interrupt()
@@ -587,7 +620,8 @@ function Rose(element, props) {
           })(d),
         )
         .style('opacity', d =>
-          state.disabled[d.arcId] || arcSt.pie[segments[0] + d.arcId].percent < labelThreshold
+          state.disabled[d.arcId] ||
+          arcSt.pie[segments[0] + d.arcId].percent < labelThreshold
             ? 0
             : 1,
         );

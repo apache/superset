@@ -23,7 +23,9 @@ import { InfoTooltipWithTrigger } from '../../src';
 
 describe('InfoTooltipWithTrigger', () => {
   it('renders a tooltip', () => {
-    const wrapper = shallow(<InfoTooltipWithTrigger label="test" tooltip="this is a test" />);
+    const wrapper = shallow(
+      <InfoTooltipWithTrigger label="test" tooltip="this is a test" />,
+    );
     expect(wrapper.find(Tooltip)).toHaveLength(1);
   });
 
@@ -35,7 +37,11 @@ describe('InfoTooltipWithTrigger', () => {
   it('responds to keypresses', () => {
     const clickHandler = jest.fn();
     const wrapper = shallow(
-      <InfoTooltipWithTrigger label="test" tooltip="this is a test" onClick={clickHandler} />,
+      <InfoTooltipWithTrigger
+        label="test"
+        tooltip="this is a test"
+        onClick={clickHandler}
+      />,
     );
     wrapper.find('.fa-info-circle').simulate('keypress', { key: 'Tab' });
     expect(clickHandler).toHaveBeenCalledTimes(0);

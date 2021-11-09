@@ -75,12 +75,18 @@ class HorizonChart extends React.PureComponent {
 
     let yDomain;
     if (colorScale === 'overall') {
-      const allValues = data.reduce((acc, current) => acc.concat(current.values), []);
+      const allValues = data.reduce(
+        (acc, current) => acc.concat(current.values),
+        [],
+      );
       yDomain = d3Extent(allValues, d => d.y);
     }
 
     return (
-      <div className={`superset-legacy-chart-horizon ${className}`} style={{ height }}>
+      <div
+        className={`superset-legacy-chart-horizon ${className}`}
+        style={{ height }}
+      >
         {data.map(row => (
           <HorizonRow
             key={row.key}

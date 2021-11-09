@@ -22,7 +22,9 @@ import { SuperChart } from '@superset-ui/core';
 import ParallelCoordinatesChartPlugin from '@superset-ui/legacy-plugin-chart-parallel-coordinates';
 import data from './data';
 
-new ParallelCoordinatesChartPlugin().configure({ key: 'parallel-coordinates' }).register();
+new ParallelCoordinatesChartPlugin()
+  .configure({ key: 'parallel-coordinates' })
+  .register();
 
 export default {
   title: 'Legacy Chart Plugins/legacy-plugin-chart-parallel-coordinates',

@@ -17,10 +17,16 @@
  * under the License.
  */
 
-import { SimpleAdhocFilter, isBinaryAdhocFilter, isUnaryAdhocFilter } from './types/Filter';
+import {
+  SimpleAdhocFilter,
+  isBinaryAdhocFilter,
+  isUnaryAdhocFilter,
+} from './types/Filter';
 import { QueryObjectFilterClause } from './types/Query';
 
-export default function convertFilter(filter: SimpleAdhocFilter): QueryObjectFilterClause {
+export default function convertFilter(
+  filter: SimpleAdhocFilter,
+): QueryObjectFilterClause {
   const { subject } = filter;
   if (isUnaryAdhocFilter(filter)) {
     const { operator } = filter;

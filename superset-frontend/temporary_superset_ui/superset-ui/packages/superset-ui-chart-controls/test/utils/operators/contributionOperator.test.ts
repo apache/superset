@@ -20,14 +20,20 @@ import { QueryObject, SqlaFormData } from '@superset-ui/core';
 import { contributionOperator } from '../../../src';
 
 const formData: SqlaFormData = {
-  metrics: ['count(*)', { label: 'sum(val)', expressionType: 'SQL', sqlExpression: 'sum(val)' }],
+  metrics: [
+    'count(*)',
+    { label: 'sum(val)', expressionType: 'SQL', sqlExpression: 'sum(val)' },
+  ],
   time_range: '2015 : 2016',
   granularity: 'month',
   datasource: 'foo',
   viz_type: 'table',
 };
 const queryObject: QueryObject = {
-  metrics: ['count(*)', { label: 'sum(val)', expressionType: 'SQL', sqlExpression: 'sum(val)' }],
+  metrics: [
+    'count(*)',
+    { label: 'sum(val)', expressionType: 'SQL', sqlExpression: 'sum(val)' },
+  ],
   time_range: '2015 : 2016',
   granularity: 'month',
 };
@@ -37,7 +43,9 @@ test('should skip contributionOperator', () => {
 });
 
 test('should do contributionOperator', () => {
-  expect(contributionOperator({ ...formData, contributionMode: 'row' }, queryObject)).toEqual({
+  expect(
+    contributionOperator({ ...formData, contributionMode: 'row' }, queryObject),
+  ).toEqual({
     operation: 'contribution',
     options: {
       orientation: 'row',

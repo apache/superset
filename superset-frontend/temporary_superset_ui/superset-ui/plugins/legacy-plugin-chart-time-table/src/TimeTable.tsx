@@ -21,7 +21,10 @@ import Mustache from 'mustache';
 import { scaleLinear } from 'd3-scale';
 import { Table, Thead, Th, Tr, Td } from 'reactable-arc';
 import { formatNumber, formatTime, styled } from '@superset-ui/core';
-import { InfoTooltipWithTrigger, MetricOption } from '@superset-ui/chart-controls';
+import {
+  InfoTooltipWithTrigger,
+  MetricOption,
+} from '@superset-ui/chart-controls';
 import moment from 'moment';
 
 import FormattedNumber from './FormattedNumber';
@@ -117,11 +120,22 @@ class TimeTable extends React.PureComponent<ChartProps, {}> {
       return column.label;
     }
 
-    return <MetricOption openInNewWindow metric={row} url={fullUrl} showFormula={false} />;
+    return (
+      <MetricOption
+        openInNewWindow
+        metric={row}
+        url={fullUrl}
+        showFormula={false}
+      />
+    );
   }
 
   // eslint-disable-next-line class-methods-use-this
-  renderSparklineCell(valueField: string, column: ColumnConfigProps, entries: Entry[]) {
+  renderSparklineCell(
+    valueField: string,
+    column: ColumnConfigProps,
+    entries: Entry[],
+  ) {
     let sparkData: number[];
     if (column.timeRatio) {
       // Period ratio sparkline
@@ -140,7 +154,11 @@ class TimeTable extends React.PureComponent<ChartProps, {}> {
     }
 
     return (
-      <Td key={column.key} column={column.key} value={sparkData[sparkData.length - 1]}>
+      <Td
+        key={column.key}
+        column={column.key}
+        value={sparkData[sparkData.length - 1]}
+      >
         <SparklineCell
           width={parseInt(column.width, 10) || 300}
           height={parseInt(column.height, 10) || 50}
@@ -152,7 +170,12 @@ class TimeTable extends React.PureComponent<ChartProps, {}> {
           renderTooltip={({ index }: { index: number }) => (
             <div>
               <strong>{formatNumber(column.d3format, sparkData[index])}</strong>
-              <div>{formatTime(column.dateFormat, moment.utc(entries[index].time).toDate())}</div>
+              <div>
+                {formatTime(
+                  column.dateFormat,
+                  moment.utc(entries[index].time).toDate(),
+                )}
+              </div>
             </div>
           )}
         />
@@ -161,7 +184,11 @@ class TimeTable extends React.PureComponent<ChartProps, {}> {
   }
 
   // eslint-disable-next-line class-methods-use-this
-  renderValueCell(valueField: string, column: ColumnConfigProps, reversedEntries: Entry[]) {
+  renderValueCell(
+    valueField: string,
+    column: ColumnConfigProps,
+    reversedEntries: Entry[],
+  ) {
     const recent = reversedEntries[0][valueField];
     let v = 0;
     let errorMsg;
@@ -193,7 +220,9 @@ class TimeTable extends React.PureComponent<ChartProps, {}> {
       // Average over the last {timeLag}
       v =
         reversedEntries
-          .map((k: Entry, i: number) => (i < column.timeLag ? k[valueField] : 0))
+          .map((k: Entry, i: number) =>
+            i < column.timeLag ? k[valueField] : 0,
+          )
           .reduce((a: number, b: number) => a + b) / column.timeLag;
     }
 
@@ -242,7 +271,8 @@ class TimeTable extends React.PureComponent<ChartProps, {}> {
   }
 
   render() {
-    const { className, height, data, columnConfigs, rowType, rows } = this.props;
+    const { className, height, data, columnConfigs, rowType, rows } =
+      this.props;
     const entries = Object.keys(data)
       .sort()
       // @ts-ignore
@@ -270,7 +300,11 @@ class TimeTable extends React.PureComponent<ChartProps, {}> {
           <Thead>
             <Th column="metric">Metric</Th>
             {columnConfigs.map((c, i) => (
-              <Th key={c.key} column={c.key} width={c.colType === 'spark' ? '1%' : null}>
+              <Th
+                key={c.key}
+                column={c.key}
+                width={c.colType === 'spark' ? '1%' : null}
+              >
                 {c?.label}{' '}
                 {c?.tooltip && (
                   <InfoTooltipWithTrigger

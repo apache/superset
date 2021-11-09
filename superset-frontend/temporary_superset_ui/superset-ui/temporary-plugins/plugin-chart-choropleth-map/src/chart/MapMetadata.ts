@@ -39,7 +39,9 @@ export default class MapMetadata {
     const { key } = this.config;
 
     return this.config.type === 'topojson'
-      ? this.config.load().then(map => feature(map, map.objects[key]) as FeatureCollection)
+      ? this.config
+          .load()
+          .then(map => feature(map, map.objects[key]) as FeatureCollection)
       : this.config.load();
   }
 

@@ -60,7 +60,9 @@ const config: ControlPanelConfig = {
               default: true,
               type: 'CheckboxControl',
               label: t('Sort by metric'),
-              description: t('Whether to sort results by the selected metric in descending order.'),
+              description: t(
+                'Whether to sort results by the selected metric in descending order.',
+              ),
             },
           },
         ],
@@ -80,7 +82,9 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               isFloat: true,
               default: 5,
-              description: t('Minimum threshold in percentage points for showing labels.'),
+              description: t(
+                'Minimum threshold in percentage points for showing labels.',
+              ),
             },
           },
         ],
@@ -117,9 +121,9 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: numberFormat,
               choices: D3_FORMAT_OPTIONS,
-              description: `${t('D3 format syntax: https://github.com/d3/d3-format')} ${t(
-                'Only applies when "Label Type" is set to show values.',
-              )}`,
+              description: `${t(
+                'D3 format syntax: https://github.com/d3/d3-format',
+              )} ${t('Only applies when "Label Type" is set to show values.')}`,
             },
           },
         ],
@@ -171,7 +175,9 @@ const config: ControlPanelConfig = {
               label: t('Label Line'),
               default: labelLine,
               renderTrigger: true,
-              description: t('Draw line from Pie to label when labels outside?'),
+              description: t(
+                'Draw line from Pie to label when labels outside?',
+              ),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 Boolean(controls?.show_labels?.value),
             },

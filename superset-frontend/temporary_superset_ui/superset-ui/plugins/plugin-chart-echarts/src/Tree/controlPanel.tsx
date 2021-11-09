@@ -18,7 +18,11 @@
  */
 import React from 'react';
 import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
-import { ControlPanelConfig, sections, sharedControls } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  sections,
+  sharedControls,
+} from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 
 const requiredEntity = {
@@ -54,7 +58,9 @@ const controlPanel: ControlPanelConfig = {
             config: {
               ...requiredEntity,
               label: t('Parent'),
-              description: t('Name of the column containing the id of the parent node'),
+              description: t(
+                'Name of the column containing the id of the parent node',
+              ),
             },
           },
         ],
@@ -270,7 +276,9 @@ const controlPanel: ControlPanelConfig = {
                 ['move', t('Move only')],
                 [true, t('Scale and Move')],
               ],
-              description: t('Whether to enable changing graph position and scaling.'),
+              description: t(
+                'Whether to enable changing graph position and scaling.',
+              ),
             },
           },
         ],

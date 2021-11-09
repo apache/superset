@@ -17,7 +17,12 @@
  * under the License.
  */
 import React, { FunctionComponentElement, useMemo } from 'react';
-import { FAST_DEBOUNCE, JsonObject, JsonValue, useTheme } from '@superset-ui/core';
+import {
+  FAST_DEBOUNCE,
+  JsonObject,
+  JsonValue,
+  useTheme,
+} from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { ControlFormItemNode } from './ControlFormItem';
 
@@ -57,7 +62,11 @@ export type ControlFormProps = {
 /**
  * Light weight form for control panel.
  */
-export default function ControlForm({ onChange, value, children }: ControlFormProps) {
+export default function ControlForm({
+  onChange,
+  value,
+  children,
+}: ControlFormProps) {
   const theme = useTheme();
   const debouncedOnChange = useMemo(
     () =>
@@ -94,7 +103,10 @@ export default function ControlForm({ onChange, value, children }: ControlFormPr
               }
               // propagate to the form
               if (!(debounceDelay in debouncedOnChange)) {
-                debouncedOnChange[debounceDelay] = debounce(onChange, debounceDelay);
+                debouncedOnChange[debounceDelay] = debounce(
+                  onChange,
+                  debounceDelay,
+                );
               }
               debouncedOnChange[debounceDelay]({
                 ...value,

@@ -17,7 +17,10 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { JsonValue, SupersetClientClass } from '@superset-ui/core/src/connection';
+import {
+  JsonValue,
+  SupersetClientClass,
+} from '@superset-ui/core/src/connection';
 import { makeApi, SupersetApiError } from '@superset-ui/core/src/query';
 import setupClientForTest from '../setupClientForTest';
 
@@ -109,7 +112,9 @@ describe('makeApi()', () => {
     });
     fetchMock.get('glob:*/test-get-search*', { search: 'get' });
     await api({ p1: 1, p2: 2, p3: [1, 2] });
-    expect(fetchMock.lastUrl()).toContain('/test-get-search?p1=1&p2=2&p3=1%2C2');
+    expect(fetchMock.lastUrl()).toContain(
+      '/test-get-search?p1=1&p2=2&p3=1%2C2',
+    );
   });
 
   it('should serialize rison for method=GET, requestType=rison', async () => {
@@ -121,7 +126,9 @@ describe('makeApi()', () => {
     });
     fetchMock.get('glob:*/test-post-search*', { rison: 'get' });
     await api({ p1: 1, p3: [1, 2] });
-    expect(fetchMock.lastUrl()).toContain('/test-post-search?q=(p1:1,p3:!(1,2))');
+    expect(fetchMock.lastUrl()).toContain(
+      '/test-post-search?q=(p1:1,p3:!(1,2))',
+    );
   });
 
   it('should use searchParams for method=POST, requestType=search', async () => {

@@ -84,7 +84,8 @@ describe('ChartPlugin', () => {
           loadBuildQuery: () => buildQuery,
         });
 
-        const fn = plugin.loadBuildQuery!() as BuildQueryFunction<QueryFormData>;
+        const fn =
+          plugin.loadBuildQuery!() as BuildQueryFunction<QueryFormData>;
         expect(fn(FORM_DATA).queries[0]).toEqual({ granularity: 'day' });
         expect(fn(FORM_DATA).force).toEqual(false);
       });
@@ -96,7 +97,8 @@ describe('ChartPlugin', () => {
           buildQuery,
         });
 
-        const fn = plugin.loadBuildQuery!() as BuildQueryFunction<QueryFormData>;
+        const fn =
+          plugin.loadBuildQuery!() as BuildQueryFunction<QueryFormData>;
         expect(fn(FORM_DATA).queries[0]).toEqual({ granularity: 'day' });
       });
     });
@@ -188,7 +190,9 @@ describe('ChartPlugin', () => {
 
     it('throws an error if key is not provided', () => {
       expect(() => plugin.register()).toThrow(Error);
-      expect(() => plugin.configure({ key: 'ab' }).register()).not.toThrow(Error);
+      expect(() => plugin.configure({ key: 'ab' }).register()).not.toThrow(
+        Error,
+      );
     });
     it('add the plugin to the registries', () => {
       plugin.configure({ key: 'cd' }).register();
@@ -226,7 +230,9 @@ describe('ChartPlugin', () => {
 
     it('throws an error if key is not provided', () => {
       expect(() => plugin.unregister()).toThrow(Error);
-      expect(() => plugin.configure({ key: 'abc' }).unregister()).not.toThrow(Error);
+      expect(() => plugin.configure({ key: 'abc' }).unregister()).not.toThrow(
+        Error,
+      );
     });
     it('removes the chart from the registries', () => {
       plugin.configure({ key: 'def' }).register();
