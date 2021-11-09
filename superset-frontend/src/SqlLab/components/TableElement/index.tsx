@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Collapse from 'src/components/Collapse';
 import Card from 'src/components/Card';
 import ButtonGroup from 'src/components/ButtonGroup';
@@ -77,6 +77,15 @@ const Fade = styled.div`
 const TableElement = ({ table, actions, ...props }: TableElementProps) => {
   const [sortColumns, setSortColumns] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const [tableNameOverflow, setTableNameOverflow] = useState(false);
+  const tableNameRef = React.useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const element = tableNameRef.current;
+    if (element && element.offsetWidth < element.scrollWidth) {
+      setTableNameOverflow(true);
+    }
+  }, []);
 
   const setHover = (hovered: boolean) => {
     debounce(() => setHovered(hovered), 100)();
@@ -221,12 +230,15 @@ const TableElement = ({ table, actions, ...props }: TableElementProps) => {
     >
       <Tooltip
         id="copy-to-clipboard-tooltip"
-        placement="topLeft"
         style={{ cursor: 'pointer' }}
         title={table.name}
-        trigger={['hover']}
+        trigger={tableNameOverflow ? ['hover'] : []}
       >
-        <StyledSpan data-test="collapse" className="table-name">
+        <StyledSpan
+          data-test="collapse"
+          ref={tableNameRef}
+          className="table-name"
+        >
           <strong>{table.name}</strong>
         </StyledSpan>
       </Tooltip>
