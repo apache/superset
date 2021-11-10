@@ -250,6 +250,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     PEAK_PERMISSION_VIEWS = {
       ("can_read", "Database"),
       ("can_write", "Dataset"),
+      ("can_save", "Dataset")
      }
 
     def get_schema_perm(  # pylint: disable=no-self-use
