@@ -530,17 +530,12 @@ export default class FilterableTable extends PureComponent<
     cellData: CellDataType;
     columnKey: string;
   }) {
+    const cellNode = this.getCellContent({ cellData, columnKey });
     const content =
-      cellData === null ? (
-        <i className="text-muted">
-          {this.getCellContent({ cellData, columnKey })}
-        </i>
-      ) : (
-        this.getCellContent({ cellData, columnKey })
-      );
+      cellData === null ? <i className="text-muted">{cellNode}</i> : cellNode;
     const jsonObject = safeJsonObjectParse(cellData);
     if (jsonObject) {
-      return this.addJsonModal(content, jsonObject, cellData);
+      return this.addJsonModal(cellNode, jsonObject, cellData);
     }
     return content;
   }
