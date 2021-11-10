@@ -91,13 +91,13 @@ builtin_time_grains: Dict[Optional[str], str] = {
     "PT5M": __("5 minute"),
     "PT10M": __("10 minute"),
     "PT15M": __("15 minute"),
-    "PT0.5H": __("Half hour"),
+    "PT30M": __("30 minute"),
     "PT1H": __("Hour"),
     "PT6H": __("6 hour"),
     "P1D": __("Day"),
     "P1W": __("Week"),
     "P1M": __("Month"),
-    "P0.25Y": __("Quarter"),
+    "P3M": __("Quarter"),
     "P1Y": __("Year"),
     "1969-12-28T00:00:00Z/P1W": __("Week starting Sunday"),
     "1969-12-29T00:00:00Z/P1W": __("Week starting Monday"),
@@ -288,6 +288,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Whether ORDER BY clause must appear in SELECT
     # if TRUE, then it doesn't have to.
     allows_hidden_ordeby_agg = True
+
+    # Whether ORDER BY clause can use sql caculated expression
+    # if True, use alias of select column for `order by`
+    # the True is safely for most database
+    # But for backward compatibility, False by default
+    allows_hidden_cc_in_orderby = False
 
     force_column_alias_quotes = False
     arraysize = 0

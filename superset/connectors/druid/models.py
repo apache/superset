@@ -948,7 +948,9 @@ class DruidDatasource(Model, BaseDatasource):
         )
         return aggs, post_aggs
 
-    def values_for_column(self, column_name: str, limit: int = 10000) -> List[Any]:
+    def values_for_column(
+        self, column_name: str, limit: int = 10000, contain_null: bool = True,
+    ) -> List[Any]:
         """Retrieve some values for the given column"""
         logger.info(
             "Getting values for columns [{}] limited to [{}]".format(column_name, limit)

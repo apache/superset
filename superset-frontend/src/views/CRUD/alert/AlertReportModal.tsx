@@ -38,7 +38,7 @@ import { Switch } from 'src/components/Switch';
 import Modal from 'src/components/Modal';
 import TimezoneSelector from 'src/components/TimezoneSelector';
 import { Radio } from 'src/components/Radio';
-import { Select } from 'src/components';
+import Select, { propertyComparator } from 'src/components/Select/Select';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';
@@ -85,30 +85,37 @@ const CONDITIONS = [
   {
     label: t('< (Smaller than)'),
     value: '<',
+    order: 0,
   },
   {
     label: t('> (Larger than)'),
     value: '>',
+    order: 1,
   },
   {
     label: t('<= (Smaller or equal)'),
     value: '<=',
+    order: 2,
   },
   {
     label: t('>= (Larger or equal)'),
     value: '>=',
+    order: 3,
   },
   {
     label: t('== (Is equal)'),
     value: '==',
+    order: 4,
   },
   {
     label: t('!= (Is not equal)'),
     value: '!=',
+    order: 5,
   },
   {
     label: t('Not null'),
     value: 'not null',
+    order: 6,
   },
 ];
 
@@ -517,7 +524,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         contentType === 'dashboard' ? currentAlert?.dashboard?.value : null,
       database: currentAlert?.database?.value,
       owners: (currentAlert?.owners || []).map(
-        owner => (owner as MetaObject).value,
+        owner => (owner as MetaObject).value || owner.id,
       ),
       recipients,
       report_format:
@@ -965,9 +972,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               label: (resource.database as DatabaseObject).database_name,
             }
           : undefined,
-        owners: (resource.owners || []).map(owner => ({
-          value: owner.id,
-          label: `${(owner as Owner).first_name} ${(owner as Owner).last_name}`,
+        owners: (alert?.owners || []).map(owner => ({
+          value: (owner as MetaObject).value || owner.id,
+          label:
+            (owner as MetaObject).label ||
+            `${(owner as Owner).first_name} ${(owner as Owner).last_name}`,
         })),
         // @ts-ignore: Type not assignable
         validator_config_json:
@@ -1129,7 +1138,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   maxLines={15}
                   onChange={onSQLChange}
                   readOnly={false}
-                  value={currentAlert ? currentAlert.sql : ''}
+                  initialValue={resource?.sql}
+                  key={currentAlert?.id}
                 />
               </StyledInputContainer>
               <div className="inline-container wrap">
@@ -1147,6 +1157,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                         currentAlert?.validator_config_json?.op || undefined
                       }
                       options={CONDITIONS}
+                      sortComparator={propertyComparator('order')}
                     />
                   </div>
                 </StyledInputContainer>
@@ -1212,8 +1223,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   ariaLabel={t('Log retention')}
                   placeholder={t('Log retention')}
                   onChange={onLogRetentionChange}
-                  value={currentAlert?.log_retention || DEFAULT_RETENTION}
+                  value={
+                    typeof currentAlert?.log_retention === 'number'
+                      ? currentAlert?.log_retention
+                      : DEFAULT_RETENTION
+                  }
                   options={RETENTION_OPTIONS}
+                  sortComparator={propertyComparator('value')}
                 />
               </div>
             </StyledInputContainer>

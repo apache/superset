@@ -82,17 +82,82 @@ export type OptionsPagePromise = (
 ) => Promise<OptionsTypePage>;
 
 export interface SelectProps extends PickedSelectProps {
+  /**
+   * It enables the user to create new options.
+   * Can be used with standard or async select types.
+   * Can be used with any mode, single or multiple.
+   * False by default.
+   * */
   allowNewOptions?: boolean;
+  /**
+   * It adds the aria-label tag for accessibility standards.
+   * Must be plain English and localized.
+   */
   ariaLabel: string;
+  /**
+   * It adds a header on top of the Select.
+   * Can be any ReactNode.
+   */
   header?: ReactNode;
+  /**
+   * It fires a request against the server after
+   * the first interaction and not on render.
+   * Works in async mode only (See the options property).
+   * True by default.
+   */
   lazyLoading?: boolean;
+  /**
+   * It defines whether the Select should allow for the
+   * selection of multiple options or single.
+   * Single by default.
+   */
   mode?: 'single' | 'multiple';
+  /**
+   * Deprecated.
+   * Prefer ariaLabel instead.
+   */
   name?: string; // discourage usage
+  /**
+   * It allows to define which properties of the option object
+   * should be looked for when searching.
+   * By default label and value.
+   */
   optionFilterProps?: string[];
+  /**
+   * It defines the options of the Select.
+   * The options can be static, an array of options.
+   * The options can also be async, a promise that returns
+   * an array of options.
+   */
   options: OptionsType | OptionsPagePromise;
+  /**
+   * It defines how many results should be included
+   * in the query response.
+   * Works in async mode only (See the options property).
+   */
   pageSize?: number;
+  /**
+   * It shows a stop-outlined icon at the far right of a selected
+   * option instead of the default checkmark.
+   * Useful to better indicate to the user that by clicking on a selected
+   * option it will be de-selected.
+   * False by default.
+   */
   invertSelection?: boolean;
+  /**
+   * It fires a request against the server only after
+   * searching.
+   * Works in async mode only (See the options property).
+   * Undefined by default.
+   */
   fetchOnlyOnSearch?: boolean;
+  /**
+   * It provides a callback function when an error
+   * is generated after a request is fired.
+   * Works in async mode only (See the options property).
+   */
+  onError?: (error: string) => void;
+  sortComparator?: (a: AntdLabeledValue, b: AntdLabeledValue) => number;
 }
 
 const StyledContainer = styled.div`
@@ -167,6 +232,44 @@ const Error = ({ error }: { error: string }) => (
   </StyledError>
 );
 
+const defaultSortComparator = (a: AntdLabeledValue, b: AntdLabeledValue) => {
+  if (typeof a.label === 'string' && typeof b.label === 'string') {
+    return a.label.localeCompare(b.label);
+  }
+  if (typeof a.value === 'string' && typeof b.value === 'string') {
+    return a.value.localeCompare(b.value);
+  }
+  return (a.value as number) - (b.value as number);
+};
+
+/**
+ * It creates a comparator to check for a specific property.
+ * Can be used with string and number property values.
+ * */
+export const propertyComparator = (property: string) => (
+  a: AntdLabeledValue,
+  b: AntdLabeledValue,
+) => {
+  if (typeof a[property] === 'string' && typeof b[property] === 'string') {
+    return a[property].localeCompare(b[property]);
+  }
+  return (a[property] as number) - (b[property] as number);
+};
+
+/**
+ * This component is a customized version of the Antdesign 4.X Select component
+ * https://ant.design/components/select/.
+ * The aim of the component was to combine all the instances of select components throughout the
+ * project under one and to remove the react-select component entirely.
+ * This Select component provides an API that is tested against all the different use cases of Superset.
+ * It limits and overrides the existing Antdesign API in order to keep their usage to the minimum
+ * and to enforce simplification and standardization.
+ * It is divided into two macro categories, Static and Async.
+ * The Static type accepts a static array of options.
+ * The Async type accepts a promise that will return the options.
+ * Each of the categories come with different abilities. For a comprehensive guide please refer to
+ * the storybook in src/components/Select/Select.stories.tsx.
+ */
 const Select = ({
   allowNewOptions = false,
   ariaLabel,
@@ -180,6 +283,7 @@ const Select = ({
   mode = 'single',
   name,
   notFoundContent,
+  onError,
   onChange,
   onClear,
   optionFilterProps = ['label', 'value'],
@@ -187,6 +291,7 @@ const Select = ({
   pageSize = DEFAULT_PAGE_SIZE,
   placeholder = t('Select ...'),
   showSearch = true,
+  sortComparator = defaultSortComparator,
   value,
   ...props
 }: SelectProps) => {
@@ -275,14 +380,21 @@ const Select = ({
             }
           });
         }
-
-        const sortedOptions = [...topOptions, ...otherOptions];
+        const sortedOptions = [
+          ...topOptions.sort(sortComparator),
+          ...otherOptions.sort(sortComparator),
+        ];
+        if (!isEqual(sortedOptions, selectOptions)) {
+          setSelectOptions(sortedOptions);
+        }
+      } else {
+        const sortedOptions = [...selectOptions].sort(sortComparator);
         if (!isEqual(sortedOptions, selectOptions)) {
           setSelectOptions(sortedOptions);
         }
       }
     },
-    [isAsync, isSingleMode, labelInValue, selectOptions],
+    [isAsync, isSingleMode, labelInValue, selectOptions, sortComparator],
   );
 
   const handleOnSelect = (
@@ -327,34 +439,47 @@ const Select = ({
     setSearchedValue('');
   };
 
-  const onError = (response: Response) =>
-    getClientErrorObject(response).then(e => {
-      const { error } = e;
-      setError(error);
-    });
+  const internalOnError = useCallback(
+    (response: Response) =>
+      getClientErrorObject(response).then(e => {
+        const { error } = e;
+        setError(error);
 
-  const handleData = (data: OptionsType) => {
-    let mergedData: OptionsType = [];
-    if (data && Array.isArray(data) && data.length) {
-      const dataValues = new Set();
-      data.forEach(option =>
-        dataValues.add(String(option.value).toLocaleLowerCase()),
-      );
+        if (onError) {
+          onError(error);
+        }
+      }),
+    [onError],
+  );
 
-      // merges with existing and creates unique options
-      setSelectOptions(prevOptions => {
-        mergedData = [
-          ...prevOptions.filter(
-            previousOption =>
-              !dataValues.has(String(previousOption.value).toLocaleLowerCase()),
-          ),
-          ...data,
-        ];
-        return mergedData;
-      });
-    }
-    return mergedData;
-  };
+  const handleData = useCallback(
+    (data: OptionsType) => {
+      let mergedData: OptionsType = [];
+      if (data && Array.isArray(data) && data.length) {
+        const dataValues = new Set();
+        data.forEach(option =>
+          dataValues.add(String(option.value).toLocaleLowerCase()),
+        );
+
+        // merges with existing and creates unique options
+        setSelectOptions(prevOptions => {
+          mergedData = [
+            ...prevOptions.filter(
+              previousOption =>
+                !dataValues.has(
+                  String(previousOption.value).toLocaleLowerCase(),
+                ),
+            ),
+            ...data,
+          ];
+          mergedData.sort(sortComparator);
+          return mergedData;
+        });
+      }
+      return mergedData;
+    },
+    [sortComparator],
+  );
 
   const handlePaginatedFetch = useMemo(
     () => (value: string, page: number, pageSize: number) => {
@@ -386,13 +511,13 @@ const Select = ({
             setAllValuesLoaded(true);
           }
         })
-        .catch(onError)
+        .catch(internalOnError)
         .finally(() => {
           setIsLoading(false);
           setIsTyping(false);
         });
     },
-    [allValuesLoaded, fetchOnlyOnSearch, options],
+    [allValuesLoaded, fetchOnlyOnSearch, handleData, internalOnError, options],
   );
 
   const handleOnSearch = useMemo(
@@ -465,8 +590,8 @@ const Select = ({
     }
 
     // multiple or tags mode keep the dropdown visible while selecting options
-    // this waits for the dropdown to be closed before sorting the top options
-    if (!isSingleMode && !isDropdownVisible) {
+    // this waits for the dropdown to be opened before sorting the top options
+    if (!isSingleMode && isDropdownVisible) {
       handleTopOptions(selectValue);
     }
   };
@@ -622,7 +747,7 @@ const Select = ({
           selectOptions.map(opt => {
             const isOptObject = typeof opt === 'object';
             const label = isOptObject ? opt?.label || opt.value : opt;
-            const value = (isOptObject && opt.value) || opt;
+            const value = isOptObject ? opt.value : opt;
             const { customLabel, ...optProps } = opt;
 
             return (

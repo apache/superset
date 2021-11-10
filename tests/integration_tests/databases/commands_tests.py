@@ -83,7 +83,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
             "engine_params": {},
             "metadata_cache_timeout": {},
             "metadata_params": {},
-            "schemas_allowed_for_csv_upload": [],
+            "schemas_allowed_for_file_upload": [],
         }
         if backend() == "presto":
             expected_extra = {
@@ -325,7 +325,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         database = (
             db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
         )
-        assert database.allow_csv_upload
+        assert database.allow_file_upload
         assert database.allow_ctas
         assert database.allow_cvas
         assert not database.allow_run_async
@@ -333,6 +333,41 @@ class TestImportDatabasesCommand(SupersetTestCase):
         assert database.database_name == "imported_database"
         assert database.expose_in_sqllab
         assert database.extra == "{}"
+        assert database.sqlalchemy_uri == "sqlite:///test.db"
+
+        db.session.delete(database)
+        db.session.commit()
+
+    def test_import_v1_database_broken_csv_fields(self):
+        """
+        Test that a database can be imported with broken schema.
+
+        https://github.com/apache/superset/pull/16756 renamed some fields, changing
+        the V1 schema. This test ensures that we can import databases that were
+        exported with the broken schema.
+        """
+        broken_config = database_config.copy()
+        broken_config["allow_file_upload"] = broken_config.pop("allow_csv_upload")
+        broken_config["extra"] = {"schemas_allowed_for_file_upload": ["upload"]}
+
+        contents = {
+            "metadata.yaml": yaml.safe_dump(database_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(broken_config),
+        }
+        command = ImportDatabasesCommand(contents)
+        command.run()
+
+        database = (
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+        )
+        assert database.allow_file_upload
+        assert database.allow_ctas
+        assert database.allow_cvas
+        assert not database.allow_run_async
+        assert database.cache_timeout is None
+        assert database.database_name == "imported_database"
+        assert database.expose_in_sqllab
+        assert database.extra == '{"schemas_allowed_for_file_upload": ["upload"]}'
         assert database.sqlalchemy_uri == "sqlite:///test.db"
 
         db.session.delete(database)
@@ -355,9 +390,9 @@ class TestImportDatabasesCommand(SupersetTestCase):
         database = (
             db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
         )
-        assert database.allow_csv_upload
+        assert database.allow_file_upload
 
-        # update allow_csv_upload to False
+        # update allow_file_upload to False
         new_config = database_config.copy()
         new_config["allow_csv_upload"] = False
         contents = {
@@ -370,7 +405,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         database = (
             db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
         )
-        assert not database.allow_csv_upload
+        assert not database.allow_file_upload
 
         # test that only one database was created
         new_num_databases = db.session.query(Database).count()

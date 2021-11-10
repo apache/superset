@@ -38,6 +38,20 @@ import AdhocFilter, {
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { Input } from 'src/common/components';
 
+const StyledInput = styled(Input)`
+  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+`;
+
+const SelectWithLabel = styled(Select)<{ labelText: string }>`
+  .ant-select-selector::after {
+    content: ${({ labelText }) => labelText || '\\A0'};
+    display: inline-block;
+    white-space: nowrap;
+    color: ${({ theme }) => theme.colors.grayscale.light1};
+    width: max-content;
+  }
+`;
+
 export interface SimpleColumnType {
   id: number;
   column_name: string;
@@ -81,6 +95,7 @@ export interface Props {
     filter_select: boolean;
   };
   partitionColumn: string;
+  operators?: Operators[];
 }
 export const useSimpleTabFilterProps = (props: Props) => {
   const isOperatorRelevant = (operator: Operators, subject: string) => {
@@ -140,7 +155,7 @@ export const useSimpleTabFilterProps = (props: Props) => {
         subject,
         clause,
         operator:
-          operator && isOperatorRelevant(operatorId, subject)
+          operator && operatorId && isOperatorRelevant(operatorId, subject)
             ? OPERATOR_ENUM_TO_OPERATOR_TYPE[operatorId].operation
             : null,
         expressionType: EXPRESSION_TYPES.SIMPLE,
@@ -211,10 +226,106 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     onComparatorChange,
   } = useSimpleTabFilterProps(props);
   const [suggestions, setSuggestions] = useState<Record<string, any>>([]);
+  const [comparator, setComparator] = useState(props.adhocFilter.comparator);
   const [
     loadingComparatorSuggestions,
     setLoadingComparatorSuggestions,
   ] = useState(false);
+
+  const onInputComparatorChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    onComparatorChange(event.target.value);
+  };
+
+  const renderSubjectOptionLabel = (option: ColumnType) => (
+    <FilterDefinitionOption option={option} />
+  );
+
+  const getOptionsRemaining = () => {
+    // if select is multi/value is array, we show the options not selected
+    const valuesFromSuggestionsLength = Array.isArray(comparator)
+      ? comparator.filter(v => suggestions.includes(v)).length
+      : 0;
+    return suggestions?.length - valuesFromSuggestionsLength ?? 0;
+  };
+  const createSuggestionsPlaceholder = () => {
+    const optionsRemaining = getOptionsRemaining();
+    const placeholder = t('%s option(s)', optionsRemaining);
+    return optionsRemaining ? placeholder : '';
+  };
+
+  const handleSubjectChange = (subject: string) => {
+    setComparator(undefined);
+    onSubjectChange(subject);
+  };
+
+  let columns = props.options;
+  const { subject, operator, operatorId } = props.adhocFilter;
+
+  const subjectSelectProps = {
+    ariaLabel: t('Select subject'),
+    value: subject ?? undefined,
+    onChange: handleSubjectChange,
+    notFoundContent: t(
+      'No such column found. To filter on a metric, try the Custom SQL tab.',
+    ),
+    autoFocus: !subject,
+    placeholder: '',
+  };
+
+  if (props.datasource.type === 'druid') {
+    subjectSelectProps.placeholder = t(
+      '%s column(s) and metric(s)',
+      columns.length,
+    );
+  } else {
+    // we cannot support simple ad-hoc filters for metrics because we don't know what type
+    // the value should be cast to (without knowing the output type of the aggregate, which
+    // becomes a rather complicated problem)
+    subjectSelectProps.placeholder =
+      props.adhocFilter.clause === CLAUSES.WHERE
+        ? t('%s column(s)', columns.length)
+        : t('To filter on a metric, use Custom SQL tab.');
+    columns = props.options.filter(
+      option => 'column_name' in option && option.column_name,
+    );
+  }
+
+  const operatorSelectProps = {
+    placeholder: t(
+      '%s operator(s)',
+      (props.operators ?? OPERATORS_OPTIONS).filter(op =>
+        isOperatorRelevant(op, subject),
+      ).length,
+    ),
+    value: operatorId,
+    onChange: onOperatorChange,
+    autoFocus: !!subjectSelectProps.value && !operator,
+    ariaLabel: t('Select operator'),
+  };
+
+  const shouldFocusComparator =
+    !!subjectSelectProps.value && !!operatorSelectProps.value;
+
+  const comparatorSelectProps = {
+    allowClear: true,
+    allowNewOptions: true,
+    ariaLabel: t('Comparator option'),
+    mode: MULTI_OPERATORS.has(operatorId)
+      ? ('multiple' as const)
+      : ('single' as const),
+    loading: loadingComparatorSuggestions,
+    value: comparator,
+    onChange: onComparatorChange,
+    notFoundContent: t('Type a value here'),
+    disabled: DISABLE_INPUT_OPERATORS.includes(operatorId),
+    placeholder: createSuggestionsPlaceholder(),
+    autoFocus: shouldFocusComparator,
+  };
+
+  const labelText =
+    comparator && comparator.length > 0 && createSuggestionsPlaceholder();
 
   useEffect(() => {
     const refreshComparatorSuggestions = () => {
@@ -246,104 +357,9 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     refreshComparatorSuggestions();
   }, [props.adhocFilter.subject]);
 
-  const onInputComparatorChange = (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    onComparatorChange(event.target.value);
-  };
-
-  const renderSubjectOptionLabel = (option: ColumnType) => (
-    <FilterDefinitionOption option={option} />
-  );
-
-  const getOptionsRemaining = () => {
-    const { comparator } = props.adhocFilter;
-    // if select is multi/value is array, we show the options not selected
-    const valuesFromSuggestionsLength = Array.isArray(comparator)
-      ? comparator.filter(v => suggestions.includes(v)).length
-      : 0;
-    return suggestions?.length - valuesFromSuggestionsLength ?? 0;
-  };
-  const createSuggestionsPlaceholder = () => {
-    const optionsRemaining = getOptionsRemaining();
-    const placeholder = t('%s option(s)', optionsRemaining);
-    return optionsRemaining ? placeholder : '';
-  };
-
-  let columns = props.options;
-  const { subject, operator, comparator, operatorId } = props.adhocFilter;
-
-  const subjectSelectProps = {
-    ariaLabel: t('Select subject'),
-    value: subject ?? undefined,
-    onChange: onSubjectChange,
-    notFoundContent: t(
-      'No such column found. To filter on a metric, try the Custom SQL tab.',
-    ),
-    autoFocus: !subject,
-    placeholder: '',
-  };
-
-  if (props.datasource.type === 'druid') {
-    subjectSelectProps.placeholder = t(
-      '%s column(s) and metric(s)',
-      columns.length,
-    );
-  } else {
-    // we cannot support simple ad-hoc filters for metrics because we don't know what type
-    // the value should be cast to (without knowing the output type of the aggregate, which
-    // becomes a rather complicated problem)
-    subjectSelectProps.placeholder =
-      props.adhocFilter.clause === CLAUSES.WHERE
-        ? t('%s column(s)', columns.length)
-        : t('To filter on a metric, use Custom SQL tab.');
-    columns = props.options.filter(
-      option => 'column_name' in option && option.column_name,
-    );
-  }
-
-  const operatorSelectProps = {
-    placeholder: t(
-      '%s operator(s)',
-      OPERATORS_OPTIONS.filter(op => isOperatorRelevant(op, subject)).length,
-    ),
-    value: operatorId,
-    onChange: onOperatorChange,
-    autoFocus: !!subjectSelectProps.value && !operator,
-    ariaLabel: t('Select operator'),
-  };
-
-  const shouldFocusComparator =
-    !!subjectSelectProps.value && !!operatorSelectProps.value;
-
-  const comparatorSelectProps = {
-    allowClear: true,
-    allowNewOptions: true,
-    ariaLabel: t('Comparator option'),
-    mode: MULTI_OPERATORS.has(operatorId)
-      ? ('multiple' as const)
-      : ('single' as const),
-    loading: loadingComparatorSuggestions,
-    value: comparator,
-    onChange: onComparatorChange,
-    notFoundContent: t('Type a value here'),
-    disabled: DISABLE_INPUT_OPERATORS.includes(operatorId),
-    placeholder: createSuggestionsPlaceholder(),
-    autoFocus: shouldFocusComparator,
-  };
-
-  const labelText =
-    comparator && comparator.length > 0 && createSuggestionsPlaceholder();
-
-  const SelectWithLabel = styled(Select)`
-    .ant-select-selector::after {
-      content: ${() => labelText || '\\A0'};
-      display: inline-block;
-      white-space: nowrap;
-      color: ${({ theme }) => theme.colors.grayscale.light1};
-      width: max-content;
-    }
-  `;
+  useEffect(() => {
+    setComparator(props.adhocFilter.comparator);
+  }, [props.adhocFilter.comparator]);
 
   return (
     <>
@@ -371,17 +387,18 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
       />
       <Select
         css={theme => ({ marginBottom: theme.gridUnit * 4 })}
-        options={OPERATORS_OPTIONS.filter(op =>
-          isOperatorRelevant(op, subject),
-        ).map(option => ({
-          value: option,
-          label: OPERATOR_ENUM_TO_OPERATOR_TYPE[option].display,
-          key: option,
-        }))}
+        options={(props.operators ?? OPERATORS_OPTIONS)
+          .filter(op => isOperatorRelevant(op, subject))
+          .map(option => ({
+            value: option,
+            label: OPERATOR_ENUM_TO_OPERATOR_TYPE[option].display,
+            key: option,
+          }))}
         {...operatorSelectProps}
       />
       {MULTI_OPERATORS.has(operatorId) || suggestions.length > 0 ? (
         <SelectWithLabel
+          labelText={labelText}
           options={suggestions.map((suggestion: string) => ({
             value: suggestion,
             label: String(suggestion),
@@ -389,7 +406,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
           {...comparatorSelectProps}
         />
       ) : (
-        <Input
+        <StyledInput
           data-test="adhoc-filter-simple-value"
           name="filter-value"
           ref={ref => {

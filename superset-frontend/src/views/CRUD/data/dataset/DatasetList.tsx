@@ -32,7 +32,7 @@ import {
 import { ColumnObject } from 'src/views/CRUD/data/dataset/types';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import DatasourceModal from 'src/datasource/DatasourceModal';
+import { DatasourceModal } from 'src/components/Datasource';
 import DeleteModal from 'src/components/DeleteModal';
 import handleResourceExport from 'src/utils/export';
 import ListView, {
@@ -165,7 +165,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         endpoint: `/api/v1/dataset/${id}`,
       })
         .then(({ json = {} }) => {
-          const owners = json.result.owners.map((owner: any) => owner.id);
           const addCertificationFields = json.result.columns.map(
             (column: ColumnObject) => {
               const {
@@ -181,7 +180,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           );
           // eslint-disable-next-line no-param-reassign
           json.result.columns = [...addCertificationFields];
-          setDatasetCurrentlyEditing({ ...json.result, owners });
+          setDatasetCurrentlyEditing(json.result);
         })
         .catch(() => {
           addDangerToast(

@@ -442,6 +442,7 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         df: pd.DataFrame,
         query: str,
         duration: timedelta,
+        applied_template_filters: Optional[List[str]] = None,
         status: str = QueryStatus.SUCCESS,
         error_message: Optional[str] = None,
         errors: Optional[List[Dict[str, Any]]] = None,
@@ -449,6 +450,7 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         self.df = df
         self.query = query
         self.duration = duration
+        self.applied_template_filters = applied_template_filters or []
         self.status = status
         self.error_message = error_message
         self.errors = errors or []

@@ -15,11 +15,34 @@
 # specific language governing permissions and limitations
 # under the License.o
 
+from datetime import datetime
+from typing import Optional
+
+from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.hive import HiveEngineSpec
 
 
 class DatabricksHiveEngineSpec(HiveEngineSpec):
     engine = "databricks"
-    engine_name = "Databricks"
+    engine_name = "Databricks Interactive Cluster"
     driver = "pyhive"
     _show_functions_column = "function"
+
+
+class DatabricksODBCEngineSpec(BaseEngineSpec):
+    engine = "databricks"
+    engine_name = "Databricks SQL Endpoint"
+    driver = "pyodbc"
+
+    # the syntax for the ODBC engine is identical to the Hive one, so
+    # we can reuse the expressions from `HiveEngineSpec`
+    # pylint: disable=protected-access
+    _time_grain_expressions = HiveEngineSpec._time_grain_expressions
+
+    @classmethod
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+        return HiveEngineSpec.convert_dttm(target_type, dttm)
+
+    @classmethod
+    def epoch_to_dttm(cls) -> str:
+        return HiveEngineSpec.epoch_to_dttm()
