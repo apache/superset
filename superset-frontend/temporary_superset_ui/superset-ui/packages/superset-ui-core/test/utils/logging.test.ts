@@ -21,6 +21,10 @@
 describe('logging', () => {
   beforeEach(() => {
     jest.resetModules();
+    // Explicit is better than implicit
+    console.warn = console.error = function mockedConsole(message) {
+      throw new Error(message);
+    };
   });
   it('should pipe to `console` methods', () => {
     const { logging } = require('@superset-ui/core/src');
@@ -36,9 +40,16 @@ describe('logging', () => {
     expect(() => {
       logging.error('error');
     }).toThrow('error');
+
+    // to support: npx jest --silent
+    const spy = jest.spyOn(logging, 'trace');
+    spy.mockImplementation(() => {
+      throw new Error('Trace:');
+    });
     expect(() => {
       logging.trace();
     }).toThrow('Trace:');
+    spy.mockRestore();
   });
   it('should use noop functions when console unavailable', () => {
     const { console } = window;
