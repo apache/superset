@@ -79,8 +79,12 @@ const ActionButton = (props: ActionButtonProps) => {
 
 const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
   const {
+    actions,
     canDownload,
+    chartStatus,
     latestQueryFormData,
+    queriesResponse,
+    slice,
   } = props;
 
   const doExportCSV = exportChart.bind(this, {
@@ -106,6 +110,7 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
       data-test="btn-group-results"
     >
       {latestQueryFormData && (
+        <>
           <EmbedCodeButton latestQueryFormData={latestQueryFormData} />
           <ActionButton
             icon={<i className="fa fa-file-code-o" />}
