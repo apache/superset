@@ -190,14 +190,12 @@ export function transformSeries(
       : undefined,
     stack: stackId,
     lineStyle,
-    areaStyle: area
-      ? {
-          opacity:
-            forecastSeries.type === ForecastSeriesEnum.ForecastUpper
-              ? opacity * areaOpacity
-              : 0,
-        }
-      : undefined,
+    areaStyle:
+      area || forecastSeries.type === ForecastSeriesEnum.ForecastUpper
+        ? {
+            opacity: opacity * areaOpacity,
+          }
+        : undefined,
     emphasis,
     showSymbol,
     symbolSize: markerSize,
