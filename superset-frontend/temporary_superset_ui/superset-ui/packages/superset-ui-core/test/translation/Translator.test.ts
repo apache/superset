@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { logging } from '@superset-ui/core';
 import Translator from '@superset-ui/core/src/translation/Translator';
 import {
   configure,
@@ -34,6 +35,18 @@ configure({
 });
 
 describe('Translator', () => {
+  const spy = jest.spyOn(logging, 'warn');
+
+  beforeAll(() => {
+    spy.mockImplementation((info: any) => {
+      throw new Error(info);
+    });
+  });
+
+  afterAll(() => {
+    spy.mockRestore();
+  });
+
   describe('new Translator(config)', () => {
     it('initializes when config is not specified', () => {
       expect(new Translator()).toBeInstanceOf(Translator);

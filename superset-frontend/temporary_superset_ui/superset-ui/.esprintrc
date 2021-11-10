@@ -1,5 +1,0 @@
-{
- "paths": ["{packages,plugins}/*/{src,test,types}/**/*.{ts,tsx,js,jsx}"],
- "ignores": ["**/node_modules/**/*"],
- "port": 5004  
-}
