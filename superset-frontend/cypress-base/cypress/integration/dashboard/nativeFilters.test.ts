@@ -94,7 +94,9 @@ describe('Nativefilters Sanity test', () => {
   });
   it("User can check 'Filter has default value'", () => {
     cy.get(nativeFilters.filterFromDashboardView.expand).click({ force: true });
-    cy.get(nativeFilters.createFilterButton).should('be.visible').click({ force: true });
+    cy.get(nativeFilters.createFilterButton)
+      .should('be.visible')
+      .click({ force: true });
     cy.get(nativeFilters.modal.container).should('be.visible');
     cy.contains('Filter has default value').click();
     cy.contains(
@@ -120,7 +122,7 @@ describe('Nativefilters Sanity test', () => {
     cy.get(nativeFilters.filtersPanel.inputDropdown)
       .should('be.visible', { timeout: 20000 })
       .last()
-      .click({force:true});
+      .click({ force: true });
     cy.get(nativeFilters.filtersPanel.columnEmptyInput)
       .should('be.visible')
       .type('United States{enter}');
@@ -136,8 +138,7 @@ describe('Nativefilters Sanity test', () => {
     });
   });
   xit('User can add a new native filter', () => {
-    cy.get(nativeFilters.filterFromDashboardView.expand)
-      .click({force:true});
+    cy.get(nativeFilters.filterFromDashboardView.expand).click({ force: true });
     cy.get(nativeFilters.createFilterButton).should('be.visible').click();
     cy.get(nativeFilters.modal.container)
       .find(nativeFilters.filtersPanel.filterName)
