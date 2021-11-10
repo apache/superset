@@ -24,6 +24,7 @@ import {
   getNumberFormatter,
   NumberFormats,
   NumberFormatter,
+  getColumnLabel,
 } from '@superset-ui/core';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
 import { EChartsCoreOption, FunnelSeriesOption } from 'echarts';
@@ -108,19 +109,20 @@ export default function transformProps(
     ...formData,
   };
   const metricLabel = getMetricLabel(metric);
+  const groupbyLabels = groupby.map(getColumnLabel);
   const keys = data.map(datum =>
-    extractGroupbyLabel({ datum, groupby, coltypeMapping: {} }),
+    extractGroupbyLabel({ datum, groupby: groupbyLabels, coltypeMapping: {} }),
   );
   const labelMap = data.reduce(
     (acc: Record<string, DataRecordValue[]>, datum) => {
       const label = extractGroupbyLabel({
         datum,
-        groupby,
+        groupby: groupbyLabels,
         coltypeMapping: {},
       });
       return {
         ...acc,
-        [label]: groupby.map(col => datum[col]),
+        [label]: groupbyLabels.map(col => datum[col]),
       };
     },
     {},
@@ -132,7 +134,11 @@ export default function transformProps(
   const numberFormatter = getNumberFormatter(numberFormat);
 
   const transformedData: FunnelSeriesOption[] = data.map(datum => {
-    const name = extractGroupbyLabel({ datum, groupby, coltypeMapping: {} });
+    const name = extractGroupbyLabel({
+      datum,
+      groupby: groupbyLabels,
+      coltypeMapping: {},
+    });
     const isFiltered =
       filterState.selectedValues && !filterState.selectedValues.includes(name);
     return {

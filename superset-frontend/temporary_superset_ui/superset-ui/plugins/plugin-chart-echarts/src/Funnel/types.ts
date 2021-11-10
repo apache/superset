@@ -21,6 +21,7 @@ import {
   ChartDataResponseResult,
   ChartProps,
   DataRecordValue,
+  QueryFormColumn,
   QueryFormData,
   SetDataMaskHook,
 } from '@superset-ui/core';
@@ -34,7 +35,7 @@ import {
 export type EchartsFunnelFormData = QueryFormData &
   EchartsLegendFormData & {
     colorScheme?: string;
-    groupby: string[];
+    groupby: QueryFormData[];
     labelLine: boolean;
     labelType: EchartsFunnelLabelTypeType;
     metric?: string;
@@ -84,6 +85,6 @@ export interface FunnelChartTransformedProps {
   emitFilter: boolean;
   setDataMask: SetDataMaskHook;
   labelMap: Record<string, DataRecordValue[]>;
-  groupby: string[];
+  groupby: QueryFormColumn[];
   selectedValues: Record<number, string>;
 }

@@ -20,6 +20,7 @@ import {
   ChartDataResponseResult,
   ChartProps,
   DataRecordValue,
+  QueryFormColumn,
   QueryFormData,
   QueryFormMetric,
   SetDataMaskHook,
@@ -30,7 +31,7 @@ import { LabelPositionEnum } from '../types';
 
 export type EchartsTreemapFormData = QueryFormData & {
   colorScheme?: string;
-  groupby: string[];
+  groupby: QueryFormColumn[];
   metric?: QueryFormMetric;
   labelType: EchartsTreemapLabelType;
   labelPosition: LabelPositionEnum;
@@ -81,6 +82,6 @@ export interface TreemapTransformedProps {
   emitFilter: boolean;
   setDataMask: SetDataMaskHook;
   labelMap: Record<string, DataRecordValue[]>;
-  groupby: string[];
+  groupby: QueryFormColumn[];
   selectedValues: Record<number, string>;
 }

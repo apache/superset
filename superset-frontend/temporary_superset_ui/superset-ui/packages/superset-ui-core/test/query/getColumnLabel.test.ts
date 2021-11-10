@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,20 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { getColumnLabel } from '@superset-ui/core/src/query';
 
-import { isAdhocMetricSimple, isSavedMetric, QueryFormMetric } from './types';
+describe('getColumnLabel', () => {
+  it('should handle physical column', () => {
+    expect(getColumnLabel('gender')).toEqual('gender');
+  });
 
-export default function getMetricLabel(metric: QueryFormMetric): string {
-  if (isSavedMetric(metric)) {
-    return metric;
-  }
-  if (metric.label) {
-    return metric.label;
-  }
-  if (isAdhocMetricSimple(metric)) {
-    return `${metric.aggregate}(${
-      metric.column.columnName || metric.column.column_name
-    })`;
-  }
-  return metric.sqlExpression;
-}
+  it('should handle adhoc columns with label', () => {
+    expect(
+      getColumnLabel({
+        sqlExpression: "case when 1 then 'a' else 'b' end",
+        label: 'my col',
+      }),
+    ).toEqual('my col');
+  });
+
+  it('should handle adhoc columns without label', () => {
+    expect(
+      getColumnLabel({
+        sqlExpression: "case when 1 then 'a' else 'b' end",
+      }),
+    ).toEqual("case when 1 then 'a' else 'b' end");
+  });
+});
