@@ -873,19 +873,19 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
     def adhoc_column_to_sqla(
         self,
-        column: AdhocColumn,
+        col: AdhocColumn,
         template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> ColumnElement:
         """
         Turn an adhoc column into a sqlalchemy column.
 
-        :param column: Adhoc column definition
+        :param col: Adhoc column definition
         :param template_processor: template_processor instance
         :returns: The metric defined as a sqlalchemy column
         :rtype: sqlalchemy.sql.column
         """
-        label = utils.get_column_name(column)
-        expression = column["sqlExpression"]
+        label = utils.get_column_name(col)
+        expression = col["sqlExpression"]
         if template_processor and expression:
             expression = template_processor.process_template(expression)
         sqla_metric = literal_column(expression)
@@ -1133,7 +1133,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                         outer = self.make_sqla_column_compatible(outer, selected)
                 else:
                     outer = self.adhoc_column_to_sqla(
-                        column=selected, template_processor=template_processor
+                        col=selected, template_processor=template_processor
                     )
                 groupby_all_columns[outer.name] = outer
                 if not series_column_names or outer.name in series_column_names:
