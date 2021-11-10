@@ -127,7 +127,7 @@ const StyledToolbar = styled.div`
   }
 
   .limitDropdown {
-    width: max-content;
+    white-space: nowrap;
   }
 `;
 
