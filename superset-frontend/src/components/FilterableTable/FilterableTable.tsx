@@ -426,7 +426,14 @@ export default class FilterableTable extends PureComponent<
   }) {
     const columnKey = this.props.orderedColumnKeys[columnIndex];
     const cellData = this.list[rowIndex][columnKey];
-    const content = this.getCellContent({ cellData, columnKey });
+    const content =
+      cellData === null ? (
+        <i className="text-muted">
+          {this.getCellContent({ cellData, columnKey })}
+        </i>
+      ) : (
+        this.getCellContent({ cellData, columnKey })
+      );
     const cellNode = (
       <div
         key={key}
