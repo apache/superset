@@ -125,6 +125,10 @@ const StyledToolbar = styled.div`
       }
     }
   }
+
+  .limitDropdown {
+    white-space: nowrap;
+  }
 `;
 
 const propTypes = {
@@ -646,7 +650,7 @@ class SqlEditor extends React.PureComponent {
               <Dropdown overlay={this.renderQueryLimit()} trigger="click">
                 <a onClick={e => e.preventDefault()}>
                   <span>LIMIT:</span>
-                  <span>
+                  <span className="limitDropdown">
                     {this.convertToNumWithSpaces(
                       this.props.queryEditor.queryLimit ||
                         this.props.defaultQueryLimit,
