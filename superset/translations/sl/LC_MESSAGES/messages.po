@@ -9234,7 +9234,7 @@ msgstr ""
 "določenih sistemih podatkovnih baz."
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/ExtraOptions.tsx:294
-msgid "Impersonate Logged In User (Presto, Hive, and GSheets)"
+msgid "Impersonate Logged In User (Presto, Trino, Drill, Hive, and GSheets)"
 msgstr "Predstavljanje kot prijavljeni uporabnik (Presto, Hive in GSheets)"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/ExtraOptions.tsx:299

@@ -7417,8 +7417,8 @@ msgid ""
 msgstr "用于验证HTTPS请求的可选 CA_BUNDLE 内容。仅在某些数据库引擎上可用。"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:608
-msgid "Impersonate Logged In User (Presto & Hive)"
-msgstr "模拟登录用户 (Presto & Hive)"
+msgid "Impersonate Logged In User (Presto, Trino, Drill & Hive)"
+msgstr "模拟登录用户 (Presto, Trino, Drill & Hive)"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:610
 msgid ""

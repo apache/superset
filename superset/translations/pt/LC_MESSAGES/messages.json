@@ -1195,7 +1195,7 @@
       "When allowing CREATE TABLE AS option in SQL Lab, this option forces the table to be created in this schema": [
         "Ao permitir a opção CREATE TABLE AS no SQL Lab, esta opção força a tabela a ser criada neste esquema"
       ],
-      "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
+      "If Presto, Trino or Drill all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
         "Se Presto, todas as consultas no SQL Lab serão executadas como o utilizador atualmente conectado que deve ter permissão para as executar. <br/> Se hive e hive.server2.enable.doAs estiver habilitado, serão executadas as queries como conta de serviço, mas deve personificar o utilizador atualmente conectado recorrendo à propriedade hive.server2.proxy.user."
       ],
       "Expose in SQL Lab": ["Expor no SQL Lab"],
