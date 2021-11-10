@@ -98,7 +98,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         )
 
         if dataset_id:
-            # Validate that the dataset is not referencing itself
+            # make sure the dataset found is different from the target (if any)
             dataset_query = dataset_query.filter(SqlaTable.id != dataset_id)
 
         return not db.session.query(dataset_query.exists()).scalar()
