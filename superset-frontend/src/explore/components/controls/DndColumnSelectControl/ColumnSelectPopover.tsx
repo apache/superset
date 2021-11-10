@@ -17,7 +17,13 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { AdhocColumn, t, styled, css } from '@superset-ui/core';
 import {
   ColumnMeta,
@@ -86,6 +92,8 @@ const ColumnSelectPopover = ({
     ColumnMeta | undefined
   >(initialSimpleColumn);
 
+  const sqlEditorRef = useRef(null);
+
   const [calculatedColumns, simpleColumns] = useMemo(
     () =>
       columns?.reduce(
@@ -104,7 +112,7 @@ const ColumnSelectPopover = ({
 
   const onSqlExpressionChange = useCallback(
     sqlExpression => {
-      setAdhocColumn({ label, sqlExpression });
+      setAdhocColumn({ label, sqlExpression } as AdhocColumn);
       setSelectedSimpleColumn(undefined);
       setSelectedCalculatedColumn(undefined);
     },
@@ -183,6 +191,20 @@ const ColumnSelectPopover = ({
     onClose,
   ]);
 
+  const onTabChange = useCallback(
+    tab => {
+      getCurrentTab(tab);
+      // @ts-ignore
+      sqlEditorRef.current?.editor.focus();
+    },
+    [getCurrentTab],
+  );
+
+  const onSqlEditorFocus = useCallback(() => {
+    // @ts-ignore
+    sqlEditorRef.current?.editor.resize();
+  }, []);
+
   const stateIsValid =
     adhocColumn || selectedCalculatedColumn || selectedSimpleColumn;
   const hasUnsavedChanges =
@@ -200,7 +222,7 @@ const ColumnSelectPopover = ({
       <Tabs
         id="adhoc-metric-edit-tabs"
         defaultActiveKey={defaultActiveTabKey}
-        onChange={getCurrentTab}
+        onChange={onTabChange}
         className="adhoc-metric-edit-tabs"
         allowOverflow
         css={css`
@@ -250,7 +272,12 @@ const ColumnSelectPopover = ({
         </Tabs.TabPane>
         <Tabs.TabPane key="sqlExpression" tab={t('Custom SQL')}>
           <SQLEditor
-            value={adhocColumn?.sqlExpression}
+            value={
+              adhocColumn?.sqlExpression ||
+              selectedSimpleColumn?.column_name ||
+              selectedCalculatedColumn?.expression
+            }
+            onFocus={onSqlEditorFocus}
             showLoadingForImport
             onChange={onSqlExpressionChange}
             width="100%"
@@ -260,6 +287,7 @@ const ColumnSelectPopover = ({
             enableLiveAutocompletion
             className="filter-sql-editor"
             wrapEnabled
+            ref={sqlEditorRef}
           />
         </Tabs.TabPane>
       </Tabs>
