@@ -21,6 +21,7 @@ import {
   ChartDataResponseResult,
   ChartProps,
   DataRecordValue,
+  QueryFormColumn,
   QueryFormData,
   QueryFormMetric,
   SetDataMaskHook,
@@ -42,7 +43,7 @@ export type EchartsRadarFormData = QueryFormData &
     currentOwnValue?: string[] | null;
     currentValue?: string[] | null;
     defaultValue?: string[] | null;
-    groupby: string[];
+    groupby: QueryFormColumn[];
     labelType: EchartsRadarLabelType;
     labelPosition: LabelPositionEnum;
     metrics: QueryFormMetric[];
@@ -85,6 +86,6 @@ export interface RadarChartTransformedProps {
   echartOptions: EChartsCoreOption;
   setDataMask: SetDataMaskHook;
   labelMap: Record<string, DataRecordValue[]>;
-  groupby: string[];
+  groupby: QueryFormColumn[];
   selectedValues: Record<number, string>;
 }

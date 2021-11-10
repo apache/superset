@@ -18,13 +18,17 @@
  */
 
 /* eslint-disable camelcase */
-import { QueryObject, QueryObjectFilterClause } from './types/Query';
-import { QueryFieldAliases, QueryFormData } from './types/QueryFormData';
+import {
+  AdhocFilter,
+  QueryFieldAliases,
+  QueryFormData,
+  QueryObject,
+  QueryObjectFilterClause,
+} from './types';
 import processFilters from './processFilters';
 import extractExtras from './extractExtras';
 import extractQueryFields from './extractQueryFields';
 import { overrideExtraFormData } from './processExtraFormData';
-import { AdhocFilter } from './types';
 
 /**
  * Build the common segments of all query objects (e.g. the granularity field derived from

@@ -19,11 +19,12 @@
  */
 import React, { ReactNode, ReactText, ReactElement } from 'react';
 import {
-  QueryFormData,
-  DatasourceType,
-  Metric,
-  JsonValue,
+  AdhocColumn,
   Column,
+  DatasourceType,
+  JsonValue,
+  Metric,
+  QueryFormData,
 } from '@superset-ui/core';
 import { sharedControls } from './shared-controls';
 import sharedControlComponents from './shared-controls/components';
@@ -380,3 +381,23 @@ export type ColorFormatters = {
 }[];
 
 export default {};
+
+export function isColumnMeta(
+  column: AdhocColumn | ColumnMeta,
+): column is ColumnMeta {
+  return 'column_name' in column;
+}
+
+export function isSavedExpression(
+  column: AdhocColumn | ColumnMeta,
+): column is ColumnMeta {
+  return (
+    'column_name' in column && 'expression' in column && !!column.expression
+  );
+}
+
+export function isAdhocColumn(
+  column: AdhocColumn | ColumnMeta,
+): column is AdhocColumn {
+  return 'label' in column && 'sqlExpression' in column;
+}

@@ -18,6 +18,7 @@
  */
 import {
   ensureIsArray,
+  getColumnLabel,
   getMetricLabel,
   PostProcessingPivot,
 } from '@superset-ui/core';
@@ -38,7 +39,7 @@ export const pivotOperator: PostProcessingFactory<
       operation: 'pivot',
       options: {
         index: [TIME_COLUMN],
-        columns: queryObject.columns || [],
+        columns: ensureIsArray(queryObject.columns).map(getColumnLabel),
         // Create 'dummy' mean aggregates to assign cell values in pivot table
         // use the 'mean' aggregates to avoid drop NaN. PR: https://github.com/apache-superset/superset-ui/pull/1231
         aggregates: Object.fromEntries(
