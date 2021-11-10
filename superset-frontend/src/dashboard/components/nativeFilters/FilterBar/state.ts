@@ -30,7 +30,7 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { ChartsState, RootState } from 'src/dashboard/types';
 import { NATIVE_FILTER_PREFIX } from '../FiltersConfigModal/utils';
-import { Filter } from '../types';
+import { Filter, NativeFilterType } from '../types';
 
 export const useFilterSets = () =>
   useSelector<any, FilterSetsType>(
