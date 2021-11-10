@@ -29,6 +29,7 @@ export type Aggregate =
   | 'SUM';
 
 export interface AdhocMetricBase {
+  hasCustomLabel?: boolean;
   label?: string;
   optionName?: string;
 }
@@ -72,3 +73,9 @@ export interface Metric {
 }
 
 export default {};
+
+export function isAdhocMetricSimple(
+  metric: AdhocMetric,
+): metric is AdhocMetricSimple {
+  return metric.expressionType === 'SIMPLE';
+}

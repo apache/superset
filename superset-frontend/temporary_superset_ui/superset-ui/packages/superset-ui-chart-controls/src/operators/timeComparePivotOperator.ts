@@ -21,6 +21,8 @@ import {
   ComparisionType,
   PostProcessingPivot,
   NumpyFunction,
+  ensureIsArray,
+  getColumnLabel,
 } from '@superset-ui/core';
 import {
   getMetricOffsetsMap,
@@ -56,7 +58,7 @@ export const timeComparePivotOperator: PostProcessingFactory<
       operation: 'pivot',
       options: {
         index: ['__timestamp'],
-        columns: queryObject.columns || [],
+        columns: ensureIsArray(queryObject.columns).map(getColumnLabel),
         aggregates:
           comparisonType === ComparisionType.Values ? valuesAgg : changeAgg,
         drop_missing_columns: false,

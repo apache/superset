@@ -19,11 +19,12 @@
 import React, { useCallback, useMemo } from 'react';
 import { PlusSquareOutlined, MinusSquareOutlined } from '@ant-design/icons';
 import {
-  styled,
   AdhocMetric,
-  getNumberFormatter,
   DataRecordValue,
+  getColumnLabel,
+  getNumberFormatter,
   NumberFormatter,
+  styled,
   useTheme,
 } from '@superset-ui/core';
 // @ts-ignore
@@ -115,8 +116,8 @@ export default function PivotTableChart(props: PivotTableProps) {
     data,
     height,
     width,
-    groupbyRows,
-    groupbyColumns,
+    groupbyRows: groupbyRowsRaw,
+    groupbyColumns: groupbyColumnsRaw,
     metrics,
     colOrder,
     rowOrder,
@@ -176,6 +177,8 @@ export default function PivotTableChart(props: PivotTableProps) {
       ),
     [data, metricNames],
   );
+  const groupbyRows = groupbyRowsRaw.map(getColumnLabel);
+  const groupbyColumns = groupbyColumnsRaw.map(getColumnLabel);
 
   let [rows, cols] = transposePivot
     ? [groupbyColumns, groupbyRows]

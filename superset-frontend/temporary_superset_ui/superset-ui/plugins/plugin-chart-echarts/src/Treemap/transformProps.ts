@@ -20,6 +20,7 @@ import {
   CategoricalColorNamespace,
   DataRecord,
   DataRecordValue,
+  getColumnLabel,
   getMetricLabel,
   getNumberFormatter,
   getTimeFormatter,
@@ -144,12 +145,12 @@ export default function transformProps(
 
   const transformer = (
     data: DataRecord[],
-    groupbyData: string[],
+    groupbyLabels: string[],
     metric: string,
     depth: number,
     path: string[],
   ): TreemapSeriesNodeItemOption[] => {
-    const [currGroupby, ...restGroupby] = groupbyData;
+    const [currGroupby, ...restGroupby] = groupbyLabels;
     const currGrouping = groupBy(data, currGroupby);
     if (!restGroupby.length) {
       return transform(
@@ -230,6 +231,7 @@ export default function transformProps(
   };
 
   const metricLabel = getMetricLabel(metric);
+  const groupbyLabels = groupby.map(getColumnLabel);
   const initialDepth = 1;
   const transformedData: TreemapSeriesNodeItemOption[] = [
     {
@@ -243,7 +245,7 @@ export default function transformProps(
       upperLabel: {
         show: false,
       },
-      children: transformer(data, groupby, metricLabel, initialDepth, []),
+      children: transformer(data, groupbyLabels, metricLabel, initialDepth, []),
     },
   ];
 

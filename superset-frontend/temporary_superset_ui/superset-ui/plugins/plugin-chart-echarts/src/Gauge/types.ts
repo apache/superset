@@ -19,6 +19,7 @@
 import {
   ChartDataResponseResult,
   ChartProps,
+  QueryFormColumn,
   QueryFormData,
 } from '@superset-ui/core';
 import { DEFAULT_LEGEND_FORM_DATA, EChartTransformedProps } from '../types';
@@ -30,7 +31,7 @@ export type AxisTickLineStyle = {
 
 export type EchartsGaugeFormData = QueryFormData & {
   colorScheme?: string;
-  groupby: string[];
+  groupby: QueryFormColumn[];
   metric?: object;
   rowLimit: number;
   minVal: number;

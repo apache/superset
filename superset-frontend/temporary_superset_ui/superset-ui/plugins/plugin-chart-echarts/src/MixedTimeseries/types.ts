@@ -25,6 +25,7 @@ import {
   QueryFormData,
   ChartProps,
   ChartDataResponseResult,
+  QueryFormColumn,
 } from '@superset-ui/core';
 import {
   DEFAULT_LEGEND_FORM_DATA,
@@ -81,8 +82,8 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
   stackB: boolean;
   yAxisIndex?: number;
   yAxisIndexB?: number;
-  groupby: string[];
-  groupbyB: string[];
+  groupby: QueryFormColumn[];
+  groupbyB: QueryFormColumn[];
   emitFilter: boolean;
 } & EchartsLegendFormData &
   EchartsTitleFormData;
@@ -144,8 +145,8 @@ export type EchartsMixedTimeseriesChartTransformedProps = {
   emitFilter: boolean;
   emitFilterB: boolean;
   setDataMask: SetDataMaskHook;
-  groupby: string[];
-  groupbyB: string[];
+  groupby: QueryFormColumn[];
+  groupbyB: QueryFormColumn[];
   labelMap: Record<string, DataRecordValue[]>;
   labelMapB: Record<string, DataRecordValue[]>;
   selectedValues: Record<number, string>;

@@ -21,6 +21,7 @@ import {
   ChartDataResponseResult,
   ChartProps,
   DataRecordValue,
+  QueryFormColumn,
   QueryFormData,
   SetDataMaskHook,
 } from '@superset-ui/core';
@@ -37,7 +38,7 @@ export type EchartsPieFormData = QueryFormData &
     currentOwnValue?: string[] | null;
     donut: boolean;
     defaultValue?: string[] | null;
-    groupby: string[];
+    groupby: QueryFormColumn[];
     innerRadius: number;
     labelLine: boolean;
     labelType: EchartsPieLabelType;
@@ -92,6 +93,6 @@ export interface PieChartTransformedProps {
   emitFilter: boolean;
   setDataMask: SetDataMaskHook;
   labelMap: Record<string, DataRecordValue[]>;
-  groupby: string[];
+  groupby: QueryFormColumn[];
   selectedValues: Record<number, string>;
 }

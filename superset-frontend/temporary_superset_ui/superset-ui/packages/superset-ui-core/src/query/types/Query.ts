@@ -28,7 +28,7 @@ import { JsonObject } from '../../connection';
 import { TimeGranularity } from '../../time-format';
 
 export type QueryObjectFilterClause = {
-  col: string;
+  col: QueryFormColumn;
   grain?: TimeGranularity;
   isExtra?: boolean;
 } & (

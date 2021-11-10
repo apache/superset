@@ -20,6 +20,7 @@ import {
   ChartDataResponseResult,
   ChartProps,
   DataRecordValue,
+  QueryFormColumn,
   QueryFormData,
   SetDataMaskHook,
 } from '@superset-ui/core';
@@ -65,6 +66,6 @@ export interface BoxPlotChartTransformedProps {
   emitFilter: boolean;
   setDataMask: SetDataMaskHook;
   labelMap: Record<string, DataRecordValue[]>;
-  groupby: string[];
+  groupby: QueryFormColumn[];
   selectedValues: Record<number, string>;
 }

@@ -33,6 +33,7 @@ import {
 import { TimeRange, TimeRangeEndpoints } from './Time';
 import { TimeGranularity } from '../../time-format';
 import { JsonObject } from '../../connection';
+import { AdhocColumn, PhysicalColumn } from './Column';
 
 /**
  * Metric definition/reference in query object.
@@ -41,9 +42,9 @@ export type QueryFormMetric = SavedMetric | AdhocMetric;
 
 /**
  * Column selects in query object (used as dimensions in both groupby or raw
- * query mode). Only support referring existing columns.
+ * query mode). Can be either reference to physical column or expression.
  */
-export type QueryFormColumn = string;
+export type QueryFormColumn = PhysicalColumn | AdhocColumn;
 
 /**
  * Order query results by columns.
@@ -174,7 +175,7 @@ export interface BaseFormData extends TimeRange, FormDataResidual {
   /** row offset for server side pagination */
   row_offset?: string | number | null;
   /** The metric used to order timeseries for limiting */
-  timeseries_limit_metric?: QueryFormColumn;
+  timeseries_limit_metric?: QueryFormMetric;
   /** Force refresh */
   force?: boolean;
   result_format?: string;
@@ -220,6 +221,10 @@ export function isDruidFormData(
   formData: QueryFormData,
 ): formData is DruidFormData {
   return 'granularity' in formData;
+}
+
+export function isSavedMetric(metric: QueryFormMetric): metric is SavedMetric {
+  return typeof metric === 'string';
 }
 
 export default {};

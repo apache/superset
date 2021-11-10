@@ -19,6 +19,7 @@
 import { t } from '../translation';
 import { removeDuplicates } from '../utils';
 import { DTTM_ALIAS } from './constants';
+import getColumnLabel from './getColumnLabel';
 import getMetricLabel from './getMetricLabel';
 import {
   QueryFields,
@@ -109,7 +110,10 @@ export default function extractQueryFields(
   }
 
   return {
-    columns: removeDuplicates(columns.filter(x => typeof x === 'string' && x)),
+    columns: removeDuplicates(
+      columns.filter(col => col !== ''),
+      getColumnLabel,
+    ),
     metrics:
       queryMode === QueryMode.raw
         ? undefined

@@ -17,9 +17,10 @@
  * under the License.
  */
 import {
-  PostProcessingBoxplot,
-  getMetricLabel,
   ensureIsArray,
+  getColumnLabel,
+  getMetricLabel,
+  PostProcessingBoxplot,
 } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 
@@ -56,7 +57,7 @@ export const boxplotOperator: PostProcessingFactory<
       options: {
         whisker_type: whiskerType,
         percentiles,
-        groupby: ensureIsArray(groupby),
+        groupby: ensureIsArray(groupby).map(getColumnLabel),
         metrics: ensureIsArray(queryObject.metrics).map(getMetricLabel),
       },
     };
