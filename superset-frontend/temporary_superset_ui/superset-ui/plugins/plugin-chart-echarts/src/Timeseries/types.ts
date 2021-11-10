@@ -20,6 +20,7 @@ import {
   AnnotationLayer,
   ChartDataResponseResult,
   ChartProps,
+  QueryFormColumn,
   QueryFormData,
   TimeGranularity,
 } from '@superset-ui/core';
@@ -77,7 +78,7 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   richTooltip: boolean;
   xAxisLabelRotation: number;
   emitFilter: boolean;
-  groupby: string[];
+  groupby: QueryFormColumn[];
   showValue: boolean;
   onlyTotal: boolean;
 } & EchartsLegendFormData &

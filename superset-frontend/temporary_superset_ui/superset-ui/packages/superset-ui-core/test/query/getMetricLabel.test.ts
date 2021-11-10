@@ -17,7 +17,6 @@
  * under the License.
  */
 import { getMetricLabel } from '@superset-ui/core/src/query';
-import { GenericDataType } from '../../src';
 
 describe('getMetricLabel', () => {
   it('should handle predefined metric name', () => {

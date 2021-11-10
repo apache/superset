@@ -19,6 +19,7 @@
 import {
   CategoricalColorNamespace,
   DataRecordValue,
+  getColumnLabel,
   getMetricLabel,
   getNumberFormatter,
   getTimeFormatter,
@@ -114,12 +115,13 @@ export default function transformProps(
     ...formData,
   };
   const metricLabel = getMetricLabel(metric);
+  const groupbyLabels = groupby.map(getColumnLabel);
   const minShowLabelAngle = (showLabelsThreshold || 0) * 3.6;
 
   const keys = data.map(datum =>
     extractGroupbyLabel({
       datum,
-      groupby,
+      groupby: groupbyLabels,
       coltypeMapping,
       timeFormatter: getTimeFormatter(dateFormat),
     }),
@@ -128,13 +130,13 @@ export default function transformProps(
     (acc: Record<string, DataRecordValue[]>, datum) => {
       const label = extractGroupbyLabel({
         datum,
-        groupby,
+        groupby: groupbyLabels,
         coltypeMapping,
         timeFormatter: getTimeFormatter(dateFormat),
       });
       return {
         ...acc,
-        [label]: groupby.map(col => datum[col]),
+        [label]: groupbyLabels.map(col => datum[col]),
       };
     },
     {},
@@ -148,7 +150,7 @@ export default function transformProps(
   const transformedData: PieSeriesOption[] = data.map(datum => {
     const name = extractGroupbyLabel({
       datum,
-      groupby,
+      groupby: groupbyLabels,
       coltypeMapping,
       timeFormatter: getTimeFormatter(dateFormat),
     });

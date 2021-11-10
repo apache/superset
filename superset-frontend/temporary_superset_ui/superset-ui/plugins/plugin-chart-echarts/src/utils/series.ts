@@ -21,6 +21,7 @@ import {
   ChartDataResponseResult,
   DataRecord,
   DataRecordValue,
+  ensureIsArray,
   GenericDataType,
   NumberFormatter,
   TimeFormatter,
@@ -120,7 +121,7 @@ export function extractGroupbyLabel({
   timeFormatter?: TimeFormatter;
   coltypeMapping: Record<string, GenericDataType>;
 }): string {
-  return (groupby || [])
+  return ensureIsArray(groupby)
     .map(val =>
       formatSeriesName(datum[val], {
         numberFormatter,
