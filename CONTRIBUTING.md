@@ -436,11 +436,11 @@ pip install -r requirements/testing.txt
 # Install Superset in editable (development) mode
 pip install -e .
 
-# Create an admin user in your metadata database (use `admin` as username to be able to load the examples)
-superset fab create-admin
-
 # Initialize the database
 superset db upgrade
+
+# Create an admin user in your metadata database (use `admin` as username to be able to load the examples)
+superset fab create-admin
 
 # Create default roles and permissions
 superset init
