@@ -24,9 +24,6 @@ from typing import Optional
 from unittest import mock
 from zipfile import is_zipfile, ZipFile
 
-from tests.integration_tests.conftest import with_feature_flags
-from superset.models.sql_lab import Query
-from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
 )
@@ -38,9 +35,6 @@ import yaml
 from sqlalchemy import and_
 from sqlalchemy.sql import func
 
-from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-)
 from tests.integration_tests.test_app import app
 from superset.charts.commands.data import ChartDataCommand
 from superset.connectors.sqla.models import SqlaTable, TableColumn
@@ -51,6 +45,8 @@ from superset.models.core import Database, FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
 from superset.models.reports import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
+from superset.models.sql_lab import Query
+from superset.typing import AdhocColumn
 from superset.utils import core as utils
 from superset.utils.core import (
     AnnotationType,
@@ -61,13 +57,14 @@ from superset.utils.core import (
 )
 
 
+from tests.integration_tests.annotation_layers.fixtures import create_annotation_layers
 from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.integration_tests.base_tests import (
     SupersetTestCase,
     post_assert_metric,
     test_client,
 )
-
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.fixtures.importexport import (
     chart_config,
     chart_metadata_config,
@@ -85,11 +82,20 @@ from tests.integration_tests.fixtures.query_context import (
 from tests.integration_tests.fixtures.unicode_dashboard import (
     load_unicode_dashboard_with_slice,
 )
-from tests.integration_tests.annotation_layers.fixtures import create_annotation_layers
+from tests.integration_tests.fixtures.world_bank_dashboard import (
+    load_world_bank_dashboard_with_slices,
+)
+from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 from tests.integration_tests.utils.get_dashboards import get_dashboards_ids
 
 CHART_DATA_URI = "api/v1/chart/data"
 CHARTS_FIXTURE_COUNT = 10
+ADHOC_COLUMN_FIXTURE: AdhocColumn = {
+    "hasCustomLabel": True,
+    "label": "male_or_female",
+    "sqlExpression": "case when gender = 'boy' then 'male' "
+    "when gender = 'girl' then 'female' else 'other' end",
+}
 
 
 class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
@@ -2018,7 +2024,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_series_limit(self):
         """
-        Chart data API: Query total rows
+        Chart data API: Query with series limit
         """
         SERIES_LIMIT = 5
         self.login(username="admin")
@@ -2030,8 +2036,27 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         response_payload = json.loads(rv.data.decode("utf-8"))
         data = response_payload["result"][0]["data"]
         unique_names = set(row["name"] for row in data)
-        self.maxDiff = None
         self.assertEqual(len(unique_names), SERIES_LIMIT)
         self.assertEqual(
             set(column for column in data[0].keys()), {"state", "name", "sum__num"}
         )
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_chart_data_with_adhoc_column(self):
+        """
+        Chart data API: Test query with adhoc column in both select and where clause
+        """
+        self.login(username="admin")
+        request_payload = get_query_context("birth_names")
+        request_payload["queries"][0]["columns"] = [ADHOC_COLUMN_FIXTURE]
+        request_payload["queries"][0]["filters"] = [
+            {"col": ADHOC_COLUMN_FIXTURE, "op": "IN", "val": ["male", "female"]}
+        ]
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        response_payload = json.loads(rv.data.decode("utf-8"))
+        result = response_payload["result"][0]
+        data = result["data"]
+        assert {column for column in data[0].keys()} == {"male_or_female", "sum__num"}
+        unique_genders = {row["male_or_female"] for row in data}
+        assert unique_genders == {"male", "female"}
+        assert result["applied_filters"] == [{"column": "male_or_female"}]

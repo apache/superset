@@ -92,6 +92,8 @@ from superset.typing import AdhocColumn, AdhocMetric, Metric, OrderBy, QueryObje
 from superset.utils import core as utils
 from superset.utils.core import (
     GenericDataType,
+    get_column_name,
+    is_adhoc_column,
     QueryObjectFilterClause,
     remove_duplicates,
 )
@@ -869,17 +871,23 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         return self.make_sqla_column_compatible(sqla_metric, label)
 
-    def adhoc_column_to_sqla(self, column: AdhocColumn) -> ColumnElement:
+    def adhoc_column_to_sqla(
+        self,
+        column: AdhocColumn,
+        template_processor: Optional[BaseTemplateProcessor] = None,
+    ) -> ColumnElement:
         """
-        Turn an adhoc metric into a sqlalchemy column.
+        Turn an adhoc column into a sqlalchemy column.
 
-        :param dict column: Adhoc column definition
+        :param column: Adhoc column definition
+        :param template_processor: template_processor instance
         :returns: The metric defined as a sqlalchemy column
         :rtype: sqlalchemy.sql.column
         """
         label = utils.get_column_name(column)
-        tp = self.get_template_processor()
-        expression = tp.process_template(cast(str, column["sqlExpression"]))
+        expression = column["sqlExpression"]
+        if template_processor and expression:
+            expression = template_processor.process_template(expression)
         sqla_metric = literal_column(expression)
         return self.make_sqla_column_compatible(sqla_metric, label)
 
@@ -957,14 +965,14 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
         self,
         apply_fetch_values_predicate: bool = False,
-        columns: Optional[List[str]] = None,
+        columns: Optional[List[Column]] = None,
         extras: Optional[Dict[str, Any]] = None,
         filter: Optional[  # pylint: disable=redefined-builtin
             List[QueryObjectFilterClause]
         ] = None,
         from_dttm: Optional[datetime] = None,
         granularity: Optional[str] = None,
-        groupby: Optional[List[str]] = None,
+        groupby: Optional[List[Column]] = None,
         inner_from_dttm: Optional[datetime] = None,
         inner_to_dttm: Optional[datetime] = None,
         is_rowcount: bool = False,
@@ -973,7 +981,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         orderby: Optional[List[OrderBy]] = None,
         order_desc: bool = True,
         to_dttm: Optional[datetime] = None,
-        series_columns: Optional[List[str]] = None,
+        series_columns: Optional[List[Column]] = None,
         series_limit: Optional[int] = None,
         series_limit_metric: Optional[Metric] = None,
         row_limit: Optional[int] = None,
@@ -1001,7 +1009,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             "table_columns": [col.column_name for col in self.columns],
             "filter": filter,
         }
-        series_columns = series_columns or []
+        columns = columns or []
+        groupby = groupby or []
+        series_column_names = utils.get_column_names(series_columns or [])
         # deprecated, to be removed in 2.0
         if is_timeseries and timeseries_limit:
             series_limit = timeseries_limit
@@ -1027,6 +1037,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         columns_by_name: Dict[str, TableColumn] = {
             col.column_name: col for col in self.columns
         }
+
         metrics_by_name: Dict[str, SqlMetric] = {m.metric_name: m for m in self.metrics}
 
         if not granularity and is_timeseries:
@@ -1098,7 +1109,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         groupby_series_columns = {}
 
         # filter out the pseudo column  __timestamp from columns
-        columns = columns or []
         columns = [col for col in columns if col != utils.DTTM_ALIAS]
         dttm_col = columns_by_name.get(granularity) if granularity else None
 
@@ -1109,8 +1119,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 if isinstance(selected, str):
                     # if groupby field/expr equals granularity field/expr
                     if selected == granularity:
-                        sqla_col = columns_by_name[selected]
-                        outer = sqla_col.get_timestamp_expression(
+                        table_col = columns_by_name[selected]
+                        outer = table_col.get_timestamp_expression(
                             time_grain=time_grain,
                             label=selected,
                             template_processor=template_processor,
@@ -1121,11 +1131,13 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     else:
                         outer = literal_column(f"({selected})")
                         outer = self.make_sqla_column_compatible(outer, selected)
-                    groupby_all_columns[outer.name] = outer
-                    if not series_columns or outer.name in series_columns:
-                        groupby_series_columns[outer.name] = outer
                 else:
-                    outer = self.adhoc_column_to_sqla(selected)
+                    outer = self.adhoc_column_to_sqla(
+                        column=selected, template_processor=template_processor
+                    )
+                groupby_all_columns[outer.name] = outer
+                if not series_column_names or outer.name in series_column_names:
+                    groupby_series_columns[outer.name] = outer
                 select_exprs.append(outer)
         elif columns:
             for selected in columns:
@@ -1199,29 +1211,36 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         for flt in filter:  # type: ignore
             if not all(flt.get(s) for s in ["col", "op"]):
                 continue
-            col = flt["col"]
+            flt_col = flt["col"]
             val = flt.get("val")
             op = flt["op"].upper()
-            col_obj = (
-                dttm_col
-                if col == utils.DTTM_ALIAS and is_timeseries and dttm_col
-                else columns_by_name.get(col)
-            )
+            col_obj: Optional[TableColumn] = None
+            sqla_col: Optional[Column] = None
+            if flt_col == utils.DTTM_ALIAS and is_timeseries and dttm_col:
+                col_obj = dttm_col
+            elif is_adhoc_column(flt_col):
+                sqla_col = self.adhoc_column_to_sqla(flt_col)
+            else:
+                col_obj = columns_by_name.get(flt_col)
             filter_grain = flt.get("grain")
 
             if is_feature_enabled("ENABLE_TEMPLATE_REMOVE_FILTERS"):
-                if col in removed_filters:
+                if get_column_name(flt_col) in removed_filters:
                     # Skip generating SQLA filter when the jinja template handles it.
                     continue
 
-            if col_obj:
-                if filter_grain:
+            if col_obj or sqla_col is not None:
+                if sqla_col is not None:
+                    pass
+                elif col_obj and filter_grain:
                     sqla_col = col_obj.get_timestamp_expression(
                         time_grain=filter_grain, template_processor=template_processor
                     )
-                else:
+                elif col_obj:
                     sqla_col = col_obj.get_sqla_col()
-                col_spec = db_engine_spec.get_column_spec(col_obj.type)
+                col_spec = db_engine_spec.get_column_spec(
+                    col_obj.type if col_obj else None
+                )
                 is_list_target = op in (
                     utils.FilterOperator.IN.value,
                     utils.FilterOperator.NOT_IN.value,
@@ -1357,6 +1376,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 inner_groupby_exprs = []
                 inner_select_exprs = []
                 for gby_name, gby_obj in groupby_series_columns.items():
+                    label = get_column_name(gby_name)
                     inner = self.make_sqla_column_compatible(gby_obj, gby_name + "__")
                     inner_groupby_exprs.append(inner)
                     inner_select_exprs.append(inner)

@@ -478,14 +478,16 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             self.datasource, applied_time_extras
         )
         payload["applied_filters"] = [
-            {"column": col}
+            {"column": get_column_name(col)}
             for col in filter_columns
-            if col in columns or col in applied_template_filters
+            if is_adhoc_column(col) or col in columns or col in applied_template_filters
         ] + applied_time_columns
         payload["rejected_filters"] = [
             {"reason": ExtraFiltersReasonType.COL_NOT_IN_DATASOURCE, "column": col}
             for col in filter_columns
-            if col not in columns and col not in applied_template_filters
+            if not is_adhoc_column(col)
+            and col not in columns
+            and col not in applied_template_filters
         ] + rejected_time_columns
         if df is not None:
             payload["colnames"] = list(df.columns)

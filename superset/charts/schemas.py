@@ -773,8 +773,11 @@ class ChartDataPostProcessingOperationSchema(Schema):
 
 
 class ChartDataFilterSchema(Schema):
-    col = fields.String(
-        description="The column to filter.", required=True, example="country"
+    col = fields.Raw(
+        description="The column to filter by. Can be either a string (physical or "
+        "saved expression) or an object (adhoc column)",
+        required=True,
+        example="country",
     )
     op = fields.String(  # pylint: disable=invalid-name
         description="The comparison operator.",

@@ -93,10 +93,23 @@ class TestSchema(SupersetTestCase):
         _ = ChartDataQueryContextSchema().load(payload)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_query_context_null_post_processing_op(self):
+    def test_query_context_series_limit(self):
         self.login(username="admin")
         payload = get_query_context("birth_names")
 
-        payload["queries"][0]["post_processing"] = [None]
-        query_context = ChartDataQueryContextSchema().load(payload)
-        self.assertEqual(query_context.queries[0].post_processing, [])
+        payload["queries"][0]["timeseries_limit"] = 2
+        payload["queries"][0]["timeseries_limit_metric"] = {
+            "expressionType": "SIMPLE",
+            "column": {
+                "id": 334,
+                "column_name": "gender",
+                "filterable": True,
+                "groupby": True,
+                "is_dttm": False,
+                "type": "VARCHAR(16)",
+                "optionName": "_col_gender",
+            },
+            "aggregate": "COUNT_DISTINCT",
+            "label": "COUNT_DISTINCT(gender)",
+        }
+        _ = ChartDataQueryContextSchema().load(payload)
