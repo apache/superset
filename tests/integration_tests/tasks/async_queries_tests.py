@@ -42,6 +42,7 @@ from tests.integration_tests.fixtures.query_context import get_query_context
 from tests.integration_tests.test_app import app
 
 
+@pytest.mark.chart_data_flow
 class TestAsyncQueries(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch.object(async_query_manager, "update_job")

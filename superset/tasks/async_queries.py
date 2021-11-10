@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from __future__ import annotations
+
 import copy
 import logging
 from typing import Any, cast, Dict, Optional, TYPE_CHECKING
@@ -58,13 +59,15 @@ def load_chart_data_into_cache(
     job_metadata: Dict[str, Any], form_data: Dict[str, Any]
 ) -> None:
     # pylint: disable=import-outside-toplevel
+    from superset import app, ConnectorRegistry, db
     from superset.charts.commands.data import ChartDataCommand
+    from superset.common.query_factory import QueryContextFactory
+
+    factory = QueryContextFactory(app.config, ConnectorRegistry(), db.session)
     try:
         ensure_user_is_set(job_metadata.get("user_id"))
         set_form_data(form_data)
-        command = ChartDataCommand()
-        command.set_form_data(form_data)
-        # command.set_query_context(query_context)
+        command = ChartDataCommand(factory.create_from_dict(form_data))
         result = command.run(cache=True)
         cache_key = result["cache_key"]
         result_url = f"/api/v1/chart/data/{cache_key}"

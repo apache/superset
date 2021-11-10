@@ -15,10 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 from typing import Any, Dict, Optional
-from tests.common.query_context_generator import QueryContextGenerator
-from pytest import fixture, mark
-from superset.common.query_factory import QueryContextFactory
 from unittest.mock import Mock, patch
+
+from pytest import fixture, mark
+
+from superset.common.query_factory import QueryContextFactory
+from tests.common.query_context_generator import QueryContextGenerator
 
 
 def create_app_config() -> Dict[str, Any]:
@@ -28,7 +30,7 @@ def create_app_config() -> Dict[str, Any]:
         "DEFAULT_RELATIVE_END_TIME": "today",
         "SAMPLES_ROW_LIMIT": 1000,
         "SIP_15_ENABLED": True,
-        "SQL_MAX_ROW": 100000
+        "SQL_MAX_ROW": 100000,
     }
 
 
@@ -56,10 +58,11 @@ def apply_max_row_limit(limit: int, max_limit: Optional[int] = None) -> int:
 
 
 @fixture
-def query_context_factory(app_config: Dict[str, Any],
-                          connector_registry: Mock,
-                          session_factory: Mock) -> QueryContextFactory:
+def query_context_factory(
+    app_config: Dict[str, Any], connector_registry: Mock, session_factory: Mock
+) -> QueryContextFactory:
     import superset.common.query_object_factory as mod
+
     mod.apply_max_row_limit = apply_max_row_limit
     mod.get_time_range_endpoints = Mock()
     return QueryContextFactory(app_config, connector_registry, session_factory)
@@ -72,10 +75,11 @@ def raw_query_context() -> Dict[str, Any]:
 
 @mark.ofek
 class TestQueryFactory:
-    def test_query_context_limit_and_offset_defaults(self,
-                                                     query_context_factory: QueryContextFactory,
-                                                     raw_query_context: Dict[str, Any]
-                                                     ):
+    def test_query_context_limit_and_offset_defaults(
+        self,
+        query_context_factory: QueryContextFactory,
+        raw_query_context: Dict[str, Any],
+    ):
         raw_query_context["queries"][0].pop("row_limit", None)
         raw_query_context["queries"][0].pop("row_offset", None)
         query_context = query_context_factory.create_from_dict(raw_query_context)
@@ -83,10 +87,11 @@ class TestQueryFactory:
         assert query_object.row_limit == 5000
         assert query_object.row_offset == 0
 
-    def test_query_context_limit(self,
-                                 query_context_factory: QueryContextFactory,
-                                 raw_query_context: Dict[str, Any]
-                                 ):
+    def test_query_context_limit(
+        self,
+        query_context_factory: QueryContextFactory,
+        raw_query_context: Dict[str, Any],
+    ):
         raw_query_context["queries"][0]["row_limit"] = 100
         raw_query_context["queries"][0]["row_offset"] = 200
         query_context = query_context_factory.create_from_dict(raw_query_context)
@@ -95,10 +100,11 @@ class TestQueryFactory:
         assert query_object.row_limit == 100
         assert query_object.row_offset == 200
 
-    def test_query_context_null_post_processing_op(self,
-                                                   query_context_factory: QueryContextFactory,
-                                                   raw_query_context: Dict[str, Any]
-                                                   ):
+    def test_query_context_null_post_processing_op(
+        self,
+        query_context_factory: QueryContextFactory,
+        raw_query_context: Dict[str, Any],
+    ):
         raw_query_context["queries"][0]["post_processing"] = [None]
         query_context = query_context_factory.create_from_dict(raw_query_context)
         assert query_context.queries[0].post_processing == []

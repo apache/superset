@@ -16,13 +16,13 @@
 # under the License.
 # pylint: disable=invalid-name
 from __future__ import annotations
+
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, NamedTuple, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as _
 from pandas import DataFrame
-
 
 from superset.exceptions import QueryObjectValidationError
 from superset.typing import Metric, OrderBy
