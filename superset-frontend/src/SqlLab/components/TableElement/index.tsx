@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Collapse from 'src/components/Collapse';
 import Card from 'src/components/Card';
 import ButtonGroup from 'src/components/ButtonGroup';
@@ -77,15 +77,7 @@ const Fade = styled.div`
 const TableElement = ({ table, actions, ...props }: TableElementProps) => {
   const [sortColumns, setSortColumns] = useState(false);
   const [hovered, setHovered] = useState(false);
-  const [tableNameOverflow, setTableNameOverflow] = useState(false);
   const tableNameRef = React.useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const element = tableNameRef.current;
-    if (element && element.offsetWidth < element.scrollWidth) {
-      setTableNameOverflow(true);
-    }
-  }, []);
 
   const setHover = (hovered: boolean) => {
     debounce(() => setHovered(hovered), 100)();
@@ -222,42 +214,50 @@ const TableElement = ({ table, actions, ...props }: TableElementProps) => {
     );
   };
 
-  const renderHeader = () => (
-    <div
-      className="clearfix header-container"
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-    >
-      <Tooltip
-        id="copy-to-clipboard-tooltip"
-        style={{ cursor: 'pointer' }}
-        title={table.name}
-        trigger={tableNameOverflow ? ['hover'] : []}
-      >
-        <StyledSpan
-          data-test="collapse"
-          ref={tableNameRef}
-          className="table-name"
-        >
-          <strong>{table.name}</strong>
-        </StyledSpan>
-      </Tooltip>
+  const renderHeader = () => {
+    const element: HTMLInputElement | null = tableNameRef.current;
+    let trigger: string[] = [];
+    if (element && element.offsetWidth < element.scrollWidth) {
+      trigger = ['hover'];
+    }
 
-      <div className="pull-right header-right-side">
-        {table.isMetadataLoading || table.isExtraMetadataLoading ? (
-          <Loading position="inline" />
-        ) : (
-          <Fade
-            data-test="fade"
-            hovered={hovered}
-            onClick={e => e.stopPropagation()}
+    return (
+      <div
+        className="clearfix header-container"
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+      >
+        <Tooltip
+          id="copy-to-clipboard-tooltip"
+          style={{ cursor: 'pointer' }}
+          title={table.name}
+          trigger={trigger}
+        >
+          <StyledSpan
+            data-test="collapse"
+            ref={tableNameRef}
+            className="table-name"
           >
-            {renderControls()}
-          </Fade>
-        )}
+            <strong>{table.name}</strong>
+          </StyledSpan>
+        </Tooltip>
+
+        <div className="pull-right header-right-side">
+          {table.isMetadataLoading || table.isExtraMetadataLoading ? (
+            <Loading position="inline" />
+          ) : (
+            <Fade
+              data-test="fade"
+              hovered={hovered}
+              onClick={e => e.stopPropagation()}
+            >
+              {renderControls()}
+            </Fade>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderBody = () => {
     let cols;
