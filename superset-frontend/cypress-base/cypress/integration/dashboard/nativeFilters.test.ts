@@ -329,7 +329,51 @@ describe('Nativefilters Sanity test', () => {
     cy.contains(
       'By default, each filter loads at most 1000 choices at the initial page load. Check this box if you have more than 1000 filter values and want to enable dynamically searching that loads filter values as users type (may add stress to your database).',
     );
-  });  
+  });
+  it("User can check 'Filter has default value'", () => {
+    cy.get(nativeFilters.filterFromDashboardView.expand).click({ force: true });
+    cy.get(nativeFilters.createFilterButton).should('be.visible').click();
+    cy.get(nativeFilters.modal.container).should('be.visible');
+    cy.contains('Filter has default value').click();
+    cy.contains(
+      'Fill all required fields to enable "Default Value"',
+    ).should('be.visible', { timeout: 20000 });
+    cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.filterName)
+      .click()
+      .type('country name');
+    cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.datasetName)
+      .click()
+      .type('{enter}');
+
+    cy.get('.loading inline-centered css-101mkpk').should('not.exist');
+    // hack for unclickable datetime
+    cy.wait(5000);
+    cy.get(nativeFilters.filtersPanel.filterInfoInput)
+      .last()
+      .click({ force: true });
+    cy.get(nativeFilters.filtersPanel.filterInfoInput)
+      .last()
+      .type('country_name');
+    cy.get(nativeFilters.filtersPanel.inputDropdown)
+      .should('be.visible', { timeout: 20000 })
+      .last()
+      .click();
+    cy.get(nativeFilters.filtersPanel.columnEmptyInput)
+      .should('be.visible')
+      .type('United States{enter}');
+    cy.get(nativeFilters.modal.footer)
+      .find(nativeFilters.modal.saveButton)
+      .should('be.visible')
+      .click();
+    cy.get(nativeFilters.filterFromDashboardView.filterContent).contains(
+      'United States',
+    );
+    cy.get('.line').within(() => {
+      cy.contains('United States').should('be.visible');
+    });
+  });
 });
 
 xdescribe('Nativefilters', () => {
