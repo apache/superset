@@ -16,11 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { configure } from 'enzyme';
-import Adapter from 'enzyme-adapter-react-16';
-import CacheStorage from './shims/CacheStorage';
-
-// @ts-ignore
-global.caches = new CacheStorage();
-
-configure({ adapter: new Adapter() });
+module.exports = {};

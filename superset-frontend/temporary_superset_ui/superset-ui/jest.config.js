@@ -48,23 +48,16 @@ module.exports = {
   },
   moduleFileExtensions: ['mock.js', 'ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   moduleNameMapper: {
-    '^.+\\.(ttf|eot|otf|svg|woff|woff2|mp3|png|jpg|jpeg|gif|ico)$':
-      '<rootDir>/node_modules/@airbnb/config-jest/mocks/file.js',
-    '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$':
-      '<rootDir>/__mocks__/fileMock.js',
-    '\\.(css|less)$': 'identity-obj-proxy',
+    '\\.(css|less|geojson)$': '<rootDir>/test/__mocks__/mockExportObject.js',
+    '\\.(gif|ttf|eot|png|jpg)$': '<rootDir>/test/__mocks__/mockExportString.js',
+    '\\.svg$': '<rootDir>/test/__mocks__/svgrMock.tsx',
+    '@superset-ui/(((?!(legacy-preset-chart-deckgl|core/src)).)*)$':
+      '<rootDir>/node_modules/@superset-ui/$1/src',
+    '@superset-ui/core/src/(.*)$':
+      '<rootDir>/node_modules/@superset-ui/core/src/$1',
   },
   roots: ['<rootDir>/packages', '<rootDir>/plugins'],
-  setupFiles: [
-    '<rootDir>/node_modules/@airbnb/config-jest/setup/shims.js',
-    '<rootDir>/node_modules/@airbnb/config-jest/setup/console.js',
-    '<rootDir>/node_modules/@airbnb/config-jest/setup/dom.js',
-  ],
-  setupFilesAfterEnv: [
-    '<rootDir>/node_modules/@airbnb/config-jest/bootstrap/react.js',
-    '<rootDir>/node_modules/@airbnb/config-jest/bootstrap/consumer.js',
-    '@airbnb/config-jest/enzyme',
-  ],
+  setupFiles: ['<rootDir>/test/setup.ts'],
   testEnvironment: 'jsdom',
   testURL: 'http://localhost',
   timers: 'real',
