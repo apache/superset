@@ -53,6 +53,7 @@
     "format": "npm run _prettier -- --write",
     "lint": "npm run _lint && npm run type",
     "lint-fix": "npm run _lint -- --fix && npm run type",
+    "lint-stats": "eslint -f ./eslint_metrics.js -o eslint-stats.json --ignore-path=.eslintignore --ext .js,.jsx,.ts,.tsx .",
     "plugins:build": "node ./scripts/build.js",
     "plugins:build-assets": "node ./scripts/copyAssets.js",
     "plugins:build-storybook": "cd packages/superset-ui-demo && npm run build-storybook",
