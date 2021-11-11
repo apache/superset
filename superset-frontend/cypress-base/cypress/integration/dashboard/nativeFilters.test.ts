@@ -92,52 +92,7 @@ describe('Nativefilters Sanity test', () => {
     cy.get(nativeFilters.createFilterButton).should('be.visible').click();
     cy.get(nativeFilters.modal.container).should('be.visible');
   });
-  it("User can check 'Filter has default value'", () => {
-    cy.get(nativeFilters.filterFromDashboardView.expand).click({ force: true });
-    cy.get(nativeFilters.createFilterButton)
-      .should('be.visible')
-      .click({ force: true });
-    cy.get(nativeFilters.modal.container).should('be.visible');
-    cy.contains('Filter has default value').click();
-    cy.contains(
-      'Fill all required fields to enable "Default Value"',
-    ).should('be.visible', { timeout: 10000 });
-    cy.get(nativeFilters.modal.container)
-      .find(nativeFilters.filtersPanel.datasetName)
-      .click()
-      .type('wb_health_population{enter}');
-    cy.get(nativeFilters.modal.container)
-      .find(nativeFilters.filtersPanel.filterName)
-      .click()
-      .type('country name');
-    cy.get('.loading inline-centered css-101mkpk').should('not.exist');
-    // hack for unclickable datetime
-    cy.wait(5000);
-    cy.get(nativeFilters.filtersPanel.filterInfoInput)
-      .last()
-      .click({ force: true });
-    cy.get(nativeFilters.filtersPanel.filterInfoInput)
-      .last()
-      .type('country_name');
-    cy.get(nativeFilters.filtersPanel.inputDropdown)
-      .should('be.visible', { timeout: 20000 })
-      .last()
-      .click({ force: true });
-    cy.get(nativeFilters.filtersPanel.columnEmptyInput)
-      .should('be.visible')
-      .type('United States{enter}');
-    cy.get(nativeFilters.modal.footer)
-      .find(nativeFilters.modal.saveButton)
-      .should('be.visible')
-      .click();
-    cy.get(nativeFilters.filterFromDashboardView.filterContent).contains(
-      'United States',
-    );
-    cy.get('.line').within(() => {
-      cy.contains('United States').should('be.visible');
-    });
-  });
-  xit('User can add a new native filter', () => {
+  it('User can add a new native filter', () => {
     cy.get(nativeFilters.filterFromDashboardView.expand).click({ force: true });
     cy.get(nativeFilters.createFilterButton).should('be.visible').click();
     cy.get(nativeFilters.modal.container)
@@ -175,7 +130,7 @@ describe('Nativefilters Sanity test', () => {
       .click();
     cy.get(nativeFilters.modal.container).should('not.exist');
   });
-  xit('User can delete a native filter', () => {
+  it('User can delete a native filter', () => {
     cy.get(nativeFilters.createFilterButton).click({ force: true });
     cy.get(nativeFilters.modal.container).should('be.visible');
 
@@ -187,7 +142,7 @@ describe('Nativefilters Sanity test', () => {
       .should('be.visible')
       .click();
   });
-  xit('User can cancel changes in native filter', () => {
+  it('User can cancel changes in native filter', () => {
     cy.get(nativeFilters.createFilterButton).click({ force: true });
     cy.get(nativeFilters.modal.container)
       .find(nativeFilters.filtersPanel.filterName)
@@ -217,7 +172,7 @@ describe('Nativefilters Sanity test', () => {
       .click();
     cy.get(nativeFilters.filtersPanel.filterName).should('not.exist');
   });
-  xit('User can cancel creating a new filter', () => {
+  it('User can cancel creating a new filter', () => {
     cy.get(nativeFilters.filterFromDashboardView.expand)
       .should('be.visible')
       .click();
@@ -238,7 +193,7 @@ describe('Nativefilters Sanity test', () => {
       .click();
     cy.get(nativeFilters.modal.container).should('not.exist');
   });
-  xit('User can undo deleting a native filter', () => {
+  it('User can undo deleting a native filter', () => {
     cy.get(nativeFilters.filterFromDashboardView.expand)
       .should('be.visible')
       .click();
@@ -279,7 +234,7 @@ describe('Nativefilters Sanity test', () => {
     cy.get(nativeFilters.filtersList.removeIcon).first().click();
     cy.contains('Undo?').click();
   });
-  xit('Verify setting options and tooltips for value filter', () => {
+  it('Verify setting options and tooltips for value filter', () => {
     cy.get(nativeFilters.filterFromDashboardView.expand).click({ force: true });
     cy.get(nativeFilters.createFilterButton).should('be.visible').click();
     cy.get(nativeFilters.modal.container).should('be.visible');
@@ -333,21 +288,19 @@ describe('Nativefilters Sanity test', () => {
   });
   it("User can check 'Filter has default value'", () => {
     cy.get(nativeFilters.filterFromDashboardView.expand).click({ force: true });
-    cy.get(nativeFilters.createFilterButton).should('be.visible').click();
+    cy.get(nativeFilters.createFilterButton)
+      .should('be.visible')
+      .click({ force: true });
     cy.get(nativeFilters.modal.container).should('be.visible');
-    cy.contains('Filter has default value').click();
-    cy.contains(
-      'Fill all required fields to enable "Default Value"',
-    ).should('be.visible', { timeout: 20000 });
-    cy.get(nativeFilters.modal.container)
-      .find(nativeFilters.filtersPanel.filterName)
-      .click()
-      .type('country name');
+    
     cy.get(nativeFilters.modal.container)
       .find(nativeFilters.filtersPanel.datasetName)
       .click()
-      .type('{enter}');
-
+      .type('wb_health_population{enter}');
+    cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.filterName)
+      .click()
+      .type('country_name');
     cy.get('.loading inline-centered css-101mkpk').should('not.exist');
     // hack for unclickable datetime
     cy.wait(5000);
@@ -361,13 +314,17 @@ describe('Nativefilters Sanity test', () => {
       .should('be.visible', { timeout: 20000 })
       .last()
       .click();
-    cy.get(nativeFilters.filtersPanel.columnEmptyInput)
+    cy.contains('Filter has default value').click();
+    cy.contains('Default value is required');
+    cy.get(nativeFilters.modal.defaultValueCheck)
       .should('be.visible')
+      cy.get(nativeFilters.filtersPanel.columnEmptyInput)
+      .last()
       .type('United States{enter}');
     cy.get(nativeFilters.modal.footer)
       .find(nativeFilters.modal.saveButton)
       .should('be.visible')
-      .click();
+      .click({force:true});
     cy.get(nativeFilters.filterFromDashboardView.filterContent).contains(
       'United States',
     );
