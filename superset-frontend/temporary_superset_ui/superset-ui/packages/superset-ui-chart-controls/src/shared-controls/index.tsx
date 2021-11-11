@@ -332,10 +332,7 @@ const row_limit: SharedControlConfig<'SelectControl'> = {
   validators: [legacyValidateInteger],
   default: 10000,
   choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
-  description: t(
-    'Limits the number of rows that get displayed. Should be used in conjunction with a sort ' +
-      'by metric.',
-  ),
+  description: t('Limits the number of rows that get displayed.'),
 };
 
 const limit: SharedControlConfig<'SelectControl'> = {
@@ -346,11 +343,10 @@ const limit: SharedControlConfig<'SelectControl'> = {
   choices: formatSelectOptions(SERIES_LIMITS),
   clearable: true,
   description: t(
-    'Limits the number of series that get displayed. Should be used in conjunction with a sort ' +
-      'by metric. A joined subquery (or an extra phase where subqueries are not supported) is ' +
-      'applied to limit the number of series that get fetched and rendered. This feature is ' +
-      'useful when grouping by high cardinality column(s) though does increase the query ' +
-      'complexity and cost.',
+    'Limits the number of series that get displayed. A joined subquery (or an extra phase ' +
+      'where subqueries are not supported) is applied to limit the number of series that get ' +
+      'fetched and rendered. This feature is useful when grouping by high cardinality ' +
+      'column(s) though does increase the query complexity and cost.',
   ),
 };
 
@@ -361,11 +357,10 @@ const series_limit: SharedControlConfig<'SelectControl'> = {
   validators: [legacyValidateInteger],
   choices: formatSelectOptions(SERIES_LIMITS),
   description: t(
-    'Limits the number of series that get displayed. Should be used in conjunction with a sort ' +
-      'by metric. A joined subquery (or an extra phase where subqueries are not supported) is ' +
-      'applied to limit the number of series that get fetched and rendered. This feature is ' +
-      'useful when grouping by high cardinality column(s) though does increase the query ' +
-      'complexity and cost.',
+    'Limits the number of series that get displayed. A joined subquery (or an extra phase ' +
+      'where subqueries are not supported) is applied to limit the number of series that get ' +
+      'fetched and rendered. This feature is useful when grouping by high cardinality ' +
+      'column(s) though does increase the query complexity and cost.',
   ),
 };
 
@@ -374,8 +369,8 @@ const sort_by: SharedControlConfig<'MetricsControl'> = {
   label: t('Sort by'),
   default: null,
   description: t(
-    'Metric used to define the top series. Should be used in conjunction with the series or row ' +
-      'limit',
+    'Metric used to define how the top series are sorted if a series or row limit is present. ' +
+      'If undefined reverts to the first metric (where appropriate).',
   ),
   mapStateToProps: ({ datasource }) => ({
     columns: datasource?.columns || [],
