@@ -117,6 +117,7 @@ class TestUtils(SupersetTestCase):
         assert isinstance(base_json_conv(set([1])), list) is True
         assert isinstance(base_json_conv(Decimal("1.0")), float) is True
         assert isinstance(base_json_conv(uuid.uuid4()), str) is True
+        assert isinstance(base_json_conv(time()), str) is True
         assert isinstance(base_json_conv(timedelta(0)), str) is True
 
     def test_zlib_compression(self):
