@@ -20,11 +20,11 @@ from typing import Any, Callable, cast, Dict, List, Optional, TYPE_CHECKING
 from flask_babel import _
 
 from superset import app
+from superset.common.chart_data import ChartDataResultType
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseDatasource
 from superset.exceptions import QueryObjectValidationError
 from superset.utils.core import (
-    ChartDataResultType,
     extract_column_dtype,
     extract_dataframe_dtypes,
     ExtraFiltersReasonType,

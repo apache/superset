@@ -176,29 +176,6 @@ class GenericDataType(IntEnum):
     # ROW = 7
 
 
-class ChartDataResultFormat(str, Enum):
-    """
-    Chart data response format
-    """
-
-    CSV = "csv"
-    JSON = "json"
-
-
-class ChartDataResultType(str, Enum):
-    """
-    Chart data response type
-    """
-
-    COLUMNS = "columns"
-    FULL = "full"
-    QUERY = "query"
-    RESULTS = "results"
-    SAMPLES = "samples"
-    TIMEGRAINS = "timegrains"
-    POST_PROCESSED = "post_processed"
-
-
 class DatasourceDict(TypedDict):
     type: str
     id: int
@@ -565,7 +542,7 @@ def base_json_conv(obj: Any,) -> Any:  # pylint: disable=inconsistent-return-sta
         return list(obj)
     if isinstance(obj, decimal.Decimal):
         return float(obj)
-    if isinstance(obj, uuid.UUID):
+    if isinstance(obj, (uuid.UUID, time, LazyString)):
         return str(obj)
     if isinstance(obj, timedelta):
         return format_timedelta(obj)
@@ -574,8 +551,6 @@ def base_json_conv(obj: Any,) -> Any:  # pylint: disable=inconsistent-return-sta
             return obj.decode("utf-8")
         except Exception:  # pylint: disable=broad-except
             return "[bytes]"
-    if isinstance(obj, LazyString):
-        return str(obj)
 
 
 def json_iso_dttm_ser(obj: Any, pessimistic: bool = False) -> str:
@@ -589,7 +564,7 @@ def json_iso_dttm_ser(obj: Any, pessimistic: bool = False) -> str:
     val = base_json_conv(obj)
     if val is not None:
         return val
-    if isinstance(obj, (datetime, date, time, pd.Timestamp)):
+    if isinstance(obj, (datetime, date, pd.Timestamp)):
         obj = obj.isoformat()
     else:
         if pessimistic:

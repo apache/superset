@@ -31,12 +31,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 
-from superset.utils.core import (
-    ChartDataResultFormat,
-    DTTM_ALIAS,
-    extract_dataframe_dtypes,
-    get_metric_name,
-)
+from superset.common.chart_data import ChartDataResultFormat
+from superset.utils.core import DTTM_ALIAS, extract_dataframe_dtypes, get_metric_name
 
 
 def get_column_key(label: Tuple[str, ...], metrics: List[str]) -> Tuple[Any, ...]:

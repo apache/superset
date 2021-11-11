@@ -23,13 +23,12 @@ from marshmallow.validate import Length, Range
 from marshmallow_enum import EnumField
 
 from superset import app
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context import QueryContext
 from superset.db_engine_specs.base import builtin_time_grains
 from superset.utils import schema as utils
 from superset.utils.core import (
     AnnotationType,
-    ChartDataResultFormat,
-    ChartDataResultType,
     FilterOperator,
     PostProcessingBoxplotWhiskerType,
     PostProcessingContributionOrientation,
