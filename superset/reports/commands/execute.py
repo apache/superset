@@ -151,7 +151,7 @@ class BaseReportState:
                 ChartDataResultFormat.JSON,
             }:
                 return get_url_path(
-                    "ChartRestApi.get_data",
+                    "ChartDataRestApi.get_data",
                     pk=self._report_schedule.chart_id,
                     format=result_format.value,
                     type=ChartDataResultType.POST_PROCESSED.value,
