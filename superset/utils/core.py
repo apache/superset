@@ -77,7 +77,7 @@ from flask_babel import gettext as __
 from flask_babel.speaklater import LazyString
 from pandas.api.types import infer_dtype
 from pandas.core.dtypes.common import is_numeric_dtype
-from sqlalchemy import event, exc, select, Text
+from sqlalchemy import event, exc, inspect, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.reflection import Inspector
@@ -172,29 +172,6 @@ class GenericDataType(IntEnum):
     # JSON = 5      # and leaving these as a reminder.
     # MAP = 6
     # ROW = 7
-
-
-class ChartDataResultFormat(str, Enum):
-    """
-    Chart data response format
-    """
-
-    CSV = "csv"
-    JSON = "json"
-
-
-class ChartDataResultType(str, Enum):
-    """
-    Chart data response type
-    """
-
-    COLUMNS = "columns"
-    FULL = "full"
-    QUERY = "query"
-    RESULTS = "results"
-    SAMPLES = "samples"
-    TIMEGRAINS = "timegrains"
-    POST_PROCESSED = "post_processed"
 
 
 class DatasourceDict(TypedDict):
@@ -563,7 +540,7 @@ def base_json_conv(obj: Any,) -> Any:  # pylint: disable=inconsistent-return-sta
         return list(obj)
     if isinstance(obj, decimal.Decimal):
         return float(obj)
-    if isinstance(obj, uuid.UUID):
+    if isinstance(obj, (uuid.UUID, time, LazyString)):
         return str(obj)
     if isinstance(obj, timedelta):
         return format_timedelta(obj)
@@ -572,8 +549,6 @@ def base_json_conv(obj: Any,) -> Any:  # pylint: disable=inconsistent-return-sta
             return obj.decode("utf-8")
         except Exception:  # pylint: disable=broad-except
             return "[bytes]"
-    if isinstance(obj, LazyString):
-        return str(obj)
 
 
 def json_iso_dttm_ser(obj: Any, pessimistic: bool = False) -> str:
@@ -587,7 +562,7 @@ def json_iso_dttm_ser(obj: Any, pessimistic: bool = False) -> str:
     val = base_json_conv(obj)
     if val is not None:
         return val
-    if isinstance(obj, (datetime, date, time, pd.Timestamp)):
+    if isinstance(obj, (datetime, date, pd.Timestamp)):
         obj = obj.isoformat()
     else:
         if pessimistic:
@@ -1276,6 +1251,15 @@ def get_main_database() -> "Database":
     return get_or_create_db("main", db_uri)
 
 
+def get_example_default_schema() -> Optional[str]:
+    """
+    Return the default schema of the examples database, if any.
+    """
+    database = get_example_database()
+    engine = database.get_sqla_engine()
+    return inspect(engine).default_schema_name
+
+
 def backend() -> str:
     return get_example_database().backend
 
@@ -1813,35 +1797,3 @@ def escape_sqla_query_binds(sql: str) -> str:
             sql = sql.replace(bind, bind.replace(":", "\\:"))
             processed_binds.add(bind)
     return sql
-
-
-def normalize_prequery_result_type(
-    value: Union[str, int, float, bool, np.generic]
-) -> Union[str, int, float, bool]:
-    """
-    Convert a value that is potentially a numpy type into its equivalent Python type.
-
-    :param value: primitive datatype in either numpy or python format
-    :return: equivalent primitive python type
-    >>> normalize_prequery_result_type('abc')
-    'abc'
-    >>> normalize_prequery_result_type(True)
-    True
-    >>> normalize_prequery_result_type(123)
-    123
-    >>> normalize_prequery_result_type(np.int16(123))
-    123
-    >>> normalize_prequery_result_type(np.uint32(123))
-    123
-    >>> normalize_prequery_result_type(np.int64(123))
-    123
-    >>> normalize_prequery_result_type(123.456)
-    123.456
-    >>> normalize_prequery_result_type(np.float32(123.456))
-    123.45600128173828
-    >>> normalize_prequery_result_type(np.float64(123.456))
-    123.456
-    """
-    if isinstance(value, np.generic):
-        return value.item()
-    return value

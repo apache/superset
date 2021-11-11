@@ -94,10 +94,12 @@ describe('PropertiesModal', () => {
       describe('without metadata', () => {
         const wrapper = setup({ colorScheme: 'SUPERSET_DEFAULT' });
         const modalInstance = wrapper.find('PropertiesModal').instance();
-        it('does not update the color scheme in the metadata', () => {
+        it('updates the color scheme in the metadata', () => {
           const spy = jest.spyOn(modalInstance, 'onMetadataChange');
           modalInstance.onColorSchemeChange('SUPERSET_DEFAULT');
-          expect(spy).not.toHaveBeenCalled();
+          expect(spy).toHaveBeenCalledWith(
+            '{"something": "foo", "color_scheme": "SUPERSET_DEFAULT", "label_colors": {}}',
+          );
         });
       });
       describe('with metadata', () => {
@@ -125,10 +127,12 @@ describe('PropertiesModal', () => {
               json_metadata: '{"timed_refresh_immune_slices": []}',
             },
           });
-          it('will not update the metadata', () => {
+          it('will update the metadata', () => {
             const spy = jest.spyOn(modalInstance, 'onMetadataChange');
             modalInstance.onColorSchemeChange('SUPERSET_DEFAULT');
-            expect(spy).not.toHaveBeenCalled();
+            expect(spy).toHaveBeenCalledWith(
+              '{"something": "foo", "color_scheme": "SUPERSET_DEFAULT", "label_colors": {}}',
+            );
           });
         });
       });
@@ -142,6 +146,15 @@ describe('PropertiesModal', () => {
           modalInstance.onColorSchemeChange('THIS_WILL_NOT_WORK'),
         ).toThrowError('A valid color scheme is required');
         expect(spy).toHaveBeenCalled();
+      });
+    });
+    describe('with an empty color scheme as an arg', () => {
+      const wrapper = setup();
+      const modalInstance = wrapper.find('PropertiesModal').instance();
+      it('will not raise an error', () => {
+        const spy = jest.spyOn(Modal, 'error');
+        modalInstance.onColorSchemeChange('');
+        expect(spy).not.toHaveBeenCalled();
       });
     });
   });
