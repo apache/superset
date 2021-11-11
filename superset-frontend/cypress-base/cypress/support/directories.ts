@@ -325,7 +325,7 @@ export const nativeFilters = {
       removeTab: '[aria-label="trash"]',
     },
     addFilter: dataTestLocator('add-filter-button'),
-    defaultValueCheck:'.ant-checkbox-checked',
+    defaultValueCheck: '.ant-checkbox-checked',
   },
   filtersPanel: {
     filterName: dataTestLocator('filters-config-modal__name-input'),

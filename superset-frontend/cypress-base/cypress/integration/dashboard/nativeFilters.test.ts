@@ -292,7 +292,7 @@ describe('Nativefilters Sanity test', () => {
       .should('be.visible')
       .click({ force: true });
     cy.get(nativeFilters.modal.container).should('be.visible');
-    
+
     cy.get(nativeFilters.modal.container)
       .find(nativeFilters.filtersPanel.datasetName)
       .click()
@@ -316,15 +316,14 @@ describe('Nativefilters Sanity test', () => {
       .click();
     cy.contains('Filter has default value').click();
     cy.contains('Default value is required');
-    cy.get(nativeFilters.modal.defaultValueCheck)
-      .should('be.visible')
-      cy.get(nativeFilters.filtersPanel.columnEmptyInput)
+    cy.get(nativeFilters.modal.defaultValueCheck).should('be.visible');
+    cy.get(nativeFilters.filtersPanel.columnEmptyInput)
       .last()
       .type('United States{enter}');
     cy.get(nativeFilters.modal.footer)
       .find(nativeFilters.modal.saveButton)
       .should('be.visible')
-      .click({force:true});
+      .click({ force: true });
     cy.get(nativeFilters.filterFromDashboardView.filterContent).contains(
       'United States',
     );
