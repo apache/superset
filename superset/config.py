@@ -209,7 +209,8 @@ SHOW_STACKTRACE = True
 # Use all X-Forwarded headers when ENABLE_PROXY_FIX is True.
 # When proxying to a different port, set "x_port" to 0 to avoid downstream issues.
 ENABLE_PROXY_FIX = False
-PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefix": 1}
+PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1,
+                    "x_host": 1, "x_port": 1, "x_prefix": 1}
 
 # ------------------------------
 # GLOBALS FOR APP Builder
@@ -410,12 +411,13 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # This could cause the server to run out of memory or compute.
     "ALLOW_FULL_CSV_EXPORT": False,
     "UX_BETA": False,
+    "SCREENSHOTS_USE_RETINA_HIRES": False
 }
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
 DEFAULT_FEATURE_FLAGS.update(
     {
-        k[len("SUPERSET_FEATURE_") :]: parse_boolean_string(v)
+        k[len("SUPERSET_FEATURE_"):]: parse_boolean_string(v)
         for k, v in os.environ.items()
         if re.search(r"^SUPERSET_FEATURE_\w+", k)
     }
@@ -438,7 +440,8 @@ FEATURE_FLAGS: Dict[str, bool] = {}
 #     if hasattr(g, "user") and g.user.is_active:
 #         feature_flags_dict['some_feature'] = g.user and g.user.get_id() == 5
 #     return feature_flags_dict
-GET_FEATURE_FLAGS_FUNC: Optional[Callable[[Dict[str, bool]], Dict[str, bool]]] = None
+GET_FEATURE_FLAGS_FUNC: Optional[Callable[[
+    Dict[str, bool]], Dict[str, bool]]] = None
 # A function that receives a feature flag name and an optional default value.
 # Has a similar utility to GET_FEATURE_FLAGS_FUNC but it's useful to not force the
 # evaluation of all feature flags when just evaluating a single one.
@@ -848,6 +851,8 @@ CSV_TO_HIVE_UPLOAD_S3_BUCKET = None
 CSV_TO_HIVE_UPLOAD_DIRECTORY = "EXTERNAL_HIVE_TABLES/"
 # Function that creates upload directory dynamically based on the
 # database used, user and schema provided.
+
+
 def CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC(  # pylint: disable=invalid-name
     database: "Database",
     user: "models.User",  # pylint: disable=unused-argument
@@ -951,7 +956,10 @@ BLUEPRINTS: List[Blueprint] = []
 # Provide a callable that receives a tracking_url and returns another
 # URL. This is used to translate internal Hadoop job tracker URL
 # into a proxied one
-TRACKING_URL_TRANSFORMER = lambda x: x
+
+
+def TRACKING_URL_TRANSFORMER(x): return x
+
 
 # Interval between consecutive polls when using Hive Engine
 HIVE_POLL_INTERVAL = int(timedelta(seconds=5).total_seconds())
@@ -993,6 +1001,8 @@ DB_CONNECTION_MUTATOR = None
 #    def SQL_QUERY_MUTATOR(sql, user_name, security_manager, database):
 #        dttm = datetime.now().isoformat()
 #        return f"-- [SQL LAB] {username} {dttm}\n{sql}"
+
+
 def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument
     sql: str,
     user_name: Optional[str],
@@ -1026,7 +1036,8 @@ ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 ALERT_REPORTS_WORKING_TIME_OUT_LAG = int(timedelta(seconds=10).total_seconds())
 # if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
 # Equal to working timeout + ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG
-ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG = int(timedelta(seconds=1).total_seconds())
+ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG = int(
+    timedelta(seconds=1).total_seconds())
 # If set to true no notification is sent, the worker will just log a message.
 # Useful for debugging
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = False
@@ -1215,7 +1226,10 @@ OLD_API_CHECK_DATASET_OWNERSHIP = True
 # to allow mutating the object with this callback.
 # This can be used to set any properties of the object based on naming
 # conventions and such. You can find examples in the tests.
-SQLA_TABLE_MUTATOR = lambda table: table
+
+
+def SQLA_TABLE_MUTATOR(table): return table
+
 
 # Global async query config options.
 # Requires GLOBAL_ASYNC_QUERIES feature flag to be enabled.
@@ -1302,9 +1316,11 @@ if CONFIG_PATH_ENV_VAR in os.environ:
 elif importlib.util.find_spec("superset_config") and not is_test():
     try:
         import superset_config  # pylint: disable=import-error
-        from superset_config import *  # type: ignore # pylint: disable=import-error,wildcard-import,unused-wildcard-import
+        # type: ignore # pylint: disable=import-error,wildcard-import,unused-wildcard-import
+        from superset_config import *
 
-        print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
+        print(
+            f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:
         logger.exception("Found but failed to import local superset_config")
         raise

@@ -17,6 +17,8 @@
 
 import logging
 from enum import Enum
+from superset.extensions import feature_flag_manager
+from superset import config
 from time import sleep
 from typing import Any, Dict, Optional, Tuple, TYPE_CHECKING
 
@@ -27,7 +29,7 @@ from selenium.common.exceptions import (
     TimeoutException,
     WebDriverException,
 )
-from selenium.webdriver import chrome, firefox
+from selenium.webdriver import chrome, firefox, FirefoxProfile
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as EC
@@ -63,19 +65,28 @@ class WebDriverProxy:
         if self._driver_type == "firefox":
             driver_class = firefox.webdriver.WebDriver
             options = firefox.options.Options()
+            profile = FirefoxProfile()
+            if feature_flag_manager.is_feature_enabled("SCREENSHOTS_USE_RETINA_HIRES"):
+                profile.set_preference("layout.css.devPixelsPerPx", "2")
+            kwargs: Dict[Any, Any] = dict(
+                options=options, firefox_profile=profile)
         elif self._driver_type == "chrome":
             driver_class = chrome.webdriver.WebDriver
             options = chrome.options.Options()
-            options.add_argument(f"--window-size={self._window[0]},{self._window[1]}")
+            if feature_flag_manager.is_feature_enabled("SCREENSHOTS_USE_RETINA_HIRES"):
+                options.add_argument("--force-device-scale-factor=2")
+            options.add_argument(
+                f"--window-size={self._window[0]},{self._window[1]}")
+            kwargs: Dict[Any, Any] = dict(options=options)
         else:
-            raise Exception(f"Webdriver name ({self._driver_type}) not supported")
+            raise Exception(
+                f"Webdriver name ({self._driver_type}) not supported")
         # Prepare args for the webdriver init
 
         # Add additional configured options
         for arg in current_app.config["WEBDRIVER_OPTION_ARGS"]:
             options.add_argument(arg)
 
-        kwargs: Dict[Any, Any] = dict(options=options)
         kwargs.update(current_app.config["WEBDRIVER_CONFIGURATION"])
         logger.info("Init selenium driver")
 
@@ -135,12 +146,14 @@ class WebDriverProxy:
             selenium_animation_wait = current_app.config[
                 "SCREENSHOT_SELENIUM_ANIMATION_WAIT"
             ]
-            logger.debug("Wait %i seconds for chart animation", selenium_animation_wait)
+            logger.debug("Wait %i seconds for chart animation",
+                         selenium_animation_wait)
             sleep(selenium_animation_wait)
             logger.info("Taking a PNG screenshot of url %s", url)
             img = element.screenshot_as_png
         except TimeoutException:
-            logger.warning("Selenium timed out requesting url %s", url, exc_info=True)
+            logger.warning(
+                "Selenium timed out requesting url %s", url, exc_info=True)
             img = element.screenshot_as_png
         except StaleElementReferenceException:
             logger.error(
@@ -151,5 +164,6 @@ class WebDriverProxy:
         except WebDriverException as ex:
             logger.error(ex, exc_info=True)
         finally:
-            self.destroy(driver, current_app.config["SCREENSHOT_SELENIUM_RETRIES"])
+            self.destroy(
+                driver, current_app.config["SCREENSHOT_SELENIUM_RETRIES"])
         return img
