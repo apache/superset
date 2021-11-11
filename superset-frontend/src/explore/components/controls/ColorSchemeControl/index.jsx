@@ -21,12 +21,14 @@ import PropTypes from 'prop-types';
 import { isFunction } from 'lodash';
 import { Select } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
-import { t } from '@superset-ui/core';
-import ControlHeader from '../ControlHeader';
+import { styled, t } from '@superset-ui/core';
+import Icons from 'src/components/Icons';
+import ControlHeader from 'src/explore/components/ControlHeader';
 
 const propTypes = {
+  hasCustomLabelColors: PropTypes.bool,
   description: PropTypes.string,
-  label: PropTypes.string.isRequired,
+  label: PropTypes.string,
   labelMargin: PropTypes.number,
   name: PropTypes.string.isRequired,
   onChange: PropTypes.func,
@@ -43,16 +45,23 @@ const propTypes = {
 
 const defaultProps = {
   choices: [],
+  hasCustomLabelColors: false,
+  label: t('Color scheme'),
   schemes: {},
   clearable: false,
   onChange: () => {},
 };
+
+const StyledAlert = styled(Icons.AlertSolid)`
+  color: ${({ theme }) => theme.colors.alert.base};
+`;
 
 export default class ColorSchemeControl extends React.PureComponent {
   constructor(props) {
     super(props);
     this.onChange = this.onChange.bind(this);
     this.renderOption = this.renderOption.bind(this);
+    this.renderLabel = this.renderLabel.bind(this);
   }
 
   onChange(value) {
@@ -105,8 +114,29 @@ export default class ColorSchemeControl extends React.PureComponent {
     );
   }
 
+  renderLabel() {
+    const { hasCustomLabelColors, label } = this.props;
+
+    if (hasCustomLabelColors) {
+      return (
+        <>
+          {label}{' '}
+          <Tooltip
+            title={t(
+              `This color scheme is being overriden by custom label colors. 
+              Check the JSON metadata in the Advanced settings of the dashboard`,
+            )}
+          >
+            <StyledAlert iconSize="s" />
+          </Tooltip>
+        </>
+      );
+    }
+    return label;
+  }
+
   render() {
-    const { schemes, choices } = this.props;
+    const { choices, schemes } = this.props;
     // save parsed schemes for later
     this.schemes = isFunction(schemes) ? schemes() : schemes;
 
@@ -137,7 +167,10 @@ export default class ColorSchemeControl extends React.PureComponent {
       value: currentScheme,
     };
     return (
-      <Select header={<ControlHeader {...this.props} />} {...selectProps} />
+      <Select
+        header={<ControlHeader {...this.props} label={this.renderLabel()} />}
+        {...selectProps}
+      />
     );
   }
 }
