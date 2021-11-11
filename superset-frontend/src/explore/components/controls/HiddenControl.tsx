@@ -16,39 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import PropTypes from 'prop-types';
 import React from 'react';
-import { CategoricalColorNamespace } from '@superset-ui/core';
+import { Input } from 'src/common/components';
 
-const propTypes = {
-  onChange: PropTypes.func,
-  value: PropTypes.object,
-  colorScheme: PropTypes.string,
-  colorNamespace: PropTypes.string,
-};
-
-const defaultProps = {
-  onChange: () => {},
-  value: {},
-  colorScheme: undefined,
-  colorNamespace: undefined,
-};
-
-export default class ColorMapControl extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    Object.keys(this.props.value).forEach(label => {
-      CategoricalColorNamespace.getScale(
-        this.props.colorScheme,
-        this.props.colorNamespace,
-      ).setColor(label, this.props.value[label]);
-    });
-  }
-
-  render() {
-    return null;
-  }
+interface HiddenControlsProps {
+  onChange: () => void;
+  value: string | number | readonly string[] | undefined;
 }
 
-ColorMapControl.propTypes = propTypes;
-ColorMapControl.defaultProps = defaultProps;
+export default function HiddenControl(props: HiddenControlsProps) {
+  // This wouldn't be necessary but might as well
+  return <Input type="hidden" value={props.value} />;
+}

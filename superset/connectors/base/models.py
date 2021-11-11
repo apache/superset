@@ -119,6 +119,18 @@ class BaseDatasource(
         return DatasourceKind.VIRTUAL if self.sql else DatasourceKind.PHYSICAL
 
     @property
+    def owners_data(self) -> List[Dict[str, Any]]:
+        return [
+            {
+                "first_name": o.first_name,
+                "last_name": o.last_name,
+                "username": o.username,
+                "id": o.id,
+            }
+            for o in self.owners
+        ]
+
+    @property
     def is_virtual(self) -> bool:
         return self.kind == DatasourceKind.VIRTUAL
 
@@ -270,7 +282,9 @@ class BaseDatasource(
             "select_star": self.select_star,
         }
 
-    def data_for_slices(self, slices: List[Slice]) -> Dict[str, Any]:
+    def data_for_slices(  # pylint: disable=too-many-locals
+        self, slices: List[Slice]
+    ) -> Dict[str, Any]:
         """
         The representation of the datasource containing only the required data
         to render the provided slices.
@@ -305,11 +319,23 @@ class BaseDatasource(
                 if "column" in filter_config
             )
 
-            column_names.update(
-                column
-                for column_param in COLUMN_FORM_DATA_PARAMS
-                for column in utils.get_iterable(form_data.get(column_param) or [])
-            )
+            # legacy charts don't have query_context charts
+            query_context = slc.get_query_context()
+            if query_context:
+                column_names.update(
+                    [
+                        column
+                        for query in query_context.queries
+                        for column in query.columns
+                    ]
+                    or []
+                )
+            else:
+                column_names.update(
+                    column
+                    for column_param in COLUMN_FORM_DATA_PARAMS
+                    for column in utils.get_iterable(form_data.get(column_param) or [])
+                )
 
         filtered_metrics = [
             metric
@@ -407,7 +433,9 @@ class BaseDatasource(
         """
         raise NotImplementedError()
 
-    def values_for_column(self, column_name: str, limit: int = 10000) -> List[Any]:
+    def values_for_column(
+        self, column_name: str, limit: int = 10000, contain_null: bool = True,
+    ) -> List[Any]:
         """Given a column, returns an iterable of distinct values
 
         This is used to populate the dropdown showing a list of
@@ -625,7 +653,6 @@ class BaseColumn(AuditMixinNullable, ImportExportMixin):
 
 
 class BaseMetric(AuditMixinNullable, ImportExportMixin):
-
     """Interface for Metrics"""
 
     __tablename__: Optional[str] = None  # {connector_name}_metric

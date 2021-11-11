@@ -16,6 +16,7 @@
 # under the License.
 """Utility functions used across Superset"""
 # pylint: disable=too-many-lines
+import _thread
 import collections
 import decimal
 import errno
@@ -76,15 +77,15 @@ from flask_babel import gettext as __
 from flask_babel.speaklater import LazyString
 from pandas.api.types import infer_dtype
 from pandas.core.dtypes.common import is_numeric_dtype
-from sqlalchemy import event, exc, select, Text
+from sqlalchemy import event, exc, inspect, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy.sql.elements import TextClause
 from sqlalchemy.sql.type_api import Variant
 from sqlalchemy.types import TEXT, TypeDecorator, TypeEngine
 from typing_extensions import TypedDict, TypeGuard
 
-import _thread  # pylint: disable=C0411
 from superset.constants import (
     EXAMPLES_DB_UUID,
     EXTRA_FORM_DATA_APPEND_KEYS,
@@ -130,6 +131,8 @@ TIME_COMPARISION = "__"
 JS_MAX_INTEGER = 9007199254740991  # Largest int Java Script can handle 2^53-1
 
 InputType = TypeVar("InputType")
+
+BIND_PARAM_REGEX = TextClause._bind_params_regex  # pylint: disable=protected-access
 
 
 class LenientEnum(Enum):
@@ -560,7 +563,7 @@ def base_json_conv(obj: Any,) -> Any:  # pylint: disable=inconsistent-return-sta
         return list(obj)
     if isinstance(obj, decimal.Decimal):
         return float(obj)
-    if isinstance(obj, uuid.UUID):
+    if isinstance(obj, (uuid.UUID, time, LazyString)):
         return str(obj)
     if isinstance(obj, timedelta):
         return format_timedelta(obj)
@@ -569,8 +572,6 @@ def base_json_conv(obj: Any,) -> Any:  # pylint: disable=inconsistent-return-sta
             return obj.decode("utf-8")
         except Exception:  # pylint: disable=broad-except
             return "[bytes]"
-    if isinstance(obj, LazyString):
-        return str(obj)
 
 
 def json_iso_dttm_ser(obj: Any, pessimistic: bool = False) -> str:
@@ -584,7 +585,7 @@ def json_iso_dttm_ser(obj: Any, pessimistic: bool = False) -> str:
     val = base_json_conv(obj)
     if val is not None:
         return val
-    if isinstance(obj, (datetime, date, time, pd.Timestamp)):
+    if isinstance(obj, (datetime, date, pd.Timestamp)):
         obj = obj.isoformat()
     else:
         if pessimistic:
@@ -1273,6 +1274,15 @@ def get_main_database() -> "Database":
     return get_or_create_db("main", db_uri)
 
 
+def get_example_default_schema() -> Optional[str]:
+    """
+    Return the default schema of the examples database, if any.
+    """
+    database = get_example_database()
+    engine = database.get_sqla_engine()
+    return inspect(engine).default_schema_name
+
+
 def backend() -> str:
     return get_example_database().backend
 
@@ -1784,3 +1794,29 @@ def apply_max_row_limit(limit: int, max_limit: Optional[int] = None,) -> int:
     if limit != 0:
         return min(max_limit, limit)
     return max_limit
+
+
+def escape_sqla_query_binds(sql: str) -> str:
+    """
+    Replace strings in a query that SQLAlchemy would otherwise interpret as
+    bind parameters.
+
+    :param sql: unescaped query string
+    :return: escaped query string
+    >>> escape_sqla_query_binds("select ':foo'")
+    "select '\\\\:foo'"
+    >>> escape_sqla_query_binds("select 'foo'::TIMESTAMP")
+    "select 'foo'::TIMESTAMP"
+    >>> escape_sqla_query_binds("select ':foo :bar'::TIMESTAMP")
+    "select '\\\\:foo \\\\:bar'::TIMESTAMP"
+    >>> escape_sqla_query_binds("select ':foo :foo :bar'::TIMESTAMP")
+    "select '\\\\:foo \\\\:foo \\\\:bar'::TIMESTAMP"
+    """
+    matches = BIND_PARAM_REGEX.finditer(sql)
+    processed_binds = set()
+    for match in matches:
+        bind = match.group(0)
+        if bind not in processed_binds:
+            sql = sql.replace(bind, bind.replace(":", "\\:"))
+            processed_binds.add(bind)
+    return sql

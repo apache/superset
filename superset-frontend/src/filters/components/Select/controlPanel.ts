@@ -17,8 +17,11 @@
  * under the License.
  */
 import { t, validateNonEmpty } from '@superset-ui/core';
-import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
-import { sharedControls } from '@superset-ui/chart-controls/lib';
+import {
+  ControlPanelConfig,
+  sections,
+  sharedControls,
+} from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 
 const {

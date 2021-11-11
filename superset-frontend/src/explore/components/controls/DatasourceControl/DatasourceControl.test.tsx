@@ -41,6 +41,7 @@ const createProps = () => ({
     name: 'channels',
     type: 'table',
     columns: [],
+    owners: [{ first_name: 'john', last_name: 'doe', id: 1, username: 'jd' }],
   },
   validationErrors: [],
   name: 'datasource',

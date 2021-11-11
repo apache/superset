@@ -22,7 +22,7 @@ const config = require('../config.test.json');
 import { describe, expect, test, beforeEach, afterEach } from '@jest/globals';
 import * as http from 'http';
 import * as net from 'net';
-import WebSocket from 'ws';
+import { WebSocket } from 'ws';
 
 // NOTE: these mock variables needs to start with "mock" due to
 // calls to `jest.mock` being hoisted to the top of the file.
@@ -459,6 +459,18 @@ describe('server', () => {
     });
   });
 
+  const setReadyState = (ws: WebSocket, value: typeof ws.readyState) => {
+    // workaround for not being able to do
+    // spyOn(instance,'readyState','get').and.returnValue(value);
+    // See for details: https://github.com/facebook/jest/issues/9675
+    Object.defineProperty(ws, 'readyState', {
+      configurable: true,
+      get() {
+        return value;
+      },
+    });
+  };
+
   describe('checkSockets', () => {
     let ws: WebSocket;
     let pingSpy: jest.SpyInstance;
@@ -473,7 +485,7 @@ describe('server', () => {
     });
 
     test('active sockets', () => {
-      ws.readyState = WebSocket.OPEN;
+      setReadyState(ws, WebSocket.OPEN);
       server.trackClient(channelId, socketInstance);
 
       server.checkSockets();
@@ -484,7 +496,7 @@ describe('server', () => {
     });
 
     test('stale sockets', () => {
-      ws.readyState = WebSocket.OPEN;
+      setReadyState(ws, WebSocket.OPEN);
       socketInstance.pongTs = Date.now() - 60000;
       server.trackClient(channelId, socketInstance);
 
@@ -496,7 +508,7 @@ describe('server', () => {
     });
 
     test('closed sockets', () => {
-      ws.readyState = WebSocket.CLOSED;
+      setReadyState(ws, WebSocket.CLOSED);
       server.trackClient(channelId, socketInstance);
 
       server.checkSockets();
@@ -522,7 +534,7 @@ describe('server', () => {
     });
 
     test('active sockets', () => {
-      ws.readyState = WebSocket.OPEN;
+      setReadyState(ws, WebSocket.OPEN);
       server.trackClient(channelId, socketInstance);
 
       server.cleanChannel(channelId);
@@ -531,7 +543,7 @@ describe('server', () => {
     });
 
     test('closing sockets', () => {
-      ws.readyState = WebSocket.CLOSING;
+      setReadyState(ws, WebSocket.CLOSING);
       server.trackClient(channelId, socketInstance);
 
       server.cleanChannel(channelId);
@@ -540,11 +552,11 @@ describe('server', () => {
     });
 
     test('multiple sockets', () => {
-      ws.readyState = WebSocket.OPEN;
+      setReadyState(ws, WebSocket.OPEN);
       server.trackClient(channelId, socketInstance);
 
       const ws2 = new wsMock('localhost');
-      ws2.readyState = WebSocket.OPEN;
+      setReadyState(ws2, WebSocket.OPEN);
       const socketInstance2 = {
         ws: ws2,
         channel: channelId,
@@ -556,7 +568,7 @@ describe('server', () => {
 
       expect(server.channels[channelId].sockets.length).toBe(2);
 
-      ws2.readyState = WebSocket.CLOSED;
+      setReadyState(ws2, WebSocket.CLOSED);
       server.cleanChannel(channelId);
 
       expect(server.channels[channelId].sockets.length).toBe(1);

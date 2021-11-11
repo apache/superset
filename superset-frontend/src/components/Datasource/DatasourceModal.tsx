@@ -99,7 +99,6 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       currentDatasource.schema;
 
     setIsSaving(true);
-
     SupersetClient.post({
       endpoint: '/datasource/save/',
       postPayload: {
@@ -119,12 +118,18 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
             }),
           ),
           type: currentDatasource.type || currentDatasource.datasource_type,
+          owners: currentDatasource.owners.map(
+            (o: Record<string, number>) => o.value || o.id,
+          ),
         },
       },
     })
       .then(({ json }) => {
         addSuccessToast(t('The dataset has been saved'));
-        onDatasourceSave(json);
+        onDatasourceSave({
+          ...json,
+          owners: currentDatasource.owners,
+        });
         onHide();
       })
       .catch(response => {

@@ -237,12 +237,12 @@ function dbReducer(
           },
         };
       }
-      if (action.payload.name === 'schemas_allowed_for_csv_upload') {
+      if (action.payload.name === 'schemas_allowed_for_file_upload') {
         return {
           ...trimmedState,
           extra_json: {
             ...trimmedState.extra_json,
-            schemas_allowed_for_csv_upload: (action.payload.value || '').split(
+            schemas_allowed_for_file_upload: (action.payload.value || '').split(
               ',',
             ),
           },
@@ -346,8 +346,8 @@ function dbReducer(
           ...JSON.parse(action.payload.extra || ''),
           metadata_params: JSON.stringify(extra_json?.metadata_params),
           engine_params: JSON.stringify(extra_json?.engine_params),
-          schemas_allowed_for_csv_upload:
-            extra_json?.schemas_allowed_for_csv_upload,
+          schemas_allowed_for_file_upload:
+            extra_json?.schemas_allowed_for_file_upload,
         };
       }
 
@@ -412,8 +412,8 @@ const serializeExtra = (extraJson: DatabaseObject['extra_json']) =>
     engine_params: JSON.parse(
       ((extraJson?.engine_params as unknown) as string) || '{}',
     ),
-    schemas_allowed_for_csv_upload: (
-      extraJson?.schemas_allowed_for_csv_upload || []
+    schemas_allowed_for_file_upload: (
+      extraJson?.schemas_allowed_for_file_upload || []
     ).filter(schema => schema !== ''),
   });
 

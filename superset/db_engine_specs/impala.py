@@ -36,7 +36,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
         "P1D": "TRUNC({col}, 'DD')",
         "P1W": "TRUNC({col}, 'WW')",
         "P1M": "TRUNC({col}, 'MONTH')",
-        "P0.25Y": "TRUNC({col}, 'Q')",
+        "P3M": "TRUNC({col}, 'Q')",
         "P1Y": "TRUNC({col}, 'YYYY')",
     }
 

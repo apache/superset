@@ -55,11 +55,15 @@ export interface Filter {
   sortMetric?: string | null;
   adhoc_filters?: AdhocFilter[];
   granularity_sqla?: string;
+  granularity?: string;
+  druid_time_origin?: string;
+  time_grain_sqla?: string;
   time_range?: string;
   requiredFirst?: boolean;
   tabsInScope?: string[];
   chartsInScope?: number[];
   type: NativeFilterType;
+  description: string;
 }
 
 export type FilterConfiguration = Filter[];

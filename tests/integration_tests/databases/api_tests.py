@@ -161,10 +161,10 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
         expected_columns = [
-            "allow_csv_upload",
             "allow_ctas",
             "allow_cvas",
             "allow_dml",
+            "allow_file_upload",
             "allow_multi_schema_metadata_fetch",
             "allow_run_async",
             "allows_cost_estimate",
@@ -232,7 +232,7 @@ class TestDatabaseApi(SupersetTestCase):
             "metadata_params": {},
             "engine_params": {},
             "metadata_cache_timeout": {},
-            "schemas_allowed_for_csv_upload": [],
+            "schemas_allowed_for_file_upload": [],
         }
 
         self.login(username="admin")
@@ -265,7 +265,7 @@ class TestDatabaseApi(SupersetTestCase):
             "metadata_params": {},
             "engine_params": {},
             "metadata_cache_timeout": {},
-            "schemas_allowed_for_csv_upload": [],
+            "schemas_allowed_for_file_upload": [],
         }
 
         self.login(username="admin")
@@ -296,7 +296,7 @@ class TestDatabaseApi(SupersetTestCase):
             "metadata_params": {},
             "engine_params": {},
             "metadata_cache_timeout": {},
-            "schemas_allowed_for_csv_upload": [],
+            "schemas_allowed_for_file_upload": [],
         }
 
         self.login(username="admin")
@@ -386,7 +386,7 @@ class TestDatabaseApi(SupersetTestCase):
             "metadata_params": {"wrong_param": "some_value"},
             "engine_params": {},
             "metadata_cache_timeout": {},
-            "schemas_allowed_for_csv_upload": [],
+            "schemas_allowed_for_file_upload": [],
         }
         self.login(username="admin")
         database_data = {
@@ -906,7 +906,7 @@ class TestDatabaseApi(SupersetTestCase):
             "metadata_params": {},
             "engine_params": {},
             "metadata_cache_timeout": {},
-            "schemas_allowed_for_csv_upload": [],
+            "schemas_allowed_for_file_upload": [],
         }
         # need to temporarily allow sqlite dbs, teardown will undo this
         app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
@@ -1099,7 +1099,7 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "related_objects")
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(response["charts"]["count"], 33)
+        self.assertEqual(response["charts"]["count"], 34)
         self.assertEqual(response["dashboards"]["count"], 3)
 
     def test_get_database_related_objects_not_found(self):
@@ -1989,3 +1989,13 @@ class TestDatabaseApi(SupersetTestCase):
                 },
             ]
         }
+
+    def test_get_related_objects(self):
+        example_db = get_example_database()
+        self.login(username="admin")
+        uri = f"api/v1/database/{example_db.id}/related_objects/"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        assert "charts" in rv.json
+        assert "dashboards" in rv.json
+        assert "sqllab_tab_states" in rv.json
