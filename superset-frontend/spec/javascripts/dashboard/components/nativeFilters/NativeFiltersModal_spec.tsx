@@ -82,7 +82,7 @@ describe('FiltersConfigModal', () => {
     );
   });
 
-  it('the form validates required fields', () => {
+  it('the form validates required fields', async () => {
     const onSave = jest.fn();
     const wrapper = setup({ save: onSave });
     act(() => {
@@ -93,7 +93,7 @@ describe('FiltersConfigModal', () => {
 
       wrapper.find('.ant-modal-footer button').at(1).simulate('click');
     });
-    // await waitForComponentToPaint(wrapper);
+    await waitForComponentToPaint(wrapper);
     expect(onSave.mock.calls).toHaveLength(0);
   });
 
