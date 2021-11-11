@@ -80,6 +80,8 @@ A modern, enterprise-ready business intelligence web application.
 
 If you get some error running above command, following these links might be helpful: https://stackoverflow.com/a/56228387/5036543, https://stackoverflow.com/a/51149263/5036543
 
+Dont forget to change the mysql version in commands that you run from stack overflow.
+
 ```bash
   pip install -e .
 ```
