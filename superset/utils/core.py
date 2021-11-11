@@ -1360,6 +1360,11 @@ def get_first_metric_name(metrics: Optional[Sequence[Metric]]) -> Optional[str]:
     return metric_labels[0] if metric_labels else None
 
 
+def get_first_metric_name(metrics: Sequence[Metric]) -> Optional[str]:
+    metric_labels = get_metric_names(metrics)
+    return metric_labels[0] if metric_labels else None
+
+
 def ensure_path_exists(path: str) -> None:
     try:
         os.makedirs(path)
