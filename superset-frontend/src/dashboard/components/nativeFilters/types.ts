@@ -55,22 +55,26 @@ export interface Filter {
   sortMetric?: string | null;
   adhoc_filters?: AdhocFilter[];
   granularity_sqla?: string;
+  granularity?: string;
+  druid_time_origin?: string;
+  time_grain_sqla?: string;
   time_range?: string;
   requiredFirst?: boolean;
   tabsInScope?: string[];
   chartsInScope?: number[];
   type: NativeFilterType;
+  description: string;
 }
-export interface Section {
+export interface Divider {
   id: string;
   title: string;
   description: string;
   type: NativeFilterType;
 }
 
-export type FilterConfiguration = Array<Filter | Section>;
+export type FilterConfiguration = Array<Filter | Divider>;
 
 export enum NativeFilterType {
   NATIVE_FILTER = 'NATIVE_FILTER',
-  SECTION = 'SECTION',
+  DIVIDER = 'DIVIDER',
 }

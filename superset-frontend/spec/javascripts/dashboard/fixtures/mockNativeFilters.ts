@@ -68,6 +68,7 @@ export const nativeFiltersInfo: NativeFiltersState = {
         isRequired: false,
       },
       type: NativeFilterType.NATIVE_FILTER,
+      description: 'test description',
     },
   },
 };

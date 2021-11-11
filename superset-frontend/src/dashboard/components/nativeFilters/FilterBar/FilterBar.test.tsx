@@ -301,6 +301,40 @@ describe('FilterBar', () => {
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
   });
 
+  it('renders dividers', async () => {
+    const divider = {
+      id: 'NATIVE_FILTER_DIVIDER-1',
+      type: 'DIVIDER',
+      scope: {
+        rootPath: ['ROOT_ID'],
+        excluded: [],
+      },
+      title: 'Select time range',
+      description: 'Select year/month etc..',
+      chartsInScope: [],
+      tabsInScope: [],
+    };
+    const stateWithDivider = {
+      ...stateWithoutNativeFilters,
+      nativeFilters: {
+        filters: {
+          'NATIVE_FILTER_DIVIDER-1': divider,
+        },
+      },
+    };
+
+    renderWrapper(openedBarProps, stateWithDivider);
+
+    const title = await screen.findByText('Select time range');
+    const description = await screen.findByText('Select year/month etc..');
+
+    expect(title.tagName).toBe('H3');
+    expect(description.tagName).toBe('P');
+    // Do not enable buttons if there are not filters
+    expect(screen.getByTestId(getTestId('clear-button'))).toBeDisabled();
+    expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
+  });
+
   it('create filter and apply it flow', async () => {
     // @ts-ignore
     global.featureFlags = {

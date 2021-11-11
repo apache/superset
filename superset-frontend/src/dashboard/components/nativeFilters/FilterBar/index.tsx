@@ -33,7 +33,10 @@ import { DataMaskStateWithId, DataMaskWithId } from 'src/dataMask/types';
 import { useImmer } from 'use-immer';
 import { isEmpty, isEqual } from 'lodash';
 import { testWithId } from 'src/utils/testUtils';
-import { Filter } from 'src/dashboard/components/nativeFilters/types';
+import {
+  Filter,
+  NativeFilterType,
+} from 'src/dashboard/components/nativeFilters/types';
 import Loading from 'src/components/Loading';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 import { URL_PARAMS } from 'src/constants';
@@ -320,7 +323,14 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             activeKey={editFilterSetId ? TabIds.AllFilters : undefined}
           >
             <Tabs.TabPane
-              tab={t(`All Filters (${filterValues.length})`)}
+              tab={t(
+                `All Filters (${
+                  filterValues.filter(
+                    filterValue =>
+                      filterValue.type === NativeFilterType.NATIVE_FILTER,
+                  ).length
+                })`,
+              )}
               key={TabIds.AllFilters}
               css={tabPaneStyle}
             >

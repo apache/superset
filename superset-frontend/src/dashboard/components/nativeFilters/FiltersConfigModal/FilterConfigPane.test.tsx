@@ -115,3 +115,20 @@ test('add filter', async () => {
   });
   expect(defaultProps.onAdd).toHaveBeenCalledWith('NATIVE_FILTER');
 });
+
+test('add divider', async () => {
+  defaultRender();
+  const addButton = screen.getByText('Add')!;
+  fireEvent.mouseOver(addButton);
+  const addFilterButton = await screen.findByText('Divider');
+  await act(async () => {
+    fireEvent(
+      addFilterButton,
+      new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+  });
+  expect(defaultProps.onAdd).toHaveBeenCalledWith('DIVIDER');
+});

@@ -34,7 +34,7 @@ import {
   Filter,
   FilterConfiguration,
   NativeFilterType,
-  Section,
+  Divider,
 } from '../types';
 import FiltureConfigurePane from './FilterConfigurePane';
 import FiltersConfigForm, {
@@ -50,7 +50,7 @@ import {
   getFilterIds,
   buildFilterGroup,
   validateForm,
-  NATIVE_FILTER_SECTION_PREFIX,
+  NATIVE_FILTER_DIVIDER_PREFIX,
 } from './utils';
 import SectionConfigForm from './SectionConfigForm';
 
@@ -435,11 +435,11 @@ export function FiltersConfigModal({
     );
   }, [removedFilters]);
   const getForm = (id: string) => {
-    const isSection = id.startsWith(NATIVE_FILTER_SECTION_PREFIX);
+    const isSection = id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX);
     return isSection ? (
       <SectionConfigForm
         componentId={id}
-        section={filterConfigMap[id] as Section}
+        section={filterConfigMap[id] as Divider}
       />
     ) : (
       <FiltersConfigForm

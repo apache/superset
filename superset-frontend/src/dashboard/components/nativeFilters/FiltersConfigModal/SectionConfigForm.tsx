@@ -1,7 +1,7 @@
 import React from 'react';
 import { FormItem } from 'src/components/Form';
 import { Input, TextArea } from 'src/common/components';
-import { styled } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import { NativeFilterType } from '../types';
 
 interface Props {
@@ -21,14 +21,15 @@ const SectionConfigForm: React.FC<Props> = ({ componentId, section }) => (
   <Container>
     <FormItem
       initialValue={section ? section.title : ''}
-      label="Title"
+      label={t('Title')}
       name={['filters', componentId, 'title']}
+      rules={[{ required: true, message: t('Title is required') }]}
     >
       <Input />
     </FormItem>
     <FormItem
       initialValue={section ? section.description : ''}
-      label="Description"
+      label={t('Description')}
       name={['filters', componentId, 'description']}
     >
       <TextArea rows={4} />
@@ -36,7 +37,7 @@ const SectionConfigForm: React.FC<Props> = ({ componentId, section }) => (
     <FormItem
       hidden
       name={['filters', componentId, 'type']}
-      initialValue={NativeFilterType.SECTION}
+      initialValue={NativeFilterType.DIVIDER}
     />
   </Container>
 );

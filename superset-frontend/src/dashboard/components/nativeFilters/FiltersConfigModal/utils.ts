@@ -34,7 +34,7 @@ import {
   Filter,
   FilterConfiguration,
   NativeFilterType,
-  Section,
+  Divider,
   Target,
 } from '../types';
 
@@ -43,7 +43,7 @@ export const REMOVAL_DELAY_SECS = 5;
 export const validateForm = async (
   form: FormInstance<NativeFiltersForm>,
   currentFilterId: string,
-  filterConfigMap: Record<string, Filter | Section>,
+  filterConfigMap: Record<string, Filter | Divider>,
   filterIds: string[],
   removedFilters: Record<string, FilterRemoval>,
   setCurrentFilterId: Function,
@@ -131,7 +131,7 @@ export const validateForm = async (
 };
 
 export const createHandleSave = (
-  filterConfigMap: Record<string, Filter | Section>,
+  filterConfigMap: Record<string, Filter | Divider>,
   filterIds: string[],
   removedFilters: Record<string, FilterRemoval>,
   saveForm: Function,
@@ -144,11 +144,11 @@ export const createHandleSave = (
       const formInputs = values.filters?.[id];
       // if user didn't open a filter, return the original config
       if (!formInputs) return filterConfigMap[id];
-      if (formInputs.type === NativeFilterType.SECTION) {
+      if (formInputs.type === NativeFilterType.DIVIDER) {
         const section = formInputs as NativeFilterSectionItem;
         return {
           id,
-          type: NativeFilterType.SECTION,
+          type: NativeFilterType.DIVIDER,
           scope: {
             rootPath: [DASHBOARD_ROOT_ID],
             excluded: [],
@@ -185,6 +185,7 @@ export const createHandleSave = (
         scope: filterInputs.scope,
         sortMetric: filterInputs.sortMetric,
         type: formInputs.type,
+        description: (formInputs.description || '').trim(),
       };
     });
 
@@ -308,12 +309,12 @@ export const createHandleRemoveItem = (
 };
 
 export const NATIVE_FILTER_PREFIX = 'NATIVE_FILTER-';
-export const NATIVE_FILTER_SECTION_PREFIX = 'NATIVE_FILTER_SECTION-';
+export const NATIVE_FILTER_DIVIDER_PREFIX = 'NATIVE_FILTER_DIVIDER-';
 export const generateFilterId = (type: NativeFilterType) => {
   const prefix =
     type === NativeFilterType.NATIVE_FILTER
       ? NATIVE_FILTER_PREFIX
-      : NATIVE_FILTER_SECTION_PREFIX;
+      : NATIVE_FILTER_DIVIDER_PREFIX;
   return `${prefix}${shortid.generate()}`;
 };
 

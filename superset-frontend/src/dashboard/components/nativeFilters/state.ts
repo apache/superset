@@ -22,7 +22,7 @@ import {
   Filter,
   FilterConfiguration,
   NativeFilterType,
-  Section,
+  Divider,
 } from './types';
 import { ActiveTabs, DashboardLayout, RootState } from '../../types';
 import { TAB_TYPE } from '../../util/componentTypes';
@@ -47,11 +47,11 @@ export function useFilterConfigMap() {
   return useMemo(
     () =>
       filterConfig.reduce(
-        (acc: Record<string, Filter | Section>, filter: Filter) => {
+        (acc: Record<string, Filter | Divider>, filter: Filter) => {
           acc[filter.id] = filter;
           return acc;
         },
-        {} as Record<string, Filter | Section>,
+        {} as Record<string, Filter | Divider>,
       ),
     [filterConfig],
   );
@@ -98,7 +98,7 @@ function useIsFilterInScope() {
   // Chart is visible if it's placed in an active tab tree or if it's not attached to any tab.
   // Chart is in an active tab tree if all of it's ancestors of type TAB are active
   return (filter: CascadeFilter) => {
-    const isSection = filter.type === NativeFilterType.SECTION;
+    const isSection = filter.type === NativeFilterType.DIVIDER;
     return (
       isSection ||
       filter.chartsInScope?.some((chartId: number) => {
@@ -113,14 +113,14 @@ function useIsFilterInScope() {
 }
 
 export function useSelectFiltersInScope(
-  cascadeFilters: (CascadeFilter | Section)[],
+  cascadeFilters: (CascadeFilter | Divider)[],
 ) {
   const dashboardHasTabs = useDashboardHasTabs();
   const isFilterInScope = useIsFilterInScope();
 
   return useMemo(() => {
-    let filtersInScope: (CascadeFilter | Section)[] = [];
-    const filtersOutOfScope: (CascadeFilter | Section)[] = [];
+    let filtersInScope: (CascadeFilter | Divider)[] = [];
+    const filtersOutOfScope: (CascadeFilter | Divider)[] = [];
 
     // we check native filters scopes only on dashboards with tabs
     if (!dashboardHasTabs) {

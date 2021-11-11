@@ -101,7 +101,6 @@ FRONTEND_CONF_KEYS = (
     "GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL",
     "DASHBOARD_AUTO_REFRESH_MODE",
 )
-logger = logging.getLogger(__name__)
 
 logger = logging.getLogger(__name__)
 config = superset_app.config

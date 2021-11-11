@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, t, useTheme } from '@superset-ui/core';
+import { styled, SupersetTheme, t, useTheme } from '@superset-ui/core';
 import React from 'react';
 import { Dropdown, MainNav as Menu } from 'src/common/components';
 import { NativeFilterType } from '../types';
@@ -72,7 +72,7 @@ const FilterTitlePane: React.FC<Props> = ({
   const theme = useTheme();
   const options = [
     { label: 'Filter', type: NativeFilterType.NATIVE_FILTER },
-    { label: 'Section', type: NativeFilterType.SECTION },
+    { label: 'Divider', type: NativeFilterType.DIVIDER },
   ];
   const handleOnAdd = (type: NativeFilterType) => {
     onAdd(type);
@@ -116,7 +116,13 @@ const FilterTitlePane: React.FC<Props> = ({
         />
       </div>
       <Dropdown overlay={menu} arrow placement="topRight" trigger={['hover']}>
-        <div css={{ cursor: 'pointer', padding: '16px', paddingTop: '4px' }}>
+        <div
+          css={(theme: SupersetTheme) => ({
+            cursor: 'pointer',
+            padding: `${theme.gridUnit * 4}px`,
+            paddingTop: `${theme.gridUnit * 4}px`,
+          })}
+        >
           <StyledI data-test="new-dropdown-icon" className="fa fa-plus" />{' '}
           <span>{t('Add')}</span>
         </div>

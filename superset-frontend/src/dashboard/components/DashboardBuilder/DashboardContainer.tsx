@@ -36,7 +36,7 @@ import { getChartIdsInFilterScope } from '../../util/activeDashboardFilters';
 import findTabIndexByComponentId from '../../util/findTabIndexByComponentId';
 import { findTabsWithChartsInScope } from '../nativeFilters/utils';
 import { setInScopeStatusOfFilters } from '../../actions/nativeFilters';
-import { NATIVE_FILTER_SECTION_PREFIX } from '../nativeFilters/FiltersConfigModal/utils';
+import { NATIVE_FILTER_DIVIDER_PREFIX } from '../nativeFilters/FiltersConfigModal/utils';
 
 type DashboardContainerProps = {
   topLevelTabs?: LayoutItem;
@@ -82,7 +82,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       return;
     }
     const scopes = filterScopes.map(filterScope => {
-      if (filterScope.id.startsWith(NATIVE_FILTER_SECTION_PREFIX)) {
+      if (filterScope.id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX)) {
         return {
           filterId: filterScope.id,
           tabsInScope: [],

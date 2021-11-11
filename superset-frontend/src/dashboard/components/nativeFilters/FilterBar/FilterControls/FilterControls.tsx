@@ -33,7 +33,7 @@ import {
 import {
   Filter,
   NativeFilterType,
-  Section,
+  Divider,
 } from 'src/dashboard/components/nativeFilters/types';
 import CascadePopover from '../CascadeFilters/CascadePopover';
 import { useFilters } from '../state';
@@ -87,11 +87,11 @@ const FilterControls: FC<FilterControlsProps> = ({
   const cascadePopoverFactory = useCallback(
     index => {
       const filter = cascadeFilters[index];
-      if (filter.type === NativeFilterType.SECTION) {
+      if (filter.type === NativeFilterType.DIVIDER) {
         return (
           <div>
-            <h3>{(filter as Section).title}</h3>
-            <p>{(filter as Section).description}</p>
+            <h3>{(filter as Divider).title}</h3>
+            <p>{(filter as Divider).description}</p>
           </div>
         );
       }
