@@ -98,7 +98,7 @@ class SqliteEngineSpec(BaseEngineSpec):
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, **kwargs: Any
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
         tt = target_type.upper()
         if tt in (utils.TemporalType.TEXT, utils.TemporalType.DATETIME):

@@ -251,7 +251,7 @@ class TestDbEngineSpecs(TestDbEngineSpec):
 
     def test_convert_dttm(self):
         dttm = self.get_dttm()
-        self.assertIsNone(BaseEngineSpec.convert_dttm("", dttm))
+        self.assertIsNone(BaseEngineSpec.convert_dttm("", dttm, db_extra=None))
 
     def test_pyodbc_rows_to_tuples(self):
         # Test for case when pyodbc.Row is returned (odbc driver)

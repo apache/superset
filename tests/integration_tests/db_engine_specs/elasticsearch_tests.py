@@ -30,7 +30,7 @@ class TestElasticSearchDbEngineSpec(TestDbEngineSpec):
         dttm = self.get_dttm()
 
         self.assertEqual(
-            ElasticSearchEngineSpec.convert_dttm("DATETIME", dttm),
+            ElasticSearchEngineSpec.convert_dttm("DATETIME", dttm, db_extra=None),
             "CAST('2019-01-02T03:04:05' AS DATETIME)",
         )
 
@@ -43,7 +43,7 @@ class TestElasticSearchDbEngineSpec(TestDbEngineSpec):
         db_extra = {"version": "7.8"}
 
         self.assertEqual(
-            ElasticSearchEngineSpec.convert_dttm("DATETIME", dttm, **db_extra),
+            ElasticSearchEngineSpec.convert_dttm("DATETIME", dttm, db_extra=db_extra),
             "DATETIME_PARSE('2019-01-02 03:04:05', 'yyyy-MM-dd HH:mm:ss')",
         )
 
@@ -54,7 +54,7 @@ class TestElasticSearchDbEngineSpec(TestDbEngineSpec):
         dttm = self.get_dttm()
 
         self.assertEqual(
-            OpenDistroEngineSpec.convert_dttm("DATETIME", dttm),
+            OpenDistroEngineSpec.convert_dttm("DATETIME", dttm, db_extra=None),
             "'2019-01-02T03:04:05'",
         )
 

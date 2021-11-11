@@ -353,7 +353,11 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         ],
     ) -> str:
         """Convert datetime object to a SQL expression string"""
-        sql = self.db_engine_spec.convert_dttm(self.type, dttm,**self.db_extra) if self.type else None
+        sql = (
+            self.db_engine_spec.convert_dttm(self.type, dttm, db_extra=self.db_extra)
+            if self.type
+            else None
+        )
 
         if sql:
             return sql
@@ -1486,10 +1490,11 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             value = value.item()
 
         column_ = columns_by_name[dimension]
+        db_extra: Dict[str, Any] = self.database.get_extra()
 
         if column_.type and column_.is_temporal and isinstance(value, str):
             sql = self.db_engine_spec.convert_dttm(
-                column_.type, dateutil.parser.parse(value),
+                column_.type, dateutil.parser.parse(value), db_extra=db_extra
             )
 
             if sql:
@@ -1504,8 +1509,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         groupby_exprs: Dict[str, Any],
         columns_by_name: Dict[str, TableColumn],
     ) -> ColumnElement:
-        db_extra: Dict[str, Any] = self.database.get_extra()
-        column_map = {column.column_name: column for column in self.columns}
         groups = []
         for _unused, row in df.iterrows():
             group = []

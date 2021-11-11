@@ -243,7 +243,7 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, **kwargs: Any
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:

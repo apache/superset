@@ -1403,7 +1403,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
                 dttm_col = col
         if dttm_col:
             dttm_expression = table.database.db_engine_spec.convert_dttm(
-                dttm_col.type, dttm,
+                dttm_col.type, dttm, db_extra=table.database.get_extra()
             )
             self.assertIn(dttm_expression, result["query"])
         else:

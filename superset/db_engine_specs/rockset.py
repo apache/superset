@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.utils import core as utils
@@ -51,7 +51,7 @@ class RocksetEngineSpec(BaseEngineSpec):
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, **kwargs: Any
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:

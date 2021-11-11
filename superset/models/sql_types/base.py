@@ -47,7 +47,7 @@ def literal_dttm_type_factory(
             def process(value: Any) -> Any:
                 if isinstance(value, datetime):
                     ts_expression = db_engine_spec.convert_dttm(
-                        col_type, value, **db_extra
+                        col_type, value, db_extra=db_extra
                     )
                     if ts_expression is None:
                         raise NotImplementedError(

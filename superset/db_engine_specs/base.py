@@ -691,7 +691,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def convert_dttm(  # pylint: disable=unused-argument
-        cls, target_type: str, dttm: datetime, **kwargs: Any,
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
         """
         Convert Python datetime object to a SQL expression
