@@ -1326,6 +1326,11 @@ def get_metric_names(metrics: Sequence[Metric]) -> List[str]:
     return [metric for metric in map(get_metric_name, metrics) if metric]
 
 
+def get_first_metric_name(metrics: Sequence[Metric]) -> Optional[str]:
+    metric_labels = get_metric_names(metrics)
+    return metric_labels[0] if metric_labels else None
+
+
 def ensure_path_exists(path: str) -> None:
     try:
         os.makedirs(path)
