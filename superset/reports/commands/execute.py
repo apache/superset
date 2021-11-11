@@ -28,6 +28,7 @@ from sqlalchemy.orm import Session
 from superset import app
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import CommandException
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.extensions import feature_flag_manager, machine_auth_provider_factory
 from superset.models.reports import (
     ReportDataFormat,
@@ -64,7 +65,6 @@ from superset.reports.notifications import create_notification
 from superset.reports.notifications.base import NotificationContent
 from superset.reports.notifications.exceptions import NotificationError
 from superset.utils.celery import session_scope
-from superset.utils.core import ChartDataResultFormat, ChartDataResultType
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
 from superset.utils.screenshots import (
     BaseScreenshot,
