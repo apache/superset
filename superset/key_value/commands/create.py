@@ -15,9 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from hashlib import sha3_256
+from secrets import token_urlsafe
 from typing import Any, Dict, List
-from uuid import uuid4
 
 from flask import current_app
 from flask_appbuilder.models.sqla import Model
@@ -40,8 +39,7 @@ class CreateKeyValueCommand(BaseCommand):
 
     def run(self) -> Model:
         try:
-            secretKey = current_app.config["SECRET_KEY"]
-            key = sha3_256(secretKey.encode() + str(uuid4()).encode()).hexdigest()
+            key = token_urlsafe(48)
             model = KeyValue(
                 created_by_fk=self._actor.id,
                 key=key,
