@@ -15,36 +15,34 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Iterator
-
-import pytest
-from flask_appbuilder import Model
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
 
+from superset.columns.models import Column
 
-@pytest.fixture()
-def session() -> Iterator[Session]:
+
+def test_column_model(session: Session) -> None:
     """
-    Create an in-memory SQLite session to test models.
+    Test basic attributes of a ``Column``.
     """
-    engine = create_engine("sqlite:///:memory:")
-    Session_ = sessionmaker(bind=engine)  # pylint: disable=invalid-name
-    in_memory_session = Session_()
+    column = Column(name="ds", type="TIMESTAMP", expression="ds",)
 
-    Model.metadata.create_all(engine)  # pylint: disable=no-member
+    session.add(column)
+    session.flush()
 
-    yield in_memory_session
+    assert column.id == 1
+    assert column.uuid is not None
 
+    assert column.name == "ds"
+    assert column.type == "TIMESTAMP"
+    assert column.expression == "ds"
 
-@pytest.fixture
-def app_context() -> Iterator[None]:
-    """
-    A fixture for running the test inside an app context.
-    """
-    from superset.app import create_app  # pylint: disable=import-outside-toplevel
-
-    app = create_app()
-    with app.app_context():
-        yield
+    # test that default values are set correctly
+    assert column.description is None
+    assert column.warning_text is None
+    assert column.units is None
+    assert column.is_temporal is False
+    assert column.is_spatial is False
+    assert column.is_partition is False
+    assert column.is_aggregation is False
+    assert column.is_additive is False
+    assert column.increase_good is True
