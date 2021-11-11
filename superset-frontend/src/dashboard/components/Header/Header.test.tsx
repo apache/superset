@@ -489,7 +489,7 @@ describe('Email Report Modal', () => {
     };
     render(setup(anonymousUserProps));
     expect(
-      screen.queryByRole('button', { name: 'Schedule email report' })
-    ).not.toBeInTheDocument()
+      screen.queryByRole('button', { name: 'Schedule email report' }),
+    ).not.toBeInTheDocument();
   });
 });
