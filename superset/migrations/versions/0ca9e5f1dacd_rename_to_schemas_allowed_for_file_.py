@@ -23,8 +23,8 @@ Create Date: 2021-11-11 04:18:26.171851
 """
 
 # revision identifiers, used by Alembic.
-revision = '0ca9e5f1dacd'
-down_revision = 'b92d69a6643c'
+revision = "0ca9e5f1dacd"
+down_revision = "b92d69a6643c"
 
 import json
 import logging
