@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import json
 from typing import Any, Dict
 
 from flask import g
@@ -33,10 +32,9 @@ def import_chart(
             return existing
         config["id"] = existing.id
 
-    # TODO (betodealmeida): move this logic to import_from_dict
-    config["params"] = json.dumps(config["params"])
-
-    chart = Slice.import_from_dict(session, config, recursive=False)
+    chart = Slice.import_from_dict(
+        session, config, {"params": "params"}, recursive=False
+    )
     if chart.id is None:
         session.flush()
 

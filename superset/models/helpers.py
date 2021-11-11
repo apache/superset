@@ -151,6 +151,7 @@ class ImportExportMixin:
         cls,
         session: Session,
         dict_rep: Dict[Any, Any],
+        dict_keys: Dict[Any, Any] = {},
         parent: Optional[Any] = None,
         recursive: bool = True,
         sync: Optional[List[str]] = None,
@@ -165,6 +166,17 @@ class ImportExportMixin:
             | set(parent_refs.keys())
             | {"uuid"}
         )
+
+        if dict_keys:
+            dict_rep = dict_rep.copy()
+            for key, new_name in dict_keys.items():
+                if dict_rep.get(key) is not None:
+                    value = dict_rep.pop(key)
+                    try:
+                        dict_rep[new_name] = json.dumps(value)
+                    except TypeError:
+                        logger.info("Unable to encode `%s` field: %s", key, value)
+
         new_children = {c: dict_rep[c] for c in cls.export_children if c in dict_rep}
         unique_constrains = cls._unique_constrains()
 

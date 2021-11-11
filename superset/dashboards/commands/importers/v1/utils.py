@@ -142,17 +142,7 @@ def import_dashboard(
             return existing
         config["id"] = existing.id
 
-    # TODO (betodealmeida): move this logic to import_from_dict
-    config = config.copy()
-    for key, new_name in JSON_KEYS.items():
-        if config.get(key) is not None:
-            value = config.pop(key)
-            try:
-                config[new_name] = json.dumps(value)
-            except TypeError:
-                logger.info("Unable to encode `%s` field: %s", key, value)
-
-    dashboard = Dashboard.import_from_dict(session, config, recursive=False)
+    dashboard = Dashboard.import_from_dict(session, config, JSON_KEYS, recursive=False)
     if dashboard.id is None:
         session.flush()
 

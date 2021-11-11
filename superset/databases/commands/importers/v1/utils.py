@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import json
 from typing import Any, Dict
 
 from sqlalchemy.orm import Session
@@ -32,17 +31,9 @@ def import_database(
             return existing
         config["id"] = existing.id
 
-    # https://github.com/apache/superset/pull/16756 renamed ``csv`` to ``file``.
-    config["allow_file_upload"] = config.pop("allow_csv_upload")
-    if "schemas_allowed_for_csv_upload" in config["extra"]:
-        config["extra"]["schemas_allowed_for_file_upload"] = config["extra"].pop(
-            "schemas_allowed_for_csv_upload"
-        )
-
-    # TODO (betodealmeida): move this logic to import_from_dict
-    config["extra"] = json.dumps(config["extra"])
-
-    database = Database.import_from_dict(session, config, recursive=False)
+    database = Database.import_from_dict(
+        session, config, {"extra": "extra"}, recursive=False
+    )
     if database.id is None:
         session.flush()
 
