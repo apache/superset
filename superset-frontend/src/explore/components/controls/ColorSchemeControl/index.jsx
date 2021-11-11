@@ -139,16 +139,20 @@ export default class ColorSchemeControl extends React.PureComponent {
     const { choices, schemes } = this.props;
     // save parsed schemes for later
     this.schemes = isFunction(schemes) ? schemes() : schemes;
-
-    const allColorOptions = (isFunction(choices) ? choices() : choices).filter(
-      o => o[0] !== 'SUPERSET_DEFAULT',
-    );
-    const options = allColorOptions.map(([value]) => ({
-      value,
-      label: this.schemes?.[value]?.label || value,
+    const controlChoices = isFunction(choices) ? choices() : choices;
+    const allColorOptions = [];
+    const filteredColorOptions = controlChoices.filter(o => {
+      const option = o[0];
+      const isValidColorOption =
+        option !== 'SUPERSET_DEFAULT' && !allColorOptions.includes(option);
+      allColorOptions.push(option);
+      return isValidColorOption;
+    });
+    const options = filteredColorOptions.map(([value]) => ({
       customLabel: this.renderOption(value),
+      label: this.schemes?.[value]?.label || value,
+      value,
     }));
-
     let currentScheme =
       this.props.value ||
       (this.props.default !== undefined ? this.props.default : undefined);
