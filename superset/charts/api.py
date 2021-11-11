@@ -67,17 +67,14 @@ from superset.charts.schemas import (
 )
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger, security_manager
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.utils.async_query_manager import AsyncQueryTokenException
-from superset.utils.core import (
-    ChartDataResultFormat,
-    ChartDataResultType,
-    json_int_dttm_ser,
-)
+from superset.utils.core import json_int_dttm_ser
 from superset.utils.screenshots import ChartScreenshot
 from superset.utils.urls import get_url_path
 from superset.views.base_api import (
