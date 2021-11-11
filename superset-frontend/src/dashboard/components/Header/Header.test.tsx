@@ -488,8 +488,8 @@ describe('Email Report Modal', () => {
       },
     };
     render(setup(anonymousUserProps));
-    expect(() =>
-      screen.getByRole('button', { name: 'Schedule email report' }),
-    ).toThrowError('Unable to find');
+    expect(
+      screen.queryByRole('button', { name: 'Schedule email report' })
+    ).not.toBeInTheDocument()
   });
 });
