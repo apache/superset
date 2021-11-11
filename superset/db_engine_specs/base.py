@@ -698,7 +698,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         :param target_type: The target type of expression
         :param dttm: The datetime object
-        :param kwargs: The database extra object
+        :param db_extra: The database extra object
         :return: The SQL expression
         """
         return None
