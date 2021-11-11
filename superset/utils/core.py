@@ -174,29 +174,6 @@ class GenericDataType(IntEnum):
     # ROW = 7
 
 
-class ChartDataResultFormat(str, Enum):
-    """
-    Chart data response format
-    """
-
-    CSV = "csv"
-    JSON = "json"
-
-
-class ChartDataResultType(str, Enum):
-    """
-    Chart data response type
-    """
-
-    COLUMNS = "columns"
-    FULL = "full"
-    QUERY = "query"
-    RESULTS = "results"
-    SAMPLES = "samples"
-    TIMEGRAINS = "timegrains"
-    POST_PROCESSED = "post_processed"
-
-
 class DatasourceDict(TypedDict):
     type: str
     id: int
