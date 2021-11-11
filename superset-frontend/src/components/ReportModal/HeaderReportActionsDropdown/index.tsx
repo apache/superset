@@ -61,10 +61,8 @@ export default function HeaderReportActionsDropDown({
     any,
     UserWithPermissionsAndRoles
   >(state => state.user || state.explore?.user);
-  const [
-    currentReportDeleting,
-    setCurrentReportDeleting,
-  ] = useState<AlertObject | null>(null);
+  const [currentReportDeleting, setCurrentReportDeleting] =
+    useState<AlertObject | null>(null);
   const theme = useTheme();
   const [showModal, setShowModal] = useState<boolean>(false);
   const toggleActiveKey = async (data: AlertObject, checked: boolean) => {
@@ -82,7 +80,7 @@ export default function HeaderReportActionsDropDown({
     if (!isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
       return false;
     }
-    if (!user) {
+    if (!user?.userId) {
       // this is in the case that there is an anonymous user.
       return false;
     }
