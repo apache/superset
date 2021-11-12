@@ -17,8 +17,6 @@
 
 import logging
 from enum import Enum
-from superset.extensions import feature_flag_manager
-from superset import config
 from time import sleep
 from typing import Any, Dict, Optional, Tuple, TYPE_CHECKING
 
@@ -54,7 +52,9 @@ class DashboardStandaloneMode(Enum):
 
 class WebDriverProxy:
     def __init__(
-        self, driver_type: str, window: Optional[WindowSize] = None,
+        self,
+        driver_type: str,
+        window: Optional[WindowSize] = None,
     ):
         self._driver_type = driver_type
         self._window: WindowSize = window or (800, 600)
@@ -62,22 +62,26 @@ class WebDriverProxy:
         self._screenshot_load_wait = current_app.config["SCREENSHOT_LOAD_WAIT"]
 
     def create(self) -> WebDriver:
+        pixel_density = current_app.config["WEBDRIVER_WINDOW"].get(
+            "pixel_density", 1)
         if self._driver_type == "firefox":
             driver_class = firefox.webdriver.WebDriver
             options = firefox.options.Options()
             profile = FirefoxProfile()
-            if feature_flag_manager.is_feature_enabled("SCREENSHOTS_USE_RETINA_HIRES"):
-                profile.set_preference("layout.css.devPixelsPerPx", "2")
+            profile.set_preference(
+                "layout.css.devPixelsPerPx",
+                str(pixel_density),
+            )
             kwargs: Dict[Any, Any] = dict(
                 options=options, firefox_profile=profile)
         elif self._driver_type == "chrome":
             driver_class = chrome.webdriver.WebDriver
             options = chrome.options.Options()
-            if feature_flag_manager.is_feature_enabled("SCREENSHOTS_USE_RETINA_HIRES"):
-                options.add_argument("--force-device-scale-factor=2")
+            options.add_argument(
+                f"--force-device-scale-factor={pixel_density}")
             options.add_argument(
                 f"--window-size={self._window[0]},{self._window[1]}")
-            kwargs: Dict[Any, Any] = dict(options=options)
+            kwargs = dict(options=options)
         else:
             raise Exception(
                 f"Webdriver name ({self._driver_type}) not supported")
@@ -113,7 +117,10 @@ class WebDriverProxy:
             pass
 
     def get_screenshot(
-        self, url: str, element_name: str, user: "User",
+        self,
+        url: str,
+        element_name: str,
+        user: "User",
     ) -> Optional[bytes]:
         params = {"standalone": DashboardStandaloneMode.REPORT.value}
         req = PreparedRequest()
