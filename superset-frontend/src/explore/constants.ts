@@ -115,10 +115,12 @@ export const TIME_FILTER_LABELS = {
 };
 
 export const FILTER_CONFIG_ATTRIBUTES = {
+  CLEARABLE: 'clearable',
   DEFAULT_VALUE: 'defaultValue',
   MULTIPLE: 'multiple',
   SEARCH_ALL_OPTIONS: 'searchAllOptions',
-  CLEARABLE: 'clearable',
+  SORT_ASCENDING: 'asc',
+  SORT_METRIC: 'metric',
 };
 
 export const FILTER_OPTIONS_LIMIT = 1000;
@@ -137,3 +139,15 @@ export const TIME_FILTER_MAP = {
 // TODO: make this configurable per Superset installation
 export const DEFAULT_TIME_RANGE = 'No filter';
 export const NO_TIME_RANGE = 'No filter';
+
+export enum FILTER_BOX_MIGRATION_STATES {
+  CONVERTED = 'CONVERTED',
+  NOOP = 'NOOP',
+  REVIEWING = 'REVIEWING',
+  SNOOZED = 'SNOOZED',
+  UNDECIDED = 'UNDECIDED',
+}
+
+export const FILTER_BOX_TRANSITION_SNOOZED_AT =
+  'filter_box_transition_snoozed_at';
+export const FILTER_BOX_TRANSITION_SNOOZE_DURATION = 24 * 60 * 60 * 1000; // 24 hours

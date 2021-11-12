@@ -124,8 +124,8 @@ const groupByControl = {
   default: [],
   includeTime: false,
   description: t(
-    'One or many columns to group by. High cardinality groupings should include a sort by metric ' +
-      'and series limit to limit the number of fetched and rendered series.',
+    'One or many columns to group by. High cardinality groupings should include a series limit ' +
+      'to limit the number of fetched and rendered series.',
   ),
   optionRenderer: c => <StyledColumnOption column={c} showType />,
   valueKey: 'column_name',
@@ -361,10 +361,7 @@ export const controls = {
     validators: [legacyValidateInteger],
     default: 10000,
     choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
-    description: t(
-      'Limits the number of rows that get displayed. Should be used in conjunction with a sort ' +
-        'by metric.',
-    ),
+    description: t('Limits the number of rows that get displayed.'),
   },
 
   limit: {
@@ -375,11 +372,10 @@ export const controls = {
     choices: formatSelectOptions(SERIES_LIMITS),
     clearable: true,
     description: t(
-      'Limits the number of series that get displayed. Should be used in conjunction with a sort ' +
-        'by metric. A joined subquery (or an extra phase where subqueries are not supported) is ' +
-        'applied to limit the number of series that get fetched and rendered. This feature is ' +
-        'useful when grouping by high cardinality column(s) though does increase the query ' +
-        'complexity and cost.',
+      'Limits the number of series that get displayed. A joined subquery (or an extra phase ' +
+        'where subqueries are not supported) is applied to limit the number of series that get ' +
+        'fetched and rendered. This feature is useful when grouping by high cardinality ' +
+        'column(s) though does increase the query complexity and cost.',
     ),
   },
 
@@ -389,8 +385,8 @@ export const controls = {
     default: null,
     clearable: true,
     description: t(
-      'Metric used to define the top series. Should be used in conjunction with the series or ' +
-        'row limit',
+      'Metric used to define how the top series are sorted if a series or row limit is present. ' +
+        'If undefined reverts to the first metric (where appropriate).',
     ),
     mapStateToProps: state => ({
       columns: state.datasource ? state.datasource.columns : [],

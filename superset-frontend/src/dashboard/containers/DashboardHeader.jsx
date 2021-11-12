@@ -101,6 +101,7 @@ function mapStateToProps({
     slug: dashboardInfo.slug,
     metadata: dashboardInfo.metadata,
     reports,
+    filterboxMigrationState: dashboardState.filterboxMigrationState,
   };
 }
 

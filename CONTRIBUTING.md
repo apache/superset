@@ -436,11 +436,11 @@ pip install -r requirements/testing.txt
 # Install Superset in editable (development) mode
 pip install -e .
 
-# Create an admin user in your metadata database (use `admin` as username to be able to load the examples)
-superset fab create-admin
-
 # Initialize the database
 superset db upgrade
+
+# Create an admin user in your metadata database (use `admin` as username to be able to load the examples)
+superset fab create-admin
 
 # Create default roles and permissions
 superset init
@@ -904,7 +904,7 @@ apt install -y net-tools
 pip install debugpy
 ```
 
-Find the PID for the Flask process. Make sure to use the first PID. The Flask app will re-spawn a sub-process everytime you change any of the python code. So it's important to use the first PID.
+Find the PID for the Flask process. Make sure to use the first PID. The Flask app will re-spawn a sub-process every time you change any of the python code. So it's important to use the first PID.
 
 ```bash
 ps -ef
@@ -975,7 +975,7 @@ Once the pod is running as root and has the SYS_PTRACE capability it will be abl
 
 You can follow the same instructions as in the docker-compose. Enter the pod and install the required library and packages; gdb, netstat and debugpy.
 
-Often in a kuernetes environment nodes are not addressable from ouside the cluster. VSCode will thus be unable to remotely connect to port 5678 on a kubernetes node. In order to do this you need to create a tunnel that port forwards 5678 to your local machine.
+Often in a Kubernetes environment nodes are not addressable from outside the cluster. VSCode will thus be unable to remotely connect to port 5678 on a Kubernetes node. In order to do this you need to create a tunnel that port forwards 5678 to your local machine.
 
 ```
 kubectl port-forward  pod/superset-<some random id> 5678:5678
@@ -1341,7 +1341,7 @@ Chart parameters are stored as a JSON encoded string the `slices.params` column 
 
 The following tables provide a non-exhausive list of the various fields which can be present in the JSON object grouped by the Explorer pane sections. These values were obtained by extracting the distinct fields from a legacy deployment consisting of tens of thousands of charts and thus some fields may be missing whilst others may be deprecated.
 
-Note not all fields are correctly catagorized. The fields vary based on visualization type and may apprear in different sections depending on the type. Verified deprecated columns may indicate a missing migration and/or prior migrations which were unsucessful and thus future work may be required to clean up the form-data.
+Note not all fields are correctly categorized. The fields vary based on visualization type and may apprear in different sections depending on the type. Verified deprecated columns may indicate a missing migration and/or prior migrations which were unsuccessful and thus future work may be required to clean up the form-data.
 
 ### Datasource & Chart Type
 
