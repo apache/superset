@@ -30,7 +30,7 @@ with io.open("README.md", "r", encoding="utf-8") as f:
     long_description = f.read()
 
 
-def get_version():
+def get_version() -> str:
     version_string = "1.3.2"  # current latest as last fallback
     try:
         s = subprocess.check_output(["git", "describe", "--tags", "--abbrev=0"])
