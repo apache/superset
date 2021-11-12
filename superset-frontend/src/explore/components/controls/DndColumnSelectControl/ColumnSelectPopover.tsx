@@ -62,6 +62,21 @@ interface ColumnSelectPopoverProps {
   isAdhocColumnsEnabled: boolean;
 }
 
+const getInitialColumnValues = (
+  editedColumn?: ColumnMeta | AdhocColumn,
+): [AdhocColumn?, ColumnMeta?, ColumnMeta?] => {
+  if (!editedColumn) {
+    return [undefined, undefined, undefined];
+  }
+  if (isAdhocColumn(editedColumn)) {
+    return [editedColumn, undefined, undefined];
+  }
+  if (isSavedExpression(editedColumn)) {
+    return [undefined, editedColumn, undefined];
+  }
+  return [undefined, undefined, editedColumn];
+};
+
 const ColumnSelectPopover = ({
   columns,
   editedColumn,
@@ -73,17 +88,12 @@ const ColumnSelectPopover = ({
   isAdhocColumnsEnabled,
 }: ColumnSelectPopoverProps) => {
   const [initialLabel] = useState(label);
-  const [initialAdhocColumn, initialCalculatedColumn, initialSimpleColumn]: [
-    AdhocColumn?,
-    ColumnMeta?,
-    ColumnMeta?,
-  ] = !editedColumn
-    ? [undefined, undefined, undefined]
-    : isAdhocColumn(editedColumn)
-    ? [editedColumn, undefined, undefined]
-    : isSavedExpression(editedColumn)
-    ? [undefined, editedColumn, undefined]
-    : [undefined, undefined, editedColumn as ColumnMeta];
+  const [
+    initialAdhocColumn,
+    initialCalculatedColumn,
+    initialSimpleColumn,
+  ] = getInitialColumnValues(editedColumn);
+
   const [adhocColumn, setAdhocColumn] = useState<AdhocColumn | undefined>(
     initialAdhocColumn,
   );
