@@ -20,14 +20,19 @@
 import React from 'react';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
 import { withKnobs } from '@storybook/addon-knobs';
-import { EchartsRadarChartPlugin } from '@superset-ui/plugin-chart-echarts';
-import transformProps from '@superset-ui/plugin-chart-echarts/lib/Radar/transformProps';
+import {
+  EchartsRadarChartPlugin,
+  RadarTransformProps,
+} from '@superset-ui/plugin-chart-echarts';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 import { basic } from './data';
 
 new EchartsRadarChartPlugin().configure({ key: 'echarts-radar' }).register();
 
-getChartTransformPropsRegistry().registerValue('echarts-radar', transformProps);
+getChartTransformPropsRegistry().registerValue(
+  'echarts-radar',
+  RadarTransformProps,
+);
 
 export default {
   title: 'Chart Plugins/plugin-chart-echarts/Radar',

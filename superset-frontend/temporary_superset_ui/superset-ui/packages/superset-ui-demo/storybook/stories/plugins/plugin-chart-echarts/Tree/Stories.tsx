@@ -20,14 +20,19 @@
 import React from 'react';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
 import { select, withKnobs, text, number } from '@storybook/addon-knobs';
-import { EchartsTreeChartPlugin } from '@superset-ui/plugin-chart-echarts';
-import transformProps from '@superset-ui/plugin-chart-echarts/lib/Tree/transformProps';
+import {
+  EchartsTreeChartPlugin,
+  TreeTransformProps,
+} from '@superset-ui/plugin-chart-echarts';
 import data from './data';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 
 new EchartsTreeChartPlugin().configure({ key: 'echarts-tree' }).register();
 
-getChartTransformPropsRegistry().registerValue('echarts-tree', transformProps);
+getChartTransformPropsRegistry().registerValue(
+  'echarts-tree',
+  TreeTransformProps,
+);
 
 export default {
   title: 'Chart Plugins/plugin-chart-echarts/Tree',
