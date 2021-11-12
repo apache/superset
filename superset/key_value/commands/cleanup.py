@@ -18,8 +18,8 @@ import logging
 from datetime import datetime, timedelta
 
 from superset.commands.base import BaseCommand
-from superset.models.key_value import KeyValue
 from superset.key_value.utils import is_expired
+from superset.models.key_value import KeyValueEntry
 from superset.utils.celery import session_scope
 
 logger = logging.getLogger(__name__)
@@ -36,7 +36,7 @@ class CleanupCommand(BaseCommand):
     def run(self) -> None:
         logger.info("Key value store cleanup starting")
         with session_scope(nullpool=True) as session:
-           for keyValue in session.query(KeyValue).all():
+            for keyValue in session.query(KeyValueEntry).all():
                 if is_expired(keyValue):
                     session.delete(keyValue)
                     session.commit()

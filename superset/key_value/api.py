@@ -33,16 +33,17 @@ from superset.key_value.commands.exceptions import (
 from superset.key_value.commands.get import GetKeyValueCommand
 from superset.key_value.commands.update import UpdateKeyValueCommand
 from superset.key_value.dao import KeyValueDAO
-from superset.key_value.schemas import KeyValueSchema
-from superset.models.key_value import KeyValue
+from superset.key_value.schemas import KeyValuePostSchema, KeyValuePutSchema
+from superset.models.key_value import KeyValueEntry
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
 
 logger = logging.getLogger(__name__)
 
 
 class KeyValueRestApi(BaseSupersetModelRestApi):
-    datamodel = SQLAInterface(KeyValue)
-    schema = KeyValueSchema()
+    datamodel = SQLAInterface(KeyValueEntry)
+    add_model_schema = KeyValuePostSchema()
+    edit_model_schema = KeyValuePutSchema()
     class_permission_name = "KeyValue"
     resource_name = "key_value_store"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
@@ -54,6 +55,10 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
     }
     allow_browser_login = True
     openapi_spec_tag = "Key Value Store"
+    openapi_spec_component_schemas = (
+        KeyValuePostSchema,
+        KeyValuePutSchema,
+    )
 
     @expose("/", methods=["POST"])
     @protect()
@@ -70,27 +75,12 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
           description: >-
             Stores a new value.
           requestBody:
-            description: Key value schema
             required: true
             content:
               application/json:
                 schema:
                     type: object
-                    properties:
-                      value:
-                        type: string
-                        description: Any type of JSON supported value.
-                        required: true
-                      duration_ms:
-                        type: number
-                        description: The duration of the value on the key store. If no duration is specified the value won't expire.
-                        required: false
-                        default: null
-                      reset_duration_on_retrieval:
-                        type: boolean
-                        description: If the duration should be reset when the value is retrieved. This is useful if you wish to expire unused values but keep the ones that are actively retrieved.
-                        required: false
-                        default: true
+                    $ref: '#/components/schemas/KeyValuePostSchema'
           responses:
             201:
               description: The value was stored successfully. It returns the key to retrieve the value.
@@ -114,7 +104,7 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
         try:
-            item = self.schema.load(request.json)
+            item = self.add_model_schema.load(request.json)
             key = CreateKeyValueCommand(g.user, item).run()
             return self.response(201, key=key)
         except KeyValueCreateFailedError as ex:
@@ -146,29 +136,15 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
               type: string
             name: key
           requestBody:
-            description: Key value schema
             required: true
             content:
               application/json:
                 schema:
                     type: object
-                    properties:
-                      value:
-                        type: string
-                        description: Any type of JSON supported value.
-                        required: true
-                      duration_ms:
-                        type: number
-                        description: The duration of the value on the key store. If no duration is specified the value won't expire.
-                        required: false
-                        default: null
-                      reset_duration_on_retrieval:
-                        type: boolean
-                        description: If the duration should be reset when the value is retrieved. This is useful if you wish to expire unused values but keep the ones that are actively retrieved.
-                        required: false
-                        default: true
+                    $ref: '#/components/schemas/KeyValuePutSchema'
           responses:
             201:
+              description: The value was stored successfully.
               content:
                 application/json:
                   schema:
@@ -176,6 +152,7 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
                     properties:
                       message:
                         type: string
+                        description: The result of the operation
             400:
               $ref: '#/components/responses/400'
             401:
@@ -190,7 +167,7 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
         try:
-            item = self.schema.load(request.json)
+            item = self.edit_model_schema.load(request.json)
             model = UpdateKeyValueCommand(g.user, key, item).run()
             if not model:
                 return self.response_404()
@@ -225,6 +202,7 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
             name: key
           responses:
             201:
+              description: Returns the stored value.
               content:
                 application/json:
                   schema:
@@ -232,13 +210,7 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
                     properties:
                       value:
                         type: string
-                        description: Any type of JSON supported value.
-                      duration_ms:
-                        type: number
-                        description: The duration of the value on the key store. If no duration is specified the value won't expire.
-                      reset_duration_on_retrieval:
-                        type: boolean
-                        description: If the duration should be reset when the value is retrieved. This is useful if you wish to expire unused values but keep the ones that are actively retrieved.
+                        description: The stored value
             400:
               $ref: '#/components/responses/400'
             401:
@@ -254,13 +226,7 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
             model = GetKeyValueCommand(g.user, key).run()
             if not model:
                 return self.response_404()
-            result = self.schema.dump(model)
-            return self.response(
-                200,
-                duration_ms=result.get("duration_ms"),
-                reset_duration_on_retrieval=result.get("reset_duration_on_retrieval"),
-                value=result.get("value"),
-            )
+            return self.response(200, value=model.value,)
         except KeyValueGetFailedError as ex:
             logger.error(
                 "Error accessing the value %s: %s",
@@ -291,6 +257,7 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
             name: key
           responses:
             201:
+              description: Deleted the stored value.
               content:
                 application/json:
                   schema:
@@ -298,6 +265,7 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
                     properties:
                       message:
                         type: string
+                        description: The result of the operation
             400:
               $ref: '#/components/responses/400'
             401:

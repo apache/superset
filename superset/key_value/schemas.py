@@ -17,7 +17,35 @@
 from marshmallow import fields, Schema
 
 
-class KeyValueSchema(Schema):
-    value = fields.String(required=True, allow_none=False)
-    duration_ms = fields.Integer(required=False, allow_none=True)
-    reset_duration_on_retrieval = fields.Boolean(required=False, allow_none=False)
+class KeyValuePostSchema(Schema):
+    value = fields.String(
+        required=True, allow_none=False, description="Any type of JSON supported value."
+    )
+    duration_ms = fields.Integer(
+        required=False,
+        allow_none=True,
+        description="The duration of the value on the key store. If no duration is specified the value won't expire.",
+    )
+    reset_duration_on_retrieval = fields.Boolean(
+        required=False,
+        allow_none=False,
+        default=True,
+        description="If the duration should be reset when the value is retrieved. This is useful if you wish to expire unused values but keep the ones that are actively retrieved.",
+    )
+
+
+class KeyValuePutSchema(Schema):
+    value = fields.String(
+        required=True, allow_none=False, description="Any type of JSON supported value."
+    )
+    duration_ms = fields.Integer(
+        required=False,
+        allow_none=True,
+        description="The duration of the value on the key store. If no duration is specified the value won't expire.",
+    )
+    reset_duration_on_retrieval = fields.Boolean(
+        required=False,
+        allow_none=False,
+        default=True,
+        description="If the duration should be reset when the value is retrieved. This is useful if you wish to expire unused values but keep the ones that are actively retrieved.",
+    )

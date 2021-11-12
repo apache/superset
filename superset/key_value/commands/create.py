@@ -27,7 +27,7 @@ from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAOException
 from superset.key_value.commands.exceptions import KeyValueCreateFailedError
 from superset.key_value.dao import KeyValueDAO
-from superset.models.key_value import KeyValue
+from superset.models.key_value import KeyValueEntry
 
 logger = logging.getLogger(__name__)
 
@@ -40,8 +40,7 @@ class CreateKeyValueCommand(BaseCommand):
     def run(self) -> Model:
         try:
             key = token_urlsafe(48)
-            model = KeyValue(
-                created_by_fk=self._actor.id,
+            model = KeyValueEntry(
                 key=key,
                 value=self._properties.get("value"),
                 duration_ms=self._properties.get("duration_ms"),

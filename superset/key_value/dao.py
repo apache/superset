@@ -25,20 +25,20 @@ from superset.dao.exceptions import (
     DAOUpdateFailedError,
 )
 from superset.extensions import db
-from superset.models.key_value import KeyValue
 from superset.key_value.utils import is_expired
+from superset.models.key_value import KeyValueEntry
 
 logger = logging.getLogger(__name__)
 
 # TODO: Extend from BaseDAO when it supports generic IDs.
 class KeyValueDAO:
     @staticmethod
-    def find_by_id(id: str) -> Optional[KeyValue]:
+    def find_by_id(id: str) -> Optional[KeyValueEntry]:
         """
         Finds a value that has been stored using a particular key
         """
         try:
-            model = db.session.query(KeyValue).filter_by(key=id).one_or_none()
+            model = db.session.query(KeyValueEntry).filter_by(key=id).one_or_none()
             if model and is_expired(model):
                 return None
             return model
@@ -47,7 +47,7 @@ class KeyValueDAO:
             return None
 
     @staticmethod
-    def create(model: KeyValue) -> KeyValue:
+    def create(model: KeyValueEntry) -> KeyValueEntry:
         """
         Creates a value for a particular key
         """
@@ -60,7 +60,7 @@ class KeyValueDAO:
             raise DAOCreateFailedError(exception=ex) from ex
 
     @staticmethod
-    def delete(model: KeyValue) -> KeyValue:
+    def delete(model: KeyValueEntry) -> KeyValueEntry:
         """
         Deletes a value for a particular key
         """
@@ -73,7 +73,7 @@ class KeyValueDAO:
             raise DAODeleteFailedError(exception=ex) from ex
 
     @staticmethod
-    def update(model: KeyValue) -> KeyValue:
+    def update(model: KeyValueEntry) -> KeyValueEntry:
         """
         Updates a value for a particular key
         """

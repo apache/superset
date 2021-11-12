@@ -15,13 +15,19 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime, timedelta
-from superset.models.key_value import KeyValue
+
 from sqlalchemy import Boolean
 
+from superset.models.key_value import KeyValueEntry
 
-def is_expired(keyValue: KeyValue) -> Boolean:
+
+def is_expired(keyValue: KeyValueEntry) -> Boolean:
     if keyValue.duration_ms is not None:
-        compare = keyValue.retrieved_on if keyValue.reset_duration_on_retrieval else keyValue.created_on
+        compare = (
+            keyValue.retrieved_on
+            if keyValue.reset_duration_on_retrieval
+            else keyValue.created_on
+        )
         if datetime.utcnow() > compare + timedelta(milliseconds=keyValue.duration_ms):
             return True
     return False

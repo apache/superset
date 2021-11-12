@@ -17,18 +17,18 @@
 from datetime import datetime
 
 from flask_appbuilder import Model
-from sqlalchemy import Boolean, Column, DateTime, String, ForeignKey, Integer, Text
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
 
-# TODO: Inherit from helpers.py/AuditMixinNullable
-class KeyValue(Model):
+from superset.models.helpers import AuditMixinNullable
+
+
+class KeyValueEntry(Model, AuditMixinNullable):
 
     """Key value store entity"""
 
     __tablename__ = "key_value"
     key = Column(String(64), primary_key=True)
     value = Column(Text, nullable=False)
-    created_by_fk = Column(Integer, ForeignKey("ab_user.id"))
-    created_on = Column(DateTime, default=datetime.utcnow)
     duration_ms = Column(Integer, nullable=True)
     reset_duration_on_retrieval = Column(Boolean, nullable=False, default=True)
-    retrieved_on = Column(DateTime, default=datetime.utcnow)
+    retrieved_on = Column(DateTime, default=datetime.now)

@@ -43,6 +43,12 @@ def upgrade():
         sa.Column("reset_duration_on_retrieval", sa.Boolean(), nullable=False),
         sa.Column("retrieved_on", sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint("key"),
+        # Audit Mixin
+        sa.Column("created_on", sa.DateTime(), nullable=True),
+        sa.Column("changed_on", sa.DateTime(), nullable=True),
+        sa.Column("created_by_fk", sa.Integer(), nullable=True),
+        sa.Column("changed_by_fk", sa.Integer(), nullable=True),
+        sa.ForeignKeyConstraint(["changed_by_fk"], ["ab_user.id"]),
         sa.ForeignKeyConstraint(["created_by_fk"], ["ab_user.id"]),
     )
     # ### end Alembic commands ###
