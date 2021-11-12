@@ -199,7 +199,7 @@ test('should show the properties modal', async () => {
   expect(editModeOnProps.showPropertiesModal).toHaveBeenCalledTimes(1);
 });
 
-test('should only apply changes in the properties modal', async () => {
+test('should display the Apply button when opening the modal', async () => {
   render(setup(editModeOnProps));
   await openDropdown();
   userEvent.click(screen.getByText('Edit dashboard properties'));
