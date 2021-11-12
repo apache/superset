@@ -33,7 +33,44 @@ module.exports = {
     browser: true,
   },
   settings: {
-    'import/resolver': 'webpack',
+    'import/resolver': {
+      webpack: {},
+      node: {
+        extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
+      },
+    },
+    // Allow only core/src and core/test, avoid import modules from lib
+    'import/internal-regex': /^@superset-ui\/core\/(src|test)\/.*/,
+    'import/core-modules': [
+      '@superset-ui/core',
+      '@superset-ui/chart-controls',
+      '@superset-ui/legacy-plugin-chart-calendar',
+      '@superset-ui/legacy-plugin-chart-chord',
+      '@superset-ui/legacy-plugin-chart-country-map',
+      '@superset-ui/legacy-plugin-chart-event-flow',
+      '@superset-ui/legacy-plugin-chart-force-directed',
+      '@superset-ui/legacy-plugin-chart-heatmap',
+      '@superset-ui/legacy-plugin-chart-histogram',
+      '@superset-ui/legacy-plugin-chart-horizon',
+      '@superset-ui/legacy-plugin-chart-map-box',
+      '@superset-ui/legacy-plugin-chart-paired-t-test',
+      '@superset-ui/legacy-plugin-chart-parallel-coordinates',
+      '@superset-ui/legacy-plugin-chart-partition',
+      '@superset-ui/legacy-plugin-chart-pivot-table',
+      '@superset-ui/legacy-plugin-chart-rose',
+      '@superset-ui/legacy-plugin-chart-sankey',
+      '@superset-ui/legacy-plugin-chart-sankey-loop',
+      '@superset-ui/legacy-plugin-chart-sunburst',
+      '@superset-ui/legacy-plugin-chart-time-table',
+      '@superset-ui/legacy-plugin-chart-treemap',
+      '@superset-ui/legacy-plugin-chart-world-map',
+      '@superset-ui/legacy-preset-chart-big-number',
+      '@superset-ui/legacy-preset-chart-nvd3',
+      '@superset-ui/plugin-chart-echarts',
+      '@superset-ui/plugin-chart-table',
+      '@superset-ui/plugin-chart-word-cloud',
+      '@superset-ui/preset-chart-xy',
+    ],
     react: {
       version: 'detect',
     },
@@ -76,11 +113,11 @@ module.exports = {
         '@typescript-eslint/no-empty-function': 0,
         '@typescript-eslint/no-explicit-any': 0,
         '@typescript-eslint/no-use-before-define': 1, // disabled temporarily
+        '@typescript-eslint/no-non-null-assertion': 0, // disabled temporarily
         '@typescript-eslint/explicit-function-return-type': 0,
         '@typescript-eslint/explicit-module-boundary-types': 0, // re-enable up for discussion
         camelcase: 0,
         'class-methods-use-this': 0,
-        curly: 1,
         'func-names': 0,
         'guard-for-in': 0,
         'import/no-cycle': 0, // re-enable up for discussion, might require some major refactors
@@ -170,11 +207,11 @@ module.exports = {
     },
     {
       files: [
-        'src/**/*.test.ts',
-        'src/**/*.test.tsx',
-        'src/**/*.test.js',
-        'src/**/*.test.jsx',
-        'src/**/fixtures.*',
+        '*.test.ts',
+        '*.test.tsx',
+        '*.test.js',
+        '*.test.jsx',
+        'fixtures.*',
       ],
       plugins: ['jest', 'jest-dom', 'no-only-tests', 'testing-library'],
       env: {
@@ -195,9 +232,27 @@ module.exports = {
           'error',
           { devDependencies: true },
         ],
-        'jest/consistent-test-it': 'error',
         'no-only-tests/no-only-tests': 'error',
+        'max-classes-per-file': 0,
         '@typescript-eslint/no-non-null-assertion': 0,
+        'jest/consistent-test-it': 'error',
+        'jest/expect-expect': 0,
+        'jest/no-test-prefixes': 0,
+        'jest/valid-expect-in-promise': 0,
+        'jest/valid-expect': 0,
+        'jest/valid-title': 0,
+        'jest-dom/prefer-to-have-attribute': 0,
+        'jest-dom/prefer-to-have-text-content': 0,
+        'jest-dom/prefer-to-have-style': 0,
+      },
+    },
+    {
+      files: './packages/generator-superset/**/*.test.*',
+      env: {
+        node: true,
+      },
+      rules: {
+        'jest/expect-expect': 0,
       },
     },
   ],
@@ -210,7 +265,7 @@ module.exports = {
       },
     ],
     'class-methods-use-this': 0,
-    curly: 1,
+    curly: 2,
     'func-names': 0,
     'guard-for-in': 0,
     'import/extensions': [
