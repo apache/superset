@@ -252,9 +252,9 @@ export default class CRUDCollection extends React.PureComponent<
         }
 
         // newly ordered collection
-        const sorted = [
-          ...this.state.collectionArray,
-        ].sort((a: object, b: object) => compareSort(a[col], b[col]));
+        const sorted = [...this.state.collectionArray].sort(
+          (a: object, b: object) => compareSort(a[col], b[col]),
+        );
         const newCollection =
           sort === SortOrder.asc ? sorted : sorted.reverse();
 
@@ -280,12 +280,8 @@ export default class CRUDCollection extends React.PureComponent<
 
   renderHeaderRow() {
     const cols = this.effectiveTableColumns();
-    const {
-      allowDeletes,
-      expandFieldset,
-      extraButtons,
-      sortColumns,
-    } = this.props;
+    const { allowDeletes, expandFieldset, extraButtons, sortColumns } =
+      this.props;
     return (
       <thead>
         <tr>
@@ -322,12 +318,8 @@ export default class CRUDCollection extends React.PureComponent<
   }
 
   renderItem(record: any) {
-    const {
-      allowAddItem,
-      allowDeletes,
-      expandFieldset,
-      tableColumns,
-    } = this.props;
+    const { allowAddItem, allowDeletes, expandFieldset, tableColumns } =
+      this.props;
     /* eslint-disable no-underscore-dangle */
     const isExpanded =
       !!this.state.expandedColumns[record.id] || record.__expanded;

@@ -103,15 +103,18 @@ enum FILTER_COMPONENT_FILTER_TYPES {
   FILTER_RANGE = 'filter_range',
 }
 
-const getPreselectedValuesFromDashboard = (
-  preselectedFilters: PreselectedFiltersMeatadata,
-) => (filterKey: string, column: string) => {
-  if (preselectedFilters[filterKey] && preselectedFilters[filterKey][column]) {
-    // overwrite default values by dashboard default_filters
-    return preselectedFilters[filterKey][column];
-  }
-  return null;
-};
+const getPreselectedValuesFromDashboard =
+  (preselectedFilters: PreselectedFiltersMeatadata) =>
+  (filterKey: string, column: string) => {
+    if (
+      preselectedFilters[filterKey] &&
+      preselectedFilters[filterKey][column]
+    ) {
+      // overwrite default values by dashboard default_filters
+      return preselectedFilters[filterKey][column];
+    }
+    return null;
+  };
 
 const getFilterBoxDefaultValues = (config: FilterConfig) => {
   let defaultValues = config[FILTER_CONFIG_ATTRIBUTES.DEFAULT_VALUE];
@@ -218,9 +221,8 @@ export default function getNativeFilterConfig(
         time_range,
       } = slice.form_data;
 
-      const getDashboardDefaultValues = getPreselectedValuesFromDashboard(
-        preselectFilters,
-      );
+      const getDashboardDefaultValues =
+        getPreselectedValuesFromDashboard(preselectFilters);
 
       if (date_filter) {
         const { scope, immune }: FilterScopeType =
@@ -488,9 +490,8 @@ export default function getNativeFilterConfig(
     }
   });
 
-  const dependencies: FilterBoxDependencyMap = getFilterboxDependencies(
-    filterScopes,
-  );
+  const dependencies: FilterBoxDependencyMap =
+    getFilterboxDependencies(filterScopes);
   Object.entries(dependencies).forEach(([key, filterFields]) => {
     Object.entries(filterFields).forEach(([field, childrenChartIds]) => {
       const parentComponentId = filterBoxToFilterComponentMap[key][field];
