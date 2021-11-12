@@ -48,13 +48,12 @@ def _extract_limit_from_query_td(statement: TokenList) -> Optional[int]:
     limit = None
 
     for i in range(len(token)):
-        if any(limitword in token[i].upper() for limitword in td_limit_keywork):
-            if len(token) - 1 > i:
-                try:
-                    limit = int(token[i + 1])
-                except ValueError:
-                    limit = None
-                break
+        if any(limitword in token[i].upper() for limitword in td_limit_keywork) and len(token) - 1 > i:
+            try:
+                limit = int(token[i + 1])
+            except ValueError:
+                limit = None
+            break
     return limit
 
 
@@ -128,11 +127,11 @@ class ParsedQuery_td:
                 if isinstance(item, Identifier):
                     self._process_tokenlist(item)
                 elif isinstance(item, IdentifierList):
-                    for token2 in item.get_identifiers():
-                        if isinstance(token2, TokenList):
-                            self._process_tokenlist(token2)
+                    for ItemList in item.get_identifiers():
+                        if isinstance(ItemList, TokenList):
+                            self._process_tokenlist(ItemList)
             elif isinstance(item, IdentifierList):
-                if any(not self._is_identifier(token2) for token2 in item.tokens):
+                if any(not self._is_identifier(ItemList) for ItemList in item.tokens):
                     self._extract_from_token(item)
 
     @staticmethod
