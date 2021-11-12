@@ -117,6 +117,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.async_events.api import AsyncEventsRestApi
         from superset.cachekeys.api import CacheRestApi
         from superset.charts.api import ChartRestApi
+        from superset.charts.data.api import ChartDataRestApi
         from superset.connectors.druid.views import (
             Druid,
             DruidClusterModelView,
@@ -199,6 +200,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(AsyncEventsRestApi)
         appbuilder.add_api(CacheRestApi)
         appbuilder.add_api(ChartRestApi)
+        appbuilder.add_api(ChartDataRestApi)
         appbuilder.add_api(CssTemplateRestApi)
         appbuilder.add_api(DashboardRestApi)
         appbuilder.add_api(DatabaseRestApi)

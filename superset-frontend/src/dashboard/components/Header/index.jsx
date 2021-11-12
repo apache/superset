@@ -435,7 +435,7 @@ class Header extends React.PureComponent {
       return false;
     }
     const { user } = this.props;
-    if (!user) {
+    if (!user?.userId) {
       // this is in the case that there is an anonymous user.
       return false;
     }
