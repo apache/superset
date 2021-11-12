@@ -88,7 +88,7 @@ describe('Datasource control', () => {
   });
 });
 
-describe.only('VizType control', () => {
+describe('VizType control', () => {
   beforeEach(() => {
     cy.login();
     interceptChart({ legacy: false }).as('tableChartData');
@@ -113,7 +113,7 @@ describe.only('VizType control', () => {
   });
 });
 
-describe.only('Test datatable', () => {
+describe('Test datatable', () => {
   beforeEach(() => {
     cy.login();
     interceptChart({ legacy: false }).as('tableChartData');
