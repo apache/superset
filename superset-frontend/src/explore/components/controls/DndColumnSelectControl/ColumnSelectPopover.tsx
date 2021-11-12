@@ -37,6 +37,7 @@ import { Select } from 'src/components';
 import { Form, FormItem } from 'src/components/Form';
 import { SQLEditor } from 'src/components/AsyncAceEditor';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
+import { POPOVER_INITIAL_HEIGHT } from 'src/explore/constants';
 
 const StyledSelect = styled(Select)`
   .metric-option {
@@ -61,7 +62,6 @@ interface ColumnSelectPopoverProps {
   isAdhocColumnsEnabled: boolean;
 }
 
-const height = 240;
 const ColumnSelectPopover = ({
   columns,
   editedColumn,
@@ -228,7 +228,7 @@ const ColumnSelectPopover = ({
         className="adhoc-metric-edit-tabs"
         allowOverflow
         css={css`
-          height: ${height}px;
+          height: ${POPOVER_INITIAL_HEIGHT}px;
         `}
       >
         <Tabs.TabPane key="saved" tab={t('Saved')}>
@@ -284,7 +284,7 @@ const ColumnSelectPopover = ({
               showLoadingForImport
               onChange={onSqlExpressionChange}
               width="100%"
-              height={`${height - 80}px`}
+              height={`${POPOVER_INITIAL_HEIGHT - 80}px`}
               showGutter={false}
               editorProps={{ $blockScrolling: true }}
               enableLiveAutocompletion
