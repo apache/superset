@@ -23,8 +23,8 @@ import { select, withKnobs } from '@storybook/addon-knobs';
 import {
   WordCloudChartPlugin,
   LegacyWordCloudChartPlugin,
+  WordCloudTransformProps,
 } from '@superset-ui/plugin-chart-word-cloud';
-import transformProps from '@superset-ui/plugin-chart-word-cloud/lib/plugin/transformProps';
 import { withResizableChartDemo } from '../../../shared/components/ResizableChartDemo';
 import data from './data';
 
@@ -35,7 +35,10 @@ new LegacyWordCloudChartPlugin()
 
 // Enable the new WordCloud Props to show case its full features
 // if the control panel is updated to be able to pass formData in the new format.
-getChartTransformPropsRegistry().registerValue('word-cloud2', transformProps);
+getChartTransformPropsRegistry().registerValue(
+  'word-cloud2',
+  WordCloudTransformProps,
+);
 
 export default {
   title: 'Chart Plugins/plugin-chart-word-cloud',
