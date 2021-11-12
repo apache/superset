@@ -25,12 +25,19 @@ from setuptools import find_packages, setup
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 PACKAGE_JSON = os.path.join(BASE_DIR, "superset-frontend", "package.json")
-with open(PACKAGE_JSON, "r") as package_file:
-    version_string = json.load(package_file)["version"]
 
 with io.open("README.md", "r", encoding="utf-8") as f:
     long_description = f.read()
 
+def get_version():
+    version_string = "1.3.2" # current latest as last fallback
+    try:
+        s = subprocess.check_output(["git", "describe", "--tags", "--abbrev=0"])
+        version_string = s.decode().strip()
+    except:
+        with open(PACKAGE_JSON, "r") as package_file:
+            version_string = json.load(package_file)["version"]
+    return version_string
 
 def get_git_sha() -> str:
     try:
@@ -41,9 +48,11 @@ def get_git_sha() -> str:
 
 
 GIT_SHA = get_git_sha()
-version_info = {"GIT_SHA": GIT_SHA, "version": version_string}
+GIT_VERSION = get_version()
+
+version_info = {"GIT_SHA": GIT_SHA, "version": GIT_VERSION}
 print("-==-" * 15)
-print("VERSION: " + version_string)
+print("VERSION: " + GIT_VERSION)
 print("GIT SHA: " + GIT_SHA)
 print("-==-" * 15)
 
@@ -58,7 +67,7 @@ setup(
     description="A modern, enterprise-ready business intelligence web application",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    version=version_string,
+    version=GIT_VERSION,
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
@@ -165,7 +174,7 @@ setup(
     author="Apache Software Foundation",
     author_email="dev@superset.apache.org",
     url="https://superset.apache.org/",
-    download_url="https://www.apache.org/dist/superset/" + version_string,
+    download_url="https://www.apache.org/dist/superset/" + GIT_VERSION,
     classifiers=[
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
