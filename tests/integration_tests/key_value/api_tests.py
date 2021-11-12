@@ -18,7 +18,7 @@
 import json
 
 from superset import db
-from superset.models.key_value import KeyValue
+from superset.models.key_value import KeyValueEntry
 from tests.integration_tests.base_tests import SupersetTestCase
 
 duration_ms = 10000
@@ -39,14 +39,14 @@ class KeyValueTests(SupersetTestCase):
 
     def setUp(self):
         self.login(username="admin")
-        rows = db.session.query(KeyValue).all()
+        rows = db.session.query(KeyValueEntry).all()
         for row in rows:
             db.session.delete(row)
         db.session.commit()
 
     def test_post(self):
         key = self.post()
-        result = db.session.query(KeyValue).first()
+        result = db.session.query(KeyValueEntry).first()
         assert key == str(result.key)
         assert duration_ms == result.duration_ms
         assert reset_duration_on_retrieval == result.reset_duration_on_retrieval
@@ -69,7 +69,7 @@ class KeyValueTests(SupersetTestCase):
     def test_get_retrieved_on(self):
         key = self.post()
         self.client.get(f"api/v1/key_value_store/{key}/")
-        retrieved1 = db.session.query(KeyValue).first().retrieved_on
+        retrieved1 = db.session.query(KeyValueEntry).first().retrieved_on
         self.client.get(f"api/v1/key_value_store/{key}/")
-        retrieved2 = db.session.query(KeyValue).first().retrieved_on
+        retrieved2 = db.session.query(KeyValueEntry).first().retrieved_on
         assert retrieved2 > retrieved1

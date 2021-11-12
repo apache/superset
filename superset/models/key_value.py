@@ -30,5 +30,6 @@ class KeyValueEntry(Model, AuditMixinNullable):
     key = Column(String(64), primary_key=True)
     value = Column(Text, nullable=False)
     duration_ms = Column(Integer, nullable=True)
+    expires_on = Column(DateTime, nullable=True)
     reset_duration_on_retrieval = Column(Boolean, nullable=False, default=True)
     retrieved_on = Column(DateTime, default=datetime.now)

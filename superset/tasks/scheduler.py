@@ -22,10 +22,10 @@ from dateutil import parser
 from superset import app, is_feature_enabled
 from superset.commands.exceptions import CommandException
 from superset.extensions import celery_app
+from superset.key_value.commands.cleanup import CleanupCommand
 from superset.reports.commands.exceptions import ReportScheduleUnexpectedError
 from superset.reports.commands.execute import AsyncExecuteReportScheduleCommand
 from superset.reports.commands.log_prune import AsyncPruneReportScheduleLogCommand
-from superset.key_value.commands.cleanup import CleanupCommand
 from superset.reports.dao import ReportScheduleDAO
 from superset.tasks.cron_util import cron_schedule_window
 from superset.utils.celery import session_scope
@@ -94,12 +94,13 @@ def prune_log() -> None:
             exc_info=True,
         )
 
+
 @celery_app.task(name="key_value.cleanup")
 def key_value_cleanup() -> None:
     try:
         CleanupCommand().run()
     except SoftTimeLimitExceeded as ex:
-        logger.warning("A timeout occurred while removing expired key value entries: %s", ex)
+        logger.warning("Timeout while removing expired key value entries: %s", ex)
     except CommandException as ex:
         logger.error(
             "An exception occurred while removing expired key value entries: %s",

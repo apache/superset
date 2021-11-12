@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
 from flask_appbuilder.models.sqla import Model
@@ -40,6 +40,12 @@ class GetKeyValueCommand(BaseCommand):
             model = KeyValueDAO.find_by_id(self._key)
             if not model:
                 return None
+            if model.duration_ms is not None:
+                setattr(
+                    model,
+                    "expires_on",
+                    datetime.now() + timedelta(milliseconds=model.duration_ms),
+                )
             setattr(model, "retrieved_on", datetime.now())
             KeyValueDAO.update(model)
             return model

@@ -15,7 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from datetime import datetime, timedelta
+
+from sqlalchemy import func
 
 from superset.commands.base import BaseCommand
 from superset.key_value.utils import is_expired
@@ -36,11 +37,10 @@ class CleanupCommand(BaseCommand):
     def run(self) -> None:
         logger.info("Key value store cleanup starting")
         with session_scope(nullpool=True) as session:
-            for keyValue in session.query(KeyValueEntry).all():
-                if is_expired(keyValue):
-                    session.delete(keyValue)
-                    session.commit()
-                    logger.info("Deleted expired value: %s", keyValue.key)
+            session.query(KeyValueEntry).filter(
+                KeyValueEntry.expires_on.isnot(None),
+                func.now() > KeyValueEntry.expires_on,
+            ).delete(synchronize_session=False)
         logger.info("Key value store cleanup ended")
 
     def validate(self) -> None:

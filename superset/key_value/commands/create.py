@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from datetime import datetime, timedelta
 from secrets import token_urlsafe
 from typing import Any, Dict, List
 
@@ -40,10 +41,15 @@ class CreateKeyValueCommand(BaseCommand):
     def run(self) -> Model:
         try:
             key = token_urlsafe(48)
+            duration_ms = self._properties.get("duration_ms")
+            expires_on = None
+            if duration_ms:
+                expires_on = datetime.now() + timedelta(milliseconds=duration_ms)
             model = KeyValueEntry(
                 key=key,
                 value=self._properties.get("value"),
-                duration_ms=self._properties.get("duration_ms"),
+                duration_ms=duration_ms,
+                expires_on=expires_on,
                 reset_duration_on_retrieval=self._properties.get(
                     "reset_duration_on_retrieval"
                 ),
