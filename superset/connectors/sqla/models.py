@@ -938,8 +938,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         filters_grouped: Dict[Union[int, str], List[str]] = defaultdict(list)
         try:
             for filter_ in security_manager.get_rls_filters(self):
-                rendered_filter = template_processor.process_template(filter_.clause)
-                clause = text(f"({rendered_filter})")
+                clause = text(
+                    f"({template_processor.process_template(filter_.clause)})"
+                )
                 filters_grouped[filter_.group_key or filter_.id].append(clause)
             return [or_(*clauses) for clauses in filters_grouped.values()]
         except TemplateError as ex:

@@ -81,7 +81,6 @@ from sqlalchemy import event, exc, inspect, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.sql.elements import TextClause
 from sqlalchemy.sql.type_api import Variant
 from sqlalchemy.types import TEXT, TypeDecorator, TypeEngine
 from typing_extensions import TypedDict, TypeGuard
@@ -131,8 +130,6 @@ TIME_COMPARISION = "__"
 JS_MAX_INTEGER = 9007199254740991  # Largest int Java Script can handle 2^53-1
 
 InputType = TypeVar("InputType")
-
-BIND_PARAM_REGEX = TextClause._bind_params_regex  # pylint: disable=protected-access
 
 
 class LenientEnum(Enum):

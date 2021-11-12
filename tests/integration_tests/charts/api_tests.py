@@ -2079,7 +2079,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
         db.session.delete(table)
         db.session.commit()
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         response_payload = json.loads(rv.data.decode("utf-8"))
         result = response_payload["result"][0]
         data = result["data"]
