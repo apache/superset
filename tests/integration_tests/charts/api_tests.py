@@ -1620,15 +1620,15 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
-    @mock.patch.object(ChartDataCommand, "load_query_context_from_cache")
-    def test_chart_data_cache(self, load_qc_mock):
+    @mock.patch("superset.charts.data.api.QueryContextCacheLoader")
+    def test_chart_data_cache(self, cache_loader):
         """
         Chart data cache API: Test chart data async cache request
         """
         async_query_manager.init_app(app)
         self.login(username="admin")
         query_context = get_query_context("birth_names")
-        load_qc_mock.return_value = query_context
+        cache_loader.load.return_value = query_context
         orig_run = ChartDataCommand.run
 
         def mock_run(self, **kwargs):
@@ -1647,16 +1647,16 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(data["result"][0]["rowcount"], expected_row_count)
 
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
-    @mock.patch.object(ChartDataCommand, "load_query_context_from_cache")
+    @mock.patch("superset.charts.data.api.QueryContextCacheLoader")
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_chart_data_cache_run_failed(self, load_qc_mock):
+    def test_chart_data_cache_run_failed(self, cache_loader):
         """
         Chart data cache API: Test chart data async cache request with run failure
         """
         async_query_manager.init_app(app)
         self.login(username="admin")
         query_context = get_query_context("birth_names")
-        load_qc_mock.return_value = query_context
+        cache_loader.load.return_value = query_context
         rv = self.get_assert_metric(
             f"{CHART_DATA_URI}/test-cache-key", "data_from_cache"
         )
@@ -1666,15 +1666,15 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(data["message"], "Error loading data from cache")
 
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
-    @mock.patch.object(ChartDataCommand, "load_query_context_from_cache")
+    @mock.patch("superset.charts.data.api.QueryContextCacheLoader")
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_chart_data_cache_no_login(self, load_qc_mock):
+    def test_chart_data_cache_no_login(self, cache_loader):
         """
         Chart data cache API: Test chart data async cache request (no login)
         """
         async_query_manager.init_app(app)
         query_context = get_query_context("birth_names")
-        load_qc_mock.return_value = query_context
+        cache_loader.load.return_value = query_context
         orig_run = ChartDataCommand.run
 
         def mock_run(self, **kwargs):
