@@ -50,3 +50,5 @@ export default class CountryMapChartPlugin extends ChartPlugin {
     });
   }
 }
+
+export { default as countries } from './countries';

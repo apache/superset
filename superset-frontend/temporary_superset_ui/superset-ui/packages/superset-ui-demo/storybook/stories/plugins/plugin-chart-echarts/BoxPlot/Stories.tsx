@@ -20,8 +20,10 @@
 import React from 'react';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
 import { select, withKnobs } from '@storybook/addon-knobs';
-import { EchartsBoxPlotChartPlugin } from '@superset-ui/plugin-chart-echarts';
-import transformProps from '@superset-ui/plugin-chart-echarts/lib/BoxPlot/transformProps';
+import {
+  EchartsBoxPlotChartPlugin,
+  BoxPlotTransformProps,
+} from '@superset-ui/plugin-chart-echarts';
 import data from './data';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 
@@ -31,7 +33,7 @@ new EchartsBoxPlotChartPlugin()
 
 getChartTransformPropsRegistry().registerValue(
   'echarts-boxplot',
-  transformProps,
+  BoxPlotTransformProps,
 );
 
 export default {
