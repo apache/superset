@@ -64,7 +64,7 @@ export default class ColorSchemeControl extends React.PureComponent {
     this.renderOption = this.renderOption.bind(this);
     this.renderLabel = this.renderLabel.bind(this);
     this.dashboardColorSchemeAlert = t(
-      `The color scheme is determined by the related dashboard. 
+      `The color scheme is determined by the related dashboard.
               Edit the color scheme in the dashboard properties.`,
     );
   }
@@ -125,7 +125,7 @@ export default class ColorSchemeControl extends React.PureComponent {
     if (hasCustomLabelColors || dashboardId) {
       const alertTitle = hasCustomLabelColors
         ? t(
-            `This color scheme is being overriden by custom label colors. 
+            `This color scheme is being overriden by custom label colors.
               Check the JSON metadata in the Advanced settings`,
           )
         : this.dashboardColorSchemeAlert;
