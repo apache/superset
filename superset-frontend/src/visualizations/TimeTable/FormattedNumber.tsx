@@ -26,9 +26,7 @@ interface FormattedNumberProps {
 
 function FormattedNumber({ num = 0, format }: FormattedNumberProps) {
   if (format) {
-    return (
-      <span title={num as string}>{formatNumber(format, num as number)}</span>
-    );
+    return <span title={`${num}`}>{formatNumber(format, num as number)}</span>;
   }
   return <span>{num}</span>;
 }
