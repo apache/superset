@@ -2,37 +2,6 @@
   "name": "superset",
   "version": "0.0.0dev",
   "description": "Superset is a data exploration platform designed to be visual, intuitive, and interactive.",
-  "license": "Apache-2.0",
-  "directories": {
-    "doc": "docs",
-    "test": "spec"
-  },
-  "scripts": {
-    "tdd": "cross-env NODE_ENV=test jest --watch",
-    "test": "cross-env NODE_ENV=test jest",
-    "type": "tsc --noEmit",
-    "cover": "cross-env NODE_ENV=test jest --coverage",
-    "dev": "webpack --mode=development --color --watch",
-    "dev-server": "cross-env NODE_ENV=development BABEL_ENV=development node --max_old_space_size=4096 ./node_modules/webpack-dev-server/bin/webpack-dev-server.js --mode=development",
-    "prod": "npm run build",
-    "build-dev": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=development webpack --mode=development --color",
-    "build-instrumented": "cross-env NODE_ENV=production BABEL_ENV=instrumented webpack --mode=production --color",
-    "build": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=production BABEL_ENV=\"${BABEL_ENV:=production}\" webpack --mode=production --color",
-    "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx,.ts,.tsx . && npm run type",
-    "prettier-check": "prettier --check 'src/**/*.{css,less,sass,scss}'",
-    "lint-fix": "eslint --fix --ignore-path=.eslintignore --ext .js,.jsx,.ts,tsx . && npm run clean-css && npm run type",
-    "clean-css": "prettier --write 'src/**/*.{css,less,sass,scss}'",
-    "format": "prettier --write './{src,spec,cypress-base}/**/*{.js,.jsx,.ts,.tsx,.css,.less,.scss,.sass}'",
-    "prettier": "npm run format",
-    "check-translation": "prettier --check ../superset/translations/**/LC_MESSAGES/*.json",
-    "clean-translation": "prettier --write ../superset/translations/**/LC_MESSAGES/*.json",
-    "storybook": "cross-env NODE_ENV=development BABEL_ENV=development start-storybook -s ./src/assets/images -p 6006",
-    "build-storybook": "build-storybook"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/apache/superset.git"
-  },
   "keywords": [
     "big",
     "data",
@@ -45,9 +14,42 @@
     "database",
     "flask"
   ],
-  "author": "Apache",
+  "homepage": "https://superset.apache.org/",
   "bugs": {
     "url": "https://github.com/apache/superset/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache/superset.git"
+  },
+  "license": "Apache-2.0",
+  "author": "Apache",
+  "directories": {
+    "doc": "docs",
+    "test": "spec"
+  },
+  "scripts": {
+    "build": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=production BABEL_ENV=\"${BABEL_ENV:=production}\" webpack --mode=production --color",
+    "build-dev": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=development webpack --mode=development --color",
+    "build-instrumented": "cross-env NODE_ENV=production BABEL_ENV=instrumented webpack --mode=production --color",
+    "build-storybook": "build-storybook",
+    "check-translation": "prettier --check ../superset/translations/**/LC_MESSAGES/*.json",
+    "clean-css": "prettier --write 'src/**/*.{css,less,sass,scss}'",
+    "clean-translation": "prettier --write ../superset/translations/**/LC_MESSAGES/*.json",
+    "cover": "cross-env NODE_ENV=test jest --coverage",
+    "dev": "webpack --mode=development --color --watch",
+    "dev-server": "cross-env NODE_ENV=development BABEL_ENV=development node --max_old_space_size=4096 ./node_modules/webpack-dev-server/bin/webpack-dev-server.js --mode=development",
+    "format": "prettier --write './{src,spec,cypress-base,plugins,packages}/**/*{.js,.jsx,.ts,.tsx,.css,.less,.scss,.sass}'",
+    "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx,.ts,.tsx . && npm run type",
+    "lint-fix": "eslint --fix --ignore-path=.eslintignore --ext .js,.jsx,.ts,tsx . && npm run clean-css && npm run type",
+    "prettier": "npm run format",
+    "prettier-check": "prettier --check 'src/**/*.{css,less,sass,scss}'",
+    "prod": "npm run build",
+    "prune": "rm -rf ./{packages,plugins}/*/{lib,esm,tsconfig.tsbuildinfo,package-lock.json}",
+    "storybook": "cross-env NODE_ENV=development BABEL_ENV=development start-storybook -s ./src/assets/images -p 6006",
+    "tdd": "cross-env NODE_ENV=test jest --watch",
+    "test": "cross-env NODE_ENV=test jest",
+    "type": "tsc --noEmit"
   },
   "browserslist": [
     "last 3 chrome versions",
@@ -55,11 +57,23 @@
     "last 3 safari versions",
     "last 3 edge versions"
   ],
-  "engines": {
-    "node": "^16.9.1",
-    "npm": "^7.5.4"
+  "stylelint": {
+    "rules": {
+      "block-opening-brace-space-before": "always",
+      "no-missing-end-of-source-newline": "never",
+      "rule-empty-line-before": [
+        "always",
+        {
+          "except": [
+            "first-nested"
+          ],
+          "ignore": [
+            "after-comment"
+          ]
+        }
+      ]
+    }
   },
-  "homepage": "https://superset.apache.org/",
   "dependencies": {
     "@ant-design/icons": "^4.2.2",
     "@babel/runtime-corejs3": "^7.12.5",
@@ -178,12 +192,15 @@
     "redux-thunk": "^2.1.0",
     "redux-undo": "^1.0.0-beta9-9-7",
     "regenerator-runtime": "^0.13.5",
+    "rimraf": "^3.0.2",
     "rison": "^0.1.1",
     "scroll-into-view-if-needed": "^2.2.28",
     "shortid": "^2.2.6",
+    "src": "file:./src",
     "urijs": "^1.19.6",
     "use-immer": "^0.6.0",
-    "use-query-params": "^1.1.9"
+    "use-query-params": "^1.1.9",
+    "yargs": "^15.4.1"
   },
   "devDependencies": {
     "@babel/cli": "^7.15.7",
@@ -258,7 +275,7 @@
     "css-minimizer-webpack-plugin": "^3.0.2",
     "enzyme": "^3.10.0",
     "enzyme-adapter-react-16": "^1.14.0",
-    "eslint": "^7.17.0",
+    "eslint": "^7.32.0",
     "eslint-config-airbnb": "^18.2.1",
     "eslint-config-prettier": "^7.1.0",
     "eslint-import-resolver-typescript": "^2.5.0",
@@ -284,17 +301,18 @@
     "jest-environment-enzyme": "^7.1.2",
     "jest-enzyme": "^7.1.2",
     "jest-websocket-mock": "^2.2.0",
-    "lerna": "^3.22.1",
     "jsdom": "^16.4.0",
+    "lerna": "^3.22.1",
     "less": "^3.12.2",
     "less-loader": "^5.0.0",
     "mini-css-extract-plugin": "^2.3.0",
     "mock-socket": "^9.0.3",
     "node-fetch": "^2.6.1",
-    "prettier": "^2.2.1",
+    "prettier": "^2.4.1",
+    "prettier-plugin-packagejson": "^2.2.15",
     "process": "^0.11.10",
-    "react-test-renderer": "^16.9.0",
     "react-resizable": "^3.0.4",
+    "react-test-renderer": "^16.9.0",
     "redux-mock-store": "^1.5.4",
     "sinon": "^9.0.2",
     "source-map-support": "^0.5.16",
@@ -312,24 +330,10 @@
     "webpack-cli": "^4.8.0",
     "webpack-dev-server": "^4.2.0",
     "webpack-manifest-plugin": "^4.0.2",
-    "webpack-sources": "^3.2.0",
-    "yargs": "^15.4.1"
+    "webpack-sources": "^3.2.0"
   },
-  "stylelint": {
-    "rules": {
-      "block-opening-brace-space-before": "always",
-      "no-missing-end-of-source-newline": "never",
-      "rule-empty-line-before": [
-        "always",
-        {
-          "except": [
-            "first-nested"
-          ],
-          "ignore": [
-            "after-comment"
-          ]
-        }
-      ]
-    }
+  "engines": {
+    "node": "^16.9.1",
+    "npm": "^7.5.4"
   }
 }
