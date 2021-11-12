@@ -247,7 +247,6 @@ export const DataTablesPane = ({
           } else {
             setData(prevData => ({
               ...prevData,
-              // [{....}]
               [resultType]: json.result[0].data,
             }));
           }
@@ -388,7 +387,7 @@ export const DataTablesPane = ({
   return (
     <SouthPane data-test="some-purposeful-instance">
       <TabsWrapper contentHeight={tableSectionHeight}>
-        <CollapseWrapper>
+        <CollapseWrapper data-test="data-tab">
           <Collapse
             accordion
             bordered={false}
