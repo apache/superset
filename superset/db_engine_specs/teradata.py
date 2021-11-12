@@ -206,7 +206,7 @@ class ParsedQuery_td:
         str_statement = str(statement)
         str_statement = str_statement.replace("\n", " ").replace("\r", "")
         tokens = str_statement.rstrip().split(" ")
-        tokens = list(filter(None, tokens))
+        tokens = [token for token in tokens if token]
 
         next_remove_ind = False
         new_tokens = []
