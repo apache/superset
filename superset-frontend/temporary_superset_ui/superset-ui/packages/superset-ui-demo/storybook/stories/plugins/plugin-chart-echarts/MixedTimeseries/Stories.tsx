@@ -26,8 +26,10 @@ import {
   select,
   withKnobs,
 } from '@storybook/addon-knobs';
-import { EchartsTimeseriesChartPlugin } from '@superset-ui/plugin-chart-echarts';
-import transformProps from '@superset-ui/plugin-chart-echarts/lib/MixedTimeseries/transformProps';
+import {
+  EchartsTimeseriesChartPlugin,
+  MixedTimeseriesTransformProps,
+} from '@superset-ui/plugin-chart-echarts';
 import data from '../Timeseries/data';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 
@@ -37,7 +39,7 @@ new EchartsTimeseriesChartPlugin()
 
 getChartTransformPropsRegistry().registerValue(
   'mixed-timeseries',
-  transformProps,
+  MixedTimeseriesTransformProps,
 );
 
 export default {

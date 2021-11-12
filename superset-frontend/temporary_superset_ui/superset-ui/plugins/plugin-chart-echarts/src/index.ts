@@ -33,6 +33,17 @@ export { default as EchartsFunnelChartPlugin } from './Funnel';
 export { default as EchartsTreeChartPlugin } from './Tree';
 export { default as EchartsTreemapChartPlugin } from './Treemap';
 
+export { default as BoxPlotTransformProps } from './BoxPlot/transformProps';
+export { default as FunnelTransformProps } from './Funnel/transformProps';
+export { default as GaugeTransformProps } from './Gauge/transformProps';
+export { default as GraphTransformProps } from './Graph/transformProps';
+export { default as MixedTimeseriesTransformProps } from './MixedTimeseries/transformProps';
+export { default as PieTransformProps } from './Pie/transformProps';
+export { default as RadarTransformProps } from './Radar/transformProps';
+export { default as TimeseriesTransformProps } from './Timeseries/transformProps';
+export { default as TreeTransformProps } from './Tree/transformProps';
+export { default as TreemapTransformProps } from './Treemap/transformProps';
+
 export * from './types';
 
 /**

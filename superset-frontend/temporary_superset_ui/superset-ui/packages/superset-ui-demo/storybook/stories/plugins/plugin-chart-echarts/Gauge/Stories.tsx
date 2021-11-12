@@ -20,14 +20,19 @@
 import React from 'react';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
 import { withKnobs } from '@storybook/addon-knobs';
-import { EchartsGaugeChartPlugin } from '@superset-ui/plugin-chart-echarts';
-import transformProps from '@superset-ui/plugin-chart-echarts/lib/Gauge/transformProps';
+import {
+  EchartsGaugeChartPlugin,
+  GaugeTransformProps,
+} from '@superset-ui/plugin-chart-echarts';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 import { speed } from './data';
 
 new EchartsGaugeChartPlugin().configure({ key: 'echarts-gauge' }).register();
 
-getChartTransformPropsRegistry().registerValue('echarts-gauge', transformProps);
+getChartTransformPropsRegistry().registerValue(
+  'echarts-gauge',
+  GaugeTransformProps,
+);
 
 export default {
   title: 'Chart Plugins/plugin-chart-echarts/Gauge',

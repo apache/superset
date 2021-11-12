@@ -23,8 +23,9 @@ import {
   SuperChart,
   SequentialD3,
 } from '@superset-ui/core';
-import CountryMapChartPlugin from '@superset-ui/legacy-plugin-chart-country-map/src';
-import countries from '@superset-ui/legacy-plugin-chart-country-map/src/countries';
+import CountryMapChartPlugin, {
+  countries,
+} from '@superset-ui/legacy-plugin-chart-country-map';
 import { withKnobs, select } from '@storybook/addon-knobs';
 import { withResizableChartDemo } from '../../../shared/components/ResizableChartDemo';
 

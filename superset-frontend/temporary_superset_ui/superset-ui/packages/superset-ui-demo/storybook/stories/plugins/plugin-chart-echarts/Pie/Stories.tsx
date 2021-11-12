@@ -20,14 +20,19 @@
 import React from 'react';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
 import { boolean, number, select, withKnobs } from '@storybook/addon-knobs';
-import { EchartsPieChartPlugin } from '@superset-ui/plugin-chart-echarts';
-import transformProps from '@superset-ui/plugin-chart-echarts/lib/Pie/transformProps';
+import {
+  EchartsPieChartPlugin,
+  PieTransformProps,
+} from '@superset-ui/plugin-chart-echarts';
 import { weekday, population } from './data';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 
 new EchartsPieChartPlugin().configure({ key: 'echarts-pie' }).register();
 
-getChartTransformPropsRegistry().registerValue('echarts-pie', transformProps);
+getChartTransformPropsRegistry().registerValue(
+  'echarts-pie',
+  PieTransformProps,
+);
 
 export default {
   title: 'Chart Plugins/plugin-chart-echarts/Pie',

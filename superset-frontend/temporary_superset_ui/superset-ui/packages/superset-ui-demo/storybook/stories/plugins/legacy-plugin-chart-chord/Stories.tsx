@@ -21,18 +21,20 @@ import React from 'react';
 import { SuperChart } from '@superset-ui/core';
 import ChordChartPlugin from '@superset-ui/legacy-plugin-chart-chord';
 import data from './data';
+import { withResizableChartDemo } from '../../../shared/components/ResizableChartDemo';
 
 new ChordChartPlugin().configure({ key: 'chord' }).register();
 
 export default {
   title: 'Legacy Chart Plugins/legacy-plugin-chart-chord',
+  decorators: [withResizableChartDemo],
 };
 
-export const basic = () => (
+export const basic = ({ width, height }) => (
   <SuperChart
     chartType="chord"
-    width={400}
-    height={400}
+    width={width}
+    height={height}
     queriesData={[{ data }]}
     formData={{
       colorScheme: 'd3Category10',

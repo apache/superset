@@ -20,8 +20,10 @@
 import React from 'react';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
 import { boolean, number, select, withKnobs } from '@storybook/addon-knobs';
-import { EchartsFunnelChartPlugin } from '@superset-ui/plugin-chart-echarts';
-import transformProps from '@superset-ui/plugin-chart-echarts/lib/Funnel/transformProps';
+import {
+  EchartsFunnelChartPlugin,
+  FunnelTransformProps,
+} from '@superset-ui/plugin-chart-echarts';
 import { dataSource } from './constants';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 
@@ -29,7 +31,7 @@ new EchartsFunnelChartPlugin().configure({ key: 'echarts-funnel' }).register();
 
 getChartTransformPropsRegistry().registerValue(
   'echarts-funnel',
-  transformProps,
+  FunnelTransformProps,
 );
 
 export default {

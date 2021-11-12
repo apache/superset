@@ -20,8 +20,10 @@
 import React from 'react';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
 import { boolean, withKnobs, select } from '@storybook/addon-knobs';
-import { EchartsTreemapChartPlugin } from '@superset-ui/plugin-chart-echarts';
-import transformProps from '@superset-ui/plugin-chart-echarts/lib/Treemap/transformProps';
+import {
+  EchartsTreemapChartPlugin,
+  TreemapTransformProps,
+} from '@superset-ui/plugin-chart-echarts';
 import data from './data';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 
@@ -31,7 +33,7 @@ new EchartsTreemapChartPlugin()
 
 getChartTransformPropsRegistry().registerValue(
   'echarts-treemap',
-  transformProps,
+  TreemapTransformProps,
 );
 
 export default {

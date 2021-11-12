@@ -23,7 +23,7 @@ import { withKnobs, number, boolean } from '@storybook/addon-knobs';
 import { SuperChart } from '@superset-ui/core';
 import TableChartPlugin, {
   TableChartProps,
-} from '@superset-ui/plugin-chart-table/src';
+} from '@superset-ui/plugin-chart-table';
 import { basicFormData, basicData, birthNames } from './testData';
 import { withResizableChartDemo } from '../../../shared/components/ResizableChartDemo';
 
