@@ -36,3 +36,8 @@ def upgrade():
     op.add_column(
         "dashboards", sa.Column("certification_details", sa.Text(), nullable=True)
     )
+
+
+def downgrade():
+    op.drop_column("dashboards", "certified_by")
+    op.drop_column("dashboards", "certification_details")

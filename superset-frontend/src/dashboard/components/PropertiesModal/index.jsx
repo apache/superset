@@ -521,7 +521,7 @@ class PropertiesModal extends React.PureComponent {
                   disabled={!isDashboardLoaded}
                 />
                 <p className="help-block">
-                  {t('Person or group that has certified this chart.')}
+                  {t('Person or group that has certified this dashboard.')}
                 </p>
               </FormItem>
             </Col>
