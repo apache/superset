@@ -27,6 +27,7 @@ import ControlHeader from 'src/explore/components/ControlHeader';
 
 const propTypes = {
   hasCustomLabelColors: PropTypes.bool,
+  dashboardId: PropTypes.number,
   description: PropTypes.string,
   label: PropTypes.string,
   labelMargin: PropTypes.number,
@@ -62,6 +63,10 @@ export default class ColorSchemeControl extends React.PureComponent {
     this.onChange = this.onChange.bind(this);
     this.renderOption = this.renderOption.bind(this);
     this.renderLabel = this.renderLabel.bind(this);
+    this.dashboardColorSchemeAlert = t(
+      `The color scheme is determined by the related dashboard. 
+              Edit the color scheme in the dashboard properties.`,
+    );
   }
 
   onChange(value) {
@@ -81,7 +86,7 @@ export default class ColorSchemeControl extends React.PureComponent {
     }
 
     return (
-      <Tooltip id={`${currentScheme.id}-tooltip`} title={currentScheme.label}>
+      <span key={currentScheme.id} title={currentScheme.label}>
         <ul
           css={{
             listStyle: 'none',
@@ -110,23 +115,24 @@ export default class ColorSchemeControl extends React.PureComponent {
             </li>
           ))}
         </ul>
-      </Tooltip>
+      </span>
     );
   }
 
   renderLabel() {
-    const { hasCustomLabelColors, label } = this.props;
+    const { dashboardId, hasCustomLabelColors, label } = this.props;
 
-    if (hasCustomLabelColors) {
+    if (hasCustomLabelColors || dashboardId) {
+      const alertTitle = hasCustomLabelColors
+        ? t(
+            `This color scheme is being overriden by custom label colors. 
+              Check the JSON metadata in the Advanced settings`,
+          )
+        : this.dashboardColorSchemeAlert;
       return (
         <>
           {label}{' '}
-          <Tooltip
-            title={t(
-              `This color scheme is being overriden by custom label colors. 
-              Check the JSON metadata in the Advanced settings of the dashboard`,
-            )}
-          >
+          <Tooltip title={alertTitle}>
             <StyledAlert iconSize="s" />
           </Tooltip>
         </>
@@ -136,40 +142,61 @@ export default class ColorSchemeControl extends React.PureComponent {
   }
 
   render() {
-    const { choices, schemes } = this.props;
-    // save parsed schemes for later
-    this.schemes = isFunction(schemes) ? schemes() : schemes;
-    const controlChoices = isFunction(choices) ? choices() : choices;
-    const allColorOptions = [];
-    const filteredColorOptions = controlChoices.filter(o => {
-      const option = o[0];
-      const isValidColorOption =
-        option !== 'SUPERSET_DEFAULT' && !allColorOptions.includes(option);
-      allColorOptions.push(option);
-      return isValidColorOption;
-    });
-    const options = filteredColorOptions.map(([value]) => ({
-      customLabel: this.renderOption(value),
-      label: this.schemes?.[value]?.label || value,
-      value,
-    }));
-    let currentScheme =
-      this.props.value ||
-      (this.props.default !== undefined ? this.props.default : undefined);
+    const { choices, dashboardId, schemes } = this.props;
+    let options = dashboardId
+      ? [
+          {
+            value: 'dashboard',
+            label: 'dashboard',
+            customLabel: (
+              <Tooltip title={this.dashboardColorSchemeAlert}>
+                {t('Dashboard scheme')}
+              </Tooltip>
+            ),
+          },
+        ]
+      : [];
+    let currentScheme = dashboardId ? 'dashboard' : undefined;
 
-    if (currentScheme === 'SUPERSET_DEFAULT') {
-      currentScheme = this.schemes?.SUPERSET_DEFAULT?.id;
+    // if related to a dashboard the scheme is dictated by the dashboard
+    if (!dashboardId) {
+      this.schemes = isFunction(schemes) ? schemes() : schemes;
+      const controlChoices = isFunction(choices) ? choices() : choices;
+      const allColorOptions = [];
+      const filteredColorOptions = controlChoices.filter(o => {
+        const option = o[0];
+        const isValidColorOption =
+          option !== 'SUPERSET_DEFAULT' && !allColorOptions.includes(option);
+        allColorOptions.push(option);
+        return isValidColorOption;
+      });
+
+      options = filteredColorOptions.map(([value]) => ({
+        customLabel: this.renderOption(value),
+        label: this.schemes?.[value]?.label || value,
+        value,
+      }));
+
+      currentScheme =
+        this.props.value ||
+        (this.props.default !== undefined ? this.props.default : undefined);
+
+      if (currentScheme === 'SUPERSET_DEFAULT') {
+        currentScheme = this.schemes?.SUPERSET_DEFAULT?.id;
+      }
     }
 
     const selectProps = {
       ariaLabel: t('Select color scheme'),
       allowClear: this.props.clearable,
+      disabled: !!dashboardId,
       name: `select-${this.props.name}`,
       onChange: this.onChange,
       options,
-      placeholder: `Select (${options.length})`,
+      placeholder: t('Select scheme'),
       value: currentScheme,
     };
+
     return (
       <Select
         header={<ControlHeader {...this.props} label={this.renderLabel()} />}
