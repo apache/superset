@@ -105,6 +105,7 @@ OSX instructions: https://docs.docker.com/docker-for-mac/#advanced (Search for m
 - superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx:   Charts Only Changes For Preview Dashboard
 - superset-frontend/src/views/CRUD/csstemplates/CssTemplatesList.tsx: Css Template createdOn issue fixed
 - superset/models/helpers.py: Css Template changedOn issue Fixed
+- superset-frontend/src/explore/components/ExploreActionButtons.tsx: modified chart options like (removed share chart option)
 
 
 ## Superset Issues and solutions

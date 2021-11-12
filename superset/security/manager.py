@@ -135,6 +135,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "Datasource",
     } | READ_ONLY_MODEL_VIEWS
 
+    # Give guest user read only permissiion of chart and dashboards
+    EXTRA_GAMMA_READ_ONLY_MODEL_VIEWS = {
+        "Chart",
+        "Dashboard"
+    }
+
     ADMIN_ONLY_VIEW_MENUS = {
         "AccessRequestsModelView",
         "SQL Lab",
@@ -214,7 +220,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "all_query_access",
     )
 
-    # should we need to show the option of upload csv and upload excel
     GAMMA_MINUS_PEAK_USER_VIEW_MENUS = {
         "AccessRequestsModelView",
         "Refresh Druid Metadata",
@@ -250,7 +255,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     PEAK_PERMISSION_VIEWS = {
       ("can_read", "Database"),
       ("can_write", "Dataset"),
-      ("can_save", "Dataset")
+      ("can_save", "Datasource"),
      }
 
     def get_schema_perm(  # pylint: disable=no-self-use
@@ -815,7 +820,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
 
         if (
-            pvm.view_menu.name in self.GAMMA_READ_ONLY_MODEL_VIEWS
+            (pvm.view_menu.name in self.GAMMA_READ_ONLY_MODEL_VIEWS
+             or pvm.view_menu.name in self.EXTRA_GAMMA_READ_ONLY_MODEL_VIEWS)
             and pvm.permission.name not in self.READ_ONLY_PERMISSION
         ):
             return True

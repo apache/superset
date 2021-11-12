@@ -222,7 +222,7 @@ PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefi
 # ------------------------------
 # Uncomment to setup Your App name
 APP_NAME = "{}-Superset".format(TENANT)
-PERMANENT_SESSION_LIFETIME = timedelta(minutes=60)
+PERMANENT_SESSION_LIFETIME = timedelta(minutes=180)
 # Uncomment to setup an App icon
 APP_ICON = "/static/assets/images/superset-logo@2x.png"
 APP_ICON_WIDTH = 60
@@ -1069,9 +1069,11 @@ WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 EMAIL_PAGE_RENDER_WAIT = 30
 
 # Send user to a link where they can report bugs
+# "https://peak-bi.atlassian.net/servicedesk/customer/portals"
 BUG_REPORT_URL = None
 
 # Send user to a link where they can read more about Superset
+# "https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard"
 DOCUMENTATION_URL = None
 DOCUMENTATION_TEXT = "Documentation"
 DOCUMENTATION_ICON = None  # Recommended size: 16x16

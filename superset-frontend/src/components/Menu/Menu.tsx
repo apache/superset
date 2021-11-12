@@ -234,9 +234,9 @@ export function Menu({
                 //   <DropdownMenu.Item key="info">
                 //     <a href={navbarRight.user_info_url}>{t('Info')}</a>
                 //   </DropdownMenu.Item>
-                //   <DropdownMenu.Item key="logout">
-                //     <a href={navbarRight.user_logout_url}>{t('Logout')}</a>
-                //   </DropdownMenu.Item>
+                  <DropdownMenu.Item key="logout">
+                    <a href={navbarRight.user_logout_url}>{t('Logout')}</a>
+                  </DropdownMenu.Item>
                 // </DropdownMenu.ItemGroup>,
               ]}
               {(navbarRight.version_string || navbarRight.version_sha) && [
