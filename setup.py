@@ -29,8 +29,9 @@ PACKAGE_JSON = os.path.join(BASE_DIR, "superset-frontend", "package.json")
 with io.open("README.md", "r", encoding="utf-8") as f:
     long_description = f.read()
 
+
 def get_version():
-    version_string = "1.3.2" # current latest as last fallback
+    version_string = "1.3.2"  # current latest as last fallback
     try:
         s = subprocess.check_output(["git", "describe", "--tags", "--abbrev=0"])
         version_string = s.decode().strip()
@@ -38,6 +39,7 @@ def get_version():
         with open(PACKAGE_JSON, "r") as package_file:
             version_string = json.load(package_file)["version"]
     return version_string
+
 
 def get_git_sha() -> str:
     try:
