@@ -209,6 +209,10 @@ class TestDateParser(SupersetTestCase):
         expected = datetime(2016, 1, 1, 0, 0, 0)
         self.assertEqual(result, expected)
 
+        result = datetime_eval("datetrunc(datetime('now'), quarter)")
+        expected = datetime(2016, 10, 1, 0, 0, 0)
+        self.assertEqual(result, expected)
+
         result = datetime_eval("datetrunc(datetime('now'), month)")
         expected = datetime(2016, 11, 1, 0, 0, 0)
         self.assertEqual(result, expected)
