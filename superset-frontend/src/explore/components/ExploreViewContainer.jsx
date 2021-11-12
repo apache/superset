@@ -194,12 +194,19 @@ function ExploreViewContainer(props) {
 
   const addHistory = useCallback(
     ({ isReplace = false, title } = {}) => {
-      const payload = { ...props.form_data };
+      const formData = props.dashboardId
+        ? {
+            ...props.form_data,
+            dashboardId: props.dashboardId,
+          }
+        : props.form_data;
+      const payload = { ...formData };
       const longUrl = getExploreLongUrl(
-        props.form_data,
+        formData,
         props.standalone ? URL_PARAMS.standalone.name : null,
         false,
       );
+
       try {
         if (isReplace) {
           window.history.replaceState(payload, title, longUrl);

@@ -23,6 +23,7 @@ from flask_babel import gettext as _
 from pandas import DataFrame
 
 from superset import app, db
+from superset.common.chart_data import ChartDataResultType
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import QueryObjectValidationError
@@ -30,7 +31,6 @@ from superset.typing import Metric, OrderBy
 from superset.utils import pandas_postprocessing
 from superset.utils.core import (
     apply_max_row_limit,
-    ChartDataResultType,
     DatasourceDict,
     DTTM_ALIAS,
     find_duplicates,
