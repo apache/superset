@@ -44,7 +44,7 @@ def _extract_limit_from_query_td(statement: TokenList) -> Optional[int]:
     str_statement = str(statement)
     str_statement = str_statement.replace("\n", " ").replace("\r", "")
     token = str(str_statement).rstrip().split(" ")
-    token = list(filter(None, token))
+    token = [part for part in token if part]
     limit = None
 
     for i in range(len(token)):
