@@ -209,13 +209,13 @@ class ParsedQuery_td:
 
         next_remove_ind = False
         new_tokens = []
-        for i in tokens:
-            if any(limitword in i.upper() for limitword in td_limit_keywork):
+        for token in tokens:
+            if any(limitword in token.upper() for limitword in td_limit_keywork):
                 next_remove_ind = True
-            elif next_remove_ind and i.isdigit():
+            elif next_remove_ind and token.isdigit():
                 next_remove_ind = False
             else:
-                new_tokens.append(i)
+                new_tokens.append(token)
                 next_remove_ind = False
 
         result = []
