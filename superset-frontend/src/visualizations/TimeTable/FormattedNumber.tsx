@@ -24,10 +24,7 @@ interface FormattedNumberProps {
   format?: string;
 }
 
-function FormattedNumber({
-  num = 0,
-  format = undefined,
-}: FormattedNumberProps) {
+function FormattedNumber({ num = 0, format }: FormattedNumberProps) {
   if (format) {
     return (
       <span title={num as string}>{formatNumber(format, num as number)}</span>
