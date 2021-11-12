@@ -253,22 +253,10 @@ export const DataTablesPane = ({
           const checkCols = json?.result[0]?.data?.length
             ? Object.keys(json.result[0].data[0])
             : null;
-          if (!json.result[0].colnames && checkCols?.length) {
-            let tabKey: string = RESULT_TYPES.results;
-            if (resultType === RESULT_TYPES.samples) {
-              tabKey = RESULT_TYPES.samples;
-            }
-            setColumnNames({
-              ...columnNames,
-              [tabKey]: checkCols,
-            });
-          }
-          if (json.result[0].colnames) {
-            setColumnNames({
-              ...columnNames,
-              [resultType]: json.result[0].colnames,
-            });
-          }
+          setColumnNames(prevColumnNames => ({
+            ...prevColumnNames,
+            [resultType]: json.result[0].columns || checkCols,
+          }));
           setIsLoading(prevIsLoading => ({
             ...prevIsLoading,
             [resultType]: false,
