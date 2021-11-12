@@ -54,7 +54,6 @@ const ColumnSelectPopoverTrigger = ({
   const [popoverVisible, setPopoverVisible] = useState(false);
   const [isTitleEditDisabled, setIsTitleEditDisabled] = useState(true);
   const [hasCustomLabel, setHasCustomLabel] = useState(false);
-  const [currentTab, setCurrentTab] = useState('');
 
   let initialPopoverLabel = defaultPopoverLabel;
   if (editedColumn && isColumnMeta(editedColumn)) {
@@ -92,7 +91,6 @@ const ColumnSelectPopoverTrigger = ({
       };
 
   const getCurrentTab = useCallback((tab: string) => {
-    setCurrentTab(tab);
     setIsTitleEditDisabled(tab !== editableTitleTab);
   }, []);
 
@@ -119,13 +117,6 @@ const ColumnSelectPopoverTrigger = ({
       popoverLabel,
     ],
   );
-
-  useEffect(() => {
-    if (currentTab !== editableTitleTab) {
-      setHasCustomLabel(false);
-      setPopoverLabel(initialPopoverLabel);
-    }
-  }, [currentTab, initialPopoverLabel]);
 
   const onLabelChange = useCallback((e: any) => {
     setPopoverLabel(e.target.value);
