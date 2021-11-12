@@ -31,8 +31,7 @@ down_revision = "b92d69a6643c"
 
 
 def upgrade():
-    op.add_column("slices", sa.Column(
-        "certified_by", sa.Text(), nullable=True))
+    op.add_column("slices", sa.Column("certified_by", sa.Text(), nullable=True))
     op.add_column(
         "slices", sa.Column("certification_details", sa.Text(), nullable=True)
     )
