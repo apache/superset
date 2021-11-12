@@ -2051,7 +2051,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             schema=get_example_default_schema(),
             owners=[user],
             database=get_example_database(),
-            sql="select ':foo' as foo, ':bar:' as bar, * from birth_names",
+            sql="select ':foo' as foo, ':bar:' as bar, state, num from birth_names",
         )
         db.session.add(table)
         db.session.commit()
