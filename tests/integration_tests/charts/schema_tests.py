@@ -91,3 +91,12 @@ class TestSchema(SupersetTestCase):
             "label": "COUNT_DISTINCT(gender)",
         }
         _ = ChartDataQueryContextSchema().load(payload)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_query_context_null_post_processing_op(self):
+        self.login(username="admin")
+        payload = get_query_context("birth_names")
+
+        payload["queries"][0]["post_processing"] = [None]
+        query_context = ChartDataQueryContextSchema().load(payload)
+        self.assertEqual(query_context.queries[0].post_processing, [])
