@@ -205,7 +205,7 @@ class ParsedQuery_td:
 
         str_statement = str(statement)
         str_statement = str_statement.replace("\n", " ").replace("\r", "")
-        tokens = str(str_statement).rstrip().split(" ")
+        tokens = str_statement.rstrip().split(" ")
         tokens = list(filter(None, tokens))
 
         next_remove_ind = False
