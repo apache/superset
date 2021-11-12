@@ -18,11 +18,10 @@ import json
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 from zipfile import ZipFile
 
-import simplejson
-from flask import g, make_response, redirect, request, Response, send_file, url_for
+from flask import g, redirect, request, Response, send_file, url_for
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -49,7 +48,6 @@ from superset.charts.commands.importers.dispatcher import ImportChartsCommand
 from superset.charts.commands.update import UpdateChartCommand
 from superset.charts.dao import ChartDAO
 from superset.charts.filters import ChartAllTextFilter, ChartFavoriteFilter, ChartFilter
-from superset.charts.post_processing import apply_post_process
 from superset.charts.schemas import (
     CHART_SCHEMAS,
     ChartPostSchema,
@@ -63,12 +61,10 @@ from superset.charts.schemas import (
 )
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
-from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.extensions import event_logger, security_manager
+from superset.extensions import event_logger
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
-from superset.utils.core import json_int_dttm_ser
 from superset.utils.screenshots import ChartScreenshot
 from superset.utils.urls import get_url_path
 from superset.views.base_api import (
@@ -76,7 +72,6 @@ from superset.views.base_api import (
     RelatedFieldFilter,
     statsd_metrics,
 )
-from superset.views.core import CsvResponse, generate_download_headers
 from superset.views.filters import FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
@@ -482,39 +477,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except ChartBulkDeleteFailedError as ex:
             return self.response_422(message=str(ex))
-
-    def send_chart_response(
-        self, result: Dict[Any, Any], form_data: Optional[Dict[str, Any]] = None,
-    ) -> Response:
-        result_type = result["query_context"].result_type
-        result_format = result["query_context"].result_format
-
-        # Post-process the data so it matches the data presented in the chart.
-        # This is needed for sending reports based on text charts that do the
-        # post-processing of data, eg, the pivot table.
-        if result_type == ChartDataResultType.POST_PROCESSED:
-            result = apply_post_process(result, form_data)
-
-        if result_format == ChartDataResultFormat.CSV:
-            # Verify user has permission to export CSV file
-            if not security_manager.can_access("can_csv", "Superset"):
-                return self.response_403()
-
-            # return the first result
-            data = result["queries"][0]["data"]
-            return CsvResponse(data, headers=generate_download_headers("csv"))
-
-        if result_format == ChartDataResultFormat.JSON:
-            response_data = simplejson.dumps(
-                {"result": result["queries"]},
-                default=json_int_dttm_ser,
-                ignore_nan=True,
-            )
-            resp = make_response(response_data, 200)
-            resp.headers["Content-Type"] = "application/json; charset=utf-8"
-            return resp
-
-        return self.response_400(message=f"Unsupported result_format: {result_format}")
 
     @expose("/<pk>/cache_screenshot/", methods=["GET"])
     @protect()

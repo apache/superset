@@ -20,7 +20,6 @@ from typing import Any, Dict, Optional
 from flask import Request
 from marshmallow import ValidationError
 
-from superset import cache
 from superset.charts.commands.exceptions import (
     ChartDataCacheLoadError,
     ChartDataQueryFailedError,
@@ -90,12 +89,3 @@ class ChartDataCommand(BaseCommand):
     def validate_async_request(self, request: Request) -> None:
         jwt_data = async_query_manager.parse_jwt_from_request(request)
         self._async_channel_id = jwt_data["channel"]
-
-    def load_query_context_from_cache(  # pylint: disable=no-self-use
-        self, cache_key: str
-    ) -> Dict[str, Any]:
-        cache_value = cache.get(cache_key)
-        if not cache_value:
-            raise ChartDataCacheLoadError("Cached data not found")
-
-        return cache_value["data"]
