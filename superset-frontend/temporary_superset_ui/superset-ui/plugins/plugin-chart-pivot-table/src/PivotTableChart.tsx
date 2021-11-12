@@ -23,6 +23,7 @@ import {
   DataRecordValue,
   getColumnLabel,
   getNumberFormatter,
+  isPhysicalColumn,
   NumberFormatter,
   styled,
   useTheme,
@@ -35,6 +36,7 @@ import {
   // @ts-ignore
 } from '@superset-ui/react-pivottable/Utilities';
 import '@superset-ui/react-pivottable/pivottable.css';
+import { isAdhocColumn } from '@superset-ui/chart-controls';
 import {
   FilterType,
   MetricsLayoutEnum,
@@ -192,14 +194,25 @@ export default function PivotTableChart(props: PivotTableProps) {
 
   const handleChange = useCallback(
     (filters: SelectedFiltersType) => {
-      const groupBy = Object.keys(filters);
+      const filterKeys = Object.keys(filters);
+      const groupby = [...groupbyRowsRaw, ...groupbyColumnsRaw];
       setDataMask({
         extraFormData: {
           filters:
-            groupBy.length === 0
+            filterKeys.length === 0
               ? undefined
-              : groupBy.map(col => {
-                  const val = filters?.[col];
+              : filterKeys.map(key => {
+                  const val = filters?.[key];
+                  const col =
+                    groupby.find(item => {
+                      if (isPhysicalColumn(item)) {
+                        return item === key;
+                      }
+                      if (isAdhocColumn(item)) {
+                        return item.label === key;
+                      }
+                      return false;
+                    }) ?? '';
                   if (val === null || val === undefined)
                     return {
                       col,
