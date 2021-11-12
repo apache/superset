@@ -65,7 +65,7 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty, Session
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.schema import UniqueConstraint
-from sqlalchemy.sql import column, ColumnElement, literal_column, table, text
+from sqlalchemy.sql import column, ColumnElement, literal_column, table
 from sqlalchemy.sql.elements import ColumnClause, TextClause
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
@@ -101,6 +101,16 @@ metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
 
 VIRTUAL_TABLE_ALIAS = "virtual_table"
+
+
+def text(clause: str) -> TextClause:
+    """
+    SQLALchemy wrapper to ensure text clauses are escaped properly
+
+    :param clause: clause potentially containing colons
+    :return: text clause with escaped colons
+    """
+    return sa.text(clause.replace(":", "\\:"))
 
 
 class SqlaQuery(NamedTuple):
@@ -806,7 +816,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             raise QueryObjectValidationError(
                 _("Virtual dataset query must be read-only")
             )
-        return TextAsFrom(sa.text(from_sql), []).alias(VIRTUAL_TABLE_ALIAS)
+        return TextAsFrom(text(from_sql), []).alias(VIRTUAL_TABLE_ALIAS)
 
     def get_rendered_sql(
         self, template_processor: Optional[BaseTemplateProcessor] = None
@@ -827,8 +837,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     )
                 ) from ex
         sql = sqlparse.format(sql.strip("\t\r\n; "), strip_comments=True)
-        # we need to escape strings that SQLAlchemy interprets as bind parameters
-        sql = utils.escape_sqla_query_binds(sql)
         if not sql:
             raise QueryObjectValidationError(_("Virtual dataset query cannot be empty"))
         if len(sqlparse.split(sql)) > 1:
@@ -930,9 +938,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         filters_grouped: Dict[Union[int, str], List[str]] = defaultdict(list)
         try:
             for filter_ in security_manager.get_rls_filters(self):
-                clause = text(
-                    f"({template_processor.process_template(filter_.clause)})"
-                )
+                rendered_filter = template_processor.process_template(filter_.clause)
+                clause = text(f"({rendered_filter})")
                 filters_grouped[filter_.group_key or filter_.id].append(clause)
             return [or_(*clauses) for clauses in filters_grouped.values()]
         except TemplateError as ex:
@@ -1286,7 +1293,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                             msg=ex.message,
                         )
                     ) from ex
-                where_clause_and += [sa.text("({})".format(where))]
+                where_clause_and += [text(f"({where})")]
             having = extras.get("having")
             if having:
                 try:
@@ -1298,7 +1305,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                             msg=ex.message,
                         )
                     ) from ex
-                having_clause_and += [sa.text("({})".format(having))]
+                having_clause_and += [text(f"({having})")]
         if apply_fetch_values_predicate and self.fetch_values_predicate:
             qry = qry.where(self.get_fetch_values_predicate())
         if granularity:
