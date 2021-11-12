@@ -219,12 +219,12 @@ class ParsedQuery_td:
                 new_tokens.append(i)
                 next_remove_ind = False
 
-        str_res = ""
-        for i in new_tokens:
-            str_res += i + " "
-            if any(selword in i.upper() for selword in td_sel_keywork):
-                str_res += "TOP " + str(final_limit) + " "
-        return str_res
+        result = []
+        for token in new_tokens:
+            result.append(token)
+            if any(selword in token.upper() for selword in td_sel_keywork):
+                token.append(f"TOP {final_limit}")
+        return " ".join(result)
 
 
 class TeradataEngineSpec(BaseEngineSpec):
