@@ -20,7 +20,7 @@ import json
 import unittest
 from datetime import datetime
 from io import BytesIO
-from typing import Optional
+from typing import Optional, List
 from unittest import mock
 from zipfile import is_zipfile, ZipFile
 
@@ -42,6 +42,7 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
 )
 from tests.integration_tests.test_app import app
+from superset import security_manager
 from superset.charts.commands.data import ChartDataCommand
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.errors import SupersetErrorType
@@ -56,6 +57,7 @@ from superset.utils.core import (
     get_example_database,
     get_example_default_schema,
     get_main_database,
+    AdhocMetricExpressionType,
 )
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 
@@ -2033,3 +2035,58 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(
             set(column for column in data[0].keys()), {"state", "name", "sum__num"}
         )
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_chart_data_virtual_table_with_colons(self):
+        """
+        Chart data API: test query with literal colon characters in query, metrics,
+        where clause and filters
+        """
+        self.login(username="admin")
+        owner = self.get_user("admin").id
+        user = db.session.query(security_manager.user_model).get(owner)
+
+        table = SqlaTable(
+            table_name="virtual_table_1",
+            schema=get_example_default_schema(),
+            owners=[user],
+            database=get_example_database(),
+            sql="select ':foo' as foo, ':bar:' as bar, state, num from birth_names",
+        )
+        db.session.add(table)
+        db.session.commit()
+        table.fetch_metadata()
+
+        request_payload = get_query_context("birth_names")
+        request_payload["datasource"] = {
+            "type": "table",
+            "id": table.id,
+        }
+        request_payload["queries"][0]["columns"] = ["foo", "bar", "state"]
+        request_payload["queries"][0]["where"] = "':abc' != ':xyz:qwerty'"
+        request_payload["queries"][0]["orderby"] = None
+        request_payload["queries"][0]["metrics"] = [
+            {
+                "expressionType": AdhocMetricExpressionType.SQL,
+                "sqlExpression": "sum(case when state = ':asdf' then 0 else 1 end)",
+                "label": "count",
+            }
+        ]
+        request_payload["queries"][0]["filters"] = [
+            {"col": "foo", "op": "!=", "val": ":qwerty:",}
+        ]
+
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        db.session.delete(table)
+        db.session.commit()
+        assert rv.status_code == 200
+        response_payload = json.loads(rv.data.decode("utf-8"))
+        result = response_payload["result"][0]
+        data = result["data"]
+        assert {col for col in data[0].keys()} == {"foo", "bar", "state", "count"}
+        # make sure results and query parameters are unescaped
+        assert {row["foo"] for row in data} == {":foo"}
+        assert {row["bar"] for row in data} == {":bar:"}
+        assert "':asdf'" in result["query"]
+        assert "':xyz:qwerty'" in result["query"]
+        assert "':qwerty:'" in result["query"]
