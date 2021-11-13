@@ -10,9 +10,9 @@
     # via -r requirements/base.in
 gevent==21.8.0
     # via -r requirements/docker.in
-greenlet==1.1.1
+greenlet==1.1.2
     # via gevent
-psycopg2-binary==2.9.1
+psycopg2-binary==2.9.2
     # via -r requirements/docker.in
 zope.event==4.5.0
     # via gevent
