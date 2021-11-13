@@ -20,7 +20,7 @@ import json
 import unittest
 from datetime import datetime
 from io import BytesIO
-from typing import Optional
+from typing import Optional, List
 from unittest import mock
 from zipfile import is_zipfile, ZipFile
 
@@ -36,6 +36,7 @@ from sqlalchemy import and_
 from sqlalchemy.sql import func
 
 from tests.integration_tests.test_app import app
+from superset import security_manager
 from superset.charts.commands.data import ChartDataCommand
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.errors import SupersetErrorType
@@ -52,6 +53,7 @@ from superset.utils.core import (
     get_example_database,
     get_example_default_schema,
     get_main_database,
+    AdhocMetricExpressionType,
 )
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 
@@ -1626,15 +1628,15 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
-    @mock.patch.object(ChartDataCommand, "load_query_context_from_cache")
-    def test_chart_data_cache(self, load_qc_mock):
+    @mock.patch("superset.charts.data.api.QueryContextCacheLoader")
+    def test_chart_data_cache(self, cache_loader):
         """
         Chart data cache API: Test chart data async cache request
         """
         async_query_manager.init_app(app)
         self.login(username="admin")
         query_context = get_query_context("birth_names")
-        load_qc_mock.return_value = query_context
+        cache_loader.load.return_value = query_context
         orig_run = ChartDataCommand.run
 
         def mock_run(self, **kwargs):
@@ -1653,16 +1655,16 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(data["result"][0]["rowcount"], expected_row_count)
 
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
-    @mock.patch.object(ChartDataCommand, "load_query_context_from_cache")
+    @mock.patch("superset.charts.data.api.QueryContextCacheLoader")
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_chart_data_cache_run_failed(self, load_qc_mock):
+    def test_chart_data_cache_run_failed(self, cache_loader):
         """
         Chart data cache API: Test chart data async cache request with run failure
         """
         async_query_manager.init_app(app)
         self.login(username="admin")
         query_context = get_query_context("birth_names")
-        load_qc_mock.return_value = query_context
+        cache_loader.load.return_value = query_context
         rv = self.get_assert_metric(
             f"{CHART_DATA_URI}/test-cache-key", "data_from_cache"
         )
@@ -1672,15 +1674,15 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(data["message"], "Error loading data from cache")
 
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
-    @mock.patch.object(ChartDataCommand, "load_query_context_from_cache")
+    @mock.patch("superset.charts.data.api.QueryContextCacheLoader")
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_chart_data_cache_no_login(self, load_qc_mock):
+    def test_chart_data_cache_no_login(self, cache_loader):
         """
         Chart data cache API: Test chart data async cache request (no login)
         """
         async_query_manager.init_app(app)
         query_context = get_query_context("birth_names")
-        load_qc_mock.return_value = query_context
+        cache_loader.load.return_value = query_context
         orig_run = ChartDataCommand.run
 
         def mock_run(self, **kwargs):
@@ -2038,6 +2040,61 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(
             set(column for column in data[0].keys()), {"state", "name", "sum__num"}
         )
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_chart_data_virtual_table_with_colons(self):
+        """
+        Chart data API: test query with literal colon characters in query, metrics,
+        where clause and filters
+        """
+        self.login(username="admin")
+        owner = self.get_user("admin").id
+        user = db.session.query(security_manager.user_model).get(owner)
+
+        table = SqlaTable(
+            table_name="virtual_table_1",
+            schema=get_example_default_schema(),
+            owners=[user],
+            database=get_example_database(),
+            sql="select ':foo' as foo, ':bar:' as bar, state, num from birth_names",
+        )
+        db.session.add(table)
+        db.session.commit()
+        table.fetch_metadata()
+
+        request_payload = get_query_context("birth_names")
+        request_payload["datasource"] = {
+            "type": "table",
+            "id": table.id,
+        }
+        request_payload["queries"][0]["columns"] = ["foo", "bar", "state"]
+        request_payload["queries"][0]["where"] = "':abc' != ':xyz:qwerty'"
+        request_payload["queries"][0]["orderby"] = None
+        request_payload["queries"][0]["metrics"] = [
+            {
+                "expressionType": AdhocMetricExpressionType.SQL,
+                "sqlExpression": "sum(case when state = ':asdf' then 0 else 1 end)",
+                "label": "count",
+            }
+        ]
+        request_payload["queries"][0]["filters"] = [
+            {"col": "foo", "op": "!=", "val": ":qwerty:",}
+        ]
+
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        db.session.delete(table)
+        db.session.commit()
+        assert rv.status_code == 200
+        response_payload = json.loads(rv.data.decode("utf-8"))
+        result = response_payload["result"][0]
+        data = result["data"]
+        assert {col for col in data[0].keys()} == {"foo", "bar", "state", "count"}
+        # make sure results and query parameters are unescaped
+        assert {row["foo"] for row in data} == {":foo"}
+        assert {row["bar"] for row in data} == {":bar:"}
+        assert "':asdf'" in result["query"]
+        assert "':xyz:qwerty'" in result["query"]
+        assert "':qwerty:'" in result["query"]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_with_adhoc_column(self):
