@@ -81,7 +81,6 @@ from sqlalchemy import event, exc, inspect, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.sql.elements import TextClause
 from sqlalchemy.sql.type_api import Variant
 from sqlalchemy.types import TEXT, TypeDecorator, TypeEngine
 from typing_extensions import TypedDict, TypeGuard
@@ -131,8 +130,6 @@ TIME_COMPARISION = "__"
 JS_MAX_INTEGER = 9007199254740991  # Largest int Java Script can handle 2^53-1
 
 InputType = TypeVar("InputType")
-
-BIND_PARAM_REGEX = TextClause._bind_params_regex  # pylint: disable=protected-access
 
 
 class LenientEnum(Enum):
@@ -1771,29 +1768,3 @@ def apply_max_row_limit(limit: int, max_limit: Optional[int] = None,) -> int:
     if limit != 0:
         return min(max_limit, limit)
     return max_limit
-
-
-def escape_sqla_query_binds(sql: str) -> str:
-    """
-    Replace strings in a query that SQLAlchemy would otherwise interpret as
-    bind parameters.
-
-    :param sql: unescaped query string
-    :return: escaped query string
-    >>> escape_sqla_query_binds("select ':foo'")
-    "select '\\\\:foo'"
-    >>> escape_sqla_query_binds("select 'foo'::TIMESTAMP")
-    "select 'foo'::TIMESTAMP"
-    >>> escape_sqla_query_binds("select ':foo :bar'::TIMESTAMP")
-    "select '\\\\:foo \\\\:bar'::TIMESTAMP"
-    >>> escape_sqla_query_binds("select ':foo :foo :bar'::TIMESTAMP")
-    "select '\\\\:foo \\\\:foo \\\\:bar'::TIMESTAMP"
-    """
-    matches = BIND_PARAM_REGEX.finditer(sql)
-    processed_binds = set()
-    for match in matches:
-        bind = match.group(0)
-        if bind not in processed_binds:
-            sql = sql.replace(bind, bind.replace(":", "\\:"))
-            processed_binds.add(bind)
-    return sql
