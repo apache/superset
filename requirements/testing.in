@@ -36,6 +36,6 @@ pytest
 pytest-cov
 statsd
 pytest-mock
-packaging==21.0
+packaging==21.2
 # DB dependencies
 -e file:.[bigquery]
