@@ -165,7 +165,7 @@ test('should render - FeatureFlag disabled', async () => {
   expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
   expect(screen.getAllByRole('button')).toHaveLength(4);
 
-  expect(screen.getAllByRole('textbox')).toHaveLength(3);
+  expect(screen.getAllByRole('textbox')).toHaveLength(4);
 
   expect(spyColorSchemeControlWrapper).toBeCalledTimes(4);
   expect(spyColorSchemeControlWrapper).toBeCalledWith(
@@ -201,7 +201,7 @@ test('should render - FeatureFlag enabled', async () => {
   expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
   expect(screen.getAllByRole('button')).toHaveLength(4);
 
-  expect(screen.getAllByRole('textbox')).toHaveLength(4);
+  expect(screen.getAllByRole('textbox')).toHaveLength(5);
 
   expect(spyColorSchemeControlWrapper).toBeCalledTimes(4);
   expect(spyColorSchemeControlWrapper).toBeCalledWith(
@@ -220,9 +220,9 @@ test('should open advance', async () => {
     await screen.findByTestId('dashboard-edit-properties-form'),
   ).toBeInTheDocument();
 
-  expect(screen.getAllByRole('textbox')).toHaveLength(4);
-  userEvent.click(screen.getByRole('button', { name: 'Advanced' }));
   expect(screen.getAllByRole('textbox')).toHaveLength(5);
+  userEvent.click(screen.getByRole('button', { name: 'Advanced' }));
+  expect(screen.getAllByRole('textbox')).toHaveLength(6);
 });
 
 test('should close modal', async () => {
