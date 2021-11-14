@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=unused-argument, invalid-name
 from flask.ctx import AppContext
 from pytest_mock import MockFixture
 
@@ -36,9 +35,8 @@ def test_validate_parameters_simple(
     )
 
     parameters: GSheetsParametersType = {
-        "credentials_info": {},
-        "query": {},
-        "table_catalog": {},
+        "service_account_info": "",
+        "catalog": {},
     }
     errors = GSheetsEngineSpec.validate_parameters(parameters)
     assert errors == []
@@ -65,73 +63,54 @@ def test_validate_parameters_catalog(
     ]
 
     parameters: GSheetsParametersType = {
-        "credentials_info": {},
-        "query": {},
-        "table_catalog": {
+        "service_account_info": "",
+        "catalog": {
             "private_sheet": "https://docs.google.com/spreadsheets/d/1/edit",
             "public_sheet": "https://docs.google.com/spreadsheets/d/1/edit#gid=1",
             "not_a_sheet": "https://www.google.com/",
         },
     }
-    errors = GSheetsEngineSpec.validate_parameters(parameters)
+    errors = GSheetsEngineSpec.validate_parameters(parameters)  # ignore: type
+
     assert errors == [
         SupersetError(
-            message=(
-                "Unable to connect to spreadsheet private_sheet at "
-                "https://docs.google.com/spreadsheets/d/1/edit"
-            ),
+            message="URL could not be identified",
             error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
             level=ErrorLevel.WARNING,
             extra={
-                "name": "private_sheet",
-                "url": "https://docs.google.com/spreadsheets/d/1/edit",
+                "catalog": {"idx": 0, "url": True,},
                 "issue_codes": [
                     {
                         "code": 1003,
-                        "message": (
-                            "Issue 1003 - There is a syntax error in the SQL query. "
-                            "Perhaps there was a misspelling or a typo."
-                        ),
+                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
                     },
                     {
                         "code": 1005,
-                        "message": (
-                            "Issue 1005 - The table was deleted or renamed in the "
-                            "database."
-                        ),
+                        "message": "Issue 1005 - The table was deleted or renamed in the database.",
                     },
                 ],
             },
         ),
         SupersetError(
-            message=(
-                "Unable to connect to spreadsheet not_a_sheet at "
-                "https://www.google.com/"
-            ),
+            message="URL could not be identified",
             error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
             level=ErrorLevel.WARNING,
             extra={
-                "name": "not_a_sheet",
-                "url": "https://www.google.com/",
+                "catalog": {"idx": 2, "url": True,},
                 "issue_codes": [
                     {
                         "code": 1003,
-                        "message": (
-                            "Issue 1003 - There is a syntax error in the SQL query. "
-                            "Perhaps there was a misspelling or a typo."
-                        ),
+                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
                     },
                     {
                         "code": 1005,
-                        "message": (
-                            "Issue 1005 - The table was deleted or renamed in the "
-                            "database.",
-                        ),
+                        "message": "Issue 1005 - The table was deleted or renamed in the database.",
                     },
                 ],
             },
         ),
     ]
+
     create_engine.assert_called_with(
         "gsheets://", service_account_info={}, subject="admin@example.com",
     )
@@ -158,45 +137,35 @@ def test_validate_parameters_catalog_and_credentials(
     ]
 
     parameters: GSheetsParametersType = {
-        "credentials_info": {},
-        "query": {},
-        "table_catalog": {
+        "service_account_info": "",
+        "catalog": {
             "private_sheet": "https://docs.google.com/spreadsheets/d/1/edit",
             "public_sheet": "https://docs.google.com/spreadsheets/d/1/edit#gid=1",
             "not_a_sheet": "https://www.google.com/",
         },
     }
-    errors = GSheetsEngineSpec.validate_parameters(parameters)
+    errors = GSheetsEngineSpec.validate_parameters(parameters)  # ignore: type
     assert errors == [
         SupersetError(
-            message=(
-                "Unable to connect to spreadsheet not_a_sheet at "
-                "https://www.google.com/"
-            ),
+            message="URL could not be identified",
             error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
             level=ErrorLevel.WARNING,
             extra={
-                "name": "not_a_sheet",
-                "url": "https://www.google.com/",
+                "catalog": {"idx": 2, "url": True,},
                 "issue_codes": [
                     {
                         "code": 1003,
-                        "message": (
-                            "Issue 1003 - There is a syntax error in the SQL query. "
-                            "Perhaps there was a misspelling or a typo."
-                        ),
+                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
                     },
                     {
                         "code": 1005,
-                        "message": (
-                            "Issue 1005 - The table was deleted or renamed in the "
-                            "database.",
-                        ),
+                        "message": "Issue 1005 - The table was deleted or renamed in the database.",
                     },
                 ],
             },
-        ),
+        )
     ]
+
     create_engine.assert_called_with(
         "gsheets://", service_account_info={}, subject="admin@example.com",
     )

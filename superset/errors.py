@@ -14,8 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=too-few-public-methods,invalid-name
-from dataclasses import dataclass  # pylint: disable=wrong-import-order
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, Optional
 
@@ -219,3 +218,9 @@ class SupersetError:
                     ]
                 }
             )
+
+    def to_dict(self) -> Dict[str, Any]:
+        rv = {"message": self.message, "error_type": self.error_type}
+        if self.extra:
+            rv["extra"] = self.extra  # type: ignore
+        return rv

@@ -20,7 +20,7 @@ import React from 'react';
 import { Input } from 'antd';
 import { styled, css, SupersetTheme } from '@superset-ui/core';
 import InfoTooltip from 'src/components/InfoTooltip';
-import errorIcon from 'images/icons/error.svg';
+import errorIcon from 'src/assets/images/icons/error.svg';
 import FormItem from './FormItem';
 import FormLabel from './FormLabel';
 
@@ -71,7 +71,7 @@ const StyledFormGroup = styled('div')`
     -webkit-appearance: none;
     margin: 0;
   }
-  margin-bottom: ${({ theme }) => theme.gridUnit * 5}px;
+  margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
   .ant-form-item {
     margin-bottom: 0;
   }

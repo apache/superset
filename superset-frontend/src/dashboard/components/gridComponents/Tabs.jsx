@@ -23,6 +23,7 @@ import { connect } from 'react-redux';
 import { LineEditableTabs } from 'src/components/Tabs';
 import { LOG_ACTIONS_SELECT_DASHBOARD_TAB } from 'src/logger/LogUtils';
 import { Modal } from 'src/common/components';
+import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 import DragDroppable from '../dnd/DragDroppable';
 import DragHandle from '../dnd/DragHandle';
 import DashboardComponent from '../../containers/DashboardComponent';
@@ -34,7 +35,7 @@ import getLeafComponentIdFromPath from '../../util/getLeafComponentIdFromPath';
 import { componentShape } from '../../util/propShapes';
 import { NEW_TAB_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
 import { RENDER_TAB, RENDER_TAB_CONTENT } from './Tab';
-import { TAB_TYPE } from '../../util/componentTypes';
+import { TABS_TYPE, TAB_TYPE } from '../../util/componentTypes';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -47,7 +48,7 @@ const propTypes = {
   editMode: PropTypes.bool.isRequired,
   renderHoverMenu: PropTypes.bool,
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
-  activeTabs: PropTypes.arrayOf(PropTypes.string),
+  filterboxMigrationState: FILTER_BOX_MIGRATION_STATES,
 
   // actions (from DashboardComponent.jsx)
   logEvent: PropTypes.func.isRequired,
@@ -74,7 +75,7 @@ const defaultProps = {
   availableColumnCount: 0,
   columnWidth: 0,
   directPathToChild: [],
-  activeTabs: [],
+  filterboxMigrationState: FILTER_BOX_MIGRATION_STATES.NOOP,
   setActiveTabs() {},
   onResizeStart() {},
   onResize() {},
@@ -129,18 +130,19 @@ export class Tabs extends React.PureComponent {
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleDeleteTab = this.handleDeleteTab.bind(this);
     this.handleDropOnTab = this.handleDropOnTab.bind(this);
+    this.handleDrop = this.handleDrop.bind(this);
   }
 
   componentDidMount() {
-    this.props.setActiveTabs([...this.props.activeTabs, this.state.activeKey]);
+    this.props.setActiveTabs(this.state.activeKey);
   }
 
   componentDidUpdate(prevProps, prevState) {
-    if (prevState.activeKey !== this.state.activeKey) {
-      this.props.setActiveTabs([
-        ...this.props.activeTabs.filter(tabId => tabId !== prevState.activeKey),
-        this.state.activeKey,
-      ]);
+    if (
+      prevState.activeKey !== this.state.activeKey ||
+      prevProps.filterboxMigrationState !== this.props.filterboxMigrationState
+    ) {
+      this.props.setActiveTabs(this.state.activeKey, prevState.activeKey);
     }
   }
 
@@ -281,6 +283,12 @@ export class Tabs extends React.PureComponent {
     }
   }
 
+  handleDrop(dropResult) {
+    if (dropResult.dragging.type !== TABS_TYPE) {
+      this.props.handleComponentDrop(dropResult);
+    }
+  }
+
   render() {
     const {
       depth,
@@ -292,7 +300,6 @@ export class Tabs extends React.PureComponent {
       onResizeStart,
       onResize,
       onResizeStop,
-      handleComponentDrop,
       renderTabContent,
       renderHoverMenu,
       isComponentVisible: isCurrentTabVisible,
@@ -315,7 +322,7 @@ export class Tabs extends React.PureComponent {
         orientation="row"
         index={index}
         depth={depth}
-        onDrop={handleComponentDrop}
+        onDrop={this.handleDrop}
         editMode={editMode}
       >
         {({
@@ -401,6 +408,10 @@ Tabs.propTypes = propTypes;
 Tabs.defaultProps = defaultProps;
 
 function mapStateToProps(state) {
-  return { nativeFilters: state.nativeFilters };
+  return {
+    nativeFilters: state.nativeFilters,
+    directPathToChild: state.dashboardState.directPathToChild,
+    filterboxMigrationState: state.dashboardState.filterboxMigrationState,
+  };
 }
 export default connect(mapStateToProps)(Tabs);

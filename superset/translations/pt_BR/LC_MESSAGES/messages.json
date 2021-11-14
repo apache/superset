@@ -1215,7 +1215,7 @@
       "When allowing CREATE TABLE AS option in SQL Lab, this option forces the table to be created in this schema": [
         "Ao permitir a opção CREATE TABLE AS no SQL Lab, esta opção força a tabela a ser criada neste esquema"
       ],
-      "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
+      "If Presto, Trino or Drill all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
         "Se Presto, todas as consultas no SQL Lab serão executadas como o usuário atualmente conectado que deve ter permissão para executá-las. <br/> Se hive e hive.server2.enable.doAs estiver habilitado, será executado as consultas como conta de serviço, mas personifique o usuário atualmente conectado usando a propriedade hive.server2.proxy.user."
       ],
       "Allow SQL Lab to fetch a list of all tables and all views across all database schemas. For large data warehouse with thousands of tables, this can be expensive and put strain on the system.": [
@@ -2641,10 +2641,10 @@
       "Optional CA_BUNDLE contents to validate HTTPS requests. Only available on certain database engines.": [
         "Conteúdo CA_BUNDLE opcional para validar requisições HTTPS. Disponível apenas em certos bancos de dados."
       ],
-      "Impersonate Logged In User (Presto & Hive)": [
+      "Impersonate Logged In User (Presto, Trino, Drill & Hive)": [
         "Personificar usuário logado (Presto e Hive)"
       ],
-      "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them. If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
+      "If Presto, Trino or Drill all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them. If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
         "Se Presto, todas as consultas no SQL Lab serão executadas utilizando o usuário logado atual que deve ter permissão para executá-las. Se Hive e hive.server2.enable.doAs for habilitado, as consultas serão executadas como conta de serviço, mas personificarão o usuário logado atual via propriedade hive.server2.proxy.user."
       ],
       "Allow data upload": ["Permitir carga de dados"],
@@ -2660,8 +2660,8 @@
       "2. The metadata_cache_timeout is a cache timeout setting in seconds for metadata fetch of this database. Specify it as \"metadata_cache_timeout\": {\"schema_cache_timeout\": 600, \"table_cache_timeout\": 600}. If unset, cache will not be enabled for the functionality. A timeout of 0 indicates that the cache never expires.": [
         "2. O metadata_cache_timeout é uma configuração de limite de tempo do cache em segundos para a busca dos metadados deste banco de dados. Especifique como \"metadata_cache_timeout\": {\"schema_cache_timeout\": 600, \"table_cache_timeout\": 600}. Se não configurado, o cache não será habilitado para a funcionalidade. Um limite de tempo de 0 indica que o cache nunca expira."
       ],
-      "3. The schemas_allowed_for_csv_upload is a comma separated list of schemas that CSVs are allowed to upload to. Specify it as \"schemas_allowed_for_csv_upload\": [\"public\", \"csv_upload\"]. If database flavor does not support schema or any schema is allowed to be accessed, just leave the list empty.": [
-        "3. O schemas_allowed_for_csv_upload é uma lista de esquemas separada por vírgula nos quais é permitida a carga de CSVs. Especifique como \"schemas_allowed_for_csv_upload\": [\"public\", \"csv_upload\"]. Se o banco de dados não suporta esquema ou a carga é permitida em qualque esquema, apenas deixe a lista vazia."
+      "3. The schemas_allowed_for_file_upload is a comma separated list of schemas that CSVs are allowed to upload to. Specify it as \"schemas_allowed_for_file_upload\": [\"public\", \"csv_upload\"]. If database flavor does not support schema or any schema is allowed to be accessed, just leave the list empty.": [
+        "3. O schemas_allowed_for_file_upload é uma lista de esquemas separada por vírgula nos quais é permitida a carga de CSVs. Especifique como \"schemas_allowed_for_file_upload\": [\"public\", \"csv_upload\"]. Se o banco de dados não suporta esquema ou a carga é permitida em qualque esquema, apenas deixe a lista vazia."
       ],
       "4. The version field is a string specifying this db's version. This should be used with Presto DBs so that the syntax is correct.": [
         "4. O campo de versão é um texto especificando a versão do banco de dados. Isto deve ser utilizado com os bancos de dados Presto para garantir que a sintaxe esteja correta."

@@ -65,7 +65,7 @@ export interface HeaderProps {
   charts: ChartState | {};
   colorScheme?: string;
   customCss: string;
-  userId: number | undefined;
+  user: Object | undefined;
   dashboardInfo: DashboardInfo;
   dashboardTitle: string;
   setColorSchemeAndUnsavedChanges: () => void;
@@ -87,6 +87,7 @@ export interface HeaderProps {
   lastModifiedTime: number;
   onUndo: () => void;
   onRedo: () => void;
+  onRefresh: () => void;
   undoLength: number;
   redoLength: number;
   setMaxUndoHistoryExceeded: () => void;

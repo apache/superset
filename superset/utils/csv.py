@@ -20,6 +20,7 @@ from typing import Any, Dict, Optional
 from urllib.error import URLError
 
 import pandas as pd
+import simplejson
 
 negative_number_re = re.compile(r"^-[0-9.]+$")
 
@@ -84,3 +85,25 @@ def get_chart_csv_data(
     if content:
         return content
     return None
+
+
+def get_chart_dataframe(
+    chart_url: str, auth_cookies: Optional[Dict[str, str]] = None
+) -> Optional[pd.DataFrame]:
+    content = get_chart_csv_data(chart_url, auth_cookies)
+    if content is None:
+        return None
+
+    result = simplejson.loads(content.decode("utf-8"))
+    df = pd.DataFrame.from_dict(result["result"][0]["data"])
+
+    # rebuild hierarchical columns and index
+    df.columns = pd.MultiIndex.from_tuples(
+        tuple(colname) if isinstance(colname, list) else (colname,)
+        for colname in result["result"][0]["colnames"]
+    )
+    df.index = pd.MultiIndex.from_tuples(
+        tuple(indexname) if isinstance(indexname, list) else (indexname,)
+        for indexname in result["result"][0]["indexnames"]
+    )
+    return df

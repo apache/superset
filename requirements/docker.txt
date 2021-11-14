@@ -8,15 +8,15 @@
 -r base.txt
 -e file:.
     # via -r requirements/base.in
-gevent==20.9.0
+gevent==21.8.0
     # via -r requirements/docker.in
-greenlet==0.4.17
+greenlet==1.1.1
     # via gevent
-psycopg2-binary==2.8.6
+psycopg2-binary==2.9.1
     # via -r requirements/docker.in
 zope.event==4.5.0
     # via gevent
-zope.interface==5.1.2
+zope.interface==5.4.0
     # via gevent
 
 # The following packages are considered to be unsafe in a requirements file:

@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -23,8 +24,10 @@ import { t, styled, supersetTheme } from '@superset-ui/core';
 import { Dropdown, Menu } from 'src/common/components';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
-import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
-import DatasourceModal from 'src/datasource/DatasourceModal';
+import {
+  ChangeDatasourceModal,
+  DatasourceModal,
+} from 'src/components/Datasource';
 import { postForm } from 'src/explore/exploreUtils';
 import Button from 'src/components/Button';
 import ErrorAlert from 'src/components/ErrorMessage/ErrorAlert';
@@ -35,6 +38,7 @@ const propTypes = {
   onChange: PropTypes.func,
   value: PropTypes.string,
   datasource: PropTypes.object.isRequired,
+  form_data: PropTypes.object.isRequired,
   isEditable: PropTypes.bool,
   onDatasourceSave: PropTypes.func,
 };
@@ -95,7 +99,7 @@ const Styles = styled.div`
   span[aria-label='dataset-physical'] {
     color: ${({ theme }) => theme.colors.grayscale.base};
   }
-  span[aria-label='more-horiz'] {
+  span[aria-label='more-vert'] {
     color: ${({ theme }) => theme.colors.primary.base};
   }
 `;
@@ -122,6 +126,19 @@ class DatasourceControl extends React.PureComponent {
 
   onDatasourceSave(datasource) {
     this.props.actions.setDatasource(datasource);
+    const timeCol = this.props.form_data?.granularity_sqla;
+    const { columns } = this.props.datasource;
+    const firstDttmCol = columns.find(column => column.is_dttm);
+    if (
+      datasource.type === 'table' &&
+      !columns.find(({ column_name }) => column_name === timeCol)?.is_dttm
+    ) {
+      // set `granularity_sqla` to first datatime column name or null
+      this.props.actions.setControlValue(
+        'granularity_sqla',
+        firstDttmCol ? firstDttmCol.column_name : null,
+      );
+    }
     if (this.props.onDatasourceSave) {
       this.props.onDatasourceSave(datasource);
     }
@@ -211,11 +228,8 @@ class DatasourceControl extends React.PureComponent {
               <Icons.AlertSolid iconColor={supersetTheme.colors.warning.base} />
             </Tooltip>
           )}
-          {extra?.warning_markdown && ( // eslint-disable-line camelcase
-            <WarningIconWithTooltip
-              warningMarkdown={extra.warning_markdown} // eslint-disable-line camelcase
-              size={30}
-            />
+          {extra?.warning_markdown && (
+            <WarningIconWithTooltip warningMarkdown={extra.warning_markdown} />
           )}
           <Dropdown
             overlay={datasourceMenu}
@@ -223,7 +237,7 @@ class DatasourceControl extends React.PureComponent {
             data-test="datasource-menu"
           >
             <Tooltip title={t('More dataset related options')}>
-              <Icons.MoreHoriz
+              <Icons.MoreVert
                 className="datasource-modal-trigger"
                 data-test="datasource-menu-trigger"
               />

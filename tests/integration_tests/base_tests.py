@@ -28,9 +28,11 @@ import pytest
 from flask import Response
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
+from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.ext.declarative.api import DeclarativeMeta
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
+from sqlalchemy.dialects.mysql import dialect
 
 from tests.integration_tests.test_app import app
 from superset.sql_parse import CtasMethod
@@ -43,7 +45,7 @@ from superset.models.slice import Slice
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.datasource_access_request import DatasourceAccessRequest
-from superset.utils.core import get_example_database
+from superset.utils.core import get_example_database, get_example_default_schema
 from superset.views.base_api import BaseSupersetModelRestApi
 
 FAKE_DB_NAME = "fake_db_100"
@@ -99,10 +101,6 @@ def post_assert_metric(
     return rv
 
 
-def get_table_by_name(name: str) -> SqlaTable:
-    return db.session.query(SqlaTable).filter_by(table_name=name).one()
-
-
 @pytest.fixture
 def logged_in_admin():
     """Fixture with app context and logged in admin user."""
@@ -132,12 +130,7 @@ class SupersetTestCase(TestCase):
 
     @staticmethod
     def get_birth_names_dataset() -> SqlaTable:
-        example_db = get_example_database()
-        return (
-            db.session.query(SqlaTable)
-            .filter_by(database=example_db, table_name="birth_names")
-            .one()
-        )
+        return SupersetTestCase.get_table(name="birth_names")
 
     @staticmethod
     def create_user_with_roles(
@@ -254,12 +247,32 @@ class SupersetTestCase(TestCase):
         return slc
 
     @staticmethod
-    def get_table_by_name(name: str) -> SqlaTable:
-        return get_table_by_name(name)
+    def get_table(
+        name: str, database_id: Optional[int] = None, schema: Optional[str] = None
+    ) -> SqlaTable:
+        schema = schema or get_example_default_schema()
+
+        return (
+            db.session.query(SqlaTable)
+            .filter_by(
+                database_id=database_id
+                or SupersetTestCase.get_database_by_name("examples").id,
+                schema=schema,
+                table_name=name,
+            )
+            .one()
+        )
 
     @staticmethod
     def get_database_by_id(db_id: int) -> Database:
         return db.session.query(Database).filter_by(id=db_id).one()
+
+    @staticmethod
+    def get_database_by_name(database_name: str = "main") -> Database:
+        if database_name == "examples":
+            return get_example_database()
+        else:
+            raise ValueError("Database doesn't exist")
 
     @staticmethod
     def get_druid_ds_by_name(name: str) -> DruidDatasource:
@@ -340,12 +353,6 @@ class SupersetTestCase(TestCase):
             ):
                 security_manager.del_permission_role(public_role, perm)
 
-    def _get_database_by_name(self, database_name="main"):
-        if database_name == "examples":
-            return get_example_database()
-        else:
-            raise ValueError("Database doesn't exist")
-
     def run_sql(
         self,
         sql,
@@ -364,7 +371,7 @@ class SupersetTestCase(TestCase):
         if user_name:
             self.logout()
             self.login(username=(user_name or "admin"))
-        dbid = self._get_database_by_name(database_name).id
+        dbid = SupersetTestCase.get_database_by_name(database_name).id
         json_payload = {
             "database_id": dbid,
             "sql": sql,
@@ -393,7 +400,7 @@ class SupersetTestCase(TestCase):
         database_name = FAKE_DB_NAME
         db_id = 100
         extra = """{
-            "schemas_allowed_for_csv_upload":
+            "schemas_allowed_for_file_upload":
             ["this_schema_is_allowed", "this_schema_is_allowed_too"]
         }"""
 
@@ -419,7 +426,7 @@ class SupersetTestCase(TestCase):
         self.login(username="admin")
         database_name = "db_for_macros_testing"
         db_id = 200
-        return self.get_or_create(
+        database = self.get_or_create(
             cls=models.Database,
             criteria={"database_name": database_name},
             session=db.session,
@@ -427,7 +434,14 @@ class SupersetTestCase(TestCase):
             id=db_id,
         )
 
-    def delete_fake_db_for_macros(self):
+        def mock_get_dialect() -> Dialect:
+            return dialect()
+
+        database.get_dialect = mock_get_dialect
+        return database
+
+    @staticmethod
+    def delete_fake_db_for_macros():
         database = (
             db.session.query(Database)
             .filter(Database.database_name == "db_for_macros_testing")
@@ -448,7 +462,7 @@ class SupersetTestCase(TestCase):
         if user_name:
             self.logout()
             self.login(username=(user_name if user_name else "admin"))
-        dbid = self._get_database_by_name(database_name).id
+        dbid = SupersetTestCase.get_database_by_name(database_name).id
         resp = self.get_json_resp(
             "/superset/validate_sql_json/",
             raise_on_error=False,

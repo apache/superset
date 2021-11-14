@@ -17,16 +17,12 @@
  * under the License.
  */
 
-import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
+import * as copyUtils from 'src/utils/copy';
+import { render, screen } from 'spec/helpers/testing-library';
 import { DataTablesPane } from '.';
-
-fetchMock.post(
-  'http://api/v1/chart/data?form_data=%7B%22slice_id%22%3A456%7D',
-  { body: {} },
-);
 
 const createProps = () => ({
   queryFormData: {
@@ -58,10 +54,11 @@ const createProps = () => ({
   tableSectionHeight: 156.9,
   chartStatus: 'rendered',
   onCollapseChange: jest.fn(),
-});
-
-afterAll(() => {
-  fetchMock.done();
+  queriesResponse: [
+    {
+      colnames: [],
+    },
+  ],
 });
 
 test('Rendering DataTablesPane correctly', () => {
@@ -102,4 +99,39 @@ test('Should show tabs: View samples', async () => {
   expect(screen.queryByText('0 rows retrieved')).not.toBeInTheDocument();
   userEvent.click(await screen.findByText('View samples'));
   expect(await screen.findByText('0 rows retrieved')).toBeVisible();
+});
+
+test('Should copy data table content correctly', async () => {
+  fetchMock.post(
+    'glob:*/api/v1/chart/data?form_data=%7B%22slice_id%22%3A456%7D',
+    {
+      result: [{ data: [{ __timestamp: 1230768000000, genre: 'Action' }] }],
+    },
+  );
+  const copyToClipboardSpy = jest.spyOn(copyUtils, 'default');
+  const props = createProps();
+  render(
+    <DataTablesPane
+      {...{
+        ...props,
+        chartStatus: 'success',
+        queriesResponse: [
+          {
+            colnames: ['__timestamp', 'genre'],
+          },
+        ],
+      }}
+    />,
+    {
+      useRedux: true,
+    },
+  );
+  userEvent.click(await screen.findByText('Data'));
+  expect(await screen.findByText('1 rows retrieved')).toBeVisible();
+
+  userEvent.click(screen.getByRole('button', { name: 'Copy' }));
+  expect(copyToClipboardSpy).toHaveBeenCalledWith(
+    '2009-01-01 00:00:00\tAction\n',
+  );
+  fetchMock.done();
 });

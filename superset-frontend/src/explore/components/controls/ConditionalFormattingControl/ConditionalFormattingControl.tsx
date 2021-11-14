@@ -125,6 +125,8 @@ const ConditionalFormattingControl = ({
   }: ConditionalFormattingConfig) => {
     const columnName = (column && verboseMap?.[column]) ?? column;
     switch (operator) {
+      case COMPARATOR.NONE:
+        return `${columnName}`;
       case COMPARATOR.BETWEEN:
         return `${targetValueLeft} ${COMPARATOR.LESS_THAN} ${columnName} ${COMPARATOR.LESS_THAN} ${targetValueRight}`;
       case COMPARATOR.BETWEEN_OR_EQUAL:

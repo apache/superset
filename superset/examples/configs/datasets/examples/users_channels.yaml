@@ -24,40 +24,40 @@ schema: null
 sql: null
 params: null
 template_params: null
-filter_select_enabled: false
+filter_select_enabled: true
 fetch_values_predicate: null
 extra: null
 uuid: 29b18573-c9d6-40bc-b8cb-f70c9a1b6244
 metrics:
-- metric_name: count
-  verbose_name: null
-  metric_type: null
-  expression: count(*)
-  description: null
-  d3format: null
-  extra: null
-  warning_text: null
+  - metric_name: count
+    verbose_name: null
+    metric_type: null
+    expression: count(*)
+    description: null
+    d3format: null
+    extra: null
+    warning_text: null
 columns:
-- column_name: user_id
-  verbose_name: null
-  is_dttm: false
-  is_active: true
-  type: STRING
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: name
-  verbose_name: null
-  is_dttm: false
-  is_active: true
-  type: STRING
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
+  - column_name: user_id
+    verbose_name: null
+    is_dttm: false
+    is_active: true
+    type: STRING
+    groupby: true
+    filterable: true
+    expression: null
+    description: null
+    python_date_format: null
+  - column_name: name
+    verbose_name: null
+    is_dttm: false
+    is_active: true
+    type: STRING
+    groupby: true
+    filterable: true
+    expression: null
+    description: null
+    python_date_format: null
 version: 1.0.0
 database_uuid: a2dc77af-e654-49bb-b321-40f6b559a1ee
 data: https://raw.githubusercontent.com/apache-superset/examples-data/master/datasets/examples/slack/users_channels.csv

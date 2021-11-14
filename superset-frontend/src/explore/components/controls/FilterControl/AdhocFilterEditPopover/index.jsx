@@ -19,6 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Button from 'src/components/Button';
+import { Tooltip } from 'src/components/Tooltip';
 import { styled, t } from '@superset-ui/core';
 
 import ErrorBoundary from 'src/components/ErrorBoundary';
@@ -46,6 +47,8 @@ const propTypes = {
   datasource: PropTypes.object,
   partitionColumn: PropTypes.string,
   theme: PropTypes.object,
+  sections: PropTypes.arrayOf(PropTypes.string),
+  operators: PropTypes.arrayOf(PropTypes.string),
 };
 
 const ResizeIcon = styled.i`
@@ -66,11 +69,6 @@ const FilterPopoverContentContainer = styled.div`
 
   #filter-edit-popover {
     max-width: none;
-  }
-
-  .filter-edit-clause-dropdown {
-    width: ${({ theme }) => theme.gridUnit * 30}px;
-    margin-right: ${({ theme }) => theme.gridUnit}px;
   }
 
   .filter-edit-clause-info {
@@ -172,11 +170,11 @@ export default class AdhocFilterEditPopover extends React.Component {
       datasource,
       partitionColumn,
       theme,
+      operators,
       ...popoverProps
     } = this.props;
 
     const { adhocFilter } = this.state;
-
     const stateIsValid = adhocFilter.isValid();
     const hasUnsavedChanges = !adhocFilter.equals(propsAdhocFilter);
 
@@ -203,6 +201,7 @@ export default class AdhocFilterEditPopover extends React.Component {
           >
             <ErrorBoundary>
               <AdhocFilterEditPopoverSimpleTabContent
+                operators={operators}
                 adhocFilter={this.state.adhocFilter}
                 onChange={this.onAdhocFilterChange}
                 options={options}
@@ -216,23 +215,29 @@ export default class AdhocFilterEditPopover extends React.Component {
           <Tabs.TabPane
             className="adhoc-filter-edit-tab"
             key={EXPRESSION_TYPES.SQL}
-            tab={t('Custom SQL')}
+            tab={
+              datasource?.type === 'druid' ? (
+                <Tooltip
+                  title={t(
+                    'Custom SQL ad-hoc filters are not available for the native Druid connector',
+                  )}
+                >
+                  {t('Custom SQL')}
+                </Tooltip>
+              ) : (
+                t('Custom SQL')
+              )
+            }
+            disabled={datasource?.type === 'druid'}
           >
             <ErrorBoundary>
-              {!this.props.datasource ||
-              this.props.datasource.type !== 'druid' ? (
-                <AdhocFilterEditPopoverSqlTabContent
-                  adhocFilter={this.state.adhocFilter}
-                  onChange={this.onAdhocFilterChange}
-                  options={this.props.options}
-                  height={this.state.height}
-                  activeKey={this.state.activeKey}
-                />
-              ) : (
-                <div className="custom-sql-disabled-message">
-                  Custom SQL Filters are not available on druid datasources
-                </div>
-              )}
+              <AdhocFilterEditPopoverSqlTabContent
+                adhocFilter={this.state.adhocFilter}
+                onChange={this.onAdhocFilterChange}
+                options={this.props.options}
+                height={this.state.height}
+                activeKey={this.state.activeKey}
+              />
             </ErrorBoundary>
           </Tabs.TabPane>
         </Tabs>

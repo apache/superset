@@ -16,9 +16,18 @@
 # under the License.
 # isort:skip_file
 import re
-from typing import Any, Dict, NamedTuple, List, Pattern, Tuple, Union
+from datetime import datetime
+from typing import Any, Dict, List, NamedTuple, Optional, Pattern, Tuple, Union
 from unittest.mock import patch
 import pytest
+
+import numpy as np
+import pandas as pd
+import sqlalchemy as sa
+from flask import Flask
+from pytest_mock import MockFixture
+from sqlalchemy.sql import text
+from sqlalchemy.sql.elements import TextClause
 
 from superset import db
 from superset.connectors.sqla.models import SqlaTable, TableColumn
@@ -31,6 +40,7 @@ from superset.utils.core import (
     FilterOperator,
     GenericDataType,
     get_example_database,
+    TemporalType,
 )
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -54,6 +64,12 @@ VIRTUAL_TABLE_STRING_TYPES: Dict[str, Pattern[str]] = {
     "presto": re.compile(r"^VARCHAR*"),
     "sqlite": re.compile(r"^STRING$"),
 }
+
+
+class FilterTestCase(NamedTuple):
+    operator: str
+    value: Union[float, int, List[Any], str]
+    expected: Union[str, List[str]]
 
 
 class TestDatabaseModel(SupersetTestCase):
@@ -221,11 +237,6 @@ class TestDatabaseModel(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_where_operators(self):
-        class FilterTestCase(NamedTuple):
-            operator: str
-            value: Union[float, int, List[Any], str]
-            expected: Union[str, List[str]]
-
         filters: Tuple[FilterTestCase, ...] = (
             FilterTestCase(FilterOperator.IS_NULL, "", "IS NULL"),
             FilterTestCase(FilterOperator.IS_NOT_NULL, "", "IS NOT NULL"),
@@ -241,7 +252,7 @@ class TestDatabaseModel(SupersetTestCase):
             FilterTestCase(FilterOperator.IN, ["1", "2"], "IN (1, 2)"),
             FilterTestCase(FilterOperator.NOT_IN, ["1", "2"], "NOT IN (1, 2)"),
         )
-        table = self.get_table_by_name("birth_names")
+        table = self.get_table(name="birth_names")
         for filter_ in filters:
             query_obj = {
                 "granularity": None,
@@ -263,6 +274,43 @@ class TestDatabaseModel(SupersetTestCase):
                 )
             else:
                 self.assertIn(filter_.expected, sql)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_boolean_type_where_operators(self):
+        table = self.get_table(name="birth_names")
+        db.session.add(
+            TableColumn(
+                column_name="boolean_gender",
+                expression="case when gender = 'boy' then True else False end",
+                type="BOOLEAN",
+                table=table,
+            )
+        )
+        query_obj = {
+            "granularity": None,
+            "from_dttm": None,
+            "to_dttm": None,
+            "groupby": ["boolean_gender"],
+            "metrics": ["count"],
+            "is_timeseries": False,
+            "filter": [
+                {
+                    "col": "boolean_gender",
+                    "op": FilterOperator.IN,
+                    "val": ["true", "false"],
+                }
+            ],
+            "extras": {},
+        }
+        sqla_query = table.get_sqla_query(**query_obj)
+        sql = table.database.compile_sqla_query(sqla_query.sqla_query)
+        dialect = table.database.get_dialect()
+        operand = "(true, false)"
+        # override native_boolean=False behavior in MySQLCompiler
+        # https://github.com/sqlalchemy/sqlalchemy/blob/master/lib/sqlalchemy/dialects/mysql/base.py
+        if not dialect.supports_native_boolean and dialect.name != "mysql":
+            operand = "(1, 0)"
+        self.assertIn(f"IN {operand}", sql)
 
     def test_incorrect_jinja_syntax_raises_correct_exception(self):
         query_obj = {
@@ -424,3 +472,90 @@ class TestDatabaseModel(SupersetTestCase):
         db.session.delete(table)
         db.session.delete(database)
         db.session.commit()
+
+    def test_values_for_column(self):
+        table = SqlaTable(
+            table_name="test_null_in_column",
+            sql="SELECT 'foo' as foo UNION SELECT 'bar' UNION SELECT NULL",
+            database=get_example_database(),
+        )
+        TableColumn(column_name="foo", type="VARCHAR(255)", table=table)
+
+        with_null = table.values_for_column(
+            column_name="foo", limit=10000, contain_null=True
+        )
+        assert None in with_null
+        assert len(with_null) == 3
+
+        without_null = table.values_for_column(
+            column_name="foo", limit=10000, contain_null=False
+        )
+        assert None not in without_null
+        assert len(without_null) == 2
+
+
+@pytest.mark.parametrize(
+    "row,dimension,result",
+    [
+        (pd.Series({"foo": "abc"}), "foo", "abc"),
+        (pd.Series({"bar": True}), "bar", True),
+        (pd.Series({"baz": 123}), "baz", 123),
+        (pd.Series({"baz": np.int16(123)}), "baz", 123),
+        (pd.Series({"baz": np.uint32(123)}), "baz", 123),
+        (pd.Series({"baz": np.int64(123)}), "baz", 123),
+        (pd.Series({"qux": 123.456}), "qux", 123.456),
+        (pd.Series({"qux": np.float32(123.456)}), "qux", 123.45600128173828),
+        (pd.Series({"qux": np.float64(123.456)}), "qux", 123.456),
+        (pd.Series({"quux": "2021-01-01"}), "quux", "2021-01-01"),
+        (
+            pd.Series({"quuz": "2021-01-01T00:00:00"}),
+            "quuz",
+            text("TIME_PARSE('2021-01-01T00:00:00')"),
+        ),
+    ],
+)
+def test__normalize_prequery_result_type(
+    app_context: Flask,
+    mocker: MockFixture,
+    row: pd.Series,
+    dimension: str,
+    result: Any,
+) -> None:
+    def _convert_dttm(target_type: str, dttm: datetime) -> Optional[str]:
+        if target_type.upper() == TemporalType.TIMESTAMP:
+            return f"""TIME_PARSE('{dttm.isoformat(timespec="seconds")}')"""
+
+        return None
+
+    table = SqlaTable(table_name="foobar", database=get_example_database())
+    mocker.patch.object(table.db_engine_spec, "convert_dttm", new=_convert_dttm)
+
+    columns_by_name = {
+        "foo": TableColumn(
+            column_name="foo", is_dttm=False, table=table, type="STRING",
+        ),
+        "bar": TableColumn(
+            column_name="bar", is_dttm=False, table=table, type="BOOLEAN",
+        ),
+        "baz": TableColumn(
+            column_name="baz", is_dttm=False, table=table, type="INTEGER",
+        ),
+        "qux": TableColumn(
+            column_name="qux", is_dttm=False, table=table, type="FLOAT",
+        ),
+        "quux": TableColumn(
+            column_name="quuz", is_dttm=True, table=table, type="STRING",
+        ),
+        "quuz": TableColumn(
+            column_name="quux", is_dttm=True, table=table, type="TIMESTAMP",
+        ),
+    }
+
+    normalized = table._normalize_prequery_result_type(row, dimension, columns_by_name,)
+
+    assert type(normalized) == type(result)
+
+    if isinstance(normalized, TextClause):
+        assert str(normalized) == str(result)
+    else:
+        assert normalized == result

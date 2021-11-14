@@ -90,7 +90,7 @@ SYNTAX_ERROR_REGEX = re.compile('syntax error at or near "(?P<syntax_error>.*?)"
 
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
-    """ Abstract class for Postgres 'like' databases """
+    """Abstract class for Postgres 'like' databases"""
 
     engine = ""
     engine_name = "PostgreSQL"
@@ -103,7 +103,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         "P1D": "DATE_TRUNC('day', {col})",
         "P1W": "DATE_TRUNC('week', {col})",
         "P1M": "DATE_TRUNC('month', {col})",
-        "P0.25Y": "DATE_TRUNC('quarter', {col})",
+        "P3M": "DATE_TRUNC('quarter', {col})",
         "P1Y": "DATE_TRUNC('year', {col})",
     }
 
@@ -262,8 +262,8 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         """
         try:
             extra = json.loads(database.extra or "{}")
-        except json.JSONDecodeError:
-            raise SupersetException("Unable to parse database extras")
+        except json.JSONDecodeError as ex:
+            raise SupersetException("Unable to parse database extras") from ex
 
         if database.server_cert:
             engine_params = extra.get("engine_params", {})

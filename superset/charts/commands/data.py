@@ -20,7 +20,6 @@ from typing import Any, Dict, Optional
 from flask import Request
 from marshmallow import ValidationError
 
-from superset import cache
 from superset.charts.commands.exceptions import (
     ChartDataCacheLoadError,
     ChartDataQueryFailedError,
@@ -50,8 +49,8 @@ class ChartDataCommand(BaseCommand):
             payload = self._query_context.get_payload(
                 cache_query_context=cache_query_context, force_cached=force_cached
             )
-        except CacheLoadError as exc:
-            raise ChartDataCacheLoadError(exc.message)
+        except CacheLoadError as ex:
+            raise ChartDataCacheLoadError(ex.message) from ex
 
         # TODO: QueryContext should support SIP-40 style errors
         for query in payload["queries"]:
@@ -77,8 +76,8 @@ class ChartDataCommand(BaseCommand):
         self._form_data = form_data
         try:
             self._query_context = ChartDataQueryContextSchema().load(self._form_data)
-        except KeyError:
-            raise ValidationError("Request is incorrect")
+        except KeyError as ex:
+            raise ValidationError("Request is incorrect") from ex
         except ValidationError as error:
             raise error
 
@@ -90,12 +89,3 @@ class ChartDataCommand(BaseCommand):
     def validate_async_request(self, request: Request) -> None:
         jwt_data = async_query_manager.parse_jwt_from_request(request)
         self._async_channel_id = jwt_data["channel"]
-
-    def load_query_context_from_cache(  # pylint: disable=no-self-use
-        self, cache_key: str
-    ) -> Dict[str, Any]:
-        cache_value = cache.get(cache_key)
-        if not cache_value:
-            raise ChartDataCacheLoadError("Cached data not found")
-
-        return cache_value["data"]

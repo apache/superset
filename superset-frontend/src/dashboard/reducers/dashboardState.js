@@ -32,6 +32,8 @@ import {
   TOGGLE_PUBLISHED,
   UPDATE_CSS,
   SET_REFRESH_FREQUENCY,
+  ON_REFRESH,
+  ON_REFRESH_SUCCESS,
   SET_DIRECT_PATH,
   SET_FOCUSED_FILTER_FIELD,
   UNSET_FOCUSED_FILTER_FIELD,
@@ -128,6 +130,18 @@ export default function dashboardStateReducer(state = {}, action) {
         hasUnsavedChanges: action.isPersistent,
       };
     },
+    [ON_REFRESH]() {
+      return {
+        ...state,
+        isRefreshing: true,
+      };
+    },
+    [ON_REFRESH_SUCCESS]() {
+      return {
+        ...state,
+        isRefreshing: false,
+      };
+    },
     [SET_DIRECT_PATH]() {
       return {
         ...state,
@@ -136,9 +150,12 @@ export default function dashboardStateReducer(state = {}, action) {
       };
     },
     [SET_ACTIVE_TABS]() {
+      const newActiveTabs = new Set(state.activeTabs);
+      newActiveTabs.delete(action.prevTabId);
+      newActiveTabs.add(action.tabId);
       return {
         ...state,
-        activeTabs: action.tabIds,
+        activeTabs: Array.from(newActiveTabs),
       };
     },
     [SET_FOCUSED_FILTER_FIELD]() {

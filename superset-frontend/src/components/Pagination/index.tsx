@@ -16,73 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import React from 'react';
-import { styled } from '@superset-ui/core';
-import { Next } from './Next';
-import { Prev } from './Prev';
-import { Item } from './Item';
-import { Ellipsis } from './Ellipsis';
+import Pagination from 'src/components/Pagination/Wrapper';
+import {
+  createUltimatePagination,
+  ITEM_TYPES,
+} from 'react-ultimate-pagination';
 
-interface PaginationProps {
-  children: JSX.Element | JSX.Element[];
-}
+const ListViewPagination = createUltimatePagination({
+  WrapperComponent: Pagination,
+  itemTypeToComponent: {
+    [ITEM_TYPES.PAGE]: ({ value, isActive, onClick }) => (
+      <Pagination.Item active={isActive} onClick={onClick}>
+        {value}
+      </Pagination.Item>
+    ),
+    [ITEM_TYPES.ELLIPSIS]: ({ isActive, onClick }) => (
+      <Pagination.Ellipsis disabled={isActive} onClick={onClick} />
+    ),
+    [ITEM_TYPES.PREVIOUS_PAGE_LINK]: ({ isActive, onClick }) => (
+      <Pagination.Prev disabled={isActive} onClick={onClick} />
+    ),
+    [ITEM_TYPES.NEXT_PAGE_LINK]: ({ isActive, onClick }) => (
+      <Pagination.Next disabled={isActive} onClick={onClick} />
+    ),
+    [ITEM_TYPES.FIRST_PAGE_LINK]: () => null,
+    [ITEM_TYPES.LAST_PAGE_LINK]: () => null,
+  },
+});
 
-const PaginationList = styled.ul`
-  display: inline-block;
-  margin: 16px 0;
-  padding: 0;
-
-  li {
-    display: inline;
-    margin: 0 4px;
-
-    span {
-      padding: 8px 12px;
-      text-decoration: none;
-      background-color: ${({ theme }) => theme.colors.grayscale.light5};
-      border-radius: ${({ theme }) => theme.borderRadius}px;
-
-      &:hover,
-      &:focus {
-        z-index: 2;
-        color: ${({ theme }) => theme.colors.grayscale.dark1};
-        background-color: ${({ theme }) => theme.colors.grayscale.light3};
-      }
-    }
-
-    &.disabled {
-      span {
-        background-color: transparent;
-        cursor: default;
-
-        &:focus {
-          outline: none;
-        }
-      }
-    }
-    &.active {
-      span {
-        z-index: 3;
-        color: ${({ theme }) => theme.colors.grayscale.light5};
-        cursor: default;
-        background-color: ${({ theme }) => theme.colors.primary.base};
-
-        &:focus {
-          outline: none;
-        }
-      }
-    }
-  }
-`;
-
-function Pagination({ children }: PaginationProps) {
-  return <PaginationList role="navigation">{children}</PaginationList>;
-}
-
-Pagination.Next = Next;
-Pagination.Prev = Prev;
-Pagination.Item = Item;
-Pagination.Ellipsis = Ellipsis;
-
-export default Pagination;
+export default ListViewPagination;

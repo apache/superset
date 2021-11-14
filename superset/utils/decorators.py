@@ -44,7 +44,7 @@ def stats_timing(stats_key: str, stats_logger: BaseStatsLogger) -> Iterator[floa
         stats_logger.timing(stats_key, now_as_float() - start_ts)
 
 
-def arghash(args: Any, kwargs: Dict[str, Any]) -> int:
+def arghash(args: Any, kwargs: Any) -> int:
     """Simple argument hash with kwargs sorted."""
     sorted_args = tuple(
         x if hasattr(x, "__repr__") else x for x in [*args, *sorted(kwargs.items())]
@@ -91,6 +91,7 @@ def check_dashboard_access(
     def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(f)
         def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
+            # pylint: disable=import-outside-toplevel
             from superset.models.dashboard import Dashboard
 
             dashboard = Dashboard.get(str(kwargs["dashboard_id_or_slug"]))

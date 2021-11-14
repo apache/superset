@@ -21,6 +21,7 @@ from flask_babel import gettext as _
 from marshmallow import fields, Schema, validate, validates_schema
 from marshmallow.validate import Length, Range, ValidationError
 from marshmallow_enum import EnumField
+from pytz import all_timezones
 
 from superset.models.reports import (
     ReportCreationMethodType,
@@ -57,6 +58,7 @@ crontab_description = (
     "[Crontab Guru](https://crontab.guru/) is "
     "a helpful resource that can help you craft a CRON expression."
 )
+timezone_description = "A timezone string that represents the location of the timezone."
 sql_description = (
     "A SQL statement that defines whether the alert should get triggered or "
     "not. The query is expected to return either NULL or a number value."
@@ -152,6 +154,11 @@ class ReportSchedulePostSchema(Schema):
         allow_none=False,
         required=True,
     )
+    timezone = fields.String(
+        description=timezone_description,
+        default="UTC",
+        validate=validate.OneOf(choices=tuple(all_timezones)),
+    )
     sql = fields.String(
         description=sql_description, example="SELECT value FROM time_series_table"
     )
@@ -230,6 +237,11 @@ class ReportSchedulePutSchema(Schema):
         description=crontab_description,
         validate=[validate_crontab, Length(1, 1000)],
         required=False,
+    )
+    timezone = fields.String(
+        description=timezone_description,
+        default="UTC",
+        validate=validate.OneOf(choices=tuple(all_timezones)),
     )
     sql = fields.String(
         description=sql_description,

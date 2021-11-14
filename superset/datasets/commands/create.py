@@ -22,8 +22,7 @@ from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset.commands.base import BaseCommand
-from superset.commands.utils import populate_owners
+from superset.commands.base import BaseCommand, CreateMixin
 from superset.dao.exceptions import DAOCreateFailedError
 from superset.datasets.commands.exceptions import (
     DatabaseNotFoundValidationError,
@@ -38,7 +37,7 @@ from superset.extensions import db, security_manager
 logger = logging.getLogger(__name__)
 
 
-class CreateDatasetCommand(BaseCommand):
+class CreateDatasetCommand(CreateMixin, BaseCommand):
     def __init__(self, user: User, data: Dict[str, Any]):
         self._actor = user
         self._properties = data.copy()
@@ -63,11 +62,11 @@ class CreateDatasetCommand(BaseCommand):
         except (SQLAlchemyError, DAOCreateFailedError) as ex:
             logger.warning(ex, exc_info=True)
             db.session.rollback()
-            raise DatasetCreateFailedError()
+            raise DatasetCreateFailedError() from ex
         return dataset
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = list()
+        exceptions: List[ValidationError] = []
         database_id = self._properties["database"]
         table_name = self._properties["table_name"]
         schema = self._properties.get("schema", None)
@@ -90,7 +89,7 @@ class CreateDatasetCommand(BaseCommand):
             exceptions.append(TableNotFoundValidationError(table_name))
 
         try:
-            owners = populate_owners(self._actor, owner_ids)
+            owners = self.populate_owners(self._actor, owner_ids)
             self._properties["owners"] = owners
         except ValidationError as ex:
             exceptions.append(ex)

@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-# pylint: disable=invalid-name, no-self-use
 """Unit tests for Sql Lab"""
 import unittest
 from unittest.mock import MagicMock, patch

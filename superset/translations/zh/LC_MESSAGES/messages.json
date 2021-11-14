@@ -994,7 +994,7 @@
       "When allowing CREATE TABLE AS option in SQL Lab, this option forces the table to be created in this schema": [
         "当在 SQL 编辑器中允许 CREATE TABLE AS 选项时，此选项可以此模式中强制创建表"
       ],
-      "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
+      "If Presto, Trino or Drill all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
         "如果使用Presto，SQL 工具箱中的所有查询都将被当前登录的用户执行，并且这些用户必须拥有运行它们的权限。<br/>如果启用 Hive 和hive.server2.enable.doAs，将作为服务帐户运行查询，但会根据hive.server2.proxy.user的属性伪装当前登录用户。"
       ],
       "Allow SQL Lab to fetch a list of all tables and all views across all database schemas. For large data warehouse with thousands of tables, this can be expensive and put strain on the system.": [
@@ -2280,10 +2280,10 @@
       "Optional CA_BUNDLE contents to validate HTTPS requests. Only available on certain database engines.": [
         "用于验证HTTPS请求的可选 CA_BUNDLE 内容。仅在某些数据库引擎上可用。"
       ],
-      "Impersonate Logged In User (Presto & Hive)": [
-        "模拟登录用户 (Presto & Hive)"
+      "Impersonate Logged In User (Presto, Trino, Drill & Hive)": [
+        "模拟登录用户 (Presto, Trino, Drill & Hive)"
       ],
-      "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them. If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
+      "If Presto, Trino or Drill all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them. If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
         "如果使用Presto，SQL 工具箱中的所有查询都将被当前登录的用户执行，并且这些用户必须拥有运行它们的权限。如果启用 Hive 和 hive.server2.enable.doAs，将作为服务帐户运行查询，但会根据 hive.server2.proxy.user 的属性伪装当前登录用户。"
       ],
       "Allow data upload": ["允许数据上传"],
@@ -2299,8 +2299,8 @@
       "2. The metadata_cache_timeout is a cache timeout setting in seconds for metadata fetch of this database. Specify it as \"metadata_cache_timeout\": {\"schema_cache_timeout\": 600, \"table_cache_timeout\": 600}. If unset, cache will not be enabled for the functionality. A timeout of 0 indicates that the cache never expires.": [
         "2. metadata_cache_timeout 是获取该数据库元数据的缓存超时设置（秒）。可以这样进行设置：\"metadata_cache_timeout\": {\"schema_cache_timeout\": 600, \"table_cache_timeout\": 600}。如果未设置，则不会为该功能启用缓存。如果超时时间设置为0，则表示缓存永不过期。"
       ],
-      "3. The schemas_allowed_for_csv_upload is a comma separated list of schemas that CSVs are allowed to upload to. Specify it as \"schemas_allowed_for_csv_upload\": [\"public\", \"csv_upload\"]. If database flavor does not support schema or any schema is allowed to be accessed, just leave the list empty.": [
-        "3. schemas_allowed_for_csv_upload 是CSV文件允许上传的schema，该结构以逗号进行分割。 可以这样进行设置：\"schemas_allowed_for_csv_upload\": [\"public\", \"csv_upload\"]。如果数据库风格不支持schema或任何schema都被允许，请将列表留空。"
+      "3. The schemas_allowed_for_file_upload is a comma separated list of schemas that CSVs are allowed to upload to. Specify it as \"schemas_allowed_for_file_upload\": [\"public\", \"csv_upload\"]. If database flavor does not support schema or any schema is allowed to be accessed, just leave the list empty.": [
+        "3. schemas_allowed_for_file_upload 是CSV文件允许上传的schema，该结构以逗号进行分割。 可以这样进行设置：\"schemas_allowed_for_file_upload\": [\"public\", \"csv_upload\"]。如果数据库风格不支持schema或任何schema都被允许，请将列表留空。"
       ],
       "4. The version field is a string specifying this db's version. This should be used with Presto DBs so that the syntax is correct.": [
         "4. version 字段是指定此数据库版本的字符串。这应该与Presto DBs一起使用，以便语法正确。"

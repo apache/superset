@@ -42,15 +42,11 @@ from tests.integration_tests.fixtures.query_context import get_query_context
 from tests.integration_tests.test_app import app
 
 
-def get_table_by_name(name: str) -> SqlaTable:
-    with app.app_context():
-        return db.session.query(SqlaTable).filter_by(table_name=name).one()
-
-
 class TestAsyncQueries(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch.object(async_query_manager, "update_job")
-    def test_load_chart_data_into_cache(self, mock_update_job):
+    @mock.patch.object(async_queries, "set_form_data")
+    def test_load_chart_data_into_cache(self, mock_set_form_data, mock_update_job):
         async_query_manager.init_app(app)
         query_context = get_query_context("birth_names")
         user = security_manager.find_user("gamma")
@@ -68,6 +64,7 @@ class TestAsyncQueries(SupersetTestCase):
             load_chart_data_into_cache(job_metadata, query_context)
 
         ensure_user_is_set.assert_called_once_with(user.id)
+        mock_set_form_data.assert_called_once_with(query_context)
         mock_update_job.assert_called_once_with(
             job_metadata, "done", result_url=mock.ANY
         )
@@ -127,7 +124,7 @@ class TestAsyncQueries(SupersetTestCase):
     @mock.patch.object(async_query_manager, "update_job")
     def test_load_explore_json_into_cache(self, mock_update_job):
         async_query_manager.init_app(app)
-        table = get_table_by_name("birth_names")
+        table = self.get_table(name="birth_names")
         user = security_manager.find_user("gamma")
         form_data = {
             "datasource": f"{table.id}__table",
@@ -159,7 +156,10 @@ class TestAsyncQueries(SupersetTestCase):
         )
 
     @mock.patch.object(async_query_manager, "update_job")
-    def test_load_explore_json_into_cache_error(self, mock_update_job):
+    @mock.patch.object(async_queries, "set_form_data")
+    def test_load_explore_json_into_cache_error(
+        self, mock_set_form_data, mock_update_job
+    ):
         async_query_manager.init_app(app)
         user = security_manager.find_user("gamma")
         form_data = {}
@@ -178,6 +178,7 @@ class TestAsyncQueries(SupersetTestCase):
                 load_explore_json_into_cache(job_metadata, form_data)
             ensure_user_is_set.assert_called_once_with(user.id)
 
+        mock_set_form_data.assert_called_once_with(form_data)
         errors = ["The dataset associated with this chart no longer exists"]
         mock_update_job.assert_called_once_with(job_metadata, "error", errors=errors)
 
