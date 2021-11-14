@@ -37,7 +37,7 @@ from tests.integration_tests.test_app import app
 
 import pytest
 
-from superset.charts.commands.data import ChartDataCommand
+from superset.charts.data.commands import ChartDataCommand
 from superset.connectors.sqla.models import TableColumn, SqlaTable
 from superset.errors import SupersetErrorType
 from superset.extensions import async_query_manager, db
