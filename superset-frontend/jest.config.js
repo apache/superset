@@ -16,21 +16,46 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+const moduleNameMapper = {
+  '\\.(css|less|geojson)$': '<rootDir>/spec/__mocks__/mockExportObject.js',
+  '\\.(gif|ttf|eot|png|jpg)$': '<rootDir>/spec/__mocks__/mockExportString.js',
+  '\\.svg$': '<rootDir>/spec/__mocks__/svgrMock.tsx',
+  '^src/(.*)$': '<rootDir>/src/$1',
+  '^spec/(.*)$': '<rootDir>/spec/$1',
+  // mapping to souce code instead of lib or esm module
+  '@superset-ui/(((?!(legacy-preset-chart-deckgl|core/src)).)*)$':
+    '<rootDir>/node_modules/@superset-ui/$1/src',
+  '@superset-ui/core/src/(.*)$':
+    '<rootDir>/node_modules/@superset-ui/core/src/$1',
+};
+
 module.exports = {
-  testRegex: '(\\/spec|\\/src)\\/.*(_spec|\\.test)\\.(j|t)sx?$',
-  moduleNameMapper: {
-    '\\.(css|less|geojson)$': '<rootDir>/spec/__mocks__/mockExportObject.js',
-    '\\.(gif|ttf|eot|png|jpg)$': '<rootDir>/spec/__mocks__/mockExportString.js',
-    '\\.svg$': '<rootDir>/spec/__mocks__/svgrMock.tsx',
-    '^src/(.*)$': '<rootDir>/src/$1',
-    '^spec/(.*)$': '<rootDir>/spec/$1',
-  },
+  testRegex: '\\/(spec|src)\\/.*(_spec|\\.test)\\.(j|t)sx?$',
+  testPathIgnorePatterns: [
+    'packages\\/generator-superset\\/.*',
+    '/node_modules/',
+  ],
+  moduleNameMapper,
   testEnvironment: 'jsdom',
   modulePathIgnorePatterns: ['<rootDir>/temporary_superset_ui'],
   setupFilesAfterEnv: ['<rootDir>/spec/helpers/setup.ts'],
   testURL: 'http://localhost',
-  collectCoverageFrom: ['src/**/*.{js,jsx,ts,tsx}', '!**/*.stories.*'],
+  collectCoverageFrom: [
+    'src/**/*.{js,jsx,ts,tsx}',
+    '{packages,plugins}/**/src/**/*.{js,jsx,ts,tsx}',
+    '!**/*.stories.*',
+    '!packages/superset-ui-demo/**/*',
+  ],
   coverageDirectory: '<rootDir>/coverage/',
+  coveragePathIgnorePatterns: [
+    'coverage/',
+    'node_modules/',
+    'public/',
+    'tmp/',
+    'dist/',
+  ],
+  coverageReporters: ['lcov', 'json-summary', 'html'],
   transform: {
     '^.+\\.jsx?$': 'babel-jest',
     '^.+\\.tsx?$': 'ts-jest',
@@ -40,9 +65,34 @@ module.exports = {
   globals: {
     'ts-jest': {
       babelConfig: true,
+      // todo: duo to packages/**/test and plugins/**/test lack of type checking
+      // turning off checking in Jest.
+      isolatedModules: true,
       diagnostics: {
         warnOnly: true,
       },
     },
+    __DEV__: true,
+    caches: true,
   },
+  projects: [
+    '<rootDir>',
+    // {
+    //   displayName: 'generator-superset',
+    //   rootDir: '<rootDir>/packages/generator-superset',
+    //   testRegex: 'packages\\/generator-superset.*\\.test\\.(j|t)sx?$',
+    //   testEnvironment: 'node',
+    // },
+    {
+      displayName: 'plugins',
+      testRegex: '\\/(plugins|packages)\\/.*(_spec|\\.test)\\.(j|t)sx?$',
+      testPathIgnorePatterns: [
+        'packages\\/generator-superset\\/.*',
+        '/node_modules/',
+      ],
+      setupFiles: ['<rootDir>/spec/helpers/setupPlugins.ts'],
+      modulePathIgnorePatterns: ['<rootDir>/temporary_superset_ui'],
+      moduleNameMapper,
+    },
+  ],
 };
