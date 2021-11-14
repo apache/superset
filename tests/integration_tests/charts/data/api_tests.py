@@ -253,7 +253,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert rv.status_code == 403
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_chart_data_limit_offset(self):
+    def test_with_row_limit_and_offset__row_limit_and_offset_were_applied(self):
         """
         Chart data API: Test chart data query with limit and offset
         """
@@ -262,9 +262,8 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         self.query_context_payload["queries"][0]["orderby"] = [["name", True]]
 
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
-        response_payload = json.loads(rv.data.decode("utf-8"))
-        result = response_payload["result"][0]
-        self.assertEqual(result["rowcount"], 5)
+        self.assert_row_count(rv, 5)
+        result = rv.json["result"][0]
 
         # TODO: fix offset for presto DB
         if get_example_database().backend == "presto":
@@ -275,10 +274,9 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         expected_name = result["data"][offset]["name"]
         self.query_context_payload["queries"][0]["row_offset"] = offset
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
-        response_payload = json.loads(rv.data.decode("utf-8"))
-        result = response_payload["result"][0]
-        self.assertEqual(result["rowcount"], 5)
-        self.assertEqual(result["data"][0]["name"], expected_name)
+        result = rv.json["result"][0]
+        assert result["rowcount"] == 5
+        assert result["data"][0]["name"] == expected_name
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_applied_time_extras(self):
@@ -307,8 +305,6 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         )
         expected_row_count = self.get_expected_row_count("client_id_2")
         self.assertEqual(data["result"][0]["rowcount"], expected_row_count)
-
-    # Test chart csv without permission
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_in_op_filter__data_is_returned(self):
