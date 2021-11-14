@@ -38,7 +38,7 @@ from tests.integration_tests.test_app import app
 import pytest
 
 from superset.charts.commands.data import ChartDataCommand
-from superset.connectors.sqla.models import TableColumn
+from superset.connectors.sqla.models import TableColumn, SqlaTable
 from superset.errors import SupersetErrorType
 from superset.extensions import async_query_manager, db
 from superset.models.annotations import AnnotationLayer
@@ -46,7 +46,9 @@ from superset.models.slice import Slice
 from superset.utils.core import (
     AnnotationType,
     get_example_database,
+    get_example_default_schema,
     get_main_database,
+    AdhocMetricExpressionType,
 )
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 
@@ -471,7 +473,6 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         if get_example_database().backend != "presto":
             assert "('boy' = 'boy')" in result
 
-    @pytest.mark.chart_data_flow
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_async(self):
@@ -637,6 +638,57 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         data = json.loads(rv.data.decode("utf-8"))
         # response should only contain interval and event data, not formula
         self.assertEqual(len(data["result"][0]["annotation_data"]), 2)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_with_virtual_table_with_colons_as_datasource(self):
+        """
+        Chart data API: test query with literal colon characters in query, metrics,
+        where clause and filters
+        """
+        owner = self.get_user("admin")
+        table = SqlaTable(
+            table_name="virtual_table_1",
+            schema=get_example_default_schema(),
+            owners=[owner],
+            database=get_example_database(),
+            sql="select ':foo' as foo, ':bar:' as bar, state, num from birth_names",
+        )
+        db.session.add(table)
+        db.session.commit()
+        table.fetch_metadata()
+
+        request_payload = self.query_context_payload
+        request_payload["datasource"] = {
+            "type": "table",
+            "id": table.id,
+        }
+        request_payload["queries"][0]["columns"] = ["foo", "bar", "state"]
+        request_payload["queries"][0]["where"] = "':abc' != ':xyz:qwerty'"
+        request_payload["queries"][0]["orderby"] = None
+        request_payload["queries"][0]["metrics"] = [
+            {
+                "expressionType": AdhocMetricExpressionType.SQL,
+                "sqlExpression": "sum(case when state = ':asdf' then 0 else 1 end)",
+                "label": "count",
+            }
+        ]
+        request_payload["queries"][0]["filters"] = [
+            {"col": "foo", "op": "!=", "val": ":qwerty:",}
+        ]
+
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        db.session.delete(table)
+        db.session.commit()
+        assert rv.status_code == 200
+        result = rv.json["result"][0]
+        data = result["data"]
+        assert {col for col in data[0].keys()} == {"foo", "bar", "state", "count"}
+        # make sure results and query parameters are unescaped
+        assert {row["foo"] for row in data} == {":foo"}
+        assert {row["bar"] for row in data} == {":bar:"}
+        assert "':asdf'" in result["query"]
+        assert "':xyz:qwerty'" in result["query"]
+        assert "':qwerty:'" in result["query"]
 
 
 @pytest.mark.chart_data_flow
