@@ -186,7 +186,7 @@ test('should render - FeatureFlag disabled', async () => {
   expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
   expect(screen.getAllByRole('button')).toHaveLength(4);
 
-  expect(screen.getAllByRole('textbox')).toHaveLength(4);
+  expect(screen.getAllByRole('textbox')).toHaveLength(3);
   expect(screen.getByRole('combobox')).toBeInTheDocument();
 
   expect(spyColorSchemeControlWrapper).toBeCalledWith(
