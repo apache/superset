@@ -28,10 +28,13 @@ from marshmallow import ValidationError
 
 from superset import is_feature_enabled, security_manager
 from superset.charts.api import ChartRestApi
-from superset.charts.commands.data import ChartDataCommand
 from superset.charts.commands.exceptions import (
     ChartDataCacheLoadError,
     ChartDataQueryFailedError,
+)
+from superset.charts.data.commands import (
+    ChartDataCommand,
+    CreateAsyncChartDataJobCommand,
 )
 from superset.charts.data.query_context_cache_loader import QueryContextCacheLoader
 from superset.charts.post_processing import apply_post_process
@@ -145,7 +148,7 @@ class ChartDataRestApi(ChartRestApi):
             and query_context.result_format == ChartDataResultFormat.JSON
             and query_context.result_type == ChartDataResultType.FULL
         ):
-            return self._run_async(command)
+            return self._run_async(json_body, command)
 
         try:
             form_data = json.loads(chart.params)
@@ -231,7 +234,7 @@ class ChartDataRestApi(ChartRestApi):
             and query_context.result_format == ChartDataResultFormat.JSON
             and query_context.result_type == ChartDataResultType.FULL
         ):
-            return self._run_async(command)
+            return self._run_async(json_body, command)
 
         return self._get_data_response(command)
 
@@ -289,7 +292,9 @@ class ChartDataRestApi(ChartRestApi):
 
         return self._get_data_response(command, True)
 
-    def _run_async(self, command: ChartDataCommand) -> Response:
+    def _run_async(
+        self, form_data: Dict[str, Any], command: ChartDataCommand
+    ) -> Response:
         """
         Execute command as an async query.
         """
@@ -309,12 +314,13 @@ class ChartDataRestApi(ChartRestApi):
         # Clients will either poll or be notified of query completion,
         # at which point they will call the /data/<cache_key> endpoint
         # to retrieve the results.
+        async_command = CreateAsyncChartDataJobCommand()
         try:
-            command.validate_async_request(request)
+            async_command.validate(request)
         except AsyncQueryTokenException:
             return self.response_401()
 
-        result = command.run_async(g.user.get_id())
+        result = async_command.run(form_data, g.user.get_id())
         return self.response(202, **result)
 
     def _send_chart_response(
