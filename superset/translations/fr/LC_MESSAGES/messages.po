@@ -838,7 +838,7 @@ msgid ""
 "Duplicate column/metric labels: %(labels)s. Please make sure all columns "
 "and metrics have a unique label."
 msgstr ""
-"Doublons de libellés colomne/métrique : %(labels)s. Veuillez vous assurer"
+"Doublons de libellés colonne/métrique : %(labels)s. Veuillez vous assurer"
 " que toutes les colonnes et métriques ont des libellés uniques."
 
 #: superset/common/query_object.py:360
