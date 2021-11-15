@@ -803,7 +803,7 @@ msgstr "Modifier ce graphique est interdit"
 
 #: superset/charts/commands/exceptions.py:135
 msgid "Charts could not be deleted."
-msgstr "Lse graphiques n'ont pas pu être supprimés."
+msgstr "Les graphiques n'ont pas pu être supprimés."
 
 #: superset/charts/commands/exceptions.py:151
 msgid "Import chart failed for an unknown reason"
