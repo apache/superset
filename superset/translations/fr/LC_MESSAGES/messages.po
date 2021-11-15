@@ -373,7 +373,7 @@ msgid ""
 "An enclosed time range (both start and end) must be specified when using "
 "a Time Comparison."
 msgstr ""
-"Une période délimitée (à la fois début et fin) doit être spécifiée quand on" 
+"Une période délimitée (à la fois début et fin) doit être spécifiée quand on " 
 "utilise une Comparaison de temps."
 
 #: superset/viz.py:1438
