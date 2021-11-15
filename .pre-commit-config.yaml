@@ -49,4 +49,5 @@ repos:
     rev: v2.4.1 # Use the sha or tag you want to point at
     hooks:
       - id: prettier
+        args: ['--ignore-path=./superset-frontend/.prettierignore']
         files: 'superset-frontend'
