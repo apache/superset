@@ -470,7 +470,7 @@ msgstr "Filtres"
 
 #: superset/viz.py:2071
 msgid "Invalid filter configuration, please select a column"
-msgstr ""
+msgstr "Configuration du filtre invalide, veuillez sélectionner une colonne."
 
 #: superset/viz.py:2122
 msgid "Parallel Coordinates"
