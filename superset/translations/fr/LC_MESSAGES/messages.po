@@ -1024,7 +1024,7 @@ msgstr "Port du Broker"
 
 #: superset/connectors/druid/views.py:232
 msgid "Broker Username"
-msgstr "Hôte du Broker"
+msgstr "Nom d'utilisateur du Broker"
 
 #: superset/connectors/druid/views.py:233
 msgid "Broker Password"
