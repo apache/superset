@@ -15,38 +15,28 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import sqlalchemy as sa
-from flask_appbuilder import Model
+# pylint: disable=import-outside-toplevel, unused-argument
+
 from sqlalchemy.orm.session import Session
 
-from superset.columns.models import Column
-from superset.datasets.models import Dataset
-from superset.tables.models import Table
 
-
-class Database(Model):  # pylint: disable=too-few-public-methods
-    """
-    Mock a database.
-
-    This is needed because importing ``superset.models.core.Database`` fails due to the
-    security manager being undefined.
-    """
-
-    __tablename__ = "dbs"
-
-    id = sa.Column(sa.Integer, primary_key=True)
-
-
-def test_dataset_model(session: Session) -> None:
+def test_dataset_model(app_context: None, session: Session) -> None:
     """
     Test basic attributes of a ``Dataset``.
     """
+    from superset.columns.models import Column
+    from superset.datasets.models import Dataset
+    from superset.models.core import Database
+    from superset.tables.models import Table
+
+    engine = session.get_bind()
+    Dataset.metadata.create_all(engine)  # pylint: disable=no-member
 
     table = Table(
         name="my_table",
         schema="my_schema",
         catalog="my_catalog",
-        database=Database(),
+        database=Database(database_name="my_database", sqlalchemy_uri="test://"),
         columns=[
             Column(name="longitude", expression="longitude"),
             Column(name="latitude", expression="latitude"),

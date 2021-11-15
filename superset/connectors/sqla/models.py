@@ -185,9 +185,9 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
 
     """ORM object for table columns, each table can have multiple columns"""
 
-    __tablename__ = "table_columns"
+    __tablename__ = "sql_table_columns"
     __table_args__ = (UniqueConstraint("table_id", "column_name"),)
-    table_id = Column(Integer, ForeignKey("tables.id"))
+    table_id = Column(Integer, ForeignKey("sql_tables.id"))
     table = relationship(
         "SqlaTable",
         backref=backref("columns", cascade="all, delete-orphan"),
@@ -425,7 +425,7 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
 
     __tablename__ = "sql_metrics"
     __table_args__ = (UniqueConstraint("table_id", "metric_name"),)
-    table_id = Column(Integer, ForeignKey("tables.id"))
+    table_id = Column(Integer, ForeignKey("sql_tables.id"))
     table = relationship(
         "SqlaTable",
         backref=backref("metrics", cascade="all, delete-orphan"),
@@ -486,7 +486,7 @@ sqlatable_user = Table(
     metadata,
     Column("id", Integer, primary_key=True),
     Column("user_id", Integer, ForeignKey("ab_user.id")),
-    Column("table_id", Integer, ForeignKey("tables.id")),
+    Column("table_id", Integer, ForeignKey("sql_tables.id")),
 )
 
 
@@ -502,7 +502,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     column_class = TableColumn
     owner_class = security_manager.user_model
 
-    __tablename__ = "tables"
+    __tablename__ = "sql_tables"
 
     # Note this uniqueness constraint is not part of the physical schema, i.e., it does
     # not exist in the migrations, but is required by `import_from_dict` to ensure the
@@ -517,10 +517,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     main_dttm_col = Column(String(250))
     database_id = Column(Integer, ForeignKey("dbs.id"), nullable=False)
     fetch_values_predicate = Column(Text)
-    owners = relationship(owner_class, secondary=sqlatable_user, backref="tables")
+    owners = relationship(owner_class, secondary=sqlatable_user, backref="sql_tables")
     database: Database = relationship(
         "Database",
-        backref=backref("tables", cascade="all, delete-orphan"),
+        backref=backref("sql_tables", cascade="all, delete-orphan"),
         foreign_keys=[database_id],
     )
     schema = Column(String(255))
@@ -1862,7 +1862,7 @@ RLSFilterTables = Table(
     "rls_filter_tables",
     metadata,
     Column("id", Integer, primary_key=True),
-    Column("table_id", Integer, ForeignKey("tables.id")),
+    Column("table_id", Integer, ForeignKey("sql_tables.id")),
     Column("rls_filter_id", Integer, ForeignKey("row_level_security_filters.id")),
 )
 
