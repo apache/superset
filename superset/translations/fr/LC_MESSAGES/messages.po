@@ -843,7 +843,7 @@ msgstr ""
 
 #: superset/common/query_object.py:360
 msgid "`operation` property of post processing object undefined"
-msgstr "La propriété `operation` de l'objet de post-traitement est indéfini"
+msgstr "La propriété `operation` de l'objet de post-traitement est indéfinie"
 
 #: superset/common/query_object.py:364
 #, python-format
