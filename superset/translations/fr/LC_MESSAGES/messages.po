@@ -229,7 +229,7 @@ msgstr "La requête a été tuée après %(sqllab_timeout)s secondes. Elle est"
 
 #: superset/sql_lab.py:385 superset/views/core.py:2223
 msgid "Results backend is not configured."
-msgstr "Le backend des résultats n'est pas configuré"
+msgstr "Le backend des résultats n'est pas configuré."
 
 #: superset/sql_lab.py:415
 msgid ""
