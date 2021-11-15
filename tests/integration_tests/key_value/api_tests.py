@@ -65,17 +65,19 @@ class KeyValueTests(SupersetTestCase):
         data = json.loads(resp.data.decode("utf-8"))
         assert value == data.get("value")
 
-    @freeze_time("2021-01-01")
     def test_get_retrieved_on(self):
-        key = self.post()
-        self.client.get(f"api/v1/key_value_store/{key}/")
-        retrieved1 = db.session.query(KeyValueEntry).first().retrieved_on
-        assert datetime.now() == retrieved1
+        with freeze_time("2021-01-01"):
+            key = self.post()
+            self.client.get(f"api/v1/key_value_store/{key}/")
+            retrieved1 = db.session.query(KeyValueEntry).first().retrieved_on
+            assert datetime.now() == retrieved1
 
     def test_retrieved_on_elapses(self):
-        key = self.post()
-        self.client.get(f"api/v1/key_value_store/{key}/")
-        retrieved1 = db.session.query(KeyValueEntry).first().retrieved_on
-        self.client.get(f"api/v1/key_value_store/{key}/")
-        retrieved2 = db.session.query(KeyValueEntry).first().retrieved_on
-        assert retrieved2 > retrieved1
+        with freeze_time("2021-01-01") as frozenTime:
+            key = self.post()
+            self.client.get(f"api/v1/key_value_store/{key}/")
+            retrieved1 = db.session.query(KeyValueEntry).first().retrieved_on
+            frozenTime.tick()
+            self.client.get(f"api/v1/key_value_store/{key}/")
+            retrieved2 = db.session.query(KeyValueEntry).first().retrieved_on
+            assert retrieved2 > retrieved1
