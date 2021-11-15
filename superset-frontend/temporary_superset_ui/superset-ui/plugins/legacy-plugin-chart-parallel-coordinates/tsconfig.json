@@ -2,7 +2,8 @@
   "compilerOptions": {
     "declarationDir": "lib",
     "outDir": "lib",
-    "rootDir": "src"
+    "rootDir": "src",
+    "allowJs": false
   },
   "exclude": [
     "lib",
