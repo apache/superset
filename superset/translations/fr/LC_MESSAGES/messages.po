@@ -1312,7 +1312,7 @@ msgstr "Seules les requêtes simples sont autorisées"
 
 #: superset/connectors/sqla/views.py:66
 msgid "Show Column"
-msgstr "Afficher les colonnes"
+msgstr "Afficher la colonne"
 
 #: superset/connectors/sqla/views.py:67
 msgid "Add Column"
