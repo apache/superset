@@ -1362,7 +1362,7 @@ msgstr "Format Datetime"
 
 #: superset/connectors/sqla/views.py:161 superset/datasets/schemas.py:39
 msgid "Invalid date/timestamp format"
-msgstr "Format Timestamp de la table"
+msgstr "Format date/timestamp invalide"
 
 #: superset/connectors/sqla/views.py:208
 msgid "Show Metric"
