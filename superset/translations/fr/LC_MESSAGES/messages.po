@@ -149,7 +149,7 @@ msgstr "La requête est trop complexe et trop longue à exécuter."
 
 #: superset/errors.py:127
 msgid "The database is currently running too many queries."
-msgstr "La base de données exécute actuellement trop de requête."
+msgstr "La base de données exécute actuellement trop de requêtes."
 
 #: superset/errors.py:128
 msgid "One or more parameters specified in the query are malformatted."
