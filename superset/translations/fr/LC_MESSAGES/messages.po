@@ -247,7 +247,7 @@ msgid ""
 "SELECT statement. Please make sure your query has only a SELECT "
 "statement. Then, try running your query again."
 msgstr ""
-"Le CVAS (create view as select n'a pas d'instruction SELECT à la fin. "
+"Le CVAS (create view as select) ne peut être exécuté qu'avec une requête contenant une seule instruction SELECT. "
 "Assurez-vous que la requête a bien un seul SELECT en dernière instruction. "
 "Puis essayez d'exécuter votre requête à nouveau."
 
