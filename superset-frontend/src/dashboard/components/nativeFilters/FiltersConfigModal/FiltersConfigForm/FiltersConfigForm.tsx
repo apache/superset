@@ -390,8 +390,8 @@ const FiltersConfigForm = (
     return currentDataset ? hasTemporalColumns(currentDataset) : true;
   }, [formFilter?.dataset?.value, loadedDatasets]);
 
-  // @ts-ignore
   const hasDataset =
+    // @ts-ignore
     !!nativeFilterItems[formFilter?.filterType]?.value?.datasourceCount;
 
   const datasetId =
