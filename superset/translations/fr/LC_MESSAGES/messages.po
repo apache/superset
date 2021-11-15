@@ -1757,7 +1757,7 @@ msgid ""
 "%(key)s is invalid."
 msgstr ""
 "Le paramètre metadata_params dans Champ supplémentaire n'est pas correctement"
-" configuré? La clé %(key)s est invalide."
+" configuré. La clé %(key)s est invalide."
 
 #: superset/databases/schemas.py:272
 msgid ""
