@@ -2021,7 +2021,7 @@ msgstr "Jour"
 
 #: superset/db_engine_specs/base.py:100
 msgid "Week"
-msgstr "semaine"
+msgstr "Semaine"
 
 #: superset/db_engine_specs/base.py:101
 msgid "Month"
