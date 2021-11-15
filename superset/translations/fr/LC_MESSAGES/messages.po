@@ -248,7 +248,7 @@ msgid ""
 "statement. Then, try running your query again."
 msgstr ""
 "Le CVAS (create view as select) ne peut être exécuté qu'avec une requête contenant une seule instruction SELECT. "
-"Assurez-vous que la requête a bien un seul SELECT en dernière instruction. "
+"Assurez-vous que la requête a bien une seule instruction SELECT. "
 "Puis essayez d'exécuter votre requête à nouveau."
 
 #: superset/viz.py:131
