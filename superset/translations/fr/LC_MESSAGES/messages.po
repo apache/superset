@@ -284,8 +284,8 @@ msgstr "Vue en table"
 msgid ""
 "You cannot use [Columns] in combination with [Group "
 "By]/[Metrics]/[Percentage Metrics]. Please choose one or the other."
-msgstr "Vous ne pouvez pas utiliser [Columns] en même temps que [Group "
-"By]/[Metrics]/[Percentage Metrics]. Veuillez choisir l'un ou l'autre."
+msgstr "Vous ne pouvez pas utiliser [Colonnes] en même temps que [Grouper "
+"par]/[Métriques]/[Métriques de Pourcentages]. Veuillez choisir l'un ou l'autre."
 
 #: superset/viz.py:706
 msgid "Pick a granularity in the Time section or uncheck 'Include Time'"
@@ -2556,7 +2556,7 @@ msgstr "Alerte déclenchée pendant la période de grâce"
 
 #: superset/reports/commands/exceptions.py:179
 msgid "Alert ended grace period."
-msgstr "Alerte terminée grace période"
+msgstr "L'alerte a mis fin à la période de grâce."
 
 #: superset/reports/commands/exceptions.py:183
 msgid "Alert on grace period"
