@@ -2292,7 +2292,7 @@ msgstr "Graphiques"
 
 #: superset/initialization/__init__.py:248
 msgid "Plugins"
-msgstr ""
+msgstr "Plugins"
 
 #: superset/initialization/__init__.py:259 superset/views/css_templates.py:38
 msgid "CSS Templates"
