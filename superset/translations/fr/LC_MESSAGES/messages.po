@@ -661,7 +661,7 @@ msgstr "La suppression de la couche d'annotations a échoué."
 #: superset/annotation_layers/commands/exceptions.py:53
 #: superset/annotation_layers/commands/exceptions.py:57
 msgid "Annotation layer has associated annotations."
-msgstr "Les couches d'annotations a des annotations associées."
+msgstr "La couche d'annotations a des annotations associées."
 
 #: superset/annotation_layers/commands/exceptions.py:66
 #: superset/reports/commands/exceptions.py:137
