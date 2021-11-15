@@ -1989,7 +1989,7 @@ msgstr "30 secondes"
 
 #: superset/db_engine_specs/base.py:92
 msgid "Minute"
-msgstr "minute"
+msgstr "Minute"
 
 #: superset/db_engine_specs/base.py:93
 msgid "5 minute"
