@@ -733,7 +733,7 @@ msgstr "La colonne de tri doit être remplie"
 #: superset/databases/commands/delete.py:65
 #, python-format
 msgid "There are associated alerts or reports: %s,"
-msgstr "Il y a des alertes ou des rapports : %s,"
+msgstr "Il y a des alertes ou des rapports associés : %s,"
 
 #: superset/charts/commands/exceptions.py:38
 #, python-format
