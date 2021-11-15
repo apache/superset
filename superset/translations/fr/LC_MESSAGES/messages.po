@@ -1774,7 +1774,7 @@ msgstr "Un moteur doit être fournit lorsque l'on passe des paramètres individu
 #: superset/databases/commands/validate.py:58 superset/databases/schemas.py:308
 #, python-format
 msgid "Engine \"%(engine)s\" is not a valid engine."
-msgstr ""
+msgstr "Le moteur \"%(engine)s\" n'est pas un moteur valide."
 
 #: superset/databases/commands/exceptions.py:32
 msgid "Database parameters are invalid."
