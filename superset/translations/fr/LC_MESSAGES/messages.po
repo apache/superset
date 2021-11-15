@@ -795,7 +795,7 @@ msgstr "Le graphique n'a pas pu être supprimé."
 #: superset/dashboards/commands/exceptions.py:69
 #: superset/databases/commands/exceptions.py:117
 msgid "There are associated alerts or reports"
-msgstr ""
+msgstr "Il y a des alertes ou des rapports associés"
 
 #: superset/charts/commands/exceptions.py:131
 msgid "Changing this chart is forbidden"
