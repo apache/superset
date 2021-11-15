@@ -2958,7 +2958,7 @@ msgstr "`prophet` package non installé"
 
 #: superset/utils/pandas_postprocessing.py:775
 msgid "Time grain missing"
-msgstr "Granularité de Temps manquante"
+msgstr "Granularité de temps manquante"
 
 #: superset/utils/pandas_postprocessing.py:778
 #, python-format
