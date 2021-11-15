@@ -2017,7 +2017,7 @@ msgstr "6 heures"
 
 #: superset/db_engine_specs/base.py:99
 msgid "Day"
-msgstr "jour"
+msgstr "Jour"
 
 #: superset/db_engine_specs/base.py:100
 msgid "Week"
