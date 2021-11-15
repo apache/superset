@@ -24,14 +24,19 @@ tables, metrics, and datasets were also introduced.
 These models are not fully implemented, and shouldn't be used yet.
 """
 
-import uuid
-
 import sqlalchemy as sa
 from flask_appbuilder import Model
-from sqlalchemy_utils import UUIDType
+
+from superset.models.helpers import (
+    AuditMixinNullable,
+    ExtraJSONMixin,
+    ImportExportMixin,
+)
 
 
-class Column(Model):  # pylint: disable=too-few-public-methods
+class Column(
+    Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin,
+):
     """
     A "column".
 
@@ -43,9 +48,6 @@ class Column(Model):  # pylint: disable=too-few-public-methods
     __tablename__ = "columns"
 
     id = sa.Column(sa.Integer, primary_key=True)
-    uuid = sa.Column(
-        UUIDType(binary=True), primary_key=False, unique=True, default=uuid.uuid4,
-    )
 
     # We use ``sa.Text`` for these attributes because (1) in modern databases the
     # performance is the same as ``VARCHAR``[1] and (2) because some table names can be

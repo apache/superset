@@ -15,15 +15,20 @@
 # specific language governing permissions and limitations
 # under the License.
 
+# pylint: disable=import-outside-toplevel, unused-argument
+
 from sqlalchemy.orm.session import Session
 
-from superset.columns.models import Column
 
-
-def test_column_model(session: Session) -> None:
+def test_column_model(app_context: None, session: Session) -> None:
     """
     Test basic attributes of a ``Column``.
     """
+    from superset.columns.models import Column
+
+    engine = session.get_bind()
+    Column.metadata.create_all(engine)  # pylint: disable=no-member
+
     column = Column(name="ds", type="TIMESTAMP", expression="ds",)
 
     session.add(column)

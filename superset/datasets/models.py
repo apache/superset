@@ -24,15 +24,18 @@ dataset, new models for columns, metrics, and tables were also introduced.
 These models are not fully implemented, and shouldn't be used yet.
 """
 
-import uuid
 from typing import List
 
 import sqlalchemy as sa
 from flask_appbuilder import Model
 from sqlalchemy.orm import relationship
-from sqlalchemy_utils import UUIDType
 
 from superset.columns.models import Column
+from superset.models.helpers import (
+    AuditMixinNullable,
+    ExtraJSONMixin,
+    ImportExportMixin,
+)
 from superset.tables.models import Table
 
 column_association_table = sa.Table(
@@ -46,11 +49,11 @@ table_association_table = sa.Table(
     "dataset_tables",
     Model.metadata,  # pylint: disable=no-member
     sa.Column("dataset_id", sa.ForeignKey("datasets.id")),
-    sa.Column("table_id", sa.ForeignKey("relations.id")),
+    sa.Column("table_id", sa.ForeignKey("tables.id")),
 )
 
 
-class Dataset(Model):  # pylint: disable=too-few-public-methods
+class Dataset(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     """
     A table/view in a database.
     """
@@ -58,9 +61,6 @@ class Dataset(Model):  # pylint: disable=too-few-public-methods
     __tablename__ = "datasets"
 
     id = sa.Column(sa.Integer, primary_key=True)
-    uuid = sa.Column(
-        UUIDType(binary=True), primary_key=False, unique=True, default=uuid.uuid4,
-    )
 
     # We use ``sa.Text`` for these attributes because (1) in modern databases the
     # performance is the same as ``VARCHAR``[1] and (2) because some table names can be
@@ -77,3 +77,6 @@ class Dataset(Model):  # pylint: disable=too-few-public-methods
     # The relationship between datasets and columns is 1:n, but we use a many-to-many
     # association to differentiate between the relationship between tables and columns.
     columns: List[Column] = relationship("Column", secondary=column_association_table)
+
+    # Does the dataset point directly to a ``Table``?
+    is_physical = sa.Column(sa.Boolean, default=False)

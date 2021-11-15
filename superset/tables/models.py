@@ -24,46 +24,41 @@ addition to a table, new models for columns, metrics, and datasets were also int
 These models are not fully implemented, and shouldn't be used yet.
 """
 
-import uuid
-from typing import List, TYPE_CHECKING
+from typing import List
 
 import sqlalchemy as sa
 from flask_appbuilder import Model
 from sqlalchemy.orm import backref, relationship
-from sqlalchemy_utils import UUIDType
 
 from superset.columns.models import Column
-
-if TYPE_CHECKING:
-    from superset.models.core import Database
-
+from superset.models.core import Database
+from superset.models.helpers import (
+    AuditMixinNullable,
+    ExtraJSONMixin,
+    ImportExportMixin,
+)
 
 association_table = sa.Table(
     "table_columns",
     Model.metadata,  # pylint: disable=no-member
-    sa.Column("table_id", sa.ForeignKey("relations.id")),
+    sa.Column("table_id", sa.ForeignKey("tables.id")),
     sa.Column("column_id", sa.ForeignKey("columns.id")),
 )
 
 
-class Table(Model):  # pylint: disable=too-few-public-methods
+class Table(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     """
     A table/view in a database.
     """
 
-    # We use the name "relations" because it represents both tables and views; but
-    # also because "tables" is already taken by the deprecated ``SqlaTable`` class.
-    __tablename__ = "relations"
+    __tablename__ = "tables"
 
     id = sa.Column(sa.Integer, primary_key=True)
-    uuid = sa.Column(
-        UUIDType(binary=True), primary_key=False, unique=True, default=uuid.uuid4,
-    )
 
     database_id = sa.Column(sa.Integer, sa.ForeignKey("dbs.id"), nullable=False)
-    database: "Database" = relationship(
+    database: Database = relationship(
         "Database",
-        backref=backref("relations", cascade="all, delete-orphan"),
+        backref=backref("tables", cascade="all, delete-orphan"),
         foreign_keys=[database_id],
     )
 

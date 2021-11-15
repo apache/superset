@@ -18,7 +18,6 @@
 from typing import Iterator
 
 import pytest
-from flask_appbuilder import Model
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
@@ -32,8 +31,6 @@ def session() -> Iterator[Session]:
     engine = create_engine("sqlite:///:memory:")
     Session_ = sessionmaker(bind=engine)  # pylint: disable=invalid-name
     in_memory_session = Session_()
-
-    Model.metadata.create_all(engine)  # pylint: disable=no-member
 
     yield in_memory_session
 
