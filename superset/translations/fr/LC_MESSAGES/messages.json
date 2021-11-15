@@ -87,7 +87,7 @@
         "La requête est trop complexe et trop longue à exécuter."
       ],
       "The database is currently running too many queries.": [
-        "La base de données exécute actuellement trop de requête."
+        "La base de données exécute actuellement trop de requêtes."
       ],
       "One or more parameters specified in the query are malformatted.": [
         "Un ou plusieurs paramètres de la requête sont malformés."
@@ -130,13 +130,13 @@
         "La requête a été tuée après %(sqllab_timeout)s secondes. Elle est peut-être trop complexe ou la base de donnée est soumise à une charge trop importante."
       ],
       "Results backend is not configured.": [
-        "Le backend des résultats n'est pas configuré"
+        "Le backend des résultats n'est pas configuré."
       ],
       "CTAS (create table as select) can only be run with a query where the last statement is a SELECT. Please make sure your query has a SELECT as its last statement. Then, try running your query again.": [
         "Le CTAS (create table as select) n'a pas d'instruction SELECT à la fin. Assurez-vous que la requête a bien un SELECT en dernière instruction. Puis essayez d'exécuter votre requête à nouveau."
       ],
       "CVAS (create view as select) can only be run with a query with a single SELECT statement. Please make sure your query has only a SELECT statement. Then, try running your query again.": [
-        "Le CVAS (create view as select n'a pas d'instruction SELECT à la fin. Assurez-vous que la requête a bien un seul SELECT en dernière instruction. Puis essayez d'exécuter votre requête à nouveau."
+        "Le CVAS (create view as select) ne peut être exécuté qu'avec une requête contenant une seule instruction SELECT. Assurez-vous que la requête a bien une seule instruction SELECT. Puis essayez d'exécuter votre requête à nouveau."
       ],
       "Viz is missing a datasource": [
         "Viz est une source de données manquante"
@@ -153,7 +153,7 @@
       ],
       "Table View": ["Vue en table"],
       "You cannot use [Columns] in combination with [Group By]/[Metrics]/[Percentage Metrics]. Please choose one or the other.": [
-        "Vous ne pouvez pas utiliser [Columns] en même temps que [Group By]/[Metrics]/[Percentage Metrics]. Veuillez choisir l'un ou l'autre."
+        "Vous ne pouvez pas utiliser [Colonnes] en même temps que [Grouper par]/[Métriques]/[Métriques de Pourcentages]. Veuillez choisir l'un ou l'autre."
       ],
       "Pick a granularity in the Time section or uncheck 'Include Time'": [
         "Choississez une granularité dans la section Temps ou décochez 'Inclure le temps'"
@@ -173,7 +173,7 @@
       "Group By' and 'Columns' can't overlap": [
         "'Grouper par' et 'Colonnes' ne peuvent pas se chevaucher"
       ],
-      "Treemap": ["Tremap"],
+      "Treemap": ["Carte proportionnelle"],
       "Calendar Heatmap": ["Calendrier Carte de chaleur"],
       "Bubble Chart": ["Bulles"],
       "Please use 3 different metric labels": [
@@ -192,7 +192,7 @@
         "Choisissez une granularité pour vos séries temporelles"
       ],
       "An enclosed time range (both start and end) must be specified when using a Time Comparison.": [
-        "Une période délimitée (à la fois début et fin) doit être spécifiée quand onutilise une Comparaison de temps."
+        "Une période délimitée (à la fois début et fin) doit être spécifiée quand on utilise une Comparaison de temps."
       ],
       "Time Series - Multiple Line Charts": [
         "Séries temporelles - Lignes multiples"
@@ -236,13 +236,15 @@
       "Country Map": ["Carte de pays"],
       "World Map": ["Carte du monde"],
       "Filters": ["Filtres"],
-      "Invalid filter configuration, please select a column": [""],
+      "Invalid filter configuration, please select a column": [
+        "Configuration du filtre invalide, veuillez sélectionner une colonne."
+      ],
       "Parallel Coordinates": ["Coordonnées parallèles"],
       "Heatmap": ["Carte de chaleur"],
       "Horizon Charts": ["Histogrammes horizontaux"],
       "Mapbox": ["Mapbox"],
       "[Longitude] and [Latitude] must be set": [
-        "Les colonnes [Longitude] et [Latitude] doivent êtres présentes dans [Grouper par]"
+        "Les colonnes [Longitude] et [Latitude] doivent êtres définies"
       ],
       "Must have a [Group By] column to have 'count' as the [Label]": [
         "Il faut une colonne [Grouper par] pour avoir 'count' comme [Label]"
@@ -291,12 +293,12 @@
         "Date de début ne peut être postérieure à Date de fin"
       ],
       "Short description must be unique for this layer": [
-        "La description courte doitêtre unique pour cette couche"
+        "La description courte doit être unique pour cette couche"
       ],
       "Annotations could not be deleted.": [
-        "Laes annotations n'ont pas pu être supprimées"
+        "Les annotations n'ont pas pu être supprimées."
       ],
-      "Annotation not found.": ["Annotation non trouvée"],
+      "Annotation not found.": ["Annotation non trouvée."],
       "Annotation parameters are invalid.": [
         "Les paramètres d'annotation sont invalides."
       ],
@@ -324,7 +326,7 @@
         "La suppression de la couche d'annotations a échoué."
       ],
       "Annotation layer has associated annotations.": [
-        "Les couches d'annotations a des annotations associées."
+        "La couche d'annotations a des annotations associées."
       ],
       "Name must be unique": ["Le nom doit être unique"],
       "Deleted %(num)d chart": [
@@ -360,7 +362,7 @@
         "La colonne de tri doit être remplie"
       ],
       "There are associated alerts or reports: %s,": [
-        "Il y a des alertes ou des rapports : %s,"
+        "Il y a des alertes ou des rapports associés : %s,"
       ],
       "Time string is ambiguous. Please specify [%(human_readable)s ago] or [%(human_readable)s later].": [
         "La chaîne de Temps est ambigüe. Veuillez spécifier [%(human_readable)s ago] ou [%(human_readable)s later]."
@@ -374,7 +376,7 @@
       "Database does not exist": ["La base de données n'existe pas"],
       "Dashboards do not exist": ["Les tableaux de bord n'existent pas"],
       "Datasource type is required when datasource_id is given": [
-        "La type de source de données est requis quand datasource_id est spécifié"
+        "Le type de source de données est requis quand datasource_id est spécifié"
       ],
       "Chart parameters are invalid.": [
         "Les paramètres du graphique sont invalides."
@@ -384,12 +386,14 @@
         "Le graphique n'a pas pu être mis à jour."
       ],
       "Chart could not be deleted.": ["Le graphique n'a pas pu être supprimé."],
-      "There are associated alerts or reports": [""],
+      "There are associated alerts or reports": [
+        "Il y a des alertes ou des rapports associés"
+      ],
       "Changing this chart is forbidden": [
         "Modifier ce graphique est interdit"
       ],
       "Charts could not be deleted.": [
-        "Lse graphiques n'ont pas pu être supprimés."
+        "Les graphiques n'ont pas pu être supprimés."
       ],
       "Import chart failed for an unknown reason": [
         "L'import du graphique a échoué pour une raison inconnue"
@@ -400,12 +404,12 @@
       "Invalid result type: %(result_type)s": [
         "Type de résultat invalide : %(result_type)s"
       ],
-      "The chart does not exist": ["Le graphique n'exisite pas"],
+      "The chart does not exist": ["Le graphique n'existe pas"],
       "Duplicate column/metric labels: %(labels)s. Please make sure all columns and metrics have a unique label.": [
-        "Doublons de libellés colomne/métrique : %(labels)s. Veuillez vous assurer que toutes les colonnes et métriques ont des libellés uniques."
+        "Doublons de libellés colonne/métrique : %(labels)s. Veuillez vous assurer que toutes les colonnes et métriques ont des libellés uniques."
       ],
       "`operation` property of post processing object undefined": [
-        "La propriété `operation` de l'objet de post-traitement est indéfini"
+        "La propriété `operation` de l'objet de post-traitement est indéfinie"
       ],
       "Unsupported post processing operation: %(operation)s": [
         "Opération de post-traitement non supportée : %(operation)s"
@@ -414,9 +418,11 @@
         "Identifiant de source de données non trouvé : %(id)s"
       ],
       "Adding new datasource [{}]": [
-        "Ajouter une nouvelle source de données [{}]"
+        "Ajout d'une nouvelle source de données [{}]"
       ],
-      "Refreshing datasource [{}]": ["Rafraîchir la source de données [{}]"],
+      "Refreshing datasource [{}]": [
+        "Rafraîchissement de la source de données [{}]"
+      ],
       "Metric(s) {} must be aggregations.": [
         "La(les) métrique(s) {} doit (doivent) être des aggrégations"
       ],
@@ -446,14 +452,14 @@
       "Druid Datasource": ["Données Druid"],
       "Warning Message": ["Message d'avertissement"],
       "Druid Clusters": ["Clusters Druid"],
-      "Show Druid Cluster": ["Afficher les cluster Druid"],
+      "Show Druid Cluster": ["Afficher le cluster Druid"],
       "Add Druid Cluster": ["Ajouter un cluster Druid"],
-      "Edit Druid Cluster": ["Éditer une cluster Druid"],
+      "Edit Druid Cluster": ["Éditer un cluster Druid"],
       "Cluster Name": ["Nom du cluster"],
       "Broker Host": ["Hôte du Broker"],
       "Broker Port": ["Port du Broker"],
-      "Broker Username": ["Hôte du Broker"],
-      "Broker Password": ["Port du Broker"],
+      "Broker Username": ["Nom d'utilisateur du Broker"],
+      "Broker Password": ["Mot de passe du Broker"],
       "Broker Endpoint": ["Endpoint du Broker"],
       "Cache Timeout": ["Cache timeout"],
       "Metadata Last Refreshed": ["Dernière modification des métadonnées"],
@@ -464,9 +470,9 @@
         "Druid supporte l'authentification basique. Voir [auth](http://druid.io/docs/latest/design/auth.html) et druid-basic-security extension"
       ],
       "Druid Datasources": ["Sources de données Druid"],
-      "Show Druid Datasource": ["Afficher les sources de données Druid"],
+      "Show Druid Datasource": ["Afficher la source de données Druid"],
       "Add Druid Datasource": ["Ajouter une source de données Druid"],
-      "Edit Druid Datasource": ["Éditer une source de données Druid"],
+      "Edit Druid Datasource": ["Éditer la source de données Druid"],
       "The list of charts associated with this table. By altering this datasource, you may change how these associated charts behave. Also note that charts need to point to a datasource, so this form will fail at saving if removing charts from a datasource. If you want to change the datasource for a chart, overwrite the chart from the 'explore view'": [
         "La liste des graphiques associés à cette table. En alterant cette source de données, vous pouvez changer le comportement des graphiques associés. Aussi notez que les graphiques doivent pointer vers une source de données, alors ce formulaire ne pourra pas être enregistré si des graphiques sont retirés d'une source de données. Si vous voulez changer la source de données d'un graphique, écraser le graphique depuis la 'vue d'exploration'"
       ],
@@ -493,7 +499,7 @@
       "Enable Filter Select": ["Activer le filtre de sélection"],
       "Default Endpoint": ["Endpoint par défaut"],
       "Time Offset": ["Décalage du temps (offset)"],
-      "Datasource Name": ["Nom source de donnée"],
+      "Datasource Name": ["Nom source de données"],
       "Fetch Values From": ["Récupérer les valeurs des prédicats"],
       "Changed By": ["Modifié par"],
       "Modified": ["Modifié"],
@@ -550,7 +556,7 @@
         "La base de données n'autorise pas les sous-requêtes"
       ],
       "Db engine did not return all queried columns": [
-        "La base de données n'a retourné toutes les colonnes demandées"
+        "La base de données n'a pas retourné toutes les colonnes demandées"
       ],
       "Only `SELECT` statements are allowed": [
         "Seules les instructions `SELECT` sont autorisées"
@@ -558,11 +564,11 @@
       "Only single queries supported": [
         "Seules les requêtes simples sont autorisées"
       ],
-      "Show Column": ["Afficher les colonnes"],
+      "Show Column": ["Afficher la colonne"],
       "Add Column": ["Ajouter une colonne"],
       "Edit Column": ["Éditer une colonne"],
       "Whether to make this column available as a [Time Granularity] option, column has to be DATETIME or DATETIME-like": [
-        "Faut-il que cette colonne soit accessible comme une option [Time Granularity],  la colonne doit être DATETIME ou d'un format équivalent"
+        "S'il faut que cette colonne soit accessible comme une option [Time Granularity], elle doit être DATETIME ou d'un format équivalent"
       ],
       "The data type that was inferred by the database. It may be necessary to input a type manually for expression-defined columns in some cases. In most case users should not need to alter this.": [
         "Le type de donnée inféré par la base de données. Il peut être nécessaire de le rentrer manuellement pour les colonnes définissant des expressions dans certains cas. Dans la plupart des cas il n'est pas nécessaire de le modifier"
@@ -571,7 +577,7 @@
       "Expression": ["Expression"],
       "Is temporal": ["Est temporel"],
       "Datetime Format": ["Format Datetime"],
-      "Invalid date/timestamp format": ["Format Timestamp de la table"],
+      "Invalid date/timestamp format": ["Format date/timestamp invalide"],
       "Show Metric": ["Afficher la métrique"],
       "Add Metric": ["Ajouter une métrique"],
       "Edit Metric": ["Éditer la métrique"],
@@ -629,10 +635,10 @@
         "Si la table a été générée par le flow 'Visualiser' dans SQL Lab"
       ],
       "A set of parameters that become available in the query using Jinja templating syntax": [
-        "Un ensemble de paramètre qui seront disponible dans la requête utilisant la syntaxedu gabarit Jinja"
+        "Un ensemble de paramètre qui seront disponible dans la requête utilisant la syntaxe du template Jinja"
       ],
       "Duration (in seconds) of the caching timeout for this table. A timeout of 0 indicates that the cache never expires. Note this defaults to the database timeout if undefined.": [
-        ""
+        "Durée (en secondes) du timeout du cache pour cette table. Un timeout à 0 indique que le cache n'expire jamais. Notez que le timeout de la base de données par défaut est undefined"
       ],
       "Database": ["Base de données"],
       "Last Changed": ["Dernière modification"],
@@ -701,7 +707,7 @@
         "L'import du tableau de bord a échoué pour une raison inconnue"
       ],
       "You don't have access to this dashboard.": [
-        "Vous n'avez accès à ce tableau de bord."
+        "Vous n'avez pas accès à ce tableau de bord."
       ],
       "No data in file": ["Pas de données dans le fichier"],
       "Table name undefined": ["Nom de la table non défini"],
@@ -712,15 +718,17 @@
         "Le champ ne peut pas être décodé par JSON. %(msg)s"
       ],
       "The metadata_params in Extra field is not configured correctly. The key %(key)s is invalid.": [
-        "Le paramètre metadata_params dans Champ supplémentaire n'est pas correctement configuré? La clé %(key)s est invalide."
+        "Le paramètre metadata_params dans Champ supplémentaire n'est pas correctement configuré. La clé %(key)s est invalide."
       ],
       "Engine spec \"InvalidEngine\" does not support being configured via individual parameters.": [
         ""
       ],
       "An engine must be specified when passing individual parameters to a database.": [
-        ""
+        "Un moteur doit être fournit lorsque l'on passe des paramètres individuels à la base de données."
       ],
-      "Engine \"%(engine)s\" is not a valid engine.": [""],
+      "Engine \"%(engine)s\" is not a valid engine.": [
+        "Le moteur \"%(engine)s\" n'est pas un moteur valide."
+      ],
       "Database parameters are invalid.": [
         "Les paramètres de base de données sont invalides."
       ],
@@ -732,7 +740,7 @@
         "Le champ ne peut pas être décodé par JSON  %{json_error}s"
       ],
       "The metadata_params in Extra field is not configured correctly. The key %{key}s is invalid.": [
-        "Le paramètre metadata_params dans Champ supplémentaire n'est pas correctement configuré? La clé %(key)s est invalide."
+        "Le paramètre metadata_params dans Champ supplémentaire n'est pas correctement configuré. La clé %(key)s est invalide."
       ],
       "Database not found.": ["Base de donnée non trouvée."],
       "Database could not be created.": [
@@ -765,7 +773,9 @@
       "Could not load database driver: {}": [
         "Ce driver de la base de données n'a pas pu être chargé : {}"
       ],
-      "Engine \"%(engine)s\" cannot be configured through parameters.": [""],
+      "Engine \"%(engine)s\" cannot be configured through parameters.": [
+        "Le moteur \"%(engine)s\" ne peut pas être configuré via des paramètres."
+      ],
       "Database is offline.": ["La base de données est hors-ligne."],
       "Deleted %(num)d dataset": [
         "%(num)d jeu de données supprimé",
@@ -804,7 +814,7 @@
         "Une ou plusieurs métriques existent déjà"
       ],
       "Table [%(table_name)s] could not be found, please double check your database connection, schema, and table name": [
-        "La table [{}] n'a pu être trouvée, vérifiez à nouveau votre la connexion à votre base de données, le schéma et le nom de la table"
+        "La table [{}] n'a pu être trouvée, vérifiez à nouveau votre connexion à votre base de données, le schéma et le nom de la table"
       ],
       "Dataset parameters are invalid.": [
         "Les paramètres du jeu de données sont invalides."
@@ -836,32 +846,32 @@
       ],
       "Original value": ["Valeur d'origine"],
       "Second": ["Seconde"],
-      "5 second": ["5 seconds"],
+      "5 second": ["5 secondes"],
       "30 second": ["30 secondes"],
-      "Minute": ["minute"],
+      "Minute": ["Minute"],
       "5 minute": ["5 minutes"],
       "10 minute": ["10 minutes"],
       "15 minute": ["15 minutes"],
       "Half hour": ["1/2 heure"],
-      "Hour": ["heure"],
+      "Hour": ["Heure"],
       "6 hour": ["6 heures"],
-      "Day": ["jour"],
-      "Week": ["semaine"],
-      "Month": ["mois"],
+      "Day": ["Jour"],
+      "Week": ["Semaine"],
+      "Month": ["Mois"],
       "Quarter": ["Trimestre"],
-      "Year": ["année"],
+      "Year": ["Année"],
       "Week starting Sunday": ["Semaine débutant le dimanche"],
       "Week starting Monday": ["Semaine débutant le lundi"],
       "Week ending Saturday": ["Semaine terminant le samedi"],
       "Week_ending Sunday": ["Semaine terminant le dimanche"],
-      "Username": ["Nom utilisateur"],
+      "Username": ["Nom d'utilisateur"],
       "Password": ["Mot de passe"],
       "Hostname or IP address": ["Nom d'hôte ou adresse IP"],
       "Database port": ["Port de la base de données"],
-      "Database name": ["Nom base de donnée"],
+      "Database name": ["Nom de la base de données"],
       "Additional parameters": ["Paramètres supplémentaires"],
       "Use an encrypted connection to the database": [
-        "Utiliser un connexion cryptée vers la base de données"
+        "Utiliser une connexion cryptée vers la base de données"
       ],
       "We were unable to connect to your database. Please confirm that your service account has the Viewer and Job User roles on the project.": [
         "Nous n'avons pas pu nous connecter à votre base de données. Veuillez confirmer que votre compte de service a les profils Viewer et Job User sur le projet."
@@ -882,7 +892,7 @@
         "Soit l'utilisateur \"%(username)s\", le mot de passe, ou le nom de la base de données \"%(database)s\" est incorrect."
       ],
       "The hostname \"%(hostname)s\" cannot be resolved.": [
-        "Le nom d'hôte \"%(hostname)s\"  ne peut pas être résolu."
+        "Le nom d'hôte \"%(hostname)s\" ne peut pas être résolu."
       ],
       "Port %(port)s on hostname \"%(hostname)s\" refused the connection.": [
         "Le port %(port)s sur l'hôte \"%(hostname)s\" a refusé la connexion."
@@ -936,7 +946,7 @@
       "Manage": ["Gestion"],
       "Dashboards": ["Tableaux de bord"],
       "Charts": ["Graphiques"],
-      "Plugins": [""],
+      "Plugins": ["Plugins"],
       "CSS Templates": ["Templates CSS"],
       "Row level security": ["Sécurité de niveau ligne"],
       "Security": ["Sécurité"],
@@ -1007,7 +1017,7 @@
       "Report Schedule could not be updated.": [
         "La planification de rapport n'a pas pu être mise à jour."
       ],
-      "Report Schedule not found.": ["planification de rapport introuvable"],
+      "Report Schedule not found.": ["Planification de rapport introuvable"],
       "Report Schedule delete failed.": [
         "La planification de rapport n'a pas être supprimée."
       ],
@@ -1021,7 +1031,7 @@
         "L'exécution de la planification de rapport a échoué à la génération d'un csv."
       ],
       "Report Schedule execution got an unexpected error.": [
-        "L'exécution de la planification de rapport a rencontré un erreur inattendue."
+        "L'exécution de la planification de rapport a rencontré une erreur inattendue."
       ],
       "Report Schedule is still working, refusing to re-compute.": [
         "La planification de rapport est toujours en cours d'exécution, refus de re-traiter."
@@ -1039,7 +1049,7 @@
         "La requête a retourné plus d'une colonne."
       ],
       "Alert query returned a non-number value.": [
-        "La requête a retourné un valeur non numérique."
+        "La requête a retourné une valeur non numérique."
       ],
       "Alert found an error while executing a query.": [
         "Une erreur a été rencontrée lors de l'exécution de la requête."
@@ -1054,9 +1064,11 @@
         "Dépassement de délai lors de la génération d'un CSV"
       ],
       "Alert fired during grace period.": [
-        "Alerte déclenchée pendant la période de grace"
+        "Alerte déclenchée pendant la période de grâce"
       ],
-      "Alert ended grace period.": ["Alerte terminée grace période"],
+      "Alert ended grace period.": [
+        "L'alerte a mis fin à la période de grâce."
+      ],
       "Alert on grace period": ["Alerte sur la période de grace"],
       "Report Schedule sellenium user not found": [
         "Utilisateur sellenium du programme de rapport introuvable"
@@ -1065,7 +1077,7 @@
         "Etat du programme de rapport introuvable"
       ],
       "Report schedule unexpected error": [
-        "Erreur inattendu du programme de rapport"
+        "Erreur inattendue du programme de rapport"
       ],
       "Changing this report is forbidden": [
         "Il est interdit de changer ce rapport"
@@ -1120,7 +1132,7 @@
       "Import Dashboard(s)": ["Importer des tableaux de bords"],
       "File": ["Fichier"],
       "Choose File": ["Choisissez un fichier"],
-      "Upload": ["Télécharger"],
+      "Upload": ["Téléverser"],
       "No Access!": ["Pas d'accès !"],
       "You do not have permissions to access the datasource(s): %(name)s.": [
         "Vous n'avez pas les permissions pour accéder à(aux) source(s) : %(name)s."
@@ -1161,7 +1173,7 @@
       "Undefined window for rolling operation": [
         "Fenêtre indéfinie pour l'opération de roulement"
       ],
-      "Window must be > 0": ["Fenêtre doit être >0"],
+      "Window must be > 0": ["La fenêtre doit être > 0"],
       "Invalid rolling_type: %(type)s": ["rolling_type invalide: %(type)s"],
       "Invalid options for %(rolling_type)s: %(options)s": [
         "Options invalides pour %(rolling_type)s: %(options)s"
@@ -1185,7 +1197,7 @@
         "`rename_columns` doit être de même longueur que `columns`."
       ],
       "`prophet` package not installed": ["`prophet` package non installé"],
-      "Time grain missing": ["Granularité de Temps manquante"],
+      "Time grain missing": ["Granularité de temps manquante"],
       "Unsupported time grain: %(time_grain)s": [
         "Granularité de Temps non supportée : %(time_grain)s"
       ],
@@ -1220,7 +1232,7 @@
         "Combien de temps garder les logs pour cette alerte"
       ],
       "Once an alert is triggered, how long, in seconds, before Superset nags you again.": [
-        "Quand une alerte est déclenchée, durée en secondeavant que superset pour demande à nouveau"
+        "Quand une alerte est déclenchée, la durée en secondeavant que superset ne vous demande encore"
       ],
       "A SQL statement that defines whether the alert should get triggered or not. The query is expected to return either NULL or a number value.": [
         "Une requête SQL indiquant si une alerte doit être lancée ou non. La requête doit retourner NULL ou un nombre"
@@ -1361,7 +1373,7 @@
       "%(user)s's profile": ["Le profil de %(user)s"],
       "Show CSS Template": ["Voir le Template CSS"],
       "Add CSS Template": ["Ajouter un Template CSS"],
-      "Edit CSS Template": ["modifier le Template CSS"],
+      "Edit CSS Template": ["Modifier le Template CSS"],
       "Template Name": ["Nom du template"],
       "Request missing data field.": [
         "Il manque un champ de donnée dans la requête"
@@ -3320,7 +3332,7 @@
         "Durée (en secondes) du délai de mise en cache pour les métadonnées des tables de cette base de données. Si vide, le cache n'expire jamais."
       ],
       "Operate the database in asynchronous mode, meaning that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information.": [
-        "Faire fonctionner la base de données en mode asynhrone, c'est-à-dire que les requêtes sont exécutées dans un processus distant au lieu de les exécuter sur le serveur Web lui-même. Cela suppose que vous avez configuré un processus Celery ainsi qu'un backend de résultats. Se référer aux docs d'installation pour plus d'informations."
+        "Faire fonctionner la base de données en mode asynchrone, c'est-à-dire que les requêtes sont exécutées dans un processus distant au lieu de les exécuter sur le serveur Web lui-même. Cela suppose que vous avez configuré un processus Celery ainsi qu'un backend de résultats. Se référer aux docs d'installation pour plus d'informations."
       ],
       "Cancel query on window unload event": [
         "Annule la requête quand on quitte la fenêtre"
