@@ -616,7 +616,7 @@ msgstr "Les annotations n'ont pas pu être supprimées."
 
 #: superset/annotation_layers/annotations/commands/exceptions.py:56
 msgid "Annotation not found."
-msgstr "Annotation non trouvée"
+msgstr "Annotation non trouvée."
 
 #: superset/annotation_layers/annotations/commands/exceptions.py:60
 msgid "Annotation parameters are invalid."
