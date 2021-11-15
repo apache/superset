@@ -856,7 +856,7 @@ msgstr "Identifiant de source de données non trouvé : %(id)s"
 
 #: superset/connectors/druid/models.py:249
 msgid "Adding new datasource [{}]"
-msgstr "Ajouter une nouvelle source de données [{}]"
+msgstr "Ajout d'une nouvelle source de données [{}]"
 
 #: superset/connectors/druid/models.py:252
 msgid "Refreshing datasource [{}]"
