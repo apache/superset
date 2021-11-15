@@ -39,6 +39,7 @@ import {
 import { DEFAULT_LEGEND_FORM_DATA } from '../types';
 import {
   extractGroupbyLabel,
+  getChartPadding,
   getColtypesMapping,
   getLegendProps,
 } from '../utils/series';
@@ -82,6 +83,7 @@ export default function transformProps(
     labelPosition,
     legendOrientation,
     legendType,
+    legendMargin,
     metrics = [],
     numberFormat,
     dateFormat,
@@ -201,6 +203,7 @@ export default function transformProps(
   const series: RadarSeriesOption[] = [
     {
       type: 'radar',
+      ...getChartPadding(showLegend, legendOrientation, legendMargin),
       animation: false,
       emphasis: {
         label: {
