@@ -1000,7 +1000,7 @@ msgstr "Clusters Druid"
 
 #: superset/connectors/druid/views.py:211
 msgid "Show Druid Cluster"
-msgstr "Afficher les cluster Druid"
+msgstr "Afficher le cluster Druid"
 
 #: superset/connectors/druid/views.py:212
 msgid "Add Druid Cluster"
