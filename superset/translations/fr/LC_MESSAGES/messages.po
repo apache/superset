@@ -2572,7 +2572,7 @@ msgstr "Etat du programme de rapport introuvable"
 
 #: superset/reports/commands/exceptions.py:195
 msgid "Report schedule unexpected error"
-msgstr "Erreur inattendu du programme de rapport"
+msgstr "Erreur inattendue du programme de rapport"
 
 #: superset/reports/commands/exceptions.py:199
 msgid "Changing this report is forbidden"
