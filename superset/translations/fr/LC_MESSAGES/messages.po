@@ -2033,7 +2033,7 @@ msgstr "Trimestre"
 
 #: superset/db_engine_specs/base.py:103
 msgid "Year"
-msgstr "année"
+msgstr "Année"
 
 #: superset/db_engine_specs/base.py:104
 msgid "Week starting Sunday"
