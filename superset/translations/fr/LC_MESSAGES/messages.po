@@ -2136,7 +2136,7 @@ msgstr ""
 #: superset/db_engine_specs/redshift.py:68
 #, python-format
 msgid "The hostname \"%(hostname)s\" cannot be resolved."
-msgstr "Le nom d'hôte \"%(hostname)s\"  ne peut pas être résolu."
+msgstr "Le nom d'hôte \"%(hostname)s\" ne peut pas être résolu."
 
 #: superset/db_engine_specs/mssql.py:82
 #: superset/db_engine_specs/postgres.py:132
