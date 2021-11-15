@@ -431,7 +431,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     def _latest_partition_from_df(cls, df: pd.DataFrame) -> Optional[List[str]]:
         """Hive partitions look like ds={partition name}"""
         if not df.empty:
-            return [df.ix[:, 0].max().split("=")[1]]
+            return [df.iloc[:, 0].max().split("=")[1]]
         return None
 
     @classmethod
