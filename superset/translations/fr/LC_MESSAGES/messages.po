@@ -1557,7 +1557,7 @@ msgid ""
 "Duration (in seconds) of the caching timeout for this table. A timeout of"
 " 0 indicates that the cache never expires. Note this defaults to the "
 "database timeout if undefined."
-msgstr ""
+msgstr "Durée (en secondes) du timeout du cache pour cette table. Un timeout à 0 indique que le cache n'expire jamais. Notez que le timeout de la base de données par défaut est undefined"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1106
 #: superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx:179
