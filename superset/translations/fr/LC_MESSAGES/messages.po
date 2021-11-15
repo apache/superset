@@ -612,7 +612,7 @@ msgstr "La description courte doit être unique pour cette couche"
 
 #: superset/annotation_layers/annotations/commands/exceptions.py:52
 msgid "Annotations could not be deleted."
-msgstr "Laes annotations n'ont pas pu être supprimées"
+msgstr "Les annotations n'ont pas pu être supprimées."
 
 #: superset/annotation_layers/annotations/commands/exceptions.py:56
 msgid "Annotation not found."
