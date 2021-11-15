@@ -21,13 +21,13 @@ params:
   all_columns: []
   color_pn: true
   datasource: 23__table
-  granularity_sqla: OrderDate
+  granularity_sqla: order_date
   groupby:
-  - ProductLine
+  - product_line
   metrics:
   - aggregate: SUM
     column:
-      column_name: QuantityOrdered
+      column_name: quantity_ordered
       description: null
       expression: null
       filterable: true

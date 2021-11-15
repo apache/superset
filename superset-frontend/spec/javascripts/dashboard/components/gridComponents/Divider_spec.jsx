@@ -17,8 +17,10 @@
  * under the License.
  */
 import React from 'react';
-import { mount } from 'enzyme';
+import { styledMount as mount } from 'spec/helpers/theming';
 import sinon from 'sinon';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
@@ -29,8 +31,6 @@ import {
   DIVIDER_TYPE,
   DASHBOARD_GRID_TYPE,
 } from 'src/dashboard/util/componentTypes';
-
-import WithDragDropContext from 'spec/helpers/WithDragDropContext';
 
 describe('Divider', () => {
   const props = {
@@ -49,9 +49,9 @@ describe('Divider', () => {
     // We have to wrap provide DragDropContext for the underlying DragDroppable
     // otherwise we cannot assert on DragDroppable children
     const wrapper = mount(
-      <WithDragDropContext>
+      <DndProvider backend={HTML5Backend}>
         <Divider {...props} {...overrideProps} />
-      </WithDragDropContext>,
+      </DndProvider>,
     );
     return wrapper;
   }

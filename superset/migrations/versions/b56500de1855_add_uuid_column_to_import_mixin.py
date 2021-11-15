@@ -31,7 +31,6 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects.mysql.base import MySQLDialect
 from sqlalchemy.dialects.postgresql.base import PGDialect
-from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import load_only
 from sqlalchemy_utils import UUIDType
@@ -81,7 +80,7 @@ default_batch_size = int(os.environ.get("BATCH_SIZE", 200))
 
 # Add uuids directly using built-in SQL uuid function
 add_uuids_by_dialect = {
-    MySQLDialect: """UPDATE %s SET uuid = UNHEX(REPLACE(uuid(), "-", ""));""",
+    MySQLDialect: """UPDATE %s SET uuid = UNHEX(REPLACE(CONVERT(UUID() using utf8mb4), '-', ''));""",
     PGDialect: """UPDATE %s SET uuid = uuid_in(md5(random()::text || clock_timestamp()::text)::cstring);""",
 }
 
@@ -169,26 +168,19 @@ def upgrade():
     session = db.Session(bind=bind)
 
     for table_name, model in models.items():
-        try:
-            with op.batch_alter_table(table_name) as batch_op:
-                batch_op.add_column(
-                    sa.Column(
-                        "uuid", UUIDType(binary=True), primary_key=False, default=uuid4,
-                    ),
-                )
-        except OperationalError:
-            # ignore collumn update errors so that we can run upgrade multiple times
-            pass
+        with op.batch_alter_table(table_name) as batch_op:
+            batch_op.add_column(
+                sa.Column(
+                    "uuid", UUIDType(binary=True), primary_key=False, default=uuid4,
+                ),
+            )
 
         add_uuids(model, table_name, session)
 
-        try:
-            # add uniqueness constraint
-            with op.batch_alter_table(table_name) as batch_op:
-                # batch mode is required for sqllite
-                batch_op.create_unique_constraint(f"uq_{table_name}_uuid", ["uuid"])
-        except OperationalError:
-            pass
+        # add uniqueness constraint
+        with op.batch_alter_table(table_name) as batch_op:
+            # batch mode is required for sqllite
+            batch_op.create_unique_constraint(f"uq_{table_name}_uuid", ["uuid"])
 
     # add UUID to Dashboard.position_json
     slice_uuid_map = {

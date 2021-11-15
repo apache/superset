@@ -1,0 +1,121 @@
+{{- if .Values.supersetCeleryBeat.enabled -}}
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "superset.fullname" . }}-celerybeat
+  labels:
+    app: {{ template "superset.name" . }}-celerybeat
+    chart: {{ template "superset.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+{{- if .Values.supersetCeleryBeat.deploymentAnnotations }}
+  annotations:
+    {{ toYaml .Values.supersetCeleryBeat.deploymentAnnotations | nindent 4 }}
+{{- end }}
+spec:
+  # This must be a singleton
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ template "superset.name" . }}-celerybeat
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      annotations:
+        checksum/superset_config.py: {{ include "superset-config" . | sha256sum }}
+        checksum/connections: {{ .Values.supersetNode.connections | toYaml | sha256sum }}
+        checksum/extraConfigs: {{ .Values.extraConfigs | toYaml | sha256sum }}
+        checksum/extraSecrets: {{ .Values.extraSecrets | toYaml | sha256sum }}
+        checksum/extraSecretEnv: {{ .Values.extraSecretEnv | toYaml | sha256sum }}
+        checksum/configOverrides: {{ .Values.configOverrides | toYaml | sha256sum }}
+        {{ if .Values.supersetCeleryBeat.forceReload }}
+        # Optionally force the thing to reload
+        force-reload: {{ randAlphaNum 5 | quote }}
+        {{ end }}
+      {{- if .Values.supersetCeleryBeat.podAnnotations }}
+        {{ toYaml .Values.supersetCeleryBeat.podAnnotations | nindent 8 }}
+      {{- end }}
+      labels:
+        app: {{ template "superset.name" . }}-celerybeat
+        release: {{ .Release.Name }}
+    spec:
+      securityContext:
+        runAsUser: {{ .Values.runAsUser }}
+      {{- if .Values.supersetCeleryBeat.initContainers }}
+      initContainers:
+      {{-  tpl (toYaml .Values.supersetCeleryBeat.initContainers) . | nindent 6 }}
+      {{- end }}
+      {{- with .Values.hostAliases }}
+      hostAliases: {{ toYaml . | nindent 6 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: {{  tpl (toJson .Values.supersetCeleryBeat.command) . }}
+          env:
+            - name: "SUPERSET_PORT"
+              value: {{ .Values.service.port | quote}}
+            {{- range $key, $value := .Values.extraEnv }}
+            - name: {{ $key | quote}}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- if .Values.extraEnvRaw }}
+            {{- toYaml .Values.extraEnvRaw | nindent 12 }}
+            {{- end }}
+          envFrom:
+            - secretRef:
+                name: {{ tpl .Values.envFromSecret . | quote }}
+            {{- range .Values.envFromSecrets }}
+            - secretRef:
+                name: {{ tpl . $ | quote }}
+            {{- end }}
+          volumeMounts:
+            - name: superset-config
+              mountPath: {{ .Values.configMountPath | quote }}
+              readOnly: true
+          {{- with .Values.extraVolumeMounts }}
+          {{- tpl (toYaml .) $ | nindent 12 -}}
+          {{- end }}
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+    {{- with .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+{{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.imagePullSecrets | indent 8 }}
+      {{- end }}
+      volumes:
+        - name: superset-config
+          secret:
+            secretName: {{ tpl .Values.configFromSecret . }}
+      {{- with .Values.extraVolumes }}
+      {{- tpl (toYaml .) $ | nindent 8 -}}
+      {{- end }}
+{{- end -}}

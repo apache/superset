@@ -14,12 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import json
 import logging
+from collections import defaultdict
 from functools import partial
-from typing import Any, Callable, Dict, List, Set, Union
+from typing import Any, Callable, Dict, List, Set, Tuple, Type, Union
 
 import sqlalchemy as sqla
+from flask import g
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.security.sqla.models import User
@@ -40,12 +44,15 @@ from sqlalchemy.orm import relationship, sessionmaker, subqueryload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.sql import join, select
+from sqlalchemy.sql.elements import BinaryExpression
 
 from superset import app, ConnectorRegistry, db, is_feature_enabled, security_manager
+from superset.common.request_contexed_based import is_user_admin
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.druid.models import DruidColumn, DruidMetric
 from superset.connectors.sqla.models import SqlMetric, TableColumn
 from superset.extensions import cache_manager
+from superset.models.filter_set import FilterSet
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.slice import Slice
 from superset.models.tags import DashboardUpdater
@@ -53,6 +60,7 @@ from superset.models.user_attributes import UserAttribute
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.utils import core as utils
 from superset.utils.decorators import debounce
+from superset.utils.hashing import md5_sha_from_str
 from superset.utils.urls import get_url_path
 
 metadata = Model.metadata  # pylint: disable=no-member
@@ -115,10 +123,17 @@ dashboard_user = Table(
 )
 
 
-class Dashboard(  # pylint: disable=too-many-instance-attributes
-    Model, AuditMixinNullable, ImportExportMixin
-):
+DashboardRoles = Table(
+    "dashboard_roles",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("dashboard_id", Integer, ForeignKey("dashboards.id"), nullable=False),
+    Column("role_id", Integer, ForeignKey("ab_role.id"), nullable=False),
+)
 
+
+# pylint: disable=too-many-public-methods
+class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     """The dashboard object!"""
 
     __tablename__ = "dashboards"
@@ -132,7 +147,10 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
     slices = relationship(Slice, secondary=dashboard_slices, backref="dashboards")
     owners = relationship(security_manager.user_model, secondary=dashboard_user)
     published = Column(Boolean, default=False)
-
+    roles = relationship(security_manager.role_model, secondary=DashboardRoles)
+    _filter_sets = relationship(
+        "FilterSet", back_populates="dashboard", cascade="all, delete"
+    )
     export_fields = [
         "dashboard_title",
         "position_json",
@@ -146,17 +164,49 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         return f"Dashboard<{self.id or self.slug}>"
 
     @property
-    def table_names(self) -> str:
-        # pylint: disable=no-member
-        return ", ".join(str(s.datasource.full_name) for s in self.slices)
-
-    @property
     def url(self) -> str:
         return f"/superset/dashboard/{self.slug or self.id}/"
 
     @property
     def datasources(self) -> Set[BaseDatasource]:
-        return {slc.datasource for slc in self.slices}
+        # Verbose but efficient database enumeration of dashboard datasources.
+        datasources_by_cls_model: Dict[Type["BaseDatasource"], Set[int]] = defaultdict(
+            set
+        )
+
+        for slc in self.slices:
+            datasources_by_cls_model[slc.cls_model].add(slc.datasource_id)
+
+        return {
+            datasource
+            for cls_model, datasource_ids in datasources_by_cls_model.items()
+            for datasource in db.session.query(cls_model)
+            .filter(cls_model.id.in_(datasource_ids))
+            .all()
+        }
+
+    @property
+    def filter_sets(self) -> Dict[int, FilterSet]:
+        return {fs.id: fs for fs in self._filter_sets}
+
+    @property
+    def filter_sets_lst(self) -> Dict[int, FilterSet]:
+        if is_user_admin():
+            return self._filter_sets
+        current_user = g.user.id
+        filter_sets_by_owner_type: Dict[str, List[Any]] = {"Dashboard": [], "User": []}
+        for fs in self._filter_sets:
+            filter_sets_by_owner_type[fs.owner_type].append(fs)
+        user_filter_sets = list(
+            filter(
+                lambda filter_set: filter_set.owner_id == current_user,
+                filter_sets_by_owner_type["User"],
+            )
+        )
+        return {
+            fs.id: fs
+            for fs in user_filter_sets + filter_sets_by_owner_type["Dashboard"]
+        }
 
     @property
     def charts(self) -> List[BaseDatasource]:
@@ -167,6 +217,12 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         # pylint: disable=no-member
         meta = MetaData(bind=self.get_sqla_engine())
         meta.reflect()
+
+    @property
+    def status(self) -> utils.DashboardStatus:
+        if self.published:
+            return utils.DashboardStatus.PUBLISHED
+        return utils.DashboardStatus.DRAFT
 
     @renders("dashboard_title")
     def dashboard_link(self) -> Markup:
@@ -179,7 +235,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         Returns a MD5 HEX digest that makes this dashboard unique
         """
         unique_string = f"{self.position_json}.{self.css}.{self.json_metadata}"
-        return utils.md5_hex(unique_string)
+        return md5_sha_from_str(unique_string)
 
     @property
     def thumbnail_url(self) -> str:
@@ -220,25 +276,30 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
 
     @cache_manager.cache.memoize(
         # manage cache version manually
-        make_name=lambda fname: f"{fname}-v2.1",
+        make_name=lambda fname: f"{fname}-v1.0",
         unless=lambda: not is_feature_enabled("DASHBOARD_CACHE"),
     )
-    def full_data(self) -> Dict[str, Any]:
-        """Bootstrap data for rendering the dashboard page."""
-        slices = self.slices
-        datasource_slices = utils.indexed(slices, "datasource")
-        return {
-            # dashboard metadata
-            "dashboard": self.data,
-            # slices metadata
-            "slices": [slc.data for slc in slices],
-            # datasource metadata
-            "datasources": {
+    def datasets_trimmed_for_slices(self) -> List[Dict[str, Any]]:
+        # Verbose but efficient database enumeration of dashboard datasources.
+        slices_by_datasource: Dict[
+            Tuple[Type["BaseDatasource"], int], Set[Slice]
+        ] = defaultdict(set)
+
+        for slc in self.slices:
+            slices_by_datasource[(slc.cls_model, slc.datasource_id)].add(slc)
+
+        result: List[Dict[str, Any]] = []
+
+        for (cls_model, datasource_id), slices in slices_by_datasource.items():
+            datasource = (
+                db.session.query(cls_model).filter_by(id=datasource_id).one_or_none()
+            )
+
+            if datasource:
                 # Filter out unneeded fields from the datasource payload
-                datasource.uid: datasource.data_for_slices(slices)
-                for datasource, slices in datasource_slices.items()
-            },
-        }
+                result.append(datasource.data_for_slices(slices))
+
+        return result
 
     @property  # type: ignore
     def params(self) -> str:  # type: ignore
@@ -260,7 +321,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
 
     @debounce(0.1)
     def clear_cache(self) -> None:
-        cache_manager.cache.delete_memoized(Dashboard.full_data, self)
+        cache_manager.cache.delete_memoized(Dashboard.datasets_trimmed_for_slices, self)
 
     @classmethod
     @debounce(0.1)
@@ -320,6 +381,20 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
                 # set slices without creating ORM relations
                 slices = copied_dashboard.__dict__.setdefault("slices", [])
                 slices.append(copied_slc)
+
+            json_metadata = json.loads(dashboard.json_metadata)
+            native_filter_configuration: List[Dict[str, Any]] = json_metadata.get(
+                "native_filter_configuration", []
+            )
+            for native_filter in native_filter_configuration:
+                session = db.session()
+                for target in native_filter.get("targets", []):
+                    id_ = target.get("datasetId")
+                    if id_ is None:
+                        continue
+                    datasource = ConnectorRegistry.get_datasource_by_id(session, id_)
+                    datasource_ids.add((datasource.id, datasource.type))
+
             copied_dashboard.alter_params(remote_id=dashboard_id)
             copied_dashboards.append(copied_dashboard)
 
@@ -345,6 +420,23 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
             cls=utils.DashboardEncoder,
             indent=4,
         )
+
+    @classmethod
+    def get(cls, id_or_slug: str) -> Dashboard:
+        session = db.session()
+        qry = session.query(Dashboard).filter(id_or_slug_filter(id_or_slug))
+        return qry.one_or_none()
+
+    def is_actor_owner(self) -> bool:
+        if g.user is None or g.user.is_anonymous or not g.user.is_authenticated:
+            return False
+        return g.user.id in set(map(lambda user: user.id, self.owners))
+
+
+def id_or_slug_filter(id_or_slug: str) -> BinaryExpression:
+    if id_or_slug.isdigit():
+        return Dashboard.id == int(id_or_slug)
+    return Dashboard.slug == id_or_slug
 
 
 OnDashboardChange = Callable[[Mapper, Connection, Dashboard], Any]

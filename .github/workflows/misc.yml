@@ -1,0 +1,99 @@
+name: Miscellaneous
+
+on:
+  push:
+    branches-ignore:
+      - "dependabot/**"
+  pull_request:
+
+jobs:
+  license_check:
+    name: License Check
+    runs-on: ubuntu-20.04
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: Setup Java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 8
+      - name: Generate fossa report
+        env:
+          FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
+        run: |
+          set -eo pipefail
+          if [[ "${{github.event_name}}" != "pull_request" ]]; then
+            ./scripts/fossa.sh
+            exit 0
+          fi
+
+          URL="https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files"
+          FILES=$(curl -s -X GET -G $URL | jq -r '.[] | .filename')
+
+          cat<<EOF
+          CHANGED FILES:
+          $FILES
+
+          EOF
+
+          if [[ "${FILES}" =~ (.*package*\.json|requirements\/[a-z_-]+\.txt|setup\.py) ]]; then
+            echo "Detected dependency changes... running fossa check"
+
+            ./scripts/fossa.sh
+          else
+            echo "No dependency changes... skiping fossa check"
+          fi
+        shell: bash
+      - name: Run license check
+        run: ./scripts/check_license.sh
+
+  prefer_typescript:
+    if: github.ref == 'ref/heads/master' && github.event_name == 'pull_request'
+    name: Prefer Typescript
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: Get changed files
+        id: changed
+        uses: ./.github/actions/file-changes-action
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine if a .js or .jsx file was added
+        id: check
+        run: |
+          js_files_added() {
+            jq -r '
+              map(
+                select(
+                  endswith(".js") or endswith(".jsx")
+                )
+              ) | join("\n")
+            ' ${HOME}/files_added.json
+          }
+          echo ::set-output name=js_files_added::$(js_files_added)
+
+      - if: steps.check.outputs.js_files_added
+        name: Add Comment to PR
+        uses: ./.github/actions/comment-on-pr
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          msg: |
+            ### WARNING: Prefer TypeScript
+
+            Looks like your PR contains new `.js` or `.jsx` files:
+
+            ```
+            ${{steps.check.outputs.js_files_added}}
+            ```
+
+            As decided in [SIP-36](https://github.com/apache/superset/issues/9101), all new frontend code should be written in TypeScript. Please convert above files to TypeScript then re-request review.

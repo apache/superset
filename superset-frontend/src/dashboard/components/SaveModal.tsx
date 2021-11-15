@@ -18,9 +18,10 @@
  */
 /* eslint-env browser */
 import React from 'react';
-import { FormControl, FormGroup, Radio } from 'react-bootstrap';
+import { Radio } from 'src/components/Radio';
+import { RadioChangeEvent, Input } from 'src/common/components';
 import Button from 'src/components/Button';
-import { t, CategoricalColorNamespace, JsonResponse } from '@superset-ui/core';
+import { t, JsonResponse } from '@superset-ui/core';
 
 import ModalTrigger from 'src/components/ModalTrigger';
 import Checkbox from 'src/components/Checkbox';
@@ -101,15 +102,15 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
     }));
   }
 
-  handleSaveTypeChange(event: React.FormEvent<Radio>) {
+  handleSaveTypeChange(event: RadioChangeEvent) {
     this.setState({
       saveType: (event.target as HTMLInputElement).value as SaveType,
     });
   }
 
-  handleNameChange(event: React.FormEvent<FormControl>) {
+  handleNameChange(name: string) {
     this.setState({
-      newDashName: (event.target as HTMLInputElement).value,
+      newDashName: name,
       saveType: SAVE_TYPE_NEWDASHBOARD,
     });
   }
@@ -130,15 +131,15 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
       lastModifiedTime,
     } = this.props;
 
-    const scale = CategoricalColorNamespace.getScale(
-      colorScheme,
-      colorNamespace,
-    );
-    const labelColors = colorScheme ? scale.getColorMap() : {};
+    const labelColors =
+      colorScheme && dashboardInfo?.metadata?.label_colors
+        ? dashboardInfo.metadata.label_colors
+        : {};
+
     // check refresh frequency is for current session or persist
     const refreshFrequency = shouldPersistRefreshFrequency
       ? currentRefreshFrequency
-      : dashboardInfo.metadata.refresh_frequency; // eslint-disable camelcase
+      : dashboardInfo.metadata?.refresh_frequency; // eslint-disable camelcase
 
     const data = {
       positions,
@@ -178,9 +179,9 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
       <ModalTrigger
         ref={this.setModalRef}
         triggerNode={this.props.triggerNode}
-        modalTitle={t('Save Dashboard')}
+        modalTitle={t('Save dashboard')}
         modalBody={
-          <FormGroup>
+          <div>
             <Radio
               value={SAVE_TYPE_OVERWRITE}
               onChange={this.handleSaveTypeChange}
@@ -197,12 +198,12 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
             >
               {t('Save as:')}
             </Radio>
-            <FormControl
+            <Input
               type="text"
               placeholder={t('[dashboard name]')}
               value={this.state.newDashName}
-              onFocus={this.handleNameChange}
-              onChange={this.handleNameChange}
+              onFocus={e => this.handleNameChange(e.target.value)}
+              onChange={e => this.handleNameChange(e.target.value)}
             />
             <div className="m-l-25 m-t-5">
               <Checkbox
@@ -211,7 +212,7 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
               />
               <span className="m-l-5">{t('also copy (duplicate) charts')}</span>
             </div>
-          </FormGroup>
+          </div>
         }
         modalFooter={
           <div>

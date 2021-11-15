@@ -25,7 +25,7 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 
-from superset import db_engine_specs
+from superset.db_engine_specs import BaseEngineSpec
 from superset.typing import DbapiDescription, DbapiResult
 from superset.utils import core as utils
 
@@ -72,11 +72,11 @@ def destringify(obj: str) -> Any:
 
 
 class SupersetResultSet:
-    def __init__(  # pylint: disable=too-many-locals,too-many-branches
+    def __init__(  # pylint: disable=too-many-locals
         self,
         data: DbapiResult,
         cursor_description: DbapiDescription,
-        db_engine_spec: Type[db_engine_specs.BaseEngineSpec],
+        db_engine_spec: Type[BaseEngineSpec],
     ):
         self.db_engine_spec = db_engine_spec
         data = data or []
@@ -123,7 +123,7 @@ class SupersetResultSet:
                 if pa.types.is_nested(pa_data[i].type):
                     # TODO: revisit nested column serialization once nested types
                     #  are added as a natively supported column type in Superset
-                    #  (superset.utils.core.DbColumnType).
+                    #  (superset.utils.core.GenericDataType).
                     stringified_arr = stringify_values(array[column])
                     pa_data[i] = pa.array(stringified_arr.tolist())
 
@@ -181,9 +181,10 @@ class SupersetResultSet:
         return next((i for i in items if i), None)
 
     def is_temporal(self, db_type_str: Optional[str]) -> bool:
-        return self.db_engine_spec.is_db_column_type_match(
-            db_type_str, utils.DbColumnType.TEMPORAL
-        )
+        column_spec = self.db_engine_spec.get_column_spec(db_type_str)
+        if column_spec is None:
+            return False
+        return column_spec.is_dttm
 
     def data_type(self, col_name: str, pa_dtype: pa.DataType) -> Optional[str]:
         """Given a pyarrow data type, Returns a generic database type"""

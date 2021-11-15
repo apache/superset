@@ -23,6 +23,10 @@ metadata:
     chart: {{ template "superset.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+{{- with .Values.service.annotations }}
+  annotations:
+{{- toYaml . | nindent 4 }}
+{{- end }}
 spec:
   type: {{ .Values.service.type }}
   ports:
@@ -33,3 +37,6 @@ spec:
   selector:
     app: {{ template "superset.name" . }}
     release: {{ .Release.Name }}
+  {{- if .Values.service.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.service.loadBalancerIP }}
+  {{- end }}

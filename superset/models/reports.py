@@ -33,6 +33,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.schema import UniqueConstraint
+from sqlalchemy_utils import UUIDType
 
 from superset.extensions import security_manager
 from superset.models.core import Database
@@ -49,7 +50,7 @@ class ReportScheduleType(str, enum.Enum):
 
 
 class ReportScheduleValidatorType(str, enum.Enum):
-    """ Validator types for alerts """
+    """Validator types for alerts"""
 
     NOT_NULL = "not null"
     OPERATOR = "operator"
@@ -68,9 +69,16 @@ class ReportState(str, enum.Enum):
     GRACE = "On Grace"
 
 
-class ReportEmailFormat(str, enum.Enum):
-    VISUALIZATION = "Visualization"
-    DATA = "Raw data"
+class ReportDataFormat(str, enum.Enum):
+    VISUALIZATION = "PNG"
+    DATA = "CSV"
+    TEXT = "TEXT"
+
+
+class ReportCreationMethodType(str, enum.Enum):
+    CHARTS = "charts"
+    DASHBOARDS = "dashboards"
+    ALERTS_REPORTS = "alerts_reports"
 
 
 report_schedule_user = Table(
@@ -92,13 +100,20 @@ class ReportSchedule(Model, AuditMixinNullable):
     """
 
     __tablename__ = "report_schedule"
+    __table_args__ = (UniqueConstraint("name", "type"),)
+
     id = Column(Integer, primary_key=True)
     type = Column(String(50), nullable=False)
-    name = Column(String(150), nullable=False, unique=True)
+    name = Column(String(150), nullable=False)
     description = Column(Text)
     context_markdown = Column(Text)
     active = Column(Boolean, default=True, index=True)
-    crontab = Column(String(50), nullable=False)
+    crontab = Column(String(1000), nullable=False)
+    creation_method = Column(
+        String(255), server_default=ReportCreationMethodType.ALERTS_REPORTS
+    )
+    timezone = Column(String(100), default="UTC", nullable=False)
+    report_format = Column(String(50), default=ReportDataFormat.VISUALIZATION)
     sql = Column(Text())
     # (Alerts/Reports) M-O to chart
     chart_id = Column(Integer, ForeignKey("slices.id"), nullable=True)
@@ -138,10 +153,7 @@ class ReportSchedule(Model, AuditMixinNullable):
         return get_description(self.crontab)
 
 
-class ReportRecipients(
-    Model, AuditMixinNullable
-):  # pylint: disable=too-few-public-methods
-
+class ReportRecipients(Model, AuditMixinNullable):
     """
     Report Recipients, meant to support multiple notification types, eg: Slack, email
     """
@@ -169,6 +181,7 @@ class ReportExecutionLog(Model):  # pylint: disable=too-few-public-methods
 
     __tablename__ = "report_execution_log"
     id = Column(Integer, primary_key=True)
+    uuid = Column(UUIDType(binary=True))
 
     # Timestamps
     scheduled_dttm = Column(DateTime, nullable=False)

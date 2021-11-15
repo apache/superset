@@ -17,10 +17,10 @@
  * under the License.
  */
 export default function transformProps(chartProps) {
-  const { height, datasource, formData, queryData } = chartProps;
+  const { height, datasource, formData, queriesData } = chartProps;
   const { columnCollection = [], groupby, metrics, url } = formData;
-  const { records, columns } = queryData.data;
-  const isGroupBy = groupby.length > 0;
+  const { records, columns } = queriesData[0].data;
+  const isGroupBy = groupby?.length > 0;
 
   // When there is a "group by",
   // each row in the table is a database column

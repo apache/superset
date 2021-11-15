@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Form } from 'react-bootstrap';
+import { Form } from 'src/components/Form';
 
 import { recurseReactClone } from './utils';
 import Field from './Field';
@@ -56,7 +56,7 @@ export default class Fieldset extends React.PureComponent {
       compact: this.props.compact,
     });
     return (
-      <Form componentClass="fieldset" className="CRUD">
+      <Form componentClass="fieldset" className="CRUD" layout="vertical">
         {title && <legend>{title}</legend>}
         {recurseReactClone(this.props.children, Field, propExtender)}
       </Form>

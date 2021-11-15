@@ -24,10 +24,10 @@ import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 
 function selectColorScheme(color: string) {
   // open color scheme dropdown
-  cy.get('.modal-body')
-    .contains('Color Scheme')
+  cy.get('.ant-modal-body')
+    .contains('Color scheme')
     .parents('.ControlHeader')
-    .next('.Select')
+    .next('.ant-select')
     .click()
     .then($colorSelect => {
       // select a new color scheme
@@ -37,7 +37,7 @@ function selectColorScheme(color: string) {
 
 function assertMetadata(text: string) {
   const regex = new RegExp(text);
-  cy.get('.modal-body')
+  cy.get('.ant-modal-body')
     .find('#json_metadata')
     .should('be.visible')
     .then(() => {
@@ -50,12 +50,15 @@ function assertMetadata(text: string) {
 }
 
 function typeMetadata(text: string) {
-  cy.get('.modal-body').find('#json_metadata').should('be.visible').type(text);
+  cy.get('.ant-modal-body')
+    .find('#json_metadata')
+    .should('be.visible')
+    .type(text);
 }
 
 function openAdvancedProperties() {
   return cy
-    .get('.modal-body')
+    .get('.ant-modal-body')
     .contains('Advanced')
     .should('be.visible')
     .click();
@@ -71,14 +74,13 @@ function openDashboardEditProperties() {
 
 describe('Dashboard edit action', () => {
   beforeEach(() => {
-    cy.server();
     cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
-    cy.route(`/api/v1/dashboard/1`).as('dashboardGet');
+    cy.intercept(`/api/v1/dashboard/1`).as('dashboardGet');
     cy.get('.dashboard-grid', { timeout: 50000 })
       .should('be.visible') // wait for 50 secs to load dashboard
       .then(() => {
-        cy.get('.dashboard-header [data-test=edit-alt]')
+        cy.get('.dashboard-header [aria-label=edit-alt]')
           .should('be.visible')
           .click();
         openDashboardEditProperties();
@@ -92,12 +94,16 @@ describe('Dashboard edit action', () => {
     cy.get('.ant-modal-body')
       .should('be.visible')
       .contains('Title')
-      .siblings('input')
+      .get('[data-test="dashboard-title-input"]')
       .type(`{selectall}{backspace}${dashboardTitle}`);
+
+    cy.wait('@dashboardGet').then(() => {
+      selectColorScheme('d3Category20b');
+    });
 
     // save edit changes
     cy.get('.ant-modal-footer')
-      .contains('Save')
+      .contains('Apply')
       .click()
       .then(() => {
         // assert that modal edit window has closed
@@ -147,7 +153,7 @@ describe('Dashboard edit action', () => {
         .click()
         .then(() => {
           // assert that modal edit window has closed
-          cy.get('.modal-body').should('not.exist');
+          cy.get('.ant-modal-body').should('not.exist');
 
           // assert color has been updated
           openDashboardEditProperties();
@@ -178,7 +184,7 @@ describe('Dashboard edit action', () => {
         .click()
         .then(() => {
           // assert that modal edit window has closed
-          cy.get('.modal-body')
+          cy.get('.ant-modal-body')
             .contains('A valid color scheme is required')
             .should('be.visible');
         });

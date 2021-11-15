@@ -19,16 +19,9 @@
 .dashboard {
   position: relative;
   color: @almost-black;
-}
-
-.dashboard-header {
-  background: @lightest;
+  flex-grow: 1;
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-  box-shadow: 0 4px 4px 0 fade(@darkest, @opacity-light); /* @TODO color */
+  flex-direction: column;
 }
 
 /* only top-level tabs have popover, give it more padding to match header + tabs */

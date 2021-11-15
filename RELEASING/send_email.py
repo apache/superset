@@ -17,7 +17,9 @@
 #
 import smtplib
 import ssl
-from typing import List
+from typing import Any, Dict, List, Optional
+
+from click.core import Context
 
 try:
     import jinja2
@@ -33,7 +35,7 @@ SMTP_PORT = 587
 SMTP_SERVER = "mail-relay.apache.org"
 PROJECT_NAME = "Superset"
 PROJECT_MODULE = "superset"
-PROJECT_DESCRIPTION = "Apache Superset (incubating) is a modern, enterprise-ready business intelligence web application"
+PROJECT_DESCRIPTION = "Apache Superset is a modern, enterprise-ready business intelligence web application"
 
 
 def string_comma_to_list(message: str) -> List[str]:
@@ -50,7 +52,7 @@ def send_email(
     sender_email: str,
     receiver_email: str,
     message: str,
-):
+) -> None:
     """
     Send a simple text email (SMTP)
     """
@@ -61,7 +63,7 @@ def send_email(
         server.sendmail(sender_email, receiver_email, message)
 
 
-def render_template(template_file: str, **kwargs) -> str:
+def render_template(template_file: str, **kwargs: Any) -> str:
     """
     Simple render template based on named parameters
 
@@ -73,7 +75,9 @@ def render_template(template_file: str, **kwargs) -> str:
     return template.render(kwargs)
 
 
-def inter_send_email(username, password, sender_email, receiver_email, message):
+def inter_send_email(
+    username: str, password: str, sender_email: str, receiver_email: str, message: str
+) -> None:
     print("--------------------------")
     print("SMTP Message")
     print("--------------------------")
@@ -102,16 +106,16 @@ def inter_send_email(username, password, sender_email, receiver_email, message):
 
 class BaseParameters(object):
     def __init__(
-        self, email=None, username=None, password=None, version=None, version_rc=None
-    ):
+        self, email: str, username: str, password: str, version: str, version_rc: str,
+    ) -> None:
         self.email = email
         self.username = username
         self.password = password
         self.version = version
         self.version_rc = version_rc
-        self.template_arguments = dict()
+        self.template_arguments: Dict[str, Any] = {}
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Apache Credentials: {self.email}/{self.username}/{self.version}/{self.version_rc}"
 
 
@@ -133,8 +137,15 @@ class BaseParameters(object):
 )
 @click.option("--version", envvar="SUPERSET_VERSION")
 @click.option("--version_rc", envvar="SUPERSET_VERSION_RC")
-def cli(ctx, apache_email, apache_username, apache_password, version, version_rc):
-    """ Welcome to releasing send email CLI interface!  """
+def cli(
+    ctx: Context,
+    apache_email: str,
+    apache_username: str,
+    apache_password: str,
+    version: str,
+    version_rc: str,
+) -> None:
+    """Welcome to releasing send email CLI interface!"""
     base_parameters = BaseParameters(
         apache_email, apache_username, apache_password, version, version_rc
     )
@@ -155,7 +166,7 @@ def cli(ctx, apache_email, apache_username, apache_password, version, version_rc
     prompt="The receiver email (To:)",
 )
 @click.pass_obj
-def vote_pmc(base_parameters, receiver_email):
+def vote_pmc(base_parameters: BaseParameters, receiver_email: str) -> None:
     template_file = "email_templates/vote_pmc.j2"
     base_parameters.template_arguments["receiver_email"] = receiver_email
     message = render_template(template_file, **base_parameters.template_arguments)
@@ -193,10 +204,22 @@ def vote_pmc(base_parameters, receiver_email):
     type=str,
     prompt="A List of people with -1 vote (ex: John)",
 )
+@click.option(
+    "--vote_thread",
+    default="",
+    type=str,
+    prompt="Permalink to the vote thread "
+    "(see https://lists.apache.org/list.html?dev@superset.apache.org)",
+)
 @click.pass_obj
 def result_pmc(
-    base_parameters, receiver_email, vote_bindings, vote_nonbindings, vote_negatives
-):
+    base_parameters: BaseParameters,
+    receiver_email: str,
+    vote_bindings: str,
+    vote_nonbindings: str,
+    vote_negatives: str,
+    vote_thread: str,
+) -> None:
     template_file = "email_templates/result_pmc.j2"
     base_parameters.template_arguments["receiver_email"] = receiver_email
     base_parameters.template_arguments["vote_bindings"] = string_comma_to_list(
@@ -208,88 +231,7 @@ def result_pmc(
     base_parameters.template_arguments["vote_negatives"] = string_comma_to_list(
         vote_negatives
     )
-    message = render_template(template_file, **base_parameters.template_arguments)
-    inter_send_email(
-        base_parameters.username,
-        base_parameters.password,
-        base_parameters.template_arguments["sender_email"],
-        base_parameters.template_arguments["receiver_email"],
-        message,
-    )
-
-
-@cli.command("vote_ipmc")
-@click.option(
-    "--receiver_email",
-    default="general@incubator.apache.org",
-    type=str,
-    prompt="The receiver email (To:)",
-)
-@click.option("--voting_thread", prompt="The URL for the PMC voting thread")
-@click.option(
-    "--vote_mentors",
-    default="",
-    type=str,
-    prompt="A list of mentors that have already voted (ex: Alan,Justin)",
-)
-@click.pass_obj
-def vote_ipmc(base_parameters, receiver_email, voting_thread, vote_mentors):
-    template_file = "email_templates/vote_ipmc.j2"
-    base_parameters.template_arguments["receiver_email"] = receiver_email
-    base_parameters.template_arguments["voting_thread"] = voting_thread
-    base_parameters.template_arguments["vote_mentors"] = string_comma_to_list(
-        vote_mentors
-    )
-    message = render_template(template_file, **base_parameters.template_arguments)
-    inter_send_email(
-        base_parameters.username,
-        base_parameters.password,
-        base_parameters.template_arguments["sender_email"],
-        base_parameters.template_arguments["receiver_email"],
-        message,
-    )
-
-
-@cli.command("result_ipmc")
-@click.option(
-    "--receiver_email",
-    default="general@incubator.apache.org",
-    type=str,
-    prompt="The receiver email (To:)",
-)
-@click.option(
-    "--vote_bindings",
-    default="",
-    type=str,
-    prompt="A List of people with +1 binding vote (ex: Alan,Justin)",
-)
-@click.option(
-    "--vote_nonbindings",
-    default="",
-    type=str,
-    prompt="A List of people with +1 non binding vote (ex: Ville)",
-)
-@click.option(
-    "--vote_negatives",
-    default="",
-    type=str,
-    prompt="A List of people with -1 vote (ex: John)",
-)
-@click.pass_obj
-def result_ipmc(
-    base_parameters, receiver_email, vote_bindings, vote_nonbindings, vote_negatives
-):
-    template_file = "email_templates/result_ipmc.j2"
-    base_parameters.template_arguments["receiver_email"] = receiver_email
-    base_parameters.template_arguments["vote_bindings"] = string_comma_to_list(
-        vote_bindings
-    )
-    base_parameters.template_arguments["vote_nonbindings"] = string_comma_to_list(
-        vote_nonbindings
-    )
-    base_parameters.template_arguments["vote_negatives"] = string_comma_to_list(
-        vote_negatives
-    )
+    base_parameters.template_arguments["vote_thread"] = vote_thread
     message = render_template(template_file, **base_parameters.template_arguments)
     inter_send_email(
         base_parameters.username,
@@ -308,7 +250,7 @@ def result_ipmc(
     prompt="The receiver email (To:)",
 )
 @click.pass_obj
-def announce(base_parameters, receiver_email):
+def announce(base_parameters: BaseParameters, receiver_email: str) -> None:
     template_file = "email_templates/announce.j2"
     base_parameters.template_arguments["receiver_email"] = receiver_email
     message = render_template(template_file, **base_parameters.template_arguments)

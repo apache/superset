@@ -21,8 +21,15 @@ from typing import List, Optional, Set
 from urllib import parse
 
 import sqlparse
-from sqlparse.sql import Identifier, IdentifierList, remove_quotes, Token, TokenList
-from sqlparse.tokens import Keyword, Name, Punctuation, String, Whitespace
+from sqlparse.sql import (
+    Identifier,
+    IdentifierList,
+    Parenthesis,
+    remove_quotes,
+    Token,
+    TokenList,
+)
+from sqlparse.tokens import DDL, DML, Keyword, Name, Punctuation, String, Whitespace
 from sqlparse.utils import imt
 
 RESULT_OPERATIONS = {"UNION", "INTERSECT", "EXCEPT", "SELECT"}
@@ -58,8 +65,21 @@ def _extract_limit_from_query(statement: TokenList) -> Optional[int]:
     return None
 
 
+def strip_comments_from_sql(statement: str) -> str:
+    """
+    Strips comments from a SQL statement, does a simple test first
+    to avoid always instantiating the expensive ParsedQuery constructor
+
+    This is useful for engines that don't support comments
+
+    :param statement: A string with the SQL statement
+    :return: SQL statement without comments
+    """
+    return ParsedQuery(statement).strip_comments() if "--" in statement else statement
+
+
 @dataclass(eq=True, frozen=True)
-class Table:  # pylint: disable=too-few-public-methods
+class Table:
     """
     A fully qualified SQL table conforming to [[catalog.]schema.]table.
     """
@@ -81,7 +101,10 @@ class Table:  # pylint: disable=too-few-public-methods
 
 
 class ParsedQuery:
-    def __init__(self, sql_statement: str):
+    def __init__(self, sql_statement: str, strip_comments: bool = False):
+        if strip_comments:
+            sql_statement = sqlparse.format(sql_statement, strip_comments=True)
+
         self.sql: str = sql_statement
         self._tables: Set[Table] = set()
         self._alias_names: Set[str] = set()
@@ -108,7 +131,36 @@ class ParsedQuery:
         return self._limit
 
     def is_select(self) -> bool:
-        return self._parsed[0].get_type() == "SELECT"
+        # make sure we strip comments; prevents a bug with coments in the CTE
+        parsed = sqlparse.parse(self.strip_comments())
+        if parsed[0].get_type() == "SELECT":
+            return True
+
+        if parsed[0].get_type() != "UNKNOWN":
+            return False
+
+        # for `UNKNOWN`, check all DDL/DML explicitly: only `SELECT` DML is allowed,
+        # and no DDL is allowed
+        if any(token.ttype == DDL for token in parsed[0]) or any(
+            token.ttype == DML and token.value != "SELECT" for token in parsed[0]
+        ):
+            return False
+
+        # return false on `EXPLAIN`, `SET`, `SHOW`, etc.
+        if parsed[0][0].ttype == Keyword:
+            return False
+
+        return any(
+            token.ttype == DML and token.value == "SELECT" for token in parsed[0]
+        )
+
+    def is_valid_ctas(self) -> bool:
+        parsed = sqlparse.parse(self.strip_comments())
+        return parsed[-1].get_type() == "SELECT"
+
+    def is_valid_cvas(self) -> bool:
+        parsed = sqlparse.parse(self.strip_comments())
+        return len(parsed) == 1 and parsed[0].get_type() == "SELECT"
 
     def is_explain(self) -> bool:
         # Remove comments
@@ -117,7 +169,7 @@ class ParsedQuery:
         )
 
         # Explain statements will only be the first statement
-        return statements_without_comments.startswith("EXPLAIN")
+        return statements_without_comments.upper().startswith("EXPLAIN")
 
     def is_show(self) -> bool:
         # Remove comments
@@ -140,6 +192,9 @@ class ParsedQuery:
 
     def stripped(self) -> str:
         return self.sql.strip(" \t\n;")
+
+    def strip_comments(self) -> str:
+        return sqlparse.format(self.stripped(), strip_comments=True)
 
     def get_statements(self) -> List[str]:
         """Returns a list of SQL statements as strings, stripped"""
@@ -233,9 +288,7 @@ class ParsedQuery:
         exec_sql += f"CREATE {method} {full_table_name} AS \n{sql}"
         return exec_sql
 
-    def _extract_from_token(  # pylint: disable=too-many-branches
-        self, token: Token
-    ) -> None:
+    def _extract_from_token(self, token: Token) -> None:
         """
         <Identifier> store a list of subtokens and <IdentifierList> store lists of
         subtoken list.
@@ -253,7 +306,9 @@ class ParsedQuery:
         table_name_preceding_token = False
 
         for item in token.tokens:
-            if item.is_group and not self._is_identifier(item):
+            if item.is_group and (
+                not self._is_identifier(item) or isinstance(item.tokens[0], Parenthesis)
+            ):
                 self._extract_from_token(item)
 
             if item.ttype in Keyword and (
@@ -266,7 +321,6 @@ class ParsedQuery:
             if item.ttype in Keyword:
                 table_name_preceding_token = False
                 continue
-
             if table_name_preceding_token:
                 if isinstance(item, Identifier):
                     self._process_tokenlist(item)
@@ -278,7 +332,7 @@ class ParsedQuery:
                 if any(not self._is_identifier(token2) for token2 in item.tokens):
                     self._extract_from_token(item)
 
-    def set_or_update_query_limit(self, new_limit: int) -> str:
+    def set_or_update_query_limit(self, new_limit: int, force: bool = False) -> str:
         """Returns the query with the specified limit.
 
         Does not change the underlying query if user did not apply the limit,
@@ -299,8 +353,8 @@ class ParsedQuery:
                 break
         _, limit = statement.token_next(idx=limit_pos)
         # Override the limit only when it exceeds the configured value.
-        if limit.ttype == sqlparse.tokens.Literal.Number.Integer and new_limit < int(
-            limit.value
+        if limit.ttype == sqlparse.tokens.Literal.Number.Integer and (
+            force or new_limit < int(limit.value)
         ):
             limit.value = new_limit
         elif limit.is_group:

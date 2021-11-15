@@ -1,0 +1,22 @@
+name: Docker
+
+on:
+  release:
+    types: [published]
+jobs:
+  docker-release:
+    name: docker-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
+          ref: ${{ github.ref }}
+      - shell: bash
+        env:
+          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          .github/workflows/docker_build_push.sh

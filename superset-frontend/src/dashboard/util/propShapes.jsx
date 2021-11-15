@@ -50,7 +50,7 @@ export const chartPropShape = PropTypes.shape({
   chartUpdateStartTime: PropTypes.number,
   latestQueryFormData: PropTypes.object,
   queryController: PropTypes.shape({ abort: PropTypes.func }),
-  queryResponse: PropTypes.object,
+  queriesResponse: PropTypes.arrayOf(PropTypes.object),
   triggerQuery: PropTypes.bool,
   lastRendered: PropTypes.number,
 });
@@ -59,7 +59,6 @@ export const slicePropShape = PropTypes.shape({
   slice_id: PropTypes.number.isRequired,
   slice_url: PropTypes.string.isRequired,
   slice_name: PropTypes.string.isRequired,
-  edit_url: PropTypes.string.isRequired,
   datasource: PropTypes.string,
   datasource_name: PropTypes.string,
   datasource_link: PropTypes.string,

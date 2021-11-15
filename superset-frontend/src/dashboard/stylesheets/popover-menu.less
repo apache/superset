@@ -66,13 +66,6 @@
     background: @gray-light;
     margin: 0 16px;
   }
-
-  .popover-dropdown.btn {
-    border: none;
-    padding: 0;
-    font-size: inherit;
-    color: @almost-black;
-  }
 }
 
 /* the focus menu doesn't account for parent padding */
@@ -88,7 +81,6 @@
   left: -7px;
 }
 
-.popover-menu .popover-dropdown.btn,
 .hover-dropdown .btn {
   &:hover,
   &:active,
@@ -111,12 +103,6 @@
       color: @almost-black;
     }
   }
-}
-
-.popover-dropdown .caret {
-  /* without this the caret doesn't take up full width / is clipped */
-  width: auto;
-  border-top-color: transparent;
 }
 
 /* background style menu */

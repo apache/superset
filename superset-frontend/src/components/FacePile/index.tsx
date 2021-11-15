@@ -22,7 +22,7 @@ import {
   styled,
   SupersetTheme,
 } from '@superset-ui/core';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import { Avatar } from 'src/common/components';
 import { getRandomColor } from './utils';
 

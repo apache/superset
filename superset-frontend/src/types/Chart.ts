@@ -21,21 +21,26 @@
  * The Chart model as returned from the API
  */
 
+import { QueryFormData } from '@superset-ui/core';
 import Owner from './Owner';
 
-export default interface Chart {
+export interface Chart {
   id: number;
   url: string;
   viz_type: string;
   slice_name: string;
   creator: string;
   changed_on: string;
+  changed_on_delta_humanized?: string;
+  changed_on_utc?: string;
   description: string | null;
   cache_timeout: number | null;
   thumbnail_url?: string;
-  changed_on_delta_humanized?: string;
   owners?: Owner[];
   datasource_name_text?: string;
+  form_data: {
+    viz_type: string;
+  };
 }
 
 export type Slice = {
@@ -44,4 +49,8 @@ export type Slice = {
   slice_name: string;
   description: string | null;
   cache_timeout: number | null;
+  form_data?: QueryFormData;
+  query_context?: object;
 };
+
+export default Chart;

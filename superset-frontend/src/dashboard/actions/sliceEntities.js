@@ -20,7 +20,7 @@
 import { t, SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
 
-import { addDangerToast } from 'src/messageToasts/actions';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { getDatasourceParameter } from 'src/modules/utils';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 
@@ -40,7 +40,7 @@ export function fetchAllSlicesFailed(error) {
 }
 
 const FETCH_SLICES_PAGE_SIZE = 200;
-export function fetchAllSlices(userId) {
+export function fetchAllSlices(userId, excludeFilterBox = false) {
   return (dispatch, getState) => {
     const { sliceEntities } = getState();
     if (sliceEntities.lastUpdated === 0) {
@@ -57,7 +57,6 @@ export function fetchAllSlices(userId) {
             'datasource_name_text',
             'description_markeddown',
             'description',
-            'edit_url',
             'id',
             'params',
             'slice_name',
@@ -72,27 +71,31 @@ export function fetchAllSlices(userId) {
       })
         .then(({ json }) => {
           const slices = {};
-          json.result.forEach(slice => {
+          let { result } = json;
+          // disable add filter_box viz to dashboard
+          if (excludeFilterBox) {
+            result = result.filter(slice => slice.viz_type !== 'filter_box');
+          }
+          result.forEach(slice => {
             let form_data = JSON.parse(slice.params);
-            let { datasource } = form_data;
-            if (!datasource) {
-              datasource = getDatasourceParameter(
-                slice.datasource_id,
-                slice.datasource_type,
-              );
-              form_data = {
-                ...form_data,
-                datasource,
-              };
-            }
+            form_data = {
+              ...form_data,
+              // force using datasource stored in relational table prop
+              datasource:
+                getDatasourceParameter(
+                  slice.datasource_id,
+                  slice.datasource_type,
+                ) || form_data.datasource,
+            };
             slices[slice.id] = {
               slice_id: slice.id,
               slice_url: slice.url,
               slice_name: slice.slice_name,
-              edit_url: slice.edit_url,
               form_data,
               datasource_name: slice.datasource_name_text,
               datasource_url: slice.datasource_url,
+              datasource_id: slice.datasource_id,
+              datasource_type: slice.datasource_type,
               changed_on: new Date(slice.changed_on_utc).getTime(),
               description: slice.description,
               description_markdown: slice.description_markeddown,

@@ -19,7 +19,7 @@
 import shortid from 'shortid';
 import { compose } from 'redux';
 import persistState, { StorageAdapter } from 'redux-localstorage';
-import { isEqual } from 'lodash';
+import { isEqual, omitBy, isUndefined, isNull } from 'lodash';
 
 export function addToObject(
   state: Record<string, any>,
@@ -141,7 +141,12 @@ export function initEnhancer(
   const composeEnhancers =
     process.env.WEBPACK_MODE === 'development'
       ? /* eslint-disable-next-line no-underscore-dangle, dot-notation */
-        window['__REDUX_DEVTOOLS_EXTENSION_COMPOSE__'] || compose
+        window['__REDUX_DEVTOOLS_EXTENSION_COMPOSE__']
+        ? /* eslint-disable-next-line no-underscore-dangle, dot-notation */
+          window['__REDUX_DEVTOOLS_EXTENSION_COMPOSE__']({
+            trace: true,
+          })
+        : compose
       : compose;
 
   return persist
@@ -170,8 +175,22 @@ export function areArraysShallowEqual(arr1: unknown[], arr2: unknown[]) {
 }
 
 export function areObjectsEqual(
-  obj1: Record<string, any>,
-  obj2: Record<string, any>,
+  obj1: any,
+  obj2: any,
+  opts: {
+    ignoreUndefined?: boolean;
+    ignoreNull?: boolean;
+  } = { ignoreUndefined: false, ignoreNull: false },
 ) {
-  return isEqual(obj1, obj2);
+  let comp1 = obj1;
+  let comp2 = obj2;
+  if (opts.ignoreUndefined) {
+    comp1 = omitBy(comp1, isUndefined);
+    comp2 = omitBy(comp2, isUndefined);
+  }
+  if (opts.ignoreNull) {
+    comp1 = omitBy(comp1, isNull);
+    comp2 = omitBy(comp2, isNull);
+  }
+  return isEqual(comp1, comp2);
 }

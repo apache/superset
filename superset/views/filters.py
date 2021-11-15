@@ -23,10 +23,9 @@ from sqlalchemy.orm import Query
 
 from superset import security_manager
 
-# pylint: disable=too-few-public-methods
 
+class FilterRelatedOwners(BaseFilter):  # pylint: disable=too-few-public-methods
 
-class FilterRelatedOwners(BaseFilter):
     """
     A filter to allow searching for related owners of a resource.
 

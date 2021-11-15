@@ -18,9 +18,10 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Col, Row, FormGroup, FormControl } from 'react-bootstrap';
-import { t } from '@superset-ui/core';
-import ControlHeader from '../ControlHeader';
+import { InputNumber } from 'src/common/components';
+import { t, styled } from '@superset-ui/core';
+import { isEqual, debounce } from 'lodash';
+import ControlHeader from 'src/explore/components/ControlHeader';
 
 const propTypes = {
   onChange: PropTypes.func,
@@ -32,35 +33,63 @@ const defaultProps = {
   value: [null, null],
 };
 
+const StyledDiv = styled.div`
+  display: flex;
+`;
+
+const MinInput = styled(InputNumber)`
+  flex: 1;
+  margin-right: ${({ theme }) => theme.gridUnit}px;
+`;
+
+const MaxInput = styled(InputNumber)`
+  flex: 1;
+  margin-left: ${({ theme }) => theme.gridUnit}px;
+`;
+
 export default class BoundsControl extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
       minMax: [
-        props.value[0] === null ? '' : props.value[0],
-        props.value[1] === null ? '' : props.value[1],
+        Number.isNaN(this.props.value[0]) ? '' : props.value[0],
+        Number.isNaN(this.props.value[1]) ? '' : props.value[1],
       ],
     };
-    this.onChange = this.onChange.bind(this);
+    this.onChange = debounce(this.onChange.bind(this), 300);
     this.onMinChange = this.onMinChange.bind(this);
     this.onMaxChange = this.onMaxChange.bind(this);
+    this.update = this.update.bind(this);
   }
 
-  onMinChange(event) {
-    const min = event.target.value;
+  componentDidUpdate(prevProps) {
+    if (!isEqual(prevProps.value, this.props.value)) {
+      this.update();
+    }
+  }
+
+  update() {
+    this.setState({
+      minMax: [
+        Number.isNaN(this.props.value[0]) ? '' : this.props.value[0],
+        Number.isNaN(this.props.value[1]) ? '' : this.props.value[1],
+      ],
+    });
+  }
+
+  onMinChange(value) {
     this.setState(
       prevState => ({
-        minMax: [min, prevState.minMax[1]],
+        minMax: [value, prevState.minMax[1]],
       }),
       this.onChange,
     );
   }
 
-  onMaxChange(event) {
-    const max = event.target.value;
+  onMaxChange(value) {
     this.setState(
       prevState => ({
-        minMax: [prevState.minMax[0], max],
+        minMax: [prevState.minMax[0], value],
       }),
       this.onChange,
     );
@@ -68,46 +97,29 @@ export default class BoundsControl extends React.Component {
 
   onChange() {
     const mm = this.state.minMax;
-    const errors = [];
-    if (mm[0] && Number.isNaN(Number(mm[0]))) {
-      errors.push(t('`Min` value should be numeric or empty'));
-    }
-    if (mm[1] && Number.isNaN(Number(mm[1]))) {
-      errors.push(t('`Max` value should be numeric or empty'));
-    }
-    if (errors.length === 0) {
-      this.props.onChange([parseFloat(mm[0]), parseFloat(mm[1])], errors);
-    } else {
-      this.props.onChange([null, null], errors);
-    }
+    const min = Number.isNaN(parseFloat(mm[0])) ? null : parseFloat(mm[0]);
+    const max = Number.isNaN(parseFloat(mm[1])) ? null : parseFloat(mm[1]);
+    this.props.onChange([min, max]);
   }
 
   render() {
     return (
       <div>
         <ControlHeader {...this.props} />
-        <FormGroup bsSize="small">
-          <Row>
-            <Col xs={6}>
-              <FormControl
-                data-test="min-bound"
-                type="text"
-                placeholder={t('Min')}
-                onChange={this.onMinChange}
-                value={this.state.minMax[0]}
-              />
-            </Col>
-            <Col xs={6}>
-              <FormControl
-                type="text"
-                data-test="max-bound"
-                placeholder={t('Max')}
-                onChange={this.onMaxChange}
-                value={this.state.minMax[1]}
-              />
-            </Col>
-          </Row>
-        </FormGroup>
+        <StyledDiv>
+          <MinInput
+            data-test="min-bound"
+            placeholder={t('Min')}
+            onChange={this.onMinChange}
+            value={this.state.minMax[0]}
+          />
+          <MaxInput
+            data-test="max-bound"
+            placeholder={t('Max')}
+            onChange={this.onMaxChange}
+            value={this.state.minMax[1]}
+          />
+        </StyledDiv>
       </div>
     );
   }

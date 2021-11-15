@@ -14,12 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+"""
+DEPRECATION NOTICE: this module is deprecated and will be removed on 2.0.
+"""
 import logging
 from io import IOBase
 from typing import cast, Optional, Union
 
+import backoff
 from flask import current_app
-from retry.api import retry
 from slack import WebClient
 from slack.errors import SlackApiError
 from slack.web.slack_response import SlackResponse
@@ -28,7 +31,7 @@ from slack.web.slack_response import SlackResponse
 logger = logging.getLogger("tasks.slack_util")
 
 
-@retry(SlackApiError, delay=10, backoff=2, tries=5)
+@backoff.on_exception(backoff.expo, SlackApiError, factor=10, base=2, max_tries=5)
 def deliver_slack_msg(
     slack_channel: str,
     subject: str,
@@ -36,7 +39,10 @@ def deliver_slack_msg(
     file: Optional[Union[str, IOBase, bytes]],
 ) -> None:
     config = current_app.config
-    client = WebClient(token=config["SLACK_API_TOKEN"], proxy=config["SLACK_PROXY"])
+    token = config["SLACK_API_TOKEN"]
+    if callable(token):
+        token = token()
+    client = WebClient(token=token, proxy=config["SLACK_PROXY"])
     # files_upload returns SlackResponse as we run it in sync mode.
     if file:
         response = cast(

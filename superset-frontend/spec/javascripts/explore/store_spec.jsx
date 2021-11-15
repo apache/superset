@@ -66,18 +66,5 @@ describe('store', () => {
       const outputFormData = applyDefaultFormData(inputFormData);
       expect(outputFormData.row_limit).toBe(null);
     });
-
-    it('removes out of scope, or deprecated keys', () => {
-      const staleQueryFields = { staleKey: 'staleValue' };
-      const inputFormData = {
-        datasource: '11_table',
-        viz_type: 'table',
-        queryFields: staleQueryFields,
-        this_should_no_be_here: true,
-      };
-      const outputFormData = applyDefaultFormData(inputFormData);
-      expect(outputFormData.this_should_no_be_here).toBe(undefined);
-      expect(outputFormData.queryFields).not.toBe(staleQueryFields);
-    });
   });
 });

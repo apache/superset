@@ -23,6 +23,7 @@ import {
   FETCH_ALL_SLICES_STARTED,
   SET_ALL_SLICES,
 } from '../actions/sliceEntities';
+import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
 export const initSliceEntities = {
   slices: {},
@@ -36,6 +37,11 @@ export default function sliceEntitiesReducer(
   action,
 ) {
   const actionHandlers = {
+    [HYDRATE_DASHBOARD]() {
+      return {
+        ...action.data.sliceEntities,
+      };
+    },
     [FETCH_ALL_SLICES_STARTED]() {
       return {
         ...state,

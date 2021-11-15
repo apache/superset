@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import json
 from typing import Any, Dict, Set
 
 from marshmallow import Schema
@@ -25,6 +26,7 @@ from superset.charts.commands.importers.v1.utils import import_chart
 from superset.charts.dao import ChartDAO
 from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.importers.v1 import ImportModelsCommand
+from superset.connectors.sqla.models import SqlaTable
 from superset.databases.commands.importers.v1.utils import import_database
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.commands.importers.v1.utils import import_dataset
@@ -69,7 +71,7 @@ class ImportChartsCommand(ImportModelsCommand):
                 database_ids[str(database.uuid)] = database.id
 
         # import datasets with the correct parent ref
-        dataset_info: Dict[str, Dict[str, Any]] = {}
+        datasets: Dict[str, SqlaTable] = {}
         for file_name, config in configs.items():
             if (
                 file_name.startswith("datasets/")
@@ -77,18 +79,27 @@ class ImportChartsCommand(ImportModelsCommand):
             ):
                 config["database_id"] = database_ids[config["database_uuid"]]
                 dataset = import_dataset(session, config, overwrite=False)
-                dataset_info[str(dataset.uuid)] = {
-                    "datasource_id": dataset.id,
-                    "datasource_type": "view" if dataset.is_sqllab_view else "table",
-                    "datasource_name": dataset.table_name,
-                }
+                datasets[str(dataset.uuid)] = dataset
 
         # import charts with the correct parent ref
         for file_name, config in configs.items():
-            if (
-                file_name.startswith("charts/")
-                and config["dataset_uuid"] in dataset_info
-            ):
+            if file_name.startswith("charts/") and config["dataset_uuid"] in datasets:
                 # update datasource id, type, and name
-                config.update(dataset_info[config["dataset_uuid"]])
+                dataset = datasets[config["dataset_uuid"]]
+                config.update(
+                    {
+                        "datasource_id": dataset.id,
+                        "datasource_type": "view"
+                        if dataset.is_sqllab_view
+                        else "table",
+                        "datasource_name": dataset.table_name,
+                    }
+                )
+                config["params"].update({"datasource": dataset.uid})
+                if config["query_context"]:
+                    # TODO (betodealmeida): export query_context as object, not string
+                    query_context = json.loads(config["query_context"])
+                    query_context["datasource"] = {"id": dataset.id, "type": "table"}
+                    config["query_context"] = json.dumps(query_context)
+
                 import_chart(session, config, overwrite=overwrite)

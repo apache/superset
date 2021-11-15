@@ -20,38 +20,42 @@ All configuration in this file can be overridden by providing a superset_config
 in your PYTHONPATH as there is a ``from superset_config import *``
 at the end of this file.
 """
-import imp
+# pylint: disable=too-many-lines
+import imp  # pylint: disable=deprecated-module
 import importlib.util
 import json
 import logging
 import os
+import re
 import sys
 from collections import OrderedDict
-from datetime import date
-from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING
+from datetime import date, timedelta
+from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
 
 from cachelib.base import BaseCache
 from celery.schedules import crontab
 from dateutil import tz
 from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
-from pandas.io.parsers import STR_NA_VALUES
+from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
+from typing_extensions import Literal
+from werkzeug.local import LocalProxy
 
-from superset.jinja_context import (  # pylint: disable=unused-import
-    BaseTemplateProcessor,
-)
+from superset.jinja_context import BaseTemplateProcessor
 from superset.stats_logger import DummyStatsLogger
 from superset.typing import CacheConfig
-from superset.utils.core import is_test
+from superset.utils.core import is_test, parse_boolean_string
+from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from flask_appbuilder.security.sqla import models  # pylint: disable=unused-import
+    from flask_appbuilder.security.sqla import models
 
-    from superset.models.core import Database  # pylint: disable=unused-import
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
 
 # Realtime stats logger, a StatsD implementation exists
 STATS_LOGGER = DummyStatsLogger()
@@ -91,9 +95,7 @@ def _try_json_readversion(filepath: str) -> Optional[str]:
         return None
 
 
-def _try_json_readsha(  # pylint: disable=unused-argument
-    filepath: str, length: int
-) -> Optional[str]:
+def _try_json_readsha(filepath: str, length: int) -> Optional[str]:
     try:
         with open(filepath, "r") as f:
             return json.load(f).get("GIT_SHA")[:length]
@@ -114,9 +116,16 @@ VERSION_STRING = _try_json_readversion(VERSION_INFO_FILE) or _try_json_readversi
 VERSION_SHA_LENGTH = 8
 VERSION_SHA = _try_json_readsha(VERSION_INFO_FILE, VERSION_SHA_LENGTH)
 
+# Build number is shown in the About section if available. This
+# can be replaced at build time to expose build information.
+BUILD_NUMBER = None
+
+# default viz used in chart explorer
+DEFAULT_VIZ_TYPE = "table"
+
+# default row limit when requesting chart data
 ROW_LIMIT = 50000
-VIZ_ROW_LIMIT = 10000
-# max rows retreieved when requesting samples from datasource in explore view
+# default row limit when requesting samples from datasource in explore view
 SAMPLES_ROW_LIMIT = 1000
 # max rows retrieved by filter select auto complete
 FILTER_SELECT_ROW_LIMIT = 10000
@@ -131,7 +140,7 @@ SUPERSET_WEBSERVER_PORT = 8088
 # [load balancer / proxy / envoy / kong / ...] timeout settings.
 # You should also make sure to configure your WSGI server
 # (gunicorn, nginx, apache, ...) timeout setting to be <= to this setting
-SUPERSET_WEBSERVER_TIMEOUT = 60
+SUPERSET_WEBSERVER_TIMEOUT = int(timedelta(minutes=1).total_seconds())
 
 # this 2 settings are used by dashboard period force refresh feature
 # When user choose auto force refresh frequency
@@ -164,6 +173,17 @@ SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "superset.db")
 # SQLALCHEMY_CUSTOM_PASSWORD_STORE = lookup_password
 SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
 
+#
+# The EncryptedFieldTypeAdapter is used whenever we're building SqlAlchemy models
+# which include sensitive fields that should be app-encrypted BEFORE sending
+# to the DB.
+#
+# Note: the default impl leverages SqlAlchemyUtils' EncryptedType, which defaults
+#  to AES-128 under the covers using the app's SECRET_KEY as key material.
+#
+SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = (  # pylint: disable=invalid-name
+    SQLAlchemyUtilsAdapter
+)
 # The limit of queries fetched for query search
 QUERY_SEARCH_LIMIT = 1000
 
@@ -171,11 +191,15 @@ QUERY_SEARCH_LIMIT = 1000
 WTF_CSRF_ENABLED = True
 
 # Add endpoints that need to be exempt from CSRF protection
-WTF_CSRF_EXEMPT_LIST = ["superset.views.core.log", "superset.charts.api.data"]
+WTF_CSRF_EXEMPT_LIST = ["superset.views.core.log", "superset.charts.data.api.data"]
 
 # Whether to run the web server in debug mode or not
 DEBUG = os.environ.get("FLASK_ENV") == "development"
 FLASK_USE_RELOAD = True
+
+# Enable profiling of Python calls. Turn this on and append ``?_instrument=1``
+# to the page to see the call stack.
+PROFILING = False
 
 # Superset allows server-side python stacktraces to be surfaced to the
 # user when this feature is on. This may has security implications
@@ -193,13 +217,19 @@ PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefi
 # Uncomment to setup Your App name
 APP_NAME = "Superset"
 
-# Uncomment to setup an App icon
+# Specify the App icon
 APP_ICON = "/static/assets/images/superset-logo-horiz.png"
 APP_ICON_WIDTH = 126
 
-# Uncomment to specify where clicking the logo would take the user
-# e.g. setting it to '/welcome' would take the user to '/superset/welcome'
+# Specify where clicking the logo would take the user
+# e.g. setting it to '/' would take the user to '/superset/welcome/'
 LOGO_TARGET_PATH = None
+
+# Specify tooltip that should appear when hovering over the App Icon/Logo
+LOGO_TOOLTIP = ""
+
+# Specify any text that should appear to the right of the logo
+LOGO_RIGHT_TEXT: Union[Callable[[], str], str] = ""
 
 # Enables SWAGGER UI for superset openapi spec
 # ex: http://localhost:8080/swagger/v1
@@ -284,6 +314,7 @@ LANGUAGES = {
     "pt_BR": {"flag": "br", "name": "Brazilian Portuguese"},
     "ru": {"flag": "ru", "name": "Russian"},
     "ko": {"flag": "kr", "name": "Korean"},
+    "sl": {"flag": "si", "name": "Slovenian"},
 }
 # Turning off i18n by default as translation in most languages are
 # incomplete and not well maintained.
@@ -293,7 +324,7 @@ LANGUAGES = {}
 # Feature flags
 # ---------------------------------------------------
 # Feature flags that are set by default go here. Their values can be
-# overwritten by those specified under FEATURE_FLAGS in super_config.py
+# overwritten by those specified under FEATURE_FLAGS in superset_config.py
 # For example, DEFAULT_FEATURE_FLAGS = { 'FOO': True, 'BAR': False } here
 # and FEATURE_FLAGS = { 'BAR': True, 'BAZ': True } in superset_config.py
 # will result in combined feature flags of { 'FOO': True, 'BAR': True, 'BAZ': True }
@@ -305,21 +336,34 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Experimental feature introducing a client (browser) cache
     "CLIENT_CACHE": False,
     "DISABLE_DATASET_SOURCE_EDIT": False,
+    # When using a recent version of Druid that supports JOINs turn this on
+    "DRUID_JOINS": False,
+    "DYNAMIC_PLUGINS": False,
+    # For some security concerns, you may need to enforce CSRF protection on
+    # all query request to explore_json endpoint. In Superset, we use
+    # `flask-csrf <https://sjl.bitbucket.io/flask-csrf/>`_ add csrf protection
+    # for all POST requests, but this protection doesn't apply to GET method.
+    # When ENABLE_EXPLORE_JSON_CSRF_PROTECTION is set to true, your users cannot
+    # make GET request to explore_json. explore_json accepts both GET and POST request.
+    # See `PR 7935 <https://github.com/apache/superset/pull/7935>`_ for more details.
     "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,
     "ENABLE_TEMPLATE_PROCESSING": False,
+    "ENABLE_TEMPLATE_REMOVE_FILTERS": False,
     "KV_STORE": False,
+    # When this feature is enabled, nested types in Presto will be
+    # expanded into extra columns and/or arrays. This is experimental,
+    # and doesn't work with all nested types.
     "PRESTO_EXPAND_DATA": False,
     # Exposes API endpoint to compute thumbnails
     "THUMBNAILS": False,
     "DASHBOARD_CACHE": False,
     "REMOVE_SLICE_LEVEL_LABEL_COLORS": False,
     "SHARE_QUERIES_VIA_KV_STORE": False,
-    "SIP_38_VIZ_REARCHITECTURE": False,
     "TAGGING_SYSTEM": False,
     "SQLLAB_BACKEND_PERSISTENCE": False,
     "LISTVIEWS_DEFAULT_CARD_VIEW": False,
     # Enables the replacement React views for all the FAB views (list, edit, show) with
-    # designs introduced in https://github.com/apache/incubator-superset/issues/8976
+    # designs introduced in https://github.com/apache/superset/issues/8976
     # (SIP-34). This is a work in progress so not all features available in FAB have
     # been implemented.
     "ENABLE_REACT_CRUD_VIEWS": True,
@@ -327,6 +371,11 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "DISPLAY_MARKDOWN_HTML": True,
     # When True, this escapes HTML (rather than rendering it) in Markdown components
     "ESCAPE_MARKDOWN_HTML": False,
+    "DASHBOARD_NATIVE_FILTERS": True,
+    "DASHBOARD_CROSS_FILTERS": False,
+    # Feature is under active development and breaking changes are expected
+    "DASHBOARD_NATIVE_FILTERS_SET": False,
+    "DASHBOARD_FILTERS_EXPERIMENTAL": False,
     "GLOBAL_ASYNC_QUERIES": False,
     "VERSIONED_EXPORT": False,
     # Note that: RowLevelSecurityFilter is only given by default to the Admin role
@@ -336,17 +385,41 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # by that custom datasource access. So we are assuming a default security config,
     # a custom security config could potentially give access to setting filters on
     # tables that users do not have access to.
-    "ROW_LEVEL_SECURITY": False,
+    "ROW_LEVEL_SECURITY": True,
     # Enables Alerts and reports new implementation
     "ALERT_REPORTS": False,
-    "SIP_34_ALERTS_UI": False,
+    # Enable experimental feature to search for other dashboards
+    "OMNIBAR": False,
+    "DASHBOARD_RBAC": False,
+    "ENABLE_EXPLORE_DRAG_AND_DROP": False,
+    "ENABLE_FILTER_BOX_MIGRATION": False,
+    "ENABLE_DND_WITH_CLICK_UX": False,
+    # Enabling ALERTS_ATTACH_REPORTS, the system sends email and slack message
+    # with screenshot and link
+    # Disables ALERTS_ATTACH_REPORTS, the system DOES NOT generate screenshot
+    # for report with type 'alert' and sends email and slack message with only link;
+    # for report with type 'report' still send with email and slack message with
+    # screenshot and link
+    "ALERTS_ATTACH_REPORTS": True,
+    # FORCE_DATABASE_CONNECTIONS_SSL is depreciated.
+    "FORCE_DATABASE_CONNECTIONS_SSL": False,
+    # Enabling ENFORCE_DB_ENCRYPTION_UI forces all database connections to be
+    # encrypted before being saved into superset metastore.
+    "ENFORCE_DB_ENCRYPTION_UI": False,
+    # Allow users to export full CSV of table viz type.
+    # This could cause the server to run out of memory or compute.
+    "ALLOW_FULL_CSV_EXPORT": False,
+    "UX_BETA": False,
 }
 
-# Set the default view to card/grid view if thumbnail support is enabled.
-# Setting LISTVIEWS_DEFAULT_CARD_VIEW to False will force the default view to
-# always be the table layout
-if DEFAULT_FEATURE_FLAGS["THUMBNAILS"]:
-    DEFAULT_FEATURE_FLAGS["LISTVIEWS_DEFAULT_CARD_VIEW"] = True
+# Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
+DEFAULT_FEATURE_FLAGS.update(
+    {
+        k[len("SUPERSET_FEATURE_") :]: parse_boolean_string(v)
+        for k, v in os.environ.items()
+        if re.search(r"^SUPERSET_FEATURE_\w+", k)
+    }
+)
 
 # This is merely a default.
 FEATURE_FLAGS: Dict[str, bool] = {}
@@ -363,12 +436,85 @@ FEATURE_FLAGS: Dict[str, bool] = {}
 # from flask import g, request
 # def GET_FEATURE_FLAGS_FUNC(feature_flags_dict: Dict[str, bool]) -> Dict[str, bool]:
 #     if hasattr(g, "user") and g.user.is_active:
-#         feature_flags_dict['some_feature'] = g.user and g.user.id == 5
+#         feature_flags_dict['some_feature'] = g.user and g.user.get_id() == 5
 #     return feature_flags_dict
 GET_FEATURE_FLAGS_FUNC: Optional[Callable[[Dict[str, bool]], Dict[str, bool]]] = None
+# A function that receives a feature flag name and an optional default value.
+# Has a similar utility to GET_FEATURE_FLAGS_FUNC but it's useful to not force the
+# evaluation of all feature flags when just evaluating a single one.
+#
+# Note that the default `get_feature_flags` will evaluate each feature with this
+# callable when the config key is set, so don't use both GET_FEATURE_FLAGS_FUNC
+# and IS_FEATURE_ENABLED_FUNC in conjunction.
+IS_FEATURE_ENABLED_FUNC: Optional[Callable[[str, Optional[bool]], bool]] = None
+# A function that expands/overrides the frontend `bootstrap_data.common` object.
+# Can be used to implement custom frontend functionality,
+# or dynamically change certain configs.
+#
+# Values in `bootstrap_data.common` should have these characteristics:
+# - They are not specific to a page the user is visiting
+# - They do not contain secrets
+#
+# Takes as a parameter the common bootstrap payload before transformations.
+# Returns a dict containing data that should be added or overridden to the payload.
+COMMON_BOOTSTRAP_OVERRIDES_FUNC: Callable[
+    [Dict[str, Any]], Dict[str, Any]
+] = lambda data: {}  # default: empty dict
+
+# EXTRA_CATEGORICAL_COLOR_SCHEMES is used for adding custom categorical color schemes
+# example code for "My custom warm to hot" color scheme
+# EXTRA_CATEGORICAL_COLOR_SCHEMES = [
+#     {
+#         "id": 'myVisualizationColors',
+#         "description": '',
+#         "label": 'My Visualization Colors',
+#         "isDefault": True,
+#         "colors":
+#          ['#006699', '#009DD9', '#5AAA46', '#44AAAA', '#DDAA77', '#7799BB', '#88AA77',
+#          '#552288', '#5AAA46', '#CC7788', '#EEDD55', '#9977BB', '#BBAA44', '#DDCCDD']
+#     }]
+
+# This is merely a default
+EXTRA_CATEGORICAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
+
+# THEME_OVERRIDES is used for adding custom theme to superset
+# example code for "My theme" custom scheme
+# THEME_OVERRIDES = {
+#   "borderRadius": 4,
+#   "colors": {
+#     "primary": {
+#       "base": 'red',
+#     },
+#     "secondary": {
+#       "base": 'green',
+#     },
+#     "grayscale": {
+#       "base": 'orange',
+#     }
+#   }
+# }
+
+THEME_OVERRIDES: Dict[str, Any] = {}
+
+# EXTRA_SEQUENTIAL_COLOR_SCHEMES is used for adding custom sequential color schemes
+# EXTRA_SEQUENTIAL_COLOR_SCHEMES =  [
+#     {
+#         "id": 'warmToHot',
+#         "description": '',
+#         "isDiverging": True,
+#         "label": 'My custom warm to hot',
+#         "isDefault": True,
+#         "colors":
+#          ['#552288', '#5AAA46', '#CC7788', '#EEDD55', '#9977BB', '#BBAA44', '#DDCCDD',
+#          '#006699', '#009DD9', '#5AAA46', '#44AAAA', '#DDAA77', '#7799BB', '#88AA77']
+#     }]
+
+# This is merely a default
+EXTRA_SEQUENTIAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
 
 # ---------------------------------------------------
 # Thumbnail config (behind feature flag)
+# Also used by Alerts & Reports
 # ---------------------------------------------------
 THUMBNAIL_SELENIUM_USER = "admin"
 THUMBNAIL_CACHE_CONFIG: CacheConfig = {
@@ -376,11 +522,18 @@ THUMBNAIL_CACHE_CONFIG: CacheConfig = {
     "CACHE_NO_NULL_WARNING": True,
 }
 
-# Used for thumbnails and other api: Time in seconds before selenium
-# times out after trying to locate an element on the page and wait
-# for that element to load for an alert screenshot.
-SCREENSHOT_LOCATE_WAIT = 10
-SCREENSHOT_LOAD_WAIT = 60
+# Time before selenium times out after trying to locate an element on the page and wait
+# for that element to load for a screenshot.
+SCREENSHOT_LOCATE_WAIT = int(timedelta(seconds=10).total_seconds())
+# Time before selenium times out after waiting for all DOM class elements named
+# "loading" are gone.
+SCREENSHOT_LOAD_WAIT = int(timedelta(minutes=1).total_seconds())
+# Selenium destroy retries
+SCREENSHOT_SELENIUM_RETRIES = 5
+# Give selenium an headstart, in seconds
+SCREENSHOT_SELENIUM_HEADSTART = 3
+# Wait for the chart animation, in seconds
+SCREENSHOT_SELENIUM_ANIMATION_WAIT = 5
 
 # ---------------------------------------------------
 # Image and file configuration
@@ -397,9 +550,9 @@ IMG_UPLOAD_URL = "/static/uploads/"
 # Setup image size default is (300, 200, True)
 # IMG_SIZE = (300, 200, True)
 
-# Default cache timeout (in seconds), applies to all cache backends unless
-# specifically overridden in each cache config.
-CACHE_DEFAULT_TIMEOUT = 60 * 60 * 24  # 1 day
+# Default cache timeout, applies to all cache backends unless specifically overridden in
+# each cache config.
+CACHE_DEFAULT_TIMEOUT = int(timedelta(days=1).total_seconds())
 
 # Default cache for Superset objects
 CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
@@ -424,7 +577,8 @@ SUPERSET_WEBSERVER_DOMAINS = None
 # Allowed format types for upload on Database view
 EXCEL_EXTENSIONS = {"xlsx", "xls"}
 CSV_EXTENSIONS = {"csv", "tsv", "txt"}
-ALLOWED_EXTENSIONS = {*EXCEL_EXTENSIONS, *CSV_EXTENSIONS}
+COLUMNAR_EXTENSIONS = {"parquet", "zip"}
+ALLOWED_EXTENSIONS = {*EXCEL_EXTENSIONS, *CSV_EXTENSIONS, *COLUMNAR_EXTENSIONS}
 
 # CSV Options: key/value pairs that will be passed as argument to DataFrame.to_csv
 # method.
@@ -523,9 +677,7 @@ QUERY_LOGGER = None
 # Set this API key to enable Mapbox visualizations
 MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
 
-# Maximum number of rows returned from a database
-# in async mode, no more than SQL_MAX_ROW will be returned and stored
-# in the results backend. This also becomes the limit when exporting CSVs
+# Maximum number of rows returned for any analytical database query
 SQL_MAX_ROW = 100000
 
 # Maximum number of rows displayed in SQL Lab UI
@@ -544,6 +696,9 @@ MAX_TABLE_NAMES = 3000
 SQLLAB_SAVE_WARNING_MESSAGE = None
 SQLLAB_SCHEDULE_WARNING_MESSAGE = None
 
+# Force refresh while auto-refresh in dashboard
+DASHBOARD_AUTO_REFRESH_MODE: Literal["fetch", "force"] = "force"
+
 # Default celery config is to use SQLA as a broker, in a production setting
 # you'll want to use a proper broker as specified here:
 # http://docs.celeryproject.org/en/latest/getting-started/brokers/index.html
@@ -560,8 +715,8 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         "sql_lab.get_sql_results": {"rate_limit": "100/s"},
         "email_reports.send": {
             "rate_limit": "1/s",
-            "time_limit": 120,
-            "soft_time_limit": 150,
+            "time_limit": int(timedelta(seconds=120).total_seconds()),
+            "soft_time_limit": int(timedelta(seconds=150).total_seconds()),
             "ignore_result": True,
         },
     }
@@ -569,7 +724,15 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         "email_reports.schedule_hourly": {
             "task": "email_reports.schedule_hourly",
             "schedule": crontab(minute=1, hour="*"),
-        }
+        },
+        "reports.scheduler": {
+            "task": "reports.scheduler",
+            "schedule": crontab(minute="*", hour="*"),
+        },
+        "reports.prune_log": {
+            "task": "reports.prune_log",
+            "schedule": crontab(minute=0, hour=0),
+        },
     }
 
 
@@ -593,22 +756,52 @@ HTTP_HEADERS: Dict[str, Any] = {}
 DEFAULT_DB_ID = None
 
 # Timeout duration for SQL Lab synchronous queries
-SQLLAB_TIMEOUT = 30
+SQLLAB_TIMEOUT = int(timedelta(seconds=30).total_seconds())
 
 # Timeout duration for SQL Lab query validation
-SQLLAB_VALIDATION_TIMEOUT = 10
+SQLLAB_VALIDATION_TIMEOUT = int(timedelta(seconds=10).total_seconds())
 
 # SQLLAB_DEFAULT_DBID
 SQLLAB_DEFAULT_DBID = None
 
-# The MAX duration (in seconds) a query can run for before being killed
-# by celery.
-SQLLAB_ASYNC_TIME_LIMIT_SEC = 60 * 60 * 6
+# The MAX duration a query can run for before being killed by celery.
+SQLLAB_ASYNC_TIME_LIMIT_SEC = int(timedelta(hours=6).total_seconds())
 
 # Some databases support running EXPLAIN queries that allow users to estimate
 # query costs before they run. These EXPLAIN queries should have a small
 # timeout.
-SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = 10  # seconds
+SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = int(timedelta(seconds=10).total_seconds())
+# The feature is off by default, and currently only supported in Presto and Postgres.
+# It also need to be enabled on a per-database basis, by adding the key/value pair
+# `cost_estimate_enabled: true` to the database `extra` attribute.
+ESTIMATE_QUERY_COST = False
+# The cost returned by the databases is a relative value; in order to map the cost to
+# a tangible value you need to define a custom formatter that takes into consideration
+# your specific infrastructure. For example, you could analyze queries a posteriori by
+# running EXPLAIN on them, and compute a histogram of relative costs to present the
+# cost as a percentile:
+#
+# def postgres_query_cost_formatter(
+#     result: List[Dict[str, Any]]
+# ) -> List[Dict[str, str]]:
+#     # 25, 50, 75% percentiles
+#     percentile_costs = [100.0, 1000.0, 10000.0]
+#
+#     out = []
+#     for row in result:
+#         relative_cost = row["Total cost"]
+#         percentile = bisect.bisect_left(percentile_costs, relative_cost) + 1
+#         out.append({
+#             "Relative cost": relative_cost,
+#             "Percentile": str(percentile * 25) + "%",
+#         })
+#
+#     return out
+#
+# FEATURE_FLAGS = {
+#     "ESTIMATE_QUERY_COST": True,
+#     "QUERY_COST_FORMATTERS_BY_ENGINE": {"postgresql": postgres_query_cost_formatter},
+# }
 
 # Flag that controls if limit should be enforced on the CTA (create table as queries).
 SQLLAB_CTAS_NO_LIMIT = False
@@ -655,16 +848,23 @@ CSV_TO_HIVE_UPLOAD_S3_BUCKET = None
 CSV_TO_HIVE_UPLOAD_DIRECTORY = "EXTERNAL_HIVE_TABLES/"
 # Function that creates upload directory dynamically based on the
 # database used, user and schema provided.
-CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC: Callable[
-    ["Database", "models.User", str], Optional[str]
-] = lambda database, user, schema: CSV_TO_HIVE_UPLOAD_DIRECTORY
+def CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC(  # pylint: disable=invalid-name
+    database: "Database",
+    user: "models.User",  # pylint: disable=unused-argument
+    schema: Optional[str],
+) -> str:
+    # Note the final empty path enforces a trailing slash.
+    return os.path.join(
+        CSV_TO_HIVE_UPLOAD_DIRECTORY, str(database.id), schema or "", ""
+    )
+
 
 # The namespace within hive where the tables created from
 # uploading CSVs will be stored.
 UPLOADED_CSV_HIVE_NAMESPACE: Optional[str] = None
 
 # Function that computes the allowed schemas for the CSV uploads.
-# Allowed schemas will be a union of schemas_allowed_for_csv_upload
+# Allowed schemas will be a union of schemas_allowed_for_file_upload
 # db configuration and a result of this function.
 
 # mypy doesn't catch that if case ensures list content being always str
@@ -738,7 +938,7 @@ FAB_ADD_SECURITY_PERMISSION_VIEWS_VIEW = False
 TROUBLESHOOTING_LINK = ""
 
 # CSRF token timeout, set to None for a token that never expires
-WTF_CSRF_TIME_LIMIT = 60 * 60 * 24 * 7
+WTF_CSRF_TIME_LIMIT = int(timedelta(weeks=1).total_seconds())
 
 # This link should lead to a page with instructions on how to gain access to a
 # Datasource. It will be placed at the bottom of permissions errors.
@@ -754,11 +954,11 @@ BLUEPRINTS: List[Blueprint] = []
 TRACKING_URL_TRANSFORMER = lambda x: x
 
 # Interval between consecutive polls when using Hive Engine
-HIVE_POLL_INTERVAL = 5
+HIVE_POLL_INTERVAL = int(timedelta(seconds=5).total_seconds())
 
 # Interval between consecutive polls when using Presto Engine
-# See here: https://github.com/dropbox/PyHive/blob/8eb0aeab8ca300f3024655419b93dad926c1a351/pyhive/presto.py#L93  # pylint: disable=line-too-long
-PRESTO_POLL_INTERVAL = 1
+# See here: https://github.com/dropbox/PyHive/blob/8eb0aeab8ca300f3024655419b93dad926c1a351/pyhive/presto.py#L93  # pylint: disable=line-too-long,useless-suppression
+PRESTO_POLL_INTERVAL = int(timedelta(seconds=1).total_seconds())
 
 # Allow for javascript controls components
 # this enables programmers to customize certain charts (like the
@@ -769,7 +969,7 @@ ENABLE_JAVASCRIPT_CONTROLS = False
 # The id of a template dashboard that should be copied to every new user
 DASHBOARD_TEMPLATE_ID = None
 
-# A callable that allows altering the database conneciton URL and params
+# A callable that allows altering the database connection URL and params
 # on the fly, at runtime. This allows for things like impersonation or
 # arbitrary logic. For instance you can wire different users to
 # use different connection parameters, or pass their email address as the
@@ -790,26 +990,59 @@ DB_CONNECTION_MUTATOR = None
 # The use case is can be around adding some sort of comment header
 # with information such as the username and worker node information
 #
-#    def SQL_QUERY_MUTATOR(sql, username, security_manager):
+#    def SQL_QUERY_MUTATOR(sql, user_name, security_manager, database):
 #        dttm = datetime.now().isoformat()
 #        return f"-- [SQL LAB] {username} {dttm}\n{sql}"
-SQL_QUERY_MUTATOR = None
+def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument
+    sql: str,
+    user_name: Optional[str],
+    security_manager: LocalProxy,
+    database: "Database",
+) -> str:
+    return sql
+
 
 # Enable / disable scheduled email reports
+#
+# Warning: This config key is deprecated and will be removed in version 2.0.0"
 ENABLE_SCHEDULED_EMAIL_REPORTS = False
 
 # Enable / disable Alerts, where users can define custom SQL that
 # will send emails with screenshots of charts or dashboards periodically
 # if it meets the criteria
+#
+# Warning: This config key is deprecated and will be removed in version 2.0.0"
 ENABLE_ALERTS = False
 
-# Slack API token for the superset reports
-SLACK_API_TOKEN = None
+# ---------------------------------------------------
+# Alerts & Reports
+# ---------------------------------------------------
+# Used for Alerts/Reports (Feature flask ALERT_REPORTS) to set the size for the
+# sliding cron window size, should be synced with the celery beat config minus 1 second
+ALERT_REPORTS_CRON_WINDOW_SIZE = 59
+ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
+# if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
+# Equal to working timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG
+ALERT_REPORTS_WORKING_TIME_OUT_LAG = int(timedelta(seconds=10).total_seconds())
+# if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
+# Equal to working timeout + ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG
+ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG = int(timedelta(seconds=1).total_seconds())
+# If set to true no notification is sent, the worker will just log a message.
+# Useful for debugging
+ALERT_REPORTS_NOTIFICATION_DRY_RUN = False
+
+# A custom prefix to use on all Alerts & Reports emails
+EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
+
+# Slack API token for the superset reports, either string or callable
+SLACK_API_TOKEN: Optional[Union[Callable[[], str], str]] = None
 SLACK_PROXY = None
 
-# If enabled, certail features are run in debug mode
+# If enabled, certain features are run in debug mode
 # Current list:
 # * Emails are sent using dry-run mode (logging only)
+#
+# Warning: This config key is deprecated and will be removed in version 2.0.0"
 SCHEDULED_EMAIL_DEBUG_MODE = False
 
 # This auth provider is used by background (offline) tasks that need to access
@@ -818,26 +1051,29 @@ SCHEDULED_EMAIL_DEBUG_MODE = False
 MACHINE_AUTH_PROVIDER_CLASS = "superset.utils.machine_auth.MachineAuthProvider"
 
 # Email reports - minimum time resolution (in minutes) for the crontab
+#
+# Warning: This config key is deprecated and will be removed in version 2.0.0"
 EMAIL_REPORTS_CRON_RESOLUTION = 15
 
 # The MAX duration (in seconds) a email schedule can run for before being killed
 # by celery.
-EMAIL_ASYNC_TIME_LIMIT_SEC = 300
-
-# Email report configuration
-# From address in emails
-EMAIL_REPORT_FROM_ADDRESS = "reports@superset.org"
+#
+# Warning: This config key is deprecated and will be removed in version 2.0.0"
+EMAIL_ASYNC_TIME_LIMIT_SEC = int(timedelta(minutes=5).total_seconds())
 
 # Send bcc of all reports to this address. Set to None to disable.
 # This is useful for maintaining an audit trail of all email deliveries.
+#
+# Warning: This config key is deprecated and will be removed in version 2.0.0"
 EMAIL_REPORT_BCC_ADDRESS = None
 
 # User credentials to use for generating reports
 # This user should have permissions to browse all the dashboards and
 # slices.
 # TODO: In the future, login as the owner of the item to generate reports
+#
+# Warning: This config key is deprecated and will be removed in version 2.0.0"
 EMAIL_REPORTS_USER = "admin"
-EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
 
 # The webdriver to use for generating reports. Use one of the following
 # firefox
@@ -856,24 +1092,19 @@ WEBDRIVER_WINDOW = {"dashboard": (1600, 2000), "slice": (3000, 1200)}
 WEBDRIVER_AUTH_FUNC = None
 
 # Any config options to be passed as-is to the webdriver
-WEBDRIVER_CONFIGURATION: Dict[Any, Any] = {}
+WEBDRIVER_CONFIGURATION: Dict[Any, Any] = {"service_log_path": "/dev/null"}
 
 # Additional args to be passed as arguments to the config object
 # Note: these options are Chrome-specific. For FF, these should
 # only include the "--headless" arg
-WEBDRIVER_OPTION_ARGS = [
-    "--force-device-scale-factor=2.0",
-    "--high-dpi-support=2.0",
-    "--headless",
-]
+WEBDRIVER_OPTION_ARGS = ["--headless", "--marionette"]
 
 # The base URL to query for accessing the user interface
 WEBDRIVER_BASEURL = "http://0.0.0.0:8080/"
 # The base URL for the email report hyperlinks.
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
-# Time in seconds, selenium will wait for the page to load
-# and render for the email report.
-EMAIL_PAGE_RENDER_WAIT = 30
+# Time selenium will wait for the page to load and render for the email report.
+EMAIL_PAGE_RENDER_WAIT = int(timedelta(seconds=30).total_seconds())
 
 # Send user to a link where they can report bugs
 BUG_REPORT_URL = None
@@ -898,6 +1129,18 @@ SQL_VALIDATORS_BY_ENGINE = {
     "presto": "PrestoDBSQLValidator",
     "postgresql": "PostgreSQLValidator",
 }
+
+# A list of preferred databases, in order. These databases will be
+# displayed prominently in the "Add Database" dialog. You should
+# use the "engine_name" attribute of the corresponding DB engine spec
+# in `superset/db_engine_specs/`.
+PREFERRED_DATABASES: List[str] = [
+    "PostgreSQL",
+    "Presto",
+    "MySQL",
+    "SQLite",
+    # etc.
+]
 
 # Do you want Talisman enabled?
 TALISMAN_ENABLED = False
@@ -929,8 +1172,8 @@ SESSION_COOKIE_HTTPONLY = True  # Prevent cookie from being read by frontend JS?
 SESSION_COOKIE_SECURE = False  # Prevent cookie from being transmitted over non-tls?
 SESSION_COOKIE_SAMESITE = "Lax"  # One of [None, 'None', 'Lax', 'Strict']
 
-# Flask configuration variables
-SEND_FILE_MAX_AGE_DEFAULT = 60 * 60 * 24 * 365  # Cache static resources
+# Cache static resources.
+SEND_FILE_MAX_AGE_DEFAULT = int(timedelta(days=365).total_seconds())
 
 # URI to database storing the example data, points to
 # SQLALCHEMY_DATABASE_URI by default if set to `None`
@@ -961,6 +1204,11 @@ SIP_15_TOAST_MESSAGE = (
     'class="alert-link">here</a>.'
 )
 
+# Turn this key to False to disable ownership check on the old dataset MVC and
+# datasource API /datasource/save.
+#
+# Warning: This config key is deprecated and will be removed in version 2.0.0"
+OLD_API_CHECK_DATASET_OWNERSHIP = True
 
 # SQLA table mutator, every time we fetch the metadata for a certain table
 # (superset.connectors.sqla.models.SqlaTable), we call this hook
@@ -976,16 +1224,64 @@ GLOBAL_ASYNC_QUERIES_REDIS_CONFIG = {
     "host": "127.0.0.1",
     "password": "",
     "db": 0,
+    "ssl": False,
 }
 GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX = "async-events-"
 GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT = 1000
 GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE = 1000000
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME = "async-token"
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE = False
+GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN = None
 GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me"
 GLOBAL_ASYNC_QUERIES_TRANSPORT = "polling"
-GLOBAL_ASYNC_QUERIES_POLLING_DELAY = 500
+GLOBAL_ASYNC_QUERIES_POLLING_DELAY = int(
+    timedelta(milliseconds=500).total_seconds() * 1000
+)
+GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL = "ws://127.0.0.1:8080/"
 
+# A SQL dataset health check. Note if enabled it is strongly advised that the callable
+# be memoized to aid with performance, i.e.,
+#
+#    @cache_manager.cache.memoize(timeout=0)
+#    def DATASET_HEALTH_CHECK(datasource: SqlaTable) -> Optional[str]:
+#        if (
+#            datasource.sql and
+#            len(sql_parse.ParsedQuery(datasource.sql, strip_comments=True).tables) == 1
+#        ):
+#            return (
+#                "This virtual dataset queries only one table and therefore could be "
+#                "replaced by querying the table directly."
+#            )
+#
+#        return None
+#
+# Within the FLASK_APP_MUTATOR callable, i.e., once the application and thus cache have
+# been initialized it is also necessary to add the following logic to blow the cache for
+# all datasources if the callback function changed.
+#
+#    def FLASK_APP_MUTATOR(app: Flask) -> None:
+#        name = "DATASET_HEALTH_CHECK"
+#        func = app.config[name]
+#        code = func.uncached.__code__.co_code
+#
+#        if cache_manager.cache.get(name) != code:
+#            cache_manager.cache.delete_memoized(func)
+#            cache_manager.cache.set(name, code, timeout=0)
+#
+DATASET_HEALTH_CHECK: Optional[Callable[["SqlaTable"], str]] = None
+
+# Do not show user info or profile in the menu
+MENU_HIDE_USER_INFO = False
+
+# SQLalchemy link doc reference
+SQLALCHEMY_DOCS_URL = "https://docs.sqlalchemy.org/en/13/core/engines.html"
+SQLALCHEMY_DISPLAY_TEXT = "SQLAlchemy docs"
+
+# -------------------------------------------------------------------
+# *                WARNING:  STOP EDITING  HERE                    *
+# -------------------------------------------------------------------
+# Don't add config values below this line since local configs won't be
+# able to override them.
 if CONFIG_PATH_ENV_VAR in os.environ:
     # Explicitly import config module that is not necessarily in pythonpath; useful
     # for case where app is being executed via pex.
@@ -1012,8 +1308,3 @@ elif importlib.util.find_spec("superset_config") and not is_test():
     except Exception:
         logger.exception("Found but failed to import local superset_config")
         raise
-
-
-# It's possible to add a dataset health check logic which is specific to your system.
-# It will get executed each time when user open a chart's explore view.
-DATASET_HEALTH_CHECK = None

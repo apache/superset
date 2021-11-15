@@ -76,13 +76,7 @@ export default class OnPasteSelect extends React.Component {
 
   render() {
     const { selectWrap: SelectComponent, ...restProps } = this.props;
-    return (
-      <SelectComponent
-        {...restProps}
-        onPaste={this.onPaste}
-        menuPortalTarget={document.body}
-      />
-    );
+    return <SelectComponent {...restProps} onPaste={this.onPaste} />;
   }
 }
 
@@ -98,6 +92,7 @@ OnPasteSelect.propTypes = {
   value: PropTypes.any,
   isValidNewOption: PropTypes.func,
   noResultsText: PropTypes.string,
+  forceOverflow: PropTypes.bool,
 };
 OnPasteSelect.defaultProps = {
   separator: [',', '\n', '\t', ';'],

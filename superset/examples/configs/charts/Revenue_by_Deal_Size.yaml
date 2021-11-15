@@ -25,16 +25,16 @@ params:
   comparison_type: values
   contribution: false
   datasource: 23__table
-  granularity_sqla: OrderDate
+  granularity_sqla: order_date
   groupby:
-  - DealSize
+  - deal_size
   label_colors: {}
   left_margin: auto
   line_interpolation: linear
   metrics:
   - aggregate: SUM
     column:
-      column_name: Sales
+      column_name: sales
       description: null
       expression: null
       filterable: true

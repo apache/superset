@@ -19,14 +19,19 @@
 import React from 'react';
 import { shallow, mount } from 'enzyme';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import Popover from 'src/common/components/Popover';
+import Popover from 'src/components/Popover';
 import sinon from 'sinon';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
-
+import fetchMock from 'fetch-mock';
 import EmbedCodeButton from 'src/explore/components/EmbedCodeButton';
 import * as exploreUtils from 'src/explore/exploreUtils';
-import * as common from 'src/utils/common';
+import * as urlUtils from 'src/utils/urlUtils';
+import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
+
+const ENDPOINT = 'glob:*/r/shortner/';
+
+fetchMock.post(ENDPOINT, {});
 
 describe('EmbedCodeButton', () => {
   const mockStore = configureStore([]);
@@ -49,7 +54,7 @@ describe('EmbedCodeButton', () => {
 
   it('should create a short, standalone, explore url', () => {
     const spy1 = sinon.spy(exploreUtils, 'getExploreLongUrl');
-    const spy2 = sinon.spy(common, 'getShortUrl');
+    const spy2 = sinon.spy(urlUtils, 'getShortUrl');
 
     const wrapper = mount(
       <ThemeProvider theme={supersetTheme}>
@@ -81,23 +86,31 @@ describe('EmbedCodeButton', () => {
     const stub = sinon
       .stub(exploreUtils, 'getURIDirectory')
       .callsFake(() => 'endpoint_url');
-    const wrapper = mount(<EmbedCodeButton {...defaultProps} />);
-    wrapper.setState({
+    const wrapper = mount(
+      <ThemeProvider theme={supersetTheme}>
+        <EmbedCodeButton {...defaultProps} />
+      </ThemeProvider>,
+    );
+    wrapper.find(EmbedCodeButton).setState({
       height: '1000',
       width: '2000',
       shortUrlId: 100,
     });
     const embedHTML =
-      '<iframe\n' +
-      '  width="2000"\n' +
-      '  height="1000"\n' +
-      '  seamless\n' +
-      '  frameBorder="0"\n' +
-      '  scrolling="no"\n' +
-      '  src="http://localhostendpoint_url?r=100&standalone=true&height=1000"\n' +
-      '>\n' +
-      '</iframe>';
-    expect(wrapper.instance().generateEmbedHTML()).toBe(embedHTML);
+      `${
+        '<iframe\n' +
+        '  width="2000"\n' +
+        '  height="1000"\n' +
+        '  seamless\n' +
+        '  frameBorder="0"\n' +
+        '  scrolling="no"\n' +
+        '  src="http://localhostendpoint_url?r=100&standalone='
+      }${DashboardStandaloneMode.HIDE_NAV}&height=1000"\n` +
+      `>\n` +
+      `</iframe>`;
+    expect(wrapper.find(EmbedCodeButton).instance().generateEmbedHTML()).toBe(
+      embedHTML,
+    );
     stub.restore();
   });
 });

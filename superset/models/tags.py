@@ -23,7 +23,6 @@ from flask_appbuilder import Model
 from sqlalchemy import Column, Enum, ForeignKey, Integer, String
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship, Session, sessionmaker
-from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.mapper import Mapper
 
 from superset.models.helpers import AuditMixinNullable
@@ -47,6 +46,7 @@ class TagTypes(enum.Enum):
     can find all their objects by querying for the tag `owner:alice`.
     """
 
+    # pylint: disable=invalid-name
     # explicit tags, added manually by the owner
     custom = 1
 
@@ -60,6 +60,7 @@ class ObjectTypes(enum.Enum):
 
     """Object types."""
 
+    # pylint: disable=invalid-name
     query = 1
     chart = 2
     dashboard = 3
@@ -89,13 +90,11 @@ class TaggedObject(Model, AuditMixinNullable):
 
 
 def get_tag(name: str, session: Session, type_: TagTypes) -> Tag:
-    try:
-        tag = session.query(Tag).filter_by(name=name, type=type_).one()
-    except NoResultFound:
+    tag = session.query(Tag).filter_by(name=name, type=type_).one_or_none()
+    if tag is None:
         tag = Tag(name=name, type=type_)
         session.add(tag)
         session.commit()
-
     return tag
 
 
@@ -107,8 +106,8 @@ def get_object_type(class_name: str) -> ObjectTypes:
     }
     try:
         return mapping[class_name.lower()]
-    except KeyError:
-        raise Exception("No mapping found for {0}".format(class_name))
+    except KeyError as ex:
+        raise Exception("No mapping found for {0}".format(class_name)) from ex
 
 
 class ObjectUpdater:

@@ -64,8 +64,8 @@ export default function ImageLoader({
             setImgSrc(imgURL);
           }
         })
-        .catch(e => {
-          logging.error(e);
+        .catch(errMsg => {
+          logging.error(errMsg);
           setImgSrc(fallback);
         });
     }

@@ -23,7 +23,7 @@ import React, { useEffect, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ListView from 'src/components/ListView';
 import SubMenu from 'src/components/Menu/SubMenu';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import { fDuration } from 'src/modules/dates';
 import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';
 import {
@@ -87,23 +87,42 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
           row: {
             original: { state },
           },
-        }: any) => <AlertStatusIcon state={state} />,
+        }: any) => (
+          <AlertStatusIcon state={state} isReportEnabled={isReportEnabled} />
+        ),
         accessor: 'state',
         Header: t('State'),
         size: 'xs',
         disableSortBy: true,
       },
       {
+        Cell: ({
+          row: {
+            original: { uuid: executionId },
+          },
+        }: any) => (executionId ? executionId.slice(0, 6) : 'none'),
+        accessor: 'uuid',
+        Header: t('Execution ID'),
+        size: 'xs',
+        disableSortBy: true,
+      },
+      {
+        Cell: ({
+          row: {
+            original: { scheduled_dttm: scheduledDttm },
+          },
+        }: any) =>
+          moment(new Date(scheduledDttm)).format('YYYY-MM-DD hh:mm:ss a'),
         accessor: 'scheduled_dttm',
-        Header: t('Scheduled at'),
+        Header: t('Scheduled at (UTC)'),
       },
       {
         Cell: ({
           row: {
             original: { start_dttm: startDttm },
           },
-        }: any) => moment(new Date(startDttm)).format('ll'),
-        Header: t('Start At'),
+        }: any) => moment(new Date(startDttm)).format('YYYY-MM-DD hh:mm:ss a'),
+        Header: t('Start at (UTC)'),
         accessor: 'start_dttm',
       },
       {
@@ -122,10 +141,10 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
       },
       {
         accessor: 'error_message',
-        Header: t('Error Message'),
+        Header: t('Error message'),
       },
     ],
-    [],
+    [isReportEnabled],
   );
   const path = `/${isReportEnabled ? 'report' : 'alert'}/list/`;
   return (

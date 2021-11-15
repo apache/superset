@@ -16,6 +16,7 @@
 import logging
 from pathlib import Path
 from typing import Any, Dict
+from zipfile import ZipFile
 
 import yaml
 from marshmallow import fields, Schema, validate
@@ -46,9 +47,9 @@ def load_yaml(file_name: str, content: str) -> Dict[str, Any]:
     """Try to load a YAML file"""
     try:
         return yaml.safe_load(content)
-    except yaml.parser.ParserError:
+    except yaml.parser.ParserError as ex:
         logger.exception("Invalid YAML in %s", file_name)
-        raise ValidationError({file_name: "Not a valid YAML file"})
+        raise ValidationError({file_name: "Not a valid YAML file"}) from ex
 
 
 def load_metadata(contents: Dict[str, str]) -> Dict[str, str]:
@@ -62,14 +63,36 @@ def load_metadata(contents: Dict[str, str]) -> Dict[str, str]:
     metadata = load_yaml(METADATA_FILE_NAME, contents[METADATA_FILE_NAME])
     try:
         MetadataSchema().load(metadata)
-    except ValidationError as exc:
+    except ValidationError as ex:
         # if the version doesn't match raise an exception so that the
         # dispatcher can try a different command version
-        if "version" in exc.messages:
-            raise IncorrectVersionError(exc.messages["version"][0])
+        if "version" in ex.messages:
+            raise IncorrectVersionError(ex.messages["version"][0]) from ex
 
         # otherwise we raise the validation error
-        exc.messages = {METADATA_FILE_NAME: exc.messages}
-        raise exc
+        ex.messages = {METADATA_FILE_NAME: ex.messages}
+        raise ex
 
     return metadata
+
+
+def is_valid_config(file_name: str) -> bool:
+    path = Path(file_name)
+
+    # ignore system files that might've been added to the bundle
+    if path.name.startswith(".") or path.name.startswith("_"):
+        return False
+
+    # ensure extension is YAML
+    if path.suffix.lower() not in {".yaml", ".yml"}:
+        return False
+
+    return True
+
+
+def get_contents_from_bundle(bundle: ZipFile) -> Dict[str, str]:
+    return {
+        remove_root(file_name): bundle.read(file_name).decode()
+        for file_name in bundle.namelist()
+        if is_valid_config(file_name)
+    }

@@ -14,20 +14,28 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=too-many-lines
 from typing import Any, Dict
 
 from flask_babel import gettext as _
-from marshmallow import fields, post_load, Schema, validate
+from marshmallow import EXCLUDE, fields, post_load, Schema, validate
 from marshmallow.validate import Length, Range
+from marshmallow_enum import EnumField
 
+from superset import app
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context import QueryContext
+from superset.db_engine_specs.base import builtin_time_grains
 from superset.utils import schema as utils
 from superset.utils.core import (
     AnnotationType,
     FilterOperator,
     PostProcessingBoxplotWhiskerType,
     PostProcessingContributionOrientation,
+    TimeRangeEndpoint,
 )
+
+config = app.config
 
 #
 # RISON/JSON schemas for query parameters
@@ -69,6 +77,16 @@ params_description = (
     "or overwrite button in the explore view. "
     "This JSON object for power users who may want to alter specific parameters."
 )
+query_context_description = (
+    "The query context represents the queries that need to run "
+    "in order to generate the data the visualization, and in what "
+    "format the data should be returned."
+)
+query_context_generation_description = (
+    "The query context generation represents whether the query_context"
+    "is user generated or not so that it does not update user modfied"
+    "state."
+)
 cache_timeout_description = (
     "Duration (in seconds) of the caching timeout "
     "for this chart. Note this defaults to the datasource/table"
@@ -88,6 +106,13 @@ datasource_type_description = (
 )
 datasource_name_description = "The datasource name."
 dashboards_description = "A list of dashboards to include this new chart to."
+changed_on_description = "The ISO date that the chart was last changed."
+slice_url_description = "The URL of the chart."
+form_data_description = (
+    "Form data from the Explore controls used to form the chart's data query."
+)
+description_markeddown_description = "Sanitized HTML version of the chart description."
+owners_name_description = "Name of an owner of the chart."
 
 #
 # OpenAPI method specification overrides
@@ -107,29 +132,30 @@ openapi_spec_methods_override = {
         }
     },
     "related": {
-        "get": {"description": "Get a list of all possible owners for a chart."}
+        "get": {
+            "description": "Get a list of all possible owners for a chart. "
+            "Use `owners` has the `column_name` parameter"
+        }
     },
 }
 
 
-TIME_GRAINS = (
-    "PT1S",
-    "PT1M",
-    "PT5M",
-    "PT10M",
-    "PT15M",
-    "PT0.5H",
-    "PT1H",
-    "P1D",
-    "P1W",
-    "P1M",
-    "P0.25Y",
-    "P1Y",
-    "1969-12-28T00:00:00Z/P1W",  # Week starting Sunday
-    "1969-12-29T00:00:00Z/P1W",  # Week starting Monday
-    "P1W/1970-01-03T00:00:00Z",  # Week ending Saturday
-    "P1W/1970-01-04T00:00:00Z",  # Week ending Sunday
-)
+class ChartEntityResponseSchema(Schema):
+    """
+    Schema for a chart object
+    """
+
+    slice_id = fields.Integer()
+    slice_name = fields.String(description=slice_name_description)
+    cache_timeout = fields.Integer(description=cache_timeout_description)
+    changed_on = fields.String(description=changed_on_description)
+    modified = fields.String()
+    description = fields.String(description=description_description)
+    description_markeddown = fields.String(
+        description=description_markeddown_description
+    )
+    form_data = fields.Dict(description=form_data_description)
+    slice_url = fields.String(description=slice_url_description)
 
 
 class ChartPostSchema(Schema):
@@ -149,6 +175,14 @@ class ChartPostSchema(Schema):
     owners = fields.List(fields.Integer(description=owners_description))
     params = fields.String(
         description=params_description, allow_none=True, validate=utils.validate_json
+    )
+    query_context = fields.String(
+        description=query_context_description,
+        allow_none=True,
+        validate=utils.validate_json,
+    )
+    query_context_generation = fields.Boolean(
+        description=query_context_generation_description, allow_none=True
     )
     cache_timeout = fields.Integer(
         description=cache_timeout_description, allow_none=True
@@ -182,6 +216,12 @@ class ChartPutSchema(Schema):
     )
     owners = fields.List(fields.Integer(description=owners_description))
     params = fields.String(description=params_description, allow_none=True)
+    query_context = fields.String(
+        description=query_context_description, allow_none=True
+    )
+    query_context_generation = fields.Boolean(
+        description=query_context_generation_description, allow_none=True
+    )
     cache_timeout = fields.Integer(
         description=cache_timeout_description, allow_none=True
     )
@@ -263,6 +303,13 @@ class ChartDataAdhocMetricSchema(Schema):
         "metrics have a unique identifier. If undefined, a random name "
         "will be generated.",
         example="metric_aec60732-fac0-4b17-b736-93f1a5c93e30",
+    )
+    timeGrain = fields.String(
+        description="Optional time grain for temporal filters", example="PT1M",
+    )
+    isExtra = fields.Boolean(
+        description="Indicates if the filter has been added by a filter component as "
+        "opposed to being a part of the original query."
     )
 
 
@@ -466,7 +513,13 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
         description="Time grain used to specify time period increments in prediction. "
         "Supports [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) "
         "durations.",
-        validate=validate.OneOf(choices=TIME_GRAINS),
+        validate=validate.OneOf(
+            choices=[
+                i
+                for i in {**builtin_time_grains, **config["TIME_GRAIN_ADDONS"]}.keys()
+                if i
+            ]
+        ),
         example="P1D",
         required=True,
     )
@@ -585,18 +638,15 @@ class ChartDataPivotOptionsSchema(ChartDataPostProcessingOperationOptionsSchema)
 
     index = (
         fields.List(
-            fields.String(
-                allow_none=False,
-                description="Columns to group by on the table index (=rows)",
-            ),
+            fields.String(allow_none=False),
+            description="Columns to group by on the table index (=rows)",
             minLength=1,
             required=True,
         ),
     )
     columns = fields.List(
-        fields.String(
-            allow_none=False, description="Columns to group by on the table columns",
-        ),
+        fields.String(allow_none=False),
+        description="Columns to group by on the table columns",
     )
     metric_fill_value = fields.Number(
         description="Value to replace missing values with in aggregate calculations.",
@@ -694,6 +744,9 @@ class ChartDataPostProcessingOperationSchema(Schema):
                 "rolling",
                 "select",
                 "sort",
+                "diff",
+                "compare",
+                "resample",
             )
         ),
         example="aggregate",
@@ -734,17 +787,18 @@ class ChartDataFilterSchema(Schema):
         "integer, decimal or list, depending on the operator.",
         example=["China", "France", "Japan"],
     )
+    grain = fields.String(
+        description="Optional time grain for temporal filters", example="PT1M",
+    )
+    isExtra = fields.Boolean(
+        description="Indicates if the filter has been added by a filter component as "
+        "opposed to being a part of the original query."
+    )
 
 
 class ChartDataExtrasSchema(Schema):
 
-    time_range_endpoints = fields.List(
-        fields.String(
-            validate=validate.OneOf(choices=("unknown", "inclusive", "exclusive")),
-            description="A list with two values, stating if start/end should be "
-            "inclusive/exclusive.",
-        )
-    )
+    time_range_endpoints = fields.List(EnumField(TimeRangeEndpoint, by_value=True))
     relative_start = fields.String(
         description="Start time for relative time deltas. "
         'Default: `config["DEFAULT_RELATIVE_START_TIME"]`',
@@ -770,7 +824,13 @@ class ChartDataExtrasSchema(Schema):
         description="To what level of granularity should the temporal column be "
         "aggregated. Supports "
         "[ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) durations.",
-        validate=validate.OneOf(choices=TIME_GRAINS),
+        validate=validate.OneOf(
+            choices=[
+                i
+                for i in {**builtin_time_grains, **config["TIME_GRAIN_ADDONS"]}.keys()
+                if i
+            ]
+        ),
         example="P1D",
         allow_none=True,
     )
@@ -856,7 +916,22 @@ class AnnotationLayerSchema(Schema):
     )
 
 
+class ChartDataDatasourceSchema(Schema):
+    description = "Chart datasource"
+    id = fields.Integer(description="Datasource id", required=True,)
+    type = fields.String(
+        description="Datasource type",
+        validate=validate.OneOf(choices=("druid", "table")),
+    )
+
+
 class ChartDataQueryObjectSchema(Schema):
+    class Meta:  # pylint: disable=too-few-public-methods
+        unknown = EXCLUDE
+
+    datasource = fields.Nested(ChartDataDatasourceSchema, allow_none=True)
+    result_type = EnumField(ChartDataResultType, by_value=True, allow_none=True)
+
     annotation_layers = fields.List(
         fields.Nested(AnnotationLayerSchema),
         description="Annotation layers to apply to chart",
@@ -864,22 +939,31 @@ class ChartDataQueryObjectSchema(Schema):
     )
     applied_time_extras = fields.Dict(
         description="A mapping of temporal extras that have been applied to the query",
-        required=False,
+        allow_none=True,
         example={"__time_range": "1 year ago : now"},
     )
-    filters = fields.List(fields.Nested(ChartDataFilterSchema), required=False)
+    apply_fetch_values_predicate = fields.Boolean(
+        description="Add fetch values predicate (where clause) to query "
+        "if defined in datasource",
+        allow_none=True,
+    )
+    filters = fields.List(fields.Nested(ChartDataFilterSchema), allow_none=True)
     granularity = fields.String(
         description="Name of temporal column used for time filtering. For legacy Druid "
         "datasources this defines the time grain.",
+        allow_none=True,
     )
     granularity_sqla = fields.String(
         description="Name of temporal column used for time filtering for SQL "
         "datasources. This field is deprecated, use `granularity` "
         "instead.",
+        allow_none=True,
         deprecated=True,
     )
     groupby = fields.List(
-        fields.String(description="Columns by which to group the query.",),
+        fields.String(),
+        description="Columns by which to group the query. "
+        "This field is deprecated, use `columns` instead.",
         allow_none=True,
     )
     metrics = fields.List(
@@ -888,9 +972,11 @@ class ChartDataQueryObjectSchema(Schema):
         "references to datasource metrics (strings), or ad-hoc metrics"
         "which are defined only within the query object. See "
         "`ChartDataAdhocMetricSchema` for the structure of ad-hoc metrics.",
+        allow_none=True,
     )
     post_processing = fields.List(
         fields.Nested(ChartDataPostProcessingOperationSchema, allow_none=True),
+        allow_none=True,
         description="Post processing operations to be applied to the result set. "
         "Operations are applied to the result set in sequential order.",
     )
@@ -914,40 +1000,66 @@ class ChartDataQueryObjectSchema(Schema):
         "- Last X seconds/minutes/hours/days/weeks/months/years\n"
         "- Next X seconds/minutes/hours/days/weeks/months/years\n",
         example="Last week",
+        allow_none=True,
     )
     time_shift = fields.String(
         description="A human-readable date/time string. "
         "Please refer to [parsdatetime](https://github.com/bear/parsedatetime) "
         "documentation for details on valid values.",
+        allow_none=True,
     )
     is_timeseries = fields.Boolean(
-        description="Is the `query_object` a timeseries.", required=False
+        description="Is the `query_object` a timeseries.", allow_none=True,
+    )
+    series_columns = fields.List(
+        fields.String(),
+        description="Columns to use when limiting series count. "
+        "All columns must be present in the `columns` property. "
+        "Requires `series_limit` and `series_limit_metric` to be set.",
+        allow_none=True,
+    )
+    series_limit = fields.Integer(
+        description="Maximum number of series. "
+        "Requires `series` and `series_limit_metric` to be set.",
+        allow_none=True,
+    )
+    series_limit_metric = fields.Raw(
+        description="Metric used to limit timeseries queries by. "
+        "Requires `series` and `series_limit` to be set.",
+        allow_none=True,
     )
     timeseries_limit = fields.Integer(
-        description="Maximum row count for timeseries queries. Default: `0`",
+        description="Maximum row count for timeseries queries. "
+        "This field is deprecated, use `series_limit` instead."
+        "Default: `0`",
+        allow_none=True,
     )
     timeseries_limit_metric = fields.Raw(
-        description="Metric used to limit timeseries queries by.", allow_none=True,
+        description="Metric used to limit timeseries queries by. "
+        "This field is deprecated, use `series_limit_metric` instead.",
+        allow_none=True,
     )
     row_limit = fields.Integer(
-        description='Maximum row count. Default: `config["ROW_LIMIT"]`',
+        description='Maximum row count (0=disabled). Default: `config["ROW_LIMIT"]`',
+        allow_none=True,
         validate=[
-            Range(min=1, error=_("`row_limit` must be greater than or equal to 1"))
+            Range(min=0, error=_("`row_limit` must be greater than or equal to 0"))
         ],
     )
     row_offset = fields.Integer(
         description="Number of rows to skip. Default: `0`",
+        allow_none=True,
         validate=[
             Range(min=0, error=_("`row_offset` must be greater than or equal to 0"))
         ],
     )
     order_desc = fields.Boolean(
-        description="Reverse order. Default: `false`", required=False
+        description="Reverse order. Default: `false`", allow_none=True,
     )
     extras = fields.Nested(
         ChartDataExtrasSchema,
         description="Extra parameters to add to the query.",
-        required=False,
+        allow_none=True,
     )
     columns = fields.List(
         fields.String(),
@@ -955,20 +1067,33 @@ class ChartDataQueryObjectSchema(Schema):
         allow_none=True,
     )
     orderby = fields.List(
-        fields.List(fields.Raw()),
+        fields.Tuple(
+            (
+                fields.Raw(
+                    validate=[
+                        Length(min=1, error=_("orderby column must be populated"))
+                    ],
+                    allow_none=False,
+                ),
+                fields.Boolean(),
+            )
+        ),
         description="Expects a list of lists where the first element is the column "
         "name which to sort by, and the second element is a boolean.",
-        example=[["my_col_1", False], ["my_col_2", True]],
+        allow_none=True,
+        example=[("my_col_1", False), ("my_col_2", True)],
     )
     where = fields.String(
         description="WHERE clause to be added to queries using AND operator."
         "This field is deprecated and should be passed to `extras`.",
+        allow_none=True,
         deprecated=True,
     )
     having = fields.String(
         description="HAVING clause to be added to aggregate queries using "
         "AND operator. This field is deprecated and should be passed "
         "to `extras`.",
+        allow_none=True,
         deprecated=True,
     )
     having_filters = fields.List(
@@ -976,6 +1101,7 @@ class ChartDataQueryObjectSchema(Schema):
         description="HAVING filters to be added to legacy Druid datasource queries. "
         "This field is deprecated and should be passed to `extras` "
         "as `having_druid`.",
+        allow_none=True,
         deprecated=True,
     )
     druid_time_origin = fields.String(
@@ -991,15 +1117,11 @@ class ChartDataQueryObjectSchema(Schema):
         values=fields.String(description="The value of the query parameter"),
         allow_none=True,
     )
-
-
-class ChartDataDatasourceSchema(Schema):
-    description = "Chart datasource"
-    id = fields.Integer(description="Datasource id", required=True,)
-    type = fields.String(
-        description="Datasource type",
-        validate=validate.OneOf(choices=("druid", "table")),
+    is_rowcount = fields.Boolean(
+        description="Should the rowcount of the actual query be returned",
+        allow_none=True,
     )
+    time_offsets = fields.List(fields.String(), allow_none=True,)
 
 
 class ChartDataQueryContextSchema(Schema):
@@ -1009,14 +1131,9 @@ class ChartDataQueryContextSchema(Schema):
         description="Should the queries be forced to load from the source. "
         "Default: `false`",
     )
-    result_type = fields.String(
-        description="Type of results to return",
-        validate=validate.OneOf(choices=("full", "query", "results", "samples")),
-    )
-    result_format = fields.String(
-        description="Format of result payload",
-        validate=validate.OneOf(choices=("json", "csv")),
-    )
+
+    result_type = EnumField(ChartDataResultType, by_value=True)
+    result_format = EnumField(ChartDataResultFormat, by_value=True)
 
     # pylint: disable=no-self-use,unused-argument
     @post_load
@@ -1133,6 +1250,7 @@ class ImportV1ChartSchema(Schema):
     slice_name = fields.String(required=True)
     viz_type = fields.String(required=True)
     params = fields.Dict()
+    query_context = fields.String(allow_none=True, validate=utils.validate_json)
     cache_timeout = fields.Integer(allow_none=True)
     uuid = fields.UUID(required=True)
     version = fields.String(required=True)
@@ -1158,6 +1276,7 @@ CHART_SCHEMAS = (
     ChartDataGeohashDecodeOptionsSchema,
     ChartDataGeohashEncodeOptionsSchema,
     ChartDataGeodeticParseOptionsSchema,
+    ChartEntityResponseSchema,
     ChartGetDatasourceResponseSchema,
     ChartCacheScreenshotResponseSchema,
     GetFavStarIdsSchema,

@@ -19,10 +19,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import CheckboxTree from 'react-checkbox-tree';
-
+import { filterScopeSelectorTreeNodePropShape } from 'src/dashboard/util/propShapes';
 import renderFilterScopeTreeNodes from './renderFilterScopeTreeNodes';
 import treeIcons from './treeIcons';
-import { filterScopeSelectorTreeNodePropShape } from '../../util/propShapes';
 
 const propTypes = {
   nodes: PropTypes.arrayOf(filterScopeSelectorTreeNodePropShape).isRequired,

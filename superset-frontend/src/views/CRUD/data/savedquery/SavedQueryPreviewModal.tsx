@@ -18,10 +18,12 @@
  */
 import React, { FunctionComponent } from 'react';
 import { styled, t } from '@superset-ui/core';
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 import SyntaxHighlighterCopy from 'src/views/CRUD/data/components/SyntaxHighlighterCopy';
-import withToasts, { ToastProps } from 'src/messageToasts/enhancers/withToasts';
+import withToasts, {
+  ToastProps,
+} from 'src/components/MessageToasts/withToasts';
 import { useQueryPreviewState } from 'src/views/CRUD/data/hooks';
 
 const QueryTitle = styled.div`
@@ -95,7 +97,7 @@ const SavedQueryPreviewModal: FunctionComponent<SavedQueryPreviewModalProps> = (
       <StyledModal
         onHide={onHide}
         show={show}
-        title={t('Query Preview')}
+        title={t('Query preview')}
         footer={[
           <Button
             data-test="previous-saved-query"
@@ -123,7 +125,7 @@ const SavedQueryPreviewModal: FunctionComponent<SavedQueryPreviewModalProps> = (
           </Button>,
         ]}
       >
-        <QueryTitle>{t('Query Name')}</QueryTitle>
+        <QueryTitle>{t('Query name')}</QueryTitle>
         <QueryLabel>{savedQuery.label}</QueryLabel>
         <SyntaxHighlighterCopy
           language="sql"

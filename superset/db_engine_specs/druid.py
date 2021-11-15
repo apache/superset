@@ -19,7 +19,9 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
+from superset import is_feature_enabled
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.exceptions import SupersetException
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
@@ -29,28 +31,39 @@ if TYPE_CHECKING:
 logger = logging.getLogger()
 
 
-class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
+class DruidEngineSpec(BaseEngineSpec):
     """Engine spec for Druid.io"""
 
     engine = "druid"
     engine_name = "Apache Druid"
-    allows_joins = False
+    allows_joins = is_feature_enabled("DRUID_JOINS")
     allows_subqueries = True
 
     _time_grain_expressions = {
         None: "{col}",
-        "PT1S": "FLOOR({col} TO SECOND)",
-        "PT1M": "FLOOR({col} TO MINUTE)",
-        "PT5M": "TIME_FLOOR({col}, 'PT5M')",
-        "PT10M": "TIME_FLOOR({col}, 'PT10M')",
-        "PT15M": "TIME_FLOOR({col}, 'PT15M')",
-        "PT0.5H": "TIME_FLOOR({col}, 'PT30M')",
-        "PT1H": "FLOOR({col} TO HOUR)",
-        "P1D": "FLOOR({col} TO DAY)",
-        "P1W": "FLOOR({col} TO WEEK)",
-        "P1M": "FLOOR({col} TO MONTH)",
-        "P0.25Y": "FLOOR({col} TO QUARTER)",
-        "P1Y": "FLOOR({col} TO YEAR)",
+        "PT1S": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT1S')",
+        "PT5S": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT5S')",
+        "PT30S": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT30S')",
+        "PT1M": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT1M')",
+        "PT5M": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT5M')",
+        "PT10M": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT10M')",
+        "PT15M": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT15M')",
+        "PT30M": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT30M')",
+        "PT1H": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT1H')",
+        "PT6H": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT6H')",
+        "P1D": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'P1D')",
+        "P1W": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'P1W')",
+        "P1M": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'P1M')",
+        "P3M": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'P3M')",
+        "P1Y": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'P1Y')",
+        "P1W/1970-01-03T00:00:00Z": (
+            "TIME_SHIFT(TIME_FLOOR(TIME_SHIFT(CAST({col} AS TIMESTAMP), "
+            "'P1D', 1), 'P1W'), 'P1D', 5)"
+        ),
+        "1969-12-28T00:00:00Z/P1W": (
+            "TIME_SHIFT(TIME_FLOOR(TIME_SHIFT(CAST({col} AS TIMESTAMP), "
+            "'P1D', 1), 'P1W'), 'P1D', -1)"
+        ),
     }
 
     @classmethod
@@ -65,12 +78,12 @@ class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
         :param database: database instance from which to extract extras
         :raises CertificateException: If certificate is not valid/unparseable
+        :raises SupersetException: If database extra json payload is unparseable
         """
         try:
             extra = json.loads(database.extra or "{}")
         except json.JSONDecodeError as ex:
-            logger.error(ex)
-            raise ex
+            raise SupersetException("Unable to parse database extras") from ex
 
         if database.server_cert:
             engine_params = extra.get("engine_params", {})
@@ -90,3 +103,17 @@ class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         if tt in (utils.TemporalType.DATETIME, utils.TemporalType.TIMESTAMP):
             return f"""TIME_PARSE('{dttm.isoformat(timespec="seconds")}')"""
         return None
+
+    @classmethod
+    def epoch_to_dttm(cls) -> str:
+        """
+        Convert from number of seconds since the epoch to a timestamp.
+        """
+        return "MILLIS_TO_TIMESTAMP({col} * 1000)"
+
+    @classmethod
+    def epoch_ms_to_dttm(cls) -> str:
+        """
+        Convert from number of milliseconds since the epoch to a timestamp.
+        """
+        return "MILLIS_TO_TIMESTAMP({col})"

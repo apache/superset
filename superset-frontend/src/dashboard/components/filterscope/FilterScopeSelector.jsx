@@ -22,23 +22,23 @@ import cx from 'classnames';
 import Button from 'src/components/Button';
 import { t, styled } from '@superset-ui/core';
 
-import buildFilterScopeTreeEntry from '../../util/buildFilterScopeTreeEntry';
-import getFilterScopeNodesTree from '../../util/getFilterScopeNodesTree';
-import getFilterFieldNodesTree from '../../util/getFilterFieldNodesTree';
-import getFilterScopeParentNodes from '../../util/getFilterScopeParentNodes';
-import getKeyForFilterScopeTree from '../../util/getKeyForFilterScopeTree';
-import getSelectedChartIdForFilterScopeTree from '../../util/getSelectedChartIdForFilterScopeTree';
-import getFilterScopeFromNodesTree from '../../util/getFilterScopeFromNodesTree';
-import getRevertedFilterScope from '../../util/getRevertedFilterScope';
-import FilterScopeTree from './FilterScopeTree';
-import FilterFieldTree from './FilterFieldTree';
-import { getChartIdsInFilterScope } from '../../util/activeDashboardFilters';
+import buildFilterScopeTreeEntry from 'src/dashboard/util/buildFilterScopeTreeEntry';
+import getFilterScopeNodesTree from 'src/dashboard/util/getFilterScopeNodesTree';
+import getFilterFieldNodesTree from 'src/dashboard/util/getFilterFieldNodesTree';
+import getFilterScopeParentNodes from 'src/dashboard/util/getFilterScopeParentNodes';
+import getKeyForFilterScopeTree from 'src/dashboard/util/getKeyForFilterScopeTree';
+import getSelectedChartIdForFilterScopeTree from 'src/dashboard/util/getSelectedChartIdForFilterScopeTree';
+import getFilterScopeFromNodesTree from 'src/dashboard/util/getFilterScopeFromNodesTree';
+import getRevertedFilterScope from 'src/dashboard/util/getRevertedFilterScope';
+import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
 import {
   getChartIdAndColumnFromFilterKey,
   getDashboardFilterKey,
-} from '../../util/getDashboardFilterKey';
-import { ALL_FILTERS_ROOT } from '../../util/constants';
-import { dashboardFilterPropShape } from '../../util/propShapes';
+} from 'src/dashboard/util/getDashboardFilterKey';
+import { ALL_FILTERS_ROOT } from 'src/dashboard/util/constants';
+import { dashboardFilterPropShape } from 'src/dashboard/util/propShapes';
+import FilterScopeTree from './FilterScopeTree';
+import FilterFieldTree from './FilterFieldTree';
 
 const propTypes = {
   dashboardFilters: PropTypes.objectOf(dashboardFilterPropShape).isRequired,
@@ -531,11 +531,15 @@ export default class FilterScopeSelector extends React.PureComponent {
         </div>
 
         <ActionsContainer>
-          <Button buttonSize="sm" onClick={this.onClose}>
+          <Button buttonSize="small" onClick={this.onClose}>
             {t('Close')}
           </Button>
           {showSelector && (
-            <Button buttonSize="sm" buttonStyle="primary" onClick={this.onSave}>
+            <Button
+              buttonSize="small"
+              buttonStyle="primary"
+              onClick={this.onSave}
+            >
               {t('Save')}
             </Button>
           )}

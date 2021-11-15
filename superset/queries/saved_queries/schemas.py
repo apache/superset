@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from marshmallow import fields, Schema
+from marshmallow.validate import Length
 
 openapi_spec_methods_override = {
     "get": {"get": {"description": "Get a saved query",}},
@@ -32,3 +34,13 @@ openapi_spec_methods_override = {
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
+
+
+class ImportV1SavedQuerySchema(Schema):
+    schema = fields.String(allow_none=True, validate=Length(0, 128))
+    label = fields.String(allow_none=True, validate=Length(0, 256))
+    description = fields.String(allow_none=True)
+    sql = fields.String(required=True)
+    uuid = fields.UUID(required=True)
+    version = fields.String(required=True)
+    database_uuid = fields.UUID(required=True)

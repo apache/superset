@@ -25,7 +25,7 @@ describe('ControlSetRow', () => {
     const { getAllByText } = render(
       <ControlSetRow controls={[<p>My Control 1</p>]} />,
     );
-    expect(getAllByText('My Control 1')).toHaveLength(1);
+    expect(getAllByText('My Control 1').length).toBe(1);
   });
   it('renders a single row with two elements', () => {
     const { getAllByText } = render(

@@ -43,7 +43,15 @@ import {
   DASHBOARD_TITLE_CHANGED,
 } from '../actions/dashboardLayout';
 
+import { HYDRATE_DASHBOARD } from '../actions/hydrate';
+
 const actionHandlers = {
+  [HYDRATE_DASHBOARD](state, action) {
+    return {
+      ...action.data.dashboardLayout.present,
+    };
+  },
+
   [UPDATE_COMPONENTS](state, action) {
     const {
       payload: { nextComponents },

@@ -24,9 +24,11 @@ from flask import current_app, flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.fieldwidgets import Select2Widget
+from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __, lazy_gettext as _
+from werkzeug.exceptions import NotFound
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.validators import Regexp
 
@@ -37,6 +39,7 @@ from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import (
+    check_ownership,
     create_table_permissions,
     DatasourceFilter,
     DeleteMixin,
@@ -50,9 +53,7 @@ from superset.views.base import (
 logger = logging.getLogger(__name__)
 
 
-class TableColumnInlineView(  # pylint: disable=too-many-ancestors
-    CompactCRUDMixin, SupersetModelView
-):
+class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):
     datamodel = SQLAInterface(models.TableColumn)
     # TODO TODO, review need for this on related_views
     class_permission_name = "Dataset"
@@ -77,6 +78,7 @@ class TableColumnInlineView(  # pylint: disable=too-many-ancestors
         "expression",
         "is_dttm",
         "python_date_format",
+        "extra",
     ]
     add_columns = edit_columns
     list_columns = [
@@ -128,6 +130,14 @@ class TableColumnInlineView(  # pylint: disable=too-many-ancestors
             ),
             True,
         ),
+        "extra": utils.markdown(
+            "Extra data to specify column metadata. Currently supports "
+            'certification data of the format: `{ "certification": "certified_by": '
+            '"Taylor Swift", "details": "This column is the source of truth." '
+            "} }`. This should be modified from the edit datasource model in "
+            "Explore to ensure correct formatting.",
+            True,
+        ),
     }
     label_columns = {
         "column_name": _("Column"),
@@ -171,10 +181,29 @@ class TableColumnInlineView(  # pylint: disable=too-many-ancestors
 
     edit_form_extra_fields = add_form_extra_fields
 
+    def pre_add(self, item: "models.SqlMetric") -> None:
+        logger.warning(
+            "This endpoint is deprecated and will be removed in version 2.0.0"
+        )
+        if app.config["OLD_API_CHECK_DATASET_OWNERSHIP"]:
+            check_ownership(item.table)
 
-class SqlMetricInlineView(  # pylint: disable=too-many-ancestors
-    CompactCRUDMixin, SupersetModelView
-):
+    def pre_update(self, item: "models.SqlMetric") -> None:
+        logger.warning(
+            "This endpoint is deprecated and will be removed in version 2.0.0"
+        )
+        if app.config["OLD_API_CHECK_DATASET_OWNERSHIP"]:
+            check_ownership(item.table)
+
+    def pre_delete(self, item: "models.SqlMetric") -> None:
+        logger.warning(
+            "This endpoint is deprecated and will be removed in version 2.0.0"
+        )
+        if app.config["OLD_API_CHECK_DATASET_OWNERSHIP"]:
+            check_ownership(item.table)
+
+
+class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):
     datamodel = SQLAInterface(models.SqlMetric)
     class_permission_name = "Dataset"
     method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
@@ -213,10 +242,10 @@ class SqlMetricInlineView(  # pylint: disable=too-many-ancestors
         ),
         "extra": utils.markdown(
             "Extra data to specify metric metadata. Currently supports "
-            'certification data of the format: `{ "certification": "certified_by": '
+            'metadata of the format: `{ "certification": { "certified_by": '
             '"Data Platform Team", "details": "This metric is the source of truth." '
-            "} }`. This should be modified from the edit datasource model in "
-            "Explore to ensure correct formatting.",
+            '}, "warning_markdown": "This is a warning." }`. This should be modified '
+            "from the edit datasource model in Explore to ensure correct formatting.",
             True,
         ),
     }
@@ -245,6 +274,27 @@ class SqlMetricInlineView(  # pylint: disable=too-many-ancestors
 
     edit_form_extra_fields = add_form_extra_fields
 
+    def pre_add(self, item: "models.SqlMetric") -> None:
+        logger.warning(
+            "This endpoint is deprecated and will be removed in version 2.0.0"
+        )
+        if app.config["OLD_API_CHECK_DATASET_OWNERSHIP"]:
+            check_ownership(item.table)
+
+    def pre_update(self, item: "models.SqlMetric") -> None:
+        logger.warning(
+            "This endpoint is deprecated and will be removed in version 2.0.0"
+        )
+        if app.config["OLD_API_CHECK_DATASET_OWNERSHIP"]:
+            check_ownership(item.table)
+
+    def pre_delete(self, item: "models.SqlMetric") -> None:
+        logger.warning(
+            "This endpoint is deprecated and will be removed in version 2.0.0"
+        )
+        if app.config["OLD_API_CHECK_DATASET_OWNERSHIP"]:
+            check_ownership(item.table)
+
 
 class RowLevelSecurityListWidget(
     SupersetListWidget
@@ -256,9 +306,7 @@ class RowLevelSecurityListWidget(
         super().__init__(**kwargs)
 
 
-class RowLevelSecurityFiltersModelView(  # pylint: disable=too-many-ancestors
-    SupersetModelView, DeleteMixin
-):
+class RowLevelSecurityFiltersModelView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(models.RowLevelSecurityFilter)
 
     list_widget = cast(SupersetListWidget, RowLevelSecurityListWidget)
@@ -325,6 +373,15 @@ class RowLevelSecurityFiltersModelView(  # pylint: disable=too-many-ancestors
     if app.config["RLS_FORM_QUERY_REL_FIELDS"]:
         add_form_query_rel_fields = app.config["RLS_FORM_QUERY_REL_FIELDS"]
         edit_form_query_rel_fields = add_form_query_rel_fields
+
+    @staticmethod
+    def is_enabled() -> bool:
+        return is_feature_enabled("ROW_LEVEL_SECURITY")
+
+    @before_request
+    def ensure_enabled(self) -> None:
+        if not self.is_enabled():
+            raise NotFound()
 
 
 class TableModelView(  # pylint: disable=too-many-ancestors
@@ -420,9 +477,9 @@ class TableModelView(  # pylint: disable=too-many-ancestors
         ),
         "extra": utils.markdown(
             "Extra data to specify table metadata. Currently supports "
-            'certification data of the format: `{ "certification": { "certified_by": '
+            'metadata of the format: `{ "certification": { "certified_by": '
             '"Data Platform Team", "details": "This table is the source of truth." '
-            "} }`.",
+            '}, "warning_markdown": "This is a warning." }`.',
             True,
         ),
     }
@@ -457,7 +514,17 @@ class TableModelView(  # pylint: disable=too-many-ancestors
     }
 
     def pre_add(self, item: "TableModelView") -> None:
+        logger.warning(
+            "This endpoint is deprecated and will be removed in version 2.0.0"
+        )
         validate_sqlatable(item)
+
+    def pre_update(self, item: "TableModelView") -> None:
+        logger.warning(
+            "This endpoint is deprecated and will be removed in version 2.0.0"
+        )
+        if app.config["OLD_API_CHECK_DATASET_OWNERSHIP"]:
+            check_ownership(item)
 
     def post_add(  # pylint: disable=arguments-differ
         self,
@@ -497,9 +564,12 @@ class TableModelView(  # pylint: disable=too-many-ancestors
     @action(
         "refresh", __("Refresh Metadata"), __("Refresh column metadata"), "fa-refresh"
     )
-    def refresh(  # pylint: disable=no-self-use, too-many-branches
+    def refresh(  # pylint: disable=no-self-use,
         self, tables: Union["TableModelView", List["TableModelView"]]
     ) -> FlaskResponse:
+        logger.warning(
+            "This endpoint is deprecated and will be removed in version 2.0.0"
+        )
         if not isinstance(tables, list):
             tables = [tables]
 

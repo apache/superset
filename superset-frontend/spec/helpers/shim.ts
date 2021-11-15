@@ -24,7 +24,8 @@ import jQuery from 'jquery';
 import { configure } from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 import { configure as configureTranslation } from '@superset-ui/core';
-
+import { Worker } from './Worker';
+import { IntersectionObserver } from './IntersectionObserver';
 import setupSupersetClient from './setupSupersetClient';
 
 configure({ adapter: new Adapter() });
@@ -42,10 +43,13 @@ if (defaultView != null) {
 }
 
 const g = global as any;
-
 g.window = g.window || {};
 g.window.location = { href: 'about:blank' };
 g.window.performance = { now: () => new Date().getTime() };
+g.window.Worker = Worker;
+g.window.IntersectionObserver = IntersectionObserver;
+g.URL.createObjectURL = () => '';
+
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: jest.fn().mockImplementation(query => ({

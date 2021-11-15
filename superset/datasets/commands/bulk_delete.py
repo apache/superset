@@ -66,14 +66,15 @@ class BulkDeleteDatasetCommand(BaseCommand):
                 else:
                     if not view_menu:
                         logger.error(
-                            "Could not find the data access permission for the dataset"
+                            "Could not find the data access permission for the dataset",
+                            exc_info=True,
                         )
             db.session.commit()
 
             return None
         except DeleteFailedError as ex:
             logger.exception(ex.exception)
-            raise DatasetBulkDeleteFailedError()
+            raise DatasetBulkDeleteFailedError() from ex
 
     def validate(self) -> None:
         # Validate/populate model exists
@@ -84,5 +85,5 @@ class BulkDeleteDatasetCommand(BaseCommand):
         for model in self._models:
             try:
                 check_ownership(model)
-            except SupersetSecurityException:
-                raise DatasetForbiddenError()
+            except SupersetSecurityException as ex:
+                raise DatasetForbiddenError() from ex

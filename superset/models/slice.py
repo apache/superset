@@ -23,7 +23,7 @@ import sqlalchemy as sqla
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from markupsafe import escape, Markup
-from sqlalchemy import Column, ForeignKey, Integer, String, Table, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Table, Text
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.mapper import Mapper
@@ -34,14 +34,13 @@ from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.tags import ChartUpdater
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.utils import core as utils
+from superset.utils.hashing import md5_sha_from_str
+from superset.utils.memoized import memoized
 from superset.utils.urls import get_url_path
-
-if is_feature_enabled("SIP_38_VIZ_REARCHITECTURE"):
-    from superset.viz_sip38 import BaseViz, viz_types
-else:
-    from superset.viz import BaseViz, viz_types  # type: ignore
+from superset.viz import BaseViz, viz_types
 
 if TYPE_CHECKING:
+    from superset.common.query_context import QueryContext
     from superset.connectors.base.models import BaseDatasource
 
 metadata = Model.metadata  # pylint: disable=no-member
@@ -55,10 +54,9 @@ slice_user = Table(
 logger = logging.getLogger(__name__)
 
 
-class Slice(
+class Slice(  # pylint: disable=too-many-public-methods
     Model, AuditMixinNullable, ImportExportMixin
-):  # pylint: disable=too-many-public-methods
-
+):
     """A slice is essentially a report or a view on data"""
 
     __tablename__ = "slices"
@@ -69,10 +67,18 @@ class Slice(
     datasource_name = Column(String(2000))
     viz_type = Column(String(250))
     params = Column(Text)
+    query_context = Column(Text)
     description = Column(Text)
     cache_timeout = Column(Integer)
     perm = Column(String(1000))
     schema_perm = Column(String(1000))
+    # the last time a user has saved the chart, changed_on is referencing
+    # when the database row was last written
+    last_saved_at = Column(DateTime, nullable=True)
+    last_saved_by_fk = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
+    last_saved_by = relationship(
+        security_manager.user_model, foreign_keys=[last_saved_by_fk]
+    )
     owners = relationship(security_manager.user_model, secondary=slice_user)
     table = relationship(
         "SqlaTable",
@@ -91,6 +97,7 @@ class Slice(
         "datasource_name",
         "viz_type",
         "params",
+        "query_context",
         "cache_timeout",
     ]
     export_parent = "table"
@@ -103,7 +110,7 @@ class Slice(
         return ConnectorRegistry.sources[self.datasource_type]
 
     @property
-    def datasource(self) -> "BaseDatasource":
+    def datasource(self) -> Optional["BaseDatasource"]:
         return self.get_datasource
 
     def clone(self) -> "Slice":
@@ -120,7 +127,7 @@ class Slice(
 
     # pylint: disable=using-constant-test
     @datasource.getter  # type: ignore
-    @utils.memoized
+    @memoized
     def get_datasource(self) -> Optional["BaseDatasource"]:
         return db.session.query(self.cls_model).filter_by(id=self.datasource_id).first()
 
@@ -159,12 +166,13 @@ class Slice(
     # pylint: enable=using-constant-test
 
     @property  # type: ignore
-    @utils.memoized
+    @memoized
     def viz(self) -> Optional[BaseViz]:
         form_data = json.loads(self.params)
         viz_class = viz_types.get(self.viz_type)
-        if viz_class:
-            return viz_class(datasource=self.datasource, form_data=form_data)
+        datasource = self.datasource
+        if viz_class and datasource:
+            return viz_class(datasource=datasource, form_data=form_data)
         return None
 
     @property
@@ -192,10 +200,9 @@ class Slice(
             "description_markeddown": self.description_markeddown,
             "edit_url": self.edit_url,
             "form_data": self.form_data,
+            "query_context": self.query_context,
             "modified": self.modified(),
-            "owners": [
-                f"{owner.first_name} {owner.last_name}" for owner in self.owners
-            ],
+            "owners": [owner.id for owner in self.owners],
             "slice_id": self.id,
             "slice_name": self.slice_name,
             "slice_url": self.slice_url,
@@ -206,7 +213,7 @@ class Slice(
         """
         Returns a MD5 HEX digest that makes this dashboard unique
         """
-        return utils.md5_hex(self.params)
+        return md5_sha_from_str(self.params or "")
 
     @property
     def thumbnail_url(self) -> str:
@@ -226,7 +233,7 @@ class Slice(
         try:
             form_data = json.loads(self.params)
         except Exception as ex:  # pylint: disable=broad-except
-            logger.error("Malformed json in slice's params")
+            logger.error("Malformed json in slice's params", exc_info=True)
             logger.exception(ex)
         form_data.update(
             {
@@ -240,6 +247,18 @@ class Slice(
             form_data["cache_timeout"] = self.cache_timeout
         update_time_range(form_data)
         return form_data
+
+    def get_query_context(self) -> Optional["QueryContext"]:
+        # pylint: disable=import-outside-toplevel
+        from superset.common.query_context import QueryContext
+
+        if self.query_context:
+            try:
+                return QueryContext(**json.loads(self.query_context))
+            except json.decoder.JSONDecodeError as ex:
+                logger.error("Malformed json in slice's query context", exc_info=True)
+                logger.exception(ex)
+        return None
 
     def get_explore_url(
         self,

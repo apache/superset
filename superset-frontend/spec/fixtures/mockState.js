@@ -17,22 +17,30 @@
  * under the License.
  */
 import datasources from 'spec/fixtures/mockDatasource';
-import messageToasts from 'spec/javascripts/messageToasts/mockMessageToasts';
+import messageToasts from 'src/components/MessageToasts/mockMessageToasts';
+import {
+  nativeFiltersInfo,
+  mockDataMaskInfo,
+} from 'spec/javascripts/dashboard/fixtures/mockNativeFilters';
+import { user } from 'src/SqlLab/fixtures';
 import chartQueries from './mockChartQueries';
 import { dashboardLayout } from './mockDashboardLayout';
 import dashboardInfo from './mockDashboardInfo';
 import { emptyFilters } from './mockDashboardFilters';
 import dashboardState from './mockDashboardState';
-import sliceEntities from './mockSliceEntities';
+import { sliceEntitiesForChart } from './mockSliceEntities';
 
 export default {
   datasources,
-  sliceEntities,
+  sliceEntities: sliceEntitiesForChart,
   charts: chartQueries,
+  nativeFilters: nativeFiltersInfo,
+  dataMask: mockDataMaskInfo,
   dashboardInfo,
   dashboardFilters: emptyFilters,
   dashboardState,
   dashboardLayout,
   messageToasts,
+  user,
   impressionId: 'mock_impression_id',
 };

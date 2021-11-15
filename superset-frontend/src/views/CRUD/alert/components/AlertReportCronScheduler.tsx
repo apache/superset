@@ -19,22 +19,22 @@
 import React, { useState, useCallback, useRef, FunctionComponent } from 'react';
 import { t, useTheme } from '@superset-ui/core';
 
-import { Input } from 'src/common/components';
-import { Radio } from 'src/common/components/Radio';
-import { CronPicker, CronError } from 'src/common/components/CronPicker';
-import { StyledInputContainer } from '../AlertReportModal';
+import { Input, AntdInput } from 'src/common/components';
+import { Radio } from 'src/components/Radio';
+import { CronPicker, CronError } from 'src/components/CronPicker';
+import { StyledInputContainer } from 'src/views/CRUD/alert/AlertReportModal';
 
 interface AlertReportCronSchedulerProps {
-  value?: string;
+  value: string;
   onChange: (change: string) => any;
 }
 
 export const AlertReportCronScheduler: FunctionComponent<AlertReportCronSchedulerProps> = ({
-  value = '* * * * *',
+  value,
   onChange,
 }) => {
   const theme = useTheme();
-  const inputRef = useRef<Input>(null);
+  const inputRef = useRef<AntdInput>(null);
   const [scheduleFormat, setScheduleFormat] = useState<'picker' | 'input'>(
     'picker',
   );
@@ -74,7 +74,7 @@ export const AlertReportCronScheduler: FunctionComponent<AlertReportCronSchedule
                 name="crontab"
                 ref={inputRef}
                 style={error ? { borderColor: theme.colors.error.base } : {}}
-                placeholder={t('CRON Expression')}
+                placeholder={t('CRON expression')}
                 disabled={scheduleFormat !== 'input'}
                 onBlur={event => {
                   onChange(event.target.value);

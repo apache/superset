@@ -17,4 +17,5 @@
 # under the License.
 -e file:.
 pyrsistent>=0.16.1,<0.17
-importlib-metadata==2.1.1
+zipp==3.4.1
+sasl==0.3.1

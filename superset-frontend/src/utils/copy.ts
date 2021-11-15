@@ -17,8 +17,8 @@
  * under the License.
  */
 
-const copyTextToClipboard = (text: string) =>
-  new Promise((resolve, reject) => {
+const copyTextToClipboard = async (text: string) =>
+  new Promise<void>((resolve, reject) => {
     const selection: Selection | null = document.getSelection();
     if (selection) {
       selection.removeAllRanges();

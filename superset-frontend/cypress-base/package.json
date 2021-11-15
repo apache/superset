@@ -7,18 +7,23 @@
     "cypress-run-chrome": "cypress run --browser chrome --headless",
     "cypress-debug": "cypress open --config watchForFileChanges=true"
   },
-  "author": "Apcahe",
+  "author": "Apache",
   "license": "Apache-2.0",
   "dependencies": {
-    "@cypress/code-coverage": "^3.8.3",
+    "@cypress/code-coverage": "^3.9.11",
+    "@superset-ui/core": "^0.18.8",
+    "react-dom": "^16.13.0",
     "rison": "^0.1.1",
     "shortid": "^2.2.15"
   },
   "devDependencies": {
-    "cypress": "^5.5.0",
-    "eslint-plugin-cypress": "^2.11.1"
+    "cypress": "^7.0.0",
+    "eslint-plugin-cypress": "^2.12.1"
   },
   "nyc": {
-    "reporter": ["html", "json"]
+    "reporter": [
+      "html",
+      "json"
+    ]
   }
 }

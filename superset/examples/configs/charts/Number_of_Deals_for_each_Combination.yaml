@@ -18,12 +18,12 @@ slice_name: Number of Deals (for each Combination)
 viz_type: heatmap
 params:
   adhoc_filters: []
-  all_columns_x: DealSize
-  all_columns_y: ProductLine
+  all_columns_x: deal_size
+  all_columns_y: product_line
   bottom_margin: 100
   canvas_image_rendering: pixelated
   datasource: 23__table
-  granularity_sqla: OrderDate
+  granularity_sqla: order_date
   left_margin: 75
   linear_color_scheme: schemePuBuGn
   metric: count

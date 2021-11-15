@@ -50,7 +50,7 @@ class ChartFavoriteFilter(BaseFavoriteFilter):  # pylint: disable=too-few-public
     Custom filter for the GET list that filters all charts that a user has favored
     """
 
-    arg_name = "chart_is_fav"
+    arg_name = "chart_is_favorite"
     class_name = "slice"
     model = Slice
 

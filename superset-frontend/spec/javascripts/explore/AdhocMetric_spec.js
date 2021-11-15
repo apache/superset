@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import AdhocMetric, { EXPRESSION_TYPES } from 'src/explore/AdhocMetric';
 import { AGGREGATES } from 'src/explore/constants';
+import AdhocMetric, {
+  EXPRESSION_TYPES,
+} from 'src/explore/components/controls/MetricControl/AdhocMetric';
 
 const valueColumn = { type: 'DOUBLE', column_name: 'value' };
 

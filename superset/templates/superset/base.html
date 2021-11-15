@@ -34,4 +34,5 @@
   {{ super() }}
   {{ js_bundle("preamble") }}
   {{ js_bundle('menu') }}
+  {% include "tail_js_custom_extra.html" %}
 {% endblock %}

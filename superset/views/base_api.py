@@ -35,6 +35,7 @@ from superset.extensions import db, event_logger, security_manager
 from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.schemas import error_payload_content
 from superset.sql_lab import Query as SqllabQuery
 from superset.stats_logger import BaseStatsLogger
 from superset.typing import FlaskResponse
@@ -46,6 +47,7 @@ get_related_schema = {
     "properties": {
         "page_size": {"type": "integer"},
         "page": {"type": "integer"},
+        "include_ids": {"type": "array", "items": {"type": "integer"}},
         "filter": {"type": "string"},
     },
 }
@@ -76,7 +78,12 @@ def statsd_metrics(f: Callable[..., Any]) -> Callable[..., Any]:
     """
 
     def wraps(self: "BaseSupersetModelRestApi", *args: Any, **kwargs: Any) -> Response:
-        duration, response = time_function(f, self, *args, **kwargs)
+        try:
+            duration, response = time_function(f, self, *args, **kwargs)
+        except Exception as ex:
+            self.incr_stats("error", f.__name__)
+            raise ex
+
         self.send_stats_metrics(response, f.__name__, duration)
         return response
 
@@ -109,7 +116,10 @@ class BaseFavoriteFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         if security_manager.current_user is None:
             return query
         users_favorite_query = db.session.query(FavStar.obj_id).filter(
-            and_(FavStar.user_id == g.user.id, FavStar.class_name == self.class_name)
+            and_(
+                FavStar.user_id == g.user.get_id(),
+                FavStar.class_name == self.class_name,
+            )
         )
         if value:
             return query.filter(and_(self.model.id.in_(users_favorite_query)))
@@ -154,7 +164,8 @@ class BaseSupersetModelRestApi(ModelRestApi):
             "<RELATED_FIELD>": ("<RELATED_FIELD_FIELD>", "<asc|desc>"),
              ...
         }
-    """  # pylint: disable=pointless-string-statement
+    """
+
     related_field_filters: Dict[str, Union[RelatedFieldFilter, str]] = {}
     """
     Declare the filters for related fields::
@@ -162,7 +173,8 @@ class BaseSupersetModelRestApi(ModelRestApi):
         related_fields = {
             "<RELATED_FIELD>": <RelatedFieldFilter>)
         }
-    """  # pylint: disable=pointless-string-statement
+    """
+
     filter_rel_fields: Dict[str, BaseFilter] = {}
     """
     Declare the related field base filter::
@@ -170,11 +182,9 @@ class BaseSupersetModelRestApi(ModelRestApi):
         filter_rel_fields_field = {
             "<RELATED_FIELD>": "<FILTER>")
         }
-    """  # pylint: disable=pointless-string-statement
-    allowed_rel_fields: Set[str] = set()
     """
-    Declare a set of allowed related fields that the `related` endpoint supports
-    """  # pylint: disable=pointless-string-statement
+    allowed_rel_fields: Set[str] = set()
+    # Declare a set of allowed related fields that the `related` endpoint supports.
 
     text_field_rel_fields: Dict[str, str] = {}
     """
@@ -183,19 +193,28 @@ class BaseSupersetModelRestApi(ModelRestApi):
         text_field_rel_fields = {
             "<RELATED_FIELD>": "<RELATED_OBJECT_FIELD>"
         }
-    """  # pylint: disable=pointless-string-statement
+    """
 
     allowed_distinct_fields: Set[str] = set()
 
     openapi_spec_component_schemas: Tuple[Type[Schema], ...] = tuple()
-    """
-    Add extra schemas to the OpenAPI component schemas section
-    """  # pylint: disable=pointless-string-statement
-
+    # Add extra schemas to the OpenAPI component schemas section.
     add_columns: List[str]
     edit_columns: List[str]
     list_columns: List[str]
     show_columns: List[str]
+
+    responses = {
+        "400": {"description": "Bad request", "content": error_payload_content},
+        "401": {"description": "Unauthorized", "content": error_payload_content},
+        "403": {"description": "Forbidden", "content": error_payload_content},
+        "404": {"description": "Not found", "content": error_payload_content},
+        "422": {
+            "description": "Could not process entity",
+            "content": error_payload_content,
+        },
+        "500": {"description": "Fatal error", "content": error_payload_content},
+    }
 
     def __init__(self) -> None:
         # Setup statsd
@@ -213,7 +232,10 @@ class BaseSupersetModelRestApi(ModelRestApi):
         super().__init__()
 
     def add_apispec_components(self, api_spec: APISpec) -> None:
-
+        """
+        Adds extra OpenApi schema spec components, these are declared
+        on the `openapi_spec_component_schemas` class property
+        """
         for schema in self.openapi_spec_component_schemas:
             try:
                 api_spec.components.schema(
@@ -270,6 +292,40 @@ class BaseSupersetModelRestApi(ModelRestApi):
                 filter_field.field_name, filter_field.filter_class, value
             )
         return filters
+
+    def _get_text_for_model(self, model: Model, column_name: str) -> str:
+        if column_name in self.text_field_rel_fields:
+            model_column_name = self.text_field_rel_fields.get(column_name)
+            if model_column_name:
+                return getattr(model, model_column_name)
+        return str(model)
+
+    def _get_result_from_rows(
+        self, datamodel: SQLAInterface, rows: List[Model], column_name: str
+    ) -> List[Dict[str, Any]]:
+        return [
+            {
+                "value": datamodel.get_pk_value(row),
+                "text": self._get_text_for_model(row, column_name),
+            }
+            for row in rows
+        ]
+
+    def _add_extra_ids_to_result(
+        self,
+        datamodel: SQLAInterface,
+        column_name: str,
+        ids: List[int],
+        result: List[Dict[str, Any]],
+    ) -> None:
+        if ids:
+            # Filter out already present values on the result
+            values = [row["value"] for row in result]
+            ids = [id_ for id_ in ids if id_ not in values]
+            pk_col = datamodel.get_pk()
+            # Fetch requested values from ids
+            extra_rows = db.session.query(datamodel.obj).filter(pk_col.in_(ids)).all()
+            result += self._get_result_from_rows(datamodel, extra_rows, column_name)
 
     def incr_stats(self, action: str, func_name: str) -> None:
         """
@@ -424,20 +480,19 @@ class BaseSupersetModelRestApi(ModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-
-        def get_text_for_model(model: Model) -> str:
-            if column_name in self.text_field_rel_fields:
-                model_column_name = self.text_field_rel_fields.get(column_name)
-                if model_column_name:
-                    return getattr(model, model_column_name)
-            return str(model)
-
         if column_name not in self.allowed_rel_fields:
             self.incr_stats("error", self.related.__name__)
             return self.response_404()
         args = kwargs.get("rison", {})
+
         # handle pagination
         page, page_size = self._handle_page_args(args)
+
+        ids = args.get("include_ids")
+        if page and ids:
+            # pagination with forced ids is not supported
+            return self.response_422()
+
         try:
             datamodel = self.datamodel.get_related_interface(column_name)
         except KeyError:
@@ -452,15 +507,19 @@ class BaseSupersetModelRestApi(ModelRestApi):
         # handle filters
         filters = self._get_related_filter(datamodel, column_name, args.get("filter"))
         # Make the query
-        count, values = datamodel.query(
+        total_rows, rows = datamodel.query(
             filters, order_column, order_direction, page=page, page_size=page_size
         )
+
         # produce response
-        result = [
-            {"value": datamodel.get_pk_value(value), "text": get_text_for_model(value)}
-            for value in values
-        ]
-        return self.response(200, count=count, result=result)
+        result = self._get_result_from_rows(datamodel, rows, column_name)
+
+        # If ids are specified make sure we fetch and include them on the response
+        if ids:
+            self._add_extra_ids_to_result(datamodel, column_name, ids, result)
+            total_rows = len(result)
+
+        return self.response(200, count=total_rows, result=result)
 
     @expose("/distinct/<column_name>", methods=["GET"])
     @protect()

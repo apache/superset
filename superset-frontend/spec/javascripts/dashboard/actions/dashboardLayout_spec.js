@@ -40,7 +40,7 @@ import {
 
 import { setUnsavedChanges } from 'src/dashboard/actions/dashboardState';
 import * as dashboardFilters from 'src/dashboard/actions/dashboardFilters';
-import { ADD_TOAST } from 'src/messageToasts/actions';
+import { ADD_TOAST } from 'src/components/MessageToasts/actions';
 
 import {
   DASHBOARD_GRID_TYPE,
@@ -489,7 +489,7 @@ describe('dashboardLayout actions', () => {
   });
 
   describe('undoLayoutAction', () => {
-    it('should dispatch a redux-undo .undo() action ', () => {
+    it('should dispatch a redux-undo .undo() action', () => {
       const { getState, dispatch } = setup({
         dashboardLayout: { past: ['non-empty'] },
       });
@@ -513,7 +513,7 @@ describe('dashboardLayout actions', () => {
   });
 
   describe('redoLayoutAction', () => {
-    it('should dispatch a redux-undo .redo() action ', () => {
+    it('should dispatch a redux-undo .redo() action', () => {
       const { getState, dispatch } = setup();
       const thunk = redoLayoutAction();
       thunk(dispatch, getState);

@@ -18,7 +18,13 @@
 # ATTENTION: If you change any constants, make sure to also change utils/common.js
 
 # string to use when None values *need* to be converted to/from strings
+from enum import Enum
+
 NULL_STRING = "<NULL>"
+
+
+# UUID for the examples database
+EXAMPLES_DB_UUID = "a2dc77af-e654-49bb-b321-40f6b559a1ee"
 
 
 class RouteMethod:  # pylint: disable=too-few-public-methods
@@ -76,13 +82,18 @@ MODEL_VIEW_RW_METHOD_PERMISSION_MAP = {
     "api_read": "read",
     "api_readvalues": "read",
     "api_update": "write",
+    "annotation": "read",
     "delete": "write",
     "download": "read",
+    "download_dashboards": "read",
     "edit": "write",
     "list": "read",
     "muldelete": "write",
+    "mulexport": "read",
     "show": "read",
+    "new": "write",
     "yaml_export": "read",
+    "refresh": "write",
 }
 
 MODEL_API_RW_METHOD_PERMISSION_MAP = {
@@ -96,13 +107,70 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "post": "write",
     "put": "write",
     "related": "read",
-    "refresh": "read",
     "related_objects": "read",
+    "schemas": "read",
+    "select_star": "read",
+    "table_metadata": "read",
+    "test_connection": "read",
+    "validate_parameters": "read",
+    "favorite_status": "read",
+    "thumbnail": "read",
     "import_": "write",
-    "favorite_status": "write",
+    "refresh": "write",
     "cache_screenshot": "read",
     "screenshot": "read",
     "data": "read",
-    "thumbnail": "read",
     "data_from_cache": "read",
+    "get_charts": "read",
+    "get_datasets": "read",
+    "function_names": "read",
+    "available": "read",
+    "get_data": "read",
 }
+
+EXTRA_FORM_DATA_APPEND_KEYS = {
+    "adhoc_filters",
+    "filters",
+    "interactive_groupby",
+    "interactive_highlight",
+    "interactive_drilldown",
+    "custom_form_data",
+}
+
+EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS = {
+    "granularity": "granularity",
+    "granularity_sqla": "granularity",
+    "time_column": "time_column",
+    "time_grain": "time_grain",
+    "time_range": "time_range",
+    "druid_time_origin": "druid_time_origin",
+    "time_grain_sqla": "time_grain_sqla",
+    "time_range_endpoints": "time_range_endpoints",
+}
+
+EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS = {
+    "relative_start",
+    "relative_end",
+}
+
+EXTRA_FORM_DATA_OVERRIDE_KEYS = (
+    set(EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS.values())
+    | EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS
+)
+
+
+class PandasAxis(int, Enum):
+    ROW = 0
+    COLUMN = 1
+
+
+class PandasPostprocessingCompare(str, Enum):
+    DIFF = "difference"
+    PCT = "percentage"
+    RAT = "ratio"
+
+
+class CacheRegion(str, Enum):
+    DEFAULT = "default"
+    DATA = "data"
+    THUMBNAIL = "thumbnail"

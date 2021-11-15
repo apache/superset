@@ -82,20 +82,46 @@ th, td {
 
 .ant-menu:not(.ant-menu-horizontal) .ant-menu-item-selected {
   background-color: lighten($brandColor, 42);
+  a:hover {
+    color: #fff;
+    border-bottom: $brandColor;
+  }
 }
 
 .ant-menu-item-selected a {
   color: black;
 }
-.ant-menu-submenu-selected {
+.ant-menu-submenu-selected,
+.ant-anchor .ant-anchor-link-active > .ant-anchor-link-title {
   color: $brandColor;
 }
 
-.ant-menu-horizontal {
-  & > .ant-menu-item:hover, & > .ant-menu-item-active {
-    color: $brandColor !important;
-    border-bottom: 2px solid $brandColor;
+.ant-anchor .ant-anchor-ink-ball {
+  border: 2px solid $brandColor;
+}
+
+.ant-menu-submenu,
+.ant-menu-submenu-title,
+.ant-anchor-link-title,
+.ant-menu .ant-menu-item a
+{
+  &:hover {
+    color:$brandColor;
   }
+}
+
+.ant-anchor .ant-anchor-ink-ball {
+  border: 2px solid $brandColor;
+}
+
+.ant-menu-horizontal {
+  &:not(.ant-menu-dark) {
+    & > .ant-menu-item:hover, & > .ant-menu-item-active {
+      color: $brandColor;
+      border-bottom: 2px solid $brandColor;
+    }
+  }
+
   & >.ant-menu-item-selected {
     color: $brandColor;
     border-bottom: 2px solid $brandColor;

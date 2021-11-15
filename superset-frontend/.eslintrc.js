@@ -23,7 +23,7 @@ module.exports = {
     'prettier/react',
     'plugin:react-hooks/recommended',
   ],
-  parser: 'babel-eslint',
+  parser: '@babel/eslint-parser',
   parserOptions: {
     ecmaFeatures: {
       experimentalObjectRestSpread: true,
@@ -38,7 +38,7 @@ module.exports = {
       version: 'detect',
     },
   },
-  plugins: ['prettier', 'react'],
+  plugins: ['prettier', 'react', 'file-progress'],
   overrides: [
     {
       files: ['cypress-base/**/*'],
@@ -104,16 +104,23 @@ module.exports = {
         'no-mixed-operators': 0,
         'no-multi-assign': 0,
         'no-multi-spaces': 0,
+        'no-nested-ternary': 0,
         'no-prototype-builtins': 0,
         'no-restricted-properties': 0,
         'no-restricted-imports': [
-          'error',
+          'warn',
           {
             paths: [
               {
                 name: 'antd',
                 message:
                   'Please import Ant components from the index of common/components',
+              },
+              {
+                name: '@superset-ui/core',
+                importNames: ['supersetTheme'],
+                message:
+                  'Please use the theme directly from the ThemeProvider rather than importing supersetTheme.',
               },
             ],
           },
@@ -135,8 +142,10 @@ module.exports = {
         'react/no-unused-prop-types': 0,
         'react/prop-types': 0,
         'react/require-default-props': 0,
+        'react/sort-comp': 0, // TODO: re-enable in separate PR
         'react/static-property-placement': 0, // re-enable up for discussion
         'prettier/prettier': 'error',
+        'file-progress/activate': 1,
       },
       settings: {
         'import/resolver': {
@@ -165,12 +174,22 @@ module.exports = {
         'src/**/*.test.tsx',
         'src/**/*.test.js',
         'src/**/*.test.jsx',
+        'src/**/fixtures.*',
       ],
-      plugins: ['jest', 'jest-dom', 'no-only-tests'],
+      plugins: ['jest', 'jest-dom', 'no-only-tests', 'testing-library'],
       env: {
         'jest/globals': true,
       },
-      extends: ['plugin:jest/recommended', 'plugin:testing-library/react'],
+      settings: {
+        jest: {
+          version: 'detect',
+        },
+      },
+      extends: [
+        'plugin:jest/recommended',
+        'plugin:jest-dom/recommended',
+        'plugin:testing-library/react',
+      ],
       rules: {
         'import/no-extraneous-dependencies': [
           'error',
@@ -178,6 +197,7 @@ module.exports = {
         ],
         'jest/consistent-test-it': 'error',
         'no-only-tests/no-only-tests': 'error',
+        '@typescript-eslint/no-non-null-assertion': 0,
       },
     },
   ],
@@ -215,6 +235,7 @@ module.exports = {
     'no-mixed-operators': 0,
     'no-multi-assign': 0,
     'no-multi-spaces': 0,
+    'no-nested-ternary': 0,
     'no-prototype-builtins': 0,
     'no-restricted-properties': 0,
     'no-restricted-imports': [
@@ -246,6 +267,7 @@ module.exports = {
     'react/no-unused-prop-types': 0,
     'react/prop-types': 0,
     'react/require-default-props': 0,
+    'react/sort-comp': 0, // TODO: re-enable in separate PR
     'react/static-property-placement': 0, // disabled temporarily
     'prettier/prettier': 'error',
   },

@@ -64,9 +64,9 @@ import {
   legacyValidateInteger,
   validateNonEmpty,
 } from '@superset-ui/core';
-import { ColumnOption } from '@superset-ui/chart-controls';
-import { formatSelectOptions, mainMetric } from 'src/modules/utils';
+import { formatSelectOptions } from 'src/modules/utils';
 import { TIME_FILTER_LABELS } from './constants';
+import { StyledColumnOption } from './components/optionRenderers';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
@@ -92,7 +92,7 @@ export const D3_FORMAT_OPTIONS = [
 
 const ROW_LIMIT_OPTIONS = [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000];
 
-const SERIES_LIMITS = [0, 5, 10, 25, 50, 100, 500];
+const SERIES_LIMITS = [5, 10, 25, 50, 100, 500];
 
 export const D3_FORMAT_DOCS =
   'D3 format syntax: https://github.com/d3/d3-format';
@@ -118,23 +118,22 @@ const timeColumnOption = {
 
 const groupByControl = {
   type: 'SelectControl',
-  queryField: 'groupby',
   multi: true,
   freeForm: true,
   label: t('Group by'),
   default: [],
   includeTime: false,
-  description: t('One or many controls to group by'),
-  optionRenderer: c => <ColumnOption column={c} showType />,
-  valueRenderer: c => <ColumnOption column={c} />,
+  description: t(
+    'One or many columns to group by. High cardinality groupings should include a series limit ' +
+      'to limit the number of fetched and rendered series.',
+  ),
+  optionRenderer: c => <StyledColumnOption column={c} showType />,
   valueKey: 'column_name',
-  allowAll: true,
   filterOption: ({ data: opt }, text) =>
     (opt.column_name &&
       opt.column_name.toLowerCase().indexOf(text.toLowerCase()) >= 0) ||
     (opt.verbose_name &&
       opt.verbose_name.toLowerCase().indexOf(text.toLowerCase()) >= 0),
-  promptTextCreator: label => label,
   mapStateToProps: (state, control) => {
     const newState = {};
     if (state.datasource) {
@@ -145,25 +144,19 @@ const groupByControl = {
     }
     return newState;
   },
-  commaChoosesOption: false,
 };
 
 const metrics = {
   type: 'MetricsControl',
-  queryField: 'metrics',
   multi: true,
   label: t('Metrics'),
   validators: [validateNonEmpty],
-  default: c => {
-    const metric = mainMetric(c.savedMetrics);
-    return metric ? [metric] : null;
-  },
   mapStateToProps: state => {
     const { datasource } = state;
     return {
       columns: datasource ? datasource.columns : [],
       savedMetrics: datasource ? datasource.metrics : [],
-      datasourceType: datasource && datasource.type,
+      datasource,
     };
   },
   description: t('One or many metrics to display'),
@@ -173,7 +166,6 @@ const metric = {
   multi: false,
   label: t('Metric'),
   description: t('Metric'),
-  default: props => mainMetric(props.savedMetrics),
 };
 
 export function columnChoices(datasource) {
@@ -205,13 +197,13 @@ export const controls = {
 
   viz_type: {
     type: 'VizTypeControl',
-    label: t('Visualization Type'),
+    label: t('Visualization type'),
     default: 'table',
     description: t('The type of visualization to display'),
   },
 
   color_picker: {
-    label: t('Fixed Color'),
+    label: t('Fixed color'),
     description: t('Use this to define a static color for all circles'),
     type: 'ColorPickerControl',
     default: PRIMARY_COLOR,
@@ -220,14 +212,14 @@ export const controls = {
 
   metric_2: {
     ...metric,
-    label: t('Right Axis Metric'),
+    label: t('Right axis metric'),
     clearable: true,
     description: t('Choose a metric for right axis'),
   },
 
   linear_color_scheme: {
     type: 'ColorSchemeControl',
-    label: t('Linear Color Scheme'),
+    label: t('Linear color scheme'),
     choices: () =>
       sequentialSchemeRegistry.values().map(value => [value.id, value.label]),
     default: sequentialSchemeRegistry.getDefaultKey(),
@@ -240,7 +232,7 @@ export const controls = {
 
   secondary_metric: {
     ...metric,
-    label: t('Color Metric'),
+    label: t('Color metric'),
     default: null,
     validators: [],
     description: t('A metric to use for color'),
@@ -273,7 +265,7 @@ export const controls = {
     type: 'SelectControl',
     freeForm: true,
     label: TIME_FILTER_LABELS.granularity,
-    default: 'one day',
+    default: 'P1D',
     choices: [
       [null, 'all'],
       ['PT5S', '5 seconds'],
@@ -310,8 +302,7 @@ export const controls = {
         'expression',
     ),
     clearable: false,
-    optionRenderer: c => <ColumnOption column={c} showType />,
-    valueRenderer: c => <ColumnOption column={c} />,
+    optionRenderer: c => <StyledColumnOption column={c} showType />,
     valueKey: 'column_name',
     mapStateToProps: state => {
       const props = {};
@@ -348,7 +339,7 @@ export const controls = {
     type: 'DateFilterControl',
     freeForm: true,
     label: TIME_FILTER_LABELS.time_range,
-    default: t('Last week'), // this value is translated, but the backend wouldn't understand a translated value?
+    default: t('No filter'), // this value is translated, but the backend wouldn't understand a translated value?
     description: t(
       'The time range for the visualization. All relative times, e.g. "Last month", ' +
         '"Last 7 days", "now", etc. are evaluated on the server using the server\'s ' +
@@ -357,8 +348,9 @@ export const controls = {
         "using the engine's local timezone. Note one can explicitly set the timezone " +
         'per the ISO 8601 format if specifying either the start and/or end time.',
     ),
-    mapStateToProps: state => ({
-      endpoints: state.form_data ? state.form_data.time_range_endpoints : null,
+    mapStateToProps: ({ form_data: formData }) => ({
+      // eslint-disable-next-line camelcase
+      endpoints: formData?.time_range_endpoints,
     }),
   },
 
@@ -369,6 +361,7 @@ export const controls = {
     validators: [legacyValidateInteger],
     default: 10000,
     choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
+    description: t('Limits the number of rows that get displayed.'),
   },
 
   limit: {
@@ -377,24 +370,28 @@ export const controls = {
     label: t('Series limit'),
     validators: [legacyValidateInteger],
     choices: formatSelectOptions(SERIES_LIMITS),
+    clearable: true,
     description: t(
-      'Limits the number of time series that get displayed. A sub query ' +
-        '(or an extra phase where sub queries are not supported) is applied to limit ' +
-        'the number of time series that get fetched and displayed. This feature is useful ' +
-        'when grouping by high cardinality dimension(s).',
+      'Limits the number of series that get displayed. A joined subquery (or an extra phase ' +
+        'where subqueries are not supported) is applied to limit the number of series that get ' +
+        'fetched and rendered. This feature is useful when grouping by high cardinality ' +
+        'column(s) though does increase the query complexity and cost.',
     ),
   },
 
   timeseries_limit_metric: {
     type: 'MetricsControl',
-    label: t('Sort By'),
+    label: t('Sort by'),
     default: null,
     clearable: true,
-    description: t('Metric used to define the top series'),
+    description: t(
+      'Metric used to define how the top series are sorted if a series or row limit is present. ' +
+        'If undefined reverts to the first metric (where appropriate).',
+    ),
     mapStateToProps: state => ({
       columns: state.datasource ? state.datasource.columns : [],
       savedMetrics: state.datasource ? state.datasource.metrics : [],
-      datasourceType: state.datasource && state.datasource.type,
+      datasource: state.datasource,
     }),
   },
 
@@ -435,7 +432,7 @@ export const controls = {
 
   size: {
     ...metric,
-    label: t('Bubble Size'),
+    label: t('Bubble size'),
     default: null,
   },
 
@@ -476,27 +473,15 @@ export const controls = {
       savedMetrics: state.datasource ? state.datasource.metrics : [],
       datasource: state.datasource,
     }),
-    provideFormDataToProps: true,
   },
 
   color_scheme: {
     type: 'ColorSchemeControl',
-    label: t('Color Scheme'),
+    label: t('Color scheme'),
     default: categoricalSchemeRegistry.getDefaultKey(),
     renderTrigger: true,
     choices: () => categoricalSchemeRegistry.keys().map(s => [s, s]),
     description: t('The color scheme for rendering chart'),
     schemes: () => categoricalSchemeRegistry.getMap(),
-  },
-
-  label_colors: {
-    type: 'ColorMapControl',
-    label: t('Color Map'),
-    default: {},
-    renderTrigger: true,
-    mapStateToProps: state => ({
-      colorNamespace: state.form_data.color_namespace,
-      colorScheme: state.form_data.color_scheme,
-    }),
   },
 };
