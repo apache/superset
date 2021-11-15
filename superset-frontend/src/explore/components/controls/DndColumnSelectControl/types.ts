@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { JsonValue } from '@superset-ui/core';
+import { AdhocColumn, JsonValue } from '@superset-ui/core';
 import { ControlComponentProps } from 'src/explore/components/Control';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 
@@ -26,7 +26,7 @@ export interface OptionProps {
   index: number;
   label?: string;
   tooltipTitle?: string;
-  column?: ColumnMeta;
+  column?: ColumnMeta | AdhocColumn;
   clickClose: (index: number) => void;
   withCaret?: boolean;
   isExtra?: boolean;

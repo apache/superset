@@ -27,13 +27,14 @@ from superset.common.chart_data import ChartDataResultType
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import QueryObjectValidationError
-from superset.typing import Metric, OrderBy
+from superset.typing import Column, Metric, OrderBy
 from superset.utils import pandas_postprocessing
 from superset.utils.core import (
     apply_max_row_limit,
     DatasourceDict,
     DTTM_ALIAS,
     find_duplicates,
+    get_column_names,
     get_metric_names,
     is_adhoc_metric,
     json_int_dttm_ser,
@@ -83,7 +84,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     annotation_layers: List[Dict[str, Any]]
     applied_time_extras: Dict[str, str]
     apply_fetch_values_predicate: bool
-    columns: List[str]
+    columns: List[Column]
     datasource: Optional[BaseDatasource]
     extras: Dict[str, Any]
     filter: List[QueryObjectFilterClause]
@@ -93,19 +94,19 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     inner_to_dttm: Optional[datetime]
     is_rowcount: bool
     is_timeseries: bool
+    metrics: Optional[List[Metric]]
     order_desc: bool
     orderby: List[OrderBy]
-    metrics: Optional[List[Metric]]
+    post_processing: List[Dict[str, Any]]
     result_type: Optional[ChartDataResultType]
     row_limit: int
     row_offset: int
-    series_columns: List[str]
+    series_columns: List[Column]
     series_limit: int
     series_limit_metric: Optional[Metric]
     time_offsets: List[str]
     time_shift: Optional[timedelta]
     to_dttm: Optional[datetime]
-    post_processing: List[Dict[str, Any]]
 
     def __init__(  # pylint: disable=too-many-arguments,too-many-locals
         self,
@@ -113,7 +114,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         annotation_layers: Optional[List[Dict[str, Any]]] = None,
         applied_time_extras: Optional[Dict[str, str]] = None,
         apply_fetch_values_predicate: bool = False,
-        columns: Optional[List[str]] = None,
+        columns: Optional[List[Column]] = None,
         datasource: Optional[DatasourceDict] = None,
         extras: Optional[Dict[str, Any]] = None,
         filters: Optional[List[QueryObjectFilterClause]] = None,
@@ -127,7 +128,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         result_type: Optional[ChartDataResultType] = None,
         row_limit: Optional[int] = None,
         row_offset: Optional[int] = None,
-        series_columns: Optional[List[str]] = None,
+        series_columns: Optional[List[Column]] = None,
         series_limit: int = 0,
         series_limit_metric: Optional[Metric] = None,
         time_range: Optional[str] = None,
@@ -266,9 +267,9 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
 
     @property
     def column_names(self) -> List[str]:
-        """Return column names (labels). Reserved for future adhoc calculated
-        columns."""
-        return self.columns
+        """Return column names (labels). Gives priority to groupbys if both groupbys
+        and metrics are non-empty, otherwise returns column labels."""
+        return get_column_names(self.columns)
 
     def validate(
         self, raise_exceptions: Optional[bool] = True

@@ -38,7 +38,6 @@ from superset.utils.core import get_example_default_schema
 
 from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
 )
@@ -58,6 +57,7 @@ from tests.integration_tests.fixtures.unicode_dashboard import (
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
 )
+from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 from tests.integration_tests.test_app import app
 from tests.integration_tests.utils.get_dashboards import get_dashboards_ids
 
