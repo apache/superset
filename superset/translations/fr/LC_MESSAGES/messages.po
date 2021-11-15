@@ -3465,7 +3465,7 @@ msgstr "Ajouter un Template CSS"
 
 #: superset/views/css_templates.py:41
 msgid "Edit CSS Template"
-msgstr "modifier le Template CSS"
+msgstr "Modifier le Template CSS"
 
 #: superset/views/css_templates.py:46
 msgid "Template Name"
