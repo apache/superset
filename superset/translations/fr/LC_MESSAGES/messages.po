@@ -3042,7 +3042,7 @@ msgstr "Combien de temps garder les logs pour cette alerte"
 msgid ""
 "Once an alert is triggered, how long, in seconds, before Superset nags "
 "you again."
-msgstr "Quand une alerte est déclenchée, durée en seconde"
+msgstr "Quand une alerte est déclenchée, la durée en seconde"
 "avant que superset pour demande à nouveau"
 
 #: superset/views/alerts.py:197
