@@ -2814,7 +2814,7 @@ msgstr "Choisissez un fichier"
 
 #: superset/templates/superset/import_dashboards.html:63
 msgid "Upload"
-msgstr "Télécharger"
+msgstr "Téléverser"
 
 #: superset/templates/superset/request_access.html:20
 msgid "No Access!"
