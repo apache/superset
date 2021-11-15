@@ -2069,7 +2069,7 @@ msgstr "Port de la base de données"
 
 #: superset/db_engine_specs/base.py:1360
 msgid "Database name"
-msgstr "Nom base de donnée"
+msgstr "Nom de la base de données"
 
 #: superset/db_engine_specs/base.py:1362
 msgid "Additional parameters"
