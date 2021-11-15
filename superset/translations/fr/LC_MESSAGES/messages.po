@@ -492,7 +492,6 @@ msgstr "Mapbox"
 msgid "[Longitude] and [Latitude] must be set"
 msgstr ""
 "Les colonnes [Longitude] et [Latitude] doivent êtres définies"
-"[Grouper par]"
 
 #: superset/viz.py:2242
 msgid "Must have a [Group By] column to have 'count' as the [Label]"
