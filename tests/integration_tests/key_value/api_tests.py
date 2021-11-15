@@ -16,7 +16,8 @@
 # under the License.
 # isort:skip_file
 import json
-
+from datetime import datetime
+from freezegun import freeze_time
 from superset import db
 from superset.models.key_value import KeyValueEntry
 from tests.integration_tests.base_tests import SupersetTestCase
@@ -62,11 +63,16 @@ class KeyValueTests(SupersetTestCase):
         resp = self.client.get(f"api/v1/key_value_store/{key}/")
         assert resp.status_code == 200
         data = json.loads(resp.data.decode("utf-8"))
-        assert duration_ms == data.get("duration_ms")
-        assert reset_duration_on_retrieval == data.get("reset_duration_on_retrieval")
         assert value == data.get("value")
 
+    @freeze_time("2021-01-01")
     def test_get_retrieved_on(self):
+        key = self.post()
+        self.client.get(f"api/v1/key_value_store/{key}/")
+        retrieved1 = db.session.query(KeyValueEntry).first().retrieved_on
+        assert datetime.now() == retrieved1
+
+    def test_retrieved_on_elapses(self):
         key = self.post()
         self.client.get(f"api/v1/key_value_store/{key}/")
         retrieved1 = db.session.query(KeyValueEntry).first().retrieved_on

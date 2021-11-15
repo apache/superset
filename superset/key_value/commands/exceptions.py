@@ -16,20 +16,25 @@
 # under the License.
 from flask_babel import lazy_gettext as _
 
-from superset.commands.exceptions import CreateFailedError
+from superset.commands.exceptions import (
+    CommandException,
+    CreateFailedError,
+    DeleteFailedError,
+    UpdateFailedError,
+)
 
 
 class KeyValueCreateFailedError(CreateFailedError):
     message = _("An error occurred while creating the value.")
 
 
-class KeyValueGetFailedError(CreateFailedError):
+class KeyValueGetFailedError(CommandException):
     message = _("An error occurred while accessing the value.")
 
 
-class KeyValueDeleteFailedError(CreateFailedError):
+class KeyValueDeleteFailedError(DeleteFailedError):
     message = _("An error occurred while deleting the value.")
 
 
-class KeyValueUpdateFailedError(CreateFailedError):
+class KeyValueUpdateFailedError(UpdateFailedError):
     message = _("An error occurred while updating the value.")
