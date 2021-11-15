@@ -17,8 +17,12 @@
  * under the License.
  */
 import { AdhocColumn } from '@superset-ui/core';
-import { isAdhocColumn, isColumnMeta, isSavedExpression } from '../src';
-import { ColumnMeta } from '../lib';
+import {
+  isAdhocColumn,
+  isColumnMeta,
+  isSavedExpression,
+  ColumnMeta,
+} from '../src';
 
 const ADHOC_COLUMN: AdhocColumn = {
   hasCustomLabel: true,

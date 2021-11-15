@@ -44,6 +44,8 @@ export { default as TimeseriesTransformProps } from './Timeseries/transformProps
 export { default as TreeTransformProps } from './Tree/transformProps';
 export { default as TreemapTransformProps } from './Treemap/transformProps';
 
+export { DEFAULT_FORM_DATA as TimeseriesDefaultFormData } from './Timeseries/types';
+
 export * from './types';
 
 /**

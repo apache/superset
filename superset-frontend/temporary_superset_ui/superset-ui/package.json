@@ -21,7 +21,7 @@
     "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx,.ts,.tsx .",
     "lint:fix": "eslint --fix --ignore-path=.eslintignore --ext .js,.jsx,.ts,.tsx .",
     "format": "npm run prettier",
-    "prettier": "prettier --write .",
+    "prettier": "prettier --write './{plugins,packages}/**/*{.js,.jsx,.ts,.tsx,.css,.less,.scss,.sass}'",
     "test": "npm run jest",
     "test:watch": "npm run lint:fix && npm run jest --watch",
     "type": "npm run build --no-babel",
