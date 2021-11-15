@@ -770,7 +770,7 @@ msgstr "Les tableaux de bord n'existent pas"
 
 #: superset/charts/commands/exceptions.py:101
 msgid "Datasource type is required when datasource_id is given"
-msgstr "La type de source de données est requis quand datasource_id est "
+msgstr "Le type de source de données est requis quand datasource_id est "
 "spécifié"
 
 #: superset/charts/commands/exceptions.py:111
