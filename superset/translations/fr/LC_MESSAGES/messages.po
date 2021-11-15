@@ -830,7 +830,7 @@ msgstr "Type de résultat invalide : %(result_type)s"
 
 #: superset/common/query_context.py:409
 msgid "The chart does not exist"
-msgstr "Le graphique n'exisite pas"
+msgstr "Le graphique n'existe pas"
 
 #: superset/common/query_object.py:264
 #, python-format
