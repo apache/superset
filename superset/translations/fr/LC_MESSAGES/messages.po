@@ -2025,7 +2025,7 @@ msgstr "Semaine"
 
 #: superset/db_engine_specs/base.py:101
 msgid "Month"
-msgstr "mois"
+msgstr "Mois"
 
 #: superset/db_engine_specs/base.py:102
 msgid "Quarter"
