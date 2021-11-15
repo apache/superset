@@ -1727,7 +1727,7 @@ msgstr "L'import du tableau de bord a échoué pour une raison inconnue"
 
 #: superset/dashboards/commands/exceptions.py:81
 msgid "You don't have access to this dashboard."
-msgstr "Vous n'avez accès à ce tableau de bord."
+msgstr "Vous n'avez pas accès à ce tableau de bord."
 
 #: superset/dashboards/commands/importers/v0.py:320
 msgid "No data in file"
