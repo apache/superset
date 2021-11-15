@@ -322,7 +322,7 @@ msgstr "'Grouper par' et 'Colonnes' ne peuvent pas se chevaucher"
 
 #: superset/viz.py:954
 msgid "Treemap"
-msgstr "Tremap"
+msgstr "Carte proportionnelle"
 
 #: superset/viz.py:997
 msgid "Calendar Heatmap"
