@@ -1327,7 +1327,7 @@ msgid ""
 "column has to be DATETIME or DATETIME-like"
 msgstr ""
 "S'il faut que cette colonne soit accessible comme une option [Time "
-"Granularity],  la colonne doit être DATETIME ou d'un format équivalent"
+"Granularity], elle doit être DATETIME ou d'un format équivalent"
 
 #: superset/connectors/sqla/views.py:104
 msgid ""
