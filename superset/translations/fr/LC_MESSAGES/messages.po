@@ -1919,7 +1919,7 @@ msgid ""
 "Table [%(table_name)s] could not be found, please double check your "
 "database connection, schema, and table name"
 msgstr ""
-"La table [{}] n'a pu être trouvée, vérifiez à nouveau votre la connexion "
+"La table [{}] n'a pu être trouvée, vérifiez à nouveau votre connexion "
 "à votre base de données, le schéma et le nom de la table"
 
 #: superset/datasets/commands/exceptions.py:153
