@@ -2552,7 +2552,7 @@ msgstr ""
 
 #: superset/reports/commands/exceptions.py:175
 msgid "Alert fired during grace period."
-msgstr "Alerte déclenchée pendant la période de grace"
+msgstr "Alerte déclenchée pendant la période de grâce"
 
 #: superset/reports/commands/exceptions.py:179
 msgid "Alert ended grace period."
