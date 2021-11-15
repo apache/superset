@@ -1300,7 +1300,7 @@ msgstr "La base de données n'autorise pas les sous-requêtes"
 
 #: superset/connectors/sqla/models.py:1463
 msgid "Db engine did not return all queried columns"
-msgstr "La base de données n'a retourné toutes les colonnes demandées"
+msgstr "La base de données n'a pas retourné toutes les colonnes demandées"
 
 #: superset/connectors/sqla/utils.py:85
 msgid "Only `SELECT` statements are allowed"
