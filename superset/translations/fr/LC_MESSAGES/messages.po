@@ -860,7 +860,7 @@ msgstr "Ajout d'une nouvelle source de données [{}]"
 
 #: superset/connectors/druid/models.py:252
 msgid "Refreshing datasource [{}]"
-msgstr "Rafraîchir la source de données [{}]"
+msgstr "Rafraîchissement de la source de données [{}]"
 
 #: superset/connectors/druid/models.py:1063
 msgid "Metric(s) {} must be aggregations."
