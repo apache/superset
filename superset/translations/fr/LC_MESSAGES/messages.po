@@ -2077,7 +2077,7 @@ msgstr "Paramètres supplémentaires"
 
 #: superset/db_engine_specs/base.py:1365
 msgid "Use an encrypted connection to the database"
-msgstr "Utiliser un connexion cryptée vers la base de données"
+msgstr "Utiliser une connexion cryptée vers la base de données"
 
 #: superset/db_engine_specs/bigquery.py:144
 msgid ""
