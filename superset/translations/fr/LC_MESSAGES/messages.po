@@ -2530,7 +2530,7 @@ msgstr "La requête a retourné plus d'une colonne."
 
 #: superset/reports/commands/exceptions.py:155
 msgid "Alert query returned a non-number value."
-msgstr "La requête a retourné un valeur non numérique."
+msgstr "La requête a retourné une valeur non numérique."
 
 #: superset/reports/commands/exceptions.py:159
 msgid "Alert found an error while executing a query."
