@@ -98,8 +98,10 @@ from superset.exceptions import (
     SupersetTimeoutException,
 )
 from superset.typing import (
+    AdhocColumn,
     AdhocMetric,
     AdhocMetricColumn,
+    Column,
     FilterValues,
     FlaskResponse,
     FormData,
@@ -1265,6 +1267,29 @@ def is_adhoc_metric(metric: Metric) -> TypeGuard[AdhocMetric]:
     return isinstance(metric, dict) and "expressionType" in metric
 
 
+def is_adhoc_column(column: Column) -> TypeGuard[AdhocColumn]:
+    return isinstance(column, dict)
+
+
+def get_column_name(column: Column) -> str:
+    """
+    Extract label from column
+
+    :param column: object to extract label from
+    :return: String representation of column
+    :raises ValueError: if metric object is invalid
+    """
+    if isinstance(column, dict):
+        label = column.get("label")
+        if label:
+            return label
+        expr = column.get("sqlExpression")
+        if expr:
+            return expr
+        raise Exception("Missing label")
+    return column
+
+
 def get_metric_name(metric: Metric) -> str:
     """
     Extract label from metric
@@ -1294,11 +1319,15 @@ def get_metric_name(metric: Metric) -> str:
     return metric  # type: ignore
 
 
-def get_metric_names(metrics: Sequence[Metric]) -> List[str]:
-    return [metric for metric in map(get_metric_name, metrics) if metric]
+def get_column_names(columns: Optional[Sequence[Column]]) -> List[str]:
+    return [column for column in map(get_column_name, columns or []) if column]
 
 
-def get_first_metric_name(metrics: Sequence[Metric]) -> Optional[str]:
+def get_metric_names(metrics: Optional[Sequence[Metric]]) -> List[str]:
+    return [metric for metric in map(get_metric_name, metrics or []) if metric]
+
+
+def get_first_metric_name(metrics: Optional[Sequence[Metric]]) -> Optional[str]:
     metric_labels = get_metric_names(metrics)
     return metric_labels[0] if metric_labels else None
 
@@ -1516,6 +1545,30 @@ def get_form_data_token(form_data: Dict[str, Any]) -> str:
     :return: original token if predefined, otherwise new uuid4 based token
     """
     return form_data.get("token") or "token_" + uuid.uuid4().hex[:8]
+
+
+def get_column_name_from_column(column: Column) -> Optional[str]:
+    """
+    Extract the physical column that a column is referencing. If the column is
+    an adhoc column, always returns `None`.
+
+    :param column: Physical and ad-hoc column
+    :return: column name if physical column, otherwise None
+    """
+    if is_adhoc_column(column):
+        return None
+    return column  # type: ignore
+
+
+def get_column_names_from_columns(columns: List[Column]) -> List[str]:
+    """
+    Extract the physical columns that a list of columns are referencing. Ignore
+    adhoc columns
+
+    :param columns: Physical and adhoc columns
+    :return: column names of all physical columns
+    """
+    return [col for col in map(get_column_name_from_column, columns) if col]
 
 
 def get_column_name_from_metric(metric: Metric) -> Optional[str]:
