@@ -1550,7 +1550,7 @@ msgid ""
 "templating syntax"
 msgstr ""
 "Un ensemble de paramètre qui seront disponible dans la requête utilisant "
-"la syntaxedu gabarit Jinja"
+"la syntaxe du template Jinja"
 
 #: superset/connectors/sqla/views.py:470
 msgid ""
