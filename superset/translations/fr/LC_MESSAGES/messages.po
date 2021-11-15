@@ -1028,7 +1028,7 @@ msgstr "Nom d'utilisateur du Broker"
 
 #: superset/connectors/druid/views.py:233
 msgid "Broker Password"
-msgstr "Port du Broker"
+msgstr "Mot de passe du Broker"
 
 #: superset/connectors/druid/views.py:234
 msgid "Broker Endpoint"
