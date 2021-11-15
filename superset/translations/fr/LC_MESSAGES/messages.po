@@ -1769,7 +1769,7 @@ msgstr ""
 msgid ""
 "An engine must be specified when passing individual parameters to a "
 "database."
-msgstr ""
+msgstr "Un moteur doit être fournit lorsque l'on passe des paramètres individuels à la base de données."
 
 #: superset/databases/commands/validate.py:58 superset/databases/schemas.py:308
 #, python-format
