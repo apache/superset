@@ -324,7 +324,7 @@ class BaseDatasource(
             if query_context:
                 column_names.update(
                     [
-                        column
+                        utils.get_column_name(column)
                         for query in query_context.queries
                         for column in query.columns
                     ]

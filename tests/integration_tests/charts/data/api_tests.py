@@ -43,6 +43,7 @@ from superset.errors import SupersetErrorType
 from superset.extensions import async_query_manager, db
 from superset.models.annotations import AnnotationLayer
 from superset.models.slice import Slice
+from superset.typing import AdhocColumn
 from superset.utils.core import (
     AnnotationType,
     get_example_database,
@@ -61,6 +62,12 @@ from tests.integration_tests.fixtures.query_context import (
 
 CHART_DATA_URI = "api/v1/chart/data"
 CHARTS_FIXTURE_COUNT = 10
+ADHOC_COLUMN_FIXTURE: AdhocColumn = {
+    "hasCustomLabel": True,
+    "label": "male_or_female",
+    "sqlExpression": "case when gender = 'boy' then 'male' "
+    "when gender = 'girl' then 'female' else 'other' end",
+}
 
 
 class BaseTestChartDataApi(SupersetTestCase):
@@ -820,3 +827,23 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         )
 
         self.assertEqual(rv.status_code, 404)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_chart_data_with_adhoc_column(self):
+        """
+        Chart data API: Test query with adhoc column in both select and where clause
+        """
+        self.login(username="admin")
+        request_payload = get_query_context("birth_names")
+        request_payload["queries"][0]["columns"] = [ADHOC_COLUMN_FIXTURE]
+        request_payload["queries"][0]["filters"] = [
+            {"col": ADHOC_COLUMN_FIXTURE, "op": "IN", "val": ["male", "female"]}
+        ]
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        response_payload = json.loads(rv.data.decode("utf-8"))
+        result = response_payload["result"][0]
+        data = result["data"]
+        assert {column for column in data[0].keys()} == {"male_or_female", "sum__num"}
+        unique_genders = {row["male_or_female"] for row in data}
+        assert unique_genders == {"male", "female"}
+        assert result["applied_filters"] == [{"column": "male_or_female"}]
