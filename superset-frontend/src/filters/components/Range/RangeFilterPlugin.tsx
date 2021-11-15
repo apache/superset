@@ -17,6 +17,8 @@
  * under the License.
  */
 import {
+  ensureIsArray,
+  getColumnLabel,
   getNumberFormatter,
   NumberFormats,
   styled,
@@ -129,7 +131,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const enableSingleExactValue = enableSingleValue === SingleValueType.Exact;
   const rangeValue = enableSingleValue === undefined;
 
-  const [col = ''] = groupby || [];
+  const [col = ''] = ensureIsArray(groupby).map(getColumnLabel);
   const [value, setValue] = useState<[number, number]>(
     defaultValue ?? [min, enableSingleExactValue ? min : max],
   );

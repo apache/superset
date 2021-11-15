@@ -24,6 +24,7 @@ import {
   ensureIsArray,
   ExtraFormData,
   GenericDataType,
+  getColumnLabel,
   JsonObject,
   smartDateDetailedFormatter,
   t,
@@ -94,7 +95,10 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     defaultToFirstItem,
     searchAllOptions,
   } = formData;
-  const groupby = ensureIsArray<string>(formData.groupby);
+  const groupby = useMemo(
+    () => ensureIsArray(formData.groupby).map(getColumnLabel),
+    [formData.groupby],
+  );
   const [col] = groupby;
   const [initialColtypeMap] = useState(coltypeMap);
   const [dataMask, dispatchDataMask] = useImmerReducer(reducer, {

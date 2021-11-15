@@ -179,7 +179,7 @@ the tag and create a signed source tarball from it:
 Note that `make_tarball.sh`:
 
 - By default assumes you have already executed an SVN checkout to `$HOME/svn/superset_dev`.
-This can be overriden by setting `SUPERSET_SVN_DEV_PATH` environment var to a different svn dev directory
+This can be overridden by setting `SUPERSET_SVN_DEV_PATH` environment var to a different svn dev directory
 - Will refuse to craft a new release candidate if a release already exists on your local svn dev directory
 - Will check `package.json` version number and fails if it's not correctly set
 

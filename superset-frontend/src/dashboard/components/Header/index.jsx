@@ -52,6 +52,7 @@ import setPeriodicRunner, {
   stopPeriodicRender,
 } from 'src/dashboard/util/setPeriodicRunner';
 import { options as PeriodicRefreshOptions } from 'src/dashboard/components/RefreshIntervalModal';
+import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -434,7 +435,7 @@ class Header extends React.PureComponent {
       return false;
     }
     const { user } = this.props;
-    if (!user) {
+    if (!user?.userId) {
       // this is in the case that there is an anonymous user.
       return false;
     }
@@ -474,10 +475,15 @@ class Header extends React.PureComponent {
       shouldPersistRefreshFrequency,
       setRefreshFrequency,
       lastModifiedTime,
+      filterboxMigrationState,
     } = this.props;
-    const userCanEdit = dashboardInfo.dash_edit_perm;
+    const userCanEdit =
+      dashboardInfo.dash_edit_perm &&
+      filterboxMigrationState !== FILTER_BOX_MIGRATION_STATES.REVIEWING;
     const userCanShare = dashboardInfo.dash_share_perm;
-    const userCanSaveAs = dashboardInfo.dash_save_perm;
+    const userCanSaveAs =
+      dashboardInfo.dash_save_perm &&
+      filterboxMigrationState !== FILTER_BOX_MIGRATION_STATES.REVIEWING;
     const shouldShowReport = !editMode && this.canAddReports();
     const refreshLimit =
       dashboardInfo.common.conf.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
@@ -623,6 +629,7 @@ class Header extends React.PureComponent {
                   );
                 }
               }}
+              onlyApply
             />
           )}
 
@@ -669,6 +676,7 @@ class Header extends React.PureComponent {
             refreshLimit={refreshLimit}
             refreshWarning={refreshWarning}
             lastModifiedTime={lastModifiedTime}
+            filterboxMigrationState={filterboxMigrationState}
           />
         </div>
       </StyledDashboardHeader>
