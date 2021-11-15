@@ -491,7 +491,7 @@ msgstr "Mapbox"
 #: superset/viz.py:2235
 msgid "[Longitude] and [Latitude] must be set"
 msgstr ""
-"Les colonnes [Longitude] et [Latitude] doivent êtres présentes dans "
+"Les colonnes [Longitude] et [Latitude] doivent êtres définies"
 "[Grouper par]"
 
 #: superset/viz.py:2242
