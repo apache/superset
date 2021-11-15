@@ -121,7 +121,7 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
         log_to_statsd=False,
     )
     def put(self, key: str) -> Response:
@@ -131,7 +131,7 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
           description: >-
             Updates an existing value.
           parameters:
-          - in: key
+          - in: path
             schema:
               type: string
             name: key
@@ -143,7 +143,7 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
                     type: object
                     $ref: '#/components/schemas/KeyValuePutSchema'
           responses:
-            201:
+            200:
               description: The value was stored successfully.
               content:
                 application/json:
@@ -172,7 +172,7 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
             if not model:
                 return self.response_404()
             return self.response(200, message="Value updated successfully.",)
-        except KeyValueGetFailedError as ex:
+        except KeyValueUpdateFailedError as ex:
             logger.error(
                 "Error updating the value %s: %s",
                 self.__class__.__name__,
@@ -186,7 +186,7 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=False,
     )
     def get(self, key: str) -> Response:
@@ -196,12 +196,12 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
           description: >-
             Retrives a value.
           parameters:
-          - in: key
+          - in: path
             schema:
               type: string
             name: key
           responses:
-            201:
+            200:
               description: Returns the stored value.
               content:
                 application/json:
@@ -226,7 +226,7 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
             model = GetKeyValueCommand(g.user, key).run()
             if not model:
                 return self.response_404()
-            return self.response(200, value=model.value,)
+            return self.response(200, value=model.value)
         except KeyValueGetFailedError as ex:
             logger.error(
                 "Error accessing the value %s: %s",
@@ -236,12 +236,12 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/<string:key>/", methods=["DELETE"])
+    @expose("/<string:key>", methods=["DELETE"])
     @protect()
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
         log_to_statsd=False,
     )
     def delete(self, key: str) -> Response:
@@ -251,12 +251,13 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
           description: >-
             Deletes a value.
           parameters:
-          - in: key
+          - in: path
             schema:
               type: string
             name: key
+            description: The value key.
           responses:
-            201:
+            200:
               description: Deleted the stored value.
               content:
                 application/json:

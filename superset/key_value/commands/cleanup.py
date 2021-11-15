@@ -19,7 +19,6 @@ import logging
 from sqlalchemy import func
 
 from superset.commands.base import BaseCommand
-from superset.key_value.utils import is_expired
 from superset.models.key_value import KeyValueEntry
 from superset.utils.celery import session_scope
 

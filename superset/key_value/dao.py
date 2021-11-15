@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from datetime import datetime
 from typing import Optional
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -25,7 +26,6 @@ from superset.dao.exceptions import (
     DAOUpdateFailedError,
 )
 from superset.extensions import db
-from superset.key_value.utils import is_expired
 from superset.models.key_value import KeyValueEntry
 
 logger = logging.getLogger(__name__)
@@ -39,7 +39,7 @@ class KeyValueDAO:
         """
         try:
             model = db.session.query(KeyValueEntry).filter_by(key=id).one_or_none()
-            if model and is_expired(model):
+            if model and model.expires_on and datetime.now() > model.expires_on:
                 return None
             return model
         except SQLAlchemyError as ex:  # pragma: no cover
