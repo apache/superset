@@ -17,14 +17,14 @@
 """add_key_value_table
 
 Revision ID: 9b1945212fec
-Revises: b92d69a6643c
+Revises: 0ca9e5f1dacd
 Create Date: 2021-10-29 10:14:37.486812
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "9b1945212fec"
-down_revision = "b92d69a6643c"
+down_revision = "0ca9e5f1dacd"
 
 import sqlalchemy as sa
 from alembic import op
