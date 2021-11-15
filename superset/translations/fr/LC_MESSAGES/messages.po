@@ -1850,7 +1850,7 @@ msgstr "Ce driver de la base de données n'a pas pu être chargé : {}"
 #: superset/databases/commands/validate.py:70
 #, python-format
 msgid "Engine \"%(engine)s\" cannot be configured through parameters."
-msgstr ""
+msgstr "Le moteur \"%(engine)s\" ne peut pas être configuré via des paramètres."
 
 #: superset/databases/commands/validate.py:134
 msgid "Database is offline."
