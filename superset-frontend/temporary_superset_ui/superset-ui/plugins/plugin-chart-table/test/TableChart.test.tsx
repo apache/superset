@@ -18,11 +18,11 @@
  */
 import React from 'react';
 import { CommonWrapper } from 'enzyme';
-import { mount } from '../../../test/enzyme';
 import TableChart from '../src/TableChart';
 import transformProps from '../src/transformProps';
 import DateWithFormatter from '../src/utils/DateWithFormatter';
 import testData from './testData';
+import { mount } from './enzyme';
 
 describe('plugin-chart-table', () => {
   describe('transformProps', () => {

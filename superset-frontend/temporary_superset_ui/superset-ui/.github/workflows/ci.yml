@@ -52,10 +52,10 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-      - name: Build packages
-        run: npm run build
       - name: Run ESLint
         run: npm run lint --quiet
+      - name: Build packages
+        run: npm run build
       - name: Run unit tests
         run: npm run test
       - name: Build Storybook
