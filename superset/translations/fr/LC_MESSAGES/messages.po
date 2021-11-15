@@ -2053,7 +2053,7 @@ msgstr "Semaine terminant le dimanche"
 
 #: superset/db_engine_specs/base.py:1352
 msgid "Username"
-msgstr "Nom utilisateur"
+msgstr "Nom d'utilisateur"
 
 #: superset/db_engine_specs/base.py:1353
 msgid "Password"
