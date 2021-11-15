@@ -1072,7 +1072,7 @@ msgstr "Sources de données Druid"
 
 #: superset/connectors/druid/views.py:275
 msgid "Show Druid Datasource"
-msgstr "Afficher les sources de données Druid"
+msgstr "Afficher la source de données Druid"
 
 #: superset/connectors/druid/views.py:276
 msgid "Add Druid Datasource"
