@@ -1008,7 +1008,7 @@ msgstr "Ajouter un cluster Druid"
 
 #: superset/connectors/druid/views.py:213
 msgid "Edit Druid Cluster"
-msgstr "Éditer une cluster Druid"
+msgstr "Éditer un cluster Druid"
 
 #: superset/connectors/druid/views.py:229
 msgid "Cluster Name"
