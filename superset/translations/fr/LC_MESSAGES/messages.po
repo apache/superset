@@ -608,7 +608,7 @@ msgstr "Date de début ne peut être postérieure à Date de fin"
 
 #: superset/annotation_layers/annotations/commands/exceptions.py:46
 msgid "Short description must be unique for this layer"
-msgstr "La description courte doitêtre unique pour cette couche"
+msgstr "La description courte doit être unique pour cette couche"
 
 #: superset/annotation_layers/annotations/commands/exceptions.py:52
 msgid "Annotations could not be deleted."
