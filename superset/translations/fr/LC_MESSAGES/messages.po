@@ -2009,7 +2009,7 @@ msgstr "1/2 heure"
 
 #: superset/db_engine_specs/base.py:97
 msgid "Hour"
-msgstr "heure"
+msgstr "Heure"
 
 #: superset/db_engine_specs/base.py:98
 msgid "6 hour"
