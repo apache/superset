@@ -2504,7 +2504,7 @@ msgstr "L'exécution de la planification de rapport a échoué à la génératio
 
 #: superset/reports/commands/exceptions.py:120
 msgid "Report Schedule execution got an unexpected error."
-msgstr "L'exécution de la planification de rapport a rencontré un erreur "
+msgstr "L'exécution de la planification de rapport a rencontré une erreur "
 "inattendue."
 
 #: superset/reports/commands/exceptions.py:124
