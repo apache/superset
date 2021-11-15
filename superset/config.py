@@ -848,8 +848,6 @@ CSV_TO_HIVE_UPLOAD_S3_BUCKET = None
 CSV_TO_HIVE_UPLOAD_DIRECTORY = "EXTERNAL_HIVE_TABLES/"
 # Function that creates upload directory dynamically based on the
 # database used, user and schema provided.
-
-
 def CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC(  # pylint: disable=invalid-name
     database: "Database",
     user: "models.User",  # pylint: disable=unused-argument
@@ -953,9 +951,7 @@ BLUEPRINTS: List[Blueprint] = []
 # Provide a callable that receives a tracking_url and returns another
 # URL. This is used to translate internal Hadoop job tracker URL
 # into a proxied one
-def TRACKING_URL_TRANSFORMER(x):  # pylint: disable=invalid-name
-    return x
-
+TRACKING_URL_TRANSFORMER = lambda x: x
 
 # Interval between consecutive polls when using Hive Engine
 HIVE_POLL_INTERVAL = int(timedelta(seconds=5).total_seconds())
@@ -1223,9 +1219,7 @@ OLD_API_CHECK_DATASET_OWNERSHIP = True
 # to allow mutating the object with this callback.
 # This can be used to set any properties of the object based on naming
 # conventions and such. You can find examples in the tests.
-def SQLA_TABLE_MUTATOR(table):  # pylint: disable=invalid-name
-    return table
-
+SQLA_TABLE_MUTATOR = lambda table: table
 
 # Global async query config options.
 # Requires GLOBAL_ASYNC_QUERIES feature flag to be enabled.
@@ -1312,9 +1306,7 @@ if CONFIG_PATH_ENV_VAR in os.environ:
 elif importlib.util.find_spec("superset_config") and not is_test():
     try:
         import superset_config  # pylint: disable=import-error
-
-        # type: ignore # pylint: disable=import-error,wildcard-import,unused-wildcard-import
-        from superset_config import *
+        from superset_config import *  # type: ignore # pylint: disable=import-error,wildcard-import,unused-wildcard-import
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:
