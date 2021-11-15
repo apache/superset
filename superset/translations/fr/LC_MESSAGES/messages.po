@@ -1081,7 +1081,7 @@ msgstr "Ajouter une source de données Druid"
 
 #: superset/connectors/druid/views.py:277
 msgid "Edit Druid Datasource"
-msgstr "Éditer une source de données Druid"
+msgstr "Éditer la source de données Druid"
 
 #: superset/connectors/druid/views.py:300 superset/connectors/sqla/views.py:426
 msgid ""
