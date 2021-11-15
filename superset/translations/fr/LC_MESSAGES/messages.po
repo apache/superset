@@ -2902,7 +2902,7 @@ msgstr "Fenêtre indéfinie pour l'opération de roulement"
 
 #: superset/utils/pandas_postprocessing.py:381
 msgid "Window must be > 0"
-msgstr "Fenêtre doit être >0"
+msgstr "La fenêtre doit être > 0"
 
 #: superset/utils/pandas_postprocessing.py:396
 #, python-format
