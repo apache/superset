@@ -18,7 +18,7 @@ import copy
 from typing import Any, Dict, List
 
 from superset.utils.core import AnnotationType, DTTM_ALIAS, TimeRangeEndpoint
-from tests.integration_tests.base_tests import get_table_by_name
+from tests.integration_tests.base_tests import SupersetTestCase
 
 query_birth_names = {
     "extras": {
@@ -29,7 +29,7 @@ query_birth_names = {
         ),
         "time_grain_sqla": "P1D",
     },
-    "groupby": ["name"],
+    "columns": ["name"],
     "metrics": [{"label": "sum__num"}],
     "orderby": [("sum__num", False)],
     "row_limit": 100,
@@ -195,7 +195,7 @@ POSTPROCESSING_OPERATIONS = {
 
 
 def get_query_object(
-    query_name: str, add_postprocessing_operations: bool
+    query_name: str, add_postprocessing_operations: bool, add_time_offsets: bool,
 ) -> Dict[str, Any]:
     if query_name not in QUERY_OBJECTS:
         raise Exception(f"QueryObject fixture not defined for datasource: {query_name}")
@@ -212,6 +212,9 @@ def get_query_object(
     query_object = copy.deepcopy(obj)
     if add_postprocessing_operations:
         query_object["post_processing"] = _get_postprocessing_operation(query_name)
+    if add_time_offsets:
+        query_object["time_offsets"] = ["1 year ago"]
+
     return query_object
 
 
@@ -224,7 +227,9 @@ def _get_postprocessing_operation(query_name: str) -> List[Dict[str, Any]]:
 
 
 def get_query_context(
-    query_name: str, add_postprocessing_operations: bool = False,
+    query_name: str,
+    add_postprocessing_operations: bool = False,
+    add_time_offsets: bool = False,
 ) -> Dict[str, Any]:
     """
     Create a request payload for retrieving a QueryContext object via the
@@ -236,11 +241,16 @@ def get_query_context(
     :param datasource_id: id of datasource to query.
     :param datasource_type: type of datasource to query.
     :param add_postprocessing_operations: Add post-processing operations to QueryObject
+    :param add_time_offsets: Add time offsets to QueryObject(advanced analytics)
     :return: Request payload
     """
     table_name = query_name.split(":")[0]
-    table = get_table_by_name(table_name)
+    table = SupersetTestCase.get_table(name=table_name)
     return {
         "datasource": {"id": table.id, "type": table.type},
-        "queries": [get_query_object(query_name, add_postprocessing_operations)],
+        "queries": [
+            get_query_object(
+                query_name, add_postprocessing_operations, add_time_offsets,
+            )
+        ],
     }

@@ -35,7 +35,7 @@ from superset.utils.hashing import md5_sha_from_dict
 if TYPE_CHECKING:
     from superset.stats_logger import BaseStatsLogger
 
-config = app.config  # type: ignore
+config = app.config
 stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 

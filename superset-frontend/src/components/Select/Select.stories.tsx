@@ -31,12 +31,17 @@ const options = [
   {
     label: 'Such an incredibly awesome long long label',
     value: 'Such an incredibly awesome long long label',
+    custom: 'Secret custom prop',
   },
   {
     label: 'Another incredibly awesome long long label',
     value: 'Another incredibly awesome long long label',
   },
-  { label: 'Just a label', value: 'Just a label' },
+  {
+    label: 'JSX Label',
+    customLabel: <div style={{ color: 'red' }}>JSX Label</div>,
+    value: 'JSX Label',
+  },
   { label: 'A', value: 'A' },
   { label: 'B', value: 'B' },
   { label: 'C', value: 'C' },
@@ -70,11 +75,18 @@ const selectPositions = [
 const ARG_TYPES = {
   options: {
     defaultValue: options,
-    table: {
-      disable: true,
-    },
+    description: `It defines the options of the Select.
+      The options can be static, an array of options.
+      The options can also be async, a promise that returns an array of options.
+    `,
   },
   ariaLabel: {
+    description: `It adds the aria-label tag for accessibility standards.
+      Must be plain English and localized.
+    `,
+  },
+  labelInValue: {
+    defaultValue: true,
     table: {
       disable: true,
     },
@@ -90,11 +102,33 @@ const ARG_TYPES = {
     },
   },
   mode: {
+    description: `It defines whether the Select should allow for
+      the selection of multiple options or single. Single by default.
+    `,
     defaultValue: 'single',
     control: {
       type: 'inline-radio',
       options: ['single', 'multiple'],
     },
+  },
+  allowNewOptions: {
+    description: `It enables the user to create new options.
+      Can be used with standard or async select types.
+      Can be used with any mode, single or multiple. False by default.
+    `,
+  },
+  invertSelection: {
+    description: `It shows a stop-outlined icon at the far right of a selected
+      option instead of the default checkmark.
+      Useful to better indicate to the user that by clicking on a selected
+      option it will be de-selected. False by default.
+    `,
+  },
+  optionFilterProps: {
+    description: `It allows to define which properties of the option object
+      should be looked for when searching.
+      By default label and value.
+    `,
   },
 };
 
@@ -131,18 +165,26 @@ InteractiveSelect.args = {
   disabled: false,
   invertSelection: false,
   placeholder: 'Select ...',
+  optionFilterProps: ['value', 'label', 'custom'],
 };
 
 InteractiveSelect.argTypes = {
   ...ARG_TYPES,
   header: {
     defaultValue: 'none',
+    description: `It adds a header on top of the Select. Can be any ReactNode.`,
     control: { type: 'inline-radio', options: ['none', 'text', 'control'] },
   },
   pageSize: {
-    table: {
-      disable: true,
-    },
+    description: `It defines how many results should be included in the query response.
+      Works in async mode only (See the options property).
+    `,
+  },
+  fetchOnlyOnSearch: {
+    description: `It fires a request against the server only after searching.
+      Works in async mode only (See the options property).
+      Undefined by default.
+    `,
   },
 };
 
@@ -166,7 +208,11 @@ export const AtEveryCorner = () => (
           position: 'absolute',
         }}
       >
-        <Select ariaLabel={`gallery-${position.id}`} options={options} />
+        <Select
+          ariaLabel={`gallery-${position.id}`}
+          options={options}
+          labelInValue
+        />
       </div>
     ))}
     <p style={{ position: 'absolute', top: '40%', left: '33%', width: 500 }}>
@@ -201,7 +247,7 @@ export const PageScroll = () => (
         right: 30,
       }}
     >
-      <Select ariaLabel="page-scroll-select-1" options={options} />
+      <Select ariaLabel="page-scroll-select-1" options={options} labelInValue />
     </div>
     <div
       style={{
@@ -292,14 +338,17 @@ const USERS = [
   'Claire',
   'Benedetta',
   'Ilenia',
-];
+].sort();
 
 export const AsyncSelect = ({
+  fetchOnlyOnSearch,
   withError,
+  withInitialValue,
   responseTime,
   ...rest
 }: SelectProps & {
   withError: boolean;
+  withInitialValue: boolean;
   responseTime: number;
 }) => {
   const [requests, setRequests] = useState<ReactNode[]>([]);
@@ -340,15 +389,18 @@ export const AsyncSelect = ({
   const fetchUserListPage = useCallback(
     (
       search: string,
-      offset: number,
-      limit: number,
+      page: number,
+      pageSize: number,
     ): Promise<OptionsTypePage> => {
       const username = search.trim().toLowerCase();
       return new Promise(resolve => {
         let results = getResults(username);
         const totalCount = results.length;
-        results = results.splice(offset, limit);
-        setRequestLog(offset + results.length, totalCount, username);
+        const start = page * pageSize;
+        const deleteCount =
+          start + pageSize < totalCount ? pageSize : totalCount - start;
+        results = results.splice(start, deleteCount);
+        setRequestLog(start + results.length, totalCount, username);
         setTimeout(() => {
           resolve({ data: results, totalCount });
         }, responseTime * 1000);
@@ -371,7 +423,14 @@ export const AsyncSelect = ({
       >
         <Select
           {...rest}
+          fetchOnlyOnSearch={fetchOnlyOnSearch}
           options={withError ? fetchUserListError : fetchUserListPage}
+          placeholder={fetchOnlyOnSearch ? 'Type anything' : 'Select...'}
+          value={
+            withInitialValue
+              ? { label: 'Valentina', value: 'Valentina' }
+              : undefined
+          }
         />
       </div>
       <div
@@ -395,9 +454,12 @@ export const AsyncSelect = ({
 };
 
 AsyncSelect.args = {
-  withError: false,
-  pageSize: 10,
+  allowClear: false,
   allowNewOptions: false,
+  fetchOnlyOnSearch: false,
+  pageSize: 10,
+  withError: false,
+  withInitialValue: false,
 };
 
 AsyncSelect.argTypes = {
@@ -428,6 +490,7 @@ AsyncSelect.argTypes = {
       type: 'range',
       min: 0.5,
       max: 5,
+      step: 0.5,
     },
   },
 };

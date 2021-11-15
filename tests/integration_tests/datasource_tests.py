@@ -16,40 +16,55 @@
 # under the License.
 """Unit tests for Superset"""
 import json
-from copy import deepcopy
+from contextlib import contextmanager
 from unittest import mock
 
+import prison
 import pytest
 
 from superset import app, ConnectorRegistry, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.datasets.commands.exceptions import DatasetNotFoundError
-from superset.exceptions import SupersetException, SupersetGenericDBErrorException
-from superset.utils.core import get_example_database
+from superset.exceptions import SupersetGenericDBErrorException
+from superset.models.core import Database
+from superset.utils.core import get_example_database, get_example_default_schema
+from tests.integration_tests.base_tests import db_insert_temp_object, SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
 )
+from tests.integration_tests.fixtures.datasource import get_datasource_post
 
-from .base_tests import db_insert_temp_object, SupersetTestCase
-from .fixtures.datasource import datasource_post
+
+@contextmanager
+def create_test_table_context(database: Database):
+    schema = get_example_default_schema()
+    full_table_name = f"{schema}.test_table" if schema else "test_table"
+
+    database.get_sqla_engine().execute(
+        f"CREATE TABLE IF NOT EXISTS {full_table_name} AS SELECT 1 as first, 2 as second"
+    )
+    database.get_sqla_engine().execute(
+        f"INSERT INTO {full_table_name} (first, second) VALUES (1, 2)"
+    )
+    database.get_sqla_engine().execute(
+        f"INSERT INTO {full_table_name} (first, second) VALUES (3, 4)"
+    )
+
+    yield db.session
+    database.get_sqla_engine().execute(f"DROP TABLE {full_table_name}")
 
 
 class TestDatasource(SupersetTestCase):
     def setUp(self):
-        self.original_attrs = {}
-        self.datasource = None
+        db.session.begin(subtransactions=True)
 
     def tearDown(self):
-        if self.datasource:
-            for key, value in self.original_attrs.items():
-                setattr(self.datasource, key, value)
-
-            db.session.commit()
+        db.session.rollback()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_external_metadata_for_physical_table(self):
         self.login(username="admin")
-        tbl = self.get_table_by_name("birth_names")
+        tbl = self.get_table(name="birth_names")
         url = f"/datasource/external_metadata/table/{tbl.id}/"
         resp = self.get_json_resp(url)
         col_names = {o.get("name") for o in resp}
@@ -63,17 +78,115 @@ class TestDatasource(SupersetTestCase):
         table = SqlaTable(
             table_name="dummy_sql_table",
             database=get_example_database(),
+            schema=get_example_default_schema(),
             sql="select 123 as intcol, 'abc' as strcol",
         )
         session.add(table)
         session.commit()
 
-        table = self.get_table_by_name("dummy_sql_table")
+        table = self.get_table(name="dummy_sql_table")
         url = f"/datasource/external_metadata/table/{table.id}/"
         resp = self.get_json_resp(url)
         assert {o.get("name") for o in resp} == {"intcol", "strcol"}
         session.delete(table)
         session.commit()
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_external_metadata_by_name_for_physical_table(self):
+        self.login(username="admin")
+        tbl = self.get_table(name="birth_names")
+        params = prison.dumps(
+            {
+                "datasource_type": "table",
+                "database_name": tbl.database.database_name,
+                "schema_name": tbl.schema,
+                "table_name": tbl.table_name,
+            }
+        )
+        url = f"/datasource/external_metadata_by_name/?q={params}"
+        resp = self.get_json_resp(url)
+        col_names = {o.get("name") for o in resp}
+        self.assertEqual(
+            col_names, {"num_boys", "num", "gender", "name", "ds", "state", "num_girls"}
+        )
+
+    def test_external_metadata_by_name_for_virtual_table(self):
+        self.login(username="admin")
+        session = db.session
+        table = SqlaTable(
+            table_name="dummy_sql_table",
+            database=get_example_database(),
+            schema=get_example_default_schema(),
+            sql="select 123 as intcol, 'abc' as strcol",
+        )
+        session.add(table)
+        session.commit()
+
+        tbl = self.get_table(name="dummy_sql_table")
+        params = prison.dumps(
+            {
+                "datasource_type": "table",
+                "database_name": tbl.database.database_name,
+                "schema_name": tbl.schema,
+                "table_name": tbl.table_name,
+            }
+        )
+        url = f"/datasource/external_metadata_by_name/?q={params}"
+        resp = self.get_json_resp(url)
+        assert {o.get("name") for o in resp} == {"intcol", "strcol"}
+        session.delete(tbl)
+        session.commit()
+
+    def test_external_metadata_by_name_from_sqla_inspector(self):
+        self.login(username="admin")
+        example_database = get_example_database()
+        with create_test_table_context(example_database):
+            params = prison.dumps(
+                {
+                    "datasource_type": "table",
+                    "database_name": example_database.database_name,
+                    "table_name": "test_table",
+                    "schema_name": get_example_default_schema(),
+                }
+            )
+            url = f"/datasource/external_metadata_by_name/?q={params}"
+            resp = self.get_json_resp(url)
+            col_names = {o.get("name") for o in resp}
+            self.assertEqual(col_names, {"first", "second"})
+
+        # No databases found
+        params = prison.dumps(
+            {"datasource_type": "table", "database_name": "foo", "table_name": "bar",}
+        )
+        url = f"/datasource/external_metadata_by_name/?q={params}"
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, DatasetNotFoundError.status)
+        self.assertEqual(
+            json.loads(resp.data.decode("utf-8")).get("error"),
+            DatasetNotFoundError.message,
+        )
+
+        # No table found
+        params = prison.dumps(
+            {
+                "datasource_type": "table",
+                "database_name": example_database.database_name,
+                "table_name": "fooooooooobarrrrrr",
+            }
+        )
+        url = f"/datasource/external_metadata_by_name/?q={params}"
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, DatasetNotFoundError.status)
+        self.assertEqual(
+            json.loads(resp.data.decode("utf-8")).get("error"),
+            DatasetNotFoundError.message,
+        )
+
+        # invalid query params
+        params = prison.dumps({"datasource_type": "table",})
+        url = f"/datasource/external_metadata_by_name/?q={params}"
+        resp = self.get_json_resp(url)
+        self.assertIn("error", resp)
 
     def test_external_metadata_for_virtual_table_template_params(self):
         self.login(username="admin")
@@ -81,13 +194,14 @@ class TestDatasource(SupersetTestCase):
         table = SqlaTable(
             table_name="dummy_sql_table_with_template_params",
             database=get_example_database(),
+            schema=get_example_default_schema(),
             sql="select {{ foo }} as intcol",
             template_params=json.dumps({"foo": "123"}),
         )
         session.add(table)
         session.commit()
 
-        table = self.get_table_by_name("dummy_sql_table_with_template_params")
+        table = self.get_table(name="dummy_sql_table_with_template_params")
         url = f"/datasource/external_metadata/table/{table.id}/"
         resp = self.get_json_resp(url)
         assert {o.get("name") for o in resp} == {"intcol"}
@@ -99,6 +213,7 @@ class TestDatasource(SupersetTestCase):
         table = SqlaTable(
             table_name="malicious_sql_table",
             database=get_example_database(),
+            schema=get_example_default_schema(),
             sql="delete table birth_names",
         )
         with db_insert_temp_object(table):
@@ -111,6 +226,7 @@ class TestDatasource(SupersetTestCase):
         table = SqlaTable(
             table_name="multistatement_sql_table",
             database=get_example_database(),
+            schema=get_example_default_schema(),
             sql="select 123 as intcol, 'abc' as strcol;"
             "select 123 as intcol, 'abc' as strcol",
         )
@@ -123,7 +239,7 @@ class TestDatasource(SupersetTestCase):
     @mock.patch("superset.connectors.sqla.models.SqlaTable.external_metadata")
     def test_external_metadata_error_return_400(self, mock_get_datasource):
         self.login(username="admin")
-        tbl = self.get_table_by_name("birth_names")
+        tbl = self.get_table(name="birth_names")
         url = f"/datasource/external_metadata/table/{tbl.id}/"
 
         mock_get_datasource.side_effect = SupersetGenericDBErrorException("oops")
@@ -148,13 +264,9 @@ class TestDatasource(SupersetTestCase):
 
     def test_save(self):
         self.login(username="admin")
-        tbl_id = self.get_table_by_name("birth_names").id
+        tbl_id = self.get_table(name="birth_names").id
 
-        self.datasource = ConnectorRegistry.get_datasource("table", tbl_id, db.session)
-
-        for key in self.datasource.export_fields:
-            self.original_attrs[key] = getattr(self.datasource, key)
-
+        datasource_post = get_datasource_post()
         datasource_post["id"] = tbl_id
         data = dict(data=json.dumps(datasource_post))
         resp = self.get_json_resp("/datasource/save/", data)
@@ -166,27 +278,24 @@ class TestDatasource(SupersetTestCase):
             elif k == "database":
                 self.assertEqual(resp[k]["id"], datasource_post[k]["id"])
             else:
+                print(k)
                 self.assertEqual(resp[k], datasource_post[k])
 
-    def save_datasource_from_dict(self, datasource_dict):
+    def save_datasource_from_dict(self, datasource_post):
         data = dict(data=json.dumps(datasource_post))
         resp = self.get_json_resp("/datasource/save/", data)
         return resp
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_change_database(self):
         self.login(username="admin")
-        tbl = self.get_table_by_name("birth_names")
+        tbl = self.get_table(name="birth_names")
         tbl_id = tbl.id
         db_id = tbl.database_id
+        datasource_post = get_datasource_post()
         datasource_post["id"] = tbl_id
 
-        self.datasource = ConnectorRegistry.get_datasource("table", tbl_id, db.session)
-
-        for key in self.datasource.export_fields:
-            self.original_attrs[key] = getattr(self.datasource, key)
-
         new_db = self.create_fake_db()
-
         datasource_post["database"]["id"] = new_db.id
         resp = self.save_datasource_from_dict(datasource_post)
         self.assertEqual(resp["database"]["id"], new_db.id)
@@ -199,15 +308,11 @@ class TestDatasource(SupersetTestCase):
 
     def test_save_duplicate_key(self):
         self.login(username="admin")
-        tbl_id = self.get_table_by_name("birth_names").id
-        self.datasource = ConnectorRegistry.get_datasource("table", tbl_id, db.session)
+        tbl_id = self.get_table(name="birth_names").id
 
-        for key in self.datasource.export_fields:
-            self.original_attrs[key] = getattr(self.datasource, key)
-
-        datasource_post_copy = deepcopy(datasource_post)
-        datasource_post_copy["id"] = tbl_id
-        datasource_post_copy["columns"].extend(
+        datasource_post = get_datasource_post()
+        datasource_post["id"] = tbl_id
+        datasource_post["columns"].extend(
             [
                 {
                     "column_name": "<new column>",
@@ -225,18 +330,15 @@ class TestDatasource(SupersetTestCase):
                 },
             ]
         )
-        data = dict(data=json.dumps(datasource_post_copy))
+        data = dict(data=json.dumps(datasource_post))
         resp = self.get_json_resp("/datasource/save/", data, raise_on_error=False)
         self.assertIn("Duplicate column name(s): <new column>", resp["error"])
 
     def test_get_datasource(self):
         self.login(username="admin")
-        tbl = self.get_table_by_name("birth_names")
-        self.datasource = ConnectorRegistry.get_datasource("table", tbl.id, db.session)
+        tbl = self.get_table(name="birth_names")
 
-        for key in self.datasource.export_fields:
-            self.original_attrs[key] = getattr(self.datasource, key)
-
+        datasource_post = get_datasource_post()
         datasource_post["id"] = tbl.id
         data = dict(data=json.dumps(datasource_post))
         self.get_json_resp("/datasource/save/", data)
@@ -264,7 +366,7 @@ class TestDatasource(SupersetTestCase):
 
         app.config["DATASET_HEALTH_CHECK"] = my_check
         self.login(username="admin")
-        tbl = self.get_table_by_name("birth_names")
+        tbl = self.get_table(name="birth_names")
         datasource = ConnectorRegistry.get_datasource("table", tbl.id, db.session)
         assert datasource.health_check_message == "Warning message!"
         app.config["DATASET_HEALTH_CHECK"] = None

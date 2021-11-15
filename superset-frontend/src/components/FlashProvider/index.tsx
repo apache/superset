@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useToasts } from 'src/messageToasts/enhancers/withToasts';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { useComponentDidMount } from 'src/common/hooks/useComponentDidMount';
 
 type FlashMessageType = 'info' | 'alert' | 'danger' | 'warning' | 'success';

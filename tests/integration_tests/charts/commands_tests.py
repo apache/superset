@@ -14,18 +14,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=no-self-use, invalid-name
-
 import json
+from datetime import datetime
 from unittest.mock import patch
 
 import pytest
 import yaml
+from flask import g
 
 from superset import db, security_manager
 from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.charts.commands.export import ExportChartsCommand
 from superset.charts.commands.importers.v1 import ImportChartsCommand
+from superset.charts.commands.update import UpdateChartCommand
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
@@ -78,6 +79,7 @@ class TestExportChartsCommand(SupersetTestCase):
                 "slice_name": "Energy Sankey",
                 "viz_type": "sankey",
             },
+            "query_context": None,
             "cache_timeout": None,
             "dataset_uuid": str(example_chart.table.uuid),
             "uuid": str(example_chart.uuid),
@@ -123,6 +125,7 @@ class TestExportChartsCommand(SupersetTestCase):
             "slice_name",
             "viz_type",
             "params",
+            "query_context",
             "cache_timeout",
             "uuid",
             "version",
@@ -131,8 +134,10 @@ class TestExportChartsCommand(SupersetTestCase):
 
 
 class TestImportChartsCommand(SupersetTestCase):
-    def test_import_v1_chart(self):
+    @patch("superset.charts.commands.importers.v1.utils.g")
+    def test_import_v1_chart(self, mock_g):
         """Test that we can import a chart"""
+        mock_g.user = security_manager.find_user("admin")
         contents = {
             "metadata.yaml": yaml.safe_dump(chart_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
@@ -142,9 +147,9 @@ class TestImportChartsCommand(SupersetTestCase):
         command = ImportChartsCommand(contents)
         command.run()
 
-        chart: Slice = db.session.query(Slice).filter_by(
-            uuid=chart_config["uuid"]
-        ).one()
+        chart: Slice = (
+            db.session.query(Slice).filter_by(uuid=chart_config["uuid"]).one()
+        )
         dataset = chart.datasource
         assert json.loads(chart.params) == {
             "color_picker": {"a": 1, "b": 135, "g": 122, "r": 0},
@@ -186,6 +191,34 @@ class TestImportChartsCommand(SupersetTestCase):
         )
         assert dataset.table_name == "imported_dataset"
         assert chart.table == dataset
+        assert json.loads(chart.query_context) == {
+            "datasource": {"id": dataset.id, "type": "table"},
+            "force": False,
+            "queries": [
+                {
+                    "time_range": " : ",
+                    "filters": [],
+                    "extras": {
+                        "time_grain_sqla": None,
+                        "having": "",
+                        "having_druid": [],
+                        "where": "",
+                    },
+                    "applied_time_extras": {},
+                    "columns": [],
+                    "metrics": [],
+                    "annotation_layers": [],
+                    "row_limit": 5000,
+                    "timeseries_limit": 0,
+                    "order_desc": True,
+                    "url_params": {},
+                    "custom_params": {},
+                    "custom_form_data": {},
+                }
+            ],
+            "result_format": "json",
+            "result_type": "full",
+        }
 
         database = (
             db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
@@ -193,6 +226,11 @@ class TestImportChartsCommand(SupersetTestCase):
         assert database.database_name == "imported_database"
         assert chart.table.database == database
 
+        assert chart.owners == [mock_g.user]
+
+        chart.owners = []
+        dataset.owners = []
+        database.owners = []
         db.session.delete(chart)
         db.session.delete(dataset)
         db.session.delete(database)
@@ -273,3 +311,54 @@ class TestImportChartsCommand(SupersetTestCase):
                 "database_name": ["Missing data for required field."],
             }
         }
+
+
+class TestChartsUpdateCommand(SupersetTestCase):
+    @patch("superset.views.base.g")
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_update_v1_response(self, mock_sm_g, mock_g):
+        """Test that a chart command updates properties"""
+        pk = db.session.query(Slice).all()[0].id
+        actor = security_manager.find_user(username="admin")
+        mock_g.user = mock_sm_g.user = actor
+        model_id = pk
+        json_obj = {
+            "description": "test for update",
+            "cache_timeout": None,
+            "owners": [actor.id],
+        }
+        command = UpdateChartCommand(actor, model_id, json_obj)
+        last_saved_before = db.session.query(Slice).get(pk).last_saved_at
+        command.run()
+        chart = db.session.query(Slice).get(pk)
+        assert chart.last_saved_at != last_saved_before
+        assert chart.last_saved_by == actor
+
+    @patch("superset.views.base.g")
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_query_context_update_command(self, mock_sm_g, mock_g):
+        """
+        Test that a user can generate the chart query context
+        payloadwithout affecting owners
+        """
+        chart = db.session.query(Slice).all()[0]
+        pk = chart.id
+        admin = security_manager.find_user(username="admin")
+        chart.owners = [admin]
+        db.session.commit()
+
+        actor = security_manager.find_user(username="alpha")
+        mock_g.user = mock_sm_g.user = actor
+        query_context = json.dumps({"foo": "bar"})
+        json_obj = {
+            "query_context_generation": True,
+            "query_context": query_context,
+        }
+        command = UpdateChartCommand(actor, pk, json_obj)
+        command.run()
+        chart = db.session.query(Slice).get(pk)
+        assert chart.query_context == query_context
+        assert len(chart.owners) == 1
+        assert chart.owners[0] == admin

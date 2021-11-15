@@ -7759,7 +7759,7 @@ msgstr ""
 "apenas em certos bancos de dados."
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:608
-msgid "Impersonate Logged In User (Presto & Hive)"
+msgid "Impersonate Logged In User (Presto, Trino, Drill & Hive)"
 msgstr "Personificar usuário logado (Presto e Hive)"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:610
@@ -7817,15 +7817,15 @@ msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:669
 msgid ""
-"3. The schemas_allowed_for_csv_upload is a comma separated list of schemas "
+"3. The schemas_allowed_for_file_upload is a comma separated list of schemas "
 "that CSVs are allowed to upload to. Specify it as "
-"\"schemas_allowed_for_csv_upload\": [\"public\", \"csv_upload\"]. If "
+"\"schemas_allowed_for_file_upload\": [\"public\", \"csv_upload\"]. If "
 "database flavor does not support schema or any schema is allowed to be "
 "accessed, just leave the list empty."
 msgstr ""
-"3. O schemas_allowed_for_csv_upload é uma lista de esquemas separada por "
+"3. O schemas_allowed_for_file_upload é uma lista de esquemas separada por "
 "vírgula nos quais é permitida a carga de CSVs. Especifique como "
-"\"schemas_allowed_for_csv_upload\": [\"public\", \"csv_upload\"]. Se o banco "
+"\"schemas_allowed_for_file_upload\": [\"public\", \"csv_upload\"]. Se o banco "
 "de dados não suporta esquema ou a carga é permitida em qualque esquema, "
 "apenas deixe a lista vazia."
 

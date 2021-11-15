@@ -23,7 +23,7 @@ import {
   Position,
   TextMode as OrigTextMode,
 } from 'brace';
-import AceEditor, { AceEditorProps } from 'react-ace';
+import AceEditor, { IAceEditorProps } from 'react-ace';
 import AsyncEsmComponent, {
   PlaceholderProps,
 } from 'src/components/AsyncEsmComponent';
@@ -72,7 +72,7 @@ const aceModuleLoaders = {
 
 export type AceModule = keyof typeof aceModuleLoaders;
 
-export type AsyncAceEditorProps = AceEditorProps & {
+export type AsyncAceEditorProps = IAceEditorProps & {
   keywords?: AceCompleterKeyword[];
 };
 
@@ -83,7 +83,7 @@ export type AsyncAceEditorOptions = {
   defaultTheme?: AceEditorTheme;
   defaultTabSize?: number;
   placeholder?: React.ComponentType<
-    PlaceholderProps & Partial<AceEditorProps>
+    PlaceholderProps & Partial<IAceEditorProps>
   > | null;
 };
 
@@ -120,7 +120,6 @@ export default function AsyncAceEditor(
           theme = inferredTheme,
           tabSize = defaultTabSize,
           defaultValue = '',
-          value = '',
           ...props
         },
         ref,
@@ -153,7 +152,6 @@ export default function AsyncAceEditor(
             theme={theme}
             tabSize={tabSize}
             defaultValue={defaultValue}
-            value={value || ''}
             {...props}
           />
         );

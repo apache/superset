@@ -55,13 +55,13 @@ class MssqlEngineSpec(BaseEngineSpec):
         "PT5M": "DATEADD(MINUTE, DATEDIFF(MINUTE, 0, {col}) / 5 * 5, 0)",
         "PT10M": "DATEADD(MINUTE, DATEDIFF(MINUTE, 0, {col}) / 10 * 10, 0)",
         "PT15M": "DATEADD(MINUTE, DATEDIFF(MINUTE, 0, {col}) / 15 * 15, 0)",
-        "PT0.5H": "DATEADD(MINUTE, DATEDIFF(MINUTE, 0, {col}) / 30 * 30, 0)",
+        "PT30M": "DATEADD(MINUTE, DATEDIFF(MINUTE, 0, {col}) / 30 * 30, 0)",
         "PT1H": "DATEADD(HOUR, DATEDIFF(HOUR, 0, {col}), 0)",
         "P1D": "DATEADD(DAY, DATEDIFF(DAY, 0, {col}), 0)",
         "P1W": "DATEADD(DAY, 1 - DATEPART(WEEKDAY, {col}),"
         " DATEADD(DAY, DATEDIFF(DAY, 0, {col}), 0))",
         "P1M": "DATEADD(MONTH, DATEDIFF(MONTH, 0, {col}), 0)",
-        "P0.25Y": "DATEADD(QUARTER, DATEDIFF(QUARTER, 0, {col}), 0)",
+        "P3M": "DATEADD(QUARTER, DATEDIFF(QUARTER, 0, {col}), 0)",
         "P1Y": "DATEADD(YEAR, DATEDIFF(YEAR, 0, {col}), 0)",
         "1969-12-28T00:00:00Z/P1W": "DATEADD(DAY, -1,"
         " DATEADD(WEEK, DATEDIFF(WEEK, 0, {col}), 0))",

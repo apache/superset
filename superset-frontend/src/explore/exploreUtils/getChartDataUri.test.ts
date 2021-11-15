@@ -31,7 +31,7 @@ test('Get ChartUri when allowDomainSharding:false', () => {
       duplicateQueryParameters: false,
       escapeQuerySpace: true,
       fragment: null,
-      hostname: undefined,
+      hostname: 'localhost',
       password: null,
       path: '/path',
       port: '',

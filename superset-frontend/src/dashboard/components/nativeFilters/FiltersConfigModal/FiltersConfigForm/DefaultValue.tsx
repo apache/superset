@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC, useEffect, useState } from 'react';
+import React, { FC } from 'react';
 import {
   Behavior,
   SetDataMaskHook,
@@ -48,17 +48,9 @@ const DefaultValue: FC<DefaultValueProps> = ({
   formData,
   enableNoResults,
 }) => {
-  const [loading, setLoading] = useState(hasDataset);
   const formFilter = (form.getFieldValue('filters') || {})[filterId];
   const queriesData = formFilter?.defaultValueQueriesData;
-
-  useEffect(() => {
-    if (!hasDataset || queriesData !== null) {
-      setLoading(false);
-    } else {
-      setLoading(true);
-    }
-  }, [hasDataset, queriesData]);
+  const loading = hasDataset && queriesData === null;
   const value = formFilter.defaultDataMask?.filterState.value;
   const isMissingRequiredValue =
     hasDefaultValue && (value === null || value === undefined);

@@ -130,6 +130,15 @@ timeseries_df = DataFrame(
     data={"label": ["x", "y", "z", "q"], "y": [1.0, 2.0, 3.0, 4.0]},
 )
 
+timeseries_df2 = DataFrame(
+    index=to_datetime(["2019-01-01", "2019-01-02", "2019-01-05", "2019-01-07"]),
+    data={
+        "label": ["x", "y", "z", "q"],
+        "y": [2.0, 2.0, 2.0, 2.0],
+        "z": [2.0, 4.0, 10.0, 8.0],
+    },
+)
+
 lonlat_df = DataFrame(
     {
         "city": ["New York City", "Sydney"],
@@ -154,5 +163,21 @@ prophet_df = DataFrame(
         ],
         "a": [1.1, 1, 1.9, 3.15],
         "b": [4, 3, 4.1, 3.95],
+    }
+)
+
+single_metric_df = DataFrame(
+    {
+        "dttm": to_datetime(["2019-01-01", "2019-01-01", "2019-01-02", "2019-01-02",]),
+        "country": ["UK", "US", "UK", "US"],
+        "sum_metric": [5, 6, 7, 8],
+    }
+)
+multiple_metrics_df = DataFrame(
+    {
+        "dttm": to_datetime(["2019-01-01", "2019-01-01", "2019-01-02", "2019-01-02",]),
+        "country": ["UK", "US", "UK", "US"],
+        "sum_metric": [5, 6, 7, 8],
+        "count_metric": [1, 2, 3, 4],
     }
 )

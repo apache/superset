@@ -220,8 +220,9 @@ describe('FilterBar', () => {
 
   const renderWrapper = (props = closedBarProps, state?: object) =>
     render(<FilterBar {...props} width={280} height={400} offset={0} />, {
-      useRedux: true,
       initialState: state,
+      useDnd: true,
+      useRedux: true,
       useRouter: true,
     });
 

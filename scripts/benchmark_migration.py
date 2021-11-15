@@ -30,7 +30,7 @@ from flask_appbuilder import Model
 from flask_migrate import downgrade, upgrade
 from graphlib import TopologicalSorter  # pylint: disable=wrong-import-order
 from progress.bar import ChargingBar
-from sqlalchemy import create_engine, inspect, Table
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.ext.automap import automap_base
 
 from superset import db
@@ -44,9 +44,13 @@ def import_migration_script(filepath: Path) -> ModuleType:
     Import migration script as if it were a module.
     """
     spec = importlib.util.spec_from_file_location(filepath.stem, filepath)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)  # type: ignore
-    return module
+    if spec:
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)  # type: ignore
+        return module
+    raise Exception(
+        "No module spec found in location: `{path}`".format(path=str(filepath))
+    )
 
 
 def extract_modified_tables(module: ModuleType) -> Set[str]:
@@ -94,10 +98,21 @@ def find_models(module: ModuleType) -> List[Type[Model]]:
     engine = create_engine(sqlalchemy_uri)
     Base = automap_base()
     Base.prepare(engine, reflect=True)
-    for table in tables:
+    seen = set()
+    while tables:
+        table = tables.pop()
+        seen.add(table)
         model = getattr(Base.classes, table)
         model.__tablename__ = table
         models.append(model)
+
+        # add other models referenced in foreign keys
+        inspector = inspect(model)
+        for column in inspector.columns.values():
+            for foreign_key in column.foreign_keys:
+                table = foreign_key.column.table.name
+                if table not in seen:
+                    tables.add(table)
 
     # sort topologically so we can create entities in order and
     # maintain relationships (eg, create a database before creating
@@ -108,7 +123,8 @@ def find_models(module: ModuleType) -> List[Type[Model]]:
         dependent_tables: List[str] = []
         for column in inspector.columns.values():
             for foreign_key in column.foreign_keys:
-                dependent_tables.append(foreign_key.target_fullname.split(".")[0])
+                if foreign_key.column.table.name != model.__tablename__:
+                    dependent_tables.append(foreign_key.column.table.name)
         sorter.add(model.__tablename__, *dependent_tables)
     order = list(sorter.static_order())
     models.sort(key=lambda model: order.index(model.__tablename__))
@@ -202,6 +218,10 @@ def main(
         results[f"{min_entities}+"] = duration
         min_entities *= 10
 
+    print("\nResults:\n")
+    for label, duration in results.items():
+        print(f"{label}: {duration:.2f} s")
+
     if auto_cleanup:
         print("Cleaning up DB")
         # delete in reverse order of creation to handle relationships
@@ -215,10 +235,6 @@ def main(
         click.confirm(f"\nRevert DB to {revision}?", abort=True)
         upgrade(revision=revision)
         print("Reverted")
-
-    print("\nResults:\n")
-    for label, duration in results.items():
-        print(f"{label}: {duration:.2f} s")
 
 
 if __name__ == "__main__":

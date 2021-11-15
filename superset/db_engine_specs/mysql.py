@@ -109,7 +109,7 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
         "P1D": "DATE({col})",
         "P1W": "DATE(DATE_SUB({col}, " "INTERVAL DAYOFWEEK({col}) - 1 DAY))",
         "P1M": "DATE(DATE_SUB({col}, " "INTERVAL DAYOFMONTH({col}) - 1 DAY))",
-        "P0.25Y": "MAKEDATE(YEAR({col}), 1) "
+        "P3M": "MAKEDATE(YEAR({col}), 1) "
         "+ INTERVAL QUARTER({col}) QUARTER - INTERVAL 1 QUARTER",
         "P1Y": "DATE(DATE_SUB({col}, " "INTERVAL DAYOFYEAR({col}) - 1 DAY))",
         "1969-12-29T00:00:00Z/P1W": "DATE(DATE_SUB({col}, "
@@ -171,6 +171,7 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
     def get_datatype(cls, type_code: Any) -> Optional[str]:
         if not cls.type_code_map:
             # only import and store if needed at least once
+            # pylint: disable=import-outside-toplevel
             import MySQLdb
 
             ft = MySQLdb.constants.FIELD_TYPE
@@ -200,7 +201,7 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
         return message
 
     @classmethod
-    def get_column_spec(  # type: ignore
+    def get_column_spec(
         cls,
         native_type: Optional[str],
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
