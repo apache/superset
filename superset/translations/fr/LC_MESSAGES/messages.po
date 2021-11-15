@@ -1188,7 +1188,7 @@ msgstr "Décalage du temps (offset)"
 
 #: superset/connectors/druid/views.py:349
 msgid "Datasource Name"
-msgstr "Nom source de donnée"
+msgstr "Nom source de données"
 
 #: superset/connectors/druid/views.py:350
 msgid "Fetch Values From"
