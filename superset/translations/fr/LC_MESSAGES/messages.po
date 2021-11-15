@@ -2482,7 +2482,7 @@ msgstr "La planification de rapport n'a pas pu être mise à jour."
 
 #: superset/reports/commands/exceptions.py:100
 msgid "Report Schedule not found."
-msgstr "planification de rapport introuvable"
+msgstr "Planification de rapport introuvable"
 
 #: superset/reports/commands/exceptions.py:104
 msgid "Report Schedule delete failed."
