@@ -252,7 +252,7 @@ export default class Chart extends React.Component {
       formData: isFullCSV
         ? { ...this.props.formData, row_limit: this.props.maxRows }
         : this.props.formData,
-      resultType: 'results',
+      resultType: 'full',
       resultFormat: 'csv',
     });
   }

@@ -58,6 +58,13 @@ class AdhocMetric(TypedDict, total=False):
     aggregate: str
     column: Optional[AdhocMetricColumn]
     expressionType: Literal["SIMPLE", "SQL"]
+    hasCustomLabel: Optional[bool]
+    label: Optional[str]
+    sqlExpression: Optional[str]
+
+
+class AdhocColumn(TypedDict, total=False):
+    hasCustomLabel: Optional[bool]
     label: Optional[str]
     sqlExpression: Optional[str]
 
@@ -72,6 +79,7 @@ FilterValue = Union[bool, datetime, float, int, str]
 FilterValues = Union[FilterValue, List[FilterValue], Tuple[FilterValue]]
 FormData = Dict[str, Any]
 Granularity = Union[str, Dict[str, Union[str, float]]]
+Column = Union[AdhocColumn, str]
 Metric = Union[AdhocMetric, str]
 OrderBy = Tuple[Metric, bool]
 QueryObjectDict = Dict[str, Any]

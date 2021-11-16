@@ -28,7 +28,9 @@ from superset.utils.core import (
     extract_column_dtype,
     extract_dataframe_dtypes,
     ExtraFiltersReasonType,
+    get_column_name,
     get_time_filter_status,
+    is_adhoc_column,
 )
 
 if TYPE_CHECKING:
@@ -114,14 +116,16 @@ def _get_full(
         datasource, query_obj.applied_time_extras
     )
     payload["applied_filters"] = [
-        {"column": col}
+        {"column": get_column_name(col)}
         for col in filter_columns
-        if col in columns or col in applied_template_filters
+        if is_adhoc_column(col) or col in columns or col in applied_template_filters
     ] + applied_time_columns
     payload["rejected_filters"] = [
         {"reason": ExtraFiltersReasonType.COL_NOT_IN_DATASOURCE, "column": col}
         for col in filter_columns
-        if col not in columns and col not in applied_template_filters
+        if not is_adhoc_column(col)
+        and col not in columns
+        and col not in applied_template_filters
     ] + rejected_time_columns
 
     if result_type == ChartDataResultType.RESULTS and status != QueryStatus.FAILED:

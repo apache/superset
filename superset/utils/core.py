@@ -81,7 +81,6 @@ from sqlalchemy import event, exc, inspect, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.sql.elements import TextClause
 from sqlalchemy.sql.type_api import Variant
 from sqlalchemy.types import TEXT, TypeDecorator, TypeEngine
 from typing_extensions import TypedDict, TypeGuard
@@ -99,8 +98,10 @@ from superset.exceptions import (
     SupersetTimeoutException,
 )
 from superset.typing import (
+    AdhocColumn,
     AdhocMetric,
     AdhocMetricColumn,
+    Column,
     FilterValues,
     FlaskResponse,
     FormData,
@@ -131,8 +132,6 @@ TIME_COMPARISION = "__"
 JS_MAX_INTEGER = 9007199254740991  # Largest int Java Script can handle 2^53-1
 
 InputType = TypeVar("InputType")
-
-BIND_PARAM_REGEX = TextClause._bind_params_regex  # pylint: disable=protected-access
 
 
 class LenientEnum(Enum):
@@ -1268,6 +1267,29 @@ def is_adhoc_metric(metric: Metric) -> TypeGuard[AdhocMetric]:
     return isinstance(metric, dict) and "expressionType" in metric
 
 
+def is_adhoc_column(column: Column) -> TypeGuard[AdhocColumn]:
+    return isinstance(column, dict)
+
+
+def get_column_name(column: Column) -> str:
+    """
+    Extract label from column
+
+    :param column: object to extract label from
+    :return: String representation of column
+    :raises ValueError: if metric object is invalid
+    """
+    if isinstance(column, dict):
+        label = column.get("label")
+        if label:
+            return label
+        expr = column.get("sqlExpression")
+        if expr:
+            return expr
+        raise Exception("Missing label")
+    return column
+
+
 def get_metric_name(metric: Metric) -> str:
     """
     Extract label from metric
@@ -1297,11 +1319,15 @@ def get_metric_name(metric: Metric) -> str:
     return metric  # type: ignore
 
 
-def get_metric_names(metrics: Sequence[Metric]) -> List[str]:
-    return [metric for metric in map(get_metric_name, metrics) if metric]
+def get_column_names(columns: Optional[Sequence[Column]]) -> List[str]:
+    return [column for column in map(get_column_name, columns or []) if column]
 
 
-def get_first_metric_name(metrics: Sequence[Metric]) -> Optional[str]:
+def get_metric_names(metrics: Optional[Sequence[Metric]]) -> List[str]:
+    return [metric for metric in map(get_metric_name, metrics or []) if metric]
+
+
+def get_first_metric_name(metrics: Optional[Sequence[Metric]]) -> Optional[str]:
     metric_labels = get_metric_names(metrics)
     return metric_labels[0] if metric_labels else None
 
@@ -1519,6 +1545,30 @@ def get_form_data_token(form_data: Dict[str, Any]) -> str:
     :return: original token if predefined, otherwise new uuid4 based token
     """
     return form_data.get("token") or "token_" + uuid.uuid4().hex[:8]
+
+
+def get_column_name_from_column(column: Column) -> Optional[str]:
+    """
+    Extract the physical column that a column is referencing. If the column is
+    an adhoc column, always returns `None`.
+
+    :param column: Physical and ad-hoc column
+    :return: column name if physical column, otherwise None
+    """
+    if is_adhoc_column(column):
+        return None
+    return column  # type: ignore
+
+
+def get_column_names_from_columns(columns: List[Column]) -> List[str]:
+    """
+    Extract the physical columns that a list of columns are referencing. Ignore
+    adhoc columns
+
+    :param columns: Physical and adhoc columns
+    :return: column names of all physical columns
+    """
+    return [col for col in map(get_column_name_from_column, columns) if col]
 
 
 def get_column_name_from_metric(metric: Metric) -> Optional[str]:
@@ -1771,29 +1821,3 @@ def apply_max_row_limit(limit: int, max_limit: Optional[int] = None,) -> int:
     if limit != 0:
         return min(max_limit, limit)
     return max_limit
-
-
-def escape_sqla_query_binds(sql: str) -> str:
-    """
-    Replace strings in a query that SQLAlchemy would otherwise interpret as
-    bind parameters.
-
-    :param sql: unescaped query string
-    :return: escaped query string
-    >>> escape_sqla_query_binds("select ':foo'")
-    "select '\\\\:foo'"
-    >>> escape_sqla_query_binds("select 'foo'::TIMESTAMP")
-    "select 'foo'::TIMESTAMP"
-    >>> escape_sqla_query_binds("select ':foo :bar'::TIMESTAMP")
-    "select '\\\\:foo \\\\:bar'::TIMESTAMP"
-    >>> escape_sqla_query_binds("select ':foo :foo :bar'::TIMESTAMP")
-    "select '\\\\:foo \\\\:foo \\\\:bar'::TIMESTAMP"
-    """
-    matches = BIND_PARAM_REGEX.finditer(sql)
-    processed_binds = set()
-    for match in matches:
-        bind = match.group(0)
-        if bind not in processed_binds:
-            sql = sql.replace(bind, bind.replace(":", "\\:"))
-            processed_binds.add(bind)
-    return sql
