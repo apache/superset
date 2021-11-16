@@ -20,7 +20,6 @@ from typing import Any, Dict, Optional
 from flask import Request
 from marshmallow import ValidationError
 
-from superset import cache
 from superset.charts.commands.exceptions import (
     ChartDataCacheLoadError,
     ChartDataQueryFailedError,
@@ -36,10 +35,7 @@ logger = logging.getLogger(__name__)
 
 
 class ChartDataCommand(BaseCommand):
-    def __init__(self) -> None:
-        self._form_data: Dict[str, Any]
-        self._query_context: QueryContext
-        self._async_channel_id: str
+    _query_context: QueryContext
 
     def run(self, **kwargs: Any) -> Dict[str, Any]:
         # caching is handled in query_context.get_df_payload
@@ -67,35 +63,27 @@ class ChartDataCommand(BaseCommand):
 
         return return_value
 
-    def run_async(self, user_id: Optional[str]) -> Dict[str, Any]:
-        job_metadata = async_query_manager.init_job(self._async_channel_id, user_id)
-        load_chart_data_into_cache.delay(job_metadata, self._form_data)
-
-        return job_metadata
-
     def set_query_context(self, form_data: Dict[str, Any]) -> QueryContext:
-        self._form_data = form_data
         try:
-            self._query_context = ChartDataQueryContextSchema().load(self._form_data)
+            self._query_context = ChartDataQueryContextSchema().load(form_data)
         except KeyError as ex:
             raise ValidationError("Request is incorrect") from ex
         except ValidationError as error:
             raise error
-
         return self._query_context
 
     def validate(self) -> None:
         self._query_context.raise_for_access()
 
-    def validate_async_request(self, request: Request) -> None:
+
+class CreateAsyncChartDataJobCommand:
+    _async_channel_id: str
+
+    def validate(self, request: Request) -> None:
         jwt_data = async_query_manager.parse_jwt_from_request(request)
         self._async_channel_id = jwt_data["channel"]
 
-    def load_query_context_from_cache(  # pylint: disable=no-self-use
-        self, cache_key: str
-    ) -> Dict[str, Any]:
-        cache_value = cache.get(cache_key)
-        if not cache_value:
-            raise ChartDataCacheLoadError("Cached data not found")
-
-        return cache_value["data"]
+    def run(self, form_data: Dict[str, Any], user_id: Optional[str]) -> Dict[str, Any]:
+        job_metadata = async_query_manager.init_job(self._async_channel_id, user_id)
+        load_chart_data_into_cache.delay(job_metadata, form_data)
+        return job_metadata

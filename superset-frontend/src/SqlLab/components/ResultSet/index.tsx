@@ -147,6 +147,7 @@ const ResultSetErrorMessage = styled.div`
 `;
 
 const updateDataset = async (
+  dbId: number,
   datasetId: number,
   sql: string,
   columns: Array<Record<string, any>>,
@@ -159,6 +160,7 @@ const updateDataset = async (
     sql,
     columns,
     owners,
+    database_id: dbId,
   });
 
   const data: JsonResponse = await SupersetClient.put({
@@ -272,10 +274,11 @@ export default class ResultSet extends React.PureComponent<
   };
 
   handleOverwriteDataset = async () => {
-    const { sql, results } = this.props.query;
+    const { sql, results, dbId } = this.props.query;
     const { datasetToOverwrite } = this.state;
 
     await updateDataset(
+      dbId,
       datasetToOverwrite.datasetId,
       sql,
       results.selected_columns.map(d => ({ column_name: d.name })),
