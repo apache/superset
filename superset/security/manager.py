@@ -1418,3 +1418,42 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if resource["type"] == resource_type.value and str(resource["id"]) == strid:
                 return True
         return False
+
+    def get_view_menus_for_database(self, database_name: str) -> List["ViewMenu"]:
+        """
+        Retrieves all FAB view menus related to a database name
+
+        :param database_name: Database name
+        :returns: A list of FAB view menus related to the database
+        """
+        return (
+            self.get_session.query(self.viewmenu_model)
+            .filter(self.viewmenu_model.name.like(f"[{database_name}].%"))
+            .all()
+        )
+
+    def cleanup_database_permissions(self, database_name: str) -> None:
+        """
+        Removes all FAB view menus, permission view menus, and pvm-role
+        associations for a database after it's deleted or renamed.
+
+        :param database_name: Database name that no longer exists
+        """
+        view_menus = self.get_view_menus_for_database(database_name)
+        view_menu_ids = [vm.id for vm in view_menus]
+
+        pvms = (
+            self.get_session.query(PermissionView)
+            .filter(PermissionView.view_menu_id.in_(view_menu_ids))
+            .all()
+        )
+        pvm_ids = [pvm.id for pvm in pvms]
+
+        self.get_session.query(assoc_permissionview_role).filter(
+            assoc_permissionview_role.c.permission_view_id.in_(pvm_ids)
+        ).delete(synchronize_session=False)
+
+        for pvm in pvms:
+            self.get_session.delete(pvm)
+        for vm in view_menus:
+            self.get_session.delete(vm)

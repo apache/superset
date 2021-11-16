@@ -47,9 +47,12 @@ class UpdateDatabaseCommand(BaseCommand):
     def run(self) -> Model:
         self.validate()
         try:
+            old_name = self._model.database_name
             database = DatabaseDAO.update(self._model, self._properties, commit=False)
             database.set_sqlalchemy_uri(database.sqlalchemy_uri)
             security_manager.add_permission_view_menu("database_access", database.perm)
+            if old_name != database.database_name:
+                security_manager.cleanup_database_permissions(old_name)
             # adding a new database we always want to force refresh schema list
             # TODO Improve this simplistic implementation for catching DB conn fails
             try:
