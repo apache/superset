@@ -23,9 +23,14 @@ from superset.db_engine_specs.elasticsearch import (
     OpenDistroEngineSpec,
 )
 from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
+import pytest
 
 
 class TestElasticSearchDbEngineSpec(TestDbEngineSpec):
+    @pytest.fixture(autouse=True)
+    def inject_fixtures(self, caplog):
+        self._caplog = caplog
+
     def test_convert_dttm(self):
         dttm = self.get_dttm()
 
@@ -52,7 +57,7 @@ class TestElasticSearchDbEngineSpec(TestDbEngineSpec):
         db_extra = {"version": 7.8}
 
         self.assertEqual(
-            ElasticSearchEngineSpec.convert_dttm("DATETIME", dttm, db_extra=None),
+            ElasticSearchEngineSpec.convert_dttm("DATETIME", dttm, db_extra=db_extra),
             "CAST('2019-01-02T03:04:05' AS DATETIME)",
         )
 
@@ -61,7 +66,7 @@ class TestElasticSearchDbEngineSpec(TestDbEngineSpec):
             "DATETIME_PARSE('2019-01-02 03:04:05', 'yyyy-MM-dd HH:mm:ss')",
         )
 
-        self.assertIn("Unexpected error while convert es_version", caplog.text)
+        self.assertIn("Unexpected error while convert es_version", self._caplog.text)
 
     def test_opendistro_convert_dttm(self):
         """
