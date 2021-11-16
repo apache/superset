@@ -215,10 +215,10 @@ PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefi
 # GLOBALS FOR APP Builder
 # ------------------------------
 # Uncomment to setup Your App name
-APP_NAME = "Superset"
+APP_NAME = "Telus Superset"
 
 # Specify the App icon
-APP_ICON = "/static/assets/images/superset-logo-horiz.png"
+APP_ICON = "https://images.ctfassets.net/3viuren4us1n/3d0MQgsfIcokw8qoMyEOAm/1c334e20730897f26e505de0d5909f5c/telus-logo-2020.png"
 APP_ICON_WIDTH = 126
 
 # Specify where clicking the logo would take the user

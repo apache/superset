@@ -30,7 +30,7 @@ under the License.
 [![Dependencies Status](https://david-dm.org/apache/superset/status.svg?path=superset-frontend)](https://david-dm.org/apache/superset?path=superset-frontend)
 
 <img
-  src="https://github.com/apache/superset/raw/master/superset-frontend/src/assets/branding/superset-logo-horiz-apache.png"
+  src="https://www.google.com/imgres?imgurl=https%3A%2F%2Fcdn.mos.cms.futurecdn.net%2FsYa3E8d2EbVjLNAxcsGhRL.png&imgrefurl=https%3A%2F%2Fwww.tvtechnology.com%2Fnews%2Fcanadas-telus-claims-hdr-first&tbnid=55mRBRX9PrVc1M&vet=12ahUKEwjA_8-E0o_0AhX8_DgGHUGiCVEQMygIegUIARDoAQ..i&docid=l4cOIhIw-0px3M&w=1500&h=527&itg=1&q=telus%20logo&ved=2ahUKEwjA_8-E0o_0AhX8_DgGHUGiCVEQMygIegUIARDoAQ"
   alt="Superset"
   width="500"
 />
