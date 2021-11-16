@@ -23,7 +23,7 @@ module.exports = {
     'prettier/react',
     'plugin:react-hooks/recommended',
   ],
-  parser: 'babel-eslint',
+  parser: '@babel/eslint-parser',
   parserOptions: {
     ecmaFeatures: {
       experimentalObjectRestSpread: true,
@@ -38,7 +38,7 @@ module.exports = {
       version: 'detect',
     },
   },
-  plugins: ['prettier', 'react'],
+  plugins: ['prettier', 'react', 'file-progress'],
   overrides: [
     {
       files: ['cypress-base/**/*'],
@@ -108,13 +108,19 @@ module.exports = {
         'no-prototype-builtins': 0,
         'no-restricted-properties': 0,
         'no-restricted-imports': [
-          'error',
+          'warn',
           {
             paths: [
               {
                 name: 'antd',
                 message:
                   'Please import Ant components from the index of common/components',
+              },
+              {
+                name: '@superset-ui/core',
+                importNames: ['supersetTheme'],
+                message:
+                  'Please use the theme directly from the ThemeProvider rather than importing supersetTheme.',
               },
             ],
           },
@@ -139,6 +145,7 @@ module.exports = {
         'react/sort-comp': 0, // TODO: re-enable in separate PR
         'react/static-property-placement': 0, // re-enable up for discussion
         'prettier/prettier': 'error',
+        'file-progress/activate': 1,
       },
       settings: {
         'import/resolver': {
@@ -167,6 +174,7 @@ module.exports = {
         'src/**/*.test.tsx',
         'src/**/*.test.js',
         'src/**/*.test.jsx',
+        'src/**/fixtures.*',
       ],
       plugins: ['jest', 'jest-dom', 'no-only-tests', 'testing-library'],
       env: {

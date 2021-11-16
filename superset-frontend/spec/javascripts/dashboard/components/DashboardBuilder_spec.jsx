@@ -23,7 +23,6 @@ import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 import { ParentSize } from '@vx/responsive';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import { Sticky, StickyContainer } from 'react-sticky';
 import Tabs from 'src/components/Tabs';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -90,14 +89,14 @@ describe('DashboardBuilder', () => {
 
   it('should render a StickyContainer with class "dashboard"', () => {
     const wrapper = setup();
-    const stickyContainer = wrapper.find(StickyContainer);
+    const stickyContainer = wrapper.find('[data-test="dashboard-content"]');
     expect(stickyContainer).toHaveLength(1);
     expect(stickyContainer.prop('className')).toBe('dashboard');
   });
 
   it('should add the "dashboard--editing" class if editMode=true', () => {
     const wrapper = setup({ dashboardState: { editMode: true } });
-    const stickyContainer = wrapper.find(StickyContainer).first();
+    const stickyContainer = wrapper.find('[data-test="dashboard-content"]');
     expect(stickyContainer.prop('className')).toBe(
       'dashboard dashboard--editing',
     );
@@ -113,12 +112,12 @@ describe('DashboardBuilder', () => {
       { dashboardLayout: undoableDashboardLayoutWithTabs },
       mockStoreWithTabs,
     );
-    const sticky = wrapper.find(Sticky);
+
+    const sticky = wrapper.find('[data-test="top-level-tabs"]');
     const dashboardComponent = sticky.find(DashboardComponent);
 
     const tabChildren =
       undoableDashboardLayoutWithTabs.present.TABS_ID.children;
-    expect(sticky).toHaveLength(1);
     expect(dashboardComponent).toHaveLength(1 + tabChildren.length); // tab + tabs
     expect(dashboardComponent.at(0).prop('id')).toBe('TABS_ID');
     tabChildren.forEach((tabId, i) => {

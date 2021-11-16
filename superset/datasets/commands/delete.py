@@ -75,7 +75,7 @@ class DeleteDatasetCommand(BaseCommand):
         except (SQLAlchemyError, DAODeleteFailedError) as ex:
             logger.exception(ex)
             db.session.rollback()
-            raise DatasetDeleteFailedError()
+            raise DatasetDeleteFailedError() from ex
         return dataset
 
     def validate(self) -> None:
@@ -86,5 +86,5 @@ class DeleteDatasetCommand(BaseCommand):
         # Check ownership
         try:
             check_ownership(self._model)
-        except SupersetSecurityException:
-            raise DatasetForbiddenError()
+        except SupersetSecurityException as ex:
+            raise DatasetForbiddenError() from ex

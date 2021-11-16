@@ -83,7 +83,9 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "active",
         "chart.id",
         "chart.slice_name",
+        "chart.viz_type",
         "context_markdown",
+        "creation_method",
         "crontab",
         "dashboard.dashboard_title",
         "dashboard.id",
@@ -105,6 +107,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "recipients.type",
         "report_format",
         "sql",
+        "timezone",
         "type",
         "validator_config_json",
         "validator_type",
@@ -123,8 +126,10 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "created_by.first_name",
         "created_by.last_name",
         "created_on",
+        "creation_method",
         "crontab",
         "crontab_humanized",
+        "description",
         "id",
         "last_eval_dttm",
         "last_state",
@@ -134,12 +139,14 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "owners.last_name",
         "recipients.id",
         "recipients.type",
+        "timezone",
         "type",
     ]
     add_columns = [
         "active",
         "chart",
         "context_markdown",
+        "creation_method",
         "crontab",
         "dashboard",
         "database",
@@ -151,6 +158,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "recipients",
         "report_format",
         "sql",
+        "timezone",
         "type",
         "validator_config_json",
         "validator_type",
@@ -162,6 +170,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
 
     order_columns = [
         "active",
+        "description",
         "created_by.first_name",
         "changed_by.first_name",
         "changed_on",
@@ -173,7 +182,16 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "type",
         "crontab_humanized",
     ]
-    search_columns = ["name", "active", "created_by", "type", "last_state"]
+    search_columns = [
+        "name",
+        "active",
+        "created_by",
+        "type",
+        "last_state",
+        "creation_method",
+        "dashboard_id",
+        "chart_id",
+    ]
     search_filters = {"name": [ReportScheduleAllTextFilter]}
     allowed_rel_fields = {"owners", "chart", "dashboard", "database", "created_by"}
     filter_rel_fields = {
@@ -253,7 +271,6 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
 
     @expose("/", methods=["POST"])
     @protect()
-    @safe
     @statsd_metrics
     @permission_name("post")
     def post(self) -> Response:
@@ -318,7 +335,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @permission_name("put")
-    def put(self, pk: int) -> Response:  # pylint: disable=too-many-return-statements
+    def put(self, pk: int) -> Response:
         """Updates an Report Schedule
         ---
         put:

@@ -77,6 +77,8 @@ little bit helps, and credit will always be given.
     - [Python Testing](#python-testing)
     - [Frontend Testing](#frontend-testing)
     - [Integration Testing](#integration-testing)
+    - [Debugging Server App](#debugging-server-app)
+    - [Debugging Server App in Kubernetes Environment](#debugging-server-app-in-kubernetes-environment)
     - [Storybook](#storybook)
   - [Translating](#translating)
     - [Enabling language selection](#enabling-language-selection)
@@ -407,20 +409,21 @@ referenced in the rst, e.g.
     .. image:: _static/images/tutorial/tutorial_01_sources_database.png
 
 aren't actually stored in that directory. Instead, you should add and commit
-images (and any other static assets) to the `superset-frontend/images` directory.
+images (and any other static assets) to the `superset-frontend/src/assets/images` directory.
 When the docs are deployed to https://superset.apache.org/, images
 are copied from there to the `_static/images` directory, just like they're referenced
 in the docs.
 
-For example, the image referenced above actually lives in `superset-frontend/images/tutorial`. Since the image is moved during the documentation build process, the docs reference the image in `_static/images/tutorial` instead.
+For example, the image referenced above actually lives in `superset-frontend/src/assets/images/tutorial`. Since the image is moved during the documentation build process, the docs reference the image in `_static/images/tutorial` instead.
 
 ### Flask server
 
 #### OS Dependencies
 
 Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/installing-superset-from-scratch#os-dependencies) before following these steps.
+You also need to install MySQL or [MariaDB](https://mariadb.com/downloads).
 
-Ensure Python versions >3.7, Then proceed with:
+Ensure that you are using Python version 3.7 or 3.8, then proceed with:
 
 ````bash
 # Create a virtual environment and activate it (recommended)
@@ -428,27 +431,29 @@ python3 -m venv venv # setup a python3 virtualenv
 source venv/bin/activate
 
 # Install external dependencies
-pip install -r requirements/local.txt
+pip install -r requirements/testing.txt
 
 # Install Superset in editable (development) mode
 pip install -e .
 
-# Create an admin user in your metadata database
-superset fab create-admin
-
 # Initialize the database
 superset db upgrade
+
+# Create an admin user in your metadata database (use `admin` as username to be able to load the examples)
+superset fab create-admin
 
 # Create default roles and permissions
 superset init
 
-# Load some data to play with (you must create an Admin user with the username `admin` for this command to work)
+# Load some data to play with.
+# Note: you MUST have previously created an admin user with the username `admin` for this command to work.
 superset load-examples
 
 # Start the Flask dev web server from inside your virtualenv.
-# Note that your page may not have css at this point.
+# Note that your page may not have CSS at this point.
 # See instructions below how to build the front-end assets.
 FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
+```
 
 Or you can install via our Makefile
 
@@ -472,6 +477,17 @@ via `.flaskenv`, however if needed, it should be set to `superset.app:create_app
 
 If you have made changes to the FAB-managed templates, which are not built the same way as the newer, React-powered front-end assets, you need to start the app without the `--with-threads` argument like so:
 `FLASK_ENV=development superset run -p 8088 --reload --debugger`
+
+#### Dependencies
+
+If you add a new requirement or update an existing requirement (per the `install_requires` section in `setup.py`) you must recompile (freeze) the Python dependencies to ensure that for CI, testing, etc. the build is deterministic. This can be achieved via,
+
+```bash
+$ python3 -m venv venv
+$ source venv/bin/activate
+$ python3 -m pip install -r requirements/integration.txt
+$ pip-compile-multi --no-upgrade
+```
 
 #### Logging to the browser console
 
@@ -506,7 +522,12 @@ Frontend assets (TypeScript, JavaScript, CSS, and images) must be compiled in or
 
 ##### nvm and node
 
-First, be sure you are using recent versions of Node.js and npm. We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage your node environment:
+First, be sure you are using the following versions of Node.js and npm:
+
+- `Node.js`: Version 16
+- `npm`: Version 7
+
+We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage your node environment:
 
 ```bash
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install.sh | bash
@@ -523,12 +544,6 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install
 ```
 
 For those interested, you may also try out [avn](https://github.com/nvm-sh/nvm#deeper-shell-integration) to automatically switch to the node version that is required to run Superset frontend.
-
-We have upgraded our `package-lock.json` to use `lockfileversion: 2` from npm 7, so please make sure you have installed npm 7, too:
-
-```bash
-npm install -g npm@7
-```
 
 #### Install dependencies
 
@@ -636,21 +651,34 @@ pre-commit run --all-files
 
 ## Linting
 
-Lint the project with:
+### Python
+
+We use [Pylint](https://pylint.org/) for linting which can be invoked via:
 
 ```bash
 # for python
 tox -e pylint
+```
 
-Alternatively, you can use pre-commit (mentioned above) for python linting
+In terms of best practices please advoid blanket disablement of Pylint messages globally (via `.pylintrc`) or top-level within the file header, albeit there being a few exceptions. Disablement should occur inline as it prevents masking issues and provides context as to why said message is disabled.
 
-The Python code is auto-formatted using [Black](https://github.com/python/black) which
+Additionally the Python code is auto-formatted using [Black](https://github.com/python/black) which
 is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/editor_integration.html)
 
-# for frontend
+### TypeScript
+
+```bash
 cd superset-frontend
 npm ci
 npm run lint
+```
+
+If using the eslint extension with vscode, put the following in your workspace `settings.json` file:
+
+```json
+"eslint.workingDirectories": [
+  "superset-frontend"
+]
 ```
 
 ## Conventions
@@ -738,13 +766,19 @@ Note that the test environment uses a temporary directory for defining the
 SQLite databases which will be cleared each time before the group of test
 commands are invoked.
 
-There is also a utility script included in the Superset codebase to run python tests. The [readme can be
+There is also a utility script included in the Superset codebase to run python integration tests. The [readme can be
 found here](https://github.com/apache/superset/tree/master/scripts/tests)
 
-To run all tests for example, run this script from the root directory:
+To run all integration tests for example, run this script from the root directory:
 
 ```bash
 scripts/tests/run.sh
+```
+
+You can run unit tests found in './tests/unit_tests' for example with pytest. It is a simple way to run an isolated test that doesn't need any database setup
+
+```bash
+pytest ./link_to_test.py
 ```
 
 ### Frontend Testing
@@ -767,7 +801,7 @@ npm run test -- path/to/file.js
 We use [Cypress](https://www.cypress.io/) for integration tests. Tests can be run by `tox -e cypress`. To open Cypress and explore tests first setup and run test server:
 
 ```bash
-export SUPERSET_CONFIG=tests.superset_test_config
+export SUPERSET_CONFIG=tests.integration_tests.superset_test_config
 export SUPERSET_TESTENV=true
 export ENABLE_REACT_CRUD_VIEWS=true
 export CYPRESS_BASE_URL="http://localhost:8081"
@@ -791,7 +825,7 @@ npm install
 npm run cypress-run-chrome
 
 # run tests from a specific file
-npm run cypress-run-chrome -- --spec cypress/integration/explore/link.test.js
+npm run cypress-run-chrome -- --spec cypress/integration/explore/link.test.ts
 
 # run specific file with video capture
 npm run cypress-run-chrome -- --spec cypress/integration/dashboard/index.test.js --config video=true
@@ -877,7 +911,7 @@ apt install -y net-tools
 pip install debugpy
 ```
 
-Find the PID for the Flask process. Make sure to use the first PID. The Flask app will re-spawn a sub-process everytime you change any of the python code. So it's important to use the first PID.
+Find the PID for the Flask process. Make sure to use the first PID. The Flask app will re-spawn a sub-process every time you change any of the python code. So it's important to use the first PID.
 
 ```bash
 ps -ef
@@ -948,7 +982,7 @@ Once the pod is running as root and has the SYS_PTRACE capability it will be abl
 
 You can follow the same instructions as in the docker-compose. Enter the pod and install the required library and packages; gdb, netstat and debugpy.
 
-Often in a kuernetes environment nodes are not addressable from ouside the cluster. VSCode will thus be unable to remotely connect to port 5678 on a kubernetes node. In order to do this you need to create a tunnel that port forwards 5678 to your local machine.
+Often in a Kubernetes environment nodes are not addressable from outside the cluster. VSCode will thus be unable to remotely connect to port 5678 on a Kubernetes node. In order to do this you need to create a tunnel that port forwards 5678 to your local machine.
 
 ```
 kubectl port-forward  pod/superset-<some random id> 5678:5678
@@ -1314,7 +1348,7 @@ Chart parameters are stored as a JSON encoded string the `slices.params` column 
 
 The following tables provide a non-exhausive list of the various fields which can be present in the JSON object grouped by the Explorer pane sections. These values were obtained by extracting the distinct fields from a legacy deployment consisting of tens of thousands of charts and thus some fields may be missing whilst others may be deprecated.
 
-Note not all fields are correctly catagorized. The fields vary based on visualization type and may apprear in different sections depending on the type. Verified deprecated columns may indicate a missing migration and/or prior migrations which were unsucessful and thus future work may be required to clean up the form-data.
+Note not all fields are correctly categorized. The fields vary based on visualization type and may apprear in different sections depending on the type. Verified deprecated columns may indicate a missing migration and/or prior migrations which were unsuccessful and thus future work may be required to clean up the form-data.
 
 ### Datasource & Chart Type
 
@@ -1371,6 +1405,7 @@ Note not all fields are correctly catagorized. The fields vary based on visualiz
 | Field                                                                                                  | Type                                              | Notes                                             |
 | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------- | ------------------------------------------------- |
 | `adhoc_filters`                                                                                        | _array(object)_                                   | The **Filters** widget                            |
+| `extra_filters`                                                                                        | _array(object)_                                   | Another pathway to the **Filters** widget.<br/>It is generally used to pass dashboard filter parameters to a chart.<br/>It can be used for appending additional filters to a chart that has been saved with its own filters on an ad-hoc basis if the chart is being used as a standalone widget.<br/><br/>For implementation examples see : [utils test.py](https://github.com/apache/superset/blob/66a4c94a1ed542e69fe6399bab4c01d4540486cf/tests/utils_tests.py#L181)<br/>For insight into how superset processes the contents of this parameter see: [exploreUtils/index.js](https://github.com/apache/superset/blob/93c7f5bb446ec6895d7702835f3157426955d5a9/superset-frontend/src/explore/exploreUtils/index.js#L159)                         |
 | `columns`                                                                                              | _array(string)_                                   | The **Breakdowns** widget                         |
 | `groupby`                                                                                              | _array(string)_                                   | The **Group by** or **Series** widget             |
 | `limit`                                                                                                | _number_                                          | The **Series Limit** widget                       |
@@ -1417,7 +1452,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `default_filters`             | _N/A_ |       |
 | `entity`                      | _N/A_ |       |
 | `expanded_slices`             | _N/A_ |       |
-| `extra_filters`               | _N/A_ |       |
 | `filter_immune_slice_fields`  | _N/A_ |       |
 | `filter_immune_slices`        | _N/A_ |       |
 | `flt_col_0`                   | _N/A_ |       |

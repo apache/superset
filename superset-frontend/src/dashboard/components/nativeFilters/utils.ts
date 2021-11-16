@@ -47,6 +47,7 @@ export const getFormData = ({
   adhoc_filters,
   time_range,
   granularity_sqla,
+  type,
 }: Partial<Filter> & {
   datasetId?: number;
   inputRef?: RefObject<HTMLInputElement>;
@@ -83,8 +84,10 @@ export const getFormData = ({
     time_range,
     time_range_endpoints: ['inclusive', 'exclusive'],
     url_params: extractUrlParams('regular'),
+    inView: true,
     viz_type: filterType,
     inputRef,
+    type,
   };
 };
 

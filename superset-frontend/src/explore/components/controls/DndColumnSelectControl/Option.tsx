@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useCallback } from 'react';
 import { styled, t, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import {
@@ -32,22 +32,35 @@ const StyledInfoTooltipWithTrigger = styled(InfoTooltipWithTrigger)`
   margin: 0 ${({ theme }) => theme.gridUnit}px;
 `;
 
-export default function Option(props: OptionProps) {
+export default function Option({
+  children,
+  index,
+  clickClose,
+  withCaret,
+  isExtra,
+  canDelete = true,
+}: OptionProps) {
   const theme = useTheme();
+  const onClickClose = useCallback(
+    e => {
+      e.stopPropagation();
+      clickClose(index);
+    },
+    [clickClose, index],
+  );
   return (
-    <OptionControlContainer
-      data-test="option-label"
-      withCaret={props.withCaret}
-    >
-      <CloseContainer
-        role="button"
-        data-test="remove-control-button"
-        onClick={() => props.clickClose(props.index)}
-      >
-        <Icons.XSmall iconColor={theme.colors.grayscale.light1} />
-      </CloseContainer>
-      <Label data-test="control-label">{props.children}</Label>
-      {props.isExtra && (
+    <OptionControlContainer data-test="option-label" withCaret={withCaret}>
+      {canDelete && (
+        <CloseContainer
+          role="button"
+          data-test="remove-control-button"
+          onClick={onClickClose}
+        >
+          <Icons.XSmall iconColor={theme.colors.grayscale.light1} />
+        </CloseContainer>
+      )}
+      <Label data-test="control-label">{children}</Label>
+      {isExtra && (
         <StyledInfoTooltipWithTrigger
           icon="exclamation-triangle"
           placement="top"
@@ -58,7 +71,7 @@ export default function Option(props: OptionProps) {
               `)}
         />
       )}
-      {props.withCaret && (
+      {withCaret && (
         <CaretContainer>
           <Icons.CaretRight iconColor={theme.colors.grayscale.light1} />
         </CaretContainer>

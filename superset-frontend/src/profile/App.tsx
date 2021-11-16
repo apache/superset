@@ -23,12 +23,12 @@ import { createStore, applyMiddleware, compose, combineReducers } from 'redux';
 import { Provider } from 'react-redux';
 import { ThemeProvider } from '@superset-ui/core';
 import App from 'src/profile/components/App';
-import messageToastReducer from 'src/messageToasts/reducers';
+import messageToastReducer from 'src/components/MessageToasts/reducers';
 import { initEnhancer } from 'src/reduxUtils';
 import setupApp from 'src/setup/setupApp';
 import './main.less';
 import { theme } from 'src/preamble';
-import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
+import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 
 setupApp();
 
@@ -49,7 +49,7 @@ const Application = () => (
   <Provider store={store}>
     <ThemeProvider theme={theme}>
       <App user={bootstrap.user} />
-      <ToastPresenter />
+      <ToastContainer />
     </ThemeProvider>
   </Provider>
 );

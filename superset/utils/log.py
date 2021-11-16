@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import functools
 import inspect
 import json
@@ -22,14 +24,25 @@ import textwrap
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from datetime import datetime, timedelta
-from typing import Any, Callable, cast, Dict, Iterator, Optional, Type, Union
+from typing import (
+    Any,
+    Callable,
+    cast,
+    Dict,
+    Iterator,
+    Optional,
+    Type,
+    TYPE_CHECKING,
+    Union,
+)
 
 from flask import current_app, g, request
 from flask_appbuilder.const import API_URI_RIS_KEY
 from sqlalchemy.exc import SQLAlchemyError
 from typing_extensions import Literal
 
-from superset.stats_logger import BaseStatsLogger
+if TYPE_CHECKING:
+    from superset.stats_logger import BaseStatsLogger
 
 
 def collect_request_payload() -> Dict[str, Any]:
@@ -112,6 +125,7 @@ class AbstractEventLogger(ABC):
         log_to_statsd: bool = True,
         **payload_override: Optional[Dict[str, Any]],
     ) -> None:
+        # pylint: disable=import-outside-toplevel
         from superset.views.core import get_form_data
 
         referrer = request.referrer[:1000] if request and request.referrer else None
@@ -180,7 +194,7 @@ class AbstractEventLogger(ABC):
         )
 
     @contextmanager
-    def log_context(  # pylint: disable=too-many-locals
+    def log_context(
         self, action: str, object_ref: Optional[str] = None, log_to_statsd: bool = True,
     ) -> Iterator[Callable[..., None]]:
         """
@@ -308,6 +322,7 @@ class DBEventLogger(AbstractEventLogger):
         *args: Any,
         **kwargs: Any,
     ) -> None:
+        # pylint: disable=import-outside-toplevel
         from superset.models.core import Log
 
         records = kwargs.get("records", [])

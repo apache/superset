@@ -33,13 +33,13 @@ const createParams = () => ({
 
 test('Get ExploreUrl with default params', () => {
   const params = createParams();
-  expect(getExploreUrl(params)).toBe('http:///superset/explore/');
+  expect(getExploreUrl(params)).toBe('http://localhost/superset/explore/');
 });
 
 test('Get ExploreUrl with endpointType:full', () => {
   const params = createParams();
   expect(getExploreUrl({ ...params, endpointType: 'full' })).toBe(
-    'http:///superset/explore_json/',
+    'http://localhost/superset/explore_json/',
   );
 });
 
@@ -47,5 +47,5 @@ test('Get ExploreUrl with endpointType:full and method:GET', () => {
   const params = createParams();
   expect(
     getExploreUrl({ ...params, endpointType: 'full', method: 'GET' }),
-  ).toBe('http:///superset/explore_json/');
+  ).toBe('http://localhost/superset/explore_json/');
 });

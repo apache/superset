@@ -21,15 +21,10 @@ import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
 import { styled, t } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
-import Icon from 'src/components/Icon';
 import Modal from 'src/components/Modal';
 import { Upload } from 'src/common/components';
 import { useImportResource } from 'src/views/CRUD/hooks';
 import { ImportResourceName } from 'src/views/CRUD/types';
-
-export const StyledIcon = styled(Icon)`
-  margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
-`;
 
 const HelperMessage = styled.div`
   display: block;

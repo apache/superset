@@ -38,6 +38,9 @@ export interface Chart {
   thumbnail_url?: string;
   owners?: Owner[];
   datasource_name_text?: string;
+  form_data: {
+    viz_type: string;
+  };
 }
 
 export type Slice = {
@@ -47,6 +50,7 @@ export type Slice = {
   description: string | null;
   cache_timeout: number | null;
   form_data?: QueryFormData;
+  query_context?: object;
 };
 
 export default Chart;

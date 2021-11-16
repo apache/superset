@@ -20,6 +20,8 @@ import React from 'react';
 import { styled } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import { ButtonProps as AntdButtonProps } from 'antd/lib/button';
+import Icons from 'src/components/Icons';
+import LinesEllipsis from 'react-lines-ellipsis';
 
 export interface IconButtonProps extends AntdButtonProps {
   buttonText: string;
@@ -33,17 +35,34 @@ const StyledButton = styled(Button)`
   flex-direction: column;
   padding: 0;
 `;
+
 const StyledImage = styled.div`
-  margin: ${({ theme }) => theme.gridUnit * 8}px 0;
   padding: ${({ theme }) => theme.gridUnit * 4}px;
+  height: ${({ theme }) => theme.gridUnit * 18}px;
+  margin: ${({ theme }) => theme.gridUnit * 3}px 0;
+
+  .default-db-icon {
+    font-size: 36px;
+    color: ${({ theme }) => theme.colors.grayscale.base};
+    margin-right: 0;
+    span:first-of-type {
+      margin-right: 0;
+    }
+  }
 
   &:first-of-type {
     margin-right: 0;
   }
 
   img {
-    width: fit-content;
-
+    width: ${({ theme }) => theme.gridUnit * 10}px;
+    height: ${({ theme }) => theme.gridUnit * 10}px;
+    margin: 0;
+    &:first-of-type {
+      margin-right: 0;
+    }
+  }
+  svg {
     &:first-of-type {
       margin-right: 0;
     }
@@ -52,32 +71,21 @@ const StyledImage = styled.div`
 
 const StyledInner = styled.div`
   max-height: calc(1.5em * 2);
-  overflow: hidden;
-  padding-right: 1rem;
-  position: relative;
   white-space: break-spaces;
 
-  &::before {
-    content: '...';
-    inset-block-end: 0; /* "bottom" */
-    inset-inline-end: 8px; /* "right" */
-    position: absolute;
+  &:first-of-type {
+    margin-right: 0;
   }
 
-  &::after {
-    background-color: ${({ theme }) => theme.colors.grayscale.light4};
-    content: '';
-    height: 1rem;
-    inset-inline-end: 8px; /* "right" */
-    position: absolute;
-    top: 4px;
-    width: 1rem;
+  .LinesEllipsis {
+    &:first-of-type {
+      margin-right: 0;
+    }
   }
 `;
 
 const StyledBottom = styled.div`
-  padding: ${({ theme }) => theme.gridUnit * 6}px
-    ${({ theme }) => theme.gridUnit * 4}px;
+  padding: ${({ theme }) => theme.gridUnit * 4}px 0;
   border-radius: 0 0 ${({ theme }) => theme.borderRadius}px
     ${({ theme }) => theme.borderRadius}px;
   background-color: ${({ theme }) => theme.colors.grayscale.light4};
@@ -96,10 +104,24 @@ const IconButton = styled(
   ({ icon, altText, buttonText, ...props }: IconButtonProps) => (
     <StyledButton {...props}>
       <StyledImage>
-        <img src={icon} alt={altText} />
+        {icon && <img src={icon} alt={altText} />}
+        {!icon && (
+          <Icons.DatabaseOutlined
+            className="default-db-icon"
+            aria-label="default-icon"
+          />
+        )}
       </StyledImage>
+
       <StyledBottom>
-        <StyledInner>{buttonText}</StyledInner>
+        <StyledInner>
+          <LinesEllipsis
+            text={buttonText}
+            maxLine="2"
+            basedOn="words"
+            trimRight
+          />
+        </StyledInner>
       </StyledBottom>
     </StyledButton>
   ),
@@ -117,6 +139,7 @@ const IconButton = styled(
     background-color: ${({ theme }) => theme.colors.grayscale.light5};
     color: ${({ theme }) => theme.colors.grayscale.dark2};
     border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    box-shadow: 4px 4px 20px ${({ theme }) => theme.colors.grayscale.light2};
   }
 `;
 

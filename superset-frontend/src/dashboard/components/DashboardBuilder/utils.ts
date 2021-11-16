@@ -37,8 +37,7 @@ export const shouldFocusTabs = (
 ) =>
   // don't focus the tabs when we click on a tab
   event.target.className === 'ant-tabs-nav-wrap' ||
-  (/icon-button/.test(event.target.className) &&
-    container.contains(event.target));
+  container.contains(event.target);
 
 export const getRootLevelTabIndex = (
   dashboardLayout: DashboardLayout,

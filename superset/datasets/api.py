@@ -100,6 +100,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "changed_on_utc",
         "changed_on_delta_humanized",
         "default_endpoint",
+        "description",
+        "datasource_type",
         "explore_url",
         "extra",
         "kind",
@@ -119,7 +121,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "changed_on_delta_humanized",
         "database.database_name",
     ]
-    show_columns = [
+    show_select_columns = [
         "id",
         "database.database_name",
         "database.id",
@@ -139,12 +141,27 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "owners.username",
         "owners.first_name",
         "owners.last_name",
-        "columns",
+        "columns.changed_on",
+        "columns.column_name",
+        "columns.created_on",
+        "columns.description",
+        "columns.expression",
+        "columns.filterable",
+        "columns.groupby",
+        "columns.id",
+        "columns.is_active",
+        "columns.extra",
+        "columns.is_dttm",
+        "columns.python_date_format",
+        "columns.type",
+        "columns.uuid",
+        "columns.verbose_name",
         "metrics",
         "datasource_type",
         "url",
         "extra",
     ]
+    show_columns = show_select_columns + ["columns.type_generic", "database.backend"]
     add_model_schema = DatasetPostSchema()
     edit_model_schema = DatasetPutSchema()
     add_columns = ["database", "schema", "table_name", "owners"]
@@ -399,7 +416,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
         log_to_statsd=False,
-    )
+    )  # pylint: disable=too-many-locals
     def export(self, **kwargs: Any) -> Response:
         """Export datasets
         ---

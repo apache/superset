@@ -85,7 +85,7 @@ describe('ChartTable', () => {
       }
     });
     await waitForComponentToPaint(wrapper);
-    expect(fetchMock.calls(chartsEndpoint)).toHaveLength(3);
+    expect(fetchMock.calls(chartsEndpoint)).toHaveLength(1);
     expect(wrapper.find('ChartCard')).toExist();
   });
 

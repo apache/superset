@@ -17,10 +17,12 @@
 # under the License.
 import json
 import logging
+import textwrap
 from dataclasses import dataclass
 from email.utils import make_msgid, parseaddr
 from typing import Any, Dict, Optional
 
+import bleach
 from flask_babel import gettext as __
 
 from superset import app
@@ -30,6 +32,9 @@ from superset.reports.notifications.exceptions import NotificationError
 from superset.utils.core import send_email_smtp
 
 logger = logging.getLogger(__name__)
+
+TABLE_TAGS = ["table", "th", "tr", "td", "thead", "tbody", "tfoot"]
+TABLE_ATTRIBUTES = ["colspan", "rowspan", "halign", "border", "class"]
 
 
 @dataclass
@@ -68,17 +73,48 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         csv_data = None
         domain = self._get_smtp_domain()
         msgid = make_msgid(domain)[1:-1]
-        body = __(
-            """
-            <p>%(description)s</p>
-            <b><a href="%(url)s">Explore in Superset</a></b><p></p>
-            %(img_tag)s
-            """,
-            description=self._content.description or "",
-            url=self._content.url,
-            img_tag='<img width="1000px" src="cid:{}">'.format(msgid)
+
+        # Strip any malicious HTML from the description
+        description = bleach.clean(self._content.description or "")
+
+        # Strip malicious HTML from embedded data, allowing only table elements
+        if self._content.embedded_data is not None:
+            df = self._content.embedded_data
+            html_table = bleach.clean(
+                df.to_html(na_rep="", index=True),
+                tags=TABLE_TAGS,
+                attributes=TABLE_ATTRIBUTES,
+            )
+        else:
+            html_table = ""
+
+        call_to_action = __("Explore in Superset")
+        img_tag = (
+            f'<img width="1000px" src="cid:{msgid}">'
             if self._content.screenshot
-            else "",
+            else ""
+        )
+        body = textwrap.dedent(
+            f"""
+            <html>
+              <head>
+                <style type="text/css">
+                  table, th, td {{
+                    border-collapse: collapse;
+                    border-color: rgb(200, 212, 227);
+                    color: rgb(42, 63, 95);
+                    padding: 4px 8px;
+                  }}
+                </style>
+              </head>
+              <body>
+                <p>{description}</p>
+                <b><a href="{self._content.url}">{call_to_action}</a></b><p></p>
+                {html_table}
+                {img_tag}
+              </body>
+            </html>
+            """
         )
         if self._content.screenshot:
             image = {msgid: self._content.screenshot}
@@ -115,4 +151,4 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             )
             logger.info("Report sent to email")
         except Exception as ex:
-            raise NotificationError(ex)
+            raise NotificationError(ex) from ex

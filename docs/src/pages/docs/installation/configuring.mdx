@@ -47,7 +47,7 @@ can be altered in your local `superset_config.py`. Administrators will want to r
 to understand what can be configured locally as well as the default values in place.
 
 Since `superset_config.py` acts as a Flask configuration module, it can be used to alter the
-settings Flask itself, as well as Flask extensions like `flask-wtf`, `flask-cache`, `flask-migrate`,
+settings Flask itself, as well as Flask extensions like `flask-wtf`, `flask-caching`, `flask-migrate`,
 and `flask-appbuilder`. Flask App Builder, the web framework used by Superset, offers many
 configuration settings. Please consult the
 [Flask App Builder Documentation](https://flask-appbuilder.readthedocs.org/en/latest/config.html)
@@ -154,6 +154,7 @@ Then, create a `CustomSsoSecurityManager` that extends `SupersetSecurityManager`
 `oauth_user_info`:
 
 ```python
+import logging
 from superset.security import SupersetSecurityManager
 
 class CustomSsoSecurityManager(SupersetSecurityManager):
@@ -200,6 +201,29 @@ CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
   ]
   ```
 
+### Flask app Configuration Hook
+
+`FLASK_APP_MUTATOR` is a configuration function that can be provided in your environment, receives
+the app object and can alter it in any way. For example, add `FLASK_APP_MUTATOR` into your
+`superset_config.py` to setup session cookie expiration time to 24 hours:
+
+```python
+from flask import session
+from flask import Flask
+
+
+def make_session_permanent():
+    '''
+    Enable maxAge for the cookie 'session'
+    '''
+    session.permanent = True
+
+# Set up max age of session to 24 hours
+PERMANENT_SESSION_LIFETIME = timedelta(hours=24)
+def FLASK_APP_MUTATOR(app: Flask) -> None:
+    app.before_request_funcs.setdefault(None, []).append(make_session_permanent)
+```
+
 ### Feature Flags
 
 To support a diverse set of users, Superset has some features that are not enabled by default. For
@@ -217,7 +241,7 @@ FEATURE_FLAGS = {
 }
 ```
 
-A current list of feature flags can be found in `RESOURCES/FEATURE_FLAGS.md`
+A current list of feature flags can be found in [RESOURCES/FEATURE_FLAGS.md](https://github.com/apache/superset/blob/master/RESOURCES/FEATURE_FLAGS.md).
 
 ### SIP 15
 

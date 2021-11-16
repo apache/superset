@@ -16,19 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useMemo, useState } from 'react';
-import { logging, SupersetClient, t, Metric } from '@superset-ui/core';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  FeatureFlag,
+  isFeatureEnabled,
+  logging,
+  Metric,
+  QueryFormData,
+  QueryFormMetric,
+  SupersetClient,
+  t,
+} from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
-import { Tooltip } from 'src/components/Tooltip';
 import {
-  Operators,
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
+  Operators,
 } from 'src/explore/constants';
-import { OptionSortType } from 'src/explore/types';
-import {
-  DndFilterSelectProps,
-  OptionValueType,
-} from 'src/explore/components/controls/DndColumnSelectControl/types';
+import { Datasource, OptionSortType } from 'src/explore/types';
+import { OptionValueType } from 'src/explore/components/controls/DndColumnSelectControl/types';
 import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger';
 import OptionWrapper from 'src/explore/components/controls/DndColumnSelectControl/OptionWrapper';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
@@ -40,13 +45,33 @@ import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetr
 import {
   DatasourcePanelDndItem,
   DndItemValue,
+  isSavedMetric,
 } from 'src/explore/components/DatasourcePanel/types';
 import { DndItemType } from 'src/explore/components/DndItemType';
+import { ControlComponentProps } from 'src/explore/components/Control';
+
+const EMPTY_OBJECT = {};
+const DND_ACCEPTED_TYPES = [
+  DndItemType.Column,
+  DndItemType.Metric,
+  DndItemType.MetricOption,
+  DndItemType.AdhocMetricOption,
+];
 
 const isDictionaryForAdhocFilter = (value: OptionValueType) =>
   !(value instanceof AdhocFilter) && value?.expressionType;
 
+export interface DndFilterSelectProps
+  extends ControlComponentProps<OptionValueType[]> {
+  columns: ColumnMeta[];
+  savedMetrics: Metric[];
+  selectedMetrics: QueryFormMetric[];
+  datasource: Datasource;
+}
+
 export const DndFilterSelect = (props: DndFilterSelectProps) => {
+  const { datasource, onChange = () => {}, name: controlName } = props;
+
   const propsValues = Array.from(props.value ?? []);
   const [values, setValues] = useState(
     propsValues.map((filter: OptionValueType) =>
@@ -55,11 +80,13 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
   );
   const [partitionColumn, setPartitionColumn] = useState(undefined);
   const [newFilterPopoverVisible, setNewFilterPopoverVisible] = useState(false);
-  const [droppedItem, setDroppedItem] = useState<DndItemValue | null>(null);
+  const [droppedItem, setDroppedItem] = useState<
+    DndItemValue | typeof EMPTY_OBJECT
+  >({});
 
   const optionsForSelect = (
     columns: ColumnMeta[],
-    formData: Record<string, any>,
+    formData: QueryFormData | null | undefined,
   ) => {
     const options: OptionSortType[] = [
       ...columns,
@@ -110,7 +137,6 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
   );
 
   useEffect(() => {
-    const { datasource } = props;
     if (datasource && datasource.type === 'table') {
       const dbId = datasource.database?.id;
       const {
@@ -142,7 +168,7 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
           });
       }
     }
-  }, []);
+  }, [datasource]);
 
   useEffect(() => {
     setOptions(optionsForSelect(props.columns, props.formData));
@@ -156,141 +182,176 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
     );
   }, [props.value]);
 
-  const onClickClose = (index: number) => {
-    const valuesCopy = [...values];
-    valuesCopy.splice(index, 1);
-    setValues(valuesCopy);
-    props.onChange(valuesCopy);
-  };
+  const onClickClose = useCallback(
+    (index: number) => {
+      const valuesCopy = [...values];
+      valuesCopy.splice(index, 1);
+      setValues(valuesCopy);
+      onChange(valuesCopy);
+    },
+    [onChange, values],
+  );
 
-  const onShiftOptions = (dragIndex: number, hoverIndex: number) => {
-    const newValues = [...values];
-    [newValues[hoverIndex], newValues[dragIndex]] = [
-      newValues[dragIndex],
-      newValues[hoverIndex],
-    ];
-    setValues(newValues);
-  };
-
-  const getMetricExpression = (savedMetricName: string) =>
-    props.savedMetrics.find(
-      (savedMetric: Metric) => savedMetric.metric_name === savedMetricName,
-    )?.expression;
-
-  const mapOption = (option: OptionValueType) => {
-    // already a AdhocFilter, skip
-    if (option instanceof AdhocFilter) {
-      return option;
-    }
-    const filterOptions = option as Record<string, any>;
-    // via datasource saved metric
-    if (filterOptions.saved_metric_name) {
-      return new AdhocFilter({
-        expressionType:
-          props.datasource.type === 'druid'
-            ? EXPRESSION_TYPES.SIMPLE
-            : EXPRESSION_TYPES.SQL,
-        subject:
-          props.datasource.type === 'druid'
-            ? filterOptions.saved_metric_name
-            : getMetricExpression(filterOptions.saved_metric_name),
-        operator:
-          OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
-        operatorId: Operators.GREATER_THAN,
-        comparator: 0,
-        clause: CLAUSES.HAVING,
-      });
-    }
-    // has a custom label, meaning it's custom column
-    if (filterOptions.label) {
-      return new AdhocFilter({
-        expressionType:
-          props.datasource.type === 'druid'
-            ? EXPRESSION_TYPES.SIMPLE
-            : EXPRESSION_TYPES.SQL,
-        subject:
-          props.datasource.type === 'druid'
-            ? filterOptions.label
-            : new AdhocMetric(option).translateToSql(),
-        operator:
-          OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
-        operatorId: Operators.GREATER_THAN,
-        comparator: 0,
-        clause: CLAUSES.HAVING,
-      });
-    }
-    // add a new filter item
-    if (filterOptions.column_name) {
-      return new AdhocFilter({
-        expressionType: EXPRESSION_TYPES.SIMPLE,
-        subject: filterOptions.column_name,
-        operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.EQUALS].operation,
-        operatorId: Operators.EQUALS,
-        comparator: '',
-        clause: CLAUSES.WHERE,
-        isNew: true,
-      });
-    }
-    return null;
-  };
-
-  const onFilterEdit = (changedFilter: AdhocFilter) => {
-    props.onChange(
-      values.map((value: AdhocFilter) => {
-        if (value.filterOptionName === changedFilter.filterOptionName) {
-          return changedFilter;
-        }
-        return value;
-      }),
-    );
-  };
-
-  const onNewFilter = (newFilter: AdhocFilter) => {
-    const mappedOption = mapOption(newFilter);
-    if (mappedOption) {
-      const newValues = [...values, mappedOption];
+  const onShiftOptions = useCallback(
+    (dragIndex: number, hoverIndex: number) => {
+      const newValues = [...values];
+      [newValues[hoverIndex], newValues[dragIndex]] = [
+        newValues[dragIndex],
+        newValues[hoverIndex],
+      ];
       setValues(newValues);
-      props.onChange(newValues);
-    }
-  };
+    },
+    [values],
+  );
 
-  const togglePopover = (visible: boolean) => {
-    setNewFilterPopoverVisible(visible);
-  };
+  const getMetricExpression = useCallback(
+    (savedMetricName: string) =>
+      props.savedMetrics.find(
+        (savedMetric: Metric) => savedMetric.metric_name === savedMetricName,
+      )?.expression,
+    [props.savedMetrics],
+  );
 
-  const closePopover = () => {
-    togglePopover(false);
-  };
+  const mapOption = useCallback(
+    (option: OptionValueType) => {
+      // already a AdhocFilter, skip
+      if (option instanceof AdhocFilter) {
+        return option;
+      }
+      const filterOptions = option as Record<string, any>;
+      // via datasource saved metric
+      if (filterOptions.saved_metric_name) {
+        return new AdhocFilter({
+          expressionType:
+            datasource.type === 'druid'
+              ? EXPRESSION_TYPES.SIMPLE
+              : EXPRESSION_TYPES.SQL,
+          subject:
+            datasource.type === 'druid'
+              ? filterOptions.saved_metric_name
+              : getMetricExpression(filterOptions.saved_metric_name),
+          operator:
+            OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
+          operatorId: Operators.GREATER_THAN,
+          comparator: 0,
+          clause: CLAUSES.HAVING,
+        });
+      }
+      // has a custom label, meaning it's custom column
+      if (filterOptions.label) {
+        return new AdhocFilter({
+          expressionType:
+            datasource.type === 'druid'
+              ? EXPRESSION_TYPES.SIMPLE
+              : EXPRESSION_TYPES.SQL,
+          subject:
+            datasource.type === 'druid'
+              ? filterOptions.label
+              : new AdhocMetric(option).translateToSql(),
+          operator:
+            OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
+          operatorId: Operators.GREATER_THAN,
+          comparator: 0,
+          clause: CLAUSES.HAVING,
+        });
+      }
+      // add a new filter item
+      if (filterOptions.column_name) {
+        return new AdhocFilter({
+          expressionType: EXPRESSION_TYPES.SIMPLE,
+          subject: filterOptions.column_name,
+          operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.EQUALS].operation,
+          operatorId: Operators.EQUALS,
+          comparator: '',
+          clause: CLAUSES.WHERE,
+          isNew: true,
+        });
+      }
+      return null;
+    },
+    [datasource.type, getMetricExpression],
+  );
 
-  const valuesRenderer = () =>
-    values.map((adhocFilter: AdhocFilter, index: number) => {
-      const label = adhocFilter.getDefaultLabel();
-      return (
-        <AdhocFilterPopoverTrigger
-          key={index}
-          adhocFilter={adhocFilter}
-          options={options}
-          datasource={props.datasource}
-          onFilterEdit={onFilterEdit}
-          partitionColumn={partitionColumn}
-        >
-          <OptionWrapper
-            key={index}
-            index={index}
-            clickClose={onClickClose}
-            onShiftOptions={onShiftOptions}
-            type={DndItemType.FilterOption}
-            withCaret
-            isExtra={adhocFilter.isExtra}
-          >
-            <Tooltip title={label}>{label}</Tooltip>
-          </OptionWrapper>
-        </AdhocFilterPopoverTrigger>
+  const onFilterEdit = useCallback(
+    (changedFilter: AdhocFilter) => {
+      onChange(
+        values.map((value: AdhocFilter) => {
+          if (value.filterOptionName === changedFilter.filterOptionName) {
+            return changedFilter;
+          }
+          return value;
+        }),
       );
-    });
+    },
+    [onChange, values],
+  );
+
+  const onNewFilter = useCallback(
+    (newFilter: AdhocFilter) => {
+      const mappedOption = mapOption(newFilter);
+      if (mappedOption) {
+        const newValues = [...values, mappedOption];
+        setValues(newValues);
+        onChange(newValues);
+      }
+    },
+    [mapOption, onChange, values],
+  );
+
+  const togglePopover = useCallback((visible: boolean) => {
+    setNewFilterPopoverVisible(visible);
+  }, []);
+
+  const closePopover = useCallback(() => {
+    togglePopover(false);
+  }, [togglePopover]);
+
+  const valuesRenderer = useCallback(
+    () =>
+      values.map((adhocFilter: AdhocFilter, index: number) => {
+        const label = adhocFilter.getDefaultLabel();
+        const tooltipTitle = adhocFilter.getTooltipTitle();
+        return (
+          <AdhocFilterPopoverTrigger
+            key={index}
+            adhocFilter={adhocFilter}
+            options={options}
+            datasource={datasource}
+            onFilterEdit={onFilterEdit}
+            partitionColumn={partitionColumn}
+          >
+            <OptionWrapper
+              key={index}
+              index={index}
+              label={label}
+              tooltipTitle={tooltipTitle}
+              clickClose={onClickClose}
+              onShiftOptions={onShiftOptions}
+              type={DndItemType.FilterOption}
+              withCaret
+              isExtra={adhocFilter.isExtra}
+            />
+          </AdhocFilterPopoverTrigger>
+        );
+      }),
+    [
+      onClickClose,
+      onFilterEdit,
+      onShiftOptions,
+      options,
+      partitionColumn,
+      datasource,
+      values,
+    ],
+  );
+
+  const handleClickGhostButton = useCallback(() => {
+    setDroppedItem({});
+    togglePopover(true);
+  }, [togglePopover]);
 
   const adhocFilter = useMemo(() => {
-    if (droppedItem?.metric_name) {
+    if (isSavedMetric(droppedItem)) {
       return new AdhocFilter({
         expressionType: EXPRESSION_TYPES.SQL,
         clause: CLAUSES.HAVING,
@@ -304,40 +365,54 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
         sqlExpression: (droppedItem as AdhocMetric)?.translateToSql(),
       });
     }
-    return new AdhocFilter({
+    const config: Partial<AdhocFilter> = {
       subject: (droppedItem as ColumnMeta)?.column_name,
-    });
+    };
+    if (config.subject && isFeatureEnabled(FeatureFlag.UX_BETA)) {
+      config.operator = OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.IN].operation;
+      config.operatorId = Operators.IN;
+    }
+    return new AdhocFilter(config);
   }, [droppedItem]);
+
+  const canDrop = useCallback(() => true, []);
+  const handleDrop = useCallback(
+    (item: DatasourcePanelDndItem) => {
+      setDroppedItem(item.value);
+      togglePopover(true);
+    },
+    [controlName, togglePopover],
+  );
+
+  const ghostButtonText = isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX)
+    ? t('Drop columns/metrics here or click')
+    : t('Drop columns or metrics here');
 
   return (
     <>
-      <DndSelectLabel<OptionValueType, OptionValueType[]>
-        onDrop={(item: DatasourcePanelDndItem) => {
-          setDroppedItem(item.value);
-          togglePopover(true);
-        }}
-        canDrop={() => true}
+      <DndSelectLabel
+        onDrop={handleDrop}
+        canDrop={canDrop}
         valuesRenderer={valuesRenderer}
-        accept={[
-          DndItemType.Column,
-          DndItemType.Metric,
-          DndItemType.MetricOption,
-          DndItemType.AdhocMetricOption,
-        ]}
-        ghostButtonText={t('Drop columns or metrics')}
+        accept={DND_ACCEPTED_TYPES}
+        ghostButtonText={ghostButtonText}
+        onClickGhostButton={
+          isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX)
+            ? handleClickGhostButton
+            : undefined
+        }
         {...props}
       />
       <AdhocFilterPopoverTrigger
         adhocFilter={adhocFilter}
         options={options}
-        datasource={props.datasource}
+        datasource={datasource}
         onFilterEdit={onNewFilter}
         partitionColumn={partitionColumn}
         isControlledComponent
         visible={newFilterPopoverVisible}
         togglePopover={togglePopover}
         closePopover={closePopover}
-        createNew
       >
         <div />
       </AdhocFilterPopoverTrigger>

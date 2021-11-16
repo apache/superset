@@ -33,7 +33,7 @@ services:
       - redis:/data
 
   db:
-    env_file: docker/.env
+    env_file: docker/.env-non-dev
     image: postgres:10
     container_name: superset_db
     restart: unless-stopped

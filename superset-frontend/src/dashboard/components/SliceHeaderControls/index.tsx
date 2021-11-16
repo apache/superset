@@ -80,43 +80,53 @@ const VerticalDotsTrigger = () => (
     <span className="dot" />
   </VerticalDotsContainer>
 );
-interface Props {
+
+export interface SliceHeaderControlsProps {
   slice: {
     description: string;
     viz_type: string;
     slice_name: string;
     slice_id: number;
     slice_description: string;
+    form_data?: { emit_filter?: boolean };
   };
+
   componentId: string;
-  chartStatus: string;
   dashboardId: number;
-  addDangerToast: () => void;
+  chartStatus: string;
   isCached: boolean[];
   cachedDttm: string[] | null;
   isExpanded?: boolean;
   updatedDttm: number | null;
-  supersetCanExplore: boolean;
-  supersetCanShare: boolean;
-  supersetCanCSV: boolean;
-  sliceCanEdit: boolean;
   isFullSize?: boolean;
   formData: object;
-  toggleExpandSlice?: (sliceId: number) => void;
+  exploreUrl?: string;
+
   forceRefresh: (sliceId: number, dashboardId: number) => void;
-  exploreChart?: (sliceId: number) => void;
+  logExploreChart?: (sliceId: number) => void;
+  toggleExpandSlice?: (sliceId: number) => void;
   exportCSV?: (sliceId: number) => void;
   exportFullCSV?: (sliceId: number) => void;
-  addSuccessToast: (message: string) => void;
   handleToggleFullSize: () => void;
+
+  addDangerToast: (message: string) => void;
+  addSuccessToast: (message: string) => void;
+
+  supersetCanExplore?: boolean;
+  supersetCanShare?: boolean;
+  supersetCanCSV?: boolean;
+  sliceCanEdit?: boolean;
 }
 interface State {
   showControls: boolean;
   showCrossFilterScopingModal: boolean;
 }
 
-class SliceHeaderControls extends React.PureComponent<Props, State> {
-  constructor(props: Props) {
+class SliceHeaderControls extends React.PureComponent<
+  SliceHeaderControlsProps,
+  State
+> {
+  constructor(props: SliceHeaderControlsProps) {
     super(props);
     this.toggleControls = this.toggleControls.bind(this);
     this.refreshChart = this.refreshChart.bind(this);
@@ -164,8 +174,8 @@ class SliceHeaderControls extends React.PureComponent<Props, State> {
         break;
       case MENU_KEYS.EXPLORE_CHART:
         // eslint-disable-next-line no-unused-expressions
-        this.props.exploreChart &&
-          this.props.exploreChart(this.props.slice.slice_id);
+        this.props.logExploreChart &&
+          this.props.logExploreChart(this.props.slice.slice_id);
         break;
       case MENU_KEYS.EXPORT_CSV:
         // eslint-disable-next-line no-unused-expressions
@@ -220,6 +230,7 @@ class SliceHeaderControls extends React.PureComponent<Props, State> {
         value.behaviors?.includes(Behavior.INTERACTIVE_CHART),
       )
       .find(([key]) => key === slice.viz_type);
+    const canEmitCrossFilter = slice.form_data?.emit_filter;
 
     const cachedWhen = (cachedDttm || []).map(itemCachedDttm =>
       moment.utc(itemCachedDttm).fromNow(),
@@ -272,7 +283,9 @@ class SliceHeaderControls extends React.PureComponent<Props, State> {
 
         {this.props.supersetCanExplore && (
           <Menu.Item key={MENU_KEYS.EXPLORE_CHART}>
-            {t('View chart in Explore')}
+            <a href={this.props.exploreUrl} rel="noopener noreferrer">
+              {t('View chart in Explore')}
+            </a>
           </Menu.Item>
         )}
 
@@ -286,6 +299,8 @@ class SliceHeaderControls extends React.PureComponent<Props, State> {
               modalBody={
                 <ViewQueryModal latestQueryFormData={this.props.formData} />
               }
+              draggable
+              resizable
               responsive
             />
           </Menu.Item>
@@ -293,11 +308,11 @@ class SliceHeaderControls extends React.PureComponent<Props, State> {
 
         {supersetCanShare && (
           <ShareMenuItems
-            url={getDashboardUrl(
-              window.location.pathname,
-              getActiveFilters(),
-              componentId,
-            )}
+            url={getDashboardUrl({
+              pathname: window.location.pathname,
+              filters: getActiveFilters(),
+              hash: componentId,
+            })}
             copyMenuItemTitle={t('Copy chart URL')}
             emailMenuItemTitle={t('Share chart by email')}
             emailSubject={t('Superset chart')}
@@ -313,18 +328,23 @@ class SliceHeaderControls extends React.PureComponent<Props, State> {
           {t('Download as image')}
         </Menu.Item>
 
-        {this.props.supersetCanCSV && (
-          <Menu.Item key={MENU_KEYS.EXPORT_CSV}>{t('Export CSV')}</Menu.Item>
-        )}
-        {isFeatureEnabled(FeatureFlag.ALLOW_FULL_CSV_EXPORT) &&
+        {this.props.slice.viz_type !== 'filter_box' &&
+          this.props.supersetCanCSV && (
+            <Menu.Item key={MENU_KEYS.EXPORT_CSV}>{t('Export CSV')}</Menu.Item>
+          )}
+
+        {this.props.slice.viz_type !== 'filter_box' &&
+          isFeatureEnabled(FeatureFlag.ALLOW_FULL_CSV_EXPORT) &&
           this.props.supersetCanCSV &&
           isTable && (
             <Menu.Item key={MENU_KEYS.EXPORT_FULL_CSV}>
               {t('Export full CSV')}
             </Menu.Item>
           )}
+
         {isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
-          isCrossFilter && (
+          isCrossFilter &&
+          canEmitCrossFilter && (
             <Menu.Item key={MENU_KEYS.CROSS_FILTER_SCOPING}>
               {t('Cross-filter scoping')}
             </Menu.Item>
