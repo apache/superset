@@ -19,8 +19,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { isFunction } from 'lodash';
-import { Select } from 'src/components/Select';
+import { Select } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
+import { t } from '@superset-ui/core';
 import ControlHeader from '../ControlHeader';
 
 const propTypes = {
@@ -54,14 +55,13 @@ export default class ColorSchemeControl extends React.PureComponent {
     this.renderOption = this.renderOption.bind(this);
   }
 
-  onChange(option) {
-    const optionValue = option ? option.value : null;
-    this.props.onChange(optionValue);
+  onChange(value) {
+    this.props.onChange(value);
   }
 
-  renderOption(key) {
+  renderOption(value) {
     const { isLinear } = this.props;
-    const currentScheme = this.schemes[key.value];
+    const currentScheme = this.schemes[value];
 
     // For categorical scheme, display all the colors
     // For sequential scheme, show 10 or interpolate to 10.
@@ -106,34 +106,38 @@ export default class ColorSchemeControl extends React.PureComponent {
   }
 
   render() {
-    const { schemes, choices, labelMargin = 0 } = this.props;
+    const { schemes, choices } = this.props;
     // save parsed schemes for later
     this.schemes = isFunction(schemes) ? schemes() : schemes;
-    const options = (isFunction(choices) ? choices() : choices).map(
-      ([value, label]) => ({
-        value,
-        // use scheme label if available
-        label: this.schemes[value]?.label || label,
-      }),
+
+    const allColorOptions = (isFunction(choices) ? choices() : choices).filter(
+      o => o[0] !== 'SUPERSET_DEFAULT',
     );
+    const options = allColorOptions.map(([value]) => ({
+      value,
+      label: this.schemes?.[value]?.label || value,
+      customLabel: this.renderOption(value),
+    }));
+
+    let currentScheme =
+      this.props.value ||
+      (this.props.default !== undefined ? this.props.default : undefined);
+
+    if (currentScheme === 'SUPERSET_DEFAULT') {
+      currentScheme = this.schemes?.SUPERSET_DEFAULT?.id;
+    }
+
     const selectProps = {
-      multi: false,
+      ariaLabel: t('Select color scheme'),
+      allowClear: this.props.clearable,
       name: `select-${this.props.name}`,
-      placeholder: `Select (${options.length})`,
-      default: this.props.default,
-      options,
-      value: this.props.value,
-      autosize: false,
-      clearable: this.props.clearable,
       onChange: this.onChange,
-      optionRenderer: this.renderOption,
-      valueRenderer: this.renderOption,
+      options,
+      placeholder: `Select (${options.length})`,
+      value: currentScheme,
     };
     return (
-      <div>
-        <ControlHeader {...this.props} />
-        <Select {...selectProps} css={{ marginTop: labelMargin }} />
-      </div>
+      <Select header={<ControlHeader {...this.props} />} {...selectProps} />
     );
   }
 }

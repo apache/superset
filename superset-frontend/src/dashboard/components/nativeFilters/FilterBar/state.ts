@@ -18,6 +18,7 @@
  */
 /* eslint-disable no-param-reassign */
 import { useSelector } from 'react-redux';
+import { filter, keyBy } from 'lodash';
 import {
   Filters,
   FilterSets as FilterSetsType,
@@ -27,8 +28,11 @@ import {
   DataMaskStateWithId,
   DataMaskWithId,
 } from 'src/dataMask/types';
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import { ChartsState, RootState } from 'src/dashboard/types';
+import { MigrationContext } from 'src/dashboard/containers/DashboardPage';
+import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
+import { Filter } from 'src/dashboard/components/nativeFilters/types';
 import { NATIVE_FILTER_PREFIX } from '../FiltersConfigModal/utils';
 
 export const useFilterSets = () =>
@@ -36,22 +40,46 @@ export const useFilterSets = () =>
     state => state.nativeFilters.filterSets || {},
   );
 
-export const useFilters = () =>
-  useSelector<any, Filters>(state => state.nativeFilters.filters);
+export const useFilters = () => {
+  const preselectedNativeFilters = useSelector<any, Filters>(
+    state => state.dashboardState?.preselectNativeFilters,
+  );
+  const nativeFilters = useSelector<any, Filters>(
+    state => state.nativeFilters.filters,
+  );
+  return useMemo(
+    () =>
+      Object.entries(nativeFilters).reduce(
+        (acc, [filterId, filter]: [string, Filter]) => ({
+          ...acc,
+          [filterId]: {
+            ...filter,
+            preselect: preselectedNativeFilters?.[filterId],
+          },
+        }),
+        {} as Filters,
+      ),
+    [nativeFilters, preselectedNativeFilters],
+  );
+};
 
 export const useNativeFiltersDataMask = () => {
   const dataMask = useSelector<RootState, DataMaskStateWithId>(
     state => state.dataMask,
   );
 
-  return Object.values(dataMask)
-    .filter((item: DataMaskWithId) =>
-      String(item.id).startsWith(NATIVE_FILTER_PREFIX),
-    )
-    .reduce(
-      (prev, next: DataMaskWithId) => ({ ...prev, [next.id]: next }),
-      {},
-    ) as DataMaskStateWithId;
+  return useMemo(
+    () =>
+      Object.values(dataMask)
+        .filter((item: DataMaskWithId) =>
+          String(item.id).startsWith(NATIVE_FILTER_PREFIX),
+        )
+        .reduce(
+          (prev, next: DataMaskWithId) => ({ ...prev, [next.id]: next }),
+          {},
+        ) as DataMaskStateWithId,
+    [dataMask],
+  );
 };
 
 export const useFilterUpdates = (
@@ -77,14 +105,30 @@ export const useFilterUpdates = (
 export const useInitialization = () => {
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
   const filters = useFilters();
-  const charts = useSelector<RootState, ChartsState>(state => state.charts);
+  const filterboxMigrationState = useContext(MigrationContext);
+  let charts = useSelector<RootState, ChartsState>(state => state.charts);
 
   // We need to know how much charts now shown on dashboard to know how many of all charts should be loaded
   let numberOfLoadingCharts = 0;
   if (!isInitialized) {
-    numberOfLoadingCharts = document.querySelectorAll(
-      '[data-ui-anchor="chart"]',
-    ).length;
+    // do not load filter_box in reviewing
+    if (filterboxMigrationState === FILTER_BOX_MIGRATION_STATES.REVIEWING) {
+      charts = keyBy(
+        filter(charts, chart => chart.formData?.viz_type !== 'filter_box'),
+        'id',
+      );
+      const numberOfFilterbox = document.querySelectorAll(
+        '[data-test-viz-type="filter_box"]',
+      ).length;
+
+      numberOfLoadingCharts =
+        document.querySelectorAll('[data-ui-anchor="chart"]').length -
+        numberOfFilterbox;
+    } else {
+      numberOfLoadingCharts = document.querySelectorAll(
+        '[data-ui-anchor="chart"]',
+      ).length;
+    }
   }
   useEffect(() => {
     if (isInitialized) {

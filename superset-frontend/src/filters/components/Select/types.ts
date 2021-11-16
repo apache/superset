@@ -39,7 +39,7 @@ interface PluginFilterSelectCustomizeProps {
   defaultToFirstItem: boolean;
   inputRef?: RefObject<HTMLInputElement>;
   searchAllOptions: boolean;
-  sortAscending: boolean;
+  sortAscending?: boolean;
   sortMetric?: string;
 }
 
@@ -59,6 +59,8 @@ export type PluginFilterSelectProps = PluginFilterStylesProps & {
   formData: PluginFilterSelectQueryFormData;
   filterState: FilterState;
   isRefreshing: boolean;
+  showOverflow: boolean;
+  parentRef?: RefObject<any>;
 } & PluginFilterHooks;
 
 export const DEFAULT_FORM_DATA: PluginFilterSelectCustomizeProps = {

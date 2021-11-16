@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC, useEffect, useState } from 'react';
+import React, { FC } from 'react';
 import {
   Behavior,
   SetDataMaskHook,
   SuperChart,
   AppSection,
+  t,
 } from '@superset-ui/core';
 import { FormInstance } from 'antd/lib/form';
 import Loading from 'src/components/Loading';
@@ -29,6 +30,7 @@ import { NativeFiltersForm } from '../types';
 import { getFormData } from '../../utils';
 
 type DefaultValueProps = {
+  hasDefaultValue: boolean;
   filterId: string;
   setDataMask: SetDataMaskHook;
   hasDataset: boolean;
@@ -38,6 +40,7 @@ type DefaultValueProps = {
 };
 
 const DefaultValue: FC<DefaultValueProps> = ({
+  hasDefaultValue,
   filterId,
   hasDataset,
   form,
@@ -45,24 +48,18 @@ const DefaultValue: FC<DefaultValueProps> = ({
   formData,
   enableNoResults,
 }) => {
-  const [loading, setLoading] = useState(hasDataset);
   const formFilter = (form.getFieldValue('filters') || {})[filterId];
   const queriesData = formFilter?.defaultValueQueriesData;
-
-  useEffect(() => {
-    if (!hasDataset || queriesData !== null) {
-      setLoading(false);
-    } else {
-      setLoading(true);
-    }
-  }, [hasDataset, queriesData]);
-
+  const loading = hasDataset && queriesData === null;
+  const value = formFilter.defaultDataMask?.filterState.value;
+  const isMissingRequiredValue =
+    hasDefaultValue && (value === null || value === undefined);
   return loading ? (
     <Loading position="inline-centered" />
   ) : (
     <SuperChart
-      height={25}
-      width={250}
+      height={32}
+      width={formFilter?.filterType === 'filter_time' ? 350 : 250}
       appSection={AppSection.FILTER_CONFIG_MODAL}
       behaviors={[Behavior.NATIVE_FILTER]}
       formData={formData}
@@ -73,7 +70,11 @@ const DefaultValue: FC<DefaultValueProps> = ({
       chartType={formFilter?.filterType}
       hooks={{ setDataMask }}
       enableNoResults={enableNoResults}
-      filterState={formFilter.defaultDataMask?.filterState}
+      filterState={{
+        ...formFilter.defaultDataMask?.filterState,
+        validateMessage: isMissingRequiredValue && t('Value is required'),
+        validateStatus: isMissingRequiredValue && 'error',
+      }}
     />
   );
 };

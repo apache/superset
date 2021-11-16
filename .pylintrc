@@ -70,7 +70,8 @@ confidence=
 # either give multiple identifier separated by comma (,) or put this option
 # multiple time (only on the command line, not in the configuration file where
 # it should appear only once). See also the "--disable" option for examples.
-#enable=
+enable=
+    useless-suppression,
 
 # Disable the message, report, category or checker with the given id(s). You
 # can either give multiple identifiers separated by comma (,) or put this
@@ -81,8 +82,12 @@ confidence=
 # --enable=similarities". If you want to run only the classes checker, but have
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
-disable=long-builtin,dict-view-method,intern-builtin,suppressed-message,no-absolute-import,unpacking-in-except,apply-builtin,delslice-method,indexing-exception,old-raise-syntax,print-statement,cmp-builtin,reduce-builtin,useless-suppression,coerce-method,input-builtin,cmp-method,raw_input-builtin,nonzero-method,backtick,basestring-builtin,setslice-method,reload-builtin,oct-method,map-builtin-not-iterating,execfile-builtin,old-octal-literal,zip-builtin-not-iterating,buffer-builtin,getslice-method,metaclass-assignment,xrange-builtin,long-suffix,round-builtin,range-builtin-not-iterating,next-method-called,parameter-unpacking,unicode-builtin,unichr-builtin,import-star-module-level,raising-string,filter-builtin-not-iterating,using-cmp-argument,coerce-builtin,file-builtin,old-division,hex-method,missing-docstring,too-many-lines,ungrouped-imports,import-outside-toplevel,raise-missing-from,super-with-arguments,bad-option-value,too-few-public-methods,too-many-locals
-
+disable=
+    missing-docstring,
+    duplicate-code,
+    unspecified-encoding,
+    # re-enable once this no longer raises false positives
+    too-many-instance-attributes
 
 [REPORTS]
 
@@ -115,7 +120,7 @@ evaluation=10.0 - ((float(5 * error + warning + refactor + convention) / stateme
 [BASIC]
 
 # Good variable names which should always be accepted, separated by a comma
-good-names=_,df,ex,f,i,id,j,k,l,o,pk,Run,ts,v,x
+good-names=_,df,ex,f,i,id,j,k,l,o,pk,Run,ts,v,x,y
 
 # Bad variable names which should always be refused, separated by a comma
 bad-names=fd,foo,bar,baz,toto,tutu,tata
@@ -209,7 +214,7 @@ max-nested-blocks=5
 [FORMAT]
 
 # Maximum number of characters on a single line.
-max-line-length=88
+max-line-length=90
 
 # Regexp for a line that is allowed to be longer than the limit.
 ignore-long-lines=^\s*(# )?<?https?://\S+>?$
@@ -308,7 +313,7 @@ generated-members=
 # List of decorators that produce context managers, such as
 # contextlib.contextmanager. Add to this list to register other decorators that
 # produce valid context managers.
-contextmanager-decorators=contextlib.contextmanager,contextlib2.contextmanager
+contextmanager-decorators=contextlib.contextmanager
 
 
 [VARIABLES]
@@ -365,7 +370,7 @@ max-locals=15
 max-returns=10
 
 # Maximum number of branch for function / method body
-max-branches=12
+max-branches=15
 
 # Maximum number of statements in function / method body
 max-statements=50
@@ -374,7 +379,7 @@ max-statements=50
 max-parents=7
 
 # Maximum number of attributes for a class (see R0902).
-max-attributes=7
+max-attributes=8
 
 # Minimum number of public methods for a class (see R0903).
 min-public-methods=2

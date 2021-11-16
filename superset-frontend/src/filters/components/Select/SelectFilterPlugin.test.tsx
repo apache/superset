@@ -150,7 +150,7 @@ describe('SelectFilterPlugin', () => {
         ],
       },
       filterState: {
-        label: '',
+        label: undefined,
         value: null,
       },
     });
@@ -165,7 +165,7 @@ describe('SelectFilterPlugin', () => {
       },
       extraFormData: {},
       filterState: {
-        label: '',
+        label: undefined,
         value: null,
       },
     });

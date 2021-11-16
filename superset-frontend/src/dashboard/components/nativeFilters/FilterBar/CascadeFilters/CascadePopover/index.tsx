@@ -16,10 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { styled, t, DataMask } from '@superset-ui/core';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useRef,
+} from 'react';
+import { styled, t, DataMask, css, SupersetTheme } from '@superset-ui/core';
 import Popover from 'src/components/Popover';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import { Pill } from 'src/dashboard/components/FiltersBadge/Styles';
 import { DataMaskStateWithId } from 'src/dataMask/types';
 import FilterControl from 'src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterControl';
@@ -32,6 +38,7 @@ interface CascadePopoverProps {
   filter: CascadeFilter;
   visible: boolean;
   directPathToChild?: string[];
+  inView?: boolean;
   onVisibleChange: (visible: boolean) => void;
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
 }
@@ -60,10 +67,10 @@ const StyledTitle = styled.h4`
   padding: 0;
 `;
 
-const StyledIcon = styled(Icon)`
-  margin-right: ${({ theme }) => theme.gridUnit}px;
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
-  width: ${({ theme }) => theme.gridUnit * 4}px;
+const IconStyles = (theme: SupersetTheme) => css`
+  margin-right: ${theme.gridUnit}px;
+  color: ${theme.colors.grayscale.dark1};
+  width: ${theme.gridUnit * 4}px;
 `;
 
 const StyledPill = styled(Pill)`
@@ -73,6 +80,11 @@ const StyledPill = styled(Pill)`
   background: ${({ theme }) => theme.colors.grayscale.light1};
 `;
 
+const ContentStyles = styled.div`
+  max-height: 700px;
+  overflow: auto;
+`;
+
 const CascadePopover: React.FC<CascadePopoverProps> = ({
   dataMaskSelected,
   filter,
@@ -80,9 +92,11 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   onVisibleChange,
   onFilterSelectionChange,
   directPathToChild,
+  inView,
 }) => {
   const [currentPathToChild, setCurrentPathToChild] = useState<string[]>();
   const dataMask = dataMaskSelected[filter.id];
+  const parent = useRef();
 
   useEffect(() => {
     setCurrentPathToChild(directPathToChild);
@@ -148,6 +162,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
         filter={filter}
         directPathToChild={directPathToChild}
         onFilterSelectionChange={onFilterSelectionChange}
+        inView={inView}
       />
     );
   }
@@ -155,22 +170,32 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   const title = (
     <StyledTitleBox>
       <StyledTitle>
-        <StyledIcon name="edit" />
+        <Icons.Edit
+          iconSize="l"
+          css={(theme: SupersetTheme) => IconStyles(theme)}
+        />
         {t('Select parent filters')} ({allFilters.length})
       </StyledTitle>
-      <StyledIcon name="close" onClick={() => onVisibleChange(false)} />
+      <Icons.Close
+        iconSize="l"
+        css={(theme: SupersetTheme) => IconStyles(theme)}
+        onClick={() => onVisibleChange(false)}
+      />
     </StyledTitleBox>
   );
 
   const content = (
-    <CascadeFilterControl
-      dataMaskSelected={dataMaskSelected}
-      data-test="cascade-filters-control"
-      key={filter.id}
-      filter={filter}
-      directPathToChild={visible ? currentPathToChild : undefined}
-      onFilterSelectionChange={onFilterSelectionChange}
-    />
+    <ContentStyles>
+      <CascadeFilterControl
+        dataMaskSelected={dataMaskSelected}
+        data-test="cascade-filters-control"
+        key={filter.id}
+        filter={filter}
+        directPathToChild={visible ? currentPathToChild : undefined}
+        onFilterSelectionChange={onFilterSelectionChange}
+        parentRef={parent}
+      />
+    </ContentStyles>
   );
 
   return (
@@ -182,7 +207,12 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
       onVisibleChange={onVisibleChange}
       placement="rightTop"
       id={filter.id}
-      overlayStyle={{ minWidth: '400px', maxWidth: '600px' }}
+      overlayStyle={{
+        width: '400px',
+        position: 'relative',
+        overflow: 'auto',
+      }}
+      ref={parent}
     >
       <div>
         {activeFilters.map(activeFilter => (
@@ -192,11 +222,12 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
             filter={activeFilter}
             onFilterSelectionChange={onFilterSelectionChange}
             directPathToChild={currentPathToChild}
+            inView={inView}
             icon={
               <>
                 {filter.cascadeChildren.length !== 0 && (
                   <StyledPill onClick={() => onVisibleChange(true)}>
-                    <Icon name="filter" /> {allFilters.length}
+                    <Icons.Filter iconSize="m" /> {allFilters.length}
                   </StyledPill>
                 )}
               </>
@@ -207,5 +238,4 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
     </Popover>
   );
 };
-
-export default CascadePopover;
+export default React.memo(CascadePopover);

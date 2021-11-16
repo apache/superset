@@ -62,7 +62,7 @@ dateadd(datetime("2020-03-01"), 2, day)`}</code>
       <h4>{t('Syntax')}</h4>
       <pre>
         <code>{`datetrunc([datetime], [dateunit])
-dateunit = (year | month | week)`}</code>
+dateunit = (year | quarter | month | week)`}</code>
       </pre>
       <h4>{t('Example')}</h4>
       <pre>

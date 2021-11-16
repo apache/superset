@@ -19,30 +19,29 @@
 /* eslint camelcase: 0 */
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
 import { t, SupersetClient } from '@superset-ui/core';
-
-import { addChart, removeChart, refreshChart } from '../../chart/chartAction';
-import { chart as initChart } from '../../chart/chartReducer';
+import { addChart, removeChart, refreshChart } from 'src/chart/chartAction';
+import { chart as initChart } from 'src/chart/chartReducer';
+import { applyDefaultFormData } from 'src/explore/store';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import { SAVE_TYPE_OVERWRITE } from 'src/dashboard/util/constants';
+import {
+  addSuccessToast,
+  addWarningToast,
+  addDangerToast,
+} from 'src/components/MessageToasts/actions';
+import serializeActiveFilterValues from 'src/dashboard/util/serializeActiveFilterValues';
+import serializeFilterScopes from 'src/dashboard/util/serializeFilterScopes';
+import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
+import { safeStringify } from 'src/utils/safeStringify';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { UPDATE_COMPONENTS_PARENTS_LIST } from './dashboardLayout';
+import { setChartConfiguration } from './dashboardInfo';
 import { fetchDatasourceMetadata } from './datasources';
 import {
   addFilter,
   removeFilter,
   updateDirectPathToFilter,
 } from './dashboardFilters';
-import { applyDefaultFormData } from '../../explore/store';
-import { getClientErrorObject } from '../../utils/getClientErrorObject';
-import { SAVE_TYPE_OVERWRITE } from '../util/constants';
-import {
-  addSuccessToast,
-  addWarningToast,
-  addDangerToast,
-} from '../../messageToasts/actions';
-import { UPDATE_COMPONENTS_PARENTS_LIST } from './dashboardLayout';
-import serializeActiveFilterValues from '../util/serializeActiveFilterValues';
-import serializeFilterScopes from '../util/serializeFilterScopes';
-import { getActiveFilters } from '../util/activeDashboardFilters';
-import { safeStringify } from '../../utils/safeStringify';
-import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
-import { setChartConfiguration } from './dashboardInfo';
 
 export const SET_UNSAVED_CHANGES = 'SET_UNSAVED_CHANGES';
 export function setUnsavedChanges(hasUnsavedChanges) {
@@ -275,6 +274,32 @@ export function fetchCharts(
   };
 }
 
+const refreshCharts = (chartList, force, interval, dashboardId, dispatch) =>
+  new Promise(resolve => {
+    dispatch(fetchCharts(chartList, force, interval, dashboardId));
+    resolve();
+  });
+
+export const ON_REFRESH_SUCCESS = 'ON_REFRESH_SUCCESS';
+export function onRefreshSuccess() {
+  return { type: ON_REFRESH_SUCCESS };
+}
+
+export const ON_REFRESH = 'ON_REFRESH';
+export function onRefresh(
+  chartList = [],
+  force = false,
+  interval = 0,
+  dashboardId,
+) {
+  return dispatch => {
+    dispatch({ type: ON_REFRESH });
+    refreshCharts(chartList, force, interval, dashboardId, dispatch).then(() =>
+      dispatch({ type: ON_REFRESH_SUCCESS }),
+    );
+  };
+}
+
 export const SHOW_BUILDER_PANE = 'SHOW_BUILDER_PANE';
 export function showBuilderPane() {
   return { type: SHOW_BUILDER_PANE };
@@ -344,9 +369,9 @@ export function setDirectPathToChild(path) {
   return { type: SET_DIRECT_PATH, path };
 }
 
-export const SET_LAST_FOCUSED_TAB = 'SET_LAST_FOCUSED_TAB';
-export function setLastFocusedTab(tabId) {
-  return { type: SET_LAST_FOCUSED_TAB, tabId };
+export const SET_ACTIVE_TABS = 'SET_ACTIVE_TABS';
+export function setActiveTabs(tabId, prevTabId) {
+  return { type: SET_ACTIVE_TABS, tabId, prevTabId };
 }
 
 export const SET_FOCUSED_FILTER_FIELD = 'SET_FOCUSED_FILTER_FIELD';
@@ -357,6 +382,11 @@ export function setFocusedFilterField(chartId, column) {
 export const UNSET_FOCUSED_FILTER_FIELD = 'UNSET_FOCUSED_FILTER_FIELD';
 export function unsetFocusedFilterField(chartId, column) {
   return { type: UNSET_FOCUSED_FILTER_FIELD, chartId, column };
+}
+
+export const SET_FULL_SIZE_CHART_ID = 'SET_FULL_SIZE_CHART_ID';
+export function setFullSizeChartId(chartId) {
+  return { type: SET_FULL_SIZE_CHART_ID, chartId };
 }
 
 // Undo history ---------------------------------------------------------------

@@ -21,6 +21,13 @@ import { getChartAlias, Slice } from 'cypress/utils/vizPlugins';
 export const WORLD_HEALTH_DASHBOARD = '/superset/dashboard/world_health/';
 export const TABBED_DASHBOARD = '/superset/dashboard/tabbed_dash/';
 
+export const testItems = {
+  dashboard: 'Cypress Sales Dashboard',
+  dataset: 'Vehicle Sales',
+  chart: 'Cypress chart',
+  defaultNameDashboard: '[ untitled dashboard ]',
+};
+
 export const CHECK_DASHBOARD_FAVORITE_ENDPOINT =
   '/superset/favstar/Dashboard/*/count';
 

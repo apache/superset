@@ -24,14 +24,14 @@ helm repo add superset https://apache.github.io/superset
 "superset" has been added to your repositories
 ```
 
-1. View charts in repo
+2. View charts in repo
 ```sh
 helm search repo superset
 NAME                    CHART VERSION   APP VERSION     DESCRIPTION
 superset/superset       0.1.1           1.0             Apache Superset is a modern, enterprise-ready b...
 ```
 
-1. Configure your setting overrides
+3. Configure your setting overrides
 
 Just like any typical Helm chart, you'll need to craft a `values.yaml` file that would define/override any of the values exposed into the default [values.yaml](https://github.com/apache/superset/tree/master/helm/superset/values.yaml), or from any of the dependent charts it depends on:
 
@@ -40,7 +40,7 @@ Just like any typical Helm chart, you'll need to craft a `values.yaml` file that
 
 More info down below on some important overrides you might need.
 
-1. Install and run
+4. Install and run
 
 ```sh
 helm upgrade --install --values my-values.yaml superset superset/superset
@@ -185,12 +185,12 @@ Data source definitions can be automatically declared by providing key/value yam
 extraConfigs:
   datasources-init.yaml: |
     databases:
-    - allow_csv_upload: true
+    - allow_file_upload: true
       allow_ctas: true
       allow_cvas: true
       database_name: example-db
       extra: "{\r\n    \"metadata_params\": {},\r\n    \"engine_params\": {},\r\n    \"\
-        metadata_cache_timeout\": {},\r\n    \"schemas_allowed_for_csv_upload\": []\r\n\
+        metadata_cache_timeout\": {},\r\n    \"schemas_allowed_for_file_upload\": []\r\n\
         }"
       sqlalchemy_uri: example://example-db.local
       tables: []

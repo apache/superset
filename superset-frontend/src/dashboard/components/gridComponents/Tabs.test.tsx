@@ -26,7 +26,7 @@ import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import getLeafComponentIdFromPath from 'src/dashboard/util/getLeafComponentIdFromPath';
 import emptyDashboardLayout from 'src/dashboard/fixtures/emptyDashboardLayout';
-import Tabs from './Tabs';
+import { Tabs } from './Tabs';
 
 jest.mock('src/dashboard/containers/DashboardComponent', () =>
   jest.fn(props => (

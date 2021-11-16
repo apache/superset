@@ -46,6 +46,8 @@ export const getFormData = ({
   sortMetric,
   adhoc_filters,
   time_range,
+  granularity_sqla,
+  type,
 }: Partial<Filter> & {
   datasetId?: number;
   inputRef?: RefObject<HTMLInputElement>;
@@ -74,7 +76,7 @@ export const getFormData = ({
     adhoc_filters: adhoc_filters ?? [],
     extra_filters: [],
     extra_form_data: cascadingFilters,
-    granularity_sqla: 'ds',
+    granularity_sqla,
     metrics: ['count'],
     row_limit: 1000,
     showSearch: true,
@@ -82,8 +84,10 @@ export const getFormData = ({
     time_range,
     time_range_endpoints: ['inclusive', 'exclusive'],
     url_params: extractUrlParams('regular'),
+    inView: true,
     viz_type: filterType,
     inputRef,
+    type,
   };
 };
 

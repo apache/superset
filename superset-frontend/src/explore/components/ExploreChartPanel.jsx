@@ -19,7 +19,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
-import { styled, useTheme } from '@superset-ui/core';
+import { styled, SupersetClient, useTheme } from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import ChartContainer from 'src/chart/ChartContainer';
@@ -29,6 +29,7 @@ import {
 } from 'src/utils/localStorageHelpers';
 import ConnectedExploreChartHeader from './ExploreChartHeader';
 import { DataTablesPane } from './DataTablesPane';
+import { buildV1ChartDataPayload } from '../exploreUtils';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -37,6 +38,7 @@ const propTypes = {
   can_overwrite: PropTypes.bool.isRequired,
   can_download: PropTypes.bool.isRequired,
   datasource: PropTypes.object,
+  dashboardId: PropTypes.number,
   column_formats: PropTypes.object,
   containerId: PropTypes.string.isRequired,
   height: PropTypes.string.isRequired,
@@ -115,7 +117,6 @@ const ExploreChartPanel = props => {
   const theme = useTheme();
   const gutterMargin = theme.gridUnit * GUTTER_SIZE_FACTOR;
   const gutterHeight = theme.gridUnit * GUTTER_SIZE_FACTOR;
-
   const { height: hHeight, ref: headerRef } = useResizeDetector({
     refreshMode: 'debounce',
     refreshRate: 300,
@@ -127,6 +128,35 @@ const ExploreChartPanel = props => {
   const [splitSizes, setSplitSizes] = useState(
     getFromLocalStorage(STORAGE_KEYS.sizes, INITIAL_SIZES),
   );
+  const { slice } = props;
+  const updateQueryContext = useCallback(
+    async function fetchChartData() {
+      if (slice && slice.query_context === null) {
+        const queryContext = buildV1ChartDataPayload({
+          formData: slice.form_data,
+          force: false,
+          resultFormat: 'json',
+          resultType: 'full',
+          setDataMask: null,
+          ownState: null,
+        });
+
+        await SupersetClient.put({
+          endpoint: `/api/v1/chart/${slice.slice_id}`,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query_context: JSON.stringify(queryContext),
+            query_context_generation: true,
+          }),
+        });
+      }
+    },
+    [slice],
+  );
+
+  useEffect(() => {
+    updateQueryContext();
+  }, [updateQueryContext]);
 
   const calcSectionHeight = useCallback(
     percent => {
@@ -181,7 +211,6 @@ const ExploreChartPanel = props => {
     }
     setSplitSizes(splitSizes);
   };
-
   const renderChart = useCallback(() => {
     const { chart, vizType } = props;
     const newHeight =
@@ -230,6 +259,22 @@ const ExploreChartPanel = props => {
     [chartPanelRef, renderChart],
   );
 
+  const [queryFormData, setQueryFormData] = useState(
+    props.chart.latestQueryFormData,
+  );
+
+  useEffect(() => {
+    // only update when `latestQueryFormData` changes AND `triggerRender`
+    // is false. No update should be done when only `triggerRender` changes,
+    // as this can trigger a query downstream based on incomplete form data.
+    // (`latestQueryFormData` is only updated when a a valid request has been
+    // triggered).
+    if (!props.triggerRender) {
+      setQueryFormData(props.chart.latestQueryFormData);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.chart.latestQueryFormData]);
+
   if (props.standalone) {
     // dom manipulation hack to get rid of the boostrap theme's body background
     const standaloneClass = 'background-transparent';
@@ -247,6 +292,7 @@ const ExploreChartPanel = props => {
       addHistory={props.addHistory}
       can_overwrite={props.can_overwrite}
       can_download={props.can_download}
+      dashboardId={props.dashboardId}
       isStarred={props.isStarred}
       slice={props.slice}
       sliceName={props.sliceName}
@@ -254,7 +300,8 @@ const ExploreChartPanel = props => {
       form_data={props.form_data}
       timeout={props.timeout}
       chart={props.chart}
-      userId={props.userId}
+      user={props.user}
+      reports={props.reports}
     />
   );
 
@@ -281,11 +328,12 @@ const ExploreChartPanel = props => {
           {panelBody}
           <DataTablesPane
             ownState={props.ownState}
-            queryFormData={props.chart.latestQueryFormData}
+            queryFormData={queryFormData}
             tableSectionHeight={tableSectionHeight}
             onCollapseChange={onCollapseChange}
             chartStatus={props.chart.chartStatus}
             errorMessage={props.errorMessage}
+            queriesResponse={props.chart.queriesResponse}
           />
         </Split>
       )}

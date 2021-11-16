@@ -18,11 +18,11 @@
  */
 import { SupersetClient, t, styled } from '@superset-ui/core';
 import React, { useState, useMemo } from 'react';
-import rison from 'rison';
+import Loading from 'src/components/Loading';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler } from 'src/views/CRUD/utils';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import DeleteModal from 'src/components/DeleteModal';
 import { Tooltip } from 'src/components/Tooltip';
@@ -30,6 +30,7 @@ import Icons from 'src/components/Icons';
 import ListView, { FilterOperator, Filters } from 'src/components/ListView';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import ImportModelsModal from 'src/components/ImportModal/index';
+import handleResourceExport from 'src/utils/export';
 import DatabaseModal from './DatabaseModal';
 
 import { DatabaseObject } from './types';
@@ -50,6 +51,7 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
 interface DatabaseDeleteObject extends DatabaseObject {
   chart_count: number;
   dashboard_count: number;
+  sqllab_tab_count: number;
 }
 interface DatabaseListProps {
   addDangerToast: (msg: string) => void;
@@ -97,6 +99,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   );
   const [importingDatabase, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
+  const [preparingExport, setPreparingExport] = useState<boolean>(false);
 
   const openDatabaseImportModal = () => {
     showImportModal(true);
@@ -120,6 +123,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
           ...database,
           chart_count: json.charts.count,
           dashboard_count: json.dashboards.count,
+          sqllab_tab_count: json.sqllab_tab_states.count,
         });
       })
       .catch(
@@ -203,9 +207,14 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   }
 
   function handleDatabaseExport(database: DatabaseObject) {
-    return window.location.assign(
-      `/api/v1/database/export/?q=${rison.encode([database.id])}`,
-    );
+    if (database.id === undefined) {
+      return;
+    }
+
+    handleResourceExport('database', [database.id], () => {
+      setPreparingExport(false);
+    });
+    setPreparingExport(true);
   }
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
@@ -236,7 +245,9 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
           row: {
             original: { allow_run_async: allowRunAsync },
           },
-        }: any) => <BooleanDisplay value={allowRunAsync} />,
+        }: {
+          row: { original: { allow_run_async: boolean } };
+        }) => <BooleanDisplay value={allowRunAsync} />,
         size: 'sm',
       },
       {
@@ -258,13 +269,13 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         size: 'sm',
       },
       {
-        accessor: 'allow_csv_upload',
+        accessor: 'allow_file_upload',
         Header: t('CSV upload'),
         Cell: ({
           row: {
-            original: { allow_csv_upload: allowCSVUpload },
+            original: { allow_file_upload: allowFileUpload },
           },
-        }: any) => <BooleanDisplay value={allowCSVUpload} />,
+        }: any) => <BooleanDisplay value={allowFileUpload} />,
         size: 'md',
       },
       {
@@ -428,10 +439,11 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       {databaseCurrentlyDeleting && (
         <DeleteModal
           description={t(
-            'The database %s is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the database will break those objects.',
+            'The database %s is linked to %s charts that appear on %s dashboards and users have %s SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects.',
             databaseCurrentlyDeleting.database_name,
             databaseCurrentlyDeleting.chart_count,
             databaseCurrentlyDeleting.dashboard_count,
+            databaseCurrentlyDeleting.sqllab_tab_count,
           )}
           onConfirm={() => {
             if (databaseCurrentlyDeleting) {
@@ -469,6 +481,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         passwordFields={passwordFields}
         setPasswordFields={setPasswordFields}
       />
+      {preparingExport && <Loading />}
     </>
   );
 }

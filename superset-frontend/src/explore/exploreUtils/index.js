@@ -18,6 +18,7 @@
  */
 
 import { useCallback, useEffect } from 'react';
+import { omit } from 'lodash';
 /* eslint camelcase: 0 */
 import URI from 'urijs';
 import {
@@ -29,7 +30,10 @@ import {
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
 import { URL_PARAMS } from 'src/constants';
-import { MULTI_OPERATORS } from 'src/explore/constants';
+import {
+  MULTI_OPERATORS,
+  OPERATOR_ENUM_TO_OPERATOR_TYPE,
+} from 'src/explore/constants';
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
 
 const MAX_URL_LENGTH = 8000;
@@ -86,6 +90,10 @@ export function getURIDirectory(endpointType = 'base') {
   return '/superset/explore/';
 }
 
+/**
+ * This gets the url of the explore page, with all the form data included explicitly.
+ * This includes any form data overrides from the dashboard.
+ */
 export function getExploreLongUrl(
   formData,
   endpointType,
@@ -119,6 +127,19 @@ export function getExploreLongUrl(
   return url;
 }
 
+export function getExploreUrlFromDashboard(formData) {
+  // remove formData params that we don't need in the explore url.
+  // These are present when generating explore urls from the dashboard page.
+  // This should be superseded by some sort of "exploration context" system
+  // where form data and other context is referenced by id.
+  const trimmedFormData = omit(formData, [
+    'dataMask',
+    'url_params',
+    'label_colors',
+  ]);
+  return getExploreLongUrl(trimmedFormData, null, false);
+}
+
 export function getChartDataUri({ path, qs, allowDomainSharding = false }) {
   // The search params from the window.location are carried through,
   // but can be specified with curUrl (used for unit tests to spoof
@@ -135,6 +156,11 @@ export function getChartDataUri({ path, qs, allowDomainSharding = false }) {
   return uri;
 }
 
+/**
+ * This gets the minimal url for the given form data.
+ * If there are dashboard overrides present in the form data,
+ * they will not be included in the url.
+ */
 export function getExploreUrl({
   formData,
   endpointType = 'base',
@@ -147,6 +173,11 @@ export function getExploreUrl({
   if (!formData.datasource) {
     return null;
   }
+
+  // label_colors should not pollute the URL
+  // eslint-disable-next-line no-param-reassign
+  delete formData.label_colors;
+
   let uri = getChartDataUri({ path: '/', allowDomainSharding });
   if (curUrl) {
     uri = URI(URI(curUrl).search());
@@ -319,7 +350,10 @@ export const useDebouncedEffect = (effect, delay, deps) => {
 };
 
 export const getSimpleSQLExpression = (subject, operator, comparator) => {
-  const isMulti = MULTI_OPERATORS.has(operator);
+  const isMulti =
+    [...MULTI_OPERATORS]
+      .map(op => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation)
+      .indexOf(operator) >= 0;
   let expression = subject ?? '';
   if (subject && operator) {
     expression += ` ${operator}`;

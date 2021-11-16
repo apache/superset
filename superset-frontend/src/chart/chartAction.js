@@ -21,7 +21,7 @@
 import moment from 'moment';
 import { t, SupersetClient } from '@superset-ui/core';
 import { getControlsState } from 'src/explore/store';
-import { isFeatureEnabled, FeatureFlag } from '../featureFlags';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import {
   getAnnotationJsonUrl,
   getExploreUrl,
@@ -30,19 +30,19 @@ import {
   postForm,
   shouldUseLegacyApi,
   getChartDataUri,
-} from '../explore/exploreUtils';
+} from 'src/explore/exploreUtils';
 import {
   requiresQuery,
   ANNOTATION_SOURCE_TYPES,
-} from '../modules/AnnotationTypes';
+} from 'src/modules/AnnotationTypes';
 
-import { addDangerToast } from '../messageToasts/actions';
-import { logEvent } from '../logger/actions';
-import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger/LogUtils';
-import { getClientErrorObject } from '../utils/getClientErrorObject';
-import { allowCrossDomain as domainShardingEnabled } from '../utils/hostNamesConfig';
-import { updateDataMask } from '../dataMask/actions';
-import { waitForAsyncData } from '../middleware/asyncEvent';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { logEvent } from 'src/logger/actions';
+import { Logger, LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
+import { updateDataMask } from 'src/dataMask/actions';
+import { waitForAsyncData } from 'src/middleware/asyncEvent';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
@@ -145,11 +145,12 @@ const legacyChartDataRequest = async (
     'GET' && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)
       ? SupersetClient.get
       : SupersetClient.post;
-  return clientMethod(querySettings).then(({ json }) =>
+  return clientMethod(querySettings).then(({ json, response }) =>
     // Make the legacy endpoint return a payload that corresponds to the
     // V1 chart data endpoint response signature.
     ({
-      result: [json],
+      response,
+      json: { result: [json] },
     }),
   );
 };
@@ -196,7 +197,8 @@ const v1ChartDataRequest = async (
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   };
-  return SupersetClient.post(querySettings).then(({ json }) => json);
+
+  return SupersetClient.post(querySettings);
 };
 
 export async function getChartDataRequest({
@@ -390,14 +392,28 @@ export function exploreJSON(
     dispatch(chartUpdateStarted(controller, formData, key));
 
     const chartDataRequestCaught = chartDataRequest
-      .then(response => {
-        const queriesResponse = response.result;
+      .then(({ response, json }) => {
         if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
           // deal with getChartDataRequest transforming the response data
-          const result = 'result' in response ? response.result[0] : response;
-          return waitForAsyncData(result);
+          const result = 'result' in json ? json.result : json;
+          switch (response.status) {
+            case 200:
+              // Query results returned synchronously, meaning query was already cached.
+              return Promise.resolve(result);
+            case 202:
+              // Query is running asynchronously and we must await the results
+              if (shouldUseLegacyApi(formData)) {
+                return waitForAsyncData(result[0]);
+              }
+              return waitForAsyncData(result);
+            default:
+              throw new Error(
+                `Received unexpected response status (${response.status}) while fetching chart data`,
+              );
+          }
         }
-        return queriesResponse;
+
+        return json.result;
       })
       .then(queriesResponse => {
         queriesResponse.forEach(resultItem =>
@@ -541,11 +557,11 @@ export function postChartFormData(
 export function redirectSQLLab(formData) {
   return dispatch => {
     getChartDataRequest({ formData, resultFormat: 'json', resultType: 'query' })
-      .then(({ result }) => {
+      .then(({ json }) => {
         const redirectUrl = '/superset/sqllab/';
         const payload = {
           datasourceKey: formData.datasource,
-          sql: result[0].query,
+          sql: json.result[0].query,
         };
         postForm(redirectUrl, payload);
       })

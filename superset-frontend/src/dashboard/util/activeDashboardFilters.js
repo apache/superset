@@ -62,9 +62,7 @@ export function getAppliedFilterValues(chartId) {
   return appliedFilterValuesByChart[chartId];
 }
 
-export function getChartIdsInFilterScope({
-  filterScope = DASHBOARD_FILTER_SCOPE_GLOBAL,
-}) {
+export function getChartIdsInFilterScope({ filterScope }) {
   function traverse(chartIds = [], component = {}, immuneChartIds = []) {
     if (!component) {
       return;
@@ -85,7 +83,8 @@ export function getChartIdsInFilterScope({
   }
 
   const chartIds = [];
-  const { scope: scopeComponentIds, immune: immuneChartIds } = filterScope;
+  const { scope: scopeComponentIds, immune: immuneChartIds } =
+    filterScope || DASHBOARD_FILTER_SCOPE_GLOBAL;
   scopeComponentIds.forEach(componentId =>
     traverse(chartIds, allComponents[componentId], immuneChartIds),
   );

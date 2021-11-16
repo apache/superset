@@ -7,7 +7,7 @@ route: /docs/security
 ### Roles
 
 Security in Superset is handled by Flask AppBuilder (FAB), an application development framework
-built on top of Flask.”. FAB provides authentication, user management, permissions and roles.
+built on top of Flask. FAB provides authentication, user management, permissions and roles.
 Please read its [Security documentation](https://flask-appbuilder.readthedocs.io/en/latest/security.html).
 
 ### Provided Roles
@@ -15,7 +15,7 @@ Please read its [Security documentation](https://flask-appbuilder.readthedocs.io
 Superset ships with a set of roles that are handled by Superset itself. You can assume
 that these roles will stay up-to-date as Superset evolves (and as you update Superset versions).
 
-Even though **Admin** users have the ability, we don't recommend that altering the
+Even though **Admin** users have the ability, we don't recommend altering the
 permissions associated with each role (e.g. by removing or adding permissions to them). The permissions
 associated with each role will be re-synchronized to their original values when you run
 the **superset init** command (often done between Superset versions).

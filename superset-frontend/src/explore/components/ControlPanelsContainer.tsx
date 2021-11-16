@@ -118,6 +118,7 @@ type ControlPanelsContainerState = {
   expandedCustomizeSections: string[];
   querySections: ControlPanelSectionConfig[];
   customizeSections: ControlPanelSectionConfig[];
+  loading: boolean;
 };
 
 const isTimeSection = (section: ControlPanelSectionConfig): boolean =>
@@ -189,6 +190,7 @@ function getState(
     expandedCustomizeSections,
     querySections,
     customizeSections,
+    loading: false,
   };
 }
 
@@ -206,22 +208,10 @@ export class ControlPanelsContainer extends React.Component<
       expandedCustomizeSections: [],
       querySections: [],
       customizeSections: [],
+      loading: false,
     };
     this.renderControl = this.renderControl.bind(this);
     this.renderControlPanelSection = this.renderControlPanelSection.bind(this);
-  }
-
-  static getDerivedStateFromProps(
-    props: ControlPanelsContainerProps,
-    state: ControlPanelsContainerState,
-  ): ControlPanelsContainerState {
-    // only update the sections, not the expanded/collapsed state
-    const newState = getState(props);
-    return {
-      ...state,
-      customizeSections: newState.customizeSections,
-      querySections: newState.querySections,
-    };
   }
 
   componentDidUpdate(prevProps: ControlPanelsContainerProps) {
@@ -231,6 +221,17 @@ export class ControlPanelsContainer extends React.Component<
     ) {
       // eslint-disable-next-line react/no-did-update-set-state
       this.setState(getState(this.props));
+    }
+  }
+
+  // required for an Antd bug that would otherwise malfunction re-rendering
+  // a collapsed panel after changing the datasource or viz type
+  UNSAFE_componentWillReceiveProps(nextProps: ControlPanelsContainerProps) {
+    if (
+      this.props.form_data.datasource !== nextProps.form_data.datasource ||
+      this.props.form_data.viz_type !== nextProps.form_data.viz_type
+    ) {
+      this.setState({ loading: true });
     }
   }
 
@@ -382,8 +383,9 @@ export class ControlPanelsContainer extends React.Component<
   render() {
     const controlPanelRegistry = getChartControlPanelRegistry();
     if (
-      !controlPanelRegistry.has(this.props.form_data.viz_type) &&
-      this.context.loading
+      (!controlPanelRegistry.has(this.props.form_data.viz_type) &&
+        this.context.loading) ||
+      this.state.loading
     ) {
       return <Loading />;
     }

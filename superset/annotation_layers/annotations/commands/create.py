@@ -48,11 +48,11 @@ class CreateAnnotationCommand(BaseCommand):
             annotation = AnnotationDAO.create(self._properties)
         except DAOCreateFailedError as ex:
             logger.exception(ex.exception)
-            raise AnnotationCreateFailedError()
+            raise AnnotationCreateFailedError() from ex
         return annotation
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = list()
+        exceptions: List[ValidationError] = []
         layer_id: Optional[int] = self._properties.get("layer")
         start_dttm: Optional[datetime] = self._properties.get("start_dttm")
         end_dttm: Optional[datetime] = self._properties.get("end_dttm")
