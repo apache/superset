@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from datetime import datetime
 from distutils.version import StrictVersion
 from typing import Any, Dict, Optional, Type
@@ -25,6 +26,8 @@ from superset.db_engine_specs.exceptions import (
     SupersetDBAPIProgrammingError,
 )
 from superset.utils import core as utils
+
+logger = logging.getLogger()
 
 
 class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
@@ -64,13 +67,23 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
 
-        db_extra = db_extra if db_extra else {}
+        db_extra = db_extra or {}
         if target_type.upper() == utils.TemporalType.DATETIME:
             es_version = db_extra.get("version")
             # The elasticsearch CAST function does not take effect for the time zone
             # setting. In elasticsearch7.8 and above, we can use the DATETIME_PARSE
             # function to solve this problem.
-            if es_version and StrictVersion(es_version) >= StrictVersion("7.8"):
+            supports_dttm_parse = False
+            try:
+                if es_version:
+                    supports_dttm_parse = StrictVersion(es_version) >= StrictVersion(
+                        "7.8"
+                    )
+            except Exception as ex:
+                logger.error("Unexpected error while convert es_version", exc_info=True)
+                logger.exception(ex)
+
+            if supports_dttm_parse:
                 datetime_formatted = dttm.isoformat(sep=" ", timespec="seconds")
                 return (
                     f"""DATETIME_PARSE('{datetime_formatted}', 'yyyy-MM-dd HH:mm:ss')"""

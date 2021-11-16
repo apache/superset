@@ -47,6 +47,22 @@ class TestElasticSearchDbEngineSpec(TestDbEngineSpec):
             "DATETIME_PARSE('2019-01-02 03:04:05', 'yyyy-MM-dd HH:mm:ss')",
         )
 
+    def test_convert_dttm3(self, caplog):
+        dttm = self.get_dttm()
+        db_extra = {"version": 7.8}
+
+        self.assertEqual(
+            ElasticSearchEngineSpec.convert_dttm("DATETIME", dttm, db_extra=None),
+            "CAST('2019-01-02T03:04:05' AS DATETIME)",
+        )
+
+        self.assertNotEqual(
+            ElasticSearchEngineSpec.convert_dttm("DATETIME", dttm, db_extra=db_extra),
+            "DATETIME_PARSE('2019-01-02 03:04:05', 'yyyy-MM-dd HH:mm:ss')",
+        )
+
+        self.assertIn("Unexpected error while convert es_version", caplog.text)
+
     def test_opendistro_convert_dttm(self):
         """
         DB Eng Specs (opendistro): Test convert_dttm
