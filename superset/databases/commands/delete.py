@@ -28,6 +28,7 @@ from superset.databases.commands.exceptions import (
     DatabaseDeleteFailedError,
     DatabaseDeleteFailedReportsExistError,
     DatabaseNotFoundError,
+    DatabasePermissionCleanupError,
 )
 from superset.databases.dao import DatabaseDAO
 from superset.extensions import db, security_manager
@@ -47,7 +48,11 @@ class DeleteDatabaseCommand(BaseCommand):
         self.validate()
         try:
             database = DatabaseDAO.delete(self._model, commit=False)
-            security_manager.cleanup_database_permissions(database.database_name)
+            try:
+                security_manager.cleanup_database_permissions(database.database_name)
+            except Exception as ex:
+                db.session.rollback()
+                raise DatabasePermissionCleanupError() from ex
             db.session.commit()
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)

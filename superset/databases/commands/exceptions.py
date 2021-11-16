@@ -139,6 +139,10 @@ class DatabaseImportError(ImportFailedError):
     message = _("Import database failed for an unknown reason")
 
 
+class DatabasePermissionCleanupError(CommandException):
+    message = _("Database permission cleanup failed for an unknown reason")
+
+
 class InvalidEngineError(SupersetErrorException):
     status = 422
 

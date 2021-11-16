@@ -28,6 +28,7 @@ from superset.databases.commands.exceptions import (
     DatabaseExistsValidationError,
     DatabaseInvalidError,
     DatabaseNotFoundError,
+    DatabasePermissionCleanupError,
     DatabaseUpdateFailedError,
 )
 from superset.databases.dao import DatabaseDAO
@@ -57,7 +58,13 @@ class UpdateDatabaseCommand(BaseCommand):
             except Exception as ex:
                 db.session.rollback()
                 raise DatabaseConnectionFailedError() from ex
-            self._update_permissions(database, schemas, old_name)
+            
+            try:
+                self._update_permissions(database, schemas, old_name)
+            except Exception as ex:
+                db.session.rollback()
+                raise DatabasePermissionCleanupError() from ex
+            
             db.session.commit()
 
         except DAOUpdateFailedError as ex:
