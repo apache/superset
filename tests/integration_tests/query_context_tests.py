@@ -24,18 +24,13 @@ from pandas import DateOffset
 
 from superset import db
 from superset.charts.schemas import ChartDataQueryContextSchema
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context import QueryContext
 from superset.common.query_object import QueryObject
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import SqlMetric
 from superset.extensions import cache_manager
-from superset.utils.core import (
-    AdhocMetricExpressionType,
-    backend,
-    ChartDataResultFormat,
-    ChartDataResultType,
-    TimeRangeEndpoint,
-)
+from superset.utils.core import AdhocMetricExpressionType, backend, TimeRangeEndpoint
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,

@@ -29,6 +29,7 @@ from typing_extensions import TypedDict
 from superset import app, db, is_feature_enabled
 from superset.annotation_layers.dao import AnnotationLayerDAO
 from superset.charts.dao import ChartDAO
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_actions import get_query_results
 from superset.common.query_object import QueryObject
@@ -42,11 +43,10 @@ from superset.models.helpers import QueryResult
 from superset.utils import csv
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
-    ChartDataResultFormat,
-    ChartDataResultType,
     DatasourceDict,
     DTTM_ALIAS,
     error_msg_from_exception,
+    get_column_names_from_columns,
     get_column_names_from_metrics,
     get_metric_names,
     normalize_dttm_col,
@@ -454,7 +454,7 @@ class QueryContext:
             try:
                 invalid_columns = [
                     col
-                    for col in query_obj.columns
+                    for col in get_column_names_from_columns(query_obj.columns)
                     + get_column_names_from_metrics(query_obj.metrics or [])
                     if col not in self.datasource.column_names and col != DTTM_ALIAS
                 ]

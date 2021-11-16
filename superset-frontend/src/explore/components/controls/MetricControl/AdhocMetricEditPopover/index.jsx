@@ -30,7 +30,11 @@ import { SQLEditor } from 'src/components/AsyncAceEditor';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { noOp } from 'src/utils/common';
 
-import { AGGREGATES_OPTIONS } from 'src/explore/constants';
+import {
+  AGGREGATES_OPTIONS,
+  POPOVER_INITIAL_HEIGHT,
+  POPOVER_INITIAL_WIDTH,
+} from 'src/explore/constants';
 import columnType from 'src/explore/components/controls/MetricControl/columnType';
 import savedMetricType from 'src/explore/components/controls/MetricControl/savedMetricType';
 import AdhocMetric, {
@@ -73,9 +77,6 @@ const StyledSelect = styled(Select)`
 
 export const SAVED_TAB_KEY = 'SAVED';
 
-const startingWidth = 320;
-const startingHeight = 240;
-
 export default class AdhocMetricEditPopover extends React.PureComponent {
   // "Saved" is a default tab unless there are no saved metrics for dataset
   defaultActiveTabKey =
@@ -103,8 +104,8 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
     this.state = {
       adhocMetric: this.props.adhocMetric,
       savedMetric: this.props.savedMetric,
-      width: startingWidth,
-      height: startingHeight,
+      width: POPOVER_INITIAL_WIDTH,
+      height: POPOVER_INITIAL_HEIGHT,
     };
 
     document.addEventListener('mouseup', this.onMouseUp);
@@ -225,11 +226,11 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
     this.setState({
       width: Math.max(
         this.dragStartWidth + (e.clientX - this.dragStartX),
-        startingWidth,
+        POPOVER_INITIAL_WIDTH,
       ),
       height: Math.max(
         this.dragStartHeight + (e.clientY - this.dragStartY) * 2,
-        startingHeight,
+        POPOVER_INITIAL_HEIGHT,
       ),
     });
   }

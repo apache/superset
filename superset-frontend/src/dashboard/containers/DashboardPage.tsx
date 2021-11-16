@@ -140,7 +140,7 @@ const DashboardPage: FC = () => {
           }
 
           setFilterboxMigrationState(FILTER_BOX_MIGRATION_STATES.UNDECIDED);
-        } else {
+        } else if (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS)) {
           dispatch(
             addWarningToast(
               t(

@@ -17,6 +17,8 @@
  * under the License.
  */
 import {
+  ensureIsArray,
+  getColumnLabel,
   getNumberFormatter,
   NumberFormats,
   styled,
@@ -119,7 +121,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   // @ts-ignore
   const { min, max }: { min: number; max: number } = row;
   const { groupby, defaultValue, inputRef } = formData;
-  const [col = ''] = groupby || [];
+  const [col = ''] = ensureIsArray(groupby).map(getColumnLabel);
   const [value, setValue] = useState<[number, number]>(
     defaultValue ?? [min, max],
   );
