@@ -16,6 +16,7 @@
 # under the License.
 from unittest.mock import MagicMock
 
+import pytest
 from sqlalchemy import column
 
 from superset.db_engine_specs.elasticsearch import (
@@ -23,7 +24,6 @@ from superset.db_engine_specs.elasticsearch import (
     OpenDistroEngineSpec,
 )
 from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
-import pytest
 
 
 class TestElasticSearchDbEngineSpec(TestDbEngineSpec):
@@ -52,7 +52,7 @@ class TestElasticSearchDbEngineSpec(TestDbEngineSpec):
             "DATETIME_PARSE('2019-01-02 03:04:05', 'yyyy-MM-dd HH:mm:ss')",
         )
 
-    def test_convert_dttm3(self, caplog):
+    def test_convert_dttm3(self):
         dttm = self.get_dttm()
         db_extra = {"version": 7.8}
 
