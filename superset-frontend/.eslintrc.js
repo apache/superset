@@ -18,6 +18,7 @@
  */
 
 const packageConfig = require('./package');
+
 const importCoreModules = [];
 Object.entries(packageConfig.dependencies).forEach(([pkg]) => {
   if (/@superset-ui/.test(pkg)) {
