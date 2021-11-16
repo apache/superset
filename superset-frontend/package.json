@@ -275,7 +275,7 @@
     "eslint-plugin-react-hooks": "^4.2.0",
     "eslint-plugin-testing-library": "^3.10.1",
     "exports-loader": "^0.7.0",
-    "fetch-mock": "^7.7.3",
+    "fetch-mock": "^9.11.0",
     "file-loader": "^6.0.0",
     "fork-ts-checker-webpack-plugin": "^6.3.3",
     "ignore-styles": "^5.0.1",
