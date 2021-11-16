@@ -16,6 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+const packageConfig = require('./package');
+const importCoreModules = [];
+Object.entries(packageConfig.dependencies).forEach(([pkg]) => {
+  if (/@superset-ui/.test(pkg)) {
+    importCoreModules.push(pkg);
+  }
+});
 module.exports = {
   extends: [
     'airbnb',
@@ -41,36 +49,7 @@ module.exports = {
     },
     // Allow only core/src and core/test, avoid import modules from lib
     'import/internal-regex': /^@superset-ui\/core\/(src|test)\/.*/,
-    'import/core-modules': [
-      '@superset-ui/core',
-      '@superset-ui/chart-controls',
-      '@superset-ui/legacy-plugin-chart-calendar',
-      '@superset-ui/legacy-plugin-chart-chord',
-      '@superset-ui/legacy-plugin-chart-country-map',
-      '@superset-ui/legacy-plugin-chart-event-flow',
-      '@superset-ui/legacy-plugin-chart-force-directed',
-      '@superset-ui/legacy-plugin-chart-heatmap',
-      '@superset-ui/legacy-plugin-chart-histogram',
-      '@superset-ui/legacy-plugin-chart-horizon',
-      '@superset-ui/legacy-plugin-chart-map-box',
-      '@superset-ui/legacy-plugin-chart-paired-t-test',
-      '@superset-ui/legacy-plugin-chart-parallel-coordinates',
-      '@superset-ui/legacy-plugin-chart-partition',
-      '@superset-ui/legacy-plugin-chart-pivot-table',
-      '@superset-ui/legacy-plugin-chart-rose',
-      '@superset-ui/legacy-plugin-chart-sankey',
-      '@superset-ui/legacy-plugin-chart-sankey-loop',
-      '@superset-ui/legacy-plugin-chart-sunburst',
-      '@superset-ui/legacy-plugin-chart-time-table',
-      '@superset-ui/legacy-plugin-chart-treemap',
-      '@superset-ui/legacy-plugin-chart-world-map',
-      '@superset-ui/legacy-preset-chart-big-number',
-      '@superset-ui/legacy-preset-chart-nvd3',
-      '@superset-ui/plugin-chart-echarts',
-      '@superset-ui/plugin-chart-table',
-      '@superset-ui/plugin-chart-word-cloud',
-      '@superset-ui/preset-chart-xy',
-    ],
+    'import/core-modules': importCoreModules,
     react: {
       version: 'detect',
     },
@@ -235,6 +214,7 @@ module.exports = {
         'no-only-tests/no-only-tests': 'error',
         'max-classes-per-file': 0,
         '@typescript-eslint/no-non-null-assertion': 0,
+        // TODO: disabled temporarily, re-enable after monorepo
         'jest/consistent-test-it': 'error',
         'jest/expect-expect': 0,
         'jest/no-test-prefixes': 0,
