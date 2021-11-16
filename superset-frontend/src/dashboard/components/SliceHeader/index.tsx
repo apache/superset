@@ -47,6 +47,7 @@ type SliceHeaderProps = {
   sliceName?: string;
   supersetCanExplore?: boolean;
   supersetCanShare?: boolean;
+  canDashboardEdit?: boolean;
   supersetCanCSV?: boolean;
   sliceCanEdit?: boolean;
   componentId: string;
@@ -85,6 +86,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   sliceName = '',
   supersetCanExplore = false,
   supersetCanShare = false,
+  canDashboardEdit = false,
   supersetCanCSV = false,
   sliceCanEdit = false,
   slice,
@@ -162,28 +164,30 @@ const SliceHeader: FC<SliceHeaderProps> = ({
               </Tooltip>
             )}
             <FiltersBadge chartId={slice.slice_id} />
-            <SliceHeaderControls
-              slice={slice}
-              isCached={isCached}
-              isExpanded={isExpanded}
-              cachedDttm={cachedDttm}
-              updatedDttm={updatedDttm}
-              toggleExpandSlice={toggleExpandSlice}
-              forceRefresh={forceRefresh}
-              exploreChart={exploreChart}
-              exportCSV={exportCSV}
-              supersetCanExplore={supersetCanExplore}
-              supersetCanShare={supersetCanShare}
-              supersetCanCSV={supersetCanCSV}
-              sliceCanEdit={sliceCanEdit}
-              componentId={componentId}
-              dashboardId={dashboardId}
-              addSuccessToast={addSuccessToast}
-              addDangerToast={addDangerToast}
-              handleToggleFullSize={handleToggleFullSize}
-              isFullSize={isFullSize}
-              chartStatus={chartStatus}
-            />
+            {canDashboardEdit && 
+              <SliceHeaderControls
+                slice={slice}
+                isCached={isCached}
+                isExpanded={isExpanded}
+                cachedDttm={cachedDttm}
+                updatedDttm={updatedDttm}
+                toggleExpandSlice={toggleExpandSlice}
+                forceRefresh={forceRefresh}
+                exploreChart={exploreChart}
+                exportCSV={exportCSV}
+                supersetCanExplore={supersetCanExplore}
+                supersetCanShare={supersetCanShare}
+                supersetCanCSV={supersetCanCSV}
+                sliceCanEdit={sliceCanEdit}
+                componentId={componentId}
+                dashboardId={dashboardId}
+                addSuccessToast={addSuccessToast}
+                addDangerToast={addDangerToast}
+                handleToggleFullSize={handleToggleFullSize}
+                isFullSize={isFullSize}
+                chartStatus={chartStatus}
+              />
+            }
           </>
         )}
       </div>

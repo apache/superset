@@ -72,6 +72,7 @@ const propTypes = {
   addDangerToast: PropTypes.func.isRequired,
   ownState: PropTypes.object,
   filterState: PropTypes.object,
+  canDashboardEdit: PropTypes.bool.isRequired,
 };
 
 const defaultProps = {
@@ -267,6 +268,7 @@ export default class Chart extends React.Component {
       filterState,
       handleToggleFullSize,
       isFullSize,
+      canDashboardEdit,
     } = this.props;
 
     const { width } = this.state;
@@ -316,6 +318,7 @@ export default class Chart extends React.Component {
           sliceName={sliceName}
           supersetCanExplore={supersetCanExplore}
           supersetCanShare={supersetCanShare}
+          canDashboardEdit={canDashboardEdit}
           supersetCanCSV={supersetCanCSV}
           sliceCanEdit={sliceCanEdit}
           componentId={componentId}
