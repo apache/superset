@@ -21,7 +21,7 @@ updates:
     schedule:
       interval: "daily"
     open-pull-requests-limit: 0
-    
+
   - package-ecosystem: "npm"
     directory: "/docs/"
     schedule:
