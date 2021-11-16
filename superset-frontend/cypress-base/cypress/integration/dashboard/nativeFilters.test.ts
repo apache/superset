@@ -301,7 +301,6 @@ describe('Nativefilters Sanity test', () => {
       .find(nativeFilters.filtersPanel.filterName)
       .click()
       .type('country_name');
-    cy.get('.loading inline-centered css-101mkpk').should('not.exist');
     // hack for unclickable datetime
     cy.wait(5000);
     cy.get(nativeFilters.filtersPanel.filterInfoInput)
