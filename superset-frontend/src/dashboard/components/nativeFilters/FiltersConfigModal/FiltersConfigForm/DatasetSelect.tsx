@@ -72,11 +72,7 @@ const DatasetSelect = ({ onChange, value }: DatasetSelectProps) => {
         const data: {
           label: string;
           value: string | number;
-        }[] = response.json.result
-          .map(datasetToSelectOption)
-          .sort((a: { label: string }, b: { label: string }) =>
-            a.label.localeCompare(b.label),
-          );
+        }[] = response.json.result.map(datasetToSelectOption);
         return {
           data,
           totalCount: response.json.count,

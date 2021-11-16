@@ -25,7 +25,7 @@ import { act } from 'react-dom/test-utils';
 import sinon from 'sinon';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import Modal from 'src/components/Modal';
-import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
+import { ChangeDatasourceModal } from 'src/components/Datasource';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 

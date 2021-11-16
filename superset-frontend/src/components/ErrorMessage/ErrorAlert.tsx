@@ -92,7 +92,7 @@ interface ErrorAlertProps {
 export default function ErrorAlert({
   body,
   copyText,
-  level,
+  level = 'error',
   source = 'dashboard',
   subtitle,
   title,
@@ -103,21 +103,16 @@ export default function ErrorAlert({
   const [isBodyExpanded, setIsBodyExpanded] = useState(false);
 
   const isExpandable = ['explore', 'sqllab'].includes(source);
+  const iconColor = theme.colors[level].base;
 
   return (
     <ErrorAlertDiv level={level} role="alert">
       <div className="top-row">
         <LeftSideContent>
           {level === 'error' ? (
-            <Icons.ErrorSolid
-              className="icon"
-              iconColor={theme.colors[level].base}
-            />
+            <Icons.ErrorSolid className="icon" iconColor={iconColor} />
           ) : (
-            <Icons.WarningSolid
-              className="icon"
-              iconColor={theme.colors[level].base}
-            />
+            <Icons.WarningSolid className="icon" iconColor={iconColor} />
           )}
           <strong>{title}</strong>
         </LeftSideContent>
@@ -172,15 +167,9 @@ export default function ErrorAlert({
           title={
             <div className="header">
               {level === 'error' ? (
-                <Icons.ErrorSolid
-                  className="icon"
-                  iconColor={theme.colors[level].base}
-                />
+                <Icons.ErrorSolid className="icon" iconColor={iconColor} />
               ) : (
-                <Icons.WarningSolid
-                  className="icon"
-                  iconColor={theme.colors[level].base}
-                />
+                <Icons.WarningSolid className="icon" iconColor={iconColor} />
               )}
               <div className="title">{title}</div>
             </div>

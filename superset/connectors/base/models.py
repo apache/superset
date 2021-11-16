@@ -119,6 +119,18 @@ class BaseDatasource(
         return DatasourceKind.VIRTUAL if self.sql else DatasourceKind.PHYSICAL
 
     @property
+    def owners_data(self) -> List[Dict[str, Any]]:
+        return [
+            {
+                "first_name": o.first_name,
+                "last_name": o.last_name,
+                "username": o.username,
+                "id": o.id,
+            }
+            for o in self.owners
+        ]
+
+    @property
     def is_virtual(self) -> bool:
         return self.kind == DatasourceKind.VIRTUAL
 
@@ -407,7 +419,9 @@ class BaseDatasource(
         """
         raise NotImplementedError()
 
-    def values_for_column(self, column_name: str, limit: int = 10000) -> List[Any]:
+    def values_for_column(
+        self, column_name: str, limit: int = 10000, contain_null: bool = True,
+    ) -> List[Any]:
         """Given a column, returns an iterable of distinct values
 
         This is used to populate the dropdown showing a list of

@@ -24,17 +24,20 @@ type TestWithIdType<T> = T extends string ? string : { 'data-test': string };
 export const testWithId = <T extends string | JsonObject = JsonObject>(
   prefix?: string,
   idOnly = false,
-) => (id?: string): TestWithIdType<T> => {
+) => (id?: string, localIdOnly = false): TestWithIdType<T> => {
+  const resultIdOnly = localIdOnly || idOnly;
   if (!id && prefix) {
-    return (idOnly ? prefix : { 'data-test': prefix }) as TestWithIdType<T>;
+    return (resultIdOnly
+      ? prefix
+      : { 'data-test': prefix }) as TestWithIdType<T>;
   }
   if (id && !prefix) {
-    return (idOnly ? id : { 'data-test': id }) as TestWithIdType<T>;
+    return (resultIdOnly ? id : { 'data-test': id }) as TestWithIdType<T>;
   }
   if (!id && !prefix) {
     console.warn('testWithId function has missed "prefix" and "id" params');
-    return (idOnly ? '' : { 'data-test': '' }) as TestWithIdType<T>;
+    return (resultIdOnly ? '' : { 'data-test': '' }) as TestWithIdType<T>;
   }
   const newId = `${prefix}__${id}`;
-  return (idOnly ? newId : { 'data-test': newId }) as TestWithIdType<T>;
+  return (resultIdOnly ? newId : { 'data-test': newId }) as TestWithIdType<T>;
 };

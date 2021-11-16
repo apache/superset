@@ -354,6 +354,41 @@ export default class FilterableTable extends PureComponent<
     };
   }
 
+<<<<<<< HEAD
+=======
+  renderTableHeader({
+    dataKey,
+    label,
+    sortBy,
+    sortDirection,
+  }: {
+    dataKey: string;
+    label: string;
+    sortBy: string;
+    sortDirection: SortDirectionType;
+  }) {
+    const className =
+      this.props.expandedColumns.indexOf(label) > -1
+        ? 'header-style-disabled'
+        : 'header-style';
+    return (
+      <Tooltip
+        id="header-tooltip"
+        title={label}
+        placement="topLeft"
+        css={{ display: 'block' }}
+      >
+        <div className={className}>
+          {label}
+          {sortBy === dataKey && (
+            <SortIndicator sortDirection={sortDirection} />
+          )}
+        </div>
+      </Tooltip>
+    );
+  }
+
+>>>>>>> a2a457b7efdd586af348c40bf9f099dcf6e1f20d
   renderGridCellHeader({
     columnIndex,
     key,
@@ -369,7 +404,13 @@ export default class FilterableTable extends PureComponent<
         ? 'header-style-disabled'
         : 'header-style';
     return (
-      <Tooltip key={key} id="header-tooltip" title={label}>
+      <Tooltip
+        key={key}
+        id="header-tooltip"
+        title={label}
+        placement="topLeft"
+        css={{ display: 'block' }}
+      >
         <div
           style={{
             ...style,

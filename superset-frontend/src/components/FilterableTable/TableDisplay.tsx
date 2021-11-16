@@ -35,60 +35,66 @@ interface TableCollectionProps {
   highlightRowId?: number;
 }
 
-export const Table = styled.table<{
+export const TableDiv = styled.div<{
   scrollTable?: boolean;
   small?: boolean;
 }>`
+border: 2px solid red;
+    ${'' /* These styles are suggested for the table fill all available space in its containing element */}
+      display: block;
+        ${'' /* These styles are required for a horizontaly scrollable table overflow */}
+          overflow: auto;
+table{
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
   border-collapse: separate;
   border-radius: ${({ theme }) => theme.borderRadius}px;
   padding: ${({ theme }) => theme.gridUnit * 1}px;
-
-  overflow: auto;
-
-    border-spacing: 0;
-    border: ${({ theme }) => theme.colors.grayscale.light1};
+  {/*overflow: auto;*/}
+  border-spacing: 0;
+  border: ${({ theme }) => theme.colors.grayscale.light1};
 
     .thread {
-    overflow-y: auto;
-    overflow-x: hidden;
+        overflow-y: auto;
+        overflow-x: hidden;
     }
     .tbody {
-    overflow-y: scroll;
-    overflow-x: hidden;
-    height: 250px;
+        overflow-y: scroll;
+        overflow-x: hidden;
+        height: 250px;
     }
-  .th[role='columnheader'] {
-    z-index: 1;
-    border-bottom: ${({ theme }) =>
-   `${theme.gridUnit - 2}px solid ${theme.colors.grayscale.light2}`};
-    ${({ small }) => small && `padding-bottom: 0;`}
-    border-right: 1px solid black;
-    text-overflow: elipsis; 
-    overflow: hidden;
-    background: pink;
-  }
-}    .td {
-    border-bottom: 0;
-    }
-    border-bottom: ${({ theme }) => theme.colors.grayscale.light1}; 
+    .th[role='columnheader'] {
+        z-index: 1;
+        border-bottom: ${({ theme }) =>
+          `${theme.gridUnit - 2}px solid ${theme.colors.grayscale.light2}`};
+        ${({ small }) => small && `padding-bottom: 0;`}
+        border-right: 1px solid black;
+        text-overflow: elipsis; 
+        overflow: hidden;
+      }
+   .tr[role='row'] {
+   min-width: 100%;
+   :last-child{
+   min-width: 100%
+   background: red
+   }
+   } 
+
       .tr.table-row:nth-child(odd) {
     background-color: ${({ theme }) => `${theme.colors.grayscale.light2}`};
     
   }
-  .tr,
-  .td {
-    margin: 0;
-    border-bottom: 1px solid black;
-    border-right: 1px solid black;
- 
+
     .th,
     .td {
     margin; 0;
     padding: ${({ theme }) => theme.gridUnit * 1}px;
-    border-right: ${({ theme }) => theme.colors.grayscale.light1}; 
-    position: static;
+    border-right: 1px solid orange
+    position: relative;
+
+    last-child {
+    border-right: 0
     
+    }
     .resizer {
       display: inline-block;
       width: 10px;
@@ -101,16 +107,31 @@ export const Table = styled.table<{
       ${'' /* prevents from scrolling while dragging on touch devices */}
       touch-action:none;
 
+
       &.isResizing {
         background: red;
       }
     }
   }
+  .tr.resizer:last-of-type{
+      display: none
+      }
+  .tr,
+  .td {
+    margin: 0;
+    border-bottom: 1px solid green;
+    border-right: 1px solid blue;
+   :last-of-type{
+   border-right: none;
+   border-bottom: none;
+   } 
+    
+  }
 
-  
+  }
 `;
 
-Table.displayName = 'table';
+TableDiv.displayName = 'table';
 const headerProps = (props, { column }) => getStyles(props, column.align);
 const cellProps = (props, { cell }) => getStyles(props, cell.column.align);
 const getStyles = (props, align = 'left') => [
@@ -133,7 +154,8 @@ const TableDisplay = ({
   loading,
   highlightRowId,
 }: TableCollectionProps) => (
-  <Table
+    <TableDiv>
+  <table
     {...getTableProps()}
     className="table table-hover"
     data-test="listview-table"
@@ -211,7 +233,7 @@ const TableDisplay = ({
                   <div
                     className="td"
                     data-test="table-row-cell"
-                    {...cell.getCellProps()}
+                    {...cell.getCellProps(cellProps)}
                     {...columnCellProps}
                   >
                     <span
@@ -227,6 +249,7 @@ const TableDisplay = ({
           );
         })}
     </div>
-  </Table>
+  </table>
+      </TableDiv>
 );
 export default React.memo(TableDisplay);

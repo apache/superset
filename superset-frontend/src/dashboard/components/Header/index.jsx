@@ -182,6 +182,13 @@ class Header extends React.PureComponent {
     }
   }
 
+  componentDidUpdate(prevProps) {
+    if (this.props.refreshFrequency !== prevProps.refreshFrequency) {
+      const { refreshFrequency } = this.props;
+      this.startPeriodicRender(refreshFrequency * 1000);
+    }
+  }
+
   UNSAFE_componentWillReceiveProps(nextProps) {
     const { user } = this.props;
     if (
@@ -292,11 +299,19 @@ class Header extends React.PureComponent {
       });
       this.props.addWarningToast(
         t(
-          `This dashboard is currently force refreshing; the next force refresh will be in %s.`,
+          `This dashboard is currently auto refreshing; the next auto refresh will be in %s.`,
           intervalMessage,
         ),
       );
-
+      if (dashboardInfo.common.conf.DASHBOARD_AUTO_REFRESH_MODE === 'fetch') {
+        // force-refresh while auto-refresh in dashboard
+        return fetchCharts(
+          affectedCharts,
+          false,
+          interval * 0.2,
+          dashboardInfo.id,
+        );
+      }
       return fetchCharts(
         affectedCharts,
         true,

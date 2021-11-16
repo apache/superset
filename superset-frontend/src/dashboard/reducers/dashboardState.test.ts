@@ -16,5 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as Pagination } from './Pagination';
-export { default as TableCollection } from './TableCollection';
+
+import dashboardStateReducer from './dashboardState';
+import { setActiveTabs } from '../actions/dashboardState';
+
+describe('DashboardState reducer', () => {
+  it('SET_ACTIVE_TABS', () => {
+    expect(
+      dashboardStateReducer({ activeTabs: [] }, setActiveTabs('tab1')),
+    ).toEqual({ activeTabs: ['tab1'] });
+    expect(
+      dashboardStateReducer({ activeTabs: ['tab1'] }, setActiveTabs('tab1')),
+    ).toEqual({ activeTabs: ['tab1'] });
+    expect(
+      dashboardStateReducer(
+        { activeTabs: ['tab1'] },
+        setActiveTabs('tab2', 'tab1'),
+      ),
+    ).toEqual({ activeTabs: ['tab2'] });
+  });
+});

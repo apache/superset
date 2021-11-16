@@ -26,7 +26,7 @@ import {
   useSortBy,
   useTable,
   useResizeColumns,
-  useFlexLayout,
+  useBlockLayout,
 } from 'react-table';
 import { Empty } from 'src/common/components';
 //import { TableCollection, Pagination } from 'src/components/dataViewCommon';
@@ -62,24 +62,7 @@ const ResizableTableStyles = styled.div<{
   scrollTable?: boolean;
   small?: boolean;
 }>`
-  ${({ scrollTable, theme }) =>
-    scrollTable &&
-    `
-    flex: 1 1 auto;
-    margin-bottom: ${theme.gridUnit * 4}px;
-  `}
-  .table {
-    border: 1px solid black;
-    width: 100%;
-  }
   
-    .table-cell {
-      ${({ small }) =>
-        small &&
-        `
-      `}
-    }
-  }
 
 `;
 
@@ -121,7 +104,7 @@ sortBy: initialSortBy,
     useSortBy,
     usePagination,
     useResizeColumns,
-    useFlexLayout,
+    useBlockLayout,
   );
 
   //const [filterText, setFilterText] = useState('');

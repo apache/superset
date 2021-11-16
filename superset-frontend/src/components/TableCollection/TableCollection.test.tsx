@@ -20,7 +20,7 @@ import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import { renderHook } from '@testing-library/react-hooks';
 import { TableInstance, useTable } from 'react-table';
-import TableCollection from './TableCollection';
+import TableCollection from '.';
 
 let defaultProps: any;
 

@@ -29,7 +29,6 @@ export default {
 
 export const InteractiveResizableTable = (args: ResizableTableProps) => (
   <>
-      <span>SEARCH:</span> 
     <ResizableTable {...args} />
   </>
 );

@@ -16,29 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import React from 'react';
+import { render, screen } from 'spec/helpers/testing-library';
+import DatasetNotFoundErrorMessage from './DatasetNotFoundErrorMessage';
+import { ErrorLevel, ErrorSource, ErrorTypeEnum } from './types';
 
-const ChartIcon = () => (
-  <svg
-    width="18"
-    height="18"
-    viewBox="0 0 18 18"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <rect
-      x="0.5"
-      y="0.5"
-      width="17"
-      height="17"
-      rx="2.5"
-      fill="#EFF9F9"
-      stroke="#B3DADC"
-    />
-    <rect x="8" y="4" width="2" height="10" rx="1" fill="#B3DADC" />
-    <rect x="12" y="10" width="2" height="4" rx="1" fill="#B3DADC" />
-    <rect x="4" y="6" width="2" height="8" rx="1" fill="#B3DADC" />
-  </svg>
-);
+const mockedProps = {
+  error: {
+    error_type: ErrorTypeEnum.FAILED_FETCHING_DATASOURCE_INFO_ERROR,
+    level: 'error' as ErrorLevel,
+    message: 'The dataset associated with this chart no longer exists',
+    extra: {},
+  },
+  source: 'dashboard' as ErrorSource,
+};
 
-export default ChartIcon;
+test('should render', () => {
+  const { container } = render(
+    <DatasetNotFoundErrorMessage {...mockedProps} />,
+  );
+  expect(container).toBeInTheDocument();
+});
+
+test('should render the default title', () => {
+  render(<DatasetNotFoundErrorMessage {...mockedProps} />);
+  expect(screen.getByText('Missing dataset')).toBeInTheDocument();
+});
