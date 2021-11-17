@@ -1122,6 +1122,7 @@ class TestUtils(SupersetTestCase):
         assert re.match(r"^token_[a-z0-9]{8}$", generated_token) is not None
 
     def test_extract_dataframe_dtypes(self):
+        slc = self.get_slice("Girls", db.session)
         cols: Tuple[Tuple[str, GenericDataType, List[Any]], ...] = (
             ("dt", GenericDataType.TEMPORAL, [date(2021, 2, 4), date(2021, 2, 4)]),
             (
@@ -1150,7 +1151,7 @@ class TestUtils(SupersetTestCase):
         )
 
         df = pd.DataFrame(data={col[0]: col[2] for col in cols})
-        assert extract_dataframe_dtypes(df) == [col[1] for col in cols]
+        assert extract_dataframe_dtypes(df, slc.datasource) == [col[1] for col in cols]
 
     def test_normalize_dttm_col(self):
         def normalize_col(
