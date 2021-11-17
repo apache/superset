@@ -26,6 +26,7 @@ module.exports = {
     '^spec/(.*)$': '<rootDir>/spec/$1',
   },
   testEnvironment: 'jsdom',
+  modulePathIgnorePatterns: ['<rootDir>/temporary_superset_ui'],
   setupFilesAfterEnv: ['<rootDir>/spec/helpers/setup.ts'],
   testURL: 'http://localhost',
   collectCoverageFrom: ['src/**/*.{js,jsx,ts,tsx}', '!**/*.stories.*'],
