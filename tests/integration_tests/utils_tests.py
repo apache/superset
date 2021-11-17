@@ -1121,6 +1121,7 @@ class TestUtils(SupersetTestCase):
         generated_token = get_form_data_token({})
         assert re.match(r"^token_[a-z0-9]{8}$", generated_token) is not None
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_extract_dataframe_dtypes(self):
         slc = self.get_slice("Girls", db.session)
         cols: Tuple[Tuple[str, GenericDataType, List[Any]], ...] = (
@@ -1148,6 +1149,9 @@ class TestUtils(SupersetTestCase):
             ("float_null", GenericDataType.NUMERIC, [None, 0.5]),
             ("bool_null", GenericDataType.BOOLEAN, [None, False]),
             ("obj_null", GenericDataType.STRING, [None, {"a": 1}]),
+            # Non-timestamp columns should be identified as temporal if
+            # `is_dttm` is set to `True` in the underlying datasource
+            ("ds", GenericDataType.TEMPORAL, [None, {"ds": "2017-01-01"}]),
         )
 
         df = pd.DataFrame(data={col[0]: col[2] for col in cols})
