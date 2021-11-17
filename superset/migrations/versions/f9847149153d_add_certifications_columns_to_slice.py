@@ -32,8 +32,7 @@ down_revision = "0ca9e5f1dacd"
 
 def upgrade():
     with op.batch_alter_table("slices") as batch_op:
-        batch_op.add_column(
-            sa.Column("certified_by", sa.Text(), nullable=True))
+        batch_op.add_column(sa.Column("certified_by", sa.Text(), nullable=True))
         batch_op.add_column(
             sa.Column("certification_details", sa.Text(), nullable=True)
         )
