@@ -23,6 +23,7 @@ from superset.extensions import db
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.models.sql_lab import TabState
 
 logger = logging.getLogger(__name__)
 
@@ -87,4 +88,11 @@ class DatabaseDAO(BaseDAO):
             .distinct()
             .all()
         )
-        return dict(charts=charts, dashboards=dashboards)
+
+        sqllab_tab_states = (
+            db.session.query(TabState).filter(TabState.database_id == database_id).all()
+        )
+
+        return dict(
+            charts=charts, dashboards=dashboards, sqllab_tab_states=sqllab_tab_states
+        )

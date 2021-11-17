@@ -19,6 +19,7 @@ import json
 import logging
 from typing import Any, Dict, Set
 
+from flask import g
 from sqlalchemy.orm import Session
 
 from superset.models.dashboard import Dashboard
@@ -33,6 +34,17 @@ def find_chart_uuids(position: Dict[str, Any]) -> Set[str]:
     return set(build_uuid_to_id_map(position))
 
 
+def find_native_filter_datasets(metadata: Dict[str, Any]) -> Set[str]:
+    uuids: Set[str] = set()
+    for native_filter in metadata.get("native_filter_configuration", []):
+        targets = native_filter.get("targets", [])
+        for target in targets:
+            dataset_uuid = target.get("datasetUuid")
+            if dataset_uuid:
+                uuids.add(dataset_uuid)
+    return uuids
+
+
 def build_uuid_to_id_map(position: Dict[str, Any]) -> Dict[str, int]:
     return {
         child["meta"]["uuid"]: child["meta"]["chartId"]
@@ -45,7 +57,11 @@ def build_uuid_to_id_map(position: Dict[str, Any]) -> Dict[str, int]:
     }
 
 
-def update_id_refs(config: Dict[str, Any], chart_ids: Dict[str, int]) -> Dict[str, Any]:
+def update_id_refs(  # pylint: disable=too-many-locals
+    config: Dict[str, Any],
+    chart_ids: Dict[str, int],
+    dataset_info: Dict[str, Dict[str, Any]],
+) -> Dict[str, Any]:
     """Update dashboard metadata to use new IDs"""
     fixed = config.copy()
 
@@ -103,6 +119,17 @@ def update_id_refs(config: Dict[str, Any], chart_ids: Dict[str, int]) -> Dict[st
         ):
             child["meta"]["chartId"] = chart_ids[child["meta"]["uuid"]]
 
+    # fix native filter references
+    native_filter_configuration = fixed.get("metadata", {}).get(
+        "native_filter_configuration", []
+    )
+    for native_filter in native_filter_configuration:
+        targets = native_filter.get("targets", [])
+        for target in targets:
+            dataset_uuid = target.pop("datasetUuid", None)
+            if dataset_uuid:
+                target["datasetId"] = dataset_info[dataset_uuid]["datasource_id"]
+
     return fixed
 
 
@@ -128,5 +155,8 @@ def import_dashboard(
     dashboard = Dashboard.import_from_dict(session, config, recursive=False)
     if dashboard.id is None:
         session.flush()
+
+    if hasattr(g, "user") and g.user:
+        dashboard.owners.append(g.user)
 
     return dashboard

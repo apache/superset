@@ -54,8 +54,9 @@ const findMatches = (undefinedParameters: string[], templateKeys: string[]) => {
 function ParameterErrorMessage({
   error,
   source = 'sqllab',
+  subtitle,
 }: ErrorMessageComponentProps<ParameterErrorExtra>) {
-  const { extra, level, message } = error;
+  const { extra = { issue_codes: [] }, level, message } = error;
 
   const triggerMessage = tn(
     'This was triggered by:',
@@ -98,9 +99,10 @@ function ParameterErrorMessage({
         )}
         {triggerMessage}
         <br />
-        {extra.issue_codes
-          .map<React.ReactNode>(issueCode => <IssueCode {...issueCode} />)
-          .reduce((prev, curr) => [prev, <br />, curr])}
+        {extra.issue_codes.length > 0 &&
+          extra.issue_codes
+            .map<React.ReactNode>(issueCode => <IssueCode {...issueCode} />)
+            .reduce((prev, curr) => [prev, <br />, curr])}
       </p>
     </>
   );
@@ -112,7 +114,7 @@ ${extra.issue_codes.map(issueCode => issueCode.message).join('\n')}`;
   return (
     <ErrorAlert
       title={t('Parameter error')}
-      subtitle={message}
+      subtitle={subtitle}
       level={level}
       source={source}
       copyText={copyText}

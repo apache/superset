@@ -21,8 +21,8 @@ import logging
 from io import IOBase
 from typing import cast, Optional, Union
 
+import backoff
 from flask import current_app
-from retry.api import retry
 from slack import WebClient
 from slack.errors import SlackApiError
 from slack.web.slack_response import SlackResponse
@@ -31,7 +31,7 @@ from slack.web.slack_response import SlackResponse
 logger = logging.getLogger("tasks.slack_util")
 
 
-@retry(SlackApiError, delay=10, backoff=2, tries=5)
+@backoff.on_exception(backoff.expo, SlackApiError, factor=10, base=2, max_tries=5)
 def deliver_slack_msg(
     slack_channel: str,
     subject: str,

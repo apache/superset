@@ -19,6 +19,7 @@
 /* eslint camelcase: 0 */
 import { t } from '@superset-ui/core';
 import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
+import { DatasourcesAction } from 'src/dashboard/actions/datasources';
 import { ChartState } from 'src/explore/types';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
 import { now } from 'src/modules/dates';
@@ -196,6 +197,24 @@ export default function chartReducer(
   if (action.type === HYDRATE_DASHBOARD) {
     return { ...action.data.charts };
   }
+  if (action.type === DatasourcesAction.SET_DATASOURCES) {
+    return Object.fromEntries(
+      Object.entries(charts).map(([chartId, chart]) => [
+        chartId,
+        // if render has failed, clear error message,
+        // which will trigger a re-render
+        chart.chartStatus === 'failed'
+          ? {
+              ...chart,
+              chartStatus: '',
+              chartStackTrace: null,
+              chartAlert: null,
+            }
+          : chart,
+      ]),
+    );
+  }
+
   if (action.type in actionHandlers) {
     return {
       ...charts,

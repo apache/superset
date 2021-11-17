@@ -17,7 +17,11 @@
  * under the License.
  */
 import { t, validateNonEmpty } from '@superset-ui/core';
-import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  sections,
+  sharedControls,
+} from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 
 const {
@@ -36,7 +40,18 @@ const config: ControlPanelConfig = {
     {
       label: t('Query'),
       expanded: true,
-      controlSetRows: [['groupby']],
+      controlSetRows: [
+        [
+          {
+            name: 'groupby',
+            config: {
+              ...sharedControls.groupby,
+              label: 'Column',
+              required: true,
+            },
+          },
+        ],
+      ],
     },
     {
       label: t('UI Configuration'),
@@ -77,8 +92,7 @@ const config: ControlPanelConfig = {
               default: enableEmptyFilter,
               renderTrigger: true,
               description: t(
-                'User must select a value for this filter when filter is in single select mode. ' +
-                  'If selection is empty, an always false filter is emitted.',
+                'User must select a value before applying the filter',
               ),
             },
           },
@@ -93,7 +107,10 @@ const config: ControlPanelConfig = {
               resetConfig: true,
               affectsDataMask: true,
               renderTrigger: true,
-              description: t('Select first item by default'),
+              requiredFirst: true,
+              description: t(
+                'Select first item by default (when using this option, default value can’t be set)',
+              ),
             },
           },
         ],

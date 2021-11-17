@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, fireEvent, screen } from 'spec/helpers/testing-library';
 import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
 
 const defaultProps = {
@@ -27,6 +27,8 @@ const defaultProps = {
   validationMethods: () => {},
   errorMessage: '',
   helpText: 'This is a line of example help text',
+  hasTooltip: false,
+  tooltipText: 'This is a tooltip',
   value: '',
   placeholder: 'Example placeholder text...',
   type: 'textbox',
@@ -57,5 +59,20 @@ describe('LabeledErrorBoundInput', () => {
     expect(label).toBeVisible();
     expect(textboxInput).toBeVisible();
     expect(errorText).toBeVisible();
+  });
+  it('renders a LabledErrorBoundInput with a InfoTooltip', async () => {
+    defaultProps.hasTooltip = true;
+    render(<LabeledErrorBoundInput {...defaultProps} />);
+
+    const label = screen.getByText(/username/i);
+    const textboxInput = screen.getByRole('textbox');
+    const tooltipIcon = screen.getByRole('img');
+
+    fireEvent.mouseOver(tooltipIcon);
+
+    expect(tooltipIcon).toBeVisible();
+    expect(label).toBeVisible();
+    expect(textboxInput).toBeVisible();
+    expect(await screen.findByText('This is a tooltip')).toBeInTheDocument();
   });
 });

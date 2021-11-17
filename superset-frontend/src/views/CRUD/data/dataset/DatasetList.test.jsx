@@ -118,12 +118,14 @@ describe('DatasetList', () => {
     );
   });
 
-  it('fetches owner filter values', () => {
-    expect(fetchMock.calls(/dataset\/related\/owners/)).toHaveLength(1);
+  it('does not fetch owner filter values on mount', async () => {
+    await waitForComponentToPaint(wrapper);
+    expect(fetchMock.calls(/dataset\/related\/owners/)).toHaveLength(0);
   });
 
-  it('fetches schema filter values', () => {
-    expect(fetchMock.calls(/dataset\/distinct\/schema/)).toHaveLength(1);
+  it('does not fetch schema filter values on mount', async () => {
+    await waitForComponentToPaint(wrapper);
+    expect(fetchMock.calls(/dataset\/distinct\/schema/)).toHaveLength(0);
   });
 
   it('shows/hides bulk actions when bulk actions is clicked', async () => {
@@ -209,7 +211,7 @@ describe('RTL', () => {
   });
 
   it('renders an "Import Dataset" tooltip under import button', async () => {
-    const importButton = screen.getByTestId('import-button');
+    const importButton = await screen.findByTestId('import-button');
     userEvent.hover(importButton);
 
     await screen.findByRole('tooltip');

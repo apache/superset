@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { isString, keyBy } from 'lodash';
+import { isString } from 'lodash';
 import {
   Behavior,
   CategoricalColorNamespace,
@@ -27,7 +27,6 @@ import {
 import { chart } from 'src/chart/chartReducer';
 import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
 import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/reducers/nativeFilters';
-import { getParam } from 'src/modules/utils';
 import { applyDefaultFormData } from 'src/explore/store';
 import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import findPermission, {
@@ -54,17 +53,23 @@ import getFilterConfigsFromFormdata from 'src/dashboard/util/getFilterConfigsFro
 import getLocationHash from 'src/dashboard/util/getLocationHash';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import { TIME_RANGE } from 'src/visualizations/FilterBox/FilterBox';
+import { URL_PARAMS } from 'src/constants';
+import { getUrlParam } from 'src/utils/urlUtils';
+import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
 import extractUrlParams from '../util/extractUrlParams';
+import getNativeFilterConfig from '../util/filterboxMigrationHelper';
 
 export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
 
-export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
-  dispatch,
-  getState,
-) => {
+export const hydrateDashboard = (
+  dashboardData,
+  chartData,
+  filterboxMigrationState = FILTER_BOX_MIGRATION_STATES.NOOP,
+) => (dispatch, getState) => {
   const { user, common } = getState();
-  let { metadata } = dashboardData;
+
+  const { metadata } = dashboardData;
   const regularUrlParams = extractUrlParams('regular');
   const reservedUrlParams = extractUrlParams('reserved');
   const editMode = reservedUrlParams.edit === 'true';
@@ -77,9 +82,9 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
   });
   try {
     // allow request parameter overwrite dashboard metadata
-    preselectFilters = JSON.parse(
-      getParam('preselect_filters') || metadata.default_filters,
-    );
+    preselectFilters =
+      getUrlParam(URL_PARAMS.preselectFilters) ||
+      JSON.parse(metadata.default_filters);
   } catch (e) {
     //
   }
@@ -87,16 +92,16 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
   // Priming the color palette with user's label-color mapping provided in
   // the dashboard's JSON metadata
   if (metadata?.label_colors) {
-    const scheme = metadata.color_scheme;
     const namespace = metadata.color_namespace;
     const colorMap = isString(metadata.label_colors)
       ? JSON.parse(metadata.label_colors)
       : metadata.label_colors;
+    const categoricalNamespace = CategoricalColorNamespace.getNamespace(
+      namespace,
+    );
+
     Object.keys(colorMap).forEach(label => {
-      CategoricalColorNamespace.getScale(scheme, namespace).setColor(
-        label,
-        colorMap[label],
-      );
+      categoricalNamespace.setColor(label, colorMap[label]);
     });
   }
 
@@ -226,19 +231,25 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
       const componentId = chartIdToLayoutId[key];
       const directPathToFilter = (layout[componentId].parents || []).slice();
       directPathToFilter.push(componentId);
-      dashboardFilters[key] = {
-        ...dashboardFilter,
-        chartId: key,
-        componentId,
-        datasourceId: slice.form_data.datasource,
-        filterName: slice.slice_name,
-        directPathToFilter,
-        columns,
-        labels,
-        scopes: scopesByChartId,
-        isInstantFilter: !!slice.form_data.instant_filtering,
-        isDateFilter: Object.keys(columns).includes(TIME_RANGE),
-      };
+      if (
+        [
+          FILTER_BOX_MIGRATION_STATES.NOOP,
+          FILTER_BOX_MIGRATION_STATES.SNOOZED,
+        ].includes(filterboxMigrationState)
+      ) {
+        dashboardFilters[key] = {
+          ...dashboardFilter,
+          chartId: key,
+          componentId,
+          datasourceId: slice.form_data.datasource,
+          filterName: slice.slice_name,
+          directPathToFilter,
+          columns,
+          labels,
+          scopes: scopesByChartId,
+          isDateFilter: Object.keys(columns).includes(TIME_RANGE),
+        };
+      }
     }
 
     // sync layout names with current slice names in case a slice was edited
@@ -277,17 +288,28 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
     directPathToChild.push(directLinkComponentId);
   }
 
-  const nativeFilters = getInitialNativeFilterState({
-    filterConfig: metadata?.native_filter_configuration || [],
-    filterSetsConfig: metadata?.filter_sets_configuration || [],
-  });
-
-  if (!metadata) {
-    metadata = {};
+  // should convert filter_box to filter component?
+  let filterConfig = metadata?.native_filter_configuration || [];
+  if (filterboxMigrationState === FILTER_BOX_MIGRATION_STATES.REVIEWING) {
+    filterConfig = getNativeFilterConfig(
+      chartData,
+      filterScopes,
+      preselectFilters,
+    );
+    metadata.native_filter_configuration = filterConfig;
+    metadata.show_native_filters = true;
   }
-
+  const nativeFilters = getInitialNativeFilterState({
+    filterConfig,
+  });
   metadata.show_native_filters =
-    dashboardData?.metadata?.show_native_filters ?? true;
+    dashboardData?.metadata?.show_native_filters ??
+    (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
+      [
+        FILTER_BOX_MIGRATION_STATES.CONVERTED,
+        FILTER_BOX_MIGRATION_STATES.REVIEWING,
+        FILTER_BOX_MIGRATION_STATES.NOOP,
+      ].includes(filterboxMigrationState));
 
   if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
     // If user just added cross filter to dashboard it's not saving it scope on server,
@@ -327,14 +349,13 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
   return dispatch({
     type: HYDRATE_DASHBOARD,
     data: {
-      datasources: keyBy(datasourcesData, 'uid'),
       sliceEntities: { ...initSliceEntities, slices, isLoading: false },
       charts: chartQueries,
       // read-only data
       dashboardInfo: {
         ...dashboardData,
         metadata,
-        userId: String(user.userId), // legacy, please use state.user instead
+        userId: user.userId ? String(user.userId) : null, // legacy, please use state.user instead
         dash_edit_perm: canEdit,
         dash_save_perm: findPermission('can_save_dash', 'Superset', roles),
         dash_share_perm: findPermission(
@@ -359,6 +380,7 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
       dashboardFilters,
       nativeFilters,
       dashboardState: {
+        preselectNativeFilters: getUrlParam(URL_PARAMS.nativeFilters),
         sliceIds: Array.from(sliceIds),
         directPathToChild,
         directPathLastUpdated: Date.now(),
@@ -376,6 +398,9 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
         hasUnsavedChanges: false,
         maxUndoHistoryExceeded: false,
         lastModifiedTime: dashboardData.changed_on,
+        isRefreshing: false,
+        activeTabs: [],
+        filterboxMigrationState,
       },
       dashboardLayout,
     },

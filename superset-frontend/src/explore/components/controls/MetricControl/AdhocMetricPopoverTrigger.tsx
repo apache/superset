@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { ReactNode } from 'react';
-import { Metric } from '@superset-ui/core';
+import { Datasource, Metric } from '@superset-ui/core';
 import Popover from 'src/components/Popover';
 import AdhocMetricEditPopoverTitle from 'src/explore/components/controls/MetricControl/AdhocMetricEditPopoverTitle';
 import { ExplorePopoverContent } from 'src/explore/components/ExploreContentPopover';
@@ -33,9 +33,8 @@ export type AdhocMetricPopoverTriggerProps = {
   columns: { column_name: string; type: string }[];
   savedMetricsOptions: savedMetricType[];
   savedMetric: savedMetricType;
-  datasourceType: string;
+  datasource?: Datasource;
   children: ReactNode;
-  createNew?: boolean;
   isControlledComponent?: boolean;
   visible?: boolean;
   togglePopover?: (visible: boolean) => void;
@@ -43,6 +42,7 @@ export type AdhocMetricPopoverTriggerProps = {
 };
 
 export type AdhocMetricPopoverTriggerState = {
+  adhocMetric: AdhocMetric;
   popoverVisible: boolean;
   title: { label: string; hasCustomLabel: boolean };
   currentLabel: string;
@@ -65,6 +65,7 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
     this.onChange = this.onChange.bind(this);
 
     this.state = {
+      adhocMetric: props.adhocMetric,
       popoverVisible: false,
       title: {
         label: props.adhocMetric.label,
@@ -73,6 +74,26 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
       currentLabel: '',
       labelModified: false,
       isTitleEditDisabled: false,
+    };
+  }
+
+  static getDerivedStateFromProps(
+    nextProps: AdhocMetricPopoverTriggerProps,
+    prevState: AdhocMetricPopoverTriggerState,
+  ) {
+    if (prevState.adhocMetric.optionName !== nextProps.adhocMetric.optionName) {
+      return {
+        adhocMetric: nextProps.adhocMetric,
+        title: {
+          label: nextProps.adhocMetric.label,
+          hasCustomLabel: nextProps.adhocMetric.hasCustomLabel,
+        },
+        currentLabel: '',
+        labelModified: false,
+      };
+    }
+    return {
+      adhocMetric: nextProps.adhocMetric,
     };
   }
 
@@ -149,7 +170,7 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
       savedMetric,
       columns,
       savedMetricsOptions,
-      datasourceType,
+      datasource,
       isControlledComponent,
     } = this.props;
     const { verbose_name, metric_name } = savedMetric;
@@ -180,11 +201,10 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
       <ExplorePopoverContent>
         <AdhocMetricEditPopover
           adhocMetric={adhocMetric}
-          title={title}
           columns={columns}
           savedMetricsOptions={savedMetricsOptions}
           savedMetric={savedMetric}
-          datasourceType={datasourceType}
+          datasource={datasource}
           onResize={this.onPopoverResize}
           onClose={closePopover}
           onChange={this.onChange}
@@ -211,7 +231,7 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
         visible={visible}
         onVisibleChange={togglePopover}
         title={popoverTitle}
-        destroyTooltipOnHide={this.props.createNew}
+        destroyTooltipOnHide
       >
         {this.props.children}
       </Popover>

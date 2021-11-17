@@ -43,7 +43,6 @@ export default function buildQuery(formData: QueryFormData) {
   return buildQueryContext(formData, baseQueryObject => [
     {
       ...baseQueryObject,
-      apply_fetch_values_predicate: true,
       columns: [],
       groupby: [],
       metrics: [

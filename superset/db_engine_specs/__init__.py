@@ -53,7 +53,7 @@ def is_engine_spec(attr: Any) -> bool:
     )
 
 
-def get_engine_specs() -> Dict[str, Type[BaseEngineSpec]]:
+def load_engine_specs() -> List[Type[BaseEngineSpec]]:
     engine_specs: List[Type[BaseEngineSpec]] = []
 
     # load standard engines
@@ -75,6 +75,12 @@ def get_engine_specs() -> Dict[str, Type[BaseEngineSpec]]:
             continue
         engine_specs.append(engine_spec)
 
+    return engine_specs
+
+
+def get_engine_specs() -> Dict[str, Type[BaseEngineSpec]]:
+    engine_specs = load_engine_specs()
+
     # build map from name/alias -> spec
     engine_specs_map: Dict[str, Type[BaseEngineSpec]] = {}
     for engine_spec in engine_specs:
@@ -86,6 +92,14 @@ def get_engine_specs() -> Dict[str, Type[BaseEngineSpec]]:
             engine_specs_map[name] = engine_spec
 
     return engine_specs_map
+
+
+# there's a mismatch between the dialect name reported by the driver in these
+# libraries and the dialect name used in the URI
+backend_replacements = {
+    "drilldbapi": "drill",
+    "exasol": "exa",
+}
 
 
 def get_available_engine_specs() -> Dict[Type[BaseEngineSpec], Set[str]]:
@@ -118,14 +132,30 @@ def get_available_engine_specs() -> Dict[Type[BaseEngineSpec], Set[str]]:
     for ep in iter_entry_points("sqlalchemy.dialects"):
         try:
             dialect = ep.load()
-        except Exception:  # pylint: disable=broad-except
-            logger.warning("Unable to load SQLAlchemy dialect: %s", dialect)
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.warning("Unable to load SQLAlchemy dialect %s: %s", dialect, ex)
         else:
-            drivers[dialect.name].add(dialect.driver)
+            backend = dialect.name
+            if isinstance(backend, bytes):
+                backend = backend.decode()
+            backend = backend_replacements.get(backend, backend)
 
-    engine_specs = get_engine_specs()
-    return {
-        engine_specs[backend]: drivers
-        for backend, drivers in drivers.items()
-        if backend in engine_specs
-    }
+            driver = getattr(dialect, "driver", dialect.name)
+            if isinstance(driver, bytes):
+                driver = driver.decode()
+            drivers[backend].add(driver)
+
+    available_engines = {}
+    for engine_spec in load_engine_specs():
+        driver = drivers[engine_spec.engine]
+
+        # lookup driver by engine aliases.
+        if not driver and engine_spec.engine_aliases:
+            for alias in engine_spec.engine_aliases:
+                driver = drivers[alias]
+                if driver:
+                    break
+
+        available_engines[engine_spec] = driver
+
+    return available_engines
