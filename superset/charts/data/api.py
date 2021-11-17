@@ -38,6 +38,7 @@ from superset.charts.data.commands import (
 )
 from superset.charts.data.query_context_cache_loader import QueryContextCacheLoader
 from superset.charts.post_processing import apply_post_process
+from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
@@ -48,6 +49,8 @@ from superset.views.base_api import statsd_metrics
 
 if TYPE_CHECKING:
     from flask import Response
+
+    from superset.common.query_context import QueryContext
 
 logger = logging.getLogger(__name__)
 
@@ -130,8 +133,8 @@ class ChartDataRestApi(ChartRestApi):
         json_body["result_type"] = request.args.get("type", ChartDataResultType.FULL)
 
         try:
-            command = ChartDataCommand()
-            query_context = command.set_query_context(json_body)
+            query_context = self._create_query_context_from_form(json_body)
+            command = ChartDataCommand(query_context)
             command.validate()
         except QueryObjectValidationError as error:
             return self.response_400(message=error.message)
@@ -216,8 +219,8 @@ class ChartDataRestApi(ChartRestApi):
             return self.response_400(message=_("Request is not JSON"))
 
         try:
-            command = ChartDataCommand()
-            query_context = command.set_query_context(json_body)
+            query_context = self._create_query_context_from_form(json_body)
+            command = ChartDataCommand(query_context)
             command.validate()
         except QueryObjectValidationError as error:
             return self.response_400(message=error.message)
@@ -278,10 +281,10 @@ class ChartDataRestApi(ChartRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        command = ChartDataCommand()
         try:
             cached_data = self._load_query_context_form_from_cache(cache_key)
-            command.set_query_context(cached_data)
+            query_context = self._create_query_context_from_form(cached_data)
+            command = ChartDataCommand(query_context)
             command.validate()
         except ChartDataCacheLoadError:
             return self.response_404()
@@ -374,3 +377,14 @@ class ChartDataRestApi(ChartRestApi):
     # pylint: disable=invalid-name, no-self-use
     def _load_query_context_form_from_cache(self, cache_key: str) -> Dict[str, Any]:
         return QueryContextCacheLoader.load(cache_key)
+
+    # pylint: disable=no-self-use
+    def _create_query_context_from_form(
+        self, form_data: Dict[str, Any]
+    ) -> QueryContext:
+        try:
+            return ChartDataQueryContextSchema().load(form_data)
+        except KeyError as ex:
+            raise ValidationError("Request is incorrect") from ex
+        except ValidationError as error:
+            raise error
