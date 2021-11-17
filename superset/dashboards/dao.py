@@ -130,7 +130,8 @@ class DashboardDAO(BaseDAO):
     def validate_slug_uniqueness(slug: str) -> bool:
         if not slug:
             return True
-        dashboard_query = db.session.query(Dashboard).filter(Dashboard.slug == slug)
+        dashboard_query = db.session.query(
+            Dashboard).filter(Dashboard.slug == slug)
         return not db.session.query(dashboard_query.exists()).scalar()
 
     @staticmethod
@@ -187,7 +188,8 @@ class DashboardDAO(BaseDAO):
         ]
 
         session = db.session()
-        current_slices = session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
+        current_slices = session.query(Slice).filter(
+            Slice.id.in_(slice_ids)).all()
 
         dashboard.slices = current_slices
 
@@ -241,10 +243,9 @@ class DashboardDAO(BaseDAO):
         }
         md["default_filters"] = json.dumps(applicable_filters)
         md["color_scheme"] = data.get("color_scheme")
+        md["label_colors"] = data.get("label_colors")
         if data.get("color_namespace"):
             md["color_namespace"] = data.get("color_namespace")
-        if data.get("label_colors"):
-            md["label_colors"] = data.get("label_colors")
         dashboard.json_metadata = json.dumps(md)
 
     @staticmethod
