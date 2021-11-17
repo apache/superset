@@ -20,7 +20,7 @@ from flask_babel import lazy_gettext as _
 from sqlalchemy import or_
 from sqlalchemy.orm.query import Query
 
-from superset.models.reports import ReportSchedule
+from superset.models.reports import ReportSchedule, Report
 from superset.views.base import BaseFilter
 
 
@@ -38,4 +38,17 @@ class ReportScheduleAllTextFilter(BaseFilter):  # pylint: disable=too-few-public
                 ReportSchedule.description.ilike(ilike_value),
                 ReportSchedule.sql.ilike((ilike_value)),
             )
+        )
+
+
+class ReportsAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    name = _("All Text")
+    arg_name = "report_all_text"
+
+    def apply(self, query: Query, value: Any) -> Query:
+        if not value:
+            return query
+        ilike_value = f"%{value}%"
+        return query.filter(
+            Report.name.ilike(ilike_value),
         )

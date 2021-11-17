@@ -143,6 +143,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.reports.api import ReportScheduleRestApi
         from superset.reports.logs.api import ReportExecutionLogRestApi
         from superset.security.api import SecurityRestApi
+        from superset.users.api import UsersRestApi
+        from superset.reports.api import ReportsRestApi
         from superset.views.access_requests import AccessRequestsModelView
         from superset.views.alerts import (
             AlertLogModelView,
@@ -212,6 +214,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ReportScheduleRestApi)
         appbuilder.add_api(ReportExecutionLogRestApi)
         appbuilder.add_api(FilterSetRestApi)
+        appbuilder.add_api(ReportsRestApi)
+        appbuilder.add_api(UsersRestApi)
         #
         # Setup regular views
         #

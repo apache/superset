@@ -93,6 +93,18 @@ report_schedule_user = Table(
 )
 
 
+report_owner = Table(
+    "report_users",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("user_id", Integer, ForeignKey("ab_user.id"), nullable=False),
+    Column(
+        "reports_id", Integer, ForeignKey("reports.id"), nullable=False
+    ),
+    UniqueConstraint("user_id", "reports_id"),
+)
+
+
 class ReportSchedule(Model, AuditMixinNullable):
 
     """
@@ -203,3 +215,22 @@ class ReportExecutionLog(Model):  # pylint: disable=too-few-public-methods
         backref=backref("logs", cascade="all,delete,delete-orphan"),
         foreign_keys=[report_schedule_id],
     )
+
+
+class Report(Model, AuditMixinNullable):
+
+    """
+    Customizable user reports
+    """
+
+    __tablename__ = "reports"
+
+    id = Column(Integer, primary_key=True)
+    type = Column(String(50), nullable=True)
+    name = Column(String(150), nullable=False)
+    description = Column(Text)
+    active = Column(Boolean, default=True, index=True)
+    owners = relationship(security_manager.user_model, secondary=report_owner)
+
+    def __repr__(self) -> str:
+        return str(self.name)

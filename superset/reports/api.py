@@ -29,7 +29,7 @@ from superset.charts.filters import ChartFilter
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.dashboards.filters import DashboardAccessFilter
 from superset.databases.filters import DatabaseFilter
-from superset.models.reports import ReportSchedule
+from superset.models.reports import ReportSchedule, Report
 from superset.reports.commands.bulk_delete import BulkDeleteReportScheduleCommand
 from superset.reports.commands.create import CreateReportScheduleCommand
 from superset.reports.commands.delete import DeleteReportScheduleCommand
@@ -43,7 +43,7 @@ from superset.reports.commands.exceptions import (
     ReportScheduleUpdateFailedError,
 )
 from superset.reports.commands.update import UpdateReportScheduleCommand
-from superset.reports.filters import ReportScheduleAllTextFilter
+from superset.reports.filters import ReportScheduleAllTextFilter, ReportsAllTextFilter
 from superset.reports.schemas import (
     get_delete_ids_schema,
     openapi_spec_methods_override,
@@ -458,3 +458,53 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except ReportScheduleBulkDeleteFailedError as ex:
             return self.response_422(message=str(ex))
+
+
+class ReportsRestApi(BaseSupersetModelRestApi):
+    datamodel = SQLAInterface(Report)
+
+    resource_name = "reports"
+    allow_browser_login = True
+    class_permission_name = "Report"
+    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
+
+    show_columns = [
+        "id",
+        "active",
+        "name",
+        "owners.first_name",
+        "owners.id",
+        "owners.last_name",
+    ]
+    list_columns = [
+        "active",
+        "id",
+        "name",
+        "owners.first_name",
+        "owners.id",
+        "owners.last_name",
+        "type",
+    ]
+    add_columns = [
+        "name",
+        "type",
+        "owners",
+    ]
+    edit_columns = add_columns
+
+    order_columns = [
+        "id",
+        "name",
+        "active",
+        "owners.first_name",
+        "owners.id",
+        "owners.last_name",
+    ]
+    search_columns = [
+        "name",
+        "active",
+        "owners.id",
+    ]
+    search_filters = {"name": [ReportsAllTextFilter]}
+    openapi_spec_tag = "Reports"
+    # openapi_spec_methods = openapi_spec_methods_override
