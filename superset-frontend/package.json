@@ -331,6 +331,10 @@
     "webpack-manifest-plugin": "^4.0.2",
     "webpack-sources": "^3.2.0"
   },
+  "workspaces": [
+    "packages/*",
+    "plugins/*"
+  ],
   "engines": {
     "node": "^16.9.1",
     "npm": "^7.5.4"
