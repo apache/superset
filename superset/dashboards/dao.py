@@ -130,8 +130,7 @@ class DashboardDAO(BaseDAO):
     def validate_slug_uniqueness(slug: str) -> bool:
         if not slug:
             return True
-        dashboard_query = db.session.query(
-            Dashboard).filter(Dashboard.slug == slug)
+        dashboard_query = db.session.query(Dashboard).filter(Dashboard.slug == slug)
         return not db.session.query(dashboard_query.exists()).scalar()
 
     @staticmethod
@@ -188,8 +187,7 @@ class DashboardDAO(BaseDAO):
         ]
 
         session = db.session()
-        current_slices = session.query(Slice).filter(
-            Slice.id.in_(slice_ids)).all()
+        current_slices = session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
 
         dashboard.slices = current_slices
 
