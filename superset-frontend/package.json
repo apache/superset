@@ -28,22 +28,37 @@
     "doc": "docs",
     "test": "spec"
   },
+  "workspaces": [
+    "packages/*",
+    "plugins/*"
+  ],
   "scripts": {
+    "_lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx,.ts,tsx .",
+    "_prettier": "prettier './({src,spec,cypress-base,plugins,packages}/**/*{.js,.jsx,.ts,.tsx,.css,.less,.scss,.sass}|package.json)'",
     "build": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=production BABEL_ENV=\"${BABEL_ENV:=production}\" webpack --mode=production --color",
     "build-dev": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=development webpack --mode=development --color",
     "build-instrumented": "cross-env NODE_ENV=production BABEL_ENV=instrumented webpack --mode=production --color",
     "build-storybook": "build-storybook",
     "check-translation": "prettier --check ../superset/translations/**/LC_MESSAGES/*.json",
-    "clean-css": "prettier --write 'src/**/*.{css,less,sass,scss}'",
     "clean-translation": "prettier --write ../superset/translations/**/LC_MESSAGES/*.json",
     "cover": "cross-env NODE_ENV=test jest --coverage",
     "dev": "webpack --mode=development --color --watch",
     "dev-server": "cross-env NODE_ENV=development BABEL_ENV=development node --max_old_space_size=4096 ./node_modules/webpack-dev-server/bin/webpack-dev-server.js --mode=development",
-    "format": "prettier --write './{src,spec,cypress-base,plugins,packages}/**/*{.js,.jsx,.ts,.tsx,.css,.less,.scss,.sass}'",
-    "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx,.ts,.tsx . && npm run type",
-    "lint-fix": "eslint --fix --ignore-path=.eslintignore --ext .js,.jsx,.ts,tsx . && npm run clean-css && npm run type",
-    "prettier": "npm run format",
-    "prettier-check": "prettier --check 'src/**/*.{css,less,sass,scss}'",
+    "format": "npm run _prettier -- --write",
+    "lint": "npm run _lint && npm run type",
+    "lint-fix": "npm run _lint -- --fix && npm run type",
+    "plugins:build": "node ./scripts/build.js",
+    "plugins:build-assets": "node ./scripts/copyAssets.js",
+    "plugins:build-storybook": "cd packages/superset-ui-demo && npm run build-storybook",
+    "plugins:chromatic": "cd packages/superset-ui-demo && npm run chromatic",
+    "plugins:create-conventional-version": "npm run prune && ./scripts/lernaVersion.sh '--conventional-commits --create-release github'",
+    "plugins:create-minor-version": "npm run prune && ./scripts/lernaVersion.sh minor",
+    "plugins:create-patch-version": "npm run prune && ./scripts/lernaVersion.sh patch",
+    "plugins:release-conventional": "npm run prune && lerna publish --conventional-commits --create-release github --yes",
+    "plugins:release-from-tag": "npm run prune && lerna publish from-package --yes",
+    "plugins:storybook": "cd packages/superset-ui-demo && npm run storybook",
+    "prettier": "npm run _prettier -- --write",
+    "prettier-check": "npm run _prettier -- --check",
     "prod": "npm run build",
     "prune": "rm -rf ./{packages,plugins}/*/{lib,esm,tsconfig.tsbuildinfo,package-lock.json}",
     "storybook": "cross-env NODE_ENV=development BABEL_ENV=development start-storybook -s ./src/assets/images -p 6006",
@@ -115,6 +130,7 @@
     "abortcontroller-polyfill": "^1.1.9",
     "antd": "^4.9.4",
     "array-move": "^2.2.1",
+    "babel-plugin-typescript-to-proptypes": "^2.0.0",
     "bootstrap": "^3.4.1",
     "bootstrap-slider": "^10.0.0",
     "brace": "^0.11.1",
@@ -331,10 +347,6 @@
     "webpack-manifest-plugin": "^4.0.2",
     "webpack-sources": "^3.2.0"
   },
-  "workspaces": [
-    "packages/*",
-    "plugins/*"
-  ],
   "engines": {
     "node": "^16.9.1",
     "npm": "^7.5.4"
