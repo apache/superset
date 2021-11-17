@@ -56,45 +56,40 @@ interface FilterBoxMigrationModalProps {
   hideFooter: boolean;
 }
 
-const FilterBoxMigrationModal: FunctionComponent<FilterBoxMigrationModalProps> = ({
-  onClickReview,
-  onClickSnooze,
-  onHide,
-  show,
-  hideFooter = false,
-}) => (
-  <StyledFilterBoxMigrationModal
-    show={show}
-    onHide={onHide}
-    title={t('Ready to review filters in this dashboard?')}
-    hideFooter={hideFooter}
-    footer={
-      <>
-        <Button buttonSize="small" onClick={onClickSnooze}>
-          {t('Remind me in 24 hours')}
-        </Button>
-        <Button buttonSize="small" onClick={onHide}>
-          {t('Cancel')}
-        </Button>
-        <Button
-          buttonSize="small"
-          buttonStyle="primary"
-          onClick={onClickReview}
-        >
-          {t('Start Review')}
-        </Button>
-      </>
-    }
-    responsive
-  >
-    <div>
-      {t(
-        'filter_box will be deprecated ' +
-          'in a future version of Superset. ' +
-          'Please replace filter_box by dashboard filter components.',
-      )}
-    </div>
-  </StyledFilterBoxMigrationModal>
-);
+const FilterBoxMigrationModal: FunctionComponent<FilterBoxMigrationModalProps> =
+  ({ onClickReview, onClickSnooze, onHide, show, hideFooter = false }) => (
+    <StyledFilterBoxMigrationModal
+      show={show}
+      onHide={onHide}
+      title={t('Ready to review filters in this dashboard?')}
+      hideFooter={hideFooter}
+      footer={
+        <>
+          <Button buttonSize="small" onClick={onClickSnooze}>
+            {t('Remind me in 24 hours')}
+          </Button>
+          <Button buttonSize="small" onClick={onHide}>
+            {t('Cancel')}
+          </Button>
+          <Button
+            buttonSize="small"
+            buttonStyle="primary"
+            onClick={onClickReview}
+          >
+            {t('Start Review')}
+          </Button>
+        </>
+      }
+      responsive
+    >
+      <div>
+        {t(
+          'filter_box will be deprecated ' +
+            'in a future version of Superset. ' +
+            'Please replace filter_box by dashboard filter components.',
+        )}
+      </div>
+    </StyledFilterBoxMigrationModal>
+  );
 
 export default FilterBoxMigrationModal;

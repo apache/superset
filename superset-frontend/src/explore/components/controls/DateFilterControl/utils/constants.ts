@@ -93,7 +93,8 @@ export const SINCE_MODE_OPTIONS: SelectOptionType[] = [
   { value: 'today', label: t('Midnight'), order: 3 },
 ];
 
-export const UNTIL_MODE_OPTIONS: SelectOptionType[] = SINCE_MODE_OPTIONS.slice();
+export const UNTIL_MODE_OPTIONS: SelectOptionType[] =
+  SINCE_MODE_OPTIONS.slice();
 
 export const COMMON_RANGE_SET: Set<CommonRangeType> = new Set([
   'Last day',
