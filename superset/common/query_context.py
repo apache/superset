@@ -80,10 +80,10 @@ class QueryContext:
 
     datasource: BaseDatasource
     queries: List[QueryObject]
-    force: bool
-    custom_cache_timeout: Optional[int]
     result_type: ChartDataResultType
     result_format: ChartDataResultFormat
+    force: bool
+    custom_cache_timeout: Optional[int]
 
     # TODO: Type datasource and query_object dictionary with TypedDict when it becomes
     #  a vanilla python type https://github.com/python/mypy/issues/5288
@@ -92,19 +92,21 @@ class QueryContext:
         self,
         datasource: DatasourceDict,
         queries: List[Dict[str, Any]],
-        force: bool = False,
-        custom_cache_timeout: Optional[int] = None,
         result_type: Optional[ChartDataResultType] = None,
         result_format: Optional[ChartDataResultFormat] = None,
+        force: bool = False,
+        custom_cache_timeout: Optional[int] = None,
     ) -> None:
         self.datasource = ConnectorRegistry.get_datasource(
             str(datasource["type"]), int(datasource["id"]), db.session
         )
-        self.force = force
-        self.custom_cache_timeout = custom_cache_timeout
         self.result_type = result_type or ChartDataResultType.FULL
         self.result_format = result_format or ChartDataResultFormat.JSON
-        self.queries = [QueryObject(self, **query_obj) for query_obj in queries]
+        self.queries = [
+            QueryObject(self.result_type, **query_obj) for query_obj in queries
+        ]
+        self.force = force
+        self.custom_cache_timeout = custom_cache_timeout
         self.cache_values = {
             "datasource": datasource,
             "queries": queries,
