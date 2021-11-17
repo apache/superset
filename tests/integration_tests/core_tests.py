@@ -1548,6 +1548,30 @@ class TestCore(SupersetTestCase):
         data = self.get_resp(url)
         self.assertIn("Error message", data)
 
+    @mock.patch("superset.sql_lab.cancel_query")
+    def test_stop_query_no_cancel_query(self, mock_sql_lab_cancel_query):
+        """
+        Handles stop query when the DB engine spec does not
+        have a cancel query method.
+        """
+        form_data = {"client_id": "foo"}
+        query_mock = mock.Mock()
+        query_mock.sql = "SELECT *"
+        query_mock.database = 1
+        query_mock.schema = "superset"
+        query_mock.client_id = "foo"
+        query_mock.status = QueryStatus.RUNNING
+        self.login(username="admin")
+
+        with mock.patch("superset.views.core.db") as mock_superset_db:
+            mock_superset_db.session.query().filter_by().one().return_value = query_mock
+            mock_sql_lab_cancel_query.return_value = False
+            rv = self.client.post(
+                "/superset/stop_query/", data={"form_data": json.dumps(form_data)},
+            )
+
+        self.assertEqual(rv.status_code, 422)
+
 
 if __name__ == "__main__":
     unittest.main()
