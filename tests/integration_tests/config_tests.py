@@ -16,6 +16,7 @@
 # under the License.
 # isort:skip_file
 
+import importlib
 import unittest
 from typing import Any, Dict
 
@@ -167,6 +168,17 @@ class TestConfig(SupersetTestCase):
         self.assertTrue(dttm_col.is_dttm)
         self.assertEqual(dttm_col.python_date_format, "epoch_s")
         self.assertEqual(dttm_col.expression, "CAST(dttm as INTEGER)")
+
+    def test_wtf_csrf_exempt_list(self):
+        # ensure that the exempt apis actually exist
+
+        # Derived from logic in flask-wtf:
+        # https://github.com/wtforms/flask-wtf/blob/v1.0.0/src/flask_wtf/csrf.py#L223-L224
+        all_view_functions = {
+            f"{view.__module__}.{view.__name__}" for view in app.view_functions.values()
+        }
+        for exempt_api in app.config["WTF_CSRF_EXEMPT_LIST"]:
+            self.assertTrue(exempt_api in all_view_functions)
 
 
 if __name__ == "__main__":
