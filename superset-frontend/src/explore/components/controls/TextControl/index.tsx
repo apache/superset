@@ -46,7 +46,7 @@ const safeStringify = (value?: InputValueType | null) =>
   value == null ? '' : String(value);
 
 export default class TextControl<
-  T extends InputValueType = InputValueType
+  T extends InputValueType = InputValueType,
 > extends React.Component<TextControlProps<T>, TextControlState> {
   initialValue?: TextControlProps['value'];
 

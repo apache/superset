@@ -90,10 +90,8 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     addDangerToast,
   );
   const [databaseModalOpen, setDatabaseModalOpen] = useState<boolean>(false);
-  const [
-    databaseCurrentlyDeleting,
-    setDatabaseCurrentlyDeleting,
-  ] = useState<DatabaseDeleteObject | null>(null);
+  const [databaseCurrentlyDeleting, setDatabaseCurrentlyDeleting] =
+    useState<DatabaseDeleteObject | null>(null);
   const [currentDatabase, setCurrentDatabase] = useState<DatabaseObject | null>(
     null,
   );

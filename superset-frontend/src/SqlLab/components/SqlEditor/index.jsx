@@ -184,9 +184,8 @@ class SqlEditor extends React.PureComponent {
     );
     this.queryPane = this.queryPane.bind(this);
     this.renderQueryLimit = this.renderQueryLimit.bind(this);
-    this.getAceEditorAndSouthPaneHeights = this.getAceEditorAndSouthPaneHeights.bind(
-      this,
-    );
+    this.getAceEditorAndSouthPaneHeights =
+      this.getAceEditorAndSouthPaneHeights.bind(this);
     this.getSqlEditorHeight = this.getSqlEditorHeight.bind(this);
     this.requestValidation = debounce(
       this.requestValidation.bind(this),
@@ -456,14 +455,12 @@ class SqlEditor extends React.PureComponent {
 
   queryPane() {
     const hotkeys = this.getHotkeyConfig();
-    const {
-      aceEditorHeight,
-      southPaneHeight,
-    } = this.getAceEditorAndSouthPaneHeights(
-      this.state.height,
-      this.state.northPercent,
-      this.state.southPercent,
-    );
+    const { aceEditorHeight, southPaneHeight } =
+      this.getAceEditorAndSouthPaneHeights(
+        this.state.height,
+        this.state.northPercent,
+        this.state.southPercent,
+      );
     return (
       <Split
         expandToMin

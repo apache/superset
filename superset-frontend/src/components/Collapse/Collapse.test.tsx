@@ -93,8 +93,8 @@ test('renders with custom properties', () => {
   });
 
   const header = document.getElementsByClassName('ant-collapse-header')[0];
-  const arrow = document.getElementsByClassName('ant-collapse-arrow')[0]
-    .children[0];
+  const arrow =
+    document.getElementsByClassName('ant-collapse-arrow')[0].children[0];
 
   const headerStyle = window.getComputedStyle(header);
   const arrowStyle = window.getComputedStyle(arrow);

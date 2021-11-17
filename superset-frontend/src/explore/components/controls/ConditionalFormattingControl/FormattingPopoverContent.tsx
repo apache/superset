@@ -57,22 +57,22 @@ const operatorOptions = [
   { value: COMPARATOR.BETWEEN_OR_RIGHT_EQUAL, label: '< x ≤', order: 10 },
 ];
 
-const targetValueValidator = (
-  compare: (targetValue: number, compareValue: number) => boolean,
-  rejectMessage: string,
-) => (targetValue: number | string) => (
-  _: any,
-  compareValue: number | string,
-) => {
-  if (
-    !targetValue ||
-    !compareValue ||
-    compare(Number(targetValue), Number(compareValue))
-  ) {
-    return Promise.resolve();
-  }
-  return Promise.reject(new Error(rejectMessage));
-};
+const targetValueValidator =
+  (
+    compare: (targetValue: number, compareValue: number) => boolean,
+    rejectMessage: string,
+  ) =>
+  (targetValue: number | string) =>
+  (_: any, compareValue: number | string) => {
+    if (
+      !targetValue ||
+      !compareValue ||
+      compare(Number(targetValue), Number(compareValue))
+    ) {
+      return Promise.resolve();
+    }
+    return Promise.reject(new Error(rejectMessage));
+  };
 
 const targetValueLeftValidator = targetValueValidator(
   (target: number, val: number) => target > val,
