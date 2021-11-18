@@ -17,31 +17,31 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { Form } from 'src/components/Form';
 
 import { recurseReactClone } from './utils';
 import Field from './Field';
 
-const propTypes = {
-  children: PropTypes.node.isRequired,
-  onChange: PropTypes.func,
-  item: PropTypes.object,
-  title: PropTypes.node,
-  compact: PropTypes.bool,
-};
-const defaultProps = {
-  compact: false,
-  title: null,
-};
+interface FieldsetProps {
+  children: React.ReactNode;
+  onChange: Function;
+  item: Record<string, any>;
+  title: React.ReactNode;
+  compact: boolean;
+}
 
-export default class Fieldset extends React.PureComponent {
-  constructor(props) {
+export default class Fieldset extends React.PureComponent<FieldsetProps> {
+  static defaultProps = {
+    compact: false,
+    title: null,
+  };
+
+  constructor(props: FieldsetProps) {
     super(props);
     this.onChange = this.onChange.bind(this);
   }
 
-  onChange(fieldKey, val) {
+  onChange(fieldKey: any, val: any) {
     return this.props.onChange({
       ...this.props.item,
       [fieldKey]: val,
@@ -50,7 +50,7 @@ export default class Fieldset extends React.PureComponent {
 
   render() {
     const { title } = this.props;
-    const propExtender = field => ({
+    const propExtender = (field: { props: { fieldKey: string | number } }) => ({
       onChange: this.onChange,
       value: this.props.item[field.props.fieldKey],
       compact: this.props.compact,
@@ -63,5 +63,3 @@ export default class Fieldset extends React.PureComponent {
     );
   }
 }
-Fieldset.propTypes = propTypes;
-Fieldset.defaultProps = defaultProps;
