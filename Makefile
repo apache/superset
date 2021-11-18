@@ -34,7 +34,7 @@ superset:
                     --username admin \
                     --firstname Admin \
                     --lastname Strator \
-                    --email admin@apache.org \
+                    --email admin@superset.io \
                     --password admin
 
 	# Initialize the database
