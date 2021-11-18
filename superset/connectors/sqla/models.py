@@ -71,6 +71,7 @@ from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 
 from superset import app, db, is_feature_enabled, security_manager
+from superset.columns.models import Column as NewColumn
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.connectors.sqla.utils import (
@@ -1843,8 +1844,56 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         """
         db.session.execute(update(SqlaTable).where(SqlaTable.id == obj.table.id))
 
+    @staticmethod
+    def after_insert(
+        mapper: Mapper, connection: Connection, target: "SqlaTable",
+    ) -> None:
+        """
+        Shadow write the dataset to new models.
 
-sa.event.listen(SqlaTable, "after_insert", security_manager.set_perm)
+        The ``SqlaTable`` model is currently being migrated to two new models, ``Table``
+        and ``Dataset``. In the first phase of the migration the new models are populated
+        whenever ``SqlaTable`` is modified (created, updated, or deleted).
+
+        In the second phase of the migration reads will be done from the new models.
+        Finally, in the third phase of the migration the old models will be removed.
+
+        For more context: https://github.com/apache/superset/issues/14909
+        """
+        # set permissions
+        security_manager.set_perm(mapper, connection, target)
+
+        session = Session(bind=connection)
+
+        # create columns
+        columns = []
+        for column in target.columns:  # pylint: disable=redefined-outer-name
+            # ``is_active`` might be ``None`` at this point, but it defaults to ``True``.
+            if column.is_active is False:
+                continue
+
+            extra_json = json.loads(column.extra or "{}")
+            for attr in {"groupby", "filterable", "verbose_name", "python_date_format"}:
+                value = getattr(column, attr)
+                if value:
+                    extra_json[attr] = value
+
+            columns.append(
+                NewColumn(
+                    name=column.column_name,
+                    type=column.type,
+                    expression=column.expression or column.column_name,
+                    description=column.description,
+                    is_temporal=column.is_dttm,
+                    extra_json=json.dumps(extra_json),
+                ),
+            )
+
+            session.add(columns[-1])
+            session.flush()
+
+
+sa.event.listen(SqlaTable, "after_insert", SqlaTable.after_insert)
 sa.event.listen(SqlaTable, "after_update", security_manager.set_perm)
 sa.event.listen(SqlaTable, "before_update", SqlaTable.before_update)
 sa.event.listen(SqlMetric, "after_update", SqlaTable.update_table)
