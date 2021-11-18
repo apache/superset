@@ -27,9 +27,7 @@ export enum TabIds {
   FilterSets = 'filterSets',
 }
 
-export function mapParentFiltersToChildren(
-  filters: Array<Filter | Divider>,
-): {
+export function mapParentFiltersToChildren(filters: Array<Filter | Divider>): {
   [id: string]: Filter[];
 } {
   const cascadeChildren = {};
