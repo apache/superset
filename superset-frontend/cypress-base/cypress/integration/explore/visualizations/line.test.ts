@@ -32,14 +32,6 @@ describe('Visualization > Line', () => {
     cy.get('.ant-alert-warning').contains(`Metrics: cannot be empty`);
   });
 
-  it('should preload mathjs', () => {
-    cy.get('script[src*="mathjs"]').should('have.length', 1);
-    cy.contains('Add annotation layer').scrollIntoView().click();
-    // should not load additional mathjs
-    cy.get('script[src*="mathjs"]').should('have.length', 1);
-    cy.contains('Layer configuration');
-  });
-
   it('should not show validator error when metric added', () => {
     const formData = { ...LINE_CHART_DEFAULTS, metrics: [] };
     cy.visitChartByParams(JSON.stringify(formData));
@@ -53,8 +45,10 @@ describe('Visualization > Line', () => {
     // Title edit for saved metrics is disabled - switch to Simple
     cy.get('[id="adhoc-metric-edit-tabs-tab-SIMPLE"]').click();
 
-    cy.get('[name="select-column"]').click().type('num{enter}');
-    cy.get('[name="select-aggregate"]').click().type('sum{enter}');
+    cy.get('input[aria-label="Select column"]').click().type('num{enter}');
+    cy.get('input[aria-label="Select aggregate options"]')
+      .click()
+      .type('sum{enter}');
     cy.get('[data-test="AdhocMetricEdit#save"]').contains('Save').click();
 
     cy.get('.text-danger').should('not.exist');
@@ -77,7 +71,7 @@ describe('Visualization > Line', () => {
       .focus()
       .type('bnbColors{enter}');
     cy.get(
-      '.Control[data-test="color_scheme"] .ant-select-selection-item > ul[data-test="bnbColors"]',
+      '.Control[data-test="color_scheme"] .ant-select-selection-item ul[data-test="bnbColors"]',
     ).should('exist');
   });
 
@@ -85,7 +79,6 @@ describe('Visualization > Line', () => {
     const formData = { ...LINE_CHART_DEFAULTS, metrics: [NUM_METRIC] };
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
-    cy.get('script[src*="mathjs"]').should('have.length', 1);
   });
 
   it('should work with groupby', () => {

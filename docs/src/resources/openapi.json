@@ -730,13 +730,13 @@
               "PT5M",
               "PT10M",
               "PT15M",
-              "PT0.5H",
+              "PT30M",
               "PT1H",
               "PT6H",
               "P1D",
               "P1W",
               "P1M",
-              "P0.25Y",
+              "P3M",
               "P1Y",
               "1969-12-28T00:00:00Z/P1W",
               "1969-12-29T00:00:00Z/P1W",
@@ -998,13 +998,13 @@
               "PT5M",
               "PT10M",
               "PT15M",
-              "PT0.5H",
+              "PT30M",
               "PT1H",
               "PT6H",
               "P1D",
               "P1W",
               "P1M",
-              "P0.25Y",
+              "P3M",
               "P1Y",
               "1969-12-28T00:00:00Z/P1W",
               "1969-12-29T00:00:00Z/P1W",
@@ -2722,7 +2722,7 @@
             "type": "string"
           },
           "impersonate_user": {
-            "description": "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.",
+            "description": "If Presto, Trino or Drill all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.",
             "type": "boolean"
           },
           "parameters": {
@@ -2816,7 +2816,7 @@
             "type": "string"
           },
           "impersonate_user": {
-            "description": "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.",
+            "description": "If Presto, Trino or Drill all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.",
             "type": "boolean"
           },
           "parameters": {
@@ -2866,7 +2866,7 @@
             "type": "string"
           },
           "impersonate_user": {
-            "description": "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.",
+            "description": "If Presto, Trino or Drill all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.",
             "type": "boolean"
           },
           "parameters": {
@@ -2914,7 +2914,7 @@
             "type": "string"
           },
           "impersonate_user": {
-            "description": "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.",
+            "description": "If Presto, Trino or Drill all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.",
             "type": "boolean"
           },
           "parameters": {
@@ -9984,43 +9984,45 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "properties": {
-                      "available_drivers": {
-                        "description": "Installed drivers for the engine",
-                        "items": {
+                  "databases": {
+                    "items": {
+                      "properties": {
+                        "available_drivers": {
+                          "description": "Installed drivers for the engine",
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "default_driver": {
+                          "description": "Default driver for the engine",
                           "type": "string"
                         },
-                        "type": "array"
+                        "engine": {
+                          "description": "Name of the SQLAlchemy engine",
+                          "type": "string"
+                        },
+                        "name": {
+                          "description": "Name of the database",
+                          "type": "string"
+                        },
+                        "parameters": {
+                          "description": "JSON schema defining the needed parameters",
+                          "type": "object"
+                        },
+                        "preferred": {
+                          "description": "Is the database preferred?",
+                          "type": "boolean"
+                        },
+                        "sqlalchemy_uri_placeholder": {
+                          "description": "Example placeholder for the SQLAlchemy URI",
+                          "type": "string"
+                        }
                       },
-                      "default_driver": {
-                        "description": "Default driver for the engine",
-                        "type": "string"
-                      },
-                      "engine": {
-                        "description": "Name of the SQLAlchemy engine",
-                        "type": "string"
-                      },
-                      "name": {
-                        "description": "Name of the database",
-                        "type": "string"
-                      },
-                      "parameters": {
-                        "description": "JSON schema defining the needed parameters",
-                        "type": "object"
-                      },
-                      "preferred": {
-                        "description": "Is the database preferred?",
-                        "type": "boolean"
-                      },
-                      "sqlalchemy_uri_placeholder": {
-                        "description": "Example placeholder for the SQLAlchemy URI",
-                        "type": "string"
-                      }
+                      "type": "object"
                     },
-                    "type": "object"
-                  },
-                  "type": "array"
+                    "type": "array"
+                  }
                 }
               }
             },

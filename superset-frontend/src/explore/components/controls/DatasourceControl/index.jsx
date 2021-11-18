@@ -24,8 +24,10 @@ import { t, styled, supersetTheme } from '@superset-ui/core';
 import { Dropdown, Menu } from 'src/common/components';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
-import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
-import DatasourceModal from 'src/datasource/DatasourceModal';
+import {
+  ChangeDatasourceModal,
+  DatasourceModal,
+} from 'src/components/Datasource';
 import { postForm } from 'src/explore/exploreUtils';
 import Button from 'src/components/Button';
 import ErrorAlert from 'src/components/ErrorMessage/ErrorAlert';
@@ -114,9 +116,8 @@ class DatasourceControl extends React.PureComponent {
       showChangeDatasourceModal: false,
     };
     this.onDatasourceSave = this.onDatasourceSave.bind(this);
-    this.toggleChangeDatasourceModal = this.toggleChangeDatasourceModal.bind(
-      this,
-    );
+    this.toggleChangeDatasourceModal =
+      this.toggleChangeDatasourceModal.bind(this);
     this.toggleEditDatasourceModal = this.toggleEditDatasourceModal.bind(this);
     this.toggleShowDatasource = this.toggleShowDatasource.bind(this);
     this.handleMenuItemClick = this.handleMenuItemClick.bind(this);
@@ -227,10 +228,7 @@ class DatasourceControl extends React.PureComponent {
             </Tooltip>
           )}
           {extra?.warning_markdown && (
-            <WarningIconWithTooltip
-              warningMarkdown={extra.warning_markdown}
-              size={30}
-            />
+            <WarningIconWithTooltip warningMarkdown={extra.warning_markdown} />
           )}
           <Dropdown
             overlay={datasourceMenu}

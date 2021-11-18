@@ -31,10 +31,11 @@ from sqlalchemy.types import DateTime
 import tests.integration_tests.test_app
 from superset import app, db as metadata_db
 from superset.db_engine_specs.postgres import PostgresEngineSpec
+from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.models.sql_types.base import literal_dttm_type_factory
-from superset.utils.core import get_example_database, QueryStatus
+from superset.utils.core import get_example_database
 
 from .base_tests import SupersetTestCase
 from .fixtures.energy_dashboard import load_energy_table_with_slice
@@ -132,7 +133,7 @@ class TestDatabaseModel(SupersetTestCase):
                                }
                     },
                     "metadata_cache_timeout": {},
-                    "schemas_allowed_for_csv_upload": []
+                    "schemas_allowed_for_file_upload": []
                 }
                 """
 
@@ -205,7 +206,7 @@ class TestDatabaseModel(SupersetTestCase):
                                }
                     },
                     "metadata_cache_timeout": {},
-                    "schemas_allowed_for_csv_upload": []
+                    "schemas_allowed_for_file_upload": []
                 }
                 """
 
@@ -517,7 +518,7 @@ class TestSqlaTableModel(SupersetTestCase):
         self.assertTrue("Metric 'invalid' does not exist", context.exception)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_data_for_slices(self):
+    def test_data_for_slices_with_no_query_context(self):
         tbl = self.get_table(name="birth_names")
         slc = (
             metadata_db.session.query(Slice)
@@ -531,9 +532,35 @@ class TestSqlaTableModel(SupersetTestCase):
         assert len(data_for_slices["columns"]) == 1
         assert data_for_slices["metrics"][0]["metric_name"] == "sum__num"
         assert data_for_slices["columns"][0]["column_name"] == "gender"
-        assert set(data_for_slices["verbose_map"].keys()) == set(
-            ["__timestamp", "sum__num", "gender",]
+        assert set(data_for_slices["verbose_map"].keys()) == {
+            "__timestamp",
+            "sum__num",
+            "gender",
+        }
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_data_for_slices_with_query_context(self):
+        tbl = self.get_table(name="birth_names")
+        slc = (
+            metadata_db.session.query(Slice)
+            .filter_by(
+                datasource_id=tbl.id,
+                datasource_type=tbl.type,
+                slice_name="Pivot Table v2",
+            )
+            .first()
         )
+        data_for_slices = tbl.data_for_slices([slc])
+        assert len(data_for_slices["metrics"]) == 1
+        assert len(data_for_slices["columns"]) == 2
+        assert data_for_slices["metrics"][0]["metric_name"] == "sum__num"
+        assert data_for_slices["columns"][0]["column_name"] == "name"
+        assert set(data_for_slices["verbose_map"].keys()) == {
+            "__timestamp",
+            "sum__num",
+            "name",
+            "state",
+        }
 
 
 def test_literal_dttm_type_factory():

@@ -58,7 +58,7 @@ describe('Dashboard top-level controls', () => {
     });
   });
 
-  it('should allow dashboard level force refresh', () => {
+  xit('should allow dashboard level force refresh', () => {
     // when charts are not start loading, for example, under a secondary tab,
     // should allow force refresh
     WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);

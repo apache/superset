@@ -35,7 +35,12 @@ from superset.dao.exceptions import (
 )
 from superset.extensions import db, security_manager
 from superset.models.core import Database
-from superset.utils.core import backend, get_example_database, get_main_database
+from superset.utils.core import (
+    backend,
+    get_example_database,
+    get_example_default_schema,
+    get_main_database,
+)
 from superset.utils.dict_import_export import export_to_dict
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import CTAS_SCHEMA_NAME
@@ -134,7 +139,11 @@ class TestDatasetApi(SupersetTestCase):
         example_db = get_example_database()
         return (
             db.session.query(SqlaTable)
-            .filter_by(database=example_db, table_name="energy_usage")
+            .filter_by(
+                database=example_db,
+                table_name="energy_usage",
+                schema=get_example_default_schema(),
+            )
             .one()
         )
 
@@ -221,6 +230,7 @@ class TestDatasetApi(SupersetTestCase):
         Dataset API: Test get dataset item
         """
         table = self.get_energy_usage_dataset()
+        main_db = get_main_database()
         self.login(username="admin")
         uri = f"api/v1/dataset/{table.id}"
         rv = self.get_assert_metric(uri, "get")
@@ -228,7 +238,11 @@ class TestDatasetApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         expected_result = {
             "cache_timeout": None,
-            "database": {"database_name": "examples", "id": 1},
+            "database": {
+                "backend": main_db.backend,
+                "database_name": "examples",
+                "id": 1,
+            },
             "default_endpoint": None,
             "description": "Energy consumption",
             "extra": None,
@@ -238,14 +252,15 @@ class TestDatasetApi(SupersetTestCase):
             "main_dttm_col": None,
             "offset": 0,
             "owners": [],
-            "schema": None,
+            "schema": get_example_default_schema(),
             "sql": None,
             "table_name": "energy_usage",
             "template_params": None,
         }
-        assert {
-            k: v for k, v in response["result"].items() if k in expected_result
-        } == expected_result
+        if response["result"]["database"]["backend"] not in ("presto", "hive"):
+            assert {
+                k: v for k, v in response["result"].items() if k in expected_result
+            } == expected_result
         assert len(response["result"]["columns"]) == 3
         assert len(response["result"]["metrics"]) == 2
 
@@ -471,12 +486,15 @@ class TestDatasetApi(SupersetTestCase):
         """
         Dataset API: Test create dataset validate table uniqueness
         """
+        schema = get_example_default_schema()
         energy_usage_ds = self.get_energy_usage_dataset()
         self.login(username="admin")
         table_data = {
             "database": energy_usage_ds.database_id,
             "table_name": energy_usage_ds.table_name,
         }
+        if schema:
+            table_data["schema"] = schema
         rv = self.post_assert_metric("/api/v1/dataset/", table_data, "post")
         assert rv.status_code == 422
         data = json.loads(rv.data.decode("utf-8"))
@@ -1440,6 +1458,7 @@ class TestDatasetApi(SupersetTestCase):
         # gamma users by default do not have access to this dataset
         assert rv.status_code == 404
 
+    @unittest.skip("Number of related objects depend on DB")
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_dataset_related_objects(self):
         """

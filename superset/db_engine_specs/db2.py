@@ -42,7 +42,7 @@ class Db2EngineSpec(BaseEngineSpec):
         " - MICROSECOND({col}) MICROSECONDS",
         "P1W": "{col} - (DAYOFWEEK({col})) DAYS",
         "P1M": "{col} - (DAY({col})-1) DAYS",
-        "P0.25Y": "{col} - (DAY({col})-1) DAYS"
+        "P3M": "{col} - (DAY({col})-1) DAYS"
         " - (MONTH({col})-1) MONTHS"
         " + ((QUARTER({col})-1) * 3) MONTHS",
         "P1Y": "{col} - (DAY({col})-1) DAYS" " - (MONTH({col})-1) MONTHS",

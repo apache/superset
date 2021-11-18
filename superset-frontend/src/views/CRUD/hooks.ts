@@ -141,7 +141,10 @@ export function useListViewResource<D extends object = any>(
         .map(({ id, operator: opr, value }) => ({
           col: id,
           opr,
-          value,
+          value:
+            value && typeof value === 'object' && 'value' in value
+              ? value.value
+              : value,
         }));
 
       const queryParams = rison.encode({
@@ -327,7 +330,7 @@ export function useSingleViewResource<D extends object = any>(
         .then(
           ({ json = {} }) => {
             updateState({
-              resource: json.result,
+              resource: { ...json.result, id: json.id },
               error: null,
             });
             return json.result;
@@ -425,6 +428,7 @@ export function useImportResource(
       return SupersetClient.post({
         endpoint: `/api/v1/${resourceName}/import/`,
         body: formData,
+        headers: { Accept: 'application/json' },
       })
         .then(() => true)
         .catch(response =>
@@ -551,10 +555,8 @@ export const useChartEditModal = (
   setCharts: (charts: Array<Chart>) => void,
   charts: Array<Chart>,
 ) => {
-  const [
-    sliceCurrentlyEditing,
-    setSliceCurrentlyEditing,
-  ] = useState<Slice | null>(null);
+  const [sliceCurrentlyEditing, setSliceCurrentlyEditing] =
+    useState<Slice | null>(null);
 
   function openChartEditModal(chart: Chart) {
     setSliceCurrentlyEditing({

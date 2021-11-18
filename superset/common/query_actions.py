@@ -20,15 +20,17 @@ from typing import Any, Callable, cast, Dict, List, Optional, TYPE_CHECKING
 from flask_babel import _
 
 from superset import app
+from superset.common.chart_data import ChartDataResultType
+from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseDatasource
 from superset.exceptions import QueryObjectValidationError
 from superset.utils.core import (
-    ChartDataResultType,
     extract_column_dtype,
     extract_dataframe_dtypes,
     ExtraFiltersReasonType,
+    get_column_name,
     get_time_filter_status,
-    QueryStatus,
+    is_adhoc_column,
 )
 
 if TYPE_CHECKING:
@@ -96,6 +98,7 @@ def _get_full(
     datasource = _get_datasource(query_context, query_obj)
     result_type = query_obj.result_type or query_context.result_type
     payload = query_context.get_df_payload(query_obj, force_cached=force_cached)
+    applied_template_filters = payload.get("applied_template_filters", [])
     df = payload["df"]
     status = payload["status"]
     if status != QueryStatus.FAILED:
@@ -113,12 +116,16 @@ def _get_full(
         datasource, query_obj.applied_time_extras
     )
     payload["applied_filters"] = [
-        {"column": col} for col in filter_columns if col in columns
+        {"column": get_column_name(col)}
+        for col in filter_columns
+        if is_adhoc_column(col) or col in columns or col in applied_template_filters
     ] + applied_time_columns
     payload["rejected_filters"] = [
         {"reason": ExtraFiltersReasonType.COL_NOT_IN_DATASOURCE, "column": col}
         for col in filter_columns
-        if col not in columns
+        if not is_adhoc_column(col)
+        and col not in columns
+        and col not in applied_template_filters
     ] + rejected_time_columns
 
     if result_type == ChartDataResultType.RESULTS and status != QueryStatus.FAILED:

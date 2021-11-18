@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import { HeaderDropdownProps } from 'src/dashboard/components/Header/types';
@@ -197,4 +197,13 @@ test('should show the properties modal', async () => {
   await openDropdown();
   userEvent.click(screen.getByText('Edit dashboard properties'));
   expect(editModeOnProps.showPropertiesModal).toHaveBeenCalledTimes(1);
+});
+
+test('should display the Apply button when opening the modal', async () => {
+  render(setup(editModeOnProps));
+  await openDropdown();
+  userEvent.click(screen.getByText('Edit dashboard properties'));
+  waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Apply' })).toBeInTheDocument();
+  });
 });

@@ -24,11 +24,7 @@ describe('Dashboard edit markdown', () => {
     cy.visit(TABBED_DASHBOARD);
   });
 
-  it('should load AceEditor on demand', () => {
-    let numScripts = 0;
-    cy.get('script').then(nodes => {
-      numScripts = nodes.length;
-    });
+  it('should add markdown component to dashboard', () => {
     cy.get('[data-test="dashboard-header"]')
       .find('[aria-label="edit-alt"]')
       .click();
@@ -37,11 +33,6 @@ describe('Dashboard edit markdown', () => {
     cy.get('[data-test="dashboard-header"]')
       .find('[aria-label="more-horiz"]')
       .click();
-    cy.get('script').then(nodes => {
-      // load 5 new script chunks for css editor
-      expect(nodes.length).to.greaterThan(numScripts);
-      numScripts = nodes.length;
-    });
     cy.get('[data-test="grid-row-background--transparent"]')
       .first()
       .as('component-background-first');
@@ -49,11 +40,6 @@ describe('Dashboard edit markdown', () => {
     drag('[data-test="new-component"]', 'Markdown').to(
       '@component-background-first',
     );
-    cy.get('script').then(nodes => {
-      // load more scripts for markdown editor
-      expect(nodes.length).to.greaterThan(numScripts);
-      numScripts = nodes.length;
-    });
     cy.get('[data-test="dashboard-markdown-editor"]')
       .should(
         'have.text',
@@ -74,12 +60,6 @@ describe('Dashboard edit markdown', () => {
     ).to(500, 600);
 
     cy.get('[data-test="dashboard-markdown-editor"]').contains('Test resize');
-
-    // entering edit mode does not add new scripts
-    // (though scripts may still be removed by others)
-    cy.get('script').then(nodes => {
-      expect(nodes.length).to.greaterThan(numScripts);
-    });
 
     cy.get('@component-background-first').click('right');
     cy.get('[data-test="dashboard-component-chart-holder"]')

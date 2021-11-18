@@ -36,7 +36,7 @@ import Loading from 'src/components/Loading';
 import Menu from 'src/components/Menu/Menu';
 import FlashProvider from 'src/components/FlashProvider';
 import { theme } from 'src/preamble';
-import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
+import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import setupApp from 'src/setup/setupApp';
 import { routes, isFrontendRoute } from 'src/views/routes';
 import { Logger } from 'src/logger/LogUtils';
@@ -98,7 +98,7 @@ const App = () => (
           </Route>
         ))}
       </Switch>
-      <ToastPresenter />
+      <ToastContainer />
     </RootContextProviders>
   </Router>
 );
