@@ -16,7 +16,6 @@
 # under the License.
 # isort:skip_file
 
-import importlib
 import unittest
 from typing import Any, Dict
 
