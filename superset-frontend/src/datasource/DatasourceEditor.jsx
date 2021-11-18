@@ -164,25 +164,25 @@ function ColumnCollectionTable({
       tableColumns={
         isFeatureEnabled(FeatureFlag.ENABLE_BUSINESS_TYPES)
           ? [
-            'column_name',
-            'business_type',
-            'type',
-            'is_dttm',
-            'filterable',
-            'groupby',
-          ]
+              'column_name',
+              'business_type',
+              'type',
+              'is_dttm',
+              'filterable',
+              'groupby',
+            ]
           : ['column_name', 'type', 'is_dttm', 'filterable', 'groupby']
       }
       sortColumns={
         isFeatureEnabled(FeatureFlag.ENABLE_BUSINESS_TYPES)
           ? [
-            'column_name',
-            'business_type',
-            'type',
-            'is_dttm',
-            'filterable',
-            'groupby',
-          ]
+              'column_name',
+              'business_type',
+              'type',
+              'is_dttm',
+              'filterable',
+              'groupby',
+            ]
           : ['column_name', 'type', 'is_dttm', 'filterable', 'groupby']
       }
       allowDeletes
@@ -307,81 +307,89 @@ function ColumnCollectionTable({
       columnLabels={
         isFeatureEnabled(FeatureFlag.ENABLE_BUSINESS_TYPES)
           ? {
-            column_name: t('Column'),
-            business_type: t('Business type'),
-            type: t('Data type'),
-            groupby: t('Is dimension'),
-            is_dttm: t('Is temporal'),
-            filterable: t('Is filterable'),
-          }
+              column_name: t('Column'),
+              business_type: t('Business type'),
+              type: t('Data type'),
+              groupby: t('Is dimension'),
+              is_dttm: t('Is temporal'),
+              filterable: t('Is filterable'),
+            }
           : {
-            column_name: t('Column'),
-            type: t('Data type'),
-            groupby: t('Is dimension'),
-            is_dttm: t('Is temporal'),
-            filterable: t('Is filterable'),
-          }
+              column_name: t('Column'),
+              type: t('Data type'),
+              groupby: t('Is dimension'),
+              is_dttm: t('Is temporal'),
+              filterable: t('Is filterable'),
+            }
       }
       onChange={onChange}
       itemRenderers={
         isFeatureEnabled(FeatureFlag.ENABLE_BUSINESS_TYPES)
           ? {
-            column_name: (v, onItemChange, _, record) =>
-              editableColumnName ? (
-                <StyledLabelWrapper>
-                  {record.is_certified && (
-                    <CertifiedIcon
-                      certifiedBy={record.certified_by}
-                      details={record.certification_details}
+              column_name: (v, onItemChange, _, record) =>
+                editableColumnName ? (
+                  <StyledLabelWrapper>
+                    {record.is_certified && (
+                      <CertifiedIcon
+                        certifiedBy={record.certified_by}
+                        details={record.certification_details}
+                      />
+                    )}
+                    <EditableTitle
+                      canEdit
+                      title={v}
+                      onSaveTitle={onItemChange}
                     />
-                  )}
-                  <EditableTitle canEdit title={v} onSaveTitle={onItemChange} />
-                </StyledLabelWrapper>
-              ) : (
-                <StyledLabelWrapper>
-                  {record.is_certified && (
-                    <CertifiedIcon
-                      certifiedBy={record.certified_by}
-                      details={record.certification_details}
-                    />
-                  )}
-                  {v}
-                </StyledLabelWrapper>
-              ),
-            type: d => (d ? <Label>{d}</Label> : null),
-            business_type: d => <Label onChange={onChange}>{d}</Label>,
-            is_dttm: checkboxGenerator,
-            filterable: checkboxGenerator,
-            groupby: checkboxGenerator,
-          }
+                  </StyledLabelWrapper>
+                ) : (
+                  <StyledLabelWrapper>
+                    {record.is_certified && (
+                      <CertifiedIcon
+                        certifiedBy={record.certified_by}
+                        details={record.certification_details}
+                      />
+                    )}
+                    {v}
+                  </StyledLabelWrapper>
+                ),
+              type: d => (d ? <Label>{d}</Label> : null),
+              business_type: d => <Label onChange={onChange}>{d}</Label>,
+              is_dttm: checkboxGenerator,
+              filterable: checkboxGenerator,
+              groupby: checkboxGenerator,
+            }
           : {
-            column_name: (v, onItemChange, _, record) =>
-              editableColumnName ? (
-                <StyledLabelWrapper>
-                  {record.is_certified && (
-                    <CertifiedIcon
-                      certifiedBy={record.certified_by}
-                      details={record.certification_details}
+              column_name: (v, onItemChange, _, record) =>
+                editableColumnName ? (
+                  <StyledLabelWrapper>
+                    {record.is_certified && (
+                      <CertifiedIcon
+                        certifiedBy={record.certified_by}
+                        details={record.certification_details}
+                      />
+                    )}
+                    <EditableTitle
+                      canEdit
+                      title={v}
+                      onSaveTitle={onItemChange}
                     />
-                  )}
-                  <EditableTitle canEdit title={v} onSaveTitle={onItemChange} />
-                </StyledLabelWrapper>
-              ) : (
-                <StyledLabelWrapper>
-                  {record.is_certified && (
-                    <CertifiedIcon
-                      certifiedBy={record.certified_by}
-                      details={record.certification_details}
-                    />
-                  )}
-                  {v}
-                </StyledLabelWrapper>
-              ),
-            type: d => (d ? <Label>{d}</Label> : null),
-            is_dttm: checkboxGenerator,
-            filterable: checkboxGenerator,
-            groupby: checkboxGenerator,
-          }
+                  </StyledLabelWrapper>
+                ) : (
+                  <StyledLabelWrapper>
+                    {record.is_certified && (
+                      <CertifiedIcon
+                        certifiedBy={record.certified_by}
+                        details={record.certification_details}
+                      />
+                    )}
+                    {v}
+                  </StyledLabelWrapper>
+                ),
+              type: d => (d ? <Label>{d}</Label> : null),
+              is_dttm: checkboxGenerator,
+              filterable: checkboxGenerator,
+              groupby: checkboxGenerator,
+            }
       }
     />
   );
