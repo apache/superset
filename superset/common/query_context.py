@@ -32,7 +32,7 @@ from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_actions import get_query_results
-from superset.common.query_object import QueryObject
+from superset.common.query_object import QueryObject, QueryObjectFactory
 from superset.common.utils import QueryCacheManager
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -102,8 +102,10 @@ class QueryContext:
         )
         self.result_type = result_type or ChartDataResultType.FULL
         self.result_format = result_format or ChartDataResultFormat.JSON
+        query_object_factory = QueryObjectFactory()
         self.queries = [
-            QueryObject(self.result_type, **query_obj) for query_obj in queries
+            query_object_factory.create(self.result_type, **query_obj)
+            for query_obj in queries
         ]
         self.force = force
         self.custom_cache_timeout = custom_cache_timeout

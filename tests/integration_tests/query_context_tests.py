@@ -50,6 +50,7 @@ def get_sql_text(payload: Dict[str, Any]) -> str:
 
 
 class TestQueryContext(SupersetTestCase):
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_schema_deserialization(self):
         """
         Ensure that the deserialized QueryContext contains all required fields.
