@@ -402,7 +402,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "DASHBOARD_RBAC": False,
     "ENABLE_EXPLORE_DRAG_AND_DROP": False,
     "ENABLE_DND_WITH_CLICK_UX": False,
-    "ENABLE_BUSINESS_TYPES": False,
+    "ENABLE_BUSINESS_TYPES": True,
     # Enabling ALERTS_ATTACH_REPORTS, the system sends email and slack message
     # with screenshot and link
     # Disables ALERTS_ATTACH_REPORTS, the system DOES NOT generate screenshot
@@ -1326,7 +1326,7 @@ def cidr_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
         resp["status"] = "invalid"
         resp["value"] = None
         resp["formatted_value"] = None
-        resp["valid_filter_operators"] = []
+        resp["valid_filter_operators"] = ["==", "<=", "<", ">=", ">"]
     return resp
 
 def cidr_translate_filter_func(filter):
@@ -1395,7 +1395,6 @@ def cidr_translate_filter_func(filter):
         return [filter]
 
 
-
 def port_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
     resp: BusinessTypeResponse = {}
     print("in port_func")
@@ -1414,9 +1413,9 @@ def port_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
     else: 
         print("in else")
         resp["status"] = "invalid"
-        resp["value"] = None
+        resp["value"] = "invalid entry"
         resp["formatted_value"] = None
-        resp["valid_filter_operators"] = []
+        resp["valid_filter_operators"] = ["==", "<=", "<", ">=", ">"]
     print("leaving port_func")
     return resp
 

@@ -17,6 +17,8 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
+import { debounce } from 'lodash';
+import rison from 'rison';
 import { NativeSelect as Select } from 'src/components/Select';
 import { t, SupersetClient, styled } from '@superset-ui/core';
 import {
@@ -64,6 +66,7 @@ export interface SimpleColumnType {
   optionName?: string;
   filterBy?: string;
   value?: string;
+  business_type?: string;
 }
 
 export interface SimpleExpressionType {
@@ -239,6 +242,19 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     setLoadingComparatorSuggestions,
   ] = useState(false);
 
+  // TODO:
+  // This does not need to be managed in state like this, this can be managed better
+  const [parsedBusniessType, setParsedBusniessType] = useState<
+    string | string[]
+  >('');
+  const [subjectBusinessType, setSubjectBusinessType] = useState<
+    string | undefined
+  >('');
+  const [busninessTypeOperatorList, setBusninessTypeOperatorList] = useState<
+    string[]
+  >([]);
+  //
+
   useEffect(() => {
     const refreshComparatorSuggestions = () => {
       const { datasource } = props;
@@ -269,6 +285,13 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     refreshComparatorSuggestions();
   }, [props.adhocFilter.subject]);
 
+  const isOperatorRelevantWrapper = (operator: Operators, subject: string) => {
+    const op = OPERATOR_ENUM_TO_OPERATOR_TYPE[operator].operation;
+    return subjectBusinessType
+      ? isOperatorRelevant(operator, subject) &&
+          busninessTypeOperatorList.includes(op)
+      : isOperatorRelevant(operator, subject);
+  };
   const onInputComparatorChange = (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
@@ -358,7 +381,53 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
       comparator && comparator.length > 0 && createSuggestionsPlaceholder(),
     autoFocus: shouldFocusComparator,
   };
+  // TODO:
+  // This has way to many concerns (setting busniess type, operator list and fetching parsed vals)
+  // needs to be broken up and handled better
+  useEffect(() => {
+    const testFucntion = debounce((comp: string | string[]) => {
+      const option = props.options.find(
+        option =>
+          ('column_name' in option &&
+            option.column_name === props.adhocFilter.subject) ||
+          ('optionName' in option &&
+            option.optionName === props.adhocFilter.subject),
+      );
+      if (option && 'business_type' in option) {
+        setSubjectBusinessType(option.business_type);
+      }
 
+      const compList: string[] = typeof comp === 'string' ? [comp] : comp;
+
+      const values = compList
+        ? compList.map(result => ({
+            type: subjectBusinessType,
+            value: result,
+          }))
+        : [{ type: subjectBusinessType, value: '' }];
+
+      const queryParams = rison.encode(values);
+      const endpoint = `/api/v1/chart/business_type?q=${queryParams}`;
+      SupersetClient.get({ endpoint })
+        .then(({ json }) => {
+          const valsArray: string[] = json.result.map((result: any) =>
+            JSON.stringify(result.value),
+          );
+          setParsedBusniessType(
+            valsArray.length > 1 ? valsArray : valsArray[0],
+          );
+          console.log(json.result[0].valid_filter_operators);
+          setBusninessTypeOperatorList(json.result[0].valid_filter_operators);
+        })
+        .catch(e => {
+          setParsedBusniessType([]);
+          console.log(e);
+        });
+    }, 600);
+    testFucntion(comparator);
+  }, [props.adhocFilter.subject, comparator, busninessTypeOperatorList]);
+  // TODO:
+  // This has way to many responsibilites and needs to be broken on
   return (
     <>
       <Select
@@ -408,18 +477,32 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
         }
         getPopupContainer={triggerNode => triggerNode.parentNode}
       >
-        {OPERATORS_OPTIONS.filter(op => isOperatorRelevant(op, subject)).map(
-          option => (
-            <Select.Option value={option} key={option}>
-              {OPERATOR_ENUM_TO_OPERATOR_TYPE[option].display}
-            </Select.Option>
-          ),
-        )}
+        {OPERATORS_OPTIONS.filter(op =>
+          isOperatorRelevantWrapper(op, subject),
+        ).map(option => (
+          <Select.Option value={option} key={option}>
+            {OPERATOR_ENUM_TO_OPERATOR_TYPE[option].display}
+          </Select.Option>
+        ))}
       </Select>
+      {subjectBusinessType ? (
+        <SelectWithLabel
+          data-test="adhoc-filter-simple-value"
+          {...comparatorSelectProps}
+          disabled
+          placeholder=""
+          labelText=""
+          value={parsedBusniessType}
+        />
+      ) : (
+        <></>
+      )}
+
       {MULTI_OPERATORS.has(operatorId) || suggestions.length > 0 ? (
         <SelectWithLabel
           data-test="adhoc-filter-simple-value"
           {...comparatorSelectProps}
+          onChange={onComparatorChange}
           getPopupContainer={triggerNode => triggerNode.parentNode}
           onSearch={val => setCurrentSuggestionSearch(val)}
           onSelect={clearSuggestionSearch}
@@ -443,6 +526,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
         </SelectWithLabel>
       ) : (
         <Input
+          css={theme => ({ marginBottom: theme.gridUnit * 4 })}
           data-test="adhoc-filter-simple-value"
           name="filter-value"
           ref={ref => {

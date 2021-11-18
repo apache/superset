@@ -66,15 +66,13 @@ class BusinessTypeRestApi(BaseSupersetModelRestApi):
                       valid_filter_operators:
                         type: list
     """
-        value: str = kwargs['rison']['value']
-        business_type: str = kwargs['rison']['type']
+        items = kwargs['rison']
+        response = []
+        for item in items:
+          bus_resp: BusinessTypeResponse = BUSINESS_TYPE_ADDONS[item["type"]]({
+            "type": item["type"],
+            "value": item["value"],
+          })
+          response.append(bus_resp)
         
-        if business_type not in BUSINESS_TYPE_ADDONS:
-            return self.response(404)
-
-        bus_resp: BusinessTypeResponse = BUSINESS_TYPE_ADDONS[business_type]({
-           "business_type": business_type,
-           "value": value
-        })
-        
-        return self.response(200, result=bus_resp)
+        return self.response(200, result=response)
