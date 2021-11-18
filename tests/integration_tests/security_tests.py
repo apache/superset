@@ -1033,7 +1033,9 @@ class TestSecurityManager(SupersetTestCase):
         dataset_access = security_manager.add_permission_view_menu(
             "datasource_access", f"[{database_name}].[tmp_dataset]"
         )
-        role = security_manager.add_role("tmp_role", [db_access, schema_access, dataset_access])
+        role = security_manager.add_role(
+            "tmp_role", [db_access, schema_access, dataset_access]
+        )
 
         view_menus = security_manager.get_view_menus_for_database(database_name)
         self.assertEqual(len(view_menus), 3)

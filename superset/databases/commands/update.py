@@ -48,7 +48,7 @@ class UpdateDatabaseCommand(BaseCommand):
     def run(self) -> Model:
         self.validate()
         try:
-            old_name = self._model.database_name
+            old_name = self._model.database_name  # type: ignore
             database = DatabaseDAO.update(self._model, self._properties, commit=False)
             database.set_sqlalchemy_uri(database.sqlalchemy_uri)
             # adding a new database we always want to force refresh schema list

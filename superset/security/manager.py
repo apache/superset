@@ -77,6 +77,8 @@ from superset.utils.core import DatasourceName, RowLevelSecurityFilterType
 from superset.utils.urls import get_url_host
 
 if TYPE_CHECKING:
+    from flask_appbuilder.security.sqla.models import ViewMenu
+
     from superset.common.query_context import QueryContext
     from superset.connectors.base.models import BaseDatasource
     from superset.connectors.druid.models import DruidCluster
