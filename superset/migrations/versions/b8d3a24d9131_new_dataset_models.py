@@ -46,6 +46,8 @@ def upgrade():
         # AuditMixinNullable
         sa.Column("created_on", sa.DateTime(), nullable=True),
         sa.Column("changed_on", sa.DateTime(), nullable=True),
+        sa.Column("created_by_fk", sa.Integer(), nullable=True),
+        sa.Column("changed_by_fk", sa.Integer(), nullable=True),
         # ExtraJSONMixin
         sa.Column("extra_json", sa.Text(), nullable=True),
         # ImportExportMixin
@@ -73,6 +75,8 @@ def upgrade():
         # AuditMixinNullable
         sa.Column("created_on", sa.DateTime(), nullable=True),
         sa.Column("changed_on", sa.DateTime(), nullable=True),
+        sa.Column("created_by_fk", sa.Integer(), nullable=True),
+        sa.Column("changed_by_fk", sa.Integer(), nullable=True),
         # ExtraJSONMixin
         sa.Column("extra_json", sa.Text(), nullable=True),
         # ImportExportMixin
@@ -105,6 +109,8 @@ def upgrade():
         # AuditMixinNullable
         sa.Column("created_on", sa.DateTime(), nullable=True),
         sa.Column("changed_on", sa.DateTime(), nullable=True),
+        sa.Column("created_by_fk", sa.Integer(), nullable=True),
+        sa.Column("changed_by_fk", sa.Integer(), nullable=True),
         # ExtraJSONMixin
         sa.Column("extra_json", sa.Text(), nullable=True),
         # ImportExportMixin
@@ -144,11 +150,11 @@ def upgrade():
 
 
 def downgrade():
-    op.drop_table("datasets")
-    op.drop_table("tables")
-    op.drop_table("dataset_tables")
     op.drop_table("dataset_columns")
+    op.drop_table("dataset_tables")
+    op.drop_table("datasets")
     op.drop_table("table_columns")
+    op.drop_table("tables")
     op.drop_table("columns")
 
     op.rename_table("druid_columns", "columns")
