@@ -30,6 +30,8 @@ interface FieldsetProps {
   compact: boolean;
 }
 
+type fieldKeyType = string | number;
+
 export default class Fieldset extends React.PureComponent<FieldsetProps> {
   static defaultProps = {
     compact: false,
@@ -41,7 +43,7 @@ export default class Fieldset extends React.PureComponent<FieldsetProps> {
     this.onChange = this.onChange.bind(this);
   }
 
-  onChange(fieldKey: any, val: any) {
+  onChange(fieldKey: fieldKeyType, val: any) {
     return this.props.onChange({
       ...this.props.item,
       [fieldKey]: val,
@@ -50,7 +52,7 @@ export default class Fieldset extends React.PureComponent<FieldsetProps> {
 
   render() {
     const { title } = this.props;
-    const propExtender = (field: { props: { fieldKey: string | number } }) => ({
+    const propExtender = (field: { props: { fieldKey: fieldKeyType } }) => ({
       onChange: this.onChange,
       value: this.props.item[field.props.fieldKey],
       compact: this.props.compact,
