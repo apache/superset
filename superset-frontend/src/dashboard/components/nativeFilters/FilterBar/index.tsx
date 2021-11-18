@@ -151,9 +151,8 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const history = useHistory();
   const dataMaskApplied: DataMaskStateWithId = useNativeFiltersDataMask();
   const [editFilterSetId, setEditFilterSetId] = useState<number | null>(null);
-  const [dataMaskSelected, setDataMaskSelected] = useImmer<DataMaskStateWithId>(
-    dataMaskApplied,
-  );
+  const [dataMaskSelected, setDataMaskSelected] =
+    useImmer<DataMaskStateWithId>(dataMaskApplied);
   const dispatch = useDispatch();
   const filterSets = useFilterSets();
   const filterSetFilterValues = Object.values(filterSets);
@@ -267,9 +266,10 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     });
   }, [dataMaskSelected, dispatch]);
 
-  const openFiltersBar = useCallback(() => toggleFiltersBar(true), [
-    toggleFiltersBar,
-  ]);
+  const openFiltersBar = useCallback(
+    () => toggleFiltersBar(true),
+    [toggleFiltersBar],
+  );
 
   useFilterUpdates(dataMaskSelected, setDataMaskSelected);
   const isApplyDisabled = checkIsApplyDisabled(

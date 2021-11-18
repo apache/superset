@@ -110,13 +110,8 @@ class Markdown extends React.PureComponent {
   }
 
   static getDerivedStateFromProps(nextProps, state) {
-    const {
-      hasError,
-      editorMode,
-      markdownSource,
-      undoLength,
-      redoLength,
-    } = state;
+    const { hasError, editorMode, markdownSource, undoLength, redoLength } =
+      state;
     const {
       component: nextComponent,
       undoLength: nextUndoLength,

@@ -122,18 +122,15 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     refreshData,
   } = useListViewResource<Dataset>('dataset', t('dataset'), addDangerToast);
 
-  const [datasetAddModalOpen, setDatasetAddModalOpen] = useState<boolean>(
-    false,
-  );
+  const [datasetAddModalOpen, setDatasetAddModalOpen] =
+    useState<boolean>(false);
 
   const [datasetCurrentlyDeleting, setDatasetCurrentlyDeleting] = useState<
     (Dataset & { chart_count: number; dashboard_count: number }) | null
   >(null);
 
-  const [
-    datasetCurrentlyEditing,
-    setDatasetCurrentlyEditing,
-  ] = useState<Dataset | null>(null);
+  const [datasetCurrentlyEditing, setDatasetCurrentlyEditing] =
+    useState<Dataset | null>(null);
 
   const [importingDataset, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);

@@ -85,24 +85,26 @@ const handleErrorResponse = async response => {
   });
 };
 
-const loadAccessOptions = accessType => (input = '') => {
-  const query = rison.encode({ filter: input });
-  return SupersetClient.get({
-    endpoint: `/api/v1/dashboard/related/${accessType}?q=${query}`,
-  }).then(
-    response => ({
-      data: response.json.result.map(item => ({
-        value: item.value,
-        label: item.text,
-      })),
-      totalCount: response.json.count,
-    }),
-    badResponse => {
-      handleErrorResponse(badResponse);
-      return [];
-    },
-  );
-};
+const loadAccessOptions =
+  accessType =>
+  (input = '') => {
+    const query = rison.encode({ filter: input });
+    return SupersetClient.get({
+      endpoint: `/api/v1/dashboard/related/${accessType}?q=${query}`,
+    }).then(
+      response => ({
+        data: response.json.result.map(item => ({
+          value: item.value,
+          label: item.text,
+        })),
+        totalCount: response.json.count,
+      }),
+      badResponse => {
+        handleErrorResponse(badResponse);
+        return [];
+      },
+    );
+  };
 
 const loadOwners = loadAccessOptions('owners');
 const loadRoles = loadAccessOptions('roles');
@@ -132,6 +134,7 @@ class PropertiesModal extends React.PureComponent {
     this.onColorSchemeChange = this.onColorSchemeChange.bind(this);
     this.getRowsWithRoles = this.getRowsWithRoles.bind(this);
     this.getRowsWithoutRoles = this.getRowsWithoutRoles.bind(this);
+    this.getJsonMetadata = this.getJsonMetadata.bind(this);
   }
 
   componentDidMount() {
@@ -139,13 +142,22 @@ class PropertiesModal extends React.PureComponent {
     JsonEditor.preload();
   }
 
+  getJsonMetadata() {
+    const { json_metadata: jsonMetadata } = this.state.values;
+    try {
+      const jsonMetadataObj = jsonMetadata?.length
+        ? JSON.parse(jsonMetadata)
+        : {};
+      return jsonMetadataObj;
+    } catch (_) {
+      return {};
+    }
+  }
+
   onColorSchemeChange(colorScheme, { updateMetadata = true } = {}) {
     // check that color_scheme is valid
     const colorChoices = getCategoricalSchemeRegistry().keys();
-    const { json_metadata: jsonMetadata } = this.state.values;
-    const jsonMetadataObj = jsonMetadata?.length
-      ? JSON.parse(jsonMetadata)
-      : {};
+    const jsonMetadataObj = this.getJsonMetadata();
 
     // only fire if the color_scheme is present and invalid
     if (colorScheme && !colorChoices.includes(colorScheme)) {
@@ -318,6 +330,11 @@ class PropertiesModal extends React.PureComponent {
 
   getRowsWithoutRoles() {
     const { values, isDashboardLoaded } = this.state;
+    const jsonMetadataObj = this.getJsonMetadata();
+    const hasCustomLabelColors = !!Object.keys(
+      jsonMetadataObj?.label_colors || {},
+    ).length;
+
     return (
       <Row gutter={16}>
         <Col xs={24} md={12}>
@@ -343,6 +360,7 @@ class PropertiesModal extends React.PureComponent {
         <Col xs={24} md={12}>
           <h3 style={{ marginTop: '1em' }}>{t('Colors')}</h3>
           <ColorSchemeControlWrapper
+            hasCustomLabelColors={hasCustomLabelColors}
             onChange={this.onColorSchemeChange}
             colorScheme={values.colorScheme}
             labelMargin={4}
@@ -354,6 +372,11 @@ class PropertiesModal extends React.PureComponent {
 
   getRowsWithRoles() {
     const { values, isDashboardLoaded } = this.state;
+    const jsonMetadataObj = this.getJsonMetadata();
+    const hasCustomLabelColors = !!Object.keys(
+      jsonMetadataObj?.label_colors || {},
+    ).length;
+
     return (
       <>
         <Row>
@@ -404,6 +427,7 @@ class PropertiesModal extends React.PureComponent {
         <Row>
           <Col xs={24} md={12}>
             <ColorSchemeControlWrapper
+              hasCustomLabelColors={hasCustomLabelColors}
               onChange={this.onColorSchemeChange}
               colorScheme={values.colorScheme}
               labelMargin={4}

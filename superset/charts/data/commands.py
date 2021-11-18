@@ -18,13 +18,11 @@ import logging
 from typing import Any, Dict, Optional
 
 from flask import Request
-from marshmallow import ValidationError
 
 from superset.charts.commands.exceptions import (
     ChartDataCacheLoadError,
     ChartDataQueryFailedError,
 )
-from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.commands.base import BaseCommand
 from superset.common.query_context import QueryContext
 from superset.exceptions import CacheLoadError
@@ -36,6 +34,9 @@ logger = logging.getLogger(__name__)
 
 class ChartDataCommand(BaseCommand):
     _query_context: QueryContext
+
+    def __init__(self, query_context: QueryContext):
+        self._query_context = query_context
 
     def run(self, **kwargs: Any) -> Dict[str, Any]:
         # caching is handled in query_context.get_df_payload
@@ -62,15 +63,6 @@ class ChartDataCommand(BaseCommand):
             return_value.update(cache_key=payload["cache_key"])
 
         return return_value
-
-    def set_query_context(self, form_data: Dict[str, Any]) -> QueryContext:
-        try:
-            self._query_context = ChartDataQueryContextSchema().load(form_data)
-        except KeyError as ex:
-            raise ValidationError("Request is incorrect") from ex
-        except ValidationError as error:
-            raise error
-        return self._query_context
 
     def validate(self) -> None:
         self._query_context.raise_for_access()

@@ -1085,7 +1085,11 @@ EMAIL_REPORTS_USER = "admin"
 WEBDRIVER_TYPE = "firefox"
 
 # Window size - this will impact the rendering of the data
-WEBDRIVER_WINDOW = {"dashboard": (1600, 2000), "slice": (3000, 1200)}
+WEBDRIVER_WINDOW = {
+    "dashboard": (1600, 2000),
+    "slice": (3000, 1200),
+    "pixel_density": 1,
+}
 
 # An optional override to the default auth hook used to provide auth to the
 # offline webdriver
