@@ -35,7 +35,7 @@ superset:
                     --firstname Admin \
                     --lastname Strator \
                     --email admin@superset.io \
-                    --password admin
+                    --password general
 
 	# Initialize the database
 	superset db upgrade
