@@ -14,22 +14,3 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict
-
-from tests.common.query_context_generator import QueryContextGenerator
-from tests.integration_tests.base_tests import SupersetTestCase
-
-
-class QueryContextGeneratorInteg(QueryContextGenerator):
-    def get_table(self, name, id, type):
-        return SupersetTestCase.get_table(name=name)
-
-
-def get_query_context(
-    query_name: str,
-    add_postprocessing_operations: bool = False,
-    add_time_offsets: bool = False,
-) -> Dict[str, Any]:
-    return QueryContextGeneratorInteg().generate(
-        query_name, add_postprocessing_operations, add_time_offsets
-    )

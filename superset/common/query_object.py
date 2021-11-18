@@ -14,25 +14,21 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=invalid-name, no-self-use
+# pylint: disable=invalid-name
 from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, NamedTuple, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Dict, List, NamedTuple, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as _
 from pandas import DataFrame
 
-from superset import app, db
 from superset.common.chart_data import ChartDataResultType
-from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import QueryObjectValidationError
 from superset.typing import Column, Metric, OrderBy
 from superset.utils import pandas_postprocessing
 from superset.utils.core import (
-    apply_max_row_limit,
-    DatasourceDict,
     DTTM_ALIAS,
     find_duplicates,
     get_column_names,
@@ -41,15 +37,12 @@ from superset.utils.core import (
     json_int_dttm_ser,
     QueryObjectFilterClause,
 )
-from superset.utils.date_parser import get_since_until, parse_human_timedelta
+from superset.utils.date_parser import parse_human_timedelta
 from superset.utils.hashing import md5_sha_from_dict
-from superset.views.utils import get_time_range_endpoints
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
 
-
-config = app.config
 logger = logging.getLogger(__name__)
 
 # TODO: Type Metrics dictionary with TypedDict when it becomes a vanilla python type
@@ -404,71 +397,3 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             options = post_process.get("options", {})
             df = getattr(pandas_postprocessing, operation)(df, **options)
         return df
-
-
-class QueryObjectFactory:  # pylint: disable=too-few-public-methods
-    def create(  # pylint: disable=too-many-arguments
-        self,
-        parent_result_type: ChartDataResultType,
-        datasource: Optional[DatasourceDict] = None,
-        extras: Optional[Dict[str, Any]] = None,
-        row_limit: Optional[int] = None,
-        time_range: Optional[str] = None,
-        time_shift: Optional[str] = None,
-        **kwargs: Any,
-    ) -> QueryObject:
-        datasource_model_instance = None
-        if datasource:
-            datasource_model_instance = self._convert_to_model(datasource)
-        processed_extras = self._process_extras(extras)
-        result_type = kwargs.setdefault("result_type", parent_result_type)
-        row_limit = self._process_row_limit(row_limit, result_type)
-        from_dttm, to_dttm = self._get_dttms(time_range, time_shift, processed_extras)
-        kwargs["from_dttm"] = from_dttm
-        kwargs["to_dttm"] = to_dttm
-        return QueryObject(
-            datasource=datasource_model_instance,
-            extras=extras,
-            row_limit=row_limit,
-            time_range=time_range,
-            time_shift=time_shift,
-            **kwargs,
-        )
-
-    def _convert_to_model(self, datasource: DatasourceDict) -> BaseDatasource:
-        return ConnectorRegistry.get_datasource(
-            str(datasource["type"]), int(datasource["id"]), db.session
-        )
-
-    def _process_extras(self, extras: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-        extras = extras or {}
-        if config["SIP_15_ENABLED"]:
-            extras["time_range_endpoints"] = get_time_range_endpoints(form_data=extras)
-        return extras
-
-    def _process_row_limit(
-        self, row_limit: Optional[int], result_type: ChartDataResultType
-    ) -> int:
-        default_row_limit = (
-            config["SAMPLES_ROW_LIMIT"]
-            if result_type == ChartDataResultType.SAMPLES
-            else config["ROW_LIMIT"]
-        )
-        return apply_max_row_limit(row_limit or default_row_limit)
-
-    def _get_dttms(
-        self,
-        time_range: Optional[str],
-        time_shift: Optional[str],
-        extras: Dict[str, Any],
-    ) -> Tuple[Optional[datetime], Optional[datetime]]:
-        return get_since_until(
-            relative_start=extras.get(
-                "relative_start", config["DEFAULT_RELATIVE_START_TIME"]
-            ),
-            relative_end=extras.get(
-                "relative_end", config["DEFAULT_RELATIVE_END_TIME"]
-            ),
-            time_range=time_range,
-            time_shift=time_shift,
-        )
