@@ -53,11 +53,8 @@ from superset.utils.core import (
 )
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 
-
-from tests.integration_tests.fixtures.query_context import (
-    get_query_context,
-    ANNOTATION_LAYERS,
-)
+from tests.common.query_context_generator import ANNOTATION_LAYERS
+from tests.integration_tests.fixtures.query_context import get_query_context
 
 
 CHART_DATA_URI = "api/v1/chart/data"

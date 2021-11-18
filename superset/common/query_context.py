@@ -32,7 +32,8 @@ from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_actions import get_query_results
-from superset.common.query_object import QueryObject, QueryObjectFactory
+from superset.common.query_object import QueryObject
+from superset.common.query_object_factory import QueryObjectFactory
 from superset.common.utils import QueryCacheManager
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -69,6 +70,10 @@ class CachedTimeOffset(TypedDict):
     cache_keys: List[Optional[str]]
 
 
+def create_query_object_factory() -> QueryObjectFactory:
+    return QueryObjectFactory(config, ConnectorRegistry(), db.session)
+
+
 class QueryContext:
     """
     The query context contains the query object and additional fields necessary
@@ -102,7 +107,7 @@ class QueryContext:
         )
         self.result_type = result_type or ChartDataResultType.FULL
         self.result_format = result_format or ChartDataResultFormat.JSON
-        query_object_factory = QueryObjectFactory()
+        query_object_factory = create_query_object_factory()
         self.queries = [
             query_object_factory.create(self.result_type, **query_obj)
             for query_obj in queries
