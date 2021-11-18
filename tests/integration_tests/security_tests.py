@@ -375,18 +375,6 @@ class TestRolePermission(SupersetTestCase):
             )
         )
 
-        stored_db.database_name = "tmp_database2"
-        session.commit()
-        stored_db = (
-            session.query(Database).filter_by(database_name="tmp_database2").one()
-        )
-        self.assertEqual(stored_db.perm, f"[tmp_database2].(id:{stored_db.id})")
-        self.assertIsNotNone(
-            security_manager.find_permission_view_menu(
-                "database_access", stored_db.perm
-            )
-        )
-
         session.delete(stored_db)
         session.commit()
 
@@ -1030,6 +1018,35 @@ class TestSecurityManager(SupersetTestCase):
         mock_g.user = admin
         roles = security_manager.get_user_roles()
         self.assertEqual(admin.roles, roles)
+
+    def test_cleanup_database_permissions(self):
+        database_name = "deleted_db"
+        empty = security_manager.get_view_menus_for_database(database_name)
+        self.assertEqual(len(empty), 0)
+
+        db_access = security_manager.add_permission_view_menu(
+            "database_access", f"[{database_name}].(id:1)"
+        )
+        schema_access = security_manager.add_permission_view_menu(
+            "schema_access", f"[{database_name}].[tmp_schema]"
+        )
+        dataset_access = security_manager.add_permission_view_menu(
+            "datasource_access", f"[{database_name}].[tmp_dataset]"
+        )
+        role = security_manager.add_role("tmp_role", [db_access, schema_access, dataset_access])
+
+        view_menus = security_manager.get_view_menus_for_database(database_name)
+        self.assertEqual(len(view_menus), 3)
+
+        security_manager.cleanup_database_permissions(database_name)
+        db.session.commit()
+
+        empty = security_manager.get_view_menus_for_database(database_name)
+        self.assertEqual(len(empty), 0)
+
+        db.session.delete(role)
+        db.session.commit()
+
 
     @patch("superset.security.manager.g")
     def test_get_anonymous_roles(self, mock_g):

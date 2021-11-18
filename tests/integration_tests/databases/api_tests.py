@@ -530,6 +530,10 @@ class TestDatabaseApi(SupersetTestCase):
         uri = f"api/v1/database/{test_database.id}"
         rv = self.client.put(uri, json=database_data)
         self.assertEqual(rv.status_code, 200)
+
+        old_perms = security_manager.get_view_menus_for_database("test-database")
+        self.assertEqual(len(old_perms), 0)
+
         # Cleanup
         model = db.session.query(Database).get(test_database.id)
         db.session.delete(model)
@@ -683,6 +687,9 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         model = db.session.query(Database).get(database_id)
         self.assertEqual(model, None)
+
+        db_perms = security_manager.get_view_menus_for_database("test-database")
+        self.assertEqual(len(db_perms), 0)
 
     def test_delete_database_not_found(self):
         """

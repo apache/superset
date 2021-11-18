@@ -58,13 +58,13 @@ class UpdateDatabaseCommand(BaseCommand):
             except Exception as ex:
                 db.session.rollback()
                 raise DatabaseConnectionFailedError() from ex
-            
+
             try:
                 self._update_permissions(database, schemas, old_name)
             except Exception as ex:
                 db.session.rollback()
                 raise DatabasePermissionCleanupError() from ex
-            
+
             db.session.commit()
 
         except DAOUpdateFailedError as ex:

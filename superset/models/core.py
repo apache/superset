@@ -785,6 +785,9 @@ class Database(
         return sqla_url.get_dialect()()
 
 
+sqla.event.listen(Database, "after_insert", security_manager.set_perm)
+
+
 class Log(Model):  # pylint: disable=too-few-public-methods
 
     """ORM object used to log Superset actions to the database"""

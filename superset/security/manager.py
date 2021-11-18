@@ -957,7 +957,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             target.schema_perm = target.get_schema_perm()
 
         pvm_names = []
-        if target.__tablename__ == "clusters":
+        if target.__tablename__ in {"dbs", "clusters"}:
             pvm_names.append(("database_access", target.get_perm()))
         else:
             pvm_names.append(("datasource_access", target.get_perm()))
