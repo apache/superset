@@ -97,17 +97,19 @@ function useIsFilterInScope() {
   // Filter is in scope if any of it's charts is visible.
   // Chart is visible if it's placed in an active tab tree or if it's not attached to any tab.
   // Chart is in an active tab tree if all of it's ancestors of type TAB are active
-  return (filter: CascadeFilter) => {
-    const isSection = filter.type === NativeFilterType.DIVIDER;
+  // Dividers are always in scope
+  return (filter: CascadeFilter | Divider) => {
+    const isDivider = filter.type === NativeFilterType.DIVIDER;
     return (
-      isSection ||
-      filter.chartsInScope?.some((chartId: number) => {
-        const tabParents = selectChartTabParents(chartId);
-        return (
-          tabParents?.length === 0 ||
-          tabParents?.every(tab => activeTabs.includes(tab))
-        );
-      })
+      isDivider ||
+      ('chartsInScope' in filter &&
+        filter.chartsInScope?.some((chartId: number) => {
+          const tabParents = selectChartTabParents(chartId);
+          return (
+            tabParents?.length === 0 ||
+            tabParents?.every(tab => activeTabs.includes(tab))
+          );
+        }))
     );
   };
 }
@@ -126,7 +128,7 @@ export function useSelectFiltersInScope(
     if (!dashboardHasTabs) {
       filtersInScope = cascadeFilters;
     } else {
-      cascadeFilters.forEach((filter: CascadeFilter) => {
+      cascadeFilters.forEach(filter => {
         const filterInScope = isFilterInScope(filter);
 
         if (filterInScope) {

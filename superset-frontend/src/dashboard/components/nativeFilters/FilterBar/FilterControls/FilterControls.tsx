@@ -33,12 +33,10 @@ import {
 import {
   Filter,
   NativeFilterType,
-  Divider,
 } from 'src/dashboard/components/nativeFilters/types';
 import CascadePopover from '../CascadeFilters/CascadePopover';
 import { useFilters } from '../state';
 import { buildCascadeFiltersTree } from './utils';
-import { CascadeFilter } from '../CascadeFilters/types';
 
 const Wrapper = styled.div`
   padding: ${({ theme }) => theme.gridUnit * 4}px;
@@ -90,8 +88,8 @@ const FilterControls: FC<FilterControlsProps> = ({
       if (filter.type === NativeFilterType.DIVIDER) {
         return (
           <div>
-            <h3>{(filter as Divider).title}</h3>
-            <p>{(filter as Divider).description}</p>
+            <h3>{filter.title}</h3>
+            <p>{filter.description}</p>
           </div>
         );
       }
@@ -104,7 +102,7 @@ const FilterControls: FC<FilterControlsProps> = ({
           onVisibleChange={visible =>
             setVisiblePopoverId(visible ? filter.id : null)
           }
-          filter={filter as CascadeFilter}
+          filter={filter}
           onFilterSelectionChange={onFilterSelectionChange}
           directPathToChild={directPathToChild}
           inView={false}

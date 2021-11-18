@@ -52,7 +52,7 @@ import {
   validateForm,
   NATIVE_FILTER_DIVIDER_PREFIX,
 } from './utils';
-import SectionConfigForm from './SectionConfigForm';
+import DividerConfigForm from './DividerConfigForm';
 
 const StyledModalWrapper = styled(StyledModal)`
   min-width: 700px;
@@ -162,7 +162,7 @@ export function FiltersConfigModal({
       id: filter.id,
       parentId:
         filter.type === NativeFilterType.NATIVE_FILTER
-          ? (filter as Filter).cascadeParentIds[0] || null
+          ? filter.cascadeParentIds[0] || null
           : null,
     }));
 
@@ -435,11 +435,11 @@ export function FiltersConfigModal({
     );
   }, [removedFilters]);
   const getForm = (id: string) => {
-    const isSection = id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX);
-    return isSection ? (
-      <SectionConfigForm
+    const isDivider = id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX);
+    return isDivider ? (
+      <DividerConfigForm
         componentId={id}
-        section={filterConfigMap[id] as Divider}
+        divider={filterConfigMap[id] as Divider}
       />
     ) : (
       <FiltersConfigForm

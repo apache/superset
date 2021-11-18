@@ -27,8 +27,6 @@ import {
   NativeFiltersForm,
   FilterHierarchy,
   FilterHierarchyNode,
-  NativeFilterSectionItem,
-  NativeFiltersFormItem,
 } from './types';
 import {
   Filter,
@@ -145,7 +143,6 @@ export const createHandleSave = (
       // if user didn't open a filter, return the original config
       if (!formInputs) return filterConfigMap[id];
       if (formInputs.type === NativeFilterType.DIVIDER) {
-        const section = formInputs as NativeFilterSectionItem;
         return {
           id,
           type: NativeFilterType.DIVIDER,
@@ -153,37 +150,36 @@ export const createHandleSave = (
             rootPath: [DASHBOARD_ROOT_ID],
             excluded: [],
           },
-          title: section.title,
-          description: section.description,
+          title: formInputs.title,
+          description: formInputs.description,
         };
       }
-      const filterInputs = formInputs as NativeFiltersFormItem;
       const target: Partial<Target> = {};
-      if (filterInputs.dataset) {
-        target.datasetId = filterInputs.dataset.value;
+      if (formInputs.dataset) {
+        target.datasetId = formInputs.dataset.value;
       }
-      if (filterInputs.dataset && filterInputs.column) {
-        target.column = { name: filterInputs.column };
+      if (formInputs.dataset && formInputs.column) {
+        target.column = { name: formInputs.column };
       }
       return {
         id,
-        adhoc_filters: filterInputs.adhoc_filters,
-        time_range: filterInputs.time_range,
-        controlValues: filterInputs.controlValues ?? {},
-        granularity_sqla: filterInputs.granularity_sqla,
-        requiredFirst: Object.values(filterInputs.requiredFirst ?? {}).find(
+        adhoc_filters: formInputs.adhoc_filters,
+        time_range: formInputs.time_range,
+        controlValues: formInputs.controlValues ?? {},
+        granularity_sqla: formInputs.granularity_sqla,
+        requiredFirst: Object.values(formInputs.requiredFirst ?? {}).find(
           rf => rf,
         ),
-        name: filterInputs.name,
-        filterType: filterInputs.filterType,
+        name: formInputs.name,
+        filterType: formInputs.filterType,
         // for now there will only ever be one target
         targets: [target],
-        defaultDataMask: filterInputs.defaultDataMask ?? getInitialDataMask(),
-        cascadeParentIds: filterInputs.parentFilter
-          ? [filterInputs.parentFilter.value]
+        defaultDataMask: formInputs.defaultDataMask ?? getInitialDataMask(),
+        cascadeParentIds: formInputs.parentFilter
+          ? [formInputs.parentFilter.value]
           : [],
-        scope: filterInputs.scope,
-        sortMetric: filterInputs.sortMetric,
+        scope: formInputs.scope,
+        sortMetric: formInputs.sortMetric,
         type: formInputs.type,
         description: (formInputs.description || '').trim(),
       };

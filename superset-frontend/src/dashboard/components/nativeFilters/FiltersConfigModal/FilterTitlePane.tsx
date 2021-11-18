@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, SupersetTheme, t, useTheme } from '@superset-ui/core';
+import { styled, t, useTheme } from '@superset-ui/core';
 import React from 'react';
 import { Dropdown, MainNav as Menu } from 'src/common/components';
 import { NativeFilterType } from '../types';
@@ -36,7 +36,7 @@ interface Props {
   erroredFilters: string[];
 }
 
-const StyledI = styled.div`
+const StyledPlusButton = styled.div`
   color: ${({ theme }) => theme.colors.primary.dark1};
 `;
 
@@ -51,6 +51,15 @@ const StyledHeader = styled.div`
   `}
 `;
 
+const StyledAddBox = styled.div`
+  ${({ theme }) => `
+  cursor: pointer;
+  margin: ${theme.gridUnit * 4}px;
+  &:hover {
+    color: ${theme.colors.primary.base};
+  }
+`}
+`;
 const TabsContainer = styled.div`
   height: 100%;
   display: flex;
@@ -115,17 +124,14 @@ const FilterTitlePane: React.FC<Props> = ({
           restoreFilter={restoreFilter}
         />
       </div>
-      <Dropdown overlay={menu} arrow placement="topRight" trigger={['hover']}>
-        <div
-          css={(theme: SupersetTheme) => ({
-            cursor: 'pointer',
-            padding: `${theme.gridUnit * 4}px`,
-            paddingTop: `${theme.gridUnit * 4}px`,
-          })}
-        >
-          <StyledI data-test="new-dropdown-icon" className="fa fa-plus" />{' '}
+      <Dropdown overlay={menu} arrow placement="topLeft" trigger={['hover']}>
+        <StyledAddBox>
+          <StyledPlusButton
+            data-test="new-dropdown-icon"
+            className="fa fa-plus"
+          />{' '}
           <span>{t('Add')}</span>
-        </div>
+        </StyledAddBox>
       </Dropdown>
     </TabsContainer>
   );

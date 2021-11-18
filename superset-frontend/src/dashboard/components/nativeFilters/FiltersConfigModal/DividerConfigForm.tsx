@@ -24,7 +24,7 @@ import { NativeFilterType } from '../types';
 
 interface Props {
   componentId: string;
-  section?: {
+  divider?: {
     title: string;
     description: string;
   };
@@ -35,18 +35,20 @@ const Container = styled.div`
   `}
 `;
 
-const SectionConfigForm: React.FC<Props> = ({ componentId, section }) => (
+const DividerConfigForm: React.FC<Props> = ({ componentId, divider }) => (
   <Container>
     <FormItem
-      initialValue={section ? section.title : ''}
+      initialValue={divider ? divider.title : ''}
       label={t('Title')}
       name={['filters', componentId, 'title']}
-      rules={[{ required: true, message: t('Title is required') }]}
+      rules={[
+        { required: true, message: t('Title is required'), whitespace: true },
+      ]}
     >
       <Input />
     </FormItem>
     <FormItem
-      initialValue={section ? section.description : ''}
+      initialValue={divider ? divider.description : ''}
       label={t('Description')}
       name={['filters', componentId, 'description']}
     >
@@ -60,4 +62,4 @@ const SectionConfigForm: React.FC<Props> = ({ componentId, section }) => (
   </Container>
 );
 
-export default SectionConfigForm;
+export default DividerConfigForm;

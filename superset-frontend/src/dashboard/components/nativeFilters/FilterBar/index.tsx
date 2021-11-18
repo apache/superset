@@ -85,7 +85,6 @@ const Bar = styled.div<{ width: number }>`
   border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   min-height: 100%;
   display: none;
-
   &.open {
     display: flex;
   }
@@ -100,14 +99,12 @@ const CollapsedBar = styled.div<{ offset: number }>`
   padding-top: ${({ theme }) => theme.gridUnit * 2}px;
   display: none;
   text-align: center;
-
   &.open {
     display: flex;
     flex-direction: column;
     align-items: center;
     padding: ${({ theme }) => theme.gridUnit * 2}px;
   }
-
   svg {
     cursor: pointer;
   }
@@ -281,8 +278,11 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     filterValues,
   );
   const isInitialized = useInitialization();
-
   const tabPaneStyle = useMemo(() => ({ overflow: 'auto', height }), [height]);
+
+  const numberOfFilters = filterValues.filter(
+    filterValue => filterValue.type === NativeFilterType.NATIVE_FILTER,
+  ).length;
 
   return (
     <BarWrapper
@@ -323,14 +323,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             activeKey={editFilterSetId ? TabIds.AllFilters : undefined}
           >
             <Tabs.TabPane
-              tab={t(
-                `All Filters (${
-                  filterValues.filter(
-                    filterValue =>
-                      filterValue.type === NativeFilterType.NATIVE_FILTER,
-                  ).length
-                })`,
-              )}
+              tab={`${t('All filters')} (${numberOfFilters})`}
               key={TabIds.AllFilters}
               css={tabPaneStyle}
             >
@@ -350,7 +343,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             </Tabs.TabPane>
             <Tabs.TabPane
               disabled={!!editFilterSetId}
-              tab={t(`Filter Sets (${filterSetFilterValues.length})`)}
+              tab={`${t('Filter sets')} (${filterSetFilterValues.length})`}
               key={TabIds.FilterSets}
               css={tabPaneStyle}
             >
