@@ -248,7 +248,7 @@
     "@types/react-gravatar": "^2.6.8",
     "@types/react-json-tree": "^0.6.11",
     "@types/react-jsonschema-form": "^1.7.4",
-    "@types/react-loadable": "^5.5.4",
+    "@types/react-loadable": "^5.5.6",
     "@types/react-redux": "^7.1.10",
     "@types/react-router-dom": "^5.1.5",
     "@types/react-select": "^3.0.19",
