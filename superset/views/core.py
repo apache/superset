@@ -1970,6 +1970,38 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             ),
         )
 
+    
+    @expose("/dashboard/<dashboard_id_or_slug>/embedded")
+    @event_logger.log_this_with_extra_payload
+    def embedded(
+        self,
+        dashboard_id_or_slug: str,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
+    ) -> FlaskResponse:
+        """
+        Server side rendering for a dashboard
+        :param dashboard_id_or_slug: identifier for dashboard. used in the decorators
+        :param add_extra_log_payload: added by `log_this_with_manual_updates`, set a
+            default value to appease pylint
+        """
+        add_extra_log_payload(
+            dashboard_id=dashboard_id_or_slug,
+            dashboard_version="v2",
+        )
+
+        bootstrap_data = {
+            "common": common_bootstrap_payload(),
+        }
+
+        return self.render_template(
+            "superset/spa.html",
+            entry="embedded",
+            bootstrap_data=json.dumps(
+                bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
+            ),
+        )
+
+
     @api
     @has_access
     @event_logger.log_this
