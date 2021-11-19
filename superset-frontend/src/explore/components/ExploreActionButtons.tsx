@@ -22,7 +22,7 @@ import { t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 import copyTextToClipboard from 'src/utils/copy';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import { useUrlShortener } from 'src/common/hooks/useUrlShortener';
 import EmbedCodeButton from './EmbedCodeButton';
 import { exportChart, getExploreLongUrl } from '../exploreUtils';
@@ -49,14 +49,8 @@ type ExploreActionButtonsProps = {
 };
 
 const ActionButton = (props: ActionButtonProps) => {
-  const {
-    icon,
-    text,
-    tooltip,
-    className,
-    onTooltipVisibilityChange,
-    ...rest
-  } = props;
+  const { icon, text, tooltip, className, onTooltipVisibilityChange, ...rest } =
+    props;
   return (
     <Tooltip
       id={`${icon}-tooltip`}
@@ -124,7 +118,7 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
   const doExportCSV = canDownloadCSV
     ? exportChart.bind(this, {
         formData: latestQueryFormData,
-        resultType: 'results',
+        resultType: 'full',
         resultFormat: 'csv',
       })
     : null;

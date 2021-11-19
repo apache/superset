@@ -17,11 +17,12 @@
  * under the License.
  */
 import datasources from 'spec/fixtures/mockDatasource';
-import messageToasts from 'spec/javascripts/messageToasts/mockMessageToasts';
+import messageToasts from 'src/components/MessageToasts/mockMessageToasts';
 import {
   nativeFiltersInfo,
   mockDataMaskInfo,
 } from 'spec/javascripts/dashboard/fixtures/mockNativeFilters';
+import { user } from 'src/SqlLab/fixtures';
 import chartQueries from './mockChartQueries';
 import { dashboardLayout } from './mockDashboardLayout';
 import dashboardInfo from './mockDashboardInfo';
@@ -40,5 +41,6 @@ export default {
   dashboardState,
   dashboardLayout,
   messageToasts,
+  user,
   impressionId: 'mock_impression_id',
 };

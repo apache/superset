@@ -30,5 +30,5 @@ from .paris import load_paris_iris_geojson
 from .random_time_series import load_random_time_series_data
 from .sf_population_polygons import load_sf_population_polygons
 from .tabbed_dashboard import load_tabbed_dashboard
-from .utils import load_from_configs
+from .utils import load_examples_from_configs
 from .world_bank import load_world_bank_health_n_pop

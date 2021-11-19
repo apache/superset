@@ -44,6 +44,17 @@ test('renders with caret', () => {
   expect(screen.getByRole('img', { name: 'caret-right' })).toBeInTheDocument();
 });
 
+test('renders with extra triangle', () => {
+  render(
+    <Option index={1} clickClose={jest.fn()} isExtra>
+      Option
+    </Option>,
+  );
+  expect(
+    screen.getByRole('button', { name: 'Show info tooltip' }),
+  ).toBeInTheDocument();
+});
+
 test('triggers onClose', () => {
   const clickClose = jest.fn();
   render(

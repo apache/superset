@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-type ColumnObject = {
+export type ColumnObject = {
   id: number;
   column_name: string;
   type: string;
@@ -29,6 +29,7 @@ type ColumnObject = {
   is_dttm: boolean;
   python_date_format?: string;
   uuid?: string;
+  extra?: string;
 };
 
 type MetricObject = {

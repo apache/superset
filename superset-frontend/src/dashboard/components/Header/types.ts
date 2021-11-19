@@ -22,7 +22,7 @@ import { ChartState } from 'src/explore/types';
 
 interface DashboardInfo {
   id: number;
-  userId: number;
+  userId: string | undefined;
   dash_edit_perm: boolean;
   dash_save_perm: boolean;
   metadata?: Record<string, any>;
@@ -65,6 +65,7 @@ export interface HeaderProps {
   charts: ChartState | {};
   colorScheme?: string;
   customCss: string;
+  user: Object | undefined;
   dashboardInfo: DashboardInfo;
   dashboardTitle: string;
   setColorSchemeAndUnsavedChanges: () => void;
@@ -86,6 +87,7 @@ export interface HeaderProps {
   lastModifiedTime: number;
   onUndo: () => void;
   onRedo: () => void;
+  onRefresh: () => void;
   undoLength: number;
   redoLength: number;
   setMaxUndoHistoryExceeded: () => void;

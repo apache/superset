@@ -18,10 +18,10 @@
 **/*.sh
 coverage/**
 dist/*
-images/*
+src/assets/images/*
+src/assets/stylesheets/*
 node_modules/*
 node_modules*/*
-stylesheets/*
 vendor/*
 docs/*
 src/dashboard/deprecated/*

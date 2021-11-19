@@ -29,6 +29,7 @@ import {
   ControlState,
   ControlType,
   ControlValueValidator,
+  CustomControlItem,
 } from '@superset-ui/chart-controls';
 import { getSectionsToRender } from './getSectionsToRender';
 import { getControlConfig } from './getControlConfig';
@@ -40,15 +41,17 @@ function execControlValidator<T = ControlType>(
   processedState: ControlState<T>,
 ) {
   const validators = control.validators as ControlValueValidator[] | undefined;
-  const validationErrors: ValidationError[] = [];
+  const { externalValidationErrors = [] } = control;
+  const errors: ValidationError[] = [];
   if (validators && validators.length > 0) {
     validators.forEach(validator => {
       const error = validator.call(control, control.value, processedState);
       if (error) {
-        validationErrors.push(error);
+        errors.push(error);
       }
     });
   }
+  const validationErrors = [...errors, ...externalValidationErrors];
   // always reset validation errors even when there is no validator
   return { ...control, validationErrors };
 }
@@ -158,8 +161,8 @@ export function getAllControlsState(
   const controlsState = {};
   getSectionsToRender(vizType, datasourceType).forEach(section =>
     section.controlSetRows.forEach(fieldsetRow =>
-      fieldsetRow.forEach(field => {
-        if (field && 'config' in field && field.config && field.name) {
+      fieldsetRow.forEach((field: CustomControlItem) => {
+        if (field && field.config && field.name) {
           const { config, name } = field;
           controlsState[name] = getControlStateFromControlConfig(
             config,

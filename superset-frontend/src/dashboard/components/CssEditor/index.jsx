@@ -18,10 +18,29 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import Select from 'src/components/Select';
-import { t } from '@superset-ui/core';
+import { Menu, Dropdown } from 'src/common/components';
+import Button from 'src/components/Button';
+import { t, styled } from '@superset-ui/core';
 import ModalTrigger from 'src/components/ModalTrigger';
 import { CssEditor as AceCssEditor } from 'src/components/AsyncAceEditor';
+
+const StyledWrapper = styled.div`
+  ${({ theme }) => `
+    .css-editor-header {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      margin-bottom: ${theme.gridUnit * 2}px;
+
+      h5 {
+        margin-top: ${theme.gridUnit}px;
+      }
+    }
+    .css-editor {
+      border: 1px solid ${theme.colors.grayscale.light1};
+    }
+  `}
+`;
 
 const propTypes = {
   initialCss: PropTypes.string,
@@ -55,21 +74,24 @@ class CssEditor extends React.PureComponent {
     });
   }
 
-  changeCssTemplate(opt) {
-    this.changeCss(opt.css);
+  changeCssTemplate({ key }) {
+    this.changeCss(key);
   }
 
   renderTemplateSelector() {
     if (this.props.templates) {
+      const menu = (
+        <Menu onClick={this.changeCssTemplate}>
+          {this.props.templates.map(template => (
+            <Menu.Item key={template.css}>{template.label}</Menu.Item>
+          ))}
+        </Menu>
+      );
+
       return (
-        <div style={{ zIndex: 10 }}>
-          <h5>{t('Load a template')}</h5>
-          <Select
-            options={this.props.templates}
-            placeholder={t('Load a CSS template')}
-            onChange={this.changeCssTemplate}
-          />
-        </div>
+        <Dropdown overlay={menu} placement="bottomRight">
+          <Button>{t('Load a CSS template')}</Button>
+        </Dropdown>
       );
     }
     return null;
@@ -81,24 +103,23 @@ class CssEditor extends React.PureComponent {
         triggerNode={this.props.triggerNode}
         modalTitle={t('CSS')}
         modalBody={
-          <div>
-            {this.renderTemplateSelector()}
-            <div style={{ zIndex: 1 }}>
+          <StyledWrapper>
+            <div className="css-editor-header">
               <h5>{t('Live CSS editor')}</h5>
-              <div style={{ border: 'solid 1px grey' }}>
-                <AceCssEditor
-                  minLines={12}
-                  maxLines={30}
-                  onChange={this.changeCss}
-                  height="200px"
-                  width="100%"
-                  editorProps={{ $blockScrolling: true }}
-                  enableLiveAutocompletion
-                  value={this.state.css || ''}
-                />
-              </div>
+              {this.renderTemplateSelector()}
             </div>
-          </div>
+            <AceCssEditor
+              className="css-editor"
+              minLines={12}
+              maxLines={30}
+              onChange={this.changeCss}
+              height="200px"
+              width="100%"
+              editorProps={{ $blockScrolling: true }}
+              enableLiveAutocompletion
+              value={this.state.css || ''}
+            />
+          </StyledWrapper>
         }
       />
     );

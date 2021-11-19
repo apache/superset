@@ -39,7 +39,7 @@ initFeatureFlags(bootstrapData.common.feature_flags);
 const App = () => (
   <ThemeProvider theme={theme}>
     <DynamicPluginProvider>
-      <AddSliceContainer datasources={bootstrapData.datasources} />
+      <AddSliceContainer />
     </DynamicPluginProvider>
   </ThemeProvider>
 );

@@ -15,7 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, List, Optional
+
+from flask_appbuilder.security.sqla.models import User
+
+from superset.commands.utils import populate_owners
 
 
 class BaseCommand(ABC):
@@ -37,3 +41,38 @@ class BaseCommand(ABC):
         Will raise exception if validation fails
         :raises: CommandException
         """
+
+
+class CreateMixin:  # pylint: disable=too-few-public-methods
+    @staticmethod
+    def populate_owners(
+        user: User, owner_ids: Optional[List[int]] = None
+    ) -> List[User]:
+        """
+        Populate list of owners, defaulting to the current user if `owner_ids` is
+        undefined or empty. If current user is missing in `owner_ids`, current user
+        is added unless belonging to the Admin role.
+
+        :param user: current user
+        :param owner_ids: list of owners by id's
+        :raises OwnersNotFoundValidationError: if at least one owner can't be resolved
+        :returns: Final list of owners
+        """
+        return populate_owners(user, owner_ids, default_to_user=True)
+
+
+class UpdateMixin:  # pylint: disable=too-few-public-methods
+    @staticmethod
+    def populate_owners(
+        user: User, owner_ids: Optional[List[int]] = None
+    ) -> List[User]:
+        """
+        Populate list of owners. If current user is missing in `owner_ids`, current user
+        is added unless belonging to the Admin role.
+
+        :param user: current user
+        :param owner_ids: list of owners by id's
+        :raises OwnersNotFoundValidationError: if at least one owner can't be resolved
+        :returns: Final list of owners
+        """
+        return populate_owners(user, owner_ids, default_to_user=False)

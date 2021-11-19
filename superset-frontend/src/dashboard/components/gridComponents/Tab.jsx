@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
+import { styled } from '@superset-ui/core';
 
 import DashboardComponent from '../../containers/DashboardComponent';
 import DragDroppable from '../dnd/DragDroppable';
@@ -61,6 +62,27 @@ const defaultProps = {
   onResize() {},
   onResizeStop() {},
 };
+
+const TabTitleContainer = styled.div`
+  ${({ isHighlighted, theme: { gridUnit, colors } }) => `
+    padding: ${gridUnit}px ${gridUnit * 2}px;
+    margin: ${-gridUnit}px ${gridUnit * -2}px;
+    transition: box-shadow 0.2s ease-in-out;
+    ${
+      isHighlighted && `box-shadow: 0 0 ${gridUnit}px ${colors.primary.light1};`
+    }
+  `}
+`;
+
+const renderDraggableContentBottom = dropProps =>
+  dropProps.dropIndicatorProps && (
+    <div className="drop-indicator drop-indicator--bottom" />
+  );
+
+const renderDraggableContentTop = dropProps =>
+  dropProps.dropIndicatorProps && (
+    <div className="drop-indicator drop-indicator--top" />
+  );
 
 export default class Tab extends React.PureComponent {
   constructor(props) {
@@ -136,11 +158,7 @@ export default class Tab extends React.PureComponent {
             editMode
             className="empty-droptarget"
           >
-            {({ dropIndicatorProps }) =>
-              dropIndicatorProps && (
-                <div className="drop-indicator drop-indicator--top" />
-              )
-            }
+            {renderDraggableContentTop}
           </DragDroppable>
         )}
         {tabComponent.children.map((componentId, componentIndex) => (
@@ -172,11 +190,7 @@ export default class Tab extends React.PureComponent {
             editMode
             className="empty-droptarget"
           >
-            {({ dropIndicatorProps }) =>
-              dropIndicatorProps && (
-                <div className="drop-indicator drop-indicator--bottom" />
-              )
-            }
+            {renderDraggableContentBottom}
           </DragDroppable>
         )}
       </div>
@@ -192,6 +206,7 @@ export default class Tab extends React.PureComponent {
       editMode,
       filters,
       isFocused,
+      isHighlighted,
     } = this.props;
 
     return (
@@ -205,7 +220,11 @@ export default class Tab extends React.PureComponent {
         editMode={editMode}
       >
         {({ dropIndicatorProps, dragSourceRef }) => (
-          <div className="dragdroppable-tab" ref={dragSourceRef}>
+          <TabTitleContainer
+            isHighlighted={isHighlighted}
+            className="dragdroppable-tab"
+            ref={dragSourceRef}
+          >
             <EditableTitle
               title={component.meta.text}
               defaultTitle={component.meta.defaultText}
@@ -225,7 +244,7 @@ export default class Tab extends React.PureComponent {
             )}
 
             {dropIndicatorProps && <div {...dropIndicatorProps} />}
-          </div>
+          </TabTitleContainer>
         )}
       </DragDroppable>
     );

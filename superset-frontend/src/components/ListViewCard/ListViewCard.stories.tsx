@@ -19,10 +19,9 @@
 import React from 'react';
 import { action } from '@storybook/addon-actions';
 import { withKnobs, boolean, select, text } from '@storybook/addon-knobs';
-import DashboardImg from 'images/dashboard-card-fallback.svg';
-import ChartImg from 'images/chart-card-fallback.svg';
+import DashboardImg from 'src/assets/images/dashboard-card-fallback.svg';
+import ChartImg from 'src/assets/images/chart-card-fallback.svg';
 import { Dropdown, Menu } from 'src/common/components';
-import Icon from 'src/components/Icon';
 import Icons from 'src/components/Icons';
 import FaveStar from 'src/components/FaveStar';
 import ListViewCard from '.';
@@ -76,7 +75,7 @@ export const SupersetListViewCard = () => (
             </Menu>
           }
         >
-          <Icon name="more-horiz" />
+          <Icons.MoreHoriz />
         </Dropdown>
       </ListViewCard.Actions>
     }
