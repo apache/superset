@@ -88,7 +88,7 @@ const bootstrapData = JSON.parse(
 );
 const validatorMap =
   bootstrapData?.common?.conf?.SQL_VALIDATORS_BY_ENGINE || {};
-const scheduledQueriesConf = bootstrapData.common.conf.SCHEDULED_QUERIES;
+const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
 
 const LimitSelectStyled = styled.span`
   .ant-dropdown-trigger {

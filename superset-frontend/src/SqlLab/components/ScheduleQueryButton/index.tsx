@@ -30,7 +30,7 @@ const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(
   appContainer?.getAttribute('data-bootstrap') || '{}',
 );
-const scheduledQueriesConf = bootstrapData.common.conf.SCHEDULED_QUERIES;
+const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
 
 const validators = {
   greater: (a: number, b: number) => a > b,
