@@ -29,7 +29,6 @@ import {
   LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
   LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD,
 } from 'src/logger/LogUtils';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { canAddReports } from 'src/utils/permissionsUtils';
 
 import Icons from 'src/components/Icons';

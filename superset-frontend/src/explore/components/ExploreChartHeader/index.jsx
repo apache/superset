@@ -34,7 +34,6 @@ import {
   toggleActive,
   deleteActiveReport,
 } from 'src/reports/actions/reports';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { canAddReports } from 'src/utils/permissionsUtils';
 import HeaderReportActionsDropdown from 'src/components/ReportModal/HeaderReportActionsDropdown';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
