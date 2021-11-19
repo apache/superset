@@ -17,36 +17,157 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { SET_REPORT, ADD_REPORT, EDIT_REPORT } from '../actions/reports';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { report } from 'process';
+// import { allowCrossDomain } from 'src/utils/hostNamesConfig';
+import {
+  SET_REPORT,
+  ADD_REPORT,
+  EDIT_REPORT,
+  DELETE_REPORT,
+} from '../actions/reports';
 
-// Talk about the delete
+/* -- Report schema --
+reports: {
+  dashboards: {
+    [dashboardId]: {...reportObject}
+  },
+  charts: {
+    [chartId]: {...reportObject}
+  },
+}
+*/
 
 export default function reportsReducer(state = {}, action) {
   const actionHandlers = {
     [SET_REPORT]() {
+      // Grabs the first report with a dashboard id that
+      // matches the parameter report's dashboard_id
+      const reportWithDashboard = action.report.result.find(
+        report => !!report.dashboard_id,
+      );
+
+      // Grabs the first report with a chart id that
+      // matches the parameter report's chart.id
+      const reportWithChart = action.report.result.find(
+        report => !!report.chart.id,
+      );
+
+      // This organizes report by its type, dashboard or chart
+      // and indexes it by the dashboard/chart id
+      if (reportWithDashboard) {
+        return {
+          ...state,
+          dashboards: {
+            ...state.dashboards,
+            [reportWithDashboard.dashboard_id]: reportWithDashboard,
+          },
+        };
+      }
       return {
         ...state,
-        ...action.report.result.reduce(
-          (obj, report) => ({ ...obj, [report.id]: report }),
-          {},
-        ),
+        charts: {
+          ...state.chart,
+          [reportWithChart.chart.id]: reportWithChart,
+        },
       };
     },
+
     [ADD_REPORT]() {
-      const report = action.json.result;
-      report.id = action.json.id;
+      // Grab first matching report by matching dashboard id
+      const reportWithDashboard = action.json.result.find(
+        report => !!report.dashboard_id,
+      );
+      // Assign the report's id
+      reportWithDashboard.id = action.json.id;
+
+      // Grab first matching report by matching chart id
+      const reportWithChart = action.json.result.find(
+        report => !!report.chart.id,
+      );
+      // Assign the report's id
+      reportWithChart.id = action.json.id;
+
+      // This adds the report by its type, dashboard or chart
+      if (reportWithDashboard) {
+        return {
+          ...state,
+          dashboards: {
+            ...state.dashboards,
+            [reportWithDashboard.dashboard_id]: report,
+          },
+        };
+      }
       return {
         ...state,
-        [action.json.id]: report,
+        charts: {
+          ...state.chart,
+          [reportWithChart.chart.id]: report,
+        },
       };
     },
+
     [EDIT_REPORT]() {
-      const report = action.json.result;
-      report.id = action.json.id;
+      // Grab first matching report by matching dashboard id
+      const reportWithDashboard = action.json.result.find(
+        report => !!report.dashboard_id,
+      );
+      // Assign the report's id
+      reportWithDashboard.id = action.json.id;
+
+      // Grab first matching report by matching chart id
+      const reportWithChart = action.json.result.find(
+        report => !!report.chart.id,
+      );
+      // Assign the report's id
+      reportWithChart.id = action.json.id;
+
+      // This updates the report by its type, dashboard or chart
+      if (reportWithDashboard) {
+        return {
+          ...state,
+          dashboards: {
+            ...state.dashboards,
+            [reportWithDashboard.dashboard_id]: report,
+          },
+        };
+      }
       return {
         ...state,
-        [action.json.id]: report,
+        charts: {
+          ...state.chart,
+          [reportWithChart.chart.id]: report,
+        },
       };
+    },
+
+    [DELETE_REPORT]() {
+      // Grabs the first report with a dashboard id that
+      // matches the parameter report's dashboard_id
+      const reportWithDashboard = action.report.result.find(
+        report => !!report.dashboard_id,
+      );
+
+      // This deletes the report by its type, dashboard or chart
+      if (reportWithDashboard) {
+        return {
+          ...state,
+          dashboards: {
+            ...state.dashboards.filter(report => report.id !== action.reportId),
+          },
+        };
+      }
+      return {
+        ...state,
+        charts: {
+          ...state.charts.filter(chart => chart.id !== action.reportId),
+        },
+      };
+
+      // state.users.filter(item => item.id !== action.payload)
+      // return {
+      //   ...state.filter(report => report.id !== action.reportId),
+      // };
     },
   };
 

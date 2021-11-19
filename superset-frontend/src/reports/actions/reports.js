@@ -29,6 +29,11 @@ export function setReport(report) {
   return { type: SET_REPORT, report };
 }
 
+export const DELETE_REPORT = 'DELETE_REPORT';
+export function deleteReport(reportId) {
+  return { type: DELETE_REPORT, reportId };
+}
+
 export function fetchUISpecificReport({
   userId,
   filterField,
@@ -159,7 +164,7 @@ export function deleteActiveReport(report) {
         dispatch(addDangerToast(t('Your report could not be deleted')));
       })
       .finally(() => {
-        dispatch(structureFetchAction);
+        dispatch(deleteReport(report.id));
         dispatch(addSuccessToast(t('Deleted: %s', report.name)));
       });
   };
