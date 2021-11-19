@@ -160,10 +160,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         rv = self.get_assert_metric(uri, "info")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
-        assert set(data["permissions"]) == {
-            "can_read",
-            "can_write",
-        }
+        assert set(data["permissions"]) == {"can_read", "can_write", "can_export"}
 
     def create_chart_import(self):
         buf = BytesIO()

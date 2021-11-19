@@ -375,9 +375,7 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "info")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
-        assert "can_read" in data["permissions"]
-        assert "can_write" in data["permissions"]
-        assert len(data["permissions"]) == 2
+        assert set(data["permissions"]) == {"can_read", "can_write", "can_export"}
 
     def test_create_dataset_item(self):
         """
