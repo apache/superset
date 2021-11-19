@@ -155,7 +155,7 @@ export default function HeaderReportActionsDropDown({
           dashboardId={dashboardId}
           chart={chart}
         />
-        {reports ? (
+        {report ? (
           <>
             <NoAnimationDropdown
               // ref={ref}
