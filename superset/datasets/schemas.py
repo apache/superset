@@ -19,6 +19,9 @@ import re
 from flask_babel import lazy_gettext as _
 from marshmallow import fields, Schema, ValidationError
 from marshmallow.validate import Length
+from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
+
+from superset.datasets.models import Dataset
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -171,3 +174,14 @@ class ImportV1DatasetSchema(Schema):
     version = fields.String(required=True)
     database_uuid = fields.UUID(required=True)
     data = fields.URL()
+
+
+class DatasetSchema(SQLAlchemyAutoSchema):
+    """
+    Schema for the ``Dataset`` model.
+    """
+
+    class Meta:  # pylint: disable=too-few-public-methods
+        model = Dataset
+        load_instance = True
+        include_relationships = True
