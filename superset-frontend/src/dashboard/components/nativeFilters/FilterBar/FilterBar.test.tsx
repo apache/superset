@@ -88,12 +88,12 @@ const addFilterFlow = async () => {
   userEvent.click(screen.getByText('Time range'));
   userEvent.type(screen.getByTestId(getModalTestId('name-input')), FILTER_NAME);
   userEvent.click(screen.getByText('Save'));
-  await screen.findByText('All Filters (1)');
+  await screen.findByText('All filters (1)');
 };
 
 const addFilterSetFlow = async () => {
   // add filter set
-  userEvent.click(screen.getByText('Filter Sets (0)'));
+  userEvent.click(screen.getByText('Filter sets (0)'));
 
   // check description
   expect(screen.getByText('Filters (1)')).toBeInTheDocument();
@@ -366,7 +366,7 @@ describe('FilterBar', () => {
 
     // change filter
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
-    userEvent.click(await screen.findByText('All Filters (1)'));
+    userEvent.click(await screen.findByText('All filters (1)'));
     await changeFilterValue();
     await waitFor(() => expect(screen.getAllByText('Last day').length).toBe(2));
 
