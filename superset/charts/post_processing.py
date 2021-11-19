@@ -27,13 +27,15 @@ for these chart types.
 """
 
 from io import StringIO
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 import pandas as pd
 
 from superset.common.chart_data import ChartDataResultFormat
-from superset.connectors.base.models import BaseDatasource
 from superset.utils.core import DTTM_ALIAS, extract_dataframe_dtypes, get_metric_name
+
+if TYPE_CHECKING:
+    from superset.connectors.base.models import BaseDatasource
 
 
 def get_column_key(label: Tuple[str, ...], metrics: List[str]) -> Tuple[Any, ...]:
@@ -287,7 +289,7 @@ post_processors = {
 def apply_post_process(
     result: Dict[Any, Any],
     form_data: Optional[Dict[str, Any]] = None,
-    datasource: Optional[BaseDatasource] = None,
+    datasource: Optional["BaseDatasource"] = None,
 ) -> Dict[Any, Any]:
     form_data = form_data or {}
 
