@@ -23,12 +23,13 @@ Create Date: 2021-11-02 17:44:51.792138
 """
 
 # revision identifiers, used by Alembic.
-revision = '3ba29ecbaac5'
-down_revision = 'b92d69a6643c'
+revision = "3ba29ecbaac5"
+down_revision = "b92d69a6643c"
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
+
 
 def upgrade():
 
@@ -36,6 +37,7 @@ def upgrade():
         batch_op.alter_column(
             "type", existing_type=sa.VARCHAR(length=32), type_=sa.TEXT()
         )
+
 
 def downgrade():
     with op.batch_alter_table("table_columns") as batch_op:
