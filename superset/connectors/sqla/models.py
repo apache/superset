@@ -53,6 +53,7 @@ from sqlalchemy import (
     desc,
     Enum,
     ForeignKey,
+    inspect,
     Integer,
     or_,
     select,
@@ -78,6 +79,7 @@ from superset.connectors.sqla.utils import (
     get_physical_table_metadata,
     get_virtual_table_metadata,
 )
+from superset.datasets.models import Dataset as NewDataset
 from superset.db_engine_specs.base import BaseEngineSpec, CTE_ALIAS, TimestampExpression
 from superset.exceptions import QueryObjectValidationError
 from superset.jinja_context import (
@@ -89,6 +91,7 @@ from superset.models.annotations import Annotation
 from superset.models.core import Database
 from superset.models.helpers import AuditMixinNullable, CertificationMixin, QueryResult
 from superset.sql_parse import ParsedQuery
+from superset.tables.models import Table as NewTable
 from superset.typing import AdhocColumn, AdhocMetric, Metric, OrderBy, QueryObjectDict
 from superset.utils import core as utils
 from superset.utils.core import (
@@ -693,7 +696,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         if self.sql:
             return get_virtual_table_metadata(dataset=self)
         return get_physical_table_metadata(
-            database=self.database, table_name=self.table_name, schema_name=self.schema,
+            database=self.database,
+            table_name=self.table_name,
+            schema_name=self.schema,
         )
 
     @property
@@ -1003,7 +1008,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             return all_filters
         except TemplateError as ex:
             raise QueryObjectValidationError(
-                _("Error in jinja expression in RLS filters: %(msg)s", msg=ex.message,)
+                _(
+                    "Error in jinja expression in RLS filters: %(msg)s",
+                    msg=ex.message,
+                )
             ) from ex
 
     def text(self, clause: str) -> TextClause:
@@ -1466,7 +1474,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     orderby = [
                         (
                             self._get_series_orderby(
-                                series_limit_metric, metrics_by_name, columns_by_name,
+                                series_limit_metric,
+                                metrics_by_name,
+                                columns_by_name,
                             ),
                             not order_desc,
                         )
@@ -1542,7 +1552,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         return ob
 
     def _normalize_prequery_result_type(
-        self, row: pd.Series, dimension: str, columns_by_name: Dict[str, TableColumn],
+        self,
+        row: pd.Series,
+        dimension: str,
+        columns_by_name: Dict[str, TableColumn],
     ) -> Union[str, int, float, bool, Text]:
         """
         Convert a prequery result type to its equivalent Python type.
@@ -1587,7 +1600,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             group = []
             for dimension in dimensions:
                 value = self._normalize_prequery_result_type(
-                    row, dimension, columns_by_name,
+                    row,
+                    dimension,
+                    columns_by_name,
                 )
 
                 group.append(groupby_exprs[dimension] == value)
@@ -1846,7 +1861,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
     @staticmethod
     def after_insert(
-        mapper: Mapper, connection: Connection, target: "SqlaTable",
+        mapper: Mapper,
+        connection: Connection,
+        target: "SqlaTable",
     ) -> None:
         """
         Shadow write the dataset to new models.
@@ -1863,7 +1880,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         # set permissions
         security_manager.set_perm(mapper, connection, target)
 
-        session = Session(bind=connection)
+        session = inspect(target).session
 
         # create columns
         columns = []
@@ -1885,12 +1902,48 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     expression=column.expression or column.column_name,
                     description=column.description,
                     is_temporal=column.is_dttm,
-                    extra_json=json.dumps(extra_json),
+                    is_aggregation=False,
+                    extra_json=json.dumps(extra_json) if extra_json else None,
                 ),
             )
 
-            session.add(columns[-1])
-            session.flush()
+        # create metrics
+        for column in target.metrics:
+            # XXX
+            pass
+
+        # physical dataset
+        tables = []
+        if target.sql is None:
+            # XXX: not really, expression could be quoted
+            physical_columns = [
+                column for column in columns if column.name == column.expression
+            ]
+
+            # create table
+            table = NewTable(  # pylint: disable=redefined-outer-name
+                name=target.table_name,
+                schema=target.schema,
+                catalog=None,  # currently not supported
+                database=target.database,
+                columns=physical_columns,
+            )
+            tables.append(table)
+
+        # virtual dataset
+        else:
+            # XXX
+            raise NotImplementedError()
+
+        # create the new dataset
+        dataset = NewDataset(
+            name=target.table_name,
+            expression=target.sql or target.table_name,
+            tables=tables,
+            columns=columns,
+            is_physical=target.sql is None,
+        )
+        session.add(dataset)
 
 
 sa.event.listen(SqlaTable, "after_insert", SqlaTable.after_insert)
