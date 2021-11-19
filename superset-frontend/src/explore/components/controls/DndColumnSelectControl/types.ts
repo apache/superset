@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { JsonValue } from '@superset-ui/core';
+import { AdhocColumn, JsonValue } from '@superset-ui/core';
 import { ControlComponentProps } from 'src/explore/components/Control';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 
@@ -26,7 +26,7 @@ export interface OptionProps {
   index: number;
   label?: string;
   tooltipTitle?: string;
-  column?: ColumnMeta;
+  column?: ColumnMeta | AdhocColumn;
   clickClose: (index: number) => void;
   withCaret?: boolean;
   isExtra?: boolean;
@@ -41,13 +41,12 @@ export interface OptionItemInterface {
 /**
  * Shared control props for all DnD control.
  */
-export type DndControlProps<
-  ValueType extends JsonValue
-> = ControlComponentProps<ValueType | ValueType[] | null> & {
-  multi?: boolean;
-  canDelete?: boolean;
-  ghostButtonText?: string;
-  onChange: (value: ValueType | ValueType[] | null | undefined) => void;
-};
+export type DndControlProps<ValueType extends JsonValue> =
+  ControlComponentProps<ValueType | ValueType[] | null> & {
+    multi?: boolean;
+    canDelete?: boolean;
+    ghostButtonText?: string;
+    onChange: (value: ValueType | ValueType[] | null | undefined) => void;
+  };
 
 export type OptionValueType = Record<string, any>;

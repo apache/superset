@@ -16,7 +16,7 @@
 # under the License.
 """Utility functions used across Superset"""
 # pylint: disable=too-many-lines
-import _thread  # pylint: disable=C0411
+import _thread
 import collections
 import decimal
 import errno
@@ -77,11 +77,10 @@ from flask_babel import gettext as __
 from flask_babel.speaklater import LazyString
 from pandas.api.types import infer_dtype
 from pandas.core.dtypes.common import is_numeric_dtype
-from sqlalchemy import event, exc, select, Text
+from sqlalchemy import event, exc, inspect, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.sql.elements import TextClause
 from sqlalchemy.sql.type_api import Variant
 from sqlalchemy.types import TEXT, TypeDecorator, TypeEngine
 from typing_extensions import TypedDict, TypeGuard
@@ -99,8 +98,10 @@ from superset.exceptions import (
     SupersetTimeoutException,
 )
 from superset.typing import (
+    AdhocColumn,
     AdhocMetric,
     AdhocMetricColumn,
+    Column,
     FilterValues,
     FlaskResponse,
     FormData,
@@ -131,8 +132,6 @@ TIME_COMPARISION = "__"
 JS_MAX_INTEGER = 9007199254740991  # Largest int Java Script can handle 2^53-1
 
 InputType = TypeVar("InputType")
-
-BIND_PARAM_REGEX = TextClause._bind_params_regex  # pylint: disable=protected-access
 
 
 class LenientEnum(Enum):
@@ -172,29 +171,6 @@ class GenericDataType(IntEnum):
     # JSON = 5      # and leaving these as a reminder.
     # MAP = 6
     # ROW = 7
-
-
-class ChartDataResultFormat(str, Enum):
-    """
-    Chart data response format
-    """
-
-    CSV = "csv"
-    JSON = "json"
-
-
-class ChartDataResultType(str, Enum):
-    """
-    Chart data response type
-    """
-
-    COLUMNS = "columns"
-    FULL = "full"
-    QUERY = "query"
-    RESULTS = "results"
-    SAMPLES = "samples"
-    TIMEGRAINS = "timegrains"
-    POST_PROCESSED = "post_processed"
 
 
 class DatasourceDict(TypedDict):
@@ -563,7 +539,7 @@ def base_json_conv(obj: Any,) -> Any:  # pylint: disable=inconsistent-return-sta
         return list(obj)
     if isinstance(obj, decimal.Decimal):
         return float(obj)
-    if isinstance(obj, uuid.UUID):
+    if isinstance(obj, (uuid.UUID, time, LazyString)):
         return str(obj)
     if isinstance(obj, timedelta):
         return format_timedelta(obj)
@@ -572,8 +548,6 @@ def base_json_conv(obj: Any,) -> Any:  # pylint: disable=inconsistent-return-sta
             return obj.decode("utf-8")
         except Exception:  # pylint: disable=broad-except
             return "[bytes]"
-    if isinstance(obj, LazyString):
-        return str(obj)
 
 
 def json_iso_dttm_ser(obj: Any, pessimistic: bool = False) -> str:
@@ -587,7 +561,7 @@ def json_iso_dttm_ser(obj: Any, pessimistic: bool = False) -> str:
     val = base_json_conv(obj)
     if val is not None:
         return val
-    if isinstance(obj, (datetime, date, time, pd.Timestamp)):
+    if isinstance(obj, (datetime, date, pd.Timestamp)):
         obj = obj.isoformat()
     else:
         if pessimistic:
@@ -1276,12 +1250,44 @@ def get_main_database() -> "Database":
     return get_or_create_db("main", db_uri)
 
 
+def get_example_default_schema() -> Optional[str]:
+    """
+    Return the default schema of the examples database, if any.
+    """
+    database = get_example_database()
+    engine = database.get_sqla_engine()
+    return inspect(engine).default_schema_name
+
+
 def backend() -> str:
     return get_example_database().backend
 
 
 def is_adhoc_metric(metric: Metric) -> TypeGuard[AdhocMetric]:
     return isinstance(metric, dict) and "expressionType" in metric
+
+
+def is_adhoc_column(column: Column) -> TypeGuard[AdhocColumn]:
+    return isinstance(column, dict)
+
+
+def get_column_name(column: Column) -> str:
+    """
+    Extract label from column
+
+    :param column: object to extract label from
+    :return: String representation of column
+    :raises ValueError: if metric object is invalid
+    """
+    if isinstance(column, dict):
+        label = column.get("label")
+        if label:
+            return label
+        expr = column.get("sqlExpression")
+        if expr:
+            return expr
+        raise Exception("Missing label")
+    return column
 
 
 def get_metric_name(metric: Metric) -> str:
@@ -1313,11 +1319,15 @@ def get_metric_name(metric: Metric) -> str:
     return metric  # type: ignore
 
 
-def get_metric_names(metrics: Sequence[Metric]) -> List[str]:
-    return [metric for metric in map(get_metric_name, metrics) if metric]
+def get_column_names(columns: Optional[Sequence[Column]]) -> List[str]:
+    return [column for column in map(get_column_name, columns or []) if column]
 
 
-def get_first_metric_name(metrics: Sequence[Metric]) -> Optional[str]:
+def get_metric_names(metrics: Optional[Sequence[Metric]]) -> List[str]:
+    return [metric for metric in map(get_metric_name, metrics or []) if metric]
+
+
+def get_first_metric_name(metrics: Optional[Sequence[Metric]]) -> Optional[str]:
     metric_labels = get_metric_names(metrics)
     return metric_labels[0] if metric_labels else None
 
@@ -1535,6 +1545,30 @@ def get_form_data_token(form_data: Dict[str, Any]) -> str:
     :return: original token if predefined, otherwise new uuid4 based token
     """
     return form_data.get("token") or "token_" + uuid.uuid4().hex[:8]
+
+
+def get_column_name_from_column(column: Column) -> Optional[str]:
+    """
+    Extract the physical column that a column is referencing. If the column is
+    an adhoc column, always returns `None`.
+
+    :param column: Physical and ad-hoc column
+    :return: column name if physical column, otherwise None
+    """
+    if is_adhoc_column(column):
+        return None
+    return column  # type: ignore
+
+
+def get_column_names_from_columns(columns: List[Column]) -> List[str]:
+    """
+    Extract the physical columns that a list of columns are referencing. Ignore
+    adhoc columns
+
+    :param columns: Physical and adhoc columns
+    :return: column names of all physical columns
+    """
+    return [col for col in map(get_column_name_from_column, columns) if col]
 
 
 def get_column_name_from_metric(metric: Metric) -> Optional[str]:
@@ -1787,61 +1821,3 @@ def apply_max_row_limit(limit: int, max_limit: Optional[int] = None,) -> int:
     if limit != 0:
         return min(max_limit, limit)
     return max_limit
-
-
-def escape_sqla_query_binds(sql: str) -> str:
-    """
-    Replace strings in a query that SQLAlchemy would otherwise interpret as
-    bind parameters.
-
-    :param sql: unescaped query string
-    :return: escaped query string
-    >>> escape_sqla_query_binds("select ':foo'")
-    "select '\\\\:foo'"
-    >>> escape_sqla_query_binds("select 'foo'::TIMESTAMP")
-    "select 'foo'::TIMESTAMP"
-    >>> escape_sqla_query_binds("select ':foo :bar'::TIMESTAMP")
-    "select '\\\\:foo \\\\:bar'::TIMESTAMP"
-    >>> escape_sqla_query_binds("select ':foo :foo :bar'::TIMESTAMP")
-    "select '\\\\:foo \\\\:foo \\\\:bar'::TIMESTAMP"
-    """
-    matches = BIND_PARAM_REGEX.finditer(sql)
-    processed_binds = set()
-    for match in matches:
-        bind = match.group(0)
-        if bind not in processed_binds:
-            sql = sql.replace(bind, bind.replace(":", "\\:"))
-            processed_binds.add(bind)
-    return sql
-
-
-def normalize_prequery_result_type(
-    value: Union[str, int, float, bool, np.generic]
-) -> Union[str, int, float, bool]:
-    """
-    Convert a value that is potentially a numpy type into its equivalent Python type.
-
-    :param value: primitive datatype in either numpy or python format
-    :return: equivalent primitive python type
-    >>> normalize_prequery_result_type('abc')
-    'abc'
-    >>> normalize_prequery_result_type(True)
-    True
-    >>> normalize_prequery_result_type(123)
-    123
-    >>> normalize_prequery_result_type(np.int16(123))
-    123
-    >>> normalize_prequery_result_type(np.uint32(123))
-    123
-    >>> normalize_prequery_result_type(np.int64(123))
-    123
-    >>> normalize_prequery_result_type(123.456)
-    123.456
-    >>> normalize_prequery_result_type(np.float32(123.456))
-    123.45600128173828
-    >>> normalize_prequery_result_type(np.float64(123.456))
-    123.456
-    """
-    if isinstance(value, np.generic):
-        return value.item()
-    return value

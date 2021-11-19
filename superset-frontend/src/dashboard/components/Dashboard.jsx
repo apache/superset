@@ -220,55 +220,6 @@ class Dashboard extends React.PureComponent {
     return Object.values(this.props.charts);
   }
 
-  isFilterKeyRemoved(filterKey) {
-    const { appliedFilters } = this;
-    const { activeFilters } = this.props;
-
-    // refresh charts if a filter was removed, added, or changed
-    const currFilterKeys = Object.keys(activeFilters);
-    const appliedFilterKeys = Object.keys(appliedFilters);
-
-    return (
-      !currFilterKeys.includes(filterKey) &&
-      appliedFilterKeys.includes(filterKey)
-    );
-  }
-
-  isFilterKeyNewlyAdded(filterKey) {
-    const { appliedFilters } = this;
-    const appliedFilterKeys = Object.keys(appliedFilters);
-
-    return !appliedFilterKeys.includes(filterKey);
-  }
-
-  isFilterKeyChangedValue(filterKey) {
-    const { appliedFilters } = this;
-    const { activeFilters } = this.props;
-
-    return !areObjectsEqual(
-      appliedFilters[filterKey].values,
-      activeFilters[filterKey].values,
-      {
-        ignoreUndefined: true,
-      },
-    );
-  }
-
-  isFilterKeyChangedScope(filterKey) {
-    const { appliedFilters } = this;
-    const { activeFilters } = this.props;
-
-    return !areObjectsEqual(
-      appliedFilters[filterKey].scope,
-      activeFilters[filterKey].scope,
-    );
-  }
-
-  hasFilterKeyValues(filterKey) {
-    const { appliedFilters } = this;
-    return Object.keys(appliedFilters[filterKey]?.values ?? []).length;
-  }
-
   applyFilters() {
     const { appliedFilters } = this;
     const { activeFilters, ownDataCharts } = this.props;
@@ -284,21 +235,37 @@ class Dashboard extends React.PureComponent {
     );
     [...allKeys].forEach(filterKey => {
       if (
-        this.isFilterKeyRemoved(filterKey) ||
-        this.isFilterKeyNewlyAdded(filterKey)
+        !currFilterKeys.includes(filterKey) &&
+        appliedFilterKeys.includes(filterKey)
       ) {
-        // check if there are values in filter, if no, there is was added only ownState, so no need reload other charts
-        if (this.hasFilterKeyValues(filterKey)) {
-          affectedChartIds.push(...appliedFilters[filterKey].scope);
-        }
+        // filterKey is removed?
+        affectedChartIds.push(...appliedFilters[filterKey].scope);
+      } else if (!appliedFilterKeys.includes(filterKey)) {
+        // filterKey is newly added?
+        affectedChartIds.push(...activeFilters[filterKey].scope);
       } else {
+        // if filterKey changes value,
         // update charts in its scope
-        if (this.isFilterKeyChangedValue(filterKey)) {
+        if (
+          !areObjectsEqual(
+            appliedFilters[filterKey].values,
+            activeFilters[filterKey].values,
+            {
+              ignoreUndefined: true,
+            },
+          )
+        ) {
           affectedChartIds.push(...activeFilters[filterKey].scope);
         }
 
+        // if filterKey changes scope,
         // update all charts in its scope
-        if (this.isFilterKeyChangedScope(filterKey)) {
+        if (
+          !areObjectsEqual(
+            appliedFilters[filterKey].scope,
+            activeFilters[filterKey].scope,
+          )
+        ) {
           const chartsInScope = (activeFilters[filterKey].scope || []).concat(
             appliedFilters[filterKey].scope || [],
           );

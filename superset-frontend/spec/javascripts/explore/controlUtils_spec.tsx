@@ -43,10 +43,10 @@ const getKnownControlState = (...args: Parameters<typeof getControlState>) =>
 
 describe('controlUtils', () => {
   const state: ControlPanelState = {
-    datasource: ({
+    datasource: {
       columns: [{ column_name: 'a' }],
       metrics: [{ metric_name: 'first' }, { metric_name: 'second' }],
-    } as unknown) as DatasourceMeta,
+    } as unknown as DatasourceMeta,
     controls: {},
     form_data: { datasource: '1__table', viz_type: 'table' },
   };

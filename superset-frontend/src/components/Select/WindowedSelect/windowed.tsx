@@ -29,15 +29,13 @@ const { MenuList: DefaultMenuList } = defaultComponents;
 
 export const DEFAULT_WINDOW_THRESHOLD = 100;
 
-export type WindowedSelectProps<
-  OptionType extends OptionTypeBase
-> = SelectProps<OptionType> & {
-  windowThreshold?: number;
-} & WindowedMenuListProps['selectProps'];
+export type WindowedSelectProps<OptionType extends OptionTypeBase> =
+  SelectProps<OptionType> & {
+    windowThreshold?: number;
+  } & WindowedMenuListProps['selectProps'];
 
-export type WindowedSelectComponentType<
-  OptionType extends OptionTypeBase
-> = FunctionComponent<WindowedSelectProps<OptionType>>;
+export type WindowedSelectComponentType<OptionType extends OptionTypeBase> =
+  FunctionComponent<WindowedSelectProps<OptionType>>;
 
 export function MenuList<OptionType extends OptionTypeBase>({
   children,

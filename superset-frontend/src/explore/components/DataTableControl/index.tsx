@@ -135,7 +135,8 @@ export const useTableColumns = (
               key =>
                 ({
                   accessor: row => row[key],
-                  Header: key,
+                  // When the key is empty, have to give a string of length greater than 0
+                  Header: key || ' ',
                   Cell: ({ value }) => {
                     if (value === true) {
                       return BOOL_TRUE_DISPLAY;
@@ -149,5 +150,5 @@ export const useTableColumns = (
                 } as Column),
             )
         : [],
-    [data, moreConfigs],
+    [data, colnames, moreConfigs],
   );

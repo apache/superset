@@ -147,6 +147,7 @@ const ResultSetErrorMessage = styled.div`
 `;
 
 const updateDataset = async (
+  dbId: number,
   datasetId: number,
   sql: string,
   columns: Array<Record<string, any>>,
@@ -159,6 +160,7 @@ const updateDataset = async (
     sql,
     columns,
     owners,
+    database_id: dbId,
   });
 
   const data: JsonResponse = await SupersetClient.put({
@@ -201,30 +203,25 @@ export default class ResultSet extends React.PureComponent<
     this.fetchResults = this.fetchResults.bind(this);
     this.popSelectStar = this.popSelectStar.bind(this);
     this.reFetchQueryResults = this.reFetchQueryResults.bind(this);
-    this.toggleExploreResultsButton = this.toggleExploreResultsButton.bind(
-      this,
-    );
+    this.toggleExploreResultsButton =
+      this.toggleExploreResultsButton.bind(this);
     this.handleSaveInDataset = this.handleSaveInDataset.bind(this);
     this.handleHideSaveModal = this.handleHideSaveModal.bind(this);
     this.handleDatasetNameChange = this.handleDatasetNameChange.bind(this);
-    this.handleSaveDatasetRadioBtnState = this.handleSaveDatasetRadioBtnState.bind(
-      this,
-    );
+    this.handleSaveDatasetRadioBtnState =
+      this.handleSaveDatasetRadioBtnState.bind(this);
     this.handleOverwriteCancel = this.handleOverwriteCancel.bind(this);
     this.handleOverwriteDataset = this.handleOverwriteDataset.bind(this);
-    this.handleOverwriteDatasetOption = this.handleOverwriteDatasetOption.bind(
-      this,
-    );
+    this.handleOverwriteDatasetOption =
+      this.handleOverwriteDatasetOption.bind(this);
     this.handleSaveDatasetModalSearch = debounce(
       this.handleSaveDatasetModalSearch.bind(this),
       1000,
     );
-    this.handleFilterAutocompleteOption = this.handleFilterAutocompleteOption.bind(
-      this,
-    );
-    this.handleOnChangeAutoComplete = this.handleOnChangeAutoComplete.bind(
-      this,
-    );
+    this.handleFilterAutocompleteOption =
+      this.handleFilterAutocompleteOption.bind(this);
+    this.handleOnChangeAutoComplete =
+      this.handleOnChangeAutoComplete.bind(this);
     this.handleExploreBtnClick = this.handleExploreBtnClick.bind(this);
   }
 
@@ -272,10 +269,11 @@ export default class ResultSet extends React.PureComponent<
   };
 
   handleOverwriteDataset = async () => {
-    const { sql, results } = this.props.query;
+    const { sql, results, dbId } = this.props.query;
     const { datasetToOverwrite } = this.state;
 
     await updateDataset(
+      dbId,
       datasetToOverwrite.datasetId,
       sql,
       results.selected_columns.map(d => ({ column_name: d.name })),

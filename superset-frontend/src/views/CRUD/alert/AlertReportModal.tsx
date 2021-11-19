@@ -408,10 +408,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     conf?.ALERT_REPORTS_NOTIFICATION_METHODS || DEFAULT_NOTIFICATION_METHODS;
 
   const [disableSave, setDisableSave] = useState<boolean>(true);
-  const [
-    currentAlert,
-    setCurrentAlert,
-  ] = useState<Partial<AlertObject> | null>();
+  const [currentAlert, setCurrentAlert] =
+    useState<Partial<AlertObject> | null>();
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [contentType, setContentType] = useState<string>('dashboard');
   const [reportFormat, setReportFormat] = useState<string>(
@@ -432,10 +430,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     contentType === 'chart' &&
     (isFeatureEnabled(FeatureFlag.ALERTS_ATTACH_REPORTS) || isReport);
 
-  const [
-    notificationAddState,
-    setNotificationAddState,
-  ] = useState<NotificationAddStatus>('active');
+  const [notificationAddState, setNotificationAddState] =
+    useState<NotificationAddStatus>('active');
   const [notificationSettings, setNotificationSettings] = useState<
     NotificationSetting[]
   >([]);
@@ -524,7 +520,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         contentType === 'dashboard' ? currentAlert?.dashboard?.value : null,
       database: currentAlert?.database?.value,
       owners: (currentAlert?.owners || []).map(
-        owner => (owner as MetaObject).value,
+        owner => (owner as MetaObject).value || owner.id,
       ),
       recipients,
       report_format:
@@ -581,20 +577,25 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   // Fetch data to populate form dropdowns
   const loadOwnerOptions = useMemo(
-    () => (input = '', page: number, pageSize: number) => {
-      const query = rison.encode({ filter: input, page, page_size: pageSize });
-      return SupersetClient.get({
-        endpoint: `/api/v1/report/related/owners?q=${query}`,
-      }).then(response => ({
-        data: response.json.result.map(
-          (item: { value: number; text: string }) => ({
-            value: item.value,
-            label: item.text,
-          }),
-        ),
-        totalCount: response.json.count,
-      }));
-    },
+    () =>
+      (input = '', page: number, pageSize: number) => {
+        const query = rison.encode({
+          filter: input,
+          page,
+          page_size: pageSize,
+        });
+        return SupersetClient.get({
+          endpoint: `/api/v1/report/related/owners?q=${query}`,
+        }).then(response => ({
+          data: response.json.result.map(
+            (item: { value: number; text: string }) => ({
+              value: item.value,
+              label: item.text,
+            }),
+          ),
+          totalCount: response.json.count,
+        }));
+      },
     [],
   );
 
@@ -629,21 +630,26 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const loadSourceOptions = useMemo(
-    () => (input = '', page: number, pageSize: number) => {
-      const query = rison.encode({ filter: input, page, page_size: pageSize });
-      return SupersetClient.get({
-        endpoint: `/api/v1/report/related/database?q=${query}`,
-      }).then(response => {
-        const list = response.json.result.map(
-          (item: { value: number; text: string }) => ({
-            value: item.value,
-            label: item.text,
-          }),
-        );
-        setSourceOptions(list);
-        return { data: list, totalCount: response.json.count };
-      });
-    },
+    () =>
+      (input = '', page: number, pageSize: number) => {
+        const query = rison.encode({
+          filter: input,
+          page,
+          page_size: pageSize,
+        });
+        return SupersetClient.get({
+          endpoint: `/api/v1/report/related/database?q=${query}`,
+        }).then(response => {
+          const list = response.json.result.map(
+            (item: { value: number; text: string }) => ({
+              value: item.value,
+              label: item.text,
+            }),
+          );
+          setSourceOptions(list);
+          return { data: list, totalCount: response.json.count };
+        });
+      },
     [],
   );
 
@@ -657,21 +663,26 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   }, [databaseLabel, getSourceData]);
 
   const loadDashboardOptions = useMemo(
-    () => (input = '', page: number, pageSize: number) => {
-      const query = rison.encode({ filter: input, page, page_size: pageSize });
-      return SupersetClient.get({
-        endpoint: `/api/v1/report/related/dashboard?q=${query}`,
-      }).then(response => {
-        const list = response.json.result.map(
-          (item: { value: number; text: string }) => ({
-            value: item.value,
-            label: item.text,
-          }),
-        );
-        setDashboardOptions(list);
-        return { data: list, totalCount: response.json.count };
-      });
-    },
+    () =>
+      (input = '', page: number, pageSize: number) => {
+        const query = rison.encode({
+          filter: input,
+          page,
+          page_size: pageSize,
+        });
+        return SupersetClient.get({
+          endpoint: `/api/v1/report/related/dashboard?q=${query}`,
+        }).then(response => {
+          const list = response.json.result.map(
+            (item: { value: number; text: string }) => ({
+              value: item.value,
+              label: item.text,
+            }),
+          );
+          setDashboardOptions(list);
+          return { data: list, totalCount: response.json.count };
+        });
+      },
     [],
   );
 
@@ -726,22 +737,27 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   }, [getChartData, noChartLabel]);
 
   const loadChartOptions = useMemo(
-    () => (input = '', page: number, pageSize: number) => {
-      const query = rison.encode({ filter: input, page, page_size: pageSize });
-      return SupersetClient.get({
-        endpoint: `/api/v1/report/related/chart?q=${query}`,
-      }).then(response => {
-        const list = response.json.result.map(
-          (item: { value: number; text: string }) => ({
-            value: item.value,
-            label: item.text,
-          }),
-        );
+    () =>
+      (input = '', page: number, pageSize: number) => {
+        const query = rison.encode({
+          filter: input,
+          page,
+          page_size: pageSize,
+        });
+        return SupersetClient.get({
+          endpoint: `/api/v1/report/related/chart?q=${query}`,
+        }).then(response => {
+          const list = response.json.result.map(
+            (item: { value: number; text: string }) => ({
+              value: item.value,
+              label: item.text,
+            }),
+          );
 
-        setChartOptions(list);
-        return { data: list, totalCount: response.json.count };
-      });
-    },
+          setChartOptions(list);
+          return { data: list, totalCount: response.json.count };
+        });
+      },
     [],
   );
 
@@ -972,9 +988,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               label: (resource.database as DatabaseObject).database_name,
             }
           : undefined,
-        owners: (resource.owners || []).map(owner => ({
-          value: owner.id,
-          label: `${(owner as Owner).first_name} ${(owner as Owner).last_name}`,
+        owners: (alert?.owners || []).map(owner => ({
+          value: (owner as MetaObject).value || owner.id,
+          label:
+            (owner as MetaObject).label ||
+            `${(owner as Owner).first_name} ${(owner as Owner).last_name}`,
         })),
         // @ts-ignore: Type not assignable
         validator_config_json:
@@ -1136,7 +1154,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   maxLines={15}
                   onChange={onSQLChange}
                   readOnly={false}
-                  value={currentAlert ? currentAlert.sql : ''}
+                  initialValue={resource?.sql}
+                  key={currentAlert?.id}
                 />
               </StyledInputContainer>
               <div className="inline-container wrap">
@@ -1220,7 +1239,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   ariaLabel={t('Log retention')}
                   placeholder={t('Log retention')}
                   onChange={onLogRetentionChange}
-                  value={currentAlert?.log_retention || DEFAULT_RETENTION}
+                  value={
+                    typeof currentAlert?.log_retention === 'number'
+                      ? currentAlert?.log_retention
+                      : DEFAULT_RETENTION
+                  }
                   options={RETENTION_OPTIONS}
                   sortComparator={propertyComparator('value')}
                 />

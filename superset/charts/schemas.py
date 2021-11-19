@@ -23,13 +23,12 @@ from marshmallow.validate import Length, Range
 from marshmallow_enum import EnumField
 
 from superset import app
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context import QueryContext
 from superset.db_engine_specs.base import builtin_time_grains
 from superset.utils import schema as utils
 from superset.utils.core import (
     AnnotationType,
-    ChartDataResultFormat,
-    ChartDataResultType,
     FilterOperator,
     PostProcessingBoxplotWhiskerType,
     PostProcessingContributionOrientation,
@@ -583,6 +582,7 @@ class ChartDataBoxplotOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
         "references to datasource metrics (strings), or ad-hoc metrics"
         "which are defined only within the query object. See "
         "`ChartDataAdhocMetricSchema` for the structure of ad-hoc metrics.",
+        allow_none=True,
     )
 
     whisker_type = fields.String(
@@ -772,8 +772,11 @@ class ChartDataPostProcessingOperationSchema(Schema):
 
 
 class ChartDataFilterSchema(Schema):
-    col = fields.String(
-        description="The column to filter.", required=True, example="country"
+    col = fields.Raw(
+        description="The column to filter by. Can be either a string (physical or "
+        "saved expression) or an object (adhoc column)",
+        required=True,
+        example="country",
     )
     op = fields.String(  # pylint: disable=invalid-name
         description="The comparison operator.",
@@ -962,7 +965,7 @@ class ChartDataQueryObjectSchema(Schema):
         deprecated=True,
     )
     groupby = fields.List(
-        fields.String(),
+        fields.Raw(),
         description="Columns by which to group the query. "
         "This field is deprecated, use `columns` instead.",
         allow_none=True,
@@ -1013,7 +1016,7 @@ class ChartDataQueryObjectSchema(Schema):
         description="Is the `query_object` a timeseries.", allow_none=True,
     )
     series_columns = fields.List(
-        fields.String(),
+        fields.Raw(),
         description="Columns to use when limiting series count. "
         "All columns must be present in the `columns` property. "
         "Requires `series_limit` and `series_limit_metric` to be set.",
@@ -1063,7 +1066,7 @@ class ChartDataQueryObjectSchema(Schema):
         allow_none=True,
     )
     columns = fields.List(
-        fields.String(),
+        fields.Raw(),
         description="Columns which to select in the query.",
         allow_none=True,
     )
