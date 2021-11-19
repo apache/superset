@@ -293,25 +293,19 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
     )
     def test_presto_expand_data_with_complex_row_columns_and_null_values(self):
         cols = [
-            {
-                "name": "row_column",
-                "type": "ROW(NESTED_ROW ROW(NESTED_OBJ VARCHAR))",
-            }
+            {"name": "row_column", "type": "ROW(NESTED_ROW ROW(NESTED_OBJ VARCHAR))",}
         ]
         data = [
             {"row_column": '[["a"]]'},
-            {"row_column": '[[null]]'},
-            {"row_column": '[null]'},
-            {"row_column": 'null'}
+            {"row_column": "[[null]]"},
+            {"row_column": "[null]"},
+            {"row_column": "null"},
         ]
         actual_cols, actual_data, actual_expanded_cols = PrestoEngineSpec.expand_data(
             cols, data
         )
         expected_cols = [
-            {
-                "name": "row_column",
-                "type": "ROW(NESTED_ROW ROW(NESTED_OBJ VARCHAR))",
-            },
+            {"name": "row_column", "type": "ROW(NESTED_ROW ROW(NESTED_OBJ VARCHAR))",},
             {"name": "row_column.nested_row", "type": "ROW(NESTED_OBJ VARCHAR)"},
             {"name": "row_column.nested_row.nested_obj", "type": "VARCHAR"},
         ]
