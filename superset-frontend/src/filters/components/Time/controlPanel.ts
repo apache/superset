@@ -16,9 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ControlPanelConfig } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  sharedControls,
+} from '@superset-ui/chart-controls';
 import { t } from '@superset-ui/core';
-import { sharedControls } from '@superset-ui/chart-controls/lib';
 
 const config: ControlPanelConfig = {
   // For control input types, see: superset-frontend/src/explore/components/controls/index.js

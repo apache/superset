@@ -17,7 +17,7 @@
 
 import pandas as pd
 
-from superset.charts.post_processing import pivot_df
+from superset.charts.post_processing import pivot_df, table
 
 
 def test_pivot_df_no_cols_no_rows_single_metric():
@@ -684,7 +684,6 @@ def test_pivot_df_complex():
         show_columns_total=True,
         apply_metrics_on_rows=True,
     )
-    print(pivoted.to_markdown())
     assert (
         pivoted.to_markdown()
         == """
@@ -727,5 +726,58 @@ def test_pivot_df_complex():
 | ('girl', 'Sophia')                         |            0.151002  |            0.178206  |            0.297745  |            0.3538    |
 | ('girl', 'Subtotal')                       |            0.719317  |            0.700516  |            0.783939  |            0.810432  |
 | ('Total (Sum as Fraction of Columns)', '') |            1         |            1         |            1         |            1         |
+    """.strip()
+    )
+
+
+def test_table():
+    """
+    Test that the table reports honor `d3NumberFormat`.
+    """
+    df = pd.DataFrame.from_dict({"count": {0: 80679663}})
+    form_data = {
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "NULL",
+                "expressionType": "SIMPLE",
+                "filterOptionName": "filter_ameaka2efjv_rfv1et5nwng",
+                "isExtra": False,
+                "isNew": False,
+                "operator": "!=",
+                "sqlExpression": None,
+                "subject": "lang_at_home",
+            }
+        ],
+        "all_columns": [],
+        "color_pn": True,
+        "column_config": {"count": {"d3NumberFormat": ",d"}},
+        "conditional_formatting": [],
+        "datasource": "8__table",
+        "extra_form_data": {},
+        "granularity_sqla": "time_start",
+        "groupby": ["lang_at_home"],
+        "metrics": ["count"],
+        "order_by_cols": [],
+        "order_desc": True,
+        "percent_metrics": [],
+        "query_mode": "aggregate",
+        "row_limit": "15",
+        "server_page_length": 10,
+        "show_cell_bars": True,
+        "table_timestamp_format": "smart_date",
+        "time_grain_sqla": "P1D",
+        "time_range": "No filter",
+        "time_range_endpoints": ["inclusive", "exclusive"],
+        "url_params": {},
+        "viz_type": "table",
+    }
+    formatted = table(df, form_data)
+    assert (
+        formatted.to_markdown()
+        == """
+|    | count      |
+|---:|:-----------|
+|  0 | 80,679,663 |
     """.strip()
     )

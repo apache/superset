@@ -123,16 +123,16 @@ function AlertList({
   const [currentAlert, setCurrentAlert] = useState<Partial<AlertObject> | null>(
     null,
   );
-  const [
-    currentAlertDeleting,
-    setCurrentAlertDeleting,
-  ] = useState<AlertObject | null>(null);
+  const [currentAlertDeleting, setCurrentAlertDeleting] =
+    useState<AlertObject | null>(null);
 
   // Actions
   function handleAlertEdit(alert: AlertObject | null) {
     setCurrentAlert(alert);
     setAlertModalOpen(true);
   }
+
+  const generateKey = () => `${new Date().getTime()}`;
 
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
@@ -449,6 +449,7 @@ function AlertList({
         }}
         show={alertModalOpen}
         isReport={isReportEnabled}
+        key={currentAlert?.id || generateKey()}
       />
       {currentAlertDeleting && (
         <DeleteModal

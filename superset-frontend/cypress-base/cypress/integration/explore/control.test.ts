@@ -113,6 +113,25 @@ describe('VizType control', () => {
   });
 });
 
+describe('Test datatable', () => {
+  beforeEach(() => {
+    cy.login();
+    interceptChart({ legacy: false }).as('tableChartData');
+    interceptChart({ legacy: true }).as('lineChartData');
+  });
+  it('Data Pane opens and loads results', () => {
+    cy.get('[data-test="data-tab"]').click();
+    cy.get('[data-test="row-count-label"]').contains('27 rows retrieved');
+    cy.contains('View results');
+    cy.get('.ant-empty-description').should('not.exist');
+  });
+  it('Datapane loads view samples', () => {
+    cy.contains('View samples').click();
+    cy.get('[data-test="row-count-label"]').contains('1k rows retrieved');
+    cy.get('.ant-empty-description').should('not.exist');
+  });
+});
+
 describe('Time range filter', () => {
   beforeEach(() => {
     cy.login();
@@ -235,8 +254,8 @@ describe('Groupby control', () => {
     cy.verifySliceSuccess({ waitAlias: '@chartData' });
 
     cy.get('[data-test=groupby]').within(() => {
-      cy.get('.Select__control').click();
-      cy.get('input[type=text]').type('state{enter}');
+      cy.get('.ant-select').click();
+      cy.get('input[type=search]').type('state{enter}');
     });
     cy.get('button[data-test="run-query-button"]').click();
     cy.verifySliceSuccess({ waitAlias: '@chartData', chartSelector: 'svg' });

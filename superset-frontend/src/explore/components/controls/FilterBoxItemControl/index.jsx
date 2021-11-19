@@ -23,7 +23,7 @@ import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
 import Popover from 'src/components/Popover';
 import FormRow from 'src/components/FormRow';
-import SelectControl from 'src/explore/components/controls/SelectControl';
+import { Select } from 'src/components';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import TextControl from 'src/explore/components/controls/TextControl';
 import { FILTER_CONFIG_ATTRIBUTES } from 'src/explore/constants';
@@ -136,12 +136,12 @@ export default class FilterBoxItemControl extends React.Component {
         <FormRow
           label={t('Column')}
           control={
-            <SelectControl
+            <Select
+              ariaLabel={t('Column')}
               value={this.state.column}
               name="column"
-              clearable={false}
               options={this.props.datasource.columns
-                .filter(col => col !== this.state.column)
+                .filter(col => col.column_name !== this.state.column)
                 .map(col => ({
                   value: col.column_name,
                   label: col.column_name,
@@ -184,11 +184,12 @@ export default class FilterBoxItemControl extends React.Component {
           label={t('Sort metric')}
           tooltip={t('Metric to sort the results by')}
           control={
-            <SelectControl
+            <Select
+              ariaLabel={t('Sort metric')}
               value={this.state.metric}
               name="column"
               options={this.props.datasource.metrics
-                .filter(metric => metric !== this.state.metric)
+                .filter(m => m.metric_name !== this.state.metric)
                 .map(m => ({
                   value: m.metric_name,
                   label: m.metric_name,

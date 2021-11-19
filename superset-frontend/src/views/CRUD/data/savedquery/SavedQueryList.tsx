@@ -108,14 +108,10 @@ function SavedQueryList({
     t('Saved queries'),
     addDangerToast,
   );
-  const [
-    queryCurrentlyDeleting,
-    setQueryCurrentlyDeleting,
-  ] = useState<SavedQueryObject | null>(null);
-  const [
-    savedQueryCurrentlyPreviewing,
-    setSavedQueryCurrentlyPreviewing,
-  ] = useState<SavedQueryObject | null>(null);
+  const [queryCurrentlyDeleting, setQueryCurrentlyDeleting] =
+    useState<SavedQueryObject | null>(null);
+  const [savedQueryCurrentlyPreviewing, setSavedQueryCurrentlyPreviewing] =
+    useState<SavedQueryObject | null>(null);
   const [importingSavedQuery, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);

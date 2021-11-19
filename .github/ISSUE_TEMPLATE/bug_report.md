@@ -7,6 +7,13 @@ labels: "#bug"
 
 A clear and concise description of what the bug is.
 
+#### How to reproduce the bug
+
+1. Go to '...'
+2. Click on '....'
+3. Scroll down to '....'
+4. See error
+
 ### Expected results
 
 what you expected to happen.
@@ -19,12 +26,6 @@ what actually happens.
 
 If applicable, add screenshots to help explain your problem.
 
-#### How to reproduce the bug
-
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
 
 ### Environment
 

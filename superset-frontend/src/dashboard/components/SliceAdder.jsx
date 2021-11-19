@@ -21,7 +21,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { List } from 'react-virtualized';
 import { createFilter } from 'react-search-input';
-import { t, styled } from '@superset-ui/core';
+import { t, styled, isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { Input } from 'src/common/components';
 import { Select } from 'src/components';
 import Loading from 'src/components/Loading';
@@ -34,6 +34,7 @@ import {
   NEW_COMPONENTS_SOURCE_ID,
 } from 'src/dashboard/util/constants';
 import { slicePropShape } from 'src/dashboard/util/propShapes';
+import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 import AddSliceCard from './AddSliceCard';
 import AddSliceDragPreview from './dnd/AddSliceDragPreview';
 import DragDroppable from './dnd/DragDroppable';
@@ -48,6 +49,7 @@ const propTypes = {
   selectedSliceIds: PropTypes.arrayOf(PropTypes.number),
   editMode: PropTypes.bool,
   height: PropTypes.number,
+  filterboxMigrationState: FILTER_BOX_MIGRATION_STATES,
 };
 
 const defaultProps = {
@@ -55,14 +57,15 @@ const defaultProps = {
   editMode: false,
   errorMessage: '',
   height: window.innerHeight,
+  filterboxMigrationState: FILTER_BOX_MIGRATION_STATES.NOOP,
 };
 
 const KEYS_TO_FILTERS = ['slice_name', 'viz_type', 'datasource_name'];
 const KEYS_TO_SORT = {
-  slice_name: 'Name',
-  viz_type: 'Vis type',
-  datasource_name: 'Dataset',
-  changed_on: 'Recent',
+  slice_name: 'name',
+  viz_type: 'viz type',
+  datasource_name: 'dataset',
+  changed_on: 'recent',
 };
 
 const DEFAULT_SORT_KEY = 'changed_on';
@@ -114,7 +117,12 @@ class SliceAdder extends React.Component {
   }
 
   componentDidMount() {
-    this.slicesRequest = this.props.fetchAllSlices(this.props.userId);
+    const { userId, filterboxMigrationState } = this.props;
+    this.slicesRequest = this.props.fetchAllSlices(
+      userId,
+      isFeatureEnabled(FeatureFlag.ENABLE_FILTER_BOX_MIGRATION) &&
+        filterboxMigrationState !== FILTER_BOX_MIGRATION_STATES.SNOOZED,
+    );
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
