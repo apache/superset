@@ -959,7 +959,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             slc = Slice(owners=[g.user] if g.user else [])
 
         form_data["adhoc_filters"] = self.remove_extra_filters(
-            form_data.get("adhoc_filters", [])
+            form_data.get("adhoc_filters") or []
         )
 
         assert slc

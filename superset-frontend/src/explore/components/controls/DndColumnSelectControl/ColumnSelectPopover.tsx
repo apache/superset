@@ -88,11 +88,8 @@ const ColumnSelectPopover = ({
   isAdhocColumnsEnabled,
 }: ColumnSelectPopoverProps) => {
   const [initialLabel] = useState(label);
-  const [
-    initialAdhocColumn,
-    initialCalculatedColumn,
-    initialSimpleColumn,
-  ] = getInitialColumnValues(editedColumn);
+  const [initialAdhocColumn, initialCalculatedColumn, initialSimpleColumn] =
+    getInitialColumnValues(editedColumn);
 
   const [adhocColumn, setAdhocColumn] = useState<AdhocColumn | undefined>(
     initialAdhocColumn,

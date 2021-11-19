@@ -85,24 +85,26 @@ const handleErrorResponse = async response => {
   });
 };
 
-const loadAccessOptions = accessType => (input = '') => {
-  const query = rison.encode({ filter: input });
-  return SupersetClient.get({
-    endpoint: `/api/v1/dashboard/related/${accessType}?q=${query}`,
-  }).then(
-    response => ({
-      data: response.json.result.map(item => ({
-        value: item.value,
-        label: item.text,
-      })),
-      totalCount: response.json.count,
-    }),
-    badResponse => {
-      handleErrorResponse(badResponse);
-      return [];
-    },
-  );
-};
+const loadAccessOptions =
+  accessType =>
+  (input = '') => {
+    const query = rison.encode({ filter: input });
+    return SupersetClient.get({
+      endpoint: `/api/v1/dashboard/related/${accessType}?q=${query}`,
+    }).then(
+      response => ({
+        data: response.json.result.map(item => ({
+          value: item.value,
+          label: item.text,
+        })),
+        totalCount: response.json.count,
+      }),
+      badResponse => {
+        handleErrorResponse(badResponse);
+        return [];
+      },
+    );
+  };
 
 const loadOwners = loadAccessOptions('owners');
 const loadRoles = loadAccessOptions('roles');

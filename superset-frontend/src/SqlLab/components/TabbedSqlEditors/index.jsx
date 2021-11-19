@@ -84,9 +84,8 @@ class TabbedSqlEditors extends React.PureComponent {
     this.removeQueryEditor = this.removeQueryEditor.bind(this);
     this.renameTab = this.renameTab.bind(this);
     this.toggleLeftBar = this.toggleLeftBar.bind(this);
-    this.removeAllOtherQueryEditors = this.removeAllOtherQueryEditors.bind(
-      this,
-    );
+    this.removeAllOtherQueryEditors =
+      this.removeAllOtherQueryEditors.bind(this);
     this.duplicateQueryEditor = this.duplicateQueryEditor.bind(this);
     this.handleSelect = this.handleSelect.bind(this);
     this.handleEdit = this.handleEdit.bind(this);

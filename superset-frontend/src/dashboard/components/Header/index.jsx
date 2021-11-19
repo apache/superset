@@ -611,10 +611,8 @@ class Header extends React.PureComponent {
               onHide={this.hidePropertiesModal}
               colorScheme={this.props.colorScheme}
               onSubmit={updates => {
-                const {
-                  dashboardInfoChanged,
-                  dashboardTitleChanged,
-                } = this.props;
+                const { dashboardInfoChanged, dashboardTitleChanged } =
+                  this.props;
                 dashboardInfoChanged({
                   slug: updates.slug,
                   metadata: JSON.parse(updates.jsonMetadata),

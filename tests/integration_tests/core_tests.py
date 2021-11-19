@@ -749,7 +749,6 @@ class TestCore(SupersetTestCase):
         data = self.run_sql(sql, "fdaklj3ws")
         self.assertEqual(data["data"][0]["test"], "2")
 
-    @pytest.mark.ofek
     @mock.patch(
         "tests.integration_tests.superset_test_custom_template_processors.datetime"
     )

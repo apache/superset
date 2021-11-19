@@ -81,21 +81,18 @@ const ColumnSelectPopoverTrigger = ({
     setPopoverVisible(false);
   }, []);
 
-  const {
-    visible,
-    handleTogglePopover,
-    handleClosePopover,
-  } = isControlledComponent
-    ? {
-        visible: props.visible,
-        handleTogglePopover: props.togglePopover!,
-        handleClosePopover: props.closePopover!,
-      }
-    : {
-        visible: popoverVisible,
-        handleTogglePopover: togglePopover,
-        handleClosePopover: closePopover,
-      };
+  const { visible, handleTogglePopover, handleClosePopover } =
+    isControlledComponent
+      ? {
+          visible: props.visible,
+          handleTogglePopover: props.togglePopover!,
+          handleClosePopover: props.closePopover!,
+        }
+      : {
+          visible: popoverVisible,
+          handleTogglePopover: togglePopover,
+          handleClosePopover: closePopover,
+        };
 
   const getCurrentTab = useCallback((tab: string) => {
     setIsTitleEditDisabled(tab !== editableTitleTab);
