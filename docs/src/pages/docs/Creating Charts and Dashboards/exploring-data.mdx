@@ -31,10 +31,12 @@ select the **Edit** button.
 
 <img src="/images/edit-record.png" />
 
-In the resulting modal window, switch to the **Extra** tab and
-tick the checkbox for **Allow Data Upload**. End by clicking the **Save** button.
+In the resulting modal window, switch to the **Advanced** tab and
+expand the **Security** section. Tick the checkbox for **Allow Data Upload**.
+End by clicking the **Save** button.
 
-<img src="/images/add-data-upload.png" />
+<img src="/images/db-modal-advanced.png" />
+<img src="/images/add-data-upload-2.png" />
 
 ### Loading CSV Data
 
@@ -59,18 +61,7 @@ Leaving all the other options in their default settings, select **Save** at the 
 You should now see _tutorial_flights_ as a dataset in the **Datasets** tab. Click on the entry to
 launch an Explore workflow using this dataset.
 
-In this section, we'll create a table visualization
-to show the number of flights and cost per travel class.
-
-By default, Apache Superset only shows the last week of data. In our example, we want to visualize all
-of the data in the dataset. Click the **Time ‣ Time Range** section and change
-the **Range Type** to **No Filter**.
-
-<img src="/images/no_filter_on_time_filter.png" />
-
-Click **Apply** to save.
-
-Now, we want to specify the rows in our table by using the **Group by** option. Since in this
+First, we want to specify the rows in our table by using the **Group by** option. Since in this
 example, we want to understand different Travel Classes, we select **Travel Class** in this menu.
 
 Next, we can specify the metrics we would like to see in our table with the **Metrics** option.
@@ -79,7 +70,8 @@ Next, we can specify the metrics we would like to see in our table with the **Me
 (in this case, quantity of flights in each Travel Class)
 - `SUM(Cost)`, which represents the total cost spent by each Travel Class
 
-<img src="/images/sum_cost_column.png" />
+<img src="/images/count_column.png" />
+<img src="/images/sum_cost_column_2.png" />
 
 Finally, select **Run Query** to see the results of the table.
 
