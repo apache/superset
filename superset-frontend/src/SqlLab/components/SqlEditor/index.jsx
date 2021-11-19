@@ -83,9 +83,12 @@ const VALIDATION_DEBOUNCE_MS = 600;
 const WINDOW_RESIZE_THROTTLE_MS = 100;
 
 const appContainer = document.getElementById('app');
-const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
+const bootstrapData = JSON.parse(
+  appContainer.getAttribute('data-bootstrap') || '{}',
+);
 const validatorMap =
   bootstrapData?.common?.conf?.SQL_VALIDATORS_BY_ENGINE || {};
+const scheduledQueriesConf = bootstrapData.common.conf.SCHEDULED_QUERIES;
 
 const LimitSelectStyled = styled.span`
   .ant-dropdown-trigger {
@@ -538,7 +541,7 @@ class SqlEditor extends React.PureComponent {
             />
           </Menu.Item>
         )}
-        {isFeatureEnabled(FeatureFlag.SCHEDULED_QUERIES) && (
+        {scheduledQueriesConf && (
           <Menu.Item>
             <ScheduleQueryButton
               defaultLabel={qe.title}
