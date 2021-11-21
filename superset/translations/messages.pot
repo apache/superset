@@ -9829,4 +9829,3 @@ msgstr ""
 #: superset-frontend/src/visualizations/TimeTable/TimeTableChartPlugin.js:36
 msgid "Trend"
 msgstr ""
-
