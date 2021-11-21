@@ -29,7 +29,7 @@ def test_ParsedQuery_tds(app_context: AppContext) -> None:
     The CLass looks for Teradata limit keywords TOP and SAMPLE vs LIMIT in
     other dialects. and
     """
-    from superset.db_engine_specs.teradata.TeradataEngineSpec import apply_limit_to_sql
+    from superset.db_engine_specs.teradata import TeradataEngineSpec
 
     from superset.db_engine_specs.teradata import ParsedQuery_td, TeradataEngineSpec
 
