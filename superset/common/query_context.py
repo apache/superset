@@ -26,17 +26,14 @@ from flask_babel import _
 from pandas import DateOffset
 from typing_extensions import TypedDict
 
-from superset import app, db, is_feature_enabled
+from superset import app, is_feature_enabled
 from superset.annotation_layers.dao import AnnotationLayerDAO
 from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_actions import get_query_results
 from superset.common.query_object import QueryObject
-from superset.common.query_object_factory import QueryObjectFactory
 from superset.common.utils import QueryCacheManager
-from superset.connectors.base.models import BaseDatasource
-from superset.connectors.connector_registry import ConnectorRegistry
 from superset.constants import CacheRegion
 from superset.exceptions import QueryObjectValidationError, SupersetException
 from superset.extensions import cache_manager, security_manager
@@ -44,7 +41,6 @@ from superset.models.helpers import QueryResult
 from superset.utils import csv
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
-    DatasourceDict,
     DTTM_ALIAS,
     error_msg_from_exception,
     get_column_names_from_columns,
@@ -57,6 +53,7 @@ from superset.utils.date_parser import get_past_or_future, normalize_time_delta
 from superset.views.utils import get_viz
 
 if TYPE_CHECKING:
+    from superset.connectors.base.models import BaseDatasource
     from superset.stats_logger import BaseStatsLogger
 
 config = app.config
@@ -68,10 +65,6 @@ class CachedTimeOffset(TypedDict):
     df: pd.DataFrame
     queries: List[str]
     cache_keys: List[Optional[str]]
-
-
-def create_query_object_factory() -> QueryObjectFactory:
-    return QueryObjectFactory(config, ConnectorRegistry(), db.session)
 
 
 class QueryContext:
@@ -90,36 +83,28 @@ class QueryContext:
     force: bool
     custom_cache_timeout: Optional[int]
 
+    cache_values: Dict[str, Any]
+
     # TODO: Type datasource and query_object dictionary with TypedDict when it becomes
     #  a vanilla python type https://github.com/python/mypy/issues/5288
-    # pylint: disable=too-many-arguments
     def __init__(
         self,
-        datasource: DatasourceDict,
-        queries: List[Dict[str, Any]],
-        result_type: Optional[ChartDataResultType] = None,
-        result_format: Optional[ChartDataResultFormat] = None,
+        *,
+        datasource: BaseDatasource,
+        queries: List[QueryObject],
+        result_type: ChartDataResultType,
+        result_format: ChartDataResultFormat,
         force: bool = False,
         custom_cache_timeout: Optional[int] = None,
+        cache_values: Dict[str, Any]
     ) -> None:
-        self.datasource = ConnectorRegistry.get_datasource(
-            str(datasource["type"]), int(datasource["id"]), db.session
-        )
-        self.result_type = result_type or ChartDataResultType.FULL
-        self.result_format = result_format or ChartDataResultFormat.JSON
-        query_object_factory = create_query_object_factory()
-        self.queries = [
-            query_object_factory.create(self.result_type, **query_obj)
-            for query_obj in queries
-        ]
+        self.datasource = datasource
+        self.result_type = result_type
+        self.result_format = result_format
+        self.queries = queries
         self.force = force
         self.custom_cache_timeout = custom_cache_timeout
-        self.cache_values = {
-            "datasource": datasource,
-            "queries": queries,
-            "result_type": self.result_type,
-            "result_format": self.result_format,
-        }
+        self.cache_values = cache_values
 
     @staticmethod
     def left_join_df(
