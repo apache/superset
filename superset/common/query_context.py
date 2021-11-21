@@ -33,7 +33,7 @@ from superset.common.chart_data import ChartDataResultFormat, ChartDataResultTyp
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_actions import get_query_results
 from superset.common.query_object import QueryObject
-from superset.common.utils import QueryCacheManager
+from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.constants import CacheRegion
 from superset.exceptions import QueryObjectValidationError, SupersetException
 from superset.extensions import cache_manager, security_manager
