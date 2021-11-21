@@ -33,7 +33,8 @@ from superset.common.chart_data import ChartDataResultFormat, ChartDataResultTyp
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_actions import get_query_results
 from superset.common.query_object import QueryObject
-from superset.common.utils import QueryCacheManager
+from superset.common.utils import dataframe_utils as df_utils
+from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.constants import CacheRegion
 from superset.exceptions import QueryObjectValidationError, SupersetException
 from superset.extensions import cache_manager, security_manager
@@ -105,14 +106,6 @@ class QueryContext:
         self.force = force
         self.custom_cache_timeout = custom_cache_timeout
         self.cache_values = cache_values
-
-    @staticmethod
-    def left_join_df(
-        left_df: pd.DataFrame, right_df: pd.DataFrame, join_keys: List[str],
-    ) -> pd.DataFrame:
-        df = left_df.set_index(join_keys).join(right_df.set_index(join_keys))
-        df.reset_index(inplace=True)
-        return df
 
     def processing_time_offsets(  # pylint: disable=too-many-locals
         self, df: pd.DataFrame, query_object: QueryObject,
@@ -194,7 +187,7 @@ class QueryContext:
                 ] - DateOffset(**normalize_time_delta(offset))
 
             # df left join `offset_metrics_df`
-            offset_df = self.left_join_df(
+            offset_df = df_utils.left_join_df(
                 left_df=df, right_df=offset_metrics_df, join_keys=join_keys,
             )
             offset_slice = offset_df[metrics_mapping.values()]
@@ -231,7 +224,7 @@ class QueryContext:
         )
 
         if self.enforce_numerical_metrics:
-            self.df_metrics_to_num(df, query_object)
+            df_utils.df_metrics_to_num(df, query_object)
 
         df.replace([np.inf, -np.inf], np.nan, inplace=True)
 
@@ -270,15 +263,6 @@ class QueryContext:
         result.df = df
         result.query = query
         return result
-
-    @staticmethod
-    def df_metrics_to_num(df: pd.DataFrame, query_object: QueryObject) -> None:
-        """Converting metrics to numeric when pandas.read_sql cannot"""
-        for col, dtype in df.dtypes.items():
-            if dtype.type == np.object_ and col in query_object.metric_names:
-                # soft-convert a metric column to numeric
-                # will stay as strings if conversion fails
-                df[col] = df[col].infer_objects()
 
     def get_data(self, df: pd.DataFrame,) -> Union[str, List[Dict[str, Any]]]:
         if self.result_format == ChartDataResultFormat.CSV:
