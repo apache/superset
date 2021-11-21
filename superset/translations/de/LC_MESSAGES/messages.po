@@ -1208,7 +1208,7 @@ msgstr "Cluster"
 #: superset/connectors/druid/views.py:346 superset/connectors/sqla/views.py:500
 #: superset/views/chart/mixin.py:83 superset/views/dashboard/mixin.py:82
 msgid "Owners"
-msgstr "Eigentümer"
+msgstr "Besitzende"
 
 #: superset/connectors/druid/views.py:347
 msgid "Is Hidden"
@@ -7689,7 +7689,7 @@ msgstr "Steuerelemente beschriftet "
 
 #: superset-frontend/src/explore/components/ExploreViewContainer.jsx:410
 msgid "Control labeled "
-msgstr "Steuerelement beschriftet "
+msgstr "Feld "
 
 #: superset-frontend/src/explore/components/ExploreViewContainer.jsx:530
 msgid "Open Datasource tab"
@@ -7749,7 +7749,7 @@ msgstr "Kopieren"
 
 #: superset-frontend/src/explore/components/DataTableControl/index.tsx:96
 msgid "rows retrieved"
-msgstr "Abgerufene Zeilen"
+msgstr "abgerufene Zeilen"
 
 #: superset-frontend/src/explore/components/DataTablesPane/index.tsx:146
 #: superset-frontend/src/filters/components/Select/SelectFilterPlugin.tsx:256
