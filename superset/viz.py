@@ -20,6 +20,8 @@
 These objects represent the backend of all the visualizations that
 Superset can render.
 """
+from __future__ import annotations
+
 import copy
 import dataclasses
 import logging
@@ -88,6 +90,7 @@ from superset.utils.dates import datetime_to_epoch
 from superset.utils.hashing import md5_sha_from_str
 
 if TYPE_CHECKING:
+    from superset.common.query_context_factory import QueryContextFactory
     from superset.connectors.base.models import BaseDatasource
 
 config = app.config
@@ -2097,6 +2100,7 @@ class FilterBoxViz(BaseViz):
 
     """A multi filter, multi-choice filter box to make dashboards interactive"""
 
+    query_context_factory: Optional[QueryContextFactory] = None
     viz_type = "filter_box"
     verbose_name = _("Filters")
     is_timeseries = False
@@ -2108,9 +2112,6 @@ class FilterBoxViz(BaseViz):
         return {}
 
     def run_extra_queries(self) -> None:
-        # pylint: disable=import-outside-toplevel
-        from superset.common.query_context import QueryContext
-
         query_obj = super().query_obj()
         filters = self.form_data.get("filter_configs") or []
         query_obj["row_limit"] = self.filter_row_limit
@@ -2127,7 +2128,7 @@ class FilterBoxViz(BaseViz):
             asc = flt.get("asc")
             if metric and asc is not None:
                 query_obj["orderby"] = [(metric, asc)]
-            QueryContext(
+            self.get_query_context_factory().create(
                 datasource={"id": self.datasource.id, "type": self.datasource.type},
                 queries=[query_obj],
             ).raise_for_access()
@@ -2159,6 +2160,14 @@ class FilterBoxViz(BaseViz):
             else:
                 data[col] = []
         return data
+
+    def get_query_context_factory(self) -> QueryContextFactory:
+        if self.query_context_factory is None:
+            # pylint: disable=import-outside-toplevel
+            from superset.common.query_context_factory import QueryContextFactory
+
+            self.query_context_factory = QueryContextFactory()
+        return self.query_context_factory
 
 
 class ParallelCoordinatesViz(BaseViz):
