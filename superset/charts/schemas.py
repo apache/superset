@@ -15,7 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=too-many-lines
-from typing import Any, Dict
+from __future__ import annotations
+
+from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as _
 from marshmallow import EXCLUDE, fields, post_load, Schema, validate
@@ -24,7 +26,7 @@ from marshmallow_enum import EnumField
 
 from superset import app
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
-from superset.common.query_context import QueryContext
+from superset.common.query_context_factory import QueryContextFactory
 from superset.db_engine_specs.base import builtin_time_grains
 from superset.utils import schema as utils
 from superset.utils.core import (
@@ -34,6 +36,9 @@ from superset.utils.core import (
     PostProcessingContributionOrientation,
     TimeRangeEndpoint,
 )
+
+if TYPE_CHECKING:
+    from superset.common.query_context import QueryContext
 
 config = app.config
 
@@ -1129,6 +1134,7 @@ class ChartDataQueryObjectSchema(Schema):
 
 
 class ChartDataQueryContextSchema(Schema):
+    query_context_factory: Optional[QueryContextFactory] = None
     datasource = fields.Nested(ChartDataDatasourceSchema)
     queries = fields.List(fields.Nested(ChartDataQueryObjectSchema))
     force = fields.Boolean(
@@ -1139,13 +1145,16 @@ class ChartDataQueryContextSchema(Schema):
     result_type = EnumField(ChartDataResultType, by_value=True)
     result_format = EnumField(ChartDataResultFormat, by_value=True)
 
-    # pylint: disable=no-self-use,unused-argument
+    # pylint: disable=unused-argument
     @post_load
     def make_query_context(self, data: Dict[str, Any], **kwargs: Any) -> QueryContext:
-        query_context = QueryContext(**data)
+        query_context = self.get_query_context_factory().create(**data)
         return query_context
 
-    # pylint: enable=no-self-use,unused-argument
+    def get_query_context_factory(self) -> QueryContextFactory:
+        if self.query_context_factory is None:
+            self.query_context_factory = QueryContextFactory()
+        return self.query_context_factory
 
 
 class AnnotationDataSchema(Schema):
