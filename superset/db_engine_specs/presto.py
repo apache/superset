@@ -871,8 +871,9 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
                 for row in data:
                     values = row.get(name) or []
                     if isinstance(values, str):
-                        row[name] = values = cast(List[Any], destringify(values))
-                    for value, col in zip(values, expanded):
+                        values = cast(Optional[List[Any]], destringify(values))
+                        row[name] = values
+                    for value, col in zip(values or [], expanded):
                         row[col["name"]] = value
 
         data = [
