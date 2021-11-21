@@ -4466,7 +4466,7 @@ msgstr "dttm"
 
 #: superset-frontend/src/CRUD/CollectionTable.tsx:417
 msgid "Add item"
-msgstr "Datenbank einfügen"
+msgstr "Element hinzufügen"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:106
 msgid "The query couldn't be loaded"
@@ -8569,7 +8569,7 @@ msgstr "Beliebt"
 
 #: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:124
 msgid "ECharts"
-msgstr "E-Diagramme"
+msgstr "ECharts"
 
 #: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:124
 msgid "Advanced-Analytics"
@@ -8669,7 +8669,7 @@ msgstr "Zeitbezogene Formularattribute"
 
 #: superset-frontend/src/explore/controlPanels/sections.tsx:32
 msgid "Chart type"
-msgstr "Diagrammtype"
+msgstr "Diagrammtyp"
 
 #: superset-frontend/src/explore/controlPanels/sections.tsx:42
 msgid "Chart ID"

@@ -1672,7 +1672,7 @@
       "Edit Log": ["Protokoll bearbeiten"],
       "Action": ["Aktion"],
       "dttm": ["dttm"],
-      "Add item": ["Datenbank einfügen"],
+      "Add item": ["Element hinzufügen"],
       "The query couldn't be loaded": [
         "Die Abfrage konnte nicht geladen werden"
       ],
@@ -2959,7 +2959,7 @@
       "Time series columns": ["Zeitserienspalte"],
       "Other": ["Andere"],
       "Popular": ["Beliebt"],
-      "ECharts": ["E-Diagramme"],
+      "ECharts": ["ECharts"],
       "Advanced-Analytics": ["Erweiterte Analysen"],
       "Recommended tags": ["Empfohlene Tags"],
       "Category": ["Kategorie"],
@@ -2989,7 +2989,7 @@
       ],
       "Time": ["Zeit"],
       "Time related form attributes": ["Zeitbezogene Formularattribute"],
-      "Chart type": ["Diagrammtype"],
+      "Chart type": ["Diagrammtyp"],
       "Chart ID": ["Diagramm-ID"],
       "The id of the active chart": ["Die ID des aktiven Diagramms"],
       "Cache Timeout (seconds)": ["Cache-Timeout (Sekunden)"],
