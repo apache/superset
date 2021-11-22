@@ -40,6 +40,7 @@ from superset.charts.data.query_context_cache_loader import QueryContextCacheLoa
 from superset.charts.post_processing import apply_post_process
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.connectors.base.models import BaseDatasource
 from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
 from superset.utils.async_query_manager import AsyncQueryTokenException
@@ -158,7 +159,9 @@ class ChartDataRestApi(ChartRestApi):
         except (TypeError, json.decoder.JSONDecodeError):
             form_data = {}
 
-        return self._get_data_response(command, form_data=form_data)
+        return self._get_data_response(
+            command=command, form_data=form_data, datasource=query_context.datasource
+        )
 
     @expose("/data", methods=["POST"])
     @protect()
@@ -327,7 +330,10 @@ class ChartDataRestApi(ChartRestApi):
         return self.response(202, **result)
 
     def _send_chart_response(
-        self, result: Dict[Any, Any], form_data: Optional[Dict[str, Any]] = None,
+        self,
+        result: Dict[Any, Any],
+        form_data: Optional[Dict[str, Any]] = None,
+        datasource: Optional[BaseDatasource] = None,
     ) -> Response:
         result_type = result["query_context"].result_type
         result_format = result["query_context"].result_format
@@ -336,7 +342,7 @@ class ChartDataRestApi(ChartRestApi):
         # This is needed for sending reports based on text charts that do the
         # post-processing of data, eg, the pivot table.
         if result_type == ChartDataResultType.POST_PROCESSED:
-            result = apply_post_process(result, form_data)
+            result = apply_post_process(result, form_data, datasource)
 
         if result_format == ChartDataResultFormat.CSV:
             # Verify user has permission to export CSV file
@@ -364,6 +370,7 @@ class ChartDataRestApi(ChartRestApi):
         command: ChartDataCommand,
         force_cached: bool = False,
         form_data: Optional[Dict[str, Any]] = None,
+        datasource: Optional[BaseDatasource] = None,
     ) -> Response:
         try:
             result = command.run(force_cached=force_cached)
@@ -372,7 +379,7 @@ class ChartDataRestApi(ChartRestApi):
         except ChartDataQueryFailedError as exc:
             return self.response_400(message=exc.message)
 
-        return self._send_chart_response(result, form_data)
+        return self._send_chart_response(result, form_data, datasource)
 
     # pylint: disable=invalid-name, no-self-use
     def _load_query_context_form_from_cache(self, cache_key: str) -> Dict[str, Any]:
