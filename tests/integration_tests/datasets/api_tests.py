@@ -1380,18 +1380,18 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "export")
         assert rv.status_code == 404
 
-    def test_export_dataset_gamma(self):
-        """
-        Dataset API: Test export dataset has gamma
-        """
-        birth_names_dataset = self.get_birth_names_dataset()
+    # def test_export_dataset_gamma(self):
+    #     """
+    #     Dataset API: Test export dataset has gamma
+    #     """
+    #     dataset = self.insert_default_dataset()
 
-        argument = [birth_names_dataset.id]
-        uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
+    #     argument = [dataset.id]
+    #     uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
 
-        self.login(username="gamma")
-        rv = self.client.get(uri)
-        assert rv.status_code == 404
+    #     self.login(username="gamma")
+    #     rv = self.client.get(uri)
+    #     assert rv.status_code == 401
 
     @patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
@@ -1435,7 +1435,7 @@ class TestDatasetApi(SupersetTestCase):
         self.login(username="admin")
         rv = self.get_assert_metric(uri, "export")
 
-        assert rv.status_code == 404
+        assert rv.status_code == 401
 
     @patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
@@ -1446,15 +1446,15 @@ class TestDatasetApi(SupersetTestCase):
         """
         Dataset API: Test export dataset has gamma
         """
-        birth_names_dataset = self.get_birth_names_dataset()
+        dataset = self.insert_default_dataset()
 
-        argument = [birth_names_dataset.id]
+        argument = [dataset.id]
         uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
 
         self.login(username="gamma")
         rv = self.client.get(uri)
         # gamma users by default do not have access to this dataset
-        assert rv.status_code == 404
+        assert rv.status_code == 401
 
     @unittest.skip("Number of related objects depend on DB")
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
