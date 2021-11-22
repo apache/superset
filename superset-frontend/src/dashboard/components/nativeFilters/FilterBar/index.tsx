@@ -19,7 +19,7 @@
 
 /* eslint-disable no-param-reassign */
 import { DataMask, HandlerFunction, styled, t } from '@superset-ui/core';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import cx from 'classnames';
 import Icons from 'src/components/Icons';
@@ -280,7 +280,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   );
   const isInitialized = useInitialization();
 
-  const tabPaneStyle = () => ({ overflow: 'auto' });
+  const tabPaneStyle = useMemo(() => ({ overflow: 'auto', height }), [height]);
   return (
     <BarWrapper
       {...getFilterBarTestId()}
@@ -315,7 +315,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             <Tabs.TabPane
               tab={t(`All Filters (${filterValues.length})`)}
               key={TabIds.AllFilters}
-              css={tabPaneStyle}
+              css={{ overflow: 'auto' }}
             >
               {editFilterSetId && (
                 <EditSection
@@ -335,7 +335,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
               disabled={!!editFilterSetId}
               tab={t(`Filter Sets (${filterSetFilterValues.length})`)}
               key={TabIds.FilterSets}
-              css={tabPaneStyle}
+              css={{ overflow: 'auto' }}
             >
               <FilterSets
                 onEditFilterSet={setEditFilterSetId}
@@ -347,7 +347,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             </Tabs.TabPane>
           </StyledTabs>
         ) : (
-          <div css={tabPaneStyle}>
+          <div css={{ overflow: 'auto' }}>
             <FilterControls
               dataMaskSelected={dataMaskSelected}
               directPathToChild={directPathToChild}
@@ -355,14 +355,20 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             />
           </div>
         )}
-        <Footer
-          getFilterBarTestId={getFilterBarTestId}
-          onApply={handleApply}
-          onClearAll={handleClearAll}
-          isApplyDisabled={isApplyDisabled}
-          dataMaskSelected={dataMaskSelected}
-          dataMaskApplied={dataMaskApplied}
-        />
+        {Object.keys(dataMaskSelected).length ? (
+          <div css={tabPaneStyle}>
+            <Footer
+              getFilterBarTestId={getFilterBarTestId}
+              onApply={handleApply}
+              onClearAll={handleClearAll}
+              isApplyDisabled={isApplyDisabled}
+              dataMaskSelected={dataMaskSelected}
+              dataMaskApplied={dataMaskApplied}
+            />
+          </div>
+        ) : (
+          <div css={tabPaneStyle} />
+        )}
       </Bar>
     </BarWrapper>
   );
