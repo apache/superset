@@ -19,7 +19,7 @@
 
 /* eslint-disable no-param-reassign */
 import { DataMask, HandlerFunction, styled, t } from '@superset-ui/core';
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import cx from 'classnames';
 import Icons from 'src/components/Icons';
@@ -49,6 +49,7 @@ import {
 } from './state';
 import EditSection from './FilterSets/EditSection';
 import Header from './Header';
+import Footer from './Footer';
 import FilterControls from './FilterControls/FilterControls';
 
 export const FILTER_BAR_TEST_ID = 'filter-bar';
@@ -279,8 +280,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   );
   const isInitialized = useInitialization();
 
-  const tabPaneStyle = useMemo(() => ({ overflow: 'auto', height }), [height]);
-
+  const tabPaneStyle = () => ({ overflow: 'auto' });
   return (
     <BarWrapper
       {...getFilterBarTestId()}
@@ -300,14 +300,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         <StyledFilterIcon {...getFilterBarTestId('filter-icon')} iconSize="l" />
       </CollapsedBar>
       <Bar className={cx({ open: filtersOpen })} width={width}>
-        <Header
-          toggleFiltersBar={toggleFiltersBar}
-          onApply={handleApply}
-          onClearAll={handleClearAll}
-          isApplyDisabled={isApplyDisabled}
-          dataMaskSelected={dataMaskSelected}
-          dataMaskApplied={dataMaskApplied}
-        />
+        <Header toggleFiltersBar={toggleFiltersBar} />
         {!isInitialized ? (
           <div css={{ height }}>
             <Loading />
@@ -362,6 +355,14 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             />
           </div>
         )}
+        <Footer
+          getFilterBarTestId={getFilterBarTestId}
+          onApply={handleApply}
+          onClearAll={handleClearAll}
+          isApplyDisabled={isApplyDisabled}
+          dataMaskSelected={dataMaskSelected}
+          dataMaskApplied={dataMaskApplied}
+        />
       </Bar>
     </BarWrapper>
   );

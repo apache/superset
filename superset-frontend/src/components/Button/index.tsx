@@ -59,6 +59,7 @@ export interface ButtonProps {
   buttonSize?: 'default' | 'small' | 'xsmall';
   style?: CSSProperties;
   children?: React.ReactNode;
+  isUppercase?: boolean;
   href?: string;
   htmlType?: 'button' | 'submit' | 'reset';
   cta?: boolean;
@@ -74,6 +75,7 @@ export default function Button(props: ButtonProps) {
     buttonSize,
     buttonStyle,
     className,
+    isUppercase = true,
     cta,
     children,
     href,
@@ -172,7 +174,7 @@ export default function Button(props: ButtonProps) {
         fontSize: typography.sizes.s,
         fontWeight: typography.weights.bold,
         height,
-        textTransform: 'uppercase',
+        textTransform: isUppercase ? 'uppercase' : undefined,
         padding: `0px ${padding}px`,
         transition: `all ${transitionTiming}s`,
         minWidth: cta ? theme.gridUnit * 36 : undefined,

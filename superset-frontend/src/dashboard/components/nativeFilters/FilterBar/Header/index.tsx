@@ -22,7 +22,6 @@ import React, { FC } from 'react';
 import Icons from 'src/components/Icons';
 import Button from 'src/components/Button';
 import { useSelector } from 'react-redux';
-import { DataMaskState, DataMaskStateWithId } from 'src/dataMask/types';
 import FilterConfigurationLink from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
 import { Filter } from 'src/dashboard/components/nativeFilters/types';
@@ -41,20 +40,6 @@ const TitleArea = styled.h4`
   }
 `;
 
-const ActionButtons = styled.div`
-  display: grid;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  grid-gap: 10px;
-  grid-template-columns: 1fr 1fr;
-  ${({ theme }) => `padding: 0 ${theme.gridUnit * 2}px`};
-
-  .btn {
-    flex: 1;
-  }
-`;
-
 const HeaderButton = styled(Button)`
   padding: 0;
 `;
@@ -66,21 +51,9 @@ const Wrapper = styled.div`
 
 type HeaderProps = {
   toggleFiltersBar: (arg0: boolean) => void;
-  onApply: () => void;
-  onClearAll: () => void;
-  dataMaskSelected: DataMaskState;
-  dataMaskApplied: DataMaskStateWithId;
-  isApplyDisabled: boolean;
 };
 
-const Header: FC<HeaderProps> = ({
-  onApply,
-  onClearAll,
-  isApplyDisabled,
-  dataMaskSelected,
-  dataMaskApplied,
-  toggleFiltersBar,
-}) => {
+const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
   const theme = useTheme();
   const filters = useFilters();
   const filterValues = Object.values<Filter>(filters);
@@ -89,12 +62,6 @@ const Header: FC<HeaderProps> = ({
   );
   const dashboardId = useSelector<RootState, number>(
     ({ dashboardInfo }) => dashboardInfo.id,
-  );
-
-  const isClearAllDisabled = Object.values(dataMaskApplied).every(
-    filter =>
-      dataMaskSelected[filter.id]?.filterState?.value === null ||
-      (!dataMaskSelected[filter.id] && filter.filterState?.value === null),
   );
 
   return (
@@ -121,27 +88,6 @@ const Header: FC<HeaderProps> = ({
           <Icons.Expand iconColor={theme.colors.grayscale.base} />
         </HeaderButton>
       </TitleArea>
-      <ActionButtons>
-        <Button
-          disabled={isClearAllDisabled}
-          buttonStyle="tertiary"
-          buttonSize="small"
-          onClick={onClearAll}
-          {...getFilterBarTestId('clear-button')}
-        >
-          {t('Clear all')}
-        </Button>
-        <Button
-          disabled={isApplyDisabled}
-          buttonStyle="primary"
-          htmlType="submit"
-          buttonSize="small"
-          onClick={onApply}
-          {...getFilterBarTestId('apply-button')}
-        >
-          {t('Apply')}
-        </Button>
-      </ActionButtons>
     </Wrapper>
   );
 };
