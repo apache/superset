@@ -49,12 +49,6 @@ test('should render', () => {
   expect(container).toBeInTheDocument();
 });
 
-test('should render the "Filters" heading', () => {
-  const mockedProps = createProps();
-  render(<Footer {...mockedProps} />, { useRedux: true });
-  expect(screen.getByText('Filters')).toBeInTheDocument();
-});
-
 test('should render the "Clear all" option', () => {
   const mockedProps = createProps();
   render(<Footer {...mockedProps} />, { useRedux: true });

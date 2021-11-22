@@ -25,6 +25,13 @@ const createProps = () => ({
   toggleFiltersBar: jest.fn(),
 });
 
+
+test('should render the "Filters" heading', () => {
+  const mockedProps = createProps();
+  render(<Header {...mockedProps} />, { useRedux: true });
+  expect(screen.getByText('Filters')).toBeInTheDocument();
+});
+
 test('should render', () => {
   const mockedProps = createProps();
   const { container } = render(<Header {...mockedProps} />, { useRedux: true });
