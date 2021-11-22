@@ -24,7 +24,7 @@ import { addWarningToast } from 'src/components/MessageToasts/actions';
 
 /**
  * @remark
- * same as https://github.com/apache/superset/blob/c53bc4ddf9808a8bb6916bbe3cb31935d33a2420/superset-frontend/stylesheets/less/variables.less#L34
+ * same as https://github.com/apache/superset/blob/c53bc4ddf9808a8bb6916bbe3cb31935d33a2420/superset-frontend/src/assets/stylesheets/less/variables.less#L34
  */
 const GRAY_BACKGROUND_COLOR = '#F5F5F5';
 

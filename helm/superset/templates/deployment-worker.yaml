@@ -73,12 +73,13 @@ spec:
           env:
             - name: "SUPERSET_PORT"
               value: {{ .Values.service.port | quote}}
-          {{- if .Values.extraEnv }}
             {{- range $key, $value := .Values.extraEnv }}
             - name: {{ $key | quote}}
               value: {{ $value | quote }}
             {{- end }}
-          {{- end }}
+            {{- if .Values.extraEnvRaw }}
+            {{- toYaml .Values.extraEnvRaw | nindent 12 }}
+            {{- end }}
           envFrom:
             - secretRef:
                 name: {{ tpl .Values.envFromSecret . | quote }}

@@ -19,6 +19,7 @@
 export type SelectOptionType = {
   value: string;
   label: string;
+  order: number;
 };
 
 export type FrameType =

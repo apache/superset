@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { NativeFiltersState } from 'src/dashboard/reducers/types';
 import { DataMaskStateWithId } from 'src/dataMask/types';
@@ -31,14 +32,16 @@ export function useCascadingFilters(
     state => state.nativeFilters,
   );
   const filter = filters[id];
-  const cascadeParentIds: string[] = filter?.cascadeParentIds ?? [];
-  let cascadedFilters = {};
-  cascadeParentIds.forEach(parentId => {
-    const parentState = dataMaskSelected?.[parentId];
-    cascadedFilters = mergeExtraFormData(
-      cascadedFilters,
-      parentState?.extraFormData,
-    );
-  });
-  return cascadedFilters;
+  return useMemo(() => {
+    const cascadeParentIds: string[] = filter?.cascadeParentIds ?? [];
+    let cascadedFilters = {};
+    cascadeParentIds.forEach(parentId => {
+      const parentState = dataMaskSelected?.[parentId];
+      cascadedFilters = mergeExtraFormData(
+        cascadedFilters,
+        parentState?.extraFormData,
+      );
+    });
+    return cascadedFilters;
+  }, [dataMaskSelected, filter?.cascadeParentIds]);
 }

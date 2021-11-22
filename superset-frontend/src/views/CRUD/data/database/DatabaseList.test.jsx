@@ -54,7 +54,7 @@ const mockdatabases = [...new Array(3)].map((_, i) => ({
   backend: 'postgresql',
   allow_run_async: true,
   allow_dml: false,
-  allow_csv_upload: true,
+  allow_file_upload: true,
   expose_in_sqllab: false,
   changed_on_delta_humanized: `${i} day(s) ago`,
   changed_on: new Date().toISOString,
@@ -85,6 +85,10 @@ fetchMock.get(databaseRelatedEndpoint, {
     result: [],
   },
   dashboards: {
+    count: 0,
+    result: [],
+  },
+  sqllab_tab_states: {
     count: 0,
     result: [],
   },
@@ -131,7 +135,7 @@ describe('DatabaseList', () => {
     await waitForComponentToPaint(wrapper);
 
     expect(wrapper.find(DeleteModal).props().description).toMatchInlineSnapshot(
-      `"The database db 0 is linked to 0 charts that appear on 0 dashboards. Are you sure you want to continue? Deleting the database will break those objects."`,
+      `"The database db 0 is linked to 0 charts that appear on 0 dashboards and users have 0 SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects."`,
     );
 
     act(() => {

@@ -18,7 +18,7 @@
 import textwrap
 
 import pandas as pd
-from sqlalchemy import Float, String
+from sqlalchemy import Float, inspect, String
 from sqlalchemy.sql import column
 
 from superset import db
@@ -40,6 +40,8 @@ def load_energy(
     """Loads an energy related dataset to use with sankey and graphs"""
     tbl_name = "energy_usage"
     database = utils.get_example_database()
+    engine = database.get_sqla_engine()
+    schema = inspect(engine).default_schema_name
     table_exists = database.has_table_by_name(tbl_name)
 
     if not only_metadata and (not table_exists or force):
@@ -48,7 +50,8 @@ def load_energy(
         pdf = pdf.head(100) if sample else pdf
         pdf.to_sql(
             tbl_name,
-            database.get_sqla_engine(),
+            engine,
+            schema=schema,
             if_exists="replace",
             chunksize=500,
             dtype={"source": String(255), "target": String(255), "value": Float()},
@@ -60,7 +63,7 @@ def load_energy(
     table = get_table_connector_registry()
     tbl = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not tbl:
-        tbl = table(table_name=tbl_name)
+        tbl = table(table_name=tbl_name, schema=schema)
     tbl.description = "Energy consumption"
     tbl.database = database
     tbl.filter_select_enabled = True

@@ -109,7 +109,7 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
         "P1D": "DATE({col})",
         "P1W": "DATE(DATE_SUB({col}, " "INTERVAL DAYOFWEEK({col}) - 1 DAY))",
         "P1M": "DATE(DATE_SUB({col}, " "INTERVAL DAYOFMONTH({col}) - 1 DAY))",
-        "P0.25Y": "MAKEDATE(YEAR({col}), 1) "
+        "P3M": "MAKEDATE(YEAR({col}), 1) "
         "+ INTERVAL QUARTER({col}) QUARTER - INTERVAL 1 QUARTER",
         "P1Y": "DATE(DATE_SUB({col}, " "INTERVAL DAYOFYEAR({col}) - 1 DAY))",
         "1969-12-29T00:00:00Z/P1W": "DATE(DATE_SUB({col}, "

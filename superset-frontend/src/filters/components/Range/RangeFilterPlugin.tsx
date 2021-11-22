@@ -17,15 +17,16 @@
  * under the License.
  */
 import {
+  ensureIsArray,
+  getColumnLabel,
   getNumberFormatter,
   NumberFormats,
   styled,
   t,
 } from '@superset-ui/core';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Slider } from 'src/common/components';
 import { rgba } from 'emotion-rgba';
-import { FormItemProps } from 'antd/lib/form';
 import { PluginFilterRangeProps } from './types';
 import { StatusMessage, StyledFormItem, FilterPluginStyle } from '../common';
 import { getRangeExtraFormData } from '../../utils';
@@ -74,6 +75,37 @@ const Wrapper = styled.div<{ validateStatus?: 'error' | 'warning' | 'info' }>`
   `}
 `;
 
+const numberFormatter = getNumberFormatter(NumberFormats.SMART_NUMBER);
+
+const tipFormatter = (value: number) => numberFormatter(value);
+
+const getLabel = (lower: number | null, upper: number | null): string => {
+  if (lower !== null && upper !== null) {
+    return `${numberFormatter(lower)} ≤ x ≤ ${numberFormatter(upper)}`;
+  }
+  if (lower !== null) {
+    return `x ≥ ${numberFormatter(lower)}`;
+  }
+  if (upper !== null) {
+    return `x ≤ ${numberFormatter(upper)}`;
+  }
+  return '';
+};
+
+const getMarks = (
+  lower: number | null,
+  upper: number | null,
+): { [key: number]: string } => {
+  const newMarks: { [key: number]: string } = {};
+  if (lower !== null) {
+    newMarks[lower] = numberFormatter(lower);
+  }
+  if (upper !== null) {
+    newMarks[upper] = numberFormatter(upper);
+  }
+  return newMarks;
+};
+
 export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const {
     data,
@@ -85,72 +117,49 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     unsetFocusedFilter,
     filterState,
   } = props;
-  const numberFormatter = getNumberFormatter(NumberFormats.SMART_NUMBER);
-
   const [row] = data;
   // @ts-ignore
   const { min, max }: { min: number; max: number } = row;
   const { groupby, defaultValue, inputRef } = formData;
-  const [col = ''] = groupby || [];
+  const [col = ''] = ensureIsArray(groupby).map(getColumnLabel);
   const [value, setValue] = useState<[number, number]>(
     defaultValue ?? [min, max],
   );
   const [marks, setMarks] = useState<{ [key: number]: string }>({});
 
-  const getBounds = (
-    value: [number, number],
-  ): { lower: number | null; upper: number | null } => {
-    const [lowerRaw, upperRaw] = value;
-    return {
-      lower: lowerRaw > min ? lowerRaw : null,
-      upper: upperRaw < max ? upperRaw : null,
-    };
-  };
+  const getBounds = useCallback(
+    (
+      value: [number, number],
+    ): { lower: number | null; upper: number | null } => {
+      const [lowerRaw, upperRaw] = value;
+      return {
+        lower: lowerRaw > min ? lowerRaw : null,
+        upper: upperRaw < max ? upperRaw : null,
+      };
+    },
+    [max, min],
+  );
 
-  const getLabel = (lower: number | null, upper: number | null): string => {
-    if (lower !== null && upper !== null) {
-      return `${numberFormatter(lower)} ≤ x ≤ ${numberFormatter(upper)}`;
-    }
-    if (lower !== null) {
-      return `x ≥ ${numberFormatter(lower)}`;
-    }
-    if (upper !== null) {
-      return `x ≤ ${numberFormatter(upper)}`;
-    }
-    return '';
-  };
+  const handleAfterChange = useCallback(
+    (value: [number, number]): void => {
+      setValue(value);
+      const { lower, upper } = getBounds(value);
+      setMarks(getMarks(lower, upper));
 
-  const getMarks = (
-    lower: number | null,
-    upper: number | null,
-  ): { [key: number]: string } => {
-    const newMarks: { [key: number]: string } = {};
-    if (lower !== null) {
-      newMarks[lower] = numberFormatter(lower);
-    }
-    if (upper !== null) {
-      newMarks[upper] = numberFormatter(upper);
-    }
-    return newMarks;
-  };
+      setDataMask({
+        extraFormData: getRangeExtraFormData(col, lower, upper),
+        filterState: {
+          value: lower !== null || upper !== null ? value : null,
+          label: getLabel(lower, upper),
+        },
+      });
+    },
+    [col, getBounds, setDataMask],
+  );
 
-  const handleAfterChange = (value: [number, number]): void => {
+  const handleChange = useCallback((value: [number, number]) => {
     setValue(value);
-    const { lower, upper } = getBounds(value);
-    setMarks(getMarks(lower, upper));
-
-    setDataMask({
-      extraFormData: getRangeExtraFormData(col, lower, upper),
-      filterState: {
-        value: lower !== null || upper !== null ? value : null,
-        label: getLabel(lower, upper),
-      },
-    });
-  };
-
-  const handleChange = (value: [number, number]) => {
-    setValue(value);
-  };
+  }, []);
 
   useEffect(() => {
     // when switch filter type and queriesData still not updated we need ignore this case (in FilterBar)
@@ -160,20 +169,25 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     handleAfterChange(filterState.value ?? [min, max]);
   }, [JSON.stringify(filterState.value), JSON.stringify(data)]);
 
-  const formItemData: FormItemProps = {};
-  if (filterState.validateMessage) {
-    formItemData.extra = (
-      <StatusMessage status={filterState.validateStatus}>
-        {filterState.validateMessage}
-      </StatusMessage>
-    );
-  }
+  const formItemExtra = useMemo(() => {
+    if (filterState.validateMessage) {
+      return (
+        <StatusMessage status={filterState.validateStatus}>
+          {filterState.validateMessage}
+        </StatusMessage>
+      );
+    }
+    return undefined;
+  }, [filterState.validateMessage, filterState.validateStatus]);
+
+  const minMax = useMemo(() => value ?? [min, max], [max, min, value]);
+
   return (
     <FilterPluginStyle height={height} width={width}>
       {Number.isNaN(Number(min)) || Number.isNaN(Number(max)) ? (
         <h4>{t('Chosen non-numeric column')}</h4>
       ) : (
-        <StyledFormItem {...formItemData}>
+        <StyledFormItem extra={formItemExtra}>
           <Wrapper
             tabIndex={-1}
             ref={inputRef}
@@ -187,10 +201,10 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
               range
               min={min}
               max={max}
-              value={value ?? [min, max]}
+              value={minMax}
               onAfterChange={handleAfterChange}
               onChange={handleChange}
-              tipFormatter={value => numberFormatter(value)}
+              tipFormatter={tipFormatter}
               marks={marks}
             />
           </Wrapper>

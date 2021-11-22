@@ -39,7 +39,6 @@ from typing import (
     Optional,
     Type,
     TYPE_CHECKING,
-    TypedDict,
     Union,
 )
 
@@ -48,8 +47,9 @@ from celery.schedules import crontab
 from dateutil import tz
 from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
-from pandas.io.parsers import STR_NA_VALUES
+from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
 from werkzeug.local import LocalProxy
+
 from superset.charts.business_type.business_type_request import BusinessTypeRequest
 from superset.charts.business_type.business_type_response import BusinessTypeResponse
 from superset.jinja_context import BaseTemplateProcessor
@@ -64,6 +64,7 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla import models
+
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
 
@@ -201,7 +202,7 @@ QUERY_SEARCH_LIMIT = 1000
 WTF_CSRF_ENABLED = True
 
 # Add endpoints that need to be exempt from CSRF protection
-WTF_CSRF_EXEMPT_LIST = ["superset.views.core.log", "superset.charts.api.data"]
+WTF_CSRF_EXEMPT_LIST = ["superset.views.core.log", "superset.charts.data.api.data"]
 
 # Whether to run the web server in debug mode or not
 DEBUG = os.environ.get("FLASK_ENV") == "development"
@@ -381,8 +382,9 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "DISPLAY_MARKDOWN_HTML": True,
     # When True, this escapes HTML (rather than rendering it) in Markdown components
     "ESCAPE_MARKDOWN_HTML": False,
-    "DASHBOARD_NATIVE_FILTERS": False,
+    "DASHBOARD_NATIVE_FILTERS": True,
     "DASHBOARD_CROSS_FILTERS": False,
+    # Feature is under active development and breaking changes are expected
     "DASHBOARD_NATIVE_FILTERS_SET": False,
     "DASHBOARD_FILTERS_EXPERIMENTAL": False,
     "GLOBAL_ASYNC_QUERIES": False,
@@ -401,6 +403,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "OMNIBAR": False,
     "DASHBOARD_RBAC": False,
     "ENABLE_EXPLORE_DRAG_AND_DROP": False,
+    "ENABLE_FILTER_BOX_MIGRATION": False,
     "ENABLE_DND_WITH_CLICK_UX": False,
     "ENABLE_BUSINESS_TYPES": True,
     # Enabling ALERTS_ATTACH_REPORTS, the system sends email and slack message
@@ -705,6 +708,8 @@ MAX_TABLE_NAMES = 3000
 SQLLAB_SAVE_WARNING_MESSAGE = None
 SQLLAB_SCHEDULE_WARNING_MESSAGE = None
 
+# Force refresh while auto-refresh in dashboard
+DASHBOARD_AUTO_REFRESH_MODE: Literal["fetch", "force"] = "force"
 
 # Default celery config is to use SQLA as a broker, in a production setting
 # you'll want to use a proper broker as specified here:
@@ -871,7 +876,7 @@ def CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC(  # pylint: disable=invalid-name
 UPLOADED_CSV_HIVE_NAMESPACE: Optional[str] = None
 
 # Function that computes the allowed schemas for the CSV uploads.
-# Allowed schemas will be a union of schemas_allowed_for_csv_upload
+# Allowed schemas will be a union of schemas_allowed_for_file_upload
 # db configuration and a result of this function.
 
 # mypy doesn't catch that if case ensures list content being always str
@@ -1092,7 +1097,11 @@ EMAIL_REPORTS_USER = "admin"
 WEBDRIVER_TYPE = "firefox"
 
 # Window size - this will impact the rendering of the data
-WEBDRIVER_WINDOW = {"dashboard": (1600, 2000), "slice": (3000, 1200)}
+WEBDRIVER_WINDOW = {
+    "dashboard": (1600, 2000),
+    "slice": (3000, 1200),
+    "pixel_density": 1,
+}
 
 # An optional override to the default auth hook used to provide auth to the
 # offline webdriver
@@ -1285,9 +1294,7 @@ SQLALCHEMY_DOCS_URL = "https://docs.sqlalchemy.org/en/13/core/engines.html"
 SQLALCHEMY_DISPLAY_TEXT = "SQLAlchemy docs"
 
 
-port_conversion_dict: Dict[
-    str, list,
-] = {
+port_conversion_dict: Dict[str, List[int]] = {
     "http": [80],
     "ssh": [22],
     "https": [443],
@@ -1296,7 +1303,7 @@ port_conversion_dict: Dict[
     "telnet": [23],
     "telnets": [992],
     "smtp": [25],
-    "submissions": [465], # aka smtps, ssmtp, urd
+    "submissions": [465],  # aka smtps, ssmtp, urd
     "kerberos": [88],
     "kerberos-adm": [749],
     "pop3": [110],
@@ -1307,21 +1314,30 @@ port_conversion_dict: Dict[
     "snmp": [161],
     "ldap": [389],
     "ldaps": [636],
-    "imap2": [143], # aka imap
+    "imap2": [143],  # aka imap
     "imaps": [993],
 }
 
 import ipaddress
 
+
 def cidr_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
     resp: BusinessTypeResponse = {}
     print(req["value"])
-    try: 
+    try:
         ip_range = ipaddress.ip_network(req["value"])
         resp["status"] = "valid"
-        resp["value"] = { "start" : int(ip_range[0]), "end" : int(ip_range[-1]) } if ip_range[0] != ip_range[-1] else int(ip_range[0])
+        resp["value"] = (
+            {"start": int(ip_range[0]), "end": int(ip_range[-1])}
+            if ip_range[0] != ip_range[-1]
+            else int(ip_range[0])
+        )
         resp["formatted_value"] = req["value"]
-        resp["valid_filter_operators"] = ["IN"] if  ip_range[0] != ip_range[-1] else ["==", "<=", "<", "IN", ">=", ">"]
+        resp["valid_filter_operators"] = (
+            ["IN"]
+            if ip_range[0] != ip_range[-1]
+            else ["==", "<=", "<", "IN", ">=", ">"]
+        )
     except:
         resp["status"] = "invalid"
         resp["value"] = None
@@ -1329,67 +1345,38 @@ def cidr_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
         resp["valid_filter_operators"] = ["==", "<=", "<", ">=", ">"]
     return resp
 
-def cidr_translate_filter_func(filter):
-    
-    resp: BusinessTypeResponse = cidr_func({"value": filter["val"][0], "business_type": "cidr"})
+
+def cidr_translate_filter_func(filter: Any) -> List[Dict[str, Any]]:
+
+    resp: BusinessTypeResponse = cidr_func(
+        {"value": filter["val"][0], "business_type": "cidr"}
+    )
 
     if filter["op"] == "IN" or filter["op"] == "==":
         return [
-            {
-                "op": ">=",
-                "val": resp['value']['start'],
-                "col": filter['col']
-            },
-            {
-                "op": "<=",
-                "val": resp['value']['end'],
-                "col": filter['col']
-            },
+            {"op": ">=", "val": resp["value"]["start"], "col": filter["col"]},
+            {"op": "<=", "val": resp["value"]["end"], "col": filter["col"]},
         ]
     elif filter["op"] == "NOT IN" or filter["op"] == "!=":
         return [
-            {
-                "op": "<=",
-                "val": resp['value']['start'],
-                "col": filter['col']
-            },
-            {
-                "op": ">=",
-                "val": resp['value']['end'],
-                "col": filter['col']
-            },
+            {"op": "<=", "val": resp["value"]["start"], "col": filter["col"]},
+            {"op": ">=", "val": resp["value"]["end"], "col": filter["col"]},
         ]
     elif filter["op"] == "<":
         return [
-            {
-                "op": "<",
-                "val": resp['value']['end'],
-                "col": filter['col']
-            },
+            {"op": "<", "val": resp["value"]["end"], "col": filter["col"]},
         ]
     elif filter["op"] == "<=":
         return [
-            {
-                "op": "<=",
-                "val": resp['value']['end'],
-                "col": filter['col']
-            },
+            {"op": "<=", "val": resp["value"]["end"], "col": filter["col"]},
         ]
     elif filter["op"] == ">":
         return [
-            {
-                "op": ">",
-                "val": resp['value']['start'],
-                "col": filter['col']
-            },
+            {"op": ">", "val": resp["value"]["start"], "col": filter["col"]},
         ]
     elif filter["op"] == ">=":
         return [
-            {
-                "op": ">=",
-                "val": resp['value']['start'],
-                "col": filter['col']
-            },
+            {"op": ">=", "val": resp["value"]["start"], "col": filter["col"]},
         ]
     else:
         return [filter]
@@ -1399,18 +1386,22 @@ def port_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
     resp: BusinessTypeResponse = {}
     print("in port_func")
     if req["value"] in port_conversion_dict:
-        print("in if") 
+        print("in if")
         resp["status"] = "valid"
         resp["value"] = port_conversion_dict[req["value"]]
         resp["formatted_value"] = req["value"]
-        resp["valid_filter_operators"] = ["==", "<=", "<", ">=", ">"] if len(req["value"]) == 1 else ["IN"] 
-    elif req["value"] and (0 <= int(req["value"]) <= 65535): # Not sure if we care about this case  
+        resp["valid_filter_operators"] = (
+            ["==", "<=", "<", ">=", ">"] if len(req["value"]) == 1 else ["IN"]
+        )
+    elif req["value"] and (
+        0 <= int(req["value"]) <= 65535
+    ):  # Not sure if we care about this case
         print("in elif")
         resp["status"] = "valid"
         resp["value"] = req["value"]
         resp["formatted_value"] = req["value"]
         resp["valid_filter_operators"] = ["==", "<=", "<", ">=", ">"]
-    else: 
+    else:
         print("in else")
         resp["status"] = "invalid"
         resp["value"] = "invalid entry"
@@ -1419,21 +1410,16 @@ def port_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
     print("leaving port_func")
     return resp
 
+
 # the business type key should correspond to that set in the column metadata
 BUSINESS_TYPE_ADDONS: Dict[
     str, Callable[[BusinessTypeRequest], BusinessTypeResponse]
-] = {
-    "cidr": cidr_func,
-    "port": port_func
-}
+] = {"cidr": cidr_func, "port": port_func}
 
 # the business type key should correspond to that set in the column metadata
-BUSINESS_TYPE_TRANSLATIONS: Dict[
-    str, Callable[[Any], Any]
-] = {
+BUSINESS_TYPE_TRANSLATIONS: Dict[str, Callable[[Any], Any]] = {
     "cidr": cidr_translate_filter_func,
 }
-
 
 
 # -------------------------------------------------------------------
@@ -1461,7 +1447,7 @@ if CONFIG_PATH_ENV_VAR in os.environ:
 elif importlib.util.find_spec("superset_config") and not is_test():
     try:
         import superset_config  # pylint: disable=import-error
-        from superset_config import *  # type: ignore # pylint: disable=import-error,wildcard-import
+        from superset_config import *  # type: ignore # pylint: disable=import-error,wildcard-import,unused-wildcard-import
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:

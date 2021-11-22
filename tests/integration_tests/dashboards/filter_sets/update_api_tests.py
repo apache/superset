@@ -40,6 +40,7 @@ from tests.integration_tests.dashboards.filter_sets.utils import (
 
 if TYPE_CHECKING:
     from flask.testing import FlaskClient
+
     from superset.models.filter_set import FilterSet
 
 

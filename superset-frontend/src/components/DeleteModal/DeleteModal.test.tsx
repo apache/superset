@@ -44,13 +44,23 @@ test('Calling "onHide"', () => {
     onHide: jest.fn(),
     open: true,
   };
-  render(<DeleteModal {...props} />);
+  const modal = <DeleteModal {...props} />;
+  render(modal);
   expect(props.onHide).toBeCalledTimes(0);
   expect(props.onConfirm).toBeCalledTimes(0);
+
+  // type "del" in the input
+  userEvent.type(screen.getByTestId('delete-modal-input'), 'del');
+  expect(screen.getByTestId('delete-modal-input')).toHaveValue('del');
+
+  // close the modal
   expect(screen.getByText('×')).toBeVisible();
   userEvent.click(screen.getByText('×'));
   expect(props.onHide).toBeCalledTimes(1);
   expect(props.onConfirm).toBeCalledTimes(0);
+
+  // confirm input has been cleared
+  expect(screen.getByTestId('delete-modal-input')).toHaveValue('');
 });
 
 test('Calling "onConfirm" only after typing "delete" in the input', () => {
@@ -75,4 +85,7 @@ test('Calling "onConfirm" only after typing "delete" in the input', () => {
   userEvent.type(screen.getByTestId('delete-modal-input'), 'delete');
   userEvent.click(screen.getByText('delete'));
   expect(props.onConfirm).toBeCalledTimes(1);
+
+  // confirm input has been cleared
+  expect(screen.getByTestId('delete-modal-input')).toHaveValue('');
 });

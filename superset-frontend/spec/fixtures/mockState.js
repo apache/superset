@@ -22,13 +22,13 @@ import {
   nativeFiltersInfo,
   mockDataMaskInfo,
 } from 'spec/javascripts/dashboard/fixtures/mockNativeFilters';
+import { user } from 'src/SqlLab/fixtures';
 import chartQueries from './mockChartQueries';
 import { dashboardLayout } from './mockDashboardLayout';
 import dashboardInfo from './mockDashboardInfo';
 import { emptyFilters } from './mockDashboardFilters';
 import dashboardState from './mockDashboardState';
 import { sliceEntitiesForChart } from './mockSliceEntities';
-import { user } from '../javascripts/sqllab/fixtures';
 
 export default {
   datasources,

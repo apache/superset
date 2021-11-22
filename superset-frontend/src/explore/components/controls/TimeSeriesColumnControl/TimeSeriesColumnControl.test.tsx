@@ -21,7 +21,11 @@ import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import TimeSeriesColumnControl from '.';
 
-jest.mock('lodash/debounce', () => jest.fn(fn => fn));
+jest.mock('lodash/debounce', () => (fn: Function & { cancel: Function }) => {
+  // eslint-disable-next-line no-param-reassign
+  fn.cancel = jest.fn();
+  return fn;
+});
 
 test('renders with default props', () => {
   render(<TimeSeriesColumnControl />);
@@ -78,7 +82,7 @@ test('triggers onChange when type changes', () => {
   const onChange = jest.fn();
   render(<TimeSeriesColumnControl onChange={onChange} />);
   userEvent.click(screen.getByRole('button'));
-  userEvent.click(screen.getByText('Select...'));
+  userEvent.click(screen.getByText('Select ...'));
   userEvent.click(screen.getByText('Time comparison'));
   expect(onChange).not.toHaveBeenCalled();
   userEvent.click(screen.getByRole('button', { name: 'Save' }));
@@ -121,7 +125,7 @@ test('triggers onChange when time type changes', () => {
   const onChange = jest.fn();
   render(<TimeSeriesColumnControl colType="time" onChange={onChange} />);
   userEvent.click(screen.getByRole('button'));
-  userEvent.click(screen.getByText('Select...'));
+  userEvent.click(screen.getByText('Select ...'));
   userEvent.click(screen.getByText('Difference'));
   expect(onChange).not.toHaveBeenCalled();
   userEvent.click(screen.getByRole('button', { name: 'Save' }));
