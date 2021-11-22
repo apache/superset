@@ -70,7 +70,7 @@ def load_chart_data_into_cache(
     job_metadata: Dict[str, Any], form_data: Dict[str, Any],
 ) -> None:
     # pylint: disable=import-outside-toplevel
-    from superset.charts.data.commands import ChartDataCommand
+    from superset.charts.data.commands.get_data_command import ChartDataCommand
 
     try:
         ensure_user_is_set(job_metadata.get("user_id"))

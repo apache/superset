@@ -15,9 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, Optional
-
-from flask import Request
+from typing import Any, Dict
 
 from superset.charts.commands.exceptions import (
     ChartDataCacheLoadError,
@@ -26,8 +24,6 @@ from superset.charts.commands.exceptions import (
 from superset.commands.base import BaseCommand
 from superset.common.query_context import QueryContext
 from superset.exceptions import CacheLoadError
-from superset.extensions import async_query_manager
-from superset.tasks.async_queries import load_chart_data_into_cache
 
 logger = logging.getLogger(__name__)
 
@@ -66,16 +62,3 @@ class ChartDataCommand(BaseCommand):
 
     def validate(self) -> None:
         self._query_context.raise_for_access()
-
-
-class CreateAsyncChartDataJobCommand:
-    _async_channel_id: str
-
-    def validate(self, request: Request) -> None:
-        jwt_data = async_query_manager.parse_jwt_from_request(request)
-        self._async_channel_id = jwt_data["channel"]
-
-    def run(self, form_data: Dict[str, Any], user_id: Optional[str]) -> Dict[str, Any]:
-        job_metadata = async_query_manager.init_job(self._async_channel_id, user_id)
-        load_chart_data_into_cache.delay(job_metadata, form_data)
-        return job_metadata
