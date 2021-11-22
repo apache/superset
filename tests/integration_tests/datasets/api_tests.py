@@ -1435,7 +1435,7 @@ class TestDatasetApi(SupersetTestCase):
         self.login(username="admin")
         rv = self.get_assert_metric(uri, "export")
 
-        assert rv.status_code == 401
+        assert rv.status_code == 404
 
     @patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
