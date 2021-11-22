@@ -142,6 +142,7 @@ Join our growing community!
 - [Symmetrics](https://www.symmetrics.fyi)
 
 ### Others
+ - [Dropbox](https://www.dropbox.com/) [@bkyryliuk]
  - [Grassroot](https://www.grassrootinstitute.org/)
  - [komoot](https://www.komoot.com/) [@christophlingg]
  - [Let's Roam](https://www.letsroam.com/)
