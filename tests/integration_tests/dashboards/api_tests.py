@@ -395,7 +395,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.login(username="gamma")
         uri = f"api/v1/dashboard/{dashboard.id}"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 403)
+        assert rv.status_code == 403
         # rollback changes
         db.session.delete(dashboard)
         db.session.commit()
