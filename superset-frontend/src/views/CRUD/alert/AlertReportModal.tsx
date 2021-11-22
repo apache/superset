@@ -1052,8 +1052,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             : isEditMode
             ? t('Edit Alert')
             : isReport
-            ? 'Add Report'
-            : 'Add Alert'}
+            ? t('Add Report')
+            : t('Add Alert')}
         </h4>
       }
     >
