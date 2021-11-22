@@ -57,11 +57,11 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
     SAVED_QUERIES: 'empty-queries.svg',
   };
   const mine = (
-    <span>{`No ${
-      tableName === 'SAVED_QUERIES'
-        ? t('saved queries')
-        : t(`${tableName.toLowerCase()}`)
-    } yet`}</span>
+    <span>
+      {tableName === 'SAVED_QUERIES'
+        ? t('No saved queries yet')
+        : t('No %(tableName)s yet', { tableName: tableName.toLowerCase() })}
+    </span>
   );
   const recent = (
     <span className="no-recents">
@@ -77,7 +77,9 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
           );
         }
         if (tab === 'Examples') {
-          return t(`Example ${tableName.toLowerCase()} will appear here`);
+          return t('Example %(tableName)s will appear here', {
+            tableName: tableName.toLowerCase(),
+          });
         }
         if (tab === 'Edited') {
           return t(
