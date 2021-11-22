@@ -25,7 +25,6 @@ const createProps = () => ({
   toggleFiltersBar: jest.fn(),
 });
 
-
 test('should render the "Filters" heading', () => {
   const mockedProps = createProps();
   render(<Header {...mockedProps} />, { useRedux: true });
