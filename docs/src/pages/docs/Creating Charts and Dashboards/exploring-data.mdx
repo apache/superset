@@ -174,7 +174,7 @@ Once you’re done, publish the chart in your Tutorial Dashboard.
 
 ### Markup
 
-In this section, we will add some text to our dashboard. If you’re there already, you can navigate
+In this section, we will add some text to our dashboard. If you’re not there already, you can navigate
 to the dashboard by selecting Dashboards on the top menu, then Tutorial dashboard from the list of
 dashboards. Got into edit mode by selecting **Edit dashboard**.
 
@@ -239,12 +239,12 @@ annotation to the Tutorial Line Chart we made in a previous section. Specificall
 dates when some flights were cancelled by the UK’s Civil Aviation Authority in response to the
 eruption of the Grímsvötn volcano in Iceland (23-25 May 2011).
 
-First, add an annotation layer by navigating to Manage ‣ Annotation Layers. Add a new annotation
-layer by selecting the green plus sign to add a new record. Enter the name Volcanic Eruptions and
+First, add an annotation layer by navigating to Settings ‣ Manage ‣ Annotation Layers. Add a new annotation
+layer by selecting the blue plus button to add a new record. Enter the name Volcanic Eruptions and
 save. We can use this layer to refer to a number of different annotations.
 
-Next, add an annotation by navigating to Manage ‣ Annotations and then create a new annotation by
-selecting the green plus sign. Then, select the Volcanic Eruptions layer, add a short description
+Next, add an annotation by clicking into the newly created layer and then create a new annotation by
+selecting the blue plus button. Then, select the Volcanic Eruptions layer, add a short description
 Grímsvötn and the eruption dates (23-25 May 2011) before finally saving.
 
 <img src="/images/edit_annotation.png" />
@@ -254,7 +254,7 @@ list. Next, go to the Annotations and Layers section and select Add Annotation L
 dialogue:
 
 - Name the layer as Volcanic Eruptions
-- Change the Annotation Layer Type to Event
+- Change the Annotation Layer Type to Interval
 - Set the Annotation Source as Superset annotation
 - Specify the Annotation Layer as Volcanic Eruptions
 
@@ -293,7 +293,7 @@ Dashboard.
 
 There is quite a lot of variation in the data, which makes it difficult to identify any trend. One
 approach we can take is to show instead a rolling average of the time series. To do this, in the
-**Moving Average** subsection of **Advanced Analytics**, select mean in the **Rolling** box and
+**Rolling Window** subsection of **Advanced Analytics**, select mean in the **Rolling Function** box and
 enter 7 into both Periods and Min Periods. The period is the length of the rolling period expressed
 as a multiple of the Time Grain. In our example, the Time Grain is day, so the rolling period is 7
 days, such that on the 7th October 2011 the value shown would correspond to the first seven days of
