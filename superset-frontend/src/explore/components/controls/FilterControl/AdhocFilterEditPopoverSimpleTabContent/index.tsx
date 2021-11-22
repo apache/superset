@@ -138,7 +138,6 @@ export const useSimpleTabFilterProps = (props: Props) => {
         ('column_name' in option && option.column_name === id) ||
         ('optionName' in option && option.optionName === id),
     );
-
     let subject = '';
     let clause;
     // infer the new clause based on what subject was selected.
@@ -277,6 +276,14 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   const handleSubjectChange = (subject: string) => {
     setComparator(undefined);
     onSubjectChange(subject);
+    const option = props.options.find(
+      option =>
+        ('column_name' in option && option.column_name === subject) ||
+        ('optionName' in option && option.optionName === subject),
+    );
+    if (option && 'business_type' in option) {
+      setSubjectBusinessType(option.business_type);
+    }
   };
 
   let columns = props.options;
@@ -315,7 +322,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     placeholder: t(
       '%s operator(s)',
       (props.operators ?? OPERATORS_OPTIONS).filter(op =>
-        isOperatorRelevant(op, subject),
+        isOperatorRelevantWrapper(op, subject),
       ).length,
     ),
     value: operatorId,
@@ -347,6 +354,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   // needs to be broken up and handled better
   useEffect(() => {
     const testFucntion = debounce((comp: string | string[]) => {
+      const compList: string[] = typeof comp === 'string' ? [comp] : comp;
       const option = props.options.find(
         option =>
           ('column_name' in option &&
@@ -354,18 +362,20 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
           ('optionName' in option &&
             option.optionName === props.adhocFilter.subject),
       );
+      console.log(option);
+      let bsType: string | undefined = '';
       if (option && 'business_type' in option) {
+        console.log('Setting type');
         setSubjectBusinessType(option.business_type);
+        bsType = option.business_type;
       }
-
-      const compList: string[] = typeof comp === 'string' ? [comp] : comp;
-
+      console.log(props.adhocFilter.subject);
       const values = compList
         ? compList.map(result => ({
-            type: subjectBusinessType,
+            type: bsType,
             value: result,
           }))
-        : [{ type: subjectBusinessType, value: '' }];
+        : [{ type: bsType, value: '' }];
 
       const queryParams = rison.encode(values);
       const endpoint = `/api/v1/chart/business_type?q=${queryParams}`;
@@ -377,16 +387,14 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
           setParsedBusniessType(
             valsArray.length > 1 ? valsArray : valsArray[0],
           );
-          console.log(json.result[0].valid_filter_operators);
           setBusninessTypeOperatorList(json.result[0].valid_filter_operators);
         })
         .catch(e => {
           setParsedBusniessType([]);
-          console.log(e);
         });
     }, 600);
     testFucntion(comparator);
-  }, [props.adhocFilter.subject, comparator, busninessTypeOperatorList]);
+  }, [props.adhocFilter.subject, comparator]);
   // TODO:
   // This has way to many responsibilites and needs to be broken on
   const labelText =
@@ -453,7 +461,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
       <Select
         css={theme => ({ marginBottom: theme.gridUnit * 4 })}
         options={(props.operators ?? OPERATORS_OPTIONS)
-          .filter(op => isOperatorRelevant(op, subject))
+          .filter(op => isOperatorRelevantWrapper(op, subject))
           .map(option => ({
             value: option,
             label: OPERATOR_ENUM_TO_OPERATOR_TYPE[option].display,
@@ -463,6 +471,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
       />
       {subjectBusinessType ? (
         <SelectWithLabel
+          css={theme => ({ marginBottom: theme.gridUnit * 4 })}
           data-test="adhoc-filter-simple-value"
           {...comparatorSelectProps}
           disabled
@@ -477,6 +486,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
 
       {MULTI_OPERATORS.has(operatorId) || suggestions.length > 0 ? (
         <SelectWithLabel
+          css={theme => ({ marginBottom: theme.gridUnit * 4 })}
           labelText={labelText}
           options={suggestions.map((suggestion: string) => ({
             value: suggestion,
@@ -486,6 +496,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
         />
       ) : (
         <StyledInput
+          css={theme => ({ marginBottom: theme.gridUnit * 4 })}
           data-test="adhoc-filter-simple-value"
           name="filter-value"
           ref={ref => {
