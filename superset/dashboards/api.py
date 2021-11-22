@@ -39,6 +39,7 @@ from superset.dashboards.commands.bulk_delete import BulkDeleteDashboardCommand
 from superset.dashboards.commands.create import CreateDashboardCommand
 from superset.dashboards.commands.delete import DeleteDashboardCommand
 from superset.dashboards.commands.exceptions import (
+    DashboardAccessDeniedError,
     DashboardBulkDeleteFailedError,
     DashboardCreateFailedError,
     DashboardDeleteFailedError,
@@ -46,7 +47,6 @@ from superset.dashboards.commands.exceptions import (
     DashboardInvalidError,
     DashboardNotFoundError,
     DashboardUpdateFailedError,
-    DashboardAccessDeniedError,
 )
 from superset.dashboards.commands.export import ExportDashboardsCommand
 from superset.dashboards.commands.importers.dispatcher import ImportDashboardsCommand
