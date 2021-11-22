@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# pylint: disable=import-outside-toplevel, unused-argument, unused-import
+# pylint: disable=import-outside-toplevel, unused-argument, unused-import, too-many-locals
 
 import json
 from datetime import datetime, timezone
@@ -166,7 +166,8 @@ def test_create_physical_sqlatable(app_context: None, session: Session) -> None:
     """
     Test shadow write when creating a new ``SqlaTable``.
 
-    This should create new models in ``Dataset``, ``Table``, and ``Column``.
+    When a new physical ``SqlaTable`` is created, new models should also be created for
+    ``Dataset``, ``Table``, and ``Column``.
     """
     from superset.columns.models import Column
     from superset.columns.schemas import ColumnSchema
@@ -231,94 +232,118 @@ def test_create_physical_sqlatable(app_context: None, session: Session) -> None:
     ]
     assert column_schemas == [
         {
-            "name": "ds",
-            "extra_json": "{}",
-            "is_partition": False,
-            "increase_good": True,
-            "units": None,
-            "warning_text": None,
-            "is_aggregation": False,
-            "is_spatial": False,
+            "changed_by": None,
+            "created_by": None,
             "description": None,
-            "is_additive": False,
-            "is_temporal": True,
             "expression": "ds",
+            "extra_json": "{}",
             "id": 1,
+            "increase_good": True,
+            "is_additive": False,
+            "is_aggregation": False,
+            "is_partition": False,
+            "is_physical": True,
+            "is_spatial": False,
+            "is_temporal": True,
+            "name": "ds",
             "type": "TIMESTAMP",
-            "created_by": None,
-            "changed_by": None,
-        },
-        {
-            "name": "user_id",
-            "extra_json": "{}",
-            "is_partition": False,
-            "increase_good": True,
             "units": None,
             "warning_text": None,
-            "is_aggregation": False,
-            "is_spatial": False,
+        },
+        {
+            "changed_by": None,
+            "created_by": None,
             "description": None,
-            "is_additive": False,
-            "is_temporal": False,
             "expression": "user_id",
+            "extra_json": "{}",
             "id": 2,
-            "type": "INTEGER",
-            "created_by": None,
-            "changed_by": None,
-        },
-        {
-            "name": "revenue",
-            "extra_json": "{}",
-            "is_partition": False,
             "increase_good": True,
+            "is_additive": False,
+            "is_aggregation": False,
+            "is_partition": False,
+            "is_physical": True,
+            "is_spatial": False,
+            "is_temporal": False,
+            "name": "user_id",
+            "type": "INTEGER",
             "units": None,
             "warning_text": None,
-            "is_aggregation": False,
-            "is_spatial": False,
+        },
+        {
+            "changed_by": None,
+            "created_by": None,
             "description": None,
-            "is_additive": False,
-            "is_temporal": False,
             "expression": "revenue",
+            "extra_json": "{}",
             "id": 3,
-            "type": "INTEGER",
-            "created_by": None,
-            "changed_by": None,
-        },
-        {
-            "name": "expenses",
-            "extra_json": "{}",
-            "is_partition": False,
             "increase_good": True,
+            "is_additive": False,
+            "is_aggregation": False,
+            "is_partition": False,
+            "is_physical": True,
+            "is_spatial": False,
+            "is_temporal": False,
+            "name": "revenue",
+            "type": "INTEGER",
             "units": None,
             "warning_text": None,
-            "is_aggregation": False,
-            "is_spatial": False,
+        },
+        {
+            "changed_by": None,
+            "created_by": None,
             "description": None,
-            "is_additive": False,
-            "is_temporal": False,
             "expression": "expenses",
-            "id": 4,
-            "type": "INTEGER",
-            "created_by": None,
-            "changed_by": None,
-        },
-        {
-            "name": "profit",
             "extra_json": "{}",
-            "is_partition": False,
+            "id": 4,
             "increase_good": True,
+            "is_additive": False,
+            "is_aggregation": False,
+            "is_partition": False,
+            "is_physical": True,
+            "is_spatial": False,
+            "is_temporal": False,
+            "name": "expenses",
+            "type": "INTEGER",
             "units": None,
             "warning_text": None,
-            "is_aggregation": False,
-            "is_spatial": False,
-            "description": None,
-            "is_additive": False,
-            "is_temporal": False,
-            "expression": "revenue-expenses",
-            "id": 5,
-            "type": "INTEGER",
-            "created_by": None,
+        },
+        {
             "changed_by": None,
+            "created_by": None,
+            "description": None,
+            "expression": "revenue-expenses",
+            "extra_json": "{}",
+            "id": 5,
+            "increase_good": True,
+            "is_additive": False,
+            "is_aggregation": False,
+            "is_partition": False,
+            "is_physical": False,
+            "is_spatial": False,
+            "is_temporal": False,
+            "name": "profit",
+            "type": "INTEGER",
+            "units": None,
+            "warning_text": None,
+        },
+        {
+            "changed_by": None,
+            "created_by": None,
+            "description": None,
+            "expression": "COUNT(*)",
+            "extra_json": "{}",
+            "id": 6,
+            "increase_good": True,
+            "is_additive": False,
+            "is_aggregation": True,
+            "is_partition": False,
+            "is_physical": False,
+            "is_spatial": False,
+            "is_temporal": False,
+            "name": "cnt",
+            "type": "Unknown",
+            "units": None,
+            "warning_text": None,
         },
     ]
 
@@ -354,10 +379,326 @@ def test_create_physical_sqlatable(app_context: None, session: Session) -> None:
             "name": "old_dataset",
             "changed_by": None,
             "created_by": None,
-            "columns": [1, 2, 3, 4, 5],
+            "columns": [1, 2, 3, 4, 5, 6],
             "is_physical": True,
             "tables": [1],
             "extra_json": "{}",
             "expression": "old_dataset",
+        }
+    ]
+
+
+def test_create_virtual_sqlatable(app_context: None, session: Session) -> None:
+    """
+    Test shadow write when creating a new ``SqlaTable``.
+
+    When a new virtual ``SqlaTable`` is created, new models should also be created for
+    ``Dataset`` and ``Column``.
+    """
+    from superset.columns.models import Column
+    from superset.columns.schemas import ColumnSchema
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.datasets.models import Dataset
+    from superset.datasets.schemas import DatasetSchema
+    from superset.models.core import Database
+    from superset.tables.models import Table
+    from superset.tables.schemas import TableSchema
+
+    engine = session.get_bind()
+    Dataset.metadata.create_all(engine)  # pylint: disable=no-member
+
+    # create the ``Table`` that the virtual dataset points to
+    database = Database(database_name="my_database", sqlalchemy_uri="test://")
+    table = Table(
+        name="some_table",
+        schema="my_schema",
+        catalog=None,
+        database=database,
+        columns=[
+            Column(name="ds", is_temporal=True, type="TIMESTAMP"),
+            Column(name="user_id", type="INTEGER"),
+            Column(name="revenue", type="INTEGER"),
+            Column(name="expenses", type="INTEGER"),
+        ],
+    )
+    session.add(table)
+    session.commit()
+
+    # create virtual dataset
+    columns = [
+        TableColumn(column_name="ds", is_dttm=1, type="TIMESTAMP"),
+        TableColumn(column_name="user_id", type="INTEGER"),
+        TableColumn(column_name="revenue", type="INTEGER"),
+        TableColumn(column_name="expenses", type="INTEGER"),
+        TableColumn(
+            column_name="profit", type="INTEGER", expression="revenue-expenses"
+        ),
+    ]
+    metrics = [
+        SqlMetric(metric_name="cnt", expression="COUNT(*)"),
+    ]
+
+    sqla_table = SqlaTable(
+        table_name="old_dataset",
+        columns=columns,
+        metrics=metrics,
+        main_dttm_col="ds",
+        default_endpoint="https://www.youtube.com/watch?v=dQw4w9WgXcQ",  # not used
+        database_id=1,
+        offset=-8,
+        description="This is the description",
+        is_featured=1,
+        cache_timeout=3600,
+        schema="my_schema",
+        sql="""
+SELECT
+  ds,
+  user_id,
+  revenue,
+  expenses,
+  revenue - expenses AS profit
+FROM
+  some_table""",
+        params=json.dumps(
+            {"remote_id": 64, "database_name": "examples", "import_time": 1606677834,}
+        ),
+        perm=None,
+        filter_select_enabled=1,
+        fetch_values_predicate="foo IN (1, 2)",
+        is_sqllab_view=0,  # no longer used?
+        template_params=json.dumps({"answer": "42"}),
+        schema_perm=None,
+        extra=json.dumps({"warning_markdown": "*WARNING*"}),
+    )
+    session.add(sqla_table)
+    session.flush()
+
+    # ignore these keys when comparing results
+    ignored_keys = {"created_on", "changed_on", "uuid"}
+
+    # check that columns were created
+    column_schema = ColumnSchema()
+    column_schemas = [
+        {k: v for k, v in column_schema.dump(column).items() if k not in ignored_keys}
+        for column in session.query(Column).all()
+    ]
+    assert column_schemas == [
+        {
+            "type": "TIMESTAMP",
+            "is_additive": False,
+            "extra_json": "{}",
+            "is_partition": False,
+            "expression": None,
+            "units": None,
+            "warning_text": None,
+            "created_by": None,
+            "increase_good": True,
+            "description": None,
+            "is_spatial": False,
+            "name": "ds",
+            "is_physical": True,
+            "changed_by": None,
+            "is_temporal": True,
+            "id": 1,
+            "is_aggregation": False,
+        },
+        {
+            "type": "INTEGER",
+            "is_additive": False,
+            "extra_json": "{}",
+            "is_partition": False,
+            "expression": None,
+            "units": None,
+            "warning_text": None,
+            "created_by": None,
+            "increase_good": True,
+            "description": None,
+            "is_spatial": False,
+            "name": "user_id",
+            "is_physical": True,
+            "changed_by": None,
+            "is_temporal": False,
+            "id": 2,
+            "is_aggregation": False,
+        },
+        {
+            "type": "INTEGER",
+            "is_additive": False,
+            "extra_json": "{}",
+            "is_partition": False,
+            "expression": None,
+            "units": None,
+            "warning_text": None,
+            "created_by": None,
+            "increase_good": True,
+            "description": None,
+            "is_spatial": False,
+            "name": "revenue",
+            "is_physical": True,
+            "changed_by": None,
+            "is_temporal": False,
+            "id": 3,
+            "is_aggregation": False,
+        },
+        {
+            "type": "INTEGER",
+            "is_additive": False,
+            "extra_json": "{}",
+            "is_partition": False,
+            "expression": None,
+            "units": None,
+            "warning_text": None,
+            "created_by": None,
+            "increase_good": True,
+            "description": None,
+            "is_spatial": False,
+            "name": "expenses",
+            "is_physical": True,
+            "changed_by": None,
+            "is_temporal": False,
+            "id": 4,
+            "is_aggregation": False,
+        },
+        {
+            "type": "TIMESTAMP",
+            "is_additive": False,
+            "extra_json": "{}",
+            "is_partition": False,
+            "expression": "ds",
+            "units": None,
+            "warning_text": None,
+            "created_by": None,
+            "increase_good": True,
+            "description": None,
+            "is_spatial": False,
+            "name": "ds",
+            "is_physical": False,
+            "changed_by": None,
+            "is_temporal": True,
+            "id": 5,
+            "is_aggregation": False,
+        },
+        {
+            "type": "INTEGER",
+            "is_additive": False,
+            "extra_json": "{}",
+            "is_partition": False,
+            "expression": "user_id",
+            "units": None,
+            "warning_text": None,
+            "created_by": None,
+            "increase_good": True,
+            "description": None,
+            "is_spatial": False,
+            "name": "user_id",
+            "is_physical": False,
+            "changed_by": None,
+            "is_temporal": False,
+            "id": 6,
+            "is_aggregation": False,
+        },
+        {
+            "type": "INTEGER",
+            "is_additive": False,
+            "extra_json": "{}",
+            "is_partition": False,
+            "expression": "revenue",
+            "units": None,
+            "warning_text": None,
+            "created_by": None,
+            "increase_good": True,
+            "description": None,
+            "is_spatial": False,
+            "name": "revenue",
+            "is_physical": False,
+            "changed_by": None,
+            "is_temporal": False,
+            "id": 7,
+            "is_aggregation": False,
+        },
+        {
+            "type": "INTEGER",
+            "is_additive": False,
+            "extra_json": "{}",
+            "is_partition": False,
+            "expression": "expenses",
+            "units": None,
+            "warning_text": None,
+            "created_by": None,
+            "increase_good": True,
+            "description": None,
+            "is_spatial": False,
+            "name": "expenses",
+            "is_physical": False,
+            "changed_by": None,
+            "is_temporal": False,
+            "id": 8,
+            "is_aggregation": False,
+        },
+        {
+            "type": "INTEGER",
+            "is_additive": False,
+            "extra_json": "{}",
+            "is_partition": False,
+            "expression": "revenue-expenses",
+            "units": None,
+            "warning_text": None,
+            "created_by": None,
+            "increase_good": True,
+            "description": None,
+            "is_spatial": False,
+            "name": "profit",
+            "is_physical": False,
+            "changed_by": None,
+            "is_temporal": False,
+            "id": 9,
+            "is_aggregation": False,
+        },
+        {
+            "type": "Unknown",
+            "is_additive": False,
+            "extra_json": "{}",
+            "is_partition": False,
+            "expression": "COUNT(*)",
+            "units": None,
+            "warning_text": None,
+            "created_by": None,
+            "increase_good": True,
+            "description": None,
+            "is_spatial": False,
+            "name": "cnt",
+            "is_physical": False,
+            "changed_by": None,
+            "is_temporal": False,
+            "id": 10,
+            "is_aggregation": True,
+        },
+    ]
+
+    # check that dataset was created, and has a reference to the table
+    dataset_schema = DatasetSchema()
+    datasets = [
+        {k: v for k, v in dataset_schema.dump(dataset).items() if k not in ignored_keys}
+        for dataset in session.query(Dataset).all()
+    ]
+    assert datasets == [
+        {
+            "id": 1,
+            "name": "old_dataset",
+            "changed_by": None,
+            "created_by": None,
+            "columns": [5, 6, 7, 8, 9, 10],
+            "is_physical": False,
+            "tables": [1],
+            "extra_json": "{}",
+            "expression": """
+SELECT
+  ds,
+  user_id,
+  revenue,
+  expenses,
+  revenue - expenses AS profit
+FROM
+  some_table""",
         }
     ]

@@ -108,6 +108,13 @@ logger = logging.getLogger(__name__)
 
 VIRTUAL_TABLE_ALIAS = "virtual_table"
 
+# a non-exhaustive set of additive metrics
+ADDITIVE_METRIC_TYPES = {
+    "count",
+    "sum",
+    "doubleSum",
+}
+
 
 class SqlaQuery(NamedTuple):
     applied_template_filters: List[str]
@@ -1903,22 +1910,42 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     description=column.description,
                     is_temporal=column.is_dttm,
                     is_aggregation=False,
+                    is_physical=column.expression is None,
                     extra_json=json.dumps(extra_json) if extra_json else None,
                 ),
             )
 
         # create metrics
-        for column in target.metrics:
-            # XXX
-            pass
+        for metric in target.metrics:
+            extra_json = json.loads(metric.extra or "{}")
+            for attr in {"verbose_name", "metric_type", "d3format"}:
+                value = getattr(metric, attr)
+                if value:
+                    extra_json[attr] = value
+
+            is_additive = (
+                metric.metric_type
+                and metric.metric_type.lower() in ADDITIVE_METRIC_TYPES
+            )
+
+            columns.append(
+                NewColumn(
+                    name=metric.metric_name,
+                    type="Unknown",  # figuring this out would require a type inferrer
+                    expression=metric.expression,
+                    warning_text=metric.warning_text,
+                    description=metric.description,
+                    is_aggregation=True,
+                    is_additive=is_additive,
+                    is_physical=False,
+                    extra_json=json.dumps(extra_json) if extra_json else None,
+                ),
+            )
 
         # physical dataset
         tables = []
         if target.sql is None:
-            # XXX: not really, expression could be quoted
-            physical_columns = [
-                column for column in columns if column.name == column.expression
-            ]
+            physical_columns = [column for column in columns if column.is_physical]
 
             # create table
             table = NewTable(  # pylint: disable=redefined-outer-name
@@ -1932,8 +1959,25 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         # virtual dataset
         else:
-            # XXX
-            raise NotImplementedError()
+            # mark all columns as virtual (not physical)
+            for column in columns:
+                column.is_physical = False
+
+            # find referenced tables
+            parsed = ParsedQuery(target.sql)
+            referenced_tables = parsed.tables
+
+            # predicates for finding the referenced tables
+            predicate = or_(
+                *[
+                    and_(
+                        NewTable.schema == (table.schema or target.schema),
+                        NewTable.name == table.table,
+                    )
+                    for table in referenced_tables
+                ]
+            )
+            tables = session.query(NewTable).filter(predicate).all()
 
         # create the new dataset
         dataset = NewDataset(

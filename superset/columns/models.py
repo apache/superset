@@ -63,6 +63,9 @@ class Column(
     # otherwise it's a computed column.
     expression = sa.Column(sa.Text)
 
+    # Does the expression point directly to a physical column?
+    is_physical = sa.Column(sa.Boolean, default=True)
+
     # Additional metadata describing the column.
     description = sa.Column(sa.Text)
     warning_text = sa.Column(sa.Text)
