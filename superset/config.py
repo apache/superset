@@ -145,9 +145,9 @@ SUPERSET_WEBSERVER_PORT = 8088
 # sqlalchemy.exc.TimeoutError: QueuePool limit of size 5
 # overflow 10 reached, connection timed out, timeout 30
 # Default limit (poll_size: 5, overflow: 10, timeout: 30sec)
-SQLALCHEMY_POOL_SIZE = 30
-SQLALCHEMY_MAX_OVERFLOW = 20
-SQLALCHEMY_POOL_TIMEOUT = 180
+# SQLALCHEMY_POOL_SIZE = 30
+# SQLALCHEMY_MAX_OVERFLOW = 20
+# SQLALCHEMY_POOL_TIMEOUT = 180
 
 # This is an important setting, and should be lower than your
 # [load balancer / proxy / envoy / kong / ...] timeout settings.
