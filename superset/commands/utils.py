@@ -14,7 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import List, Optional
+from __future__ import annotations
+
+from typing import List, Optional, TYPE_CHECKING
 
 from flask_appbuilder.security.sqla.models import Role, User
 
@@ -23,10 +25,12 @@ from superset.commands.exceptions import (
     OwnersNotFoundValidationError,
     RolesNotFoundValidationError,
 )
-from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.extensions import db, security_manager
+
+if TYPE_CHECKING:
+    from superset.connectors.base.models import BaseDatasource
 
 
 def populate_owners(
