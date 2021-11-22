@@ -221,6 +221,7 @@ class ChartDataRestApi(ChartRestApi):
         if json_body is None:
             return self.response_400(message=_("Request is not JSON"))
 
+        form_data = json_body.pop("form_data", None)
         try:
             query_context = self._create_query_context_from_form(json_body)
             command = ChartDataCommand(query_context)
@@ -242,7 +243,7 @@ class ChartDataRestApi(ChartRestApi):
         ):
             return self._run_async(json_body, command)
 
-        return self._get_data_response(command)
+        return self._get_data_response(command, form_data=form_data)
 
     @expose("/data/<cache_key>", methods=["GET"])
     @protect()

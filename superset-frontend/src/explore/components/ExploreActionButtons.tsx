@@ -118,7 +118,7 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
   const doExportCSV = canDownloadCSV
     ? exportChart.bind(this, {
         formData: latestQueryFormData,
-        resultType: 'full',
+        resultType: 'post_processed',
         resultFormat: 'csv',
       })
     : null;
