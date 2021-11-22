@@ -46,6 +46,7 @@ from superset.dashboards.commands.exceptions import (
     DashboardInvalidError,
     DashboardNotFoundError,
     DashboardUpdateFailedError,
+    DashboardAccessDeniedError,
 )
 from superset.dashboards.commands.export import ExportDashboardsCommand
 from superset.dashboards.commands.importers.dispatcher import ImportDashboardsCommand
@@ -267,6 +268,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
         """
@@ -275,6 +278,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             dash = DashboardDAO.get_by_id_or_slug(id_or_slug)
             result = self.dashboard_get_response_schema.dump(dash)
             return self.response(200, result=result)
+        except DashboardAccessDeniedError:
+            return self.response_403()
         except DashboardNotFoundError:
             return self.response_404()
 
@@ -327,6 +332,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
         """
@@ -336,6 +343,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 self.dashboard_dataset_schema.dump(dataset) for dataset in datasets
             ]
             return self.response(200, result=result)
+        except DashboardAccessDeniedError:
+            return self.response_403()
         except DashboardNotFoundError:
             return self.response_404()
 
@@ -386,6 +395,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
         """
@@ -401,6 +412,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                     form_data.pop("label_colors", None)
 
             return self.response(200, result=result)
+        except DashboardAccessDeniedError:
+            return self.response_403()
         except DashboardNotFoundError:
             return self.response_404()
 
