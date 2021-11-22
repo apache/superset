@@ -1952,7 +1952,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 name=target.table_name,
                 schema=target.schema,
                 catalog=None,  # currently not supported
-                database=target.database,
+                database_id=target.database_id,
                 columns=physical_columns,
             )
             tables.append(table)
