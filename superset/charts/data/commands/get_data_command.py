@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
 from typing import Any, Dict
 
@@ -30,9 +32,11 @@ logger = logging.getLogger(__name__)
 
 class ChartDataCommand(BaseCommand):
     _query_context: QueryContext
+    _validator: QueryContextValidator
 
-    def __init__(self, query_context: QueryContext):
+    def __init__(self, query_context: QueryContext, _validator: QueryContextValidator):
         self._query_context = query_context
+        self._validator = _validator
 
     def run(self, **kwargs: Any) -> Dict[str, Any]:
         # caching is handled in query_context.get_df_payload
@@ -61,4 +65,9 @@ class ChartDataCommand(BaseCommand):
         return return_value
 
     def validate(self) -> None:
-        self._query_context.raise_for_access()
+        self._validator.validate(self._query_context)
+
+
+class QueryContextValidator:  # pylint: disable=too-few-public-methods
+    def validate(self, query_context: QueryContext) -> None:
+        pass

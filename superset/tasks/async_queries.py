@@ -36,6 +36,7 @@ from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.views.utils import get_datasource_info, get_viz
 
 if TYPE_CHECKING:
+    from superset.charts.data.commands.get_data_command import ChartDataCommand
     from superset.common.query_context import QueryContext
 
 logger = logging.getLogger(__name__)
@@ -65,18 +66,27 @@ def _create_query_context_from_form(form_data: Dict[str, Any]) -> QueryContext:
         raise error
 
 
+def _create_chart_data_command(query_context: QueryContext) -> ChartDataCommand:
+    # pylint: disable=import-outside-toplevel
+    from superset.charts.data.commands.get_data_command import ChartDataCommand
+    from superset.charts.data.query_context_validator import QueryContextValidatorImpl
+    from superset.datasets.dao import DatasetDAO
+
+    return ChartDataCommand(
+        query_context,
+        QueryContextValidatorImpl(DatasetDAO(), security_manager),  # type: ignore
+    )
+
+
 @celery_app.task(name="load_chart_data_into_cache", soft_time_limit=query_timeout)
 def load_chart_data_into_cache(
     job_metadata: Dict[str, Any], form_data: Dict[str, Any],
 ) -> None:
-    # pylint: disable=import-outside-toplevel
-    from superset.charts.data.commands.get_data_command import ChartDataCommand
-
     try:
         ensure_user_is_set(job_metadata.get("user_id"))
         set_form_data(form_data)
         query_context = _create_query_context_from_form(form_data)
-        command = ChartDataCommand(query_context)
+        command = _create_chart_data_command(query_context)
         result = command.run(cache=True)
         cache_key = result["cache_key"]
         result_url = f"/api/v1/chart/data/{cache_key}"

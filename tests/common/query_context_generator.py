@@ -16,12 +16,12 @@
 # under the License.
 import copy
 import dataclasses
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from superset.common.chart_data import ChartDataResultType
 from superset.utils.core import AnnotationType, DTTM_ALIAS, TimeRangeEndpoint
 
-query_birth_names = {
+DEFAULT_VALUES = {
     "extras": {
         "where": "",
         "time_range_endpoints": (
@@ -50,7 +50,7 @@ query_birth_names = {
 }
 
 QUERY_OBJECTS: Dict[str, Dict[str, object]] = {
-    "birth_names": query_birth_names,
+    "birth_names": DEFAULT_VALUES,
     # `:suffix` are overrides only
     "birth_names:include_time": {"groupby": [DTTM_ALIAS, "name"],},
     "birth_names:orderby_dup_alias": {
@@ -199,16 +199,16 @@ def get_query_object(
     query_name: str, add_postprocessing_operations: bool, add_time_offsets: bool,
 ) -> Dict[str, Any]:
     if query_name not in QUERY_OBJECTS:
-        raise Exception(f"QueryObject fixture not defined for datasource: {query_name}")
-    obj = QUERY_OBJECTS[query_name]
-
-    # apply overrides
-    if ":" in query_name:
-        parent_query_name = query_name.split(":")[0]
-        obj = {
-            **QUERY_OBJECTS[parent_query_name],
-            **obj,
-        }
+        obj = QUERY_OBJECTS[query_name]
+        # apply overrides
+        if ":" in query_name:
+            parent_query_name = query_name.split(":")[0]
+            obj = {
+                **QUERY_OBJECTS[parent_query_name],
+                **obj,
+            }
+    else:
+        obj = DEFAULT_VALUES
 
     query_object = copy.deepcopy(obj)
     if add_postprocessing_operations:
@@ -234,6 +234,60 @@ class Table:
     name: str
 
 
+DEFAULT_VALUES = {
+    "extras": {
+        "where": "",
+        "time_range_endpoints": (
+            TimeRangeEndpoint.INCLUSIVE,
+            TimeRangeEndpoint.EXCLUSIVE,
+        ),
+        "time_grain_sqla": "P1D",
+    },
+    "columns": ["name"],
+    "metrics": [{"label": "sum__num"}],
+    "orderby": [("sum__num", False)],
+    "row_limit": 100,
+    "granularity": "ds",
+    "time_range": "100 years ago : now",
+    "timeseries_limit": 0,
+    "timeseries_limit_metric": None,
+    "order_desc": True,
+    "filters": [
+        {"col": "gender", "op": "==", "val": "boy"},
+        {"col": "num", "op": "IS NOT NULL"},
+        {"col": "name", "op": "NOT IN", "val": ["<NULL>", '"abc"']},
+    ],
+    "having": "",
+    "having_filters": [],
+    "where": "",
+}
+
+
+def dict_merge(default_values, new_values, do_copy=True) -> Dict[Any, Any]:
+    """
+    run me with nosetests --with-doctest file.py
+
+    >>> a = {'a': 'a', 'a_b': 'a', 'dict': {'a': 'a'}}
+    >>> b = {'a_b': 'b', 'dict': {'b': 'b'}, 'b': 'b'}
+    >>> merge(b, a) == {'a': 'a', 'a_b': 'b', 'dict': {'a': 'a', 'b': 'b'}, 'b': 'b'}
+    True
+    """
+
+    merged = copy.deepcopy(default_values) if do_copy else default_values
+
+    for key, default_value in merged.items():
+        if isinstance(default_value, dict):
+            merged[key] = dict_merge(default_value, new_values.get(key, {}), False)
+        else:
+            merged[key] = copy.deepcopy(new_values.get(key)) or default_value
+
+    for key, value in new_values.items():
+        if key not in default_values:
+            merged[key] = value
+
+    return merged
+
+
 class QueryContextGenerator:
     def generate(
         self,
@@ -242,21 +296,83 @@ class QueryContextGenerator:
         add_time_offsets: bool = False,
         table_id=1,
         table_type="table",
-        form_data: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        form_data = form_data or {}
         table_name = query_name.split(":")[0]
         table = self.get_table(table_name, table_id, table_type)
         return {
             "datasource": {"id": table.id, "type": table.type},
             "queries": [
-                get_query_object(
+                self.generate_query_object(
                     query_name, add_postprocessing_operations, add_time_offsets,
                 )
             ],
             "result_type": ChartDataResultType.FULL,
-            "form_data": form_data,
         }
 
-    def get_table(self, name, id_, type_):
-        return Table(id_, type_, name)
+    @staticmethod
+    def generate_query_object(
+        query_name: str,
+        add_postprocessing_operations: bool = False,
+        add_time_offsets: bool = False,
+        **kwargs: Any,
+    ) -> Dict[Any, Any]:
+        if query_name in QUERY_OBJECTS:
+            obj = QUERY_OBJECTS[query_name]
+
+            # apply overrides
+            if ":" in query_name:
+                parent_query_name = query_name.split(":")[0]
+                obj = {
+                    **QUERY_OBJECTS[parent_query_name],
+                    **obj,
+                }
+        else:
+            obj = DEFAULT_VALUES
+
+        query_object = copy.deepcopy(obj)
+        if add_postprocessing_operations:
+            query_object["post_processing"] = _get_postprocessing_operation(query_name)
+        if add_time_offsets:
+            query_object["time_offsets"] = ["1 year ago"]
+
+        if kwargs:
+            dict_merge(query_object, kwargs)
+
+        return query_object
+
+    @staticmethod
+    def generate_sql_expression_metric(
+        column_name="name", table_name="superset.ab_permission", **kwargs: Any
+    ) -> Dict[str, Any]:
+        return dict_merge(
+            {
+                "aggregate": "COUNT",
+                "column": {
+                    "certification_details": None,
+                    "certified_by": None,
+                    "column_name": column_name,
+                    "description": None,
+                    "expression": None,
+                    "filterable": True,
+                    "groupby": True,
+                    "id": 572,
+                    "is_certified": False,
+                    "is_dttm": False,
+                    "python_date_format": None,
+                    "type": "TEXT",
+                    "type_generic": 1,
+                    "verbose_name": None,
+                    "warning_markdown": None,
+                },
+                "expressionType": "SQL",
+                "hasCustomLabel": False,
+                "isNew": False,
+                "label": "COUNT({})".format(column_name),
+                "optionName": "metric_bvvzfjgdg7_eawlsdp84tq",
+                "sqlExpression": "(SELECT count(name) FROM {})".format(table_name),
+            },
+            kwargs,
+        )
+
+    def get_table(self, name, id, type):
+        return Table(id, type, name)

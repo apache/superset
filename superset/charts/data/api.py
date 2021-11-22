@@ -37,10 +37,12 @@ from superset.charts.data.commands.create_async_job_command import (
 )
 from superset.charts.data.commands.get_data_command import ChartDataCommand
 from superset.charts.data.query_context_cache_loader import QueryContextCacheLoader
+from superset.charts.data.query_context_validator import QueryContextValidatorImpl
 from superset.charts.post_processing import apply_post_process
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.connectors.base.models import BaseDatasource
+from superset.datasets.dao import DatasetDAO
 from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
 from superset.utils.async_query_manager import AsyncQueryTokenException
@@ -135,7 +137,7 @@ class ChartDataRestApi(ChartRestApi):
 
         try:
             query_context = self._create_query_context_from_form(json_body)
-            command = ChartDataCommand(query_context)
+            command = self.create_chart_data_command(query_context)
             command.validate()
         except QueryObjectValidationError as error:
             return self.response_400(message=error.message)
@@ -223,7 +225,7 @@ class ChartDataRestApi(ChartRestApi):
 
         try:
             query_context = self._create_query_context_from_form(json_body)
-            command = ChartDataCommand(query_context)
+            command = self.create_chart_data_command(query_context)
             command.validate()
         except QueryObjectValidationError as error:
             return self.response_400(message=error.message)
@@ -244,6 +246,14 @@ class ChartDataRestApi(ChartRestApi):
 
         form_data = json_body.get("form_data")
         return self._get_data_response(command, form_data=form_data)
+
+    def create_chart_data_command(  # pylint: disable=no-self-use
+        self, query_context: QueryContext
+    ) -> ChartDataCommand:
+        return ChartDataCommand(
+            query_context,
+            QueryContextValidatorImpl(DatasetDAO(), security_manager),  # type: ignore
+        )
 
     @expose("/data/<cache_key>", methods=["GET"])
     @protect()
@@ -288,7 +298,7 @@ class ChartDataRestApi(ChartRestApi):
         try:
             cached_data = self._load_query_context_form_from_cache(cache_key)
             query_context = self._create_query_context_from_form(cached_data)
-            command = ChartDataCommand(query_context)
+            command = self.create_chart_data_command(query_context)
             command.validate()
         except ChartDataCacheLoadError:
             return self.response_404()

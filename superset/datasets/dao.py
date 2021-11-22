@@ -334,6 +334,14 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
                 db.session.rollback()
             raise ex
 
+    @classmethod
+    def get_by_sql_database_components(
+        cls, database: Database, table_name: str, schema_name: Optional[str] = None
+    ) -> List[SqlaTable]:
+        return cls.model_cls.query_datasources_by_name(
+            db.session, database, table_name, schema_name
+        )
+
 
 class DatasetColumnDAO(BaseDAO):
     model_cls = TableColumn

@@ -14,8 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=too-many-lines
+# pylint: disable=too-many-lines, invalid-name
 """A set of constants and methods to manage permissions and security"""
+from __future__ import annotations
+
 import logging
 import re
 from collections import defaultdict
@@ -974,14 +976,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 )
 
     def raise_for_access(
-        # pylint: disable=too-many-arguments,too-many-locals
+        # pylint: disable=too-many-arguments
         self,
-        database: Optional["Database"] = None,
-        datasource: Optional["BaseDatasource"] = None,
-        query: Optional["Query"] = None,
-        query_context: Optional["QueryContext"] = None,
-        table: Optional["Table"] = None,
-        viz: Optional["BaseViz"] = None,
+        database: Optional[Database] = None,
+        datasource: Optional[BaseDatasource] = None,
+        query: Optional[Query] = None,
+        query_context: Optional[QueryContext] = None,
+        table: Optional[Table] = None,
+        viz: Optional[BaseViz] = None,
     ) -> None:
         """
         Raise an exception if the user cannot access the resource.
@@ -997,7 +999,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         # pylint: disable=import-outside-toplevel
         from superset.connectors.sqla.models import SqlaTable
-        from superset.extensions import feature_flag_manager
         from superset.sql_parse import Table
 
         if database and table or query:
@@ -1047,17 +1048,23 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
             assert datasource
 
-            if not (
-                self.can_access_schema(datasource)
-                or self.can_access("datasource_access", datasource.perm or "")
-                or (
-                    feature_flag_manager.is_feature_enabled("DASHBOARD_RBAC")
-                    and self.can_access_based_on_dashboard(datasource)
-                )
-            ):
-                raise SupersetSecurityException(
-                    self.get_datasource_access_error_object(datasource)
-                )
+            self.raise_when_there_is_no_access_to(datasource)
+
+    def raise_when_there_is_no_access_to(self, datasource: BaseDatasource) -> None:
+        # pylint: disable=import-outside-toplevel
+        from superset.extensions import feature_flag_manager
+
+        if not (
+            self.can_access_schema(datasource)
+            or self.can_access("datasource_access", datasource.perm or "")
+            or (
+                feature_flag_manager.is_feature_enabled("DASHBOARD_RBAC")
+                and self.can_access_based_on_dashboard(datasource)
+            )
+        ):
+            raise SupersetSecurityException(
+                self.get_datasource_access_error_object(datasource)
+            )
 
     def get_user_by_username(
         self, username: str, session: Session = None
