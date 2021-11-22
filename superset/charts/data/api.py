@@ -32,10 +32,10 @@ from superset.charts.commands.exceptions import (
     ChartDataCacheLoadError,
     ChartDataQueryFailedError,
 )
-from superset.charts.data.commands import (
-    ChartDataCommand,
+from superset.charts.data.commands.create_async_job_command import (
     CreateAsyncChartDataJobCommand,
 )
+from superset.charts.data.commands.get_data_command import ChartDataCommand
 from superset.charts.data.query_context_cache_loader import QueryContextCacheLoader
 from superset.charts.post_processing import apply_post_process
 from superset.charts.schemas import ChartDataQueryContextSchema
