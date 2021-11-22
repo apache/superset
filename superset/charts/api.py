@@ -492,7 +492,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
         # post-processing of data, eg, the pivot table.
         if (
             result_type == ChartDataResultType.POST_PROCESSED
-            and result_format == ChartDataResultFormat.CSV
         ):
             result = apply_post_process(result, form_data)
 

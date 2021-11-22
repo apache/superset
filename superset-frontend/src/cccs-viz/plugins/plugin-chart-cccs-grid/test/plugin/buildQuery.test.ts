@@ -1,10 +1,12 @@
 import buildQuery from '../../src/plugin/buildQuery';
+import { CccsGridQueryFormData } from '../../src/types';
 
 describe('CccsGrid buildQuery', () => {
-  const formData = {
+  const formData: CccsGridQueryFormData = {
     datasource: '5__table',
     granularity_sqla: 'ds',
     series: 'foo',
+    emitFilter: false,
     viz_type: 'my_chart',
   };
 

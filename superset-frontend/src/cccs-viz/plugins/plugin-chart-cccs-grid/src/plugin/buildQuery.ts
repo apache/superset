@@ -16,8 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { buildQueryContext, PostProcessingRule, QueryFormData, QueryMode, QueryObject } from '@superset-ui/core';
+import {
+  buildQueryContext,
+  PostProcessingRule,
+  QueryMode,
+  QueryObject
+} from '@superset-ui/core';
 import { BuildQuery } from '@superset-ui/core/lib/chart/registries/ChartBuildQueryRegistrySingleton';
+import {
+  CccsGridQueryFormData,
+  DEFAULT_FORM_DATA,
+} from '../types';
 
 /**
  * The buildQuery function is used to create an instance of QueryContext that's
@@ -33,7 +42,7 @@ import { BuildQuery } from '@superset-ui/core/lib/chart/registries/ChartBuildQue
  * it is possible to define post processing operations in the QueryObject, or multiple queries
  * if a viz needs multiple different result sets.
  */
-export function getQueryMode(formData: QueryFormData) {
+export function getQueryMode(formData: CccsGridQueryFormData) {
   const { query_mode: mode } = formData;
   if (mode === QueryMode.aggregate || mode === QueryMode.raw) {
     return mode;
@@ -43,13 +52,17 @@ export function getQueryMode(formData: QueryFormData) {
   return hasRawColumns ? QueryMode.raw : QueryMode.aggregate;
 }
 
-const buildQuery: BuildQuery<QueryFormData> = (formData: QueryFormData, options) => {
+const buildQuery: BuildQuery<CccsGridQueryFormData> = (formData: CccsGridQueryFormData, options) => {
   const queryMode = getQueryMode(formData);
-  let formDataCopy = formData;
+  let formDataCopy = {
+    ...formData,
+    ...DEFAULT_FORM_DATA,
+  };
   // never include time in raw records mode
   if (queryMode === QueryMode.raw) {
     formDataCopy = {
       ...formData,
+      ...DEFAULT_FORM_DATA,
       include_time: false,
     };
   }
@@ -114,7 +127,7 @@ const buildQuery: BuildQuery<QueryFormData> = (formData: QueryFormData, options)
 
 // Use this closure to cache changing of external filters, if we have server pagination we need reset page to 0, after
 // external filter changed
-export const cachedBuildQuery = (): BuildQuery<QueryFormData> => {
+export const cachedBuildQuery = (): BuildQuery<CccsGridQueryFormData> => {
   let cachedChanges: any = {};
   const setCachedChanges = (newChanges: any) => {
     cachedChanges = { ...cachedChanges, ...newChanges };

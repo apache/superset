@@ -643,6 +643,9 @@ QUERY_LOGGER = None
 # Set this API key to enable Mapbox visualizations
 MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
 
+# Set this license key to validate Ag Grid visualizations
+AG_GRID_LICENSE_KEY = os.environ.get("AG_GRID_LICENSE_KEY", "")
+
 # Maximum number of rows returned from a database
 # in async mode, no more than SQL_MAX_ROW will be returned and stored
 # in the results backend. This also becomes the limit when exporting CSVs

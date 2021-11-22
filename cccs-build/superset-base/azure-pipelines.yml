@@ -25,12 +25,25 @@ steps:
       workingFile: $(npmrc)
     displayName: Authenticate to npm feed
   - task: Docker@2
-    displayName: Build and push an image to container registry
+    displayName: Login to $(containerRegistry)
     inputs:
-      command: buildAndPush
+      command: login
       containerRegistry: $(containerRegistry)
+  - task: Docker@2
+    displayName: Build image
+    inputs:
+      command: 'build'
       repository: $(imageRepository)
+      arguments: --secret id=npmrc,src=$(npmrc) --progress=plain
       dockerfile: $(dockerfile)
+      tags: |
+        $(BRANCH_NAME)
+        $(BRANCH_NAME)_$(buildTimestamp)_b$(Build.BuildId)
+  - task: Docker@2
+    displayName: Push image
+    inputs:
+      command: 'push'
+      repository: $(imageRepository)
       tags: |
         $(BRANCH_NAME)
         $(BRANCH_NAME)_$(buildTimestamp)_b$(Build.BuildId)

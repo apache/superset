@@ -1,8 +1,8 @@
-import { ChartProps } from '@superset-ui/core';
+import { CccsGridQueryFormData, CccsGridChartProps } from '../../src/types'
 import transformProps from '../../src/plugin/transformProps';
 
 describe('CccsGrid tranformProps', () => {
-  const formData = {
+  const formData: CccsGridQueryFormData = {
     colorScheme: 'bnbColors',
     datasource: '3__table',
     granularity_sqla: 'ds',
@@ -11,8 +11,10 @@ describe('CccsGrid tranformProps', () => {
     boldText: true,
     headerFontSize: 'xs',
     headerText: 'my text',
+    emitFilter: false,
+    viz_type: 'my_chart',
   };
-  const chartProps = new ChartProps({
+  const chartProps = new CccsGridChartProps({
     formData,
     width: 800,
     height: 600,

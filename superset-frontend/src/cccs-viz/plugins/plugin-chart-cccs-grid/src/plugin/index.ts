@@ -21,9 +21,13 @@ import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from '../images/thumbnail.png';
+import { CccsGridQueryFormData, CccsGridChartProps } from '../types';
 import example1 from '../images/Table1.png';
 
-export default class CccsGridChartPlugin extends ChartPlugin {
+export default class CccsGridChartPlugin extends ChartPlugin<
+  CccsGridQueryFormData,
+  CccsGridChartProps
+> {
   /**
    * The constructor is used to pass relevant metadata and callbacks that get
    * registered in respective registries that are used throughout the library
@@ -56,7 +60,7 @@ export default class CccsGridChartPlugin extends ChartPlugin {
       buildQuery,
       controlPanel,
       loadChart: () => import('../CccsGrid'),
-      metadata,
+      metadata: metadata,
       transformProps,
     });
   }

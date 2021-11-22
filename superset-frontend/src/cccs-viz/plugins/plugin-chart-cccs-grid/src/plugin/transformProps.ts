@@ -16,9 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, Column, QueryMode, t, TimeseriesDataRecord } from '@superset-ui/core';
+import {
+  Column,
+  QueryMode,
+  t,
+  TimeseriesDataRecord
+} from '@superset-ui/core';
+import {
+  CccsGridChartProps,
+  CccsGridQueryFormData,
+  DEFAULT_FORM_DATA,
+} from '../types';
 
-export default function transformProps(chartProps: ChartProps) {
+export default function transformProps(chartProps: CccsGridChartProps) {
   /**
    * This function is called after a successful response has been
    * received from the chart data endpoint, and is used to transform
@@ -57,10 +67,14 @@ export default function transformProps(chartProps: ChartProps) {
     queriesData,
   } = chartProps;
   const {
-    table_filter: tableFilter,
-    query_mode: queryMode,
-  } = formData;
+    boldText,
+    headerFontSize,
+    headerText,
+    emitFilter,
+    query_mode,
+  }: CccsGridQueryFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const data = queriesData[0].data as TimeseriesDataRecord[];
+  const agGridLicenseKey = queriesData[0].agGridLicenseKey as String;
 
   const { setDataMask = () => { } } = hooks;
 
@@ -120,7 +134,7 @@ export default function transformProps(chartProps: ChartProps) {
 
   var columnDefs: Column[] = [];
 
-  if (queryMode === QueryMode.raw) {
+  if (query_mode === QueryMode.raw) {
     columnDefs = formData.columns.map((column: any) => {
       const columnType = columnTypeMap[column];
       const columnHeader = columnVerboseNameMap[column] ? columnVerboseNameMap[column] : column;
@@ -176,6 +190,10 @@ export default function transformProps(chartProps: ChartProps) {
     columnDefs: columnDefs,
     rowData: data,
     // and now your control data, manipulated as needed, and passed through as props!
-    emitFilter: tableFilter,
+    boldText,
+    headerFontSize,
+    headerText,
+    emitFilter,
+    agGridLicenseKey,
   };
 }

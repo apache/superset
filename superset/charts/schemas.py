@@ -1089,6 +1089,7 @@ class ChartDataQueryContextSchema(Schema):
 
     result_type = EnumField(ChartDataResultType, by_value=True)
     result_format = EnumField(ChartDataResultFormat, by_value=True)
+    viz_type = fields.Str()
 
     # pylint: disable=no-self-use,unused-argument
     @post_load
