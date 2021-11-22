@@ -28,6 +28,9 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy_utils import UUIDType
 
+from superset import db
+from superset.connectors.sqla.models import SqlaTable
+
 # revision identifiers, used by Alembic.
 revision = "b8d3a24d9131"
 down_revision = "b92d69a6643c"
@@ -57,6 +60,7 @@ def upgrade():
         sa.Column("name", sa.TEXT(), nullable=False),
         sa.Column("type", sa.TEXT(), nullable=False),
         sa.Column("expression", sa.TEXT(), nullable=False),
+        sa.Column("is_physical", sa.BOOLEAN(), nullable=False, default=True,),
         sa.Column("description", sa.TEXT(), nullable=True),
         sa.Column("warning_text", sa.TEXT(), nullable=True),
         sa.Column("units", sa.TEXT(), nullable=True),
@@ -147,6 +151,17 @@ def upgrade():
             ["table_id"], ["tables.id"], name="dataset_tables_ibfk_2"
         ),
     )
+
+    # migrate existing datasets to the new models
+    bind = op.get_bind()
+    session = db.Session(bind=bind)  # pylint: disable=no-member
+
+    datasets = session.query(SqlaTable).all()
+    print(datasets)
+    for dataset in datasets:
+        SqlaTable.after_insert(
+            mapper=None, connection=session.connection, target=dataset,  # not needed
+        )
 
 
 def downgrade():
