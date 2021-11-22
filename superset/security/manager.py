@@ -1186,6 +1186,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             is_user_admin()
             or is_owner(dashboard, g.user)
             or (dashboard.published and has_rbac_access)
+            or (not dashboard.published and not dashboard.roles)
         )
 
         if not can_access:
