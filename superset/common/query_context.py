@@ -89,7 +89,7 @@ class QueryContext:
             # pylint: disable=import-outside-toplevel
             from superset.common.query_context_processor import QueryContextProcessor
 
-            self._processor = QueryContextProcessor(self)
+            self.set_processor(QueryContextProcessor(self))
         return self._processor
 
     def get_data(self, df: pd.DataFrame,) -> Union[str, List[Dict[str, Any]]]:

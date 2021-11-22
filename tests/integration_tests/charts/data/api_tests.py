@@ -442,7 +442,6 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
         assert rv.status_code == 400
 
-    @pytest.mark.first
     def test_with_not_permitted_actor__401(self):
         """
         Chart data API: Test chart data query not allowed
