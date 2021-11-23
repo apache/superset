@@ -33,7 +33,7 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import backref, relationship, validates, RelationshipProperty
+from sqlalchemy.orm import backref, relationship, RelationshipProperty, validates
 
 from superset import db, security_manager
 from superset.models.helpers import AuditMixinNullable
