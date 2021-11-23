@@ -56,9 +56,8 @@ const Footer: FC<FooterProps> = ({
     <ActionButtons>
       <Button
         disabled={isClearAllDisabled}
-        buttonStyle="link"
+        buttonStyle="tertiary"
         buttonSize="small"
-        isUppercase={false}
         onClick={onClearAll}
         {...getFilterBarTestId('clear-button')}
       >
