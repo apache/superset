@@ -157,7 +157,7 @@ setup(
             "snowflake-sqlalchemy==1.2.4"
         ],  # PINNED! 1.2.5 introduced breaking changes requiring sqlalchemy>=1.4.0
         "teradata": ["sqlalchemy-teradata==0.9.0.dev0"],
-        "thumbnails": ["Pillow>=7.0.0, <8.0.0"],
+        "thumbnails": ["Pillow>=8.3.2, <9.0.0"],
         "vertica": ["sqlalchemy-vertica-python>=0.5.9, < 0.6"],
         "netezza": ["nzalchemy>=11.0.2"],
     },
