@@ -26,8 +26,18 @@ assists people when migrating to a new version.
 
 ### Breaking Changes
 
-- [16660](https://github.com/apache/incubator-superset/pull/16660): The `columns` Jinja parameter has been renamed `table_columns` to make the `columns` query object parameter available in the Jinja context.
-- [16711](https://github.com/apache/incubator-superset/pull/16711): The `url_param` Jinja function will now by default escape the result. For instance, the value `O'Brien` will now be changed to `O''Brien`. To disable this behavior, call `url_param` with `escape_result` set to `False`: `url_param("my_key", "my default", escape_result=False)`.
+### Potential Downtime
+
+### Deprecations
+
+### Other
+
+## 1.4.0
+
+### Breaking Changes
+
+- [16660](https://github.com/apache/superset/pull/16660): The `columns` Jinja parameter has been renamed `table_columns` to make the `columns` query object parameter available in the Jinja context.
+- [16711](https://github.com/apache/superset/pull/16711): The `url_param` Jinja function will now by default escape the result. For instance, the value `O'Brien` will now be changed to `O''Brien`. To disable this behavior, call `url_param` with `escape_result` set to `False`: `url_param("my_key", "my default", escape_result=False)`.
 
 ### Potential Downtime
 
@@ -35,13 +45,13 @@ assists people when migrating to a new version.
 
 ### Other
 
-- [16809](https://github.com/apache/incubator-superset/pull/16809): When building the superset frontend assets manually, you should now use Node 16 (previously Node 14 was required/recommended). Node 14 will most likely still work for at least some time, but is no longer actively tested for on CI.
+- [16809](https://github.com/apache/superset/pull/16809): When building the superset frontend assets manually, you should now use Node 16 (previously Node 14 was required/recommended). Node 14 will most likely still work for at least some time, but is no longer actively tested for on CI.
 
 ## 1.3.0
 
 ### Breaking Changes
 
-- [15909](https://github.com/apache/incubator-superset/pull/15909): a change which
+- [15909](https://github.com/apache/superset/pull/15909): a change which
   drops a uniqueness criterion (which may or may not have existed) to the tables table. This constraint was obsolete as it is handled by the ORM due to differences in how MySQL, PostgreSQL, etc. handle uniqueness for NULL values.
 
 ### Potential Downtime
