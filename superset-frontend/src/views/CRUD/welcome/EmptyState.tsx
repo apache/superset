@@ -152,7 +152,10 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
           }}
         >
           {t('See all %(tableName)s', {
-              tableName: welcomeTableLabels[tableName],
+            tableName:
+              tableName === 'SAVED_QUERIES'
+                ? t('SQL Lab queries')
+                : welcomeTableLabels[tableName],
           })}
         </Button>
       </Empty>
