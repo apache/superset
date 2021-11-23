@@ -1442,6 +1442,7 @@ class TestDatasetApi(SupersetTestCase):
         {"VERSIONED_EXPORT": True},
         clear=True,
     )
+    @pytest.mark.usefixtures("create_datasets")
     def test_export_dataset_bundle_gamma(self):
         """
         Dataset API: Test export dataset has gamma
