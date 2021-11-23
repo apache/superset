@@ -94,7 +94,9 @@ postgresql:
 
 #### Dependencies
 
-You can specify pip packages to be installed before startup. The following example installs the Big Query and Elasticsearch database drivers so that you can connect to those datasources in your Superset installation.
+Install additional packages and do any other bootstrap configuration in this script For production clusters it's
+recommended to build own image with this step done in CI The following example installs the Big Query and Elasticsearch
+database drivers so that you can connect to those datasources in your Superset installation.
 
 ```yaml
 bootstrapScript: |
