@@ -85,8 +85,8 @@ export const databaseField = ({
     value={db?.parameters?.database}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.database}
-    placeholder={t('e.g. world_population'}
-    label={t('Database name'}
+    placeholder={t('e.g. world_population')}
+    label={t('Database name')}
     onChange={changeMethods.onParametersChange}
     helpText={t('Copy the name of the  database you are trying to connect to.')}
   />

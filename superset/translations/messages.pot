@@ -20,7 +20,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2021-11-23 23:33+0100\n"
+"POT-Creation-Date: 2021-11-24 00:36+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1942,10 +1942,12 @@ msgstr ""
 msgid "Week_ending Sunday"
 msgstr ""
 
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:109
 #: superset/db_engine_specs/base.py:1374
 msgid "Username"
 msgstr ""
 
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:130
 #: superset/db_engine_specs/base.py:1375
 msgid "Password"
 msgstr ""
@@ -1958,6 +1960,7 @@ msgstr ""
 msgid "Database port"
 msgstr ""
 
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:89
 #: superset/db_engine_specs/base.py:1382
 msgid "Database name"
 msgstr ""
@@ -9618,6 +9621,7 @@ msgid ""
 " enable query cost estimation."
 msgstr ""
 
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:149
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/SqlAlchemyForm.tsx:42
 msgid "Display Name"
 msgstr ""
@@ -9819,6 +9823,42 @@ msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:67
 msgid "e.g. 5432"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:88
+msgid "e.g. world_population"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:91
+msgid "Copy the name of the  database you are trying to connect to."
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:108
+msgid "e.g. Analytics"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:129
+msgid "e.g. ********"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:151
+msgid "Pick a nickname for this database to display as in Superset."
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:172
+msgid "e.g. param1=value1&param2=value2"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:173
+msgid "Additional Parameters"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:175
+msgid "Add additional custom parameters"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:202
+msgid "SSL Mode \"require\" will be used."
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx:73
