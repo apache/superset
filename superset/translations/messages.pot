@@ -20,7 +20,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2021-11-23 13:29+0100\n"
+"POT-Creation-Date: 2021-11-23 23:33+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -4079,155 +4079,160 @@ msgstr ""
 msgid "Query was stopped."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:436
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:409
+#, python-format
+msgid "Failed at stopping query. %s"
+msgstr ""
+
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:434
 msgid ""
 "Unable to migrate table schema state to backend. Superset will retry "
 "later. Please contact your administrator if this problem persists."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:454
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:452
 msgid ""
 "Unable to migrate query state to backend. Superset will retry later. "
 "Please contact your administrator if this problem persists."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:500
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:498
 msgid ""
 "Unable to migrate query editor state to backend. Superset will retry "
 "later. Please contact your administrator if this problem persists."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:533
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:531
 msgid "Unable to add a new tab to the backend. Please contact your administrator."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:550
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:548
 #: superset-frontend/src/SqlLab/reducers/sqlLab.js:74
 #, python-format
 msgid "Copy of %s"
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:577
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:575
 msgid ""
 "An error occurred while setting the active tab. Please contact your "
 "administrator."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:664
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:662
 msgid "An error occurred while fetching tab state"
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:700
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:698
 msgid ""
 "An error occurred while hiding the left bar. Please contact your "
 "administrator."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:722
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:720
 msgid "An error occurred while removing tab. Please contact your administrator."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:746
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:744
 msgid "An error occurred while removing query. Please contact your administrator."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:769
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:767
 msgid ""
 "An error occurred while setting the tab database ID. Please contact your "
 "administrator."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:794
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:792
 msgid ""
 "An error occurred while setting the tab schema. Please contact your "
 "administrator."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:827
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:825
 msgid ""
 "An error occurred while setting the tab autorun. Please contact your "
 "administrator."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:852
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:943
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:850
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:941
 msgid ""
 "An error occurred while setting the tab title. Please contact your "
 "administrator."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:874
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:872
 msgid "Your query was saved"
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:878
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:876
 msgid "Your query could not be saved"
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:890
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:888
 msgid "Your query was updated"
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:894
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:892
 msgid "Your query could not be updated"
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:910
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:908
 msgid ""
 "An error occurred while storing your query in the backend. To avoid "
 "losing your changes, please save your query using the \"Save Query\" "
 "button."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:969
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:967
 msgid ""
 "An error occurred while setting the tab template parameters. Please "
 "contact your administrator."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:1029
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:1054
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:1027
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:1052
 msgid "An error occurred while fetching table metadata"
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:1095
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:1093
 msgid ""
 "An error occurred while fetching table metadata. Please contact your "
 "administrator."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:1143
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:1141
 msgid ""
 "An error occurred while expanding the table schema. Please contact your "
 "administrator."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:1167
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:1165
 msgid ""
 "An error occurred while collapsing the table schema. Please contact your "
 "administrator."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:1190
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:1188
 msgid ""
 "An error occurred while removing the table schema. Please contact your "
 "administrator."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:1223
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:1221
 msgid "Shared query"
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:1285
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:1283
 msgid "The datasource couldn't be loaded"
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:1315
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:1337
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:1313
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:1335
 msgid "An error occurred while creating the data source"
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:1358
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:1356
 msgid "An error occurred while fetching function names."
 msgstr ""
 
@@ -4588,7 +4593,7 @@ msgstr ""
 #: superset-frontend/src/views/CRUD/annotation/AnnotationModal.tsx:273
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayerModal.tsx:226
 #: superset-frontend/src/views/CRUD/csstemplates/CssTemplateModal.tsx:220
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:1000
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:1006
 msgid "Save"
 msgstr ""
 
@@ -4730,6 +4735,13 @@ msgstr ""
 msgid "Enter a new title for the tab"
 msgstr ""
 
+#: superset-frontend/src/SqlLab/components/TabbedSqlEditors/index.jsx:260
+msgid ""
+"-- Note: Unless you save your query, these tabs will NOT persist if you "
+"clear your cookies or change browsers.\n"
+"\n"
+msgstr ""
+
 #: superset-frontend/src/SqlLab/components/TabbedSqlEditors/index.jsx:264
 #, python-format
 msgid "Untitled Query %s"
@@ -4810,6 +4822,10 @@ msgstr ""
 
 #: superset-frontend/src/SqlLab/components/TemplateParamsEditor/index.tsx:99
 msgid "Edit template parameters"
+msgstr ""
+
+#: superset-frontend/src/SqlLab/components/TemplateParamsEditor/index.tsx:103
+msgid "Parameters "
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/TemplateParamsEditor/index.tsx:109
@@ -5383,7 +5399,7 @@ msgstr ""
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:686
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:261
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:1028
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:1034
 msgid "Basic"
 msgstr ""
 
@@ -5428,7 +5444,7 @@ msgstr ""
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.jsx:528
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:265
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:34
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:1140
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:1146
 msgid "Advanced"
 msgstr ""
 
@@ -5606,7 +5622,15 @@ msgstr ""
 msgid "Chart Owner: %s"
 msgstr ""
 
-#: superset-frontend/src/components/ErrorMessage/DatabaseErrorMessage.tsx:87
+#: superset-frontend/src/components/ErrorMessage/DatabaseErrorMessage.tsx:83
+#, python-format
+msgid ""
+"%(message)s\n"
+"This may be triggered by: \n"
+"%(issues)s"
+msgstr ""
+
+#: superset-frontend/src/components/ErrorMessage/DatabaseErrorMessage.tsx:89
 #, python-format
 msgid "%s Error"
 msgstr ""
@@ -5635,6 +5659,7 @@ msgstr ""
 #: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopover/index.jsx:247
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:476
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:337
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:805
 msgid "Close"
 msgstr ""
 
@@ -5669,7 +5694,15 @@ msgid ""
 "after %s second."
 msgstr ""
 
-#: superset-frontend/src/components/ErrorMessage/TimeoutErrorMessage.tsx:97
+#: superset-frontend/src/components/ErrorMessage/TimeoutErrorMessage.tsx:94
+#, python-format
+msgid ""
+"%(subtitle)s\n"
+"This may be triggered by:\n"
+" %(issues)s"
+msgstr ""
+
+#: superset-frontend/src/components/ErrorMessage/TimeoutErrorMessage.tsx:99
 msgid "Timeout error"
 msgstr ""
 
@@ -5920,6 +5953,11 @@ msgstr ""
 msgid "This dashboard was saved successfully."
 msgstr ""
 
+#: superset-frontend/src/dashboard/actions/dashboardState.js:238
+#, python-format
+msgid "Sorry, there was an error saving this dashboard: %s"
+msgstr ""
+
 #: superset-frontend/src/dashboard/actions/sliceEntities.js:116
 #: superset-frontend/src/dashboard/reducers/sliceEntities.js:65
 msgid "Could not fetch all saved charts"
@@ -6068,6 +6106,11 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/SliceAdder.jsx:245
 msgid "Filter your charts"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/SliceAdder.jsx:256
+#, python-format
+msgid "Sort by %s"
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/SliceAdder.jsx:259
@@ -6306,6 +6349,11 @@ msgstr ""
 msgid "Fetched %s"
 msgstr ""
 
+#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:253
+#, python-format
+msgid "Query %s: %s"
+msgstr ""
+
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:257
 msgid "Minimize chart"
 msgstr ""
@@ -6448,6 +6496,11 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/CascadeFilters/CascadePopover/index.tsx:177
 msgid "Select parent filters"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterControls.tsx:145
+#, python-format
+msgid "Filters out of scope (%d)"
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterValue.tsx:162
@@ -7170,7 +7223,7 @@ msgid "rows retrieved"
 msgstr ""
 
 #: superset-frontend/src/explore/components/DataTablesPane/index.tsx:146
-#: superset-frontend/src/filters/components/Select/SelectFilterPlugin.tsx:256
+#: superset-frontend/src/filters/components/Select/SelectFilterPlugin.tsx:255
 #: superset-frontend/src/filters/components/TimeGrain/TimeGrainFilterPlugin.tsx:91
 msgid "No data"
 msgstr ""
@@ -7728,6 +7781,46 @@ msgstr ""
 msgid "previous calendar year"
 msgstr ""
 
+#: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:63
+#, python-format
+msgid "Seconds %s"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:64
+#, python-format
+msgid "Minutes %s"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:65
+#, python-format
+msgid "Hours %s"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:66
+#, python-format
+msgid "Days %s"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:67
+#, python-format
+msgid "Weeks %s"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:68
+#, python-format
+msgid "Months %s"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:69
+#, python-format
+msgid "Quarters %s"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:70
+#, python-format
+msgid "Years %s"
+msgstr ""
+
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:76
 msgid "Before"
 msgstr ""
@@ -7996,12 +8089,18 @@ msgstr ""
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr ""
 
+#: superset-frontend/src/explore/components/controls/SelectAsyncControl/index.tsx:89
+#, python-format
+msgid "Error while fetching data: %s"
+msgstr ""
+
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:48
 #: superset-frontend/src/explore/controlPanels/TimeTable.js:38
 msgid "Time series columns"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:120
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:687
 msgid "Other"
 msgstr ""
 
@@ -8261,7 +8360,7 @@ msgid "No columns"
 msgstr ""
 
 #: superset-frontend/src/filters/components/GroupBy/GroupByFilterPlugin.tsx:83
-#: superset-frontend/src/filters/components/Select/SelectFilterPlugin.tsx:257
+#: superset-frontend/src/filters/components/Select/SelectFilterPlugin.tsx:256
 #: superset-frontend/src/filters/components/TimeColumn/TimeColumnFilterPlugin.tsx:82
 #: superset-frontend/src/filters/components/TimeGrain/TimeGrainFilterPlugin.tsx:92
 #, python-format
@@ -8314,6 +8413,10 @@ msgstr ""
 
 #: superset-frontend/src/filters/components/Range/index.ts:29
 msgid "Range filter plugin using AntD"
+msgstr ""
+
+#: superset-frontend/src/filters/components/Select/SelectFilterPlugin.tsx:122
+msgid " excluded"
 msgstr ""
 
 #: superset-frontend/src/filters/components/Select/controlPanel.ts:94
@@ -9039,7 +9142,7 @@ msgstr ""
 
 #: superset-frontend/src/views/CRUD/chart/ChartCard.tsx:153
 #: superset-frontend/src/views/CRUD/dashboard/DashboardCard.tsx:162
-#: superset-frontend/src/views/CRUD/welcome/ActivityTable.tsx:133
+#: superset-frontend/src/views/CRUD/welcome/ActivityTable.tsx:130
 #, python-format
 msgid "Modified %s"
 msgstr ""
@@ -9272,7 +9375,7 @@ msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx:89
 #: superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx:471
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:460
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:464
 msgid "database"
 msgstr ""
 
@@ -9515,7 +9618,6 @@ msgid ""
 " enable query cost estimation."
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:149
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/SqlAlchemyForm.tsx:42
 msgid "Display Name"
 msgstr ""
@@ -9544,44 +9646,158 @@ msgstr ""
 msgid "Test connection"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:481
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:93
+msgid "Missing Required Fields"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:94
+msgid "Please complete all required fields."
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:97
+msgid "Could not verify the host"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:98
+msgid "The host is invalid. Please verify that this field is entered correctly."
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:103
+msgid "Port is closed"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:104
+msgid "Please verify that port is open to connect."
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:107
+msgid "Invalid Port Number"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:108
+msgid "The port must be a whole number less than or equal to 65535."
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:113
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:117
+msgid "Invalid account information"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:114
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:118
+msgid "Either the username or password is incorrect."
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:121
+msgid "Incorrect Fields"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:122
+msgid "Please make sure all fields are filled out correctly"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:125
+msgid "URL could not be identified"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:126
+msgid ""
+"The URL could not be identified. Please check for typos and make sure "
+"that \"Type of google sheet allowed\" selection matches the input"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:485
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:619
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:623
 #, python-format
 msgid "Sorry there was an error fetching database information: %s"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:693
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:668
+msgid "Or choose from a list of other databases we support:"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:670
+msgid "Supported databases"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:674
+msgid "Choose a database..."
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:697
 msgid "Want to add a new database?"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:1000
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:1187
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:702
+msgid "Any databases that allow connections via SQL Alchemy URIs can be added. "
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:716
+msgid ""
+"Any databases that allow connections via SQL Alchemy URIs can be added. "
+"Learn about how to connect a database driver "
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:724
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:1136
+msgid "here"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:770
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:786
+msgid "Back"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:777
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:1006
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:1193
 msgid "Connect"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:1005
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:794
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:808
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:1193
+msgid "Finish"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:910
+msgid "Database Creation Error"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:1011
 msgid "Edit database"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:1005
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:1191
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:1011
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:1197
 msgid "Connect a database"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:1065
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:1068
+msgid "Connect this database using the dynamic form instead"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:1071
 msgid ""
 "Click this link to switch to an alternate form that exposes only the "
 "required fields needed to connect this database."
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:1187
-msgid "Finish"
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:1127
+msgid ""
+"Select databases require additional fields to be completed in the "
+"Advanced tab to successfully connect the database. Learn what "
+"requirements your databases has "
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:1298
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:1301
+msgid "Connect this database with a SQLAlchemy URI string instead"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:1306
 msgid ""
 "Click this link to switch to an alternate form that allows you to input "
 "the SQLAlchemy URL for this database manually."
@@ -9593,20 +9809,16 @@ msgid ""
 "mydatabase.com)."
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:91
-msgid "Copy the name of the  database you are trying to connect to."
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:45
+msgid "e.g. 127.0.0.1"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:151
-msgid "Pick a nickname for this database to display as in Superset."
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:47
+msgid "Host"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:175
-msgid "Add additional custom parameters"
-msgstr ""
-
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:202
-msgid "SSL Mode \"require\" will be used."
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:67
+msgid "e.g. 5432"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx:73
@@ -9915,20 +10127,20 @@ msgstr ""
 msgid "Unknown"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/welcome/ActivityTable.tsx:129
+#: superset-frontend/src/views/CRUD/welcome/ActivityTable.tsx:124
 #, python-format
 msgid "Viewed %s"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/welcome/ActivityTable.tsx:180
+#: superset-frontend/src/views/CRUD/welcome/ActivityTable.tsx:161
 msgid "Edited"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/welcome/ActivityTable.tsx:188
+#: superset-frontend/src/views/CRUD/welcome/ActivityTable.tsx:169
 msgid "Created"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/welcome/ActivityTable.tsx:199
+#: superset-frontend/src/views/CRUD/welcome/ActivityTable.tsx:180
 msgid "Viewed"
 msgstr ""
 
@@ -9995,7 +10207,7 @@ msgstr ""
 msgid "You don't have any favorites yet!"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/welcome/EmptyState.tsx:154
+#: superset-frontend/src/views/CRUD/welcome/EmptyState.tsx:157
 #, python-format
 msgid "See all %(tableName)s"
 msgstr ""
