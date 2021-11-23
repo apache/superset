@@ -278,7 +278,7 @@
     "eslint-config-airbnb": "^18.2.1",
     "eslint-config-prettier": "^7.1.0",
     "eslint-import-resolver-typescript": "^2.5.0",
-    "eslint-import-resolver-webpack": "^0.13.1",
+    "eslint-import-resolver-webpack": "^0.13.2",
     "eslint-plugin-cypress": "^2.11.2",
     "eslint-plugin-file-progress": "^1.2.0",
     "eslint-plugin-import": "^2.24.2",
