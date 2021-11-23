@@ -250,7 +250,7 @@ class SliceHeaderControls extends React.PureComponent<
     const refreshTooltip = refreshTooltipData.map((item, index) => (
       <div key={`tooltip-${index}`}>
         {refreshTooltipData.length > 1
-          ? `${t('Query')} ${index + 1}: ${item}`
+          ? t('Query %s: %s', index + 1, item)
           : item}
       </div>
     ));

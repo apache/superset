@@ -235,9 +235,7 @@ export function saveDashboardRequest(data, id, saveType) {
         getClientErrorObject(response).then(({ error }) =>
           dispatch(
             addDangerToast(
-              `${t(
-                'Sorry, there was an error saving this dashboard: ',
-              )} ${error}`,
+              t('Sorry, there was an error saving this dashboard: %s', error),
             ),
           ),
         ),

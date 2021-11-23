@@ -100,7 +100,7 @@ function TemplateParamsEditor({
           trigger={['hover']}
         >
           <div role="button">
-            {`${t('Parameters')} `}
+            {t('Parameters ')}
             <Badge count={paramCount} />
             {!isValid && (
               <InfoTooltipWithTrigger

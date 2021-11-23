@@ -88,9 +88,11 @@ function TimeoutErrorMessage({
     </>
   );
 
-  const copyText = `${subtitle}
-${t('This may be triggered by:')}
-${extra.issue_codes.map(issueCode => issueCode.message).join('\n')}`;
+  const copyText = t(
+    '%(subtitle)s\nThis may be triggered by:\n %(issues)s',
+    subtitle,
+    extra.issue_codes.map(issueCode => issueCode.message).join('\n'),
+  );
 
   return (
     <ErrorAlert
