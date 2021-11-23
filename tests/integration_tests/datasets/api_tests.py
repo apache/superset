@@ -1393,6 +1393,9 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.client.get(uri)
         assert rv.status_code == 401
 
+        db.session.delete(dataset)
+        db.session.commit()
+
     @patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
         {"VERSIONED_EXPORT": True},
