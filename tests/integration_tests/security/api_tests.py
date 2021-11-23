@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-"""Unit tests for Superset"""
+"""Tests for security api methods"""
 import json
 
 import jwt
@@ -30,9 +30,9 @@ class TestSecurityCsrfApi(SupersetTestCase):
     def _assert_get_csrf_token(self):
         uri = f"api/v1/{self.resource_name}/csrf_token/"
         response = self.client.get(uri)
-        assert response.status_code == 200
+        self.assert200(response)
         data = json.loads(response.data.decode("utf-8"))
-        assert data["result"] == generate_csrf()
+        self.assertEqual(generate_csrf(), data["result"])
 
     def test_get_csrf_token(self):
         """
@@ -55,7 +55,7 @@ class TestSecurityCsrfApi(SupersetTestCase):
         self.logout()
         uri = f"api/v1/{self.resource_name}/csrf_token/"
         response = self.client.get(uri)
-        self.assertEqual(response.status_code, 401)
+        self.assert401(response)
 
 
 class TestSecurityEmbeddedTokenApi(SupersetTestCase):
