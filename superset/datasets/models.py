@@ -62,6 +62,10 @@ class Dataset(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
 
     id = sa.Column(sa.Integer, primary_key=True)
 
+    # A temporary column, used for shadow writing to the new model. Once the ``SqlaTable``
+    # model has been deleted this column can be removed.
+    sqlatable_id = sa.Column(sa.Integer, nullable=True)
+
     # We use ``sa.Text`` for these attributes because (1) in modern databases the
     # performance is the same as ``VARCHAR``[1] and (2) because some table names can be
     # **really** long (eg, Google Sheets URLs).

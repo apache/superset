@@ -121,6 +121,7 @@ def upgrade():
         sa.Column("uuid", UUIDType(binary=True), primary_key=False, default=uuid4),
         # Dataset
         sa.Column("id", sa.INTEGER(), autoincrement=True, nullable=False),
+        sa.Column("sqlatable_id", sa.INTEGER(), nullable=True),
         sa.Column("name", sa.TEXT(), nullable=False),
         sa.Column("expression", sa.TEXT(), nullable=False),
         sa.Column("is_physical", sa.BOOLEAN(), nullable=False, default=False,),
@@ -157,7 +158,6 @@ def upgrade():
     session = db.Session(bind=bind)  # pylint: disable=no-member
 
     datasets = session.query(SqlaTable).all()
-    print(datasets)
     for dataset in datasets:
         SqlaTable.after_insert(
             mapper=None, connection=session.connection, target=dataset,  # not needed

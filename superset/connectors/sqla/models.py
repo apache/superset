@@ -1851,7 +1851,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             columns.append(
                 NewColumn(
                     name=column.column_name,
-                    type=column.type,
+                    type=column.type or "Unknown",
                     expression=column.expression or column.column_name,
                     description=column.description,
                     is_temporal=column.is_dttm,
@@ -1927,6 +1927,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         # create the new dataset
         dataset = NewDataset(
+            sqlatable_id=target.id,
             name=target.table_name,
             expression=target.sql or target.table_name,
             tables=tables,
@@ -1936,14 +1937,19 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         session.add(dataset)
 
     @staticmethod
-    def after_delete(
+    def after_delete(  # pylint: disable=unused-argument
         mapper: Mapper, connection: Connection, target: "SqlaTable",
     ) -> None:
         """
         Delete new models.
 
         When a ``SqlaTable`` is deleted we should also deleted the associated new models.
+        An alternative approach would be defining a 1:1 relationship between the old and
+        the new model with cascade delete, but manually doing the delete is simpler.
         """
+        session = inspect(target).session
+        dataset = session.query(NewDataset).filter_by(sqlatable_id=target.id).one()
+        session.delete(dataset)
 
 
 sa.event.listen(SqlaTable, "after_insert", SqlaTable.after_insert)

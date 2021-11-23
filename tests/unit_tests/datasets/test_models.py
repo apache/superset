@@ -218,6 +218,8 @@ def test_dataset_attributes(app_context: None, session: Session) -> None:
     session.commit()
 
     dataset = session.query(SqlaTable).one()
+    # If this tests fails because attributes changed, make sure to update
+    # ``SqlaTable.after_insert`` accordingly.
     assert sorted(dataset.__dict__.keys()) == [
         "_sa_instance_state",
         "cache_timeout",
@@ -461,6 +463,7 @@ def test_create_physical_sqlatable(app_context: None, session: Session) -> None:
     assert datasets == [
         {
             "id": 1,
+            "sqlatable_id": 1,
             "name": "old_dataset",
             "changed_by": None,
             "created_by": None,
@@ -769,6 +772,7 @@ FROM
     assert datasets == [
         {
             "id": 1,
+            "sqlatable_id": 1,
             "name": "old_dataset",
             "changed_by": None,
             "created_by": None,
@@ -787,3 +791,42 @@ FROM
   some_table""",
         }
     ]
+
+
+def test_delete_sqlatable(app_context: None, session: Session) -> None:
+    """
+    Test that deleting a ``SqlaTable`` also deletes the corresponding ``Dataset``.
+    """
+    from superset.columns.models import Column
+    from superset.columns.schemas import ColumnSchema
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.datasets.models import Dataset
+    from superset.datasets.schemas import DatasetSchema
+    from superset.models.core import Database
+    from superset.tables.models import Table
+    from superset.tables.schemas import TableSchema
+
+    engine = session.get_bind()
+    Dataset.metadata.create_all(engine)  # pylint: disable=no-member
+
+    columns = [
+        TableColumn(column_name="ds", is_dttm=1, type="TIMESTAMP"),
+    ]
+    sqla_table = SqlaTable(
+        table_name="old_dataset",
+        columns=columns,
+        metrics=[],
+        database=Database(database_name="my_database", sqlalchemy_uri="test://"),
+    )
+    session.add(sqla_table)
+    session.flush()
+
+    datasets = session.query(Dataset).all()
+    assert len(datasets) == 1
+
+    session.delete(sqla_table)
+    session.flush()
+
+    # test that dataset was also deleted
+    datasets = session.query(Dataset).all()
+    assert len(datasets) == 0
