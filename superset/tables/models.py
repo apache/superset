@@ -74,4 +74,6 @@ class Table(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     # The relationship between tables and columns is 1:n, but we use a many-to-many
     # association to differentiate between the relationship between datasets and
     # columns.
-    columns: List[Column] = relationship("Column", secondary=association_table)
+    columns: List[Column] = relationship(
+        "Column", secondary=association_table, cascade="all, delete"
+    )

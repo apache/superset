@@ -1867,7 +1867,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         db.session.execute(update(SqlaTable).where(SqlaTable.id == obj.table.id))
 
     @staticmethod
-    def after_insert(
+    def after_insert(  # pylint: disable=too-many-locals
         mapper: Mapper,
         connection: Connection,
         target: "SqlaTable",
@@ -1989,8 +1989,21 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         )
         session.add(dataset)
 
+    @staticmethod
+    def after_delete(
+        mapper: Mapper,
+        connection: Connection,
+        target: "SqlaTable",
+    ) -> None:
+        """
+        Delete new models.
+
+        When a ``SqlaTable`` is deleted we should also deleted the associated new models.
+        """
+
 
 sa.event.listen(SqlaTable, "after_insert", SqlaTable.after_insert)
+sa.event.listen(SqlaTable, "after_delete", SqlaTable.after_delete)
 sa.event.listen(SqlaTable, "after_update", security_manager.set_perm)
 sa.event.listen(SqlaTable, "before_update", SqlaTable.before_update)
 sa.event.listen(SqlMetric, "after_update", SqlaTable.update_table)

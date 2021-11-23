@@ -76,7 +76,9 @@ class Dataset(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
 
     # The relationship between datasets and columns is 1:n, but we use a many-to-many
     # association to differentiate between the relationship between tables and columns.
-    columns: List[Column] = relationship("Column", secondary=column_association_table)
+    columns: List[Column] = relationship(
+        "Column", secondary=column_association_table, cascade="all, delete"
+    )
 
     # Does the dataset point directly to a ``Table``?
     is_physical = sa.Column(sa.Boolean, default=False)
