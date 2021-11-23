@@ -1245,6 +1245,9 @@ GLOBAL_ASYNC_QUERIES_POLLING_DELAY = int(
 )
 GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL = "ws://127.0.0.1:8080/"
 
+# Embedded config options
+EMBEDDED_JWT_SECRET = "another-test-secret-change-me"
+
 # A SQL dataset health check. Note if enabled it is strongly advised that the callable
 # be memoized to aid with performance, i.e.,
 #
