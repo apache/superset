@@ -21,6 +21,7 @@ from pytest_mock import MockFixture
 
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 
+user_id = None
 
 def test_ParsedQuery_tds(app_context: AppContext) -> None:
     """
