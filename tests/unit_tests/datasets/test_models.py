@@ -15,11 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# pylint: disable=import-outside-toplevel, unused-argument, unused-import, too-many-locals
+# pylint: disable=import-outside-toplevel, unused-argument, unused-import, too-many-locals, invalid-name, too-many-lines
 
 import json
 from datetime import datetime, timezone
 
+from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
 
@@ -39,7 +40,7 @@ def test_dataset_model(app_context: None, session: Session) -> None:
         name="my_table",
         schema="my_schema",
         catalog="my_catalog",
-        database=Database(database_name="my_database", sqlalchemy_uri="test://"),
+        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
         columns=[
             Column(name="longitude", expression="longitude"),
             Column(name="latitude", expression="latitude"),
@@ -93,7 +94,7 @@ def test_cascade_delete_table(app_context: None, session: Session) -> None:
         name="my_table",
         schema="my_schema",
         catalog="my_catalog",
-        database=Database(database_name="my_database", sqlalchemy_uri="test://"),
+        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
         columns=[
             Column(name="longitude", expression="longitude"),
             Column(name="latitude", expression="latitude"),
@@ -129,7 +130,7 @@ def test_cascade_delete_dataset(app_context: None, session: Session) -> None:
         name="my_table",
         schema="my_schema",
         catalog="my_catalog",
-        database=Database(database_name="my_database", sqlalchemy_uri="test://"),
+        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
         columns=[
             Column(name="longitude", expression="longitude"),
             Column(name="latitude", expression="latitude"),
@@ -195,7 +196,7 @@ def test_dataset_attributes(app_context: None, session: Session) -> None:
         metrics=metrics,
         main_dttm_col="ds",
         default_endpoint="https://www.youtube.com/watch?v=dQw4w9WgXcQ",  # not used
-        database=Database(database_name="my_database", sqlalchemy_uri="test://"),
+        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
         offset=-8,
         description="This is the description",
         is_featured=1,
@@ -215,7 +216,7 @@ def test_dataset_attributes(app_context: None, session: Session) -> None:
     )
 
     session.add(sqla_table)
-    session.commit()
+    session.flush()
 
     dataset = session.query(SqlaTable).one()
     # If this tests fails because attributes changed, make sure to update
@@ -225,8 +226,10 @@ def test_dataset_attributes(app_context: None, session: Session) -> None:
         "cache_timeout",
         "changed_by_fk",
         "changed_on",
+        "columns",
         "created_by_fk",
         "created_on",
+        "database",
         "database_id",
         "default_endpoint",
         "description",
@@ -237,6 +240,7 @@ def test_dataset_attributes(app_context: None, session: Session) -> None:
         "is_featured",
         "is_sqllab_view",
         "main_dttm_col",
+        "metrics",
         "offset",
         "params",
         "perm",
@@ -287,7 +291,7 @@ def test_create_physical_sqlatable(app_context: None, session: Session) -> None:
         metrics=metrics,
         main_dttm_col="ds",
         default_endpoint="https://www.youtube.com/watch?v=dQw4w9WgXcQ",  # not used
-        database=Database(database_name="my_database", sqlalchemy_uri="test://"),
+        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
         offset=-8,
         description="This is the description",
         is_featured=1,
@@ -476,13 +480,20 @@ def test_create_physical_sqlatable(app_context: None, session: Session) -> None:
     ]
 
 
-def test_create_virtual_sqlatable(app_context: None, session: Session) -> None:
+def test_create_virtual_sqlatable(
+    mocker: MockFixture, app_context: None, session: Session
+) -> None:
     """
     Test shadow write when creating a new ``SqlaTable``.
 
     When a new virtual ``SqlaTable`` is created, new models should also be created for
     ``Dataset`` and ``Column``.
     """
+    # patch session
+    mocker.patch(
+        "superset.security.SupersetSecurityManager.get_session", return_value=session
+    )
+
     from superset.columns.models import Column
     from superset.columns.schemas import ColumnSchema
     from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
@@ -490,13 +501,12 @@ def test_create_virtual_sqlatable(app_context: None, session: Session) -> None:
     from superset.datasets.schemas import DatasetSchema
     from superset.models.core import Database
     from superset.tables.models import Table
-    from superset.tables.schemas import TableSchema
 
     engine = session.get_bind()
     Dataset.metadata.create_all(engine)  # pylint: disable=no-member
 
     # create the ``Table`` that the virtual dataset points to
-    database = Database(database_name="my_database", sqlalchemy_uri="test://")
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
     table = Table(
         name="some_table",
         schema="my_schema",
@@ -532,7 +542,7 @@ def test_create_virtual_sqlatable(app_context: None, session: Session) -> None:
         metrics=metrics,
         main_dttm_col="ds",
         default_endpoint="https://www.youtube.com/watch?v=dQw4w9WgXcQ",  # not used
-        database_id=1,
+        database=database,
         offset=-8,
         description="This is the description",
         is_featured=1,
@@ -798,13 +808,10 @@ def test_delete_sqlatable(app_context: None, session: Session) -> None:
     Test that deleting a ``SqlaTable`` also deletes the corresponding ``Dataset``.
     """
     from superset.columns.models import Column
-    from superset.columns.schemas import ColumnSchema
-    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.datasets.models import Dataset
-    from superset.datasets.schemas import DatasetSchema
     from superset.models.core import Database
     from superset.tables.models import Table
-    from superset.tables.schemas import TableSchema
 
     engine = session.get_bind()
     Dataset.metadata.create_all(engine)  # pylint: disable=no-member
@@ -816,7 +823,7 @@ def test_delete_sqlatable(app_context: None, session: Session) -> None:
         table_name="old_dataset",
         columns=columns,
         metrics=[],
-        database=Database(database_name="my_database", sqlalchemy_uri="test://"),
+        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
     )
     session.add(sqla_table)
     session.flush()
@@ -830,3 +837,268 @@ def test_delete_sqlatable(app_context: None, session: Session) -> None:
     # test that dataset was also deleted
     datasets = session.query(Dataset).all()
     assert len(datasets) == 0
+
+
+def test_update_sqlatable(
+    mocker: MockFixture, app_context: None, session: Session
+) -> None:
+    """
+    Test that updating a ``SqlaTable`` also updates the corresponding ``Dataset``.
+    """
+    # patch session
+    mocker.patch(
+        "superset.security.SupersetSecurityManager.get_session", return_value=session
+    )
+
+    from superset.columns.models import Column
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.datasets.models import Dataset
+    from superset.models.core import Database
+    from superset.tables.models import Table
+
+    engine = session.get_bind()
+    Dataset.metadata.create_all(engine)  # pylint: disable=no-member
+
+    columns = [
+        TableColumn(column_name="ds", is_dttm=1, type="TIMESTAMP"),
+    ]
+    sqla_table = SqlaTable(
+        table_name="old_dataset",
+        columns=columns,
+        metrics=[],
+        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
+    )
+    session.add(sqla_table)
+    session.flush()
+
+    dataset = session.query(Dataset).one()
+    assert len(dataset.columns) == 1
+
+    # add a column to the original ``SqlaTable`` instance
+    sqla_table.columns.append(TableColumn(column_name="user_id", type="INTEGER"))
+    session.flush()
+
+    # check that the column was added to the dataset
+    dataset = session.query(Dataset).one()
+    assert len(dataset.columns) == 2
+
+    # delete the column in the original instance
+    sqla_table.columns = sqla_table.columns[1:]
+    session.flush()
+
+    # check that the column was also removed from the dataset
+    dataset = session.query(Dataset).one()
+    assert len(dataset.columns) == 1
+
+    # modify the attribute in a column
+    sqla_table.columns[0].is_dttm = True
+    session.flush()
+
+    # check that the dataset column was modified
+    dataset = session.query(Dataset).one()
+    assert dataset.columns[0].is_temporal is True
+
+
+def test_update_virtual_sqlatable_references(
+    mocker: MockFixture, app_context: None, session: Session
+) -> None:
+    """
+    Test that changing the SQL of a virtual ``SqlaTable`` updates ``Dataset``.
+
+    When the SQL is modified the list of referenced tables should be updated in the new
+    ``Dataset`` model.
+    """
+    # patch session
+    mocker.patch(
+        "superset.security.SupersetSecurityManager.get_session", return_value=session
+    )
+
+    from superset.columns.models import Column
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.datasets.models import Dataset
+    from superset.models.core import Database
+    from superset.tables.models import Table
+
+    engine = session.get_bind()
+    Dataset.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    table1 = Table(
+        name="table_a",
+        schema="my_schema",
+        catalog=None,
+        database=database,
+        columns=[Column(name="a", type="INTEGER")],
+    )
+    table2 = Table(
+        name="table_b",
+        schema="my_schema",
+        catalog=None,
+        database=database,
+        columns=[Column(name="b", type="INTEGER")],
+    )
+    session.add(table1)
+    session.add(table2)
+    session.commit()
+
+    # create virtual dataset
+    columns = [TableColumn(column_name="a", type="INTEGER")]
+
+    sqla_table = SqlaTable(
+        table_name="old_dataset",
+        columns=columns,
+        database=database,
+        schema="my_schema",
+        sql="SELECT a FROM table_a",
+    )
+    session.add(sqla_table)
+    session.flush()
+
+    # check that new dataset has table1
+    dataset = session.query(Dataset).one()
+    assert dataset.tables == [table1]
+
+    # change SQL
+    sqla_table.sql = "SELECT a, b FROM table_a JOIN table_b"
+    session.flush()
+
+    # check that new dataset has both tables
+    dataset = session.query(Dataset).one()
+    assert dataset.tables == [table1, table2]
+    assert dataset.expression == "SELECT a, b FROM table_a JOIN table_b"
+
+
+def test_quote_expressions(app_context: None, session: Session) -> None:
+    """
+    Test that expressions are quoted appropriately in columns and datasets.
+    """
+    from superset.columns.models import Column
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.datasets.models import Dataset
+    from superset.models.core import Database
+    from superset.tables.models import Table
+
+    engine = session.get_bind()
+    Dataset.metadata.create_all(engine)  # pylint: disable=no-member
+
+    columns = [
+        TableColumn(column_name="has space", type="INTEGER"),
+        TableColumn(column_name="no_need", type="INTEGER"),
+    ]
+
+    sqla_table = SqlaTable(
+        table_name="old dataset",
+        columns=columns,
+        metrics=[],
+        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
+    )
+    session.add(sqla_table)
+    session.flush()
+
+    dataset = session.query(Dataset).one()
+    assert dataset.expression == '"old dataset"'
+    assert dataset.columns[0].expression == '"has space"'
+    assert dataset.columns[1].expression == "no_need"
+
+
+def test_update_physical_sqlatable(
+    mocker: MockFixture, app_context: None, session: Session
+) -> None:
+    """
+    Test updating the table on a physical dataset.
+
+    When updating the table on a physical dataset by pointing it somewhere else (change
+    in database ID, schema, or table name) we should point the ``Dataset`` to an
+    existing ``Table`` if possible, and create a new one otherwise.
+    """
+    # patch session
+    mocker.patch(
+        "superset.security.SupersetSecurityManager.get_session", return_value=session
+    )
+
+    from superset.columns.models import Column
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.datasets.models import Dataset
+    from superset.models.core import Database
+    from superset.tables.models import Table
+    from superset.tables.schemas import TableSchema
+
+    engine = session.get_bind()
+    Dataset.metadata.create_all(engine)  # pylint: disable=no-member
+
+    columns = [
+        TableColumn(column_name="a", type="INTEGER"),
+    ]
+
+    sqla_table = SqlaTable(
+        table_name="old_dataset",
+        columns=columns,
+        metrics=[],
+        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
+    )
+    session.add(sqla_table)
+    session.flush()
+
+    # check that the table was created, and that the created dataset points to it
+    table = session.query(Table).one()
+    assert table.id == 1
+    assert table.name == "old_dataset"
+    assert table.schema is None
+    assert table.database_id == 1
+
+    dataset = session.query(Dataset).one()
+    assert dataset.tables == [table]
+
+    # point ``SqlaTable`` to a different database
+    new_database = Database(
+        database_name="my_other_database", sqlalchemy_uri="sqlite://"
+    )
+    session.add(new_database)
+    session.flush()
+    sqla_table.database_id = new_database.id
+    session.flush()
+
+    # ignore these keys when comparing results
+    ignored_keys = {"created_on", "changed_on", "uuid"}
+
+    # check that the old table still exists, and that the dataset points to the newly
+    # created table (id=2) and column (id=2), on the new database (also id=2)
+    table_schema = TableSchema()
+    tables = [
+        {k: v for k, v in table_schema.dump(table).items() if k not in ignored_keys}
+        for table in session.query(Table).all()
+    ]
+    assert tables == [
+        {
+            "created_by": None,
+            "extra_json": "{}",
+            "name": "old_dataset",
+            "changed_by": None,
+            "catalog": None,
+            "columns": [1],
+            "database": 1,
+            "schema": None,
+            "id": 1,
+        },
+        {
+            "created_by": None,
+            "extra_json": "{}",
+            "name": "old_dataset",
+            "changed_by": None,
+            "catalog": None,
+            "columns": [2],
+            "database": 2,
+            "schema": None,
+            "id": 2,
+        },
+    ]
+
+    # check that dataset now points to the new table
+    assert dataset.tables[0].database_id == 2
+
+    # point ``SqlaTable`` back
+    sqla_table.database_id = 1
+    session.flush()
+
+    # check that dataset points to the original table
+    assert dataset.tables[0].database_id == 1
