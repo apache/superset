@@ -85,6 +85,7 @@ class TestDashboardDAO(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_get_dashboard_changed_on(self):
+        self.login(username="admin")
         session = db.session()
         dashboard = session.query(Dashboard).filter_by(slug="world_health").first()
 

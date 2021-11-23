@@ -323,7 +323,9 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             activeKey={editFilterSetId ? TabIds.AllFilters : undefined}
           >
             <Tabs.TabPane
-              tab={`${t('All filters')} (${numberOfFilters})`}
+              tab={t('All filters (%(filterCount)d)', {
+                filterCount: filterValues.length,
+              })}
               key={TabIds.AllFilters}
               css={tabPaneStyle}
             >
@@ -343,7 +345,9 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             </Tabs.TabPane>
             <Tabs.TabPane
               disabled={!!editFilterSetId}
-              tab={`${t('Filter sets')} (${filterSetFilterValues.length})`}
+              tab={t('Filter sets (%(filterSetCount)d)', {
+                filterSetCount: filterSetFilterValues.length,
+              })}
               key={TabIds.FilterSets}
               css={tabPaneStyle}
             >

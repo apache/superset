@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,14 +14,25 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
--r base.in
-flask-cors>=2.0.0
-mysqlclient==2.0.3
-pillow>=8.3.2,<9
-pydruid>=0.6.1,<0.7
-pyhive[hive]>=0.6.1
-psycopg2-binary==2.9.1
-tableschema
-thrift>=0.11.0,<1.0.0
-progress>=1.5,<2
-pyinstrument>=4.0.2,<5
+import logging
+from typing import Any, Dict, Optional
+
+from flask import Request
+
+from superset.extensions import async_query_manager
+from superset.tasks.async_queries import load_chart_data_into_cache
+
+logger = logging.getLogger(__name__)
+
+
+class CreateAsyncChartDataJobCommand:
+    _async_channel_id: str
+
+    def validate(self, request: Request) -> None:
+        jwt_data = async_query_manager.parse_jwt_from_request(request)
+        self._async_channel_id = jwt_data["channel"]
+
+    def run(self, form_data: Dict[str, Any], user_id: Optional[str]) -> Dict[str, Any]:
+        job_metadata = async_query_manager.init_job(self._async_channel_id, user_id)
+        load_chart_data_into_cache.delay(job_metadata, form_data)
+        return job_metadata

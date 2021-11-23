@@ -23,8 +23,11 @@ following information about each flight is given:
 
 ### Enabling Data Upload Functionality
 
-You may need to enable the functionality to upload a CSV or Excel file to your database. The following section
+You may need to enable the functionality to upload a CSV, Excel file or Parquet file to your database. The following section
 explains how to enable this functionality for the examples database.
+
+**Note:** To enable `Upload Excel`, you need to make sure that the `xlrd` dependency is installed,
+which you can execute `pip install apache-superset[excel]` to install.
 
 In the top menu, select **Data ‣ Databases**. Find the **examples** database in the list and
 select the **Edit** button.
