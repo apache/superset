@@ -78,6 +78,91 @@ FROM my_catalog.my_schema.my_table
     assert [column.name for column in dataset.columns] == ["position"]
 
 
+def test_cascade_delete_table(app_context: None, session: Session) -> None:
+    """
+    Test that deleting ``Table`` also deletes its columns.
+    """
+    from superset.columns.models import Column
+    from superset.models.core import Database
+    from superset.tables.models import Table
+
+    engine = session.get_bind()
+    Table.metadata.create_all(engine)  # pylint: disable=no-member
+
+    table = Table(
+        name="my_table",
+        schema="my_schema",
+        catalog="my_catalog",
+        database=Database(database_name="my_database", sqlalchemy_uri="test://"),
+        columns=[
+            Column(name="longitude", expression="longitude"),
+            Column(name="latitude", expression="latitude"),
+        ],
+    )
+    session.add(table)
+    session.flush()
+
+    columns = session.query(Column).all()
+    assert len(columns) == 2
+
+    session.delete(table)
+    session.flush()
+
+    # test that columns were deleted
+    columns = session.query(Column).all()
+    assert len(columns) == 0
+
+
+def test_cascade_delete_dataset(app_context: None, session: Session) -> None:
+    """
+    Test that deleting ``Dataset`` also deletes its columns.
+    """
+    from superset.columns.models import Column
+    from superset.datasets.models import Dataset
+    from superset.models.core import Database
+    from superset.tables.models import Table
+
+    engine = session.get_bind()
+    Dataset.metadata.create_all(engine)  # pylint: disable=no-member
+
+    table = Table(
+        name="my_table",
+        schema="my_schema",
+        catalog="my_catalog",
+        database=Database(database_name="my_database", sqlalchemy_uri="test://"),
+        columns=[
+            Column(name="longitude", expression="longitude"),
+            Column(name="latitude", expression="latitude"),
+        ],
+    )
+    session.add(table)
+    session.flush()
+
+    dataset = Dataset(
+        name="positions",
+        expression="""
+SELECT array_agg(array[longitude,latitude]) AS position
+FROM my_catalog.my_schema.my_table
+""",
+        tables=[table],
+        columns=[
+            Column(name="position", expression="array_agg(array[longitude,latitude])",),
+        ],
+    )
+    session.add(dataset)
+    session.flush()
+
+    columns = session.query(Column).all()
+    assert len(columns) == 3
+
+    session.delete(dataset)
+    session.flush()
+
+    # test that dataset columns were deleted (but not table columns)
+    columns = session.query(Column).all()
+    assert len(columns) == 2
+
+
 def test_dataset_attributes(app_context: None, session: Session) -> None:
     """
     Test that checks attributes in the dataset.
