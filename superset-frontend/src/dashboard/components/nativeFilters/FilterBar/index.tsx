@@ -324,7 +324,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
           >
             <Tabs.TabPane
               tab={t('All filters (%(filterCount)d)', {
-                filterCount: filterValues.length,
+                filterCount: numberOfFilters,
               })}
               key={TabIds.AllFilters}
               css={tabPaneStyle}
