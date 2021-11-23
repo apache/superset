@@ -1047,9 +1047,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           ) : (
             <Icons.PlusLarge css={StyledIcon} />
           )}
-          {isEditMode
-            ? t(`Edit ${isReport ? 'Report' : 'Alert'}`)
-            : t(`Add ${isReport ? 'Report' : 'Alert'}`)}
+          {isEditMode && isReport
+            ? t('Edit Report')
+            : isEditMode
+            ? t('Edit Alert')
+            : isReport
+            ? t('Add Report')
+            : t('Add Alert')}
         </h4>
       }
     >

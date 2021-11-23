@@ -16,14 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Select from 'react-select';
-import Creatable from 'react-select/creatable';
-import AsyncCreatable from 'react-select/async-creatable';
-import windowed from './windowed';
 
-export * from './windowed';
-
-export const WindowedSelect = windowed(Select);
-export const WindowedCreatableSelect = windowed(Creatable);
-export const WindowedAsyncCreatableSelect = windowed(AsyncCreatable);
-export default WindowedSelect;
+export enum WelcomeTable {
+  Charts = 'CHARTS',
+  Dashboards = 'DASHBOARDS',
+  Recents = 'RECENTS',
+  SavedQueries = 'SAVED_QUERIES',
+}

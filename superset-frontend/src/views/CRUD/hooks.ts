@@ -623,7 +623,7 @@ export const testDatabaseConnection = (
       addSuccessToast(t('Connection looks good!'));
     },
     createErrorHandler((errMsg: Record<string, string[] | string> | string) => {
-      handleErrorMsg(t(`${t('ERROR: ')}${parsedErrorMessage(errMsg)}`));
+      handleErrorMsg(t('ERROR: %s', parsedErrorMessage(errMsg)));
     }),
   );
 };
