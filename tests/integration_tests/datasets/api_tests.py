@@ -1380,18 +1380,18 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "export")
         assert rv.status_code == 404
 
-    # def test_export_dataset_gamma(self):
-    #     """
-    #     Dataset API: Test export dataset has gamma
-    #     """
-    #     dataset = self.insert_default_dataset()
+    def test_export_dataset_gamma(self):
+        """
+        Dataset API: Test export dataset has gamma
+        """
+        dataset = self.insert_default_dataset()
 
-    #     argument = [dataset.id]
-    #     uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
+        argument = [dataset.id]
+        uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
 
-    #     self.login(username="gamma")
-    #     rv = self.client.get(uri)
-    #     assert rv.status_code == 401
+        self.login(username="gamma")
+        rv = self.client.get(uri)
+        assert rv.status_code == 401
 
     @patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
