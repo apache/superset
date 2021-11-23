@@ -27,7 +27,6 @@ import {
   getChartBuildQueryRegistry,
   getChartMetadataRegistry,
 } from '@superset-ui/core';
-import { omit } from 'lodash';
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
 import { URL_PARAMS } from 'src/constants';
