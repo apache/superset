@@ -26,7 +26,7 @@ const scheduleInfoContainer = document.getElementById('schedule-info');
 const bootstrapData = JSON.parse(
   scheduleInfoContainer.getAttribute('data-bootstrap'),
 );
-const config = bootstrapData.common.feature_flags.SCHEDULED_QUERIES;
+const config = bootstrapData.common.conf.SCHEDULED_QUERIES;
 const { query } = bootstrapData.common;
 const scheduleInfo = query.extra_json.schedule_info;
 const linkback = config.linkback ? interpolate(config.linkback, query) : null;
