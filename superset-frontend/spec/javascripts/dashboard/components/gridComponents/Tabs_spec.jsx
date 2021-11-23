@@ -31,10 +31,13 @@ import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
-import Tabs from 'src/dashboard/components/gridComponents/Tabs';
+import { Tabs } from 'src/dashboard/components/gridComponents/Tabs';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
+import emptyDashboardLayout from 'src/dashboard/fixtures/emptyDashboardLayout';
 import { dashboardLayoutWithTabs } from 'spec/fixtures/mockDashboardLayout';
-import { mockStoreWithTabs } from 'spec/fixtures/mockStore';
+import { getMockStore } from 'spec/fixtures/mockStore';
+import { nativeFilters } from 'spec/fixtures/mockNativeFilters';
+import { initialState } from 'src/SqlLab/fixtures';
 
 describe('Tabs', () => {
   fetchMock.post('glob:*/r/shortner/', {});
@@ -59,13 +62,21 @@ describe('Tabs', () => {
     deleteComponent() {},
     updateComponents() {},
     logEvent() {},
+    dashboardLayout: emptyDashboardLayout,
+    nativeFilters: nativeFilters.filters,
   };
+
+  const mockStore = getMockStore({
+    ...initialState,
+    dashboardLayout: dashboardLayoutWithTabs,
+    dashboardFilters: {},
+  });
 
   function setup(overrideProps) {
     // We have to wrap provide DragDropContext for the underlying DragDroppable
     // otherwise we cannot assert on DragDroppable children
     const wrapper = mount(
-      <Provider store={mockStoreWithTabs}>
+      <Provider store={mockStore}>
         <DndProvider backend={HTML5Backend}>
           <Tabs {...props} {...overrideProps} />
         </DndProvider>
@@ -172,7 +183,8 @@ describe('Tabs', () => {
     expect(wrapper.state('tabIndex')).toBe(0);
 
     // display child in directPathToChild list
-    const directPathToChild = dashboardLayoutWithTabs.present.ROW_ID2.parents.slice();
+    const directPathToChild =
+      dashboardLayoutWithTabs.present.ROW_ID2.parents.slice();
     const directLinkProps = {
       ...props,
       directPathToChild,

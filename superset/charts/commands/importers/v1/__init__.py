@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import json
 from typing import Any, Dict, Set
 
 from marshmallow import Schema
@@ -95,4 +96,10 @@ class ImportChartsCommand(ImportModelsCommand):
                     }
                 )
                 config["params"].update({"datasource": dataset.uid})
+                if config["query_context"]:
+                    # TODO (betodealmeida): export query_context as object, not string
+                    query_context = json.loads(config["query_context"])
+                    query_context["datasource"] = {"id": dataset.id, "type": "table"}
+                    config["query_context"] = json.dumps(query_context)
+
                 import_chart(session, config, overwrite=overwrite)

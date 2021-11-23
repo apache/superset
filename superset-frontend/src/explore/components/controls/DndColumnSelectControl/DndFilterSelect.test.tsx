@@ -23,22 +23,34 @@ import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetr
 import AdhocFilter, {
   EXPRESSION_TYPES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
-import { DndFilterSelect } from 'src/explore/components/controls/DndColumnSelectControl/DndFilterSelect';
+import {
+  DndFilterSelect,
+  DndFilterSelectProps,
+} from 'src/explore/components/controls/DndColumnSelectControl/DndFilterSelect';
+import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
+import { TimeseriesDefaultFormData } from '@superset-ui/plugin-chart-echarts';
 
-const defaultProps = {
+const defaultProps: DndFilterSelectProps = {
+  type: 'DndFilterSelect',
   name: 'Filter',
   value: [],
   columns: [],
-  datasource: {},
-  formData: {},
+  datasource: PLACEHOLDER_DATASOURCE,
+  formData: null,
   savedMetrics: [],
+  selectedMetrics: [],
   onChange: jest.fn(),
-  options: { string: { column_name: 'Column' } },
+  actions: { setControlValue: jest.fn() },
+};
+
+const baseFormData = {
+  viz_type: 'my_viz',
+  datasource: 'table__1',
 };
 
 test('renders with default props', () => {
   render(<DndFilterSelect {...defaultProps} />, { useDnd: true });
-  expect(screen.getByText('Drop columns or metrics')).toBeInTheDocument();
+  expect(screen.getByText('Drop columns or metrics here')).toBeInTheDocument();
 });
 
 test('renders with value', () => {
@@ -53,10 +65,20 @@ test('renders with value', () => {
 });
 
 test('renders options with saved metric', () => {
-  render(<DndFilterSelect {...defaultProps} formData={['saved_metric']} />, {
-    useDnd: true,
-  });
-  expect(screen.getByText('Drop columns or metrics')).toBeInTheDocument();
+  render(
+    <DndFilterSelect
+      {...defaultProps}
+      formData={{
+        ...baseFormData,
+        ...TimeseriesDefaultFormData,
+        metrics: ['saved_metric'],
+      }}
+    />,
+    {
+      useDnd: true,
+    },
+  );
+  expect(screen.getByText('Drop columns or metrics here')).toBeInTheDocument();
 });
 
 test('renders options with column', () => {
@@ -76,7 +98,7 @@ test('renders options with column', () => {
       useDnd: true,
     },
   );
-  expect(screen.getByText('Drop columns or metrics')).toBeInTheDocument();
+  expect(screen.getByText('Drop columns or metrics here')).toBeInTheDocument();
 });
 
 test('renders options with adhoc metric', () => {
@@ -84,8 +106,18 @@ test('renders options with adhoc metric', () => {
     expression: 'AVG(birth_names.num)',
     metric_name: 'avg__num',
   });
-  render(<DndFilterSelect {...defaultProps} formData={[adhocMetric]} />, {
-    useDnd: true,
-  });
-  expect(screen.getByText('Drop columns or metrics')).toBeInTheDocument();
+  render(
+    <DndFilterSelect
+      {...defaultProps}
+      formData={{
+        ...baseFormData,
+        ...TimeseriesDefaultFormData,
+        metrics: [adhocMetric],
+      }}
+    />,
+    {
+      useDnd: true,
+    },
+  );
+  expect(screen.getByText('Drop columns or metrics here')).toBeInTheDocument();
 });

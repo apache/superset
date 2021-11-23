@@ -22,11 +22,11 @@ import { t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 import copyTextToClipboard from 'src/utils/copy';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import { useUrlShortener } from 'src/common/hooks/useUrlShortener';
 import EmbedCodeButton from './EmbedCodeButton';
-import ConnectedDisplayQueryButton from './DisplayQueryButton';
 import { exportChart, getExploreLongUrl } from '../exploreUtils';
+import ExploreAdditionalActionsMenu from './ExploreAdditionalActionsMenu';
 
 type ActionButtonProps = {
   icon: React.ReactElement;
@@ -39,7 +39,7 @@ type ActionButtonProps = {
 };
 
 type ExploreActionButtonsProps = {
-  actions: { redirectSQLLab: Function; openPropertiesModal: Function };
+  actions: { redirectSQLLab: () => void; openPropertiesModal: () => void };
   canDownloadCSV: boolean;
   chartStatus: string;
   latestQueryFormData: {};
@@ -49,14 +49,8 @@ type ExploreActionButtonsProps = {
 };
 
 const ActionButton = (props: ActionButtonProps) => {
-  const {
-    icon,
-    text,
-    tooltip,
-    className,
-    onTooltipVisibilityChange,
-    ...rest
-  } = props;
+  const { icon, text, tooltip, className, onTooltipVisibilityChange, ...rest } =
+    props;
   return (
     <Tooltip
       id={`${icon}-tooltip`}
@@ -90,7 +84,6 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
     canDownloadCSV,
     chartStatus,
     latestQueryFormData,
-    queriesResponse,
     slice,
     addDangerToast,
   } = props;
@@ -125,7 +118,7 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
   const doExportCSV = canDownloadCSV
     ? exportChart.bind(this, {
         formData: latestQueryFormData,
-        resultType: 'results',
+        resultType: 'full',
         resultFormat: 'csv',
       })
     : null;
@@ -178,8 +171,7 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
           />
         </>
       )}
-      <ConnectedDisplayQueryButton
-        queryResponse={queriesResponse?.[0]}
+      <ExploreAdditionalActionsMenu
         latestQueryFormData={latestQueryFormData}
         chartStatus={chartStatus}
         onOpenInEditor={actions.redirectSQLLab}

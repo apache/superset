@@ -17,9 +17,9 @@
  * under the License.
  */
 import React, { EventHandler, ChangeEvent, MouseEvent } from 'react';
-import { t, supersetTheme } from '@superset-ui/core';
+import { t, SupersetTheme } from '@superset-ui/core';
 import Button from 'src/components/Button';
-import { StyledInputContainer } from './styles';
+import { StyledInputContainer, wideButton } from './styles';
 
 import { DatabaseObject } from '../types';
 
@@ -28,11 +28,13 @@ const SqlAlchemyTab = ({
   onInputChange,
   testConnection,
   conf,
+  isEditMode = false,
 }: {
   db: DatabaseObject | null;
   onInputChange: EventHandler<ChangeEvent<HTMLInputElement>>;
   testConnection: EventHandler<MouseEvent<HTMLElement>>;
   conf: { SQLALCHEMY_DOCS_URL: string; SQLALCHEMY_DISPLAY_TEXT: string };
+  isEditMode?: boolean;
 }) => (
   <>
     <StyledInputContainer>
@@ -44,8 +46,9 @@ const SqlAlchemyTab = ({
         <input
           type="text"
           name="database_name"
+          data-test="database-name-input"
           value={db?.database_name || ''}
-          placeholder={t('Name your dataset')}
+          placeholder={t('Name your database')}
           onChange={onInputChange}
         />
       </div>
@@ -62,6 +65,7 @@ const SqlAlchemyTab = ({
         <input
           type="text"
           name="sqlalchemy_uri"
+          data-test="sqlalchemy-uri-input"
           value={db?.sqlalchemy_uri || ''}
           autoComplete="off"
           placeholder={t(
@@ -71,25 +75,22 @@ const SqlAlchemyTab = ({
         />
       </div>
       <div className="helper">
-        {t('Refer to the ')}
+        {t('Refer to the')}{' '}
         <a
           href={conf?.SQLALCHEMY_DOCS_URL ?? ''}
           target="_blank"
           rel="noopener noreferrer"
         >
           {conf?.SQLALCHEMY_DISPLAY_TEXT ?? ''}
-        </a>
-        {t(' for more information on how to structure your URI.')}
+        </a>{' '}
+        {t('for more information on how to structure your URI.')}
       </div>
     </StyledInputContainer>
     <Button
       onClick={testConnection}
       cta
       buttonStyle="link"
-      style={{
-        width: '100%',
-        border: `1px solid ${supersetTheme.colors.primary.base}`,
-      }}
+      css={(theme: SupersetTheme) => wideButton(theme)}
     >
       {t('Test connection')}
     </Button>

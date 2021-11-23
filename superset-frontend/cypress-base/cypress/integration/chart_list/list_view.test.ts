@@ -22,7 +22,7 @@ describe('chart list view', () => {
   beforeEach(() => {
     cy.login();
     cy.visit(CHART_LIST);
-    cy.get('[data-test="list-view"]').click();
+    cy.get('[aria-label="list-view"]').click();
   });
 
   it('should load rows', () => {
@@ -51,11 +51,11 @@ describe('chart list view', () => {
   it('should bulk delete correctly', () => {
     cy.get('[data-test="listview-table"]').should('be.visible');
     cy.get('[data-test="bulk-select"]').eq(0).click();
-    cy.get('[data-test="checkbox-off"]').eq(1).siblings('input').click();
-    cy.get('[data-test="checkbox-off"]').eq(2).siblings('input').click();
+    cy.get('[aria-label="checkbox-off"]').eq(1).siblings('input').click();
+    cy.get('[aria-label="checkbox-off"]').eq(2).siblings('input').click();
     cy.get('[data-test="bulk-select-action"]').eq(0).click();
     cy.get('[data-test="delete-modal-input"]').eq(0).type('DELETE');
     cy.get('[data-test="modal-confirm-button"]').eq(0).click();
-    cy.get('[data-test="checkbox-on"]').should('not.exist');
+    cy.get('[aria-label="checkbox-on"]').should('not.exist');
   });
 });

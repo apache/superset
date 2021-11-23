@@ -59,7 +59,10 @@ const defaultProps = {
 class AnnotationLayerControl extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.state = { popoverVisible: {}, addedAnnotationIndex: null };
+    this.state = {
+      popoverVisible: {},
+      addedAnnotationIndex: null,
+    };
     this.addAnnotationLayer = this.addAnnotationLayer.bind(this);
     this.removeAnnotationLayer = this.removeAnnotationLayer.bind(this);
     this.handleVisibleChange = this.handleVisibleChange.bind(this);

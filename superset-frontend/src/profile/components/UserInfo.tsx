@@ -60,8 +60,8 @@ export default function UserInfo({ user }: UserInfoProps) {
         </div>
         <hr />
         <p>
-          <i className="fa fa-clock-o" /> {t('joined')}{' '}
-          {moment(user.createdOn, 'YYYYMMDD').fromNow()}
+          <i className="fa fa-clock-o" data-test="clock-icon-test" />{' '}
+          {t('joined')} {moment(user.createdOn, 'YYYYMMDD').fromNow()}
         </p>
         <p className="email">
           <i className="fa fa-envelope-o" /> {user.email}

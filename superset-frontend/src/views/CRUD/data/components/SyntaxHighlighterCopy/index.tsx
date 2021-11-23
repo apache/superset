@@ -25,8 +25,8 @@ import markdownSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/mar
 import jsonSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/json';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
-import { ToastProps } from 'src/messageToasts/enhancers/withToasts';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
+import { ToastProps } from 'src/components/MessageToasts/withToasts';
 import copyTextToClipboard from 'src/utils/copy';
 
 SyntaxHighlighter.registerLanguage('sql', sqlSyntax);
@@ -49,6 +49,7 @@ const SyntaxHighlighterWrapper = styled.div`
     left: 512px;
     visibility: hidden;
     margin: -4px;
+    color: ${({ theme }) => theme.colors.grayscale.base};
   }
 `;
 
@@ -78,9 +79,8 @@ export default function SyntaxHighlighterCopy({
   }
   return (
     <SyntaxHighlighterWrapper>
-      <Icon
+      <Icons.Copy
         tabIndex={0}
-        name="copy"
         role="button"
         onClick={e => {
           e.preventDefault();

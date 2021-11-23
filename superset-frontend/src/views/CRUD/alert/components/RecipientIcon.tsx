@@ -16,38 +16,38 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, t } from '@superset-ui/core';
-import React from 'react';
+import { t, SupersetTheme, css } from '@superset-ui/core';
+import React, { ReactElement } from 'react';
 import { Tooltip } from 'src/components/Tooltip';
-import Icon, { IconName } from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import { RecipientIconName } from '../types';
 
-const StyledIcon = styled(Icon)`
-  color: ${({ theme }) => theme.colors.grayscale.light1};
-  margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+const StyledIcon = (theme: SupersetTheme) => css`
+  color: ${theme.colors.grayscale.light1};
+  margin-right: ${theme.gridUnit * 2}px;
 `;
 
 export default function RecipientIcon({ type }: { type: string }) {
-  const recipientIconConfig = {
-    name: '',
+  const recipientIconConfig: { icon: null | ReactElement; label: string } = {
+    icon: null,
     label: '',
   };
   switch (type) {
     case RecipientIconName.email:
-      recipientIconConfig.name = 'email';
+      recipientIconConfig.icon = <Icons.Email css={StyledIcon} />;
       recipientIconConfig.label = t(`${RecipientIconName.email}`);
       break;
     case RecipientIconName.slack:
-      recipientIconConfig.name = 'slack';
+      recipientIconConfig.icon = <Icons.Slack css={StyledIcon} />;
       recipientIconConfig.label = t(`${RecipientIconName.slack}`);
       break;
     default:
-      recipientIconConfig.name = '';
+      recipientIconConfig.icon = null;
       recipientIconConfig.label = '';
   }
-  return recipientIconConfig.name.length ? (
+  return recipientIconConfig.icon ? (
     <Tooltip title={recipientIconConfig.label} placement="bottom">
-      <StyledIcon name={recipientIconConfig.name as IconName} />
+      {recipientIconConfig.icon}
     </Tooltip>
   ) : null;
 }

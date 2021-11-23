@@ -18,6 +18,7 @@
 import json
 from typing import Any, Dict
 
+from flask import g
 from sqlalchemy.orm import Session
 
 from superset.models.slice import Slice
@@ -38,5 +39,8 @@ def import_chart(
     chart = Slice.import_from_dict(session, config, recursive=False)
     if chart.id is None:
         session.flush()
+
+    if hasattr(g, "user") and g.user:
+        chart.owners.append(g.user)
 
     return chart

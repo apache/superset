@@ -24,21 +24,19 @@ from urllib import request
 
 from superset import app, db
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.models import core as models
 from superset.models.slice import Slice
 
 BASE_URL = "https://github.com/apache-superset/examples-data/blob/master/"
 
-# Shortcuts
-DB = models.Database
-
-TBL = ConnectorRegistry.sources["table"]
-
-config = app.config
-
-EXAMPLES_FOLDER = os.path.join(config["BASE_DIR"], "examples")
-
 misc_dash_slices: Set[str] = set()  # slices assembled in a 'Misc Chart' dashboard
+
+
+def get_table_connector_registry() -> Any:
+    return ConnectorRegistry.sources["table"]
+
+
+def get_examples_folder() -> str:
+    return os.path.join(app.config["BASE_DIR"], "examples")
 
 
 def update_slice_ids(layout_dict: Dict[Any, Any], slices: List[Slice]) -> None:
@@ -71,7 +69,9 @@ def get_slice_json(defaults: Dict[Any, Any], **kwargs: Any) -> str:
 def get_example_data(
     filepath: str, is_gzip: bool = True, make_bytes: bool = False
 ) -> BytesIO:
-    content = request.urlopen(f"{BASE_URL}{filepath}?raw=true").read()
+    content = request.urlopen(  # pylint: disable=consider-using-with
+        f"{BASE_URL}{filepath}?raw=true"
+    ).read()
     if is_gzip:
         content = zlib.decompress(content, zlib.MAX_WBITS | 16)
     if make_bytes:

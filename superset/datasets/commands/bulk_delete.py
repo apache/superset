@@ -74,7 +74,7 @@ class BulkDeleteDatasetCommand(BaseCommand):
             return None
         except DeleteFailedError as ex:
             logger.exception(ex.exception)
-            raise DatasetBulkDeleteFailedError()
+            raise DatasetBulkDeleteFailedError() from ex
 
     def validate(self) -> None:
         # Validate/populate model exists
@@ -85,5 +85,5 @@ class BulkDeleteDatasetCommand(BaseCommand):
         for model in self._models:
             try:
                 check_ownership(model)
-            except SupersetSecurityException:
-                raise DatasetForbiddenError()
+            except SupersetSecurityException as ex:
+                raise DatasetForbiddenError() from ex

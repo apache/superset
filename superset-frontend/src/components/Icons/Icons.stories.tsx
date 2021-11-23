@@ -72,7 +72,7 @@ InteractiveIcons.argTypes = {
   },
   iconSize: {
     defaultValue: 'xl',
-    control: { type: 'inline-radio' },
+    control: { type: 'inline-radio', options: ['s', 'l', 'm', 'xl', 'xxl'] },
   },
   iconColor: {
     defaultValue: null,

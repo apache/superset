@@ -39,7 +39,7 @@ import { BYTES_PER_CHAR, KB_STORAGE } from './constants';
 import setupApp from '../setup/setupApp';
 
 import './main.less';
-import '../../stylesheets/reactable-pagination.less';
+import '../assets/stylesheets/reactable-pagination.less';
 import '../components/FilterableTable/FilterableTableStyles.less';
 import { theme } from '../preamble';
 
@@ -71,6 +71,12 @@ const sqlLabPersistStateConfig = {
         }
       });
 
+      if (subset.sqlLab?.user) {
+        // Don't persist the user.
+        // User should really not be stored under the "sqlLab" field. Oh well.
+        delete subset.sqlLab.user;
+      }
+
       const data = JSON.stringify(subset);
       // 2 digit precision
       const currentSize =
@@ -80,6 +86,16 @@ const sqlLabPersistStateConfig = {
       }
 
       return subset;
+    },
+    merge: (initialState, persistedState = {}) => {
+      const result = {
+        ...initialState,
+        ...persistedState,
+      };
+      // Filter out any user data that may have been persisted in an older version.
+      // Get user from bootstrap data instead, every time
+      result.sqlLab.user = initialState.sqlLab.user;
+      return result;
     },
   },
 };

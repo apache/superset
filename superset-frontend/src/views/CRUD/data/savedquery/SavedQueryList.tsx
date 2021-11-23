@@ -25,12 +25,12 @@ import {
   createFetchRelated,
   createFetchDistinct,
   createErrorHandler,
-  handleBulkSavedQueryExport,
 } from 'src/views/CRUD/utils';
 import Popover from 'src/components/Popover';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+import handleResourceExport from 'src/utils/export';
 import SubMenu, {
   SubMenuProps,
   ButtonProps,
@@ -40,6 +40,7 @@ import ListView, {
   Filters,
   FilterOperator,
 } from 'src/components/ListView';
+import Loading from 'src/components/Loading';
 import DeleteModal from 'src/components/DeleteModal';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import { Tooltip } from 'src/components/Tooltip';
@@ -107,16 +108,13 @@ function SavedQueryList({
     t('Saved queries'),
     addDangerToast,
   );
-  const [
-    queryCurrentlyDeleting,
-    setQueryCurrentlyDeleting,
-  ] = useState<SavedQueryObject | null>(null);
-  const [
-    savedQueryCurrentlyPreviewing,
-    setSavedQueryCurrentlyPreviewing,
-  ] = useState<SavedQueryObject | null>(null);
+  const [queryCurrentlyDeleting, setQueryCurrentlyDeleting] =
+    useState<SavedQueryObject | null>(null);
+  const [savedQueryCurrentlyPreviewing, setSavedQueryCurrentlyPreviewing] =
+    useState<SavedQueryObject | null>(null);
   const [importingSavedQuery, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
+  const [preparingExport, setPreparingExport] = useState<boolean>(false);
 
   const openSavedQueryImportModal = () => {
     showImportModal(true);
@@ -131,6 +129,7 @@ function SavedQueryList({
     refreshData();
   };
 
+  const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport =
@@ -183,7 +182,7 @@ function SavedQueryList({
     buttonStyle: 'primary',
   });
 
-  if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
+  if (canCreate && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
     subMenuButtons.push({
       name: (
         <Tooltip
@@ -236,6 +235,16 @@ function SavedQueryList({
         addDangerToast(t('There was an issue deleting %s: %s', label, errMsg)),
       ),
     );
+  };
+
+  const handleBulkSavedQueryExport = (
+    savedQueriesToExport: SavedQueryObject[],
+  ) => {
+    const ids = savedQueriesToExport.map(({ id }) => id);
+    handleResourceExport('saved_query', ids, () => {
+      setPreparingExport(false);
+    });
+    setPreparingExport(true);
   };
 
   const handleBulkQueryDelete = (queriesToDelete: SavedQueryObject[]) => {
@@ -542,6 +551,7 @@ function SavedQueryList({
         passwordFields={passwordFields}
         setPasswordFields={setPasswordFields}
       />
+      {preparingExport && <Loading />}
     </>
   );
 }
