@@ -40,14 +40,14 @@ export const dropdownItems = [
     url: '/chart/add',
     icon: 'fa-fw fa-bar-chart',
     perm: 'can_write',
-    view: 'Dashboard',
+    view: 'Chart',
   },
   {
     label: t('Dashboard'),
     url: '/dashboard/new',
     icon: 'fa-fw fa-dashboard',
     perm: 'can_write',
-    view: 'Chart',
+    view: 'Dashboard',
   },
 ];
 

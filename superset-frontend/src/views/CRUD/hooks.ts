@@ -428,6 +428,7 @@ export function useImportResource(
       return SupersetClient.post({
         endpoint: `/api/v1/${resourceName}/import/`,
         body: formData,
+        headers: { Accept: 'application/json' },
       })
         .then(() => true)
         .catch(response =>
@@ -554,10 +555,8 @@ export const useChartEditModal = (
   setCharts: (charts: Array<Chart>) => void,
   charts: Array<Chart>,
 ) => {
-  const [
-    sliceCurrentlyEditing,
-    setSliceCurrentlyEditing,
-  ] = useState<Slice | null>(null);
+  const [sliceCurrentlyEditing, setSliceCurrentlyEditing] =
+    useState<Slice | null>(null);
 
   function openChartEditModal(chart: Chart) {
     setSliceCurrentlyEditing({
@@ -624,7 +623,7 @@ export const testDatabaseConnection = (
       addSuccessToast(t('Connection looks good!'));
     },
     createErrorHandler((errMsg: Record<string, string[] | string> | string) => {
-      handleErrorMsg(t(`${t('ERROR: ')}${parsedErrorMessage(errMsg)}`));
+      handleErrorMsg(t('ERROR: %s', parsedErrorMessage(errMsg)));
     }),
   );
 };

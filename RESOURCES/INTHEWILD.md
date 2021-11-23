@@ -84,6 +84,7 @@ Join our growing community!
 - [Intercom](https://www.intercom.com/) [@kate-gallo]
 - [jampp](https://jampp.com/)
 - [Konfío](http://konfio.mx) [@uis-rodriguez]
+- [mishmash io](https://mishmash.io/)[@mishmash-io]
 - [Myra Labs](http://www.myralabs.com/) [@viksit]
 - [Nielsen](http://www.nielsen.com/) [@amitNielsen]
 - [Ona](https://ona.io) [@pld]
@@ -137,7 +138,11 @@ Join our growing community!
 - [TrustMedis](https://trustmedis.com) [@famasya]
 - [WeSure](https://www.wesure.cn/)
 
+### HR / Staffing
+- [Symmetrics](https://www.symmetrics.fyi)
+
 ### Others
+ - [Dropbox](https://www.dropbox.com/) [@bkyryliuk]
  - [Grassroot](https://www.grassrootinstitute.org/)
  - [komoot](https://www.komoot.com/) [@christophlingg]
  - [Let's Roam](https://www.letsroam.com/)

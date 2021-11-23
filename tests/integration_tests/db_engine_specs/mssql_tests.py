@@ -79,7 +79,7 @@ class TestMssqlEngineSpec(TestDbEngineSpec):
         col = column("MixedCase")
         expr = MssqlEngineSpec.get_timestamp_expr(col, None, "P1Y")
         result = str(expr.compile(None, dialect=mssql.dialect()))
-        self.assertEqual(result, "DATEADD(year, DATEDIFF(year, 0, [MixedCase]), 0)")
+        self.assertEqual(result, "DATEADD(YEAR, DATEDIFF(YEAR, 0, [MixedCase]), 0)")
 
     def test_convert_dttm(self):
         dttm = self.get_dttm()

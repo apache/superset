@@ -91,10 +91,8 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
   show,
 }) => {
   const [disableSave, setDisableSave] = useState<boolean>(true);
-  const [
-    currentAnnotation,
-    setCurrentAnnotation,
-  ] = useState<AnnotationObject | null>(null);
+  const [currentAnnotation, setCurrentAnnotation] =
+    useState<AnnotationObject | null>(null);
   const isEditMode = annotation !== null;
 
   // annotation fetch logic
@@ -220,9 +218,9 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
   const validate = () => {
     if (
       currentAnnotation &&
-      currentAnnotation.short_descr.length &&
-      currentAnnotation.start_dttm.length &&
-      currentAnnotation.end_dttm.length
+      currentAnnotation.short_descr?.length &&
+      currentAnnotation.start_dttm?.length &&
+      currentAnnotation.end_dttm?.length
     ) {
       setDisableSave(false);
     } else {

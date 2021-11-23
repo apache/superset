@@ -118,8 +118,13 @@ export function savePublished(id, isPublished) {
       }),
     })
       .then(() => {
-        const nowPublished = isPublished ? 'published' : 'hidden';
-        dispatch(addSuccessToast(t(`This dashboard is now ${nowPublished}`)));
+        dispatch(
+          addSuccessToast(
+            isPublished
+              ? t('This dashboard is now published')
+              : t('This dashboard is now hidden'),
+          ),
+        );
         dispatch(togglePublished(isPublished));
       })
       .catch(() => {
@@ -370,8 +375,8 @@ export function setDirectPathToChild(path) {
 }
 
 export const SET_ACTIVE_TABS = 'SET_ACTIVE_TABS';
-export function setActiveTabs(tabIds) {
-  return { type: SET_ACTIVE_TABS, tabIds };
+export function setActiveTabs(tabId, prevTabId) {
+  return { type: SET_ACTIVE_TABS, tabId, prevTabId };
 }
 
 export const SET_FOCUSED_FILTER_FIELD = 'SET_FOCUSED_FILTER_FIELD';

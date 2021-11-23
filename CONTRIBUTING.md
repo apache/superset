@@ -420,7 +420,7 @@ For example, the image referenced above actually lives in `superset-frontend/src
 
 #### OS Dependencies
 
-Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/installing-superset-from-scratch#os-dependencies) before following these steps.  
+Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/installing-superset-from-scratch#os-dependencies) before following these steps.
 You also need to install MySQL or [MariaDB](https://mariadb.com/downloads).
 
 Ensure that you are using Python version 3.7 or 3.8, then proceed with:
@@ -436,11 +436,11 @@ pip install -r requirements/testing.txt
 # Install Superset in editable (development) mode
 pip install -e .
 
-# Create an admin user in your metadata database (use `admin` as username to be able to load the examples)
-superset fab create-admin
-
 # Initialize the database
 superset db upgrade
+
+# Create an admin user in your metadata database (use `admin` as username to be able to load the examples)
+superset fab create-admin
 
 # Create default roles and permissions
 superset init
@@ -523,6 +523,7 @@ Frontend assets (TypeScript, JavaScript, CSS, and images) must be compiled in or
 ##### nvm and node
 
 First, be sure you are using the following versions of Node.js and npm:
+
 - `Node.js`: Version 16
 - `npm`: Version 7
 
@@ -650,21 +651,34 @@ pre-commit run --all-files
 
 ## Linting
 
-Lint the project with:
+### Python
+
+We use [Pylint](https://pylint.org/) for linting which can be invoked via:
 
 ```bash
 # for python
 tox -e pylint
+```
 
-Alternatively, you can use pre-commit (mentioned above) for python linting
+In terms of best practices please advoid blanket disablement of Pylint messages globally (via `.pylintrc`) or top-level within the file header, albeit there being a few exceptions. Disablement should occur inline as it prevents masking issues and provides context as to why said message is disabled.
 
-The Python code is auto-formatted using [Black](https://github.com/python/black) which
+Additionally the Python code is auto-formatted using [Black](https://github.com/python/black) which
 is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/editor_integration.html)
 
-# for frontend
+### TypeScript
+
+```bash
 cd superset-frontend
 npm ci
 npm run lint
+```
+
+If using the eslint extension with vscode, put the following in your workspace `settings.json` file:
+
+```json
+"eslint.workingDirectories": [
+  "superset-frontend"
+]
 ```
 
 ## Conventions
@@ -752,13 +766,19 @@ Note that the test environment uses a temporary directory for defining the
 SQLite databases which will be cleared each time before the group of test
 commands are invoked.
 
-There is also a utility script included in the Superset codebase to run python tests. The [readme can be
+There is also a utility script included in the Superset codebase to run python integration tests. The [readme can be
 found here](https://github.com/apache/superset/tree/master/scripts/tests)
 
-To run all tests for example, run this script from the root directory:
+To run all integration tests for example, run this script from the root directory:
 
 ```bash
 scripts/tests/run.sh
+```
+
+You can run unit tests found in './tests/unit_tests' for example with pytest. It is a simple way to run an isolated test that doesn't need any database setup
+
+```bash
+pytest ./link_to_test.py
 ```
 
 ### Frontend Testing
@@ -891,7 +911,7 @@ apt install -y net-tools
 pip install debugpy
 ```
 
-Find the PID for the Flask process. Make sure to use the first PID. The Flask app will re-spawn a sub-process everytime you change any of the python code. So it's important to use the first PID.
+Find the PID for the Flask process. Make sure to use the first PID. The Flask app will re-spawn a sub-process every time you change any of the python code. So it's important to use the first PID.
 
 ```bash
 ps -ef
@@ -962,7 +982,7 @@ Once the pod is running as root and has the SYS_PTRACE capability it will be abl
 
 You can follow the same instructions as in the docker-compose. Enter the pod and install the required library and packages; gdb, netstat and debugpy.
 
-Often in a kuernetes environment nodes are not addressable from ouside the cluster. VSCode will thus be unable to remotely connect to port 5678 on a kubernetes node. In order to do this you need to create a tunnel that port forwards 5678 to your local machine.
+Often in a Kubernetes environment nodes are not addressable from outside the cluster. VSCode will thus be unable to remotely connect to port 5678 on a Kubernetes node. In order to do this you need to create a tunnel that port forwards 5678 to your local machine.
 
 ```
 kubectl port-forward  pod/superset-<some random id> 5678:5678
@@ -1328,7 +1348,7 @@ Chart parameters are stored as a JSON encoded string the `slices.params` column 
 
 The following tables provide a non-exhausive list of the various fields which can be present in the JSON object grouped by the Explorer pane sections. These values were obtained by extracting the distinct fields from a legacy deployment consisting of tens of thousands of charts and thus some fields may be missing whilst others may be deprecated.
 
-Note not all fields are correctly catagorized. The fields vary based on visualization type and may apprear in different sections depending on the type. Verified deprecated columns may indicate a missing migration and/or prior migrations which were unsucessful and thus future work may be required to clean up the form-data.
+Note not all fields are correctly categorized. The fields vary based on visualization type and may apprear in different sections depending on the type. Verified deprecated columns may indicate a missing migration and/or prior migrations which were unsuccessful and thus future work may be required to clean up the form-data.
 
 ### Datasource & Chart Type
 
