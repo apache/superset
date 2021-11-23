@@ -33,7 +33,7 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import backref, relationship, RelationshipProperty
+from sqlalchemy.orm import backref, relationship, validates, RelationshipProperty
 
 from superset import db, security_manager
 from superset.models.helpers import AuditMixinNullable
@@ -95,6 +95,20 @@ class Alert(Model, AuditMixinNullable):
             """
         ),
     )
+    selected_components = Column(
+        Text,
+        nullable=True,
+    )
+
+    @validates("selected_components")
+    def validate_selected_components(self, key, value):
+        if value is None:
+            return None
+        try:
+            json_value = json.loads(value)
+        except Exception as e:
+            raise
+        return json_value
 
     @declared_attr
     def database_id(self) -> int:
@@ -126,7 +140,7 @@ class Alert(Model, AuditMixinNullable):
 
     @property
     def pretty_config(self) -> str:
-        """ String representing the comparison that will trigger a validator """
+        """String representing the comparison that will trigger a validator"""
         config = json.loads(self.validator_config)
 
         if self.validator_type.lower() == "operator":
