@@ -355,20 +355,16 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             />
           </div>
         )}
-        {Object.keys(dataMaskSelected).length ? (
-          <div css={tabPaneStyle}>
-            <Footer
-              getFilterBarTestId={getFilterBarTestId}
-              onApply={handleApply}
-              onClearAll={handleClearAll}
-              isApplyDisabled={isApplyDisabled}
-              dataMaskSelected={dataMaskSelected}
-              dataMaskApplied={dataMaskApplied}
-            />
-          </div>
-        ) : (
-          <div css={tabPaneStyle} />
-        )}
+        <div css={tabPaneStyle}>
+          <Footer
+            getFilterBarTestId={getFilterBarTestId}
+            onApply={handleApply}
+            onClearAll={handleClearAll}
+            isApplyDisabled={isApplyDisabled}
+            dataMaskSelected={dataMaskSelected}
+            dataMaskApplied={dataMaskApplied}
+          />
+        </div>
       </Bar>
     </BarWrapper>
   );
