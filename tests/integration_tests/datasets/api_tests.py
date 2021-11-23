@@ -1380,6 +1380,7 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "export")
         assert rv.status_code == 404
 
+    @pytest.mark.usefixtures("create_datasets")
     def test_export_dataset_gamma(self):
         """
         Dataset API: Test export dataset has gamma
