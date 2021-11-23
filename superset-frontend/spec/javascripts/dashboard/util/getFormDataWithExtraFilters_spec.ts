@@ -48,6 +48,7 @@ describe('getFormDataWithExtraFilters', () => {
           val: ['United States'],
         },
       ],
+      datasource: '123',
     },
   };
   const mockArgs: GetFormDataWithExtraFiltersArguments = {
@@ -64,13 +65,13 @@ describe('getFormDataWithExtraFilters', () => {
     nativeFilters: {
       filterSets: {},
       filters: {
-        [filterId]: ({
+        [filterId]: {
           id: filterId,
           scope: {
             rootPath: [DASHBOARD_ROOT_ID],
             excluded: [],
           },
-        } as unknown) as Filter,
+        } as unknown as Filter,
       },
     },
     dataMask: {
@@ -81,7 +82,7 @@ describe('getFormDataWithExtraFilters', () => {
         ownState: {},
       },
     },
-    layout: (dashboardLayout.present as unknown) as {
+    layout: dashboardLayout.present as unknown as {
       [key: string]: LayoutItem;
     },
   };

@@ -30,6 +30,7 @@ export type QueryState =
   | 'running'
   | 'scheduled'
   | 'success'
+  | 'fetching'
   | 'timed_out';
 
 export type Query = {
@@ -68,3 +69,16 @@ export type Query = {
   queryLimit: number;
   limitingFactor: string;
 };
+
+export interface QueryEditor {
+  dbId?: number;
+  title: string;
+  schema: string;
+  autorun: boolean;
+  sql: string;
+  remoteId: number | null;
+  validationResult?: {
+    completed: boolean;
+    errors: SupersetError[];
+  };
+}

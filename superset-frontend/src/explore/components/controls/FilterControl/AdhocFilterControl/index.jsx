@@ -30,7 +30,10 @@ import ControlHeader from 'src/explore/components/ControlHeader';
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
 import savedMetricType from 'src/explore/components/controls/MetricControl/savedMetricType';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
-import { OPERATORS } from 'src/explore/constants';
+import {
+  Operators,
+  OPERATOR_ENUM_TO_OPERATOR_TYPE,
+} from 'src/explore/constants';
 import FilterDefinitionOption from 'src/explore/components/controls/MetricControl/FilterDefinitionOption';
 import {
   AddControlLabel,
@@ -56,6 +59,8 @@ const selectedMetricType = PropTypes.oneOfType([
 const propTypes = {
   label: PropTypes.oneOfType([PropTypes.object, PropTypes.string]),
   name: PropTypes.string,
+  sections: PropTypes.arrayOf(PropTypes.string),
+  operators: PropTypes.arrayOf(PropTypes.string),
   onChange: PropTypes.func,
   value: PropTypes.arrayOf(adhocFilterType),
   datasource: PropTypes.object,
@@ -104,6 +109,8 @@ class AdhocFilterControl extends React.Component {
         adhocFilter={adhocFilter}
         onFilterEdit={this.onFilterEdit}
         options={this.state.options}
+        sections={this.props.sections}
+        operators={this.props.operators}
         datasource={this.props.datasource}
         onRemoveFilter={() => this.onRemoveFilter(index)}
         onMoveLabel={this.moveLabel}
@@ -242,7 +249,8 @@ class AdhocFilterControl extends React.Component {
           this.props.datasource.type === 'druid'
             ? option.saved_metric_name
             : this.getMetricExpression(option.saved_metric_name),
-        operator: OPERATORS['>'],
+        operator:
+          OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
         comparator: 0,
         clause: CLAUSES.HAVING,
       });
@@ -258,7 +266,8 @@ class AdhocFilterControl extends React.Component {
           this.props.datasource.type === 'druid'
             ? option.label
             : new AdhocMetric(option).translateToSql(),
-        operator: OPERATORS['>'],
+        operator:
+          OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
         comparator: 0,
         clause: CLAUSES.HAVING,
       });
@@ -268,7 +277,7 @@ class AdhocFilterControl extends React.Component {
       return new AdhocFilter({
         expressionType: EXPRESSION_TYPES.SIMPLE,
         subject: option.column_name,
-        operator: OPERATORS['=='],
+        operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.EQUALS].operation,
         comparator: '',
         clause: CLAUSES.WHERE,
         isNew: true,
@@ -319,12 +328,13 @@ class AdhocFilterControl extends React.Component {
   addNewFilterPopoverTrigger(trigger) {
     return (
       <AdhocFilterPopoverTrigger
+        operators={this.props.operators}
+        sections={this.props.sections}
         adhocFilter={new AdhocFilter({})}
         datasource={this.props.datasource}
         options={this.state.options}
         onFilterEdit={this.onNewFilter}
         partitionColumn={this.state.partitionColumn}
-        createNew
       >
         {trigger}
       </AdhocFilterPopoverTrigger>

@@ -103,7 +103,7 @@ describe('Dashboard tabs', () => {
     cy.get('[data-test="grid-container"]').find('.box_plot');
   });
 
-  it('should send new queries when tab becomes visible', () => {
+  xit('should send new queries when tab becomes visible', () => {
     // landing in first tab
     waitForChartLoad(FILTER_BOX);
     waitForChartLoad(TREEMAP);
@@ -121,8 +121,8 @@ describe('Dashboard tabs', () => {
         const requestParams = JSON.parse(requestBody.form_data as string);
         expect(requestParams.extra_filters[0]).deep.eq({
           col: 'region',
-          op: '==',
-          val: 'South Asia',
+          op: 'IN',
+          val: ['South Asia'],
         });
       });
     });
@@ -136,8 +136,8 @@ describe('Dashboard tabs', () => {
       const requestParams = JSON.parse(requestBody.form_data as string);
       expect(requestParams.extra_filters[0]).deep.eq({
         col: 'region',
-        op: '==',
-        val: 'South Asia',
+        op: 'IN',
+        val: ['South Asia'],
       });
       expect(requestParams.viz_type).eq(LINE_CHART.viz);
     });
@@ -150,8 +150,8 @@ describe('Dashboard tabs', () => {
     cy.wait('@v1ChartData').then(({ request }) => {
       expect(request.body.queries[0].filters[0]).deep.eq({
         col: 'region',
-        op: '==',
-        val: 'South Asia',
+        op: 'IN',
+        val: ['South Asia'],
       });
     });
 

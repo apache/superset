@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -22,10 +23,11 @@ import { t, styled, supersetTheme } from '@superset-ui/core';
 
 import { Dropdown, Menu } from 'src/common/components';
 import { Tooltip } from 'src/components/Tooltip';
-import Icon from 'src/components/Icon';
 import Icons from 'src/components/Icons';
-import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
-import DatasourceModal from 'src/datasource/DatasourceModal';
+import {
+  ChangeDatasourceModal,
+  DatasourceModal,
+} from 'src/components/Datasource';
 import { postForm } from 'src/explore/exploreUtils';
 import Button from 'src/components/Button';
 import ErrorAlert from 'src/components/ErrorMessage/ErrorAlert';
@@ -36,6 +38,7 @@ const propTypes = {
   onChange: PropTypes.func,
   value: PropTypes.string,
   datasource: PropTypes.object.isRequired,
+  form_data: PropTypes.object.isRequired,
   isEditable: PropTypes.bool,
   onDatasourceSave: PropTypes.func,
 };
@@ -93,6 +96,12 @@ const Styles = styled.div`
     margin-right: ${({ theme }) => 2 * theme.gridUnit}px;
     flex: none;
   }
+  span[aria-label='dataset-physical'] {
+    color: ${({ theme }) => theme.colors.grayscale.base};
+  }
+  span[aria-label='more-vert'] {
+    color: ${({ theme }) => theme.colors.primary.base};
+  }
 `;
 
 const CHANGE_DATASET = 'change_dataset';
@@ -107,9 +116,8 @@ class DatasourceControl extends React.PureComponent {
       showChangeDatasourceModal: false,
     };
     this.onDatasourceSave = this.onDatasourceSave.bind(this);
-    this.toggleChangeDatasourceModal = this.toggleChangeDatasourceModal.bind(
-      this,
-    );
+    this.toggleChangeDatasourceModal =
+      this.toggleChangeDatasourceModal.bind(this);
     this.toggleEditDatasourceModal = this.toggleEditDatasourceModal.bind(this);
     this.toggleShowDatasource = this.toggleShowDatasource.bind(this);
     this.handleMenuItemClick = this.handleMenuItemClick.bind(this);
@@ -117,6 +125,19 @@ class DatasourceControl extends React.PureComponent {
 
   onDatasourceSave(datasource) {
     this.props.actions.setDatasource(datasource);
+    const timeCol = this.props.form_data?.granularity_sqla;
+    const { columns } = this.props.datasource;
+    const firstDttmCol = columns.find(column => column.is_dttm);
+    if (
+      datasource.type === 'table' &&
+      !columns.find(({ column_name }) => column_name === timeCol)?.is_dttm
+    ) {
+      // set `granularity_sqla` to first datatime column name or null
+      this.props.actions.setControlValue(
+        'granularity_sqla',
+        firstDttmCol ? firstDttmCol.column_name : null,
+      );
+    }
     if (this.props.onDatasourceSave) {
       this.props.onDatasourceSave(datasource);
     }
@@ -190,7 +211,7 @@ class DatasourceControl extends React.PureComponent {
     return (
       <Styles data-test="datasource-control" className="DatasourceControl">
         <div className="data-container">
-          <Icon name="dataset-physical" className="dataset-svg" />
+          <Icons.DatasetPhysical className="dataset-svg" />
           {/* Add a tooltip only for long dataset names */}
           {!isMissingDatasource && datasource.name.length > 25 ? (
             <Tooltip title={datasource.name}>
@@ -206,11 +227,8 @@ class DatasourceControl extends React.PureComponent {
               <Icons.AlertSolid iconColor={supersetTheme.colors.warning.base} />
             </Tooltip>
           )}
-          {extra?.warning_markdown && ( // eslint-disable-line camelcase
-            <WarningIconWithTooltip
-              warningMarkdown={extra.warning_markdown} // eslint-disable-line camelcase
-              size={30}
-            />
+          {extra?.warning_markdown && (
+            <WarningIconWithTooltip warningMarkdown={extra.warning_markdown} />
           )}
           <Dropdown
             overlay={datasourceMenu}
@@ -218,10 +236,9 @@ class DatasourceControl extends React.PureComponent {
             data-test="datasource-menu"
           >
             <Tooltip title={t('More dataset related options')}>
-              <Icon
+              <Icons.MoreVert
                 className="datasource-modal-trigger"
                 data-test="datasource-menu-trigger"
-                name="more-horiz"
               />
             </Tooltip>
           </Dropdown>

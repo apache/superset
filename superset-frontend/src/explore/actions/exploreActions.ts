@@ -25,7 +25,10 @@ import {
   QueryFormData,
 } from '@superset-ui/core';
 import { Dispatch } from 'redux';
-import { addDangerToast, toastActions } from 'src/messageToasts/actions';
+import {
+  addDangerToast,
+  toastActions,
+} from 'src/components/MessageToasts/actions';
 import { Slice } from 'src/types/Chart';
 
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
@@ -70,7 +73,7 @@ export const FETCH_FAVE_STAR = 'FETCH_FAVE_STAR';
 export function fetchFaveStar(sliceId: string) {
   return function (dispatch: Dispatch) {
     SupersetClient.get({
-      endpoint: `${FAVESTAR_BASE_URL}/${sliceId}/count`,
+      endpoint: `${FAVESTAR_BASE_URL}/${sliceId}/count/`,
     }).then(({ json }) => {
       if (json.count > 0) {
         dispatch(toggleFaveStar(true));

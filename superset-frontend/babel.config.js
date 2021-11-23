@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const packageConfig = require('./package.json');
+const packageConfig = require('./package');
 
 module.exports = {
   sourceMaps: true,
@@ -45,6 +45,7 @@ module.exports = {
     ['@babel/plugin-proposal-class-properties', { loose: true }],
     ['@babel/plugin-proposal-optional-chaining', { loose: true }],
     ['@babel/plugin-proposal-private-methods', { loose: true }],
+    ['@babel/plugin-proposal-nullish-coalescing-operator', { loose: true }],
     ['@babel/plugin-transform-runtime', { corejs: 3 }],
     'react-hot-loader/babel',
   ],
@@ -80,6 +81,9 @@ module.exports = {
           },
         ],
       ],
+    },
+    testableProduction: {
+      plugins: [],
     },
   },
 };
