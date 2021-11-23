@@ -20,7 +20,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2021-11-23 11:32+0100\n"
+"POT-Creation-Date: 2021-11-23 13:29+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2607,28 +2607,29 @@ msgstr ""
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1296
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1317
 #: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:548
+#: superset-frontend/src/views/CRUD/welcome/DashboardTable.tsx:210
 #: superset/templates/appbuilder/navbar_right.html:40
 #: superset/views/dashboard/mixin.py:78 superset/views/dashboard/views.py:155
 #: superset/views/schedules.py:236
 msgid "Dashboard"
 msgstr ""
 
-#: superset-frontend/src/components/Menu/MenuRight.tsx:158
+#: superset-frontend/src/components/Menu/MenuRight.tsx:161
 #: superset/templates/appbuilder/navbar_right.html:109
 msgid "Profile"
 msgstr ""
 
-#: superset-frontend/src/components/Menu/MenuRight.tsx:163
+#: superset-frontend/src/components/Menu/MenuRight.tsx:166
 #: superset/templates/appbuilder/navbar_right.html:110
 msgid "Info"
 msgstr ""
 
-#: superset-frontend/src/components/Menu/MenuRight.tsx:167
+#: superset-frontend/src/components/Menu/MenuRight.tsx:170
 #: superset/templates/appbuilder/navbar_right.html:111
 msgid "Logout"
 msgstr ""
 
-#: superset-frontend/src/components/Menu/MenuRight.tsx:230
+#: superset-frontend/src/components/Menu/MenuRight.tsx:233
 #: superset/templates/appbuilder/navbar_right.html:126
 msgid "Login"
 msgstr ""
@@ -2859,7 +2860,7 @@ msgid ""
 " first is lower than the second value"
 msgstr ""
 
-#: superset-frontend/src/components/Menu/MenuRight.tsx:155
+#: superset-frontend/src/components/Menu/MenuRight.tsx:158
 #: superset-frontend/src/views/CRUD/data/query/QueryList.tsx:275
 #: superset-frontend/src/views/CRUD/data/query/QueryList.tsx:365
 #: superset/views/access_requests.py:41 superset/views/log/__init__.py:30
@@ -5528,7 +5529,7 @@ msgid "Calculated columns"
 msgstr ""
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1264
-#: superset-frontend/src/components/Menu/MenuRight.tsx:132
+#: superset-frontend/src/components/Menu/MenuRight.tsx:133
 msgid "Settings"
 msgstr ""
 
@@ -5747,19 +5748,19 @@ msgstr ""
 msgid "SQL query"
 msgstr ""
 
-#: superset-frontend/src/components/Menu/MenuRight.tsx:173
+#: superset-frontend/src/components/Menu/MenuRight.tsx:176
 msgid "About"
 msgstr ""
 
-#: superset-frontend/src/components/Menu/MenuRight.tsx:177
+#: superset-frontend/src/components/Menu/MenuRight.tsx:180
 msgid "Powered by Apache Superset"
 msgstr ""
 
-#: superset-frontend/src/components/Menu/MenuRight.tsx:211
+#: superset-frontend/src/components/Menu/MenuRight.tsx:214
 msgid "Documentation"
 msgstr ""
 
-#: superset-frontend/src/components/Menu/MenuRight.tsx:222
+#: superset-frontend/src/components/Menu/MenuRight.tsx:225
 msgid "Report a bug"
 msgstr ""
 
@@ -9940,7 +9941,7 @@ msgstr ""
 #: superset-frontend/src/views/CRUD/welcome/ChartTable.tsx:217
 #: superset-frontend/src/views/CRUD/welcome/DashboardTable.tsx:219
 #: superset-frontend/src/views/CRUD/welcome/SavedQueries.tsx:296
-msgid "View All"
+msgid "View All »"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/welcome/EmptyState.tsx:26
@@ -9994,9 +9995,9 @@ msgstr ""
 msgid "You don't have any favorites yet!"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/welcome/EmptyState.tsx:156
+#: superset-frontend/src/views/CRUD/welcome/EmptyState.tsx:154
 #, python-format
-msgid "See all %s"
+msgid "See all %(tableName)s"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/welcome/SavedQueries.tsx:129
