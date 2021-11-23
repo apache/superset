@@ -1384,7 +1384,7 @@ class TestDatasetApi(SupersetTestCase):
         """
         Dataset API: Test export dataset has gamma
         """
-        dataset = self.insert_default_dataset()
+        dataset = self.get_fixture_datasets()[0]
 
         argument = [dataset.id]
         uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
@@ -1392,9 +1392,6 @@ class TestDatasetApi(SupersetTestCase):
         self.login(username="gamma")
         rv = self.client.get(uri)
         assert rv.status_code == 401
-
-        db.session.delete(dataset)
-        db.session.commit()
 
     @patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
@@ -1449,7 +1446,7 @@ class TestDatasetApi(SupersetTestCase):
         """
         Dataset API: Test export dataset has gamma
         """
-        dataset = self.insert_default_dataset()
+        dataset = self.get_fixture_datasets()[0]
 
         argument = [dataset.id]
         uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
