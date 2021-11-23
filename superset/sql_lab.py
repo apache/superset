@@ -290,8 +290,10 @@ def execute_sql_statement(
                 data = db_engine_spec.fetch_data(cursor, increased_limit)
             else:
                 data = None
-
-            if query.limit is None or len(data) <= query.limit:
+            
+            if data is None:
+                data = data
+            elif query.limit is None or len(data) <= query.limit:
                 query.limiting_factor = LimitingFactor.NOT_LIMITED
             elif data is not None:
                 # return 1 row less than increased_query
