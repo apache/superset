@@ -14,5 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-FLASK_APP="superset.app:create_app()"
+#FLASK_APP="superset.app:create_app()"
+FLASK_APP="superset.ofek:create_for_ofek()"
 FLASK_ENV="development"

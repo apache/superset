@@ -37,7 +37,6 @@ from flask_appbuilder import Model
 from flask_appbuilder.api import BaseApi
 
 from superset import app, appbuilder, config, security_manager
-from superset.app import create_app
 from superset.extensions import celery_app, db
 from superset.utils import core as utils
 from superset.utils.celery import session_scope
@@ -73,9 +72,7 @@ def normalize_token(token_name: str) -> str:
 
 
 @click.group(
-    cls=FlaskGroup,
-    create_app=create_app,
-    context_settings={"token_normalize_func": normalize_token},
+    cls=FlaskGroup, context_settings={"token_normalize_func": normalize_token},
 )
 @with_appcontext
 def superset() -> None:
