@@ -17,7 +17,7 @@
 """new dataset models
 
 Revision ID: b8d3a24d9131
-Revises: b92d69a6643c
+Revises: aea15018d53b
 Create Date: 2021-11-11 16:41:53.266965
 
 """
@@ -33,7 +33,7 @@ from superset.connectors.sqla.models import SqlaTable
 
 # revision identifiers, used by Alembic.
 revision = "b8d3a24d9131"
-down_revision = "b92d69a6643c"
+down_revision = "aea15018d53b"
 
 
 def upgrade():

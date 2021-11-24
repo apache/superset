@@ -1889,12 +1889,15 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         )
 
         if isinstance(target, TableColumn):
-            column = [
+            columns = [
                 column
                 for column in dataset.columns
                 if column.name == target.column_name
-            ][0]
+            ]
+            if not columns:
+                return
 
+            column = columns[0]
             extra_json = json.loads(target.extra or "{}")
             for attr in {"groupby", "filterable", "verbose_name", "python_date_format"}:
                 value = getattr(target, attr)
@@ -1912,12 +1915,15 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             column.extra_json = json.dumps(extra_json) if extra_json else None
 
         else:  # SqlMetric
-            column = [
+            columns = [
                 column
                 for column in dataset.columns
                 if column.name == target.metric_name
-            ][0]
+            ]
+            if not columns:
+                return
 
+            column = columns[0]
             extra_json = json.loads(target.extra or "{}")
             for attr in {"verbose_name", "metric_type", "d3format"}:
                 value = getattr(target, attr)
@@ -2117,7 +2123,11 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         # set permissions
         security_manager.set_perm(mapper, connection, target)
 
-        dataset = session.query(NewDataset).filter_by(sqlatable_id=target.id).one()
+        dataset = (
+            session.query(NewDataset).filter_by(sqlatable_id=target.id).one_or_none()
+        )
+        if not dataset:
+            return
 
         # get DB-specific conditional quoter for expressions that point to columns or
         # table names
