@@ -899,6 +899,55 @@ def test_update_sqlatable(
     assert dataset.columns[0].is_temporal is True
 
 
+def test_update_sqlatable_metric(
+    mocker: MockFixture, app_context: None, session: Session
+) -> None:
+    """
+    Test that updating a ``SqlaTable`` also updates the corresponding ``Dataset``.
+
+    For this test we check that updating the SQL expression in a metric belonging to a
+    ``SqlaTable`` is reflected in the ``Dataset`` metric.
+    """
+    # patch session
+    mocker.patch(
+        "superset.security.SupersetSecurityManager.get_session", return_value=session
+    )
+
+    from superset.columns.models import Column
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.datasets.models import Dataset
+    from superset.models.core import Database
+    from superset.tables.models import Table
+
+    engine = session.get_bind()
+    Dataset.metadata.create_all(engine)  # pylint: disable=no-member
+
+    columns = [
+        TableColumn(column_name="ds", is_dttm=1, type="TIMESTAMP"),
+    ]
+    metrics = [
+        SqlMetric(metric_name="cnt", expression="COUNT(*)"),
+    ]
+    sqla_table = SqlaTable(
+        table_name="old_dataset",
+        columns=columns,
+        metrics=metrics,
+        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
+    )
+    session.add(sqla_table)
+    session.flush()
+
+    # check that the metric was created
+    column = session.query(Column).filter_by(is_physical=False).one()
+    assert column.expression == "COUNT(*)"
+
+    # change the metric definition
+    sqla_table.metrics[0].expression = "MAX(ds)"
+    session.flush()
+
+    assert column.expression == "MAX(ds)"
+
+
 def test_update_virtual_sqlatable_references(
     mocker: MockFixture, app_context: None, session: Session
 ) -> None:
