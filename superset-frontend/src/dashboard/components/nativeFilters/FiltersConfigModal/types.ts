@@ -44,13 +44,19 @@ export interface NativeFiltersFormItem {
   adhoc_filters?: AdhocFilter[];
   time_range?: string;
   granularity_sqla?: string;
-  type: NativeFilterType;
+  type: typeof NativeFilterType.NATIVE_FILTER;
   description: string;
   hierarchicalFilter?: boolean;
 }
+export interface NativeFilterDivider {
+  id: string;
+  type: typeof NativeFilterType.DIVIDER;
+  title: string;
+  description: string;
+}
 
 export interface NativeFiltersForm {
-  filters: Record<string, NativeFiltersFormItem>;
+  filters: Record<string, NativeFiltersFormItem | NativeFilterDivider>;
   changed?: boolean;
 }
 
