@@ -58,20 +58,20 @@ class TestSecurityCsrfApi(SupersetTestCase):
         self.assert401(response)
 
 
-class TestSecurityEmbeddedTokenApi(SupersetTestCase):
-    uri = f"api/v1/security/embedded_token/"
+class TestSecurityGuestTokenApi(SupersetTestCase):
+    uri = f"api/v1/security/guest-token/"
 
-    def test_post_embed_token_unauthenticated(self):
+    def test_post_guest_token_unauthenticated(self):
         """
-        Security API: Cannot create an embed token without authentication
+        Security API: Cannot create a guest token without authentication
         """
         self.logout()
         response = self.client.post(self.uri)
         self.assert401(response)
 
-    def test_post_embed_token_unauthorized(self):
+    def test_post_guest_token_unauthorized(self):
         """
-        Security API: Cannot create an embed token without authorization
+        Security API: Cannot create a guest token without authorization
         """
         self.login(username="gamma")
         response = self.client.post(self.uri)
@@ -88,7 +88,7 @@ class TestSecurityEmbeddedTokenApi(SupersetTestCase):
             "resource": {
                 "type": "dashboard",
                 "id": "blah",
-                "rls_expression": "1 = 1"
+                "rls": "1 = 1"
             },
         }
         response = self.client.post(
@@ -99,6 +99,6 @@ class TestSecurityEmbeddedTokenApi(SupersetTestCase):
         self.assert200(response)
         token = json.loads(response.data)["token"]
         self.assertEqual(
-            params,
-            jwt.decode(token, self.app.config["EMBEDDED_JWT_SECRET"])
+            {"data":params},
+            jwt.decode(token, self.app.config["GUEST_TOKEN_JWT_SECRET"])
         )

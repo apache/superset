@@ -38,15 +38,15 @@ class UserSchema(Schema):
 class ResourceSchema(Schema):
     type = fields.String(required=True)
     id = fields.String(required=True)
-    rls_expression = fields.String()
+    rls = fields.List(fields.String())
 
 
-class EmbeddedTokenCreateSchema(Schema):
+class GuestTokenCreateSchema(Schema):
     user = fields.Nested(UserSchema)
     resource = fields.Nested(ResourceSchema, required=True)
 
 
-embedded_token_create_schema = EmbeddedTokenCreateSchema()
+guest_token_create_schema = GuestTokenCreateSchema()
 
 
 class SecurityRestApi(BaseApi):
@@ -83,17 +83,19 @@ class SecurityRestApi(BaseApi):
         """
         return self.response(200, result=generate_csrf())
 
-    @expose("/embedded_token/", methods=["POST"])
+    @expose("/guest-token/", methods=["POST"])
     @event_logger.log_this
     @protect()
     @safe
-    @permission_name("grant_token")
-    def embedded_token(self) -> Response:
+    @permission_name("grant_guest_token")
+    def guest_token(self) -> Response:
         try:
-            token_data = embedded_token_create_schema.load(request.json)
-            # validate stuff
-            secret = self.appbuilder.app.config["EMBEDDED_JWT_SECRET"]
-            token = jwt.encode(token_data, secret, algorithm="HS256")
+            token_data = guest_token_create_schema.load(request.json)
+            # validate stuff:
+            # make sure the resource id is valid
+            # make sure username doesn't reference an existing user
+            # check rls rules for validity?
+            token = self.appbuilder.sm.create_guest_access_token(token_data)
             return self.response(200, token=token)
         except ValidationError as error:
             return self.response_400(message=error.messages)

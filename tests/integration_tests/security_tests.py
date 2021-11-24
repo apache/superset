@@ -23,6 +23,7 @@ from unittest import mock
 from unittest.mock import Mock, patch
 from typing import Any, Dict
 
+import jwt
 import prison
 import pytest
 
@@ -1315,3 +1316,14 @@ class TestDatasources(SupersetTestCase):
             Datasource("database1", "schema1", "table1"),
             Datasource("database1", "schema1", "table2"),
         ]
+
+
+class TestGuestTokens(SupersetTestCase):
+
+    def test_create_guest_access_token(self):
+        params = {"any": "data"}
+        token = security_manager.create_guest_access_token(params)
+        self.assertEqual(
+            {"data": params},
+            jwt.decode(token, self.app.config["GUEST_TOKEN_JWT_SECRET"])
+        )

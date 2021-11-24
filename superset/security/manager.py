@@ -32,8 +32,9 @@ from typing import (
     Union,
 )
 
-from flask import current_app, g
-from flask_appbuilder import Model
+import jwt
+from flask import current_app, g, request, Request
+from flask_appbuilder import Model, AppBuilder
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from flask_appbuilder.security.sqla.models import (
@@ -51,7 +52,7 @@ from flask_appbuilder.security.views import (
     ViewMenuModelView,
 )
 from flask_appbuilder.widgets import ListWidget
-from flask_login import AnonymousUserMixin
+from flask_login import AnonymousUserMixin, LoginManager
 from sqlalchemy import and_, or_
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import Session
@@ -120,6 +121,8 @@ RoleModelView.list_columns = ["name"]
 RoleModelView.edit_columns = ["name", "permissions", "user"]
 RoleModelView.related_views = []
 
+GuestToken = Dict[str, Any]
+
 
 class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     SecurityManager
@@ -172,7 +175,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "can_approve",
         "can_update_role",
         "all_query_access",
-        "can_grant_token",
+        "can_grant_guest_token",
     }
 
     READ_ONLY_PERMISSION = {
@@ -221,6 +224,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "all_database_access",
         "all_query_access",
     )
+
+    def __init__(self, appbuilder: AppBuilder) -> None:
+        super().__init__(appbuilder)
+        # TODO put ff check here
+        self.activate_guest_access()
 
     def get_schema_perm(  # pylint: disable=no-self-use
         self, database: Union["Database", str], schema: Optional[str] = None
@@ -1210,3 +1218,59 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         exists = db.session.query(query.exists()).scalar()
         return exists
+
+    @staticmethod
+    def create_guest_access_token(params: Dict[str, Any]):
+        secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
+        token = jwt.encode({ "data": params }, secret, algorithm="HS256")
+        return token
+
+    def activate_guest_access(self):
+        """
+        Attaches a handler to the login manager that allows "guest access"
+        for unauthenticated users carrying a valid guest access token
+        :return:
+        """
+        lm: LoginManager = self.lm
+        # the request loader only gets called if there is no session
+        lm.request_loader(self.get_guest_user)
+
+    def get_guest_user(self, req: Request):  # pylint: disable=unused-argument
+        """
+        If there is a guest token (used for embedded) in use,
+        parses the token and returns the guest user.
+        This is meant to be used as a request loader for the LoginManager.
+        The LoginManager will only call this if an active session cannot be found.
+
+        :return: A guest user object
+        """
+        token = self.decode_guest_token()
+        if token is None:
+            return None
+        self.raise_for_invalid_guest_token(token)
+        user = token["data"]["user"]
+        return GuestUser(
+            user.get("username", "guest_user"),
+            user.get("first_name", "Guest"),
+            user.get("last_name", "User")
+        )
+
+    @staticmethod
+    def decode_guest_token():
+        token = request.cookies.get(current_app.config['GUEST_TOKEN_COOKIE_NAME'])
+        return jwt.decode(token, current_app.config["GUEST_TOKEN_JWT_SECRET"])
+
+    def raise_for_invalid_guest_token(self, token: GuestToken):
+        ...
+        # grab the token from the GUEST_TOKEN_COOKIE_NAME cookie
+        # check token age
+
+    def can_access_by_guest_token(self):
+        ...
+
+
+class GuestUser(AnonymousUserMixin):
+    def __init__(self, username, first_name, last_name):
+        self.username = username
+        self.first_name = first_name
+        self.last_name = last_name
