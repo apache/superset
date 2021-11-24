@@ -84,7 +84,11 @@ interface ReportProps {
   userEmail: string;
   dashboardId?: number;
   chart?: ChartState;
+<<<<<<< HEAD
   props?: any;
+=======
+  props: any;
+>>>>>>> be2e1ecf6... code dry (#16358)
 }
 
 interface ReportPayloadType {
