@@ -87,7 +87,7 @@ const getMetricsMatchingCurrentDataset = (
   savedMetrics: (savedMetricType | Metric)[],
   prevColumns: ColumnMeta[],
   prevSavedMetrics: (savedMetricType | Metric)[],
-) => {
+): ValueType[] => {
   const areSavedMetricsEqual =
     !prevSavedMetrics || isEqual(prevSavedMetrics, savedMetrics);
   const areColsEqual = !prevColumns || isEqual(prevColumns, columns);
@@ -96,16 +96,17 @@ const getMetricsMatchingCurrentDataset = (
     return values;
   }
   return values.reduce((acc: ValueType[], metric) => {
-    if (
-      (typeof metric === 'string' || (metric as Metric).metric_name) &&
-      (areSavedMetricsEqual ||
+    if (typeof metric === 'string' || (metric as Metric).metric_name) {
+      if (
+        areSavedMetricsEqual ||
         savedMetrics?.some(
           savedMetric =>
             savedMetric.metric_name === metric ||
             savedMetric.metric_name === (metric as Metric).metric_name,
-        ))
-    ) {
-      acc.push(metric);
+        )
+      ) {
+        acc.push(metric);
+      }
       return acc;
     }
 
