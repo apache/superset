@@ -86,6 +86,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         css: str = "",
         json_metadata: str = "",
         published: bool = False,
+        certified_by: Optional[str] = None,
+        certification_details: Optional[str] = None,
     ) -> Dashboard:
         obj_owners = list()
         obj_roles = list()
@@ -107,6 +109,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             slices=slices,
             published=published,
             created_by=created_by,
+            certified_by=certified_by,
+            certification_details=certification_details,
         )
         db.session.add(dashboard)
         db.session.commit()
@@ -125,6 +129,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
                     f"slug{cx}",
                     [admin.id],
                     slices=charts if cx < half_dash_count else [],
+                    certified_by="John Doe",
+                    certification_details="Sample certification",
                 )
                 if cx < half_dash_count:
                     chart = self.insert_chart(f"slice{cx}", [admin.id], 1, params="{}")
@@ -315,6 +321,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         rv = self.get_assert_metric(uri, "get")
         self.assertEqual(rv.status_code, 200)
         expected_result = {
+            "certified_by": None,
+            "certification_details": None,
             "changed_by": None,
             "changed_by_name": "",
             "changed_by_url": "",
@@ -610,6 +618,38 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             assert (
                 expected_model.dashboard_title == data["result"][i]["dashboard_title"]
             )
+
+    @pytest.mark.usefixtures("create_dashboards")
+    def test_gets_certified_dashboards_filter(self):
+        arguments = {
+            "filters": [{"col": "id", "opr": "dashboard_is_certified", "value": True,}],
+            "keys": ["none"],
+            "columns": ["dashboard_title"],
+        }
+        self.login(username="admin")
+
+        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        rv = self.get_assert_metric(uri, "get_list")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data["count"], DASHBOARDS_FIXTURE_COUNT)
+
+    @pytest.mark.usefixtures("create_dashboards")
+    def test_gets_not_certified_dashboards_filter(self):
+        arguments = {
+            "filters": [
+                {"col": "id", "opr": "dashboard_is_certified", "value": False,}
+            ],
+            "keys": ["none"],
+            "columns": ["dashboard_title"],
+        }
+        self.login(username="admin")
+
+        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        rv = self.get_assert_metric(uri, "get_list")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data["count"], 6)
 
     def create_dashboard_import(self):
         buf = BytesIO()

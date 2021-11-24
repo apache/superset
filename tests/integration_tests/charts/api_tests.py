@@ -80,7 +80,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             charts = []
             admin = self.get_user("admin")
             for cx in range(CHARTS_FIXTURE_COUNT - 1):
-                charts.append(self.insert_chart(f"name{cx}", [admin.id], 1))
+                charts.append(self.insert_chart(f"name{cx}", [admin.id], 1,))
             fav_charts = []
             for cx in range(round(CHARTS_FIXTURE_COUNT / 2)):
                 fav_star = FavStar(
@@ -96,6 +96,29 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
                 db.session.delete(chart)
             for fav_chart in fav_charts:
                 db.session.delete(fav_chart)
+            db.session.commit()
+
+    @pytest.fixture()
+    def create_certified_charts(self):
+        with self.create_app().app_context():
+            certified_charts = []
+            admin = self.get_user("admin")
+            for cx in range(CHARTS_FIXTURE_COUNT):
+                certified_charts.append(
+                    self.insert_chart(
+                        f"certified{cx}",
+                        [admin.id],
+                        1,
+                        certified_by="John Doe",
+                        certification_details="Sample certification",
+                    )
+                )
+
+            yield certified_charts
+
+            # rollback changes
+            for chart in certified_charts:
+                db.session.delete(chart)
             db.session.commit()
 
     @pytest.fixture()
@@ -420,6 +443,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             "datasource_id": 1,
             "datasource_type": "table",
             "dashboards": dashboards_ids,
+            "certified_by": "John Doe",
+            "certification_details": "Sample certification",
         }
         self.login(username="admin")
         uri = f"api/v1/chart/"
@@ -535,6 +560,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             "datasource_id": birth_names_table_id,
             "datasource_type": "table",
             "dashboards": [dash_id],
+            "certified_by": "Mario Rossi",
+            "certification_details": "Edited certification",
         }
         self.login(username="admin")
         uri = f"api/v1/chart/{chart_id}"
@@ -553,6 +580,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(model.datasource_id, birth_names_table_id)
         self.assertEqual(model.datasource_type, "table")
         self.assertEqual(model.datasource_name, full_table_name)
+        self.assertEqual(model.certified_by, "Mario Rossi")
+        self.assertEqual(model.certification_details, "Edited certification")
         self.assertIn(model.id, [slice.id for slice in related_dashboard.slices])
         db.session.delete(model)
         db.session.commit()
@@ -703,6 +732,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(rv.status_code, 200)
         expected_result = {
             "cache_timeout": None,
+            "certified_by": None,
+            "certification_details": None,
             "dashboards": [],
             "description": None,
             "owners": [
@@ -896,6 +927,36 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 8)
+
+    @pytest.mark.usefixtures("create_certified_charts")
+    def test_gets_certified_charts_filter(self):
+        arguments = {
+            "filters": [{"col": "id", "opr": "chart_is_certified", "value": True,}],
+            "keys": ["none"],
+            "columns": ["slice_name"],
+        }
+        self.login(username="admin")
+
+        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        rv = self.get_assert_metric(uri, "get_list")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data["count"], CHARTS_FIXTURE_COUNT)
+
+    @pytest.mark.usefixtures("create_charts")
+    def test_gets_not_certified_charts_filter(self):
+        arguments = {
+            "filters": [{"col": "id", "opr": "chart_is_certified", "value": False,}],
+            "keys": ["none"],
+            "columns": ["slice_name"],
+        }
+        self.login(username="admin")
+
+        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        rv = self.get_assert_metric(uri, "get_list")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data["count"], 17)
 
     @pytest.mark.usefixtures("load_energy_charts")
     def test_user_gets_none_filtered_energy_slices(self):
