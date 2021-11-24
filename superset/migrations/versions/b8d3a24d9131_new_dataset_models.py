@@ -95,10 +95,10 @@ def upgrade():
         sa.Column("table_id", sa.INTEGER(), autoincrement=False, nullable=False),
         sa.Column("column_id", sa.INTEGER(), autoincrement=False, nullable=False),
         sa.ForeignKeyConstraint(
-            ["column_id"], ["columns.id"], name="sl_table_columns_ibfk_2"
+            ["column_id"], ["sl_columns.id"], name="sl_table_columns_ibfk_2"
         ),
         sa.ForeignKeyConstraint(
-            ["table_id"], ["tables.id"], name="sl_table_columns_ibfk_1"
+            ["table_id"], ["sl_tables.id"], name="sl_table_columns_ibfk_1"
         ),
     )
 
