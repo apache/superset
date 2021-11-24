@@ -33,7 +33,10 @@ import { DataMaskStateWithId, DataMaskWithId } from 'src/dataMask/types';
 import { useImmer } from 'use-immer';
 import { isEmpty, isEqual } from 'lodash';
 import { testWithId } from 'src/utils/testUtils';
-import { Filter } from 'src/dashboard/components/nativeFilters/types';
+import {
+  Filter,
+  NativeFilterType,
+} from 'src/dashboard/components/nativeFilters/types';
 import Loading from 'src/components/Loading';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 import { URL_PARAMS } from 'src/constants';
@@ -83,7 +86,6 @@ const Bar = styled.div<{ width: number }>`
   border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   min-height: 100%;
   display: none;
-
   &.open {
     display: flex;
   }
@@ -98,14 +100,12 @@ const CollapsedBar = styled.div<{ offset: number }>`
   padding-top: ${({ theme }) => theme.gridUnit * 2}px;
   display: none;
   text-align: center;
-
   &.open {
     display: flex;
     flex-direction: column;
     align-items: center;
     padding: ${({ theme }) => theme.gridUnit * 2}px;
   }
-
   svg {
     cursor: pointer;
   }
@@ -279,8 +279,12 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     filterValues,
   );
   const isInitialized = useInitialization();
-
   const tabPaneStyle = useMemo(() => ({ overflow: 'auto', height }), [height]);
+
+  const numberOfFilters = filterValues.filter(
+    filterValue => filterValue.type === NativeFilterType.NATIVE_FILTER,
+  ).length;
+
   return (
     <BarWrapper
       {...getFilterBarTestId()}
@@ -313,8 +317,8 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             activeKey={editFilterSetId ? TabIds.AllFilters : undefined}
           >
             <Tabs.TabPane
-              tab={t('All Filters (%(filterCount)d)', {
-                filterCount: filterValues.length,
+              tab={t('All filters (%(filterCount)d)', {
+                filterCount: numberOfFilters,
               })}
               key={TabIds.AllFilters}
               css={{ overflow: 'auto' }}
@@ -335,7 +339,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             </Tabs.TabPane>
             <Tabs.TabPane
               disabled={!!editFilterSetId}
-              tab={t('Filter Sets (%(filterSetCount)d)', {
+              tab={t('Filter sets (%(filterSetCount)d)', {
                 filterSetCount: filterSetFilterValues.length,
               })}
               key={TabIds.FilterSets}
