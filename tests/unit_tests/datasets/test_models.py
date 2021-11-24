@@ -219,7 +219,7 @@ def test_dataset_attributes(app_context: None, session: Session) -> None:
     session.flush()
 
     dataset = session.query(SqlaTable).one()
-    # If this tests fails because attributes changed, make sure to update
+    # If this test fails because attributes changed, make sure to update
     # ``SqlaTable.after_insert`` accordingly.
     assert sorted(dataset.__dict__.keys()) == [
         "_sa_instance_state",

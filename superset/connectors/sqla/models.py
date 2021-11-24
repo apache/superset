@@ -2097,7 +2097,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         session.delete(dataset)
 
     @staticmethod
-    def after_update(  # pylint: disable=unused-argument, too-many-branches, too-many-locals
+    def after_update(  # pylint: disable=too-many-branches, too-many-locals, too-many-statements
         mapper: Mapper, connection: Connection, target: "SqlaTable",
     ) -> None:
         """
