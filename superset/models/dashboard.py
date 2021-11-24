@@ -142,6 +142,8 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     position_json = Column(utils.MediumText())
     description = Column(Text)
     css = Column(Text)
+    certified_by = Column(Text)
+    certification_details = Column(Text)
     json_metadata = Column(Text)
     slug = Column(String(255), unique=True)
     slices = relationship(Slice, secondary=dashboard_slices, backref="dashboards")
@@ -265,6 +267,8 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         return {
             "id": self.id,
             "metadata": self.params_dict,
+            "certified_by": self.certified_by,
+            "certification_details": self.certification_details,
             "css": self.css,
             "dashboard_title": self.dashboard_title,
             "published": self.published,
