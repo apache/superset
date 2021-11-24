@@ -80,23 +80,26 @@ export default class AdhocMetric {
 
     this.optionName =
       adhocMetric.optionName ||
-      `metric_${Math.random()
+      `metric_${Math.random().toString(36).substring(2, 15)}_${Math.random()
         .toString(36)
-        .substring(2, 15)}_${Math.random().toString(36).substring(2, 15)}`;
+        .substring(2, 15)}`;
   }
 
   getDefaultLabel() {
-    const label = this.translateToSql();
+    const label = this.translateToSql(true);
     return label.length < 43 ? label : `${label.substring(0, 40)}...`;
   }
 
-  translateToSql() {
+  translateToSql(useVerboseName = false) {
     if (this.expressionType === EXPRESSION_TYPES.SIMPLE) {
       const aggregate = this.aggregate || '';
       // eslint-disable-next-line camelcase
-      const column = this.column?.column_name
-        ? `(${this.column.column_name})`
-        : '';
+      const column =
+        useVerboseName && this.column?.verbose_name
+          ? `(${this.column.verbose_name})`
+          : this.column?.column_name
+          ? `(${this.column.column_name})`
+          : '';
       return aggregate + column;
     }
     if (this.expressionType === EXPRESSION_TYPES.SQL) {

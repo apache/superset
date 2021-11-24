@@ -25,6 +25,7 @@ import { Provider } from 'react-redux';
 import { mockStore } from 'spec/fixtures/mockStore';
 import { styledMount as mount } from 'spec/helpers/theming';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
+import { Dropdown, Menu } from 'src/common/components';
 import Alert from 'src/components/Alert';
 import { FiltersConfigModal } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal';
 
@@ -60,7 +61,7 @@ jest.mock('@superset-ui/core', () => ({
 describe('FiltersConfigModal', () => {
   const mockedProps = {
     isOpen: true,
-    initialFilterId: 'DefaultsID',
+    initialFilterId: 'NATIVE_FILTER-1',
     createNewOnOpen: true,
     onCancel: jest.fn(),
     onSave: jest.fn(),
@@ -112,9 +113,13 @@ describe('FiltersConfigModal', () => {
       await waitForComponentToPaint(wrapper);
     }
 
-    function addFilter() {
+    async function addFilter() {
       act(() => {
-        wrapper.find('[aria-label="Add filter"]').at(0).simulate('click');
+        wrapper.find(Dropdown).at(0).simulate('mouseEnter');
+      });
+      await waitForComponentToPaint(wrapper, 300);
+      act(() => {
+        wrapper.find(Menu.Item).at(0).simulate('click');
       });
     }
 
@@ -124,7 +129,7 @@ describe('FiltersConfigModal', () => {
     });
 
     it('shows correct alert message for unsaved filters', async () => {
-      addFilter();
+      await addFilter();
       await clickCancel();
       expect(onCancel.mock.calls).toHaveLength(0);
       expect(wrapper.find(Alert).text()).toContain(

@@ -1099,7 +1099,7 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "related_objects")
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(response["charts"]["count"], 33)
+        self.assertEqual(response["charts"]["count"], 34)
         self.assertEqual(response["dashboards"]["count"], 3)
 
     def test_get_database_related_objects_not_found(self):
@@ -1989,3 +1989,13 @@ class TestDatabaseApi(SupersetTestCase):
                 },
             ]
         }
+
+    def test_get_related_objects(self):
+        example_db = get_example_database()
+        self.login(username="admin")
+        uri = f"api/v1/database/{example_db.id}/related_objects/"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        assert "charts" in rv.json
+        assert "dashboards" in rv.json
+        assert "sqllab_tab_states" in rv.json

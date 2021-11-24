@@ -51,6 +51,7 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
 interface DatabaseDeleteObject extends DatabaseObject {
   chart_count: number;
   dashboard_count: number;
+  sqllab_tab_count: number;
 }
 interface DatabaseListProps {
   addDangerToast: (msg: string) => void;
@@ -89,10 +90,8 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     addDangerToast,
   );
   const [databaseModalOpen, setDatabaseModalOpen] = useState<boolean>(false);
-  const [
-    databaseCurrentlyDeleting,
-    setDatabaseCurrentlyDeleting,
-  ] = useState<DatabaseDeleteObject | null>(null);
+  const [databaseCurrentlyDeleting, setDatabaseCurrentlyDeleting] =
+    useState<DatabaseDeleteObject | null>(null);
   const [currentDatabase, setCurrentDatabase] = useState<DatabaseObject | null>(
     null,
   );
@@ -122,6 +121,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
           ...database,
           chart_count: json.charts.count,
           dashboard_count: json.dashboards.count,
+          sqllab_tab_count: json.sqllab_tab_states.count,
         });
       })
       .catch(
@@ -437,10 +437,11 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       {databaseCurrentlyDeleting && (
         <DeleteModal
           description={t(
-            'The database %s is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the database will break those objects.',
+            'The database %s is linked to %s charts that appear on %s dashboards and users have %s SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects.',
             databaseCurrentlyDeleting.database_name,
             databaseCurrentlyDeleting.chart_count,
             databaseCurrentlyDeleting.dashboard_count,
+            databaseCurrentlyDeleting.sqllab_tab_count,
           )}
           onConfirm={() => {
             if (databaseCurrentlyDeleting) {

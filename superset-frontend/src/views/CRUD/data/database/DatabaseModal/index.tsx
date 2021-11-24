@@ -410,7 +410,7 @@ const serializeExtra = (extraJson: DatabaseObject['extra_json']) =>
     ...extraJson,
     metadata_params: JSON.parse((extraJson?.metadata_params as string) || '{}'),
     engine_params: JSON.parse(
-      ((extraJson?.engine_params as unknown) as string) || '{}',
+      (extraJson?.engine_params as unknown as string) || '{}',
     ),
     schemas_allowed_for_file_upload: (
       extraJson?.schemas_allowed_for_file_upload || []
@@ -430,11 +430,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   >(dbReducer, null);
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
   const [availableDbs, getAvailableDbs] = useAvailableDatabases();
-  const [
-    validationErrors,
-    getValidation,
-    setValidationErrors,
-  ] = useDatabaseValidation();
+  const [validationErrors, getValidation, setValidationErrors] =
+    useDatabaseValidation();
   const [hasConnectedDb, setHasConnectedDb] = useState<boolean>(false);
   const [dbName, setDbName] = useState('');
   const [editNewDb, setEditNewDb] = useState<boolean>(false);

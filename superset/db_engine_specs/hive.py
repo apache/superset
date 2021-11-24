@@ -363,7 +363,8 @@ class HiveEngineSpec(PrestoEngineSpec):
                             str(query_id),
                             tracking_url,
                         )
-                        tracking_url = current_app.config["TRACKING_URL_TRANSFORMER"]
+                        transformer = current_app.config["TRACKING_URL_TRANSFORMER"]
+                        tracking_url = transformer(tracking_url)
                         logger.info(
                             "Query %s: Transformation applied: %s",
                             str(query_id),
@@ -428,9 +429,12 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def _latest_partition_from_df(cls, df: pd.DataFrame) -> Optional[List[str]]:
-        """Hive partitions look like ds={partition name}"""
+        """Hive partitions look like ds={partition name}/ds={partition name}"""
         if not df.empty:
-            return [df.ix[:, 0].max().split("=")[1]]
+            return [
+                partition_str.split("=")[1]
+                for partition_str in df.iloc[:, 0].max().split("/")
+            ]
         return None
 
     @classmethod

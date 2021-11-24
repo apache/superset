@@ -465,4 +465,31 @@ describe('Email Report Modal', () => {
     // BLOCKER: I cannot get report to populate, as its data is handled through redux
     expect.anything();
   });
+
+  it('Should render report header', async () => {
+    const mockedProps = createProps();
+    render(setup(mockedProps));
+    expect(
+      screen.getByRole('button', { name: 'Schedule email report' }),
+    ).toBeInTheDocument();
+  });
+
+  it('Should not render report header even with menu access for anonymous user', async () => {
+    const mockedProps = createProps();
+    const anonymousUserProps = {
+      ...mockedProps,
+      user: {
+        roles: {
+          Public: [['menu_access', 'Manage']],
+        },
+        permissions: {
+          datasource_access: ['[examples].[birth_names](id:2)'],
+        },
+      },
+    };
+    render(setup(anonymousUserProps));
+    expect(
+      screen.queryByRole('button', { name: 'Schedule email report' }),
+    ).not.toBeInTheDocument();
+  });
 });

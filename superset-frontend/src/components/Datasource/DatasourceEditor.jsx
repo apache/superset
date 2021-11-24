@@ -452,9 +452,8 @@ class DatasourceEditor extends React.PureComponent {
     this.onChangeEditMode = this.onChangeEditMode.bind(this);
     this.onDatasourcePropChange = this.onDatasourcePropChange.bind(this);
     this.onDatasourceChange = this.onDatasourceChange.bind(this);
-    this.tableChangeAndSyncMetadata = this.tableChangeAndSyncMetadata.bind(
-      this,
-    );
+    this.tableChangeAndSyncMetadata =
+      this.tableChangeAndSyncMetadata.bind(this);
     this.syncMetadata = this.syncMetadata.bind(this);
     this.setColumns = this.setColumns.bind(this);
     this.validateAndChange = this.validateAndChange.bind(this);
@@ -471,7 +470,6 @@ class DatasourceEditor extends React.PureComponent {
     const { datasourceType, datasource } = this.state;
     const sql =
       datasourceType === DATASOURCE_TYPES.physical.key ? '' : datasource.sql;
-
     const newDatasource = {
       ...this.state.datasource,
       sql,
@@ -489,6 +487,7 @@ class DatasourceEditor extends React.PureComponent {
   }
 
   onDatasourcePropChange(attr, value) {
+    if (value === undefined) return; // if value is undefined do not update state
     const datasource = { ...this.state.datasource, [attr]: value };
     this.setState(
       prevState => ({

@@ -49,9 +49,9 @@ export function isFilterBox(chartId) {
 export function getAppliedFilterValues(chartId) {
   // use cached data if possible
   if (!(chartId in appliedFilterValuesByChart)) {
-    const applicableFilters = Object.entries(
-      activeFilters,
-    ).filter(([, { scope: chartIds }]) => chartIds.includes(chartId));
+    const applicableFilters = Object.entries(activeFilters).filter(
+      ([, { scope: chartIds }]) => chartIds.includes(chartId),
+    );
     appliedFilterValuesByChart[chartId] = flow(
       keyBy(
         ([filterKey]) => getChartIdAndColumnFromFilterKey(filterKey).column,
@@ -62,9 +62,7 @@ export function getAppliedFilterValues(chartId) {
   return appliedFilterValuesByChart[chartId];
 }
 
-export function getChartIdsInFilterScope({
-  filterScope = DASHBOARD_FILTER_SCOPE_GLOBAL,
-}) {
+export function getChartIdsInFilterScope({ filterScope }) {
   function traverse(chartIds = [], component = {}, immuneChartIds = []) {
     if (!component) {
       return;
@@ -85,7 +83,8 @@ export function getChartIdsInFilterScope({
   }
 
   const chartIds = [];
-  const { scope: scopeComponentIds, immune: immuneChartIds } = filterScope;
+  const { scope: scopeComponentIds, immune: immuneChartIds } =
+    filterScope || DASHBOARD_FILTER_SCOPE_GLOBAL;
   scopeComponentIds.forEach(componentId =>
     traverse(chartIds, allComponents[componentId], immuneChartIds),
   );

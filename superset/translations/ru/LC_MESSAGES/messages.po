@@ -7600,7 +7600,7 @@ msgid ""
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:608
-msgid "Impersonate Logged In User (Presto & Hive)"
+msgid "Impersonate Logged In User (Presto, Trino, Drill & Hive)"
 msgstr "Ассоциировать пользователя"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:610

@@ -20,20 +20,26 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
-import { styled, t } from '@superset-ui/core';
+import {
+  CategoricalColorNamespace,
+  SupersetClient,
+  styled,
+  t,
+} from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import { toggleActive, deleteActiveReport } from 'src/reports/actions/reports';
 import HeaderReportActionsDropdown from 'src/components/ReportModal/HeaderReportActionsDropdown';
-import { chartPropShape } from '../../dashboard/util/propShapes';
-import ExploreActionButtons from './ExploreActionButtons';
-import RowCountLabel from './RowCountLabel';
-import EditableTitle from '../../components/EditableTitle';
-import AlteredSliceTag from '../../components/AlteredSliceTag';
-import FaveStar from '../../components/FaveStar';
-import Timer from '../../components/Timer';
-import CachedLabel from '../../components/CachedLabel';
-import PropertiesModal from './PropertiesModal';
-import { sliceUpdated } from '../actions/exploreActions';
+import { chartPropShape } from 'src/dashboard/util/propShapes';
+import EditableTitle from 'src/components/EditableTitle';
+import AlteredSliceTag from 'src/components/AlteredSliceTag';
+import FaveStar from 'src/components/FaveStar';
+import Timer from 'src/components/Timer';
+import CachedLabel from 'src/components/CachedLabel';
+import PropertiesModal from 'src/explore/components/PropertiesModal';
+import { sliceUpdated } from 'src/explore/actions/exploreActions';
+import CertifiedIcon from 'src/components/CertifiedIcon';
+import ExploreActionButtons from '../ExploreActionButtons';
+import RowCountLabel from '../RowCountLabel';
 
 const CHART_STATUS_MAP = {
   failed: 'danger',
@@ -46,6 +52,7 @@ const propTypes = {
   addHistory: PropTypes.func,
   can_overwrite: PropTypes.bool.isRequired,
   can_download: PropTypes.bool.isRequired,
+  dashboardId: PropTypes.number,
   isStarred: PropTypes.bool.isRequired,
   slice: PropTypes.object,
   sliceName: PropTypes.string,
@@ -103,10 +110,45 @@ export class ExploreChartHeader extends React.PureComponent {
     };
     this.openPropertiesModal = this.openPropertiesModal.bind(this);
     this.closePropertiesModal = this.closePropertiesModal.bind(this);
+    this.fetchChartDashboardData = this.fetchChartDashboardData.bind(this);
+  }
+
+  componentDidMount() {
+    const { dashboardId } = this.props;
+    if (dashboardId) {
+      this.fetchChartDashboardData();
+    }
+  }
+
+  async fetchChartDashboardData() {
+    const { dashboardId, slice } = this.props;
+    const response = await SupersetClient.get({
+      endpoint: `/api/v1/chart/${slice.slice_id}`,
+    });
+    const chart = response.json.result;
+    const dashboards = chart.dashboards || [];
+    const dashboard =
+      dashboardId &&
+      dashboards.length &&
+      dashboards.find(d => d.id === dashboardId);
+
+    if (dashboard && dashboard.json_metadata) {
+      // setting the chart to use the dashboard custom label colors if any
+      const labelColors =
+        JSON.parse(dashboard.json_metadata).label_colors || {};
+      const categoricalNamespace = CategoricalColorNamespace.getNamespace();
+
+      Object.keys(labelColors).forEach(label => {
+        categoricalNamespace.setColor(label, labelColors[label]);
+      });
+    }
   }
 
   getSliceName() {
-    return this.props.sliceName || t('%s - untitled', this.props.table_name);
+    const { sliceName, table_name: tableName } = this.props;
+    const title = sliceName || t('%s - untitled', tableName);
+
+    return title;
   }
 
   postChartFormData() {
@@ -132,7 +174,7 @@ export class ExploreChartHeader extends React.PureComponent {
   }
 
   render() {
-    const { user, form_data: formData } = this.props;
+    const { user, form_data: formData, slice } = this.props;
     const {
       chartStatus,
       chartUpdateEndTime,
@@ -148,6 +190,14 @@ export class ExploreChartHeader extends React.PureComponent {
     return (
       <StyledHeader id="slice-header" className="panel-title-large">
         <div className="title-panel">
+          {slice?.certified_by && (
+            <>
+              <CertifiedIcon
+                certifiedBy={slice.certified_by}
+                details={slice.certification_details}
+              />{' '}
+            </>
+          )}
           <EditableTitle
             title={this.getSliceName()}
             canEdit={
@@ -171,17 +221,20 @@ export class ExploreChartHeader extends React.PureComponent {
                   showTooltip
                 />
               )}
-              <PropertiesModal
-                show={this.state.isPropertiesModalOpen}
-                onHide={this.closePropertiesModal}
-                onSave={this.props.sliceUpdated}
-                slice={this.props.slice}
-              />
+              {this.state.isPropertiesModalOpen && (
+                <PropertiesModal
+                  show={this.state.isPropertiesModalOpen}
+                  onHide={this.closePropertiesModal}
+                  onSave={this.props.sliceUpdated}
+                  slice={this.props.slice}
+                />
+              )}
               <Tooltip
                 id="edit-desc-tooltip"
                 title={t('Edit chart properties')}
               >
                 <span
+                  aria-label={t('Edit chart properties')}
                   role="button"
                   tabIndex={0}
                   className="edit-desc-icon"

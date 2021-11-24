@@ -16,39 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import PropTypes from 'prop-types';
 import React from 'react';
-import { CategoricalColorNamespace } from '@superset-ui/core';
+import { formatNumber } from '@superset-ui/core';
 
-const propTypes = {
-  onChange: PropTypes.func,
-  value: PropTypes.object,
-  colorScheme: PropTypes.string,
-  colorNamespace: PropTypes.string,
-};
-
-const defaultProps = {
-  onChange: () => {},
-  value: {},
-  colorScheme: undefined,
-  colorNamespace: undefined,
-};
-
-export default class ColorMapControl extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    Object.keys(this.props.value).forEach(label => {
-      CategoricalColorNamespace.getScale(
-        this.props.colorScheme,
-        this.props.colorNamespace,
-      ).setColor(label, this.props.value[label]);
-    });
-  }
-
-  render() {
-    return null;
-  }
+interface FormattedNumberProps {
+  num?: string | number;
+  format?: string;
 }
 
-ColorMapControl.propTypes = propTypes;
-ColorMapControl.defaultProps = defaultProps;
+function FormattedNumber({ num = 0, format }: FormattedNumberProps) {
+  if (format) {
+    // @ts-expect-error formatNumber can actually accept strings, even though it's not typed as such
+    return <span title={`${num}`}>{formatNumber(format, num)}</span>;
+  }
+  return <span>{num}</span>;
+}
+
+export default FormattedNumber;
