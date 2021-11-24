@@ -46,6 +46,10 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
         RouteMethod.DELETE,
     }
     allow_browser_login = True
+    openapi_spec_component_schemas = (
+        KeyValuePostSchema,
+        KeyValuePutSchema,
+    )
 
     def post(self, pk: int) -> Response:
         if not request.is_json:
