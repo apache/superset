@@ -31,6 +31,10 @@ import AdhocFilter, {
 import AdhocFilterEditPopoverSimpleTabContent from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent';
 import AdhocFilterEditPopoverSqlTabContent from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSqlTabContent';
 import columnType from 'src/explore/components/controls/FilterControl/columnType';
+import {
+  POPOVER_INITIAL_HEIGHT,
+  POPOVER_INITIAL_WIDTH,
+} from 'src/explore/constants';
 
 const propTypes = {
   adhocFilter: PropTypes.instanceOf(AdhocFilter).isRequired,
@@ -54,9 +58,6 @@ const propTypes = {
 const ResizeIcon = styled.i`
   margin-left: ${({ theme }) => theme.gridUnit * 2}px;
 `;
-
-const startingWidth = 320;
-const startingHeight = 240;
 
 const FilterPopoverContentContainer = styled.div`
   .adhoc-filter-edit-tabs > .nav-tabs {
@@ -98,8 +99,8 @@ export default class AdhocFilterEditPopover extends React.Component {
 
     this.state = {
       adhocFilter: this.props.adhocFilter,
-      width: startingWidth,
-      height: startingHeight,
+      width: POPOVER_INITIAL_WIDTH,
+      height: POPOVER_INITIAL_HEIGHT,
       activeKey: this.props?.adhocFilter?.expressionType || 'SIMPLE',
     };
 
@@ -137,11 +138,11 @@ export default class AdhocFilterEditPopover extends React.Component {
     this.setState({
       width: Math.max(
         this.dragStartWidth + (e.clientX - this.dragStartX),
-        startingWidth,
+        POPOVER_INITIAL_WIDTH,
       ),
       height: Math.max(
         this.dragStartHeight + (e.clientY - this.dragStartY) * 2,
-        startingHeight,
+        POPOVER_INITIAL_HEIGHT,
       ),
     });
   }

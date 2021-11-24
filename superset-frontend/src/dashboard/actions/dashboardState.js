@@ -118,8 +118,13 @@ export function savePublished(id, isPublished) {
       }),
     })
       .then(() => {
-        const nowPublished = isPublished ? 'published' : 'hidden';
-        dispatch(addSuccessToast(t(`This dashboard is now ${nowPublished}`)));
+        dispatch(
+          addSuccessToast(
+            isPublished
+              ? t('This dashboard is now published')
+              : t('This dashboard is now hidden'),
+          ),
+        );
         dispatch(togglePublished(isPublished));
       })
       .catch(() => {

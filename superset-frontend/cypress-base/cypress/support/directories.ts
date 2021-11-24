@@ -325,6 +325,7 @@ export const nativeFilters = {
       removeTab: '[aria-label="trash"]',
     },
     addFilter: dataTestLocator('add-filter-button'),
+    defaultValueCheck: '.ant-checkbox-checked',
   },
   filtersPanel: {
     filterName: dataTestLocator('filters-config-modal__name-input'),
@@ -339,6 +340,7 @@ export const nativeFilters = {
     expand: dataTestLocator('filter-bar__expand-button'),
     collapse: dataTestLocator('filter-bar__collapse-button'),
     filterName: dataTestLocator('filter-control-name'),
+    filterContent: '.ant-select-selection-item-content',
   },
   createFilterButton: dataTestLocator('filter-bar__create-filter'),
   removeFilter: '[aria-label="remove"]',

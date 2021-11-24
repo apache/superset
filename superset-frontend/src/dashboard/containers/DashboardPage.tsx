@@ -72,15 +72,12 @@ const DashboardPage: FC = () => {
   );
   const { addDangerToast } = useToasts();
   const { idOrSlug } = useParams<{ idOrSlug: string }>();
-  const { result: dashboard, error: dashboardApiError } = useDashboard(
-    idOrSlug,
-  );
-  const { result: charts, error: chartsApiError } = useDashboardCharts(
-    idOrSlug,
-  );
-  const { result: datasets, error: datasetsApiError } = useDashboardDatasets(
-    idOrSlug,
-  );
+  const { result: dashboard, error: dashboardApiError } =
+    useDashboard(idOrSlug);
+  const { result: charts, error: chartsApiError } =
+    useDashboardCharts(idOrSlug);
+  const { result: datasets, error: datasetsApiError } =
+    useDashboardDatasets(idOrSlug);
   const isDashboardHydrated = useRef(false);
 
   const error = dashboardApiError || chartsApiError;
@@ -140,7 +137,7 @@ const DashboardPage: FC = () => {
           }
 
           setFilterboxMigrationState(FILTER_BOX_MIGRATION_STATES.UNDECIDED);
-        } else {
+        } else if (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS)) {
           dispatch(
             addWarningToast(
               t(

@@ -17,8 +17,14 @@
  * under the License.
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import { FeatureFlag, isFeatureEnabled, tn } from '@superset-ui/core';
-import { ColumnMeta } from '@superset-ui/chart-controls';
+import {
+  AdhocColumn,
+  FeatureFlag,
+  isFeatureEnabled,
+  tn,
+  QueryFormColumn,
+} from '@superset-ui/core';
+import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import OptionWrapper from 'src/explore/components/controls/DndColumnSelectControl/OptionWrapper';
@@ -29,7 +35,7 @@ import { useComponentDidUpdate } from 'src/common/hooks/useComponentDidUpdate';
 import ColumnSelectPopoverTrigger from './ColumnSelectPopoverTrigger';
 import { DndControlProps } from './types';
 
-export type DndColumnSelectProps = DndControlProps<string> & {
+export type DndColumnSelectProps = DndControlProps<QueryFormColumn> & {
   options: Record<string, ColumnMeta>;
 };
 
@@ -123,7 +129,8 @@ export function DndColumnSelect(props: DndColumnSelectProps) {
       Object.values(options).filter(
         col =>
           !optionSelector.values
-            .map(val => val.column_name)
+            .filter(isColumnMeta)
+            .map((val: ColumnMeta) => val.column_name)
             .includes(col.column_name),
       ),
     [optionSelector.values, options],
@@ -136,7 +143,11 @@ export function DndColumnSelect(props: DndColumnSelectProps) {
           <ColumnSelectPopoverTrigger
             columns={popoverOptions}
             onColumnEdit={newColumn => {
-              optionSelector.replace(idx, newColumn.column_name);
+              if (isColumnMeta(newColumn)) {
+                optionSelector.replace(idx, newColumn.column_name);
+              } else {
+                optionSelector.replace(idx, newColumn as AdhocColumn);
+              }
               onChange(optionSelector.getValues());
             }}
             editedColumn={column}
@@ -177,8 +188,12 @@ export function DndColumnSelect(props: DndColumnSelectProps) {
   );
 
   const addNewColumnWithPopover = useCallback(
-    (newColumn: ColumnMeta) => {
-      optionSelector.add(newColumn.column_name);
+    (newColumn: ColumnMeta | AdhocColumn) => {
+      if (isColumnMeta(newColumn)) {
+        optionSelector.add(newColumn.column_name);
+      } else {
+        optionSelector.add(newColumn as AdhocColumn);
+      }
       onChange(optionSelector.getValues());
     },
     [onChange, optionSelector],

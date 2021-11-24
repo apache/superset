@@ -17,27 +17,19 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { formatNumber } from '@superset-ui/core';
 
-const propTypes = {
-  num: PropTypes.number,
-  format: PropTypes.string,
-};
+interface FormattedNumberProps {
+  num?: string | number;
+  format?: string;
+}
 
-const defaultProps = {
-  num: 0,
-  format: undefined,
-};
-
-function FormattedNumber({ num, format }) {
+function FormattedNumber({ num = 0, format }: FormattedNumberProps) {
   if (format) {
-    return <span title={num}>{formatNumber(format, num)}</span>;
+    // @ts-expect-error formatNumber can actually accept strings, even though it's not typed as such
+    return <span title={`${num}`}>{formatNumber(format, num)}</span>;
   }
   return <span>{num}</span>;
 }
-
-FormattedNumber.propTypes = propTypes;
-FormattedNumber.defaultProps = defaultProps;
 
 export default FormattedNumber;

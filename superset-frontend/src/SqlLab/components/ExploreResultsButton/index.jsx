@@ -44,9 +44,8 @@ class ExploreResultsButton extends React.PureComponent {
   constructor(props) {
     super(props);
     this.getInvalidColumns = this.getInvalidColumns.bind(this);
-    this.renderInvalidColumnMessage = this.renderInvalidColumnMessage.bind(
-      this,
-    );
+    this.renderInvalidColumnMessage =
+      this.renderInvalidColumnMessage.bind(this);
   }
 
   getColumns() {

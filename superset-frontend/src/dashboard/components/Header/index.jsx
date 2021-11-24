@@ -22,6 +22,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { styled, t } from '@superset-ui/core';
 import ButtonGroup from 'src/components/ButtonGroup';
+import CertifiedIcon from 'src/components/CertifiedIcon';
 
 import {
   LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
@@ -498,6 +499,14 @@ class Header extends React.PureComponent {
         data-test-id={`${dashboardInfo.id}`}
       >
         <div className="dashboard-component-header header-large">
+          {dashboardInfo.certified_by && (
+            <>
+              <CertifiedIcon
+                certifiedBy={dashboardInfo.certified_by}
+                details={dashboardInfo.certification_details}
+              />{' '}
+            </>
+          )}
           <EditableTitle
             title={dashboardTitle}
             canEdit={userCanEdit && editMode}
@@ -611,13 +620,13 @@ class Header extends React.PureComponent {
               onHide={this.hidePropertiesModal}
               colorScheme={this.props.colorScheme}
               onSubmit={updates => {
-                const {
-                  dashboardInfoChanged,
-                  dashboardTitleChanged,
-                } = this.props;
+                const { dashboardInfoChanged, dashboardTitleChanged } =
+                  this.props;
                 dashboardInfoChanged({
                   slug: updates.slug,
                   metadata: JSON.parse(updates.jsonMetadata),
+                  certified_by: updates.certifiedBy,
+                  certification_details: updates.certificationDetails,
                 });
                 setColorSchemeAndUnsavedChanges(updates.colorScheme);
                 dashboardTitleChanged(updates.title);

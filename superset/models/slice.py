@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import json
 import logging
 from typing import Any, Dict, Optional, Type, TYPE_CHECKING
@@ -41,6 +43,7 @@ from superset.viz import BaseViz, viz_types
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
+    from superset.common.query_context_factory import QueryContextFactory
     from superset.connectors.base.models import BaseDatasource
 
 metadata = Model.metadata  # pylint: disable=no-member
@@ -59,6 +62,8 @@ class Slice(  # pylint: disable=too-many-public-methods
 ):
     """A slice is essentially a report or a view on data"""
 
+    query_context_factory: Optional[QueryContextFactory] = None
+
     __tablename__ = "slices"
     id = Column(Integer, primary_key=True)
     slice_name = Column(String(250))
@@ -76,6 +81,8 @@ class Slice(  # pylint: disable=too-many-public-methods
     # when the database row was last written
     last_saved_at = Column(DateTime, nullable=True)
     last_saved_by_fk = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
+    certified_by = Column(Text)
+    certification_details = Column(Text)
     last_saved_by = relationship(
         security_manager.user_model, foreign_keys=[last_saved_by_fk]
     )
@@ -206,6 +213,8 @@ class Slice(  # pylint: disable=too-many-public-methods
             "slice_id": self.id,
             "slice_name": self.slice_name,
             "slice_url": self.slice_url,
+            "certified_by": self.certified_by,
+            "certification_details": self.certification_details,
         }
 
     @property
@@ -248,13 +257,12 @@ class Slice(  # pylint: disable=too-many-public-methods
         update_time_range(form_data)
         return form_data
 
-    def get_query_context(self) -> Optional["QueryContext"]:
-        # pylint: disable=import-outside-toplevel
-        from superset.common.query_context import QueryContext
-
+    def get_query_context(self) -> Optional[QueryContext]:
         if self.query_context:
             try:
-                return QueryContext(**json.loads(self.query_context))
+                return self.get_query_context_factory().create(
+                    **json.loads(self.query_context)
+                )
             except json.decoder.JSONDecodeError as ex:
                 logger.error("Malformed json in slice's query context", exc_info=True)
                 logger.exception(ex)
@@ -312,6 +320,14 @@ class Slice(  # pylint: disable=too-many-public-methods
     @property
     def url(self) -> str:
         return f"/superset/explore/?form_data=%7B%22slice_id%22%3A%20{self.id}%7D"
+
+    def get_query_context_factory(self) -> QueryContextFactory:
+        if self.query_context_factory is None:
+            # pylint: disable=import-outside-toplevel
+            from superset.common.query_context_factory import QueryContextFactory
+
+            self.query_context_factory = QueryContextFactory()
+        return self.query_context_factory
 
 
 def set_related_perm(_mapper: Mapper, _connection: Connection, target: Slice) -> None:

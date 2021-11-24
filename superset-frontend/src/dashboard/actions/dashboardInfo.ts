@@ -60,41 +60,41 @@ export interface SetChartConfigFail {
   type: typeof SET_CHART_CONFIG_FAIL;
   chartConfiguration: ChartConfiguration;
 }
-export const setChartConfiguration = (
-  chartConfiguration: ChartConfiguration,
-) => async (dispatch: Dispatch, getState: () => any) => {
-  dispatch({
-    type: SET_CHART_CONFIG_BEGIN,
-    chartConfiguration,
-  });
-  const { id, metadata } = getState().dashboardInfo;
-
-  // TODO extract this out when makeApi supports url parameters
-  const updateDashboard = makeApi<
-    Partial<DashboardInfo>,
-    { result: DashboardInfo }
-  >({
-    method: 'PUT',
-    endpoint: `/api/v1/dashboard/${id}`,
-  });
-
-  try {
-    const response = await updateDashboard({
-      json_metadata: JSON.stringify({
-        ...metadata,
-        chart_configuration: chartConfiguration,
-      }),
-    });
-    dispatch(
-      dashboardInfoChanged({
-        metadata: JSON.parse(response.result.json_metadata),
-      }),
-    );
+export const setChartConfiguration =
+  (chartConfiguration: ChartConfiguration) =>
+  async (dispatch: Dispatch, getState: () => any) => {
     dispatch({
-      type: SET_CHART_CONFIG_COMPLETE,
+      type: SET_CHART_CONFIG_BEGIN,
       chartConfiguration,
     });
-  } catch (err) {
-    dispatch({ type: SET_CHART_CONFIG_FAIL, chartConfiguration });
-  }
-};
+    const { id, metadata } = getState().dashboardInfo;
+
+    // TODO extract this out when makeApi supports url parameters
+    const updateDashboard = makeApi<
+      Partial<DashboardInfo>,
+      { result: DashboardInfo }
+    >({
+      method: 'PUT',
+      endpoint: `/api/v1/dashboard/${id}`,
+    });
+
+    try {
+      const response = await updateDashboard({
+        json_metadata: JSON.stringify({
+          ...metadata,
+          chart_configuration: chartConfiguration,
+        }),
+      });
+      dispatch(
+        dashboardInfoChanged({
+          metadata: JSON.parse(response.result.json_metadata),
+        }),
+      );
+      dispatch({
+        type: SET_CHART_CONFIG_COMPLETE,
+        chartConfiguration,
+      });
+    } catch (err) {
+      dispatch({ type: SET_CHART_CONFIG_FAIL, chartConfiguration });
+    }
+  };

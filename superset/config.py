@@ -314,6 +314,7 @@ LANGUAGES = {
     "pt_BR": {"flag": "br", "name": "Brazilian Portuguese"},
     "ru": {"flag": "ru", "name": "Russian"},
     "ko": {"flag": "kr", "name": "Korean"},
+    "sk": {"flag": "sk", "name": "Slovak"},
     "sl": {"flag": "si", "name": "Slovenian"},
 }
 # Turning off i18n by default as translation in most languages are
@@ -798,10 +799,12 @@ ESTIMATE_QUERY_COST = False
 #
 #     return out
 #
-# FEATURE_FLAGS = {
-#     "ESTIMATE_QUERY_COST": True,
-#     "QUERY_COST_FORMATTERS_BY_ENGINE": {"postgresql": postgres_query_cost_formatter},
-# }
+#  Then on define the formatter on the config:
+#
+# "QUERY_COST_FORMATTERS_BY_ENGINE": {"postgresql": postgres_query_cost_formatter},
+QUERY_COST_FORMATTERS_BY_ENGINE: Dict[
+    str, Callable[[List[Dict[str, Any]]], List[Dict[str, Any]]]
+] = {}
 
 # Flag that controls if limit should be enforced on the CTA (create table as queries).
 SQLLAB_CTAS_NO_LIMIT = False
@@ -1085,7 +1088,11 @@ EMAIL_REPORTS_USER = "admin"
 WEBDRIVER_TYPE = "firefox"
 
 # Window size - this will impact the rendering of the data
-WEBDRIVER_WINDOW = {"dashboard": (1600, 2000), "slice": (3000, 1200)}
+WEBDRIVER_WINDOW = {
+    "dashboard": (1600, 2000),
+    "slice": (3000, 1200),
+    "pixel_density": 1,
+}
 
 # An optional override to the default auth hook used to provide auth to the
 # offline webdriver
