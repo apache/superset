@@ -43,14 +43,13 @@ export default function reportsReducer(state = {}, action) {
     [SET_REPORT]() {
       // Grabs the first report with a dashboard id that
       // matches the parameter report's dashboard_id
-      const reportWithDashboard = action.report.result.find(
+      const reportWithDashboard = action.report.result?.find(
         report => !!report.dashboard_id,
       );
-
       // Grabs the first report with a chart id that
       // matches the parameter report's chart.id
-      const reportWithChart = action.report.result.find(
-        report => !!report.chart.id,
+      const reportWithChart = action.report.result?.find(
+        report => !!report.chart?.id,
       );
 
       // This organizes report by its type, dashboard or chart
@@ -64,12 +63,17 @@ export default function reportsReducer(state = {}, action) {
           },
         };
       }
+      if (reportWithChart) {
+        return {
+          ...state,
+          charts: {
+            ...state.chart,
+            [reportWithChart.chart.id]: reportWithChart,
+          },
+        };
+      }
       return {
         ...state,
-        charts: {
-          ...state.chart,
-          [reportWithChart.chart.id]: reportWithChart,
-        },
       };
     },
 

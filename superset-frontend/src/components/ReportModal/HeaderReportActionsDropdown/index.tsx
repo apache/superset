@@ -47,15 +47,21 @@ export default function HeaderReportActionsDropDown({
   chart?: ChartState;
 }) {
   const dispatch = useDispatch();
-  const reports: Record<number, AlertObject> = useSelector<any, AlertObject>(
-    state => state.reports,
-  );
-  const report: AlertObject = Object.values(reports).filter(report => {
+  const report: AlertObject = useSelector<any, AlertObject>(state => {
     if (dashboardId) {
-      return report.dashboard_id === dashboardId;
+      return state.reports.dashboards?.[dashboardId];
     }
-    return report.chart_id === chart?.id;
-  })[0];
+    if (chart?.id) {
+      return state.reports.charts?.[chart.id];
+    }
+    return {};
+  });
+  // const report: ReportObject = Object.values(reports).filter(report => {
+  //   if (dashboardId) {
+  //     return report.dashboards?.[dashboardId];
+  //   }
+  //   // return report.charts?.[chart?.id]
+  // })[0];
 
   const user: UserWithPermissionsAndRoles = useSelector<
     any,
