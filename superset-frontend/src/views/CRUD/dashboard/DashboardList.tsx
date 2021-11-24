@@ -49,6 +49,7 @@ import ImportModelsModal from 'src/components/ImportModal/index';
 import OmniContainer from 'src/components/OmniContainer';
 
 import Dashboard from 'src/dashboard/containers/Dashboard';
+import CertifiedIcon from 'src/components/CertifiedIcon';
 import DashboardCard from './DashboardCard';
 import { DashboardStatus } from './types';
 
@@ -173,6 +174,8 @@ function DashboardList(props: DashboardListProps) {
                 json_metadata = '',
                 changed_on_delta_humanized,
                 url = '',
+                certified_by = '',
+                certification_details = '',
               } = json.result;
               return {
                 ...dashboard,
@@ -184,6 +187,8 @@ function DashboardList(props: DashboardListProps) {
                 json_metadata,
                 changed_on_delta_humanized,
                 url,
+                certified_by,
+                certification_details,
               };
             }
             return dashboard;
@@ -250,9 +255,26 @@ function DashboardList(props: DashboardListProps) {
       {
         Cell: ({
           row: {
-            original: { url, dashboard_title: dashboardTitle },
+            original: {
+              url,
+              dashboard_title: dashboardTitle,
+              certified_by: certifiedBy,
+              certification_details: certificationDetails,
+            },
           },
-        }: any) => <Link to={url}>{dashboardTitle}</Link>,
+        }: any) => (
+          <Link to={url}>
+            {certifiedBy && (
+              <>
+                <CertifiedIcon
+                  certifiedBy={certifiedBy}
+                  details={certificationDetails}
+                />{' '}
+              </>
+            )}
+            {dashboardTitle}
+          </Link>
+        ),
         Header: t('Title'),
         accessor: 'dashboard_title',
       },
@@ -478,6 +500,18 @@ function DashboardList(props: DashboardListProps) {
         ],
       },
       ...(props.user.userId ? [favoritesFilter] : []),
+      {
+        Header: t('Certified'),
+        id: 'id',
+        urlDisplay: 'certified',
+        input: 'select',
+        operator: FilterOperator.dashboardIsCertified,
+        unfilteredLabel: t('Any'),
+        selects: [
+          { label: t('Yes'), value: true },
+          { label: t('No'), value: false },
+        ],
+      },
       {
         Header: t('Search'),
         id: 'dashboard_title',
