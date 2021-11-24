@@ -326,14 +326,14 @@ sa.event.listen(DruidCluster, "after_update", security_manager.set_perm)
 class DruidColumn(Model, BaseColumn):
     """ORM model for storing Druid datasource column metadata"""
 
-    __tablename__ = "druid_columns"
+    __tablename__ = "columns"
     __table_args__ = (UniqueConstraint("column_name", "datasource_id"),)
 
     datasource_id = Column(Integer, ForeignKey("datasources.id"))
     # Setting enable_typechecks=False disables polymorphic inheritance.
     datasource = relationship(
         "DruidDatasource",
-        backref=backref("druid_columns", cascade="all, delete-orphan"),
+        backref=backref("columns", cascade="all, delete-orphan"),
         enable_typechecks=False,
     )
     dimension_spec_json = Column(Text)

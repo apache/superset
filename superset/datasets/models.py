@@ -39,17 +39,17 @@ from superset.models.helpers import (
 from superset.tables.models import Table
 
 column_association_table = sa.Table(
-    "dataset_columns",
+    "sl_dataset_columns",
     Model.metadata,  # pylint: disable=no-member
-    sa.Column("dataset_id", sa.ForeignKey("datasets.id")),
-    sa.Column("column_id", sa.ForeignKey("columns.id")),
+    sa.Column("dataset_id", sa.ForeignKey("sl_datasets.id")),
+    sa.Column("column_id", sa.ForeignKey("sl_columns.id")),
 )
 
 table_association_table = sa.Table(
-    "dataset_tables",
+    "sl_dataset_tables",
     Model.metadata,  # pylint: disable=no-member
-    sa.Column("dataset_id", sa.ForeignKey("datasets.id")),
-    sa.Column("table_id", sa.ForeignKey("tables.id")),
+    sa.Column("dataset_id", sa.ForeignKey("sl_datasets.id")),
+    sa.Column("table_id", sa.ForeignKey("sl_tables.id")),
 )
 
 
@@ -58,7 +58,7 @@ class Dataset(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     A table/view in a database.
     """
 
-    __tablename__ = "datasets"
+    __tablename__ = "sl_datasets"
 
     id = sa.Column(sa.Integer, primary_key=True)
 
