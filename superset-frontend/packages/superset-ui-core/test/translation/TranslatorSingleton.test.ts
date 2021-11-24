@@ -22,6 +22,7 @@ import mockConsole from 'jest-mock-console';
 import Translator from '@superset-ui/core/src/translation/Translator';
 import {
   configure,
+  resetTranslation,
   t,
   tn,
 } from '@superset-ui/core/src/translation/TranslatorSingleton';
@@ -31,6 +32,10 @@ import languagePackZh from './languagePacks/zh';
 
 describe('TranslatorSingleton', () => {
   describe('before configure()', () => {
+    beforeAll(() => {
+      resetTranslation();
+    });
+
     describe('t()', () => {
       it('returns untranslated input and issues a warning', () => {
         const restoreConsole = mockConsole();

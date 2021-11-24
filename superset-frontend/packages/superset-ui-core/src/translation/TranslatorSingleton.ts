@@ -44,6 +44,13 @@ function getInstance() {
   return singleton;
 }
 
+function resetTranslation() {
+  if (isConfigured) {
+    isConfigured = false;
+    singleton = undefined;
+  }
+}
+
 function addTranslation(key: string, translations: string[]) {
   return getInstance().addTranslation(key, translations);
 }
@@ -64,4 +71,12 @@ function tn(key: string, ...args: unknown[]) {
   return getInstance().translateWithNumber(key, ...args);
 }
 
-export { configure, addTranslation, addTranslations, addLocaleData, t, tn };
+export {
+  configure,
+  addTranslation,
+  addTranslations,
+  addLocaleData,
+  t,
+  tn,
+  resetTranslation,
+};
