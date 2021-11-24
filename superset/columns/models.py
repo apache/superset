@@ -45,7 +45,7 @@ class Column(
     aggregation expression representing a metric.
     """
 
-    __tablename__ = "columns"
+    __tablename__ = "sl_columns"
 
     id = sa.Column(sa.Integer, primary_key=True)
 

@@ -37,15 +37,9 @@ down_revision = "b92d69a6643c"
 
 
 def upgrade():
-    # Rename old tables from models that will be removed in the near future, so we can
-    # reuse the names. NOTE: this requires downtime when upgrading.
-    op.rename_table("columns", "druid_columns")
-    op.rename_table("tables", "sql_tables")
-    op.rename_table("table_columns", "sql_table_columns")
-
     # Create tables for the new models.
     op.create_table(
-        "columns",
+        "sl_columns",
         # AuditMixinNullable
         sa.Column("created_on", sa.DateTime(), nullable=True),
         sa.Column("changed_on", sa.DateTime(), nullable=True),
@@ -72,10 +66,10 @@ def upgrade():
         sa.Column("increase_good", sa.BOOLEAN(), nullable=False, default=True,),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_unique_constraint("uq_columns_uuid", "columns", ["uuid"])
+    op.create_unique_constraint("uq_sl_columns_uuid", "sl_columns", ["uuid"])
 
     op.create_table(
-        "tables",
+        "sl_tables",
         # AuditMixinNullable
         sa.Column("created_on", sa.DateTime(), nullable=True),
         sa.Column("changed_on", sa.DateTime(), nullable=True),
@@ -91,25 +85,25 @@ def upgrade():
         sa.Column("catalog", sa.TEXT(), nullable=True),
         sa.Column("schema", sa.TEXT(), nullable=True),
         sa.Column("name", sa.TEXT(), nullable=False),
-        sa.ForeignKeyConstraint(["database_id"], ["dbs.id"], name="tables_ibfk_1"),
+        sa.ForeignKeyConstraint(["database_id"], ["dbs.id"], name="sl_tables_ibfk_1"),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_unique_constraint("uq_tables_uuid", "tables", ["uuid"])
+    op.create_unique_constraint("uq_sl_tables_uuid", "sl_tables", ["uuid"])
 
     op.create_table(
-        "table_columns",
+        "sl_table_columns",
         sa.Column("table_id", sa.INTEGER(), autoincrement=False, nullable=False),
         sa.Column("column_id", sa.INTEGER(), autoincrement=False, nullable=False),
         sa.ForeignKeyConstraint(
-            ["column_id"], ["columns.id"], name="table_columns_ibfk_2"
+            ["column_id"], ["columns.id"], name="sl_table_columns_ibfk_2"
         ),
         sa.ForeignKeyConstraint(
-            ["table_id"], ["tables.id"], name="table_columns_ibfk_1"
+            ["table_id"], ["tables.id"], name="sl_table_columns_ibfk_1"
         ),
     )
 
     op.create_table(
-        "datasets",
+        "sl_datasets",
         # AuditMixinNullable
         sa.Column("created_on", sa.DateTime(), nullable=True),
         sa.Column("changed_on", sa.DateTime(), nullable=True),
@@ -127,29 +121,29 @@ def upgrade():
         sa.Column("is_physical", sa.BOOLEAN(), nullable=False, default=False,),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_unique_constraint("uq_datasets_uuid", "datasets", ["uuid"])
+    op.create_unique_constraint("uq_sl_datasets_uuid", "sl_datasets", ["uuid"])
 
     op.create_table(
-        "dataset_columns",
+        "sl_dataset_columns",
         sa.Column("dataset_id", sa.INTEGER(), autoincrement=False, nullable=False),
         sa.Column("column_id", sa.INTEGER(), autoincrement=False, nullable=False),
         sa.ForeignKeyConstraint(
-            ["column_id"], ["columns.id"], name="dataset_columns_ibfk_2"
+            ["column_id"], ["sl_columns.id"], name="sl_dataset_columns_ibfk_2"
         ),
         sa.ForeignKeyConstraint(
-            ["dataset_id"], ["datasets.id"], name="dataset_columns_ibfk_1"
+            ["dataset_id"], ["sl_datasets.id"], name="sl_dataset_columns_ibfk_1"
         ),
     )
 
     op.create_table(
-        "dataset_tables",
+        "sl_dataset_tables",
         sa.Column("dataset_id", sa.INTEGER(), autoincrement=False, nullable=False),
         sa.Column("table_id", sa.INTEGER(), autoincrement=False, nullable=False),
         sa.ForeignKeyConstraint(
-            ["dataset_id"], ["datasets.id"], name="dataset_tables_ibfk_1"
+            ["dataset_id"], ["sl_datasets.id"], name="sl_dataset_tables_ibfk_1"
         ),
         sa.ForeignKeyConstraint(
-            ["table_id"], ["tables.id"], name="dataset_tables_ibfk_2"
+            ["table_id"], ["sl_tables.id"], name="sl_dataset_tables_ibfk_2"
         ),
     )
 
@@ -165,13 +159,9 @@ def upgrade():
 
 
 def downgrade():
-    op.drop_table("dataset_columns")
-    op.drop_table("dataset_tables")
-    op.drop_table("datasets")
-    op.drop_table("table_columns")
-    op.drop_table("tables")
-    op.drop_table("columns")
-
-    op.rename_table("druid_columns", "columns")
-    op.rename_table("sql_tables", "tables")
-    op.rename_table("sql_table_columns", "table_columns")
+    op.drop_table("sl_dataset_columns")
+    op.drop_table("sl_dataset_tables")
+    op.drop_table("sl_datasets")
+    op.drop_table("sl_table_columns")
+    op.drop_table("sl_tables")
+    op.drop_table("sl_columns")

@@ -29,6 +29,7 @@ from typing import List
 import sqlalchemy as sa
 from flask_appbuilder import Model
 from sqlalchemy.orm import backref, relationship
+from sqlalchemy.schema import UniqueConstraint
 
 from superset.columns.models import Column
 from superset.models.core import Database
@@ -39,10 +40,10 @@ from superset.models.helpers import (
 )
 
 association_table = sa.Table(
-    "table_columns",
+    "sl_table_columns",
     Model.metadata,  # pylint: disable=no-member
-    sa.Column("table_id", sa.ForeignKey("tables.id")),
-    sa.Column("column_id", sa.ForeignKey("columns.id")),
+    sa.Column("table_id", sa.ForeignKey("sl_tables.id")),
+    sa.Column("column_id", sa.ForeignKey("sl_columns.id")),
 )
 
 
@@ -51,14 +52,22 @@ class Table(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     A table/view in a database.
     """
 
-    __tablename__ = "tables"
+    __tablename__ = "sl_tables"
+
+    # Note this uniqueness constraint is not part of the physical schema, i.e., it does
+    # not exist in the migrations. The reason it does not physically exist is MySQL,
+    # PostgreSQL, etc. have a different interpretation of uniqueness when it comes to NULL
+    # which is problematic given the catalog and schema are optional.
+    __table_args__ = (UniqueConstraint("database_id", "catalog", "schema", "name"),)
 
     id = sa.Column(sa.Integer, primary_key=True)
 
     database_id = sa.Column(sa.Integer, sa.ForeignKey("dbs.id"), nullable=False)
     database: Database = relationship(
         "Database",
-        backref=backref("tables", cascade="all, delete-orphan"),
+        # TODO (betodealmeida): rename the backref to ``tables`` once we get rid of the
+        # old models.
+        backref=backref("new_tables", cascade="all, delete-orphan"),
         foreign_keys=[database_id],
     )
 
