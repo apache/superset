@@ -564,6 +564,8 @@ export const useChartEditModal = (
       slice_name: chart.slice_name,
       description: chart.description,
       cache_timeout: chart.cache_timeout,
+      certified_by: chart.certified_by,
+      certification_details: chart.certification_details,
     });
   }
 
