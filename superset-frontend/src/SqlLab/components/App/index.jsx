@@ -37,6 +37,8 @@ import QuerySearch from '../QuerySearch';
 class App extends React.PureComponent {
   constructor(props) {
     super(props);
+    console.log('this is App');
+    console.log(props);
     this.state = {
       hash: window.location.hash,
     };

@@ -75,6 +75,7 @@ const userOS = detectOS();
 class TabbedSqlEditors extends React.PureComponent {
   constructor(props) {
     super(props);
+    console.log('this is the tabbed', props);
     const sqlLabUrl = '/superset/sqllab';
     this.state = {
       sqlLabUrl,
@@ -93,6 +94,8 @@ class TabbedSqlEditors extends React.PureComponent {
 
   componentDidMount() {
     // migrate query editor and associated tables state to server
+    console.log('we here boys');
+    console.log(this.props);
     if (isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)) {
       const localStorageTables = this.props.tables.filter(
         table => table.inLocalStorage,
@@ -434,6 +437,7 @@ TabbedSqlEditors.propTypes = propTypes;
 TabbedSqlEditors.defaultProps = defaultProps;
 
 function mapStateToProps({ sqlLab, common, requestedQuery }) {
+  console.log(sqlLab);
   return {
     databases: sqlLab.databases,
     queryEditors: sqlLab.queryEditors,
