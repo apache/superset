@@ -87,7 +87,7 @@ const getMetricsMatchingCurrentDataset = (
   savedMetrics: (savedMetricType | Metric)[],
   prevColumns: ColumnMeta[],
   prevSavedMetrics: (savedMetricType | Metric)[],
-) => {
+): ValueType[] => {
   const areSavedMetricsEqual =
     !prevSavedMetrics || isEqual(prevSavedMetrics, savedMetrics);
   const areColsEqual = !prevColumns || isEqual(prevColumns, columns);
