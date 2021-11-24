@@ -739,7 +739,7 @@ export default class AnnotationLayer extends React.PureComponent {
               />
               <CheckboxControl
                 name="annotation-label-show"
-                label={t('Show Label')}
+                label={t('Show label')}
                 value={showLabel}
                 hovered
                 description={t('Whether to always show the annotation label')}
