@@ -17,8 +17,9 @@
 # isort:skip_file
 import pytest
 import json
-from superset import security_manager
+from superset import security_manager, app
 from superset.models.dashboard import Dashboard
+from superset.extensions import cache_manager
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.test_app import app
 from sqlalchemy.orm import Session
@@ -64,6 +65,8 @@ class FilterStateTests(SupersetTestCase):
     @pytest.fixture(autouse=True, scope="session")
     def beforeAll(self):
         with app.app_context() as ctx:
+            app.config["FILTERS_STATE_CACHE_CONFIG"] = {"CACHE_TYPE": "SimpleCache"}
+            cache_manager.init_app(app)
             session: Session = ctx.app.appbuilder.get_session
             self.clearTable(session, Dashboard)
             self.createDashboard(session)

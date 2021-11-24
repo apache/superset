@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 class KeyValueDAO:
     @staticmethod
-    def find_by_id(dashboard_id: int, id: str) -> Optional[str]:
+    def find_by_id(dashboard_id: int, key: str) -> Optional[str]:
         """
         Finds a value that has been stored using a particular key
         """
@@ -41,7 +41,7 @@ class KeyValueDAO:
             dashboard = DashboardDAO.get_by_id_or_slug(str(dashboard_id))
             if dashboard:
                 return cache_manager.filters_state_cache.get(
-                    cache_key(dashboard_id, id)
+                    cache_key(dashboard_id, key)
                 )
         except SQLAlchemyError as ex:  # pragma: no cover
             logger.error("Could not get value for the key: %s", str(ex), exc_info=True)

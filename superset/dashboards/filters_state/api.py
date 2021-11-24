@@ -36,7 +36,7 @@ class FiltersStateRestApi(KeyValueRestApi):
     def get_dao(self) -> Type[KeyValueDAO]:
         return KeyValueDAO
 
-    @expose("/<int:dashboard_id>/filters_state", methods=["POST"])
+    @expose("/<int:pk>/filters_state", methods=["POST"])
     @protect()
     @safe
     @statsd_metrics
@@ -44,7 +44,7 @@ class FiltersStateRestApi(KeyValueRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
     )
-    def post(self, dashboard_id: int) -> Response:
+    def post(self, pk: int) -> Response:
         """Stores a new value.
         ---
         post:
@@ -54,7 +54,7 @@ class FiltersStateRestApi(KeyValueRestApi):
           - in: path
             schema:
               type: integer
-            name: dashboard_id
+            name: pk
           requestBody:
             required: true
             content:
@@ -64,7 +64,7 @@ class FiltersStateRestApi(KeyValueRestApi):
                     $ref: '#/components/schemas/KeyValuePostSchema'
           responses:
             201:
-              description: The value was stored successfully. It returns the key to retrieve the value.
+              description: The value was stored successfully.
               content:
                 application/json:
                   schema:
@@ -82,9 +82,9 @@ class FiltersStateRestApi(KeyValueRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        return super().post(dashboard_id)
+        return super().post(pk)
 
-    @expose("/<int:dashboard_id>/filters_state/<string:key>/", methods=["PUT"])
+    @expose("/<int:pk>/filters_state/<string:key>/", methods=["PUT"])
     @protect()
     @safe
     @statsd_metrics
@@ -92,7 +92,7 @@ class FiltersStateRestApi(KeyValueRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
         log_to_statsd=False,
     )
-    def put(self, dashboard_id: int, key: str) -> Response:
+    def put(self, pk: int, key: str) -> Response:
         """Updates an existing value.
         ---
         put:
@@ -102,7 +102,7 @@ class FiltersStateRestApi(KeyValueRestApi):
           - in: path
             schema:
               type: integer
-            name: dashboard_id
+            name: pk
           - in: path
             schema:
               type: string
@@ -136,9 +136,9 @@ class FiltersStateRestApi(KeyValueRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        return super().put(dashboard_id, key)
+        return super().put(pk, key)
 
-    @expose("/<int:dashboard_id>/filters_state/<string:key>/", methods=["GET"])
+    @expose("/<int:pk>/filters_state/<string:key>/", methods=["GET"])
     @protect()
     @safe
     @statsd_metrics
@@ -146,7 +146,7 @@ class FiltersStateRestApi(KeyValueRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=False,
     )
-    def get(self, dashboard_id: int, key: str) -> Response:
+    def get(self, pk: int, key: str) -> Response:
         """Retrives a value.
         ---
         get:
@@ -156,7 +156,7 @@ class FiltersStateRestApi(KeyValueRestApi):
           - in: path
             schema:
               type: integer
-            name: dashboard_id
+            name: pk
           - in: path
             schema:
               type: string
@@ -183,9 +183,9 @@ class FiltersStateRestApi(KeyValueRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        return super().get(dashboard_id, key)
+        return super().get(pk, key)
 
-    @expose("/<int:dashboard_id>/filters_state/<string:key>/", methods=["DELETE"])
+    @expose("/<int:pk>/filters_state/<string:key>/", methods=["DELETE"])
     @protect()
     @safe
     @statsd_metrics
@@ -193,7 +193,7 @@ class FiltersStateRestApi(KeyValueRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
         log_to_statsd=False,
     )
-    def delete(self, dashboard_id: int, key: str) -> Response:
+    def delete(self, pk: int, key: str) -> Response:
         """Deletes a value.
         ---
         delete:
@@ -203,7 +203,7 @@ class FiltersStateRestApi(KeyValueRestApi):
           - in: path
             schema:
               type: integer
-            name: dashboard_id
+            name: pk
           - in: path
             schema:
               type: string
@@ -231,4 +231,4 @@ class FiltersStateRestApi(KeyValueRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        return super().delete(dashboard_id, key)
+        return super().delete(pk, key)

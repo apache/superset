@@ -46,37 +46,31 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
         RouteMethod.DELETE,
     }
     allow_browser_login = True
-    openapi_spec_component_schemas = (
-        KeyValuePostSchema,
-        KeyValuePutSchema,
-    )
 
-    def post(self, resource_id: int) -> Response:
+    def post(self, pk: int) -> Response:
         if not request.is_json:
             raise InvalidPayloadFormatError("Request is not JSON")
         item = self.add_model_schema.load(request.json)
-        key = CreateKeyValueCommand(g.user, self.get_dao(), resource_id, item).run()
+        key = CreateKeyValueCommand(g.user, self.get_dao(), pk, item).run()
         return self.response(201, key=key)
 
-    def put(self, resource_id: int, key: str) -> Response:
+    def put(self, pk: int, key: str) -> Response:
         if not request.is_json:
             raise InvalidPayloadFormatError("Request is not JSON")
         item = self.edit_model_schema.load(request.json)
-        result = UpdateKeyValueCommand(
-            g.user, self.get_dao(), resource_id, key, item
-        ).run()
+        result = UpdateKeyValueCommand(g.user, self.get_dao(), pk, key, item).run()
         if not result:
             return self.response_404()
         return self.response(200, message="Value updated successfully.",)
 
-    def get(self, resource_id: int, key: str) -> Response:
-        value = GetKeyValueCommand(g.user, self.get_dao(), resource_id, key).run()
+    def get(self, pk: int, key: str) -> Response:
+        value = GetKeyValueCommand(g.user, self.get_dao(), pk, key).run()
         if not value:
             return self.response_404()
         return self.response(200, value=value)
 
-    def delete(self, resource_id: int, key: str) -> Response:
-        result = DeleteKeyValueCommand(g.user, self.get_dao(), resource_id, key).run()
+    def delete(self, pk: int, key: str) -> Response:
+        result = DeleteKeyValueCommand(g.user, self.get_dao(), pk, key).run()
         if not result:
             return self.response_404()
         return self.response(200, message="Deleted successfully")
