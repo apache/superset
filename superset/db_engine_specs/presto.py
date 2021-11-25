@@ -743,7 +743,9 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
             uri.database = database
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
             return f"""from_iso8601_date('{dttm.date().isoformat()}')"""
@@ -1216,6 +1218,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
     def get_column_spec(
         cls,
         native_type: Optional[str],
+        db_extra: Optional[Dict[str, Any]] = None,
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
         column_type_mappings: Tuple[
             Tuple[
