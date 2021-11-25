@@ -225,10 +225,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "all_query_access",
     )
 
-    def __init__(self, appbuilder: AppBuilder) -> None:
-        super().__init__(appbuilder)
-        # TODO put ff check here
-        self.activate_guest_access()
+    def create_login_manager(self, app) -> LoginManager:
+        lm = super().create_login_manager(app)
+        # todo put ff check here
+        lm.request_loader(self.get_guest_user)
+        return lm
 
     def get_schema_perm(  # pylint: disable=no-self-use
         self, database: Union["Database", str], schema: Optional[str] = None
@@ -1225,16 +1226,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         token = jwt.encode({ "data": params }, secret, algorithm="HS256")
         return token
 
-    def activate_guest_access(self):
-        """
-        Attaches a handler to the login manager that allows "guest access"
-        for unauthenticated users carrying a valid guest access token
-        :return:
-        """
-        lm: LoginManager = self.lm
-        # the request loader only gets called if there is no session
-        lm.request_loader(self.get_guest_user)
-
     def get_guest_user(self, req: Request):  # pylint: disable=unused-argument
         """
         If there is a guest token (used for embedded) in use,
@@ -1258,6 +1249,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     @staticmethod
     def decode_guest_token():
         token = request.cookies.get(current_app.config['GUEST_TOKEN_COOKIE_NAME'])
+        if token is None:
+            return None
         return jwt.decode(token, current_app.config["GUEST_TOKEN_JWT_SECRET"])
 
     def raise_for_invalid_guest_token(self, token: GuestToken):
