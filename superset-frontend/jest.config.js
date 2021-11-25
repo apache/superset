@@ -93,6 +93,21 @@ module.exports = {
       setupFiles: ['<rootDir>/spec/helpers/setupPlugins.ts'],
       modulePathIgnorePatterns: ['<rootDir>/temporary_superset_ui'],
       moduleNameMapper,
+      collectCoverageFrom: [
+        'src/**/*.{js,jsx,ts,tsx}',
+        '{packages,plugins}/**/src/**/*.{js,jsx,ts,tsx}',
+        '!**/*.stories.*',
+        '!packages/superset-ui-demo/**/*',
+      ],
+      coverageDirectory: '<rootDir>/coverage/',
+      coveragePathIgnorePatterns: [
+        'coverage/',
+        'node_modules/',
+        'public/',
+        'tmp/',
+        'dist/',
+      ],
+      coverageReporters: ['lcov', 'json-summary', 'html'],
     },
   ],
 };
