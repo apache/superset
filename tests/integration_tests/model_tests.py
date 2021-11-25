@@ -565,6 +565,8 @@ class TestSqlaTableModel(SupersetTestCase):
 
 def test_literal_dttm_type_factory():
     orig_type = DateTime()
-    new_type = literal_dttm_type_factory(orig_type, PostgresEngineSpec, "TIMESTAMP")
+    new_type = literal_dttm_type_factory(
+        orig_type, PostgresEngineSpec, "TIMESTAMP", db_extra={}
+    )
     assert type(new_type).__name__ == "TemporalWrapperType"
     assert str(new_type) == str(orig_type)
