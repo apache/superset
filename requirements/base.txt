@@ -303,6 +303,8 @@ zipp==3.4.0
 supervisor==4.2.2
 snowflake-sqlalchemy==1.2.4
 sqlalchemy-redshift==0.8.4
+prophet==1.0.1
+elasticsearch-dbapi==0.2.0
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
