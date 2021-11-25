@@ -8419,7 +8419,7 @@ msgid "Range filter plugin using AntD"
 msgstr ""
 
 #: superset-frontend/src/filters/components/Select/SelectFilterPlugin.tsx:122
-msgid " excluded"
+msgid " (excluded)"
 msgstr ""
 
 #: superset-frontend/src/filters/components/Select/controlPanel.ts:94

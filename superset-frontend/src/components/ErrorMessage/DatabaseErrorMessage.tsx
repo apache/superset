@@ -77,11 +77,12 @@ function DatabaseErrorMessage({
 
   const copyText =
     extra && extra.issue_codes
-      ? t(
-          '%(message)s\nThis may be triggered by: \n%(issues)s',
+      ? t('%(message)s\nThis may be triggered by: \n%(issues)s', {
           message,
-          extra.issue_codes.map(issueCode => issueCode.message).join('\n'),
-        )
+          issues: extra.issue_codes
+            .map(issueCode => issueCode.message)
+            .join('\n'),
+        })
       : message;
 
   return (
