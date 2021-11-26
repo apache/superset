@@ -1394,6 +1394,20 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.client.get(uri)
         assert rv.status_code == 401
 
+        perm1 = security_manager.find_permission_view_menu("can_export", "Dataset")
+
+        perm2 = security_manager.find_permission_view_menu(
+            "datasource_access", dataset.perm
+        )
+
+        # add perissions to allow export + access to query this dataset
+        gamma_role = security_manager.find_role("Gamma")
+        security_manager.add_permission_role(gamma_role, perm1)
+        security_manager.add_permission_role(gamma_role, perm2)
+
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+
     @patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
         {"VERSIONED_EXPORT": True},
