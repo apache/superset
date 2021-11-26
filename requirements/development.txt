@@ -36,7 +36,7 @@ jsonlines==2.0.0
     # via tabulator
 linear-tsv==1.1.0
     # via tabulator
-mysqlclient==2.0.3
+mysqlclient==2.1.0
     # via -r requirements/development.in
 openpyxl==3.0.7
     # via tabulator
