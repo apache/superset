@@ -16,32 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { LegacyRef } from 'react';
+import cx from 'classnames';
 
-const NUM_COLUMNS = 12;
+interface DragHandleProps {
+  position: 'left' | 'top';
+  innerRef: LegacyRef<HTMLDivElement> | undefined;
+  dotCount: number;
+}
 
-type Control = React.ReactElement | null;
-
-export default function ControlRow({ controls }: { controls: Control[] }) {
-  // ColorMapControl renders null and should not be counted
-  // in the columns number
-  const countableControls = controls.filter(
-    control => !['ColorMapControl'].includes(control?.props.type),
-  );
-  const colSize = NUM_COLUMNS / countableControls.length;
+export default function DragHandle({
+  position = 'left',
+  innerRef = null,
+  dotCount = 8,
+}: DragHandleProps) {
   return (
-    <div className="row">
-      {controls.map((control, i) => (
-        <div
-          className={`col-lg-${colSize} col-xs-12`}
-          style={{
-            display: control?.props.type === 'HiddenControl' ? 'none' : 'block',
-          }}
-          key={i}
-        >
-          {control}
-        </div>
-      ))}
+    <div
+      ref={innerRef}
+      className={cx(
+        'drag-handle',
+        position === 'left' && 'drag-handle--left',
+        position === 'top' && 'drag-handle--top',
+      )}
+    >
+      {Array(dotCount)
+        .fill(null)
+        .map((_, i) => (
+          <div key={`handle-dot-${i}`} className="drag-handle-dot" />
+        ))}
     </div>
   );
 }

@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,14 +14,31 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
--r base.in
-flask-cors>=2.0.0
-mysqlclient==2.0.3
-pillow>=8.3.2,<9
-pydruid>=0.6.1,<0.7
-pyhive[hive]>=0.6.1
-psycopg2-binary==2.9.1
-tableschema
-thrift>=0.11.0,<1.0.0
-progress>=1.5,<2
-pyinstrument>=4.0.2,<5
+"""add_certifications_columns_to_dashboard
+
+Revision ID: aea15018d53b
+Revises: f9847149153d
+Create Date: 2021-11-05 11:11:55.496618
+
+"""
+
+# revision identifiers, used by Alembic.
+import sqlalchemy as sa
+from alembic import op
+
+revision = "aea15018d53b"
+down_revision = "f9847149153d"
+
+
+def upgrade():
+    with op.batch_alter_table("dashboards") as batch_op:
+        batch_op.add_column(sa.Column("certified_by", sa.Text(), nullable=True))
+        batch_op.add_column(
+            sa.Column("certification_details", sa.Text(), nullable=True)
+        )
+
+
+def downgrade():
+    with op.batch_alter_table("dashboards") as batch_op:
+        batch_op.drop_column("certified_by")
+        batch_op.drop_column("certification_details")

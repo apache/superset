@@ -375,9 +375,7 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "info")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
-        assert "can_read" in data["permissions"]
-        assert "can_write" in data["permissions"]
-        assert len(data["permissions"]) == 2
+        assert set(data["permissions"]) == {"can_read", "can_write", "can_export"}
 
     def test_create_dataset_item(self):
         """
@@ -1382,18 +1380,33 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "export")
         assert rv.status_code == 404
 
+    @pytest.mark.usefixtures("create_datasets")
     def test_export_dataset_gamma(self):
         """
         Dataset API: Test export dataset has gamma
         """
-        birth_names_dataset = self.get_birth_names_dataset()
+        dataset = self.get_fixture_datasets()[0]
 
-        argument = [birth_names_dataset.id]
+        argument = [dataset.id]
         uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
 
         self.login(username="gamma")
         rv = self.client.get(uri)
-        assert rv.status_code == 404
+        assert rv.status_code == 401
+
+        perm1 = security_manager.find_permission_view_menu("can_export", "Dataset")
+
+        perm2 = security_manager.find_permission_view_menu(
+            "datasource_access", dataset.perm
+        )
+
+        # add perissions to allow export + access to query this dataset
+        gamma_role = security_manager.find_role("Gamma")
+        security_manager.add_permission_role(gamma_role, perm1)
+        security_manager.add_permission_role(gamma_role, perm2)
+
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
 
     @patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
@@ -1444,19 +1457,20 @@ class TestDatasetApi(SupersetTestCase):
         {"VERSIONED_EXPORT": True},
         clear=True,
     )
+    @pytest.mark.usefixtures("create_datasets")
     def test_export_dataset_bundle_gamma(self):
         """
         Dataset API: Test export dataset has gamma
         """
-        birth_names_dataset = self.get_birth_names_dataset()
+        dataset = self.get_fixture_datasets()[0]
 
-        argument = [birth_names_dataset.id]
+        argument = [dataset.id]
         uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
 
         self.login(username="gamma")
         rv = self.client.get(uri)
         # gamma users by default do not have access to this dataset
-        assert rv.status_code == 404
+        assert rv.status_code == 401
 
     @unittest.skip("Number of related objects depend on DB")
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
