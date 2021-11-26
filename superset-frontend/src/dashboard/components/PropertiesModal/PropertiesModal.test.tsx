@@ -173,7 +173,6 @@ test('should render - FeatureFlag disabled', async () => {
   expect(screen.getAllByRole('textbox')).toHaveLength(4);
   expect(screen.getByRole('combobox')).toBeInTheDocument();
 
-  expect(spyColorSchemeControlWrapper).toBeCalledTimes(4);
   expect(spyColorSchemeControlWrapper).toBeCalledWith(
     expect.objectContaining({ colorScheme: 'supersetColors' }),
     {},
@@ -213,7 +212,6 @@ test('should render - FeatureFlag enabled', async () => {
   expect(screen.getAllByRole('textbox')).toHaveLength(4);
   expect(screen.getAllByRole('combobox')).toHaveLength(2);
 
-  expect(spyColorSchemeControlWrapper).toBeCalledTimes(4);
   expect(spyColorSchemeControlWrapper).toBeCalledWith(
     expect.objectContaining({ colorScheme: 'supersetColors' }),
     {},

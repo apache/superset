@@ -613,34 +613,32 @@ class Header extends React.PureComponent {
           )}
           {shouldShowReport && this.renderReportModal()}
 
-          {this.state.showingPropertiesModal && (
-            <PropertiesModal
-              dashboardId={dashboardInfo.id}
-              show={this.state.showingPropertiesModal}
-              onHide={this.hidePropertiesModal}
-              colorScheme={this.props.colorScheme}
-              onSubmit={updates => {
-                const { dashboardInfoChanged, dashboardTitleChanged } =
-                  this.props;
-                dashboardInfoChanged({
-                  slug: updates.slug,
-                  metadata: JSON.parse(updates.jsonMetadata),
-                  certified_by: updates.certifiedBy,
-                  certification_details: updates.certificationDetails,
-                });
-                setColorSchemeAndUnsavedChanges(updates.colorScheme);
-                dashboardTitleChanged(updates.title);
-                if (updates.slug) {
-                  window.history.pushState(
-                    { event: 'dashboard_properties_changed' },
-                    '',
-                    `/superset/dashboard/${updates.slug}/`,
-                  );
-                }
-              }}
-              onlyApply
-            />
-          )}
+          <PropertiesModal
+            dashboardId={dashboardInfo.id}
+            show={this.state.showingPropertiesModal}
+            onHide={this.hidePropertiesModal}
+            colorScheme={this.props.colorScheme}
+            onSubmit={updates => {
+              const { dashboardInfoChanged, dashboardTitleChanged } =
+                this.props;
+              dashboardInfoChanged({
+                slug: updates.slug,
+                metadata: JSON.parse(updates.jsonMetadata),
+                certified_by: updates.certifiedBy,
+                certification_details: updates.certificationDetails,
+              });
+              setColorSchemeAndUnsavedChanges(updates.colorScheme);
+              dashboardTitleChanged(updates.title);
+              if (updates.slug) {
+                window.history.pushState(
+                  { event: 'dashboard_properties_changed' },
+                  '',
+                  `/superset/dashboard/${updates.slug}/`,
+                );
+              }
+            }}
+            onlyApply
+          />
 
           {this.state.showingReportModal && (
             <ReportModal
