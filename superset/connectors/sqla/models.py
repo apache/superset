@@ -97,11 +97,13 @@ from superset.utils.core import (
     QueryObjectFilterClause,
     remove_duplicates,
 )
+from superset.charts.business_type.business_type_response import BusinessTypeResponse
 
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
-
+BUSINESS_TYPE_ADDONS = config["BUSINESS_TYPE_ADDONS"]
+BUSINESS_TYPE_TRANSLATIONS = config["BUSINESS_TYPE_TRANSLATIONS"]
 VIRTUAL_TABLE_ALIAS = "virtual_table"
 
 
@@ -1217,7 +1219,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         where_clause_and = []
         having_clause_and = []
-
+        # THIS IS WERE THE FILTER REPLACE IS
         for flt in filter:  # type: ignore
             if not all(flt.get(s) for s in ["col", "op"]):
                 continue
@@ -1238,7 +1240,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 if get_column_name(flt_col) in removed_filters:
                     # Skip generating SQLA filter when the jinja template handles it.
                     continue
-
             if col_obj or sqla_col is not None:
                 if sqla_col is not None:
                     pass
@@ -1259,12 +1260,28 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     target_type = col_spec.generic_type
                 else:
                     target_type = GenericDataType.STRING
+                #TODO: This should be handeled more elegantly 
                 eq = self.filter_values_handler(
                     values=val,
                     target_column_type=target_type,
                     is_list_target=is_list_target,
+                ) if col_obj.business_type == "" else self.filter_values_handler(
+                    values=val,
+                    target_column_type=GenericDataType.STRING,
+                    is_list_target=is_list_target,
                 )
-                if is_list_target:
+
+                if col_obj.business_type != "":
+                    bus_resp: BusinessTypeResponse = BUSINESS_TYPE_ADDONS[col_obj.business_type]({
+                        "type": col_obj.business_type,
+                        "value": eq,
+                    })
+                    where_clause_and += BUSINESS_TYPE_TRANSLATIONS[col_obj.business_type](
+                        sqla_col,
+                        op,
+                        bus_resp["value"]
+                    )
+                elif is_list_target:
                     assert isinstance(eq, (tuple, list))
                     if len(eq) == 0:
                         raise QueryObjectValidationError(
@@ -1351,6 +1368,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             qry = qry.where(and_(*(time_filters + where_clause_and)))
         else:
             qry = qry.where(and_(*where_clause_and))
+            print(qry.where)
         qry = qry.having(and_(*having_clause_and))
 
         self.make_orderby_compatible(select_exprs, orderby_exprs)

@@ -22,7 +22,7 @@ class BusinessTypeRestApi(BaseSupersetModelRestApi):
     """
     datamodel = SQLAInterface(SqlaTable)
 
-    include_route_methods = {"get"}
+    include_route_methods = {"get","get_types"}
     resource_name = "chart"
 
     openapi_spec_tag = "Charts"
@@ -67,12 +67,66 @@ class BusinessTypeRestApi(BaseSupersetModelRestApi):
                         type: list
     """
         items = kwargs['rison']
-        response = []
+        
+        values = []
+        operators = []
+        formatted_values = []
+        status = 'valid'
+        # This logic should be shifted into the actaul callback
+        # Multiple values should be handeled 
         for item in items:
           bus_resp: BusinessTypeResponse = BUSINESS_TYPE_ADDONS[item["type"]]({
             "type": item["type"],
             "value": item["value"],
           })
-          response.append(bus_resp)
-        
+          values.append(bus_resp["value"])
+          formatted_values.append(bus_resp["formatted_value"])
+          operators = bus_resp["valid_filter_operators"] if len(operators) == 0 else list(set(operators) & set(bus_resp["valid_filter_operators"]))
+          status = bus_resp["status"] if bus_resp["status"] == 'invalid' else status
+          
+        response = {
+          'values' : values,
+          'valid_filter_operators' : operators,
+          'status' : status,
+          'formatted_values' : formatted_values,
+        }
+        #TODO: add a FULL string representation of all values 
         return self.response(200, result=response)
+
+    @expose("/business_type/types", methods=["GET"])
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
+        log_to_statsd=False, # pylint: disable-arguments-renamed
+    )
+    def get_types(self, **kwargs: Any) -> Response:
+        """Returns a list of available business types
+        ---
+        get:
+          description: >-
+            Deletes multiple annotation layers in a bulk operation.
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/business_type_convert_schema'
+          responses:
+            200:
+              description: a successful conversion has taken place
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                      value:
+                        type: object
+                      formatted_value:
+                        type: string
+                      valid_filter_operators:
+                        type: list
+    """
+        
+        return self.response(200, result=list(BUSINESS_TYPE_ADDONS.keys()))

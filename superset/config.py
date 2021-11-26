@@ -1319,7 +1319,10 @@ port_conversion_dict: Dict[str, List[int]] = {
 }
 
 import ipaddress
-
+from sqlalchemy import (
+    Column,
+)
+from superset.utils.core import FilterOperator 
 
 def cidr_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
     resp: BusinessTypeResponse = {}
@@ -1334,52 +1337,22 @@ def cidr_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
         )
         resp["formatted_value"] = req["value"]
         resp["valid_filter_operators"] = (
-            ["IN"]
+            ["EQUALS", "<=", "<","IN", ">=", ">"]
             if ip_range[0] != ip_range[-1]
-            else ["==", "<=", "<", "IN", ">=", ">"]
+            else ["==", "<=", "<", ">=", ">"]
         )
     except:
         resp["status"] = "invalid"
         resp["value"] = None
         resp["formatted_value"] = None
-        resp["valid_filter_operators"] = ["==", "<=", "<", ">=", ">"]
+        resp["valid_filter_operators"] = ["==", "IN"]
     return resp
 
-
-def cidr_translate_filter_func(filter: Any) -> List[Dict[str, Any]]:
-
-    resp: BusinessTypeResponse = cidr_func(
-        {"value": filter["val"][0], "business_type": "cidr"}
-    )
-
-    if filter["op"] == "IN" or filter["op"] == "==":
-        return [
-            {"op": ">=", "val": resp["value"]["start"], "col": filter["col"]},
-            {"op": "<=", "val": resp["value"]["end"], "col": filter["col"]},
-        ]
-    elif filter["op"] == "NOT IN" or filter["op"] == "!=":
-        return [
-            {"op": "<=", "val": resp["value"]["start"], "col": filter["col"]},
-            {"op": ">=", "val": resp["value"]["end"], "col": filter["col"]},
-        ]
-    elif filter["op"] == "<":
-        return [
-            {"op": "<", "val": resp["value"]["end"], "col": filter["col"]},
-        ]
-    elif filter["op"] == "<=":
-        return [
-            {"op": "<=", "val": resp["value"]["end"], "col": filter["col"]},
-        ]
-    elif filter["op"] == ">":
-        return [
-            {"op": ">", "val": resp["value"]["start"], "col": filter["col"]},
-        ]
-    elif filter["op"] == ">=":
-        return [
-            {"op": ">=", "val": resp["value"]["start"], "col": filter["col"]},
-        ]
-    else:
-        return [filter]
+# Make this return a single clause
+def cidr_translate_filter_func(col: Column, op: FilterOperator, value: Any) -> List[Any]:
+    if op == FilterOperator.EQUALS.value:
+        return [col == value] if not isinstance(value, dict) else [col <= value["end"], col >= value["start"]]
+    
 
 
 def port_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
@@ -1407,9 +1380,8 @@ def port_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
         resp["value"] = "invalid entry"
         resp["formatted_value"] = None
         resp["valid_filter_operators"] = ["==", "<=", "<", ">=", ">"]
-    print("leaving port_func")
     return resp
-
+# Start a project called 
 
 # the business type key should correspond to that set in the column metadata
 BUSINESS_TYPE_ADDONS: Dict[
@@ -1417,7 +1389,7 @@ BUSINESS_TYPE_ADDONS: Dict[
 ] = {"cidr": cidr_func, "port": port_func}
 
 # the business type key should correspond to that set in the column metadata
-BUSINESS_TYPE_TRANSLATIONS: Dict[str, Callable[[Any], Any]] = {
+BUSINESS_TYPE_TRANSLATIONS: Dict[str, Callable[[Column, FilterOperator, Any], List[Any]]] = {
     "cidr": cidr_translate_filter_func,
 }
 

@@ -216,7 +216,7 @@ export const useSimpleTabFilterProps = (props: Props) => {
     onSubjectChange,
     onOperatorChange,
     onComparatorChange,
-    isOperatorRelevant,
+    isOperatorRelevant
   };
 };
 
@@ -233,6 +233,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     useState(false);
   // TODO:
   // This does not need to be managed in state like this, this can be managed better
+  // Combine into one piece of state 
   const [parsedBusniessType, setParsedBusniessType] = useState<
     string | string[]
   >('');
@@ -242,7 +243,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   const [busninessTypeOperatorList, setBusninessTypeOperatorList] = useState<
     string[]
   >([]);
-  //
+  // TODO: This does not need to exists, just use the busninessTypeOperatorList lsit
   const isOperatorRelevantWrapper = (operator: Operators, subject: string) => {
     const op = OPERATOR_ENUM_TO_OPERATOR_TYPE[operator].operation;
     return subjectBusinessType
@@ -353,6 +354,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   // This has way to many concerns (setting busniess type, operator list and fetching parsed vals)
   // needs to be broken up and handled better
   useEffect(() => {
+    // TODO this login needs to be moved
     const testFucntion = debounce((comp: string | string[]) => {
       const compList: string[] = typeof comp === 'string' ? [comp] : comp;
       const option = props.options.find(
@@ -362,14 +364,11 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
           ('optionName' in option &&
             option.optionName === props.adhocFilter.subject),
       );
-      console.log(option);
       let bsType: string | undefined = '';
       if (option && 'business_type' in option) {
-        console.log('Setting type');
         setSubjectBusinessType(option.business_type);
         bsType = option.business_type;
       }
-      console.log(props.adhocFilter.subject);
       const values = compList
         ? compList.map(result => ({
             type: bsType,
@@ -381,13 +380,10 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
       const endpoint = `/api/v1/chart/business_type?q=${queryParams}`;
       SupersetClient.get({ endpoint })
         .then(({ json }) => {
-          const valsArray: string[] = json.result.map((result: any) =>
-            JSON.stringify(result.value),
-          );
           setParsedBusniessType(
-            valsArray.length > 1 ? valsArray : valsArray[0],
+            json.result.values.map((result: any) => JSON.stringify(result)),
           );
-          setBusninessTypeOperatorList(json.result[0].valid_filter_operators);
+          setBusninessTypeOperatorList(json.result.valid_filter_operators);
         })
         .catch(e => {
           setParsedBusniessType([]);
@@ -395,8 +391,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     }, 600);
     testFucntion(comparator);
   }, [props.adhocFilter.subject, comparator]);
-  // TODO:
-  // This has way to many responsibilites and needs to be broken on
+
   const labelText =
     comparator && comparator.length > 0 && createSuggestionsPlaceholder();
 
