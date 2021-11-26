@@ -34,7 +34,9 @@ assists people when migrating to a new version.
 ### Potential Downtime
 
 - [16756](https://github.com/apache/incubator-superset/pull/16756): a change which renames the `dbs.allow_csv_upload` column to `dbs.allow_file_upload` via a (potentially locking) DDL operation.
-
+- [17539](https://github.com/apache/superset/pull/17539): all Superset CLI commands
+  (init, load_examples and etc) require setting the FLASK_APP environment variable
+  (which is set by default when .flaskenv is loaded)
 ### Deprecations
 
 ### Other
