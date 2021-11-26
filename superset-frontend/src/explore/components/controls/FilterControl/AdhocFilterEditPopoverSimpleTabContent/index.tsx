@@ -216,7 +216,7 @@ export const useSimpleTabFilterProps = (props: Props) => {
     onSubjectChange,
     onOperatorChange,
     onComparatorChange,
-    isOperatorRelevant
+    isOperatorRelevant,
   };
 };
 
@@ -233,7 +233,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     useState(false);
   // TODO:
   // This does not need to be managed in state like this, this can be managed better
-  // Combine into one piece of state 
+  // Combine into one piece of state
   const [parsedBusniessType, setParsedBusniessType] = useState<
     string | string[]
   >('');
