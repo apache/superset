@@ -62,6 +62,8 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: 'requirements/testing.txt'
       - name: Install dependencies
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
@@ -69,6 +71,7 @@ jobs:
           run: |
             apt-get-install
             pip-upgrade
+            pip install wheel
             pip install -r requirements/testing.txt
             setup-postgres
       - name: Run celery
@@ -137,6 +140,8 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: 'requirements/testing.txt'
       - name: Install dependencies
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
@@ -144,6 +149,7 @@ jobs:
           run: |
             apt-get-install
             pip-upgrade
+            pip install wheel
             pip install -r requirements/testing.txt
             setup-postgres
       - name: Run celery
