@@ -87,11 +87,6 @@ PACKAGE_JSON_FILE = os.path.join(BASE_DIR, "static", "assets", "package.json")
 # },
 FAVICONS = [{"href": "/static/assets/images/favicon.png"}]
 
-FEATURE_FLAGS = {
-    "ENABLE_TEMPLATE_PROCESSING": True,
-    "DASHBOARD_NATIVE_FILTERS": True,
-    "DASHBOARD_CROSS_FILTERS": True
-}
 
 def _try_json_readversion(filepath: str) -> Optional[str]:
     try:
