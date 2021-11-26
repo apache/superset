@@ -54,6 +54,7 @@ from superset.dashboards.commands.update import UpdateDashboardCommand
 from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.filters import (
     DashboardAccessFilter,
+    DashboardCertifiedFilter,
     DashboardFavoriteFilter,
     DashboardTitleOrSlugFilter,
     FilterRelatedRoles,
@@ -122,6 +123,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "position_json",
         "json_metadata",
         "thumbnail_url",
+        "certified_by",
+        "certification_details",
         "changed_by.first_name",
         "changed_by.last_name",
         "changed_by.username",
@@ -151,6 +154,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     ]
 
     add_columns = [
+        "certified_by",
+        "certification_details",
         "dashboard_title",
         "slug",
         "owners",
@@ -174,7 +179,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     )
     search_filters = {
         "dashboard_title": [DashboardTitleOrSlugFilter],
-        "id": [DashboardFavoriteFilter],
+        "id": [DashboardFavoriteFilter, DashboardCertifiedFilter],
     }
     base_order = ("changed_on", "desc")
 

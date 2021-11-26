@@ -97,7 +97,9 @@ class SqliteEngineSpec(BaseEngineSpec):
         raise Exception(f"Unsupported datasource_type: {datasource_type}")
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         tt = target_type.upper()
         if tt in (utils.TemporalType.TEXT, utils.TemporalType.DATETIME):
             return f"""'{dttm.isoformat(sep=" ", timespec="microseconds")}'"""
