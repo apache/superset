@@ -1,6 +1,6 @@
 {
   "name": "superset",
-  "version": "superset-helm-chart-0.3.12",
+  "version": "1.3.2",
   "description": "Superset is a data exploration platform designed to be visual, intuitive, and interactive.",
   "keywords": [
     "big",
