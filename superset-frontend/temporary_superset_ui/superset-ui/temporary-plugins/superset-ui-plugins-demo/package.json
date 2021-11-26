@@ -1,0 +1,55 @@
+{
+  "name": "@superset-ui/plugins-demo",
+  "version": "0.11.21",
+  "description": "Storybook for Superset UI Plugins 🔌💡",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "demo:clean": "rm -rf _gh-pages",
+    "demo:build": "build-storybook -o _gh-pages",
+    "demo:publish": "gh-pages -d _gh-pages",
+    "deploy-demo": "npm run demo:clean && npm run demo:build && npm run demo:publish && npm run demo:clean",
+    "storybook:run": "start-storybook -p 9001",
+    "storybook": "cd ../../ && npm run build && cd ./packages/superset-ui-plugins-demo && npm run storybook:run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache-superset/superset-ui.git"
+  },
+  "keywords": [
+    "storybook",
+    "superset",
+    "ui",
+    "visualization",
+    "analysis",
+    "data"
+  ],
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui/issues"
+  },
+  "homepage": "https://github.com/apache-superset/superset-ui#readme",
+  "dependencies": {
+    "@babel/polyfill": "^7.4.3",
+    "@data-ui/event-flow": "^0.0.84",
+    "@storybook/addon-actions": "^5.0.9",
+    "@storybook/addon-knobs": "^5.0.9",
+    "@storybook/addon-links": "^5.0.9",
+    "@storybook/addons": "^5.0.9",
+    "@storybook/react": "^5.0.9",
+    "@types/react": "^16.9.48",
+    "@types/storybook__react": "4.0.2",
+    "bootstrap": "^3.4.1",
+    "jquery": "^3.4.1",
+    "react": "^16.13.1",
+    "storybook-addon-jsx": "^7.1.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.4.3",
+    "@babel/plugin-syntax-dynamic-import": "^7.2.0",
+    "@superset-ui/core": "^0.14.22",
+    "babel-loader": "^8.0.5",
+    "gh-pages": "^2.0.1",
+    "terser-webpack-plugin": "2.3.5"
+  }
+}

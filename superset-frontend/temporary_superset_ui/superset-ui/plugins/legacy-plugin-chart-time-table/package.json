@@ -1,0 +1,45 @@
+{
+  "name": "@superset-ui/legacy-plugin-chart-time-table",
+  "version": "0.18.25",
+  "description": "Superset Chart Plugin - Time Table",
+  "sideEffects": [
+    "*.css"
+  ],
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "files": [
+    "esm",
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache-superset/superset-ui.git"
+  },
+  "keywords": [
+    "superset"
+  ],
+  "author": "Superset",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui/issues"
+  },
+  "homepage": "https://github.com/apache-superset/superset-ui#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@data-ui/sparkline": "^0.0.84",
+    "@superset-ui/chart-controls": "0.18.25",
+    "@superset-ui/core": "0.18.25",
+    "@types/d3-scale": "^2.0.2",
+    "d3-scale": "^3.2.1",
+    "moment": "^2.26.0",
+    "mustache": "^4.0.1",
+    "prop-types": "^15.7.2",
+    "reactable-arc": "^0.15.0"
+  },
+  "peerDependencies": {
+    "@types/react": "*",
+    "react": "^16.3.1"
+  }
+}

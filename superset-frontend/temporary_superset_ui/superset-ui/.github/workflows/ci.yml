@@ -1,0 +1,69 @@
+name: build-and-test-workflow
+
+on:
+  push:
+    branches:
+      - '*'
+    tags-ignore:
+      - 'trigger-patch-test.*'
+  pull_request:
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: ubuntu-20.04
+    env:
+      CODECOV_TOKEN: '${{ secrets.CODECOV_TOKEN }}'
+    strategy:
+      matrix:
+        node-version: [16]
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          # pulls all commits (needed for lerna / semantic release to correctly version)
+          fetch-depth: '0'
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Cache npm
+        uses: actions/cache@v1
+        with:
+          path: ~/.npm # npm cache files are stored in `~/.npm` on Linux/macOS
+          key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.OS }}-node-
+            ${{ runner.OS }}-
+
+      - name: Get npm cache directory path
+        id: npm-cache-dir-path
+        run: echo "::set-output name=dir::$(npm config get cache)"
+      - name: Cache npm
+        uses: actions/cache@v1
+        id: npm-cache # use this to check for `cache-hit` (`steps.npm-cache.outputs.cache-hit != 'true'`)
+        with:
+          path: ${{ steps.npm-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      - name: Install dependencies
+        run: npm ci
+      - name: Run ESLint
+        run: npm run lint --quiet
+      - name: Build packages
+        run: npm run build
+      - name: Run unit tests
+        run: npm run test
+      - name: Build Storybook
+        run: npm run build-storybook
+      - uses: actions/upload-artifact@v2
+        with:
+          name: storybookBuild
+          path: ./packages/superset-ui-demo/storybook-static/
+
+      - name: Report code coverage
+        run: .github/workflows/codecov.sh
