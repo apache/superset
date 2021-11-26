@@ -26,7 +26,8 @@ const defaultProps = {
   children: jest.fn(),
   getFilterTitle: (id: string) => id,
   onChange: jest.fn(),
-  onEdit: jest.fn(),
+  onAdd: jest.fn(),
+  onRemove: jest.fn(),
   onRearrange: jest.fn(),
   restoreFilter: jest.fn(),
   currentFilterId: 'NATIVE_FILTER-1',
@@ -93,22 +94,41 @@ test('remove filter', async () => {
       }),
     );
   });
-  expect(defaultProps.onEdit).toHaveBeenCalledWith('NATIVE_FILTER-2', 'remove');
+  expect(defaultProps.onRemove).toHaveBeenCalledWith('NATIVE_FILTER-2');
 });
 
 test('add filter', async () => {
   defaultRender();
   // First trash icon
-  const removeFilterIcon = screen.getByText('Add filter')!;
+  const addButton = screen.getByText('Add')!;
+  fireEvent.mouseOver(addButton);
+  const addFilterButton = await screen.findByText('Filter');
+
   await act(async () => {
     fireEvent(
-      removeFilterIcon,
+      addFilterButton,
       new MouseEvent('click', {
         bubbles: true,
         cancelable: true,
       }),
     );
   });
+  expect(defaultProps.onAdd).toHaveBeenCalledWith('NATIVE_FILTER');
+});
 
-  expect(defaultProps.onEdit).toHaveBeenCalledWith('', 'add');
+test('add divider', async () => {
+  defaultRender();
+  const addButton = screen.getByText('Add')!;
+  fireEvent.mouseOver(addButton);
+  const addFilterButton = await screen.findByText('Divider');
+  await act(async () => {
+    fireEvent(
+      addFilterButton,
+      new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+  });
+  expect(defaultProps.onAdd).toHaveBeenCalledWith('DIVIDER');
 });

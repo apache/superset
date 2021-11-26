@@ -16,7 +16,7 @@
 # under the License.
 import logging
 from datetime import datetime
-from typing import Dict, List, Optional, Type, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Type, TYPE_CHECKING
 
 from urllib3.exceptions import NewConnectionError
 
@@ -72,7 +72,9 @@ class ClickHouseEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         return new_exception(str(exception))
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
             return f"toDate('{dttm.date().isoformat()}')"

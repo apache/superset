@@ -248,7 +248,9 @@ class HiveEngineSpec(PrestoEngineSpec):
             )
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"
@@ -429,9 +431,12 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def _latest_partition_from_df(cls, df: pd.DataFrame) -> Optional[List[str]]:
-        """Hive partitions look like ds={partition name}"""
+        """Hive partitions look like ds={partition name}/ds={partition name}"""
         if not df.empty:
-            return [df.iloc[:, 0].max().split("=")[1]]
+            return [
+                partition_str.split("=")[1]
+                for partition_str in df.iloc[:, 0].max().split("/")
+            ]
         return None
 
     @classmethod

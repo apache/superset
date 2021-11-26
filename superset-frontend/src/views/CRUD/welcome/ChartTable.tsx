@@ -16,17 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { t } from '@superset-ui/core';
 import { filter } from 'lodash';
 import {
-  useListViewResource,
   useChartEditModal,
   useFavoriteStatus,
+  useListViewResource,
 } from 'src/views/CRUD/hooks';
 import {
-  setInLocalStorage,
   getFromLocalStorage,
+  setInLocalStorage,
 } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useHistory } from 'react-router-dom';
@@ -43,6 +43,7 @@ import Loading from 'src/components/Loading';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import SubMenu from 'src/components/Menu/SubMenu';
 import EmptyState from './EmptyState';
+import { WelcomeTable } from './types';
 
 interface ChartTableProps {
   addDangerToast: (message: string) => void;
@@ -249,7 +250,7 @@ function ChartTable({
           ))}
         </CardContainer>
       ) : (
-        <EmptyState tableName="CHARTS" tab={chartFilter} />
+        <EmptyState tableName={WelcomeTable.Charts} tab={chartFilter} />
       )}
       {preparingExport && <Loading />}
     </ErrorBoundary>

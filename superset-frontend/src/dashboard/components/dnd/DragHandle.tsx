@@ -16,28 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
-import { formatNumber } from '@superset-ui/core';
+import React, { LegacyRef } from 'react';
+import cx from 'classnames';
 
-const propTypes = {
-  num: PropTypes.number,
-  format: PropTypes.string,
-};
-
-const defaultProps = {
-  num: 0,
-  format: undefined,
-};
-
-function FormattedNumber({ num, format }) {
-  if (format) {
-    return <span title={num}>{formatNumber(format, num)}</span>;
-  }
-  return <span>{num}</span>;
+interface DragHandleProps {
+  position: 'left' | 'top';
+  innerRef: LegacyRef<HTMLDivElement> | undefined;
+  dotCount: number;
 }
 
-FormattedNumber.propTypes = propTypes;
-FormattedNumber.defaultProps = defaultProps;
-
-export default FormattedNumber;
+export default function DragHandle({
+  position = 'left',
+  innerRef = null,
+  dotCount = 8,
+}: DragHandleProps) {
+  return (
+    <div
+      ref={innerRef}
+      className={cx(
+        'drag-handle',
+        position === 'left' && 'drag-handle--left',
+        position === 'top' && 'drag-handle--top',
+      )}
+    >
+      {Array(dotCount)
+        .fill(null)
+        .map((_, i) => (
+          <div key={`handle-dot-${i}`} className="drag-handle-dot" />
+        ))}
+    </div>
+  );
+}
