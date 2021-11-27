@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 from urllib import parse
 
 import simplejson as json
@@ -23,6 +23,9 @@ from sqlalchemy.engine.url import make_url, URL
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.utils import core as utils
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
 
 
 class TrinoEngineSpec(BaseEngineSpec):
@@ -81,7 +84,6 @@ class TrinoEngineSpec(BaseEngineSpec):
         that can set the correct properties for impersonating users
         :param connect_args: config to be updated
         :param uri: URI string
-        :param impersonate_user: Flag indicating if impersonation is enabled
         :param username: Effective username
         :return: None
         """
@@ -116,9 +118,7 @@ class TrinoEngineSpec(BaseEngineSpec):
         Run a SQL query that estimates the cost of a given statement.
 
         :param statement: A single SQL statement
-        :param database: Database instance
         :param cursor: Cursor instance
-        :param username: Effective username
         :return: JSON response from Trino
         """
         sql = f"EXPLAIN (TYPE IO, FORMAT JSON) {statement}"
@@ -183,3 +183,22 @@ class TrinoEngineSpec(BaseEngineSpec):
             cost.append(statement_cost)
 
         return cost
+
+    @staticmethod
+    def get_extra_params(database: "Database") -> Dict[str, Any]:
+        """
+        Some databases require adding elements to connection parameters,
+        like passing certificates to `extra`. This can be done here.
+
+        :param database: database instance from which to extract extras
+        :raises CertificateException: If certificate is not valid/unparseable
+        """
+        extra: Dict[str, Any] = BaseEngineSpec.get_extra_params(database)
+        engine_params: Dict[str, Any] = extra.setdefault("engine_params", {})
+        connect_args: Dict[str, Any] = engine_params.setdefault("connect_args", {})
+
+        if database.server_cert:
+            connect_args["http_scheme"] = "https"
+            connect_args["verify"] = utils.create_ssl_cert_file(database.server_cert)
+
+        return extra

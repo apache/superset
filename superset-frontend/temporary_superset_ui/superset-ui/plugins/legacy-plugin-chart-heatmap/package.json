@@ -1,0 +1,38 @@
+{
+  "name": "@superset-ui/legacy-plugin-chart-heatmap",
+  "version": "0.18.25",
+  "description": "Superset Legacy Chart - Heatmap",
+  "sideEffects": [
+    "*.css"
+  ],
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "files": [
+    "esm",
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache-superset/superset-ui.git"
+  },
+  "keywords": [
+    "superset"
+  ],
+  "author": "Superset",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui/issues"
+  },
+  "homepage": "https://github.com/apache-superset/superset-ui#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@superset-ui/chart-controls": "0.18.25",
+    "@superset-ui/core": "0.18.25",
+    "d3": "^3.5.17",
+    "d3-svg-legend": "^1.x",
+    "d3-tip": "^0.9.1",
+    "prop-types": "^15.6.2"
+  }
+}

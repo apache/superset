@@ -1,0 +1,53 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: '/'
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+    ignore:
+      - dependency-name: bootstrap
+        versions:
+          - '>= 4.a, < 5'
+      - dependency-name: d3
+        versions:
+          - '>= 6.a, < 7'
+      - dependency-name: '@types/jsdom'
+        versions:
+          - '> 12.2.4'
+      - dependency-name: '@types/react'
+        versions:
+          - 17.0.1
+          - 17.0.2
+          - 17.0.3
+      - dependency-name: '@babel/preset-env'
+        versions:
+          - 7.12.13
+          - 7.13.10
+          - 7.13.12
+          - 7.13.9
+      - dependency-name: '@babel/compat-data'
+        versions:
+          - 7.12.13
+          - 7.13.0
+          - 7.13.11
+          - 7.13.12
+          - 7.13.6
+          - 7.13.8
+      - dependency-name: elliptic
+        versions:
+          - 6.5.3
+          - 6.5.4
+      - dependency-name: yeoman-test
+        versions:
+          - 4.0.0
+          - 5.0.1
+      - dependency-name: '@emotion/core'
+        versions:
+          - 11.0.0
+      - dependency-name: react-error-boundary
+        versions:
+          - 3.1.0
+      - dependency-name: jquery
+        versions:
+          - 3.5.0
