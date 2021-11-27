@@ -86,7 +86,7 @@ const SelectAsyncControl = ({
     const onError = (response: Response) =>
       getClientErrorObject(response).then(e => {
         const { error } = e;
-        addDangerToast(`${t('Error while fetching data')}: ${error}`);
+        addDangerToast(t('Error while fetching data: %s', error));
       });
     const loadOptions = () =>
       SupersetClient.get({
