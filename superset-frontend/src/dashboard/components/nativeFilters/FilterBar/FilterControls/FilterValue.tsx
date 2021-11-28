@@ -68,6 +68,8 @@ const FilterValue: React.FC<FilterProps> = ({
   directPathToChild,
   onFilterSelectionChange,
   inView = true,
+  showOverflow,
+  parentRef,
 }) => {
   const { id, targets, filterType, adhoc_filters, time_range } = filter;
   const metadata = getChartMetadataRegistry().get(filterType);
@@ -211,9 +213,10 @@ const FilterValue: React.FC<FilterProps> = ({
     () => dispatchFocusAction(dispatch, id),
     [dispatch, id],
   );
-  const unsetFocusedFilter = useCallback(() => dispatchFocusAction(dispatch), [
-    dispatch,
-  ]);
+  const unsetFocusedFilter = useCallback(
+    () => dispatchFocusAction(dispatch),
+    [dispatch],
+  );
 
   const hooks = useMemo(
     () => ({ setDataMask, setFocusedFilter, unsetFocusedFilter }),
@@ -251,7 +254,9 @@ const FilterValue: React.FC<FilterProps> = ({
         <SuperChart
           height={HEIGHT}
           width="100%"
+          showOverflow={showOverflow}
           formData={formData}
+          parentRef={parentRef}
           // For charts that don't have datasource we need workaround for empty placeholder
           queriesData={hasDataSource ? state : queriesDataPlaceholder}
           chartType={filterType}

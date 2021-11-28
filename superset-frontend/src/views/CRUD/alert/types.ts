@@ -100,14 +100,14 @@ export type LogObject = {
 };
 
 export enum AlertState {
-  success = 'Success',
-  working = 'Working',
-  error = 'Error',
-  noop = 'Not triggered',
-  grace = 'On Grace',
+  Success = 'Success',
+  Working = 'Working',
+  Error = 'Error',
+  Noop = 'Not triggered',
+  Grace = 'On Grace',
 }
 
 export enum RecipientIconName {
-  email = 'Email',
-  slack = 'Slack',
+  Email = 'Email',
+  Slack = 'Slack',
 }

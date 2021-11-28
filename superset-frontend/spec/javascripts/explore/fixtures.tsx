@@ -68,39 +68,41 @@ export const controlPanelSectionsChartOptions: ControlPanelSectionConfig[] = [
   },
 ];
 
-export const controlPanelSectionsChartOptionsOnlyColorScheme: ControlPanelSectionConfig[] = [
-  {
-    label: t('Chart Options'),
-    expanded: true,
-    controlSetRows: [['color_scheme']],
-  },
-];
+export const controlPanelSectionsChartOptionsOnlyColorScheme: ControlPanelSectionConfig[] =
+  [
+    {
+      label: t('Chart Options'),
+      expanded: true,
+      controlSetRows: [['color_scheme']],
+    },
+  ];
 
-export const controlPanelSectionsChartOptionsTable: ControlPanelSectionConfig[] = [
-  {
-    label: t('Chart Options'),
-    expanded: true,
-    controlSetRows: [
-      [
-        'metric',
-        'metrics',
-        {
-          name: 'all_columns',
-          config: {
-            type: 'SelectControl',
-            multi: true,
-            label: t('Columns'),
-            default: [],
-            description: t('Columns to display'),
-            optionRenderer: c => <ColumnOption column={c} showType />,
-            valueKey: 'column_name',
-            mapStateToProps: stateRef => ({
-              options: stateRef.datasource ? stateRef.datasource.columns : [],
-            }),
-            freeForm: true,
-          } as ControlConfig<'SelectControl', ColumnMeta>,
-        },
+export const controlPanelSectionsChartOptionsTable: ControlPanelSectionConfig[] =
+  [
+    {
+      label: t('Chart Options'),
+      expanded: true,
+      controlSetRows: [
+        [
+          'metric',
+          'metrics',
+          {
+            name: 'all_columns',
+            config: {
+              type: 'SelectControl',
+              multi: true,
+              label: t('Columns'),
+              default: [],
+              description: t('Columns to display'),
+              optionRenderer: c => <ColumnOption column={c} showType />,
+              valueKey: 'column_name',
+              mapStateToProps: stateRef => ({
+                options: stateRef.datasource ? stateRef.datasource.columns : [],
+              }),
+              freeForm: true,
+            } as ControlConfig<'SelectControl', ColumnMeta>,
+          },
+        ],
       ],
-    ],
-  },
-];
+    },
+  ];

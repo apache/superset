@@ -291,6 +291,60 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         {"PRESTO_EXPAND_DATA": True},
         clear=True,
     )
+    def test_presto_expand_data_with_complex_row_columns_and_null_values(self):
+        cols = [
+            {"name": "row_column", "type": "ROW(NESTED_ROW ROW(NESTED_OBJ VARCHAR))",}
+        ]
+        data = [
+            {"row_column": '[["a"]]'},
+            {"row_column": "[[null]]"},
+            {"row_column": "[null]"},
+            {"row_column": "null"},
+        ]
+        actual_cols, actual_data, actual_expanded_cols = PrestoEngineSpec.expand_data(
+            cols, data
+        )
+        expected_cols = [
+            {"name": "row_column", "type": "ROW(NESTED_ROW ROW(NESTED_OBJ VARCHAR))",},
+            {"name": "row_column.nested_row", "type": "ROW(NESTED_OBJ VARCHAR)"},
+            {"name": "row_column.nested_row.nested_obj", "type": "VARCHAR"},
+        ]
+        expected_data = [
+            {
+                "row_column": [["a"]],
+                "row_column.nested_row": ["a"],
+                "row_column.nested_row.nested_obj": "a",
+            },
+            {
+                "row_column": [[None]],
+                "row_column.nested_row": [None],
+                "row_column.nested_row.nested_obj": None,
+            },
+            {
+                "row_column": [None],
+                "row_column.nested_row": None,
+                "row_column.nested_row.nested_obj": "",
+            },
+            {
+                "row_column": None,
+                "row_column.nested_row": "",
+                "row_column.nested_row.nested_obj": "",
+            },
+        ]
+
+        expected_expanded_cols = [
+            {"name": "row_column.nested_row", "type": "ROW(NESTED_OBJ VARCHAR)"},
+            {"name": "row_column.nested_row.nested_obj", "type": "VARCHAR"},
+        ]
+        self.assertEqual(actual_cols, expected_cols)
+        self.assertEqual(actual_data, expected_data)
+        self.assertEqual(actual_expanded_cols, expected_expanded_cols)
+
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"PRESTO_EXPAND_DATA": True},
+        clear=True,
+    )
     def test_presto_expand_data_with_complex_array_columns(self):
         cols = [
             {"name": "int_column", "type": "BIGINT"},

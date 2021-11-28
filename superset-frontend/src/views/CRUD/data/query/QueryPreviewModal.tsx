@@ -99,16 +99,12 @@ function QueryPreviewModal({
   addDangerToast,
   addSuccessToast,
 }: QueryPreviewModalProps) {
-  const {
-    handleKeyPress,
-    handleDataChange,
-    disablePrevious,
-    disableNext,
-  } = useQueryPreviewState<QueryObject>({
-    queries,
-    currentQueryId: query.id,
-    fetchData,
-  });
+  const { handleKeyPress, handleDataChange, disablePrevious, disableNext } =
+    useQueryPreviewState<QueryObject>({
+      queries,
+      currentQueryId: query.id,
+      fetchData,
+    });
 
   const [currentTab, setCurrentTab] = useState<'user' | 'executed'>('user');
 

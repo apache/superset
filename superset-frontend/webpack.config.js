@@ -274,7 +274,7 @@ const config = {
       },
     },
     usedExports: 'global',
-    minimizer: [new CssMinimizerPlugin()],
+    minimizer: [new CssMinimizerPlugin(), '...'],
   },
   resolve: {
     modules: [APP_DIR, 'node_modules', ROOT_DIR],

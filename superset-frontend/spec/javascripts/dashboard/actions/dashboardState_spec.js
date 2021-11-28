@@ -93,9 +93,8 @@ describe('dashboardState actions', () => {
       // mock redux work: dispatch an event, cause modify redux state
       const mockParentsList = ['ROOT_ID'];
       dispatch.callsFake(() => {
-        mockState.dashboardLayout.present[
-          DASHBOARD_GRID_ID
-        ].parents = mockParentsList;
+        mockState.dashboardLayout.present[DASHBOARD_GRID_ID].parents =
+          mockParentsList;
       });
 
       // call saveDashboardRequest, it should post dashboard data with updated

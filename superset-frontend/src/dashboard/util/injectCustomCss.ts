@@ -40,7 +40,7 @@ export default function injectCustomCss(css: string) {
     document.querySelector(`.${className}`) || createStyleElement(className);
 
   if ('styleSheet' in style) {
-    ((style as unknown) as MysteryStyleElement).styleSheet.cssText = css;
+    (style as unknown as MysteryStyleElement).styleSheet.cssText = css;
   } else {
     style.innerHTML = css;
   }

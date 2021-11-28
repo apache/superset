@@ -26,9 +26,9 @@ from superset.sqllab.command_status import SqlJsonExecutionStatus
 from superset.sqllab.utils import apply_display_max_row_configuration_if_require
 
 if TYPE_CHECKING:
-    from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
-    from superset.sqllab.sql_json_executer import SqlResults
     from superset.models.sql_lab import Query
+    from superset.sqllab.sql_json_executer import SqlResults
+    from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 
 
 class ExecutionContextConvertorImpl(ExecutionContextConvertor):

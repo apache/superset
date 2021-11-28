@@ -45,15 +45,8 @@ export default function Label(props: LabelProps) {
   const theme = useTheme();
   const { colors, transitionTiming } = theme;
   const { type, onClick, children, ...rest } = props;
-  const {
-    primary,
-    secondary,
-    grayscale,
-    success,
-    warning,
-    error,
-    info,
-  } = colors;
+  const { primary, secondary, grayscale, success, warning, error, info } =
+    colors;
 
   let backgroundColor = grayscale.light3;
   let backgroundColorHover = onClick ? primary.light2 : grayscale.light3;

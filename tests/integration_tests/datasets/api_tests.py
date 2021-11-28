@@ -35,7 +35,12 @@ from superset.dao.exceptions import (
 )
 from superset.extensions import db, security_manager
 from superset.models.core import Database
-from superset.utils.core import backend, get_example_database, get_main_database
+from superset.utils.core import (
+    backend,
+    get_example_database,
+    get_example_default_schema,
+    get_main_database,
+)
 from superset.utils.dict_import_export import export_to_dict
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import CTAS_SCHEMA_NAME
@@ -134,7 +139,11 @@ class TestDatasetApi(SupersetTestCase):
         example_db = get_example_database()
         return (
             db.session.query(SqlaTable)
-            .filter_by(database=example_db, table_name="energy_usage")
+            .filter_by(
+                database=example_db,
+                table_name="energy_usage",
+                schema=get_example_default_schema(),
+            )
             .one()
         )
 
@@ -243,7 +252,7 @@ class TestDatasetApi(SupersetTestCase):
             "main_dttm_col": None,
             "offset": 0,
             "owners": [],
-            "schema": None,
+            "schema": get_example_default_schema(),
             "sql": None,
             "table_name": "energy_usage",
             "template_params": None,
@@ -366,9 +375,7 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "info")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
-        assert "can_read" in data["permissions"]
-        assert "can_write" in data["permissions"]
-        assert len(data["permissions"]) == 2
+        assert set(data["permissions"]) == {"can_read", "can_write", "can_export"}
 
     def test_create_dataset_item(self):
         """
@@ -477,12 +484,15 @@ class TestDatasetApi(SupersetTestCase):
         """
         Dataset API: Test create dataset validate table uniqueness
         """
+        schema = get_example_default_schema()
         energy_usage_ds = self.get_energy_usage_dataset()
         self.login(username="admin")
         table_data = {
             "database": energy_usage_ds.database_id,
             "table_name": energy_usage_ds.table_name,
         }
+        if schema:
+            table_data["schema"] = schema
         rv = self.post_assert_metric("/api/v1/dataset/", table_data, "post")
         assert rv.status_code == 422
         data = json.loads(rv.data.decode("utf-8"))
@@ -1370,18 +1380,33 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "export")
         assert rv.status_code == 404
 
+    @pytest.mark.usefixtures("create_datasets")
     def test_export_dataset_gamma(self):
         """
         Dataset API: Test export dataset has gamma
         """
-        birth_names_dataset = self.get_birth_names_dataset()
+        dataset = self.get_fixture_datasets()[0]
 
-        argument = [birth_names_dataset.id]
+        argument = [dataset.id]
         uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
 
         self.login(username="gamma")
         rv = self.client.get(uri)
-        assert rv.status_code == 404
+        assert rv.status_code == 401
+
+        perm1 = security_manager.find_permission_view_menu("can_export", "Dataset")
+
+        perm2 = security_manager.find_permission_view_menu(
+            "datasource_access", dataset.perm
+        )
+
+        # add perissions to allow export + access to query this dataset
+        gamma_role = security_manager.find_role("Gamma")
+        security_manager.add_permission_role(gamma_role, perm1)
+        security_manager.add_permission_role(gamma_role, perm2)
+
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
 
     @patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
@@ -1432,20 +1457,22 @@ class TestDatasetApi(SupersetTestCase):
         {"VERSIONED_EXPORT": True},
         clear=True,
     )
+    @pytest.mark.usefixtures("create_datasets")
     def test_export_dataset_bundle_gamma(self):
         """
         Dataset API: Test export dataset has gamma
         """
-        birth_names_dataset = self.get_birth_names_dataset()
+        dataset = self.get_fixture_datasets()[0]
 
-        argument = [birth_names_dataset.id]
+        argument = [dataset.id]
         uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
 
         self.login(username="gamma")
         rv = self.client.get(uri)
         # gamma users by default do not have access to this dataset
-        assert rv.status_code == 404
+        assert rv.status_code == 401
 
+    @unittest.skip("Number of related objects depend on DB")
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_dataset_related_objects(self):
         """

@@ -104,19 +104,13 @@ export function getExploreLongUrl(
     return null;
   }
 
-  // remove formData params that we don't need in the explore url.
-  // These are present when generating explore urls from the dashboard page.
-  // This should be superseded by some sort of "exploration context" system
-  // where form data and other context is referenced by id.
-  const trimmedFormData = omit(formData, ['dataMask', 'url_params']);
-
   const uri = new URI('/');
   const directory = getURIDirectory(endpointType);
   const search = uri.search(true);
   Object.keys(extraSearch).forEach(key => {
     search[key] = extraSearch[key];
   });
-  search.form_data = safeStringify(trimmedFormData);
+  search.form_data = safeStringify(formData);
   if (endpointType === URL_PARAMS.standalone.name) {
     search.standalone = DashboardStandaloneMode.HIDE_NAV;
   }
@@ -131,6 +125,19 @@ export function getExploreLongUrl(
     });
   }
   return url;
+}
+
+export function getExploreUrlFromDashboard(formData) {
+  // remove formData params that we don't need in the explore url.
+  // These are present when generating explore urls from the dashboard page.
+  // This should be superseded by some sort of "exploration context" system
+  // where form data and other context is referenced by id.
+  const trimmedFormData = omit(formData, [
+    'dataMask',
+    'url_params',
+    'label_colors',
+  ]);
+  return getExploreLongUrl(trimmedFormData, null, false);
 }
 
 export function getChartDataUri({ path, qs, allowDomainSharding = false }) {
@@ -166,6 +173,11 @@ export function getExploreUrl({
   if (!formData.datasource) {
     return null;
   }
+
+  // label_colors should not pollute the URL
+  // eslint-disable-next-line no-param-reassign
+  delete formData.label_colors;
+
   let uri = getChartDataUri({ path: '/', allowDomainSharding });
   if (curUrl) {
     uri = URI(URI(curUrl).search());

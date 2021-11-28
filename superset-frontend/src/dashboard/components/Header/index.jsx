@@ -20,8 +20,9 @@
 import moment from 'moment';
 import React from 'react';
 import PropTypes from 'prop-types';
-import { styled, CategoricalColorNamespace, t } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import ButtonGroup from 'src/components/ButtonGroup';
+import CertifiedIcon from 'src/components/CertifiedIcon';
 
 import {
   LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
@@ -52,6 +53,7 @@ import setPeriodicRunner, {
   stopPeriodicRender,
 } from 'src/dashboard/util/setPeriodicRunner';
 import { options as PeriodicRefreshOptions } from 'src/dashboard/components/RefreshIntervalModal';
+import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -179,6 +181,13 @@ class Header extends React.PureComponent {
         dashboardInfo.id,
         user.email,
       );
+    }
+  }
+
+  componentDidUpdate(prevProps) {
+    if (this.props.refreshFrequency !== prevProps.refreshFrequency) {
+      const { refreshFrequency } = this.props;
+      this.startPeriodicRender(refreshFrequency * 1000);
     }
   }
 
@@ -341,19 +350,10 @@ class Header extends React.PureComponent {
       lastModifiedTime,
     } = this.props;
 
-    const scale = CategoricalColorNamespace.getScale(
-      colorScheme,
-      colorNamespace,
-    );
-
-    // use the colorScheme for default labels
-    let labelColors = colorScheme ? scale.getColorMap() : {};
-    // but allow metadata to overwrite if it exists
-    // eslint-disable-next-line camelcase
-    const metadataLabelColors = dashboardInfo.metadata?.label_colors;
-    if (metadataLabelColors) {
-      labelColors = { ...labelColors, ...metadataLabelColors };
-    }
+    const labelColors =
+      colorScheme && dashboardInfo?.metadata?.label_colors
+        ? dashboardInfo.metadata.label_colors
+        : {};
 
     // check refresh frequency is for current session or persist
     const refreshFrequency = shouldPersistRefreshFrequency
@@ -436,7 +436,7 @@ class Header extends React.PureComponent {
       return false;
     }
     const { user } = this.props;
-    if (!user) {
+    if (!user?.userId) {
       // this is in the case that there is an anonymous user.
       return false;
     }
@@ -476,10 +476,15 @@ class Header extends React.PureComponent {
       shouldPersistRefreshFrequency,
       setRefreshFrequency,
       lastModifiedTime,
+      filterboxMigrationState,
     } = this.props;
-    const userCanEdit = dashboardInfo.dash_edit_perm;
+    const userCanEdit =
+      dashboardInfo.dash_edit_perm &&
+      filterboxMigrationState !== FILTER_BOX_MIGRATION_STATES.REVIEWING;
     const userCanShare = dashboardInfo.dash_share_perm;
-    const userCanSaveAs = dashboardInfo.dash_save_perm;
+    const userCanSaveAs =
+      dashboardInfo.dash_save_perm &&
+      filterboxMigrationState !== FILTER_BOX_MIGRATION_STATES.REVIEWING;
     const shouldShowReport = !editMode && this.canAddReports();
     const refreshLimit =
       dashboardInfo.common.conf.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
@@ -494,6 +499,14 @@ class Header extends React.PureComponent {
         data-test-id={`${dashboardInfo.id}`}
       >
         <div className="dashboard-component-header header-large">
+          {dashboardInfo.certified_by && (
+            <>
+              <CertifiedIcon
+                certifiedBy={dashboardInfo.certified_by}
+                details={dashboardInfo.certification_details}
+              />{' '}
+            </>
+          )}
           <EditableTitle
             title={dashboardTitle}
             canEdit={userCanEdit && editMode}
@@ -607,13 +620,13 @@ class Header extends React.PureComponent {
               onHide={this.hidePropertiesModal}
               colorScheme={this.props.colorScheme}
               onSubmit={updates => {
-                const {
-                  dashboardInfoChanged,
-                  dashboardTitleChanged,
-                } = this.props;
+                const { dashboardInfoChanged, dashboardTitleChanged } =
+                  this.props;
                 dashboardInfoChanged({
                   slug: updates.slug,
                   metadata: JSON.parse(updates.jsonMetadata),
+                  certified_by: updates.certifiedBy,
+                  certification_details: updates.certificationDetails,
                 });
                 setColorSchemeAndUnsavedChanges(updates.colorScheme);
                 dashboardTitleChanged(updates.title);
@@ -625,6 +638,7 @@ class Header extends React.PureComponent {
                   );
                 }
               }}
+              onlyApply
             />
           )}
 
@@ -671,6 +685,7 @@ class Header extends React.PureComponent {
             refreshLimit={refreshLimit}
             refreshWarning={refreshWarning}
             lastModifiedTime={lastModifiedTime}
+            filterboxMigrationState={filterboxMigrationState}
           />
         </div>
       </StyledDashboardHeader>

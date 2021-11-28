@@ -80,12 +80,12 @@ extraSecretEnv: {}
 extraConfigs: {}
   # datasources-init.yaml: |
   #     databases:
-  #     - allow_csv_upload: true
+  #     - allow_file_upload: true
   #       allow_ctas: true
   #       allow_cvas: true
   #       database_name: example-db
   #       extra: "{\r\n    \"metadata_params\": {},\r\n    \"engine_params\": {},\r\n    \"\
-  #         metadata_cache_timeout\": {},\r\n    \"schemas_allowed_for_csv_upload\": []\r\n\
+  #         metadata_cache_timeout\": {},\r\n    \"schemas_allowed_for_file_upload\": []\r\n\
   #         }"
   #       sqlalchemy_uri: example://example-db.local
   #       tables: []
@@ -165,8 +165,8 @@ service:
 
 ingress:
   enabled: false
+  # ingressClassName: nginx
   annotations: {}
-    # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
     ## Extend timeout to allow long running queries.
     # nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"

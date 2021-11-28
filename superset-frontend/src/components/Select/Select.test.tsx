@@ -52,7 +52,7 @@ const OPTIONS = [
   { label: 'Irfan', value: 18, gender: 'Male' },
   { label: 'George', value: 19, gender: 'Male' },
   { label: 'Ashfaq', value: 20, gender: 'Male' },
-];
+].sort((option1, option2) => option1.label.localeCompare(option2.label));
 
 const loadOptions = async (search: string, page: number, pageSize: number) => {
   const totalCount = OPTIONS.length;
@@ -100,6 +100,8 @@ const findSelectValue = () =>
 const findAllSelectValues = () =>
   waitFor(() => getElementsByClassName('.ant-select-selection-item'));
 
+const clearAll = () => userEvent.click(screen.getByLabelText('close-circle'));
+
 const type = (text: string) => {
   const select = getSelect();
   userEvent.clear(select);
@@ -127,6 +129,37 @@ test('inverts the selection', async () => {
   expect(await screen.findByLabelText('stop')).toBeInTheDocument();
 });
 
+test('sort the options by label if no sort comparator is provided', async () => {
+  const unsortedOptions = [...OPTIONS].sort(() => Math.random());
+  render(<Select {...defaultProps} options={unsortedOptions} />);
+  await open();
+  const options = await findAllSelectOptions();
+  options.forEach((option, key) =>
+    expect(option).toHaveTextContent(OPTIONS[key].label),
+  );
+});
+
+test('sort the options using a custom sort comparator', async () => {
+  const sortComparator = (
+    option1: typeof OPTIONS[0],
+    option2: typeof OPTIONS[0],
+  ) => option1.gender.localeCompare(option2.gender);
+  render(
+    <Select
+      {...defaultProps}
+      options={loadOptions}
+      sortComparator={sortComparator}
+    />,
+  );
+  await open();
+  const options = await findAllSelectOptions();
+  const optionsPage = OPTIONS.slice(0, defaultProps.pageSize);
+  const sortedOptions = optionsPage.sort(sortComparator);
+  options.forEach((option, key) =>
+    expect(option).toHaveTextContent(sortedOptions[key].label),
+  );
+});
+
 test('displays the selected values first', async () => {
   render(<Select {...defaultProps} mode="multiple" />);
   const option3 = OPTIONS[2].label;
@@ -139,6 +172,22 @@ test('displays the selected values first', async () => {
   const sortedOptions = await findAllSelectOptions();
   expect(sortedOptions[0]).toHaveTextContent(option3);
   expect(sortedOptions[1]).toHaveTextContent(option8);
+});
+
+test('displays the original order when unselecting', async () => {
+  render(<Select {...defaultProps} mode="multiple" />);
+  const option3 = OPTIONS[2].label;
+  const option8 = OPTIONS[7].label;
+  await open();
+  userEvent.click(await findSelectOption(option3));
+  userEvent.click(await findSelectOption(option8));
+  await type('{esc}');
+  clearAll();
+  await open();
+  const options = await findAllSelectOptions();
+  options.forEach((option, key) =>
+    expect(option).toHaveTextContent(OPTIONS[key].label),
+  );
 });
 
 test('searches for label or value', async () => {
@@ -172,11 +221,11 @@ test('searches for custom fields', async () => {
   await type('Female');
   options = await findAllSelectOptions();
   expect(options.length).toBe(5);
-  expect(options[0]).toHaveTextContent('Olivia');
-  expect(options[1]).toHaveTextContent('Emma');
-  expect(options[2]).toHaveTextContent('Ava');
-  expect(options[3]).toHaveTextContent('Charlotte');
-  expect(options[4]).toHaveTextContent('Nikole');
+  expect(options[0]).toHaveTextContent('Ava');
+  expect(options[1]).toHaveTextContent('Charlotte');
+  expect(options[2]).toHaveTextContent('Emma');
+  expect(options[3]).toHaveTextContent('Nikole');
+  expect(options[4]).toHaveTextContent('Olivia');
   await type('1');
   expect(screen.getByText(NO_DATA)).toBeInTheDocument();
 });
@@ -227,7 +276,7 @@ test('clear all the values', async () => {
       onClear={onClear}
     />,
   );
-  userEvent.click(screen.getByLabelText('close-circle'));
+  clearAll();
   expect(onClear).toHaveBeenCalled();
   const values = await findAllSelectValues();
   expect(values.length).toBe(0);
@@ -378,8 +427,8 @@ test('static - searches for an item', async () => {
   await type(search);
   const options = await findAllSelectOptions();
   expect(options.length).toBe(2);
-  expect(options[0]).toHaveTextContent('Olivia');
-  expect(options[1]).toHaveTextContent('Oliver');
+  expect(options[0]).toHaveTextContent('Oliver');
+  expect(options[1]).toHaveTextContent('Olivia');
 });
 
 test('async - renders the select with default props', () => {
@@ -546,8 +595,8 @@ test('async - searches for an item already loaded', async () => {
   await waitForElementToBeRemoved(screen.getByText(LOADING));
   const options = await findAllSelectOptions();
   expect(options.length).toBe(2);
-  expect(options[0]).toHaveTextContent('Olivia');
-  expect(options[1]).toHaveTextContent('Oliver');
+  expect(options[0]).toHaveTextContent('Oliver');
+  expect(options[1]).toHaveTextContent('Olivia');
 });
 
 test('async - searches for an item in a page not loaded', async () => {
@@ -599,7 +648,7 @@ test('async - does not fire a new request for the same search input', async () =
   await type('search');
   expect(await screen.findByText(NO_DATA)).toBeInTheDocument();
   expect(loadOptions).toHaveBeenCalledTimes(1);
-  userEvent.click(screen.getByLabelText('close-circle'));
+  clearAll();
   await type('search');
   expect(await screen.findByText(NO_DATA)).toBeInTheDocument();
   expect(loadOptions).toHaveBeenCalledTimes(1);

@@ -38,10 +38,9 @@ function TimeoutErrorMessage({
 }: ErrorMessageComponentProps<TimeoutErrorExtra>) {
   const { extra, level } = error;
 
-  const isVisualization = (['dashboard', 'explore'] as (
-    | string
-    | undefined
-  )[]).includes(source);
+  const isVisualization = (
+    ['dashboard', 'explore'] as (string | undefined)[]
+  ).includes(source);
 
   const subtitle = isVisualization
     ? tn(
@@ -89,9 +88,10 @@ function TimeoutErrorMessage({
     </>
   );
 
-  const copyText = `${subtitle}
-${t('This may be triggered by:')}
-${extra.issue_codes.map(issueCode => issueCode.message).join('\n')}`;
+  const copyText = t('%(subtitle)s\nThis may be triggered by:\n %(issue)s', {
+    subtitle,
+    issue: extra.issue_codes.map(issueCode => issueCode.message).join('\n'),
+  });
 
   return (
     <ErrorAlert

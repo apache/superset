@@ -88,6 +88,8 @@ fetchMock.get(
 fetchMock.get('http://localhost/api/v1/dashboard/26', {
   body: {
     result: {
+      certified_by: 'John Doe',
+      certification_details: 'Sample certification',
       changed_by: null,
       changed_by_name: '',
       changed_by_url: '',
@@ -121,6 +123,8 @@ fetchMock.get('http://localhost/api/v1/dashboard/26', {
 });
 
 const createProps = () => ({
+  certified_by: 'John Doe',
+  certification_details: 'Sample certification',
   dashboardId: 26,
   show: true,
   colorScheme: 'supersetColors',
@@ -155,7 +159,10 @@ test('should render - FeatureFlag disabled', async () => {
   expect(screen.getByRole('heading', { name: 'Access' })).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Colors' })).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Advanced' })).toBeInTheDocument();
-  expect(screen.getAllByRole('heading')).toHaveLength(4);
+  expect(
+    screen.getByRole('heading', { name: 'Certification' }),
+  ).toBeInTheDocument();
+  expect(screen.getAllByRole('heading')).toHaveLength(5);
 
   expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Advanced' })).toBeInTheDocument();
@@ -163,7 +170,7 @@ test('should render - FeatureFlag disabled', async () => {
   expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
   expect(screen.getAllByRole('button')).toHaveLength(4);
 
-  expect(screen.getAllByRole('textbox')).toHaveLength(2);
+  expect(screen.getAllByRole('textbox')).toHaveLength(4);
   expect(screen.getByRole('combobox')).toBeInTheDocument();
 
   expect(spyColorSchemeControlWrapper).toBeCalledTimes(4);
@@ -192,7 +199,10 @@ test('should render - FeatureFlag enabled', async () => {
   ).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Access' })).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Advanced' })).toBeInTheDocument();
-  expect(screen.getAllByRole('heading')).toHaveLength(3);
+  expect(
+    screen.getByRole('heading', { name: 'Certification' }),
+  ).toBeInTheDocument();
+  expect(screen.getAllByRole('heading')).toHaveLength(4);
 
   expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Advanced' })).toBeInTheDocument();
@@ -200,7 +210,7 @@ test('should render - FeatureFlag enabled', async () => {
   expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
   expect(screen.getAllByRole('button')).toHaveLength(4);
 
-  expect(screen.getAllByRole('textbox')).toHaveLength(2);
+  expect(screen.getAllByRole('textbox')).toHaveLength(4);
   expect(screen.getAllByRole('combobox')).toHaveLength(2);
 
   expect(spyColorSchemeControlWrapper).toBeCalledTimes(4);
@@ -220,10 +230,10 @@ test('should open advance', async () => {
     await screen.findByTestId('dashboard-edit-properties-form'),
   ).toBeInTheDocument();
 
-  expect(screen.getAllByRole('textbox')).toHaveLength(2);
+  expect(screen.getAllByRole('textbox')).toHaveLength(4);
   expect(screen.getAllByRole('combobox')).toHaveLength(2);
   userEvent.click(screen.getByRole('button', { name: 'Advanced' }));
-  expect(screen.getAllByRole('textbox')).toHaveLength(3);
+  expect(screen.getAllByRole('textbox')).toHaveLength(5);
   expect(screen.getAllByRole('combobox')).toHaveLength(2);
 });
 
@@ -318,4 +328,19 @@ test('submitting with onlyApply:true', async () => {
     expect(props.onHide).toBeCalledTimes(1);
     expect(props.onSubmit).toBeCalledTimes(1);
   });
+});
+
+test('Empty "Certified by" should clear "Certification details"', async () => {
+  const props = createProps();
+  const noCertifiedByProps = {
+    ...props,
+    certified_by: '',
+  };
+  render(<PropertiesModal {...noCertifiedByProps} />, {
+    useRedux: true,
+  });
+
+  expect(
+    screen.getByRole('textbox', { name: 'Certification details' }),
+  ).toHaveValue('');
 });

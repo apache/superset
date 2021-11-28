@@ -38,7 +38,7 @@ from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.sql_parse import Table
-from superset.utils.core import get_example_database
+from superset.utils.core import get_example_database, get_example_default_schema
 from superset.views.access_requests import AccessRequestsModelView
 
 from .base_tests import SupersetTestCase
@@ -104,13 +104,14 @@ class TestRolePermission(SupersetTestCase):
     """Testing export role permissions."""
 
     def setUp(self):
+        schema = get_example_default_schema()
         session = db.session
         security_manager.add_role(SCHEMA_ACCESS_ROLE)
         session.commit()
 
         ds = (
             db.session.query(SqlaTable)
-            .filter_by(table_name="wb_health_population")
+            .filter_by(table_name="wb_health_population", schema=schema)
             .first()
         )
         ds.schema = "temp_schema"
@@ -133,11 +134,11 @@ class TestRolePermission(SupersetTestCase):
         session = db.session
         ds = (
             session.query(SqlaTable)
-            .filter_by(table_name="wb_health_population")
+            .filter_by(table_name="wb_health_population", schema="temp_schema")
             .first()
         )
         schema_perm = ds.schema_perm
-        ds.schema = None
+        ds.schema = get_example_default_schema()
         ds.schema_perm = None
         ds_slices = (
             session.query(Slice)
@@ -466,13 +467,13 @@ class TestRolePermission(SupersetTestCase):
         table.table_name = "tmp_perm_table_v2"
         session.commit()
         # TODO(bogdan): modify slice permissions on the table update.
-        self.assertNotEquals(slice.perm, table.perm)
+        self.assertNotEqual(slice.perm, table.perm)
         self.assertEqual(slice.perm, f"[tmp_database].[tmp_perm_table](id:{table.id})")
         self.assertEqual(
             table.perm, f"[tmp_database].[tmp_perm_table_v2](id:{table.id})"
         )
         # TODO(bogdan): modify slice schema permissions on the table update.
-        self.assertNotEquals(slice.schema_perm, table.schema_perm)
+        self.assertNotEqual(slice.schema_perm, table.schema_perm)
         self.assertIsNone(slice.schema_perm)
 
         # updating slice refreshes the permissions

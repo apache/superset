@@ -164,9 +164,8 @@ export default class AnnotationLayer extends React.PureComponent {
     this.applyAnnotation = this.applyAnnotation.bind(this);
     this.fetchOptions = this.fetchOptions.bind(this);
     this.handleAnnotationType = this.handleAnnotationType.bind(this);
-    this.handleAnnotationSourceType = this.handleAnnotationSourceType.bind(
-      this,
-    );
+    this.handleAnnotationSourceType =
+      this.handleAnnotationSourceType.bind(this);
     this.handleValue = this.handleValue.bind(this);
     this.isValidForm = this.isValidForm.bind(this);
   }

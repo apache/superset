@@ -7417,8 +7417,8 @@ msgid ""
 msgstr "用于验证HTTPS请求的可选 CA_BUNDLE 内容。仅在某些数据库引擎上可用。"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:608
-msgid "Impersonate Logged In User (Presto & Hive)"
-msgstr "模拟登录用户 (Presto & Hive)"
+msgid "Impersonate Logged In User (Presto, Trino, Drill & Hive)"
+msgstr "模拟登录用户 (Presto, Trino, Drill & Hive)"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:610
 msgid ""
@@ -7464,13 +7464,13 @@ msgstr "2. metadata_cache_timeout 是获取该数据库元数据的缓存超时�
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:669
 msgid ""
-"3. The schemas_allowed_for_csv_upload is a comma separated list of schemas "
+"3. The schemas_allowed_for_file_upload is a comma separated list of schemas "
 "that CSVs are allowed to upload to. Specify it as "
-"\"schemas_allowed_for_csv_upload\": [\"public\", \"csv_upload\"]. If "
+"\"schemas_allowed_for_file_upload\": [\"public\", \"csv_upload\"]. If "
 "database flavor does not support schema or any schema is allowed to be "
 "accessed, just leave the list empty."
-msgstr "3. schemas_allowed_for_csv_upload 是CSV文件允许上传的schema，该结构以逗号进行分割。 "
-"可以这样进行设置：\"schemas_allowed_for_csv_upload\": [\"public\", \"csv_upload\"]。"
+msgstr "3. schemas_allowed_for_file_upload 是CSV文件允许上传的schema，该结构以逗号进行分割。 "
+"可以这样进行设置：\"schemas_allowed_for_file_upload\": [\"public\", \"csv_upload\"]。"
 "如果数据库风格不支持schema或任何schema都被允许，请将列表留空。"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:678

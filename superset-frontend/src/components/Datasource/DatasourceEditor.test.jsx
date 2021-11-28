@@ -17,22 +17,12 @@
  * under the License.
  */
 import React from 'react';
-import { shallow } from 'enzyme';
-import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
-import thunk from 'redux-thunk';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
-
-import { Radio } from 'src/components/Radio';
-
-import Icons from 'src/components/Icons';
-import Tabs from 'src/components/Tabs';
 import DatasourceEditor from 'src/components/Datasource/DatasourceEditor';
-import Field from 'src/CRUD/Field';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import * as featureFlags from 'src/featureFlags';
-import TableSelector from 'src/components/TableSelector';
 
 const props = {
   datasource: mockDatasource['7__table'],
@@ -43,23 +33,14 @@ const props = {
 const DATASOURCE_ENDPOINT = 'glob:*/datasource/external_metadata_by_name/*';
 
 describe('DatasourceEditor', () => {
-  const mockStore = configureStore([thunk]);
-  const store = mockStore({});
   fetchMock.get(DATASOURCE_ENDPOINT, []);
 
-  let wrapper;
   let el;
-  let inst;
   let isFeatureEnabledMock;
 
   beforeEach(() => {
-    el = <DatasourceEditor {...props} store={store} />;
-    wrapper = shallow(el).dive();
-    inst = wrapper.instance();
-  });
-
-  afterEach(() => {
-    wrapper.unmount();
+    el = <DatasourceEditor {...props} />;
+    render(el, { useRedux: true });
   });
 
   it('is valid', () => {
@@ -67,15 +48,18 @@ describe('DatasourceEditor', () => {
   });
 
   it('renders Tabs', () => {
-    expect(wrapper.find('#table-tabs')).toExist();
+    expect(screen.getByTestId('edit-dataset-tabs')).toBeInTheDocument();
   });
 
   it('makes an async request', () =>
     new Promise(done => {
-      wrapper.setState({ activeTabKey: 2 });
-      const syncButton = wrapper.find('.sync-from-source');
-      expect(syncButton).toHaveLength(1);
-      syncButton.simulate('click');
+      const columnsTab = screen.getByTestId('collection-tab-Columns');
+
+      userEvent.click(columnsTab);
+      const syncButton = screen.getByText(/sync columns from source/i);
+      expect(syncButton).toBeInTheDocument();
+
+      userEvent.click(syncButton);
 
       setTimeout(() => {
         expect(fetchMock.calls(DATASOURCE_ENDPOINT)).toHaveLength(1);
@@ -84,76 +68,77 @@ describe('DatasourceEditor', () => {
       }, 0);
     }));
 
-  it('to add, remove and modify columns accordingly', () => {
-    const columns = [
-      {
-        name: 'ds',
-        type: 'DATETIME',
-        nullable: true,
-        default: '',
-        primary_key: false,
-        is_dttm: true,
-      },
-      {
-        name: 'gender',
-        type: 'VARCHAR(32)',
-        nullable: true,
-        default: '',
-        primary_key: false,
-        is_dttm: false,
-      },
-      {
-        name: 'new_column',
-        type: 'VARCHAR(10)',
-        nullable: true,
-        default: '',
-        primary_key: false,
-        is_dttm: false,
-      },
-    ];
+  // to add, remove and modify columns accordingly
+  it('can modify columns', async () => {
+    const columnsTab = screen.getByTestId('collection-tab-Columns');
+    userEvent.click(columnsTab);
 
-    const numCols = props.datasource.columns.length;
-    expect(inst.state.databaseColumns).toHaveLength(numCols);
-    inst.updateColumns(columns);
-    expect(inst.state.databaseColumns).toEqual(
-      expect.arrayContaining([
-        {
-          type: 'DATETIME',
-          description: null,
-          filterable: false,
-          verbose_name: null,
-          is_dttm: true,
-          expression: '',
-          groupby: false,
-          column_name: 'ds',
-        },
-        {
-          type: 'VARCHAR(32)',
-          description: null,
-          filterable: true,
-          verbose_name: null,
-          is_dttm: false,
-          expression: '',
-          groupby: true,
-          column_name: 'gender',
-        },
-        expect.objectContaining({
-          column_name: 'new_column',
-          type: 'VARCHAR(10)',
-        }),
-      ]),
+    const getToggles = screen.getAllByRole('button', {
+      name: /toggle expand/i,
+    });
+    userEvent.click(getToggles[0]);
+    const getTextboxes = screen.getAllByRole('textbox');
+    expect(getTextboxes.length).toEqual(5);
+
+    const inputLabel = screen.getByPlaceholderText('Label');
+    const inputDescription = screen.getByPlaceholderText('Description');
+    const inputDtmFormat = screen.getByPlaceholderText('%Y/%m/%d');
+    const inputCertifiedBy = screen.getByPlaceholderText('Certified by');
+    const inputCertDetails = screen.getByPlaceholderText(
+      'Certification details',
     );
-    expect(inst.state.databaseColumns).not.toEqual(
-      expect.arrayContaining([expect.objectContaining({ name: 'name' })]),
-    );
+
+    userEvent.type(await inputLabel, 'test_lable');
+    userEvent.type(await inputDescription, 'test');
+    userEvent.type(await inputDtmFormat, 'test');
+    userEvent.type(await inputCertifiedBy, 'test');
+    userEvent.type(await inputCertDetails, 'test');
+  });
+
+  it('can delete columns', async () => {
+    const columnsTab = screen.getByTestId('collection-tab-Columns');
+    userEvent.click(columnsTab);
+
+    const getToggles = screen.getAllByRole('button', {
+      name: /toggle expand/i,
+    });
+
+    userEvent.click(getToggles[0]);
+    screen.logTestingPlaygroundURL();
+    const deleteButtons = screen.getAllByRole('button', {
+      name: /delete item/i,
+    });
+    expect(deleteButtons.length).toEqual(7);
+    userEvent.click(deleteButtons[0]);
+    const countRows = screen.getAllByRole('button', { name: /delete item/i });
+    expect(countRows.length).toEqual(6);
+  });
+
+  it('can add new columns', async () => {
+    const calcColsTab = screen.getByTestId('collection-tab-Calculated columns');
+    userEvent.click(calcColsTab);
+    const addBtn = screen.getByRole('button', {
+      name: /add item/i,
+    });
+    expect(addBtn).toBeInTheDocument();
+    userEvent.click(addBtn);
+    const newColumn = screen.getByRole('button', {
+      name: /<new column>/i,
+    });
+    expect(newColumn).toBeInTheDocument();
   });
 
   it('renders isSqla fields', () => {
-    wrapper.setState({ activeTabKey: 4 });
-    expect(wrapper.state('isSqla')).toBe(true);
+    const columnsTab = screen.getByRole('tab', {
+      name: /settings/i,
+    });
+    userEvent.click(columnsTab);
+    const extraField = screen.getAllByText(/extra/i);
+    expect(extraField.length).toEqual(2);
     expect(
-      wrapper.find(Field).find({ fieldKey: 'fetch_values_predicate' }).exists(),
-    ).toBe(true);
+      screen.getByText(/autocomplete query predicate/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/template parameters/i)).toBeInTheDocument();
   });
 
   describe('enable edit Source tab', () => {
@@ -161,7 +146,6 @@ describe('DatasourceEditor', () => {
       isFeatureEnabledMock = jest
         .spyOn(featureFlags, 'isFeatureEnabled')
         .mockImplementation(() => false);
-      wrapper = shallow(el, { context: { store } }).dive();
     });
 
     afterAll(() => {
@@ -169,50 +153,49 @@ describe('DatasourceEditor', () => {
     });
 
     it('Source Tab: edit mode', () => {
-      wrapper.setState({ activeTabKey: 0, isEditMode: true });
-      const sourceTab = wrapper.find(Tabs.TabPane).first();
-      expect(sourceTab.find(Radio).first().prop('disabled')).toBe(false);
-
-      const icon = wrapper.find(Icons.LockUnlocked);
-      expect(icon).toExist();
-
-      const tableSelector = sourceTab.find(Field).shallow().find(TableSelector);
-      expect(tableSelector.length).toBe(1);
-      expect(tableSelector.prop('readOnly')).toBe(false);
+      const getLockBtn = screen.getByRole('img', { name: /lock-locked/i });
+      userEvent.click(getLockBtn);
+      const physicalRadioBtn = screen.getByRole('radio', {
+        name: /physical \(table or view\)/i,
+      });
+      const vituralRadioBtn = screen.getByRole('radio', {
+        name: /virtual \(sql\)/i,
+      });
+      expect(physicalRadioBtn).toBeEnabled();
+      expect(vituralRadioBtn).toBeEnabled();
     });
 
     it('Source Tab: readOnly mode', () => {
-      const sourceTab = wrapper.find(Tabs.TabPane).first();
-      expect(sourceTab.find(Radio).length).toBe(2);
-      expect(sourceTab.find(Radio).first().prop('disabled')).toBe(true);
-
-      const icon = wrapper.find(Icons.LockLocked);
-      expect(icon).toExist();
-      icon.parent().simulate('click');
-      expect(wrapper.state('isEditMode')).toBe(true);
-
-      const tableSelector = sourceTab.find(Field).shallow().find(TableSelector);
-      expect(tableSelector.length).toBe(1);
-      expect(tableSelector.prop('readOnly')).toBe(true);
+      const getLockBtn = screen.getByRole('img', { name: /lock-locked/i });
+      expect(getLockBtn).toBeInTheDocument();
+      const physicalRadioBtn = screen.getByRole('radio', {
+        name: /physical \(table or view\)/i,
+      });
+      const vituralRadioBtn = screen.getByRole('radio', {
+        name: /virtual \(sql\)/i,
+      });
+      expect(physicalRadioBtn).toBeDisabled();
+      expect(vituralRadioBtn).toBeDisabled();
     });
   });
 
-  it('disable edit Source tab', () => {
-    // when edit is disabled, show readOnly controls and no padlock
-    isFeatureEnabledMock = jest
-      .spyOn(featureFlags, 'isFeatureEnabled')
-      .mockImplementation(() => true);
-    wrapper = shallow(el, { context: { store } }).dive();
-    wrapper.setState({ activeTabKey: 0 });
+  describe('render editor with feature flag false', () => {
+    beforeAll(() => {
+      isFeatureEnabledMock = jest
+        .spyOn(featureFlags, 'isFeatureEnabled')
+        .mockImplementation(() => true);
+    });
 
-    const sourceTab = wrapper.find(Tabs.TabPane).first();
-    expect(sourceTab.find(Radio).length).toBe(2);
-    expect(sourceTab.find(Radio).first().prop('disabled')).toBe(true);
+    beforeEach(() => {
+      render(el, { useRedux: true });
+    });
 
-    const icon = sourceTab.find(Icons.LockLocked);
-    expect(icon).toHaveLength(0);
-
-    isFeatureEnabledMock.mockRestore();
+    it('disable edit Source tab', () => {
+      expect(
+        screen.queryByRole('img', { name: /lock-locked/i }),
+      ).not.toBeInTheDocument();
+      isFeatureEnabledMock.mockRestore();
+    });
   });
 });
 
@@ -227,9 +210,7 @@ describe('DatasourceEditor RTL', () => {
       /certification details/i,
     );
     expect(certificationDetails.value).toEqual('foo');
-    const warningMarkdown = await await screen.findByPlaceholderText(
-      /certified by/i,
-    );
+    const warningMarkdown = await screen.findByPlaceholderText(/certified by/i);
     expect(warningMarkdown.value).toEqual('someone');
   });
   it('properly updates the metric information', async () => {

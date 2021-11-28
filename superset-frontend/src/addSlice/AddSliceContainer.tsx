@@ -256,15 +256,11 @@ export default class AddSliceContainer extends React.PureComponent<
         customLabel: ReactNode;
         label: string;
         value: string;
-      }[] = response.json.result
-        .map((item: Dataset) => ({
-          value: `${item.id}__${item.datasource_type}`,
-          customLabel: this.newLabel(item),
-          label: item.table_name,
-        }))
-        .sort((a: { label: string }, b: { label: string }) =>
-          a.label.localeCompare(b.label),
-        );
+      }[] = response.json.result.map((item: Dataset) => ({
+        value: `${item.id}__${item.datasource_type}`,
+        customLabel: this.newLabel(item),
+        label: item.table_name,
+      }));
       return {
         data: list,
         totalCount: response.json.count,

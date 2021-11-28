@@ -84,9 +84,8 @@ class TabbedSqlEditors extends React.PureComponent {
     this.removeQueryEditor = this.removeQueryEditor.bind(this);
     this.renameTab = this.renameTab.bind(this);
     this.toggleLeftBar = this.toggleLeftBar.bind(this);
-    this.removeAllOtherQueryEditors = this.removeAllOtherQueryEditors.bind(
-      this,
-    );
+    this.removeAllOtherQueryEditors =
+      this.removeAllOtherQueryEditors.bind(this);
     this.duplicateQueryEditor = this.duplicateQueryEditor.bind(this);
     this.handleSelect = this.handleSelect.bind(this);
     this.handleEdit = this.handleEdit.bind(this);
@@ -258,9 +257,9 @@ class TabbedSqlEditors extends React.PureComponent {
     );
     const warning = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
       ? ''
-      : `${t(
-          '-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.',
-        )}\n\n`;
+      : t(
+          '-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.\n\n',
+        );
     const qe = {
       title: t('Untitled Query %s', queryCount),
       dbId:

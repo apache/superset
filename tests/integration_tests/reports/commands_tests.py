@@ -1610,8 +1610,9 @@ def test_grace_period_error_flap(
 )
 @patch("superset.reports.dao.ReportScheduleDAO.bulk_delete_logs")
 def test_prune_log_soft_time_out(bulk_delete_logs, create_report_email_dashboard):
-    from celery.exceptions import SoftTimeLimitExceeded
     from datetime import datetime, timedelta
+
+    from celery.exceptions import SoftTimeLimitExceeded
 
     bulk_delete_logs.side_effect = SoftTimeLimitExceeded()
     with pytest.raises(SoftTimeLimitExceeded) as excinfo:

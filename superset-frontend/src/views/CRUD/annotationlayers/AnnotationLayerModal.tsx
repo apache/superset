@@ -86,10 +86,8 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
   layer = null,
 }) => {
   const [disableSave, setDisableSave] = useState<boolean>(true);
-  const [
-    currentLayer,
-    setCurrentLayer,
-  ] = useState<AnnotationLayerObject | null>();
+  const [currentLayer, setCurrentLayer] =
+    useState<AnnotationLayerObject | null>();
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const isEditMode = layer !== null;
 
@@ -171,7 +169,7 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
   };
 
   const validate = () => {
-    if (currentLayer && currentLayer.name.length) {
+    if (currentLayer && currentLayer.name?.length) {
       setDisableSave(false);
     } else {
       setDisableSave(true);

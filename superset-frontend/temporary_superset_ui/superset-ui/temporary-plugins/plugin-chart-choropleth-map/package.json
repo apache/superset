@@ -1,0 +1,51 @@
+{
+  "name": "@superset-ui/plugin-chart-choropleth-map",
+  "version": "0.17.41",
+  "description": "Superset Chart - Choropleth Map",
+  "sideEffects": false,
+  "private": true,
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "files": [
+    "esm",
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache-superset/superset-ui.git"
+  },
+  "keywords": [
+    "superset"
+  ],
+  "author": "Superset",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui/issues"
+  },
+  "homepage": "https://github.com/apache-superset/superset-ui#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@superset-ui/chart-controls": "0.17.41",
+    "@superset-ui/core": "0.17.40",
+    "@types/d3-geo": "^1.11.1",
+    "@types/geojson": "^7946.0.3",
+    "@types/topojson-client": "^3.0.0",
+    "@types/topojson-specification": "^1.0.0",
+    "@vx/clip-path": "^0.0.197",
+    "@vx/event": "^0.0.198",
+    "@vx/pattern": "^0.0.197",
+    "@vx/tooltip": "^0.0.199",
+    "@vx/zoom": "^0.0.197",
+    "d3-geo": "^1.12.0",
+    "encodable": "^0.7.6",
+    "geojson": "^0.5.0",
+    "lodash": "^4.17.15",
+    "topojson-client": "^3.1.0"
+  },
+  "peerDependencies": {
+    "@types/react": "*",
+    "react": "^16.13.1"
+  }
+}

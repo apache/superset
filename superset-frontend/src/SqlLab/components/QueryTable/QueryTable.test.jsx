@@ -22,7 +22,7 @@ import configureStore from 'redux-mock-store';
 import { styledMount as mount } from 'spec/helpers/theming';
 import QueryTable from 'src/SqlLab/components/QueryTable';
 import TableView from 'src/components/TableView';
-import { TableCollection } from 'src/components/dataViewCommon';
+import TableCollection from 'src/components/TableCollection';
 import { Provider } from 'react-redux';
 import { queries, user } from 'src/SqlLab/fixtures';
 

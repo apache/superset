@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getExploreLongUrl } from '.';
+import { getExploreLongUrl, getExploreUrlFromDashboard } from '.';
 
 const createParams = () => ({
   formData: {
@@ -108,8 +108,12 @@ test('Get url from a dashboard', () => {
         lots: 'of other stuff here too',
       },
     },
+    url_params: {
+      native_filters: '(blah)',
+      standalone: true,
+    },
   };
-  expect(getExploreLongUrl(formData, null, false)).toBe(
+  expect(getExploreUrlFromDashboard(formData)).toBe(
     '/superset/explore/?form_data=%7B%22datasource%22%3A%22datasource%22%2C%22viz_type%22%3A%22viz_type%22%2C%22extra_form_data%22%3A%7B%22filters%22%3A%7B%22col%22%3A%22foo%22%2C%22op%22%3A%22IN%22%2C%22val%22%3A%5B%22bar%22%5D%7D%7D%7D',
   );
 });

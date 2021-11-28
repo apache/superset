@@ -118,7 +118,7 @@ export const wss = new WebSocket.Server({
   clientTracking: false,
 });
 
-const SOCKET_ACTIVE_STATES = [WebSocket.OPEN, WebSocket.CONNECTING];
+const SOCKET_ACTIVE_STATES: number[] = [WebSocket.OPEN, WebSocket.CONNECTING];
 const GLOBAL_EVENT_STREAM_NAME = `${opts.redisStreamPrefix}full`;
 const DEFAULT_STREAM_LAST_ID = '$';
 
