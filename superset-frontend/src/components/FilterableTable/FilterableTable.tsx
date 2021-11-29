@@ -426,22 +426,9 @@ export default class FilterableTable extends PureComponent<
   }) {
     const columnKey = this.props.orderedColumnKeys[columnIndex];
     const cellData = this.list[rowIndex][columnKey];
-    const cellText = this.getCellContent({ cellData, columnKey });
-    const content =
-      cellData === null ? <i className="text-muted">{cellText}</i> : cellText;
     const cellNode = (
-      <div
-        key={key}
-        style={{
-          ...style,
-          top:
-            typeof style.top === 'number'
-              ? style.top - GRID_POSITION_ADJUSTMENT
-              : style.top,
-        }}
-        className={`grid-cell ${this.rowClassName({ index: rowIndex })}`}
-      >
-        <div css={{ width: 'inherit' }}>{content}</div>
+      <div key={key} style={style}>
+        {this.getCellContent({ cellData, columnKey })}
       </div>
     );
 
