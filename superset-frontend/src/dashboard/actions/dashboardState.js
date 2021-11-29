@@ -239,9 +239,10 @@ export function saveDashboardRequest(data, id, saveType) {
 
     const onError = async response => {
       const { error, message } = await getClientErrorObject(response);
-      let errorText = `${t(
-        'Sorry, there was an error saving this dashboard: ',
-      )} ${error}`;
+      let errorText = t(
+        'Sorry, there was an error saving this dashboard: %s',
+        error,
+      );
 
       if (typeof message === 'string' && message === 'Forbidden') {
         errorText = t('You do not have permission to edit this dashboard');
