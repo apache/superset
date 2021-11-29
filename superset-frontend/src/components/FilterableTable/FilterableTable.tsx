@@ -325,6 +325,11 @@ export default class FilterableTable extends PureComponent<
     return (a: Datum, b: Datum) => {
       const aValue = a[sortBy];
       const bValue = b[sortBy];
+
+      // Parse any floating numbers so they'll sort correctly
+      const parseFloatingNums = (value: any) =>
+        value.isNan ? value : parseFloat(value);
+
       if (aValue === bValue) {
         // equal items sort equally
         return 0;
@@ -337,9 +342,9 @@ export default class FilterableTable extends PureComponent<
         return -1;
       }
       if (descending) {
-        return aValue < bValue ? 1 : -1;
+        return parseFloatingNums(aValue) < parseFloatingNums(bValue) ? 1 : -1;
       }
-      return aValue < bValue ? -1 : 1;
+      return parseFloatingNums(aValue) < parseFloatingNums(bValue) ? -1 : 1;
     };
   }
 
