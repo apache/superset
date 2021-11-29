@@ -32,6 +32,39 @@ import { StatusMessage, StyledFormItem, FilterPluginStyle } from '../common';
 import { getRangeExtraFormData } from '../../utils';
 import { SingleValueType } from './SingleValueType';
 
+const LIGHT_BLUE = '#99e7f0';
+const DARK_BLUE = '#6dd3e3';
+const LIGHT_GRAY = '#f5f5f5';
+const DARK_GRAY = '#e1e1e1';
+
+const StyledMinSlider = styled(Slider)<{
+  validateStatus?: 'error' | 'warning' | 'info';
+}>`
+  ${({ theme, validateStatus }) => `
+  .ant-slider-rail {
+    background-color: ${
+      validateStatus ? theme.colors[validateStatus]?.light1 : LIGHT_BLUE
+    };    
+  }
+
+  .ant-slider-track {
+    background-color: ${LIGHT_GRAY} !important;
+  }
+
+  &:hover {
+    .ant-slider-rail {
+      background-color: ${
+        validateStatus ? theme.colors[validateStatus]?.base : DARK_BLUE
+      };    
+    }
+
+    .ant-slider-track {
+      background-color: ${DARK_GRAY} !important;
+    }
+  }
+  `}
+`;
+
 const Wrapper = styled.div<{ validateStatus?: 'error' | 'warning' | 'info' }>`
   ${({ theme, validateStatus }) => `
     border: 1px solid transparent;
@@ -269,10 +302,10 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
               />
             )}
             {enableSingleMinValue && (
-              <Slider
+              <StyledMinSlider
+                validateStatus={filterState.validateStatus}
                 min={min}
                 max={max}
-                reverse
                 value={minMax[minIndex]}
                 tipFormatter={tipFormatter}
                 marks={marks}
