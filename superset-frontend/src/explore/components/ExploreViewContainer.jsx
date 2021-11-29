@@ -29,6 +29,7 @@ import { usePluginContext } from 'src/components/DynamicPlugins';
 import { Global } from '@emotion/react';
 import { Tooltip } from 'src/components/Tooltip';
 import { usePrevious } from 'src/common/hooks/usePrevious';
+import { useComponentDidMount } from 'src/common/hooks/useComponentDidMount';
 import Icons from 'src/components/Icons';
 import {
   getFromLocalStorage,
@@ -226,7 +227,7 @@ function ExploreViewContainer(props) {
     [props.form_data, props.standalone],
   );
 
-  function handlePopstate() {
+  const handlePopstate = useCallback(() => {
     const formData = window.history.state;
     if (formData && Object.keys(formData).length) {
       props.actions.setExploreControls(formData);
@@ -237,37 +238,41 @@ function ExploreViewContainer(props) {
         props.chart.id,
       );
     }
-  }
+  }, [props.actions, props.chart.id, props.timeout]);
+
   const onQuery = useCallback(() => {
     props.actions.triggerQuery(true, props.chart.id);
     addHistory();
     setLastQueriedControls(props.controls);
   }, [props.controls, addHistory, props.actions, props.chart.id]);
 
-  function handleKeydown(event) {
-    const controlOrCommand = event.ctrlKey || event.metaKey;
-    if (controlOrCommand) {
-      const isEnter = event.key === 'Enter' || event.keyCode === 13;
-      const isS = event.key === 's' || event.keyCode === 83;
-      if (isEnter) {
-        onQuery();
-      } else if (isS) {
-        if (props.slice) {
-          props.actions
-            .saveSlice(props.form_data, {
-              action: 'overwrite',
-              slice_id: props.slice.slice_id,
-              slice_name: props.slice.slice_name,
-              add_to_dash: 'noSave',
-              goto_dash: false,
-            })
-            .then(({ data }) => {
-              window.location = data.slice.slice_url;
-            });
+  const handleKeydown = useCallback(
+    event => {
+      const controlOrCommand = event.ctrlKey || event.metaKey;
+      if (controlOrCommand) {
+        const isEnter = event.key === 'Enter' || event.keyCode === 13;
+        const isS = event.key === 's' || event.keyCode === 83;
+        if (isEnter) {
+          onQuery();
+        } else if (isS) {
+          if (props.slice) {
+            props.actions
+              .saveSlice(props.form_data, {
+                action: 'overwrite',
+                slice_id: props.slice.slice_id,
+                slice_name: props.slice.slice_name,
+                add_to_dash: 'noSave',
+                goto_dash: false,
+              })
+              .then(({ data }) => {
+                window.location = data.slice.slice_url;
+              });
+          }
         }
       }
-    }
-  }
+    },
+    [onQuery, props.actions, props.form_data, props.slice],
+  );
 
   function onStop() {
     if (props.chart && props.chart.queryController) {
@@ -283,17 +288,32 @@ function ExploreViewContainer(props) {
     setIsCollapsed(!isCollapsed);
   }
 
-  // effect to run on mount
-  useEffect(() => {
+  useComponentDidMount(() => {
     props.actions.logEvent(LOG_ACTIONS_MOUNT_EXPLORER);
     addHistory({ isReplace: true });
+  });
+
+  const previousHandlePopstate = usePrevious(handlePopstate);
+  useEffect(() => {
+    if (previousHandlePopstate) {
+      window.removeEventListener('popstate', previousHandlePopstate);
+    }
     window.addEventListener('popstate', handlePopstate);
-    document.addEventListener('keydown', handleKeydown);
     return () => {
       window.removeEventListener('popstate', handlePopstate);
+    };
+  }, [handlePopstate, previousHandlePopstate]);
+
+  const previousHandleKeyDown = usePrevious(handleKeydown);
+  useEffect(() => {
+    if (previousHandleKeyDown) {
+      window.removeEventListener('keydown', previousHandleKeyDown);
+    }
+    document.addEventListener('keydown', handleKeydown);
+    return () => {
       document.removeEventListener('keydown', handleKeydown);
     };
-  }, []);
+  }, [handleKeydown, previousHandleKeyDown]);
 
   useEffect(() => {
     if (wasDynamicPluginLoading && !isDynamicPluginLoading) {
