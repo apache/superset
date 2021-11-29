@@ -51,7 +51,6 @@ from superset import (
     conf,
     db,
     event_logger,
-    get_feature_flags,
     is_feature_enabled,
     results_backend,
     results_backend_use_msgpack,
@@ -60,6 +59,7 @@ from superset import (
     viz,
 )
 from superset.charts.dao import ChartDAO
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -459,18 +459,18 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def generate_json(
         self, viz_obj: BaseViz, response_type: Optional[str] = None
     ) -> FlaskResponse:
-        if response_type == utils.ChartDataResultFormat.CSV:
+        if response_type == ChartDataResultFormat.CSV:
             return CsvResponse(
                 viz_obj.get_csv(), headers=generate_download_headers("csv")
             )
 
-        if response_type == utils.ChartDataResultType.QUERY:
+        if response_type == ChartDataResultType.QUERY:
             return self.get_query_string_response(viz_obj)
 
-        if response_type == utils.ChartDataResultType.RESULTS:
+        if response_type == ChartDataResultType.RESULTS:
             return self.get_raw_results(viz_obj)
 
-        if response_type == utils.ChartDataResultType.SAMPLES:
+        if response_type == ChartDataResultType.SAMPLES:
             return self.get_samples(viz_obj)
 
         payload = viz_obj.get_payload()
@@ -598,11 +598,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         TODO: break into one endpoint for each return shape"""
 
-        response_type = utils.ChartDataResultFormat.JSON.value
-        responses: List[
-            Union[utils.ChartDataResultFormat, utils.ChartDataResultType]
-        ] = list(utils.ChartDataResultFormat)
-        responses.extend(list(utils.ChartDataResultType))
+        response_type = ChartDataResultFormat.JSON.value
+        responses: List[Union[ChartDataResultFormat, ChartDataResultType]] = list(
+            ChartDataResultFormat
+        )
+        responses.extend(list(ChartDataResultType))
         for response_option in responses:
             if request.args.get(response_option) == "true":
                 response_type = response_option
@@ -610,7 +610,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         # Verify user has permission to export CSV file
         if (
-            response_type == utils.ChartDataResultFormat.CSV
+            response_type == ChartDataResultFormat.CSV
             and not security_manager.can_access("can_csv", "Superset")
         ):
             return json_error_response(
@@ -628,7 +628,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             # TODO: support CSV, SQL query and other non-JSON types
             if (
                 is_feature_enabled("GLOBAL_ASYNC_QUERIES")
-                and response_type == utils.ChartDataResultFormat.JSON
+                and response_type == ChartDataResultFormat.JSON
             ):
                 # First, look for the chart query results in the cache.
                 try:
@@ -958,7 +958,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             slc = Slice(owners=[g.user] if g.user else [])
 
         form_data["adhoc_filters"] = self.remove_extra_filters(
-            form_data.get("adhoc_filters", [])
+            form_data.get("adhoc_filters") or []
         )
 
         assert slc
@@ -2220,9 +2220,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return json_error_response(utils.error_msg_from_exception(ex))
 
         spec = mydb.db_engine_spec
-        query_cost_formatters: Dict[str, Any] = get_feature_flags().get(
-            "QUERY_COST_FORMATTERS_BY_ENGINE", {}
-        )
+        query_cost_formatters: Dict[str, Any] = app.config[
+            "QUERY_COST_FORMATTERS_BY_ENGINE"
+        ]
         query_cost_formatter = query_cost_formatters.get(
             spec.engine, spec.query_cost_formatter
         )
@@ -2413,7 +2413,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
 
         spec = mydb.db_engine_spec
-        validators_by_engine = get_feature_flags().get("SQL_VALIDATORS_BY_ENGINE")
+        validators_by_engine = app.config["SQL_VALIDATORS_BY_ENGINE"]
         if not validators_by_engine or spec.engine not in validators_by_engine:
             return json_error_response(
                 "no SQL validator is configured for {}".format(spec.engine), status=400

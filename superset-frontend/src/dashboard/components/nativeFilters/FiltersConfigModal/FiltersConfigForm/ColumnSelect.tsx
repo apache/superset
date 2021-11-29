@@ -77,8 +77,8 @@ export function ColumnSelect({
     [columns, filterValues],
   );
 
-  const currentFilterType = form.getFieldValue('filters')?.[filterId]
-    .filterType;
+  const currentFilterType =
+    form.getFieldValue('filters')?.[filterId].filterType;
   const currentColumn = useMemo(
     () => columns?.find(column => column.column_name === value),
     [columns, value],

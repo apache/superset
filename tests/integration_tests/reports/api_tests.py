@@ -19,6 +19,8 @@
 from datetime import datetime
 import json
 
+import pytz
+
 import pytest
 import prison
 from sqlalchemy.sql import func
@@ -705,6 +707,37 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert rv.status_code == 400
         data = json.loads(rv.data.decode("utf-8"))
         assert data == {"message": {"timezone": ["Field may not be null."]}}
+
+        # Test that report cannot be created with an invalid timezone
+        report_schedule_data = {
+            "type": ReportScheduleType.ALERT,
+            "name": "new5",
+            "description": "description",
+            "creation_method": ReportCreationMethodType.ALERTS_REPORTS,
+            "crontab": "0 9 * * *",
+            "recipients": [
+                {
+                    "type": ReportRecipientType.EMAIL,
+                    "recipient_config_json": {"target": "target@superset.org"},
+                },
+                {
+                    "type": ReportRecipientType.SLACK,
+                    "recipient_config_json": {"target": "channel"},
+                },
+            ],
+            "working_timeout": 3600,
+            "timezone": "this is not a timezone",
+            "dashboard": dashboard.id,
+            "database": example_db.id,
+        }
+        rv = self.client.post(uri, json=report_schedule_data)
+        assert rv.status_code == 400
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data == {
+            "message": {
+                "timezone": [f"Must be one of: {', '.join(pytz.all_timezones)}."]
+            }
+        }
 
         # Test that report should reflect the timezone value passed in
         report_schedule_data = {

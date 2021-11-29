@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "composite": false,
+    "emitDeclarationOnly": false,
+    "noEmit": true,
+    "rootDir": "."
+  },
+  "extends": "../../../tsconfig.json",
+  "include": [
+    "**/*",
+    "../types/**/*",
+    "../../../types/**/*"
+  ],
+  "references": [
+    {
+      "path": "../../../packages/superset-ui-chart-controls"
+    },
+    {
+      "path": "../../../packages/superset-ui-core"
+    }
+  ]
+}

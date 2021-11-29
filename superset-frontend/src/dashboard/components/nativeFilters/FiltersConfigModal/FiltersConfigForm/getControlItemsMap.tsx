@@ -106,7 +106,7 @@ export default function getControlItemsMap({
             initialValue={initColumn}
             label={
               <StyledLabel>
-                {t(`${mainControlItem.config?.label}`) || t('Column')}
+                {mainControlItem.config?.label || t('Column')}
               </StyledLabel>
             }
             rules={[

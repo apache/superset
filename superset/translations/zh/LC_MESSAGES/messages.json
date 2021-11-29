@@ -994,7 +994,7 @@
       "When allowing CREATE TABLE AS option in SQL Lab, this option forces the table to be created in this schema": [
         "当在 SQL 编辑器中允许 CREATE TABLE AS 选项时，此选项可以此模式中强制创建表"
       ],
-      "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
+      "If Presto, Trino or Drill all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
         "如果使用Presto，SQL 工具箱中的所有查询都将被当前登录的用户执行，并且这些用户必须拥有运行它们的权限。<br/>如果启用 Hive 和hive.server2.enable.doAs，将作为服务帐户运行查询，但会根据hive.server2.proxy.user的属性伪装当前登录用户。"
       ],
       "Allow SQL Lab to fetch a list of all tables and all views across all database schemas. For large data warehouse with thousands of tables, this can be expensive and put strain on the system.": [
@@ -2280,10 +2280,10 @@
       "Optional CA_BUNDLE contents to validate HTTPS requests. Only available on certain database engines.": [
         "用于验证HTTPS请求的可选 CA_BUNDLE 内容。仅在某些数据库引擎上可用。"
       ],
-      "Impersonate Logged In User (Presto & Hive)": [
-        "模拟登录用户 (Presto & Hive)"
+      "Impersonate Logged In User (Presto, Trino, Drill & Hive)": [
+        "模拟登录用户 (Presto, Trino, Drill & Hive)"
       ],
-      "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them. If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
+      "If Presto, Trino or Drill all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them. If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
         "如果使用Presto，SQL 工具箱中的所有查询都将被当前登录的用户执行，并且这些用户必须拥有运行它们的权限。如果启用 Hive 和 hive.server2.enable.doAs，将作为服务帐户运行查询，但会根据 hive.server2.proxy.user 的属性伪装当前登录用户。"
       ],
       "Allow data upload": ["允许数据上传"],

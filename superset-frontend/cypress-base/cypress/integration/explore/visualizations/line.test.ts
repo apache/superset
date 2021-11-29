@@ -71,7 +71,7 @@ describe('Visualization > Line', () => {
       .focus()
       .type('bnbColors{enter}');
     cy.get(
-      '.Control[data-test="color_scheme"] .ant-select-selection-item > ul[data-test="bnbColors"]',
+      '.Control[data-test="color_scheme"] .ant-select-selection-item ul[data-test="bnbColors"]',
     ).should('exist');
   });
 

@@ -27,16 +27,15 @@ for these chart types.
 """
 
 from io import StringIO
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 import pandas as pd
 
-from superset.utils.core import (
-    ChartDataResultFormat,
-    DTTM_ALIAS,
-    extract_dataframe_dtypes,
-    get_metric_name,
-)
+from superset.common.chart_data import ChartDataResultFormat
+from superset.utils.core import DTTM_ALIAS, extract_dataframe_dtypes, get_metric_name
+
+if TYPE_CHECKING:
+    from superset.connectors.base.models import BaseDatasource
 
 
 def get_column_key(label: Tuple[str, ...], metrics: List[str]) -> Tuple[Any, ...]:
@@ -262,14 +261,35 @@ def pivot_table(df: pd.DataFrame, form_data: Dict[str, Any]) -> pd.DataFrame:
     )
 
 
+def table(df: pd.DataFrame, form_data: Dict[str, Any]) -> pd.DataFrame:
+    """
+    Table.
+    """
+    # apply `d3NumberFormat` to columns, if present
+    column_config = form_data.get("column_config", {})
+    for column, config in column_config.items():
+        if "d3NumberFormat" in config:
+            format_ = "{:" + config["d3NumberFormat"] + "}"
+            try:
+                df[column] = df[column].apply(format_.format)
+            except Exception:  # pylint: disable=broad-except
+                # if we can't format the column for any reason, send as is
+                pass
+
+    return df
+
+
 post_processors = {
     "pivot_table": pivot_table,
     "pivot_table_v2": pivot_table_v2,
+    "table": table,
 }
 
 
 def apply_post_process(
-    result: Dict[Any, Any], form_data: Optional[Dict[str, Any]] = None,
+    result: Dict[Any, Any],
+    form_data: Optional[Dict[str, Any]] = None,
+    datasource: Optional["BaseDatasource"] = None,
 ) -> Dict[Any, Any]:
     form_data = form_data or {}
 
@@ -291,7 +311,7 @@ def apply_post_process(
 
         query["colnames"] = list(processed_df.columns)
         query["indexnames"] = list(processed_df.index)
-        query["coltypes"] = extract_dataframe_dtypes(processed_df)
+        query["coltypes"] = extract_dataframe_dtypes(processed_df, datasource)
         query["rowcount"] = len(processed_df.index)
 
         # Flatten hierarchical columns/index since they are represented as

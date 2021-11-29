@@ -92,6 +92,7 @@ RUN mkdir -p ${PYTHONPATH} \
             default-libmysqlclient-dev \
             libsasl2-modules-gssapi-mit \
             libpq-dev \
+            libecpg-dev \
         && rm -rf /var/lib/apt/lists/*
 
 COPY --from=superset-py /usr/local/lib/python3.8/site-packages/ /usr/local/lib/python3.8/site-packages/

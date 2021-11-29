@@ -213,9 +213,10 @@ const FilterValue: React.FC<FilterProps> = ({
     () => dispatchFocusAction(dispatch, id),
     [dispatch, id],
   );
-  const unsetFocusedFilter = useCallback(() => dispatchFocusAction(dispatch), [
-    dispatch,
-  ]);
+  const unsetFocusedFilter = useCallback(
+    () => dispatchFocusAction(dispatch),
+    [dispatch],
+  );
 
   const hooks = useMemo(
     () => ({ setDataMask, setFocusedFilter, unsetFocusedFilter }),

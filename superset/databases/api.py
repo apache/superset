@@ -689,10 +689,18 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             }
             for dashboard in data["dashboards"]
         ]
+        sqllab_tab_states = [
+            {"id": tab_state.id, "label": tab_state.label, "active": tab_state.active}
+            for tab_state in data["sqllab_tab_states"]
+        ]
         return self.response(
             200,
             charts={"count": len(charts), "result": charts},
             dashboards={"count": len(dashboards), "result": dashboards},
+            sqllab_tab_states={
+                "count": len(sqllab_tab_states),
+                "result": sqllab_tab_states,
+            },
         )
 
     @expose("/export/", methods=["GET"])

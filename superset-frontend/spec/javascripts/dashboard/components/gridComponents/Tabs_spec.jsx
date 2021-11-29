@@ -183,7 +183,8 @@ describe('Tabs', () => {
     expect(wrapper.state('tabIndex')).toBe(0);
 
     // display child in directPathToChild list
-    const directPathToChild = dashboardLayoutWithTabs.present.ROW_ID2.parents.slice();
+    const directPathToChild =
+      dashboardLayoutWithTabs.present.ROW_ID2.parents.slice();
     const directLinkProps = {
       ...props,
       directPathToChild,

@@ -30,7 +30,10 @@ import {
   useDashboardHasTabs,
   useSelectFiltersInScope,
 } from 'src/dashboard/components/nativeFilters/state';
-import { Filter } from 'src/dashboard/components/nativeFilters/types';
+import {
+  Filter,
+  NativeFilterType,
+} from 'src/dashboard/components/nativeFilters/types';
 import CascadePopover from '../CascadeFilters/CascadePopover';
 import { useFilters } from '../state';
 import { buildCascadeFiltersTree } from './utils';
@@ -73,28 +76,38 @@ const FilterControls: FC<FilterControlsProps> = ({
   }, [filterValues, dataMaskSelected]);
   const cascadeFilterIds = new Set(cascadeFilters.map(item => item.id));
 
-  const [filtersInScope, filtersOutOfScope] = useSelectFiltersInScope(
-    cascadeFilters,
-  );
+  const [filtersInScope, filtersOutOfScope] =
+    useSelectFiltersInScope(cascadeFilters);
   const dashboardHasTabs = useDashboardHasTabs();
   const showCollapsePanel = dashboardHasTabs && cascadeFilters.length > 0;
 
   const cascadePopoverFactory = useCallback(
-    index => (
-      <CascadePopover
-        data-test="cascade-filters-control"
-        key={cascadeFilters[index].id}
-        dataMaskSelected={dataMaskSelected}
-        visible={visiblePopoverId === cascadeFilters[index].id}
-        onVisibleChange={visible =>
-          setVisiblePopoverId(visible ? cascadeFilters[index].id : null)
-        }
-        filter={cascadeFilters[index]}
-        onFilterSelectionChange={onFilterSelectionChange}
-        directPathToChild={directPathToChild}
-        inView={false}
-      />
-    ),
+    index => {
+      const filter = cascadeFilters[index];
+      if (filter.type === NativeFilterType.DIVIDER) {
+        return (
+          <div>
+            <h3>{filter.title}</h3>
+            <p>{filter.description}</p>
+          </div>
+        );
+      }
+      return (
+        <CascadePopover
+          data-test="cascade-filters-control"
+          key={filter.id}
+          dataMaskSelected={dataMaskSelected}
+          visible={visiblePopoverId === filter.id}
+          onVisibleChange={visible =>
+            setVisiblePopoverId(visible ? filter.id : null)
+          }
+          filter={filter}
+          onFilterSelectionChange={onFilterSelectionChange}
+          directPathToChild={directPathToChild}
+          inView={false}
+        />
+      );
+    },
     [
       cascadeFilters,
       JSON.stringify(dataMaskSelected),
@@ -143,9 +156,7 @@ const FilterControls: FC<FilterControlsProps> = ({
           `}
         >
           <Collapse.Panel
-            header={`${t('Filters out of scope')} (${
-              filtersOutOfScope.length
-            })`}
+            header={t('Filters out of scope (%d)', filtersOutOfScope.length)}
             key="1"
           >
             {filtersOutOfScope.map(filter => {

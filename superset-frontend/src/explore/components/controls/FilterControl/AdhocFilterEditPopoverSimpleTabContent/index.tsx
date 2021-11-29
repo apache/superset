@@ -227,10 +227,8 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   } = useSimpleTabFilterProps(props);
   const [suggestions, setSuggestions] = useState<Record<string, any>>([]);
   const [comparator, setComparator] = useState(props.adhocFilter.comparator);
-  const [
-    loadingComparatorSuggestions,
-    setLoadingComparatorSuggestions,
-  ] = useState(false);
+  const [loadingComparatorSuggestions, setLoadingComparatorSuggestions] =
+    useState(false);
 
   const onInputComparatorChange = (
     event: React.ChangeEvent<HTMLInputElement>,

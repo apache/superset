@@ -29,7 +29,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.core import get_example_database
+from superset.utils.core import get_example_database, get_example_default_schema
 from tests.integration_tests.dashboard_utils import (
     create_dashboard,
     create_table_for_dashboard,
@@ -58,6 +58,7 @@ def _load_data():
 
     with app.app_context():
         database = get_example_database()
+        schema = get_example_default_schema()
         df = _get_dataframe(database)
         dtype = {
             "year": DateTime if database.backend != "presto" else String(255),
@@ -65,7 +66,9 @@ def _load_data():
             "country_name": String(255),
             "region": String(255),
         }
-        table = create_table_for_dashboard(df, table_name, database, dtype)
+        table = create_table_for_dashboard(
+            df, table_name, database, dtype, schema=schema
+        )
         slices = _create_world_bank_slices(table)
         dash = _create_world_bank_dashboard(table, slices)
         slices_ids_to_delete = [slice.id for slice in slices]
