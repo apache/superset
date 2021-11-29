@@ -176,8 +176,6 @@ export function saveDashboardRequestSuccess(lastModifiedTime) {
 }
 
 export function saveDashboardRequest(data, id, saveType) {
-  const path = saveType === SAVE_TYPE_OVERWRITE ? 'save_dash' : 'copy_dash';
-
   return (dispatch, getState) => {
     dispatch({ type: UPDATE_COMPONENTS_PARENTS_LIST });
 
@@ -194,8 +192,98 @@ export function saveDashboardRequest(data, id, saveType) {
     const serializedFilters = serializeActiveFilterValues(getActiveFilters());
     // serialize filter scope for each filter field, grouped by filter id
     const serializedFilterScopes = serializeFilterScopes(dashboardFilters);
+    const {
+      certified_by,
+      certification_details,
+      color_namespace,
+      color_scheme,
+      css,
+      dashboard_title,
+      expanded_slices,
+      label_colors,
+      owners,
+      positions,
+      refresh_frequency,
+      roles,
+      slug,
+      timed_refresh_immune_slices,
+    } = data;
+
+    console.log('updatedDashboard data', data);
+
+    const onUpdateSuccess = response => {
+      if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+        const {
+          dashboardInfo: {
+            metadata: { chart_configuration = {} },
+          },
+        } = getState();
+        const chartConfiguration = Object.values(chart_configuration).reduce(
+          (prev, next) => {
+            // If chart removed from dashboard - remove it from metadata
+            if (
+              Object.values(layout).find(
+                layoutItem => layoutItem?.meta?.chartId === next.id,
+              )
+            ) {
+              return { ...prev, [next.id]: next };
+            }
+            return prev;
+          },
+          {},
+        );
+        dispatch(setChartConfiguration(chartConfiguration));
+      }
+      dispatch(saveDashboardRequestSuccess(response.json.last_modified_time));
+      dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
+      return response;
+    };
+
+    const onError = async response => {
+      const { error, message } = await getClientErrorObject(response);
+      let errorText = `${t(
+        'Sorry, there was an error saving this dashboard: ',
+      )} ${error}`;
+
+      if (typeof message === 'string' && message === 'Forbidden') {
+        errorText = t('You do not have permission to edit this dashboard');
+      }
+
+      dispatch(addDangerToast(errorText));
+    };
+
+    if (saveType === SAVE_TYPE_OVERWRITE) {
+      const updatedDashboard = {
+        certified_by,
+        certification_details:
+          certified_by && certification_details ? certification_details : '',
+        css,
+        dashboard_title,
+        slug,
+        owners,
+        roles,
+        json_metadata: safeStringify({
+          default_filters: safeStringify(serializedFilters),
+          color_namespace,
+          color_scheme,
+          expanded_slices,
+          filter_scopes: serializedFilterScopes,
+          label_colors,
+          positions,
+          refresh_frequency,
+          timed_refresh_immune_slices,
+        }),
+      };
+      return SupersetClient.put({
+        endpoint: `/api/v1/dashboard/${id}`,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedDashboard),
+      })
+        .then(response => onUpdateSuccess(response))
+        .catch(response => onError(response));
+    }
     return SupersetClient.post({
-      endpoint: `/superset/${path}/${id}/`,
+      endpoint: `/superset/copy_dash/${id}/`,
       postPayload: {
         data: {
           ...data,
@@ -204,44 +292,8 @@ export function saveDashboardRequest(data, id, saveType) {
         },
       },
     })
-      .then(response => {
-        if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
-          const {
-            dashboardInfo: {
-              metadata: { chart_configuration = {} },
-            },
-          } = getState();
-          const chartConfiguration = Object.values(chart_configuration).reduce(
-            (prev, next) => {
-              // If chart removed from dashboard - remove it from metadata
-              if (
-                Object.values(layout).find(
-                  layoutItem => layoutItem?.meta?.chartId === next.id,
-                )
-              ) {
-                return { ...prev, [next.id]: next };
-              }
-              return prev;
-            },
-            {},
-          );
-          dispatch(setChartConfiguration(chartConfiguration));
-        }
-        dispatch(saveDashboardRequestSuccess(response.json.last_modified_time));
-        dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
-        return response;
-      })
-      .catch(response =>
-        getClientErrorObject(response).then(({ error }) =>
-          dispatch(
-            addDangerToast(
-              `${t(
-                'Sorry, there was an error saving this dashboard: ',
-              )} ${error}`,
-            ),
-          ),
-        ),
-      );
+      .then(response => onUpdateSuccess(response))
+      .catch(response => onError(response));
   };
 }
 

@@ -177,7 +177,7 @@ class DashboardDAO(BaseDAO):
         dashboard: Dashboard,
         data: Dict[Any, Any],
         old_to_new_slice_ids: Optional[Dict[int, int]] = None,
-    ) -> None:
+    ) -> Dashboard:
         positions = data["positions"]
         # find slices in the position data
         slice_ids = [
@@ -207,8 +207,12 @@ class DashboardDAO(BaseDAO):
             positions, indent=None, separators=(",", ":"), sort_keys=True
         )
         md = dashboard.params_dict
-        dashboard.css = data.get("css")
-        dashboard.dashboard_title = data["dashboard_title"]
+
+        if data.get("css"):
+            dashboard.css = data.get("css")
+
+        if data.get("dashboard_title"):
+            dashboard.dashboard_title = data.get("dashboard_title")
 
         if "timed_refresh_immune_slices" not in md:
             md["timed_refresh_immune_slices"] = []
@@ -227,12 +231,16 @@ class DashboardDAO(BaseDAO):
                 slc_id_dict = {sid: sid for sid in slice_ids}
             new_filter_scopes = copy_filter_scopes(
                 old_to_new_slc_id_dict=slc_id_dict,
-                old_filter_scopes=json.loads(data["filter_scopes"] or "{}"),
+                old_filter_scopes=json.loads(data["filter_scopes"] or "{}")
+                if isinstance(data["filter_scopes"], str)
+                else data["filter_scopes"],
             )
         if new_filter_scopes:
             md["filter_scopes"] = new_filter_scopes
         else:
             md.pop("filter_scopes", None)
+
+        md.pop("positions", None)
         md["expanded_slices"] = data.get("expanded_slices", {})
         md["refresh_frequency"] = data.get("refresh_frequency", 0)
         default_filters_data = json.loads(data.get("default_filters", "{}"))
@@ -241,10 +249,10 @@ class DashboardDAO(BaseDAO):
         }
         md["default_filters"] = json.dumps(applicable_filters)
         md["color_scheme"] = data.get("color_scheme")
-        md["label_colors"] = data.get("label_colors")
-        if data.get("color_namespace"):
-            md["color_namespace"] = data.get("color_namespace")
+        md["label_colors"] = data.get("label_colors", {})
+        md["color_namespace"] = data.get("color_namespace")
         dashboard.json_metadata = json.dumps(md)
+        return dashboard
 
     @staticmethod
     def favorited_ids(

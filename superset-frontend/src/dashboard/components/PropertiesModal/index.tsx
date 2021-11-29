@@ -216,6 +216,7 @@ const PropertiesModal = ({
     const { title, slug, certifiedBy, certificationDetails } =
       form.getFieldsValue();
     let currentColorScheme = colorScheme;
+    let colorNamespace = '';
     const ownersIds = Array.isArray(owners)
       ? (
           owners as {
@@ -237,6 +238,7 @@ const PropertiesModal = ({
     if (jsonMetadata?.length) {
       const metadata = JSON.parse(jsonMetadata);
       currentColorScheme = metadata?.color_scheme || colorScheme;
+      colorNamespace = metadata?.color_namespace || '';
     }
 
     onColorSchemeChange(currentColorScheme, {
@@ -257,6 +259,7 @@ const PropertiesModal = ({
         jsonMetadata,
         ownerIds: ownersIds,
         colorScheme: currentColorScheme,
+        colorNamespace,
         certifiedBy,
         certificationDetails,
         ...moreProps,
@@ -289,6 +292,7 @@ const PropertiesModal = ({
           jsonMetadata: result.json_metadata,
           ownerIds: result.owners,
           colorScheme: currentColorScheme,
+          colorNamespace,
           certifiedBy: result.certified_by,
           certificationDetails: result.certification_details,
           ...moreResultProps,
@@ -466,12 +470,12 @@ const PropertiesModal = ({
             </FormItem>
           </Col>
           <Col xs={24} md={12}>
-            <FormItem label={t('URL slug')} name="slug">
+            <StyledFormItem label={t('URL slug')} name="slug">
               <Input type="text" disabled={isLoading} />
-              <p className="help-block">
-                {t('A readable URL for your dashboard')}
-              </p>
-            </FormItem>
+            </StyledFormItem>
+            <p className="help-block">
+              {t('A readable URL for your dashboard')}
+            </p>
           </Col>
         </Row>
         {isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC)
