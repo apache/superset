@@ -70,6 +70,7 @@ table{
         border-right: 1px solid black;
         text-overflow: elipsis; 
         overflow: hidden;
+        cursor: pointer;
       }
    .tr[role='row'] {
    min-width: 100%;
