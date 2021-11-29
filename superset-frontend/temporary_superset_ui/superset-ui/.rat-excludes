@@ -1,0 +1,66 @@
+# Note: these patterns are applied to single files or directories, not full paths
+.gitignore
+docs/README.md
+.gitattributes
+.gitkeep
+.coverage
+.coveragerc
+.codecov.yml
+.eslintrc
+.eslintignore
+.flake8
+.nvmrc
+.prettierrc
+.rat-excludes
+.*log
+.*pyc
+.*lock
+.*geojson
+DISCLAIMER
+licenses/*
+node_modules/*
+rat-results.txt
+babel-node
+dist
+superset/static/*
+build
+superset.egg-info
+apache_superset.egg-info
+.idea
+.*sql
+.*zip
+.*lock
+# json and csv in general cannot have comments
+.*json
+.*csv
+# Generated doc files
+env/*
+docs/README.md
+docs/.htaccess*
+_build/*
+_static/*
+.buildinfo
+searchindex.js
+# auto generated
+requirements/*
+# vendorized
+vendor/*
+# github configuration
+.github/*
+.*mdx
+coverage/*
+.*.md
+.*.txt
+
+# skip license check in superset-ui
+tmp/*
+lib/*
+esm/*
+tsconfig.tsbuildinfo
+.*ipynb
+.*yml
+.*iml
+.esprintrc
+.prettierignore
+README.erb
+package.erb
