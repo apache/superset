@@ -71,6 +71,7 @@ from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 
 from superset import app, db, is_feature_enabled, security_manager
+from superset.charts.business_type.business_type_response import BusinessTypeResponse
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.connectors.sqla.utils import (
@@ -97,7 +98,6 @@ from superset.utils.core import (
     QueryObjectFilterClause,
     remove_duplicates,
 )
-from superset.charts.business_type.business_type_response import BusinessTypeResponse
 
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
@@ -189,7 +189,10 @@ class AnnotationDatasource(BaseDatasource):
         raise NotImplementedError()
 
     def values_for_column(
-        self, column_name: str, limit: int = 10000, contain_null: bool = True,
+        self,
+        column_name: str,
+        limit: int = 10000,
+        contain_null: bool = True,
     ) -> List[Any]:
         raise NotImplementedError()
 
@@ -688,7 +691,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         if self.sql:
             return get_virtual_table_metadata(dataset=self)
         return get_physical_table_metadata(
-            database=self.database, table_name=self.table_name, schema_name=self.schema,
+            database=self.database,
+            table_name=self.table_name,
+            schema_name=self.schema,
         )
 
     @property
@@ -747,7 +752,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             ) from ex
 
     def values_for_column(
-        self, column_name: str, limit: int = 10000, contain_null: bool = True,
+        self,
+        column_name: str,
+        limit: int = 10000,
+        contain_null: bool = True,
     ) -> List[Any]:
         """Runs query against sqla to retrieve some
         sample values for the given column.
@@ -981,7 +989,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             return [or_(*clauses) for clauses in filters_grouped.values()]
         except TemplateError as ex:
             raise QueryObjectValidationError(
-                _("Error in jinja expression in RLS filters: %(msg)s", msg=ex.message,)
+                _(
+                    "Error in jinja expression in RLS filters: %(msg)s",
+                    msg=ex.message,
+                )
             ) from ex
 
     def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
@@ -1270,26 +1281,33 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     target_type = col_spec.generic_type
                 else:
                     target_type = GenericDataType.STRING
-                #TODO: This should be handeled more elegantly 
-                eq = self.filter_values_handler(
-                    values=val,
-                    target_column_type=target_type,
-                    is_list_target=is_list_target,
-                ) if col_obj.business_type == "" else self.filter_values_handler(
-                    values=val,
-                    target_column_type=GenericDataType.STRING,
-                    is_list_target=is_list_target,
+                # TODO: This should be handeled more elegantly
+                business_type = col_obj.business_type if col_obj is not None else ""
+                eq = (
+                    self.filter_values_handler(
+                        values=val,
+                        target_column_type=target_type,
+                        is_list_target=is_list_target,
+                    )
+                    if business_type == ""
+                    else self.filter_values_handler(
+                        values=val,
+                        target_column_type=GenericDataType.STRING,
+                        is_list_target=is_list_target,
+                    )
                 )
 
-                if col_obj.business_type != "":
-                    bus_resp: BusinessTypeResponse = BUSINESS_TYPE_ADDONS[col_obj.business_type]({
-                        "type": col_obj.business_type,
-                        "value": eq,
-                    })
-                    where_clause_and += BUSINESS_TYPE_TRANSLATIONS[col_obj.business_type](
-                        sqla_col,
-                        op,
-                        bus_resp["value"]
+                if business_type != "":
+                    bus_resp: BusinessTypeResponse = BUSINESS_TYPE_ADDONS[
+                        business_type
+                    ](
+                        {
+                            "type": business_type,
+                            "value": eq,
+                        }
+                    )
+                    where_clause_and += BUSINESS_TYPE_TRANSLATIONS[business_type](
+                        sqla_col, op, bus_resp["value"]
                     )
                 elif is_list_target:
                     assert isinstance(eq, (tuple, list))
@@ -1457,7 +1475,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     orderby = [
                         (
                             self._get_series_orderby(
-                                series_limit_metric, metrics_by_name, columns_by_name,
+                                series_limit_metric,
+                                metrics_by_name,
+                                columns_by_name,
                             ),
                             False,
                         )
@@ -1532,7 +1552,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         return ob
 
     def _normalize_prequery_result_type(
-        self, row: pd.Series, dimension: str, columns_by_name: Dict[str, TableColumn],
+        self,
+        row: pd.Series,
+        dimension: str,
+        columns_by_name: Dict[str, TableColumn],
     ) -> Union[str, int, float, bool, Text]:
         """
         Convert a prequery result type to its equivalent Python type.
@@ -1577,7 +1600,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             group = []
             for dimension in dimensions:
                 value = self._normalize_prequery_result_type(
-                    row, dimension, columns_by_name,
+                    row,
+                    dimension,
+                    columns_by_name,
                 )
 
                 group.append(groupby_exprs[dimension] == value)

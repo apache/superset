@@ -16,11 +16,11 @@
 #
 repos:
   - repo: https://github.com/PyCQA/isort
-    rev: 5.9.3
+    rev: 5.10.1
     hooks:
       - id: isort
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v0.910
+    rev: v0.910-1
     hooks:
       - id: mypy
         additional_dependencies: [types-all]
@@ -29,7 +29,7 @@ repos:
     hooks:
       - id: pip-compile-multi-verify
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.2.0
+    rev: v4.0.1
     hooks:
       - id: check-docstring-first
       - id: check-added-large-files
@@ -41,12 +41,12 @@ repos:
       - id: trailing-whitespace
         args: ["--markdown-linebreak-ext=md"]
   - repo: https://github.com/psf/black
-    rev: 19.10b0
+    rev: 21.11b1
     hooks:
       - id: black
         language_version: python3
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v2.4.1 # Use the sha or tag you want to point at
+    rev: v2.5.0 # Use the sha or tag you want to point at
     hooks:
       - id: prettier
         args: ['--ignore-path=./superset-frontend/.prettierignore']
