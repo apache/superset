@@ -25,8 +25,8 @@ import { AlertObject } from 'src/views/CRUD/alert/types';
 import { Menu, NoAnimationDropdown } from 'src/common/components';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import DeleteModal from 'src/components/DeleteModal';
-import { ChartState } from 'src/explore/types';
 import ReportModal from 'src/components/ReportModal';
+import { ChartState } from 'src/explore/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { fetchUISpecificReport } from 'src/reports/actions/reports';
 
@@ -46,24 +46,28 @@ export default function HeaderReportActionsDropDown({
   chart?: ChartState;
 }) {
   const dispatch = useDispatch();
-  const reports: Record<number, AlertObject> = useSelector<any, AlertObject>(
-    state => state.reports,
-  );
-  const report: AlertObject = Object.values(reports).filter(report => {
+  const report: AlertObject = useSelector<any, AlertObject>(state => {
     if (dashboardId) {
-      return report.dashboard_id === dashboardId;
+      return state.reports.dashboards?.[dashboardId];
     }
-    return report.chart_id === chart?.id;
-  })[0];
+    if (chart?.id) {
+      return state.reports.charts?.[chart.id];
+    }
+    return {};
+  });
+  // const report: ReportObject = Object.values(reports).filter(report => {
+  //   if (dashboardId) {
+  //     return report.dashboards?.[dashboardId];
+  //   }
+  //   // return report.charts?.[chart?.id]
+  // })[0];
 
   const user: UserWithPermissionsAndRoles = useSelector<
     any,
     UserWithPermissionsAndRoles
   >(state => state.user || state.explore?.user);
-  const [
-    currentReportDeleting,
-    setCurrentReportDeleting,
-  ] = useState<AlertObject | null>(null);
+  const [currentReportDeleting, setCurrentReportDeleting] =
+    useState<AlertObject | null>(null);
   const theme = useTheme();
   const [showModal, setShowModal] = useState<boolean>(false);
   const toggleActiveKey = async (data: AlertObject, checked: boolean) => {

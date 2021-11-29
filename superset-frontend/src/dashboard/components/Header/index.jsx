@@ -166,21 +166,6 @@ class Header extends React.PureComponent {
   componentDidMount() {
     const { refreshFrequency } = this.props;
     this.startPeriodicRender(refreshFrequency * 1000);
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-    if (this.canAddReports()) {
-      // this is in case there is an anonymous user.
-      this.props.fetchUISpecificReport(
-        user.userId,
-        'dashboard_id',
-        'dashboards',
-        dashboardInfo.id,
-      );
-    }
->>>>>>> refactor progress (#16339)
-=======
->>>>>>> code dry (#16358)
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
@@ -197,24 +182,6 @@ class Header extends React.PureComponent {
     ) {
       this.props.setMaxUndoHistoryExceeded();
     }
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-    if (
-      this.canAddReports() &&
-      nextProps.dashboardInfo.id !== this.props.dashboardInfo.id
-    ) {
-      // this is in case there is an anonymous user.
-      this.props.fetchUISpecificReport(
-        user.userId,
-        'dashboard_id',
-        'dashboards',
-        nextProps.dashboardInfo.id,
-      );
-    }
->>>>>>> refactor progress (#16339)
-=======
->>>>>>> code dry (#16358)
   }
 
   componentWillUnmount() {
@@ -396,36 +363,6 @@ class Header extends React.PureComponent {
     this.setState({ showingPropertiesModal: false });
   }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-  showReportModal() {
-    this.setState({ showingReportModal: true });
-  }
-
-  hideReportModal() {
-    this.setState({ showingReportModal: false });
-=======
-  canAddReports() {
-    if (!isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
-      return false;
-    }
-    const { user } = this.props;
-    if (!user) {
-      // this is in the case that there is an anonymous user.
-      return false;
-    }
-    const roles = Object.keys(user.roles || []);
-    const permissions = roles.map(key =>
-      user.roles[key].filter(
-        perms => perms[0] === 'menu_access' && perms[1] === 'Manage',
-      ),
-    );
-    return permissions[0].length > 0;
->>>>>>> refactor progress (#16339)
-  }
-
-=======
->>>>>>> code dry (#16358)
   render() {
     const {
       dashboardTitle,
@@ -590,7 +527,6 @@ class Header extends React.PureComponent {
                 toggleActive={this.props.toggleActive}
                 deleteActiveReport={this.props.deleteActiveReport}
                 dashboardId={dashboardInfo.id}
-                showReportModal={this.showReportModal}
               />
             </>
           )}
@@ -602,10 +538,8 @@ class Header extends React.PureComponent {
               onHide={this.hidePropertiesModal}
               colorScheme={this.props.colorScheme}
               onSubmit={updates => {
-                const {
-                  dashboardInfoChanged,
-                  dashboardTitleChanged
-                } = this.props;
+                const { dashboardInfoChanged, dashboardTitleChanged } =
+                  this.props;
                 dashboardInfoChanged({
                   slug: updates.slug,
                   metadata: JSON.parse(updates.jsonMetadata),
