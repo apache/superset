@@ -209,8 +209,6 @@ export function saveDashboardRequest(data, id, saveType) {
       timed_refresh_immune_slices,
     } = data;
 
-    console.log('updatedDashboard data', data);
-
     const onUpdateSuccess = response => {
       if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
         const {
