@@ -20,9 +20,17 @@ import React from 'react';
 import Button from 'src/components/Button';
 import { Empty } from 'src/common/components';
 import { t, styled } from '@superset-ui/core';
+import { WelcomeTable } from './types';
+
+const welcomeTableLabels: Record<WelcomeTable, string> = {
+  [WelcomeTable.Charts]: t('charts'),
+  [WelcomeTable.Dashboards]: t('dashboards'),
+  [WelcomeTable.Recents]: t('recents'),
+  [WelcomeTable.SavedQueries]: t('saved queries'),
+};
 
 interface EmptyStateProps {
-  tableName: string;
+  tableName: WelcomeTable;
   tab?: string;
 }
 const EmptyContainer = styled.div`
@@ -39,29 +47,32 @@ const ButtonContainer = styled.div`
   }
 `;
 
+type Redirects = Record<
+  WelcomeTable.Charts | WelcomeTable.Dashboards | WelcomeTable.SavedQueries,
+  string
+>;
+
 export default function EmptyState({ tableName, tab }: EmptyStateProps) {
-  const mineRedirects = {
-    DASHBOARDS: '/dashboard/new',
-    CHARTS: '/chart/add',
-    SAVED_QUERIES: '/superset/sqllab?new=true',
+  const mineRedirects: Redirects = {
+    [WelcomeTable.Charts]: '/chart/add',
+    [WelcomeTable.Dashboards]: '/dashboard/new',
+    [WelcomeTable.SavedQueries]: '/superset/sqllab?new=true',
   };
-  const favRedirects = {
-    DASHBOARDS: '/dashboard/list/',
-    CHARTS: '/chart/list',
-    SAVED_QUERIES: '/savedqueryview/list/',
+  const favRedirects: Redirects = {
+    [WelcomeTable.Charts]: '/chart/list',
+    [WelcomeTable.Dashboards]: '/dashboard/list/',
+    [WelcomeTable.SavedQueries]: '/savedqueryview/list/',
   };
-  const tableIcon = {
-    RECENTS: 'union.svg',
-    DASHBOARDS: 'empty-dashboard.svg',
-    CHARTS: 'empty-charts.svg',
-    SAVED_QUERIES: 'empty-queries.svg',
+  const tableIcon: Record<WelcomeTable, string> = {
+    [WelcomeTable.Charts]: 'empty-charts.svg',
+    [WelcomeTable.Dashboards]: 'empty-dashboard.svg',
+    [WelcomeTable.Recents]: 'union.svg',
+    [WelcomeTable.SavedQueries]: 'empty-queries.svg',
   };
   const mine = (
-    <span>{`No ${
-      tableName === 'SAVED_QUERIES'
-        ? t('saved queries')
-        : t(`${tableName.toLowerCase()}`)
-    } yet`}</span>
+    <span>
+      {t('No %(tableName)s yet', { tableName: welcomeTableLabels[tableName] })}
+    </span>
   );
   const recent = (
     <span className="no-recents">
@@ -77,7 +88,9 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
           );
         }
         if (tab === 'Examples') {
-          return t(`Example ${tableName.toLowerCase()} will appear here`);
+          return t('Example %(tableName)s will appear here', {
+            tableName: tableName.toLowerCase(),
+          });
         }
         if (tab === 'Edited') {
           return t(
@@ -103,7 +116,7 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
               <Button
                 buttonStyle="primary"
                 onClick={() => {
-                  window.location = mineRedirects[tableName];
+                  window.location.href = mineRedirects[tableName];
                 }}
               >
                 <i className="fa fa-plus" />
@@ -135,13 +148,15 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
         <Button
           buttonStyle="primary"
           onClick={() => {
-            window.location = favRedirects[tableName];
+            window.location.href = favRedirects[tableName];
           }}
         >
-          See all{' '}
-          {tableName === 'SAVED_QUERIES'
-            ? t('SQL Lab queries')
-            : t(`${tableName}`)}
+          {t('See all %(tableName)s', {
+            tableName:
+              tableName === 'SAVED_QUERIES'
+                ? t('SQL Lab queries')
+                : welcomeTableLabels[tableName],
+          })}
         </Button>
       </Empty>
     </EmptyContainer>

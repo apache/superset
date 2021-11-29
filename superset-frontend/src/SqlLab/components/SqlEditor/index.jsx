@@ -82,6 +82,14 @@ const SET_QUERY_EDITOR_SQL_DEBOUNCE_MS = 2000;
 const VALIDATION_DEBOUNCE_MS = 600;
 const WINDOW_RESIZE_THROTTLE_MS = 100;
 
+const appContainer = document.getElementById('app');
+const bootstrapData = JSON.parse(
+  appContainer.getAttribute('data-bootstrap') || '{}',
+);
+const validatorMap =
+  bootstrapData?.common?.conf?.SQL_VALIDATORS_BY_ENGINE || {};
+const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
+
 const LimitSelectStyled = styled.span`
   .ant-dropdown-trigger {
     align-items: center;
@@ -391,8 +399,7 @@ class SqlEditor extends React.PureComponent {
   canValidateQuery() {
     // Check whether or not we can validate the current query based on whether
     // or not the backend has a validator configured for it.
-    const validatorMap = window.featureFlags.SQL_VALIDATORS_BY_ENGINE;
-    if (this.props.database && validatorMap != null) {
+    if (this.props.database) {
       return validatorMap.hasOwnProperty(this.props.database.backend);
     }
     return false;
@@ -531,7 +538,7 @@ class SqlEditor extends React.PureComponent {
             />
           </Menu.Item>
         )}
-        {isFeatureEnabled(FeatureFlag.SCHEDULED_QUERIES) && (
+        {scheduledQueriesConf && (
           <Menu.Item>
             <ScheduleQueryButton
               defaultLabel={qe.title}

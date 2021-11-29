@@ -325,6 +325,7 @@ LANGUAGES = {
     "pt_BR": {"flag": "br", "name": "Brazilian Portuguese"},
     "ru": {"flag": "ru", "name": "Russian"},
     "ko": {"flag": "kr", "name": "Korean"},
+    "sk": {"flag": "sk", "name": "Slovak"},
     "sl": {"flag": "si", "name": "Slovenian"},
 }
 # Turning off i18n by default as translation in most languages are
@@ -810,10 +811,12 @@ ESTIMATE_QUERY_COST = False
 #
 #     return out
 #
-# FEATURE_FLAGS = {
-#     "ESTIMATE_QUERY_COST": True,
-#     "QUERY_COST_FORMATTERS_BY_ENGINE": {"postgresql": postgres_query_cost_formatter},
-# }
+#  Then on define the formatter on the config:
+#
+# "QUERY_COST_FORMATTERS_BY_ENGINE": {"postgresql": postgres_query_cost_formatter},
+QUERY_COST_FORMATTERS_BY_ENGINE: Dict[
+    str, Callable[[List[Dict[str, Any]]], List[Dict[str, Any]]]
+] = {}
 
 # Flag that controls if limit should be enforced on the CTA (create table as queries).
 SQLLAB_CTAS_NO_LIMIT = False

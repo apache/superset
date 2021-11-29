@@ -47,7 +47,12 @@ from superset.charts.commands.export import ExportChartsCommand
 from superset.charts.commands.importers.dispatcher import ImportChartsCommand
 from superset.charts.commands.update import UpdateChartCommand
 from superset.charts.dao import ChartDAO
-from superset.charts.filters import ChartAllTextFilter, ChartFavoriteFilter, ChartFilter
+from superset.charts.filters import (
+    ChartAllTextFilter,
+    ChartCertifiedFilter,
+    ChartFavoriteFilter,
+    ChartFilter,
+)
 from superset.charts.schemas import (
     CHART_SCHEMAS,
     ChartPostSchema,
@@ -106,6 +111,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
     show_columns = [
         "cache_timeout",
+        "certified_by",
+        "certification_details",
         "dashboards.dashboard_title",
         "dashboards.id",
         "dashboards.json_metadata",
@@ -121,6 +128,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
     ]
     show_select_columns = show_columns + ["table.id"]
     list_columns = [
+        "certified_by",
+        "certification_details",
         "cache_timeout",
         "changed_by.first_name",
         "changed_by.last_name",
@@ -187,7 +196,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     base_order = ("changed_on", "desc")
     base_filters = [["id", ChartFilter, lambda: []]]
     search_filters = {
-        "id": [ChartFavoriteFilter],
+        "id": [ChartFavoriteFilter, ChartCertifiedFilter],
         "slice_name": [ChartAllTextFilter],
     }
 
