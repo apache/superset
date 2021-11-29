@@ -33,6 +33,8 @@ assists people when migrating to a new version.
 ### Potential Downtime
 
 - [16756](https://github.com/apache/incubator-superset/pull/16756): a change which renames the `dbs.allow_csv_upload` column to `dbs.allow_file_upload` via a (potentially locking) DDL operation.
+- [17360](https://github.com/apache/superset/pull/17360): changes the column type from `VARCHAR(32)` to `TEXT` in table `table_columns` could be a table lock on mysql dbs or take some time to complete on large deployments.
+
 
 ### Deprecations
 
