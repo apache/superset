@@ -41,7 +41,7 @@ class GetKeyValueCommand(BaseCommand, ABC):
             refreshTimeout = config.get("REFRESH_TIMEOUT_ON_RETRIEVAL")
             return self.get(self._resource_id, self._key, refreshTimeout)
         except SQLAlchemyError as ex:
-            logger.exception(ex.exception)
+            logger.exception("Error running get command")
             raise KeyValueGetFailedError() from ex
 
     def validate(self) -> None:

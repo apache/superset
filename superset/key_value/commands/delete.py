@@ -38,7 +38,7 @@ class DeleteKeyValueCommand(BaseCommand, ABC):
         try:
             return self.delete(self._resource_id, self._key)
         except SQLAlchemyError as ex:
-            logger.exception(ex.exception)
+            logger.exception("Error running delete command")
             raise KeyValueDeleteFailedError() from ex
 
     def validate(self) -> None:

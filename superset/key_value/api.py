@@ -19,23 +19,17 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from flask import g, request, Response
+from flask_appbuilder.api import BaseApi
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.exceptions import InvalidPayloadFormatError
-from superset.key_value.commands.create import CreateKeyValueCommand
-from superset.key_value.commands.delete import DeleteKeyValueCommand
-from superset.key_value.commands.get import GetKeyValueCommand
-from superset.key_value.commands.update import UpdateKeyValueCommand
 from superset.key_value.schemas import KeyValuePostSchema, KeyValuePutSchema
-from superset.models.key_value import KeyValueEntry
-from superset.views.base_api import BaseSupersetModelRestApi
 
 logger = logging.getLogger(__name__)
 
 
-class KeyValueRestApi(BaseSupersetModelRestApi, ABC):
-    datamodel = SQLAInterface(KeyValueEntry)
+class KeyValueRestApi(BaseApi, ABC):
     add_model_schema = KeyValuePostSchema()
     edit_model_schema = KeyValuePutSchema()
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP

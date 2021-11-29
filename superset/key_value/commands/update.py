@@ -43,7 +43,7 @@ class UpdateKeyValueCommand(BaseCommand, ABC):
             if value:
                 return self.update(self._resource_id, self._key, value)
         except SQLAlchemyError as ex:
-            logger.exception(ex.exception)
+            logger.exception("Error running update command")
             raise KeyValueUpdateFailedError() from ex
         return False
 

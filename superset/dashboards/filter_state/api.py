@@ -26,7 +26,6 @@ from superset.dashboards.filter_state.commands.get import GetFilterStateCommand
 from superset.dashboards.filter_state.commands.update import UpdateFilterStateCommand
 from superset.extensions import event_logger
 from superset.key_value.api import KeyValueRestApi
-from superset.views.base_api import statsd_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +50,6 @@ class DashboardFilterStateRestApi(KeyValueRestApi):
     @expose("/<int:pk>/filter_state", methods=["POST"])
     @protect()
     @safe
-    @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
@@ -99,7 +97,6 @@ class DashboardFilterStateRestApi(KeyValueRestApi):
     @expose("/<int:pk>/filter_state/<string:key>/", methods=["PUT"])
     @protect()
     @safe
-    @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
         log_to_statsd=False,
@@ -153,7 +150,6 @@ class DashboardFilterStateRestApi(KeyValueRestApi):
     @expose("/<int:pk>/filter_state/<string:key>/", methods=["GET"])
     @protect()
     @safe
-    @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=False,
@@ -200,7 +196,6 @@ class DashboardFilterStateRestApi(KeyValueRestApi):
     @expose("/<int:pk>/filter_state/<string:key>/", methods=["DELETE"])
     @protect()
     @safe
-    @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
         log_to_statsd=False,

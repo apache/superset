@@ -45,7 +45,7 @@ class CreateKeyValueCommand(BaseCommand, ABC):
                 self.create(self._resource_id, key, value)
                 return key
         except SQLAlchemyError as ex:
-            logger.exception(ex.exception)
+            logger.exception("Error running create command")
             raise KeyValueCreateFailedError() from ex
         return False
 
