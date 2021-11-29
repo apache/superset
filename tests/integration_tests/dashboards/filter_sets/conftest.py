@@ -155,47 +155,33 @@ def dashboard() -> Generator[Dashboard, None, None]:
     slice_: Slice
     datasource: SqlaTable
     database: Database
-    session: Session
-    try:
-        with app.app_context() as ctx:
-            dashboard_owner_user = security_manager.find_user(DASHBOARD_OWNER_USERNAME)
-            database = create_database("test_database_filter_sets")
-            datasource = create_datasource_table(
-                name="test_datasource", database=database, owners=[dashboard_owner_user]
-            )
-            slice_ = create_slice(
-                datasource=datasource, name="test_slice", owners=[dashboard_owner_user]
-            )
-            dashboard = create_dashboard(
-                dashboard_title="test_dashboard",
-                published=True,
-                slices=[slice_],
-                owners=[dashboard_owner_user],
-            )
-            session = ctx.app.appbuilder.get_session
-            session.add(dashboard)
-            session.commit()
+
+    with app.app_context() as ctx:
+        session = ctx.app.appbuilder.get_session()
+        dashboard_owner_user = security_manager.find_user(DASHBOARD_OWNER_USERNAME)
+        database = create_database("test_database_filter_sets")
+        datasource = create_datasource_table(
+            name="test_datasource", database=database, owners=[dashboard_owner_user]
+        )
+        slice_ = create_slice(
+            datasource=datasource, name="test_slice", owners=[dashboard_owner_user]
+        )
+        dashboard = create_dashboard(
+            dashboard_title="test_dashboard",
+            published=True,
+            slices=[slice_],
+            owners=[dashboard_owner_user],
+        )
+        session.add(dashboard)
+        session.commit()
+
         yield dashboard
-    except Exception as ex:
-        print(str(ex))
-    finally:
-        with app.app_context() as ctx:
-            session = ctx.app.appbuilder.get_session
-            try:
-                dashboard.owners = []
-                slice_.owners = []
-                datasource.owners = []
-                session.merge(dashboard)
-                session.merge(slice_)
-                session.merge(datasource)
-                session.commit()
-                session.delete(dashboard)
-                session.delete(slice_)
-                session.delete(datasource)
-                session.delete(database)
-                session.commit()
-            except Exception as ex:
-                print(str(ex))
+
+        session.delete(dashboard)
+        session.delete(slice_)
+        session.delete(datasource)
+        session.delete(database)
+        session.commit()
 
 
 @pytest.fixture

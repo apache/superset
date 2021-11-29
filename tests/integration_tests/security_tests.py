@@ -224,7 +224,7 @@ class TestRolePermission(SupersetTestCase):
         )
 
         # database change
-        new_db = Database(sqlalchemy_uri="some_uri", database_name="tmp_db")
+        new_db = Database(sqlalchemy_uri="sqlite://", database_name="tmp_db")
         session.add(new_db)
         stored_table.database = (
             session.query(Database).filter_by(database_name="tmp_db").one()
@@ -358,9 +358,7 @@ class TestRolePermission(SupersetTestCase):
 
     def test_set_perm_database(self):
         session = db.session
-        database = Database(
-            database_name="tmp_database", sqlalchemy_uri="sqlite://test"
-        )
+        database = Database(database_name="tmp_database", sqlalchemy_uri="sqlite://")
         session.add(database)
 
         stored_db = (
@@ -411,9 +409,7 @@ class TestRolePermission(SupersetTestCase):
         db.session.commit()
 
     def test_hybrid_perm_database(self):
-        database = Database(
-            database_name="tmp_database3", sqlalchemy_uri="sqlite://test"
-        )
+        database = Database(database_name="tmp_database3", sqlalchemy_uri="sqlite://")
 
         db.session.add(database)
 
@@ -437,9 +433,7 @@ class TestRolePermission(SupersetTestCase):
 
     def test_set_perm_slice(self):
         session = db.session
-        database = Database(
-            database_name="tmp_database", sqlalchemy_uri="sqlite://test"
-        )
+        database = Database(database_name="tmp_database", sqlalchemy_uri="sqlite://")
         table = SqlaTable(table_name="tmp_perm_table", database=database)
         session.add(database)
         session.add(table)

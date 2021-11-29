@@ -2093,8 +2093,11 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         For more context: https://github.com/apache/superset/issues/14909
         """
         session = inspect(target).session
-        dataset = session.query(NewDataset).filter_by(sqlatable_id=target.id).one()
-        session.delete(dataset)
+        dataset = (
+            session.query(NewDataset).filter_by(sqlatable_id=target.id).one_or_none()
+        )
+        if dataset:
+            session.delete(dataset)
 
     @staticmethod
     def after_update(  # pylint: disable=too-many-branches, too-many-locals, too-many-statements
@@ -2263,7 +2266,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                         columns=physical_columns,
                     )
                 dataset.tables = [table]
-            else:
+            elif dataset.tables:
                 table = dataset.tables[0]
                 table.columns = physical_columns
 

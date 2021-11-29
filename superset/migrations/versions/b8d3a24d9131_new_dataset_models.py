@@ -66,7 +66,8 @@ def upgrade():
         sa.Column("increase_good", sa.BOOLEAN(), nullable=False, default=True,),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_unique_constraint("uq_sl_columns_uuid", "sl_columns", ["uuid"])
+    with op.batch_alter_table("sl_columns") as batch_op:
+        batch_op.create_unique_constraint("uq_sl_columns_uuid", ["uuid"])
 
     op.create_table(
         "sl_tables",
@@ -88,7 +89,8 @@ def upgrade():
         sa.ForeignKeyConstraint(["database_id"], ["dbs.id"], name="sl_tables_ibfk_1"),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_unique_constraint("uq_sl_tables_uuid", "sl_tables", ["uuid"])
+    with op.batch_alter_table("sl_tables") as batch_op:
+        batch_op.create_unique_constraint("uq_sl_tables_uuid", ["uuid"])
 
     op.create_table(
         "sl_table_columns",
@@ -121,7 +123,8 @@ def upgrade():
         sa.Column("is_physical", sa.BOOLEAN(), nullable=False, default=False,),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_unique_constraint("uq_sl_datasets_uuid", "sl_datasets", ["uuid"])
+    with op.batch_alter_table("sl_datasets") as batch_op:
+        batch_op.create_unique_constraint("uq_sl_datasets_uuid", ["uuid"])
 
     op.create_table(
         "sl_dataset_columns",
