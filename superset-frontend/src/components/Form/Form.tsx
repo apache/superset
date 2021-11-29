@@ -29,7 +29,7 @@ const StyledForm = styled(AntDForm)`
   }
 `;
 
-export default function Form(props: any) {
+export default function Form(props: FormProps) {
   return <StyledForm {...props} />;
 }
 

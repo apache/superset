@@ -58,7 +58,7 @@ export default class Fieldset extends React.PureComponent<FieldsetProps> {
       compact: this.props.compact,
     });
     return (
-      <Form componentClass="fieldset" className="CRUD" layout="vertical">
+      <Form className="CRUD" layout="vertical">
         {title && <legend>{title}</legend>}
         {recurseReactClone(this.props.children, Field, propExtender)}
       </Form>
