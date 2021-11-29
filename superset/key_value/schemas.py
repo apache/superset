@@ -18,8 +18,12 @@ from marshmallow import fields, Schema
 
 
 class KeyValuePostSchema(Schema):
-    value = fields.String(required=True, allow_none=False, description="A JSON value.")
+    value = fields.String(
+        required=True, allow_none=False, description="Any type of JSON supported text."
+    )
 
 
 class KeyValuePutSchema(Schema):
-    value = fields.String(required=True, allow_none=False, description="A JSON value.")
+    value = fields.String(
+        required=True, allow_none=False, description="Any type of JSON supported text."
+    )
