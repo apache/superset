@@ -367,7 +367,7 @@ class QueryContextGenerator:
                 "expressionType": "SQL",
                 "hasCustomLabel": False,
                 "isNew": False,
-                "label": "COUNT({})".format(column_name),
+                "label": f"COUNT({column_name})",
                 "optionName": "metric_bvvzfjgdg7_eawlsdp84tq",
                 "sqlExpression": f"(SELECT count(name) FROM {table_name})",
             },
