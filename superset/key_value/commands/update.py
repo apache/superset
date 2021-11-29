@@ -30,22 +30,19 @@ logger = logging.getLogger(__name__)
 
 class UpdateKeyValueCommand(BaseCommand, ABC):
     def __init__(
-        self, user: User, resource_id: int, key: str, data: Dict[str, Any],
+        self, user: User, resource_id: int, key: str, value: str,
     ):
         self._actor = user
         self._resource_id = resource_id
         self._key = key
-        self._properties = data.copy()
+        self._value = value
 
     def run(self) -> Model:
         try:
-            value = self._properties.get("value")
-            if value:
-                return self.update(self._resource_id, self._key, value)
+            return self.update(self._resource_id, self._key, self._value)
         except SQLAlchemyError as ex:
             logger.exception("Error running update command")
             raise KeyValueUpdateFailedError() from ex
-        return False
 
     def validate(self) -> None:
         pass

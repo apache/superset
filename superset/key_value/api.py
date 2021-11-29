@@ -54,14 +54,14 @@ class KeyValueRestApi(BaseApi, ABC):
         if not request.is_json:
             raise InvalidPayloadFormatError("Request is not JSON")
         item = self.add_model_schema.load(request.json)
-        key = self.get_create_command()(g.user, pk, item).run()
+        key = self.get_create_command()(g.user, pk, item["value"]).run()
         return self.response(201, key=key)
 
     def put(self, pk: int, key: str) -> Response:
         if not request.is_json:
             raise InvalidPayloadFormatError("Request is not JSON")
         item = self.edit_model_schema.load(request.json)
-        result = self.get_update_command()(g.user, pk, key, item).run()
+        result = self.get_update_command()(g.user, pk, key, item["value"]).run()
         if not result:
             return self.response_404()
         return self.response(200, message="Value updated successfully.",)
