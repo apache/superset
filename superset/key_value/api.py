@@ -18,9 +18,9 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any
 
+from apispec import APISpec
 from flask import g, request, Response
 from flask_appbuilder.api import BaseApi
-from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.exceptions import InvalidPayloadFormatError
@@ -40,10 +40,15 @@ class KeyValueRestApi(BaseApi, ABC):
         RouteMethod.DELETE,
     }
     allow_browser_login = True
-    openapi_spec_component_schemas = (
-        KeyValuePostSchema,
-        KeyValuePutSchema,
-    )
+
+    def add_apispec_components(self, api_spec: APISpec) -> None:
+        api_spec.components.schema(
+            KeyValuePostSchema.__name__, schema=KeyValuePostSchema,
+        )
+        api_spec.components.schema(
+            KeyValuePutSchema.__name__, schema=KeyValuePutSchema,
+        )
+        super().add_apispec_components(api_spec)
 
     def post(self, pk: int) -> Response:
         if not request.is_json:
