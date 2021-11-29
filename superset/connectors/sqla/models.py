@@ -1277,65 +1277,46 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     utils.FilterOperator.IN.value,
                     utils.FilterOperator.NOT_IN.value,
                 )
+                col_busniness_type = col_obj.business_type if col_obj else ""
+
                 if col_spec:
                     target_type = col_spec.generic_type
                 else:
-<<<<<<< HEAD
-                    target_type = GenericDataType.STRING 
-                #TODO: This should be handeled more elegantly 
-                #Refactor this (filter) to handle business types better 
-                eq = self.filter_values_handler(
-                    values=val,
-                    target_column_type=target_type,
-                    is_list_target=is_list_target,
-                ) if col_obj.business_type == "" else self.filter_values_handler(
-                    values=val,
-                    target_column_type=GenericDataType.STRING,
-                    is_list_target=is_list_target,
-                )
-                #TODO: This is the place for it 
-                if col_obj.business_type != "":
-                    bus_resp: BusinessTypeResponse = BUSINESS_TYPE_ADDONS[col_obj.business_type]({
-                        "type": col_obj.business_type,
-                        "values": eq if is_list_target else [eq],
-                    })
-                    # handle error 
-                    where_clause_and.append(BUSINESS_TYPE_TRANSLATIONS[col_obj.business_type](
-                        sqla_col,
-                        op,
-                        bus_resp["values"]
-                    ))
-=======
                     target_type = GenericDataType.STRING
                 # TODO: This should be handeled more elegantly
-                business_type = col_obj.business_type if col_obj is not None else ""
+                # Refactor this (filter) to handle business types better a
                 eq = (
                     self.filter_values_handler(
                         values=val,
                         target_column_type=target_type,
                         is_list_target=is_list_target,
                     )
-                    if business_type == ""
+                    if col_busniness_type != ""
                     else self.filter_values_handler(
                         values=val,
                         target_column_type=GenericDataType.STRING,
                         is_list_target=is_list_target,
                     )
                 )
-
-                if business_type != "":
+                if col_busniness_type != "":
+                    values = eq if is_list_target else [eq]  # type: ignore
                     bus_resp: BusinessTypeResponse = BUSINESS_TYPE_ADDONS[
-                        business_type
+                        col_busniness_type
                     ](
                         {
-                            "type": business_type,
-                            "value": eq,
+                            "type": col_busniness_type,
+                            "values": values,
                         }
                     )
-                    where_clause_and += BUSINESS_TYPE_TRANSLATIONS[business_type](
-                        sqla_col, op, bus_resp["value"]
+                    if bus_resp["status"] == "invalid":
+                        raise QueryObjectValidationError(
+                            _("Busniness tpye conversion falid, please check values")
+                        )
+                    where_clause_and.append(
+                        BUSINESS_TYPE_TRANSLATIONS[col_busniness_type](
+                            sqla_col, op, bus_resp["values"]
+                        )
                     )
->>>>>>> e6d0de6c36eae90ddf1a21dfc770637fc6d8c593
                 elif is_list_target:
                     assert isinstance(eq, (tuple, list))
                     if len(eq) == 0:

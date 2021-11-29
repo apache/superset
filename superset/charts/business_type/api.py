@@ -69,49 +69,14 @@ class BusinessTypeRestApi(BaseSupersetModelRestApi):
                         type: string
                       valid_filter_operators:
                         type: list
-<<<<<<< HEAD
-    """
-        items = kwargs['rison']
-        bus_resp: BusinessTypeResponse = BUSINESS_TYPE_ADDONS[items["type"]]({
-          "values": items["values"],
-        })
-        #TODO: add a FULL string representation of all values 
-        return self.response(200, result=bus_resp)
-=======
         """
         items = kwargs["rison"]
-
-        values = []
-        operators: List[FilterOperator] = []
-        formatted_values = []
-        status = "valid"
-        # This logic should be shifted into the actaul callback
-        # Multiple values should be handeled
-        for item in items:
-            bus_resp: BusinessTypeResponse = BUSINESS_TYPE_ADDONS[item["type"]](
-                {
-                    "type": item["type"],
-                    "value": item["value"],
-                }
-            )
-            values.append(bus_resp["value"])
-            formatted_values.append(bus_resp["formatted_value"])
-            operators = (
-                bus_resp["valid_filter_operators"]
-                if len(operators) == 0
-                else list(set(operators) & set(bus_resp["valid_filter_operators"]))
-            )
-            status = bus_resp["status"] if bus_resp["status"] == "invalid" else status
-
-        response = {
-            "values": values,
-            "valid_filter_operators": operators,
-            "status": status,
-            "formatted_values": formatted_values,
-        }
-        # TODO: add a FULL string representation of all values
-        return self.response(200, result=response)
->>>>>>> e6d0de6c36eae90ddf1a21dfc770637fc6d8c593
+        bus_resp: BusinessTypeResponse = BUSINESS_TYPE_ADDONS[items["type"]](
+            {
+                "values": items["values"],
+            }
+        )
+        return self.response(200, result=bus_resp)
 
     @expose("/business_type/types", methods=["GET"])
     @event_logger.log_this_with_context(

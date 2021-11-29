@@ -1322,107 +1322,99 @@ port_conversion_dict: Dict[str, List[int]] = {
 }
 
 import ipaddress
-from sqlalchemy import (
-    Column,
-)
-from superset.utils.core import FilterOperator 
+
+from sqlalchemy import Column
+
+from superset.utils.core import FilterOperator
+
 
 def cidr_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
-    resp: BusinessTypeResponse = {'values': [], "status": 'valid', 'display_value': ''}
-    if len(req["values"]) == 0:
-            resp["status"] = "invalid"
-            operators = ["==", "IN"]
-            resp["values"].append("Invalid")
-            resp["valid_filter_operators"] = operators if "valid_filter_operators" not in resp else list(set( resp["valid_filter_operators"]) & set(operators))
-            resp["display_value"] += 'invlaid, '
-            return resp
+    resp: BusinessTypeResponse = {
+        "values": [],
+        "status": "valid",
+        "display_value": "",
+        "valid_filter_operators": [
+            FilterOperator.EQUALS,
+            FilterOperator.GREATER_THAN_OR_EQUALS,
+            FilterOperator.GREATER_THAN,
+            FilterOperator.IN,
+            FilterOperator.LESS_THAN,
+            FilterOperator.LESS_THAN_OR_EQUALS,
+        ],
+    }
     for val in req["values"]:
-        print(val)
         try:
             ip_range = ipaddress.ip_network(val)
-            resp["status"] = resp["status"] if resp["status"] == 'invalid' else resp["status"]
             resp["values"].append(
                 {"start": int(ip_range[0]), "end": int(ip_range[-1])}
                 if ip_range[0] != ip_range[-1]
                 else int(ip_range[0])
             )
-            resp["formatted_value"] = val
-            operators = (
-                ["EQUALS", "<=", "<","IN", ">=", ">"]
-                if ip_range[0] != ip_range[-1]
-                else ["==", "<=", "<", ">=", ">"]
-            )
-            resp["valid_filter_operators"] = operators if "valid_filter_operators" not in resp else list(set( resp["valid_filter_operators"]) & set(operators))
-            resp["display_value"] += f"{ip_range[0]}, " if ip_range[0] == ip_range[-1] else f"{ip_range[0]} - {ip_range[-1]}, "
+            resp["formatted_value"] = str(val)
         except Exception as e:
-            print(str(e))
             resp["status"] = "invalid"
-            operators = ["==", "IN"]
             resp["values"].append("Invalid")
-            resp["valid_filter_operators"] = operators if "valid_filter_operators" not in resp else list(set( resp["valid_filter_operators"]) & set(operators))
-            resp["display_value"] += 'invlaid, '
-            
+    resp["display_value"] = ", ".join(
+        map(
+            lambda x: f"{x['start']} - {x['end']}" if isinstance(x, dict) else str(x),
+            resp["values"],
+        )
+    )
     return resp
 
-# Make this return a single clause
-def cidr_translate_filter_func(col: Column, op: FilterOperator, values: List[Any]) -> Any:
 
-    if op == FilterOperator.IN or op == FilterOperator.NOT_IN: 
+# Make this return a single clause
+def cidr_translate_filter_func(
+    col: Column, op: FilterOperator, values: List[Any]
+) -> Any:
+
+    if op == FilterOperator.IN or op == FilterOperator.NOT_IN:
         dict_items = [val for val in values if isinstance(val, dict)]
         single_values = [val for val in values if not isinstance(val, dict)]
         print(single_values)
         if op == FilterOperator.IN.value:
-            cond = (col.in_(single_values))
+            cond = col.in_(single_values)
             for dictionary in dict_items:
-                cond = cond | ((col <= dictionary["end"]) & (col >= dictionary["start"]))
+                cond = cond | (
+                    (col <= dictionary["end"]) & (col >= dictionary["start"])
+                )
         elif op == FilterOperator.NOT_IN.value:
             cond = ~(col.in_(single_values))
             for dictionary in dict_items:
-                 cond = cond & (col > dictionary["end"]) & (col < dictionary["start"])
-        print("Returning")
+                cond = cond & (col > dictionary["end"]) & (col < dictionary["start"])
         return cond
-    if len(values) == 1: 
-        value = values[0] 
+    if len(values) == 1:
+        value = values[0]
         if op == FilterOperator.EQUALS.value:
-            return [col == value] if not isinstance(value, dict) else [(col <= value["end"]) & (col >= value["start"])]
+            print()
+            return (
+                col == value
+                if not isinstance(value, dict)
+                else (col <= value["end"]) & (col >= value["start"])
+            )
         if op == FilterOperator.GREATER_THAN_OR_EQUALS.value:
-            return [col >= value] if not isinstance(value, dict) else [col >= value["end"]]
+            return col >= value if not isinstance(value, dict) else col >= value["end"]
         if op == FilterOperator.GREATER_THAN.value:
-            return [col > value] if not isinstance(value, dict) else [col > value["end"]]
+            return col > value if not isinstance(value, dict) else col > value["end"]
         if op == FilterOperator.LESS_THAN.value:
-            return [col < value] if not isinstance(value, dict) else [col < value["start"]]
+            return col < value if not isinstance(value, dict) else col < value["start"]
         if op == FilterOperator.LESS_THAN_OR_EQUALS.value:
-            return [col <= value] if not isinstance(value, dict) else [col <= value["start"]]
+            return (
+                col <= value if not isinstance(value, dict) else col <= value["start"]
+            )
         if op == FilterOperator.NOT_EQUALS.value:
-            return [col != value] if not isinstance(value, dict) else [(col > value["end"]) | (col < value["start"])]
-    # THROW EXPEPTION
+            return (
+                col != value
+                if not isinstance(value, dict)
+                else (col > value["end"]) | (col < value["start"])
+            )
+
+
 def port_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
-    resp: BusinessTypeResponse = {}
-    print("in port_func")
-    if req["value"] in port_conversion_dict:
-        print("in if")
-        resp["status"] = "valid"
-        resp["value"] = port_conversion_dict[req["value"]]
-        resp["formatted_value"] = req["value"]
-        resp["valid_filter_operators"] = (
-            ["==", "<=", "<", ">=", ">"] if len(req["value"]) == 1 else ["IN"]
-        )
-    elif req["value"] and (
-        0 <= int(req["value"]) <= 65535
-    ):  # Not sure if we care about this case
-        print("in elif")
-        resp["status"] = "valid"
-        resp["value"] = req["value"]
-        resp["formatted_value"] = req["value"]
-        resp["valid_filter_operators"] = ["==", "<=", "<", ">=", ">"]
-    else:
-        print("in else")
-        resp["status"] = "invalid"
-        resp["value"] = "invalid entry"
-        resp["formatted_value"] = None
-        resp["valid_filter_operators"] = ["==", "<=", "<", ">=", ">"]
-    return resp
-# Start a project called 
+    pass
+
+
+# Start a project called
 
 # the business type key should correspond to that set in the column metadata
 BUSINESS_TYPE_ADDONS: Dict[
@@ -1430,7 +1422,9 @@ BUSINESS_TYPE_ADDONS: Dict[
 ] = {"cidr": cidr_func, "port": port_func}
 
 # the business type key should correspond to that set in the column metadata
-BUSINESS_TYPE_TRANSLATIONS: Dict[str, Callable[[Column, FilterOperator, Any], List[Any]]] = {
+BUSINESS_TYPE_TRANSLATIONS: Dict[
+    str, Callable[[Column, FilterOperator, Any], List[Any]]
+] = {
     "cidr": cidr_translate_filter_func,
 }
 
@@ -1460,7 +1454,7 @@ if CONFIG_PATH_ENV_VAR in os.environ:
 elif importlib.util.find_spec("superset_config") and not is_test():
     try:
         import superset_config  # pylint: disable=import-error
-        from superset_config import *  # type: ignore # pylint: disable=import-error,wildcard-import,unused-wildcard-import
+        from superset_config import *  # pylint: disable=import-error,wildcard-import,unused-wildcard-import
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:

@@ -234,9 +234,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   // TODO:
   // This does not need to be managed in state like this, this can be managed better
   // Combine into one piece of state
-  const [parsedBusniessType, setParsedBusniessType] = useState<
-    string | string[]
-  >('');
+  const [parsedBusniessType, setParsedBusniessType] = useState<string>('');
   const [subjectBusinessType, setSubjectBusinessType] = useState<
     string | undefined
   >('');
@@ -378,7 +376,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
           setBusninessTypeOperatorList(json.result.valid_filter_operators);
         })
         .catch(e => {
-          setParsedBusniessType([]);
+          setParsedBusniessType('');
         });
     }, 600);
     testFucntion(comparator);
@@ -461,6 +459,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
           css={theme => ({ marginBottom: theme.gridUnit * 4 })}
           data-test="adhoc-filter-simple-value"
           {...comparatorSelectProps}
+          mode="single"
           disabled
           placeholder=""
           labelText=""

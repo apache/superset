@@ -2,11 +2,17 @@
 A docstring
 """
 
-from typing import Any, TypedDict, List
+from typing import Any, List, TypedDict, Union
+
+from superset.typing import FilterValues
 
 
 class BusinessTypeRequest(TypedDict):
     """
     A docstring
     """
-    value: List[Any]  # unparsed value (usually text when passed from text box)
+
+    business_type: str
+    values: List[
+        Union[FilterValues, None]
+    ]  # unparsed value (usually text when passed from text box)
