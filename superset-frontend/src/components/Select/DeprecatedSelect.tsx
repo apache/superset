@@ -30,7 +30,6 @@ import BasicSelect, {
 import Async from 'react-select/async';
 import Creatable from 'react-select/creatable';
 import AsyncCreatable from 'react-select/async-creatable';
-import { withAsyncPaginate } from 'react-select-async-paginate';
 
 import { SelectComponents } from 'react-select/src/components';
 import {
@@ -45,7 +44,6 @@ import {
   WindowedSelectComponentType,
   WindowedSelectProps,
   WindowedSelect,
-  WindowedAsyncSelect,
   WindowedCreatableSelect,
   WindowedAsyncCreatableSelect,
 } from './WindowedSelect';
@@ -319,12 +317,6 @@ function styled<
 }
 
 export const Select = styled(WindowedSelect);
-export const AsyncSelect = styled(WindowedAsyncSelect);
 export const CreatableSelect = styled(WindowedCreatableSelect);
 export const AsyncCreatableSelect = styled(WindowedAsyncCreatableSelect);
-export const PaginatedSelect = withAsyncPaginate(
-  styled<OptionTypeBase, ComponentType<SelectProps<OptionTypeBase>>>(
-    BasicSelect,
-  ),
-);
 export default Select;

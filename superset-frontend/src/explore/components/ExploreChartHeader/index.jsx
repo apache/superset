@@ -44,6 +44,7 @@ import Timer from 'src/components/Timer';
 import CachedLabel from 'src/components/CachedLabel';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';
+import CertifiedIcon from 'src/components/CertifiedIcon';
 import ExploreActionButtons from '../ExploreActionButtons';
 import RowCountLabel from '../RowCountLabel';
 
@@ -165,7 +166,10 @@ export class ExploreChartHeader extends React.PureComponent {
   }
 
   getSliceName() {
-    return this.props.sliceName || t('%s - untitled', this.props.table_name);
+    const { sliceName, table_name: tableName } = this.props;
+    const title = sliceName || t('%s - untitled', tableName);
+
+    return title;
   }
 
   postChartFormData() {
@@ -241,7 +245,7 @@ export class ExploreChartHeader extends React.PureComponent {
   }
 
   render() {
-    const { user, form_data: formData } = this.props;
+    const { user, form_data: formData, slice } = this.props;
     const {
       chartStatus,
       chartUpdateEndTime,
@@ -257,6 +261,14 @@ export class ExploreChartHeader extends React.PureComponent {
     return (
       <StyledHeader id="slice-header" className="panel-title-large">
         <div className="title-panel">
+          {slice?.certified_by && (
+            <>
+              <CertifiedIcon
+                certifiedBy={slice.certified_by}
+                details={slice.certification_details}
+              />{' '}
+            </>
+          )}
           <EditableTitle
             title={this.getSliceName()}
             canEdit={

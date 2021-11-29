@@ -7,96 +7,109 @@
         "plural_forms": "nplurals=4; plural=(n%100==1 ? 0 : n%100==2 ? 1 : n%100>=3 && n%100<=4 ? 2 : 3);",
         "lang": "sl_SI"
       },
-      "Home": ["Domov"],
-      "Annotation Layers": ["Sloji z oznakami"],
-      "Manage": ["Upravljaj"],
-      "Databases": ["Podatkovne baze"],
-      "Data": ["Podatki"],
-      "Datasets": ["Podatkovni seti"],
-      "Charts": ["Grafikoni"],
-      "Dashboards": ["Nadzorne plošče"],
-      "Plugins": ["Vtičniki"],
-      "CSS Templates": ["CSS predloge"],
-      "Row level security": ["Varnost na nivoju vrstic"],
-      "Security": ["Varnost"],
-      "Import Dashboards": ["Uvozi nadzorne plošče"],
-      "SQL Editor": ["SQL urejevalnik"],
-      "SQL Lab": ["SQL laboratorij"],
-      "Saved Queries": ["Shranjene poizvedbe"],
-      "Query History": ["Zgodovina poizvedb"],
-      "Upload a CSV": ["Naloži CSV"],
-      "Upload Excel": ["Naloži Excel"],
-      "Action Log": ["Dnevnik aktivnosti"],
-      "Dashboard Emails": ["E-pošta za nadzorno ploščo"],
-      "Chart Email Schedules": ["Urniki za e-pošto grafikonov"],
-      "Alerts": ["Opozorila"],
-      "Alerts & Reports": ["Opozorila in poročila"],
-      "Access requests": ["Zahteve za dostop"],
-      "Druid Datasources": ["Druid podatkovni viri"],
-      "Druid Clusters": ["Druid gruče"],
-      "Scan New Datasources": ["Preišči nove podatkovne vire"],
-      "Refresh Druid Metadata": ["Osveži metapodatke za Druid"],
-      "Issue 1000 - The datasource is too large to query.": [
-        "Težava 1000 - podatkovni vir je prevelik za poizvedbo."
+      "The datasource is too large to query.": [
+        "Podatkovni vir je prevelik za poizvedbo."
       ],
-      "Issue 1001 - The database is under an unusual load.": [
-        "Težava 1001 - podatkovni vir je neobičajno obremenjen."
+      "The database is under an unusual load.": [
+        "Podatkovni vir je neobičajno obremenjen."
       ],
-      "Issue 1002 - The database returned an unexpected error.": [
-        "Težava 1002 - podatkovna baza je vrnila nepričakovano napako."
+      "The database returned an unexpected error.": [
+        "Podatkovna baza je vrnila nepričakovano napako."
       ],
-      "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.": [
-        "Težava 1003 - v SQL-poizvedbi je sintaktična napaka. Mogoče ste se zatipkali."
+      "There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.": [
+        "V SQL-poizvedbi je sintaktična napaka. Mogoče ste se zatipkali."
       ],
-      "Issue 1004 - The column was deleted or renamed in the database.": [
-        "Težava 1004 - stolpec je bil izbrisan ali preimenovan v podatkovni bazi."
+      "The column was deleted or renamed in the database.": [
+        "Stolpec je bil izbrisan ali preimenovan v podatkovni bazi."
       ],
-      "Issue 1005 - The table was deleted or renamed in the database.": [
-        "Težava 1005 - tabela je bila izbrisana ali preimenovana v podatkovni bazi."
+      "The table was deleted or renamed in the database.": [
+        "Tabela je bila izbrisana ali preimenovana v podatkovni bazi."
       ],
-      "Issue 1005 - The schema was deleted or renamed in the database.": [
-        "Težava 1005 - shema je bila izbrisana ali preimenovana v podatkovni bazi."
+      "One or more parameters specified in the query are missing.": [
+        "En ali več parametrov v SQL-poizvedbi manjka."
       ],
-      "Issue 1006 - One or more parameters specified in the query are missing.": [
-        "Težava 1006 - en ali več parametrov v SQL-poizvedbi manjka."
+      "The hostname provided can't be resolved.": [
+        "Imena gostitelja ni mogoče razrešiti."
       ],
-      "Issue 1007 - The hostname provided can't be resolved.": [
-        "Težava 1007 - imena gostitelja ni mogoče razrešiti."
+      "The port is closed.": ["Vrata so zaprta."],
+      "The host might be down, and can't be reached on the provided port.": [
+        "Gostitelj mogoče ne deluje in ga ni mogoče doseči preko podanih vrat."
       ],
-      "Issue 1008 - The port is closed.": ["Težava 1008 - Vrata so zaprta."],
-      "Issue 1009 - The host might be down, and can't be reached on the provided port.": [
-        "Težava 1009 - Gostitelj mogoče ne deluje in ga ni mogoče doseči preko podanih vrat."
+      "Superset encountered an error while running a command.": [
+        "Superset je naletel na napako pri izvajanju ukaza."
       ],
-      "Issue 1010 - Superset encountered an error while running a command.": [
-        "Težava 1010 - Superset je naletel na napako pri izvajanju ukaza."
+      "Superset encountered an unexpected error.": [
+        "Superset je naletel na nepričakovano napako."
       ],
-      "Issue 1011 - Superset encountered an unexpected error.": [
-        "Težava 1011 - Superset je naletel na nepričakovano napako."
+      "The username provided when connecting to a database is not valid.": [
+        "Uporabniško ime za povezavo s podatkovno bazo je neveljavno."
       ],
-      "Issue 1012 - The username provided when connecting to a database is not valid.": [
-        "Težava 1012 - Uporabniško ime za povezavo s podatkovno bazo je neveljavno."
+      "The password provided when connecting to a database is not valid.": [
+        "Geslo za povezavo s podatkovno bazo je neveljavno."
       ],
-      "Issue 1013 - The password provided when connecting to a database is not valid.": [
-        "Težava 1013 - Geslo za povezavo s podatkovno bazo je neveljavno."
+      "Either the username or the password is wrong.": [
+        "Uporabniško ime ali/in geslo sta napačna."
       ],
-      "Issue 1014 - Either the username or the password is wrong.": [
-        "Težava 1014 - Uporabniško ime ali/in geslo sta napačna."
+      "Either the database is spelled incorrectly or does not exist.": [
+        "Ime podatkovne baze je zapisano napačno ali pa ne obstaja."
       ],
-      "Issue 1015 - Either the database is spelled incorrectly or does not exist.": [
-        "Težava 1015 - Ime podatkovne baze je zapisano napačno ali pa ne obstaja."
+      "The schema was deleted or renamed in the database.": [
+        "Shema je bila izbrisana ali preimenovana v podatkovni bazi."
       ],
-      "Issue 1017 - User doesn't have the proper permissions.": [
-        "Težava 1017 - Uporabnik nima ustreznih dovoljenj."
+      "User doesn't have the proper permissions.": [
+        "Uporabnik nima ustreznih dovoljenj."
       ],
-      "Issue 1018 - One or more parameters needed to configure a database are missing.": [
-        "Težava 1018 - Eden ali več parametrov, potrebnih za nastavitev podatkovne baze, manjka."
+      "One or more parameters needed to configure a database are missing.": [
+        "En ali več parametrov, potrebnih za nastavitev podatkovne baze, manjka."
       ],
-      "Issue 1019 - The submitted payload has the incorrect format.": [
-        "Težava 1019 - Podani podatki so v neustrezni obliki."
+      "The submitted payload has the incorrect format.": [
+        "Podani podatki so v neustrezni obliki."
       ],
-      "Issue 1020 - The submitted payload has the incorrect schema.": [
-        "Težava 1020 - Podani podatki imajo neustrezno shemo."
+      "The submitted payload has the incorrect schema.": [
+        "Podani podatki imajo neustrezno shemo."
       ],
+      "Results backend needed for asynchronous queries is not configured.": [
+        "Zaledni sistem za rezultate, potreben za asinhrone poizvedbe, ni konfiguriran."
+      ],
+      "Database does not allow data manipulation.": [
+        "Podatkovna baza ne dovoljuje manipulacije podatkov."
+      ],
+      "The CTAS (create table as select) doesn't have a SELECT statement at the end. Please make sure your query has a SELECT as its last statement. Then, try running your query again.": [
+        "CTAS (create table as select) na koncu nima SELECT stavka. Poskrbite, da bo v poizvedbi SELECT zadnji stavek. Potem ponovno poženite poizvedbo."
+      ],
+      "CVAS (create view as select) query has more than one statement.": [
+        "CVAS (create view as select) poizvedba ima več kot en stavek."
+      ],
+      "CVAS (create view as select) query is not a SELECT statement.": [
+        "CVAS (create view as select) poizvedba ni SELECT stavek."
+      ],
+      "Query is too complex and takes too long to run.": [
+        "Poizvedba je prekompleksna in se izvaja predolgo."
+      ],
+      "The database is currently running too many queries.": [
+        "Podatkovna baza trenutno izvaja preveč poizvedb."
+      ],
+      "One or more parameters specified in the query are malformatted.": [
+        "En ali več parametrov v SQL-poizvedbi ima napačno obliko."
+      ],
+      "The object does not exist in the given database.": [
+        "Objekt ne obstaja v podani podatkovni bazi."
+      ],
+      "The query has a syntax error.": ["Poizvedba ima sintaktično napako."],
+      "The results backend no longer has the data from the query.": [
+        "Zaledni sistem rezultatov nima več podatkov iz poizvedbe."
+      ],
+      "The query associated with the results was deleted.": [
+        "Poizvedba, povezana z rezultati, je bila izbrisana."
+      ],
+      "The results stored in the backend were stored in a different format, and no longer can be deserialized.": [
+        "Rezultati v zalednem sistemu so bili shranjeni v drugačni obliki in jih ni več mogoče deserializirati."
+      ],
+      "The port number is invalid.": ["Številka vrat je neveljavna."],
+      "Failed to start remote query on a worker.": [
+        "Na delavcu ni bilo mogoče zagnati oddaljene poizvedbe."
+      ],
+      "The database was deleted.": ["Podatkovna baza je bila izbrisana."],
       "Invalid certificate": ["Neveljaven certifikat"],
       "Unsafe return type for function %(func)s: %(value_type)s": [
         "Nevaren tip rezultata, ki ga vrne funkcija %(func)s: %(value_type)s"
@@ -110,11 +123,14 @@
       "Unsupported template value for key %(key)s": [
         "Nepodprta vrednost vzorca za ključ %(key)s"
       ],
-      "SQL Lab timeout. This environment's policy is to kill queries after {} seconds.": [
-        "Iztek časa SQL laboratorija. Nastavitev okolja določa prekinitev poizvedb po izteku {} sekund."
+      "Only SELECT statements are allowed against this database.": [
+        "Za to podatkovno bazo so dovoljeni le `SELECT` stavki."
       ],
-      "Only `SELECT` statements are allowed against this database": [
-        "Za to podatkovno bazo so dovoljeni le `SELECT` stavki"
+      "The query was killed after %(sqllab_timeout)s seconds. It might be too complex, or the database might be under heavy load.": [
+        "Poizvedba je bila ustavljena po %(sqllab_timeout)s sekundah. Lahko je prekompleksna ali pa je podatkovna baza preobremenjena."
+      ],
+      "Results backend is not configured.": [
+        "Zaledni sistem rezultatov ni konfiguriran."
       ],
       "CTAS (create table as select) can only be run with a query where the last statement is a SELECT. Please make sure your query has a SELECT as its last statement. Then, try running your query again.": [
         "CTAS (create table as select) lahko izvajate le v poizvedbah, kjer je zadnji stavek SELECT. Poskrbite, da bo zadnji stavek v vaši poizvedbi SELECT in poskusite ponovno zagnati poizvedbo."
@@ -235,7 +251,7 @@
         "Stolpca [Zemljepisna dolžina] in [Zemljepisna širina] morata biti prisotna v [Združevanje]"
       ],
       "Deck.gl - Multiple Layers": ["Deck.gl - Večplastni"],
-      "Bad spatial key": ["Neutrezen prostorski ključ"],
+      "Bad spatial key": ["Neustrezen prostorski ključ"],
       "Invalid spatial point encountered: %s": [
         "Neustrezna prostorska točka: %s"
       ],
@@ -307,8 +323,6 @@
         "Izbrisani so %(num)d grafikoni",
         "Izbrisanih je %(num)d grafikonov"
       ],
-      "Request is not JSON": ["Zahtevek ni JSON"],
-      "Request is incorrect: %(error)s": ["Zahtevek je napačen: %(error)s"],
       "`confidence_interval` must be between 0 and 1 (exclusive)": [
         "`confidence_interval` mora biti med 0 in 1 (odprt)"
       ],
@@ -327,14 +341,20 @@
       "`row_offset` must be greater than or equal to 0": [
         "`row_offset` mora biti večja ali enaka 1"
       ],
+      "orderby column must be populated": [
+        "stolpec za razvrščanje (orderby) mora biti izpolnjen"
+      ],
       "There are associated alerts or reports: %s,": [
         "Prisotna so opozorila in poročila: %s,"
       ],
-      "Time string is unclear. Please specify [%(human_readable)s ago] or [%(human_readable)s later].": [
-        "Časovni izraz je nejasen. Podajte [%(human_readable)s ago] ali [%(human_readable)s later]."
+      "Time string is ambiguous. Please specify [%(human_readable)s ago] or [%(human_readable)s later].": [
+        "Časovni niz je nejasen. Podajte [%(human_readable)s ago] ali [%(human_readable)s later]."
       ],
       "Cannot parse time string [%(human_readable)s]": [
         "Ni mogoče razčleniti časovnega izraza [%(human_readable)s]"
+      ],
+      "Time delta is ambiguous. Please specify [%(human_readable)s ago] or [%(human_readable)s later].": [
+        "Časovna razlika je nejasna. Podajte [%(human_readable)s ago] ali [%(human_readable)s later]."
       ],
       "Database does not exist": ["Podatkovna baza ne obstaja"],
       "Dashboards do not exist": ["Nadzorna plošča ne obstaja"],
@@ -355,21 +375,32 @@
       "Import chart failed for an unknown reason": [
         "Uvoz grafikona ni uspel zaradi neznanega razloga"
       ],
+      "Chart has no query context saved. Please save the chart again.": [
+        "Grafikon nima shranjenega konteksta poizvedbe. Ponovno shranite grafikon."
+      ],
+      "Request is incorrect: %(error)s": ["Zahtevek je napačen: %(error)s"],
+      "Request is not JSON": ["Zahtevek ni JSON"],
       "Owners are invalid": ["Lastniki niso veljavni"],
       "Some roles do not exist": ["Nekatere vloge ne obstajajo"],
       "Dataset does not exist": ["Podatkovni set ne obstaja"],
-      "Invalid result type: %(result_type)": [
-        "Neveljaven tip rezultata: %(result_type)"
+      "Invalid result type: %(result_type)s": [
+        "Neveljaven tip rezultata: %(result_type)s"
       ],
       "The chart does not exist": ["Grafikon ne obstaja"],
       "Duplicate column/metric labels: %(labels)s. Please make sure all columns and metrics have a unique label.": [
         "Podvojene oznake stolpcev/mer: %(labels)s. Poskrbite, da bodo imeli stolpci in mere unikatne oznake."
+      ],
+      "The following entries in `series_columns` are missing in `columns`: %(columns)s. ": [
+        "V 'columns' manjkajo naslednji vnosi iz 'series_columns': %(columns)s. "
       ],
       "`operation` property of post processing object undefined": [
         "Lastnost  `operation` poprocesirnega objekta ni definirana"
       ],
       "Unsupported post processing operation: %(operation)s": [
         "Nepodprta poprocesirna operacija: %(operation)s"
+      ],
+      "Datasource id not found: %(id)s": [
+        "ID podatkovnega vira ni bil najden: %(id)s"
       ],
       "Adding new datasource [{}]": ["Dodajanje novega podatkovnega vira [{}]"],
       "Refreshing datasource [{}]": ["Osveževanje podatkovnega vira [{}]"],
@@ -399,6 +430,7 @@
       "JSON": ["JSON"],
       "Druid Datasource": ["Podatkovni vir Druid"],
       "Warning Message": ["Opozorilo"],
+      "Druid Clusters": ["Druid gruče"],
       "Show Druid Cluster": ["Pokaži Druid gručo"],
       "Add Druid Cluster": ["Dodaj Druid gručo"],
       "Edit Druid Cluster": ["Uredi Druid gručo"],
@@ -416,6 +448,7 @@
       "Druid supports basic authentication. See [auth](http://druid.io/docs/latest/design/auth.html) and druid-basic-security extension": [
         "Druid podpira osnovno avtentikacijo. Glejte [auth](http://druid.io/docs/latest/design/auth.html) in razširitev druid-basic-security"
       ],
+      "Druid Datasources": ["Druid podatkovni viri"],
       "Show Druid Datasource": ["Prikaži podatkovni vir za Druid"],
       "Add Druid Datasource": ["Dodaj podatkovni vir za Druid"],
       "Edit Druid Datasource": ["Uredi podatkovni vir za Druid"],
@@ -447,15 +480,11 @@
       "Time Offset": ["Časovni zamik"],
       "Datasource Name": ["Ime podatkovnega vira"],
       "Fetch Values From": ["Pridobi vrednosti iz"],
-      "Changed By": ["Spremenil/a"],
-      "Modified": ["Sprememba"],
+      "Changed By": ["Spremenil"],
+      "Modified": ["Spremenjeno"],
       "Refreshed metadata from cluster [{}]": [
         "Osveženi meta-podatki iz gruče [{}]"
       ],
-      "Only `SELECT` statements are allowed": [
-        "Dovoljeni so le `SELECT` stavki"
-      ],
-      "Only single queries supported": ["Podprte so le enojne poizvedbe"],
       "Error in jinja expression in fetch values predicate: %(msg)s": [
         "Napaka v jinja izrazu za pridobivanje vrednosti predikatov: %(msg)s"
       ],
@@ -506,6 +535,10 @@
       "Db engine did not return all queried columns": [
         "Sitem podatkovne baze ni vrnil vse stolpcev poizvedbe"
       ],
+      "Only `SELECT` statements are allowed": [
+        "Dovoljeni so le `SELECT` stavki"
+      ],
+      "Only single queries supported": ["Podprte so le enojne poizvedbe"],
       "Show Column": ["Pokaži stolpec"],
       "Add Column": ["Dodaj stolpec"],
       "Edit Column": ["Uredi stolpec"],
@@ -633,7 +666,6 @@
       "Dashboard parameters are invalid.": [
         "Parametri nadzorne plošče so neveljavni."
       ],
-      "Dashboard not found.": ["Nadzorna plošča ni najdena."],
       "Dashboard could not be created.": [
         "Nadzorne plošče ni mogoče ustvariti."
       ],
@@ -666,20 +698,20 @@
       "The metadata_params in Extra field is not configured correctly. The key %(key)s is invalid.": [
         "Metadata_params v polju Dodatno niso pravilno nastavljeni. Ključ %(key)s je neveljaven."
       ],
+      "Engine spec \"InvalidEngine\" does not support being configured via individual parameters.": [
+        "Specifikacija baze \"InvalidEngine\" ne podpira konfiguracije s posameznimi parametri."
+      ],
       "An engine must be specified when passing individual parameters to a database.": [
         "Pri podajanju posameznih parametrov podatkovne baze mora biti podan njen tip."
       ],
       "Engine \"%(engine)s\" is not a valid engine.": [
         "\"%(engine)s\" ni veljaven tip podatkovne baze."
       ],
-      "Engine spec \"InvalidEngine\" does not support being configured via individual parameters.": [
-        "Specifikacija baze \"InvalidEngine\" ne podpira konfiguracije s posameznimi parametri."
-      ],
       "Database parameters are invalid.": [
         "Parametri podatkovne baze so neveljavni."
       ],
-      "A database with the same name already exists": [
-        "Podatkovna baza z enakim imenom že obstaja"
+      "A database with the same name already exists.": [
+        "Podatkovna baza z enakim imenom že obstaja."
       ],
       "Field is required": ["Polje je obvezno"],
       "Field cannot be decoded by JSON.  %{json_error}s": [
@@ -698,8 +730,8 @@
       "Connection failed, please check your connection settings": [
         "Povezava neuspešna. Preverite nastavitve povezave"
       ],
-      "Cannot delete a database that has tables attached": [
-        "Podatkovne baze s povezanimi tabelami ni mogoče izbrisati"
+      "Cannot delete a database that has datasets attached": [
+        "Podatkovne baze s povezanimi podatkovnimi viri ni mogoče izbrisati"
       ],
       "Database could not be deleted.": [
         "Podatkovne baze ni mogoče izbrisati."
@@ -777,23 +809,29 @@
       "Dataset metric delete failed.": [
         "Brisanje mere podatkovnega seta ni uspelo."
       ],
+      "Please check your query for syntax errors at or near \"%(syntax_error)s\". Then, try running your query again.": [
+        "Preverite, če ima vaša poizvedba sintaktične napake pri \"%(syntax_error)s\". Potem ponovno poženite poizvedbo."
+      ],
       "Original value": ["Izvorna vrednost"],
       "Second": ["Sekunda"],
+      "5 second": ["5 sekund"],
+      "30 second": ["30 sekund"],
       "Minute": ["Minuta"],
       "5 minute": ["5 minut"],
       "10 minute": ["10 minut"],
       "15 minute": ["15 minut"],
-      "Half hour": ["Pol ure"],
+      "30 minute": ["30 minut"],
       "Hour": ["Ura"],
+      "6 hour": ["6 ur"],
       "Day": ["Dan"],
       "Week": ["Teden"],
       "Month": ["Mesec"],
       "Quarter": ["Četrtletje"],
       "Year": ["Leto"],
-      "Week starting sunday": ["Teden z začetkom v nedeljo"],
-      "Week starting monday": ["Teden z začetkom v ponedeljek"],
-      "Week ending saturday": ["Teden s koncem v soboto"],
-      "Week_ending sunday": ["Teden s koncem v nedeljo"],
+      "Week starting Sunday": ["Teden z začetkom v nedeljo"],
+      "Week starting Monday": ["Teden z začetkom v ponedeljek"],
+      "Week ending Saturday": ["Teden s koncem v soboto"],
+      "Week_ending Sunday": ["Teden s koncem v nedeljo"],
       "Username": ["Uporabniško ime"],
       "Password": ["Geslo"],
       "Hostname or IP address": ["Ime gostitelja ali IP naslov"],
@@ -805,6 +843,18 @@
       ],
       "We were unable to connect to your database. Please confirm that your service account has the Viewer and Job User roles on the project.": [
         "Povezava s podatkovno bazo ni uspela. Preverite, da ima vaš dostop dodeljeni vlogi Viewer in Job User."
+      ],
+      "The table \"%(table)s\" does not exist. A valid table must be used to run this query.": [
+        "Tabela \"%(table)s\" ne obstaja. V poizvedbi mora biti uporabljena veljavna tabela."
+      ],
+      "We can't seem to resolve column \"%(column)s\" at line %(location)s.": [
+        "Zdi se, da ni mogoče razrešiti stolpca \"%(column)s\" v vrstici %(location)s."
+      ],
+      "The schema \"%(schema)s\" does not exist. A valid schema must be used to run this query.": [
+        "Shema \"%(schema)s\" ne obstaja. Za poizvedbo mora biti uporabljena veljavna shema."
+      ],
+      "Please check your query for syntax errors near \"%(server_error)s\". Then, try running your query again.": [
+        "Preverite, če ima vaša poizvedba sintaktične napake pri \"%(server_error)s\". Potem ponovno poženite poizvedbo."
       ],
       "Either the username \"%(username)s\", password, or database name \"%(database)s\" is incorrect.": [
         "Uporabniško ime \"%(username)s\", geslo ali ime podatkovne baze \"%(database)s\" so napačni."
@@ -853,6 +903,40 @@
       "We were unable to connect to your database named \"%(database)s\". Please verify your database name and try again.": [
         "Povezava s podatkovno bazo \"%(database)s\" ni uspela. Preverite ime podatkovne baze in poskusite ponovno."
       ],
+      "%(object)s does not exist in this database.": [
+        "%(object)s ne obstaja v tej podatkovni bazi."
+      ],
+      "We can't seem to resolve the column \"%(column_name)s\"": [
+        "Zdi se, da ni mogoče razrešiti stolpca \"%(column_name)s\""
+      ],
+      "Home": ["Domov"],
+      "Annotation Layers": ["Sloji z oznakami"],
+      "Manage": ["Upravljaj"],
+      "Dashboards": ["Nadzorne plošče"],
+      "Charts": ["Grafikoni"],
+      "Plugins": ["Vtičniki"],
+      "CSS Templates": ["CSS predloge"],
+      "Row Level Security": ["Varnost na nivoju vrstic"],
+      "Security": ["Varnost"],
+      "Import Dashboards": ["Uvozi nadzorne plošče"],
+      "SQL Editor": ["SQL urejevalnik"],
+      "SQL Lab": ["SQL laboratorij"],
+      "Saved Queries": ["Shranjene poizvedbe"],
+      "Query History": ["Zgodovina poizvedb"],
+      "Databases": ["Podatkovne baze"],
+      "Data": ["Podatki"],
+      "Datasets": ["Podatkovni seti"],
+      "Upload a CSV": ["Naloži CSV"],
+      "Upload a Columnar File": ["Naloži datoteko s stolpci"],
+      "Upload Excel": ["Naloži Excel"],
+      "Action Log": ["Dnevnik aktivnosti"],
+      "Dashboard Emails": ["E-pošta za nadzorno ploščo"],
+      "Chart Email Schedules": ["Urniki za e-pošto grafikonov"],
+      "Alerts": ["Opozorila"],
+      "Alerts & Reports": ["Opozorila in poročila"],
+      "Access requests": ["Zahteve za dostop"],
+      "Scan New Datasources": ["Preišči nove podatkovne vire"],
+      "Refresh Druid Metadata": ["Osveži metapodatke za Druid"],
       "Temporal expression not supported for type: %(col_type)s": [
         "Časovni izraz ni podprt za podatkovne tipe: %(col_type)s"
       ],
@@ -894,6 +978,12 @@
       "Choose a chart or dashboard not both": [
         "Izberite grafikon ali nadzorno ploščo, ne obojega"
       ],
+      "Please save your chart first, then try creating a new email report.": [
+        "Najprej shranite grafikon, potem pa poskusite ustvariti novo e-poštno poročilo."
+      ],
+      "Please save your dashboard first, then try creating a new email report.": [
+        "Najprej shranite nadzorno ploščo, potem pa poskusite ustvariti novo e-poštno poročilo."
+      ],
       "Report Schedule parameters are invalid.": [
         "Parametri urnika poročanja so neveljavni."
       ],
@@ -916,6 +1006,9 @@
       ],
       "Report Schedule execution failed when generating a csv.": [
         "Izvajanje urnika poročanja je bilo neuspešno pri ustvarjanju csv."
+      ],
+      "Report Schedule execution failed when generating a dataframe.": [
+        "Izvajanje urnika poročanja je bilo neuspešno pri ustvarjanju podatkovnega okvira."
       ],
       "Report Schedule execution got an unexpected error.": [
         "Pri izvajanju urnika poročanja je prišlo do nepričakovane napake."
@@ -950,6 +1043,9 @@
       "A timeout occurred while generating a csv.": [
         "Pri ustvarjanju csv je potekel čas."
       ],
+      "A timeout occurred while generating a dataframe.": [
+        "Pri ustvarjanju podatkovnega okvira je potekel čas."
+      ],
       "Alert fired during grace period.": [
         "Opozorilo sproženo med obdobjem mirovanja."
       ],
@@ -971,19 +1067,32 @@
       "\n            Error: %(text)s\n            ": [
         "\n            Napaka: %(text)s\n            "
       ],
-      "\n            <p>%(description)s</p>\n            <b><a href=\"%(url)s\">Explore in Superset</a></b><p></p>\n            %(img_tag)s\n            ": [
-        "\n            <p>%(description)s</p>\n            <b><a href=\"%(url)s\">Razišči v Supersetu</a></b><p></p>\n            %(img_tag)s\n            "
-      ],
+      "Explore in Superset": ["Razišči v Supersetu"],
       "%(name)s.csv": ["%(name)s.csv"],
       "%(prefix)s %(title)s": ["%(prefix)s %(title)s"],
-      "\n            *%(name)s*\n\n            %(description)s\n\n            Error: %(text)s\n            ": [
-        "\n            *%(name)s*\n\n            %(description)s\n\n            Napaka: %(text)s\n            "
+      "*%(name)s*\n\n%(description)s\n\n<%(url)s|Explore in Superset>\n\n%(table)s\n": [
+        "*%(name)s*\n\n%(description)s\n\n<%(url)s|Razišči v Supersetu>\n\n%(table)s\n"
       ],
-      "\n            *%(name)s*\n\n            %(description)s\n\n            <%(url)s|Explore in Superset>\n            ": [
-        "\n            *%(name)s*\n\n            %(description)s\n\n            <%(url)s|Razišči v Supersetu>\n            "
+      "*%(name)s*\n\n%(description)s\n\nError: %(text)s\n": [
+        "*%(name)s*\n\n%(description)s\n\nnapaka: %(text)s\n"
       ],
       "%(dialect)s cannot be used as a data source for security reasons.": [
         "%(dialect)s ni mogoče uporabiti kot podatkovni vir zaradi varnostnih razlogov."
+      ],
+      "The database referenced in this query was not found. Please contact an administrator for further assistance or try again.": [
+        "Podatkovna baza, referencirana v tej poizvedbi, ni bila najdena. Kontaktirajte administratorja za napotke ali pa poskusite znova."
+      ],
+      "The parameter %(parameters)s in your query is undefined.": [
+        "V vaši poizvedbi ni definiranih naslednjih parametrov: %(parameters)s.",
+        "V vaši poizvedbi ni definiranih naslednjih parametrov: %(parameters)s.",
+        "V vaši poizvedbi ni definiranih naslednjih parametrov: %(parameters)s.",
+        "V vaši poizvedbi ni definiranih naslednjih parametrov: %(parameters)s."
+      ],
+      "The query contains one or more malformed template parameters.": [
+        "Poizvedba vsebuje enega ali več parametrov predlog z napačno obliko."
+      ],
+      "Please check your query and confirm that all template parameters are surround by double braces, for example, \"{{ ds }}\". Then, try running your query again.": [
+        "V poizvedbi preverite, da so vsi parametri obdani z dvojnimi oklepaji, npr. \"{{ ds }}\". Potem poskusite ponovno."
       ],
       "\n        *%(name)s*\n\n        <%(url)s|Explore in Superset>\n        ": [
         "\n        *%(name)s*\n\n        <%(url)s|Razišči v Supersetu>\n        "
@@ -1029,6 +1138,10 @@
       "[Superset] Access to the datasource %(name)s was granted": [
         "[Superset] dostop do podatkovnega vira %(name)s je odobren"
       ],
+      "Unsupported clause type: %(clause)s": [
+        "Nepodprt tip izraza: %(clause)s"
+      ],
+      "Invalid metric object": ["Neveljaven objekt mere"],
       "Unable to find such a holiday: [%(holiday)s]": [
         "Ni mogoče najti takšnega praznika: [%(holiday)s]"
       ],
@@ -1053,9 +1166,16 @@
       "Undefined window for rolling operation": [
         "Nedefinirano okno za drsečo operacijo"
       ],
+      "Window must be > 0": ["Okno mora biti > 0"],
       "Invalid rolling_type: %(type)s": ["Neveljaven rolling_type: %(type)s"],
       "Invalid options for %(rolling_type)s: %(options)s": [
         "Neveljavne možnosti za %(rolling_type)s: %(options)s"
+      ],
+      "`compare_columns` must have the same length as `source_columns`.": [
+        "`compare_columns` morajo imeti enako dolžino kot `source_columns`."
+      ],
+      "`compare_type` must be `difference`, `percentage` or `ratio`": [
+        "`compare_type` mora biti `difference`, `percentage` ali `ratio`"
       ],
       "Invalid cumulative operator: %(operator)s": [
         "Neveljaven kumulativni operand: %(operator)s"
@@ -1205,33 +1325,36 @@
       "Can't find DruidCluster with cluster_name = '%(name)s'": [
         "Ni mogoče najti DruidCluster s cluster_name = '%(name)s'"
       ],
-      "Data could not be deserialized. You may want to re-run the query.": [
-        "Podatkov ni mogoče deserializirati. Poskusite ponovno pognati poizvedbo."
+      "One or more required fields are missing in the request. Please try again, and if the problem persists conctact your administrator.": [
+        "Eno ali več zahtevanih polj manjka v zahtevi. Poskusite znova, če težava ostane, kontaktirajte administratorja."
+      ],
+      "The database was not found.": ["Podatkovna baza ni bila najdena."],
+      "You are not authorized to fetch samples from this table. If you think this is an error, please reach out to your administrator.": [
+        "Nimate dovoljenja za pridobitev vzorcev iz te tabele. Če menite, da je to napaka, kontaktirajte administratorja."
+      ],
+      "Data could not be retrieved from the results backend. You need to re-run the original query.": [
+        "Podatkov ni bilo mogoče pridobiti iz zalednega sistema rezultatov. Ponovno morate zagnati izvorno poizvedbo."
+      ],
+      "The query associated with these results could not be find. You need to re-run the original query.": [
+        "Poizvedbe, povezane s temi rezultati, ni bilo mogoče najti. Ponovno morate zagnati izvorno poizvedbo."
+      ],
+      "You are not authorized to see this query. If you think this is an error, please reach out to your administrator.": [
+        "Nimate dovoljenja za ogled te poizvedbe. Če menite, da je to napaka, kontaktirajte administratorja."
+      ],
+      "Data could not be deserialized from the results backend. The storage format might have changed, rendering the old data stake. You need to re-run the original query.": [
+        "Podatkov ni bilo mogoče deserializirati iz zalednega sistema rezultatov. Lahko je prišlo do spremembe oblike zapisa. Ponovno zaženite izvorno poizvedbo."
+      ],
+      "The provided `rows` argument is not a valid integer.": [
+        "Podani argument `rows` ni veljavno celo število."
       ],
       "%(validator)s was unable to check your query.\nPlease recheck your query.\nException: %(ex)s": [
         "%(validator)s ni mogel preveriti vaše poizvedbe.\nPonovno preverite poizvedbo.\nIzjema: %(ex)s"
-      ],
-      "Failed to start remote query on a worker. Tell your administrator to verify the availability of the message queue.": [
-        "Zagon daljinske poizvedbe na delavcu ni bil uspešen. Administratorja prosite, da preveri razpoložljivost zaporedja sporočil."
-      ],
-      "Query record was not created as expected.": [
-        "Zapis poizvedbe ni bil ustvarjen, kot je bilo pričakovano."
-      ],
-      "The parameter %(parameters)s in your query is undefined.": [
-        "V vaši poizvedbi ni definiranih naslednjih parametrov: %(parameters)s.",
-        "V vaši poizvedbi ni definiranih naslednjih parametrov: %(parameters)s.",
-        "V vaši poizvedbi ni definiranih naslednjih parametrov: %(parameters)s.",
-        "V vaši poizvedbi ni definiranih naslednjih parametrov: %(parameters)s."
       ],
       "%(user)s's profile": ["Profil uporabnika: %(user)s"],
       "Show CSS Template": ["Prikaži CSS predlogo"],
       "Add CSS Template": ["Dodaj CSS predlogo"],
       "Edit CSS Template": ["Uredi CSS predlogo"],
       "Template Name": ["Ime predloge"],
-      "Request missing data field.": ["Zahtevaj manjkajoča podatkovna polja."],
-      "Duplicate column name(s): %(columns)s": [
-        "Podvojena imena stolpcev: %(columns)s"
-      ],
       "A human-friendly name": ["Človeku prijazno ime"],
       "Used internally to identify the plugin. Should be set to the package name from the pluginʼs package.json": [
         "Uporablja se za interno identifikacijo vtičnika. Naj bo nastavljeno na ime paketa v vtičnikovem package.json"
@@ -1320,7 +1443,6 @@
       "Published": ["Objavljeno"],
       "Position JSON": ["JSON za postavitev"],
       "CSS": ["CSS"],
-      "Underlying Tables": ["Temeljne tabele"],
       "Export": ["Izvoz"],
       "Export dashboards?": ["Izvozim nadzorne plošče?"],
       "Name of table to be created from csv data.": [
@@ -1358,6 +1480,10 @@
       "Mangle Duplicate Columns": ["Odstrani podvojene stolpce"],
       "Specify duplicate columns as \"X.0, X.1\".": [
         "Določite podvojene stolpce kot \"X.0, X.1\"."
+      ],
+      "Use Columns": ["Uporabi stolpce"],
+      "Json list of the column names that should be read. If not None, only these columns will be read from the file.": [
+        "JSON seznam imen stolpcev, ki morajo biti prebrani. Če ni prazen, bodo iz datoteke prebrani le ti stolpci."
       ],
       "Skip Initial Space": ["Izpusti začetni presledek"],
       "Skip spaces after delimiter.": ["Izpusti presledek za ločilnikom."],
@@ -1406,7 +1532,14 @@
       ],
       "Sheet Name": ["Ime zvezka"],
       "Strings used for sheet names (default is the first sheet).": [
-        "Znakovni nizi uporabljeni za imena zvezkov (privzeto je prvi zvezek)."
+        "Znakovni nizi uporabljeni za imena preglednic (privzeto je prva preglednica)."
+      ],
+      "Name of table to be created from columnar data.": [
+        "Ime tabele, ki bo ustvarjena iz podatkov v stolpcih."
+      ],
+      "Columnar File": ["Stoplčna datoteka"],
+      "Select a Columnar file to be uploaded to a database.": [
+        "Izberite stolpčno datoteko, ki bo naložena v podatkovno bazo."
       ],
       "Show Database": ["Prikaži podatkovno bazo"],
       "Add Database": ["Dodaj podatkovno bazo"],
@@ -1429,7 +1562,7 @@
       "When allowing CREATE TABLE AS option in SQL Lab, this option forces the table to be created in this schema": [
         "Z dovolitvijo opcije CREATE TABLE AS v SQL laboratoriju se tabele ustvarjajo s to shemo"
       ],
-      "If Presto, Trino or Drill all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
+      "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
         "V primeru Presto se vse poizvedbe v SQL laboratoriju zaženejo pod trenutno prijavljenim uporabnikom, ki mora imeti pravice za poganjanje.<br/>Če je omogočen Hive in hive.server2.enable.doAs, poizvedbe tečejo pod servisnim računom, vendar je trenutno prijavljen uporabnik predstavljen z lastnostjo hive.server2.proxy.user."
       ],
       "Allow SQL Lab to fetch a list of all tables and all views across all database schemas. For large data warehouse with thousands of tables, this can be expensive and put strain on the system.": [
@@ -1494,6 +1627,28 @@
       ],
       "Excel file \"%(excel_filename)s\" uploaded to table \"%(table_name)s\" in database \"%(db_name)s\"": [
         "Excel datoteka \"%(excel_filename)s\" naložena v tabelo \"%(table_name)s\" v podatkovni bazi \"%(db_name)s\""
+      ],
+      "Columnar to Database configuration": [
+        "Nastavitve pretvorbe Stolpci v Podatkovno bazo"
+      ],
+      "Multiple file extensions are not allowed for columnar uploads. Please make sure all files are of the same extension.": [
+        "Za nalaganje stolpčnih datotek niso dovoljene različne končnice. Poskrbite, da imajo vse datoteke enake končnice."
+      ],
+      "Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for columnar uploads. Please contact your Superset Admin.": [
+        "Shema \"%(schema_name)s\" podatkovne baze \"%(database_name)s\" ni dovoljena za nalaganje stolpčnih datotek. Kontaktirajte administratorja za Superset."
+      ],
+      "You cannot specify a namespace both in the name of the table: \"%(columnar_table.table)s\" and in the schema field: \"%(columnar_table.schema)s\". Please remove one": [
+        "Imenskega prostora ni mogoče podati hkrati v imenu tabele: \"%(columnar_table.table)s\" in polju sheme: \"%(columnar_table.schema)s\". Odstranite enega"
+      ],
+      "Unable to upload Columnar file \"%(filename)s\" to table \"%(table_name)s\" in database \"%(db_name)s\". Error message: %(error_msg)s": [
+        "Stolpčne datoteke \"%(filename)s\" ni mogoče naložiti v tabelo \"%(table_name)s\" v podatkovni bazi \"%(db_name)s\". Sporočilo napake: %(error_msg)s"
+      ],
+      "Columnar file \"%(columnar_filename)s\" uploaded to table \"%(table_name)s\" in database \"%(db_name)s\"": [
+        "Stolpčna datoteka \"%(columnar_filename)s\" naložena v tabelo \"%(table_name)s\" v podatkovni bazi \"%(db_name)s\""
+      ],
+      "Request missing data field.": ["Zahtevaj manjkajoča podatkovna polja."],
+      "Duplicate column name(s): %(columns)s": [
+        "Podvojena imena stolpcev: %(columns)s"
       ],
       "Logs": ["Dnevniki"],
       "Show Log": ["Prikaži dnevnik"],
@@ -1623,12 +1778,12 @@
       ],
       "Column name(s) ": ["Imena stolpcev "],
       "cannot be used as a column name. The column name/alias \"__timestamp\"\r\n          is reserved for the main temporal expression, and column aliases ending with\r\n          double underscores followed by a numeric value (e.g. \"my_col__1\") are reserved\r\n          for deduplicating duplicate column names. Please use aliases to rename the\r\n          invalid column names.": [
-        "ni mogoče uporabiti kot imena stolpcev. Ime stolpca \"__timestamp\"\r\n          je rezervirano za glavni časovni izraz. Imena stolpcev, ki se končajo z\r\n          dvojnim podčrtajem, ki mu sledi številska vrednost (npr. \"moj_stolpec__1\" so rezervirana\r\n          za deduplikacijo duplikatov imen stolpcev. Za preimenovanje neustreznih imen\r\n          uporabite psevdonime."
+        "ni mogoče uporabiti kot imena stolpcev. Ime stolpca \"__timestamp\"\r\n          je rezervirano za glavni časovni izraz. Imena stolpcev, ki se končajo z\r\n          dvojnim podčrtajem, ki mu sledi številska vrednost (npr. \"moj_stolpec__1\") so rezervirana\r\n          za deduplikacijo duplikatov imen stolpcev. Za preimenovanje neustreznih imen\r\n          uporabite psevdonime."
       ],
       "Source SQL": ["Izvorni SQL"],
-      "Raw SQL": ["Surovi SQL"],
+      "Executed SQL": ["Izvedena poizvedba"],
       "SQL": ["SQL"],
-      "No query history yet...": ["Zgodovine poizvedb še ni..."],
+      "No query history yet...": ["Zgodovine poizvedb še ni."],
       "An error occurred when refreshing queries": [
         "Pri osveževanju poizvedb je prišlo do napake"
       ],
@@ -1641,6 +1796,13 @@
       "[From]-": ["[Od]-"],
       "[To]-": ["[Do]-"],
       "Filter by status": ["Filtriraj po statusu"],
+      "Success": ["Uspelo"],
+      "Failed": ["Ni uspelo"],
+      "Running": ["V teku"],
+      "fetching": ["pridobivam"],
+      "Offline": ["Offline"],
+      "Scheduled": ["V urniku"],
+      "Unknown Status": ["Neznan status"],
       "Edit": ["Urejanje"],
       "View results": ["Ogled rezultatov"],
       "Data preview": ["Ogled podatkov"],
@@ -1722,6 +1884,15 @@
         "Za omogočenje te funkcije shranite poizvedbo"
       ],
       "Copy link": ["Kopiraj povezavo"],
+      "No stored results found, you need to re-run your query": [
+        "Rezultatov še ni shranjenih, ponovno morate zagnati poizvedbo"
+      ],
+      "Run a query to display results here": [
+        "Za prikaz rezultatov morate zagnati poizvedbo"
+      ],
+      "Preview: `%s`": ["Predogled: `%s`"],
+      "Results": ["Rezultati"],
+      "Query history": ["Zgodovina poizvedb"],
       "Run query": ["Zaženi poizvedbo"],
       "New tab": ["Nov zavihek"],
       "Untitled query": ["Neimenovana poizvedba"],
@@ -1735,6 +1906,9 @@
       "CREATE VIEW AS": ["CREATE VIEW AS"],
       "Estimate the cost before running a query": [
         "Oceni potratnost pred zagonom poizvedbe"
+      ],
+      "${isActive ? 'Collapse' : 'Expand'} table preview": [
+        "${isActive ? 'Collapse' : 'Expand'} predogled tabele"
       ],
       "Reset state": ["Ponastavi stanje"],
       "Enter a new title for the tab": ["Vnesite novo naslov zavihka"],
@@ -1753,8 +1927,8 @@
       "latest partition:": ["zadnja particija:"],
       "Keys for table": ["Ključi za tabele"],
       "View keys & indexes (%s)": ["Ogled ključev in indeksov (%s)"],
-      "Sort columns alphabetically": ["Razvrsti stolpce po abecedi"],
       "Original table column order": ["Vrstni red stolpcev izvorne tabele"],
+      "Sort columns alphabetically": ["Razvrsti stolpce po abecedi"],
       "Copy SELECT statement to the clipboard": [
         "Kopiraj stavek SELECT na odložišče"
       ],
@@ -1763,21 +1937,16 @@
       "Remove table preview": ["Odstrani predogled tabele"],
       "Edit template parameters": ["Uredi parametre predloge"],
       "Invalid JSON": ["Neveljaven JSON"],
-      "No stored results found, you need to re-run your query": [
-        "Rezultatov še ni shranjenih, ponovno morate zagnati poizvedbo"
-      ],
-      "Run a query to display results here": [
-        "Za prikaz rezultatov morate zagnati poizvedbo"
-      ],
-      "Preview: `%s`": ["Predogled: `%s`"],
-      "Results": ["Rezultati"],
-      "Query history": ["Zgodovina poizvedb"],
       "Create a new chart": ["Ustvari nov grafikon"],
       "Choose a dataset": ["Izberite podatkovni set"],
-      "If the dataset you are looking for is not available in the list, follow the instructions on how to add it in the Superset tutorial.": [
-        "Če podatkovnega seta, ki ga iščete, ni na seznamu, sledite navodilom za dodajanje v navodilih za Superset."
+      "Dataset": ["Podatkovni set"],
+      "Instructions to add a dataset are available in the Superset tutorial.": [
+        "Navodila za dodajanje podatkovnega seta so v vodiču za Superset."
       ],
-      "Choose a visualization type": ["Izberite tip vizualizacije"],
+      "Choose chart type": ["Izberite tip grafikona"],
+      "Please select both a Dataset and a Chart type to proceed": [
+        "Za nadaljevanje izberite podatkovni set in tip grafikona"
+      ],
       "Create new chart": ["Ustvari nov grafikon"],
       "An error occurred while loading the SQL": [
         "Pri nalaganju SQL je prišlo do napake"
@@ -1814,7 +1983,7 @@
       "every day of the week": ["vsak dan v tednu"],
       "day of the week": ["dan v tednu"],
       "every hour": ["vsako uro"],
-      "every minute UTC": ["vsako minuto UTC"],
+      "every minute": ["vsako minuto"],
       "year": ["leto"],
       "month": ["mesec"],
       "week": ["teden"],
@@ -1824,11 +1993,11 @@
       "reboot": ["ponovni zagon"],
       "Every": ["Vsak"],
       "in": ["v"],
-      "on": ["na"],
+      "on": ["v"],
       "and": ["in"],
-      "at": ["v"],
+      "at": ["ob"],
       ":": [":"],
-      "minute(s) UTC": ["minute UTC"],
+      "minute(s)": ["minuta/e"],
       "Invalid cron expression": ["Neveljaven cron izraz"],
       "Clear": ["Počisti"],
       "Sunday": ["Nedelja"],
@@ -1869,22 +2038,129 @@
       "OCT": ["OKT"],
       "NOV": ["NOV"],
       "DEC": ["DEC"],
-      "Error while fetching schema list": [
-        "Napaka pri pridobivanju seznama shem"
+      "There was an error loading the schemas": ["Napaka pri nalaganju shem"],
+      "Select database or type database name": [
+        "Izberite ali vnesite ime podatkovne baze"
       ],
-      "Error while fetching database list": [
-        "Napaka pri pridobivanju seznama podatkovnih baz"
-      ],
-      "Database:": ["Podatkovna baza:"],
-      "Select a database": ["Izberite podatkovno bazo"],
       "Force refresh schema list": ["Osveži seznam shem"],
-      "Select a schema (%s)": ["Izberite shemo (%s)"],
-      "Schema:": ["Shema:"],
-      "datasource": ["podatkovni vir"],
-      "schema": ["shema"],
+      "Select schema or type schema name": ["Izberite ali vnesite ime sheme"],
+      "Warning! Changing the dataset may break the chart if the metadata does not exist.": [
+        "Opozorilo! Sprememba podatkovnega seta lahko pokvari grafikon, če metapodatki ne obstajajo."
+      ],
+      "Changing the dataset may break the chart if the chart relies on columns or metadata that does not exist in the target dataset": [
+        "Sprememba podatkovnega seta lahko pokvari grafikon, če se le-ta zanaša na stolpce ali metapodatke, ki ne obstajajo v ciljnem podatkovnem nizu"
+      ],
+      "dataset": ["podatkovni set"],
+      "Connection": ["Povezava"],
+      "Change dataset": ["Spremeni podatkovni set"],
+      "Warning!": ["Opozorilo!"],
+      "Search / Filter": ["Iskanje / Filter"],
+      "Physical (table or view)": ["Fizičen (tabela ali pogled)"],
+      "Virtual (SQL)": ["Virtualen (SQL)"],
+      "SQL expression": ["SQL izraz"],
+      "Data type": ["Tip podatka"],
+      "Datetime format": ["Oblika datum-časa"],
+      "The pattern of timestamp format. For strings use ": [
+        "Vzorec zapisa časovne značke. Za znakovne nize uporabite "
+      ],
+      "Python datetime string pattern": ["Pythonov vzorec zapisa datum-časa"],
+      " expression which needs to adhere to the ": [" , ki mora upoštevati "],
+      "ISO 8601": ["ISO 8601"],
+      " standard to ensure that the lexicographical ordering\r\n                      coincides with the chronological ordering. If the\r\n                      timestamp format does not adhere to the ISO 8601 standard\r\n                      you will need to define an expression and type for\r\n                      transforming the string into a date or timestamp. Note\r\n                      currently time zones are not supported. If time is stored\r\n                      in epoch format, put `epoch_s` or `epoch_ms`. If no pattern\r\n                      is specified we fall back to using the optional defaults on a per\r\n                      database/column name level via the extra parameter.": [
+        " standard, ki zagotavlja, de se leksikografsko razvrščanje\r\n                      sklada s kronološkim razvrščanjem. Če oblika\r\n                      časovne značke ni v skladu s standardom ISO 8601,\r\n                      boste morali definirati izraz in tip za transformacijo\r\n                      znakovnega niza v datum ali časovno značko.\r\n                      Trenutno časovni pasovi niso podprti.\r\n                      Če je čas shranjen v obliki epohe, dodajte `epoch_s` ali `epoch_ms`.\r\n                      Če ni podan vzorec, se uporabijo privzete vrednosti na podlagi imena\r\n                      podatkovne baze oz. stolpca s pomočjo dodatnega parametra."
+      ],
+      "Certified By": ["Certificiral/a"],
+      "Person or group that has certified this metric": [
+        "Oseba ali skupina, ki je certificirala to mero"
+      ],
+      "Certified by": ["Certificiral/a"],
+      "Certification details": ["Podrobnosti certifikacije"],
+      "Details of the certification": ["Podrobnosti certifikacije"],
+      "Is dimension": ["Dimenzija"],
+      "Is filterable": ["Filtriranje"],
+      "Select owners": ["Izberite lastnike"],
+      "Modified columns: %s": ["Spremenjeni stolpci: %s"],
+      "Removed columns: %s": ["Odstranjeni stolpci: %s"],
+      "New columns added: %s": ["Dodani novi stolpci: %s"],
+      "Metadata has been synced": ["Metapodatki so sinhronizirani"],
+      "An error has occurred": ["Prišlo je do napake"],
+      "Column name [%s] is duplicated": ["Ime stolpca [%s] je podvojeno"],
+      "Metric name [%s] is duplicated": ["Ime mere [%s] je podvojeno"],
+      "Calculated column [%s] requires an expression": [
+        "Izračunan stolpec [%s] zahteva izraz"
+      ],
+      "Basic": ["Osnovno"],
+      "Default URL": ["Privzeti URL"],
+      "Default URL to redirect to when accessing from the dataset list page": [
+        "Privzeti URL za preusmeritev, ko dostopate iz strani s seznamom podatkovnih setov"
+      ],
+      "Autocomplete filters": ["Samodokončaj filtre"],
+      "Whether to populate autocomplete filters options": [
+        "Če želite napolniti možnosti za samodokončanje filtrov"
+      ],
+      "Autocomplete query predicate": ["Predikat za samodokončanje poizvedb"],
+      "When using \"Autocomplete filters\", this can be used to improve performance of the query fetching the values. Use this option to apply a predicate (WHERE clause) to the query selecting the distinct values from the table. Typically the intent would be to limit the scan by applying a relative time filter on a partitioned or indexed time-related field.": [
+        "Ko uporabljate \"Samodokončaj filtre\", lahko s tem izboljšate hitrost pridobivanja rezultatov s poizvedbo. Z uporabo te možnosti dodate predikat (WHERE stavek) k poizvedbi za izbiro različnih vrednosti iz tabele. Običajno je namen omejiti poizvedbo z uporabo filtra za relativni čas na particioniranem ali indeksiranem časovnem polju."
+      ],
+      "Extra data to specify table metadata. Currently supports metadata of the format: `{ \"certification\": { \"certified_by\": \"Data Platform Team\", \"details\": \"This table is the source of truth.\" }, \"warning_markdown\": \"This is a warning.\" }`.": [
+        "Dodatni podatki za tabelo metapodatkov. Trenutno je podprta naslednja oblika zapisa metapodatkov: `{ \"certification\": { \"certified_by\": \"Tim za razvoj\", \"details\": \"Ta tabela je vir resnice.\" }, \"warning_markdown\": \"To je opozorilo.\" }`."
+      ],
+      "Advanced": ["Napredno"],
+      "Cache timeout": ["Časovna omejitev predpomnilnika"],
+      "The duration of time in seconds before the cache is invalidated": [
+        "Trajanje (v sekundah) do razveljavitve predpomnilnika"
+      ],
+      "Hours offset": ["Urni premik"],
+      "The number of hours, negative or positive, to shift the time column. This can be used to move UTC time to local time.": [
+        "Število ur, negativno ali pozitivno, za zamik časovnega stolpca. Na ta način je mogoče UTC čas prestaviti na lokalni čas."
+      ],
+      "Spatial": ["Prostorski"],
+      "virtual": ["virtualni"],
+      "Dataset name": ["Ime podatkovnega seta"],
+      "When specifying SQL, the datasource acts as a view. Superset will use this statement as a subquery while grouping and filtering on the generated parent queries.": [
+        "Ko podajate SQL, se podatkovni vir obnaša kot pogled (view). Superset bo ta zapis uporabil kot podpoizvedbo, pri čemer bo združeval in filtriral na podlagi ustvarjenih starševskih poizvedb."
+      ],
+      "The JSON metric or post aggregation definition.": [
+        "JSON mera ali po-agregacijska definicija."
+      ],
+      "Physical": ["Fizičen"],
+      "The pointer to a physical table (or view). Keep in mind that the chart is associated to this Superset logical table, and this logical table points the physical table referenced here.": [
+        "Kazalec na fizično tabelo (ali pogled). Grafikon je povezan s to Supersetovo logično tabelo, ki kaže na tukaj referencirano fizično tabelo."
+      ],
+      "Click the lock to make changes.": [
+        "Kliknite ključavnico, da omogočite spreminjanje."
+      ],
+      "Click the lock to prevent further changes.": [
+        "Kliknite ključavnico, da onemogočite spreminjanje."
+      ],
+      "D3 format": ["D3 format"],
+      "Warning": ["Opozorilo"],
+      "Optional warning about use of this metric": [
+        "Opcijsko opozorilo za uporabo te mere"
+      ],
+      "Be careful.": ["Bodite previdni."],
+      "Changing these settings will affect all charts using this dataset, including charts owned by other people.": [
+        "Spreminjanje teh nastavitev bo vplivalo na vse grafikone, ki uporabljajo ta podatkovni set, vključno z grafikoni v lasti drugih oseb."
+      ],
+      "Source": ["Izvor"],
+      "Sync columns from source": ["Sinhroniziraj stolpce z virom"],
+      "Calculated columns": ["Izračunani stolpci"],
+      "Settings": ["Nastavitve"],
+      "The dataset has been saved": ["Podatkovni set je shranjen"],
+      "The dataset configuration exposed here\r\n                affects all the charts using this dataset.\r\n                Be mindful that changing settings\r\n                here may affect other charts\r\n                in undesirable ways.": [
+        "Tukaj prikazane nastavitve podatkovnega seta\r\n                vplivajo na vse grafikone, ki uporabljajo\r\n                ta podatkovni set. Spreminjanje\r\n                nastavitev lahko nezaželeno vpliva\r\n                na druge grafikone."
+      ],
+      "Are you sure you want to save and apply changes?": [
+        "Ali resnično želite shraniti in uporabiti spremembe?"
+      ],
+      "Confirm save": ["Potrdite shranjevanje"],
+      "Edit Dataset ": ["Uredi podatkovni set "],
+      "Use legacy datasource editor": [
+        "Uporabi starejši urejevalnik podatkovnega vira"
+      ],
+      "DELETE": ["IZBRIŠI"],
       "delete": ["izbriši"],
       "Type \"%s\" to confirm": ["Vnesite \"%s\" za potrditev"],
-      "DELETE": ["IZBRIŠI"],
       "Click to edit": ["Kliknite za urejanje"],
       "You don't have the rights to alter this title.": [
         "Nimate pravic za spreminjanje tega naslova."
@@ -1896,6 +2172,7 @@
       ],
       "Chart Owner: %s": ["Lastnik grafikona: %s"],
       "%s Error": ["%s napaka"],
+      "Missing dataset": ["Manjka podatkovni set"],
       "See more": ["Oglejte si več"],
       "See less": ["Oglejte si manj"],
       "Copy message": ["Kopiraj sporočilo"],
@@ -1923,27 +2200,50 @@
       "Import": ["Uvozi"],
       "Import %s": ["Uvozi %s"],
       "Last Updated %s": ["Zadnja posodobitev %s"],
-      "Sort:": ["Razvrščanje:"],
+      "Sort": ["Razvrsti"],
       "%s Selected": ["Izbranih: %s"],
       "Deselect all": ["Počisti izbor"],
       "No Data": ["Ni podatkov"],
       "%s-%s of %s": ["%s-%s od %s"],
+      "Type a value": ["Vnesite vrednost"],
+      "Filter": ["Filter"],
+      "Select or type a value": ["Izberite ali vnesite vrednost"],
       "SQL query": ["SQL poizvedba"],
       "About": ["O programu"],
+      "Powered by Apache Superset": ["Omogoča Apache Superset"],
       "Documentation": ["Dokumentacija"],
       "Report a bug": ["Sporočite napako"],
       "OK": ["OK"],
       "An error occurred while fetching dashboards": [
         "Prišlo je do napake pri pridobivanju nadzornih plošč"
       ],
-      "Error while fetching table list": [
-        "Napaka pri pridobivanju seznama tabel"
+      "Search all dashboards": ["Išči vse nadzorne plošče"],
+      "Edit Email Report": ["Uredi e-poštno poročilo"],
+      "New Email Report": ["Novo e-poštno poročilo"],
+      "Add": ["Dodaj"],
+      "Message Content": ["Vsebina sporočila"],
+      "Text embedded in email": ["Besedilo vključeno v e-pošto"],
+      "Image (PNG) embedded in email": ["Slika (PNG) vključena v e-pošto"],
+      "Formatted CSV attached in email": ["Oblikovan CSV pripet e-pošti"],
+      "REPORT NAME ERROR": ["NAPAKA NAZIVA POROČILA"],
+      "DESCRIPTION ERROR": ["NAPAKA OPISA"],
+      "Scheduled reports will be sent to your email as a PNG": [
+        "Poročila na urniku bodo poslana na vaš e-naslov kot PNG"
       ],
-      "Select table or type table name": ["Izberite ali vnesite ime tabele"],
-      "Type to search ...": ["Vnesite za iskanje ..."],
-      "Select table ": ["Izberi tabelo "],
-      "Force refresh table list": ["Osveži seznam tabel"],
+      "Timezone": ["Časovni pas"],
+      "Email reports active": ["E-poštna poročila aktivna"],
+      "Edit email report": ["Uredi e-poštno poročilo"],
+      "Delete email report": ["Izbriši e-poštno poročilo"],
+      "This action will permanently delete %s.": [
+        "S tem dejanjem boste trajno izbrisali %s."
+      ],
+      "Delete Report?": ["Izbrišem poročilo?"],
+      "Loading...": ["Nalagam ..."],
+      "There was an error loading the tables": ["Napaka pri nalaganju tabel"],
       "See table schema": ["Ogled sheme tabele"],
+      "Select table or type table name": ["Izberite ali vnesite ime tabele"],
+      "Force refresh table list": ["Osveži seznam tabel"],
+      "Timezone selector": ["Izbira časovnega pasa"],
       "%s%s": ["%s%s"],
       "There is not enough space for this component. Try decreasing its width, or increasing the destination width.": [
         "Za to komponento ni dovolj prostora. Poskusite zmanjšati širino ali pa povečati širino cilja."
@@ -1952,7 +2252,7 @@
         "Najvišjega zavihka ni mogoče premakniti v gnezdene zavihke"
       ],
       "This chart has been moved to a different filter scope.": [
-        "Ta grafikon je bil prestavljen v drug obseg filtrov."
+        "Ta grafikon je bil prestavljen v drug doseg filtrov."
       ],
       "There was an issue fetching the favorite status of this dashboard.": [
         "Pri pridobivanju statusa \"priljubljeno\" za to nadzorno ploščo je prišlo do težave."
@@ -1984,6 +2284,14 @@
       ],
       "Color scheme": ["Barvna shema"],
       "You have unsaved changes.": ["Imate neshranjene spremembe."],
+      "Ready to review filters in this dashboard?": [
+        "Ste pripravljeni za pregled filtrov v tej nadzorni plošči?"
+      ],
+      "Remind me in 24 hours": ["Opomni me čez 24 ur"],
+      "Start Review": ["Začetek pregleda"],
+      "filter_box will be deprecated in a future version of Superset. Please replace filter_box by dashboard filter components.": [
+        "Element filter_box bo v prihodnjih verzijah Superseta opuščen. Nadomestite ga s filtri nadzorne plošče."
+      ],
       "There is no chart definition associated with this component, could it have been deleted?": [
         "S to komponento ni povezana nobena definicija grafikona. Ali je bila izbrisana?"
       ],
@@ -2011,23 +2319,23 @@
       "Overwrite Dashboard [%s]": ["Prepiši nadzorno ploščo [%s]"],
       "Save as:": ["Shrani kot:"],
       "[dashboard name]": ["[ime nadzorne plošče]"],
-      "also copy (duplicate) charts": ["kopiraj tudi (podvoji) grafikone"],
+      "also copy (duplicate) charts": ["kopiraj (podvoji) tudi grafikone"],
       "Filter your charts": ["Filtriraj grafikone"],
-      "Sort by": ["Razvrsti po"],
-      "Cross Filter Scoping": ["Obseg cross-filtra"],
-      "Load a template": ["Naloži predlogo"],
+      "Sort by": ["Razvrščanje"],
+      "Cross Filter Scoping": ["Doseg medsebojnega filtra"],
       "Load a CSS template": ["Naloži CSS predlogo"],
       "Live CSS editor": ["CSS urejevalnik v živo"],
-      "Applied Cross Filters (%d)": ["Uporabljeni cross-filtri (%d)"],
+      "Applied Cross Filters (%d)": ["Uporabljeni medsebojni filtri (%d)"],
       "Applied Filters (%d)": ["Uporabljeni filtri (%d)"],
       "Incompatible Filters (%d)": ["Neskladni filtri (%d)"],
       "Unset Filters (%d)": ["Neuporabljeni filtri (%d)"],
-      "This dashboard is currently force refreshing; the next force refresh will be in %s.": [
-        "Nadzorna plošča se trenutno prisilno osvežuje. Naslednja prisilna osvežitev bo v %s."
+      "This dashboard is currently auto refreshing; the next auto refresh will be in %s.": [
+        "Nadzorna plošča se trenutno samodejno osvežuje. Naslednja samodejna osvežitev bo čez %s."
       ],
-      "Your dashboard is too large. Please reduce the size before save it.": [
+      "Your dashboard is too large. Please reduce its size before saving it.": [
         "Vaša nadzorna plošča je prevelika. Pred shranjevanjem jo zmanjšajte."
       ],
+      "Schedule email report": ["Dodaj e-poštno poročilo na urnik"],
       "Discard changes": ["Zavrzi spremembe"],
       "Edit dashboard": ["Uredi nadzorno ploščo"],
       "An error occurred while fetching available CSS templates": [
@@ -2043,8 +2351,8 @@
       "Edit dashboard properties": ["Uredi lastnosti nadzorne plošče"],
       "Edit CSS": ["Uredi CSS"],
       "Download as image": ["Izvozi kot sliko"],
-      "Toggle fullscreen": ["Preklopi celozaslonski način"],
-      "An error has occurred": ["Prišlo je do napake"],
+      "Exit fullscreen": ["Izhod iz celozaslonskega načina"],
+      "Enter fullscreen": ["Vklopi celozaslonski način"],
       "You do not have permission to edit this dashboard": [
         "Nimate dovoljenja za urejanje te nadzorne plošče"
       ],
@@ -2067,7 +2375,6 @@
       "A readable URL for your dashboard": [
         "Berljiv URL za vašo nadzorno ploščo"
       ],
-      "Advanced": ["Napredno"],
       "JSON metadata": ["JSON metapodatki"],
       "This dashboard is not published, it will not show up in the list of dashboards. Click here to publish this dashboard.": [
         "Ta nadzorna plošča ni objavljena in se ne bo prikazala na seznamu nadzornih plošč. Kliknite tukaj za njeno objavo."
@@ -2086,6 +2393,7 @@
         "Eden ali več slojev z oznakami se ni naložil."
       ],
       "Emitted values": ["Oddane vrednosti"],
+      "Click to clear emitted filters": ["S klikom počistite oddane filtre"],
       "Cached %s": ["Predpomnjeno %s"],
       "Fetched %s": ["Pridobljeno %s"],
       "Minimize chart": ["Pomanjšaj grafikon"],
@@ -2098,12 +2406,13 @@
       "Share chart by email": ["Deli grafikon po e-pošti"],
       "Check out this chart: ": ["Preizkusite ta grafikon: "],
       "Export CSV": ["Izvozi CSV"],
-      "Cross-filter scoping": ["Obseg cross-filtra"],
+      "Export full CSV": ["Izvozi celoten CSV"],
+      "Cross-filter scoping": ["Doseg medsebojnega filtra"],
       "Search...": ["Iskanje ..."],
       "No filter is selected.": ["Noben filter ni izbran."],
       "Editing 1 filter:": ["Urejanje enega filtra:"],
       "Batch editing %d filters:": ["Skupinsko urejanje %d filtrov:"],
-      "Configure filter scopes": ["Nastavi obseg filtrov"],
+      "Configure filter scopes": ["Nastavi doseg filtrov"],
       "There are no filters in this dashboard.": [
         "V nadzorni plošči ni filtrov."
       ],
@@ -2161,42 +2470,79 @@
       "Please apply filter changes": ["Potrdite spremembe filtra"],
       "Unknown value": ["Neznana vrednost"],
       "Clear all": ["Počisti vse"],
-      "Add filter": ["Dodaj filter"],
       "(Removed)": ["(Odstranjeno)"],
       "Undo?": ["Povrni?"],
-      "New filter": ["Nov filter"],
-      "Filters configuration and scoping": ["Nastavitve in obseg filtrov"],
+      "Add filter": ["Dodaj filter"],
+      "[untitled]": ["[neimenovana]"],
+      "Filters configuration and scoping": ["Nastavitve in doseg filtrov"],
+      "Cannot create cyclic hierarchy": [
+        "Ciklične hierarhije ni mogoče ustvariti"
+      ],
+      "Column select": ["Izbira stolpca"],
+      "Select a column": ["Izberite stolpec"],
+      "No compatible columns found": ["Ni najdenih skladnih stolpcev"],
+      "Value is required": ["Zahtevana je vrednost"],
       "Configuration": ["Nastavitve"],
-      "Scoping": ["Obseg"],
-      "Basic": ["Osnovno"],
+      "Scoping": ["Doseg"],
+      "Select filter": ["Izbirni filter"],
+      "Value": ["Vrednost"],
+      "Range filter": ["Filter obdobja"],
+      "Numerical range": ["Številski obseg"],
+      "Time filter": ["Časovni filter"],
+      "Time range": ["Časovno obdobje"],
+      "Time column": ["Časovni stolpec"],
+      "Time grain": ["Granulacija časa"],
+      "Group By": ["Združevanje (Group by)"],
+      "Group by": ["Združevanje (Group by)"],
+      "Pre-filter is required": ["Zahtevan je predfilter"],
+      "(deleted)": ["(izbrisano)"],
+      "Parent filter": ["Nadrejeni filter"],
       "Filter name": ["Ime filtra"],
       "Name is required": ["Zahtevano je ime"],
       "Filter Type": ["Tip filtra"],
-      "Dataset": ["Podatkovni set"],
+      "Filter type": ["Tip filtra"],
+      "Datasets do not contain a temporal column": [
+        "Podatkovni seti ne vsebujejo časovnega stolpca"
+      ],
       "Dataset is required": ["Zahtevan je podatkovni set"],
       "Filter has default value": ["Filter ima privzeto vrednost"],
       "Default Value": ["Privzeta vrednost"],
       "Default value is required": ["Zahtevana je privzeta vrednost"],
+      "Refresh the default values": ["Osveži privzete vrednosti"],
       "Fill all required fields to enable \"Default Value\"": [
         "Izpolnite vsa polja, da omogočite \"Privzeto vrednost\""
       ],
-      "Apply changes instantly": ["Spremembe uporabi takoj"],
       "Filter is hierarchical": ["Filter je hierarhičen"],
-      "Parent filter": ["Nadrejeni filter"],
       "Parent filter is required": ["Zahtevan je nadrejeni filter"],
       "Pre-filter available values": ["Predfiltriraj razpoložljive vrednosti"],
-      "Adhoc filters is required": ["Zahtevan je ad hoc filter"],
-      "Adhoc filters": ["Adhoc filtri"],
-      "Time range": ["Časovno obdobje"],
+      "Pre-filter": ["Predfilter"],
+      "Optional time column if time range should apply to another column than the default time column": [
+        "Izbirni časovni stolpec se mora nanašati na drug stolpec kot privzeti časovni stolpec"
+      ],
       "Sort filter values": ["Razvrsti vrednosti filtra"],
-      "Sort type": ["Vrsta razvrščanja"],
+      "Sort type": ["Način razvrščanja"],
       "Sort ascending": ["Razvrsti naraščajoče"],
       "Sort descending": ["Razvrsti padajoče"],
       "Sort Metric": ["Mera za razvrščanje"],
+      "If a metric is specified, sorting will be done based on the metric value": [
+        "Če je določena mera, bo razvrščanje izvedeno na podlagi vrednosti mere"
+      ],
+      "Sort metric": ["Mera za razvrščanje"],
       "You have removed this filter.": ["Odstranili ste ta filter."],
       "Restore Filter": ["Povrni filter"],
+      "${mainControlItem.config?.label}": ["${mainControlItem.config?.label}"],
+      "Column is required": ["Zahtevan je stolpec"],
       "Populate \"Default value\" to enable this control": [
         "Izpolnite \"Privzeto vrednost\", da omogočite ta kontrolnik"
+      ],
+      "Default value set automatically when \"Default to first item\" is checked": [
+        "Privzeta vrednost je samodejno izbrana, če je izbrano \"Privzet prvi element\""
+      ],
+      "Default value must be set when \"Required\" is checked": [
+        "Privzeta vrednost mora biti določena, če je izbrano \"Obvezno\""
+      ],
+      "Default value must be set when \"Filter has default value\" is checked": [
+        "Privzeta vrednost mora biti določena, če je izbrano \"Filter ima privzeto vrednost\""
       ],
       "Apply to all panels": ["Uporabi za vse panele"],
       "Apply to specific panels": ["Uporabi za določene panele"],
@@ -2207,10 +2553,16 @@
         "Ta filter bo vplival na vse panele s tem stolpcem"
       ],
       "All panels": ["Vsi paneli"],
+      "This chart might be incompatible with the filter (datasets don't match)": [
+        "Ta grafikon je lahko nekompatibilen s filtrom (podatkovni seti se ne ujemajo)"
+      ],
       "Keep editing": ["Nadaljuj z urejanjem"],
       "Yes, cancel": ["Da, prekini"],
+      "There are unsaved changes.": ["Imate neshranjene spremembe."],
       "Are you sure you want to cancel?": ["Ali želite prekiniti?"],
-      "will not be saved.": ["ne bo shranjeno."],
+      "Error loading chart datasources. Filters may not work correctly.": [
+        "Napaka pri nalaganju podatkovnih virov grafikona. Filtri lahko ne delujejo pravilno."
+      ],
       "Transparent": ["Prozorno"],
       "White": ["Belo"],
       "All filters": ["Vsi filtri"],
@@ -2219,125 +2571,13 @@
       "Medium": ["Srednje"],
       "Large": ["Veliko"],
       "Tab title": ["Naslov zavihka"],
-      "Warning! Changing the dataset may break the chart if the metadata does not exist.": [
-        "Opozorilo! Sprememba podatkovnega seta lahko pokvari grafikon, če metapodatki ne obstajajo."
-      ],
-      "Changing the dataset may break the chart if the chart relies on columns or metadata that does not exist in the target dataset": [
-        "Sprememba podatkovnega seta lahko pokvari grafikon, če se le-ta zanaša na stolpce ali metapodatke, ki ne obstajajo v ciljnem podatkovnem nizu"
-      ],
-      "dataset": ["podatkovni set"],
-      "Change dataset": ["Spremeni podatkovni set"],
-      "Warning!": ["Opozorilo!"],
-      "Search / Filter": ["Iskanje / Filter"],
-      "Physical (table or view)": ["Fizičen (tabela ali pogled)"],
-      "Virtual (SQL)": ["Virtualen (SQL)"],
-      "SQL expression": ["SQL izraz"],
-      "Data type": ["Tip podatka"],
-      "Datetime format": ["Oblika datum-časa"],
-      "The pattern of timestamp format. For strings use ": [
-        "Vzorec zapisa časovne značke. Za znakovne nize uporabite "
-      ],
-      "Python datetime string pattern": ["Pythonov vzorec zapisa datum-časa"],
-      " expression which needs to adhere to the ": [" , ki mora upoštevati "],
-      "ISO 8601": ["ISO 8601"],
-      " standard to ensure that the lexicographical ordering\r\n                      coincides with the chronological ordering. If the\r\n                      timestamp format does not adhere to the ISO 8601 standard\r\n                      you will need to define an expression and type for\r\n                      transforming the string into a date or timestamp. Note\r\n                      currently time zones are not supported. If time is stored\r\n                      in epoch format, put `epoch_s` or `epoch_ms`. If no pattern\r\n                      is specified we fall back to using the optional defaults on a per\r\n                      database/column name level via the extra parameter.": [
-        " standard, ki zagotavlja, de se leksikografsko razvrščanje\r\n                      sklada s kronološkim razvrščanjem. Če oblika\r\n                      časovne značke ni v skladu s standardom ISO 8601,\r\n                      boste morali definirati izraz in tip za transformacijo\r\n                      znakovnega niza v datum ali časovno značko.\r\n                      Trenutno časovni pasovi niso podprti.\r\n                      Če je čas shranjen v obliki epohe, dodajte `epoch_s` ali `epoch_ms`.\r\n                      Če ni podan vzorec, se uporabijo privzete vrednosti na podlagi imena\r\n                      podatkovne baze oz. stolpca s pomočjo dodatnega parametra."
-      ],
-      "Is dimension": ["Dimenzija"],
-      "Is filterable": ["Filtriranje"],
-      "Modified columns: %s": ["Spremenjeni stolpci: %s"],
-      "Removed columns: %s": ["Odstranjeni stolpci: %s"],
-      "New columns added: %s": ["Dodani novi stolpci: %s"],
-      "Metadata has been synced": ["Metapodatki so sinhronizirani"],
-      "Column name [%s] is duplicated": ["Ime stolpca [%s] je podvojeno"],
-      "Metric name [%s] is duplicated": ["Ime mere [%s] je podvojeno"],
-      "Calculated column [%s] requires an expression": [
-        "Izračunan stolpec [%s] zahteva izraz"
-      ],
-      "Default URL": ["Privzeti URL"],
-      "Default URL to redirect to when accessing from the dataset list page": [
-        "Privzeti URL za preusmeritev, ko dostopate iz strani s seznamom podatkovnih setov"
-      ],
-      "Autocomplete filters": ["Samodokončaj filtre"],
-      "Whether to populate autocomplete filters options": [
-        "Če želite napolniti možnosti za samodokončanje filtrov"
-      ],
-      "Autocomplete query predicate": ["Predikat za samodokončanje poizvedb"],
-      "When using \"Autocomplete filters\", this can be used to improve performance of the query fetching the values. Use this option to apply a predicate (WHERE clause) to the query selecting the distinct values from the table. Typically the intent would be to limit the scan by applying a relative time filter on a partitioned or indexed time-related field.": [
-        "Ko uporabljate \"Samodokončaj filtre\", lahko s tem izboljšate hitrost pridobivanja rezultatov s poizvedbo. Z uporabo te možnosti dodate predikat (WHERE stavek) k poizvedbi za izbiro različnih vrednosti iz tabele. Običajno je namen omejiti poizvedbo z uporabo filtra za relativni čas na particioniranem ali indeksiranem časovnem polju."
-      ],
-      "Extra data to specify table metadata. Currently supports metadata of the format: `{ \"certification\": { \"certified_by\": \"Data Platform Team\", \"details\": \"This table is the source of truth.\" }, \"warning_markdown\": \"This is a warning.\" }`.": [
-        "Dodatni podatki za tabelo metapodatkov. Trenutno je podprta naslednja oblika zapisa metapodatkov: `{ \"certification\": { \"certified_by\": \"Tim za razvoj\", \"details\": \"Ta tabela je vir resnice.\" }, \"warning_markdown\": \"To je opozorilo.\" }`."
-      ],
-      "Owners of the dataset": ["Lastniki podatkovnega seta"],
-      "Cache timeout": ["Časovna omejitev predpomnilnika"],
-      "The duration of time in seconds before the cache is invalidated": [
-        "Trajanje (v sekundah) do razveljavitve predpomnilnika"
-      ],
-      "Hours offset": ["Urni premik"],
-      "The number of hours, negative or positive, to shift the time column. This can be used to move UTC time to local time.": [
-        "Število ur, negativno ali pozitivno, za zamik časovnega stolpca. Na ta način je mogoče UTC čas prestaviti na lokalni čas."
-      ],
-      "Spatial": ["Prostorski"],
-      "virtual": ["virtualni"],
-      "Dataset name": ["Ime podatkovnega seta"],
-      "When specifying SQL, the datasource acts as a view. Superset will use this statement as a subquery while grouping and filtering on the generated parent queries.": [
-        "Ko podajate SQL, se podatkovni vir obnaša kot pogled (view). Superset bo to izjavo uporabil kot podpoizvedbo, pri čemer bo grupiral in filtriral na podlagi ustvarjenih starševskih poizvedb."
-      ],
-      "The JSON metric or post aggregation definition.": [
-        "JSON mera ali po-agregacijska definicija."
-      ],
-      "Physical": ["Fizičen"],
-      "The pointer to a physical table (or view). Keep in mind that the chart is associated to this Superset logical table, and this logical table points the physical table referenced here.": [
-        "Kazalec na fizično tabelo (ali pogled). Grafikon je povezan s to Supersetovo logično tabelo, ki kaže na tukaj referencirano fizično tabelo."
-      ],
-      "Click the lock to make changes.": [
-        "Kliknite ključavnico, da omogočite spreminjanje."
-      ],
-      "Click the lock to prevent further changes.": [
-        "Kliknite ključavnico, da onemogočite spremembe."
-      ],
-      "D3 format": ["D3 format"],
-      "Certified by": ["Certificiral/a"],
-      "Person or group that has certified this metric": [
-        "Oseba ali skupina, ki je certificirala to mero"
-      ],
-      "Certification details": ["Podrobnosti certifikacije"],
-      "Details of the certification": ["Podrobnosti certifikacije"],
-      "Warning": ["Opozorilo"],
-      "Optional warning about use of this metric": [
-        "Opcijsko opozorilo za uporabo te mere"
-      ],
-      "Be careful.": ["Bodite previdni."],
-      "Changing these settings will affect all charts using this dataset, including charts owned by other people.": [
-        "Spreminjanje teh nastavitev bo vplivalo na vse grafikone, ki uporabljajo ta podatkovni set, vključno z grafikoni v lasti drugih oseb."
-      ],
-      "Source": ["Izvor"],
-      "Sync columns from source": ["Sinhroniziraj stolpce z virom"],
-      "Calculated columns": ["Izračunani stolpci"],
-      "Settings": ["Nastavitve"],
-      "The dataset has been saved": ["Podatkovni set je shranjen"],
-      "The dataset configuration exposed here\r\n                affects all the charts using this dataset.\r\n                Be mindful that changing settings\r\n                here may affect other charts\r\n                in undesirable ways.": [
-        "Tukaj prikazane nastavitve podatkovnega seta\r\n                vpliva na vse grafikone, ki uporabljajo\r\n                ta podatkovni set. Spreminjanje\r\n                nastavitev lahko nezaželeno vpliva\r\n                na druge grafikone."
-      ],
-      "Are you sure you want to save and apply changes?": [
-        "Ali resnično želite shraniti in uporabiti spremembe?"
-      ],
-      "Confirm save": ["Potrdite shranjevanje"],
-      "Edit Dataset ": ["Uredi podatkovni set "],
-      "Use legacy datasource editor": [
-        "Uporabi starejši urejevalnik podatkovnega vira"
-      ],
-      "Time column": ["Časovni stolpec"],
-      "Time grain": ["Granulacija časa"],
       "Origin": ["Izhodišče"],
       "Time granularity": ["Granulacija časa"],
       "A reference to the [Time] configuration, taking granularity into account": [
         "Sklic na nastavitve za [Čas], ki upošteva granulacijo"
       ],
-      "Group by": ["Združevanje (Group by)"],
-      "One or many controls to group by": [
-        "En ali več kontrolnikov za združevanje"
+      "One or many columns to group by. High cardinality groupings should include a series limit to limit the number of fetched and rendered series.": [
+        "Eden ali več stolpcev za združevanje. Združevanje z visoko kardinalnostjo naj vsebuje omejitev serij, s čimer omejite število pridobljenih in prikazanih serij."
       ],
       "One or many metrics to display": ["Ena ali več mer za prikaz"],
       "Visualization type": ["Tip vizualizacije"],
@@ -2371,12 +2611,15 @@
         "Časovno obdobje za vizualizacijo. Vsi relativni časi, kot npr. \"Zadnji mesec\", Zadnjih 7 dni\", \"Zdaj\" so izračunani na strežniku z njegovim lokalnim časom. Vsi opisi orodij in časi so izraženi v UTC. Časovne značke se nato izračunajo v podatkovni bazi z njenim lokalnim časovnim pasom. Eksplicitno lahko nastavite časovni pas v ISO 8601 formatu, če določite čas začetka ali konca."
       ],
       "Row limit": ["Omejitev št. vrstic"],
-      "Series limit": ["Omejitev št. vrst"],
-      "Limits the number of time series that get displayed. A sub query (or an extra phase where sub queries are not supported) is applied to limit the number of time series that get fetched and displayed. This feature is useful when grouping by high cardinality dimension(s).": [
-        "Omeji število časovnih vrst za prikaz. S podpoizvedbo (ali dodatno fazo, kjer podpoizvedbe niso podprte) se omeji število časovnih vrst, ki bodo pridobljene za prikaz. Ta funkcija je uporabna pri združevanju dimenzij z veliko kardinalnostjo."
+      "Limits the number of rows that get displayed.": [
+        "Omeji število vrstic za prikaz."
       ],
-      "Metric used to define the top series": [
-        "Mera za določanje najvišje podatkovne serije"
+      "Series limit": ["Omejitev št. serij"],
+      "Limits the number of series that get displayed. A joined subquery (or an extra phase where subqueries are not supported) is applied to limit the number of series that get fetched and rendered. This feature is useful when grouping by high cardinality column(s) though does increase the query complexity and cost.": [
+        "Omeji število časovnih vrst za prikaz. S podpoizvedbo (ali dodatno fazo, kjer podpoizvedbe niso podprte) se omeji število časovnih vrst, ki bodo pridobljene za prikaz. Ta funkcija je uporabna pri združevanju s stolpci z veliko kardinalnostjo, vendar poveča kompleksnost poizvedbe."
+      ],
+      "Metric used to define how the top series are sorted if a series or row limit is present. If undefined reverts to the first metric (where appropriate).": [
+        "Mera, ki določa kako so razvrščene prve serije, če je določena omejitev serij ali vrstic. Če ni določena, se uporabi prva mera (kjer je ustrezno)."
       ],
       "Series": ["Niz"],
       "Defines the grouping of entities. Each series is shown as a specific color on the chart and has a legend toggle": [
@@ -2398,7 +2641,6 @@
       "The color scheme for rendering chart": [
         "Barvna shema za izris grafikona"
       ],
-      "Color map": ["Barvna lestvica"],
       "An error occurred while starring this chart": [
         "Pri ocenjevanju grafikona je prišlo do napake"
       ],
@@ -2411,12 +2653,9 @@
       "Height": ["Višina"],
       "Width": ["Širina"],
       "Copy chart URL to clipboard": ["Kopiraj URL grafikona na odložišče"],
-      "Loading...": ["Nalagam ..."],
       "Superset Chart": ["Superset grafikon"],
       "Export to .JSON format": ["Izvozi v .json format"],
       "Export to .CSV format": ["Izvozi v .csv format"],
-      "%s - untitled": ["%s - neimenovan"],
-      "Edit chart properties": ["Uredi lastnosti grafikona"],
       "Controls labeled ": ["Kontrolniki imenovani "],
       "Control labeled ": ["Nastavitev "],
       "Open Datasource tab": ["Odpri zavihek s podatkovnim virom"],
@@ -2433,15 +2672,22 @@
       "Save as ...": ["Shrani kot ..."],
       "Chart name": ["Ime grafikona"],
       "Add to dashboard": ["Dodaj na nadzorno ploščo"],
+      "Select a dashboard": ["Izberite nadzorno ploščo"],
+      "Copy": ["Kopiraj"],
       "rows retrieved": ["vrnjenih vrstic"],
       "Sorry, An error occurred": ["Prišlo je do napake"],
       "No data": ["Ni podatkov"],
       "View samples": ["Ogled vzorcev"],
       "Search Metrics & Columns": ["Iskanje mer in stolpcev"],
       "Showing %s of %s": ["Prikazanih %s od %s"],
+      "Show less...": ["Prikaži manj..."],
+      "Show all...": ["Prikaži vse..."],
+      "Show Less...": ["Prikaži manj..."],
       "New chart": ["Nov grafikon"],
       "Edit properties": ["Uredi lastnosti"],
       "Run in SQL Lab": ["Zaženi v SQL laboratoriju"],
+      "%s - untitled": ["%s - neimenovan"],
+      "Edit chart properties": ["Uredi lastnosti grafikona"],
       "You do not have permission to edit this chart": [
         "Nimate dovoljenja za urejanje tega grafikona"
       ],
@@ -2456,8 +2702,7 @@
       ],
       "Min": ["Min"],
       "Max": ["Max"],
-      "No results found": ["Rezultati niso najdeni"],
-      "%s option(s)": ["Možnosti: %s"],
+      "Select color scheme": ["Izberite barvno shemo"],
       "Invalid lat/long configuration.": [
         "Neveljavna nastavitev zemljepisne dolžine/širine."
       ],
@@ -2475,15 +2720,36 @@
       "Failed to verify select options: %s": [
         "Preverjanje možnosti izbire ni uspelo: %s"
       ],
+      "Annotation layer value": ["Vrednost sloja z oznakami"],
       "Annotation Slice Configuration": ["Nastavitve rezine z oznakami"],
       "This section allows you to configure how to use the slice\r\n               to generate annotations.": [
         "V tem sklopu lahko nastavite način uporabe rezine\r\n               za ustvarjanje oznak."
+      ],
+      "Annotation layer time column": ["Časovni stolpec sloja z oznakami"],
+      "Interval start column": ["Stolpec začetka intervala"],
+      "Event time column": ["Stolpec časa dogodka"],
+      "This column must contain date/time information.": [
+        "Ta stolpec mora vsebovati informacijo o datumu/času."
+      ],
+      "Annotation layer interval end": ["Konec intervala sloja z oznakami"],
+      "Interval End column": ["Stolpec konca intervala"],
+      "Annotation layer title column": ["Stolpec z naslovom sloja z oznakami"],
+      "Title Column": ["Stolpec z naslovi"],
+      "Pick a title for you annotation.": ["Izberite naslov za oznako."],
+      "Annotation layer description columns": [
+        "Stolpci z opisi slojev z oznakami"
+      ],
+      "Description Columns": ["Stolpci z opisi"],
+      "Pick one or more columns that should be shown in the annotation. If you don't select a column all of them will be shown.": [
+        "Izberite enega ali več stolpcev, ki bodo prikazani v oznakah. Če ne izberete stolpca, bodo prikazani vsi."
       ],
       "Display configuration": ["Prikaži nastavitve"],
       "Configure your how you overlay is displayed here.": [
         "Nastavite kako se tukaj prikazuje vrhnja plast."
       ],
-      "Style": ["Stil"],
+      "Annotation layer stroke": ["Obroba sloja z oznakami"],
+      "Style": ["Slog"],
+      "Annotation layer opacity": ["Prosojnost sloja z oznakami"],
       "Opacity": ["Prosojnost"],
       "Color": ["Barva"],
       "Line width": ["Debelina črte"],
@@ -2493,18 +2759,38 @@
       ],
       "Mandatory": ["Obvezno"],
       "Hide layer": ["Skrij sloj"],
-      "Choose the annotation layer type": ["Izberite tip sloja z oznakami"],
       "Annotation layer type": ["Tip sloja z oznakami"],
+      "Choose the annotation layer type": ["Izberite tip sloja z oznakami"],
+      "Annotation source type": ["Tip vira oznak"],
+      "Choose the source of your annotations": ["Izberite vir svojih oznak"],
+      "Annotation Source": ["Vir oznak"],
       "Remove": ["Odstrani"],
       "Edit annotation layer": ["Uredi sloj z oznakami"],
       "Add annotation layer": ["Dodaj sloj z oznakami"],
       "Empty collection": ["Prazen izbor"],
       "Add an item": ["Dodaj element"],
       "Remove item": ["Odstrani element"],
+      "Edit formatter": ["Uredi oblikovanje"],
+      "Add new formatter": ["Dodaj novo oblikovanje"],
+      "Add new color formatter": ["Dodaj novo oblikovanje barve"],
+      "green": ["zelena"],
+      "yellow": ["rumena"],
+      "red": ["rdeča"],
+      "This value should be smaller than the right target value": [
+        "Ta vrednost mora biti manjša od desne ciljne vrednosti"
+      ],
+      "This value should be greater than the left target value": [
+        "Ta vrednost mora biti večja od leve ciljne vrednosti"
+      ],
+      "Required": ["Obvezno"],
+      "Operator": ["Operator"],
+      "Left value": ["Leva vrednost"],
+      "Right value": ["Desna vrednost"],
+      "Target value": ["Ciljna vrednost"],
+      "Select column": ["Izberite stolpec"],
       "Edit dataset": ["Uredi podatkovni set"],
       "View in SQL Lab": ["Ogled v SQL laboratoriju"],
       "More dataset related options": ["Več nastavitev za podatkovni set"],
-      "Missing dataset": ["Manjka podatkovni set"],
       "The dataset linked to this chart may have been deleted.": [
         "Podatkovni set, povezan s tem grafikonom, je bil izbrisan."
       ],
@@ -2528,6 +2814,7 @@
       "Configure Time Range: Last...": ["Nastavi časovno obdobje: Zadnji ..."],
       "Configure custom time range": ["Nastavi prilagojeno časovno obdobje"],
       "Relative quantity": ["Relativne vrednosti"],
+      "Relative period": ["Relativno obdobje"],
       "Anchor to": ["Sidraj na"],
       "NOW": ["ZDAJ"],
       "Date/Time": ["Datum/Čas"],
@@ -2561,41 +2848,58 @@
       "Relative Date/Time": ["Relativen Datum/Čas"],
       "Now": ["Zdaj"],
       "Midnight": ["Polnoč"],
-      "Drop column": ["Izpusti stolpec"],
-      "Drop columns or metrics": ["Izpusti stolpce ali mere"],
-      "Drop column or metric": ["Izpusti stolpec ali mero"],
-      "Drop columns": ["Izpusti stolpce"],
+      "Saved expressions": ["Shranjeni izrazi"],
+      "Saved": ["Shranjeno"],
+      "%s column(s)": ["Stolpci: %s"],
+      "Simple": ["Preprosto"],
+      "Drop a column here or click": ["Spustite stolpec sem ali kliknite"],
+      "Drop column here": ["Spustite stolpec sem"],
+      "Drop columns/metrics here or click": [
+        "Spustite stolpce/mere sem ali kliknite"
+      ],
+      "Drop columns or metrics here": ["Spustite stolpce ali mere sem"],
+      "Drop a column/metric here or click": [
+        "Spustite stolpec/mero sem ali kliknite"
+      ],
+      "Drop column or metric here": ["Spustite stolpec ali mero sem"],
+      "Drop columns here": ["Spustite stolpce sem"],
+      "\r\n                This filter was inherited from the dashboard's context.\r\n                It won't be saved when saving the chart.\r\n              ": [
+        "\r\n                Ta filter izvira iz konteksta nadzorne plošče.\r\n                Pri shranjevanju grafikona se ne bo shranil.\r\n              "
+      ],
       "Default": ["Privzeto"],
       "(optional) default value for the filter, when using the multiple option, you can use a semicolon-delimited list of options.": [
         "(opcijsko) privzeta vrednost za filter, če uporabite opcijo izbire večih , lahko uporabite seznam nastavitev ločen s podpičji."
       ],
-      "Sort metric": ["Mera za razvrščanje"],
       "Metric to sort the results by": ["Mera za razvrščanje rezultatov"],
       "Check for sorting ascending": ["Označi za naraščajoče razvrščanje"],
       "Allow multiple selections": ["Dovoli več izbir"],
       "Multiple selections allowed, otherwise filter is limited to a single value": [
         "Lahko izberete več elementov, drugače pa je filter omejen na eno vrednost"
       ],
-      "Search all filter options": ["PoIšči vse možnosti filtra"],
+      "Search all filter options": ["Poišči vse možnosti filtra"],
       "By default, each filter loads at most 1000 choices at the initial page load. Check this box if you have more than 1000 filter values and want to enable dynamically searching that loads filter values as users type (may add stress to your database).": [
         "Privzeto vsak filter pri nalaganju začetne strani naloži največ 1000 možnosti. Označite polje, če imate več kot 1000 vrednosti filtra in želite omogočiti dinamično iskanje, ki nalaga vrednosti filtra ko uporabnik tipka (to lahko preobremeni vašo podatkovno bazo)."
       ],
-      "Required": ["Obvezno"],
       "User must select a value for this filter": [
         "Uporabnik mora izbrati vrednost za ta filter"
       ],
       "Filter configuration": ["Nastavitve filtra"],
-      "Simple": ["Preprosto"],
+      "Custom SQL ad-hoc filters are not available for the native Druid connector": [
+        "Ad-hoc SQL filtri po meri niso na voljo za nativni konektor za Druid"
+      ],
       "Custom SQL": ["Prilagojen SQL"],
+      "%s option(s)": ["Možnosti: %s"],
+      "Select subject": ["Izberite zadevo"],
       "No such column found. To filter on a metric, try the Custom SQL tab.": [
         "Tak stolpec ni najden. Za filtriranje po meri uporabite prilagojen SQL zavihek."
       ],
       "%s column(s) and metric(s)": ["Stolpcev in mer: %s"],
-      "%s column(s)": ["Stolpci: %s"],
       "To filter on a metric, use Custom SQL tab.": [
         "Za filtriranje po meri uporabite prilagojen SQL zavihek."
       ],
       "%s operator(s)": ["Operatorji: %s"],
+      "Select operator": ["Izberite operator"],
+      "Comparator option": ["Možnosti komparatorja"],
       "Type a value here": ["Vnesite vrednost sem"],
       "Filter value (case sensitive)": [
         "Vrednost filtra (razlik. velikih/malih črk)"
@@ -2607,24 +2911,42 @@
       "Based on a metric": ["Osnovan na meri"],
       "My metric": ["Moja mera"],
       "Add metric": ["Dodaj mero"],
+      "Select aggregate options": ["Izberite agregacijske možnosti"],
       "%s aggregates(s)": ["Agreg. funkcije: %s"],
+      "Select saved metrics": ["Izberite shranjene mere"],
       "%s saved metric(s)": ["Shranjene mere: %s"],
-      "Saved": ["Shranjeno"],
       "Saved metric": ["Shranjena mera"],
+      "Simple ad-hoc metrics are not enabled for this dataset": [
+        "Preproste ad-hoc mere za ta podatkovni set niso omogočene"
+      ],
       "column": ["stolpec"],
       "aggregate": ["agregacija"],
-      "\r\n                This filter was inherited from the dashboard's context.\r\n                It won't be saved when saving the chart.\r\n              ": [
-        "\r\n                Ta filter izvira iz nadzorne plošče.\r\n                Ne bo se shranil pri shranjevanju grafikona.\r\n                "
+      "Custom SQL ad-hoc metrics are not available for the native Druid connector": [
+        "Ad-hoc SQL mere po meri niso na voljo za nativni konektor za Druid"
       ],
-      "Error while fetching data": ["Napaka pri pridobivanju podatkov"],
+      "Custom SQL ad-hoc metrics are not enabled for this dataset": [
+        "Ad-hoc SQL mere po meri za ta podatkovni set niso omogočene"
+      ],
       "Time series columns": ["Stolpci s časovnimi vrstami"],
+      "Other": ["Ostali"],
+      "Popular": ["Priljubljeni"],
+      "ECharts": ["ECharts"],
+      "Advanced-Analytics": ["Napredna analitika"],
+      "Recommended tags": ["Priporočene značke"],
+      "Category": ["Kategorija"],
+      "Tags": ["Značke"],
+      "Search all charts": ["Išči vse grafikone"],
+      "No description available.": ["Opisa ni na razpolago."],
+      "Examples": ["Vzorci"],
       "This visualization type is not supported.": [
         "Ta tip vizualizacije ni podprt."
       ],
+      "Select Viz Type": ["Izberite tip vizualizacije"],
       "Click to change visualization type": [
         "Kliknite za spremembo tipa vizualizacije"
       ],
       "Select a visualization type": ["Izberite tip vizualizacije"],
+      "Select": ["Izberi"],
       "Code": ["Koda"],
       "Markup type": ["Tip označevanja"],
       "Pick your favorite markup language": [
@@ -2682,8 +3004,8 @@
         "Zamaknite eno ali več časovnih vrst za relativno časovno obdobje. Vnaša se relativne časovne razlike v naravnem jeziku (npr. 24 ur, 7 dni, 52 tednov, 365 dni). Prosto besedilo je podprto."
       ],
       "Calculation type": ["Tip izračuna"],
-      "How to display time shifts: as individual lines; as the absolute difference between the main time series and each time shift; as the percentage change; or as the ratio between series and time shifts.": [
-        "Način prikaza časovnih zamikov: kot samostojne črte; kot absolutne razlike med osnovno časovno vrsto in vsakim časovnim zamikom; kot procentualna sprememba; kot razmerje med vrsto in časovnim zamikom."
+      "How to display time shifts: as individual lines; as the difference between the main time series and each time shift; as the percentage change; or as the ratio between series and time shifts.": [
+        "Način prikaza časovnih zamikov: kot samostojne črte; kot razlike med osnovno časovno vrsto in vsakim časovnim zamikom; kot procentualna sprememba; kot razmerje med vrsto in časovnim zamikom."
       ],
       "Python functions": ["Pythonove funkcije"],
       "Rule": ["Pravilo"],
@@ -2695,27 +3017,27 @@
       "UI Configuration": ["UI nastavitve"],
       "Multiple select": ["Več izborov"],
       "Allow selecting multiple values": ["Dovoli izbiro več vrednosti"],
-      "Group By": ["Združevanje (Group by)"],
+      "User must select a value for this filter.": [
+        "Uporabnik mora izbrati vrednost za ta filter."
+      ],
       "Group By filter plugin": ["Vtičnik za filter za združevanje"],
+      "Experimental": ["Eksperimentalno"],
       "Chosen non-numeric column": ["Izbran ne-numeričen stolpec"],
-      "Range filter": ["Filter obdobja"],
       "Range filter plugin using AntD": [
         "Vtičnik za filter obdobja z uporabo AntD"
       ],
-      "User must select a value for this filter when filter is in single select mode. If selection is empty, an always false filter is emitted.": [
-        "Uporabnik mora izbrati vrednost filtra, ko je le-ta v načinu posamičnega izbora. Če je izbor prazen, je oddan vedno napačen (false) filter."
+      "User must select a value before applying the filter": [
+        "Uporabnik mora izbrati vrednost pred uporabo filtra"
       ],
       "Default to first item": ["Privzet prvi element"],
-      "Select first item by default": [
-        "Kot privzeta vrednost je izbran prvi element"
+      "Select first item by default (when using this option, default value can’t be set)": [
+        "Izberi prvi element kot privzet (ko uporabljate to možnost, privzete vrednost ni mogoče nastaviti)"
       ],
       "Inverse selection": ["Invertiraj izbiro"],
       "Exclude selected values": ["Izloči izbrane vrednosti"],
-      "Select filter": ["Izbirni filter"],
       "Select filter plugin using AntD": [
         "Izberite Vtičnik za filter z uporabo AntD"
       ],
-      "Time filter": ["Časovni filter"],
       "Custom time filter plugin": ["Prilagojeni vtičnik za časovni filter"],
       "No time columns": ["Ni časovnih stolpcev"],
       "Time column filter plugin": ["Vtičnik za časovni filter"],
@@ -2737,6 +3059,23 @@
       ],
       "joined": ["pridružen"],
       "id:": ["id:"],
+      "There was an issue fetching reports attached to this dashboard.": [
+        "Pri pridobivanju poročil za to nadzorno ploščo je prišlo do težave."
+      ],
+      "The report has been created": ["Poročilo je bilo ustvarjeno"],
+      "An error occurred while editing this report: %s": [
+        "Pri urejanju tega poročila je prišlo do napake: %s"
+      ],
+      "An error occurred while editing this report.": [
+        "Pri urejanju tega poročila je prišlo do napake."
+      ],
+      "We were unable to active or deactivate this report.": [
+        "Aktiviranje ali deaktiviranje poročila ni uspelo."
+      ],
+      "Your report could not be deleted": [
+        "Vašega poročila ni mogoče izbrisati"
+      ],
+      "Deleted: %s": ["Izbrisano: %s"],
       "Image download failed, please refresh and try again.": [
         "Prenos slike ni uspel. Osvežite in poskusite ponovno."
       ],
@@ -2746,6 +3085,9 @@
       ],
       "Issue 1000 - The dataset is too large to query.": [
         "Težava 1000 - podatkovni vir je prevelik za poizvedbo."
+      ],
+      "Issue 1001 - The database is under an unusual load.": [
+        "Težava 1001 - podatkovni vir je neobičajno obremenjen."
       ],
       "An error occurred while fetching %s info: %s": [
         "Napaka pri pridobivanju informacij za %s: %s"
@@ -2773,7 +3115,6 @@
       "There was an error fetching your recent activity:": [
         "Pri pridobivanju nedavnih aktivnosti je prišlo do napake:"
       ],
-      "Deleted: %s": ["Izbrisanih: %s"],
       "There was an issue deleting: %s": ["Težava pri brisanju: %s"],
       "There was an issue deleting %s: %s": ["Težava pri brisanju %s: %s"],
       "report": ["poročilo"],
@@ -2789,9 +3130,9 @@
       "Actions": ["Aktivnosti"],
       "Bulk select": ["Izberi hkrati"],
       "No %s yet": ["%s še ne obstajajo"],
-      "Created by": ["Ustvaril/a"],
+      "Created by": ["Ustvaril"],
       "An error occurred while fetching created by values: %s": [
-        "Pri pridobivanju vrednosti \"ustvaril/a\" je prišlo do napake: %s"
+        "Pri pridobivanju vrednosti \"Ustvaril\" je prišlo do napake: %s"
       ],
       "Status": ["Status"],
       "${AlertState.success}": ["${AlertState.success}"],
@@ -2801,9 +3142,6 @@
       "${AlertState.grace}": ["${AlertState.grace}"],
       "Alerts & reports": ["Opozorila in poročila"],
       "Reports": ["Poročila"],
-      "This action will permanently delete %s.": [
-        "S tem dejanjem boste trajno izbrisali %s."
-      ],
       "Delete %s?": ["Izbrišem %s?"],
       "Please confirm": ["Prosim, potrdite"],
       "Are you sure you want to delete the selected %s?": [
@@ -2821,7 +3159,6 @@
       "90 days": ["90 dni"],
       "Add notification method": ["Dodajte način obveščanja"],
       "Add delivery method": ["Dodajte način dostave"],
-      "Add": ["Dodaj"],
       "Edit ${isReport ? 'Report' : 'Alert'}": [
         "Uredi ${isReport ? 'Report' : 'Alert'}"
       ],
@@ -2832,7 +3169,7 @@
       "Alert name": ["Naslov opozorila"],
       "Alert condition": ["Status opozorila"],
       "Trigger Alert If...": ["Sproži opozorilo v primeru ..."],
-      "Value": ["Vrednost"],
+      "Condition": ["Pogoj"],
       "Report schedule": ["Urnik poročanja"],
       "Alert condition schedule": ["Urnik statusov opozoril"],
       "Schedule settings": ["Nastavitve urnika"],
@@ -2843,6 +3180,7 @@
       "Message content": ["Vsebina sporočila"],
       "Send as PNG": ["Pošlji kot PNG"],
       "Send as CSV": ["Pošlji kot CSV"],
+      "Send as text": ["Pošlji kot besedilo"],
       "log": ["dnevnik"],
       "State": ["Status"],
       "Execution ID": ["ID izvedbe"],
@@ -2864,6 +3202,8 @@
       "Alert Triggered, In Grace Period": [
         "Opozorilo sproženo, v obdobju mirovanja"
       ],
+      "Delivery method": ["Način dostave"],
+      "Select Delivery Method": ["Izberite način dostave"],
       "Recipients are separated by \",\" or \";\"": [
         "Prejemniki so ločeni z \",\" ali \";\""
       ],
@@ -2887,6 +3227,8 @@
       "Are you sure you want to delete the selected annotations?": [
         "Ali ste prepričani, da želite izbrisati izbrane oznake?"
       ],
+      "The annotation has been updated": ["Označba je bila posodobljena"],
+      "The annotation has been saved": ["Označba je bila shranjena"],
       "Add annotation": ["Dodaj oznako"],
       "Annotation name": ["Ime oznake"],
       "date": ["datum"],
@@ -2920,7 +3262,7 @@
       "Are you sure you want to delete": [
         "Ali ste prepričani, da želite izbrisati"
       ],
-      "Last modified %s": ["Zadnja sprememba %s"],
+      "Modified %s": ["Zadnja sprememba %s"],
       "The passwords for the databases below are needed in order to import them together with the charts. Please note that the \"Secure Extra\" and \"Certificate\" sections of the database configuration are not present in export files, and should be added manually after the import if they are needed.": [
         "Gesla za spodnje podatkovne baze so potrebna za uvoz skupaj z grafikoni. Sekciji \"Dodatna varnost\" in \"Certifikati\" v nastavitvah podatkovne baze nista prisotni v izvoženih datotekah in jih je potrebno dodati ročno po uvozu, če je to potrebno."
       ],
@@ -2930,7 +3272,7 @@
       "There was an issue deleting the selected charts: %s": [
         "Pri brisanju izbranih grafikonov je prišlo do težave: %s"
       ],
-      "Modified by": ["Spremenil/a"],
+      "Modified by": ["Spremenil"],
       "Favorite": ["Priljubljene"],
       "Any": ["Katerikoli"],
       "Yes": ["Da"],
@@ -2941,12 +3283,9 @@
         "Pri pridobivanju polja lastnik grafikona je prišlo do napake: %s"
       ],
       "An error occurred while fetching chart created by values: %s": [
-        "Pri pridobivanju polja grafikon ustvaril/a je prišlo do napake: %s"
+        "Pri pridobivanju polja Grafikon ustvaril je prišlo do napake: %s"
       ],
       "Viz type": ["Tip vizualizacije"],
-      "An error occurred while fetching chart dataset values: %s": [
-        "Pri pridobivanju polja podatkovni set za grafikon je prišlo do napake: %s"
-      ],
       "Alphabetical": ["Po abecedi"],
       "Recently modified": ["Nedavno spremenjeno"],
       "Least recently modified": ["Zadnje spremenjeno"],
@@ -2963,7 +3302,7 @@
       "There was an issue deleting the selected templates: %s": [
         "Pri brisanju izbranih predlog je prišlo do težave: %s"
       ],
-      "Last modified by %s": ["Nazadnje spremenil/a %s"],
+      "Last modified by %s": ["Nazadnje spremenil %s"],
       "CSS template": ["CSS predloga"],
       "This action will permanently delete the template.": [
         "S tem dejanjem boste trajno izbrisali predlogo."
@@ -2990,7 +3329,7 @@
         "Pri pridobivanju polja lastnik nadzorne plošče je prišlo do napake: %s"
       ],
       "An error occurred while fetching dashboard created by values: %s": [
-        "Pri pridobivanju polja nadzorno ploščo ustvaril/a je prišlo do napake: %s"
+        "Pri pridobivanju polja Nadzorno ploščo ustvaril je prišlo do napake: %s"
       ],
       "Are you sure you want to delete the selected dashboards?": [
         "Ali ste prepričani, da želite izbrisati izbrane nadzorne plošče?"
@@ -3016,10 +3355,13 @@
       "DML": ["DML"],
       "CSV upload": ["Nalaganje CSV"],
       "Delete database": ["Izbriši podatkovno bazo"],
-      "The database %s is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the database will break those objects.": [
-        "Podatkovna baza %s je povezana z grafikoni %s, ki so prisotni na nadzorni plošči %s. Ali želite nadaljevati? Izbris podatkovne baze bo pokvaril te objekte."
+      "The database %s is linked to %s charts that appear on %s dashboards and users have %s SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects.": [
+        "Podatkovna baza %s je povezana z grafikoni %s, ki so prisotni na nadzorni plošči %s in uporabniki imajo odprtih %s zavihkov SQL laboratorija. Ali želite nadaljevati? Izbris podatkovne baze bo pokvaril te objekte."
       ],
       "Delete Database?": ["Izbrišem podatkovno bazo?"],
+      "Expose database in SQL Lab": [
+        "Razkrij podatkovno bazo v SQL laboratoriju"
+      ],
       "Allow this database to be queried in SQL Lab": [
         "Dovoli poizvedbo na to podatkovno bazo v SQL laboratoriju"
       ],
@@ -3030,57 +3372,78 @@
         "Dovoli ustvarjanje novih pogledov s poizvedbami"
       ],
       "CTAS & CVAS SCHEMA": ["CTAS & CVAS SHEMA"],
-      "Search or select schema": ["Poiščite ali izberite shemo"],
-      "When allowing CREATE TABLE AS option in SQL Lab, this option forces the table to be created in this schema.": [
-        "Z dovolitvijo opcije CREATE TABLE AS v SQL laboratoriju se tabele ustvarjajo s to shemo."
+      "Create or select schema...": ["Ustvarite ali izberite shemo..."],
+      "Force all tables and views to be created in this schema when clicking CTAS or CVAS in SQL Lab.": [
+        "Vsilite, da bodo vse tabele in pogledi ustvarjeni s to shemo, ko kliknete CTAS ali CVAS v SQL laboratoriju."
       ],
       "Allow manipulation of the database using non-SELECT statements such as UPDATE, DELETE, CREATE, etc.": [
         "Dovoli manipulacije podatkovne baze z uporabo ne-SELECT stavkov, kot so UPDATE, DELETE, CREATE, itd."
       ],
-      "Allow multi schema metadata fetch": [
-        "Dovoli pridobivanje metapodatkov z več shemami"
+      "Enable query cost estimation": [
+        "Omogoči ocenjevanje potratnosti poizvedbe"
+      ],
+      "For Presto and Postgres, shows a button to compute cost before running a query.": [
+        "Za Presto in Postgres prikaže gumb za izračun potratnosti pred zagonom poizvedbe."
+      ],
+      "Allow this database to be explored": [
+        "Dovoli raziskovanje te podatkovne baze"
+      ],
+      "When enabled, users are able to visualize SQL Lab results in Explore.": [
+        "Ko je omogočeno, lahko uporabniki prikazujejo rezultate SQL laboratorija v raziskovalcu."
       ],
       "Chart cache timeout": ["Trajanje predpomnilnika grafikona"],
+      "Enter duration in seconds": ["Vnesite trajanje v sekundah"],
+      "Schema cache timeout": ["Trajanje prepomnilnika sheme"],
+      "Duration (in seconds) of the metadata caching timeout for schemas of this database. If left unset, the cache never expires.": [
+        "Trajanje (v sekundah) predpomnilnika metapodatkov za sheme v tej podatkovni bazi. Če ni nastavljeno, predpomnilnik ne poteče."
+      ],
+      "Table cache timeout": ["Trajanje predpomnilnika tabele"],
+      "Duration (in seconds) of the metadata caching timeout for tables of this database. If left unset, the cache never expires. ": [
+        "Trajanje (v sekundah) predpomnilnika metapodatkov za tabele v tej podatkovni bazi. Če ni nastavljeno, predpomnilnik ne poteče. "
+      ],
       "Operate the database in asynchronous mode, meaning that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information.": [
         "Upravljanje podatkovne baze v asinhronem načinu pomeni, da se poizvedbe zaženejo na oddaljenih »delavcih« in ne na samem spletnem strežniku. S tem je predpostavljeno, da imate nastavljenega »delavca« za Celery in zaledni sistem za rezultate. Več informacij je v navodilih za namestitev."
       ],
+      "Cancel query on window unload event": [
+        "Prekini poizvedbo pri dogodku zaprtja okna (window unload event)"
+      ],
+      "Terminate running queries when browser window closed or navigated to another page. Available for Presto, Hive, MySQL, Postgres and Snowflake databases.": [
+        "Ustavi zagnane poizvedbe, ko se zapre okno brskalnika ali gre na drugo stran. na razpolago za Presto, Hive, MySQL, Postgres in Snowflake podatkovne baze."
+      ],
       "Secure extra": ["Dodatna varnost"],
-      "JSON string containing additional connection configuration.": [
-        "JSON niz vsebuje dodatne nastavitve povezave."
+      "JSON string containing additional connection configuration. This is used to provide connection information for systems like Hive, Presto and BigQuery which do not conform to the username:password syntax normally used by SQLAlchemy.": [
+        "JSON niz, ki vsebuje dodatno konfiguracijo povezave. Uporablja se za zagotavljanje dodatnih informacij povezave za sisteme kot sta Presto in BigQuery, ki nista skladna s sintakso username:password, ki jo običajno uporablja SQLAlchemy."
       ],
-      "This is used to provide connection information for systems like Hive, Presto, and BigQuery, which do not conform to the username:password syntax normally used by SQLAlchemy.": [
-        "S tem pridobite informacije o povezavi za sisteme, kot so Hive, Presto in BigQuery, ki niso skladni s shemo uporabniško_ime:geslo, ki se običajno uporablja v SQLAlchemy."
-      ],
+      "Enter CA_BUNDLE": ["Vnesite CA_BUNDLE"],
       "Optional CA_BUNDLE contents to validate HTTPS requests. Only available on certain database engines.": [
         "Opcijska CA_BUNDLE vsebina, za potrjevanje HTTPS zahtev. Razpoložljivo le na določenih sistemih podatkovnih baz."
       ],
-      "Impersonate Logged In User (Presto, Trino, Drill, Hive, and GSheets)": [
-        "Predstavljanje kot prijavljeni uporabnik (Presto, Hive in GSheets)"
+      "Schemas allowed for CSV upload": ["Dovoljene sheme za nalaganje CSV"],
+      "A comma-separated list of schemas that CSVs are allowed to upload to.": [
+        "Z vejicami ločen seznam shem, kjer je dovoljeno nalaganje CSV-jev."
       ],
-      "If Presto, Trino or Drill all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them. If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
-        "V Presto se vse poizvedbe v SQL laboratoriju zaženejo pod trenutno prijavljenim uporabnikom, ki mora imeti pravice za poganjanje. Če je omogočen Hive in hive.server2.enable.doAs, poizvedbe tečejo pod servisnim računom, vendar je trenutno prijavljen uporabnik predstavljen z lastnostjo hive.server2.proxy.user."
+      "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)": [
+        "Predstavljanje kot prijavljeni uporabnik (Presto, Trino, Drill, Hive in GSheets)"
+      ],
+      "If Presto or Trino, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them. If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
+        "V primeru Presto ali Trino se vse poizvedbe v SQL laboratoriju zaženejo pod trenutno prijavljenim uporabnikom, ki mora imeti pravice za poganjanje. Če je omogočen Hive in hive.server2.enable.doAs, poizvedbe tečejo pod servisnim računom, vendar je trenutno prijavljen uporabnik predstavljen z lastnostjo hive.server2.proxy.user."
       ],
       "Allow data upload": ["Dovoli nalaganje podatkov"],
       "If selected, please set the schemas allowed for data upload in Extra.": [
         "Če je izbrano, nastavite dovoljene sheme za nalaganje podatkov v Dodatno."
       ],
-      "JSON string containing extra configuration elements.": [
-        "JSON niz, ki vsebuje dodatne nastavitve povezave."
+      "Metadata Parameters": ["Parametri metapodatkov"],
+      "The metadata_params object gets unpacked into the sqlalchemy.MetaData call.": [
+        "Objekt metadata_params se razpakira v klic sqlalchemy.MetaData."
       ],
-      "1. The engine_params object gets unpacked into the sqlalchemy.create_engine call, while the metadata_params gets unpacked into the sqlalchemy.MetaData call.": [
-        "1. Objekt engine_params se razširi v klic sqlalchemy.create_engine, medtem ko se metadata_params razširijo v sqlalchemy.MetaData call."
+      "Engine Parameters": ["Parametri podatkovne baze"],
+      "The engine_params object gets unpacked into the sqlalchemy.create_engine call.": [
+        "Objekt engine_params se razširi v klic sqlalchemy.create_engine."
       ],
-      "2. The metadata_cache_timeout is a cache timeout setting in seconds for metadata fetch of this database. Specify it as \"metadata_cache_timeout\": {\"schema_cache_timeout\": 600, \"table_cache_timeout\": 600}. If unset, cache will not be enabled for the functionality. A timeout of 0 indicates that the cache never expires.": [
-        "2. metadata_cache_timeout je trajanje predpomnilnik v sekundah za pridobivanje metapodatkov za to podatkovno bazo. Definirajte ga kot \"metadata_cache_timeout\": {\"schema_cache_timeout\": 600, \"table_cache_timeout\": 600}. Če ni definirano, predpomnilnik ne bo omogčen pri tej funkciji. Trajanje 0 določa, da se predpomnilnik ne izteče."
-      ],
-      "3. The schemas_allowed_for_file_upload is a comma separated list of schemas that CSVs are allowed to upload to. Specify it as \"schemas_allowed_for_file_upload\": [\"public\", \"csv_upload\"]. If database flavor does not support schema or any schema is allowed to be accessed, just leave the list empty.": [
-        "3. schemas_allowed_for_file_upload je z vejicami ločen seznam shem, ki jih je dovoljeno nalagati s CSV-ji. Definirajte ga kot \"schemas_allowed_for_file_upload\": [\"public\", \"csv_upload\"]. Če tip podatkovne baza ne podpira sheme ali pa je dovoljen dostop do vseh shem, pustite seznam prazen."
-      ],
-      "4. The version field is a string specifying this db's version. This should be used with Presto DBs so that the syntax is correct.": [
-        "4. Polje \"version\" je znakovni niz, ki določa verzijo podatkovne baze. Uporabljeno mora biti s Presto bazo, da je sintaksa pravilna."
-      ],
-      "5. The allows_virtual_table_explore field is a boolean specifying whether or not the Explore button in SQL Lab results is shown.": [
-        "5. Polje \"allows_virtual_table_explore\" je binarnega tipa in določa, prikaz gumba \"Razišči\" v rezultatih SQL laboratorija."
+      "Version": ["Verzija"],
+      "Version number": ["Številka verzije"],
+      "Specify the database version. This should be used with Presto in order to enable query cost estimation.": [
+        "Podajte verzijo podatkovne baze. Uporablja se s Presto, za potrebe ocenjevanja potratnosti poizvedbe."
       ],
       "Display Name": ["Ime za prikaz"],
       "Name your database": ["Poimenujte podatkovno bazo"],
@@ -3101,17 +3464,63 @@
       "Sorry there was an error fetching database information: %s": [
         "Pri pridobivanju informacij o podatkovni bazi je prišlo do napake: %s"
       ],
+      "Want to add a new database?": ["Želite dodati novo podatkovno bazo?"],
       "Connect": ["Poveži"],
       "Edit database": ["Uredi podatkovno bazo"],
       "Connect a database": ["Poveži se s podatkovno bazo"],
+      "Click this link to switch to an alternate form that exposes only the required fields needed to connect this database.": [
+        "Kliknite to povezavo za drugo vnosno formo, ki prikaže samo zahtevana polja za povezavo s podatkovno bazo."
+      ],
       "Finish": ["Končaj"],
+      "Click this link to switch to an alternate form that allows you to input the SQLAlchemy URL for this database manually.": [
+        "Kliknite to povezavo za drugo vnosno formo, ki omogoča ročni vnos SQLAlchemy URL-ja za to podatkovno bazo."
+      ],
+      "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com).": [
+        "To je lahko bodisi IP naslov (npr. 127.0.0.1) bodisi ime domene (npr. mydatabase.com)."
+      ],
+      "Copy the name of the  database you are trying to connect to.": [
+        "Kopirajte ime podatkovne baze, s katero se skušate povezati."
+      ],
+      "Pick a nickname for this database to display as in Superset.": [
+        "Izberite vzdevek za to podatkovno bazo, ki bo prikazan v Supersetu."
+      ],
+      "Add additional custom parameters": ["Dodaj dodatne parametre po meri"],
+      "SSL Mode \"require\" will be used.": [
+        "Uporabljen bo SSL način \"require\"."
+      ],
+      "Type of Google Sheets allowed": ["Dovoljeni tipi Googlovih preglednic"],
+      "Publicly shared sheets only": ["Samo javno deljene preglednice"],
+      "Public and privately shared sheets": [
+        "Javno in zasebno deljene preglednice"
+      ],
+      "How do you want to enter service account credentials?": [
+        "Kako želite vnesti prijavne podatke servisnega računa?"
+      ],
+      "Upload JSON file": ["Naloži JSON datoteko"],
+      "Copy and Paste JSON credentials": [
+        "Kopiraj in prilepi JSON prijavne podatke"
+      ],
+      "Service Account": ["Servisni račun"],
+      "Copy and paste the entire service account .json file here": [
+        "Tukaj kopirajte in prilepite celotno json datoteko servisnega računa"
+      ],
+      "Upload Credentials": ["Naloži prijavne podatke"],
+      "Use the JSON file you automatically downloaded when creating your service account.": [
+        "Uporabite JSON datoteko, ki ste jo prenesli pri ustvarjanju servisnega računa."
+      ],
+      "Connect Google Sheets as tables to this database": [
+        "Googlove preglednice poveži s to podatkovno bazo kot tabele"
+      ],
+      "Google Sheet Name and URL": ["Ime Googlove preglednice in URL"],
+      "Enter a name for this sheet": ["Vnesite ime te preglednice"],
+      "Paste the shareable Google Sheet URL here": [
+        "Prilepite deljeni URL Googlove preglednice sem"
+      ],
+      "Add sheet": ["Dodaj preglednico"],
+      "Copy the account name of that database you are trying to connect to.": [
+        "Kopirajte ime računa podatkovne baze, s katero se skušate povezati."
+      ],
       "Add dataset": ["Dodaj podatkovni set"],
-      "The passwords for the databases below are needed in order to import them together with the datasets. Please note that the \"Secure Extra\" and \"Certificate\" sections of the database configuration are not present in export files, and should be added manually after the import if they are needed.": [
-        "Gesla za spodnje podatkovne baze so potrebna za uvoz skupaj s podatkovnimi seti. Sekciji \"Dodatna varnost\" in \"Certifikati\" v nastavitvah podatkovne baze nista prisotni v izvoženih datotekah in jih je potrebno dodati ročno po uvozu, če je to potrebno."
-      ],
-      "You are importing one or more datasets that already exist. Overwriting might cause you to lose some of your work. Are you sure you want to overwrite?": [
-        "Uvažate enega ali več podatkovnih setov, ki že obstajajo. S prepisom lahko izgubite podatke. Ali ste prepričani, da želite prepisati?"
-      ],
       "An error occurred while fetching dataset related data": [
         "Napaka pri pridobivanju podatkov iz podatkovnega seta"
       ],
@@ -3146,14 +3555,15 @@
       "%s Selected (%s Physical, %s Virtual)": [
         "Izbranih: %s (fizični: %s, virtualni: %s)"
       ],
+      "The passwords for the databases below are needed in order to import them together with the datasets. Please note that the \"Secure Extra\" and \"Certificate\" sections of the database configuration are not present in export files, and should be added manually after the import if they are needed.": [
+        "Gesla za spodnje podatkovne baze so potrebna za uvoz skupaj s podatkovnimi seti. Sekciji \"Dodatna varnost\" in \"Certifikati\" v nastavitvah podatkovne baze nista prisotni v izvoženih datotekah in jih je potrebno dodati ročno po uvozu, če je to potrebno."
+      ],
+      "You are importing one or more datasets that already exist. Overwriting might cause you to lose some of your work. Are you sure you want to overwrite?": [
+        "Uvažate enega ali več podatkovnih setov, ki že obstajajo. S prepisom lahko izgubite podatke. Ali ste prepričani, da želite prepisati?"
+      ],
       "There was an issue previewing the selected query. %s": [
         "Pri predogledu izbrane poizvedbe je prišlo do težave. %s"
       ],
-      "Success": ["Uspelo"],
-      "Failed": ["Ni uspelo"],
-      "Running": ["V teku"],
-      "Offline": ["Offline"],
-      "Scheduled": ["V urniku"],
       "Duration: %s": ["Trajanje: %s"],
       "Tab name": ["Naslov zavihka"],
       "TABLES": ["TABELE"],
@@ -3161,6 +3571,9 @@
       "Open query in SQL Lab": ["Odpri poizvedbo v SQL laboratoriju"],
       "An error occurred while fetching database values: %s": [
         "Pri pridobivanju vrednosti podatkovne baze je prišlo do napake: %s"
+      ],
+      "An error occurred while fetching user values: %s": [
+        "Pri pridobivanju vrednosti uporabnika je prišlo do napake: %s"
       ],
       "Search by query text": ["Išči z besedilom poizvedbe"],
       "Query preview": ["Predogled poizvedbe"],
@@ -3199,7 +3612,6 @@
       "Edited": ["Urejane"],
       "Created": ["Ustvarjene"],
       "Viewed": ["Ogledane"],
-      "Examples": ["Vzorci"],
       "Mine": ["Moje"],
       "Recently viewed charts, dashboards, and saved queries will appear here": [
         "Nedavno ogledani grafikoni, nadzorne plošče in shranjene poizvedbe bodo prikazane tukaj"
@@ -3207,8 +3619,8 @@
       "Recently created charts, dashboards, and saved queries will appear here": [
         "Nedavno ustvarjeni grafikoni, nadzorne plošče in shranjene poizvedbe bodo prikazane tukaj"
       ],
-      "Recent example charts, dashboards, and saved queries will appear here": [
-        "Nedavni vzorci grafikonov, nadzornih plošč in shranjenih poizvedb bodo prikazani tukaj"
+      "Example ${tableName.toLowerCase()} will appear here": [
+        "Primer ${tableName.toLowerCase()} se bo prikazal tukaj"
       ],
       "Recently edited charts, dashboards, and saved queries will appear here": [
         "Nedavno urejani grafikoni, nadzorne plošče in shranjene poizvedbe bodo prikazane tukaj"
@@ -3221,7 +3633,7 @@
       "${tableName}": ["${tableName}"],
       "query": ["poizvedba"],
       "Share": ["Deljenje"],
-      "Last run %s": ["Zadnji zagon %s"],
+      "Ran %s": ["Pretečeno %s"],
       "There was an issue fetching your recent activity: %s": [
         "Pri pridobivanju vaše nedavne aktivnosti je prišlo do napake: %s"
       ],
@@ -3237,26 +3649,11 @@
       "Recents": ["Nedavno"],
       "Select start and end date": ["Izberite začetni in končni datum"],
       "Type or Select [%s]": ["Vnesite ali izberite [%s]"],
+      "No results found": ["Rezultati niso najdeni"],
+      "Tools": ["Orodja"],
       "Filter box": ["Izbirnik za filtriranje"],
-      "Filters configuration": ["Nastavitve filtrov"],
-      "Filter configuration for the filter box": ["Nastavitve za polje filtra"],
-      "Date filter": ["Filter po datumu"],
-      "Whether to include a time filter": [
-        "Če želite vključiti časovni filter"
-      ],
-      "Instant filtering": ["Takojšnje filtriranje"],
-      "Check to apply filters instantly as they change instead of displaying [Apply] button": [
-        "Izberite za takojšnjo uporabo filtrov, ko se spremenijo, brez prikazovanja gumba Uveljavi"
-      ],
-      "Show SQL granularity dropdown": [
-        "Prikaži SQL spustni seznam za granulacijo"
-      ],
-      "Check to include SQL granularity dropdown": [
-        "Izberite za vključitev spustnega seznama za SQL granulacijo"
-      ],
-      "Show SQL time column": ["Prikaži stolpec SQL čas"],
-      "Check to include time column dropdown": [
-        "Izberite za vključitev časovnega stolpca v spustni seznam"
+      "Chart component that lets you add a custom filter UI in your dashboard. When added to dashboard, a filter box lets users specify specific values or ranges to filter charts by. The charts that each filter box is applied to can be fine tuned as well in the dashboard view.\r\n\r\n    Note that this plugin is being replaced with the new Filters feature that lives in the dashboard view itself. It's easier to use and has more capabilities!": [
+        "Komponenta grafikona, ki omogoča dodajanje vmesnika filtrov po meri v nadzorno ploščo. Ko je dodana na nadzorno ploščo, lahko uporabnik določi poljubne vrednosti ali obsege filtrov. Grafikoni, na katere se nanašajo filtri, so lahko precizno izbrani tudi v pogledu nadzorne plošče.\r\n\r\n    Vedite, da bo ta vtičnik v prihodnosti zamenjan z novim konceptom filtrov, ki bodo živeli v kontekstu same nadzorne plošče in bodo zmogljivejši ter enostavnejši za uporabo!"
       ],
       "Show Druid granularity dropdown": [
         "Prikaži spustni seznam za Druid granulacijo"
@@ -3268,17 +3665,84 @@
       "Check to include time origin dropdown": [
         "Izberi za vključitev spustnega seznama za časovno izhodišče"
       ],
+      "Filters configuration": ["Nastavitve filtrov"],
+      "Filter configuration for the filter box": ["Nastavitve za polje filtra"],
+      "Date filter": ["Filter po datumu"],
+      "Whether to include a time filter": [
+        "Če želite vključiti časovni filter"
+      ],
+      "Instant filtering": ["Takojšnje filtriranje"],
+      "Check to apply filters instantly as they change instead of displaying [Apply] button": [
+        "Izberite za takojšnjo uporabo filtrov, ko se spremenijo, brez prikazovanja gumba Uveljavi"
+      ],
+      "Show SQL time grain dropdown": [
+        "Prikaži SQL spustni seznam za časovno granulacijo"
+      ],
+      "Show time grain dropdown": [
+        "Prikaži spustni seznam za časovno granulacijo"
+      ],
+      "Check to include SQL time grain dropdown": [
+        "Izberite za vključitev spustnega seznama za časovno granulacijo SQL"
+      ],
+      "Check to include time grain dropdown": [
+        "Izberite za vključitev spustnega seznama za časovno granullacijo"
+      ],
+      "Show SQL time column": ["Prikaži stolpec SQL čas"],
+      "Show time column": ["Prikaži časovni stolpec"],
+      "Check to include time column dropdown": [
+        "Izberite za vključitev časovnega stolpca v spustni seznam"
+      ],
       "Limit selector values": ["Omeji vrednosti izbirnikov"],
       "These filters apply to the values available in the dropdowns": [
         "Ti filtri se nanašajo na vrednosti v spustnih seznamih"
       ],
       "Time-series Table": ["Tabela s časovno vrsto"],
+      "Compare multiple time series charts (as sparklines) and related metrics quickly.": [
+        "Hitra primerjava več grafikonov časovnih vrst (sparkline način) in povezanih mer."
+      ],
+      "Multi-Variables": ["Več spremenljivk"],
+      "Comparison": ["Primerjava"],
+      "Legacy": ["Staro"],
+      "Percentages": ["Procenti"],
+      "Tabular": ["Tabelarično"],
+      "Text": ["Besedilo"],
+      "Trend": ["Trend"],
       "Time Range": ["Časovno obdobje"],
       "Time Column": ["Časovni stolpec"],
       "Time Grain": ["Granulacija časa"],
       "Time Granularity": ["Granulacija časa"],
-      "Aggregate": ["Agregiraj"],
+      "Aggregate": ["Agregacija"],
       "Raw records": ["Surovi podatki"],
+      "Show info tooltip": ["Prikaži opis orodja"],
+      "Resample": ["Prevzorči"],
+      "Fill method": ["Način polnjenja"],
+      "Annotations and Layers": ["Oznake in sloji"],
+      "Chart Title": ["Naslov grafikona"],
+      "X Axis Title": ["Naslov X osi"],
+      "X AXIS TITLE BOTTOM MARGIN": ["SPODNJA OBROBA NASLOVA X OSI"],
+      "Y Axis Title": ["Naslov Y osi"],
+      "Y AXIS TITLE MARGIN": ["OBROBA NASLOVA Y OSI"],
+      "Y AXIS TITLE POSITION": ["POZICIJA NASLOVA Y OSI"],
+      "Predictive Analytics": ["Prediktivna analitika"],
+      "Enable forecast": ["Omogoči napoved"],
+      "Enable forecasting": ["Omogoči napovedovanje"],
+      "Forecast periods": ["Periode napovedi"],
+      "How many periods into the future do we want to predict": [
+        "Za koliko period v prihodnosti želite napoved"
+      ],
+      "Confidence interval": ["Interval zaupanja"],
+      "Width of the confidence interval. Should be between 0 and 1": [
+        "Širina intervala zaupanja. Mora bit med 0 in 1"
+      ],
+      "Should yearly seasonality be applied. An integer value will specify Fourier order of seasonality.": [
+        "Če želite letno sezonskost. Celo število določa Fourier-jev red sezonskosti."
+      ],
+      "Should weekly seasonality be applied. An integer value will specify Fourier order of seasonality.": [
+        "Če želite tedensko sezonskost. Celo število določa Fourier-jev red sezonskosti."
+      ],
+      "Should daily seasonality be applied. An integer value will specify Fourier order of seasonality.": [
+        "Če želite dnevno sezonskost. Celo število določa Fourier-jev red sezonskosti."
+      ],
       "Datasource & Chart Type": ["Tip podatkovnega vira in grafikona"],
       "URL Parameters": ["Parametri URL"],
       "Extra url parameters for use in Jinja templated queries": [
@@ -3289,27 +3753,37 @@
         "Dodatni parametri, ki jih lahko uporabi kateri koli vtičnik za poizvedbe z Jinja predlogami"
       ],
       "Color Scheme": ["Barvna shema"],
-      "Annotations and Layers": ["Oznake in sloji"],
-      "Show info tooltip": ["Prikaži opis orodja"],
-      "One or many columns to group by": [
-        "Eden ali več stolpcev za združevanje"
-      ],
       "One or many columns to pivot as columns": [
         "En ali več stolpcev za stolpčno vrtenje"
       ],
+      "Right Axis Metric": ["Mera desne osi"],
       "Bubble Size": ["Velikost mehurčka"],
       "Metric used to calculate bubble size": [
         "Mera za izračun velikosti mehurčkov"
       ],
       "Color Metric": ["Mera za barvo"],
+      "Drop temporal column here": ["Spustite časovni stolpec sem"],
+      "Emit dashboard cross filters": [
+        "Oddajaj medsebojne filtre nadzorne plošče"
+      ],
+      "Emit dashboard cross filters.": [
+        "Oddajaj medsebojne filtre nadzorne plošče."
+      ],
+      "One or many columns to group by. High cardinality groupings should include a sort by metric and series limit to limit the number of fetched and rendered series.": [
+        "Eden ali več stolpcev za združevanje. Združevanje z visoko kardinalnostjo naj vsebuje mero za razvrščanje in omjitev serij, s čimer omejite število pridobljenih in prikazanih serij."
+      ],
       "Fixed Color": ["Izbrana barva"],
-      "Right Axis Metric": ["Mera desne osi"],
       "Linear Color Scheme": ["Linearna barvna shema"],
-      "Sort By": ["Razvrščanje"],
       "Time format": ["Oblika zapisa časa"],
-      "Color Map": ["Barvna lestvica"],
+      "Whether to sort descending or ascending. Takes effect only when \"Sort by\" is set": [
+        "Če želite padajoče ali naraščajoče razvrščanje. Učinkuje samo, ko je vključen \"Sort by\""
+      ],
       "Show less columns": ["Prikaži manj stolpcev"],
       "Show all columns": ["Prikaži vse stolpce"],
+      "Emit Target": ["Cilj oddajanja"],
+      "If you wish to specify a different target column than the original column, it can be entered here": [
+        "Če želite nastaviti drug ciljni stolpec od izvornega, ga lahko vnesete tukaj"
+      ],
       "Fraction digits": ["Število decimalk"],
       "Number of decimal digits to round numbers to": [
         "Število decimalnih mest za zaokroževanje števil"
@@ -3339,6 +3813,9 @@
       "D3 number format for numbers between -1.0 and 1.0, useful when you want to have different siginificant digits for small and large numbers": [
         "D3 oblika zapisa za števila med -1.0 in 1.0. Uporabno, če želite različno število števk za majhna in velika števila"
       ],
+      "D3 format syntax: https://github.com/d3/d3-format": [
+        "Sintaksa D3 formata: https://github.com/d3/d3-format"
+      ],
       "Adaptative formating": ["Adaptivno oblikovanje"],
       "Duration in ms (66000 => 1m 6s)": ["Trajanje v ms (66000 => 1m 6s)"],
       "Duration in ms (1.40008 => 1ms 400µs 80ns)": [
@@ -3347,12 +3824,16 @@
       "D3 time format syntax: https://github.com/d3/d3-time-format": [
         "Sintaksa D3 časovnega formata:: https://github.com/d3/d3-time-format"
       ],
+      "No results were returned for this query. If you expected results to be returned, ensure any filters are configured properly and the datasource contains data for the selected time range.": [
+        "Poizvedba ni vrnila rezultatov. Če ste pričakovali rezultate, poskrbite, da so filtri pravilno nastavljeni in podatkovni vir vsebuje podatke za izbrano časovno obdobje."
+      ],
+      "No Results": ["Ni rezultatov"],
       "Found invalid orderby options": [
         "Najdene so neveljavne možnosti razvrščanja"
       ],
       "is expected to be an integer": ["pričakovano je celo število"],
       "is expected to be a number": ["pričakovano je število"],
-      "cannot be empty": ["ne sme biti prazna"],
+      "cannot be empty": ["ne sme biti prazno"],
       "haha": ["haha"],
       "foo": ["foo"],
       "bar": ["bar"],
@@ -3394,16 +3875,35 @@
         "Če želite prikazati ime mere kot naslov"
       ],
       "Number Format": ["Oblika zapisa števila"],
+      "Correlation": ["Korelacija"],
+      "Visualizes how a metric has changed over a time using a color scale and a calendar view. Gray values are used to indicate missing values and the linear color scheme is used to encode the magnitude of each day's value.": [
+        "Prikaže kako se je mera spreminjala s časom s pomočjo barvne lestvice in koledarskega pogleda. Sive vrednosti ponazarjajo manjkajoče vrednosti. Amplituda dnevnih vrednosti je ponazorjena z linearno barvno shemo."
+      ],
+      "Business": ["Aktivnost"],
+      "Intensity": ["Intenzivnost"],
+      "Pattern": ["Vzorec"],
+      "Report": ["Poročilo"],
       "Sort by metric": ["Mera za razvrščanje"],
       "Whether to sort results by the selected metric in descending order.": [
         "Če želite padajoče razvrstiti rezultate z izbrano mero."
       ],
       "Number format": ["Oblika zapisa števila"],
       "Choose a number format": ["Izberite obliko zapisa števila"],
-      "Choose a source": ["Izberite vir"],
+      "Choose a source": ["Izberite izvor"],
       "Target": ["Cilj"],
       "Choose a target": ["Izberite cilj"],
+      "Flow": ["Potek"],
+      "Showcases the flow or link between categories using thickness of chords. The value and corresponding thickness can be different for each side.": [
+        "Prikaže potek ali povezave med kategorijami z debelino tetiv. Vrednost in debelina sta lahko različni za vsako stran."
+      ],
+      "Relationships between community channels": [
+        "Razmerja med skupnostnimi kanali"
+      ],
       "Chord Diagram": ["Tetivni grafikon"],
+      "Aesthetic": ["Estetika"],
+      "Circular": ["Krožno"],
+      "Proportional": ["Proporcionalno"],
+      "Relational": ["Relacijsko"],
       "Country": ["Država"],
       "Which country to plot the map for?": [
         "Za katero državo želite grafikon?"
@@ -3412,6 +3912,15 @@
       "Column containing ISO 3166-2 codes of region/province/department in your table.": [
         "Stolpec, ki vsebuje ISO 3166-2 oznake regij/provinc/departmajev v vaši tabeli."
       ],
+      "Metric to display bottom title": ["Mera za prikaz spodnjega naslova"],
+      "Map": ["Zemljevid"],
+      "Visualizes how a single metric varies across a country's principal subdivisions (states, provinces, etc) on a chloropleth map. Each subdivision's value is elevated when you hover over the corresponding geographic boundary.": [
+        "Prikaže kako se posamezna mera spreminja glede na območja države (dežele, province, itd.) na kloropletnem zemljevidu. Vsak podrazdelek se dvigne, ko z miško preidete mejo njegovega območja."
+      ],
+      "2D": ["2D"],
+      "Geo": ["Geo"],
+      "Range": ["Doseg"],
+      "Stacked": ["Naložen"],
       "Sorry, there appears to be no data": ["Ni podatkov"],
       "Event definition": ["Definicija dogodka"],
       "Event Names": ["Imena dogodkov"],
@@ -3435,7 +3944,11 @@
       "The maximum number of events to return, equivalent to the number of rows": [
         "Največje število dogodkov, ki bodo vrnjeni - enako številu vrstic"
       ],
+      "Compares the lengths of time different activities take in a shared timeline view.": [
+        "Primerja dolžine časovno različnih aktivnosti na skupni časovnici."
+      ],
       "Event Flow": ["Potek dogodkov"],
+      "Progressive": ["Progresivno"],
       "Link Length": ["Dolžina povezave"],
       "Link length in the force layout": ["Dolžina povezave v postavitvi sil"],
       "Charge": ["Naboj"],
@@ -3476,6 +3989,8 @@
       "Hard value bounds applied for color coding. Is only relevant and applied when the normalization is applied against the whole heatmap.": [
         "Mejne vrednosti za barvno lestvico. Upošteva se le, če je normiranje uporabljeno glede na celotni toplotni prikaz."
       ],
+      "Sort X Axis": ["Razvrsti X-os"],
+      "Sort Y Axis": ["Razvrsti Y-os"],
       "Show percentage": ["Prikaži procente"],
       "Whether to include the percentage in the tooltip": [
         "Če želite prikaz procentov v opisu orodja"
@@ -3484,11 +3999,18 @@
       "Whether to apply a normal distribution based on rank on the color scale": [
         "Če želite uporabiti normalno porazdelitev glede na stopnjo na barvni lestvici"
       ],
-      "Sort X Axis": ["Razvrsti X-os"],
-      "Sort Y Axis": ["Razvrsti Y-os"],
       "Value Format": ["Oblika zapisa vrednosti"],
+      "Visualize a related metric across pairs of groups. Heatmaps excel at showcasing the correlation or strength between two groups. Color is used to emphasize the strength of the link between each pair of groups.": [
+        "Vizualizacija povezanih mer med pari skupin."
+      ],
+      "Sizes of vehicles": ["Velikosti vozil"],
+      "Employment and education": ["Zaposlitev in izobrazba"],
+      "Density": ["Gostota"],
+      "Predictive": ["Prediktivno"],
+      "Single Metric": ["Ena mera"],
       "count": ["število"],
       "cumulative": ["kumulativno"],
+      "percentile (exclusive)": ["percentil (ekskluzivno)"],
       "Select the numeric columns to draw the histogram": [
         "Izberite numerične stolpce za izris histograma"
       ],
@@ -3499,12 +4021,24 @@
       "X Axis Label": ["Naslov X osi"],
       "Y Axis Label": ["Naslov Y osi"],
       "Whether to normalize the histogram": ["Če želite normirati histogram"],
+      "Cumulative": ["Kumulativno"],
+      "Whether to make the histogram cumulative": [
+        "Če želite kumulativni histogram"
+      ],
+      "Distribution": ["Porazdelitev"],
+      "Take your data points, and group them into \"bins\" to see where the densest areas of information lie": [
+        "Vzame podatkovne točke in jih razporedi v razdelke, kjer se vidi območja z največjo gostoto informacij"
+      ],
+      "Population age data": ["Podatki starosti populacije"],
       "Sort Descending": ["Razvrsti padajoče"],
       "Series Height": ["Višina serije"],
       "Pixel height of each series": ["Višina vsake serije v pikslih"],
       "Value Domain": ["Domena vrednosti"],
       "series: Treat each series independently; overall: All series use the same scale; change: Show changes compared to the first data point in each series": [
         "serije: Obravnavaj vsako podatkovno serijo neodvisno; skupno: Vse vrste uporabljajo enako skalo; razlika: Pokaži razlike glede na prvo točko vsake serije"
+      ],
+      "Compares how a metric changes over time between different groups. Each group is mapped to a row and change over time is visualized bar lengths and color.": [
+        "Primerja kako se mera spreminja s časom med različnimi skupinami. Vsaka skupina predstavlja eno vrstico, časovne spremembe pa so prikazane z dolžino stolpcev in barvami."
       ],
       "Horizon Chart": ["Horizontni grafikon"],
       "Longitude": ["Dolžina"],
@@ -3561,7 +4095,11 @@
       "One or many controls to group by. If grouping, latitude and longitude columns must be present.": [
         "Eden ali več kontrolnikov za združevanje. Pri združevanju morata biti prisotna stolpca širine in dolžine."
       ],
+      "Light mode": ["Svetli način"],
+      "Dark mode": ["Temni način"],
       "MapBox": ["MapBox"],
+      "Scatter": ["Raztreseni"],
+      "Transformable": ["Prilagodljiv"],
       "Significance Level": ["Stopnja značilnosti"],
       "Threshold alpha level for determining significance": [
         "Mejna vrednost alfa za določanje značilnosti"
@@ -3574,7 +4112,11 @@
       "Number of decimal places with which to display lift values": [
         "Število decimalnih mest za prikaz vrednosti dviga"
       ],
+      "Table that visualizes paired t-tests, which are used to understand statistical differences between groups.": [
+        "Tabela, ki prikazuje uparjene t-teste, ki se uporabljajo za prikaz statističnih razlik med skupinami."
+      ],
       "Paired t-test Table": ["Tabela t-testa za odvisne vzorce"],
+      "Statistical": ["Statistično"],
       "Options": ["Možnosti"],
       "Data Table": ["Tabela podatkov"],
       "Whether to display the interactive data table": [
@@ -3584,6 +4126,12 @@
       "Include series name as an axis": [
         "Vključi ime podatkovne serije v naslov osi"
       ],
+      "Ranking": ["Rangiranje"],
+      "Plots the individual metrics for each row in the data vertically and links them together as a line. This chart is useful for comparing multiple metrics across all of the samples or rows in the data.": [
+        "Izriše posamezne mere za vsako vrstico podatkov navpično in jih med seboj poveže kot črto. Grafikon je uporaben za primerjavo več mer med vsemi vzorci ali vrsticami podatkov."
+      ],
+      "Coordinates": ["Koordinate"],
+      "Directional": ["Usmerjeni"],
       "Time Series Options": ["Možnosti časovne vrste"],
       "Not Time Series": ["Ni časovna vrsta"],
       "Ignore time": ["Ne upoštevaj časa"],
@@ -3629,7 +4177,7 @@
       ],
       "Rich Tooltip": ["Podroben opis orodja"],
       "The rich tooltip shows a list of all series for that point in time": [
-        "Podroben opis orodja prikaže seznam vseh podatkovnih serij za posamezno istočasno točko"
+        "Podroben opis orodja prikaže seznam vseh podatkovnih serij za posamezno časovno točko"
       ],
       "Rolling Window": ["Drseče okno"],
       "Rolling Function": ["Drseča funkcija"],
@@ -3637,7 +4185,12 @@
       "Time Comparison": ["Časovna primerjava"],
       "Time Shift": ["Časovni zamik"],
       "Python Functions": ["Pythonove funkcije"],
+      "Part of a Whole": ["Del celote"],
+      "Compare the same summarized metric across multiple groups.": [
+        "Primerja isto mero med različnimi skupinami."
+      ],
       "Partition Chart": ["Grafikon razdelkov"],
+      "Categorical": ["Kategorični"],
       "Pivot Options": ["Vrtilne možnosti"],
       "Aggregation function": ["Agregacijska funkcija"],
       "Aggregate function to apply when pivoting and computing the total rows and columns": [
@@ -3652,14 +4205,26 @@
       "Transpose Pivot": ["Transponirano vrtenje"],
       "Swap Groups and Columns": ["Zamenjaj Skupine in Stolpce"],
       "Date format": ["Oblika zapisa datuma"],
+      "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location.\r\n\r\n  This chart is being deprecated and we recommend checking out Pivot Table V2 instead!": [
+        "Uporablja se za predstavitev podatkov z združevanjem različnih statistik na dveh oseh. Npr. Prodaja po regijah in mesecih, Naloge po statusih in izvajalcih, aktivni uporabniki po starosti in lokaciji.\r\n\r\n  Ta grafikon se opušča. Priporočamo uporabo Vrtilne tabele V2!"
+      ],
       "Use Area Proportions": ["Uporabi razmerje površin"],
       "Check if the Rose Chart should use segment area instead of segment radius for proportioning": [
         "Če želite, da grafikon \"Rose\" uporablja površino segmenta namesto radija za proporcioniranje"
       ],
+      "A polar coordinate chart where the circle is broken into wedges of equal angle, and the value represented by any wedge is illustrated by its area, rather than its radius or sweep angle.": [
+        "Grafikon s polarnimi koordinatami, kjer je krog razdeljen na enakokotne izseke, vrednosti pa so ponazorjene s ploščino izseka (namesto polmera ali kota)."
+      ],
       "Nightingale Rose Chart": ["Nightingale Rose grafikon"],
+      "Multi-Layers": ["Večplastni"],
       "Limiting rows may result in incomplete data and misleading charts. Consider filtering or grouping source/target names instead.": [
         "Omejitev vrstic lahko povzroči nepopolne podatke in zavajajoč grafikon. Premislite o uporabi filtriranja ali združevanja imen izvorov/ciljev."
       ],
+      "Visualizes the flow of different group's values through different stages of a system. New stages in the pipeline are visualized as nodes or layers. The thickness of the bars or edges represent the metric being visualized.": [
+        "Prikaže potek vrednosti različnih skupin na različnih nivojih sistema. Novi nivoji so prikazani kot točke ali plasti. Debelina stolpcev ali povezav predstavlja prikazano mero."
+      ],
+      "Demographics": ["Demografija"],
+      "Survey Responses": ["Rezultati anket"],
       "Sankey Diagram": ["Sankey grafikon"],
       "Sankey Diagram with Loops": ["Sankey grafikon z zankami"],
       "Primary Metric": ["Primarna mera"],
@@ -3678,11 +4243,21 @@
       ],
       "Hierarchy": ["Hierarhija"],
       "This defines the level of the hierarchy": ["Določa stopnjo hierarhije"],
+      "Uses circles to visualize the flow of data through different stages of a system. Hover over individual paths in the visualization to understand the stages a value took. Useful for multi-stage, multi-group visualizing funnels and pipelines.": [
+        "S pomočjo krogov prikaže potek podatkov na različnih nivojih sistema. S premikom kurzorja prikaže vrednosti na posameznem nivoju. Uporabno za večnivojsko, večskupinsko vizualizacijo."
+      ],
       "Sunburst Chart": ["Večnivojski tortni grafikon"],
+      "Multi-Levels": ["Večplastni"],
       "Time Series Columns": ["Stolpci s časovnimi vrstami"],
+      "Compare multiple time series charts (as sparklines) and related metrics quickly. ": [
+        "Hitra primerjava več grafikonov časovnih vrst (sparkline način) in povezanih mer. "
+      ],
       "Ratio": ["Razmerje"],
       "Target aspect ratio for treemap tiles.": [
         "Ciljno razmerje za razdelke drevesnega grafikona."
+      ],
+      "Shows the composition of a dataset by segmenting a given rectangle as smaller rectangles with areas proportional to their value or contribution to the whole. Those rectangles may also, in turn, be further segmented hierarchically.": [
+        "Prikaže zgradbo podatkovnega seta na podlagi segmentacije danega pravokotnika na manjše pravokotnike, pri čemer je ploščina sorazmerna vrednostim oz. deležem. Pravokotniki se lahko dodatno hierarhično segmentirajo."
       ],
       "Country Field Type": ["Tip polja za države"],
       "The country code standard that Superset should expect to find in the [country] column": [
@@ -3704,6 +4279,10 @@
       ],
       "Bubble Color": ["Barva mehurčka"],
       "Country Color Scheme": ["Barvna shema držav"],
+      "A map of the world, that can indicate values in different countries.": [
+        "Zemljevid sveta, ki lahko prikazuje vrednosti po državah."
+      ],
+      "Multi-Dimensions": ["Večdimenzionalni"],
       "Big Number Font Size": ["Velikost pisave Velike številke"],
       "Tiny": ["Drobna"],
       "Normal": ["Normalna"],
@@ -3728,6 +4307,11 @@
       "Suffix to apply after the percentage display": [
         "Pripona za prikaz procenta"
       ],
+      "Timestamp format": ["Oblika zapisa časovne značke"],
+      "Show Timestamp": ["Prikaži časovno značko"],
+      "Whether to display the timestamp": [
+        "Če želite prikazati časovno značko"
+      ],
       "Show Trend Line": ["Pokaži trendno črto"],
       "Whether to display the trend line": ["Če želite prikazati trendno črto"],
       "Start y-axis at 0": ["Začni y-os z 0"],
@@ -3738,10 +4322,26 @@
       "Fix the trend line to the full time range specified in case filtered results do not include the start or end dates": [
         "Trendno črto nastavite na izbrano obdobje, v primeru, da filtrirani rezultati ne vsebujejo začetnega in/ali končnega datuma"
       ],
+      "KPI": ["KPI"],
+      "Showcases a single number accompanied by a simple line chart, to call attention to an important metric along with its change over time or other dimension.": [
+        "Prikaže eno vrednost skupaj s preprostim črtnim grafikonom, za poudarek pomembne mere skupaj z njeno časovno spremembo."
+      ],
+      "Formattable": ["Prilagodljiv"],
+      "Line": ["Črta"],
       "Subheader": ["Podnaslov"],
       "Description text that shows up below your Big Number": [
         "Besedilo, ki se prikaže pod veliko številko"
       ],
+      "Timestamp Format": ["Oblika časovne značke"],
+      "Whether to format the timestamp": [
+        "Če želite oblikovati časovno značko"
+      ],
+      "Showcases a single metric front-and-center. Big number is best used to call attention to a KPI or the one thing you want your audience to focus on.": [
+        "Prikaže eno vrednost. Velika številka je primerna za poudarek KPI-ja ali vrednosti, na katero želite usmeriti pozornost."
+      ],
+      "A Big Number": ["Velika številka"],
+      "With a subheader": ["S podnaslovom"],
+      "Additive": ["Aditivno"],
       "Right Axis Format": ["Oblika desne osi"],
       "Show Markers": ["Prikaži markerje"],
       "Show data points as circle markers on the lines": [
@@ -3793,11 +4393,29 @@
         "Skupaj s filtriranjem časovnega obdobja ne morete uporabiti oznak pod 45° kotom"
       ],
       "Stacked Style": ["Slog nalaganja"],
+      "Evolution": ["Evolucija"],
+      "A time series chart that visualizes how a related metric from multiple groups vary over time. Each group is visualized using a different color.": [
+        "Grafikon časovne vrste, ki prikaže kako se povezane mere skupin spreminjajo skozi čas. Vsaka skupina je prikazana s svojo barvo."
+      ],
+      "Stretched style": ["Raztegnjen slog"],
+      "Stacked style": ["Naložen slog"],
+      "Video game consoles": ["Igralne konzole"],
+      "Vehicle Types": ["Vrste vozil"],
       "Area Chart": ["Ploščinski grafikon"],
+      "Continuous": ["Zvezno"],
+      "nvd3": ["nvd3"],
+      "Deprecated": ["Zastarelo"],
+      "Visualize how a metric changes over time using bars. Add a group by column to visualize group level metrics and how they change over time.": [
+        "Prikaže spreminjanje mere skozi čas s pomočjo stolpcev. Z dodajanjem stolpcev za združevanje prikaže mere skupin in njihovo spreminjanje."
+      ],
       "Time-series Bar Chart": ["Stolpčni grafikon za časovno vrsto"],
+      "Vertical": ["Navpično"],
       "Box Plot": ["Box Plot"],
       "X Log Scale": ["Logaritemska X-os"],
       "Use a log scale for the X-axis": ["Uporabi logaritemsko skalo za X-os"],
+      "Visualizes a metric across three dimensions of data in a single chart (X axis, Y axis, and bubble size). Bubbles from the same group can be showcased using bubble color.": [
+        "Prikaže mero v treh dimenzijah podatkov na istem grafikonu (x os, y os, velikost mehurčka). Mehurčki v isti skupini so predstavljeni z barvo."
+      ],
       "Ranges": ["Razponi"],
       "Ranges to highlight with shading": ["Razponi za označitev s senčenjem"],
       "Range labels": ["Oznake razponov"],
@@ -3814,8 +4432,11 @@
       ],
       "Marker line labels": ["Oznake markirnih črtic"],
       "Labels for the marker lines": ["Oznake za markirne črtice"],
-      "A line chart component where you can compare the % change over time": [
-        "Komponenta grafikona, kjer lahko primerjate % cpremembo skozi čas"
+      "Showcases the progress of a single metric against a given target. The higher the fill, the closer the metric is to the target.": [
+        "Prikaže napredovanje posamezne mere glede na cilj. Večja napolnjenost, pomeni, da je mera bližje cilju."
+      ],
+      "Visualizes many different time-series objects in a single chart. This chart is being deprecated and we recommend using the Time-series Chart instead.": [
+        "Prikaže več različnih časovnih vrst na istem grafikonu. Grafikon se opušča, zato priporočamo uporabo Grafikona časovne vrste."
       ],
       "Time-series Percent Change": ["Časovna vrsta - Procentualna sprememba"],
       "Sort Bars": ["Uredi stolpce"],
@@ -3824,20 +4445,28 @@
       "Defines how each series is broken down": [
         "Določa, kako se vsaka podatkovna serija razčleni"
       ],
-      "A bar chart where the x axis is time": [
-        "Stolpčni grafikon, kjer je na x-osi čas"
+      "Compares metrics from different categories using bars. Bar lengths are used to indicate the magnitude of each value and color is used to differentiate groups.": [
+        "Primerjava mer različnih kategorij s pomočjo stolpcev. Dolžina stolpca prestavlja višino vrednosti, z barvami pa so ločene skupine."
       ],
       "Bar Chart": ["Stolpčni grafikon"],
+      "Discrete": ["Diskretno"],
       "Y Axis 1": ["Y-os 1"],
       "Y Axis 2": ["Y-os 2"],
       "Left Axis Metric": ["Mera za levo os"],
       "Choose a metric for left axis": ["Izberite mero za levo os"],
       "Left Axis Format": ["Oblika leve osi"],
+      "Visualizes 2 metrics as line plots using the same x-axis. This chart is useful for comparing metrics across the same time range.": [
+        "Prikaže dve meri na črtnem grafu z isto x-osjo. Grafikon je uporaben za primerjavo mer v istem časovnem obdobju."
+      ],
       "Dual Line Chart": ["Grafikon z dvojno krivuljo"],
       "Propagate": ["Razširi"],
       "Send range filter events to other charts": [
         "Pošlji dogodke filtra obdobja na druge grafikone"
       ],
+      "Classic chart that visualizes how metrics change over time.": [
+        "Standardni grafikon za prikaz spreminjanje mere skozi čas."
+      ],
+      "Battery level over time": ["Napolnjenost baterije skozi čas"],
       "Line Chart": ["Črtni grafikon"],
       "Prefix metric name with slice name": ["Imenu mere pripni ime rezine"],
       "Y Axis Left": ["Y-os levo"],
@@ -3851,6 +4480,9 @@
       "Right Axis chart(s)": ["Grafikoni desne osi"],
       "Choose one or more charts for right axis": [
         "Izberite enega ali več grafikonov za desno os"
+      ],
+      "Visualize two different time series using the same x-axis time range. This chart is being deprecated and we recommend using the Mixed Timeseries Chart instead!": [
+        "Prikaže dve različni časovni vrsti z isto x-osjo oz. časovnim obdobjem. Grafikon se opušča, zato priporočamo uporabo kombiniranega grafikona časovne vrste!"
       ],
       "Multiple Line Charts": ["Veččrtni grafikon"],
       "Label Type": ["Oblika oznake"],
@@ -3876,12 +4508,30 @@
       "Margin": ["Rob"],
       "Additional padding for legend.": ["Dodatni razmak za legendo."],
       "Legend type": ["Tip legende"],
+      "Show Value": ["Prikaži vrednost"],
+      "Show series values on the chart": [
+        "Na grafikonu prikaži vrednosti serij"
+      ],
+      "Stack series": ["Nalagaj serije"],
+      "Stack series on top of each other": ["Nalagaj serije eno na drugo"],
+      "Only Total": ["Samo vsota"],
+      "Only show the total value on the stacked chart, and not show on the selected category": [
+        "Na naloženem grafikonu prikaži samo skupno vsoto, za izbrane kategorije pa ne"
+      ],
+      "Rich tooltip": ["Podroben opis orodja"],
+      "Shows a list of all series available at that point in time": [
+        "Prikaže seznam vseh razpoložljivih podatkovnih serij za istočasno točko"
+      ],
+      "Tooltip time format": ["Oblika zapisa časa v opisu orodja"],
+      "Tooltip sort by metric": ["Mera za razvrščanje opisa orodja"],
+      "Whether to sort tooltip by the selected metric in descending order.": [
+        "Če želite padajoče razvrstiti opis orodja z izbrano mero."
+      ],
+      "Tooltip": ["Opis orodja"],
       "Whisker/outlier options": ["Možnosti grafikona kvantilov"],
       "Determines how whiskers and outliers are calculated.": [
         "Določa kako so izračunani kvantili in izstopajoče vrednosti."
       ],
-      "Enable emitting filters": ["Omogoči oddajanje filtrov"],
-      "Enable emmiting filters.": ["Omogoči oddajanje filtrov."],
       "Categories to group by on the x-axis.": [
         "Kategorije za združevanje po x-osi."
       ],
@@ -3889,9 +4539,16 @@
       "Columns to calculate distribution across. Defaults to temporal column if left empty.": [
         "Stolpci za izračun porazdelitve. Privzeto je izbran časovni stolpec (če je prazno)."
       ],
+      "Also known as a box and whisker plot, this visualization compares the distributions of a related metric across multiple groups. The box in the middle emphasizes the mean, median, and inner 2 quartiles. The whiskers around each box visualize the min, max, range, and outer 2 quartiles.": [
+        "Znan tudi kot grafikon škatla z brki. prikaže primerjavo porazdelitev povezanih mer v različnih skupinah. Škatla na sredini predstavlja povprečje, mediano in notranja 2 kvartila. Brki na vsaki škatli prikazujejo minimum, maksimum, območje in zunanja dva kvartila."
+      ],
       "Labels": ["Oznake"],
       "Whether to display the labels.": ["Če želite prikaz oznak."],
+      "Showcases how a metric changes as the funnel progresses. This classic chart is useful for visualizing drop-off between stages in a pipeline or lifecycle.": [
+        "Prikaže kako se mera spreminja, ko lijak napreduje. Standardni grafikon za prikaz sprememb med nivoji v procesu ali življenjskem ciklu."
+      ],
       "Funnel Chart": ["Lijakasti grafikon"],
+      "Sequential": ["Sekvenčni"],
       "Columns to group by": ["Stolpci za združevanje"],
       "General": ["Splošno"],
       "Minimum value on the gauge axis": ["Najmanjša vrednost na številčnici"],
@@ -3951,6 +4608,9 @@
       "Comma-separated color picks for the intervals, e.g. 1,2,4. Integers denote colors from the chosen color scheme and are 1-indexed. Length must be matching that of interval bounds.": [
         "Z vejico ločene barve za intervale, npr. 1,2,4. Cela števila predstavljajo barve iz barvne sheme (začnejo se z 1). Dolžina mora ustrezati mejam intervala."
       ],
+      "Uses a gauge to showcase progress of a metric towards a target. The position of the dial represents the progress and the terminal value in the gauge represents the target value.": [
+        "Uporablja števec za prikaz napredovanja mere k ciljni vrednosti. Položaj kazalca predstavlja napredek, končna vrednost na števcu pa ciljno vrednost."
+      ],
       "Gauge Chart": ["Števčni grafikon"],
       "Name of the source nodes": ["Imena izvornih vozlišč"],
       "Name of the target nodes": ["Imena ciljnih vozlišč"],
@@ -3964,7 +4624,6 @@
       "Layout": ["Izgled"],
       "Graph layout": ["Izgled grafikona"],
       "Force": ["Sila"],
-      "Circular": ["Krožno"],
       "Layout type of graph": ["Tip izgleda grafikona"],
       "Edge symbols": ["Simboli povezav"],
       "Symbol of two ends of edge line": ["Simbol za konca povezave"],
@@ -4010,13 +4669,15 @@
       "Repulsion strength between nodes": ["Odbojna sila med vozlišči"],
       "Friction": ["Trenje"],
       "Friction between nodes": ["Trenje med vozlišči"],
+      "Displays connections between entities in a graph structure. Useful for mapping relationships and showing which nodes are important in a network. Graph charts can be configured to be force-directed or circulate. If your data has a geospatial component, try the deck.gl Arc chart.": [
+        "Prikaže povezave med entitetami v strukturi grafa. Uporabno za prikaz razmerij in pomembnih točk v omrežju. Grafikon je lahko krožnega tipa ali z usmerjenimi silami. Če imajo podatki geoprostorsko komponento, poskusite grafikon decl.gl - Arc."
+      ],
       "Graph Chart": ["Graf"],
+      "Structural": ["Strukturni"],
       "Series type": ["Tip serije"],
       "Series chart type (line, bar etc)": [
         "Tip grafikona za posamezno podatkovno serijo (črtni, stolpčni, ...)"
       ],
-      "Stack series": ["Nalagaj serije"],
-      "Stack series on top of each other": ["Nalagaj serije eno na drugo"],
       "Area chart": ["Ploščinski grafikon"],
       "Draw area under curves. Only applicable for line types.": [
         "Izriši površino pod krivuljo. Samo za črtne grafikone."
@@ -4039,16 +4700,9 @@
       "Enable data zooming controls": [
         "Omogoči kontrolnik za povečavo podatkov"
       ],
-      "Show Min Label": ["Pokaži oznako Min"],
-      "Show Max Label": ["Pokaži oznako Max"],
       "Rotate x axis label": ["Zavrti oznako x-osi"],
       "Input field supports custom rotation. e.g. 30 for 30°": [
         "Vnosno polje omogoča poljubno rotacijo (vnesite 30 za 30°)"
-      ],
-      "Tooltip": ["Opis orodja"],
-      "Rich tooltip": ["Podroben opis orodja"],
-      "Shows a list of all series available at that point in time": [
-        "Prikaže seznam vseh razpoložljivih podatkovnih serij za istočasno točko"
       ],
       "Minor Split Line": ["Manjša ločilna črta"],
       "Draw split lines for minor y-axis ticks": [
@@ -4056,11 +4710,9 @@
       ],
       "Truncate Y Axis": ["Prireži Y-os"],
       "Truncate Y Axis. Can be overridden by specifying a min or max bound.": [
-        "Prireži Y-os. Preprečite, tako da določite spodnjo in zgornjo mejo."
+        "Prireži Y-os. Če določite spodnjo ali zgornjo mejo, preprečite prirezovanje."
       ],
       "Primary y-axis format": ["Oblika primarne y-osi"],
-      "Primary y-axis title": ["Naslov primarne y-osi"],
-      "Title for y-axis": ["Naslov y-osi"],
       "Logarithmic y-axis": ["Logaritemska y-os"],
       "Logarithmic scale on primary y-axis": [
         "Logaritemska skala na primarni y-osi"
@@ -4070,7 +4722,10 @@
       "Logarithmic scale on secondary y-axis": [
         "Logaritemska skala na sekundarni y-osi"
       ],
-      "Mixed timeseries chart": ["Kombinirani grafikon časovne vrste"],
+      "Visualize two different time series using the same x-axis time range. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).": [
+        "Prikaže dve različni časovni vrsti na isti x-osi. Časovni vrsti sta lahko prikazani različno (npr. ena s stolpci in druga s črto)."
+      ],
+      "Mixed Time-Series": ["Kombiniran grafikon časovne vrste"],
       "Percentage threshold": ["Procentualni prag"],
       "Minimum threshold in percentage points for showing labels.": [
         "Minimalni prag v odstotnih točkah za prikaz oznak."
@@ -4085,6 +4740,9 @@
       "Outer edge of Pie chart": ["Zunanji rob tortnega grafikona"],
       "Inner Radius": ["Notranji polmer"],
       "Inner radius of donut hole": ["Notranji polmer kolobarja"],
+      "The classic. Great for showing how much of a company each investor gets, what demographics follow your blog, or what portion of the budget goes to the military industrial complex.\r\n\r\n        Pie charts can be difficult to interpret precisely. If clarity of relative proportion is important, consider using a bar or other chart type instead.": [
+        "Standardni grafikon za prikaz deležev. Tortne grafikone je težje natančno interpretirati, takrat lahko uporabite npr. stolpčni grafikon."
+      ],
       "The maximum value of metrics. It is an optional configuration": [
         "Največja vrednost mere. To je opcijska nastavitev"
       ],
@@ -4098,30 +4756,14 @@
       "Radar render type, whether to display 'circle' shape.": [
         "Način prikaza radarja - če se prikaže okrogla oblika."
       ],
+      "Visualize a parallel set of metrics across multiple groups. Each group is visualized using its own line of points and each metric is represented as an edge in the chart.": [
+        "Prikaže vzporedni nabor mer za različne skupine. Vsaka skupina je prikazana s svojim naborom točk in vsaka mera s povezavo na grafikonu."
+      ],
       "Radar Chart": ["Radarski grafikon"],
+      "Web": ["Mreža"],
       "Contribution Mode": ["Način deležev"],
       "Calculate contribution per series or total": [
         "Izračunaj delež za podatkovno serijo ali skupnega"
-      ],
-      "Predictive Analytics": ["Prediktivna analitika"],
-      "Enable forecast": ["Omogoči napoved"],
-      "Enable forecasting": ["Omogoči napovedovanje"],
-      "Forecast periods": ["Obdobja napovedi"],
-      "How many periods into the future do we want to predict": [
-        "Za koliko period v prihodnosti želite napoved"
-      ],
-      "Confidence interval": ["Interval zaupanja"],
-      "Width of the confidence interval. Should be between 0 and 1": [
-        "Širina intervala zaupanja. Mora bit med 0 in 1"
-      ],
-      "Should yearly seasonality be applied. An integer value will specify Fourier order of seasonality.": [
-        "Če želite letno sezonskost. Celo število določa Fourier-jev red sezonskosti."
-      ],
-      "Should weekly seasonality be applied. An integer value will specify Fourier order of seasonality.": [
-        "Če želite tedensko sezonskost. Celo število določa Fourier-jev red sezonskosti."
-      ],
-      "Should daily seasonality be applied. An integer value will specify Fourier order of seasonality.": [
-        "Če želite dnevno sezonskost. Celo število določa Fourier-jev red sezonskosti."
       ],
       "Series Style": ["Slog serije"],
       "Area chart opacity": ["Prosojnost ploščinskega grafikona"],
@@ -4129,8 +4771,42 @@
         "Prosojnost ploščinskega grafikona. Upošteva se tudi za interval zaupanja."
       ],
       "Marker Size": ["Velikost markerja"],
-      "Tooltip time format": ["Oblika zapisa časa v opisu orodja"],
+      "Swiss army knife for visualizing time series data. Choose between  step, line, scatter, and bar charts. This viz type has many customization options as well.": [
+        "Univerzalni grafikon za prikaz časovnih vrst. Izbirajte med stopničnimi, črtnimi, raztresenimi in stolpčnimi grafikoni. Grafikon ima širok nabor prilagoditev."
+      ],
       "Time-series Chart": ["Grafikon časovne vrste"],
+      "Time-series Area chart are similar to line chart in that they represent variables with the same scale, but area charts stack the metrics on top of each other. An area chart in Superset can be stream, stack, or expand.": [
+        "Ploščinski grafikoni časovne vrste so podobni črtnim grafikonom, saj predstavljajo spremenljivke v istem razmerju, vendar se pri ploščinskih grafikonih mere nalagajo ena na drugo."
+      ],
+      "Time-series Area Chart": ["Ploščinski grafikon časovne vrste"],
+      "It’s not recommended to truncate y-axis in Bar chart.": [
+        "V stolpčnem grafikonu ni priporočljivo omejiti y-osi."
+      ],
+      "Time-series Bar Charts are used to show the changes in a metric over time as a series of bars.": [
+        "Stolpčni grafikoni časovne vrste se uporabljajo za prikaz sprememb mere skozi čas s pomočjo niza stolpcev."
+      ],
+      "Time-series Bar Chart v2": ["Stolpčni grafikon časovne vrste v2"],
+      "Bar": ["Stolpec"],
+      "Time-series line chart is used to visualize repeated measurements taken over regular time intervals. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.": [
+        "Črtni grafikon časovne vrste je osnovni grafikon, ki se uporablja na različnih področjih. Uporablja se za vizualizacijo meritev zajetih skozi čas. Posamezne točke so med seboj povezane z ravnimi črtami."
+      ],
+      "Time-series Line Chart": ["Črtni grafikon časovne vrste"],
+      "Time-series Scatter Plot has time on the horizontal axis in linear units, and the points are connected in order. It shows a statistical relationship between two variables.": [
+        "Raztreseni grafikon časovne vrste prikazuje podatkovne točke v povezanem redu in prikazuje statistično razmerje med spremenljivkami."
+      ],
+      "Time-series Scatter Plot": ["Raztreseni grafikon časovne vrste"],
+      "Time-series Smooth-line is a variation of line chart. Without angles and hard edges, Smooth-line looks more smarter and more professional.": [
+        "Zglajeni grafikon časovne vrste je izpeljanka črtnega grafikona, ki zgladi ostre robove krivulje."
+      ],
+      "Time-series Smooth Line": ["Zglajeni črtni grafikon časovne vrste"],
+      "Step type": ["Stopnični tip"],
+      "Defines whether the step should appear at the beginning, middle or end between two data points": [
+        "Določa, če se na začetku, na sredini ali na koncu pojavi stopnica med dvema točkama"
+      ],
+      "Time-series Stepped-line graph (also called step chart) is a variation of line chart but with the line forming a series of steps between data points. A step chart can be useful when you want to show the changes that occur at irregular intervals.": [
+        "Stopnični grafikon časovne vrste je izpeljanka črtnega grafikona, pri čemer krivuljo tvorijo stopnice med posameznimi točkami. Koristen je za prikaz sprememb na posameznih intervalih."
+      ],
+      "Time-series Stepped Line": ["Stopnični črtni grafikon časovne vrste"],
       "Id": ["Id"],
       "Name of the id column": ["Naziv id-stolpca"],
       "Parent": ["Nadrejeni"],
@@ -4181,46 +4857,54 @@
       "Arrow": ["Puščica"],
       "Symbol size": ["Velikost simbola"],
       "Size of edge symbols": ["Velikost simbola povezave"],
+      "Visualize multiple levels of hierarchy using a familiar tree-like structure.": [
+        "Prikaz več hierarhičnih nivojev z drevesno strukturo."
+      ],
       "Tree Chart": ["Drevesni grafikon"],
       "Show Upper Labels": ["Prikaži zgornje oznake"],
       "Show labels when the node has children.": [
         "Prikaži oznake, ko ima vozlišče podrejene elemente."
       ],
+      "Show hierarchical relationships of data, with with the value represented by area, showing proportion and contribution to the whole.": [
+        "Prikaže hierarhična razmerja podatkov, pri čemer je vrednost ponazorjena s ploščino, in deleže oz. prispevke k celoti."
+      ],
       "Treemap v2": ["Drevesni grafikon s pravokotniki v2"],
       "Columns to group by on the rows": ["Stolpci za združevanje vrstic"],
       "Columns to group by on the columns": ["Stolpci za združevanje stolpcev"],
+      "Apply metrics on": ["Uporabi mero na"],
+      "Use metrics as a top level group for columns or for rows": [
+        "Uporabi mere kot vrhovni nivo grupiranja za stolpce ali vrstice"
+      ],
+      "Show rows total": ["Prikaži vsoto vrstic"],
+      "Display row level total": ["Prikaži vsote na nivoju vrstic"],
+      "Show columns total": ["Prikaži vsoto stolpcev"],
+      "Display column level total": ["Prikaži vsote na nivoju stolpcev"],
       "Transpose pivot": ["Transponirano vrtenje"],
       "Swap rows and columns": ["Zamenjaj vrstice in stolpce"],
-      "Pivot table type": ["Tip vrtilne tabele"],
-      "Table Heatmap": ["Barvanje tabele"],
-      "Table Col Heatmap": ["Barvanje stolpcev tabele"],
-      "Table Row Heatmap": ["Barvanje vrstic tabele"],
-      "Table Barchart": ["Stolpčni grafi po tabeli"],
-      "Table Col Barchart": ["Stolpčni grafi po stolpcih"],
-      "Table Row Barchart": ["Stolpčni grafi po vrsticah"],
-      "The type of pivot table visualization": [
-        "Način za vizualizacijo vrtilne tabele"
+      "Combine metrics": ["Združuj mere"],
+      "D3 time format for datetime columns": [
+        "D3 oblika zapisa za časovne stolpce"
       ],
-      "Rows sort by": ["Razvrsti vrst."],
+      "Rows sort by": ["Razvrsti vrstice"],
       "key a-z": ["a - ž"],
       "key z-a": ["ž - a"],
       "value ascending": ["0 - 9"],
       "value descending": ["9 - 0"],
       "Order of rows": ["Vrstni red vrstic"],
-      "Cols sort by": ["Razvrsti stolp."],
+      "Cols sort by": ["Razvrsti stolpce"],
       "Order of columns": ["Vrstni red stolpcev"],
-      "Rows subtotals position": ["Položaj vsot vrstic"],
+      "Rows subtotal position": ["Položaj vsot vrstic"],
       "Top": ["Zgoraj"],
       "Bottom": ["Spodaj"],
-      "Position of row level subtotals": ["Položaj vsot na nivoju vrstic"],
-      "Cols subtotals position": ["Položaj vsot stolp."],
-      "Position of column level subtotals": ["Položaj vsot na nivoju stolpcev"],
-      "Show rows totals": ["Prikaži vsoto vrstic"],
-      "Display row level totals": ["Prikaže vsoto vseh vrstic"],
-      "Show cols totals": ["Prik. vsoto stolpcev"],
-      "Display column level totals": ["Prikaže vsoto vseh stolpcev"],
-      "Whether to apply filter to dashboards when table cells are clicked": [
-        "Če želite uporabiti filter na nadzorni plošči, ko kliknete na celico v tabeli"
+      "Position of row level subtotal": ["Položaj vsot na nivoju vrstic"],
+      "Cols subtotal position": ["Položaj vsot stolpcev"],
+      "Position of column level subtotal": ["Položaj vsot na nivoju stolpcev"],
+      "Conditional formatting": ["Pogojno oblikovanje"],
+      "Apply conditional color formatting to metrics": [
+        "Za mere uporabi pogojno oblikovanje z barvami"
+      ],
+      "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location. Not the most visually stunning visualization, but highly informative and versatile.": [
+        "Ponazori podatke na podlagi združevanja več statistik vzdolž dveh osi. Npr. prodaja po regijah in mesecih, opravila po statusih in izvajalcih, itd."
       ],
       "Pivot Table v2": ["Vrtilna tabela v2"],
       "search.num_records": ["search.num_records"],
@@ -4241,7 +4925,7 @@
       "Order results by selected columns": [
         "Razvrsti rezultate glede na izbrani stolpec"
       ],
-      "Server pagination": ["Številčenje strani strežnika"],
+      "Server pagination": ["Paginacija na strani strežnika"],
       "Enable server side pagination of results (experimental feature)": [
         "Omogoči številčenje strani rezultatov na strani strežnika (preizkusna funkcija)"
       ],
@@ -4256,10 +4940,6 @@
       "Show total aggregations of selected metrics. Note that row limit does not apply to the result.": [
         "Prikaži skupno agregacijo izbrane mere. Omejitev števila vrstic ne vpliva na rezultat."
       ],
-      "Timestamp format": ["Oblika zapisa časovne značke"],
-      "D3 time format for datetime columns": [
-        "D3 oblika zapisa za časovne stolpce"
-      ],
       "Page length": ["Dolžina strani"],
       "Search box": ["Iskalno polje"],
       "Whether to include a client-side search box": [
@@ -4272,6 +4952,12 @@
       "Customize columns": ["Prilagodi stolpce"],
       "Further customize how to display each column": [
         "Dodatne prilagoditve prikaza posameznih stolpcev"
+      ],
+      "Apply conditional color formatting to numeric columns": [
+        "Za numerične stolpce uporabi pogojno oblikovanje z barvami"
+      ],
+      "Classic row-by-column spreadsheet like view of a dataset. Use tables to showcase a view into the underlying data or to show aggregated metrics.": [
+        "Standardna razpredelnica za prikaz podatkovnega seta."
       ],
       "Word Cloud": ["Oblak besed"],
       "Minimum Font Size": ["Min. velikost pisave"],
@@ -4286,18 +4972,24 @@
       "Rotation to apply to words in the cloud": [
         "Če želite vrtenje besed v oblaku"
       ],
+      "Visualizes the words in a column that appear the most often. Bigger font corresponds to higher frequency.": [
+        "Prikaže besede v stolpcu, glede na pogostost pojavljanja. Večja pisava pomeni večjo frekvenco."
+      ],
       "Scatter Plot": ["Raztreseni grafikon"],
       "Hide Mini Map": ["Skrij majhen zemljevid"],
       "Show Mini Map": ["Prikaži majhen zemljevid"],
       "Choropleth Map": ["Koroplet zemljevid"],
       "ChoroplethMap": ["ChoroplethMap"],
       "Icicle Event Chart": ["Grafikon Icicle dogodkov"],
-      "Map": ["Zemljevid"],
       "deck.gl charts": ["grafikoni deck.gl"],
       "Pick a set of deck.gl charts to layer on top of one another": [
         "Izberite nabor deck.gl grafikonov, ki bodo nanizani en na drugem"
       ],
+      "Compose multiple layers together to form complex visuals.": [
+        "Združi več plasti za oblikovanje kompleksnih vizualizacij."
+      ],
       "deck.gl Multiple Layers": ["deck.gl - Večplastni grafikon"],
+      "deckGL": ["deckGL"],
       "Data has no time steps": ["Podatki nimajo časovnih korakov"],
       "Start Longitude & Latitude": ["Začetna Dolž. in Širina"],
       "Point to your spatial columns": [
@@ -4312,17 +5004,37 @@
         "Izberite dimenzijo, ki bo določala kategorične barve"
       ],
       "Stroke Width": ["Debelina obrobe"],
+      "Plot the distance (like flight paths) between origin and destination.": [
+        "Izriši razdalje (kot letalske koridorje) med izhodiščem in ciljem."
+      ],
       "deck.gl Arc": ["deck.gl - Lok"],
+      "3D": ["3D"],
       "GeoJson Settings": ["GeoJson nastavitve"],
       "Point Radius Scale": ["Skaliranje radija točk"],
+      "The GeoJsonLayer takes in GeoJSON formatted data and renders it as interactive polygons, lines and points (circles, icons and/or texts).": [
+        "GeoJsonLayer uporablja podatke v formatu GeoJSON in jih izriše kot interaktivne poligone, črte in točke (krogi, ikone in/ali besedila)."
+      ],
       "deck.gl Geojson": ["deck.gl - GeoJSON"],
       "Metric used to control height": ["Mera za določanje višine"],
+      "Visualize geospatial data like 3D buildings, landscapes, or objects in grid view.": [
+        "Prikaz geoprostorskih podatkov kot so 3D zgradbe, parcele ali objekti v mrežnem pogledu."
+      ],
       "deck.gl Grid": ["deck.gl - Mreža"],
+      "Dynamic Aggregation Function": ["Dinamična agregacijska funkcija"],
+      "The function to use when aggregating points into groups": [
+        "Funkcija za agregacijo točk v skupine"
+      ],
+      "Overlays a hexagonal grid on a map, and aggregates data within the boundary of each cell.": [
+        "Prikaže šestkotno mrežo na zemljevidu in agregira podatke znotraj meja vsake celice."
+      ],
       "deck.gl 3D Hexagon": ["deck.gl - 3D HEX"],
+      "Visualizes connected points, which form a path, on a map.": [
+        "Na zemljevidu prikaže povezane točke, ki tvorijo pot."
+      ],
       "deck.gl Path": ["deck.gl - Poti"],
       "Polygon Column": ["Stolpec poligonov"],
       "Polygon Encoding": ["Kodiranje poligonov"],
-      "Elevation": ["Dvig"],
+      "Elevation": ["Višina"],
       "Polygon Settings": ["Nastavitve poligonov"],
       "Opacity, expects values between 0 and 100": [
         "Prosojnost, vnesite vrednosti med 0 in 100"
@@ -4345,6 +5057,9 @@
       "Allow sending multiple polygons as a filter event": [
         "Dovoli pošiljanje več poligonov kot dogodek filtra"
       ],
+      "Visualizes geographic areas from your data as polygons on a Mapbox rendered map. Polygons can be colored using a metric.": [
+        "Prikaže geografsko območje kot poligone na zemljevidu zagotovljenim preko storitve Mapbox. Poligoni so lahko obarvani glede na mero."
+      ],
       "deck.gl Polygon": ["deck.gl - Poligon"],
       "Point Size": ["Velikost točke"],
       "Point Unit": ["Enota točke"],
@@ -4357,11 +5072,17 @@
         "Maksimalni polmer kroga v pikslih. S tem je določen max. polmer kroga, ko se spreminja stopnja povečave."
       ],
       "Point Color": ["Barva točke"],
+      "A map that takes rendering circles with a variable radius at latitude/longitude coordinates": [
+        "Zemljevid, ki na zemljepisnih koordinatah prikazuje kroge s spremenljivim polmerom"
+      ],
       "deck.gl Scatterplot": ["deck.gl - Raztreseni grafikon"],
       "Grid": ["Mreža"],
       "Weight": ["Utež"],
       "Metric used as a weight for the grid's coloring": [
         "Mera, ki služi kot utež za barvo mreže"
+      ],
+      "Aggregates data within the boundary of grid cells and maps the aggregated values to a dynamic color scale": [
+        "Agregira podatke znotraj meja celic in agregiranim vrednostim pripiše barvno lestvico"
       ],
       "deck.gl Screen Grid": ["deck.gl - Mreža"],
       "For more information about objects are in context in the scope of this function, refer to the": [
@@ -4440,7 +5161,7 @@
       "Your user information": ["Vaše uporabniške informacije"],
       "User info": ["Informacije o uporabniku"],
       "User Name": ["Uporabniško ime"],
-      "Is Active?": ["Je aktiven?"],
+      "Is Active?": ["Aktiven?"],
       "Login count": ["Število prijav"],
       "Personal Info": ["Osebne informacije"],
       "First Name": ["Ime"],
@@ -4449,7 +5170,7 @@
       "Audit Info": ["Revizijske informacije"],
       "Last login": ["Zadnja prijava"],
       "Failed login count": ["Število neuspešnih prijav"],
-      "Changed by": ["Spremenil/a"],
+      "Changed by": ["Spremenil"],
       "Reset Password": ["Ponastavi geslo"],
       "Show User": ["Prikaži uporabnika"],
       "Username valid for authentication on DB or LDAP, unused for OID auth": [

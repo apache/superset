@@ -16,7 +16,7 @@
 # under the License.
 """adding_business_type.py
 Revision ID: 6f139c533bea
-Revises: 0ca9e5f1dacd
+Revises: aea15018d53b
 Create Date: 2021-05-27 16:10:59.567684
 """
 
@@ -25,14 +25,26 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "6f139c533bea"
-down_revision = "0ca9e5f1dacd"
+down_revision = "aea15018d53b"
 
 
 def upgrade():
     with op.batch_alter_table("table_columns") as batch_op:
-        batch_op.add_column(sa.Column("business_type", sa.VARCHAR(255), nullable=True,))
+        batch_op.add_column(
+            sa.Column(
+                "business_type",
+                sa.VARCHAR(255),
+                nullable=True,
+            )
+        )
     with op.batch_alter_table("columns") as batch_op:
-        batch_op.add_column(sa.Column("business_type", sa.VARCHAR(255), nullable=True,))
+        batch_op.add_column(
+            sa.Column(
+                "business_type",
+                sa.VARCHAR(255),
+                nullable=True,
+            )
+        )
 
 
 def downgrade():

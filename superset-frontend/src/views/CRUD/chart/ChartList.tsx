@@ -58,6 +58,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 import setupPlugins from 'src/setup/setupPlugins';
+import CertifiedIcon from 'src/components/CertifiedIcon';
 import ChartCard from './ChartCard';
 
 const PAGE_SIZE = 25;
@@ -182,7 +183,7 @@ function ChartList(props: ChartListProps) {
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport =
-    hasPerm('can_read') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
+    hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
   const handleBulkChartExport = (chartsToExport: Chart[]) => {
@@ -230,17 +231,30 @@ function ChartList(props: ChartListProps) {
               Header: '',
               id: 'id',
               disableSortBy: true,
-              size: 'xs',
+              size: 'sm',
             },
           ]
         : []),
       {
         Cell: ({
           row: {
-            original: { url, slice_name: sliceName },
+            original: {
+              url,
+              slice_name: sliceName,
+              certified_by: certifiedBy,
+              certification_details: certificationDetails,
+            },
           },
         }: any) => (
           <a href={url} data-test={`${sliceName}-list-chart-title`}>
+            {certifiedBy && (
+              <>
+                <CertifiedIcon
+                  certifiedBy={certifiedBy}
+                  details={certificationDetails}
+                />{' '}
+              </>
+            )}
             {sliceName}
           </a>
         ),
@@ -512,6 +526,18 @@ function ChartList(props: ChartListProps) {
         paginate: true,
       },
       ...(props.user.userId ? [favoritesFilter] : []),
+      {
+        Header: t('Certified'),
+        id: 'id',
+        urlDisplay: 'certified',
+        input: 'select',
+        operator: FilterOperator.chartIsCertified,
+        unfilteredLabel: t('Any'),
+        selects: [
+          { label: t('Yes'), value: true },
+          { label: t('No'), value: false },
+        ],
+      },
       {
         Header: t('Search'),
         id: 'slice_name',

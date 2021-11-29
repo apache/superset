@@ -15,7 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=too-many-lines
-from typing import Any, Dict
+from __future__ import annotations
+
+from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as _
 from marshmallow import EXCLUDE, fields, post_load, Schema, validate
@@ -24,7 +26,6 @@ from marshmallow_enum import EnumField
 
 from superset import app
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
-from superset.common.query_context import QueryContext
 from superset.db_engine_specs.base import builtin_time_grains
 from superset.utils import schema as utils
 from superset.utils.core import (
@@ -34,6 +35,10 @@ from superset.utils.core import (
     PostProcessingContributionOrientation,
     TimeRangeEndpoint,
 )
+
+if TYPE_CHECKING:
+    from superset.common.query_context import QueryContext
+    from superset.common.query_context_factory import QueryContextFactory
 
 config = app.config
 
@@ -113,6 +118,8 @@ form_data_description = (
 )
 description_markeddown_description = "Sanitized HTML version of the chart description."
 owners_name_description = "Name of an owner of the chart."
+certified_by_description = "Person or group that has certified this chart"
+certification_details_description = "Details of the certification"
 
 #
 # OpenAPI method specification overrides
@@ -156,6 +163,8 @@ class ChartEntityResponseSchema(Schema):
     )
     form_data = fields.Dict(description=form_data_description)
     slice_url = fields.String(description=slice_url_description)
+    certified_by = fields.String(description=certified_by_description)
+    certification_details = fields.String(description=certification_details_description)
 
 
 class ChartPostSchema(Schema):
@@ -197,6 +206,10 @@ class ChartPostSchema(Schema):
         description=datasource_name_description, allow_none=True
     )
     dashboards = fields.List(fields.Integer(description=dashboards_description))
+    certified_by = fields.String(description=certified_by_description, allow_none=True)
+    certification_details = fields.String(
+        description=certification_details_description, allow_none=True
+    )
 
 
 class ChartPutSchema(Schema):
@@ -234,6 +247,10 @@ class ChartPutSchema(Schema):
         allow_none=True,
     )
     dashboards = fields.List(fields.Integer(description=dashboards_description))
+    certified_by = fields.String(description=certified_by_description, allow_none=True)
+    certification_details = fields.String(
+        description=certification_details_description, allow_none=True
+    )
 
 
 class ChartGetDatasourceObjectDataResponseSchema(Schema):
@@ -1129,6 +1146,7 @@ class ChartDataQueryObjectSchema(Schema):
 
 
 class ChartDataQueryContextSchema(Schema):
+    query_context_factory: Optional[QueryContextFactory] = None
     datasource = fields.Nested(ChartDataDatasourceSchema)
     queries = fields.List(fields.Nested(ChartDataQueryObjectSchema))
     force = fields.Boolean(
@@ -1139,13 +1157,19 @@ class ChartDataQueryContextSchema(Schema):
     result_type = EnumField(ChartDataResultType, by_value=True)
     result_format = EnumField(ChartDataResultFormat, by_value=True)
 
-    # pylint: disable=no-self-use,unused-argument
+    # pylint: disable=unused-argument
     @post_load
     def make_query_context(self, data: Dict[str, Any], **kwargs: Any) -> QueryContext:
-        query_context = QueryContext(**data)
+        query_context = self.get_query_context_factory().create(**data)
         return query_context
 
-    # pylint: enable=no-self-use,unused-argument
+    def get_query_context_factory(self) -> QueryContextFactory:
+        if self.query_context_factory is None:
+            # pylint: disable=import-outside-toplevel
+            from superset.common.query_context_factory import QueryContextFactory
+
+            self.query_context_factory = QueryContextFactory()
+        return self.query_context_factory
 
 
 class AnnotationDataSchema(Schema):

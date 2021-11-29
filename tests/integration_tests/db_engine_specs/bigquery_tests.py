@@ -200,7 +200,7 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
         # Test check for missing schema.
         sys.modules["google.oauth2"] = mock.MagicMock()
         for invalid_kwarg in invalid_kwargs:
-            self.assertRaisesRegexp(
+            self.assertRaisesRegex(
                 Exception,
                 "The table schema must be defined",
                 BigQueryEngineSpec.df_to_sql,

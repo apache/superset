@@ -71,6 +71,7 @@ from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 
 from superset import app, db, is_feature_enabled, security_manager
+from superset.charts.business_type.business_type_response import BusinessTypeResponse
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.connectors.sqla.utils import (
@@ -97,7 +98,6 @@ from superset.utils.core import (
     QueryObjectFilterClause,
     remove_duplicates,
 )
-from superset.charts.business_type.business_type_response import BusinessTypeResponse
 
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
@@ -189,7 +189,10 @@ class AnnotationDatasource(BaseDatasource):
         raise NotImplementedError()
 
     def values_for_column(
-        self, column_name: str, limit: int = 10000, contain_null: bool = True,
+        self,
+        column_name: str,
+        limit: int = 10000,
+        contain_null: bool = True,
     ) -> List[Any]:
         raise NotImplementedError()
 
@@ -268,16 +271,22 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         return self.table.db_engine_spec
 
     @property
+    def db_extra(self) -> Dict[str, Any]:
+        return self.table.database.get_extra()
+
+    @property
     def type_generic(self) -> Optional[utils.GenericDataType]:
         if self.is_dttm:
             return GenericDataType.TEMPORAL
-        column_spec = self.db_engine_spec.get_column_spec(self.type)
+        column_spec = self.db_engine_spec.get_column_spec(
+            self.type, db_extra=self.db_extra
+        )
         return column_spec.generic_type if column_spec else None
 
     def get_sqla_col(self, label: Optional[str] = None) -> Column:
         label = label or self.column_name
         db_engine_spec = self.db_engine_spec
-        column_spec = db_engine_spec.get_column_spec(self.type)
+        column_spec = db_engine_spec.get_column_spec(self.type, db_extra=self.db_extra)
         type_ = column_spec.sqla_type if column_spec else None
         if self.expression:
             tp = self.table.get_template_processor()
@@ -335,7 +344,9 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
 
         pdf = self.python_date_format
         is_epoch = pdf in ("epoch_s", "epoch_ms")
-        column_spec = self.db_engine_spec.get_column_spec(self.type)
+        column_spec = self.db_engine_spec.get_column_spec(
+            self.type, db_extra=self.db_extra
+        )
         type_ = column_spec.sqla_type if column_spec else DateTime
         if not self.expression and not time_grain and not is_epoch:
             sqla_col = column(self.column_name, type_=type_)
@@ -360,7 +371,11 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         ],
     ) -> str:
         """Convert datetime object to a SQL expression string"""
-        sql = self.db_engine_spec.convert_dttm(self.type, dttm) if self.type else None
+        sql = (
+            self.db_engine_spec.convert_dttm(self.type, dttm, db_extra=self.db_extra)
+            if self.type
+            else None
+        )
 
         if sql:
             return sql
@@ -373,10 +388,8 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
             utils.TimeRangeEndpoint.INCLUSIVE,
             utils.TimeRangeEndpoint.EXCLUSIVE,
         ):
-            tf = (
-                self.table.database.get_extra()
-                .get("python_date_format_by_column_name", {})
-                .get(self.column_name)
+            tf = self.db_extra.get("python_date_format_by_column_name", {}).get(
+                self.column_name
             )
 
         if tf:
@@ -678,7 +691,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         if self.sql:
             return get_virtual_table_metadata(dataset=self)
         return get_physical_table_metadata(
-            database=self.database, table_name=self.table_name, schema_name=self.schema,
+            database=self.database,
+            table_name=self.table_name,
+            schema_name=self.schema,
         )
 
     @property
@@ -737,7 +752,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             ) from ex
 
     def values_for_column(
-        self, column_name: str, limit: int = 10000, contain_null: bool = True,
+        self,
+        column_name: str,
+        limit: int = 10000,
+        contain_null: bool = True,
     ) -> List[Any]:
         """Runs query against sqla to retrieve some
         sample values for the given column.
@@ -971,7 +989,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             return [or_(*clauses) for clauses in filters_grouped.values()]
         except TemplateError as ex:
             raise QueryObjectValidationError(
-                _("Error in jinja expression in RLS filters: %(msg)s", msg=ex.message,)
+                _(
+                    "Error in jinja expression in RLS filters: %(msg)s",
+                    msg=ex.message,
+                )
             ) from ex
 
     def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
@@ -1259,6 +1280,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 if col_spec:
                     target_type = col_spec.generic_type
                 else:
+<<<<<<< HEAD
                     target_type = GenericDataType.STRING 
                 #TODO: This should be handeled more elegantly 
                 #Refactor this (filter) to handle business types better 
@@ -1283,6 +1305,37 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                         op,
                         bus_resp["values"]
                     ))
+=======
+                    target_type = GenericDataType.STRING
+                # TODO: This should be handeled more elegantly
+                business_type = col_obj.business_type if col_obj is not None else ""
+                eq = (
+                    self.filter_values_handler(
+                        values=val,
+                        target_column_type=target_type,
+                        is_list_target=is_list_target,
+                    )
+                    if business_type == ""
+                    else self.filter_values_handler(
+                        values=val,
+                        target_column_type=GenericDataType.STRING,
+                        is_list_target=is_list_target,
+                    )
+                )
+
+                if business_type != "":
+                    bus_resp: BusinessTypeResponse = BUSINESS_TYPE_ADDONS[
+                        business_type
+                    ](
+                        {
+                            "type": business_type,
+                            "value": eq,
+                        }
+                    )
+                    where_clause_and += BUSINESS_TYPE_TRANSLATIONS[business_type](
+                        sqla_col, op, bus_resp["value"]
+                    )
+>>>>>>> e6d0de6c36eae90ddf1a21dfc770637fc6d8c593
                 elif is_list_target:
                     assert isinstance(eq, (tuple, list))
                     if len(eq) == 0:
@@ -1449,7 +1502,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     orderby = [
                         (
                             self._get_series_orderby(
-                                series_limit_metric, metrics_by_name, columns_by_name,
+                                series_limit_metric,
+                                metrics_by_name,
+                                columns_by_name,
                             ),
                             False,
                         )
@@ -1524,7 +1579,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         return ob
 
     def _normalize_prequery_result_type(
-        self, row: pd.Series, dimension: str, columns_by_name: Dict[str, TableColumn],
+        self,
+        row: pd.Series,
+        dimension: str,
+        columns_by_name: Dict[str, TableColumn],
     ) -> Union[str, int, float, bool, Text]:
         """
         Convert a prequery result type to its equivalent Python type.
@@ -1545,10 +1603,11 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             value = value.item()
 
         column_ = columns_by_name[dimension]
+        db_extra: Dict[str, Any] = self.database.get_extra()
 
         if column_.type and column_.is_temporal and isinstance(value, str):
             sql = self.db_engine_spec.convert_dttm(
-                column_.type, dateutil.parser.parse(value),
+                column_.type, dateutil.parser.parse(value), db_extra=db_extra
             )
 
             if sql:
@@ -1568,7 +1627,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             group = []
             for dimension in dimensions:
                 value = self._normalize_prequery_result_type(
-                    row, dimension, columns_by_name,
+                    row,
+                    dimension,
+                    columns_by_name,
                 )
 
                 group.append(groupby_exprs[dimension] == value)
