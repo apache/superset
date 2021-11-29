@@ -120,33 +120,14 @@ const getEntityUrl = (entity: ActivityObject) => {
 };
 
 const getEntityLastActionOn = (entity: ActivityObject) => {
-  // translation keys for last action on
-  const LAST_VIEWED = `Viewed %s`;
-  const LAST_MODIFIED = `Modified %s`;
-
-  // for Recent viewed items
-  if ('time_delta_humanized' in entity) {
-    return t(LAST_VIEWED, entity.time_delta_humanized);
-  }
-
-  if ('changed_on_delta_humanized' in entity) {
-    return t(LAST_MODIFIED, entity.changed_on_delta_humanized);
+  if ('time' in entity) {
+    return t('Viewed %s', moment(entity.time).fromNow());
   }
 
   let time: number | string | undefined | null;
-  let translationKey = LAST_MODIFIED;
-  if ('time' in entity) {
-    // eslint-disable-next-line prefer-destructuring
-    time = entity.time;
-    translationKey = LAST_VIEWED;
-  }
   if ('changed_on' in entity) time = entity.changed_on;
   if ('changed_on_utc' in entity) time = entity.changed_on_utc;
-
-  return t(
-    translationKey,
-    time == null ? UNKNOWN_TIME : moment(time).fromNow(),
-  );
+  return t('Modified %s', time == null ? UNKNOWN_TIME : moment(time).fromNow());
 };
 
 export default function ActivityTable({
