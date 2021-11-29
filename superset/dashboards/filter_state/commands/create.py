@@ -14,12 +14,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from marshmallow import fields, Schema
+from typing import Optional
+
+from superset.dashboards.dao import DashboardDAO
+from superset.extensions import cache_manager
+from superset.key_value.commands.create import CreateKeyValueCommand
+from superset.key_value.utils import cache_key
 
 
-class KeyValuePostSchema(Schema):
-    value = fields.String(required=True, allow_none=False, description="A JSON value.")
-
-
-class KeyValuePutSchema(Schema):
-    value = fields.String(required=True, allow_none=False, description="A JSON value.")
+class CreateFilterStateCommand(CreateKeyValueCommand):
+    def create(self, resource_id: int, key: str, value: str) -> Optional[bool]:
+        dashboard = DashboardDAO.get_by_id_or_slug(str(resource_id))
+        if dashboard:
+            return cache_manager.filter_state_cache.set(
+                cache_key(resource_id, key), value
+            )
+        return False

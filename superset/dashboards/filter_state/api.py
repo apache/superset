@@ -20,7 +20,10 @@ from typing import Type
 from flask import Response
 from flask_appbuilder.api import expose, protect, safe
 
-from superset.dashboards.filters_state.dao import KeyValueDAO
+from superset.dashboards.filter_state.commands.create import CreateFilterStateCommand
+from superset.dashboards.filter_state.commands.delete import DeleteFilterStateCommand
+from superset.dashboards.filter_state.commands.get import GetFilterStateCommand
+from superset.dashboards.filter_state.commands.update import UpdateFilterStateCommand
 from superset.extensions import event_logger
 from superset.key_value.api import KeyValueRestApi
 from superset.views.base_api import statsd_metrics
@@ -28,15 +31,24 @@ from superset.views.base_api import statsd_metrics
 logger = logging.getLogger(__name__)
 
 
-class FiltersStateRestApi(KeyValueRestApi):
-    class_permission_name = "FiltersStateRestApi"
+class DashboardFilterStateRestApi(KeyValueRestApi):
+    class_permission_name = "FilterStateRestApi"
     resource_name = "dashboard"
-    openapi_spec_tag = "Filters State"
+    openapi_spec_tag = "Filter State"
 
-    def get_dao(self) -> Type[KeyValueDAO]:
-        return KeyValueDAO
+    def get_create_command(self) -> Type[CreateFilterStateCommand]:
+        return CreateFilterStateCommand
 
-    @expose("/<int:pk>/filters_state", methods=["POST"])
+    def get_update_command(self) -> Type[UpdateFilterStateCommand]:
+        return UpdateFilterStateCommand
+
+    def get_get_command(self) -> Type[GetFilterStateCommand]:
+        return GetFilterStateCommand
+
+    def get_delete_command(self) -> Type[DeleteFilterStateCommand]:
+        return DeleteFilterStateCommand
+
+    @expose("/<int:pk>/filter_state", methods=["POST"])
     @protect()
     @safe
     @statsd_metrics
@@ -84,7 +96,7 @@ class FiltersStateRestApi(KeyValueRestApi):
         """
         return super().post(pk)
 
-    @expose("/<int:pk>/filters_state/<string:key>/", methods=["PUT"])
+    @expose("/<int:pk>/filter_state/<string:key>/", methods=["PUT"])
     @protect()
     @safe
     @statsd_metrics
@@ -138,7 +150,7 @@ class FiltersStateRestApi(KeyValueRestApi):
         """
         return super().put(pk, key)
 
-    @expose("/<int:pk>/filters_state/<string:key>/", methods=["GET"])
+    @expose("/<int:pk>/filter_state/<string:key>/", methods=["GET"])
     @protect()
     @safe
     @statsd_metrics
@@ -185,7 +197,7 @@ class FiltersStateRestApi(KeyValueRestApi):
         """
         return super().get(pk, key)
 
-    @expose("/<int:pk>/filters_state/<string:key>/", methods=["DELETE"])
+    @expose("/<int:pk>/filter_state/<string:key>/", methods=["DELETE"])
     @protect()
     @safe
     @statsd_metrics

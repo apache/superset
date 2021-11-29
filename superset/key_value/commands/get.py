@@ -15,36 +15,38 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any
+from abc import ABC, abstractmethod
+from typing import Optional
 
 from flask import current_app as app
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAOException
 from superset.key_value.commands.exceptions import KeyValueGetFailedError
 
 logger = logging.getLogger(__name__)
 
 
-class GetKeyValueCommand(BaseCommand):
-    def __init__(self, user: User, get_dao: Any, resource_id: int, key: str):
+class GetKeyValueCommand(BaseCommand, ABC):
+    def __init__(self, user: User, resource_id: int, key: str):
         self._actor = user
-        self._get_dao = get_dao
         self._resource_id = resource_id
         self._key = key
 
     def run(self) -> Model:
         try:
-            value = self._get_dao.find_by_id(self._resource_id, self._key)
-            config = app.config["FILTERS_STATE_CACHE_CONFIG"]
-            if config.get("REFRESH_TIMEOUT_ON_RETRIEVAL") == True:
-                self._get_dao.update(self._resource_id, self._key, value)
-            return value
-        except DAOException as ex:
+            config = app.config["FILTER_STATE_CACHE_CONFIG"]
+            refreshTimeout = config.get("REFRESH_TIMEOUT_ON_RETRIEVAL")
+            return self.get(self._resource_id, self._key, refreshTimeout)
+        except SQLAlchemyError as ex:
             logger.exception(ex.exception)
             raise KeyValueGetFailedError() from ex
 
     def validate(self) -> None:
         pass
+
+    @abstractmethod
+    def get(self, resource_id: int, key: str, refreshTimeout: bool) -> Optional[str]:
+        ...

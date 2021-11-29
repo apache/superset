@@ -562,7 +562,7 @@ CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
 DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
 
 # Cache for filters state
-FILTERS_STATE_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
+FILTER_STATE_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
 
 # store cache keys by datasource UID (via CacheKey) for custom processing/invalidation
 STORE_CACHE_KEYS_IN_METADATA_DB = False

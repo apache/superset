@@ -25,7 +25,7 @@ class CacheManager:
         self._cache = Cache()
         self._data_cache = Cache()
         self._thumbnail_cache = Cache()
-        self._filters_state_cache = Cache()
+        self._filter_state_cache = Cache()
 
     def init_app(self, app: Flask) -> None:
         self._cache.init_app(
@@ -49,11 +49,11 @@ class CacheManager:
                 **app.config["THUMBNAIL_CACHE_CONFIG"],
             },
         )
-        self._filters_state_cache.init_app(
+        self._filter_state_cache.init_app(
             app,
             {
                 "CACHE_DEFAULT_TIMEOUT": app.config["CACHE_DEFAULT_TIMEOUT"],
-                **app.config["FILTERS_STATE_CACHE_CONFIG"],
+                **app.config["FILTER_STATE_CACHE_CONFIG"],
             },
         )
 
@@ -70,5 +70,5 @@ class CacheManager:
         return self._thumbnail_cache
 
     @property
-    def filters_state_cache(self) -> Cache:
-        return self._filters_state_cache
+    def filter_state_cache(self) -> Cache:
+        return self._filter_state_cache

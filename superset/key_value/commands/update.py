@@ -15,41 +15,41 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict
+from abc import ABC, abstractmethod
+from typing import Any, Dict, Optional
 
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAOException
 from superset.key_value.commands.exceptions import KeyValueUpdateFailedError
 
 logger = logging.getLogger(__name__)
 
 
-class UpdateKeyValueCommand(BaseCommand):
+class UpdateKeyValueCommand(BaseCommand, ABC):
     def __init__(
-        self,
-        user: User,
-        get_dao: Any,
-        resource_id: int,
-        key: str,
-        data: Dict[str, Any],
+        self, user: User, resource_id: int, key: str, data: Dict[str, Any],
     ):
         self._actor = user
-        self._get_dao = get_dao
         self._resource_id = resource_id
         self._key = key
         self._properties = data.copy()
 
     def run(self) -> Model:
         try:
-            return self._get_dao.update(
-                self._resource_id, self._key, self._properties.get("value")
-            )
-        except DAOException as ex:
+            value = self._properties.get("value")
+            if value:
+                return self.update(self._resource_id, self._key, value)
+        except SQLAlchemyError as ex:
             logger.exception(ex.exception)
             raise KeyValueUpdateFailedError() from ex
+        return False
 
     def validate(self) -> None:
         pass
+
+    @abstractmethod
+    def update(self, resource_id: int, key: str, value: str) -> Optional[bool]:
+        ...

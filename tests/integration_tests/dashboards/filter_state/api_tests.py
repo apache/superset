@@ -34,7 +34,7 @@ class FilterStateTests(SupersetTestCase):
             "value": value,
         }
         return self.client.post(
-            f"api/v1/dashboard/{dashboardId}/filters_state", json=payload
+            f"api/v1/dashboard/{dashboardId}/filter_state", json=payload
         )
 
     def clearTable(self, session, model):
@@ -65,7 +65,7 @@ class FilterStateTests(SupersetTestCase):
     @pytest.fixture(autouse=True, scope="session")
     def beforeAll(self):
         with app.app_context() as ctx:
-            app.config["FILTERS_STATE_CACHE_CONFIG"] = {"CACHE_TYPE": "SimpleCache"}
+            app.config["FILTER_STATE_CACHE_CONFIG"] = {"CACHE_TYPE": "SimpleCache"}
             cache_manager.init_app(app)
             session: Session = ctx.app.appbuilder.get_session
             self.clearTable(session, Dashboard)
@@ -78,6 +78,18 @@ class FilterStateTests(SupersetTestCase):
         resp = self.post()
         assert resp.status_code == 201
 
+    def test_put(self):
+        resp = self.post()
+        data = json.loads(resp.data.decode("utf-8"))
+        key = data.get("key")
+        payload = {
+            "value": "new value",
+        }
+        resp = self.client.put(
+            f"api/v1/dashboard/{dashboardId}/filter_state/{key}/", json=payload
+        )
+        assert resp.status_code == 200
+
     def test_get_not_found(self):
         resp = self.client.get("unknown-key")
         assert resp.status_code == 404
@@ -86,7 +98,14 @@ class FilterStateTests(SupersetTestCase):
         resp = self.post()
         data = json.loads(resp.data.decode("utf-8"))
         key = data.get("key")
-        resp = self.client.get(f"api/v1/dashboard/{dashboardId}/filters_state/{key}/")
+        resp = self.client.get(f"api/v1/dashboard/{dashboardId}/filter_state/{key}/")
         assert resp.status_code == 200
         data = json.loads(resp.data.decode("utf-8"))
         assert value == data.get("value")
+
+    def test_delete(self):
+        resp = self.post()
+        data = json.loads(resp.data.decode("utf-8"))
+        key = data.get("key")
+        resp = self.client.delete(f"api/v1/dashboard/{dashboardId}/filter_state/{key}/")
+        assert resp.status_code == 200

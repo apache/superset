@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from typing import Any
 
 from flask import g, request, Response
@@ -34,7 +34,7 @@ from superset.views.base_api import BaseSupersetModelRestApi
 logger = logging.getLogger(__name__)
 
 
-class KeyValueRestApi(BaseSupersetModelRestApi):
+class KeyValueRestApi(BaseSupersetModelRestApi, ABC):
     datamodel = SQLAInterface(KeyValueEntry)
     add_model_schema = KeyValuePostSchema()
     edit_model_schema = KeyValuePutSchema()
@@ -55,30 +55,42 @@ class KeyValueRestApi(BaseSupersetModelRestApi):
         if not request.is_json:
             raise InvalidPayloadFormatError("Request is not JSON")
         item = self.add_model_schema.load(request.json)
-        key = CreateKeyValueCommand(g.user, self.get_dao(), pk, item).run()
+        key = self.get_create_command()(g.user, pk, item).run()
         return self.response(201, key=key)
 
     def put(self, pk: int, key: str) -> Response:
         if not request.is_json:
             raise InvalidPayloadFormatError("Request is not JSON")
         item = self.edit_model_schema.load(request.json)
-        result = UpdateKeyValueCommand(g.user, self.get_dao(), pk, key, item).run()
+        result = self.get_update_command()(g.user, pk, key, item).run()
         if not result:
             return self.response_404()
         return self.response(200, message="Value updated successfully.",)
 
     def get(self, pk: int, key: str) -> Response:
-        value = GetKeyValueCommand(g.user, self.get_dao(), pk, key).run()
+        value = self.get_get_command()(g.user, pk, key).run()
         if not value:
             return self.response_404()
         return self.response(200, value=value)
 
     def delete(self, pk: int, key: str) -> Response:
-        result = DeleteKeyValueCommand(g.user, self.get_dao(), pk, key).run()
+        result = self.get_delete_command()(g.user, pk, key).run()
         if not result:
             return self.response_404()
         return self.response(200, message="Deleted successfully")
 
     @abstractmethod
-    def get_dao(self) -> Any:
+    def get_create_command(self) -> Any:
+        ...
+
+    @abstractmethod
+    def get_update_command(self) -> Any:
+        ...
+
+    @abstractmethod
+    def get_get_command(self) -> Any:
+        ...
+
+    @abstractmethod
+    def get_delete_command(self) -> Any:
         ...

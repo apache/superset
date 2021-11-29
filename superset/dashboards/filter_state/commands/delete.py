@@ -14,36 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import logging
-from abc import ABC, abstractmethod
 from typing import Optional
 
-from flask_appbuilder.models.sqla import Model
-from flask_appbuilder.security.sqla.models import User
-from sqlalchemy.exc import SQLAlchemyError
-
-from superset.commands.base import BaseCommand
-from superset.key_value.commands.exceptions import KeyValueDeleteFailedError
-
-logger = logging.getLogger(__name__)
+from superset.dashboards.dao import DashboardDAO
+from superset.extensions import cache_manager
+from superset.key_value.commands.delete import DeleteKeyValueCommand
+from superset.key_value.utils import cache_key
 
 
-class DeleteKeyValueCommand(BaseCommand, ABC):
-    def __init__(self, user: User, resource_id: int, key: str):
-        self._actor = user
-        self._resource_id = resource_id
-        self._key = key
-
-    def run(self) -> Model:
-        try:
-            return self.delete(self._resource_id, self._key)
-        except SQLAlchemyError as ex:
-            logger.exception(ex.exception)
-            raise KeyValueDeleteFailedError() from ex
-
-    def validate(self) -> None:
-        pass
-
-    @abstractmethod
+class DeleteFilterStateCommand(DeleteKeyValueCommand):
     def delete(self, resource_id: int, key: str) -> Optional[bool]:
-        ...
+        dashboard = DashboardDAO.get_by_id_or_slug(str(resource_id))
+        if dashboard:
+            return cache_manager.filter_state_cache.delete(cache_key(resource_id, key))
+        return False

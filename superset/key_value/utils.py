@@ -16,11 +16,8 @@
 # under the License.
 from typing import Any
 
+SEPARATOR = ";"
+
 
 def cache_key(*args: Any) -> str:
-    result = ""
-    separator = ""
-    for arg in args:
-        result += separator + str(arg)
-        separator = ";"
-    return result
+    return SEPARATOR.join(str(arg) for arg in args)
