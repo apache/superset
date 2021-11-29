@@ -35,7 +35,7 @@ class BusinessTypeRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=False, # pylint: disable-arguments-renamed
     )
-    @rison(business_type_convert_schema)
+    @rison()
     def get(self, **kwargs: Any) -> Response:
         """Send a greeting
         ---
@@ -67,31 +67,11 @@ class BusinessTypeRestApi(BaseSupersetModelRestApi):
                         type: list
     """
         items = kwargs['rison']
-        
-        values = []
-        operators = []
-        formatted_values = []
-        status = 'valid'
-        # This logic should be shifted into the actaul callback
-        # Multiple values should be handeled 
-        for item in items:
-          bus_resp: BusinessTypeResponse = BUSINESS_TYPE_ADDONS[item["type"]]({
-            "type": item["type"],
-            "value": item["value"],
-          })
-          values.append(bus_resp["value"])
-          formatted_values.append(bus_resp["formatted_value"])
-          operators = bus_resp["valid_filter_operators"] if len(operators) == 0 else list(set(operators) & set(bus_resp["valid_filter_operators"]))
-          status = bus_resp["status"] if bus_resp["status"] == 'invalid' else status
-          
-        response = {
-          'values' : values,
-          'valid_filter_operators' : operators,
-          'status' : status,
-          'formatted_values' : formatted_values,
-        }
+        bus_resp: BusinessTypeResponse = BUSINESS_TYPE_ADDONS[items["type"]]({
+          "values": items["values"],
+        })
         #TODO: add a FULL string representation of all values 
-        return self.response(200, result=response)
+        return self.response(200, result=bus_resp)
 
     @expose("/business_type/types", methods=["GET"])
     @event_logger.log_this_with_context(

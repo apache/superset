@@ -369,20 +369,12 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
         setSubjectBusinessType(option.business_type);
         bsType = option.business_type;
       }
-      const values = compList
-        ? compList.map(result => ({
-            type: bsType,
-            value: result,
-          }))
-        : [{ type: bsType, value: '' }];
-
-      const queryParams = rison.encode(values);
+      const values = compList ? compList.map(result => result) : [''];
+      const queryParams = rison.encode({ type: bsType, values });
       const endpoint = `/api/v1/chart/business_type?q=${queryParams}`;
       SupersetClient.get({ endpoint })
         .then(({ json }) => {
-          setParsedBusniessType(
-            json.result.values.map((result: any) => JSON.stringify(result)),
-          );
+          setParsedBusniessType(json.result.display_value);
           setBusninessTypeOperatorList(json.result.valid_filter_operators);
         })
         .catch(e => {

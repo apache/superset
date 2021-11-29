@@ -2,12 +2,11 @@
 A docstring
 """
 
-from typing import Any, TypedDict
+from typing import Any, TypedDict, List
 
 
 class BusinessTypeRequest(TypedDict):
     """
     A docstring
     """
-    business_type: str
-    value: Any  # unparsed value (usually text when passed from text box)
+    value: List[Any]  # unparsed value (usually text when passed from text box)

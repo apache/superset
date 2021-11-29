@@ -10,6 +10,7 @@ class BusinessTypeResponse(TypedDict, total=False):
     A docstring
     """
     status: Literal["valid", "invalid"]
-    value: Any  # parsed value (can be any value)
+    values: List[Any]  # parsed value (can be any value)
     formatted_value: Optional[str]  # a string representation of the parsed value
+    display_value: str # The string representation of the parsed vlaues 
     valid_filter_operators: List[Literal["==", "<=", "<", "IN", ">=", ">"]]

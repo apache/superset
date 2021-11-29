@@ -1259,8 +1259,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 if col_spec:
                     target_type = col_spec.generic_type
                 else:
-                    target_type = GenericDataType.STRING
+                    target_type = GenericDataType.STRING 
                 #TODO: This should be handeled more elegantly 
+                #Refactor this (filter) to handle business types better 
                 eq = self.filter_values_handler(
                     values=val,
                     target_column_type=target_type,
@@ -1270,17 +1271,18 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     target_column_type=GenericDataType.STRING,
                     is_list_target=is_list_target,
                 )
-
+                #TODO: This is the place for it 
                 if col_obj.business_type != "":
                     bus_resp: BusinessTypeResponse = BUSINESS_TYPE_ADDONS[col_obj.business_type]({
                         "type": col_obj.business_type,
-                        "value": eq,
+                        "values": eq if is_list_target else [eq],
                     })
-                    where_clause_and += BUSINESS_TYPE_TRANSLATIONS[col_obj.business_type](
+                    # handle error 
+                    where_clause_and.append(BUSINESS_TYPE_TRANSLATIONS[col_obj.business_type](
                         sqla_col,
                         op,
-                        bus_resp["value"]
-                    )
+                        bus_resp["values"]
+                    ))
                 elif is_list_target:
                     assert isinstance(eq, (tuple, list))
                     if len(eq) == 0:
