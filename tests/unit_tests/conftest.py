@@ -32,6 +32,9 @@ def session() -> Iterator[Session]:
     Session_ = sessionmaker(bind=engine)  # pylint: disable=invalid-name
     in_memory_session = Session_()
 
+    # flask calls session.remove()
+    in_memory_session.remove = lambda: None
+
     yield in_memory_session
 
 

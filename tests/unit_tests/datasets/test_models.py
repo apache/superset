@@ -1064,6 +1064,7 @@ def test_update_physical_sqlatable(
     mocker.patch(
         "superset.security.SupersetSecurityManager.get_session", return_value=session
     )
+    mocker.patch("superset.datasets.dao.db.session", session)
 
     from superset.columns.models import Column
     from superset.connectors.sqla.models import SqlaTable, TableColumn
@@ -1104,7 +1105,7 @@ def test_update_physical_sqlatable(
     )
     session.add(new_database)
     session.flush()
-    sqla_table.database_id = new_database.id
+    sqla_table.database = new_database
     session.flush()
 
     # ignore these keys when comparing results
