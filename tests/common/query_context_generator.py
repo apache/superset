@@ -369,7 +369,7 @@ class QueryContextGenerator:
                 "isNew": False,
                 "label": "COUNT({})".format(column_name),
                 "optionName": "metric_bvvzfjgdg7_eawlsdp84tq",
-                "sqlExpression": "(SELECT count(name) FROM {})".format(table_name),
+                "sqlExpression": f"(SELECT count(name) FROM {table_name})",
             },
             kwargs,
         )
