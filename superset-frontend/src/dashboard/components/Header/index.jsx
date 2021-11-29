@@ -340,49 +340,40 @@ class Header extends React.PureComponent {
     const {
       dashboardTitle,
       layout: positions,
-      expandedSlices: currentExpandedSlices,
       customCss,
-      colorScheme: currentColorScheme,
-      colorNamespace: currentColorNamespace,
       dashboardInfo,
       refreshFrequency: currentRefreshFrequency,
       shouldPersistRefreshFrequency,
       lastModifiedTime,
       slug,
     } = this.props;
-    const colorScheme =
-      dashboardInfo?.metadata?.color_scheme || currentColorScheme;
-    const labelColors =
-      colorScheme && dashboardInfo?.metadata?.label_colors
-        ? dashboardInfo.metadata.label_colors
-        : {};
-    const colorNamespace =
-      dashboardInfo?.metadata?.color_namespace || currentColorNamespace;
+    const colorScheme = dashboardInfo?.metadata?.color_scheme;
+    const labelColors = dashboardInfo?.metadata?.label_colors;
+    const colorNamespace = dashboardInfo?.metadata?.color_namespace;
     // check refresh frequency is for current session or persist
     const refreshFrequency = shouldPersistRefreshFrequency
       ? currentRefreshFrequency
       : dashboardInfo.metadata?.refresh_frequency;
-    const expandedSlices =
-      dashboardInfo?.metadata?.expanded_slices || currentExpandedSlices;
+    const expandedSlices = dashboardInfo?.metadata?.expanded_slices;
     const timedRefreshImmuneSlices =
-      dashboardInfo?.metadata?.timed_refresh_immune_slices || [];
+      dashboardInfo?.metadata?.timed_refresh_immune_slices;
 
     const data = {
-      certified_by: dashboardInfo.certified_by,
-      certification_details: dashboardInfo.certification_details,
+      certified_by: dashboardInfo.certified_by || '',
+      certification_details: dashboardInfo.certification_details || '',
       css: customCss,
-      color_namespace: colorNamespace,
-      color_scheme: colorScheme,
+      color_namespace: colorNamespace || undefined,
+      color_scheme: colorScheme || '',
       dashboard_title: dashboardTitle,
-      expanded_slices: expandedSlices,
-      label_colors: labelColors,
+      expanded_slices: expandedSlices || {},
+      label_colors: labelColors || {},
       last_modified_time: lastModifiedTime,
-      owners: dashboardInfo.owners,
+      owners: dashboardInfo.owners || undefined,
       positions,
-      refresh_frequency: refreshFrequency,
-      roles: dashboardInfo.roles,
-      slug,
-      timed_refresh_immune_slices: timedRefreshImmuneSlices,
+      refresh_frequency: refreshFrequency || 0,
+      roles: dashboardInfo.roles || undefined,
+      slug: slug || undefined,
+      timed_refresh_immune_slices: timedRefreshImmuneSlices || [],
     };
 
     // make sure positions data less than DB storage limitation:
@@ -628,6 +619,7 @@ class Header extends React.PureComponent {
 
           <PropertiesModal
             dashboardId={dashboardInfo.id}
+            dashboardTitle={dashboardTitle}
             show={this.state.showingPropertiesModal}
             onHide={this.hidePropertiesModal}
             colorScheme={this.props.colorScheme}
@@ -636,7 +628,7 @@ class Header extends React.PureComponent {
                 this.props;
               dashboardInfoChanged({
                 slug: updates.slug,
-                metadata: JSON.parse(updates.jsonMetadata),
+                metadata: JSON.parse(updates.jsonMetadata || '{}'),
                 certified_by: updates.certifiedBy,
                 certification_details: updates.certificationDetails,
                 owners: updates.ownerIds,

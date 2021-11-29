@@ -208,6 +208,8 @@ class DashboardDAO(BaseDAO):
         )
         md = dashboard.params_dict
 
+        md.pop("positions", None)
+
         if data.get("css"):
             dashboard.css = data.get("css")
 
@@ -216,6 +218,12 @@ class DashboardDAO(BaseDAO):
 
         if "timed_refresh_immune_slices" not in md:
             md["timed_refresh_immune_slices"] = []
+
+        if data.get("color_namespace") is None:
+            md.pop("color_namespace", None)
+        else:
+            md["color_namespace"] = data.get("color_namespace")
+
         new_filter_scopes = {}
         if "filter_scopes" in data:
             # replace filter_id and immune ids from old slice id to new slice id:
@@ -240,7 +248,6 @@ class DashboardDAO(BaseDAO):
         else:
             md.pop("filter_scopes", None)
 
-        md.pop("positions", None)
         md["expanded_slices"] = data.get("expanded_slices", {})
         md["refresh_frequency"] = data.get("refresh_frequency", 0)
         default_filters_data = json.loads(data.get("default_filters", "{}"))
@@ -250,8 +257,9 @@ class DashboardDAO(BaseDAO):
         md["default_filters"] = json.dumps(applicable_filters)
         md["color_scheme"] = data.get("color_scheme")
         md["label_colors"] = data.get("label_colors", {})
-        md["color_namespace"] = data.get("color_namespace")
+
         dashboard.json_metadata = json.dumps(md)
+
         return dashboard
 
     @staticmethod

@@ -209,6 +209,28 @@ export function saveDashboardRequest(data, id, saveType) {
       timed_refresh_immune_slices,
     } = data;
 
+    const cleanedData = {
+      certified_by: certified_by || '',
+      certification_details:
+        certified_by && certification_details ? certification_details : '',
+      color_namespace: color_namespace || undefined,
+      color_scheme: color_scheme || '',
+      css: css || undefined,
+      dashboard_title: dashboard_title || t('[ untitled dashboard ]'),
+      expanded_slices: expanded_slices || {},
+      label_colors: label_colors || {},
+      owners:
+        owners && owners.length
+          ? owners.map(o => (o.id ? o.id : o))
+          : undefined,
+      positions,
+      refresh_frequency: refresh_frequency || 0,
+      roles:
+        roles && roles.length ? roles.map(r => (r.id ? r.id : r)) : undefined,
+      slug: slug || undefined,
+      timed_refresh_immune_slices: timed_refresh_immune_slices || [],
+    };
+
     const onUpdateSuccess = response => {
       if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
         const {
@@ -241,7 +263,7 @@ export function saveDashboardRequest(data, id, saveType) {
       const { error, message } = await getClientErrorObject(response);
       let errorText = t(
         'Sorry, there was an error saving this dashboard: %s',
-        error,
+        error || t('Unknown'),
       );
 
       if (typeof message === 'string' && message === 'Forbidden') {
@@ -253,24 +275,23 @@ export function saveDashboardRequest(data, id, saveType) {
 
     if (saveType === SAVE_TYPE_OVERWRITE) {
       const updatedDashboard = {
-        certified_by,
-        certification_details:
-          certified_by && certification_details ? certification_details : '',
-        css,
-        dashboard_title,
-        slug,
-        owners,
-        roles,
+        certified_by: cleanedData.certified_by,
+        certification_details: cleanedData.certification_details,
+        css: cleanedData.css,
+        dashboard_title: cleanedData.dashboard_title,
+        slug: cleanedData.slug,
+        owners: cleanedData.owners,
+        roles: cleanedData.roles,
         json_metadata: safeStringify({
           default_filters: safeStringify(serializedFilters),
-          color_namespace,
-          color_scheme,
-          expanded_slices,
+          color_namespace: cleanedData.color_namespace,
+          color_scheme: cleanedData.color_scheme,
+          expanded_slices: cleanedData.expanded_slices,
           filter_scopes: serializedFilterScopes,
-          label_colors,
-          positions,
-          refresh_frequency,
-          timed_refresh_immune_slices,
+          label_colors: cleanedData.label_colors,
+          positions: cleanedData.positions,
+          refresh_frequency: cleanedData.refresh_frequency,
+          timed_refresh_immune_slices: cleanedData.timed_refresh_immune_slices,
         }),
       };
       return SupersetClient.put({
@@ -285,7 +306,7 @@ export function saveDashboardRequest(data, id, saveType) {
       endpoint: `/superset/copy_dash/${id}/`,
       postPayload: {
         data: {
-          ...data,
+          ...cleanedData,
           default_filters: safeStringify(serializedFilters),
           filter_scopes: safeStringify(serializedFilterScopes),
         },

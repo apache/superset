@@ -51,6 +51,7 @@ const StyledJsonEditor = styled(JsonEditor)`
 
 type PropertiesModalProps = {
   dashboardId: number;
+  dashboardTitle?: string;
   show?: boolean;
   onHide?: () => void;
   colorScheme?: string;
@@ -64,6 +65,7 @@ const PropertiesModal = ({
   addSuccessToast,
   colorScheme: currentColorScheme,
   dashboardId,
+  dashboardTitle,
   onHide = () => {},
   onlyApply = false,
   onSubmit = () => {},
@@ -76,7 +78,7 @@ const PropertiesModal = ({
   const [jsonMetadata, setJsonMetadata] = useState('');
   const [dashboardInfo, setDashboardInfo] = useState({
     id: dashboardId,
-    title: '',
+    title: dashboardTitle || '',
     slug: '',
     certifiedBy: '',
     certificationDetails: '',
@@ -417,6 +419,16 @@ const PropertiesModal = ({
     fetchDashboardDetails();
     JsonEditor.preload();
   }, [fetchDashboardDetails]);
+
+  useEffect(() => {
+    // the title can be changed inline in the dashboard, this catches it
+    if (dashboardTitle && dashboardInfo.title !== dashboardTitle) {
+      form.setFieldsValue({
+        ...dashboardInfo,
+        title: dashboardTitle,
+      });
+    }
+  }, [dashboardInfo, dashboardTitle, form]);
 
   return (
     <Modal
