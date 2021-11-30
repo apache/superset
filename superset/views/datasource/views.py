@@ -123,6 +123,10 @@ class Datasource(BaseSupersetView):
         data = orm_datasource.data
         db.session.commit()
 
+        datasource_database = data.get("database")
+        if datasource_database:
+            datasource_database["parameters"] = {}
+
         return self.json_response(data)
 
     @expose("/get/<datasource_type>/<datasource_id>/")
