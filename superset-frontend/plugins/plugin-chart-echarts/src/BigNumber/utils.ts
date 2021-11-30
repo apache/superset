@@ -27,7 +27,7 @@ import {
 
 export const parseMetricValue = (metricValue: number | string | null) => {
   if (typeof metricValue === 'string') {
-    const dateObject = moment(metricValue, moment.ISO_8601, true);
+    const dateObject = moment.utc(metricValue, moment.ISO_8601, true);
     if (dateObject.isValid()) {
       return dateObject.valueOf();
     }
