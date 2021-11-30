@@ -1162,12 +1162,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     @staticmethod
     def raise_for_user_activity_access(user_id: int) -> None:
-        id_ = int(g.user.get_id())
-        if not current_app.config["ENABLE_PUBLIC_ACTIVITY_ACCESS"] and user_id != id_:
+        user = g.user if g.user and g.user.get_id() else None
+        if not user or (
+            not current_app.config["ENABLE_PUBLIC_ACTIVITY_ACCESS"]
+            and user_id != user.id
+        ):
             raise SupersetSecurityException(
                 SupersetError(
                     error_type=SupersetErrorType.USER_ACTIVITY_SECURITY_ACCESS_ERROR,
-                    message=f"Access to user's activity data is restricted",
+                    message="Access to user's activity data is restricted",
                     level=ErrorLevel.ERROR,
                 )
             )

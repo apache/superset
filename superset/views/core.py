@@ -1403,7 +1403,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/recent_activity/<int:user_id>/", methods=["GET"])
-    def recent_activity(  # pylint: disable=no-self-use
+    def recent_activity(  # pylint: disable=too-many-locals
         self, user_id: int
     ) -> FlaskResponse:
         """Recent activity (actions) for a given user"""
@@ -1544,9 +1544,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/fave_dashboards/<int:user_id>/", methods=["GET"])
-    def fave_dashboards(  # pylint: disable=no-self-use
-        self, user_id: int
-    ) -> FlaskResponse:
+    def fave_dashboards(self, user_id: int) -> FlaskResponse:
         error_obj = self.get_user_activity_access_error(user_id)
         if error_obj:
             return error_obj
@@ -1582,9 +1580,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/created_dashboards/<int:user_id>/", methods=["GET"])
-    def created_dashboards(  # pylint: disable=no-self-use
-        self, user_id: int
-    ) -> FlaskResponse:
+    def created_dashboards(self, user_id: int) -> FlaskResponse:
         error_obj = self.get_user_activity_access_error(user_id)
         if error_obj:
             return error_obj
@@ -1613,12 +1609,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/user_slices", methods=["GET"])
     @expose("/user_slices/<int:user_id>/", methods=["GET"])
-    def user_slices(  # pylint: disable=no-self-use
-        self, user_id: Optional[int] = None
-    ) -> FlaskResponse:
+    def user_slices(self, user_id: Optional[int] = None) -> FlaskResponse:
         """List of slices a user owns, created, modified or faved"""
         if not user_id:
-            user_id = int(g.user.get_id())
+            user_id = cast(int, g.user.id)
         error_obj = self.get_user_activity_access_error(user_id)
         if error_obj:
             return error_obj
@@ -1668,12 +1662,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/created_slices", methods=["GET"])
     @expose("/created_slices/<int:user_id>/", methods=["GET"])
-    def created_slices(  # pylint: disable=no-self-use
-        self, user_id: Optional[int] = None
-    ) -> FlaskResponse:
+    def created_slices(self, user_id: Optional[int] = None) -> FlaskResponse:
         """List of slices created by this user"""
         if not user_id:
-            user_id = int(g.user.get_id())
+            user_id = cast(int, g.user.id)
         error_obj = self.get_user_activity_access_error(user_id)
         if error_obj:
             return error_obj
@@ -1701,12 +1693,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/fave_slices", methods=["GET"])
     @expose("/fave_slices/<int:user_id>/", methods=["GET"])
-    def fave_slices(  # pylint: disable=no-self-use
-        self, user_id: Optional[int] = None
-    ) -> FlaskResponse:
+    def fave_slices(self, user_id: Optional[int] = None) -> FlaskResponse:
         """Favorite slices for a user"""
         if user_id is None:
-            user_id = int(g.user.get_id())
+            user_id = g.user.id
         error_obj = self.get_user_activity_access_error(user_id)
         if error_obj:
             return error_obj
