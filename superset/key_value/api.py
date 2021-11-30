@@ -23,6 +23,10 @@ from flask import g, request, Response
 from flask_appbuilder.api import BaseApi
 
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.dashboards.commands.exceptions import (
+    DashboardAccessDeniedError,
+    DashboardNotFoundError,
+)
 from superset.exceptions import InvalidPayloadFormatError
 from superset.key_value.schemas import KeyValuePostSchema, KeyValuePutSchema
 
@@ -53,30 +57,50 @@ class KeyValueRestApi(BaseApi, ABC):
     def post(self, pk: int) -> Response:
         if not request.is_json:
             raise InvalidPayloadFormatError("Request is not JSON")
-        item = self.add_model_schema.load(request.json)
-        key = self.get_create_command()(g.user, pk, item["value"]).run()
-        return self.response(201, key=key)
+        try:
+            item = self.add_model_schema.load(request.json)
+            key = self.get_create_command()(g.user, pk, item["value"]).run()
+            return self.response(201, key=key)
+        except DashboardAccessDeniedError:
+            return self.response_403()
+        except DashboardNotFoundError:
+            return self.response_404()
 
     def put(self, pk: int, key: str) -> Response:
         if not request.is_json:
             raise InvalidPayloadFormatError("Request is not JSON")
-        item = self.edit_model_schema.load(request.json)
-        result = self.get_update_command()(g.user, pk, key, item["value"]).run()
-        if not result:
+        try:
+            item = self.edit_model_schema.load(request.json)
+            result = self.get_update_command()(g.user, pk, key, item["value"]).run()
+            if not result:
+                return self.response_404()
+            return self.response(200, message="Value updated successfully.")
+        except DashboardAccessDeniedError:
+            return self.response_403()
+        except DashboardNotFoundError:
             return self.response_404()
-        return self.response(200, message="Value updated successfully.",)
 
     def get(self, pk: int, key: str) -> Response:
-        value = self.get_get_command()(g.user, pk, key).run()
-        if not value:
+        try:
+            value = self.get_get_command()(g.user, pk, key).run()
+            if not value:
+                return self.response_404()
+            return self.response(200, value=value)
+        except DashboardAccessDeniedError:
+            return self.response_403()
+        except DashboardNotFoundError:
             return self.response_404()
-        return self.response(200, value=value)
 
     def delete(self, pk: int, key: str) -> Response:
-        result = self.get_delete_command()(g.user, pk, key).run()
-        if not result:
+        try:
+            result = self.get_delete_command()(g.user, pk, key).run()
+            if not result:
+                return self.response_404()
+            return self.response(200, message="Deleted successfully")
+        except DashboardAccessDeniedError:
+            return self.response_403()
+        except DashboardNotFoundError:
             return self.response_404()
-        return self.response(200, message="Deleted successfully")
 
     @abstractmethod
     def get_create_command(self) -> Any:

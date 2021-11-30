@@ -23,27 +23,38 @@ from superset.extensions import cache_manager
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.test_app import app
 from sqlalchemy.orm import Session
+from unittest.mock import patch
+from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
+from superset.key_value.utils import cache_key
 
-dashboardId = 1
+dashboardId = 985374
+key = "test-key"
+deleteKey = "delete-key"
 value = "test"
 
 
 class FilterStateTests(SupersetTestCase):
-    def post(self):
-        payload = {
-            "value": value,
-        }
-        return self.client.post(
-            f"api/v1/dashboard/{dashboardId}/filter_state", json=payload
-        )
+    @pytest.fixture(scope="session", autouse=True)
+    def before_all(self):
+        with app.app_context() as ctx:
+            # init cache
+            app.config["FILTER_STATE_CACHE_CONFIG"] = {"CACHE_TYPE": "SimpleCache"}
+            cache_manager.init_app(app)
+            cache_manager.filter_state_cache.set(cache_key(dashboardId, key), value)
+            cache_manager.filter_state_cache.set(
+                cache_key(dashboardId, deleteKey), value
+            )
 
-    def clearTable(self, session, model):
-        rows = session.query(model).all()
-        for row in rows:
-            session.delete(row)
-        session.commit()
+            # create dashboard
+            session: Session = ctx.app.appbuilder.get_session
+            dashboard = self.create_dashboard(session)
+            yield dashboard
 
-    def createDashboard(self, session):
+            # delete dashboard
+            session.delete(dashboard)
+            session.commit()
+
+    def create_dashboard(self, session):
         admin = self.get_user("admin")
         user = session.query(security_manager.user_model).get(admin.id)
         dashboard = Dashboard(
@@ -61,27 +72,32 @@ class FilterStateTests(SupersetTestCase):
         )
         session.add(dashboard)
         session.commit()
-
-    @pytest.fixture(autouse=True, scope="session")
-    def beforeAll(self):
-        with app.app_context() as ctx:
-            app.config["FILTER_STATE_CACHE_CONFIG"] = {"CACHE_TYPE": "SimpleCache"}
-            cache_manager.init_app(app)
-            session: Session = ctx.app.appbuilder.get_session
-            self.clearTable(session, Dashboard)
-            self.createDashboard(session)
+        return dashboard
 
     def setUp(self):
         self.login(username="admin")
 
     def test_post(self):
-        resp = self.post()
+        payload = {
+            "value": value,
+        }
+        resp = self.client.post(
+            f"api/v1/dashboard/{dashboardId}/filter_state", json=payload
+        )
         assert resp.status_code == 201
 
+    @patch("superset.security.SupersetSecurityManager.raise_for_dashboard_access")
+    def test_post_access_denied(self, mock_raise_for_dashboard_access):
+        mock_raise_for_dashboard_access.side_effect = DashboardAccessDeniedError()
+        payload = {
+            "value": value,
+        }
+        resp = self.client.post(
+            f"api/v1/dashboard/{dashboardId}/filter_state", json=payload
+        )
+        assert resp.status_code == 403
+
     def test_put(self):
-        resp = self.post()
-        data = json.loads(resp.data.decode("utf-8"))
-        key = data.get("key")
         payload = {
             "value": "new value",
         }
@@ -90,22 +106,47 @@ class FilterStateTests(SupersetTestCase):
         )
         assert resp.status_code == 200
 
-    def test_get_not_found(self):
+    @patch("superset.security.SupersetSecurityManager.raise_for_dashboard_access")
+    def test_put_access_denied(self, mock_raise_for_dashboard_access):
+        mock_raise_for_dashboard_access.side_effect = DashboardAccessDeniedError()
+        payload = {
+            "value": "new value",
+        }
+        resp = self.client.put(
+            f"api/v1/dashboard/{dashboardId}/filter_state/{key}/", json=payload
+        )
+        assert resp.status_code == 403
+
+    def test_get_key_not_found(self):
         resp = self.client.get("unknown-key")
         assert resp.status_code == 404
 
+    def test_get_dashboard_not_found(self):
+        resp = self.client.get(f"api/v1/dashboard/{-1}/filter_state/{key}/")
+        assert resp.status_code == 404
+
     def test_get(self):
-        resp = self.post()
-        data = json.loads(resp.data.decode("utf-8"))
-        key = data.get("key")
         resp = self.client.get(f"api/v1/dashboard/{dashboardId}/filter_state/{key}/")
         assert resp.status_code == 200
         data = json.loads(resp.data.decode("utf-8"))
         assert value == data.get("value")
 
+    @patch("superset.security.SupersetSecurityManager.raise_for_dashboard_access")
+    def test_get_access_denied(self, mock_raise_for_dashboard_access):
+        mock_raise_for_dashboard_access.side_effect = DashboardAccessDeniedError()
+        resp = self.client.get(f"api/v1/dashboard/{dashboardId}/filter_state/{key}/")
+        assert resp.status_code == 403
+
     def test_delete(self):
-        resp = self.post()
-        data = json.loads(resp.data.decode("utf-8"))
-        key = data.get("key")
-        resp = self.client.delete(f"api/v1/dashboard/{dashboardId}/filter_state/{key}/")
+        resp = self.client.delete(
+            f"api/v1/dashboard/{dashboardId}/filter_state/{deleteKey}/"
+        )
         assert resp.status_code == 200
+
+    @patch("superset.security.SupersetSecurityManager.raise_for_dashboard_access")
+    def test_delete_access_denied(self, mock_raise_for_dashboard_access):
+        mock_raise_for_dashboard_access.side_effect = DashboardAccessDeniedError()
+        resp = self.client.delete(
+            f"api/v1/dashboard/{dashboardId}/filter_state/{deleteKey}/"
+        )
+        assert resp.status_code == 403
