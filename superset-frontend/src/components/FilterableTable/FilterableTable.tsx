@@ -321,16 +321,16 @@ export default class FilterableTable extends PureComponent<
     );
   }
 
+  // Parse any floating numbers so they'll sort correctly
+  parseFloatingNums = (value: any) => {
+    const floatValue = parseFloat(value);
+    return Number.isNaN(floatValue) ? value : parseFloat(value);
+  };
+
   sortResults(sortBy: string, descending: boolean) {
     return (a: Datum, b: Datum) => {
-      // Parse any floating numbers so they'll sort correctly
-      const parseFloatingNums = (value: any) => {
-        const floatValue = parseFloat(value);
-        return Number.isNaN(floatValue) ? value : parseFloat(value);
-      };
-
-      const aValue = parseFloatingNums(a[sortBy]);
-      const bValue = parseFloatingNums(b[sortBy]);
+      const aValue = this.parseFloatingNums(a[sortBy]);
+      const bValue = this.parseFloatingNums(b[sortBy]);
 
       String(aValue).localeCompare(String(bValue), undefined, {
         numeric: true,
