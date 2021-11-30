@@ -51,19 +51,15 @@ export default {
             },
           },
         ],
+      ],
+    },
+    {
+      label: t('Chart Options'),
+      expanded: true,
+      controlSetRows: [
+        [headerFontSize],
+        [subheaderFontSize],
         ['y_axis_format'],
-        [
-          {
-            name: 'header_format_selector',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Timestamp Format'),
-              renderTrigger: true,
-              default: false,
-              description: t('Whether to format the timestamp'),
-            },
-          },
-        ],
         [
           {
             name: 'header_timestamp_format',
@@ -73,21 +69,25 @@ export default {
               label: t('Date format'),
               renderTrigger: true,
               choices: D3_TIME_FORMAT_OPTIONS,
-              default: '%d-%m-%Y %H:%M:%S',
               description: D3_FORMAT_DOCS,
-              visibility(props) {
-                const { header_format_selector } = props.form_data;
-                return !!header_format_selector;
-              },
+            },
+          },
+        ],
+        [
+          {
+            name: 'force_timestamp_formatting',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Force date format'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'Use date formatting even when metric value is not a timestamp',
+              ),
             },
           },
         ],
       ],
-    },
-    {
-      label: t('Chart Options'),
-      expanded: true,
-      controlSetRows: [[headerFontSize], [subheaderFontSize]],
     },
   ],
   controlOverrides: {

@@ -22,6 +22,7 @@ import transformProps, {
   BigNumberChartProps,
   BigNumberFormData,
 } from './transformProps';
+import buildQuery from './buildQuery';
 import example from './images/Big_Number_Trendline.jpg';
 import thumbnail from './images/thumbnail.png';
 
@@ -43,7 +44,6 @@ const metadata = new ChartMetadata({
     t('Trend'),
   ],
   thumbnail,
-  useLegacyApi: true,
 });
 
 export default class BigNumberChartPlugin extends ChartPlugin<
@@ -52,8 +52,9 @@ export default class BigNumberChartPlugin extends ChartPlugin<
 > {
   constructor() {
     super({
-      loadChart: () => import('./BigNumber'),
+      loadChart: () => import('../BigNumberViz'),
       metadata,
+      buildQuery,
       transformProps,
       controlPanel,
     });

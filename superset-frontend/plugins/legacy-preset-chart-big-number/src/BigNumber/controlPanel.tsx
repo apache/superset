@@ -142,6 +142,34 @@ const config: ControlPanelConfig = {
         ['color_picker', null],
         [headerFontSize],
         [subheaderFontSize],
+        ['y_axis_format'],
+        [
+          {
+            name: 'time_format',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Timestamp format'),
+              renderTrigger: true,
+              choices: D3_TIME_FORMAT_OPTIONS,
+              description: D3_FORMAT_DOCS,
+            },
+          },
+        ],
+        [
+          {
+            name: 'force_timestamp_formatting',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Force date format'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'Use date formatting even when metric value is not a timestamp',
+              ),
+            },
+          },
+        ],
       ],
     },
     {

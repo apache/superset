@@ -27,6 +27,9 @@ import {
   LegacyQueryData,
   QueryFormData,
   smartDateFormatter,
+  GenericDataType,
+  QueryFormMetric,
+  getMetricLabel,
 } from '@superset-ui/core';
 
 const TIME_COLUMN = '__timestamp';
@@ -45,11 +48,7 @@ export type BigNumberFormData = QueryFormData & {
     g: number;
     b: number;
   };
-  metric?:
-    | {
-        label: string;
-      }
-    | string;
+  metric?: QueryFormMetric;
   compareLag?: string | number;
   yAxisFormat?: string;
 };
@@ -75,21 +74,20 @@ export default function transformProps(chartProps: BigNumberChartProps) {
     startYAxisAtZero,
     subheader = '',
     subheaderFontSize,
-    vizType,
     timeRangeFixed = false,
+    forceTimestampFormatting,
+    yAxisFormat,
   } = formData;
   const granularity = extractTimegrain(rawFormData as QueryFormData);
-  let { yAxisFormat } = formData;
-  const { headerFormatSelector, headerTimestampFormat } = formData;
   const {
     data = [],
     from_dttm: fromDatetime,
     to_dttm: toDatetime,
+    colnames = [],
+    coltypes = [],
   } = queriesData[0];
-  const metricName = typeof metric === 'string' ? metric : metric.label;
+  const metricName = getMetricLabel(metric);
   const compareLag = Number(compareLag_) || 0;
-  const supportTrendLine = vizType === 'big_number';
-  const supportAndShowTrendLine = supportTrendLine && showTrendLine;
   let formattedSubheader = subheader;
 
   let mainColor;
@@ -132,12 +130,8 @@ export default function transformProps(chartProps: BigNumberChartProps) {
         }
       }
     }
-
-    if (supportTrendLine) {
-      // must reverse to ascending order otherwise it confuses tooltip triggers
-      sortedData.reverse();
-      trendLineData = supportAndShowTrendLine ? sortedData : undefined;
-    }
+    sortedData.reverse();
+    trendLineData = showTrendLine ? sortedData : undefined;
   }
 
   let className = '';
@@ -147,21 +141,26 @@ export default function transformProps(chartProps: BigNumberChartProps) {
     className = 'negative';
   }
 
-  if (!yAxisFormat && chartProps.datasource && chartProps.datasource.metrics) {
-    chartProps.datasource.metrics.forEach(metricEntry => {
-      if (metricEntry.metric_name === metric && metricEntry.d3format) {
-        yAxisFormat = metricEntry.d3format;
-      }
-    });
+  let metricEntry;
+  if (chartProps.datasource && chartProps.datasource.metrics) {
+    metricEntry = chartProps.datasource.metrics.find(
+      metricEntry => metricEntry.metric_name === metric,
+    );
   }
 
-  const headerFormatter = headerFormatSelector
-    ? getTimeFormatter(headerTimestampFormat)
-    : getNumberFormatter(yAxisFormat);
   const formatTime =
     timeFormat === smartDateFormatter.id
       ? getTimeFormatterForGranularity(granularity)
-      : getTimeFormatter(timeFormat);
+      : getTimeFormatter(timeFormat ?? metricEntry?.d3format);
+
+  const metricColtypeIndex = colnames.findIndex(
+    (name: string) => name === metricName,
+  );
+  const coltype = metricColtypeIndex > -1 ? coltypes[metricColtypeIndex] : null;
+  const headerFormatter =
+    coltype === GenericDataType.TEMPORAL || forceTimestampFormatting
+      ? formatTime
+      : getNumberFormatter(yAxisFormat ?? metricEntry?.d3format ?? undefined);
 
   return {
     width,
@@ -175,7 +174,7 @@ export default function transformProps(chartProps: BigNumberChartProps) {
     subheaderFontSize,
     mainColor,
     showTimestamp,
-    showTrendLine: supportAndShowTrendLine,
+    showTrendLine,
     startYAxisAtZero,
     subheader: formattedSubheader,
     timestamp,

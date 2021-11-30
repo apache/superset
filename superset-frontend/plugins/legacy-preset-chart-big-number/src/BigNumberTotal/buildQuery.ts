@@ -16,18 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Preset } from '@superset-ui/core';
-import BigNumberChartPlugin from './BigNumberViz';
-import BigNumberTotalChartPlugin from './BigNumberTotal';
+import { buildQueryContext, QueryFormData } from '@superset-ui/core';
 
-export default class BigNumberChartPreset extends Preset {
-  constructor() {
-    super({
-      name: 'BigNumber charts',
-      plugins: [
-        new BigNumberChartPlugin().configure({ key: 'big_number' }),
-        new BigNumberTotalChartPlugin().configure({ key: 'big_number_total' }),
-      ],
-    });
-  }
+export default function buildQuery(formData: QueryFormData) {
+  return buildQueryContext(formData, baseQueryObject => [baseQueryObject]);
 }
