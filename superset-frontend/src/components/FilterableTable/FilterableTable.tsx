@@ -336,6 +336,14 @@ export default class FilterableTable extends PureComponent<
         numeric: true,
       });
 
+      // nulls sort after anything else
+      if (aValue === null) {
+        return 1;
+      }
+      if (bValue === null) {
+        return -1;
+      }
+
       if (descending) {
         return aValue < bValue ? 1 : -1;
       }
