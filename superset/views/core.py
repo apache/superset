@@ -1391,6 +1391,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 _("Unexpected error occurred, please check your logs for details"), 400
             )
 
+    @staticmethod
+    def get_user_activity_access_error(user_id: int) -> Optional[FlaskResponse]:
+        try:
+            security_manager.raise_for_user_activity_access(user_id)
+        except SupersetSecurityException as ex:
+            return json_error_response(ex.message, status=403,)
+        return None
+
     @api
     @has_access_api
     @event_logger.log_this
@@ -1399,6 +1407,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         self, user_id: int
     ) -> FlaskResponse:
         """Recent activity (actions) for a given user"""
+        error_obj = self.get_user_activity_access_error(user_id)
+        if error_obj:
+            return error_obj
+
         limit = request.args.get("limit")
         limit = int(limit) if limit and limit.isdigit() else 100
         actions = request.args.get("actions", "explore,dashboard").split(",")
@@ -1526,7 +1538,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def fave_dashboards_by_username(self, username: str) -> FlaskResponse:
         """This lets us use a user's username to pull favourite dashboards"""
         user = security_manager.find_user(username=username)
-        return self.fave_dashboards(user.get_id())
+        return self.fave_dashboards(int(user.get_id()))
 
     @api
     @has_access_api
@@ -1535,6 +1547,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def fave_dashboards(  # pylint: disable=no-self-use
         self, user_id: int
     ) -> FlaskResponse:
+        error_obj = self.get_user_activity_access_error(user_id)
+        if error_obj:
+            return error_obj
         qry = (
             db.session.query(Dashboard, FavStar.dttm)
             .join(
@@ -1570,6 +1585,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def created_dashboards(  # pylint: disable=no-self-use
         self, user_id: int
     ) -> FlaskResponse:
+        error_obj = self.get_user_activity_access_error(user_id)
+        if error_obj:
+            return error_obj
         Dash = Dashboard
         qry = (
             db.session.query(Dash)
@@ -1600,7 +1618,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     ) -> FlaskResponse:
         """List of slices a user owns, created, modified or faved"""
         if not user_id:
-            user_id = g.user.get_id()
+            user_id = int(g.user.get_id())
+        error_obj = self.get_user_activity_access_error(user_id)
+        if error_obj:
+            return error_obj
 
         owner_ids_query = (
             db.session.query(Slice.id)
@@ -1652,7 +1673,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     ) -> FlaskResponse:
         """List of slices created by this user"""
         if not user_id:
-            user_id = g.user.get_id()
+            user_id = int(g.user.get_id())
+        error_obj = self.get_user_activity_access_error(user_id)
+        if error_obj:
+            return error_obj
         qry = (
             db.session.query(Slice)
             .filter(  # pylint: disable=comparison-with-callable
@@ -1681,8 +1705,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         self, user_id: Optional[int] = None
     ) -> FlaskResponse:
         """Favorite slices for a user"""
-        if not user_id:
-            user_id = g.user.get_id()
+        if user_id is None:
+            user_id = int(g.user.get_id())
+        error_obj = self.get_user_activity_access_error(user_id)
+        if error_obj:
+            return error_obj
         qry = (
             db.session.query(Slice, FavStar.dttm)
             .join(
