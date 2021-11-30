@@ -76,6 +76,8 @@ export interface ChartDataResponseResult {
     | 'scheduled'
     | 'success'
     | 'timed_out';
+  from_dttm: number | null;
+  to_dttm: number | null;
 }
 
 export interface TimeseriesChartDataResponseResult

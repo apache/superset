@@ -79,9 +79,16 @@ export default function transformProps(
     subheaderFontSize,
     forceTimestampFormatting,
     yAxisFormat,
+    timeRangeFixed,
   } = formData;
   const granularity = extractTimegrain(rawFormData as QueryFormData);
-  const { data = [], colnames = [], coltypes = [] } = queriesData[0];
+  const {
+    data = [],
+    colnames = [],
+    coltypes = [],
+    from_dttm: fromDatetime,
+    to_dttm: toDatetime,
+  } = queriesData[0];
   const metricName = getMetricLabel(metric);
   const compareLag = Number(compareLag_) || 0;
   let formattedSubheader = subheader;
@@ -167,6 +174,19 @@ export default function transformProps(
     forceTimestampFormatting
       ? formatTime
       : getNumberFormatter(yAxisFormat ?? metricEntry?.d3format ?? undefined);
+
+  if (trendLineData && timeRangeFixed && fromDatetime) {
+    const toDatetimeOrToday = toDatetime ?? Date.now();
+    if (!trendLineData[0][0] || trendLineData[0][0] > fromDatetime) {
+      trendLineData.unshift([fromDatetime, null]);
+    }
+    if (
+      !trendLineData[trendLineData.length - 1][0] ||
+      trendLineData[trendLineData.length - 1][0]! < toDatetimeOrToday
+    ) {
+      trendLineData.push([toDatetimeOrToday, null]);
+    }
+  }
 
   const echartOptions: EChartsCoreOption = trendLineData
     ? {
