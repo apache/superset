@@ -32,11 +32,12 @@ if TYPE_CHECKING:
 FEATURE_FLAG = "QUERY_CONTEXT_VALIDATION_SQL_EXPRESSION"
 
 
+# pylint: disable=too-few-public-methods
 class QueryContextValidatorFactory:
     @staticmethod
     def create() -> QueryContextValidator:
         if is_feature_enabled(FEATURE_FLAG):
             return QueryContextValidatorImpl(
-                DatasetDAO(), security_manager
-            )  # type: ignore
+                DatasetDAO(), security_manager  # type: ignore
+            )
         return QueryContextValidatorWrapper()
