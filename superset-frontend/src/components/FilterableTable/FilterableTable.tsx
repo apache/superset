@@ -323,28 +323,23 @@ export default class FilterableTable extends PureComponent<
 
   sortResults(sortBy: string, descending: boolean) {
     return (a: Datum, b: Datum) => {
-      const aValue = a[sortBy];
-      const bValue = b[sortBy];
-
       // Parse any floating numbers so they'll sort correctly
-      const parseFloatingNums = (value: any) =>
-        value.isNan ? value : parseFloat(value);
+      const parseFloatingNums = (value: any) => {
+        const floatValue = parseFloat(value);
+        return Number.isNaN(floatValue) ? value : parseFloat(value);
+      };
 
-      if (aValue === bValue) {
-        // equal items sort equally
-        return 0;
-      }
-      if (aValue === null) {
-        // nulls sort after anything else
-        return 1;
-      }
-      if (bValue === null) {
-        return -1;
-      }
+      const aValue = parseFloatingNums(a[sortBy]);
+      const bValue = parseFloatingNums(b[sortBy]);
+
+      String(aValue).localeCompare(String(bValue), undefined, {
+        numeric: true,
+      });
+
       if (descending) {
-        return parseFloatingNums(aValue) < parseFloatingNums(bValue) ? 1 : -1;
+        return aValue < bValue ? 1 : -1;
       }
-      return parseFloatingNums(aValue) < parseFloatingNums(bValue) ? -1 : 1;
+      return aValue < bValue ? -1 : 1;
     };
   }
 
