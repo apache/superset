@@ -30,8 +30,7 @@
   },
   "workspaces": [
     "packages/*",
-    "plugins/*",
-    "temporary_superset_ui/*"
+    "plugins/*"
   ],
   "scripts": {
     "_lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx,.ts,tsx .",
