@@ -17,11 +17,11 @@
 import logging
 from abc import ABC, abstractmethod
 from typing import Any
-from marshmallow import ValidationError
 
 from apispec import APISpec
 from flask import g, request, Response
 from flask_appbuilder.api import BaseApi
+from marshmallow import ValidationError
 
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.dashboards.commands.exceptions import (
