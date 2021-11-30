@@ -18,13 +18,14 @@
  */
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import controlPanel from './controlPanel';
-import transformProps, {
-  BigNumberChartProps,
-  BigNumberFormData,
-} from './transformProps';
+import transformProps from './transformProps';
 import buildQuery from './buildQuery';
 import example from './images/Big_Number_Trendline.jpg';
 import thumbnail from './images/thumbnail.png';
+import {
+  BigNumberWithTrendlineChartProps,
+  BigNumberWithTrendlineFormData,
+} from '../types';
 
 const metadata = new ChartMetadata({
   category: t('KPI'),
@@ -46,9 +47,9 @@ const metadata = new ChartMetadata({
   thumbnail,
 });
 
-export default class BigNumberChartPlugin extends ChartPlugin<
-  BigNumberFormData,
-  BigNumberChartProps
+export default class BigNumberWithTrendlineChartPlugin extends ChartPlugin<
+  BigNumberWithTrendlineFormData,
+  BigNumberWithTrendlineChartProps
 > {
   constructor() {
     super({
