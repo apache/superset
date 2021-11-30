@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "@react-icons/all-files": "^4.1.0",
-    "@superset-ui/core": "^0.17.18",
+    "@superset-ui/core": "^0.18.25",
     "lodash": "^4.17.15",
     "prop-types": "^15.7.2"
   },
