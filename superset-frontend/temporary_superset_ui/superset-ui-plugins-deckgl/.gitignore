@@ -1,0 +1,57 @@
+.DS_Store
+*.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Cache
+.bundle/
+.happo/
+.idea/
+.next/
+.cache
+.eslintcache
+.idea
+*.iml
+.npm
+.vscode
+.yarnclean
+
+# Directories
+build/
+coverage/
+dist/
+esm/
+lib/
+public/
+node_modules/
+tmp/
+
+# Custom
+*.map
+*.min.js
+test-changelog.md
+
+# Configs (provided by Nimbus)
+.babelrc
+.eslintignore
+.eslintrc.js
+.flowconfig
+.prettierignore
+babel.config.js
+jest.config.js
+prettier.config.js
+tsconfig.eslint.json
+tsconfig.json
+tsconfig.options.json
+*.tsbuildinfo
+webpack.config.js
+
+# Lock files, libs should not have lock files
+npm-shrinkwrap.json
+package-lock.json
+old-yarn.lock
+.*.swp
+_gh-pages
+# Now only allow yarn.lock
