@@ -34,7 +34,7 @@ services:
 
   db:
     env_file: docker/.env-non-dev
-    image: postgres:10
+    image: postgres:latest
     container_name: superset_db
     restart: unless-stopped
     volumes:
@@ -42,7 +42,7 @@ services:
 
   superset:
     env_file: docker/.env-non-dev
-    image: *superset-image
+    image: talix/superset:latest
     container_name: superset_app
     command: ["/app/docker/docker-bootstrap.sh", "app-gunicorn"]
     user: "root"

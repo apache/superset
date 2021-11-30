@@ -175,11 +175,68 @@ how to set up a development environment.
   - [Why Apache Superset is Betting on Apache ECharts](https://preset.io/blog/2021-4-1-why-echarts/)
 - [Superset API](https://superset.apache.org/docs/rest-api)
 
-## Local setup
+## Local Development
+Terminal One
 ```
-$ python3 -m venv venv
-$ source venv/bin/activate
-$ python3 -m pip install -r requirements/integration.txt
-$ python3 -m pip install -r requirements/base.txt
-pre-commit install
+# Create a virtual environment and activate it (recommended)
+python3 -m venv venv # setup a python3 virtualenv
+source venv/bin/activate
+
+brew install mysql
+pip install mysqlclient
+
+# Install external dependencies
+pip install -r requirements/testing.txt
+
+# Install Superset in editable (development) mode
+pip install -e .
+
+# Initialize the database
+superset db upgrade
+
+# Create an admin user in your metadata database (use `admin` as username to be able to load the examples)
+superset fab create-admin
+
+# Create default roles and permissions
+superset init
+
+# Load some data to play with.
+# Note: you MUST have previously created an admin user with the username `admin` for this command to work.
+superset load-examples
+
+# Start the Flask dev web server from inside your virtualenv.
+# Note that your page may not have CSS at this point.
+# See instructions below how to build the front-end assets.
+FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
+
+# develop new funactionality and commit the code
+git add -u
+git commit -m "docs: add local setup"
+
+```
+
+Terminal Two
+```
+cd superset-frontend
+
+# if any nvm issue, please run line below and reload the terminal window
+export NVM_DIR="$HOME/.nvm"
+
+nvm install --lts
+nvm use --lts
+npm ci
+npm run build
+npm run dev-server
+```
+
+Terminal Three
+```
+# build superset image
+sh build_image.sh
+```
+Terminal Four
+```
+# run new image with docker-compose
+docker-compose -f docker-compose-non-dev.yml up -d
+
 ```
