@@ -314,6 +314,7 @@ LANGUAGES = {
     "pt_BR": {"flag": "br", "name": "Brazilian Portuguese"},
     "ru": {"flag": "ru", "name": "Russian"},
     "ko": {"flag": "kr", "name": "Korean"},
+    "sk": {"flag": "sk", "name": "Slovak"},
     "sl": {"flag": "si", "name": "Slovenian"},
 }
 # Turning off i18n by default as translation in most languages are
@@ -372,10 +373,10 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # When True, this escapes HTML (rather than rendering it) in Markdown components
     "ESCAPE_MARKDOWN_HTML": False,
     "DASHBOARD_NATIVE_FILTERS": True,
-    "DASHBOARD_CROSS_FILTERS": True,
+    "DASHBOARD_CROSS_FILTERS": False,
     # Feature is under active development and breaking changes are expected
-    "DASHBOARD_NATIVE_FILTERS_SET": True,
-    "DASHBOARD_FILTERS_EXPERIMENTAL": True,
+    "DASHBOARD_NATIVE_FILTERS_SET": False,
+    "DASHBOARD_FILTERS_EXPERIMENTAL": False,
     "GLOBAL_ASYNC_QUERIES": False,
     "VERSIONED_EXPORT": False,
     # Note that: RowLevelSecurityFilter is only given by default to the Admin role
@@ -387,7 +388,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # tables that users do not have access to.
     "ROW_LEVEL_SECURITY": True,
     # Enables Alerts and reports new implementation
-    "ALERT_REPORTS": True,
+    "ALERT_REPORTS": False,
     # Enable experimental feature to search for other dashboards
     "OMNIBAR": False,
     "DASHBOARD_RBAC": False,
