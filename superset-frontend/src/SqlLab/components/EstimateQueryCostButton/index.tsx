@@ -25,7 +25,7 @@ import Loading from 'src/components/Loading';
 import ModalTrigger from 'src/components/ModalTrigger';
 import { EmptyWrapperType } from 'src/components/TableView/TableView';
 
-interface EstimateQueryCostButtonProps{
+interface EstimateQueryCostButtonProps {
   dbId: number;
   schema: string;
   sql: string;
@@ -36,7 +36,16 @@ interface EstimateQueryCostButtonProps{
   disabled: boolean;
 }
 
-const EstimateQueryCostButton = ({dbId, schema, sql, getEstimate, queryCostEstimate=[], selectedText, tooltip="", disabled=false}: EstimateQueryCostButtonProps) => {
+const EstimateQueryCostButton = ({
+  dbId,
+  schema,
+  sql,
+  getEstimate,
+  queryCostEstimate = [],
+  selectedText,
+  tooltip = '',
+  disabled = false,
+}: EstimateQueryCostButtonProps) => {
   const { cost } = queryCostEstimate;
   const tableData = useMemo(() => (Array.isArray(cost) ? cost : []), [cost]);
   const columns = useMemo(
