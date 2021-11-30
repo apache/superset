@@ -20,7 +20,9 @@ function expandIfNeeded(
       ];
 }
 
-export default function computeBoundsFromPoints(points: Point[]) {
+export default function computeBoundsFromPoints(
+  points: Point[],
+): [Point, Point] {
   const latBounds = expandIfNeeded(
     d3Extent(points, (x: Point) => x[1]) as Range,
     LAT_LIMIT,
