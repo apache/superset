@@ -144,8 +144,8 @@ class QueryContextProcessor:
             "status": cache.status,
             "stacktrace": cache.stacktrace,
             "rowcount": len(cache.df.index),
-            "from_dttm": cache.from_dttm,
-            "to_dttm": cache.to_dttm,
+            "from_dttm": query_obj.from_dttm,
+            "to_dttm": query_obj.to_dttm,
         }
 
     def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> Optional[str]:
