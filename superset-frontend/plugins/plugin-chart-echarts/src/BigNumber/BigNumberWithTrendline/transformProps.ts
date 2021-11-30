@@ -95,9 +95,24 @@ export default function transformProps(
   let timestamp = data.length === 0 ? null : data[0][TIME_COLUMN];
   let bigNumberFallback;
 
+  const metricColtypeIndex = colnames.findIndex(name => name === metricName);
+  const metricColtype =
+    metricColtypeIndex > -1 ? coltypes[metricColtypeIndex] : null;
+
+  const parseMetricValue = (metricValue: number | string | null) => {
+    if (typeof metricValue === 'string') {
+      const parsedDate = Date.parse(metricValue);
+      if (!Number.isNaN(parsedDate)) {
+        return parsedDate;
+      }
+      return null;
+    }
+    return metricValue;
+  };
+
   if (data.length > 0) {
     const sortedData = (data as BigNumberDatum[])
-      .map(d => [d[TIME_COLUMN], d[metricName]])
+      .map(d => [d[TIME_COLUMN], parseMetricValue(d[metricName])])
       // sort in time descending order
       .sort((a, b) => (a[0] !== null && b[0] !== null ? b[0] - a[0] : 0));
 
@@ -146,10 +161,10 @@ export default function transformProps(
       ? getTimeFormatterForGranularity(granularity)
       : getTimeFormatter(timeFormat ?? metricEntry?.d3format);
 
-  const metricColtypeIndex = colnames.findIndex(name => name === metricName);
-  const coltype = metricColtypeIndex > -1 ? coltypes[metricColtypeIndex] : null;
   const headerFormatter =
-    coltype === GenericDataType.TEMPORAL || forceTimestampFormatting
+    metricColtype === GenericDataType.TEMPORAL ||
+    metricColtype === GenericDataType.STRING ||
+    forceTimestampFormatting
       ? formatTime
       : getNumberFormatter(yAxisFormat ?? metricEntry?.d3format ?? undefined);
 
