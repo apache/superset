@@ -17,5 +17,5 @@
  * under the License.
  */
 
-export { default as BigNumberChartPlugin } from './BigNumber';
+export { default as BigNumberChartPlugin } from './BigNumberWithTrendline';
 export { default as BigNumberTotalChartPlugin } from './BigNumberTotal';

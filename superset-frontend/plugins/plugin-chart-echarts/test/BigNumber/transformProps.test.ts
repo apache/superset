@@ -17,10 +17,11 @@
  * under the License.
  */
 import { DatasourceType, TimeGranularity } from '@superset-ui/core';
-import transformProps, {
-  BigNumberChartProps,
+import transformProps from '../../src/BigNumber/BigNumberWithTrendline/transformProps';
+import {
   BigNumberDatum,
-} from '../../src/BigNumber/src/BigNumber/transformProps';
+  BigNumberWithTrendlineChartProps,
+} from '../../src/BigNumber/types';
 
 const formData = {
   metric: 'value',
@@ -57,7 +58,7 @@ function generateProps(
   data: BigNumberDatum[],
   extraFormData = {},
   extraQueryData = {},
-): BigNumberChartProps {
+): BigNumberWithTrendlineChartProps {
   return {
     width: 200,
     height: 500,
@@ -91,7 +92,7 @@ function generateProps(
   };
 }
 
-describe('BigNumber', () => {
+describe('BigNumberWithTrendline', () => {
   const props = generateProps(
     [
       {
@@ -113,8 +114,8 @@ describe('BigNumber', () => {
       const lastDatum = transformed.trendLineData?.pop();
 
       // should use last available value
-      expect(lastDatum?.x).toStrictEqual(100);
-      expect(lastDatum?.y).toBeNull();
+      expect(lastDatum?.[0]).toStrictEqual(100);
+      expect(lastDatum?.[1]).toBeNull();
 
       // should note this is a fallback
       expect(transformed.bigNumber).toStrictEqual(1.2345);

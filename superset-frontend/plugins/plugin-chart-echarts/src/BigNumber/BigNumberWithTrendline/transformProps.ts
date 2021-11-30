@@ -16,51 +16,54 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import * as color from 'd3-color';
 import {
   extractTimegrain,
   getNumberFormatter,
   getTimeFormatter,
   getTimeFormatterForGranularity,
   NumberFormats,
-  ChartProps,
-  LegacyQueryData,
   QueryFormData,
   smartDateFormatter,
   GenericDataType,
-  QueryFormMetric,
   getMetricLabel,
+  t,
+  smartDateVerboseFormatter,
+  NumberFormatter,
+  TimeFormatter,
 } from '@superset-ui/core';
+import { EChartsCoreOption, graphic } from 'echarts';
+import {
+  BigNumberDatum,
+  BigNumberWithTrendlineChartProps,
+  TimeSeriesDatum,
+} from '../types';
+
+const defaultNumberFormatter = getNumberFormatter();
+export function renderTooltipFactory(
+  formatDate: TimeFormatter = smartDateVerboseFormatter,
+  formatValue: NumberFormatter | TimeFormatter = defaultNumberFormatter,
+) {
+  return function renderTooltip(params: { data: TimeSeriesDatum }[]) {
+    return `
+      ${formatDate(params[0].data[0])}
+      <br />
+      <strong>
+        ${
+          params[0].data[1] === null ? t('N/A') : formatValue(params[0].data[1])
+        }
+      </strong>
+    `;
+  };
+}
 
 const TIME_COLUMN = '__timestamp';
 const formatPercentChange = getNumberFormatter(
   NumberFormats.PERCENT_SIGNED_1_POINT,
 );
 
-// we trust both the x (time) and y (big number) to be numeric
-export interface BigNumberDatum {
-  [key: string]: number | null;
-}
-
-export type BigNumberFormData = QueryFormData & {
-  colorPicker?: {
-    r: number;
-    g: number;
-    b: number;
-  };
-  metric?: QueryFormMetric;
-  compareLag?: string | number;
-  yAxisFormat?: string;
-};
-
-export type BigNumberChartProps = ChartProps & {
-  formData: BigNumberFormData;
-  queriesData: (LegacyQueryData & {
-    data?: BigNumberDatum[];
-  })[];
-};
-
-export default function transformProps(chartProps: BigNumberChartProps) {
+export default function transformProps(
+  chartProps: BigNumberWithTrendlineChartProps,
+) {
   const { width, height, queriesData, formData, rawFormData } = chartProps;
   const {
     colorPicker,
@@ -74,27 +77,17 @@ export default function transformProps(chartProps: BigNumberChartProps) {
     startYAxisAtZero,
     subheader = '',
     subheaderFontSize,
-    timeRangeFixed = false,
     forceTimestampFormatting,
     yAxisFormat,
   } = formData;
   const granularity = extractTimegrain(rawFormData as QueryFormData);
-  const {
-    data = [],
-    from_dttm: fromDatetime,
-    to_dttm: toDatetime,
-    colnames = [],
-    coltypes = [],
-  } = queriesData[0];
+  const { data = [], colnames = [], coltypes = [] } = queriesData[0];
   const metricName = getMetricLabel(metric);
   const compareLag = Number(compareLag_) || 0;
   let formattedSubheader = subheader;
 
-  let mainColor;
-  if (colorPicker) {
-    const { r, g, b } = colorPicker;
-    mainColor = color.rgb(r, g, b).hex();
-  }
+  const { r, g, b } = colorPicker;
+  const mainColor = `rgb(${r}, ${g}, ${b})`;
 
   let trendLineData;
   let percentChange = 0;
@@ -104,23 +97,23 @@ export default function transformProps(chartProps: BigNumberChartProps) {
 
   if (data.length > 0) {
     const sortedData = (data as BigNumberDatum[])
-      .map(d => ({ x: d[TIME_COLUMN], y: d[metricName] }))
+      .map(d => [d[TIME_COLUMN], d[metricName]])
       // sort in time descending order
-      .sort((a, b) => (a.x !== null && b.x !== null ? b.x - a.x : 0));
+      .sort((a, b) => (a[0] !== null && b[0] !== null ? b[0] - a[0] : 0));
 
-    bigNumber = sortedData[0].y;
-    timestamp = sortedData[0].x;
+    bigNumber = sortedData[0][1];
+    timestamp = sortedData[0][0];
 
     if (bigNumber === null) {
-      bigNumberFallback = sortedData.find(d => d.y !== null);
-      bigNumber = bigNumberFallback ? bigNumberFallback.y : null;
-      timestamp = bigNumberFallback ? bigNumberFallback.x : null;
+      bigNumberFallback = sortedData.find(d => d[1] !== null);
+      bigNumber = bigNumberFallback ? bigNumberFallback[1] : null;
+      timestamp = bigNumberFallback ? bigNumberFallback[0] : null;
     }
 
     if (compareLag > 0) {
       const compareIndex = compareLag;
       if (compareIndex < sortedData.length) {
-        const compareValue = sortedData[compareIndex].y;
+        const compareValue = sortedData[compareIndex][1];
         // compare values must both be non-nulls
         if (bigNumber !== null && compareValue !== null && compareValue !== 0) {
           percentChange = (bigNumber - compareValue) / Math.abs(compareValue);
@@ -153,15 +146,67 @@ export default function transformProps(chartProps: BigNumberChartProps) {
       ? getTimeFormatterForGranularity(granularity)
       : getTimeFormatter(timeFormat ?? metricEntry?.d3format);
 
-  const metricColtypeIndex = colnames.findIndex(
-    (name: string) => name === metricName,
-  );
+  const metricColtypeIndex = colnames.findIndex(name => name === metricName);
   const coltype = metricColtypeIndex > -1 ? coltypes[metricColtypeIndex] : null;
   const headerFormatter =
     coltype === GenericDataType.TEMPORAL || forceTimestampFormatting
       ? formatTime
       : getNumberFormatter(yAxisFormat ?? metricEntry?.d3format ?? undefined);
 
+  const echartOptions: EChartsCoreOption = trendLineData
+    ? {
+        series: [
+          {
+            data: trendLineData,
+            type: 'line',
+            smooth: true,
+            symbol: 'circle',
+            showSymbol: false,
+            color: mainColor,
+            areaStyle: {
+              color: new graphic.LinearGradient(0, 0, 0, 1, [
+                {
+                  offset: 0,
+                  color: mainColor,
+                },
+                {
+                  offset: 1,
+                  color: 'white',
+                },
+              ]),
+            },
+          },
+        ],
+        xAxis: {
+          min: trendLineData[0][0],
+          max: trendLineData[trendLineData.length - 1][0],
+          show: false,
+          type: 'value',
+        },
+        yAxis: {
+          scale: !startYAxisAtZero,
+          show: false,
+        },
+        grid: {
+          left: 0,
+          right: 0,
+          top: 0,
+          bottom: 0,
+        },
+        tooltip: {
+          show: true,
+          trigger: 'axis',
+          confine: true,
+          formatter: renderTooltipFactory(formatTime, headerFormatter),
+        },
+        aria: {
+          enabled: true,
+          label: {
+            description: `Big number visualization ${subheader}`,
+          },
+        },
+      }
+    : {};
   return {
     width,
     height,
@@ -179,8 +224,6 @@ export default function transformProps(chartProps: BigNumberChartProps) {
     subheader: formattedSubheader,
     timestamp,
     trendLineData,
-    fromDatetime,
-    toDatetime,
-    timeRangeFixed,
+    echartOptions,
   };
 }

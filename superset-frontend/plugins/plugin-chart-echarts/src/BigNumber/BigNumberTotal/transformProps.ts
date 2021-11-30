@@ -19,33 +19,12 @@
 import {
   getNumberFormatter,
   getTimeFormatter,
-  ChartProps,
-  LegacyQueryData,
-  QueryFormData,
-  QueryFormMetric,
   GenericDataType,
   getMetricLabel,
 } from '@superset-ui/core';
+import { BigNumberTotalChartProps } from '../types';
 
-// we trust both the x (time) and y (big number) to be numeric
-export interface BigNumberDatum {
-  [key: string]: number | null;
-}
-
-export type BigNumberFormData = QueryFormData & {
-  metric?: QueryFormMetric;
-  yAxisFormat?: string;
-  forceTimestampFormatting?: boolean;
-};
-
-export type BigNumberChartProps = ChartProps & {
-  formData: BigNumberFormData;
-  queriesData: (LegacyQueryData & {
-    data?: BigNumberDatum[];
-  })[];
-};
-
-export default function transformProps(chartProps: BigNumberChartProps) {
+export default function transformProps(chartProps: BigNumberTotalChartProps) {
   const { width, height, queriesData, formData } = chartProps;
   const {
     headerFontSize,

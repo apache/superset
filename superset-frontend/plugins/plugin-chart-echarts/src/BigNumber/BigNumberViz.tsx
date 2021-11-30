@@ -17,7 +17,6 @@
  * under the License.
  */
 import React from 'react';
-import shortid from 'shortid';
 import {
   t,
   getNumberFormatter,
@@ -28,21 +27,11 @@ import {
   BRAND_COLOR,
   styled,
 } from '@superset-ui/core';
-import {
-  XYChart,
-  AreaSeries,
-  CrossHair,
-  LinearGradient,
-} from '@data-ui/xy-chart';
+import { EChartsCoreOption } from 'echarts';
+import Echart from '../components/Echart';
+import { TimeSeriesDatum } from './types';
 
 const defaultNumberFormatter = getNumberFormatter();
-
-const CHART_MARGIN = {
-  top: 4,
-  right: 4,
-  bottom: 4,
-  left: 4,
-};
 
 const PROPORTION = {
   // text size: proportion of the chart container sans trendline
@@ -53,32 +42,6 @@ const PROPORTION = {
   TRENDLINE: 0.3,
 };
 
-type TimeSeriesDatum = {
-  x: number; // timestamp as a number
-  y: number | null;
-};
-
-export function renderTooltipFactory(
-  formatDate = smartDateVerboseFormatter,
-  formatValue = defaultNumberFormatter,
-) {
-  return function renderTooltip({
-    datum: { x, y },
-  }: {
-    datum: TimeSeriesDatum;
-  }) {
-    // even though `formatDate` supports timestamp as numbers, we need
-    // `new Date` to pass type check
-    return (
-      <div style={{ padding: '4px 8px' }}>
-        {formatDate(new Date(x))}
-        <br />
-        <strong>{y === null ? t('N/A') : formatValue(y)}</strong>
-      </div>
-    );
-  };
-}
-
 type BigNumberVisProps = {
   className?: string;
   width: number;
@@ -87,8 +50,6 @@ type BigNumberVisProps = {
   bigNumberFallback?: TimeSeriesDatum;
   headerFormatter: NumberFormatter | TimeFormatter;
   formatTime: TimeFormatter;
-  fromDatetime?: number;
-  toDatetime?: number;
   headerFontSize: number;
   kickerFontSize: number;
   subheader: string;
@@ -100,11 +61,10 @@ type BigNumberVisProps = {
   timestamp?: number;
   trendLineData?: TimeSeriesDatum[];
   mainColor: string;
+  echartOptions: EChartsCoreOption;
 };
 
-class BigNumberVis extends React.PureComponent<BigNumberVisProps, {}> {
-  private gradientId: string = shortid.generate();
-
+class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
   static defaultProps = {
     className: '',
     headerFormatter: defaultNumberFormatter,
@@ -146,7 +106,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps, {}> {
         role="alert"
         title={t(
           `Last available value seen on %s`,
-          formatTime(bigNumberFallback.x),
+          formatTime(bigNumberFallback[0]),
         )}
       >
         {t('Not up to date')}
@@ -254,79 +214,19 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps, {}> {
   }
 
   renderTrendline(maxHeight: number) {
-    const {
-      width,
-      trendLineData,
-      mainColor,
-      subheader,
-      startYAxisAtZero,
-      headerFormatter,
-      formatTime,
-      fromDatetime,
-      timeRangeFixed,
-    } = this.props;
+    const { width, trendLineData, echartOptions } = this.props;
 
     // if can't find any non-null values, no point rendering the trendline
-    if (!trendLineData?.some(d => d.y !== null)) {
+    if (!trendLineData?.some(d => d[1] !== null)) {
       return null;
     }
 
-    // Apply a fixed X range if a time range is specified.
-    //
-    // XYChart checks the existence of `domain` property and decide whether to
-    // apply a domain or not, so it must not be `null` or `undefined`
-    const xScale: { type: string; domain?: number[] } = { type: 'timeUtc' };
-    const tooltipData = trendLineData && [...trendLineData];
-    if (tooltipData && timeRangeFixed && fromDatetime) {
-      const toDatetime = this.props.toDatetime ?? Date.now();
-      if (tooltipData[0].x > fromDatetime) {
-        tooltipData.unshift({
-          x: fromDatetime,
-          y: null,
-        });
-      }
-      if (tooltipData[tooltipData.length - 1].x < toDatetime) {
-        tooltipData.push({
-          x: toDatetime,
-          y: null,
-        });
-      }
-      xScale.domain = [fromDatetime, toDatetime];
-    }
     return (
-      <XYChart
-        snapTooltipToDataX
-        ariaLabel={`Big number visualization ${subheader}`}
-        // headerFormatter always NumberFormatter in BigNumber with treadline
-        renderTooltip={renderTooltipFactory(
-          formatTime,
-          headerFormatter as NumberFormatter,
-        )}
-        xScale={xScale}
-        yScale={{
-          type: 'linear',
-          includeZero: startYAxisAtZero,
-        }}
+      <Echart
         width={Math.floor(width)}
         height={maxHeight}
-        margin={CHART_MARGIN}
-        eventTrigger="container"
-      >
-        <LinearGradient id={this.gradientId} from={mainColor} to="#fff" />
-        <AreaSeries
-          data={tooltipData}
-          fill={`url(#${this.gradientId})`}
-          stroke={mainColor}
-        />
-        <CrossHair
-          fullHeight
-          stroke={mainColor}
-          circleFill={mainColor}
-          circleStroke="#fff"
-          showHorizontalLine={false}
-          strokeDasharray="5,2"
-        />
-      </XYChart>
+        echartOptions={echartOptions}
+      />
     );
   }
 
