@@ -48,14 +48,12 @@ const TableLoader = (props: TableLoaderProps) => {
         })
         .catch(response => {
           setIsLoading(false);
-          response.json().then(() => {
-            if (response.status === 403) {
-              setIsBlocked(true);
-            } else {
-              setIsBlocked(false);
-              props.addDangerToast(t('An error occurred'));
-            }
-          });
+          if (response.status === 403) {
+            setIsBlocked(true);
+          } else {
+            setIsBlocked(false);
+            props.addDangerToast(t('An error occurred'));
+          }
         });
     }
   }, [props]);

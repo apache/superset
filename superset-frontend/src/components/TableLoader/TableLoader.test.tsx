@@ -32,6 +32,7 @@ fetchMock.get('glob:*/api/v1/mock', [
 const defaultProps: TableLoaderProps = {
   dataEndpoint: '/api/v1/mock',
   addDangerToast: jest.fn(),
+  noDataText: 'No data available',
 };
 
 function renderWithProps(props: TableLoaderProps = defaultProps) {
@@ -81,6 +82,28 @@ test('renders with mutator', async () => {
   renderWithProps({ ...defaultProps, mutator });
 
   expect(await screen.findAllByRole('heading', { level: 4 })).toHaveLength(2);
+});
+
+test('renders empty message', async () => {
+  fetchMock.mock('glob:*/api/v1/mock', [], {
+    overwriteRoutes: true,
+  });
+
+  renderWithProps();
+
+  expect(await screen.findByText('No data available')).toBeInTheDocument();
+});
+
+test('renders blocked message', async () => {
+  fetchMock.mock('glob:*/api/v1/mock', 403, {
+    overwriteRoutes: true,
+  });
+
+  renderWithProps();
+
+  expect(
+    await screen.findByText('Access to user activity data is restricted'),
+  ).toBeInTheDocument();
 });
 
 test('renders error message', async () => {
