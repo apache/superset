@@ -30,7 +30,7 @@ module.exports = {
     '^src/(.*)$': '<rootDir>/src/$1',
     '^spec/(.*)$': '<rootDir>/spec/$1',
     // mapping to souce code instead of lib or esm module
-    '@superset-ui/(((?!(legacy-preset-chart-deckgl|core/src)).)*)$':
+    '@superset-ui/(((?!(core/src)).)*)$':
       '<rootDir>/node_modules/@superset-ui/$1/src',
     '@superset-ui/core/src/(.*)$':
       '<rootDir>/node_modules/@superset-ui/core/src/$1',
