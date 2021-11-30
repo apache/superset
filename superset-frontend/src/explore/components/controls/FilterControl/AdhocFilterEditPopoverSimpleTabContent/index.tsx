@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { debounce } from 'lodash';
 import rison from 'rison';
 import { Select } from 'src/components';
@@ -39,6 +39,7 @@ import AdhocFilter, {
   CLAUSES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { Input } from 'src/common/components';
+import { Tooltip } from 'src/components/Tooltip';
 
 const StyledInput = styled(Input)`
   margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
@@ -100,6 +101,74 @@ export interface Props {
   partitionColumn: string;
   operators?: Operators[];
 }
+
+export interface BusinessTypesState {
+  parsedBusniessType: string;
+  subjectBusinessType: string | undefined;
+  busninessTypeOperatorList: string[];
+}
+
+const useBusinessTypes = () => {
+  const [businessTypesState, setBusinessTypesState] =
+    useState<BusinessTypesState>({
+      parsedBusniessType: '',
+      subjectBusinessType: undefined,
+      busninessTypeOperatorList: [],
+    });
+
+  const fetchBusinessTypeValueCallback = useCallback(
+    debounce((comp: string | string[], type: string | undefined) => {
+      console.log('INSIDE DEBOUNCE');
+      const queryParams = rison.encode({
+        type,
+        values: typeof comp === 'string' ? [comp] : comp,
+      });
+      const endpoint = `/api/v1/chart/business_type?q=${queryParams}`;
+      SupersetClient.get({ endpoint })
+        .then(({ json }) => {
+          setBusinessTypesState({
+            parsedBusniessType: json.result.display_value,
+            subjectBusinessType: type,
+            busninessTypeOperatorList: json.result.valid_filter_operators,
+          });
+        })
+        .catch(e => {
+          setBusinessTypesState({
+            parsedBusniessType: '',
+            subjectBusinessType: type,
+            busninessTypeOperatorList:
+              businessTypesState.busninessTypeOperatorList,
+          });
+        });
+    }, 600),
+    [],
+  );
+
+  const fetchSubjectBusinessType = (props: Props) => {
+    const option = props.options.find(
+      option =>
+        ('column_name' in option &&
+          option.column_name === props.adhocFilter.subject) ||
+        ('optionName' in option &&
+          option.optionName === props.adhocFilter.subject),
+    );
+    if (option && 'business_type' in option) {
+      console.log(`Setting Type tp ${option.business_type}`);
+      setBusinessTypesState({
+        ...businessTypesState,
+        subjectBusinessType: option.business_type,
+      });
+    }
+  };
+
+  return {
+    businessTypesState,
+    setBusinessTypesState,
+    fetchBusinessTypeValueCallback,
+    fetchSubjectBusinessType,
+  };
+};
+
 export const useSimpleTabFilterProps = (props: Props) => {
   const isOperatorRelevant = (operator: Operators, subject: string) => {
     const column = props.datasource.columns?.find(
@@ -231,22 +300,18 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   const [comparator, setComparator] = useState(props.adhocFilter.comparator);
   const [loadingComparatorSuggestions, setLoadingComparatorSuggestions] =
     useState(false);
-  // TODO:
-  // This does not need to be managed in state like this, this can be managed better
-  // Combine into one piece of state
-  const [parsedBusniessType, setParsedBusniessType] = useState<string>('');
-  const [subjectBusinessType, setSubjectBusinessType] = useState<
-    string | undefined
-  >('');
-  const [busninessTypeOperatorList, setBusninessTypeOperatorList] = useState<
-    string[]
-  >([]);
+
+  const {
+    businessTypesState,
+    fetchBusinessTypeValueCallback,
+    fetchSubjectBusinessType,
+  } = useBusinessTypes();
   // TODO: This does not need to exists, just use the busninessTypeOperatorList lsit
   const isOperatorRelevantWrapper = (operator: Operators, subject: string) => {
     const op = OPERATOR_ENUM_TO_OPERATOR_TYPE[operator].operation;
-    return subjectBusinessType
+    return businessTypesState.subjectBusinessType
       ? isOperatorRelevant(operator, subject) &&
-          busninessTypeOperatorList.includes(op)
+          businessTypesState.busninessTypeOperatorList.includes(op)
       : isOperatorRelevant(operator, subject);
   };
   const onInputComparatorChange = (
@@ -275,14 +340,6 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   const handleSubjectChange = (subject: string) => {
     setComparator(undefined);
     onSubjectChange(subject);
-    const option = props.options.find(
-      option =>
-        ('column_name' in option && option.column_name === subject) ||
-        ('optionName' in option && option.optionName === subject),
-    );
-    if (option && 'business_type' in option) {
-      setSubjectBusinessType(option.business_type);
-    }
   };
 
   let columns = props.options;
@@ -348,39 +405,16 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     placeholder: createSuggestionsPlaceholder(),
     autoFocus: shouldFocusComparator,
   };
-  // TODO:
-  // This has way to many concerns (setting busniess type, operator list and fetching parsed vals)
-  // needs to be broken up and handled better
   useEffect(() => {
-    // TODO this login needs to be moved
-    const testFucntion = debounce((comp: string | string[]) => {
-      const compList: string[] = typeof comp === 'string' ? [comp] : comp;
-      const option = props.options.find(
-        option =>
-          ('column_name' in option &&
-            option.column_name === props.adhocFilter.subject) ||
-          ('optionName' in option &&
-            option.optionName === props.adhocFilter.subject),
-      );
-      let bsType: string | undefined = '';
-      if (option && 'business_type' in option) {
-        setSubjectBusinessType(option.business_type);
-        bsType = option.business_type;
-      }
-      const values = compList ? compList.map(result => result) : [''];
-      const queryParams = rison.encode({ type: bsType, values });
-      const endpoint = `/api/v1/chart/business_type?q=${queryParams}`;
-      SupersetClient.get({ endpoint })
-        .then(({ json }) => {
-          setParsedBusniessType(json.result.display_value);
-          setBusninessTypeOperatorList(json.result.valid_filter_operators);
-        })
-        .catch(e => {
-          setParsedBusniessType('');
-        });
-    }, 600);
-    testFucntion(comparator);
-  }, [props.adhocFilter.subject, comparator]);
+    fetchSubjectBusinessType(props);
+  }, [props.adhocFilter.subject]);
+
+  useEffect(() => {
+    fetchBusinessTypeValueCallback(
+      comparator === undefined ? '' : comparator,
+      businessTypesState.subjectBusinessType,
+    );
+  }, [businessTypesState.subjectBusinessType, comparator]);
 
   const labelText =
     comparator && comparator.length > 0 && createSuggestionsPlaceholder();
@@ -454,47 +488,33 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
           }))}
         {...operatorSelectProps}
       />
-      {subjectBusinessType ? (
-        <SelectWithLabel
-          css={theme => ({ marginBottom: theme.gridUnit * 4 })}
-          data-test="adhoc-filter-simple-value"
-          {...comparatorSelectProps}
-          mode="single"
-          disabled
-          placeholder=""
-          labelText=""
-          value={parsedBusniessType}
-          options={[]}
-        />
-      ) : (
-        <></>
-      )}
-
       {MULTI_OPERATORS.has(operatorId) || suggestions.length > 0 ? (
-        <SelectWithLabel
-          css={theme => ({ marginBottom: theme.gridUnit * 4 })}
-          labelText={labelText}
-          options={suggestions.map((suggestion: string) => ({
-            value: suggestion,
-            label: String(suggestion),
-          }))}
-          {...comparatorSelectProps}
-        />
+        <Tooltip title={businessTypesState.subjectBusinessType}>
+          <SelectWithLabel
+            labelText={labelText}
+            options={suggestions.map((suggestion: string) => ({
+              value: suggestion,
+              label: String(suggestion),
+            }))}
+            {...comparatorSelectProps}
+          />
+        </Tooltip>
       ) : (
-        <StyledInput
-          css={theme => ({ marginBottom: theme.gridUnit * 4 })}
-          data-test="adhoc-filter-simple-value"
-          name="filter-value"
-          ref={ref => {
-            if (ref && shouldFocusComparator) {
-              ref.focus();
-            }
-          }}
-          onChange={onInputComparatorChange}
-          value={comparator}
-          placeholder={t('Filter value (case sensitive)')}
-          disabled={DISABLE_INPUT_OPERATORS.includes(operatorId)}
-        />
+        <Tooltip title={businessTypesState.parsedBusniessType}>
+          <StyledInput
+            data-test="adhoc-filter-simple-value"
+            name="filter-value"
+            ref={ref => {
+              if (ref && shouldFocusComparator) {
+                ref.focus();
+              }
+            }}
+            onChange={onInputComparatorChange}
+            value={comparator}
+            placeholder={t('Filter value (case sensitive)')}
+            disabled={DISABLE_INPUT_OPERATORS.includes(operatorId)}
+          />
+        </Tooltip>
       )}
     </>
   );
