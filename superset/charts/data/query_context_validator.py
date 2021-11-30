@@ -52,19 +52,12 @@ class QueryContextValidatorImpl(QueryContextValidator):
     def _validate_actor_can_access(self, query_context: QueryContext) -> None:
         sql_database: Optional[Database] = query_context.get_database()
         if sql_database is not None:
-            self._validate_when_context_based_on_sql_database(
-                query_context, sql_database
-            )
+            if not self._actor_can_access_all_database_data(sql_database):
+                self._validate_actor_can_access_datasources_context(
+                    query_context, sql_database
+                )
         else:
             self._security_manager.raise_for_access(query_context=query_context)
-
-    def _validate_when_context_based_on_sql_database(  # pylint: disable=invalid-name
-        self, query_context: QueryContext, sql_database: Database
-    ) -> None:
-        if not self._actor_can_access_all_database_data(sql_database):
-            self._validate_actor_can_access_datasources_context(
-                query_context, sql_database
-            )
 
     # pylint: disable=invalid-name
     def _actor_can_access_all_database_data(self, sql_database: Database) -> bool:
