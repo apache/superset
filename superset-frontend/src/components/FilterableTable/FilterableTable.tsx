@@ -20,6 +20,7 @@ import JSONbig from 'json-bigint';
 import React, { PureComponent } from 'react';
 import JSONTree from 'react-json-tree';
 import {
+  AutoSizer,
   Column,
   Grid,
   ScrollSync,
@@ -58,8 +59,8 @@ function safeJsonObjectParse(
   }
 }
 
-const SCROLL_BAR_HEIGHT = 15;
 const GRID_POSITION_ADJUSTMENT = 4;
+const SCROLL_BAR_HEIGHT = 15;
 const JSON_TREE_THEME = {
   scheme: 'monokai',
   author: 'wimer hazenberg (http://www.monokai.nl)',
@@ -426,9 +427,22 @@ export default class FilterableTable extends PureComponent<
   }) {
     const columnKey = this.props.orderedColumnKeys[columnIndex];
     const cellData = this.list[rowIndex][columnKey];
+    const cellText = this.getCellContent({ cellData, columnKey });
+    const content =
+      cellData === null ? <i className="text-muted">{cellText}</i> : cellText;
     const cellNode = (
-      <div key={key} style={style}>
-        {this.getCellContent({ cellData, columnKey })}
+      <div
+        key={key}
+        style={{
+          ...style,
+          top:
+            typeof style.top === 'number'
+              ? style.top - GRID_POSITION_ADJUSTMENT
+              : style.top,
+        }}
+        className={`grid-cell ${this.rowClassName({ index: rowIndex })}`}
+      >
+        <div css={{ width: 'inherit' }}>{content}</div>
       </div>
     );
 
@@ -466,39 +480,38 @@ export default class FilterableTable extends PureComponent<
     return (
       <StyledFilterableTable>
         <ScrollSync>
-          {({ onScroll, scrollTop }) => (
-            <div
-              className="filterable-table-container Table"
-              data-test="filterable-table-container"
-              ref={this.container}
-            >
-              <div className="LeftColumn">
-                <Grid
-                  cellRenderer={this.renderGridCellHeader}
-                  columnCount={orderedColumnKeys.length}
-                  columnWidth={getColumnWidth}
-                  height={rowHeight}
-                  rowCount={1}
-                  rowHeight={rowHeight}
-                  scrollTop={scrollTop}
-                  width={this.totalTableWidth}
-                />
-              </div>
-              <div className="RightColumn">
-                <Grid
-                  cellRenderer={this.renderGridCell}
-                  columnCount={orderedColumnKeys.length}
-                  columnWidth={getColumnWidth}
-                  height={totalTableHeight - rowHeight}
-                  onScroll={onScroll}
-                  overscanColumnCount={overscanColumnCount}
-                  overscanRowCount={overscanRowCount}
-                  rowCount={this.list.length}
-                  rowHeight={rowHeight}
-                  width={this.totalTableWidth}
-                />
-              </div>
-            </div>
+          {({ onScroll, scrollLeft }) => (
+            <>
+              <AutoSizer disableHeight>
+                {({ width }) => (
+                  <div>
+                    <Grid
+                      cellRenderer={this.renderGridCellHeader}
+                      columnCount={orderedColumnKeys.length}
+                      columnWidth={getColumnWidth}
+                      height={rowHeight}
+                      rowCount={1}
+                      rowHeight={rowHeight}
+                      scrollLeft={scrollLeft}
+                      width={width}
+                      style={{ overflow: 'hidden' }}
+                    />
+                    <Grid
+                      cellRenderer={this.renderGridCell}
+                      columnCount={orderedColumnKeys.length}
+                      columnWidth={getColumnWidth}
+                      height={totalTableHeight - rowHeight}
+                      onScroll={onScroll}
+                      overscanColumnCount={overscanColumnCount}
+                      overscanRowCount={overscanRowCount}
+                      rowCount={this.list.length}
+                      rowHeight={rowHeight}
+                      width={width}
+                    />
+                  </div>
+                )}
+              </AutoSizer>
+            </>
           )}
         </ScrollSync>
       </StyledFilterableTable>
