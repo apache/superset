@@ -23,13 +23,13 @@ import App from 'src/views/App';
 const MESSAGE_TYPE = '__embedded_comms__';
 const ALLOW_ORIGINS = ['http://127.0.0.1:9001', 'http://localhost:9001'];
 
-console.log('ADD THE LISTENER');
+function start(token: string) {
+  document.cookie = `__guest_token__=${token}`;
+  ReactDOM.render(<App />, document.getElementById('app'));
+}
+
 window.addEventListener('message', function (event) {
   if (!ALLOW_ORIGINS.includes(event.origin)) {
-    console.log(
-      'embedded page received message from unauthorized origin',
-      event,
-    );
     return;
   }
 
@@ -37,21 +37,14 @@ window.addEventListener('message', function (event) {
   try {
     data = JSON.parse(event.data);
   } catch (err) {
-    console.error('embedded page received non-json message', event);
     return;
   }
 
   if (data.type !== MESSAGE_TYPE) {
-    console.log('embedded page ignoring non-embedded-comms message', event);
     return;
   }
 
-  console.log('embedded page received message', event);
   if (data.embedToken) {
     start(data.embedToken);
   }
 });
-
-function start(token: string) {
-  ReactDOM.render(<App />, document.getElementById('app'));
-}
