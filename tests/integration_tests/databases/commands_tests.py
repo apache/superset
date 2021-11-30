@@ -313,7 +313,6 @@ class TestExportDatabasesCommand(SupersetTestCase):
 
 
 class TestImportDatabasesCommand(SupersetTestCase):
-    @pytest.mark.skip(reason="This test is being affected by unrelated tests")
     def test_import_v1_database(self):
         """Test that a database can be imported"""
         contents = {
@@ -415,6 +414,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
+    @pytest.mark.skip(reason="This test is being affected by unrelated tests")
     def test_import_v1_database_with_dataset(self):
         """Test that a database can be imported with datasets"""
         contents = {
