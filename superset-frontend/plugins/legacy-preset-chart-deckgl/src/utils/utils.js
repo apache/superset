@@ -22,8 +22,8 @@
 export function roundDecimal(number, precision) {
   let roundedNumber;
   if (precision) {
-    // eslint-disable-next-line no-param-reassign
     roundedNumber =
+      // eslint-disable-next-line no-param-reassign
       Math.round(number * (precision = 10 ** precision)) / precision;
   } else {
     roundedNumber = Math.round(number);
