@@ -62,7 +62,7 @@ class TestQueryContextValidatorImpl:
                     if datasource_to_check not in self.allowed_datasources:
                         raise AccessDeninedException()
 
-                security_manager_mock.raise_when_there_is_no_access_to.side_effect = (
+                security_manager_mock.raise_for_datasource_access.side_effect = (
                     side_effect
                 )
 
@@ -116,7 +116,7 @@ class TestQueryContextValidatorImpl:
                 self.security_manager_mock.can_access_all_datasources.assert_not_called()
                 self.security_manager_mock.can_access_database.assert_not_called()
                 self.security_manager_mock.raise_for_access.assert_not_called()
-                self.security_manager_mock.raise_when_there_is_no_access_to.assert_not_called()
+                self.security_manager_mock.raise_for_datasource_access.assert_not_called()
                 self.dataset_dao_mock.get_by_sql_database_components.assert_not_called()
 
             @mark.usefixtures("arrange_all_datasources_permission")
@@ -130,7 +130,7 @@ class TestQueryContextValidatorImpl:
                 self.security_manager_mock.can_access_all_databases.assert_called_once()
                 self.security_manager_mock.can_access_database.assert_not_called()
                 self.security_manager_mock.raise_for_access.assert_not_called()
-                self.security_manager_mock.raise_when_there_is_no_access_to.assert_not_called()
+                self.security_manager_mock.raise_for_datasource_access.assert_not_called()
                 self.dataset_dao_mock.get_by_sql_database_components.assert_not_called()
 
             @mark.usefixtures("arrange_database_permission")
@@ -144,7 +144,7 @@ class TestQueryContextValidatorImpl:
                     self.query_context.datasource.database
                 )
                 self.security_manager_mock.raise_for_access.assert_not_called()
-                self.security_manager_mock.raise_when_there_is_no_access_to.assert_not_called()
+                self.security_manager_mock.raise_for_datasource_access.assert_not_called()
                 self.dataset_dao_mock.get_by_sql_database_components.assert_not_called()
 
             @mark.usefixtures("arrange_datasource_permission")
@@ -158,7 +158,7 @@ class TestQueryContextValidatorImpl:
                     self.query_context.datasource.database
                 )
                 self.security_manager_mock.raise_for_access.assert_not_called()
-                self.security_manager_mock.raise_when_there_is_no_access_to.assert_called_once_with(
+                self.security_manager_mock.raise_for_datasource_access.assert_called_once_with(
                     self.query_context.datasource
                 )
                 self.dataset_dao_mock.get_by_sql_database_components.assert_not_called()
@@ -174,7 +174,7 @@ class TestQueryContextValidatorImpl:
                     self.query_context.datasource.database
                 )
                 self.security_manager_mock.raise_for_access.assert_not_called()
-                self.security_manager_mock.raise_when_there_is_no_access_to.assert_called_once_with(
+                self.security_manager_mock.raise_for_datasource_access.assert_called_once_with(
                     self.query_context.datasource
                 )
                 self.dataset_dao_mock.get_by_sql_database_components.assert_not_called()
@@ -210,7 +210,7 @@ class TestQueryContextValidatorImpl:
                     self.query_context.datasource.database
                 )
                 self.security_manager_mock.raise_for_access.assert_not_called()
-                self.security_manager_mock.raise_when_there_is_no_access_to.assert_not_called()
+                self.security_manager_mock.raise_for_datasource_access.assert_not_called()
                 self.dataset_dao_mock.get_by_sql_database_components.assert_not_called()
 
             @mark.usefixtures(
@@ -228,10 +228,10 @@ class TestQueryContextValidatorImpl:
                     self.query_context.datasource.database
                 )
                 self.security_manager_mock.raise_for_access.assert_not_called()
-                assert self.security_manager_mock.raise_when_there_is_no_access_to.call_args_list == [
+                assert self.security_manager_mock.raise_for_datasource_access.call_args_list == [
                     call(self.query_context.datasource),
                     call(metric_datasource),
-                ] or self.security_manager_mock.raise_when_there_is_no_access_to.call_args_list == [
+                ] or self.security_manager_mock.raise_for_datasource_access.call_args_list == [
                     call(metric_datasource),
                     call(self.query_context.datasource),
                 ]
