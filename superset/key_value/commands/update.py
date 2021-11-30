@@ -16,7 +16,7 @@
 # under the License.
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Optional
 
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
