@@ -1,4 +1,4 @@
-FROM uchimera.azurecr.io/cccs/superset-base:cccs-1.3_20211122205057_b2514
+FROM uchimera.azurecr.io/cccs/superset-base:cccs-1.3_20211130171457_b2553
 
 
 USER root
