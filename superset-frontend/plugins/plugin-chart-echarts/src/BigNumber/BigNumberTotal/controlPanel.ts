@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { smartDateFormatter, t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   D3_FORMAT_DOCS,
@@ -27,7 +27,7 @@ import { headerFontSize, subheaderFontSize } from '../sharedControls';
 
 export default {
   controlPanelSections: [
-    sections.legacyRegularTime,
+    sections.legacyTimeseriesTime,
     {
       label: t('Query'),
       expanded: true,
@@ -62,7 +62,7 @@ export default {
         ['y_axis_format'],
         [
           {
-            name: 'header_timestamp_format',
+            name: 'time_format',
             config: {
               type: 'SelectControl',
               freeForm: true,
@@ -70,6 +70,7 @@ export default {
               renderTrigger: true,
               choices: D3_TIME_FORMAT_OPTIONS,
               description: D3_FORMAT_DOCS,
+              default: smartDateFormatter.id,
             },
           },
         ],

@@ -19,11 +19,8 @@
 import {
   extractTimegrain,
   getNumberFormatter,
-  getTimeFormatter,
-  getTimeFormatterForGranularity,
   NumberFormats,
   QueryFormData,
-  smartDateFormatter,
   GenericDataType,
   getMetricLabel,
   t,
@@ -37,6 +34,7 @@ import {
   BigNumberWithTrendlineChartProps,
   TimeSeriesDatum,
 } from '../types';
+import { getDateFormatter, parseMetricValue } from '../utils';
 
 const defaultNumberFormatter = getNumberFormatter();
 export function renderTooltipFactory(
@@ -106,17 +104,6 @@ export default function transformProps(
   const metricColtype =
     metricColtypeIndex > -1 ? coltypes[metricColtypeIndex] : null;
 
-  const parseMetricValue = (metricValue: number | string | null) => {
-    if (typeof metricValue === 'string') {
-      const parsedDate = Date.parse(metricValue);
-      if (!Number.isNaN(parsedDate)) {
-        return parsedDate;
-      }
-      return null;
-    }
-    return metricValue;
-  };
-
   if (data.length > 0) {
     const sortedData = (data as BigNumberDatum[])
       .map(d => [d[TIME_COLUMN], parseMetricValue(d[metricName])])
@@ -163,10 +150,11 @@ export default function transformProps(
     );
   }
 
-  const formatTime =
-    timeFormat === smartDateFormatter.id
-      ? getTimeFormatterForGranularity(granularity)
-      : getTimeFormatter(timeFormat ?? metricEntry?.d3format);
+  const formatTime = getDateFormatter(
+    timeFormat,
+    granularity,
+    metricEntry?.d3format,
+  );
 
   const headerFormatter =
     metricColtype === GenericDataType.TEMPORAL ||

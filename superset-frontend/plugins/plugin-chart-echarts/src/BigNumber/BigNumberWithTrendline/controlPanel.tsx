@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { smartDateFormatter, t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   D3_FORMAT_DOCS,
@@ -60,20 +60,6 @@ const config: ControlPanelConfig = {
               type: 'TextControl',
               label: t('Comparison suffix'),
               description: t('Suffix to apply after the percentage display'),
-            },
-          },
-        ],
-        ['y_axis_format'],
-        [
-          {
-            name: 'time_format',
-            config: {
-              type: 'SelectControl',
-              freeForm: true,
-              label: t('Timestamp format'),
-              renderTrigger: true,
-              choices: D3_TIME_FORMAT_OPTIONS,
-              description: D3_FORMAT_DOCS,
             },
           },
         ],
@@ -149,10 +135,11 @@ const config: ControlPanelConfig = {
             config: {
               type: 'SelectControl',
               freeForm: true,
-              label: t('Timestamp format'),
+              label: t('Date format'),
               renderTrigger: true,
               choices: D3_TIME_FORMAT_OPTIONS,
               description: D3_FORMAT_DOCS,
+              default: smartDateFormatter.id,
             },
           },
         ],
