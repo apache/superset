@@ -33,6 +33,7 @@ from sqlalchemy.orm.exc import NoResultFound
 import superset.models.core as models
 from superset import app, dataframe, db, result_set, viz
 from superset.common.db_query_status import QueryStatus
+from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -59,6 +60,15 @@ stats_logger = app.config["STATS_LOGGER"]
 REJECTED_FORM_DATA_KEYS: List[str] = []
 if not app.config["ENABLE_JAVASCRIPT_CONTROLS"]:
     REJECTED_FORM_DATA_KEYS = ["js_tooltip", "js_onclick_href", "js_data_mutator"]
+
+
+def sanitize_datasource_data(datasource_data: Dict[str, Any]) -> Dict[str, Any]:
+    if datasource_data:
+        datasource_database = datasource_data.get("database")
+        if datasource_database:
+            datasource_database["parameters"] = {}
+
+    return datasource_data
 
 
 def bootstrap_user_data(user: User, include_perms: bool = False) -> Dict[str, Any]:
