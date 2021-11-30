@@ -33,7 +33,7 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import backref, relationship, RelationshipProperty, validates
+from sqlalchemy.orm import backref, relationship, RelationshipProperty
 
 from superset import db, security_manager
 from superset.models.helpers import AuditMixinNullable
@@ -95,20 +95,6 @@ class Alert(Model, AuditMixinNullable):
             """
         ),
     )
-    selected_components = Column(
-        Text,
-        nullable=True,
-    )
-
-    @validates("selected_components")
-    def validate_selected_components(self, key, value):
-        if value is None:
-            return None
-        try:
-            json_value = json.loads(value)
-        except Exception as e:
-            raise
-        return json_value
 
     @declared_attr
     def database_id(self) -> int:
