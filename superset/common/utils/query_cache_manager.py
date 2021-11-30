@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from flask_caching import Cache
@@ -61,6 +62,8 @@ class QueryCacheManager:
         is_cached: Optional[bool] = None,
         cache_dttm: Optional[str] = None,
         cache_value: Optional[Dict[str, Any]] = None,
+        from_dttm: Optional[datetime] = None,
+        to_dttm: Optional[datetime] = None,
     ) -> None:
         self.df = df
         self.query = query
@@ -74,6 +77,8 @@ class QueryCacheManager:
         self.is_cached = is_cached
         self.cache_dttm = cache_dttm
         self.cache_value = cache_value
+        self.from_dttm = from_dttm
+        self.to_dttm = to_dttm
 
     # pylint: disable=too-many-arguments
     def set_query_result(
@@ -95,6 +100,8 @@ class QueryCacheManager:
             self.applied_template_filters = query_result.applied_template_filters
             self.error_message = query_result.error_message
             self.df = query_result.df
+            self.from_dttm = query_result.from_dttm
+            self.to_dttm = query_result.to_dttm
             self.annotation_data = {} if annotation_data is None else annotation_data
 
             if self.status != QueryStatus.FAILED:
@@ -108,6 +115,8 @@ class QueryCacheManager:
                 "query": self.query,
                 "applied_template_filters": self.applied_template_filters,
                 "annotation_data": self.annotation_data,
+                "from_dttm": self.from_dttm,
+                "to_dttm": self.to_dttm,
             }
             if self.is_loaded and key and self.status != QueryStatus.FAILED:
                 self.set(
