@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { SuperChart } from '@superset-ui/core';
-import { BigNumberChartPlugin } from '@superset-ui/legacy-preset-chart-big-number';
+import { BigNumberChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import testData from './data';
 
 new BigNumberChartPlugin().configure({ key: 'big-number' }).register();

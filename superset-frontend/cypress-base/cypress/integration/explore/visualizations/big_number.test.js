@@ -42,14 +42,14 @@ describe('Visualization > Big Number with Trendline', () => {
   function verify(formData) {
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({
-      waitAlias: '@getJson',
+      waitAlias: '@chartData',
       chartSelector: '.superset-legacy-chart-big-number',
     });
   }
 
   beforeEach(() => {
     cy.login();
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+    cy.interceptChart({ legacy: false }).as('chartData');
   });
 
   it('should work', () => {

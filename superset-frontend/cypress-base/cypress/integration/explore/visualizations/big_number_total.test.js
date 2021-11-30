@@ -26,15 +26,15 @@ describe('Visualization > Big Number Total', () => {
 
   beforeEach(() => {
     cy.login();
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+    cy.interceptChart({ legacy: false }).as('chartData');
   });
 
   it('Test big number chart with adhoc metric', () => {
     const formData = { ...BIG_NUMBER_DEFAULTS, metric: NUM_METRIC };
 
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({
-      waitAlias: '@getJson',
+      waitAlias: '@chartData',
       querySubstring: NUM_METRIC.label,
     });
   });
@@ -58,8 +58,8 @@ describe('Visualization > Big Number Total', () => {
       adhoc_filters: filters,
     };
 
-    cy.visitChartByParams(JSON.stringify(formData));
-    cy.verifySliceSuccess({ waitAlias: '@getJson' });
+    cy.visitChartByParams(formData);
+    cy.verifySliceSuccess({ waitAlias: '@chartData' });
   });
 
   it('Test big number chart ignores groupby', () => {
@@ -69,8 +69,8 @@ describe('Visualization > Big Number Total', () => {
       groupby: ['state'],
     };
 
-    cy.visitChartByParams(JSON.stringify(formData));
-    cy.wait(['@getJson']).then(async ({ response }) => {
+    cy.visitChartByParams(formData);
+    cy.wait(['@chartData']).then(async ({ response }) => {
       cy.verifySliceContainer();
       const responseBody = response?.body;
       expect(responseBody.query).not.contains(formData.groupby[0]);
