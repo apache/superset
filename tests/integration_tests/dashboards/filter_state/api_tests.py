@@ -86,6 +86,15 @@ class FilterStateTests(SupersetTestCase):
         )
         assert resp.status_code == 201
 
+    def test_post_bad_request(self):
+        payload = {
+            "value": 1234,
+        }
+        resp = self.client.put(
+            f"api/v1/dashboard/{dashboardId}/filter_state/{key}/", json=payload
+        )
+        assert resp.status_code == 400
+
     @patch("superset.security.SupersetSecurityManager.raise_for_dashboard_access")
     def test_post_access_denied(self, mock_raise_for_dashboard_access):
         mock_raise_for_dashboard_access.side_effect = DashboardAccessDeniedError()
@@ -105,6 +114,15 @@ class FilterStateTests(SupersetTestCase):
             f"api/v1/dashboard/{dashboardId}/filter_state/{key}/", json=payload
         )
         assert resp.status_code == 200
+
+    def test_put_bad_request(self):
+        payload = {
+            "value": 1234,
+        }
+        resp = self.client.put(
+            f"api/v1/dashboard/{dashboardId}/filter_state/{key}/", json=payload
+        )
+        assert resp.status_code == 400
 
     @patch("superset.security.SupersetSecurityManager.raise_for_dashboard_access")
     def test_put_access_denied(self, mock_raise_for_dashboard_access):

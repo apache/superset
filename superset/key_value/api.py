@@ -17,6 +17,7 @@
 import logging
 from abc import ABC, abstractmethod
 from typing import Any
+from marshmallow import ValidationError
 
 from apispec import APISpec
 from flask import g, request, Response
@@ -61,6 +62,8 @@ class KeyValueRestApi(BaseApi, ABC):
             item = self.add_model_schema.load(request.json)
             key = self.get_create_command()(g.user, pk, item["value"]).run()
             return self.response(201, key=key)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
         except DashboardAccessDeniedError:
             return self.response_403()
         except DashboardNotFoundError:
@@ -75,6 +78,8 @@ class KeyValueRestApi(BaseApi, ABC):
             if not result:
                 return self.response_404()
             return self.response(200, message="Value updated successfully.")
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
         except DashboardAccessDeniedError:
             return self.response_403()
         except DashboardNotFoundError:
