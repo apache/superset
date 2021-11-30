@@ -95,6 +95,7 @@ export interface CallApi extends RequestBase {
   url: Url;
   cache?: Cache;
   redirect?: Redirect;
+  unauthorizedRedirectUrl?: Url;
 }
 
 export interface RequestWithEndpoint extends RequestBase {

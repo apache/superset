@@ -20,13 +20,19 @@
 import callApi from './callApi';
 import rejectAfterTimeout from './rejectAfterTimeout';
 import parseResponse from './parseResponse';
-import { CallApi, ClientTimeout, ParseMethod } from '../types';
+import { CallApi, ClientTimeout, ParseMethod, Url } from '../types';
+
+function redirectUnauthorized(redirectUrl: Url) {
+  // the next param will be picked by flask to redirect the user after the login
+  window.location.href = `${redirectUrl}?next=${window.location.href}`;
+}
 
 export default async function callApiAndParseWithTimeout<
   T extends ParseMethod = 'json',
 >({
   timeout,
   parseMethod,
+  unauthorizedRedirectUrl = '/login',
   ...rest
 }: { timeout?: ClientTimeout; parseMethod?: T } & CallApi) {
   const apiPromise = callApi(rest);
@@ -34,6 +40,10 @@ export default async function callApiAndParseWithTimeout<
     typeof timeout === 'number' && timeout > 0
       ? Promise.race([apiPromise, rejectAfterTimeout<Response>(timeout)])
       : apiPromise;
+  const response = await racedPromise;
 
-  return parseResponse(racedPromise, parseMethod);
+  if (response && response.status === 401) {
+    return redirectUnauthorized(unauthorizedRedirectUrl);
+  }
+  return parseResponse(response, parseMethod);
 }
