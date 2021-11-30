@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,18 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Preset } from '@superset-ui/core';
-import BigNumberChartPlugin from './BigNumberViz';
-import BigNumberTotalChartPlugin from './BigNumberTotal';
 
-export default class BigNumberChartPreset extends Preset {
-  constructor() {
-    super({
-      name: 'BigNumber charts',
-      plugins: [
-        new BigNumberChartPlugin().configure({ key: 'big_number' }),
-        new BigNumberTotalChartPlugin().configure({ key: 'big_number_total' }),
-      ],
-    });
-  }
-}
+export { default as BigNumberChartPlugin } from './BigNumber';
+export { default as BigNumberTotalChartPlugin } from './BigNumberTotal';

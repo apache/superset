@@ -18,9 +18,9 @@
  */
 import { DatasourceType, TimeGranularity } from '@superset-ui/core';
 import transformProps, {
-  BignumberChartProps,
+  BigNumberChartProps,
   BigNumberDatum,
-} from '../src/BigNumber/transformProps';
+} from '../../src/BigNumber/src/BigNumber/transformProps';
 
 const formData = {
   metric: 'value',
@@ -33,8 +33,9 @@ const formData = {
   compareLag: 1,
   timeGrainSqla: 'P3M' as TimeGranularity,
   compareSuffix: 'over last quarter',
-  vizType: 'big_number',
+  viz_type: 'big_number',
   yAxisFormat: '.3s',
+  datasource: 'test_datasource',
 };
 
 const rawFormData = {
@@ -56,7 +57,7 @@ function generateProps(
   data: BigNumberDatum[],
   extraFormData = {},
   extraQueryData = {},
-): BignumberChartProps {
+): BigNumberChartProps {
   return {
     width: 200,
     height: 500,
@@ -84,6 +85,9 @@ function generateProps(
         ...extraQueryData,
       },
     ],
+    ownState: {},
+    filterState: {},
+    behaviors: [],
   };
 }
 
