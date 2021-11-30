@@ -24,6 +24,6 @@ If applicable, add screenshots to help explain your problem.
  - superset-ui version: [e.g. v0.5.0]
  - Node version: `node -v`
  - npm version: `npm -v`
- 
+
 **Additional context**
 Add any other context about the problem here.
