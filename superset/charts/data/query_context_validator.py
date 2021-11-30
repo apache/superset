@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=invalid-name, no-self-use, too-few-public-methods
 from __future__ import annotations
 
 from typing import List, Optional, Set, TYPE_CHECKING
@@ -35,6 +34,7 @@ if TYPE_CHECKING:
     from superset.typing import Metric
 
 
+# pylint: disable=too-few-public-methods
 class QueryContextValidatorImpl(QueryContextValidator):
     _dataset_dao: DatasetDAO
     _security_manager: SupersetSecurityManager
@@ -58,7 +58,7 @@ class QueryContextValidatorImpl(QueryContextValidator):
         else:
             self._security_manager.raise_for_access(query_context=query_context)
 
-    def _validate_when_context_based_on_sql_database(
+    def _validate_when_context_based_on_sql_database(  # pylint: disable=invalid-name
         self, query_context: QueryContext, sql_database: Database
     ) -> None:
         if not self._actor_can_access_all_database_data(sql_database):
@@ -66,6 +66,7 @@ class QueryContextValidatorImpl(QueryContextValidator):
                 query_context, sql_database
             )
 
+    # pylint: disable=invalid-name
     def _actor_can_access_all_database_data(self, sql_database: Database) -> bool:
         return (
             self._security_manager.can_access_all_databases()
@@ -73,12 +74,13 @@ class QueryContextValidatorImpl(QueryContextValidator):
             or self._security_manager.can_access_database(sql_database)
         )
 
+    # pylint: disable=invalid-name
     def _validate_actor_can_access_datasources_context(
         self, query_context: QueryContext, sql_database: Database
     ) -> None:
         datasources = self._get_all_related_datasources(query_context, sql_database)
         for datasource in datasources:
-            self._security_manager.raise_when_there_is_no_access_to(datasource)
+            self._security_manager.raise_for_datasource_access(datasource)
 
     def _get_all_related_datasources(
         self, query_context: QueryContext, sql_database: Database
@@ -91,6 +93,7 @@ class QueryContextValidatorImpl(QueryContextValidator):
         )
         return datasources
 
+    # pylint: disable=invalid-name
     def _collect_datasources_from_queries(
         self, queries: List[QueryObject], sql_db: Database
     ) -> Set[BaseDatasource]:
@@ -113,6 +116,7 @@ class QueryContextValidatorImpl(QueryContextValidator):
             )
         return datasources
 
+    # pylint: disable=invalid-name
     def _collect_datasources_from_metrics(
         self, metrics: List[Metric], database: Database
     ) -> Set[BaseDatasource]:
@@ -129,6 +133,7 @@ class QueryContextValidatorImpl(QueryContextValidator):
             return self._determine_datasources(sql_expression, database)
         return set()
 
+    # pylint: disable=invalid-name
     @staticmethod
     def _get_sql_expression_from_metric(metric: Metric) -> Optional[str]:
         if isinstance(metric, dict) and "sqlExpression" in metric:
@@ -162,7 +167,14 @@ class QueryContextValidatorImpl(QueryContextValidator):
             )
         return table_datasources
 
+    # pylint: disable=no-self-use
     def _validate_queries_context(self, query_context: QueryContext) -> None:
         query: QueryObject
         for query in query_context.queries:
             query.validate()
+
+
+# pylint: disable=too-few-public-methods
+class QueryContextValidatorWrapper(QueryContextValidator):
+    def validate(self, query_context: QueryContext) -> None:
+        query_context.raise_for_access()

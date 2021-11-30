@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=too-many-lines, invalid-name
+# pylint: disable=too-many-lines
 """A set of constants and methods to manage permissions and security"""
 from __future__ import annotations
 
@@ -1048,9 +1048,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
             assert datasource
 
-            self.raise_when_there_is_no_access_to(datasource)
+            self.raise_for_datasource_access(datasource)
 
-    def raise_when_there_is_no_access_to(self, datasource: BaseDatasource) -> None:
+    def raise_for_datasource_access(self, datasource: BaseDatasource) -> None:
         # pylint: disable=import-outside-toplevel
         from superset.extensions import feature_flag_manager
 

@@ -37,12 +37,13 @@ from superset.charts.data.commands.create_async_job_command import (
 )
 from superset.charts.data.commands.get_data_command import ChartDataCommand
 from superset.charts.data.query_context_cache_loader import QueryContextCacheLoader
-from superset.charts.data.query_context_validator import QueryContextValidatorImpl
+from superset.charts.data.query_context_validator_factory import (
+    QueryContextValidatorFactory,
+)
 from superset.charts.post_processing import apply_post_process
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.connectors.base.models import BaseDatasource
-from superset.datasets.dao import DatasetDAO
 from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
 from superset.utils.async_query_manager import AsyncQueryTokenException
@@ -250,10 +251,7 @@ class ChartDataRestApi(ChartRestApi):
     def create_chart_data_command(  # pylint: disable=no-self-use
         self, query_context: QueryContext
     ) -> ChartDataCommand:
-        return ChartDataCommand(
-            query_context,
-            QueryContextValidatorImpl(DatasetDAO(), security_manager),  # type: ignore
-        )
+        return ChartDataCommand(query_context, QueryContextValidatorFactory.create())
 
     @expose("/data/<cache_key>", methods=["GET"])
     @protect()

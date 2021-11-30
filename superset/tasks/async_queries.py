@@ -69,13 +69,11 @@ def _create_query_context_from_form(form_data: Dict[str, Any]) -> QueryContext:
 def _create_chart_data_command(query_context: QueryContext) -> ChartDataCommand:
     # pylint: disable=import-outside-toplevel
     from superset.charts.data.commands.get_data_command import ChartDataCommand
-    from superset.charts.data.query_context_validator import QueryContextValidatorImpl
-    from superset.datasets.dao import DatasetDAO
-
-    return ChartDataCommand(
-        query_context,
-        QueryContextValidatorImpl(DatasetDAO(), security_manager),  # type: ignore
+    from superset.charts.data.query_context_validator_factory import (
+        QueryContextValidatorFactory,
     )
+
+    return ChartDataCommand(query_context, QueryContextValidatorFactory.create(),)
 
 
 @celery_app.task(name="load_chart_data_into_cache", soft_time_limit=query_timeout)
