@@ -118,7 +118,6 @@ const useBusinessTypes = () => {
 
   const fetchBusinessTypeValueCallback = useCallback(
     debounce((comp: string | string[], type: string | undefined) => {
-      console.log('INSIDE DEBOUNCE');
       const queryParams = rison.encode({
         type,
         values: typeof comp === 'string' ? [comp] : comp,
@@ -153,7 +152,6 @@ const useBusinessTypes = () => {
           option.optionName === props.adhocFilter.subject),
     );
     if (option && 'business_type' in option) {
-      console.log(`Setting Type tp ${option.business_type}`);
       setBusinessTypesState({
         ...businessTypesState,
         subjectBusinessType: option.business_type,
