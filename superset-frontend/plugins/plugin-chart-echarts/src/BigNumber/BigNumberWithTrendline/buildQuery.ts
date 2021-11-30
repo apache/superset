@@ -20,11 +20,17 @@ import { buildQueryContext, QueryFormData } from '@superset-ui/core';
 import { rollingWindowOperator } from '@superset-ui/chart-controls';
 
 export default function buildQuery(formData: QueryFormData) {
-  return buildQueryContext(formData, baseQueryObject => [
-    {
-      ...baseQueryObject,
-      is_timeseries: true,
-      post_processing: [rollingWindowOperator(formData, baseQueryObject)],
-    },
-  ]);
+  return buildQueryContext(formData, baseQueryObject => {
+    const postProc = rollingWindowOperator(formData, baseQueryObject);
+    if (postProc) {
+      postProc.options = { ...postProc.options, is_pivot_df: false };
+    }
+    return [
+      {
+        ...baseQueryObject,
+        is_timeseries: true,
+        post_processing: [postProc],
+      },
+    ];
+  });
 }
