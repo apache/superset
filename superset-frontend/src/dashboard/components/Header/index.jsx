@@ -352,8 +352,6 @@ class Header extends React.PureComponent {
     const refreshFrequency = shouldPersistRefreshFrequency
       ? currentRefreshFrequency
       : dashboardInfo.metadata?.refresh_frequency;
-    const timedRefreshImmuneSlices =
-      dashboardInfo?.metadata?.timed_refresh_immune_slices;
 
     const data = {
       certified_by: dashboardInfo.certified_by,
@@ -364,7 +362,6 @@ class Header extends React.PureComponent {
       owners: dashboardInfo.owners,
       roles: dashboardInfo.roles,
       slug,
-      timed_refresh_immune_slices: timedRefreshImmuneSlices,
       metadata: {
         ...dashboardInfo?.metadata,
         positions,
