@@ -323,7 +323,7 @@ class BaseDatasource(
             # for legacy dashboard imports which have the wrong query_context in them
             try:
                 query_context = slc.get_query_context()
-            except DatasetNotFoundError:
+            except DatasetNotFoundError as ex:
                 query_context = None
 
             # legacy charts don't have query_context charts
