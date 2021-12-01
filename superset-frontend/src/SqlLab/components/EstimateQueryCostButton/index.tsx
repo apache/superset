@@ -33,7 +33,7 @@ interface EstimateQueryCostButtonProps {
   queryCostEstimate: Record<string, any>;
   selectedText?: string;
   tooltip?: string;
-  disabled: boolean;
+  disabled?: boolean;
 }
 
 const EstimateQueryCostButton = ({
@@ -55,10 +55,6 @@ const EstimateQueryCostButton = ({
         : [],
     [cost],
   );
-
-  const onClick = () => {
-    getEstimate();
-  };
 
   const renderModalBody = () => {
     if (queryCostEstimate.error !== null) {
@@ -95,7 +91,7 @@ const EstimateQueryCostButton = ({
         triggerNode={
           <Button
             style={{ height: 32, padding: '4px 15px' }}
-            onClick={onClick}
+            onClick={getEstimate()}
             key="query-estimate-btn"
             tooltip={tooltip}
             disabled={disabled}
