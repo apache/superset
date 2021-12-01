@@ -71,7 +71,7 @@ export const ExportToCSVDropdown = ({
         <Menu onClick={handleMenuClick} selectable={false}>
           <Menu.Item key={MENU_KEYS.EXPORT_STANDARD}>
             <MenuItemContent>
-              {t('Standard')}
+              {t('Original')}
               <Icons.Download />
             </MenuItemContent>
           </Menu.Item>
