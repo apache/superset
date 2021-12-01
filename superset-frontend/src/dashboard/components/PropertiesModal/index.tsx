@@ -52,6 +52,7 @@ const StyledJsonEditor = styled(JsonEditor)`
 type PropertiesModalProps = {
   dashboardId: number;
   dashboardTitle?: string;
+  dashboardMetadata?: Record<string, any>;
   show?: boolean;
   onHide?: () => void;
   colorScheme?: string;
@@ -65,6 +66,7 @@ const PropertiesModal = ({
   addSuccessToast,
   colorScheme: currentColorScheme,
   dashboardId,
+  dashboardMetadata,
   dashboardTitle,
   onHide = () => {},
   onlyApply = false,
@@ -429,6 +431,13 @@ const PropertiesModal = ({
       });
     }
   }, [dashboardInfo, dashboardTitle, form]);
+
+  useEffect(() => {
+    // the metadata can be changed in several other places in the dashboard, this catches them
+    if (dashboardMetadata) {
+      setJsonMetadata(jsonStringify(dashboardMetadata));
+    }
+  }, [dashboardMetadata]);
 
   return (
     <Modal

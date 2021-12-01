@@ -195,40 +195,38 @@ export function saveDashboardRequest(data, id, saveType) {
     const {
       certified_by,
       certification_details,
-      color_namespace,
-      color_scheme,
       css,
       dashboard_title,
-      expanded_slices,
-      label_colors,
       owners,
-      positions,
-      refresh_frequency,
       roles,
       slug,
-      timed_refresh_immune_slices,
     } = data;
 
+    // making sure the data is what the backend expects
     const cleanedData = {
+      ...data,
       certified_by: certified_by || '',
       certification_details:
         certified_by && certification_details ? certification_details : '',
-      color_namespace: color_namespace || undefined,
-      color_scheme: color_scheme || '',
-      css: css || undefined,
+      css: css || '',
       dashboard_title: dashboard_title || t('[ untitled dashboard ]'),
-      expanded_slices: expanded_slices || {},
-      label_colors: label_colors || {},
-      owners:
-        owners && owners.length
-          ? owners.map(o => (o.id ? o.id : o))
-          : undefined,
-      positions,
-      refresh_frequency: refresh_frequency || 0,
-      roles:
-        roles && roles.length ? roles.map(r => (r.id ? r.id : r)) : undefined,
-      slug: slug || undefined,
-      timed_refresh_immune_slices: timed_refresh_immune_slices || [],
+      owners: owners && owners.length ? owners.map(o => (o.id ? o.id : o)) : [],
+      roles: !isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC)
+        ? undefined
+        : roles && roles.length
+        ? roles.map(r => (r.id ? r.id : r))
+        : [],
+      slug: slug || null,
+      metadata: {
+        ...data.metadata,
+        color_namespace: data?.metadata?.color_namespace || undefined,
+        color_scheme: data?.metadata?.color_scheme || '',
+        expanded_slices: data?.metadata?.expanded_slices || {},
+        label_colors: data?.metadata?.label_colors || {},
+        refresh_frequency: data?.metadata?.refresh_frequency || 0,
+        timed_refresh_immune_slices:
+          data?.metadata?.timed_refresh_immune_slices || [],
+      },
     };
 
     const onUpdateSuccess = response => {
@@ -283,15 +281,9 @@ export function saveDashboardRequest(data, id, saveType) {
         owners: cleanedData.owners,
         roles: cleanedData.roles,
         json_metadata: safeStringify({
+          ...(cleanedData?.metadata || {}),
           default_filters: safeStringify(serializedFilters),
-          color_namespace: cleanedData.color_namespace,
-          color_scheme: cleanedData.color_scheme,
-          expanded_slices: cleanedData.expanded_slices,
           filter_scopes: serializedFilterScopes,
-          label_colors: cleanedData.label_colors,
-          positions: cleanedData.positions,
-          refresh_frequency: cleanedData.refresh_frequency,
-          timed_refresh_immune_slices: cleanedData.timed_refresh_immune_slices,
         }),
       };
       return SupersetClient.put({
@@ -302,11 +294,21 @@ export function saveDashboardRequest(data, id, saveType) {
         .then(response => onUpdateSuccess(response))
         .catch(response => onError(response));
     }
+    // changing the data as the endpoint requires
+    const copyData = cleanedData;
+    if (copyData.metadata) {
+      delete copyData.metadata;
+    }
+    const finalCopyData = {
+      ...copyData,
+      // the endpoint is expecting this flat
+      ...(cleanedData?.metadata || {}),
+    };
     return SupersetClient.post({
       endpoint: `/superset/copy_dash/${id}/`,
       postPayload: {
         data: {
-          ...cleanedData,
+          ...finalCopyData,
           default_filters: safeStringify(serializedFilters),
           filter_scopes: safeStringify(serializedFilterScopes),
         },

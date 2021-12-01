@@ -347,6 +347,7 @@ class Header extends React.PureComponent {
       lastModifiedTime,
       slug,
     } = this.props;
+
     const colorScheme = dashboardInfo?.metadata?.color_scheme;
     const labelColors = dashboardInfo?.metadata?.label_colors;
     const colorNamespace = dashboardInfo?.metadata?.color_namespace;
@@ -359,21 +360,25 @@ class Header extends React.PureComponent {
       dashboardInfo?.metadata?.timed_refresh_immune_slices;
 
     const data = {
-      certified_by: dashboardInfo.certified_by || '',
-      certification_details: dashboardInfo.certification_details || '',
+      certified_by: dashboardInfo.certified_by,
+      certification_details: dashboardInfo.certification_details,
       css: customCss,
-      color_namespace: colorNamespace || undefined,
-      color_scheme: colorScheme || '',
+      color_namespace: colorNamespace,
+      color_scheme: colorScheme,
       dashboard_title: dashboardTitle,
-      expanded_slices: expandedSlices || {},
-      label_colors: labelColors || {},
+      expanded_slices: expandedSlices,
+      label_colors: labelColors,
       last_modified_time: lastModifiedTime,
-      owners: dashboardInfo.owners || undefined,
+      owners: dashboardInfo.owners,
       positions,
-      refresh_frequency: refreshFrequency || 0,
-      roles: dashboardInfo.roles || undefined,
-      slug: slug || undefined,
-      timed_refresh_immune_slices: timedRefreshImmuneSlices || [],
+      refresh_frequency: refreshFrequency,
+      roles: dashboardInfo.roles,
+      slug,
+      timed_refresh_immune_slices: timedRefreshImmuneSlices,
+      metadata: {
+        ...dashboardInfo?.metadata,
+        positions,
+      },
     };
 
     // make sure positions data less than DB storage limitation:
@@ -620,6 +625,7 @@ class Header extends React.PureComponent {
           <PropertiesModal
             dashboardId={dashboardInfo.id}
             dashboardTitle={dashboardTitle}
+            dashboardMetadata={dashboardInfo.metadata}
             show={this.state.showingPropertiesModal}
             onHide={this.hidePropertiesModal}
             colorScheme={this.props.colorScheme}
@@ -636,13 +642,11 @@ class Header extends React.PureComponent {
               });
               setColorSchemeAndUnsavedChanges(updates.colorScheme);
               dashboardTitleChanged(updates.title);
-              if (updates.slug) {
-                window.history.pushState(
-                  { event: 'dashboard_properties_changed' },
-                  '',
-                  `/superset/dashboard/${updates.slug}/`,
-                );
-              }
+              window.history.pushState(
+                { event: 'dashboard_properties_changed' },
+                '',
+                `/superset/dashboard/${updates.slug || dashboardInfo.id}/`,
+              );
             }}
             onlyApply
           />

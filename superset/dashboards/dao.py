@@ -177,43 +177,45 @@ class DashboardDAO(BaseDAO):
         dashboard: Dashboard,
         data: Dict[Any, Any],
         old_to_new_slice_ids: Optional[Dict[int, int]] = None,
+        commit: bool = False,
     ) -> Dashboard:
-        positions = data["positions"]
-        # find slices in the position data
-        slice_ids = [
-            value.get("meta", {}).get("chartId")
-            for value in positions.values()
-            if isinstance(value, dict)
-        ]
+        positions = data.get("positions")
 
-        session = db.session()
-        current_slices = session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
+        if positions is not None:
+            # find slices in the position data
+            slice_ids = [
+                value.get("meta", {}).get("chartId")
+                for value in positions.values()
+                if isinstance(value, dict)
+            ]
 
-        dashboard.slices = current_slices
+            session = db.session()
+            current_slices = session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
 
-        # add UUID to positions
-        uuid_map = {slice.id: str(slice.uuid) for slice in current_slices}
-        for obj in positions.values():
-            if (
-                isinstance(obj, dict)
-                and obj["type"] == "CHART"
-                and obj["meta"]["chartId"]
-            ):
-                chart_id = obj["meta"]["chartId"]
-                obj["meta"]["uuid"] = uuid_map.get(chart_id)
+            dashboard.slices = current_slices
 
-        # remove leading and trailing white spaces in the dumped json
-        dashboard.position_json = json.dumps(
-            positions, indent=None, separators=(",", ":"), sort_keys=True
-        )
+            # add UUID to positions
+            uuid_map = {slice.id: str(slice.uuid) for slice in current_slices}
+            for obj in positions.values():
+                if (
+                    isinstance(obj, dict)
+                    and obj["type"] == "CHART"
+                    and obj["meta"]["chartId"]
+                ):
+                    chart_id = obj["meta"]["chartId"]
+                    obj["meta"]["uuid"] = uuid_map.get(chart_id)
+
+            # remove leading and trailing white spaces in the dumped json
+            dashboard.position_json = json.dumps(
+                positions, indent=None, separators=(",", ":"), sort_keys=True
+            )
+
         md = dashboard.params_dict
 
-        md.pop("positions", None)
-
-        if data.get("css"):
+        if data.get("css") is not None:
             dashboard.css = data.get("css")
 
-        if data.get("dashboard_title"):
+        if data.get("dashboard_title") is not None:
             dashboard.dashboard_title = data.get("dashboard_title")
 
         if "timed_refresh_immune_slices" not in md:
@@ -255,11 +257,13 @@ class DashboardDAO(BaseDAO):
             key: v for key, v in default_filters_data.items() if int(key) in slice_ids
         }
         md["default_filters"] = json.dumps(applicable_filters)
-        md["color_scheme"] = data.get("color_scheme")
+        md["color_scheme"] = data.get("color_scheme", "")
         md["label_colors"] = data.get("label_colors", {})
 
         dashboard.json_metadata = json.dumps(md)
 
+        if commit:
+            db.session.commit()
         return dashboard
 
     @staticmethod
