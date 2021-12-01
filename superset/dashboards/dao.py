@@ -180,6 +180,8 @@ class DashboardDAO(BaseDAO):
         commit: bool = False,
     ) -> Dashboard:
         positions = data.get("positions")
+        new_filter_scopes = {}
+        md = dashboard.params_dict
 
         if positions is not None:
             # find slices in the position data
@@ -210,13 +212,44 @@ class DashboardDAO(BaseDAO):
                 positions, indent=None, separators=(",", ":"), sort_keys=True
             )
 
-        md = dashboard.params_dict
+            if "filter_scopes" in data:
+                # replace filter_id and immune ids from old slice id to new slice id:
+                # and remove slice ids that are not in dash anymore
+                slc_id_dict: Dict[int, int] = {}
+                if old_to_new_slice_ids:
+                    slc_id_dict = {
+                        old: new
+                        for old, new in old_to_new_slice_ids.items()
+                        if new in slice_ids
+                    }
+                else:
+                    slc_id_dict = {sid: sid for sid in slice_ids}
+                new_filter_scopes = copy_filter_scopes(
+                    old_to_new_slc_id_dict=slc_id_dict,
+                    old_filter_scopes=json.loads(data["filter_scopes"] or "{}")
+                    if isinstance(data["filter_scopes"], str)
+                    else data["filter_scopes"],
+                )
 
+            default_filters_data = json.loads(data.get("default_filters", "{}"))
+            applicable_filters = {
+                key: v
+                for key, v in default_filters_data.items()
+                if int(key) in slice_ids
+            }
+            md["default_filters"] = json.dumps(applicable_filters)
+
+        # css and dashboard_title are not part of the metadata
+        # TODO remove by refactoring/deprecating save_dash endpoint
         if data.get("css") is not None:
             dashboard.css = data.get("css")
-
         if data.get("dashboard_title") is not None:
             dashboard.dashboard_title = data.get("dashboard_title")
+
+        if new_filter_scopes:
+            md["filter_scopes"] = new_filter_scopes
+        else:
+            md.pop("filter_scopes", None)
 
         if "timed_refresh_immune_slices" not in md:
             md["timed_refresh_immune_slices"] = []
@@ -226,37 +259,8 @@ class DashboardDAO(BaseDAO):
         else:
             md["color_namespace"] = data.get("color_namespace")
 
-        new_filter_scopes = {}
-        if "filter_scopes" in data:
-            # replace filter_id and immune ids from old slice id to new slice id:
-            # and remove slice ids that are not in dash anymore
-            slc_id_dict: Dict[int, int] = {}
-            if old_to_new_slice_ids:
-                slc_id_dict = {
-                    old: new
-                    for old, new in old_to_new_slice_ids.items()
-                    if new in slice_ids
-                }
-            else:
-                slc_id_dict = {sid: sid for sid in slice_ids}
-            new_filter_scopes = copy_filter_scopes(
-                old_to_new_slc_id_dict=slc_id_dict,
-                old_filter_scopes=json.loads(data["filter_scopes"] or "{}")
-                if isinstance(data["filter_scopes"], str)
-                else data["filter_scopes"],
-            )
-        if new_filter_scopes:
-            md["filter_scopes"] = new_filter_scopes
-        else:
-            md.pop("filter_scopes", None)
-
         md["expanded_slices"] = data.get("expanded_slices", {})
         md["refresh_frequency"] = data.get("refresh_frequency", 0)
-        default_filters_data = json.loads(data.get("default_filters", "{}"))
-        applicable_filters = {
-            key: v for key, v in default_filters_data.items() if int(key) in slice_ids
-        }
-        md["default_filters"] = json.dumps(applicable_filters)
         md["color_scheme"] = data.get("color_scheme", "")
         md["label_colors"] = data.get("label_colors", {})
 

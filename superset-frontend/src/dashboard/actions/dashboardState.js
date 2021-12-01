@@ -35,7 +35,7 @@ import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { safeStringify } from 'src/utils/safeStringify';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from './dashboardLayout';
-import { setChartConfiguration } from './dashboardInfo';
+import { setChartConfiguration, dashboardInfoChanged } from './dashboardInfo';
 import { fetchDatasourceMetadata } from './datasources';
 import {
   addFilter,
@@ -219,17 +219,19 @@ export function saveDashboardRequest(data, id, saveType) {
       slug: slug || null,
       metadata: {
         ...data.metadata,
-        color_namespace: data?.metadata?.color_namespace || undefined,
-        color_scheme: data?.metadata?.color_scheme || '',
-        expanded_slices: data?.metadata?.expanded_slices || {},
-        label_colors: data?.metadata?.label_colors || {},
-        refresh_frequency: data?.metadata?.refresh_frequency || 0,
+        color_namespace: data.metadata?.color_namespace || undefined,
+        color_scheme: data.metadata?.color_scheme || '',
+        expanded_slices: data.metadata?.expanded_slices || {},
+        label_colors: data.metadata?.label_colors || {},
+        refresh_frequency: data.metadata?.refresh_frequency || 0,
         timed_refresh_immune_slices:
-          data?.metadata?.timed_refresh_immune_slices || [],
+          data.metadata?.timed_refresh_immune_slices || [],
       },
     };
 
     const onUpdateSuccess = response => {
+      const updatedDashboard = response.json.result;
+      const lastModifiedTime = response.json.last_modified_time;
       if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
         const {
           dashboardInfo: {
@@ -252,7 +254,20 @@ export function saveDashboardRequest(data, id, saveType) {
         );
         dispatch(setChartConfiguration(chartConfiguration));
       }
-      dispatch(saveDashboardRequestSuccess(response.json.last_modified_time));
+      // making sure the state is updated with the latest data
+      if (updatedDashboard) {
+        dispatch(
+          dashboardInfoChanged({
+            ...updatedDashboard,
+            ...(updatedDashboard.json_metadata
+              ? { metadata: JSON.parse(updatedDashboard.json_metadata) }
+              : {}),
+          }),
+        );
+      }
+      if (lastModifiedTime) {
+        dispatch(saveDashboardRequestSuccess(lastModifiedTime));
+      }
       dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
       return response;
     };

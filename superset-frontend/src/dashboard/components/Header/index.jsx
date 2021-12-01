@@ -348,14 +348,10 @@ class Header extends React.PureComponent {
       slug,
     } = this.props;
 
-    const colorScheme = dashboardInfo?.metadata?.color_scheme;
-    const labelColors = dashboardInfo?.metadata?.label_colors;
-    const colorNamespace = dashboardInfo?.metadata?.color_namespace;
     // check refresh frequency is for current session or persist
     const refreshFrequency = shouldPersistRefreshFrequency
       ? currentRefreshFrequency
       : dashboardInfo.metadata?.refresh_frequency;
-    const expandedSlices = dashboardInfo?.metadata?.expanded_slices;
     const timedRefreshImmuneSlices =
       dashboardInfo?.metadata?.timed_refresh_immune_slices;
 
@@ -363,21 +359,16 @@ class Header extends React.PureComponent {
       certified_by: dashboardInfo.certified_by,
       certification_details: dashboardInfo.certification_details,
       css: customCss,
-      color_namespace: colorNamespace,
-      color_scheme: colorScheme,
       dashboard_title: dashboardTitle,
-      expanded_slices: expandedSlices,
-      label_colors: labelColors,
       last_modified_time: lastModifiedTime,
       owners: dashboardInfo.owners,
-      positions,
-      refresh_frequency: refreshFrequency,
       roles: dashboardInfo.roles,
       slug,
       timed_refresh_immune_slices: timedRefreshImmuneSlices,
       metadata: {
         ...dashboardInfo?.metadata,
         positions,
+        refresh_frequency: refreshFrequency,
       },
     };
 
