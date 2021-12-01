@@ -730,6 +730,263 @@ def test_pivot_df_complex():
     )
 
 
+def test_pivot_df_multi_column():
+    """
+    Pivot table when a two columns, no rows and 2 metrics are selected.
+    """
+    df = pd.DataFrame.from_dict(
+        {
+            "state": {
+                0: "CA",
+                1: "CA",
+                2: "CA",
+                3: "FL",
+                4: "CA",
+                5: "CA",
+                6: "FL",
+                7: "FL",
+                8: "FL",
+                9: "CA",
+                10: "FL",
+                11: "FL",
+            },
+            "gender": {
+                0: "girl",
+                1: "boy",
+                2: "girl",
+                3: "girl",
+                4: "girl",
+                5: "girl",
+                6: "boy",
+                7: "girl",
+                8: "girl",
+                9: "boy",
+                10: "boy",
+                11: "girl",
+            },
+            "SUM(num)": {
+                0: 45426,
+                1: 31290,
+                2: 18859,
+                3: 14740,
+                4: 14149,
+                5: 11403,
+                6: 9395,
+                7: 7181,
+                8: 5089,
+                9: 3765,
+                10: 2673,
+                11: 1218,
+            },
+            "MAX(num)": {
+                0: 2227,
+                1: 1280,
+                2: 2588,
+                3: 854,
+                4: 842,
+                5: 1157,
+                6: 389,
+                7: 1187,
+                8: 461,
+                9: 598,
+                10: 247,
+                11: 217,
+            },
+        }
+    )
+
+    pivoted = pivot_df(
+        df,
+        rows=None,
+        columns=["state", "gender"],
+        metrics=["SUM(num)", "MAX(num)"],
+        aggfunc="Sum",
+        transpose_pivot=False,
+        combine_metrics=False,
+        show_rows_total=False,
+        show_columns_total=False,
+        apply_metrics_on_rows=False,
+    )
+    assert (
+        pivoted.to_markdown()
+        == """
+|                  |   ('SUM(num)', 'boy') |   ('SUM(num)', 'girl') |   ('MAX(num)', 'boy') |   ('MAX(num)', 'girl') |
+|:-----------------|----------------------:|-----------------------:|----------------------:|-----------------------:|
+| ('CA',)          |                 35055 |                  89837 |                  1878 |                   6814 |
+| ('Total (Sum)',) |                 12068 |                  28228 |                   636 |                   2719 |
+    """.strip()
+    )
+
+    # transpose_pivot
+    pivoted = pivot_df(
+        df,
+        rows=None,
+        columns=["state", "gender"],
+        metrics=["SUM(num)", "MAX(num)"],
+        aggfunc="Sum",
+        transpose_pivot=True,
+        combine_metrics=False,
+        show_rows_total=False,
+        show_columns_total=False,
+        apply_metrics_on_rows=False,
+    )
+    assert (
+        pivoted.to_markdown()
+        == """
+|                |   ('SUM(num)',) |   ('MAX(num)',) |
+|:---------------|----------------:|----------------:|
+| ('CA', 'boy')  |           35055 |            1878 |
+| ('CA', 'girl') |           89837 |            6814 |
+| ('FL', 'boy')  |           12068 |             636 |
+| ('FL', 'girl') |           28228 |            2719 |
+    """.strip()
+    )
+
+    # combine_metrics
+    pivoted = pivot_df(
+        df,
+        rows=None,
+        columns=["state", "gender"],
+        metrics=["SUM(num)", "MAX(num)"],
+        aggfunc="Sum",
+        transpose_pivot=False,
+        combine_metrics=True,
+        show_rows_total=False,
+        show_columns_total=False,
+        apply_metrics_on_rows=False,
+    )
+    assert (
+        pivoted.to_markdown()
+        == """
+|                  |   ('boy', 'SUM(num)') |   ('boy', 'MAX(num)') |   ('girl', 'SUM(num)') |   ('girl', 'MAX(num)') |
+|:-----------------|----------------------:|----------------------:|-----------------------:|-----------------------:|
+| ('CA',)          |                 35055 |                  1878 |                  89837 |                   6814 |
+| ('Total (Sum)',) |                 12068 |                   636 |                  28228 |                   2719 |
+    """.strip()
+    )
+
+    # show totals
+    pivoted = pivot_df(
+        df,
+        rows=None,
+        columns=["state", "gender"],
+        metrics=["SUM(num)", "MAX(num)"],
+        aggfunc="Sum",
+        transpose_pivot=False,
+        combine_metrics=False,
+        show_rows_total=True,
+        show_columns_total=True,
+        apply_metrics_on_rows=False,
+    )
+    assert (
+        pivoted.to_markdown()
+        == """
+|                  |   ('SUM(num)', 'boy') |   ('SUM(num)', 'girl') |   ('SUM(num)', 'Subtotal') |   ('MAX(num)', 'boy') |   ('MAX(num)', 'girl') |   ('MAX(num)', 'Subtotal') |   ('Total (Sum)', '') |
+|:-----------------|----------------------:|-----------------------:|---------------------------:|----------------------:|-----------------------:|---------------------------:|----------------------:|
+| ('CA',)          |                 35055 |                  89837 |                     124892 |                  1878 |                   6814 |                       8692 |                133584 |
+| ('Total (Sum)',) |                 12068 |                  28228 |                      40296 |                   636 |                   2719 |                       3355 |                 43651 |
+
+    """.strip()
+    )
+
+    # apply_metrics_on_rows
+    pivoted = pivot_df(
+        df,
+        rows=None,
+        columns=["state", "gender"],
+        metrics=["SUM(num)", "MAX(num)"],
+        aggfunc="Sum",
+        transpose_pivot=False,
+        combine_metrics=False,
+        show_rows_total=False,
+        show_columns_total=False,
+        apply_metrics_on_rows=True,
+    )
+    assert (
+        pivoted.to_markdown()
+        == """
+|               |   ('CA', 'boy') |   ('CA', 'girl') |   ('FL', 'boy') |   ('FL', 'girl') |
+|:--------------|----------------:|-----------------:|----------------:|-----------------:|
+| ('SUM(num)',) |           35055 |            89837 |           12068 |            28228 |
+| ('MAX(num)',) |            1878 |             6814 |             636 |             2719 |
+    """.strip()
+    )
+
+    # apply_metrics_on_rows with combine_metrics
+    pivoted = pivot_df(
+        df,
+        rows=None,
+        columns=["state", "gender"],
+        metrics=["SUM(num)", "MAX(num)"],
+        aggfunc="Sum",
+        transpose_pivot=False,
+        combine_metrics=True,
+        show_rows_total=False,
+        show_columns_total=False,
+        apply_metrics_on_rows=True,
+    )
+    assert (
+        pivoted.to_markdown()
+        == """
+|               |   ('CA', 'boy') |   ('CA', 'girl') |   ('FL', 'boy') |   ('FL', 'girl') |
+|:--------------|----------------:|-----------------:|----------------:|-----------------:|
+| ('SUM(num)',) |           35055 |            89837 |           12068 |            28228 |
+| ('MAX(num)',) |            1878 |             6814 |             636 |             2719 |
+    """.strip()
+    )
+
+    # everything
+    pivoted = pivot_df(
+        df,
+        rows=None,
+        columns=["state", "gender"],
+        metrics=["SUM(num)", "MAX(num)"],
+        aggfunc="Sum",
+        transpose_pivot=True,
+        combine_metrics=True,
+        show_rows_total=True,
+        show_columns_total=True,
+        apply_metrics_on_rows=True,
+    )
+    assert (
+        pivoted.to_markdown()
+        == """
+|                      |   ('CA',) |   ('Total (Sum)',) |
+|:---------------------|----------:|-------------------:|
+| ('boy', 'SUM(num)')  |     35055 |              12068 |
+| ('boy', 'MAX(num)')  |      1878 |                636 |
+| ('boy', 'Subtotal')  |     36933 |              12704 |
+| ('girl', 'SUM(num)') |     89837 |              28228 |
+| ('girl', 'MAX(num)') |      6814 |               2719 |
+| ('girl', 'Subtotal') |     96651 |              30947 |
+| ('Total (Sum)', '')  |    133584 |              43651 |
+    """.strip()
+    )
+
+    # fraction
+    pivoted = pivot_df(
+        df,
+        rows=None,
+        columns=["state", "gender"],
+        metrics=["SUM(num)", "MAX(num)"],
+        aggfunc="Sum as Fraction of Columns",
+        transpose_pivot=False,
+        combine_metrics=False,
+        show_rows_total=False,
+        show_columns_total=True,
+        apply_metrics_on_rows=False,
+    )
+    assert (
+        pivoted.to_markdown()
+        == """
+|                                         |   ('SUM(num)', 'boy') |   ('SUM(num)', 'girl') |   ('MAX(num)', 'boy') |   ('MAX(num)', 'girl') |
+|:----------------------------------------|----------------------:|-----------------------:|----------------------:|-----------------------:|
+| ('CA',)                                 |              0.743904 |               0.760911 |              0.747017 |                0.71478 |
+| ('Total (Sum as Fraction of Columns)',) |              0.256096 |               0.239089 |              0.252983 |                0.28522 |
+    """.strip()
+    )
+
+
 def test_table():
     """
     Test that the table reports honor `d3NumberFormat`.
