@@ -44,7 +44,7 @@ const StyledMinSlider = styled(Slider)<{
   .ant-slider-rail {
     background-color: ${
       validateStatus ? theme.colors[validateStatus]?.light1 : LIGHT_BLUE
-    };    
+    };
   }
 
   .ant-slider-track {
@@ -55,7 +55,7 @@ const StyledMinSlider = styled(Slider)<{
     .ant-slider-rail {
       background-color: ${
         validateStatus ? theme.colors[validateStatus]?.base : DARK_BLUE
-      };    
+      };
     }
 
     .ant-slider-track {
