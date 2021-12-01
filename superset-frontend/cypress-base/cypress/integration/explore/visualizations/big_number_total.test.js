@@ -74,7 +74,7 @@ describe('Visualization > Big Number Total', () => {
     cy.wait(['@chartData']).then(async ({ response }) => {
       cy.verifySliceContainer();
       const responseBody = response?.body;
-      expect(responseBody.query).not.contains(formData.groupby[0]);
+      expect(responseBody.result[0].query).not.contains(formData.groupby[0]);
     });
   });
 });

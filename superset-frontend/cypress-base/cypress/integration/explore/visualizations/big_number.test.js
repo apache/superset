@@ -58,7 +58,7 @@ describe('Visualization > Big Number with Trendline', () => {
     verify(BIG_NUMBER_FORM_DATA);
     cy.get('.chart-container .header-line');
     cy.get('.chart-container .subheader-line');
-    cy.get('.chart-container svg path.vx-linepath');
+    cy.get('.chart-container canvas');
   });
 
   it('should work without subheader', () => {
@@ -68,7 +68,7 @@ describe('Visualization > Big Number with Trendline', () => {
     });
     cy.get('.chart-container .header-line');
     cy.get('.chart-container .subheader-line').should('not.exist');
-    cy.get('.chart-container svg path.vx-linepath');
+    cy.get('.chart-container canvas');
   });
 
   it('should not render trendline when hidden', () => {
@@ -78,6 +78,6 @@ describe('Visualization > Big Number with Trendline', () => {
     });
     cy.get('[data-test="chart-container"] .header-line');
     cy.get('[data-test="chart-container"] .subheader-line');
-    cy.get('[data-test="chart-container"] svg').should('not.exist');
+    cy.get('[data-test="chart-container"] canvas').should('not.exist');
   });
 });
