@@ -1,0 +1,36 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react",
+    "outDir": "../../build/lib",
+    "rootDir": "../../",
+    "emitDeclarationOnly": false,
+    "sourceMap": true,
+    "allowSyntheticDefaultImports": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "noImplicitAny": false,
+    "noEmit": false,
+    "baseUrl": "../../",
+    "paths": {
+      "@superset-ui/core": ["./packages/superset-ui-core/src"],
+      "@superset-ui/chart-controls": [
+        "./packages/superset-ui-chart-controls/src"
+      ],
+      "@superset-ui/legacy-plugin-chart-*": [
+        "./plugins/legacy-plugin-chart-*/src"
+      ],
+      "@superset-ui/legacy-preset-chart-*": [
+        "./plugins/legacy-preset-chart-*/src"
+      ],
+      "@superset-ui/plugin-chart-*": ["./plugins/plugin-chart-*/src"],
+      "@superset-ui/preset-chart-*": ["./plugins/preset-chart-*/src"],
+    }
+  },
+  "exclude": ["node_modules"],
+  "include": [
+    "storybook",
+    "../**/src",
+    "../../plugins/**/src",
+  ]
+}

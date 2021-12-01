@@ -581,24 +581,16 @@ export default class ResultSet extends React.PureComponent<
     const isAdmin = !!this.props.user?.roles?.Admin;
     const displayMaxRowsReachedMessage = {
       withAdmin: t(
-        `The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROWS. `,
-        { rows },
-      ).concat(
-        t(
-          `Please add additional limits/filters or download to csv to see more rows up to `,
-        ),
-        t(`the %(limit)d limit.`, { limit }),
+        'The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROWS. ' +
+          'Please add additional limits/filters or download to csv to see more rows up to ' +
+          'the %(limit)d limit.',
+        { rows, limit },
       ),
       withoutAdmin: t(
-        `The number of results displayed is limited to %(rows)d. `,
-        { rows },
-      ).concat(
-        t(
-          `Please add additional limits/filters, download to csv, or contact an admin `,
-        ),
-        t(`to see more rows up to the %(limit)d limit.`, {
-          limit,
-        }),
+        'The number of results displayed is limited to %(rows)d. ' +
+          'Please add additional limits/filters, download to csv, or contact an admin ' +
+          'to see more rows up to the %(limit)d limit.',
+        { rows, limit },
       ),
     };
     const shouldUseDefaultDropdownAlert =
@@ -609,7 +601,7 @@ export default class ResultSet extends React.PureComponent<
       limitMessage = (
         <span className="limitMessage">
           {t(
-            `The number of rows displayed is limited to %(rows)d by the query`,
+            'The number of rows displayed is limited to %(rows)d by the query',
             { rows },
           )}
         </span>
@@ -621,7 +613,7 @@ export default class ResultSet extends React.PureComponent<
       limitMessage = (
         <span className="limitMessage">
           {t(
-            `The number of rows displayed is limited to %(rows)d by the limit dropdown.`,
+            'The number of rows displayed is limited to %(rows)d by the limit dropdown.',
             { rows },
           )}
         </span>
@@ -630,7 +622,7 @@ export default class ResultSet extends React.PureComponent<
       limitMessage = (
         <span className="limitMessage">
           {t(
-            `The number of rows displayed is limited to %(rows)d by the query and limit dropdown.`,
+            'The number of rows displayed is limited to %(rows)d by the query and limit dropdown.',
             { rows },
           )}
         </span>
@@ -640,17 +632,17 @@ export default class ResultSet extends React.PureComponent<
       <ReturnedRows>
         {!limitReached && !shouldUseDefaultDropdownAlert && (
           <span>
-            {t(`%(rows)d rows returned`, { rows })} {limitMessage}
+            {t('%(rows)d rows returned', { rows })} {limitMessage}
           </span>
         )}
         {!limitReached && shouldUseDefaultDropdownAlert && (
           <div ref={this.calculateAlertRefHeight}>
             <Alert
               type="warning"
-              message={t(`%(rows)d rows returned`, { rows })}
+              message={t('%(rows)d rows returned', { rows })}
               onClose={this.onAlertClose}
               description={t(
-                `The number of rows displayed is limited to %s by the dropdown.`,
+                'The number of rows displayed is limited to %s by the dropdown.',
                 rows,
               )}
             />
@@ -661,7 +653,7 @@ export default class ResultSet extends React.PureComponent<
             <Alert
               type="warning"
               onClose={this.onAlertClose}
-              message={t(`%(rows)d rows returned`, { rows })}
+              message={t('%(rows)d rows returned', { rows })}
               description={
                 isAdmin
                   ? displayMaxRowsReachedMessage.withAdmin

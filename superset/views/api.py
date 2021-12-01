@@ -14,7 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any
+from __future__ import annotations
+
+from typing import Any, TYPE_CHECKING
 
 import simplejson as json
 from flask import request
@@ -27,7 +29,6 @@ from superset.charts.commands.exceptions import (
     TimeRangeAmbiguousError,
     TimeRangeParseFailError,
 )
-from superset.common.query_context import QueryContext
 from superset.legacy import update_time_range
 from superset.models.slice import Slice
 from superset.typing import FlaskResponse
@@ -35,23 +36,30 @@ from superset.utils import core as utils
 from superset.utils.date_parser import get_since_until
 from superset.views.base import api, BaseSupersetView, handle_api_exception
 
+if TYPE_CHECKING:
+    from superset.common.query_context_factory import QueryContextFactory
+
 get_time_range_schema = {"type": "string"}
 
 
 class Api(BaseSupersetView):
+    query_context_factory = None
+
     @event_logger.log_this
     @api
     @handle_api_exception
     @has_access_api
     @expose("/v1/query/", methods=["POST"])
-    def query(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    def query(self) -> FlaskResponse:
         """
         Takes a query_obj constructed in the client and returns payload data response
         for the given query_obj.
 
         raises SupersetSecurityException: If the user cannot access the resource
         """
-        query_context = QueryContext(**json.loads(request.form["query_context"]))
+        query_context = self.get_query_context_factory().create(
+            **json.loads(request.form["query_context"])
+        )
         query_context.raise_for_access()
         result = query_context.get_payload()
         payload_json = result["queries"]
@@ -99,3 +107,11 @@ class Api(BaseSupersetView):
         except (ValueError, TimeRangeParseFailError, TimeRangeAmbiguousError) as error:
             error_msg = {"message": f"Unexpected time range: {error}"}
             return self.json_response(error_msg, 400)
+
+    def get_query_context_factory(self) -> QueryContextFactory:
+        if self.query_context_factory is None:
+            # pylint: disable=import-outside-toplevel
+            from superset.common.query_context_factory import QueryContextFactory
+
+            self.query_context_factory = QueryContextFactory()
+        return self.query_context_factory

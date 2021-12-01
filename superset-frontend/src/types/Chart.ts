@@ -33,6 +33,8 @@ export interface Chart {
   changed_on: string;
   changed_on_delta_humanized?: string;
   changed_on_utc?: string;
+  certified_by?: string;
+  certification_details?: string;
   description: string | null;
   cache_timeout: number | null;
   thumbnail_url?: string;
@@ -49,6 +51,8 @@ export type Slice = {
   slice_name: string;
   description: string | null;
   cache_timeout: number | null;
+  certified_by?: string;
+  certification_details?: string;
   form_data?: QueryFormData;
   query_context?: object;
 };
