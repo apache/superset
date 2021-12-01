@@ -24,7 +24,10 @@ import { storeWithState } from 'spec/fixtures/mockStore';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import TableLoader, { TableLoaderProps } from '.';
 
-fetchMock.get('glob:*/api/v1/mock', [
+const NO_DATA_TEXT = 'No data available';
+const MOCK_GLOB = 'glob:*/api/v1/mock';
+
+fetchMock.get(MOCK_GLOB, [
   { id: 1, name: 'John Doe' },
   { id: 2, name: 'Jane Doe' },
 ]);
@@ -32,7 +35,7 @@ fetchMock.get('glob:*/api/v1/mock', [
 const defaultProps: TableLoaderProps = {
   dataEndpoint: '/api/v1/mock',
   addDangerToast: jest.fn(),
-  noDataText: 'No data available',
+  noDataText: NO_DATA_TEXT,
 };
 
 function renderWithProps(props: TableLoaderProps = defaultProps) {
@@ -85,7 +88,7 @@ test('renders with mutator', async () => {
 });
 
 test('renders empty message', async () => {
-  fetchMock.mock('glob:*/api/v1/mock', [], {
+  fetchMock.mock(MOCK_GLOB, [], {
     overwriteRoutes: true,
   });
 
@@ -95,7 +98,7 @@ test('renders empty message', async () => {
 });
 
 test('renders blocked message', async () => {
-  fetchMock.mock('glob:*/api/v1/mock', 403, {
+  fetchMock.mock(MOCK_GLOB, 403, {
     overwriteRoutes: true,
   });
 
@@ -108,12 +111,12 @@ test('renders blocked message', async () => {
 });
 
 test('renders error message', async () => {
-  fetchMock.mock('glob:*/api/v1/mock', 500, {
+  fetchMock.mock(MOCK_GLOB, 500, {
     overwriteRoutes: true,
   });
 
   renderWithProps();
 
-  expect(await screen.findByText('No data available')).toBeInTheDocument();
+  expect(await screen.findByText(NO_DATA_TEXT)).toBeInTheDocument();
   expect(await screen.findByRole('alert')).toBeInTheDocument();
 });
