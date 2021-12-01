@@ -147,7 +147,7 @@ class TestDatasetApi(SupersetTestCase):
             .one()
         )
 
-    def create_dataset_import(self):
+    def create_dataset_import(self) -> BytesIO:
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
             with bundle.open("dataset_export/metadata.yaml", "w") as fp:
@@ -667,7 +667,7 @@ class TestDatasetApi(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
-    def test_update_dataset_create_column(self):
+    def test_update_dataset_create_column_and_metric(self):
         """
         Dataset API: Test update dataset create column
         """
@@ -678,11 +678,25 @@ class TestDatasetApi(SupersetTestCase):
             "column_name": "new_col",
             "description": "description",
             "expression": "expression",
+            "extra": '{"abc":123}',
             "type": "INTEGER",
             "verbose_name": "New Col",
+            "uuid": "c626b60a-3fb2-4e99-9f01-53aca0b17166",
+        }
+        new_metric_data = {
+            "d3format": None,
+            "description": None,
+            "expression": "COUNT(*)",
+            "extra": '{"abc":123}',
+            "metric_name": "my_count",
+            "metric_type": None,
+            "verbose_name": "My Count",
+            "warning_text": None,
+            "uuid": "051b5e72-4e6e-4860-b12b-4d530009dd2a",
         }
         uri = f"api/v1/dataset/{dataset.id}"
-        # Get current cols and append the new column
+
+        # Get current cols and metrics and append the new ones
         self.login(username="admin")
         rv = self.get_assert_metric(uri, "get")
         data = json.loads(rv.data.decode("utf-8"))
@@ -691,9 +705,21 @@ class TestDatasetApi(SupersetTestCase):
             column.pop("changed_on", None)
             column.pop("created_on", None)
             column.pop("type_generic", None)
-
         data["result"]["columns"].append(new_column_data)
-        rv = self.client.put(uri, json={"columns": data["result"]["columns"]})
+
+        for metric in data["result"]["metrics"]:
+            metric.pop("changed_on", None)
+            metric.pop("created_on", None)
+            metric.pop("type_generic", None)
+
+        data["result"]["metrics"].append(new_metric_data)
+        rv = self.client.put(
+            uri,
+            json={
+                "columns": data["result"]["columns"],
+                "metrics": data["result"]["metrics"],
+            },
+        )
 
         assert rv.status_code == 200
 
@@ -703,13 +729,33 @@ class TestDatasetApi(SupersetTestCase):
             .order_by("column_name")
             .all()
         )
+
         assert columns[0].column_name == "id"
         assert columns[1].column_name == "name"
         assert columns[2].column_name == new_column_data["column_name"]
         assert columns[2].description == new_column_data["description"]
         assert columns[2].expression == new_column_data["expression"]
         assert columns[2].type == new_column_data["type"]
+        assert columns[2].extra == new_column_data["extra"]
         assert columns[2].verbose_name == new_column_data["verbose_name"]
+        assert str(columns[2].uuid) == new_column_data["uuid"]
+
+        metrics = (
+            db.session.query(SqlMetric)
+            .filter_by(table_id=dataset.id)
+            .order_by("metric_name")
+            .all()
+        )
+        assert metrics[0].metric_name == "count"
+        assert metrics[1].metric_name == "my_count"
+        assert metrics[1].d3format == new_metric_data["d3format"]
+        assert metrics[1].description == new_metric_data["description"]
+        assert metrics[1].expression == new_metric_data["expression"]
+        assert metrics[1].extra == new_metric_data["extra"]
+        assert metrics[1].metric_type == new_metric_data["metric_type"]
+        assert metrics[1].verbose_name == new_metric_data["verbose_name"]
+        assert metrics[1].warning_text == new_metric_data["warning_text"]
+        assert str(metrics[1].uuid) == new_metric_data["uuid"]
 
         db.session.delete(dataset)
         db.session.commit()
