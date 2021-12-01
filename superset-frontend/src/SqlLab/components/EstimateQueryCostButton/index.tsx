@@ -56,6 +56,12 @@ const EstimateQueryCostButton = ({
     [cost],
   );
 
+  // A call back method to pass an event handler function as a prop to the Button element.
+  // Refer: https://reactjs.org/docs/handling-events.html
+  const onClickHandler = () => {
+    getEstimate();
+  };
+
   const renderModalBody = () => {
     if (queryCostEstimate.error !== null) {
       return (
@@ -91,7 +97,7 @@ const EstimateQueryCostButton = ({
         triggerNode={
           <Button
             style={{ height: 32, padding: '4px 15px' }}
-            onClick={getEstimate()}
+            onClick={onClickHandler}
             key="query-estimate-btn"
             tooltip={tooltip}
             disabled={disabled}
