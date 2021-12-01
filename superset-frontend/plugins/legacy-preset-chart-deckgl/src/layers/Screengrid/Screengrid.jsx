@@ -164,10 +164,10 @@ class DeckGLScreenGrid extends React.PureComponent {
 
   onValuesChange(values) {
     this.setState({
-      // eslint-disable-next-line react/no-access-state-in-setstate
       values: Array.isArray(values)
         ? values
-        : [values, values + this.state.getStep(values)],
+        : // eslint-disable-next-line react/no-access-state-in-setstate
+          [values, values + this.state.getStep(values)],
     });
   }
 
