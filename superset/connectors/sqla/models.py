@@ -2248,7 +2248,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                         schema=target.schema,
                         name=target.table_name,
                     )
-                    .one_or_none()
+                    .first()
                 )
                 if not table:
                     # create new columns

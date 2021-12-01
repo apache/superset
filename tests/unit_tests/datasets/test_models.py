@@ -899,6 +899,52 @@ def test_update_sqlatable(
     assert dataset.columns[0].is_temporal is True
 
 
+def test_update_sqlatable_schema(
+    mocker: MockFixture, app_context: None, session: Session
+) -> None:
+    """
+    Test that updating a ``SqlaTable`` schema also updates the corresponding ``Dataset``.
+    """
+    # patch session
+    mocker.patch(
+        "superset.security.SupersetSecurityManager.get_session", return_value=session
+    )
+    mocker.patch("superset.datasets.dao.db.session", session)
+
+    from superset.columns.models import Column
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.datasets.models import Dataset
+    from superset.models.core import Database
+    from superset.tables.models import Table
+
+    engine = session.get_bind()
+    Dataset.metadata.create_all(engine)  # pylint: disable=no-member
+
+    columns = [
+        TableColumn(column_name="ds", is_dttm=1, type="TIMESTAMP"),
+    ]
+    sqla_table = SqlaTable(
+        table_name="old_dataset",
+        schema="old_schema",
+        columns=columns,
+        metrics=[],
+        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
+    )
+    session.add(sqla_table)
+    session.flush()
+
+    dataset = session.query(Dataset).one()
+    assert dataset.tables[0].schema == "old_schema"
+    assert dataset.tables[0].id == 1
+
+    sqla_table.schema = "new_schema"
+    session.flush()
+
+    dataset = session.query(Dataset).one()
+    assert dataset.tables[0].schema == "new_schema"
+    assert dataset.tables[0].id == 2
+
+
 def test_update_sqlatable_metric(
     mocker: MockFixture, app_context: None, session: Session
 ) -> None:

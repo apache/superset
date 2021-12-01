@@ -125,6 +125,9 @@ def upgrade():
     )
     with op.batch_alter_table("sl_datasets") as batch_op:
         batch_op.create_unique_constraint("uq_sl_datasets_uuid", ["uuid"])
+        batch_op.create_unique_constraint(
+            "uq_sl_datasets_sqlatable_id", ["sqlatable_id"]
+        )
 
     op.create_table(
         "sl_dataset_columns",

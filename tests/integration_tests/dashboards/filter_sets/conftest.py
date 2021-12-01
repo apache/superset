@@ -66,17 +66,6 @@ if TYPE_CHECKING:
 security_manager: BaseSecurityManager = sm
 
 
-@pytest.fixture(autouse=True)
-def expire_on_commit_true() -> Generator[None, None, None]:
-    # ctx: AppContext
-    # with app.app_context() as ctx:
-    #    ctx.app.appbuilder.get_session.configure(expire_on_commit=False)
-    # db.session.configure(expire_on_commit=False)
-    yield
-    # db.session.configure(expire_on_commit=True)
-    # ctx.app.appbuilder.get_session.configure(expire_on_commit=True)
-
-
 @pytest.fixture(autouse=True, scope="module")
 def test_users() -> Generator[Dict[str, int], None, None]:
     usernames = [
@@ -172,8 +161,8 @@ def dashboard(app_context) -> Generator[Dashboard, None, None]:
 
 
 @pytest.fixture
-def dashboard_id(dashboard) -> int:
-    return dashboard.id
+def dashboard_id(dashboard: Dashboard) -> Generator[int, None, None]:
+    yield dashboard.id
 
 
 @pytest.fixture
@@ -273,8 +262,8 @@ def valid_filter_set_data_for_update(
 
 
 @pytest.fixture
-def not_exists_dashboard(dashboard_id: int) -> int:
-    return dashboard_id + 1
+def not_exists_dashboard_id(dashboard_id: int) -> Generator[int, None, None]:
+    yield dashboard_id + 1
 
 
 @pytest.fixture
