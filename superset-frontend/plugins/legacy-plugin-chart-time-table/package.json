@@ -29,8 +29,6 @@
   },
   "dependencies": {
     "@data-ui/sparkline": "^0.0.84",
-    "@superset-ui/chart-controls": "0.18.25",
-    "@superset-ui/core": "0.18.25",
     "@types/d3-scale": "^2.0.2",
     "d3-scale": "^3.2.1",
     "moment": "^2.26.0",
@@ -39,7 +37,10 @@
     "reactable-arc": "^0.15.0"
   },
   "peerDependencies": {
+    "@superset-ui/chart-controls": "0.18.25",
+    "@superset-ui/core": "0.18.25",
     "@types/react": "*",
-    "react": "^16.3.1"
+    "react": "^16.3.1",
+    "react-dom": "^16.13.1"
   }
 }
