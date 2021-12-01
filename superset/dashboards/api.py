@@ -722,9 +722,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         requested_ids = kwargs["rison"]
+        token = request.args.get("token")
 
         if is_feature_enabled("VERSIONED_EXPORT"):
-            token = request.args.get("token")
             timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
             root = f"dashboard_export_{timestamp}"
             filename = f"{root}.zip"
@@ -763,6 +763,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         resp.headers["Content-Disposition"] = generate_download_headers("json")[
             "Content-Disposition"
         ]
+        if token:
+            resp.set_cookie(token, "done", max_age=600)
         return resp
 
     @expose("/<pk>/thumbnail/<digest>/", methods=["GET"])
