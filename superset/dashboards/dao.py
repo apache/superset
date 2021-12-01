@@ -178,7 +178,7 @@ class DashboardDAO(BaseDAO):
         data: Dict[Any, Any],
         old_to_new_slice_ids: Optional[Dict[int, int]] = None,
         commit: bool = False,
-    ) -> Dashboard:
+    ) -> Dashboard:  # pylint: disable=too-many-locals
         positions = data.get("positions")
         new_filter_scopes = {}
         md = dashboard.params_dict
