@@ -31,7 +31,7 @@ export interface RadioButtonControlProps {
   description?: string;
   options: RadioButtonOption[];
   hovered?: boolean;
-  value?: string;
+  value?: JsonValue;
   onChange: (opt: RadioButtonOption[0]) => void;
 }
 
@@ -41,7 +41,7 @@ export default function RadioButtonControl({
   onChange,
   ...props
 }: RadioButtonControlProps) {
-  const currentValue = initialValue || options[0][0];
+  const currentValue = initialValue === null ? options[0][0] : initialValue;
   const theme = useTheme();
   return (
     <div

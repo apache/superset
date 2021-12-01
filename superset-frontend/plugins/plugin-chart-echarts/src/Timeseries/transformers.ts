@@ -212,7 +212,7 @@ export function transformSeries(
         const isSelectedLegend = currentSeries.legend === seriesName;
         if (!formatter) return numericValue;
         if (!stack || !onlyTotal || isSelectedLegend) {
-          return formatter(numericValue);
+          return numericValue ? formatter(numericValue) : '';
         }
         if (seriesIndex === showValueIndexes[dataIndex]) {
           return formatter(totalStackedValues[dataIndex]);

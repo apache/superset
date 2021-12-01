@@ -36,11 +36,26 @@ function isDefined<T>(value: T | undefined | null): boolean {
   return value !== undefined && value !== null;
 }
 
+export function extractTotalValues(data: TimeseriesDataRecord[]) {
+  return data.map(datum =>
+    Object.keys(datum)
+      .filter(key => key !== '__timestamp')
+      .reduce((sum, key) => {
+        const value = datum[key] || 0;
+        return sum + (value as number);
+      }, 0),
+  );
+}
+
 export function extractTimeseriesSeries(
   data: TimeseriesDataRecord[],
-  opts: { fillNeighborValue?: number } = {},
+  opts: {
+    fillNeighborValue?: number;
+    isExpended?: boolean;
+    totalValues?: number[];
+  } = {},
 ): SeriesOption[] {
-  const { fillNeighborValue } = opts;
+  const { fillNeighborValue, isExpended, totalValues = [] } = opts;
   if (data.length === 0) return [];
   const rows: TimeseriesDataRecord[] = data.map(datum => ({
     ...datum,
@@ -58,14 +73,18 @@ export function extractTimeseriesSeries(
       data: rows.map((row, idx) => {
         const isNextToDefinedValue =
           isDefined(rows[idx - 1]?.[key]) || isDefined(rows[idx + 1]?.[key]);
-        return [
-          row.__timestamp,
+        const isFillNeighborValue =
           !isDefined(row[key]) &&
           isNextToDefinedValue &&
-          fillNeighborValue !== undefined
-            ? fillNeighborValue
-            : row[key],
-        ];
+          fillNeighborValue !== undefined;
+
+        let value: DataRecordValue | undefined = row[key];
+        if (isFillNeighborValue) {
+          value = fillNeighborValue;
+        } else if (isExpended) {
+          value = ((value || 0) as number) / totalValues[idx];
+        }
+        return [row.__timestamp, value];
       }),
     }));
 }

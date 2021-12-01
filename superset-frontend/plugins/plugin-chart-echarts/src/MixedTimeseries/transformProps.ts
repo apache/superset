@@ -161,7 +161,7 @@ export default function transformProps(
       areaOpacity: opacity,
       seriesType,
       showValue,
-      stack,
+      stack: Boolean(stack),
       yAxisIndex,
       filterState,
     });
@@ -175,7 +175,7 @@ export default function transformProps(
       areaOpacity: opacityB,
       seriesType: seriesTypeB,
       showValue: showValueB,
-      stack: stackB,
+      stack: Boolean(stackB),
       yAxisIndex: yAxisIndexB,
       filterState,
     });

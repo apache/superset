@@ -17,6 +17,8 @@
  * under the License.
  */
 
+import { JsonValue, t } from '@superset-ui/core';
+import { ReactNode } from 'react';
 import { LabelPositionEnum } from './types';
 
 // eslint-disable-next-line import/prefer-default-export
@@ -36,6 +38,7 @@ export const TIMESERIES_CONSTANTS = {
   dataZoomStart: 0,
   dataZoomEnd: 100,
   yAxisLabelTopOffset: 20,
+  extraControlsOffset: 22,
 };
 
 export const LABEL_POSITION: [LabelPositionEnum, string][] = [
@@ -59,3 +62,16 @@ export enum OpacityEnum {
   SemiTransparent = 0.3,
   NonTransparent = 1,
 }
+
+export enum AreaChartExtraControlsValue {
+  Stacked = 'Stacked',
+  Expanded = 'Expanded',
+}
+
+export const AreaChartExtraControlsOptions: [
+  JsonValue,
+  Exclude<ReactNode, null | undefined | boolean>,
+][] = [
+  [AreaChartExtraControlsValue.Stacked, t('Stacked')],
+  [AreaChartExtraControlsValue.Expanded, t('Expanded')],
+];

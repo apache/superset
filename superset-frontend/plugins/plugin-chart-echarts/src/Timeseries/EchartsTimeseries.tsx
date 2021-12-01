@@ -20,12 +20,53 @@ import React, { useCallback, useRef } from 'react';
 import { ViewRootGroup } from 'echarts/types/src/util/types';
 import GlobalModel from 'echarts/types/src/model/Global';
 import ComponentModel from 'echarts/types/src/model/Component';
+import { sharedControlComponents } from '@superset-ui/chart-controls';
+import { HandlerFunction, styled } from '@superset-ui/core';
 import { EchartsHandler, EventHandlers } from '../types';
 import Echart from '../components/Echart';
-import { TimeseriesChartTransformedProps } from './types';
+import {
+  EchartsTimeseriesFormData,
+  TimeseriesChartTransformedProps,
+} from './types';
 import { currentSeries } from '../utils/series';
+import useExtraControl from './useExtraControl';
+
+const { RadioButtonControl } = sharedControlComponents;
 
 const TIMER_DURATION = 300;
+
+const ExtraControlsWrapper = styled.div`
+  text-align: center;
+`;
+
+function ExtraControls({
+  formData,
+  setControlValue,
+}: {
+  formData: EchartsTimeseriesFormData;
+  setControlValue?: HandlerFunction;
+}) {
+  const { extraControlsOptions, extraControlsHandler, extraValue } =
+    useExtraControl({
+      formData,
+      setControlValue,
+    });
+
+  if (formData.extraControls) {
+    return null;
+  }
+
+  return (
+    <ExtraControlsWrapper>
+      <RadioButtonControl
+        options={extraControlsOptions}
+        onChange={extraControlsHandler}
+        value={extraValue}
+      />
+    </ExtraControlsWrapper>
+  );
+}
+
 // @ts-ignore
 export default function EchartsTimeseries({
   formData,
@@ -36,6 +77,7 @@ export default function EchartsTimeseries({
   labelMap,
   selectedValues,
   setDataMask,
+  setControlValue,
   legendData = [],
 }: TimeseriesChartTransformedProps) {
   const { emitFilter, stack } = formData;
@@ -120,7 +162,7 @@ export default function EchartsTimeseries({
         },
       });
     },
-    [groupby, labelMap, setDataMask],
+    [groupby, labelMap, setDataMask, emitFilter],
   );
 
   const eventHandlers: EventHandlers = {
@@ -195,14 +237,17 @@ export default function EchartsTimeseries({
   };
 
   return (
-    <Echart
-      ref={echartRef}
-      height={height}
-      width={width}
-      echartOptions={echartOptions}
-      eventHandlers={eventHandlers}
-      zrEventHandlers={zrEventHandlers}
-      selectedValues={selectedValues}
-    />
+    <>
+      <ExtraControls formData={formData} setControlValue={setControlValue} />
+      <Echart
+        ref={echartRef}
+        height={height}
+        width={width}
+        echartOptions={echartOptions}
+        eventHandlers={eventHandlers}
+        zrEventHandlers={zrEventHandlers}
+        selectedValues={selectedValues}
+      />
+    </>
   );
 }

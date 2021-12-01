@@ -18,6 +18,7 @@
  */
 import {
   DataRecordValue,
+  HandlerFunction,
   QueryFormColumn,
   SetDataMaskHook,
 } from '@superset-ui/core';
@@ -115,6 +116,7 @@ export interface EChartTransformedProps<F> {
   echartOptions: EChartsCoreOption;
   emitFilter: boolean;
   setDataMask: SetDataMaskHook;
+  setControlValue?: HandlerFunction;
   labelMap: Record<string, DataRecordValue[]>;
   groupby: QueryFormColumn[];
   selectedValues: Record<number, string>;

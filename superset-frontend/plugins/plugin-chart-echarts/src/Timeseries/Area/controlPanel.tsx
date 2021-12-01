@@ -34,9 +34,11 @@ import {
 } from '../types';
 import {
   legendSection,
+  onlyTotalControl,
+  showValueControl,
   richTooltipSection,
-  showValueSection,
 } from '../../controls';
+import { AreaChartExtraControlsValue } from '../../constants';
 
 const {
   contributionMode,
@@ -140,7 +142,40 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ...showValueSection,
+        [showValueControl],
+        [
+          {
+            name: 'stack',
+            config: {
+              type: 'SelectControl',
+              label: t('Stacked Style'),
+              renderTrigger: true,
+              choices: [
+                [AreaChartExtraControlsValue.Stacked, 'stack'],
+                [AreaChartExtraControlsValue.Expanded, 'expand'],
+              ],
+              default: 'stack',
+              description: t('Stack series on top of each other'),
+            },
+          },
+        ],
+        [onlyTotalControl],
+        [
+          {
+            name: 'extra_controls',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Extra Controls'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'Whether to show extra controls or not. Extra controls ' +
+                  'include things like making mulitBar charts stacked ' +
+                  'or side by side.',
+              ),
+            },
+          },
+        ],
         [
           {
             name: 'markerEnabled',
