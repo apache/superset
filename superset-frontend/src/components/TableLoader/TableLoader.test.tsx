@@ -104,6 +104,7 @@ test('renders blocked message', async () => {
   expect(
     await screen.findByText('Access to user activity data is restricted'),
   ).toBeInTheDocument();
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 });
 
 test('renders error message', async () => {
@@ -113,5 +114,6 @@ test('renders error message', async () => {
 
   renderWithProps();
 
+  expect(await screen.findByText('No data available')).toBeInTheDocument();
   expect(await screen.findByRole('alert')).toBeInTheDocument();
 });
