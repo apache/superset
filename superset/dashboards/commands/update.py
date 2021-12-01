@@ -55,7 +55,7 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             if self._properties.get("json_metadata") is not None:
                 dashboard = DashboardDAO.set_dash_metadata(
                     dashboard,
-                    json.loads(self._properties.get("json_metadata")),
+                    data=json.loads(self._properties.get("json_metadata", "{}")),
                     commit=True,
                 )
         except DAOUpdateFailedError as ex:
