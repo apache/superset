@@ -16,48 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { sections } from '@superset-ui/chart-controls';
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
+import { t } from '@superset-ui/core';
+import { formatSelectOptions } from '../../utilities/utils';
 import {
-  filterNulls,
   autozoom,
+  extruded,
+  filterNulls,
+  gridSize,
   jsColumns,
   jsDataMutator,
-  jsTooltip,
   jsOnclickHref,
-  lineColumn,
-  viewport,
-  lineWidth,
-  lineType,
-  reverseLongLat,
+  jsTooltip,
   mapboxStyle,
+  spatial,
+  viewport,
 } from '../../utilities/Shared_DeckGL';
-import { dndLineColumn } from '../../utilities/sharedDndControls';
 
-export default {
+const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        [
-          isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
-            ? dndLineColumn
-            : lineColumn,
-        ],
-        [
-          {
-            ...lineType,
-            config: {
-              ...lineType.config,
-              choices: [
-                ['polyline', 'Polyline'],
-                ['json', 'JSON'],
-              ],
-            },
-          },
-        ],
+        [spatial],
+        ['size'],
         ['row_limit'],
         [filterNulls],
         ['adhoc_filters'],
@@ -65,11 +49,41 @@ export default {
     },
     {
       label: t('Map'),
-      expanded: true,
       controlSetRows: [
         [mapboxStyle, viewport],
-        ['color_picker', lineWidth],
-        [reverseLongLat, autozoom],
+        ['color_picker'],
+        [autozoom],
+        [gridSize],
+        [extruded],
+        [
+          {
+            name: 'js_agg_function',
+            config: {
+              type: 'SelectControl',
+              label: t('Dynamic Aggregation Function'),
+              description: t(
+                'The function to use when aggregating points into groups',
+              ),
+              default: 'sum',
+              clearable: false,
+              renderTrigger: true,
+              choices: formatSelectOptions([
+                'sum',
+                'min',
+                'max',
+                'mean',
+                'median',
+                'count',
+                'variance',
+                'deviation',
+                'p1',
+                'p5',
+                'p95',
+                'p99',
+              ]),
+            },
+          },
+        ],
       ],
     },
     {
@@ -83,3 +97,5 @@ export default {
     },
   ],
 };
+
+export default config;

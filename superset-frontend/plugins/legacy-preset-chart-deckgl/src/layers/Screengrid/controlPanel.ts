@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { sections } from '@superset-ui/chart-controls';
+import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
 import { t, validateNonEmpty } from '@superset-ui/core';
 import timeGrainSqlaAnimationOverrides from '../../utilities/controls';
 import {
@@ -32,7 +32,7 @@ import {
   mapboxStyle,
 } from '../../utilities/Shared_DeckGL';
 
-export default {
+const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.legacyRegularTime,
     {
@@ -77,3 +77,5 @@ export default {
     time_grain_sqla: timeGrainSqlaAnimationOverrides,
   },
 };
+
+export default config;

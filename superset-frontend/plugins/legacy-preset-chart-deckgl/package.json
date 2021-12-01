@@ -2,6 +2,19 @@
   "name": "@superset-ui/legacy-preset-chart-deckgl",
   "version": "0.4.13",
   "description": "Superset Legacy Chart - deck.gl",
+  "keywords": [
+    "superset"
+  ],
+  "homepage": "https://github.com/apache-superset/superset-ui-plugins-deckgl#readme",
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui-plugins-deckgl/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache-superset/superset-ui-plugins-deckgl.git"
+  },
+  "license": "Apache-2.0",
+  "author": "Superset",
   "sideEffects": true,
   "main": "lib/index.js",
   "module": "esm/index.js",
@@ -9,22 +22,6 @@
     "esm",
     "lib"
   ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/apache-superset/superset-ui-plugins-deckgl.git"
-  },
-  "keywords": [
-    "superset"
-  ],
-  "author": "Superset",
-  "license": "Apache-2.0",
-  "bugs": {
-    "url": "https://github.com/apache-superset/superset-ui-plugins-deckgl/issues"
-  },
-  "homepage": "https://github.com/apache-superset/superset-ui-plugins-deckgl#readme",
-  "publishConfig": {
-    "access": "public"
-  },
   "dependencies": {
     "@math.gl/web-mercator": "^3.2.2",
     "@types/d3-array": "^2.0.0",
@@ -50,5 +47,8 @@
     "@superset-ui/core": "0.x.x",
     "react": "^16.13.1",
     "react-dom": "^16.13.1"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { sections } from '@superset-ui/chart-controls';
+import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
 import {
   t,
   legacyValidateInteger,
@@ -45,7 +45,7 @@ const geojson = isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
   ? dndGeojsonColumn
   : geojsonColumn;
 
-export default {
+const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.legacyRegularTime,
     {
@@ -98,3 +98,5 @@ export default {
     },
   ],
 };
+
+export default config;

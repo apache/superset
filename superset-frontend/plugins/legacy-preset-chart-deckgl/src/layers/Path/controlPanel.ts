@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { sections } from '@superset-ui/chart-controls';
-import { t, validateNonEmpty } from '@superset-ui/core';
+import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
+import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
 import {
   filterNulls,
   autozoom,
@@ -25,22 +25,39 @@ import {
   jsDataMutator,
   jsTooltip,
   jsOnclickHref,
-  extruded,
-  gridSize,
+  lineColumn,
   viewport,
-  spatial,
+  lineWidth,
+  lineType,
+  reverseLongLat,
   mapboxStyle,
 } from '../../utilities/Shared_DeckGL';
+import { dndLineColumn } from '../../utilities/sharedDndControls';
 
-export default {
+const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        [spatial],
-        ['size'],
+        [
+          isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
+            ? dndLineColumn
+            : lineColumn,
+        ],
+        [
+          {
+            ...lineType,
+            config: {
+              ...lineType.config,
+              choices: [
+                ['polyline', 'Polyline'],
+                ['json', 'JSON'],
+              ],
+            },
+          },
+        ],
         ['row_limit'],
         [filterNulls],
         ['adhoc_filters'],
@@ -48,10 +65,11 @@ export default {
     },
     {
       label: t('Map'),
+      expanded: true,
       controlSetRows: [
         [mapboxStyle, viewport],
-        ['color_picker', autozoom],
-        [gridSize, extruded],
+        ['color_picker', lineWidth],
+        [reverseLongLat, autozoom],
       ],
     },
     {
@@ -64,11 +82,6 @@ export default {
       ],
     },
   ],
-  controlOverrides: {
-    size: {
-      label: t('Height'),
-      description: t('Metric used to control height'),
-      validators: [validateNonEmpty],
-    },
-  },
 };
+
+export default config;

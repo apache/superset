@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { sections } from '@superset-ui/chart-controls';
+import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
 import { t, validateNonEmpty } from '@superset-ui/core';
 import timeGrainSqlaAnimationOverrides from '../../utilities/controls';
 import {
@@ -36,7 +36,7 @@ import {
   mapboxStyle,
 } from '../../utilities/Shared_DeckGL';
 
-export default {
+const config: ControlPanelConfig = {
   onInit: controlState => ({
     ...controlState,
     time_grain_sqla: {
@@ -136,11 +136,14 @@ export default {
         [legendFormat],
         [
           {
-            ...dimension,
-            label: t('Categorical Color'),
-            description: t(
-              'Pick a dimension from which categorical colors are defined',
-            ),
+            name: dimension.name,
+            config: {
+              ...dimension.config,
+              label: t('Categorical Color'),
+              description: t(
+                'Pick a dimension from which categorical colors are defined',
+              ),
+            },
           },
         ],
         ['color_scheme'],
@@ -163,3 +166,5 @@ export default {
     time_grain_sqla: timeGrainSqlaAnimationOverrides,
   },
 };
+
+export default config;

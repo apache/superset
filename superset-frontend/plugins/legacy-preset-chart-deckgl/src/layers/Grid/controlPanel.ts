@@ -16,24 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { sections } from '@superset-ui/chart-controls';
-import { t } from '@superset-ui/core';
-import { formatSelectOptions } from '../../utilities/utils';
+import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
+import { t, validateNonEmpty } from '@superset-ui/core';
 import {
-  autozoom,
-  extruded,
   filterNulls,
-  gridSize,
+  autozoom,
   jsColumns,
   jsDataMutator,
-  jsOnclickHref,
   jsTooltip,
-  mapboxStyle,
-  spatial,
+  jsOnclickHref,
+  extruded,
+  gridSize,
   viewport,
+  spatial,
+  mapboxStyle,
 } from '../../utilities/Shared_DeckGL';
 
-export default {
+const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.legacyRegularTime,
     {
@@ -51,39 +50,8 @@ export default {
       label: t('Map'),
       controlSetRows: [
         [mapboxStyle, viewport],
-        ['color_picker'],
-        [autozoom],
-        [gridSize],
-        [extruded],
-        [
-          {
-            name: 'js_agg_function',
-            config: {
-              type: 'SelectControl',
-              label: t('Dynamic Aggregation Function'),
-              description: t(
-                'The function to use when aggregating points into groups',
-              ),
-              default: 'sum',
-              clearable: false,
-              renderTrigger: true,
-              choices: formatSelectOptions([
-                'sum',
-                'min',
-                'max',
-                'mean',
-                'median',
-                'count',
-                'variance',
-                'deviation',
-                'p1',
-                'p5',
-                'p95',
-                'p99',
-              ]),
-            },
-          },
-        ],
+        ['color_picker', autozoom],
+        [gridSize, extruded],
       ],
     },
     {
@@ -96,4 +64,13 @@ export default {
       ],
     },
   ],
+  controlOverrides: {
+    size: {
+      label: t('Height'),
+      description: t('Metric used to control height'),
+      validators: [validateNonEmpty],
+    },
+  },
 };
+
+export default config;
