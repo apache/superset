@@ -38,8 +38,6 @@ def is_port_open(host: str, port: int) -> bool:
     finally:
         s.close()
 
-    return False
-
 
 def is_hostname_valid(host: str) -> bool:
     """
@@ -50,8 +48,6 @@ def is_hostname_valid(host: str) -> bool:
         return True
     except socket.gaierror:
         return False
-
-    return False
 
 
 def is_host_up(host: str) -> bool:
