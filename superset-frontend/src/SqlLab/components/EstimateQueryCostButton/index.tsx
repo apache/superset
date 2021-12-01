@@ -41,7 +41,7 @@ const EstimateQueryCostButton = ({
   schema,
   sql,
   getEstimate,
-  queryCostEstimate = [],
+  queryCostEstimate = {},
   selectedText,
   tooltip = '',
   disabled = false,
