@@ -229,9 +229,7 @@ export function saveDashboardRequest(data, id, saveType) {
       },
     };
 
-    const onUpdateSuccess = response => {
-      const updatedDashboard = response.json.result;
-      const lastModifiedTime = response.json.last_modified_time;
+    const handleChartConfiguration = () => {
       if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
         const {
           dashboardInfo: {
@@ -254,6 +252,22 @@ export function saveDashboardRequest(data, id, saveType) {
         );
         dispatch(setChartConfiguration(chartConfiguration));
       }
+    };
+
+    const onCopySuccess = response => {
+      handleChartConfiguration();
+      const lastModifiedTime = response.json.last_modified_time;
+      if (lastModifiedTime) {
+        dispatch(saveDashboardRequestSuccess(lastModifiedTime));
+      }
+      dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
+      return response;
+    };
+
+    const onUpdateSuccess = response => {
+      const updatedDashboard = response.json.result;
+      const lastModifiedTime = response.json.last_modified_time;
+      handleChartConfiguration();
       // synching with the backend transformations of the metadata
       if (updatedDashboard.json_metadata) {
         dispatch(
@@ -326,7 +340,7 @@ export function saveDashboardRequest(data, id, saveType) {
         },
       },
     })
-      .then(response => onUpdateSuccess(response))
+      .then(response => onCopySuccess(response))
       .catch(response => onError(response));
   };
 }
