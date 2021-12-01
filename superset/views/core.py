@@ -1538,7 +1538,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def fave_dashboards_by_username(self, username: str) -> FlaskResponse:
         """This lets us use a user's username to pull favourite dashboards"""
         user = security_manager.find_user(username=username)
-        return self.fave_dashboards(int(user.get_id()))
+        return self.fave_dashboards(user.id)
 
     @api
     @has_access_api
