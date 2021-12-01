@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { interceptChart } from 'cypress/utils';
 import { FORM_DATA_DEFAULTS, NUM_METRIC } from './shared.helper';
 
 describe('Visualization > Big Number Total', () => {
@@ -26,7 +27,7 @@ describe('Visualization > Big Number Total', () => {
 
   beforeEach(() => {
     cy.login();
-    cy.interceptChart({ legacy: false }).as('chartData');
+    interceptChart({ legacy: false }).as('chartData');
   });
 
   it('Test big number chart with adhoc metric', () => {

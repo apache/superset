@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { interceptChart } from 'cypress/utils';
+
 describe('Visualization > Big Number with Trendline', () => {
   const BIG_NUMBER_FORM_DATA = {
     datasource: '2__table',
@@ -49,7 +51,7 @@ describe('Visualization > Big Number with Trendline', () => {
 
   beforeEach(() => {
     cy.login();
-    cy.interceptChart({ legacy: false }).as('chartData');
+    interceptChart({ legacy: false }).as('chartData');
   });
 
   it('should work', () => {
