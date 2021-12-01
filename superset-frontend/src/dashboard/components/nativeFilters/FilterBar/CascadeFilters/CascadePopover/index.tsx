@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useRef,
+} from 'react';
 import { styled, t, DataMask, css, SupersetTheme } from '@superset-ui/core';
 import Popover from 'src/components/Popover';
 import Icons from 'src/components/Icons';
@@ -74,9 +80,9 @@ const StyledPill = styled(Pill)`
   background: ${({ theme }) => theme.colors.grayscale.light1};
 `;
 
-const ContentWrapper = styled.div`
+const ContentStyles = styled.div`
   max-height: 700px;
-  overflow-y: auto;
+  overflow: auto;
 `;
 
 const CascadePopover: React.FC<CascadePopoverProps> = ({
@@ -90,6 +96,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
 }) => {
   const [currentPathToChild, setCurrentPathToChild] = useState<string[]>();
   const dataMask = dataMaskSelected[filter.id];
+  const parent = useRef();
 
   useEffect(() => {
     setCurrentPathToChild(directPathToChild);
@@ -128,10 +135,10 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   };
 
   const allFilters = getAllFilters(filter);
-  const activeFilters = useMemo(() => getActiveChildren(filter) || [filter], [
-    filter,
-    getActiveChildren,
-  ]);
+  const activeFilters = useMemo(
+    () => getActiveChildren(filter) || [filter],
+    [filter, getActiveChildren],
+  );
 
   useEffect(() => {
     const focusedFilterId = currentPathToChild?.[0];
@@ -178,7 +185,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   );
 
   const content = (
-    <ContentWrapper>
+    <ContentStyles>
       <CascadeFilterControl
         dataMaskSelected={dataMaskSelected}
         data-test="cascade-filters-control"
@@ -186,8 +193,9 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
         filter={filter}
         directPathToChild={visible ? currentPathToChild : undefined}
         onFilterSelectionChange={onFilterSelectionChange}
+        parentRef={parent}
       />
-    </ContentWrapper>
+    </ContentStyles>
   );
 
   return (
@@ -199,7 +207,12 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
       onVisibleChange={onVisibleChange}
       placement="rightTop"
       id={filter.id}
-      overlayStyle={{ width: '400px' }}
+      overlayStyle={{
+        width: '400px',
+        position: 'relative',
+        overflow: 'auto',
+      }}
+      ref={parent}
     >
       <div>
         {activeFilters.map(activeFilter => (
@@ -225,5 +238,4 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
     </Popover>
   );
 };
-
-export default CascadePopover;
+export default React.memo(CascadePopover);

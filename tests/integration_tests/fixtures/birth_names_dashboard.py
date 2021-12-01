@@ -30,7 +30,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.core import get_example_database
+from superset.utils.core import get_example_database, get_example_default_schema
 from tests.integration_tests.dashboard_utils import create_table_for_dashboard
 from tests.integration_tests.test_app import app
 
@@ -71,7 +71,7 @@ def _load_data():
             fetch_values_predicate="123 = 123",
         )
 
-        from superset.examples.birth_names import create_slices, create_dashboard
+        from superset.examples.birth_names import create_dashboard, create_slices
 
         slices, _ = create_slices(table, admin_owner=False)
         dash = create_dashboard(slices)
@@ -103,7 +103,14 @@ def _create_table(
 
 
 def _cleanup(dash_id: int, slices_ids: List[int]) -> None:
-    table_id = db.session.query(SqlaTable).filter_by(table_name="birth_names").one().id
+    schema = get_example_default_schema()
+
+    table_id = (
+        db.session.query(SqlaTable)
+        .filter_by(table_name="birth_names", schema=schema)
+        .one()
+        .id
+    )
     datasource = ConnectorRegistry.get_datasource("table", table_id, db.session)
     columns = [column for column in datasource.columns]
     metrics = [metric for metric in datasource.metrics]

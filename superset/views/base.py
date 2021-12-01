@@ -96,11 +96,12 @@ FRONTEND_CONF_KEYS = (
     "DISPLAY_MAX_ROW",
     "GLOBAL_ASYNC_QUERIES_TRANSPORT",
     "GLOBAL_ASYNC_QUERIES_POLLING_DELAY",
+    "SQL_VALIDATORS_BY_ENGINE",
     "SQLALCHEMY_DOCS_URL",
     "SQLALCHEMY_DISPLAY_TEXT",
     "GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL",
+    "DASHBOARD_AUTO_REFRESH_MODE",
 )
-logger = logging.getLogger(__name__)
 
 logger = logging.getLogger(__name__)
 config = superset_app.config
@@ -309,6 +310,7 @@ def menu_data() -> Dict[str, Any]:
     brand_text = appbuilder.app.config["LOGO_RIGHT_TEXT"]
     if callable(brand_text):
         brand_text = brand_text()
+    build_number = appbuilder.app.config["BUILD_NUMBER"]
     return {
         "menu": menu,
         "brand": {
@@ -326,6 +328,7 @@ def menu_data() -> Dict[str, Any]:
             "documentation_url": appbuilder.app.config["DOCUMENTATION_URL"],
             "version_string": appbuilder.app.config["VERSION_STRING"],
             "version_sha": appbuilder.app.config["VERSION_SHA"],
+            "build_number": build_number,
             "languages": languages,
             "show_language_picker": len(languages.keys()) > 1,
             "user_is_anonymous": g.user.is_anonymous,
@@ -374,8 +377,9 @@ def common_bootstrap_payload() -> Dict[str, Any]:
     return bootstrap_data
 
 
-# pylint: disable=invalid-name
-def get_error_level_from_status_code(status: int) -> ErrorLevel:
+def get_error_level_from_status_code(  # pylint: disable=invalid-name
+    status: int,
+) -> ErrorLevel:
     if status < 400:
         return ErrorLevel.INFO
     if status < 500:
@@ -417,7 +421,7 @@ def show_http_exception(ex: HTTPException) -> FlaskResponse:
         and ex.code in {404, 500}
     ):
         path = resource_filename("superset", f"static/assets/{ex.code}.html")
-        return send_file(path), ex.code
+        return send_file(path, cache_timeout=0), ex.code
 
     return json_errors_response(
         errors=[
@@ -437,6 +441,10 @@ def show_http_exception(ex: HTTPException) -> FlaskResponse:
 @superset_app.errorhandler(CommandException)
 def show_command_errors(ex: CommandException) -> FlaskResponse:
     logger.warning(ex)
+    if "text/html" in request.accept_mimetypes and not config["DEBUG"]:
+        path = resource_filename("superset", "static/assets/500.html")
+        return send_file(path, cache_timeout=0), 500
+
     extra = ex.normalized_messages() if isinstance(ex, CommandInvalidError) else {}
     return json_errors_response(
         errors=[
@@ -455,6 +463,10 @@ def show_command_errors(ex: CommandException) -> FlaskResponse:
 @superset_app.errorhandler(Exception)
 def show_unexpected_exception(ex: Exception) -> FlaskResponse:
     logger.exception(ex)
+    if "text/html" in request.accept_mimetypes and not config["DEBUG"]:
+        path = resource_filename("superset", "static/assets/500.html")
+        return send_file(path, cache_timeout=0), 500
+
     return json_errors_response(
         errors=[
             SupersetError(

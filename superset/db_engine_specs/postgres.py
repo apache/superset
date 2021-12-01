@@ -90,7 +90,7 @@ SYNTAX_ERROR_REGEX = re.compile('syntax error at or near "(?P<syntax_error>.*?)"
 
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
-    """ Abstract class for Postgres 'like' databases """
+    """Abstract class for Postgres 'like' databases"""
 
     engine = ""
     engine_name = "PostgreSQL"
@@ -103,7 +103,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         "P1D": "DATE_TRUNC('day', {col})",
         "P1W": "DATE_TRUNC('week', {col})",
         "P1M": "DATE_TRUNC('month', {col})",
-        "P0.25Y": "DATE_TRUNC('quarter', {col})",
+        "P3M": "DATE_TRUNC('quarter', {col})",
         "P1Y": "DATE_TRUNC('year', {col})",
     }
 
@@ -242,7 +242,9 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         return sorted(tables)
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
             return f"TO_DATE('{dttm.date().isoformat()}', 'YYYY-MM-DD')"
@@ -279,6 +281,7 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
     def get_column_spec(
         cls,
         native_type: Optional[str],
+        db_extra: Optional[Dict[str, Any]] = None,
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
         column_type_mappings: Tuple[
             Tuple[

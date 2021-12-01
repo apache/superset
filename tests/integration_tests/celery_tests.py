@@ -36,11 +36,11 @@ from tests.integration_tests.base_tests import login
 from tests.integration_tests.conftest import CTAS_SCHEMA_NAME
 from tests.integration_tests.test_app import app
 from superset import db, sql_lab
+from superset.common.db_query_status import QueryStatus
 from superset.result_set import SupersetResultSet
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetErrorType
 from superset.extensions import celery_app
-from superset.models.helpers import QueryStatus
 from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery, CtasMethod
 from superset.utils.core import get_example_database, backend
@@ -72,6 +72,7 @@ def get_query_by_id(id: int):
 
 @pytest.fixture(autouse=True, scope="module")
 def setup_sqllab():
+
     with app.app_context():
         yield
 
@@ -216,7 +217,8 @@ def test_run_sync_query_cta_no_data(setup_sqllab):
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
 @mock.patch(
-    "superset.views.core.get_cta_schema_name", lambda d, u, s, sql: CTAS_SCHEMA_NAME
+    "superset.sqllab.sqllab_execution_context.get_cta_schema_name",
+    lambda d, u, s, sql: CTAS_SCHEMA_NAME,
 )
 def test_run_sync_query_cta_config(setup_sqllab, ctas_method):
     if backend() == "sqlite":
@@ -243,7 +245,8 @@ def test_run_sync_query_cta_config(setup_sqllab, ctas_method):
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
 @mock.patch(
-    "superset.views.core.get_cta_schema_name", lambda d, u, s, sql: CTAS_SCHEMA_NAME
+    "superset.sqllab.sqllab_execution_context.get_cta_schema_name",
+    lambda d, u, s, sql: CTAS_SCHEMA_NAME,
 )
 def test_run_async_query_cta_config(setup_sqllab, ctas_method):
     if backend() == "sqlite":

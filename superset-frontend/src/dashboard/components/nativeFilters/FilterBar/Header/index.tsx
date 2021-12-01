@@ -87,6 +87,9 @@ const Header: FC<HeaderProps> = ({
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
+  const dashboardId = useSelector<RootState, number>(
+    ({ dashboardInfo }) => dashboardInfo.id,
+  );
 
   const isClearAllDisabled = Object.values(dataMaskApplied).every(
     filter =>
@@ -99,7 +102,10 @@ const Header: FC<HeaderProps> = ({
       <TitleArea>
         <span>{t('Filters')}</span>
         {canEdit && (
-          <FilterConfigurationLink createNewOnOpen={filterValues.length === 0}>
+          <FilterConfigurationLink
+            dashboardId={dashboardId}
+            createNewOnOpen={filterValues.length === 0}
+          >
             <Icons.Edit
               data-test="create-filter"
               iconColor={theme.colors.grayscale.base}
@@ -115,11 +121,12 @@ const Header: FC<HeaderProps> = ({
           <Icons.Expand iconColor={theme.colors.grayscale.base} />
         </HeaderButton>
       </TitleArea>
-      <ActionButtons>
+      <ActionButtons className="filter-action-buttons">
         <Button
           disabled={isClearAllDisabled}
           buttonStyle="tertiary"
           buttonSize="small"
+          className="filter-clear-all-button"
           onClick={onClearAll}
           {...getFilterBarTestId('clear-button')}
         >
@@ -130,6 +137,7 @@ const Header: FC<HeaderProps> = ({
           buttonStyle="primary"
           htmlType="submit"
           buttonSize="small"
+          className="filter-apply-button"
           onClick={onApply}
           {...getFilterBarTestId('apply-button')}
         >

@@ -3,6 +3,7 @@ codecov:
         after_n_builds: 4
 ignore:
   - "superset/migrations/versions/*.py"
+  - "superset-frontend/packages/superset-ui-demo/**/*"
   - "**/*.stories.tsx"
   - "**/*.stories.jsx"
 coverage:
@@ -14,6 +15,17 @@ coverage:
         # project coverage decrease:
         target: auto
         threshold: 0%
+      core-packages-ts:
+        target: 95%
+        paths:
+          - 'superset-frontend/packages'
+          - '!superset-frontend/packages/**/*.jsx'
+          - '!superset-frontend/packages/**/*.tsx'
+      core-packages-tsx:
+        target: 50%
+        paths:
+          - 'superset-frontend/packages/**/*.jsx'
+          - 'superset-frontend/packages/**/*.tsx'
     patch:
       default:
         informational: true

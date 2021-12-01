@@ -371,9 +371,9 @@ const ExtraOptions = ({
           <div className="input-container">
             <input
               type="text"
-              name="schemas_allowed_for_csv_upload"
+              name="schemas_allowed_for_file_upload"
               value={(
-                db?.extra_json?.schemas_allowed_for_csv_upload || []
+                db?.extra_json?.schemas_allowed_for_file_upload || []
               ).join(',')}
               placeholder="schema1,schema2"
               onChange={onExtraInputChange}
@@ -392,11 +392,13 @@ const ExtraOptions = ({
               indeterminate={false}
               checked={!!db?.impersonate_user}
               onChange={onInputChange}
-              labelText={t('Impersonate logged in user (Presto & Hive)')}
+              labelText={t(
+                'Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)',
+              )}
             />
             <InfoTooltip
               tooltip={t(
-                'If Presto, all the queries in SQL Lab are going to be executed as the ' +
+                'If Presto or Trino, all the queries in SQL Lab are going to be executed as the ' +
                   'currently logged on user who must have permission to run them. If Hive ' +
                   'and hive.server2.enable.doAs is enabled, will run the queries as ' +
                   'service account, but impersonate the currently logged on user via ' +
@@ -408,9 +410,9 @@ const ExtraOptions = ({
         <StyledInputContainer css={{ ...no_margin_bottom }}>
           <div className="input-container">
             <IndeterminateCheckbox
-              id="allow_csv_upload"
+              id="allow_file_upload"
               indeterminate={false}
-              checked={!!db?.allow_csv_upload}
+              checked={!!db?.allow_file_upload}
               onChange={onInputChange}
               labelText={t('Allow data upload')}
             />
@@ -490,8 +492,8 @@ const ExtraOptions = ({
           </div>
           <div className="helper">
             {t(
-              'Specify this database’s version. This should be used with ' +
-                'Presto databases so that the syntax is correct.',
+              'Specify the database version. This should be used with ' +
+                'Presto in order to enable query cost estimation.',
             )}
           </div>
         </StyledInputContainer>

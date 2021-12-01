@@ -29,7 +29,6 @@ import {
   t,
   SupersetClient,
   getCategoricalSchemeRegistry,
-  CategoricalColorNamespace,
 } from '@superset-ui/core';
 
 import Modal from 'src/components/Modal';
@@ -37,7 +36,7 @@ import { JsonEditor } from 'src/components/AsyncAceEditor';
 
 import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeControlWrapper';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 
 const StyledJsonEditor = styled(JsonEditor)`
@@ -86,24 +85,26 @@ const handleErrorResponse = async response => {
   });
 };
 
-const loadAccessOptions = accessType => (input = '') => {
-  const query = rison.encode({ filter: input });
-  return SupersetClient.get({
-    endpoint: `/api/v1/dashboard/related/${accessType}?q=${query}`,
-  }).then(
-    response => ({
-      data: response.json.result.map(item => ({
-        value: item.value,
-        label: item.text,
-      })),
-      totalCount: response.json.count,
-    }),
-    badResponse => {
-      handleErrorResponse(badResponse);
-      return [];
-    },
-  );
-};
+const loadAccessOptions =
+  accessType =>
+  (input = '') => {
+    const query = rison.encode({ filter: input });
+    return SupersetClient.get({
+      endpoint: `/api/v1/dashboard/related/${accessType}?q=${query}`,
+    }).then(
+      response => ({
+        data: response.json.result.map(item => ({
+          value: item.value,
+          label: item.text,
+        })),
+        totalCount: response.json.count,
+      }),
+      badResponse => {
+        handleErrorResponse(badResponse);
+        return [];
+      },
+    );
+  };
 
 const loadOwners = loadAccessOptions('owners');
 const loadRoles = loadAccessOptions('roles');
@@ -120,6 +121,8 @@ class PropertiesModal extends React.PureComponent {
         roles: [],
         json_metadata: '',
         colorScheme: props.colorScheme,
+        certified_by: '',
+        certification_details: '',
       },
       isDashboardLoaded: false,
       isAdvancedOpen: false,
@@ -133,6 +136,7 @@ class PropertiesModal extends React.PureComponent {
     this.onColorSchemeChange = this.onColorSchemeChange.bind(this);
     this.getRowsWithRoles = this.getRowsWithRoles.bind(this);
     this.getRowsWithoutRoles = this.getRowsWithoutRoles.bind(this);
+    this.getJsonMetadata = this.getJsonMetadata.bind(this);
   }
 
   componentDidMount() {
@@ -140,14 +144,25 @@ class PropertiesModal extends React.PureComponent {
     JsonEditor.preload();
   }
 
-  onColorSchemeChange(value, { updateMetadata = true } = {}) {
+  getJsonMetadata() {
+    const { json_metadata: jsonMetadata } = this.state.values;
+    try {
+      const jsonMetadataObj = jsonMetadata?.length
+        ? JSON.parse(jsonMetadata)
+        : {};
+      return jsonMetadataObj;
+    } catch (_) {
+      return {};
+    }
+  }
+
+  onColorSchemeChange(colorScheme, { updateMetadata = true } = {}) {
     // check that color_scheme is valid
     const colorChoices = getCategoricalSchemeRegistry().keys();
-    const { json_metadata: jsonMetadata } = this.state.values;
-    const jsonMetadataObj = jsonMetadata?.length
-      ? JSON.parse(jsonMetadata)
-      : {};
-    if (!colorChoices.includes(value)) {
+    const jsonMetadataObj = this.getJsonMetadata();
+
+    // only fire if the color_scheme is present and invalid
+    if (colorScheme && !colorChoices.includes(colorScheme)) {
       Modal.error({
         title: 'Error',
         content: t('A valid color scheme is required'),
@@ -157,24 +172,14 @@ class PropertiesModal extends React.PureComponent {
     }
 
     // update metadata to match selection
-    if (
-      updateMetadata &&
-      Object.keys(jsonMetadataObj).includes('color_scheme')
-    ) {
-      jsonMetadataObj.color_scheme = value;
-      jsonMetadataObj.label_colors = Object.keys(
-        jsonMetadataObj.label_colors ?? {},
-      ).reduce(
-        (prev, next) => ({
-          ...prev,
-          [next]: CategoricalColorNamespace.getScale(value)(next),
-        }),
-        {},
-      );
+    if (updateMetadata) {
+      jsonMetadataObj.color_scheme = colorScheme;
+      jsonMetadataObj.label_colors = jsonMetadataObj.label_colors || {};
+
       this.onMetadataChange(jsonStringify(jsonMetadataObj));
     }
 
-    this.updateFormState('colorScheme', value);
+    this.updateFormState('colorScheme', colorScheme);
   }
 
   onOwnersChange(value) {
@@ -218,6 +223,8 @@ class PropertiesModal extends React.PureComponent {
             ? jsonStringify(jsonMetadataObj)
             : '',
           colorScheme: jsonMetadataObj.color_scheme,
+          certified_by: dashboard.certified_by || '',
+          certification_details: dashboard.certification_details || '',
         },
       }));
       const initialSelectedOwners = dashboard.owners.map(owner => ({
@@ -257,24 +264,27 @@ class PropertiesModal extends React.PureComponent {
         slug,
         dashboard_title: dashboardTitle,
         colorScheme,
+        certified_by: certifiedBy,
+        certification_details: certificationDetails,
         owners: ownersValue,
         roles: rolesValue,
       },
     } = this.state;
+
     const { onlyApply } = this.props;
     const owners = ownersValue?.map(o => o.value) ?? [];
     const roles = rolesValue?.map(o => o.value) ?? [];
-    let metadataColorScheme;
+    let currentColorScheme = colorScheme;
 
-    // update color scheme to match metadata
+    // color scheme in json metadata has precedence over selection
     if (jsonMetadata?.length) {
-      const { color_scheme: metadataColorScheme } = JSON.parse(jsonMetadata);
-      if (metadataColorScheme) {
-        this.onColorSchemeChange(metadataColorScheme, {
-          updateMetadata: false,
-        });
-      }
+      const metadata = JSON.parse(jsonMetadata);
+      currentColorScheme = metadata?.color_scheme || colorScheme;
     }
+
+    this.onColorSchemeChange(currentColorScheme, {
+      updateMetadata: false,
+    });
 
     const moreProps = {};
     const morePutProps = {};
@@ -289,7 +299,9 @@ class PropertiesModal extends React.PureComponent {
         slug,
         jsonMetadata,
         ownerIds: owners,
-        colorScheme: metadataColorScheme || colorScheme,
+        colorScheme: currentColorScheme,
+        certifiedBy,
+        certificationDetails,
         ...moreProps,
       });
       this.props.onHide();
@@ -302,6 +314,9 @@ class PropertiesModal extends React.PureComponent {
           slug: slug || null,
           json_metadata: jsonMetadata || null,
           owners,
+          certified_by: certifiedBy || null,
+          certification_details:
+            certifiedBy && certificationDetails ? certificationDetails : null,
           ...morePutProps,
         }),
       }).then(({ json: { result } }) => {
@@ -316,7 +331,9 @@ class PropertiesModal extends React.PureComponent {
           slug: result.slug,
           jsonMetadata: result.json_metadata,
           ownerIds: result.owners,
-          colorScheme: metadataColorScheme || colorScheme,
+          colorScheme: currentColorScheme,
+          certifiedBy: result.certified_by,
+          certificationDetails: result.certification_details,
           ...moreResultProps,
         });
         this.props.onHide();
@@ -326,6 +343,11 @@ class PropertiesModal extends React.PureComponent {
 
   getRowsWithoutRoles() {
     const { values, isDashboardLoaded } = this.state;
+    const jsonMetadataObj = this.getJsonMetadata();
+    const hasCustomLabelColors = !!Object.keys(
+      jsonMetadataObj?.label_colors || {},
+    ).length;
+
     return (
       <Row gutter={16}>
         <Col xs={24} md={12}>
@@ -351,6 +373,7 @@ class PropertiesModal extends React.PureComponent {
         <Col xs={24} md={12}>
           <h3 style={{ marginTop: '1em' }}>{t('Colors')}</h3>
           <ColorSchemeControlWrapper
+            hasCustomLabelColors={hasCustomLabelColors}
             onChange={this.onColorSchemeChange}
             colorScheme={values.colorScheme}
             labelMargin={4}
@@ -362,6 +385,11 @@ class PropertiesModal extends React.PureComponent {
 
   getRowsWithRoles() {
     const { values, isDashboardLoaded } = this.state;
+    const jsonMetadataObj = this.getJsonMetadata();
+    const hasCustomLabelColors = !!Object.keys(
+      jsonMetadataObj?.label_colors || {},
+    ).length;
+
     return (
       <>
         <Row>
@@ -412,6 +440,7 @@ class PropertiesModal extends React.PureComponent {
         <Row>
           <Col xs={24} md={12}>
             <ColorSchemeControlWrapper
+              hasCustomLabelColors={hasCustomLabelColors}
               onChange={this.onColorSchemeChange}
               colorScheme={values.colorScheme}
               labelMargin={4}
@@ -499,6 +528,45 @@ class PropertiesModal extends React.PureComponent {
           {isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC)
             ? this.getRowsWithRoles()
             : this.getRowsWithoutRoles()}
+          <Row>
+            <Col xs={24} md={24}>
+              <h3>{t('Certification')}</h3>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col xs={24} md={12}>
+              <FormItem label={t('Certified by')}>
+                <Input
+                  aria-label={t('Certified by')}
+                  name="certified_by"
+                  type="text"
+                  value={values.certified_by}
+                  onChange={this.onChange}
+                  disabled={!isDashboardLoaded}
+                />
+                <p className="help-block">
+                  {t('Person or group that has certified this dashboard.')}
+                </p>
+              </FormItem>
+            </Col>
+            <Col xs={24} md={12}>
+              <FormItem label={t('Certification details')}>
+                <Input
+                  aria-label={t('Certification details')}
+                  name="certification_details"
+                  type="text"
+                  value={values.certification_details || ''}
+                  onChange={this.onChange}
+                  disabled={!isDashboardLoaded}
+                />
+                <p className="help-block">
+                  {t(
+                    'Any additional detail to show in the certification tooltip.',
+                  )}
+                </p>
+              </FormItem>
+            </Col>
+          </Row>
           <Row>
             <Col xs={24} md={24}>
               <h3 style={{ marginTop: '1em' }}>

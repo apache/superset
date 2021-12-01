@@ -55,7 +55,7 @@ with open(VERSION_INFO_FILE, "w") as version_file:
 
 setup(
     name="apache-superset",
-    description=("A modern, enterprise-ready business intelligence web application"),
+    description="A modern, enterprise-ready business intelligence web application",
     long_description=long_description,
     long_description_content_type="text/markdown",
     version=version_string,
@@ -66,7 +66,7 @@ setup(
     install_requires=[
         "backoff>=1.8.0",
         "bleach>=3.0.2, <4.0.0",
-        "cachelib>=0.1.1,<0.2",
+        "cachelib>=0.4.1,<0.5",
         "celery>=4.3.0, <5.0.0, !=4.4.1",
         "click<8",
         "colorama",
@@ -75,7 +75,7 @@ setup(
         "cryptography>=3.3.2",
         "deprecation>=2.1.0, <2.2.0",
         "flask>=1.1.0, <2.0.0",
-        "flask-appbuilder>=3.3.0, <4.0.0",
+        "flask-appbuilder>=3.4.0, <4.0.0",
         "flask-caching>=1.10.0",
         "flask-compress",
         "flask-talisman",
@@ -90,7 +90,7 @@ setup(
         "isodate",
         "markdown>=3.0",
         "msgpack>=1.0.0, <1.1",
-        "pandas>=1.2.2, <1.3",
+        "pandas>=1.3.0, <1.4",
         "parsedatetime",
         "pgsanity",
         "polyline",
@@ -98,7 +98,7 @@ setup(
         "python-dateutil",
         "python-dotenv",
         "python-geohash",
-        "pyarrow>=4.0.1, <4.1",
+        "pyarrow>=5.0.0, <6.0",
         "pyyaml>=5.4",
         "PyJWT>=1.7.1, <2",
         "redis",
@@ -106,7 +106,7 @@ setup(
         "simplejson>=3.15.0",
         "slackclient==2.5.0",  # PINNED! slack changes file upload api in the future versions
         "sqlalchemy>=1.3.16, <1.4, !=1.3.21",
-        "sqlalchemy-utils>=0.36.6, <0.37",
+        "sqlalchemy-utils>=0.37.8, <0.38",
         "sqlparse==0.3.0",  # PINNED! see https://github.com/andialbrecht/sqlparse/issues/562
         "tabulate==0.8.9",
         "typing-extensions>=3.10, <4",  # needed to support Literal (3.8) and TypeGuard (3.10)
@@ -114,6 +114,7 @@ setup(
     ],
     extras_require={
         "athena": ["pyathena>=1.10.8, <1.11"],
+        "aurora-data-api": ["preset-sqlalchemy-aurora-data-api>=0.2.8,<0.3"],
         "bigquery": [
             "pandas_gbq>=0.10.0",
             "pybigquery>=0.4.10",
@@ -125,7 +126,7 @@ setup(
         "crate": ["crate[sqlalchemy]>=0.26.0, <0.27"],
         "databricks": ["databricks-dbapi[sqlalchemy]>=0.5.0, <0.6"],
         "db2": ["ibm-db-sa>=0.3.5, <0.4"],
-        "dremio": ["sqlalchemy-dremio>=1.1.5, <1.2"],
+        "dremio": ["sqlalchemy-dremio>=1.1.5, <1.3"],
         "drill": ["sqlalchemy-drill==0.1.dev"],
         "druid": ["pydruid>=0.6.1,<0.7"],
         "solr": ["sqlalchemy-solr >= 0.2.0"],
@@ -133,13 +134,14 @@ setup(
         "exasol": ["sqlalchemy-exasol>=2.1.0, <2.2"],
         "excel": ["xlrd>=1.2.0, <1.3"],
         "firebird": ["sqlalchemy-firebird>=0.7.0, <0.8"],
+        "firebolt": ["firebolt-sqlalchemy>=0.0.1"],
         "gsheets": ["shillelagh[gsheetsapi]>=1.0.3, <2"],
         "hana": ["hdbcli==2.4.162", "sqlalchemy_hana==0.4.0"],
         "hive": ["pyhive[hive]>=0.6.1", "tableschema", "thrift>=0.11.0, <1.0.0"],
         "impala": ["impyla>0.16.2, <0.17"],
         "kylin": ["kylinpy>=2.8.1, <2.9"],
         "mmsql": ["pymssql>=2.1.4, <2.2"],
-        "mysql": ["mysqlclient==1.4.2.post1"],
+        "mysql": ["mysqlclient>=2.1.0, <3"],
         "oracle": ["cx-Oracle>8.0.0, <8.1"],
         "pinot": ["pinotdb>=0.3.3, <0.4"],
         "postgres": ["psycopg2-binary==2.8.5"],
@@ -151,9 +153,11 @@ setup(
         "shillelagh": [
             "shillelagh[datasetteapi,gsheetsapi,socrata,weatherapi]>=1.0.3, <2"
         ],
-        "snowflake": ["snowflake-sqlalchemy>=1.2.3, <1.3"],
+        "snowflake": [
+            "snowflake-sqlalchemy==1.2.4"
+        ],  # PINNED! 1.2.5 introduced breaking changes requiring sqlalchemy>=1.4.0
         "teradata": ["sqlalchemy-teradata==0.9.0.dev0"],
-        "thumbnails": ["Pillow>=7.0.0, <8.0.0"],
+        "thumbnails": ["Pillow>=8.3.2, <9.0.0"],
         "vertica": ["sqlalchemy-vertica-python>=0.5.9, < 0.6"],
         "netezza": ["nzalchemy>=11.0.2"],
     },
@@ -165,5 +169,6 @@ setup(
     classifiers=[
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
     ],
 )

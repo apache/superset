@@ -109,6 +109,7 @@ class Row extends React.PureComponent {
       onResizeStop,
       handleComponentDrop,
       editMode,
+      onChangeTab,
       isComponentVisible,
     } = this.props;
 
@@ -176,6 +177,7 @@ class Row extends React.PureComponent {
                   onResize={onResize}
                   onResizeStop={onResizeStop}
                   isComponentVisible={isComponentVisible}
+                  onChangeTab={onChangeTab}
                 />
               ))}
 

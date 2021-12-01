@@ -18,13 +18,17 @@
  */
 import React from 'react';
 import moment from 'moment-timezone';
-import { render } from 'spec/helpers/testing-library';
+import { render, screen } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
 import TimezoneSelector from './index';
 
 describe('TimezoneSelector', () => {
-  let timezone: string;
+  let timezone: string | undefined;
   const onTimezoneChange = jest.fn(zone => {
     timezone = zone;
+  });
+  beforeEach(() => {
+    timezone = undefined;
   });
   it('renders a TimezoneSelector with a default if undefined', () => {
     jest.spyOn(moment.tz, 'guess').mockReturnValue('America/New_York');
@@ -35,6 +39,31 @@ describe('TimezoneSelector', () => {
       />,
     );
     expect(onTimezoneChange).toHaveBeenCalledWith('America/Nassau');
+  });
+  it('should properly select values from the offsetsToName map', async () => {
+    jest.spyOn(moment.tz, 'guess').mockReturnValue('America/New_York');
+    render(
+      <TimezoneSelector
+        onTimezoneChange={onTimezoneChange}
+        timezone={timezone}
+      />,
+    );
+
+    const select = screen.getByRole('combobox', {
+      name: 'Timezone selector',
+    });
+    expect(select).toBeInTheDocument();
+    userEvent.click(select);
+
+    const isDaylight = moment('now').isDST();
+    let findTitle = 'GMT -07:00 (Mountain Standard Time)';
+    if (isDaylight) {
+      findTitle = 'GMT -06:00 (Mountain Daylight Time)';
+    }
+    const selection = await screen.findByTitle(findTitle);
+    expect(selection).toBeInTheDocument();
+    userEvent.click(selection);
+    expect(selection).toBeVisible();
   });
   it('renders a TimezoneSelector with the closest value if passed in', async () => {
     render(

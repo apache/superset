@@ -20,7 +20,7 @@ import React from 'react';
 import { useTheme } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
-import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
+import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import CopyToClipboard from '.';
 
 export default {
@@ -39,7 +39,7 @@ export const InteractiveCopyToClipboard = ({ copyNode, ...rest }: any) => {
   return (
     <>
       <CopyToClipboard copyNode={node} {...rest} />
-      <ToastPresenter />
+      <ToastContainer />
     </>
   );
 };

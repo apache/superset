@@ -16,16 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import Modal from 'src/components/Modal';
-import { Row, Col, Input, TextArea } from 'src/common/components';
+import { Form, Row, Col, Input, TextArea } from 'src/common/components';
 import Button from 'src/components/Button';
-import { OptionsType } from 'react-select/src/types';
-import { AsyncSelect } from 'src/components/Select';
+import { Select } from 'src/components';
+import { SelectValue } from 'antd/lib/select';
 import rison from 'rison';
-import { t, SupersetClient } from '@superset-ui/core';
+import { t, SupersetClient, styled } from '@superset-ui/core';
 import Chart, { Slice } from 'src/types/Chart';
-import { Form, FormItem } from 'src/components/Form';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 
 type PropertiesModalProps = {
@@ -33,12 +32,19 @@ type PropertiesModalProps = {
   show: boolean;
   onHide: () => void;
   onSave: (chart: Chart) => void;
+  permissionsError?: string;
+  existingOwners?: SelectValue;
 };
 
-type OwnerOption = {
-  label: string;
-  value: number;
-};
+const FormItem = Form.Item;
+
+const StyledFormItem = styled(Form.Item)`
+  margin-bottom: 0;
+`;
+
+const StyledHelpBlock = styled.span`
+  margin-bottom: 0;
+`;
 
 export default function PropertiesModal({
   slice,
@@ -47,14 +53,12 @@ export default function PropertiesModal({
   show,
 }: PropertiesModalProps) {
   const [submitting, setSubmitting] = useState(false);
-
+  const [form] = Form.useForm();
   // values of form inputs
   const [name, setName] = useState(slice.slice_name || '');
-  const [description, setDescription] = useState(slice.description || '');
-  const [cacheTimeout, setCacheTimeout] = useState(
-    slice.cache_timeout != null ? slice.cache_timeout : '',
+  const [selectedOwners, setSelectedOwners] = useState<SelectValue | null>(
+    null,
   );
-  const [owners, setOwners] = useState<OptionsType<OwnerOption> | null>(null);
 
   function showError({ error, statusText, message }: any) {
     let errorText = error || statusText || t('An error has occurred');
@@ -68,14 +72,14 @@ export default function PropertiesModal({
     });
   }
 
-  const fetchChartData = useCallback(
-    async function fetchChartData() {
+  const fetchChartOwners = useCallback(
+    async function fetchChartOwners() {
       try {
         const response = await SupersetClient.get({
           endpoint: `/api/v1/chart/${slice.slice_id}`,
         });
         const chart = response.json.result;
-        setOwners(
+        setSelectedOwners(
           chart.owners.map((owner: any) => ({
             value: owner.id,
             label: `${owner.first_name} ${owner.last_name}`,
@@ -89,48 +93,57 @@ export default function PropertiesModal({
     [slice.slice_id],
   );
 
-  // get the owners of this slice
-  useEffect(() => {
-    fetchChartData();
-  }, [fetchChartData]);
-
-  // update name after it's changed in another modal
-  useEffect(() => {
-    setName(slice.slice_name || '');
-  }, [slice.slice_name]);
-
-  const loadOptions = (input = '') => {
-    const query = rison.encode({
-      filter: input,
-    });
-    return SupersetClient.get({
-      endpoint: `/api/v1/chart/related/owners?q=${query}`,
-    }).then(
-      response => {
-        const { result } = response.json;
-        return result.map((item: any) => ({
-          value: item.value,
-          label: item.text,
+  const loadOptions = useMemo(
+    () =>
+      (input = '', page: number, pageSize: number) => {
+        const query = rison.encode({
+          filter: input,
+          page,
+          page_size: pageSize,
+        });
+        return SupersetClient.get({
+          endpoint: `/api/v1/chart/related/owners?q=${query}`,
+        }).then(response => ({
+          data: response.json.result.map(
+            (item: { value: number; text: string }) => ({
+              value: item.value,
+              label: item.text,
+            }),
+          ),
+          totalCount: response.json.count,
         }));
       },
-      badResponse => {
-        getClientErrorObject(badResponse).then(showError);
-        return [];
-      },
-    );
-  };
+    [],
+  );
 
-  const onSubmit = async (event: React.FormEvent) => {
-    event.stopPropagation();
-    event.preventDefault();
+  const onSubmit = async (values: {
+    certified_by?: string;
+    certification_details?: string;
+    description?: string;
+    cache_timeout?: number;
+  }) => {
     setSubmitting(true);
+    const {
+      certified_by: certifiedBy,
+      certification_details: certificationDetails,
+      description,
+      cache_timeout: cacheTimeout,
+    } = values;
     const payload: { [key: string]: any } = {
       slice_name: name || null,
       description: description || null,
       cache_timeout: cacheTimeout || null,
+      certified_by: certifiedBy || null,
+      certification_details:
+        certifiedBy && certificationDetails ? certificationDetails : null,
     };
-    if (owners) {
-      payload.owners = owners.map(o => o.value);
+    if (selectedOwners) {
+      payload.owners = (
+        selectedOwners as {
+          value: number;
+          label: string;
+        }[]
+      ).map(o => o.value);
     }
     try {
       const res = await SupersetClient.put({
@@ -152,6 +165,18 @@ export default function PropertiesModal({
     setSubmitting(false);
   };
 
+  const ownersLabel = t('Owners');
+
+  // get the owners of this slice
+  useEffect(() => {
+    fetchChartOwners();
+  }, [fetchChartOwners]);
+
+  // update name after it's changed in another modal
+  useEffect(() => {
+    setName(slice.slice_name || '');
+  }, [slice.slice_name]);
+
   return (
     <Modal
       show={show}
@@ -170,11 +195,10 @@ export default function PropertiesModal({
           </Button>
           <Button
             data-test="properties-modal-save-button"
-            htmlType="button"
+            htmlType="submit"
             buttonSize="small"
             buttonStyle="primary"
-            // @ts-ignore
-            onClick={onSubmit}
+            onClick={form.submit}
             disabled={submitting || !name}
             cta
           >
@@ -185,12 +209,27 @@ export default function PropertiesModal({
       responsive
       wrapProps={{ 'data-test': 'properties-edit-modal' }}
     >
-      <Form onFinish={onSubmit} layout="vertical">
+      <Form
+        form={form}
+        onFinish={onSubmit}
+        layout="vertical"
+        initialValues={{
+          name: slice.slice_name || '',
+          description: slice.description || '',
+          cache_timeout: slice.cache_timeout != null ? slice.cache_timeout : '',
+          certified_by: slice.certified_by || '',
+          certification_details:
+            slice.certified_by && slice.certification_details
+              ? slice.certification_details
+              : '',
+        }}
+      >
         <Row gutter={16}>
           <Col xs={24} md={12}>
             <h3>{t('Basic information')}</h3>
             <FormItem label={t('Name')} required>
               <Input
+                aria-label={t('Name')}
                 name="name"
                 data-test="properties-modal-name-input"
                 type="text"
@@ -200,59 +239,68 @@ export default function PropertiesModal({
                 }
               />
             </FormItem>
-            <FormItem label={t('Description')}>
-              <TextArea
-                rows={3}
-                name="description"
-                value={description}
-                onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) =>
-                  setDescription(event.target.value ?? '')
-                }
-                style={{ maxWidth: '100%' }}
-              />
-              <p className="help-block">
+            <FormItem>
+              <StyledFormItem label={t('Description')} name="description">
+                <TextArea rows={3} style={{ maxWidth: '100%' }} />
+              </StyledFormItem>
+              <StyledHelpBlock className="help-block">
                 {t(
                   'The description can be displayed as widget headers in the dashboard view. Supports markdown.',
                 )}
-              </p>
+              </StyledHelpBlock>
+            </FormItem>
+            <h3>{t('Certification')}</h3>
+            <FormItem>
+              <StyledFormItem label={t('Certified by')} name="certified_by">
+                <Input />
+              </StyledFormItem>
+              <StyledHelpBlock className="help-block">
+                {t('Person or group that has certified this chart.')}
+              </StyledHelpBlock>
+            </FormItem>
+            <FormItem>
+              <StyledFormItem
+                label={t('Certification details')}
+                name="certification_details"
+              >
+                <Input />
+              </StyledFormItem>
+              <StyledHelpBlock className="help-block">
+                {t(
+                  'Any additional detail to show in the certification tooltip.',
+                )}
+              </StyledHelpBlock>
             </FormItem>
           </Col>
           <Col xs={24} md={12}>
             <h3>{t('Configuration')}</h3>
-            <FormItem label={t('Cache timeout')}>
-              <Input
-                name="cacheTimeout"
-                type="text"
-                value={cacheTimeout}
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                  const targetValue = event.target.value ?? '';
-                  setCacheTimeout(targetValue.replace(/[^0-9]/, ''));
-                }}
-              />
-              <p className="help-block">
+            <FormItem>
+              <StyledFormItem label={t('Cache timeout')} name="cacheTimeout">
+                <Input />
+              </StyledFormItem>
+              <StyledHelpBlock className="help-block">
                 {t(
                   "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the dataset's timeout if undefined.",
                 )}
-              </p>
+              </StyledHelpBlock>
             </FormItem>
             <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
-            <FormItem label={t('Owners')}>
-              <AsyncSelect
-                isMulti
+            <FormItem label={ownersLabel}>
+              <Select
+                ariaLabel={ownersLabel}
+                mode="multiple"
                 name="owners"
-                value={owners || []}
-                loadOptions={loadOptions}
-                defaultOptions // load options on render
-                cacheOptions
-                onChange={setOwners}
-                disabled={!owners}
-                filterOption={null} // options are filtered at the api
+                value={selectedOwners || []}
+                onChange={setSelectedOwners}
+                options={loadOptions}
+                disabled={!selectedOwners}
+                allowClear
               />
-              <p className="help-block">
+              <StyledHelpBlock className="help-block">
                 {t(
                   'A list of users who can alter the chart. Searchable by name or username.',
                 )}
-              </p>
+              </StyledHelpBlock>
             </FormItem>
           </Col>
         </Row>

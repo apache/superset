@@ -14,8 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=protected-access
-
 from typing import Any, Dict, List, Set, Tuple
 
 from marshmallow import Schema
@@ -44,7 +42,7 @@ from superset.datasets.commands.importers.v1 import ImportDatasetsCommand
 from superset.datasets.commands.importers.v1.utils import import_dataset
 from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.models.dashboard import dashboard_slices
-from superset.utils.core import get_example_database
+from superset.utils.core import get_example_database, get_example_default_schema
 
 
 class ImportExamplesCommand(ImportModelsCommand):
@@ -78,6 +76,7 @@ class ImportExamplesCommand(ImportModelsCommand):
 
     @classmethod
     def _get_uuids(cls) -> Set[str]:
+        # pylint: disable=protected-access
         return (
             ImportDatabasesCommand._get_uuids()
             | ImportDatasetsCommand._get_uuids()
@@ -85,9 +84,8 @@ class ImportExamplesCommand(ImportModelsCommand):
             | ImportDashboardsCommand._get_uuids()
         )
 
-    # pylint: disable=too-many-locals, arguments-differ
     @staticmethod
-    def _import(
+    def _import(  # pylint: disable=arguments-differ, too-many-locals, too-many-branches
         session: Session,
         configs: Dict[str, Any],
         overwrite: bool = False,
@@ -115,6 +113,10 @@ class ImportExamplesCommand(ImportModelsCommand):
                     config["database_id"] = examples_db.id
                 else:
                     config["database_id"] = database_ids[config["database_uuid"]]
+
+                # set schema
+                if config["schema"] is None:
+                    config["schema"] = get_example_default_schema()
 
                 dataset = import_dataset(
                     session, config, overwrite=overwrite, force_data=force_data

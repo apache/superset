@@ -16,6 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+const packageConfig = require('./package');
+
+const importCoreModules = [];
+Object.entries(packageConfig.dependencies).forEach(([pkg]) => {
+  if (/@superset-ui/.test(pkg)) {
+    importCoreModules.push(pkg);
+  }
+});
+
+// ignore files when running ForkTsCheckerWebpackPlugin
+let ignorePatterns = [];
+if (process.env.NODE_ENV === 'production') {
+  ignorePatterns = [
+    '*.test.{js,ts,jsx,tsx}',
+    'plugins/**/test/**/*',
+    'packages/**/test/**/*',
+    'packages/generator-superset/**/*',
+  ];
+}
+
 module.exports = {
   extends: [
     'airbnb',
@@ -23,7 +44,7 @@ module.exports = {
     'prettier/react',
     'plugin:react-hooks/recommended',
   ],
-  parser: 'babel-eslint',
+  parser: '@babel/eslint-parser',
   parserOptions: {
     ecmaFeatures: {
       experimentalObjectRestSpread: true,
@@ -33,12 +54,20 @@ module.exports = {
     browser: true,
   },
   settings: {
-    'import/resolver': 'webpack',
+    'import/resolver': {
+      webpack: {},
+      node: {
+        extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
+      },
+    },
+    // Allow only core/src and core/test, avoid import modules from lib
+    'import/internal-regex': /^@superset-ui\/core\/(src|test)\/.*/,
+    'import/core-modules': importCoreModules,
     react: {
       version: 'detect',
     },
   },
-  plugins: ['prettier', 'react'],
+  plugins: ['prettier', 'react', 'file-progress'],
   overrides: [
     {
       files: ['cypress-base/**/*'],
@@ -76,11 +105,11 @@ module.exports = {
         '@typescript-eslint/no-empty-function': 0,
         '@typescript-eslint/no-explicit-any': 0,
         '@typescript-eslint/no-use-before-define': 1, // disabled temporarily
+        '@typescript-eslint/no-non-null-assertion': 0, // disabled temporarily
         '@typescript-eslint/explicit-function-return-type': 0,
         '@typescript-eslint/explicit-module-boundary-types': 0, // re-enable up for discussion
         camelcase: 0,
         'class-methods-use-this': 0,
-        curly: 1,
         'func-names': 0,
         'guard-for-in': 0,
         'import/no-cycle': 0, // re-enable up for discussion, might require some major refactors
@@ -108,13 +137,19 @@ module.exports = {
         'no-prototype-builtins': 0,
         'no-restricted-properties': 0,
         'no-restricted-imports': [
-          'error',
+          'warn',
           {
             paths: [
               {
                 name: 'antd',
                 message:
                   'Please import Ant components from the index of common/components',
+              },
+              {
+                name: '@superset-ui/core',
+                importNames: ['supersetTheme'],
+                message:
+                  'Please use the theme directly from the ThemeProvider rather than importing supersetTheme.',
               },
             ],
           },
@@ -139,6 +174,7 @@ module.exports = {
         'react/sort-comp': 0, // TODO: re-enable in separate PR
         'react/static-property-placement': 0, // re-enable up for discussion
         'prettier/prettier': 'error',
+        'file-progress/activate': 1,
       },
       settings: {
         'import/resolver': {
@@ -163,10 +199,11 @@ module.exports = {
     },
     {
       files: [
-        'src/**/*.test.ts',
-        'src/**/*.test.tsx',
-        'src/**/*.test.js',
-        'src/**/*.test.jsx',
+        '*.test.ts',
+        '*.test.tsx',
+        '*.test.js',
+        '*.test.jsx',
+        'fixtures.*',
       ],
       plugins: ['jest', 'jest-dom', 'no-only-tests', 'testing-library'],
       env: {
@@ -187,9 +224,28 @@ module.exports = {
           'error',
           { devDependencies: true },
         ],
-        'jest/consistent-test-it': 'error',
         'no-only-tests/no-only-tests': 'error',
+        'max-classes-per-file': 0,
         '@typescript-eslint/no-non-null-assertion': 0,
+        // TODO: disabled temporarily, re-enable after monorepo
+        'jest/consistent-test-it': 'error',
+        'jest/expect-expect': 0,
+        'jest/no-test-prefixes': 0,
+        'jest/valid-expect-in-promise': 0,
+        'jest/valid-expect': 0,
+        'jest/valid-title': 0,
+        'jest-dom/prefer-to-have-attribute': 0,
+        'jest-dom/prefer-to-have-text-content': 0,
+        'jest-dom/prefer-to-have-style': 0,
+      },
+    },
+    {
+      files: './packages/generator-superset/**/*.test.*',
+      env: {
+        node: true,
+      },
+      rules: {
+        'jest/expect-expect': 0,
       },
     },
   ],
@@ -202,7 +258,7 @@ module.exports = {
       },
     ],
     'class-methods-use-this': 0,
-    curly: 1,
+    curly: 2,
     'func-names': 0,
     'guard-for-in': 0,
     'import/extensions': [
@@ -263,4 +319,5 @@ module.exports = {
     'react/static-property-placement': 0, // disabled temporarily
     'prettier/prettier': 'error',
   },
+  ignorePatterns,
 };

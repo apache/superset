@@ -21,17 +21,19 @@ const fs = require('fs');
 const path = require('path');
 const webpack = require('webpack');
 const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
-const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
-const ManifestPlugin = require('webpack-manifest-plugin');
+const {
+  WebpackManifestPlugin,
+  getCompilerHooks,
+} = require('webpack-manifest-plugin');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const parsedArgs = require('yargs').argv;
 const getProxyConfig = require('./webpack.proxy-config');
-const packageConfig = require('./package.json');
+const packageConfig = require('./package');
 
 // input dir
 const APP_DIR = path.resolve(__dirname, './');
@@ -56,8 +58,8 @@ const output = {
   publicPath: `${ASSET_BASE_URL}/static/assets/`,
 };
 if (isDevMode) {
-  output.filename = '[name].[hash:8].entry.js';
-  output.chunkFilename = '[name].[hash:8].chunk.js';
+  output.filename = '[name].[contenthash:8].entry.js';
+  output.chunkFilename = '[name].[contenthash:8].chunk.js';
 } else if (nameChunks) {
   output.filename = '[name].[chunkhash].entry.js';
   output.chunkFilename = '[name].[chunkhash].chunk.js';
@@ -66,9 +68,17 @@ if (isDevMode) {
   output.chunkFilename = '[chunkhash].chunk.js';
 }
 
+if (!isDevMode) {
+  output.clean = true;
+}
+
 const plugins = [
+  new webpack.ProvidePlugin({
+    process: 'process/browser',
+  }),
+
   // creates a manifest.json mapping of name to hashed output used in template files
-  new ManifestPlugin({
+  new WebpackManifestPlugin({
     publicPath: output.publicPath,
     seed: { app: 'superset' },
     // This enables us to include all relevant files for an entry
@@ -107,18 +117,11 @@ const plugins = [
     'process.env.WEBPACK_MODE': JSON.stringify(mode),
   }),
 
-  // runs type checking on a separate process to speed up the build
-  new ForkTsCheckerWebpackPlugin({
-    eslint: true,
-    checkSyntacticErrors: true,
-    memoryLimit: 4096,
-  }),
-
   new CopyPlugin({
     patterns: [
       'package.json',
-      { from: 'images', to: 'images' },
-      { from: 'stylesheets', to: 'stylesheets' },
+      { from: 'src/assets/images', to: 'images' },
+      { from: 'src/assets/stylesheets', to: 'stylesheets' },
     ],
   }),
 
@@ -141,17 +144,6 @@ if (!process.env.CI) {
   plugins.push(new webpack.ProgressPlugin());
 }
 
-// clean up built assets if not from dev-server
-if (!isDevServer) {
-  plugins.push(
-    new CleanWebpackPlugin({
-      dry: false,
-      // required because the build directory is outside the frontend directory:
-      dangerouslyAllowCleanPatternsOutsideProject: true,
-    }),
-  );
-}
-
 if (!isDevMode) {
   // text loading (webpack 4+)
   plugins.push(
@@ -160,7 +152,19 @@ if (!isDevMode) {
       chunkFilename: '[name].[chunkhash].chunk.css',
     }),
   );
-  plugins.push(new OptimizeCSSAssetsPlugin());
+
+  plugins.push(
+    // runs type checking on a separate process to speed up the build
+    new ForkTsCheckerWebpackPlugin({
+      eslint: {
+        files: './{src,packages,plugins}/**/*.{ts,tsx,js,jsx}',
+        memoryLimit: 4096,
+        options: {
+          ignorePath: './.eslintignore',
+        },
+      },
+    }),
+  );
 }
 
 const PREAMBLE = [path.join(APP_DIR, '/src/preamble.ts')];
@@ -199,9 +203,6 @@ const babelLoader = {
 };
 
 const config = {
-  node: {
-    fs: 'empty',
-  },
   entry: {
     preamble: PREAMBLE,
     theme: path.join(APP_DIR, '/src/theme.ts'),
@@ -268,13 +269,6 @@ const config = {
             ].join('|')})/`,
           ),
         },
-        // bundle large libraries separately
-        mathjs: {
-          name: 'mathjs',
-          test: /\/node_modules\/mathjs\//,
-          priority: 30,
-          enforce: true,
-        },
         // viz thumbnails are used in `addSlice` and `explore` page
         thumbnail: {
           name: 'thumbnail',
@@ -284,34 +278,28 @@ const config = {
         },
       },
     },
+    usedExports: 'global',
+    minimizer: [new CssMinimizerPlugin(), '...'],
   },
   resolve: {
     modules: [APP_DIR, 'node_modules', ROOT_DIR],
-    alias: {
-      'react-dom': '@hot-loader/react-dom',
-      // Force using absolute import path of some packages in the root node_modules,
-      // as they can be dependencies of other packages via `npm link`.
-      '@superset-ui/core': path.resolve(
-        APP_DIR,
-        './node_modules/@superset-ui/core',
-      ),
-      '@superset-ui/chart-controls': path.resolve(
-        APP_DIR,
-        './node_modules/@superset-ui/chart-controls',
-      ),
-    },
+    alias: {},
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
-    symlinks: false,
+    fallback: {
+      fs: false,
+      vm: false,
+      path: false,
+    },
   },
   context: APP_DIR, // to automatically find tsconfig.json
   module: {
-    // Uglifying mapbox-gl results in undefined errors, see
-    // https://github.com/mapbox/mapbox-gl-js/issues/4359#issuecomment-288001933
-    noParse: /(mapbox-gl)\.js$/,
     rules: [
       {
         test: /datatables\.net.*/,
-        loader: 'imports-loader?define=>false',
+        loader: 'imports-loader',
+        options: {
+          additionalCode: 'var define = false;',
+        },
       },
       {
         test: /\.tsx?$/,
@@ -344,9 +332,7 @@ const config = {
         // include source code for plugins, but exclude node_modules and test files within them
         exclude: [/superset-ui.*\/node_modules\//, /\.test.jsx?$/],
         include: [
-          new RegExp(`${APP_DIR}/src`),
-          /superset-ui.*\/src/,
-          new RegExp(`${APP_DIR}/.storybook`),
+          new RegExp(`${APP_DIR}/(src|.storybook|plugins|packages)`),
           /@encodable/,
         ],
         use: [babelLoader],
@@ -388,52 +374,34 @@ const config = {
       {
         test: /\.png$/,
         issuer: {
-          exclude: /\/src\/assets\/staticPages\//,
+          not: [/\/src\/assets\/staticPages\//],
         },
-        loader: 'url-loader',
-        options: {
-          limit: 10000,
-          name: '[name].[hash:8].[ext]',
+        type: 'asset',
+        generator: {
+          filename: '[name].[contenthash:8].[ext]',
         },
       },
       {
         test: /\.png$/,
-        issuer: {
-          test: /\/src\/assets\/staticPages\//,
-        },
-        loader: 'url-loader',
-        options: {
-          limit: 150000, // Convert images < 150kb to base64 strings
-        },
+        issuer: /\/src\/assets\/staticPages\//,
+        type: 'asset',
       },
       {
         test: /\.svg(\?v=\d+\.\d+\.\d+)?$/,
-        issuer: {
-          test: /\.(j|t)sx?$/,
-        },
+        issuer: /\.([jt])sx?$/,
         use: ['@svgr/webpack'],
       },
       {
         test: /\.(jpg|gif)$/,
-        loader: 'file-loader',
-        options: {
-          name: '[name].[hash:8].[ext]',
+        type: 'asset/resource',
+        generator: {
+          filename: '[name].[contenthash:8].[ext]',
         },
       },
       /* for font-awesome */
       {
-        test: /\.woff(2)?(\?v=[0-9]\.[0-9]\.[0-9])?$/,
-        loader: 'url-loader?limit=10000&mimetype=application/font-woff',
-        options: {
-          esModule: false,
-        },
-      },
-      {
-        test: /\.(ttf|eot|svg)(\?v=[0-9]\.[0-9]\.[0-9])?$/,
-        loader: 'file-loader',
-        options: {
-          esModule: false,
-        },
+        test: /\.(woff|woff2|eot|ttf|otf)$/i,
+        type: 'asset/resource',
       },
       {
         test: /\.ya?ml$/,
@@ -451,25 +419,43 @@ const config = {
   devtool: false,
 };
 
+// find all the symlinked plugins and use their source code for imports
+Object.entries(packageConfig.dependencies).forEach(([pkg, version]) => {
+  const srcPath = `./node_modules/${pkg}/src`;
+  if (/^@superset-ui/.test(pkg) && fs.existsSync(srcPath)) {
+    console.log(`[Superset Plugin] Use symlink source for ${pkg} @ ${version}`);
+    // only allow exact match so imports like `@superset-ui/plugin-name/lib`
+    // and `@superset-ui/plugin-name/esm` can still work.
+    const pkgDirectory = pkg.split('/').pop();
+    if (/^(core|chart-controls)/.test(pkgDirectory)) {
+      config.resolve.alias[pkg] = path.resolve(
+        APP_DIR,
+        `packages/superset-ui-${pkgDirectory}/src`,
+      );
+    } else {
+      config.resolve.alias[pkg] = path.resolve(
+        APP_DIR,
+        `plugins/${pkgDirectory}/src`,
+      );
+    }
+  }
+});
+console.log(''); // pure cosmetic new line
+
 let proxyConfig = getProxyConfig();
 
 if (isDevMode) {
   config.devtool = 'eval-cheap-module-source-map';
   config.devServer = {
-    before(app, server, compiler) {
+    onBeforeSetupMiddleware(devServer) {
       // load proxy config when manifest updates
-      const hook = compiler.hooks.webpackManifestPluginAfterEmit;
-      hook.tap('ManifestPlugin', manifest => {
+      const { afterEmit } = getCompilerHooks(devServer.compiler);
+      afterEmit.tap('ManifestPlugin', manifest => {
         proxyConfig = getProxyConfig(manifest);
       });
     },
     historyApiFallback: true,
     hot: true,
-    injectClient: false,
-    injectHot: true,
-    inline: true,
-    stats: 'minimal',
-    overlay: true,
     port: devserverPort,
     // Only serves bundled files from webpack-dev-server
     // and proxy everything else to Superset backend
@@ -477,36 +463,12 @@ if (isDevMode) {
       // functions are called for every request
       () => proxyConfig,
     ],
-    contentBase: path.join(process.cwd(), '../static/assets'),
+    client: {
+      overlay: { errors: true, warnings: false },
+      logging: 'error',
+    },
+    static: path.join(process.cwd(), '../static/assets'),
   };
-
-  // make sure to use @emotion/* modules in the root directory
-  fs.readdirSync(path.resolve(APP_DIR, './node_modules/@emotion'), pkg => {
-    config.resolve.alias[pkg] = path.resolve(
-      APP_DIR,
-      './node_modules/@emotion',
-      pkg,
-    );
-  });
-
-  // find all the symlinked plugins and use their source code for imports
-  let hasSymlink = false;
-  Object.entries(packageConfig.dependencies).forEach(([pkg, version]) => {
-    const srcPath = `./node_modules/${pkg}/src`;
-    if (/superset-ui/.test(pkg) && fs.existsSync(srcPath)) {
-      console.log(
-        `[Superset Plugin] Use symlink source for ${pkg} @ ${version}`,
-      );
-      // only allow exact match so imports like `@superset-ui/plugin-name/lib`
-      // and `@superset-ui/plugin-name/esm` can still work.
-      config.resolve.alias[`${pkg}$`] = `${pkg}/src`;
-      delete config.resolve.alias[pkg];
-      hasSymlink = true;
-    }
-  });
-  if (hasSymlink) {
-    console.log(''); // pure cosmetic new line
-  }
 }
 
 // Bundle analyzer is disabled by default

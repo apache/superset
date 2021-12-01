@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        python-version: [3.7,3.8]
+        python-version: [3.8, 3.9]
     env:
       PYTHONPATH: ${{ github.workspace }}
     steps:
@@ -35,6 +35,8 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: 'requirements/testing.txt'
 # TODO: separated requiermentes.txt file just for unit tests
       - name: Install dependencies
         if: steps.check.outcome == 'failure'
@@ -43,6 +45,7 @@ jobs:
           run: |
             apt-get-install
             pip-upgrade
+            pip install wheel
             pip install -r requirements/testing.txt
             mkdir ${{ github.workspace }}/.temp
       - name: Python unit tests

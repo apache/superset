@@ -48,7 +48,7 @@ class DatabaseMixin:
         "allow_run_async",
         "allow_dml",
         "modified",
-        "allow_csv_upload",
+        "allow_file_upload",
         "expose_in_sqllab",
     ]
     add_columns = [
@@ -57,7 +57,7 @@ class DatabaseMixin:
         "cache_timeout",
         "expose_in_sqllab",
         "allow_run_async",
-        "allow_csv_upload",
+        "allow_file_upload",
         "allow_ctas",
         "allow_cvas",
         "allow_dml",
@@ -136,9 +136,9 @@ class DatabaseMixin:
             '"table_cache_timeout": 600}**. '
             "If unset, cache will not be enabled for the functionality. "
             "A timeout of 0 indicates that the cache never expires.<br/>"
-            "3. The ``schemas_allowed_for_csv_upload`` is a comma separated list "
+            "3. The ``schemas_allowed_for_file_upload`` is a comma separated list "
             "of schemas that CSVs are allowed to upload to. "
-            'Specify it as **"schemas_allowed_for_csv_upload": '
+            'Specify it as **"schemas_allowed_for_file_upload": '
             '["public", "csv_upload"]**. '
             "If database flavor does not support schema or any schema is allowed "
             "to be accessed, just leave the list empty<br/>"
@@ -177,7 +177,7 @@ class DatabaseMixin:
             "A timeout of 0 indicates that the cache never expires. "
             "Note this defaults to the global timeout if undefined."
         ),
-        "allow_csv_upload": _(
+        "allow_file_upload": _(
             "If selected, please set the schemas allowed for csv upload in Extra."
         ),
     }
@@ -198,7 +198,7 @@ class DatabaseMixin:
         "server_cert": _("Root certificate"),
         "allow_run_async": _("Async Execution"),
         "impersonate_user": _("Impersonate the logged on user"),
-        "allow_csv_upload": _("Allow Csv Upload"),
+        "allow_file_upload": _("Allow Csv Upload"),
         "modified": _("Modified"),
         "allow_multi_schema_metadata_fetch": _("Allow Multi Schema Metadata Fetch"),
         "backend": _("Backend"),

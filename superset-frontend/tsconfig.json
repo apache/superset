@@ -3,13 +3,17 @@
     "allowJs": true,
     "allowSyntheticDefaultImports": true,
     "baseUrl": ".",
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
     "esModuleInterop": false,
     "forceConsistentCasingInFileNames": true,
     "importHelpers": false,
     "jsx": "preserve",
-    "lib": ["dom",  "dom.iterable", "esnext"],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "module": "esnext",
     "moduleResolution": "node",
+    "noEmitOnError": true,
     "noImplicitAny": true,
     "noImplicitReturns": true,
     "noImplicitThis": true,
@@ -17,14 +21,18 @@
     "outDir": "./dist",
     "pretty": true,
     "paths": {
-      "@superset-ui/core": [
-        "./node_modules/@superset-ui/core/src",
-        "./node_modules/@superset-ui/core"
-      ],
+      "@superset-ui/core": ["./packages/superset-ui-core/src"],
       "@superset-ui/chart-controls": [
-        "./node_modules/@superset-ui/chart-controls/src",
-        "./node_modules/@superset-ui/chart-controls"
+        "./packages/superset-ui-chart-controls/src"
       ],
+      "@superset-ui/legacy-plugin-chart-*": [
+        "./plugins/legacy-plugin-chart-*/src"
+      ],
+      "@superset-ui/legacy-preset-chart-*": [
+        "./plugins/legacy-preset-chart-*/src"
+      ],
+      "@superset-ui/plugin-chart-*": ["./plugins/plugin-chart-*/src"],
+      "@superset-ui/preset-chart-*": ["./plugins/preset-chart-*/src"],
       // for supressing errors caused by incompatible @types/react when `npm link`
       // Ref: https://github.com/Microsoft/typescript/issues/6496#issuecomment-384786222
       "react": ["./node_modules/@types/react", "react"]
@@ -43,11 +51,9 @@
   "include": [
     "./src/**/*",
     "./spec/**/*",
-    // include the source code of each plugin
-    "./node_modules/*superset-ui*/**/src/**/*",
-    "./node_modules/*superset-ui*/**/types/**/*",
-    // and the type defs of their dependencies
-    "./node_modules/*superset-ui*/**/node_modules/**/*.d.ts"
-  ],
-  "exclude": ["./node_modules/*superset-ui*/**/node_modules/@superset-ui/**/*"]
+    "./packages/*/src/**/*",
+    "./packages/*/types/**/*",
+    "./plugins/*/src/**/*",
+    "./plugins/*/types/**/*"
+  ]
 }

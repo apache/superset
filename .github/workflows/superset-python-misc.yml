@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        python-version: [3.7]
+        python-version: [3.8]
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v2
@@ -29,9 +29,12 @@ jobs:
         continue-on-error: true
         run: ./scripts/ci_check_no_file_changes.sh python
       - name: Setup Python
+        if: steps.check.outcome == 'failure'
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: 'requirements/testing.txt'
       - name: Install dependencies
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
@@ -39,6 +42,7 @@ jobs:
           run: |
             apt-get-install
             pip-upgrade
+            pip install wheel
             pip install -r requirements/testing.txt
       - name: pylint
         if: steps.check.outcome == 'failure'
@@ -50,7 +54,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        python-version: [3.7]
+        python-version: [3.8]
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v2
@@ -61,12 +65,15 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: 'requirements/integration.txt'
       - name: Install dependencies
         uses: ./.github/actions/cached-dependencies
         with:
           run: |
             apt-get-install
             pip-upgrade
+            pip install wheel
             pip install -r requirements/integration.txt
       - name: pre-commit
         run: pre-commit run --all-files
@@ -76,7 +83,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        python-version: [3.7]
+        python-version: [3.8]
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v2
@@ -87,12 +94,15 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: 'requirements/base.txt'
       - name: Install dependencies
         uses: ./.github/actions/cached-dependencies
         with:
           run: |
             apt-get-install
             pip-upgrade
+            pip install wheel
             pip install -r requirements/base.txt
       - name: Test babel extraction
         run: flask fab babel-extract --target superset/translations --output superset/translations/messages.pot --config superset/translations/babel.cfg -k _,__,t,tn,tct

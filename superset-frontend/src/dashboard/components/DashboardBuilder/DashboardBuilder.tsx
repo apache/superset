@@ -18,7 +18,7 @@
  */
 /* eslint-env browser */
 import cx from 'classnames';
-import React, { FC } from 'react';
+import React, { FC, useCallback, useMemo } from 'react';
 import { JsonObject, styled, css } from '@superset-ui/core';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
@@ -60,6 +60,7 @@ const CLOSED_FILTER_BAR_WIDTH = 32;
 const OPEN_FILTER_BAR_WIDTH = 260;
 const FILTER_BAR_HEADER_HEIGHT = 80;
 const FILTER_BAR_TABS_HEIGHT = 46;
+const BUILDER_SIDEPANEL_WIDTH = 374;
 
 type DashboardBuilderProps = {};
 
@@ -68,6 +69,48 @@ const StyledDiv = styled.div`
   grid-template-columns: auto 1fr;
   grid-template-rows: auto 1fr;
   flex: 1;
+  /* Special cases */
+
+  /* A row within a column has inset hover menu */
+  .dragdroppable-column .dragdroppable-row .hover-menu--left {
+    left: -12px;
+    background: ${({ theme }) => theme.colors.grayscale.light5};
+    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  }
+
+  .dashboard-component-tabs {
+    position: relative;
+  }
+
+  /* A column within a column or tabs has inset hover menu */
+  .dragdroppable-column .dragdroppable-column .hover-menu--top,
+  .dashboard-component-tabs .dragdroppable-column .hover-menu--top {
+    top: -12px;
+    background: ${({ theme }) => theme.colors.grayscale.light5};
+    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  }
+
+  /* move Tabs hover menu to top near actual Tabs */
+  .dashboard-component-tabs > .hover-menu-container > .hover-menu--left {
+    top: 0;
+    transform: unset;
+    background: transparent;
+  }
+
+  /* push Chart actions to upper right */
+  .dragdroppable-column .dashboard-component-chart-holder .hover-menu--top,
+  .dragdroppable .dashboard-component-header .hover-menu--top {
+    right: 8px;
+    top: 8px;
+    background: transparent;
+    border: none;
+    transform: unset;
+    left: unset;
+  }
+  div:hover > .hover-menu-container .hover-menu,
+  .hover-menu-container .hover-menu:hover {
+    opacity: 1;
+  }
 `;
 
 // @z-index-above-dashboard-charts + 1 = 11
@@ -131,6 +174,18 @@ const StyledDashboardContent = styled.div<{
       }
       return theme.gridUnit * 8;
     }}px;
+
+    ${({ editMode, theme }) =>
+      editMode &&
+      `
+      max-width: calc(100% - ${
+        BUILDER_SIDEPANEL_WIDTH + theme.gridUnit * 16
+      }px);
+    `}
+  }
+
+  .dashboard-builder-sidepane {
+    width: ${BUILDER_SIDEPANEL_WIDTH}px;
   }
 
   .dashboard-component-chart-holder {
@@ -157,15 +212,14 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     state => state.dashboardState.fullSizeChartId,
   );
 
-  const handleChangeTab = ({
-    pathToTabIndex,
-  }: {
-    pathToTabIndex: string[];
-  }) => {
-    dispatch(setDirectPathToChild(pathToTabIndex));
-  };
+  const handleChangeTab = useCallback(
+    ({ pathToTabIndex }: { pathToTabIndex: string[] }) => {
+      dispatch(setDirectPathToChild(pathToTabIndex));
+    },
+    [dispatch],
+  );
 
-  const handleDeleteTopLevelTabs = () => {
+  const handleDeleteTopLevelTabs = useCallback(() => {
     dispatch(deleteTopLevelTabs());
 
     const firstTab = getDirectPathToTabIndex(
@@ -173,7 +227,12 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
       0,
     );
     dispatch(setDirectPathToChild(firstTab));
-  };
+  }, [dashboardLayout, dispatch]);
+
+  const handleDrop = useCallback(
+    dropResult => dispatch(handleComponentDrop(dropResult)),
+    [dispatch],
+  );
 
   const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
   const rootChildId = dashboardRoot.children[0];
@@ -181,10 +240,10 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     rootChildId !== DASHBOARD_GRID_ID
       ? dashboardLayout[rootChildId]
       : undefined;
-  const StandaloneMode = getUrlParam(URL_PARAMS.standalone);
-  const isReport = StandaloneMode === DashboardStandaloneMode.REPORT;
+  const standaloneMode = getUrlParam(URL_PARAMS.standalone);
+  const isReport = standaloneMode === DashboardStandaloneMode.REPORT;
   const hideDashboardHeader =
-    StandaloneMode === DashboardStandaloneMode.HIDE_NAV_AND_TITLE || isReport;
+    standaloneMode === DashboardStandaloneMode.HIDE_NAV_AND_TITLE || isReport;
 
   const barTopOffset =
     (hideDashboardHeader ? 0 : HEADER_HEIGHT) +
@@ -211,11 +270,59 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
 
   const offset =
     FILTER_BAR_HEADER_HEIGHT +
-    (isSticky || StandaloneMode ? 0 : MAIN_HEADER_HEIGHT) +
+    (isSticky || standaloneMode ? 0 : MAIN_HEADER_HEIGHT) +
     (filterSetEnabled ? FILTER_BAR_TABS_HEIGHT : 0);
 
   const filterBarHeight = `calc(100vh - ${offset}px)`;
   const filterBarOffset = dashboardFiltersOpen ? 0 : barTopOffset + 20;
+
+  const draggableStyle = useMemo(
+    () => ({
+      marginLeft: dashboardFiltersOpen || editMode ? 0 : -32,
+    }),
+    [dashboardFiltersOpen, editMode],
+  );
+
+  const renderDraggableContent = useCallback(
+    ({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) => (
+      <div>
+        {!hideDashboardHeader && <DashboardHeader />}
+        {dropIndicatorProps && <div {...dropIndicatorProps} />}
+        {!isReport && topLevelTabs && (
+          <WithPopoverMenu
+            shouldFocus={shouldFocusTabs}
+            menuItems={[
+              <IconButton
+                icon={<Icons.FallOutlined iconSize="xl" />}
+                label="Collapse tab content"
+                onClick={handleDeleteTopLevelTabs}
+              />,
+            ]}
+            editMode={editMode}
+          >
+            {/* @ts-ignore */}
+            <DashboardComponent
+              id={topLevelTabs?.id}
+              parentId={DASHBOARD_ROOT_ID}
+              depth={DASHBOARD_ROOT_DEPTH + 1}
+              index={0}
+              renderTabContent={false}
+              renderHoverMenu={false}
+              onChangeTab={handleChangeTab}
+            />
+          </WithPopoverMenu>
+        )}
+      </div>
+    ),
+    [
+      editMode,
+      handleChangeTab,
+      handleDeleteTopLevelTabs,
+      hideDashboardHeader,
+      isReport,
+      topLevelTabs,
+    ],
+  );
 
   return (
     <StyledDiv>
@@ -244,45 +351,13 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
           depth={DASHBOARD_ROOT_DEPTH}
           index={0}
           orientation="column"
-          onDrop={dropResult => dispatch(handleComponentDrop(dropResult))}
+          onDrop={handleDrop}
           editMode={editMode}
           // you cannot drop on/displace tabs if they already exist
           disableDragDrop={!!topLevelTabs}
-          style={{
-            marginLeft: dashboardFiltersOpen || editMode ? 0 : -32,
-          }}
+          style={draggableStyle}
         >
-          {({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) => (
-            <div>
-              {!hideDashboardHeader && <DashboardHeader />}
-              {dropIndicatorProps && <div {...dropIndicatorProps} />}
-              {!isReport && topLevelTabs && (
-                <WithPopoverMenu
-                  shouldFocus={shouldFocusTabs}
-                  menuItems={[
-                    <IconButton
-                      icon={<Icons.FallOutlined iconSize="xl" />}
-                      label="Collapse tab content"
-                      onClick={handleDeleteTopLevelTabs}
-                    />,
-                  ]}
-                  editMode={editMode}
-                >
-                  {/*
-                      // @ts-ignore */}
-                  <DashboardComponent
-                    id={topLevelTabs?.id}
-                    parentId={DASHBOARD_ROOT_ID}
-                    depth={DASHBOARD_ROOT_DEPTH + 1}
-                    index={0}
-                    renderTabContent={false}
-                    renderHoverMenu={false}
-                    onChangeTab={handleChangeTab}
-                  />
-                </WithPopoverMenu>
-              )}
-            </div>
-          )}
+          {renderDraggableContent}
         </DragDroppable>
       </StyledHeader>
       <StyledContent fullSizeChartId={fullSizeChartId}>
@@ -307,7 +382,12 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
             ) : (
               <Loading />
             )}
-            {editMode && <BuilderComponentPane topOffset={barTopOffset} />}
+            {editMode && (
+              <BuilderComponentPane
+                isStandalone={!!standaloneMode}
+                topOffset={barTopOffset}
+              />
+            )}
           </StyledDashboardContent>
         </div>
       </StyledContent>

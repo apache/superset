@@ -29,6 +29,7 @@ import {
   ControlState,
   ControlType,
   ControlValueValidator,
+  CustomControlItem,
 } from '@superset-ui/chart-controls';
 import { getSectionsToRender } from './getSectionsToRender';
 import { getControlConfig } from './getControlConfig';
@@ -160,8 +161,8 @@ export function getAllControlsState(
   const controlsState = {};
   getSectionsToRender(vizType, datasourceType).forEach(section =>
     section.controlSetRows.forEach(fieldsetRow =>
-      fieldsetRow.forEach(field => {
-        if (field && 'config' in field && field.config && field.name) {
+      fieldsetRow.forEach((field: CustomControlItem) => {
+        if (field && field.config && field.name) {
           const { config, name } = field;
           controlsState[name] = getControlStateFromControlConfig(
             config,

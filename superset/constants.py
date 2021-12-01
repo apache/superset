@@ -100,7 +100,6 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "bulk_delete": "write",
     "delete": "write",
     "distinct": "read",
-    "export": "read",
     "get": "read",
     "get_list": "read",
     "info": "read",
@@ -165,7 +164,7 @@ class PandasAxis(int, Enum):
 
 
 class PandasPostprocessingCompare(str, Enum):
-    ABS = "absolute"
+    DIFF = "difference"
     PCT = "percentage"
     RAT = "ratio"
 

@@ -24,7 +24,7 @@ import { Provider } from 'react-redux';
 import EditSection, { EditSectionProps } from './EditSection';
 
 const createProps = () => ({
-  filterSetId: 'set-id',
+  filterSetId: 1,
   dataMaskSelected: {
     DefaultsID: {
       filterState: {

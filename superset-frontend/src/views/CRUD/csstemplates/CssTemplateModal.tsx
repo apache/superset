@@ -23,7 +23,7 @@ import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import Icons from 'src/components/Icons';
 import { StyledIcon } from 'src/views/CRUD/utils';
 import Modal from 'src/components/Modal';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import { CssEditor } from 'src/components/AsyncAceEditor';
 
 import { TemplateObject } from './types';
@@ -75,10 +75,8 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
   cssTemplate = null,
 }) => {
   const [disableSave, setDisableSave] = useState<boolean>(true);
-  const [
-    currentCssTemplate,
-    setCurrentCssTemplate,
-  ] = useState<TemplateObject | null>(null);
+  const [currentCssTemplate, setCurrentCssTemplate] =
+    useState<TemplateObject | null>(null);
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const isEditMode = cssTemplate !== null;
 

@@ -150,6 +150,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "columns.groupby",
         "columns.id",
         "columns.is_active",
+        "columns.extra",
         "columns.is_dttm",
         "columns.python_date_format",
         "columns.type",
@@ -160,7 +161,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "url",
         "extra",
     ]
-    show_columns = show_select_columns + ["columns.type_generic"]
+    show_columns = show_select_columns + ["columns.type_generic", "database.backend"]
     add_model_schema = DatasetPostSchema()
     edit_model_schema = DatasetPutSchema()
     add_columns = ["database", "schema", "table_name", "owners"]

@@ -24,7 +24,7 @@ from urllib import parse
 import msgpack
 import pyarrow as pa
 import simplejson as json
-from flask import g, request
+from flask import g, has_request_context, request
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import _
@@ -32,6 +32,7 @@ from sqlalchemy.orm.exc import NoResultFound
 
 import superset.models.core as models
 from superset import app, dataframe, db, result_set, viz
+from superset.common.db_query_status import QueryStatus
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -47,7 +48,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.typing import FormData
-from superset.utils.core import QueryStatus, TimeRangeEndpoint
+from superset.utils.core import TimeRangeEndpoint
 from superset.utils.decorators import stats_timing
 from superset.viz import BaseViz
 
@@ -58,6 +59,15 @@ stats_logger = app.config["STATS_LOGGER"]
 REJECTED_FORM_DATA_KEYS: List[str] = []
 if not app.config["ENABLE_JAVASCRIPT_CONTROLS"]:
     REJECTED_FORM_DATA_KEYS = ["js_tooltip", "js_onclick_href", "js_data_mutator"]
+
+
+def sanitize_datasource_data(datasource_data: Dict[str, Any]) -> Dict[str, Any]:
+    if datasource_data:
+        datasource_database = datasource_data.get("database")
+        if datasource_database:
+            datasource_database["parameters"] = {}
+
+    return datasource_data
 
 
 def bootstrap_user_data(user: User, include_perms: bool = False) -> Dict[str, Any]:
@@ -130,46 +140,52 @@ def get_form_data(  # pylint: disable=too-many-locals
     slice_id: Optional[int] = None, use_slice_data: bool = False
 ) -> Tuple[Dict[str, Any], Optional[Slice]]:
     form_data: Dict[str, Any] = {}
-    # chart data API requests are JSON
-    request_json_data = (
-        request.json["queries"][0]
-        if request.is_json and "queries" in request.json
-        else None
-    )
 
-    add_sqllab_custom_filters(form_data)
+    if has_request_context():  # type: ignore
+        # chart data API requests are JSON
+        request_json_data = (
+            request.json["queries"][0]
+            if request.is_json and "queries" in request.json
+            else None
+        )
 
-    request_form_data = request.form.get("form_data")
-    request_args_data = request.args.get("form_data")
-    if request_json_data:
-        form_data.update(request_json_data)
-    if request_form_data:
-        parsed_form_data = loads_request_json(request_form_data)
-        # some chart data api requests are form_data
-        queries = parsed_form_data.get("queries")
-        if isinstance(queries, list):
-            form_data.update(queries[0])
-        else:
-            form_data.update(parsed_form_data)
-    # request params can overwrite the body
-    if request_args_data:
-        form_data.update(loads_request_json(request_args_data))
+        add_sqllab_custom_filters(form_data)
 
-    # Fallback to using the Flask globals (used for cache warmup) if defined.
+        request_form_data = request.form.get("form_data")
+        request_args_data = request.args.get("form_data")
+        if request_json_data:
+            form_data.update(request_json_data)
+        if request_form_data:
+            parsed_form_data = loads_request_json(request_form_data)
+            # some chart data api requests are form_data
+            queries = parsed_form_data.get("queries")
+            if isinstance(queries, list):
+                form_data.update(queries[0])
+            else:
+                form_data.update(parsed_form_data)
+        # request params can overwrite the body
+        if request_args_data:
+            form_data.update(loads_request_json(request_args_data))
+
+    # Fallback to using the Flask globals (used for cache warmup and async queries)
     if not form_data and hasattr(g, "form_data"):
         form_data = getattr(g, "form_data")
+        # chart data API requests are JSON
+        json_data = form_data["queries"][0] if "queries" in form_data else {}
+        form_data.update(json_data)
 
-    url_id = request.args.get("r")
-    if url_id:
-        saved_url = db.session.query(models.Url).filter_by(id=url_id).first()
-        if saved_url:
-            url_str = parse.unquote_plus(
-                saved_url.url.split("?")[1][10:], encoding="utf-8"
-            )
-            url_form_data = loads_request_json(url_str)
-            # allow form_date in request override saved url
-            url_form_data.update(form_data)
-            form_data = url_form_data
+    if has_request_context():  # type: ignore
+        url_id = request.args.get("r")
+        if url_id:
+            saved_url = db.session.query(models.Url).filter_by(id=url_id).first()
+            if saved_url:
+                url_str = parse.unquote_plus(
+                    saved_url.url.split("?")[1][10:], encoding="utf-8"
+                )
+                url_form_data = loads_request_json(url_str)
+                # allow form_date in request override saved url
+                url_form_data.update(form_data)
+                form_data = url_form_data
 
     form_data = {k: v for k, v in form_data.items() if k not in REJECTED_FORM_DATA_KEYS}
 

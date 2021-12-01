@@ -18,15 +18,14 @@ import json
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 from zipfile import ZipFile
 
-import simplejson
-from flask import g, make_response, redirect, request, Response, send_file, url_for
+from flask import g, redirect, request, Response, send_file, url_for
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_babel import gettext as _, ngettext
+from flask_babel import ngettext
 from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
@@ -34,13 +33,10 @@ from werkzeug.wsgi import FileWrapper
 from superset import is_feature_enabled, thumbnail_cache
 from superset.charts.commands.bulk_delete import BulkDeleteChartCommand
 from superset.charts.commands.create import CreateChartCommand
-from superset.charts.commands.data import ChartDataCommand
 from superset.charts.commands.delete import DeleteChartCommand
 from superset.charts.commands.exceptions import (
     ChartBulkDeleteFailedError,
     ChartCreateFailedError,
-    ChartDataCacheLoadError,
-    ChartDataQueryFailedError,
     ChartDeleteFailedError,
     ChartForbiddenError,
     ChartInvalidError,
@@ -51,8 +47,12 @@ from superset.charts.commands.export import ExportChartsCommand
 from superset.charts.commands.importers.dispatcher import ImportChartsCommand
 from superset.charts.commands.update import UpdateChartCommand
 from superset.charts.dao import ChartDAO
-from superset.charts.filters import ChartAllTextFilter, ChartFavoriteFilter, ChartFilter
-from superset.charts.post_processing import apply_post_process
+from superset.charts.filters import (
+    ChartAllTextFilter,
+    ChartCertifiedFilter,
+    ChartFavoriteFilter,
+    ChartFilter,
+)
 from superset.charts.schemas import (
     CHART_SCHEMAS,
     ChartPostSchema,
@@ -67,16 +67,9 @@ from superset.charts.schemas import (
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.exceptions import QueryObjectValidationError
-from superset.extensions import event_logger, security_manager
+from superset.extensions import event_logger
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
-from superset.utils.async_query_manager import AsyncQueryTokenException
-from superset.utils.core import (
-    ChartDataResultFormat,
-    ChartDataResultType,
-    json_int_dttm_ser,
-)
 from superset.utils.screenshots import ChartScreenshot
 from superset.utils.urls import get_url_path
 from superset.views.base_api import (
@@ -84,7 +77,6 @@ from superset.views.base_api import (
     RelatedFieldFilter,
     statsd_metrics,
 )
-from superset.views.core import CsvResponse, generate_download_headers
 from superset.views.filters import FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
@@ -107,9 +99,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
         RouteMethod.IMPORT,
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
-        "data",
-        "get_data",
-        "data_from_cache",
         "viz_types",
         "favorite_status",
         "thumbnail",
@@ -120,8 +109,11 @@ class ChartRestApi(BaseSupersetModelRestApi):
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
     show_columns = [
         "cache_timeout",
+        "certified_by",
+        "certification_details",
         "dashboards.dashboard_title",
         "dashboards.id",
+        "dashboards.json_metadata",
         "description",
         "owners.first_name",
         "owners.id",
@@ -134,6 +126,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
     ]
     show_select_columns = show_columns + ["table.id"]
     list_columns = [
+        "certified_by",
+        "certification_details",
         "cache_timeout",
         "changed_by.first_name",
         "changed_by.last_name",
@@ -200,7 +194,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     base_order = ("changed_on", "desc")
     base_filters = [["id", ChartFilter, lambda: []]]
     search_filters = {
-        "id": [ChartFavoriteFilter],
+        "id": [ChartFavoriteFilter, ChartCertifiedFilter],
         "slice_name": [ChartAllTextFilter],
     }
 
@@ -492,319 +486,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except ChartBulkDeleteFailedError as ex:
             return self.response_422(message=str(ex))
-
-    def send_chart_response(
-        self, result: Dict[Any, Any], form_data: Optional[Dict[str, Any]] = None,
-    ) -> Response:
-        result_type = result["query_context"].result_type
-        result_format = result["query_context"].result_format
-
-        # Post-process the data so it matches the data presented in the chart.
-        # This is needed for sending reports based on text charts that do the
-        # post-processing of data, eg, the pivot table.
-        if result_type == ChartDataResultType.POST_PROCESSED:
-            result = apply_post_process(result, form_data)
-
-        if result_format == ChartDataResultFormat.CSV:
-            # Verify user has permission to export CSV file
-            if not security_manager.can_access("can_csv", "Superset"):
-                return self.response_403()
-
-            # return the first result
-            data = result["queries"][0]["data"]
-            return CsvResponse(data, headers=generate_download_headers("csv"))
-
-        if result_format == ChartDataResultFormat.JSON:
-            response_data = simplejson.dumps(
-                {"result": result["queries"]},
-                default=json_int_dttm_ser,
-                ignore_nan=True,
-            )
-            resp = make_response(response_data, 200)
-            resp.headers["Content-Type"] = "application/json; charset=utf-8"
-            return resp
-
-        return self.response_400(message=f"Unsupported result_format: {result_format}")
-
-    def get_data_response(
-        self,
-        command: ChartDataCommand,
-        force_cached: bool = False,
-        form_data: Optional[Dict[str, Any]] = None,
-    ) -> Response:
-        try:
-            result = command.run(force_cached=force_cached)
-        except ChartDataCacheLoadError as exc:
-            return self.response_422(message=exc.message)
-        except ChartDataQueryFailedError as exc:
-            return self.response_400(message=exc.message)
-
-        return self.send_chart_response(result, form_data)
-
-    @expose("/<int:pk>/data/", methods=["GET"])
-    @protect()
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
-        log_to_statsd=False,
-    )
-    def get_data(self, pk: int) -> Response:
-        """
-        Takes a chart ID and uses the query context stored when the chart was saved
-        to return payload data response.
-        ---
-        get:
-          description: >-
-            Takes a chart ID and uses the query context stored when the chart was saved
-            to return payload data response.
-          parameters:
-          - in: path
-            schema:
-              type: integer
-            name: pk
-            description: The chart ID
-          - in: query
-            name: format
-            description: The format in which the data should be returned
-            schema:
-              type: string
-          - in: query
-            name: type
-            description: The type in which the data should be returned
-            schema:
-              type: string
-          responses:
-            200:
-              description: Query result
-              content:
-                application/json:
-                  schema:
-                    $ref: "#/components/schemas/ChartDataResponseSchema"
-            202:
-              description: Async job details
-              content:
-                application/json:
-                  schema:
-                    $ref: "#/components/schemas/ChartDataAsyncResponseSchema"
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        chart = self.datamodel.get(pk, self._base_filters)
-        if not chart:
-            return self.response_404()
-
-        try:
-            json_body = json.loads(chart.query_context)
-        except (TypeError, json.decoder.JSONDecodeError):
-            json_body = None
-
-        if json_body is None:
-            return self.response_400(
-                message=_(
-                    "Chart has no query context saved. Please save the chart again."
-                )
-            )
-
-        # override saved query context
-        json_body["result_format"] = request.args.get(
-            "format", ChartDataResultFormat.JSON
-        )
-        json_body["result_type"] = request.args.get("type", ChartDataResultType.FULL)
-
-        try:
-            command = ChartDataCommand()
-            query_context = command.set_query_context(json_body)
-            command.validate()
-        except QueryObjectValidationError as error:
-            return self.response_400(message=error.message)
-        except ValidationError as error:
-            return self.response_400(
-                message=_(
-                    "Request is incorrect: %(error)s", error=error.normalized_messages()
-                )
-            )
-
-        # TODO: support CSV, SQL query and other non-JSON types
-        if (
-            is_feature_enabled("GLOBAL_ASYNC_QUERIES")
-            and query_context.result_format == ChartDataResultFormat.JSON
-            and query_context.result_type == ChartDataResultType.FULL
-        ):
-            return self._run_async(command)
-
-        try:
-            form_data = json.loads(chart.params)
-        except (TypeError, json.decoder.JSONDecodeError):
-            form_data = {}
-
-        return self.get_data_response(command, form_data=form_data)
-
-    @expose("/data", methods=["POST"])
-    @protect()
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
-        log_to_statsd=False,
-    )
-    def data(self) -> Response:
-        """
-        Takes a query context constructed in the client and returns payload
-        data response for the given query.
-        ---
-        post:
-          description: >-
-            Takes a query context constructed in the client and returns payload data
-            response for the given query.
-          requestBody:
-            description: >-
-              A query context consists of a datasource from which to fetch data
-              and one or many query objects.
-            required: true
-            content:
-              application/json:
-                schema:
-                  $ref: "#/components/schemas/ChartDataQueryContextSchema"
-          responses:
-            200:
-              description: Query result
-              content:
-                application/json:
-                  schema:
-                    $ref: "#/components/schemas/ChartDataResponseSchema"
-            202:
-              description: Async job details
-              content:
-                application/json:
-                  schema:
-                    $ref: "#/components/schemas/ChartDataAsyncResponseSchema"
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        json_body = None
-        if request.is_json:
-            json_body = request.json
-        elif request.form.get("form_data"):
-            # CSV export submits regular form data
-            try:
-                json_body = json.loads(request.form["form_data"])
-            except (TypeError, json.JSONDecodeError):
-                pass
-
-        if json_body is None:
-            return self.response_400(message=_("Request is not JSON"))
-
-        try:
-            command = ChartDataCommand()
-            query_context = command.set_query_context(json_body)
-            command.validate()
-        except QueryObjectValidationError as error:
-            return self.response_400(message=error.message)
-        except ValidationError as error:
-            return self.response_400(
-                message=_(
-                    "Request is incorrect: %(error)s", error=error.normalized_messages()
-                )
-            )
-
-        # TODO: support CSV, SQL query and other non-JSON types
-        if (
-            is_feature_enabled("GLOBAL_ASYNC_QUERIES")
-            and query_context.result_format == ChartDataResultFormat.JSON
-            and query_context.result_type == ChartDataResultType.FULL
-        ):
-            return self._run_async(command)
-
-        return self.get_data_response(command)
-
-    def _run_async(self, command: ChartDataCommand) -> Response:
-        """
-        Execute command as an async query.
-        """
-        # First, look for the chart query results in the cache.
-        try:
-            result = command.run(force_cached=True)
-        except ChartDataCacheLoadError:
-            result = None  # type: ignore
-
-        already_cached_result = result is not None
-
-        # If the chart query has already been cached, return it immediately.
-        if already_cached_result:
-            return self.send_chart_response(result)
-
-        # Otherwise, kick off a background job to run the chart query.
-        # Clients will either poll or be notified of query completion,
-        # at which point they will call the /data/<cache_key> endpoint
-        # to retrieve the results.
-        try:
-            command.validate_async_request(request)
-        except AsyncQueryTokenException:
-            return self.response_401()
-
-        result = command.run_async(g.user.get_id())
-        return self.response(202, **result)
-
-    @expose("/data/<cache_key>", methods=["GET"])
-    @protect()
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".data_from_cache",
-        log_to_statsd=False,
-    )
-    def data_from_cache(self, cache_key: str) -> Response:
-        """
-        Takes a query context cache key and returns payload
-        data response for the given query.
-        ---
-        get:
-          description: >-
-            Takes a query context cache key and returns payload data
-            response for the given query.
-          parameters:
-          - in: path
-            schema:
-              type: string
-            name: cache_key
-          responses:
-            200:
-              description: Query result
-              content:
-                application/json:
-                  schema:
-                    $ref: "#/components/schemas/ChartDataResponseSchema"
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        command = ChartDataCommand()
-        try:
-            cached_data = command.load_query_context_from_cache(cache_key)
-            command.set_query_context(cached_data)
-            command.validate()
-        except ChartDataCacheLoadError:
-            return self.response_404()
-        except ValidationError as error:
-            return self.response_400(
-                message=_("Request is incorrect: %(error)s", error=error.messages)
-            )
-
-        return self.get_data_response(command, True)
 
     @expose("/<pk>/cache_screenshot/", methods=["GET"])
     @protect()

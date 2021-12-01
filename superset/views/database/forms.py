@@ -21,7 +21,13 @@ from flask_appbuilder.fieldwidgets import BS3TextFieldWidget
 from flask_appbuilder.forms import DynamicForm
 from flask_babel import lazy_gettext as _
 from flask_wtf.file import FileAllowed, FileField, FileRequired
-from wtforms import BooleanField, IntegerField, SelectField, StringField
+from wtforms import (
+    BooleanField,
+    IntegerField,
+    MultipleFileField,
+    SelectField,
+    StringField,
+)
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.validators import DataRequired, Length, NumberRange, Optional
 
@@ -36,53 +42,55 @@ from superset.models.core import Database
 config = app.config
 
 
-class CsvToDatabaseForm(DynamicForm):
+class UploadToDatabaseForm(DynamicForm):
     # pylint: disable=E0211
-    def csv_allowed_dbs() -> List[Database]:  # type: ignore
-        csv_enabled_dbs = (
-            db.session.query(Database).filter_by(allow_csv_upload=True).all()
+    def file_allowed_dbs() -> List[Database]:  # type: ignore
+        file_enabled_dbs = (
+            db.session.query(Database).filter_by(allow_file_upload=True).all()
         )
         return [
-            csv_enabled_db
-            for csv_enabled_db in csv_enabled_dbs
-            if CsvToDatabaseForm.at_least_one_schema_is_allowed(csv_enabled_db)
+            file_enabled_db
+            for file_enabled_db in file_enabled_dbs
+            if UploadToDatabaseForm.at_least_one_schema_is_allowed(file_enabled_db)
         ]
 
     @staticmethod
     def at_least_one_schema_is_allowed(database: Database) -> bool:
         """
         If the user has access to the database or all datasource
-            1. if schemas_allowed_for_csv_upload is empty
+            1. if schemas_allowed_for_file_upload is empty
                 a) if database does not support schema
                     user is able to upload csv without specifying schema name
                 b) if database supports schema
                     user is able to upload csv to any schema
-            2. if schemas_allowed_for_csv_upload is not empty
+            2. if schemas_allowed_for_file_upload is not empty
                 a) if database does not support schema
                     This situation is impossible and upload will fail
                 b) if database supports schema
-                    user is able to upload to schema in schemas_allowed_for_csv_upload
+                    user is able to upload to schema in schemas_allowed_for_file_upload
         elif the user does not access to the database or all datasource
-            1. if schemas_allowed_for_csv_upload is empty
+            1. if schemas_allowed_for_file_upload is empty
                 a) if database does not support schema
                     user is unable to upload csv
                 b) if database supports schema
                     user is unable to upload csv
-            2. if schemas_allowed_for_csv_upload is not empty
+            2. if schemas_allowed_for_file_upload is not empty
                 a) if database does not support schema
                     This situation is impossible and user is unable to upload csv
                 b) if database supports schema
-                    user is able to upload to schema in schemas_allowed_for_csv_upload
+                    user is able to upload to schema in schemas_allowed_for_file_upload
         """
         if security_manager.can_access_database(database):
             return True
-        schemas = database.get_schema_access_for_csv_upload()
+        schemas = database.get_schema_access_for_file_upload()
         if schemas and security_manager.get_schemas_accessible_by_user(
             database, schemas, False
         ):
             return True
         return False
 
+
+class CsvToDatabaseForm(UploadToDatabaseForm):
     name = StringField(
         _("Table Name"),
         description=_("Name of table to be created from csv data."),
@@ -110,7 +118,7 @@ class CsvToDatabaseForm(DynamicForm):
     )
     con = QuerySelectField(
         _("Database"),
-        query_factory=csv_allowed_dbs,
+        query_factory=UploadToDatabaseForm.file_allowed_dbs,
         get_pk=lambda a: a.id,
         get_label=lambda a: a.database_name,
     )
@@ -162,6 +170,15 @@ class CsvToDatabaseForm(DynamicForm):
     mangle_dupe_cols = BooleanField(
         _("Mangle Duplicate Columns"),
         description=_('Specify duplicate columns as "X.0, X.1".'),
+    )
+    usecols = JsonListField(
+        _("Use Columns"),
+        default=None,
+        description=_(
+            "Json list of the column names that should be read. "
+            "If not None, only these columns will be read from the file."
+        ),
+        validators=[Optional()],
     )
     skipinitialspace = BooleanField(
         _("Skip Initial Space"), description=_("Skip spaces after delimiter.")
@@ -224,54 +241,7 @@ class CsvToDatabaseForm(DynamicForm):
     )
 
 
-class ExcelToDatabaseForm(DynamicForm):
-    # pylint: disable=E0211
-    def excel_allowed_dbs() -> List[Database]:  # type: ignore
-        # TODO: change allow_csv_upload to allow_file_upload
-        excel_enabled_dbs = (
-            db.session.query(Database).filter_by(allow_csv_upload=True).all()
-        )
-        return [
-            excel_enabled_db
-            for excel_enabled_db in excel_enabled_dbs
-            if ExcelToDatabaseForm.at_least_one_schema_is_allowed(excel_enabled_db)
-        ]
-
-    @staticmethod
-    def at_least_one_schema_is_allowed(database: Database) -> bool:
-        """
-        If the user has access to the database or all datasource
-            1. if schemas_allowed_for_csv_upload is empty
-                a) if database does not support schema
-                    user is able to upload excel without specifying schema name
-                b) if database supports schema
-                    user is able to upload excel to any schema
-            2. if schemas_allowed_for_csv_upload is not empty
-                a) if database does not support schema
-                    This situation is impossible and upload will fail
-                b) if database supports schema
-                    user is able to upload to schema in schemas_allowed_for_csv_upload
-        elif the user does not access to the database or all datasource
-            1. if schemas_allowed_for_csv_upload is empty
-                a) if database does not support schema
-                    user is unable to upload excel
-                b) if database supports schema
-                    user is unable to upload excel
-            2. if schemas_allowed_for_csv_upload is not empty
-                a) if database does not support schema
-                    This situation is impossible and user is unable to upload excel
-                b) if database supports schema
-                    user is able to upload to schema in schemas_allowed_for_csv_upload
-        """
-        if security_manager.can_access_database(database):
-            return True
-        schemas = database.get_schema_access_for_csv_upload()
-        if schemas and security_manager.schemas_accessible_by_user(
-            database, schemas, False
-        ):
-            return True
-        return False
-
+class ExcelToDatabaseForm(UploadToDatabaseForm):
     name = StringField(
         _("Table Name"),
         description=_("Name of table to be created from excel data."),
@@ -307,7 +277,7 @@ class ExcelToDatabaseForm(DynamicForm):
 
     con = QuerySelectField(
         _("Database"),
-        query_factory=excel_allowed_dbs,
+        query_factory=UploadToDatabaseForm.file_allowed_dbs,
         get_pk=lambda a: a.id,
         get_label=lambda a: a.database_name,
     )
@@ -401,4 +371,82 @@ class ExcelToDatabaseForm(DynamicForm):
             "Warning: Hive database supports only single value. "
             'Use [""] for empty string.'
         ),
+    )
+
+
+class ColumnarToDatabaseForm(UploadToDatabaseForm):
+    name = StringField(
+        _("Table Name"),
+        description=_("Name of table to be created from columnar data."),
+        validators=[DataRequired()],
+        widget=BS3TextFieldWidget(),
+    )
+    columnar_file = MultipleFileField(
+        _("Columnar File"),
+        description=_("Select a Columnar file to be uploaded to a database."),
+        validators=[
+            DataRequired(),
+            FileAllowed(
+                config["ALLOWED_EXTENSIONS"].intersection(
+                    config["COLUMNAR_EXTENSIONS"]
+                ),
+                _(
+                    "Only the following file extensions are allowed: "
+                    "%(allowed_extensions)s",
+                    allowed_extensions=", ".join(
+                        config["ALLOWED_EXTENSIONS"].intersection(
+                            config["COLUMNAR_EXTENSIONS"]
+                        )
+                    ),
+                ),
+            ),
+        ],
+    )
+
+    con = QuerySelectField(
+        _("Database"),
+        query_factory=UploadToDatabaseForm.file_allowed_dbs,
+        get_pk=lambda a: a.id,
+        get_label=lambda a: a.database_name,
+    )
+    schema = StringField(
+        _("Schema"),
+        description=_("Specify a schema (if database flavor supports this)."),
+        validators=[Optional()],
+        widget=BS3TextFieldWidget(),
+    )
+    if_exists = SelectField(
+        _("Table Exists"),
+        description=_(
+            "If table exists do one of the following: "
+            "Fail (do nothing), Replace (drop and recreate table) "
+            "or Append (insert data)."
+        ),
+        choices=[
+            ("fail", _("Fail")),
+            ("replace", _("Replace")),
+            ("append", _("Append")),
+        ],
+        validators=[DataRequired()],
+    )
+    usecols = JsonListField(
+        _("Use Columns"),
+        default=None,
+        description=_(
+            "Json list of the column names that should be read. "
+            "If not None, only these columns will be read from the file."
+        ),
+        validators=[Optional()],
+    )
+    index = BooleanField(
+        _("Dataframe Index"), description=_("Write dataframe index as a column.")
+    )
+    index_label = StringField(
+        _("Column Label(s)"),
+        description=_(
+            "Column label for index column(s). If None is given "
+            "and Dataframe Index is True, Index Names are used."
+        ),
+        validators=[Optional()],
+        widget=BS3TextFieldWidget(),
     )

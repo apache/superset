@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-# pylint: disable=invalid-name, no-self-use
 """Unit tests for Sql Lab"""
 import unittest
 from unittest.mock import MagicMock, patch
@@ -35,13 +34,11 @@ from superset.utils.core import get_example_database
 
 from .base_tests import SupersetTestCase
 
-PRESTO_TEST_FEATURE_FLAGS = {
-    "SQL_VALIDATORS_BY_ENGINE": {
-        "presto": "PrestoDBSQLValidator",
-        "sqlite": "PrestoDBSQLValidator",
-        "postgresql": "PrestoDBSQLValidator",
-        "mysql": "PrestoDBSQLValidator",
-    }
+PRESTO_SQL_VALIDATORS_BY_ENGINE = {
+    "presto": "PrestoDBSQLValidator",
+    "sqlite": "PrestoDBSQLValidator",
+    "postgresql": "PrestoDBSQLValidator",
+    "mysql": "PrestoDBSQLValidator",
 }
 
 
@@ -66,8 +63,8 @@ class TestSqlValidatorEndpoint(SupersetTestCase):
 
     @patch("superset.views.core.get_validator_by_name")
     @patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        PRESTO_TEST_FEATURE_FLAGS,
+        "superset.config.SQL_VALIDATORS_BY_ENGINE",
+        PRESTO_SQL_VALIDATORS_BY_ENGINE,
         clear=True,
     )
     def test_validate_sql_endpoint_mocked(self, get_validator_by_name):
@@ -99,8 +96,8 @@ class TestSqlValidatorEndpoint(SupersetTestCase):
 
     @patch("superset.views.core.get_validator_by_name")
     @patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        PRESTO_TEST_FEATURE_FLAGS,
+        "superset.config.SQL_VALIDATORS_BY_ENGINE",
+        PRESTO_SQL_VALIDATORS_BY_ENGINE,
         clear=True,
     )
     def test_validate_sql_endpoint_failure(self, get_validator_by_name):

@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { SupersetClient, t } from '@superset-ui/core';
 import { filter } from 'lodash';
-import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
+import { useFavoriteStatus, useListViewResource } from 'src/views/CRUD/hooks';
 import {
   Dashboard,
   DashboardTableProps,
@@ -28,23 +28,23 @@ import {
 import handleResourceExport from 'src/utils/export';
 import { useHistory } from 'react-router-dom';
 import {
-  setInLocalStorage,
   getFromLocalStorage,
+  setInLocalStorage,
 } from 'src/utils/localStorageHelpers';
 import { LoadingCards } from 'src/views/CRUD/welcome/Welcome';
 import {
-  createErrorHandler,
   CardContainer,
+  createErrorHandler,
   PAGE_SIZE,
 } from 'src/views/CRUD/utils';
 import { HOMEPAGE_DASHBOARD_FILTER } from 'src/views/CRUD/storageKeys';
-
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import Loading from 'src/components/Loading';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import DashboardCard from 'src/views/CRUD/dashboard/DashboardCard';
 import SubMenu from 'src/components/Menu/SubMenu';
 import EmptyState from './EmptyState';
+import { WelcomeTable } from './types';
 
 export interface FilterValue {
   col: string;
@@ -207,7 +207,7 @@ function DashboardTable({
             name: (
               <>
                 <i className="fa fa-plus" />
-                Dashboard
+                {t('Dashboard')}
               </>
             ),
             buttonStyle: 'tertiary',
@@ -216,12 +216,14 @@ function DashboardTable({
             },
           },
           {
-            name: 'View All »',
+            name: t('View All »'),
             buttonStyle: 'link',
             onClick: () => {
               const target =
                 dashboardFilter === 'Favorite'
-                  ? '/dashboard/list/?filters=(favorite:!t)'
+                  ? `/dashboard/list/?filters=(favorite:(label:${t(
+                      'Yes',
+                    )},value:!t))`
                   : '/dashboard/list/';
               history.push(target);
             },
@@ -262,7 +264,7 @@ function DashboardTable({
         </CardContainer>
       )}
       {dashboards.length === 0 && (
-        <EmptyState tableName="DASHBOARDS" tab={dashboardFilter} />
+        <EmptyState tableName={WelcomeTable.Dashboards} tab={dashboardFilter} />
       )}
       {preparingExport && <Loading />}
     </>

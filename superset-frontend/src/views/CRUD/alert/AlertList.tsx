@@ -33,7 +33,7 @@ import ListView, {
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import { Switch } from 'src/components/Switch';
 import { DATETIME_WITH_TIME_ZONE } from 'src/constants';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';
 import RecipientIcon from 'src/views/CRUD/alert/components/RecipientIcon';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
@@ -50,12 +50,22 @@ import { AlertObject, AlertState } from './types';
 
 const PAGE_SIZE = 25;
 
+const AlertStateLabel: Record<AlertState, string> = {
+  [AlertState.Success]: t('Success'),
+  [AlertState.Working]: t('Working'),
+  [AlertState.Error]: t('Error'),
+  [AlertState.Noop]: t('Not triggered'),
+  [AlertState.Grace]: t('On Grace'),
+};
+
 interface AlertListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
   isReportEnabled: boolean;
   user: {
     userId: string | number;
+    firstName: string;
+    lastName: string;
   };
 }
 const deleteAlerts = makeApi<number[], { message: string }>({
@@ -121,16 +131,16 @@ function AlertList({
   const [currentAlert, setCurrentAlert] = useState<Partial<AlertObject> | null>(
     null,
   );
-  const [
-    currentAlertDeleting,
-    setCurrentAlertDeleting,
-  ] = useState<AlertObject | null>(null);
+  const [currentAlertDeleting, setCurrentAlertDeleting] =
+    useState<AlertObject | null>(null);
 
   // Actions
   function handleAlertEdit(alert: AlertObject | null) {
     setCurrentAlert(alert);
     setAlertModalOpen(true);
   }
+
+  const generateKey = () => `${new Date().getTime()}`;
 
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
@@ -381,7 +391,7 @@ function AlertList({
           createErrorHandler(errMsg =>
             t('An error occurred while fetching created by values: %s', errMsg),
           ),
-          user.userId,
+          user,
         ),
         paginate: true,
       },
@@ -392,11 +402,17 @@ function AlertList({
         operator: FilterOperator.equals,
         unfilteredLabel: 'Any',
         selects: [
-          { label: t(`${AlertState.success}`), value: AlertState.success },
-          { label: t(`${AlertState.working}`), value: AlertState.working },
-          { label: t(`${AlertState.error}`), value: AlertState.error },
-          { label: t(`${AlertState.noop}`), value: AlertState.noop },
-          { label: t(`${AlertState.grace}`), value: AlertState.grace },
+          {
+            label: AlertStateLabel[AlertState.Success],
+            value: AlertState.Success,
+          },
+          {
+            label: AlertStateLabel[AlertState.Working],
+            value: AlertState.Working,
+          },
+          { label: AlertStateLabel[AlertState.Error], value: AlertState.Error },
+          { label: AlertStateLabel[AlertState.Noop], value: AlertState.Noop },
+          { label: AlertStateLabel[AlertState.Grace], value: AlertState.Grace },
         ],
       },
       {
@@ -447,6 +463,7 @@ function AlertList({
         }}
         show={alertModalOpen}
         isReport={isReportEnabled}
+        key={currentAlert?.id || generateKey()}
       />
       {currentAlertDeleting && (
         <DeleteModal

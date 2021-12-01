@@ -53,6 +53,7 @@ from superset import (
     security_manager,
     sql_lab,
 )
+from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
@@ -751,14 +752,14 @@ class TestCore(SupersetTestCase):
     @mock.patch(
         "tests.integration_tests.superset_test_custom_template_processors.datetime"
     )
-    @mock.patch("superset.sql_lab.get_sql_results")
+    @mock.patch("superset.views.core.get_sql_results")
     def test_custom_templated_sql_json(self, sql_lab_mock, mock_dt) -> None:
         """Test sqllab receives macros expanded query."""
         mock_dt.utcnow = mock.Mock(return_value=datetime.datetime(1970, 1, 1))
         self.login()
         sql = "SELECT '$DATE()' as test"
         resp = {
-            "status": utils.QueryStatus.SUCCESS,
+            "status": QueryStatus.SUCCESS,
             "query": {"rows": 1},
             "data": [{"test": "'1970-01-01'"}],
         }
@@ -841,7 +842,7 @@ class TestCore(SupersetTestCase):
 
     def enable_csv_upload(self, database: models.Database) -> None:
         """Enables csv upload in the given database."""
-        database.allow_csv_upload = True
+        database.allow_file_upload = True
         db.session.commit()
         add_datasource_page = self.get_resp("/databaseview/list/")
         self.assertIn("Upload a CSV", add_datasource_page)
@@ -1184,7 +1185,7 @@ class TestCore(SupersetTestCase):
         mock_can_access_database.return_value = False
         mock_schemas_accessible.return_value = ["this_schema_is_allowed_too"]
         data = self.get_json_resp(
-            url="/superset/schemas_access_for_csv_upload?db_id={db_id}".format(
+            url="/superset/schemas_access_for_file_upload?db_id={db_id}".format(
                 db_id=dbobj.id
             )
         )
@@ -1214,7 +1215,7 @@ class TestCore(SupersetTestCase):
 
         data = [{"col_0": i} for i in range(100)]
         payload = {
-            "status": utils.QueryStatus.SUCCESS,
+            "status": QueryStatus.SUCCESS,
             "query": {"rows": 100},
             "data": data,
         }
@@ -1267,7 +1268,7 @@ class TestCore(SupersetTestCase):
         query = {
             "database_id": 1,
             "sql": "SELECT * FROM birth_names LIMIT 100",
-            "status": utils.QueryStatus.PENDING,
+            "status": QueryStatus.PENDING,
         }
         (
             serialized_data,
@@ -1279,8 +1280,8 @@ class TestCore(SupersetTestCase):
         )
         payload = {
             "query_id": 1,
-            "status": utils.QueryStatus.SUCCESS,
-            "state": utils.QueryStatus.SUCCESS,
+            "status": QueryStatus.SUCCESS,
+            "state": QueryStatus.SUCCESS,
             "data": serialized_data,
             "columns": all_columns,
             "selected_columns": selected_columns,
@@ -1315,7 +1316,7 @@ class TestCore(SupersetTestCase):
         query = {
             "database_id": 1,
             "sql": "SELECT * FROM birth_names LIMIT 100",
-            "status": utils.QueryStatus.PENDING,
+            "status": QueryStatus.PENDING,
         }
         (
             serialized_data,
@@ -1327,8 +1328,8 @@ class TestCore(SupersetTestCase):
         )
         payload = {
             "query_id": 1,
-            "status": utils.QueryStatus.SUCCESS,
-            "state": utils.QueryStatus.SUCCESS,
+            "status": QueryStatus.SUCCESS,
+            "state": QueryStatus.SUCCESS,
             "data": serialized_data,
             "columns": all_columns,
             "selected_columns": selected_columns,
@@ -1545,6 +1546,28 @@ class TestCore(SupersetTestCase):
         self.login()
         data = self.get_resp(url)
         self.assertIn("Error message", data)
+
+    @mock.patch("superset.sql_lab.cancel_query")
+    @mock.patch("superset.views.core.db.session")
+    def test_stop_query_not_implemented(
+        self, mock_superset_db_session, mock_sql_lab_cancel_query
+    ):
+        """
+        Handles stop query when the DB engine spec does not
+        have a cancel query method.
+        """
+        form_data = {"client_id": "foo"}
+        query_mock = mock.Mock()
+        query_mock.client_id = "foo"
+        query_mock.status = QueryStatus.RUNNING
+        self.login(username="admin")
+        mock_superset_db_session.query().filter_by().one().return_value = query_mock
+        mock_sql_lab_cancel_query.return_value = False
+        rv = self.client.post(
+            "/superset/stop_query/", data={"form_data": json.dumps(form_data)},
+        )
+
+        assert rv.status_code == 422
 
 
 if __name__ == "__main__":

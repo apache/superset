@@ -14,8 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import io
 import os
 import tempfile
+import zipfile
 from typing import TYPE_CHECKING
 
 import pandas as pd
@@ -33,14 +35,15 @@ from superset import app, db, is_feature_enabled
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.exceptions import CertificateException
+from superset.extensions import event_logger
 from superset.sql_parse import Table
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
 
-from .forms import CsvToDatabaseForm, ExcelToDatabaseForm
+from .forms import ColumnarToDatabaseForm, CsvToDatabaseForm, ExcelToDatabaseForm
 from .mixins import DatabaseMixin
-from .validators import schema_allows_csv_upload, sqlalchemy_uri_validator
+from .validators import schema_allows_file_upload, sqlalchemy_uri_validator
 
 if TYPE_CHECKING:
     from werkzeug.datastructures import FileStorage
@@ -129,7 +132,7 @@ class CsvToDatabaseView(SimpleFormView):
         database = form.con.data
         csv_table = Table(table=form.name.data, schema=form.schema.data)
 
-        if not schema_allows_csv_upload(database, csv_table.schema):
+        if not schema_allows_file_upload(database, csv_table.schema):
             message = _(
                 'Database "%(database_name)s" schema "%(schema_name)s" '
                 "is not allowed for csv uploads. Please contact your Superset Admin.",
@@ -162,6 +165,7 @@ class CsvToDatabaseView(SimpleFormView):
                     iterator=True,
                     keep_default_na=not form.null_values.data,
                     mangle_dupe_cols=form.mangle_dupe_cols.data,
+                    usecols=form.usecols.data if form.usecols.data else None,
                     na_values=form.null_values.data if form.null_values.data else None,
                     nrows=form.nrows.data,
                     parse_dates=form.parse_dates.data,
@@ -249,7 +253,12 @@ class CsvToDatabaseView(SimpleFormView):
             db_name=sqla_table.database.database_name,
         )
         flash(message, "info")
-        stats_logger.incr("successful_csv_upload")
+        event_logger.log_with_context(
+            action="successful_csv_upload",
+            database=form.con.data.name,
+            schema=form.schema.data,
+            table=form.name.data,
+        )
         return redirect("/tablemodelview/list/")
 
 
@@ -270,7 +279,7 @@ class ExcelToDatabaseView(SimpleFormView):
         database = form.con.data
         excel_table = Table(table=form.name.data, schema=form.schema.data)
 
-        if not schema_allows_csv_upload(database, excel_table.schema):
+        if not schema_allows_file_upload(database, excel_table.schema):
             message = _(
                 'Database "%(database_name)s" schema "%(schema_name)s" '
                 "is not allowed for excel uploads. Please contact your Superset Admin.",
@@ -390,5 +399,162 @@ class ExcelToDatabaseView(SimpleFormView):
             db_name=sqla_table.database.database_name,
         )
         flash(message, "info")
-        stats_logger.incr("successful_excel_upload")
+        event_logger.log_with_context(
+            action="successful_excel_upload",
+            database=form.con.data.name,
+            schema=form.schema.data,
+            table=form.name.data,
+        )
+        return redirect("/tablemodelview/list/")
+
+
+class ColumnarToDatabaseView(SimpleFormView):
+    form = ColumnarToDatabaseForm
+    form_template = "superset/form_view/columnar_to_database_view/edit.html"
+    form_title = _("Columnar to Database configuration")
+    add_columns = ["database", "schema", "table_name"]
+
+    def form_get(self, form: ColumnarToDatabaseForm) -> None:
+        form.if_exists.data = "fail"
+
+    def form_post(  # pylint: disable=too-many-locals
+        self, form: ColumnarToDatabaseForm
+    ) -> Response:
+        database = form.con.data
+        columnar_table = Table(table=form.name.data, schema=form.schema.data)
+        files = form.columnar_file.data
+        file_type = {file.filename.split(".")[-1] for file in files}
+
+        if file_type == {"zip"}:
+            zipfile_ob = zipfile.ZipFile(  # pylint: disable=consider-using-with
+                form.columnar_file.data[0]
+            )  # pylint: disable=consider-using-with
+            file_type = {filename.split(".")[-1] for filename in zipfile_ob.namelist()}
+            files = [
+                io.BytesIO((zipfile_ob.open(filename).read(), filename)[0])
+                for filename in zipfile_ob.namelist()
+            ]
+
+        if len(file_type) > 1:
+            message = _(
+                "Multiple file extensions are not allowed for columnar uploads."
+                " Please make sure all files are of the same extension.",
+            )
+            flash(message, "danger")
+            return redirect("/columnartodatabaseview/form")
+
+        read = pd.read_parquet
+        kwargs = {
+            "columns": form.usecols.data if form.usecols.data else None,
+        }
+
+        if not schema_allows_file_upload(database, columnar_table.schema):
+            message = _(
+                'Database "%(database_name)s" schema "%(schema_name)s" '
+                "is not allowed for columnar uploads. "
+                "Please contact your Superset Admin.",
+                database_name=database.database_name,
+                schema_name=columnar_table.schema,
+            )
+            flash(message, "danger")
+            return redirect("/columnartodatabaseview/form")
+
+        if "." in columnar_table.table and columnar_table.schema:
+            message = _(
+                "You cannot specify a namespace both in the name of the table: "
+                '"%(columnar_table.table)s" and in the schema field: '
+                '"%(columnar_table.schema)s". Please remove one',
+                table=columnar_table.table,
+                schema=columnar_table.schema,
+            )
+            flash(message, "danger")
+            return redirect("/columnartodatabaseview/form")
+
+        try:
+            chunks = [read(file, **kwargs) for file in files]
+            df = pd.concat(chunks)
+
+            database = (
+                db.session.query(models.Database)
+                .filter_by(id=form.data.get("con").data.get("id"))
+                .one()
+            )
+
+            database.db_engine_spec.df_to_sql(
+                database,
+                columnar_table,
+                df,
+                to_sql_kwargs={
+                    "chunksize": 1000,
+                    "if_exists": form.if_exists.data,
+                    "index": form.index.data,
+                    "index_label": form.index_label.data,
+                },
+            )
+
+            # Connect table to the database that should be used for exploration.
+            # E.g. if hive was used to upload a csv, presto will be a better option
+            # to explore the table.
+            expore_database = database
+            explore_database_id = database.explore_database_id
+            if explore_database_id:
+                expore_database = (
+                    db.session.query(models.Database)
+                    .filter_by(id=explore_database_id)
+                    .one_or_none()
+                    or database
+                )
+
+            sqla_table = (
+                db.session.query(SqlaTable)
+                .filter_by(
+                    table_name=columnar_table.table,
+                    schema=columnar_table.schema,
+                    database_id=expore_database.id,
+                )
+                .one_or_none()
+            )
+
+            if sqla_table:
+                sqla_table.fetch_metadata()
+            if not sqla_table:
+                sqla_table = SqlaTable(table_name=columnar_table.table)
+                sqla_table.database = expore_database
+                sqla_table.database_id = database.id
+                sqla_table.user_id = g.user.get_id()
+                sqla_table.schema = columnar_table.schema
+                sqla_table.fetch_metadata()
+                db.session.add(sqla_table)
+            db.session.commit()
+        except Exception as ex:  # pylint: disable=broad-except
+            db.session.rollback()
+            message = _(
+                'Unable to upload Columnar file "%(filename)s" to table '
+                '"%(table_name)s" in database "%(db_name)s". '
+                "Error message: %(error_msg)s",
+                filename=[file.filename for file in form.columnar_file.data],
+                table_name=form.name.data,
+                db_name=database.database_name,
+                error_msg=str(ex),
+            )
+
+            flash(message, "danger")
+            stats_logger.incr("failed_columnar_upload")
+            return redirect("/columnartodatabaseview/form")
+
+        # Go back to welcome page / splash screen
+        message = _(
+            'Columnar file "%(columnar_filename)s" uploaded to table "%(table_name)s" '
+            'in database "%(db_name)s"',
+            columnar_filename=[file.filename for file in form.columnar_file.data],
+            table_name=str(columnar_table),
+            db_name=sqla_table.database.database_name,
+        )
+        flash(message, "info")
+        event_logger.log_with_context(
+            action="successful_columnar_upload",
+            database=form.con.data.name,
+            schema=form.schema.data,
+            table=form.name.data,
+        )
         return redirect("/tablemodelview/list/")

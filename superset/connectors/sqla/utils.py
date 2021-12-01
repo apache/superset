@@ -43,7 +43,11 @@ def get_physical_table_metadata(
     # ensure empty schema
     _schema_name = schema_name if schema_name else None
     # Table does not exist or is not visible to a connection.
-    if not database.has_table_by_name(table_name, schema=_schema_name):
+
+    if not (
+        database.has_table_by_name(table_name=table_name, schema=_schema_name)
+        or database.has_view_by_name(view_name=table_name, schema=_schema_name)
+    ):
         raise NoSuchTableError
 
     cols = database.get_columns(table_name, schema=_schema_name)
@@ -53,7 +57,9 @@ def get_physical_table_metadata(
                 db_type = db_engine_spec.column_datatype_to_string(
                     col["type"], db_dialect
                 )
-                type_spec = db_engine_spec.get_column_spec(db_type)
+                type_spec = db_engine_spec.get_column_spec(
+                    db_type, db_extra=database.get_extra()
+                )
                 col.update(
                     {
                         "type": db_type,

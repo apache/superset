@@ -45,7 +45,7 @@ class SqliteEngineSpec(BaseEngineSpec):
         "P1D": "DATE({col})",
         "P1W": "DATE({col}, -strftime('%w', {col}) || ' days')",
         "P1M": "DATE({col}, -strftime('%d', {col}) || ' days', '+1 day')",
-        "P0.25Y": (
+        "P3M": (
             "DATETIME(STRFTIME('%Y-', {col}) || "  # year
             "SUBSTR('00' || "  # pad with zeros to 2 chars
             "((CAST(STRFTIME('%m', {col}) AS INTEGER)) - "  # month as integer
@@ -97,7 +97,9 @@ class SqliteEngineSpec(BaseEngineSpec):
         raise Exception(f"Unsupported datasource_type: {datasource_type}")
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         tt = target_type.upper()
         if tt in (utils.TemporalType.TEXT, utils.TemporalType.DATETIME):
             return f"""'{dttm.isoformat(sep=" ", timespec="microseconds")}'"""

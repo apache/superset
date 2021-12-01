@@ -38,7 +38,7 @@ from sqlalchemy.orm import Mapper, Session
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy_utils import UUIDType
 
-from superset.utils.core import QueryStatus
+from superset.common.db_query_status import QueryStatus
 
 logger = logging.getLogger(__name__)
 
@@ -442,6 +442,7 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         df: pd.DataFrame,
         query: str,
         duration: timedelta,
+        applied_template_filters: Optional[List[str]] = None,
         status: str = QueryStatus.SUCCESS,
         error_message: Optional[str] = None,
         errors: Optional[List[Dict[str, Any]]] = None,
@@ -449,6 +450,7 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         self.df = df
         self.query = query
         self.duration = duration
+        self.applied_template_filters = applied_template_filters or []
         self.status = status
         self.error_message = error_message
         self.errors = errors or []
@@ -476,3 +478,31 @@ class ExtraJSONMixin:
         extra = self.extra
         extra[key] = value
         self.extra_json = json.dumps(extra)
+
+
+class CertificationMixin:
+    """Mixin to add extra certification fields"""
+
+    extra = sa.Column(sa.Text, default="{}")
+
+    def get_extra_dict(self) -> Dict[str, Any]:
+        try:
+            return json.loads(self.extra)
+        except (TypeError, json.JSONDecodeError):
+            return {}
+
+    @property
+    def is_certified(self) -> bool:
+        return bool(self.get_extra_dict().get("certification"))
+
+    @property
+    def certified_by(self) -> Optional[str]:
+        return self.get_extra_dict().get("certification", {}).get("certified_by")
+
+    @property
+    def certification_details(self) -> Optional[str]:
+        return self.get_extra_dict().get("certification", {}).get("details")
+
+    @property
+    def warning_markdown(self) -> Optional[str]:
+        return self.get_extra_dict().get("warning_markdown")

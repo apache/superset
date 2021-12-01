@@ -36,7 +36,7 @@ import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
 import { getMockStore } from 'spec/fixtures/mockStore';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
-import { initialState } from 'spec/javascripts/sqllab/fixtures';
+import { initialState } from 'src/SqlLab/fixtures';
 
 describe('Row', () => {
   const rowWithoutChildren = { ...mockLayout.present.ROW_ID, children: [] };

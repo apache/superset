@@ -25,7 +25,7 @@ import {
   createErrorHandler,
   shortenSQL,
 } from 'src/views/CRUD/utils';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import Popover from 'src/components/Popover';
@@ -91,10 +91,8 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
     false,
   );
 
-  const [
-    queryCurrentlyPreviewing,
-    setQueryCurrentlyPreviewing,
-  ] = useState<QueryObject>();
+  const [queryCurrentlyPreviewing, setQueryCurrentlyPreviewing] =
+    useState<QueryObject>();
 
   const theme = useTheme();
 
@@ -374,7 +372,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
           'user',
           createErrorHandler(errMsg =>
             addDangerToast(
-              t('An error occurred while fetching database values: %s', errMsg),
+              t('An error occurred while fetching user values: %s', errMsg),
             ),
           ),
         ),

@@ -46,6 +46,7 @@ class DatasetColumnsPutSchema(Schema):
     verbose_name = fields.String(allow_none=True, Length=(1, 1024))
     description = fields.String(allow_none=True)
     expression = fields.String(allow_none=True)
+    extra = fields.Dict(allow_none=True)
     filterable = fields.Boolean()
     groupby = fields.Boolean()
     is_active = fields.Boolean()
@@ -127,6 +128,7 @@ class DatasetRelatedObjectsResponse(Schema):
 
 class ImportV1ColumnSchema(Schema):
     column_name = fields.String(required=True)
+    extra = fields.Dict(allow_none=True)
     verbose_name = fields.String(allow_none=True)
     is_dttm = fields.Boolean(default=False, allow_none=True)
     is_active = fields.Boolean(default=True, allow_none=True)

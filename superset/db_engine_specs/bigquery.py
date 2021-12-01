@@ -14,10 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import re
 import urllib
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Pattern, Tuple, Type, TYPE_CHECKING
 
 import pandas as pd
 from apispec import APISpec
@@ -25,13 +26,15 @@ from apispec.ext.marshmallow import MarshmallowPlugin
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.exceptions import ValidationError
-from sqlalchemy import literal_column
+from sqlalchemy import column
+from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.url import make_url
-from sqlalchemy.sql.expression import ColumnClause
+from sqlalchemy.sql import sqltypes
 from typing_extensions import TypedDict
 
-from superset.databases.schemas import encrypted_field_properties, EncryptedField
+from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.exceptions import SupersetDBAPIDisconnectionError
 from superset.errors import SupersetError, SupersetErrorType
 from superset.sql_parse import Table
 from superset.utils import core as utils
@@ -68,7 +71,7 @@ ma_plugin = MarshmallowPlugin()
 
 
 class BigQueryParametersSchema(Schema):
-    credentials_info = EncryptedField(
+    credentials_info = EncryptedString(
         required=False, description="Contents of BigQuery JSON credentials.",
     )
     query = fields.Dict(required=False)
@@ -95,6 +98,8 @@ class BigQueryEngineSpec(BaseEngineSpec):
     # BigQuery doesn't maintain context when running multiple statements in the
     # same cursor, so we need to run all statements at once
     run_multiple_statements_as_one = True
+
+    allows_hidden_cc_in_orderby = True
 
     """
     https://www.python.org/dev/peps/pep-0249/#arraysize
@@ -128,14 +133,14 @@ class BigQueryEngineSpec(BaseEngineSpec):
         "PT15M": "CAST(TIMESTAMP_SECONDS("
         "15*60 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 15*60)"
         ") AS {type})",
-        "PT0.5H": "CAST(TIMESTAMP_SECONDS("
+        "PT30M": "CAST(TIMESTAMP_SECONDS("
         "30*60 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 30*60)"
         ") AS {type})",
         "PT1H": "{func}({col}, HOUR)",
         "P1D": "{func}({col}, DAY)",
         "P1W": "{func}({col}, WEEK)",
         "P1M": "{func}({col}, MONTH)",
-        "P0.25Y": "{func}({col}, QUARTER)",
+        "P3M": "{func}({col}, QUARTER)",
         "P1Y": "{func}({col}, YEAR)",
     }
 
@@ -181,7 +186,9 @@ class BigQueryEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"
@@ -281,20 +288,6 @@ class BigQueryEngineSpec(BaseEngineSpec):
         }
 
     @classmethod
-    def _get_fields(cls, cols: List[Dict[str, Any]]) -> List[ColumnClause]:
-        """
-        BigQuery dialect requires us to not use backtick in the fieldname which are
-        nested.
-        Using literal_column handles that issue.
-        https://docs.sqlalchemy.org/en/latest/core/tutorial.html#using-more-specific-text-with-table-literal-column-and-column
-        Also explicility specifying column names so we don't encounter duplicate
-        column names in the result.
-        """
-        return [
-            literal_column(c["name"]).label(c["name"].replace(".", "__")) for c in cols
-        ]
-
-    @classmethod
     def epoch_to_dttm(cls) -> str:
         return "TIMESTAMP_SECONDS({col})"
 
@@ -366,10 +359,13 @@ class BigQueryEngineSpec(BaseEngineSpec):
         query = parameters.get("query", {})
         query_params = urllib.parse.urlencode(query)
 
+        if encrypted_extra:
+            credentials_info = encrypted_extra.get("credentials_info")
+            if isinstance(credentials_info, str):
+                credentials_info = json.loads(credentials_info)
+            project_id = credentials_info.get("project_id")
         if not encrypted_extra:
             raise ValidationError("Missing service credentials")
-
-        project_id = encrypted_extra.get("credentials_info", {}).get("project_id")
 
         if project_id:
             return f"{cls.default_driver}://{project_id}/?{query_params}"
@@ -387,6 +383,13 @@ class BigQueryEngineSpec(BaseEngineSpec):
             return {**encrypted_extra, "query": value.query}
 
         raise ValidationError("Invalid service credentials")
+
+    @classmethod
+    def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
+        # pylint: disable=import-outside-toplevel
+        from google.auth.exceptions import DefaultCredentialsError
+
+        return {DefaultCredentialsError: SupersetDBAPIDisconnectionError}
 
     @classmethod
     def validate_parameters(
@@ -413,3 +416,104 @@ class BigQueryEngineSpec(BaseEngineSpec):
         ma_plugin.converter.add_attribute_function(encrypted_field_properties)
         spec.components.schema(cls.__name__, schema=cls.parameters_schema)
         return spec.to_dict()["components"]["schemas"][cls.__name__]
+
+    @classmethod
+    def select_star(  # pylint: disable=too-many-arguments
+        cls,
+        database: "Database",
+        table_name: str,
+        engine: Engine,
+        schema: Optional[str] = None,
+        limit: int = 100,
+        show_cols: bool = False,
+        indent: bool = True,
+        latest_partition: bool = True,
+        cols: Optional[List[Dict[str, Any]]] = None,
+    ) -> str:
+        """
+        Remove array structures from `SELECT *`.
+
+        BigQuery supports structures and arrays of structures, eg:
+
+            author STRUCT<name STRING, email STRING>
+            trailer ARRAY<STRUCT<key STRING, value STRING>>
+
+        When loading metadata for a table each key in the struct is displayed as a
+        separate pseudo-column, eg:
+
+            - author
+            - author.name
+            - author.email
+            - trailer
+            - trailer.key
+            - trailer.value
+
+        When generating the `SELECT *` statement we want to remove any keys from
+        structs inside an array, since selecting them results in an error. The correct
+        select statement should look like this:
+
+            SELECT
+              `author`,
+              `author`.`name`,
+              `author`.`email`,
+              `trailer`
+            FROM
+              table
+
+        Selecting `trailer.key` or `trailer.value` results in an error, as opposed to
+        selecting `author.name`, since they are keys in a structure inside an array.
+
+        This method removes any array pseudo-columns.
+        """
+        if cols:
+            # For arrays of structs, remove the child columns, otherwise the query
+            # will fail.
+            array_prefixes = {
+                col["name"] for col in cols if isinstance(col["type"], sqltypes.ARRAY)
+            }
+            cols = [
+                col
+                for col in cols
+                if "." not in col["name"]
+                or col["name"].split(".")[0] not in array_prefixes
+            ]
+
+        return super().select_star(
+            database,
+            table_name,
+            engine,
+            schema,
+            limit,
+            show_cols,
+            indent,
+            latest_partition,
+            cols,
+        )
+
+    @classmethod
+    def _get_fields(cls, cols: List[Dict[str, Any]]) -> List[Any]:
+        """
+        Label columns using their fully qualified name.
+
+        BigQuery supports columns of type `struct`, which are basically dictionaries.
+        When loading metadata for a table with struct columns, each key in the struct
+        is displayed as a separate pseudo-column, eg:
+
+            author STRUCT<name STRING, email STRING>
+
+        Will be shown as 3 columns:
+
+            - author
+            - author.name
+            - author.email
+
+        If we select those fields:
+
+            SELECT `author`, `author`.`name`, `author`.`email` FROM table
+
+        The resulting columns will be called "author", "name", and "email", This may
+        result in a clash with other columns. To prevent that, we explicitly label
+        the columns using their fully qualified name, so we end up with "author",
+        "author__name" and "author__email", respectively.
+        """
+        return [column(c["name"]).label(c["name"].replace(".", "__")) for c in cols]

@@ -16,19 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { t } from '@superset-ui/core';
 import { filter } from 'lodash';
 import {
-  useListViewResource,
   useChartEditModal,
   useFavoriteStatus,
+  useListViewResource,
 } from 'src/views/CRUD/hooks';
 import {
-  setInLocalStorage,
   getFromLocalStorage,
+  setInLocalStorage,
 } from 'src/utils/localStorageHelpers';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import { useHistory } from 'react-router-dom';
 import { TableTabTypes } from 'src/views/CRUD/types';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
@@ -43,6 +43,7 @@ import Loading from 'src/components/Loading';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import SubMenu from 'src/components/Menu/SubMenu';
 import EmptyState from './EmptyState';
+import { WelcomeTable } from './types';
 
 interface ChartTableProps {
   addDangerToast: (message: string) => void;
@@ -213,12 +214,14 @@ function ChartTable({
             },
           },
           {
-            name: 'View All »',
+            name: t('View All »'),
             buttonStyle: 'link',
             onClick: () => {
               const target =
                 chartFilter === 'Favorite'
-                  ? '/chart/list/?filters=(favorite:!t)'
+                  ? `/chart/list/?filters=(favorite:(label:${t(
+                      'Yes',
+                    )},value:!t))`
                   : '/chart/list/';
               history.push(target);
             },
@@ -247,7 +250,7 @@ function ChartTable({
           ))}
         </CardContainer>
       ) : (
-        <EmptyState tableName="CHARTS" tab={chartFilter} />
+        <EmptyState tableName={WelcomeTable.Charts} tab={chartFilter} />
       )}
       {preparingExport && <Loading />}
     </ErrorBoundary>

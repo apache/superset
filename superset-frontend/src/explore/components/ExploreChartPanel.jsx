@@ -38,6 +38,7 @@ const propTypes = {
   can_overwrite: PropTypes.bool.isRequired,
   can_download: PropTypes.bool.isRequired,
   datasource: PropTypes.object,
+  dashboardId: PropTypes.number,
   column_formats: PropTypes.object,
   containerId: PropTypes.string.isRequired,
   height: PropTypes.string.isRequired,
@@ -152,6 +153,7 @@ const ExploreChartPanel = props => {
     },
     [slice],
   );
+
   useEffect(() => {
     updateQueryContext();
   }, [updateQueryContext]);
@@ -257,6 +259,22 @@ const ExploreChartPanel = props => {
     [chartPanelRef, renderChart],
   );
 
+  const [queryFormData, setQueryFormData] = useState(
+    props.chart.latestQueryFormData,
+  );
+
+  useEffect(() => {
+    // only update when `latestQueryFormData` changes AND `triggerRender`
+    // is false. No update should be done when only `triggerRender` changes,
+    // as this can trigger a query downstream based on incomplete form data.
+    // (`latestQueryFormData` is only updated when a a valid request has been
+    // triggered).
+    if (!props.triggerRender) {
+      setQueryFormData(props.chart.latestQueryFormData);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.chart.latestQueryFormData]);
+
   if (props.standalone) {
     // dom manipulation hack to get rid of the boostrap theme's body background
     const standaloneClass = 'background-transparent';
@@ -274,6 +292,7 @@ const ExploreChartPanel = props => {
       addHistory={props.addHistory}
       can_overwrite={props.can_overwrite}
       can_download={props.can_download}
+      dashboardId={props.dashboardId}
       isStarred={props.isStarred}
       slice={props.slice}
       sliceName={props.sliceName}
@@ -309,7 +328,7 @@ const ExploreChartPanel = props => {
           {panelBody}
           <DataTablesPane
             ownState={props.ownState}
-            queryFormData={props.chart.latestQueryFormData}
+            queryFormData={queryFormData}
             tableSectionHeight={tableSectionHeight}
             onCollapseChange={onCollapseChange}
             chartStatus={props.chart.chartStatus}

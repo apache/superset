@@ -17,6 +17,10 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version:  '16'
       - name: Install dependencies
         uses: ./.github/actions/cached-dependencies
         with:
@@ -31,7 +35,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        python-version: [3.7]
+        python-version: [3.8]
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v2

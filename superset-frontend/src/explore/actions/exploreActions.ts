@@ -25,7 +25,10 @@ import {
   QueryFormData,
 } from '@superset-ui/core';
 import { Dispatch } from 'redux';
-import { addDangerToast, toastActions } from 'src/messageToasts/actions';
+import {
+  addDangerToast,
+  toastActions,
+} from 'src/components/MessageToasts/actions';
 import { Slice } from 'src/types/Chart';
 
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';

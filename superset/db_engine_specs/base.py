@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=unused-argument
+# pylint: disable=too-many-lines
 import json
 import logging
 import re
@@ -64,7 +64,6 @@ from superset.sql_parse import ParsedQuery, Table
 from superset.utils import core as utils
 from superset.utils.core import ColumnSpec, GenericDataType
 from superset.utils.hashing import md5_sha_from_str
-from superset.utils.memoized import memoized
 from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:
@@ -82,8 +81,6 @@ class TimeGrain(NamedTuple):
     duration: Optional[str]
 
 
-QueryStatus = utils.QueryStatus
-
 builtin_time_grains: Dict[Optional[str], str] = {
     None: __("Original value"),
     "PT1S": __("Second"),
@@ -93,13 +90,13 @@ builtin_time_grains: Dict[Optional[str], str] = {
     "PT5M": __("5 minute"),
     "PT10M": __("10 minute"),
     "PT15M": __("15 minute"),
-    "PT0.5H": __("Half hour"),
+    "PT30M": __("30 minute"),
     "PT1H": __("Hour"),
     "PT6H": __("6 hour"),
     "P1D": __("Day"),
     "P1W": __("Week"),
     "P1M": __("Month"),
-    "P0.25Y": __("Quarter"),
+    "P3M": __("Quarter"),
     "P1Y": __("Year"),
     "1969-12-28T00:00:00Z/P1W": __("Week starting Sunday"),
     "1969-12-29T00:00:00Z/P1W": __("Week starting Monday"),
@@ -250,7 +247,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             types.DateTime(),
             GenericDataType.TEMPORAL,
         ),
-        (re.compile(r"^date", re.IGNORECASE), types.Date(), GenericDataType.TEMPORAL,),
+        (
+            re.compile(r"^date", re.IGNORECASE),
+            types.DateTime(),
+            GenericDataType.TEMPORAL,
+        ),
         (
             re.compile(r"^timestamp", re.IGNORECASE),
             types.TIMESTAMP(),
@@ -268,6 +269,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             GenericDataType.BOOLEAN,
         ),
     )
+
+    # Does database support join-free timeslot grouping
     time_groupby_inline = False
     limit_method = LimitMethod.FORCE_LIMIT
     time_secondary_columns = False
@@ -284,6 +287,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Whether ORDER BY clause must appear in SELECT
     # if TRUE, then it doesn't have to.
     allows_hidden_ordeby_agg = True
+
+    # Whether ORDER BY clause can use sql caculated expression
+    # if True, use alias of select column for `order by`
+    # the True is safely for most database
+    # But for backward compatibility, False by default
+    allows_hidden_cc_in_orderby = False
 
     force_column_alias_quotes = False
     arraysize = 0
@@ -324,7 +333,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return new_exception(str(exception))
 
     @classmethod
-    def get_allow_cost_estimate(cls, extra: Dict[str, Any]) -> bool:
+    def get_allow_cost_estimate(  # pylint: disable=unused-argument
+        cls, extra: Dict[str, Any],
+    ) -> bool:
         return False
 
     @classmethod
@@ -577,8 +588,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return indexes
 
     @classmethod
-    def extra_table_metadata(
-        cls, database: "Database", table_name: str, schema_name: str
+    def extra_table_metadata(  # pylint: disable=unused-argument
+        cls, database: "Database", table_name: str, schema_name: str,
     ) -> Dict[str, Any]:
         """
         Returns engine-specific table metadata
@@ -679,12 +690,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         df.to_sql(con=engine, **to_sql_kwargs)
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(  # pylint: disable=unused-argument
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         """
         Convert Python datetime object to a SQL expression
 
         :param target_type: The target type of expression
         :param dttm: The datetime object
+        :param db_extra: The database extra object
         :return: The SQL expression
         """
         return None
@@ -811,8 +825,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return sorted(inspector.get_schema_names())
 
     @classmethod
-    def get_table_names(
-        cls, database: "Database", inspector: Inspector, schema: Optional[str]
+    def get_table_names(  # pylint: disable=unused-argument
+        cls, database: "Database", inspector: Inspector, schema: Optional[str],
     ) -> List[str]:
         """
         Get all tables from schema
@@ -827,8 +841,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return sorted(tables)
 
     @classmethod
-    def get_view_names(
-        cls, database: "Database", inspector: Inspector, schema: Optional[str]
+    def get_view_names(  # pylint: disable=unused-argument
+        cls, database: "Database", inspector: Inspector, schema: Optional[str],
     ) -> List[str]:
         """
         Get all views from schema
@@ -881,7 +895,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return inspector.get_columns(table_name, schema)
 
     @classmethod
-    def where_latest_partition(  # pylint: disable=too-many-arguments
+    def where_latest_partition(  # pylint: disable=too-many-arguments,unused-argument
         cls,
         table_name: str,
         schema: Optional[str],
@@ -1068,7 +1082,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
 
     @classmethod
-    def execute(cls, cursor: Any, query: str, **kwargs: Any) -> None:
+    def execute(  # pylint: disable=unused-argument
+        cls, cursor: Any, query: str, **kwargs: Any,
+    ) -> None:
         """
         Execute a SQL query
 
@@ -1197,7 +1213,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return sqla_column_type.compile(dialect=dialect).upper()
 
     @classmethod
-    def get_function_names(cls, database: "Database") -> List[str]:
+    def get_function_names(  # pylint: disable=unused-argument
+        cls, database: "Database",
+    ) -> List[str]:
         """
         Get a list of function names that are able to be called on the database.
         Used for SQL Lab autocomplete.
@@ -1220,7 +1238,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return data
 
     @staticmethod
-    def mutate_db_for_connection_test(database: "Database") -> None:
+    def mutate_db_for_connection_test(  # pylint: disable=unused-argument
+        database: "Database",
+    ) -> None:
         """
         Some databases require passing additional parameters for validating database
         connections. This method makes it possible to mutate the database instance prior
@@ -1266,10 +1286,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return parsed_query.is_select()
 
     @classmethod
-    @memoized
-    def get_column_spec(
+    def get_column_spec(  # pylint: disable=unused-argument
         cls,
         native_type: Optional[str],
+        db_extra: Optional[Dict[str, Any]] = None,
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
         column_type_mappings: Tuple[
             Tuple[
@@ -1284,6 +1304,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Converts native database type to sqlalchemy column type.
         :param native_type: Native database typee
         :param source: Type coming from the database table or cursor description
+        :param db_extra: The database extra object
         :return: ColumnSpec object
         """
         col_types = cls.get_sqla_column_type(
@@ -1295,7 +1316,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             # using datetimes
             if generic_type == GenericDataType.TEMPORAL:
                 column_type = literal_dttm_type_factory(
-                    type(column_type), cls, native_type or ""
+                    column_type, cls, native_type or "", db_extra=db_extra or {}
                 )
             is_dttm = generic_type == GenericDataType.TEMPORAL
             return ColumnSpec(
@@ -1316,7 +1337,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return False
 
     @classmethod
-    def get_cancel_query_id(cls, cursor: Any, query: Query) -> Optional[str]:
+    def get_cancel_query_id(  # pylint: disable=unused-argument
+        cls, cursor: Any, query: Query,
+    ) -> Optional[str]:
         """
         Select identifiers from the database engine that uniquely identifies the
         queries to cancel. The identifier is typically a session id, process id
@@ -1330,7 +1353,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return None
 
     @classmethod
-    def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
+    def cancel_query(  # pylint: disable=unused-argument
+        cls, cursor: Any, query: Query, cancel_query_id: str,
+    ) -> bool:
         """
         Cancel query in the underlying database.
 
@@ -1403,7 +1428,7 @@ class BasicParametersMixin:
     encryption_parameters: Dict[str, str] = {}
 
     @classmethod
-    def build_sqlalchemy_uri(
+    def build_sqlalchemy_uri(  # pylint: disable=unused-argument
         cls,
         parameters: BasicParametersType,
         encryted_extra: Optional[Dict[str, str]] = None,
@@ -1428,7 +1453,7 @@ class BasicParametersMixin:
         )
 
     @classmethod
-    def get_parameters_from_uri(
+    def get_parameters_from_uri(  # pylint: disable=unused-argument
         cls, uri: str, encrypted_extra: Optional[Dict[str, Any]] = None
     ) -> BasicParametersType:
         url = make_url(uri)

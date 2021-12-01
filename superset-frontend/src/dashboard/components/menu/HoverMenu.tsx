@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { RefObject } from 'react';
+import { styled } from '@superset-ui/core';
 import cx from 'classnames';
 
 interface HoverMenuProps {
@@ -24,6 +25,43 @@ interface HoverMenuProps {
   innerRef: RefObject<HTMLDivElement>;
   children: React.ReactNode;
 }
+
+const HoverStyleOverrides = styled.div`
+  .hover-menu {
+    opacity: 0;
+    position: absolute;
+    z-index: 10;
+    font-size: ${({ theme }) => theme.typography.sizes.m};
+  }
+
+  .hover-menu--left {
+    width: ${({ theme }) => theme.gridUnit * 6}px;
+    top: 50%;
+    transform: translate(0, -50%);
+    left: ${({ theme }) => theme.gridUnit * -7}px;
+    padding: ${({ theme }) => theme.gridUnit * 2}px 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .hover-menu--left > :nth-child(n):not(:only-child):not(:last-child) {
+    margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
+  }
+
+  .hover-menu--top {
+    height: ${({ theme }) => theme.gridUnit * 6}px;
+    top: ${({ theme }) => theme.gridUnit * -6}px;
+    left: 50%;
+    transform: translate(-50%);
+    padding: 0 ${({ theme }) => theme.gridUnit * 2}px;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+  }
+`;
 
 export default class HoverMenu extends React.PureComponent<HoverMenuProps> {
   static defaultProps = {
@@ -35,16 +73,18 @@ export default class HoverMenu extends React.PureComponent<HoverMenuProps> {
   render() {
     const { innerRef, position, children } = this.props;
     return (
-      <div
-        ref={innerRef}
-        className={cx(
-          'hover-menu',
-          position === 'left' && 'hover-menu--left',
-          position === 'top' && 'hover-menu--top',
-        )}
-      >
-        {children}
-      </div>
+      <HoverStyleOverrides className="hover-menu-container">
+        <div
+          ref={innerRef}
+          className={cx(
+            'hover-menu',
+            position === 'left' && 'hover-menu--left',
+            position === 'top' && 'hover-menu--top',
+          )}
+        >
+          {children}
+        </div>
+      </HoverStyleOverrides>
     );
   }
 }

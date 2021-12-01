@@ -37,7 +37,7 @@ import emptyDashboardLayout from 'src/dashboard/fixtures/emptyDashboardLayout';
 import { dashboardLayoutWithTabs } from 'spec/fixtures/mockDashboardLayout';
 import { getMockStore } from 'spec/fixtures/mockStore';
 import { nativeFilters } from 'spec/fixtures/mockNativeFilters';
-import { initialState } from 'spec/javascripts/sqllab/fixtures';
+import { initialState } from 'src/SqlLab/fixtures';
 
 describe('Tabs', () => {
   fetchMock.post('glob:*/r/shortner/', {});
@@ -183,7 +183,8 @@ describe('Tabs', () => {
     expect(wrapper.state('tabIndex')).toBe(0);
 
     // display child in directPathToChild list
-    const directPathToChild = dashboardLayoutWithTabs.present.ROW_ID2.parents.slice();
+    const directPathToChild =
+      dashboardLayoutWithTabs.present.ROW_ID2.parents.slice();
     const directLinkProps = {
       ...props,
       directPathToChild,

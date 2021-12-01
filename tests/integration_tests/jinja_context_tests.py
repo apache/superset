@@ -20,6 +20,7 @@ from typing import Any
 from unittest import mock
 
 import pytest
+from sqlalchemy.dialects.postgresql import dialect
 
 import tests.integration_tests.test_app
 from superset import app
@@ -73,6 +74,7 @@ class TestJinja2Context(SupersetTestCase):
         ):
             cache = ExtraCache()
             self.assertEqual(cache.filter_values("name"), ["foo"])
+            self.assertEqual(cache.applied_filters, ["name"])
 
         with app.test_request_context(
             data={
@@ -93,6 +95,7 @@ class TestJinja2Context(SupersetTestCase):
         ):
             cache = ExtraCache()
             self.assertEqual(cache.filter_values("name"), ["foo", "bar"])
+            self.assertEqual(cache.applied_filters, ["name"])
 
     def test_get_filters_adhoc_filters(self) -> None:
         with app.test_request_context(
@@ -117,6 +120,7 @@ class TestJinja2Context(SupersetTestCase):
                 cache.get_filters("name"), [{"op": "IN", "col": "name", "val": ["foo"]}]
             )
             self.assertEqual(cache.removed_filters, list())
+            self.assertEqual(cache.applied_filters, ["name"])
 
         with app.test_request_context(
             data={
@@ -165,6 +169,7 @@ class TestJinja2Context(SupersetTestCase):
                 [{"op": "IN", "col": "name", "val": ["foo", "bar"]}],
             )
             self.assertEqual(cache.removed_filters, ["name"])
+            self.assertEqual(cache.applied_filters, ["name"])
 
     def test_filter_values_extra_filters(self) -> None:
         with app.test_request_context(
@@ -176,6 +181,7 @@ class TestJinja2Context(SupersetTestCase):
         ):
             cache = ExtraCache()
             self.assertEqual(cache.filter_values("name"), ["foo"])
+            self.assertEqual(cache.applied_filters, ["name"])
 
     def test_url_param_default(self) -> None:
         with app.test_request_context():
@@ -198,6 +204,36 @@ class TestJinja2Context(SupersetTestCase):
         ):
             cache = ExtraCache()
             self.assertEqual(cache.url_param("foo"), "bar")
+
+    def test_url_param_escaped_form_data(self) -> None:
+        with app.test_request_context(
+            query_string={"form_data": json.dumps({"url_params": {"foo": "O'Brien"}})}
+        ):
+            cache = ExtraCache(dialect=dialect())
+            self.assertEqual(cache.url_param("foo"), "O''Brien")
+
+    def test_url_param_escaped_default_form_data(self) -> None:
+        with app.test_request_context(
+            query_string={"form_data": json.dumps({"url_params": {"foo": "O'Brien"}})}
+        ):
+            cache = ExtraCache(dialect=dialect())
+            self.assertEqual(cache.url_param("bar", "O'Malley"), "O''Malley")
+
+    def test_url_param_unescaped_form_data(self) -> None:
+        with app.test_request_context(
+            query_string={"form_data": json.dumps({"url_params": {"foo": "O'Brien"}})}
+        ):
+            cache = ExtraCache(dialect=dialect())
+            self.assertEqual(cache.url_param("foo", escape_result=False), "O'Brien")
+
+    def test_url_param_unescaped_default_form_data(self) -> None:
+        with app.test_request_context(
+            query_string={"form_data": json.dumps({"url_params": {"foo": "O'Brien"}})}
+        ):
+            cache = ExtraCache(dialect=dialect())
+            self.assertEqual(
+                cache.url_param("bar", "O'Malley", escape_result=False), "O'Malley"
+            )
 
     def test_safe_proxy_primitive(self) -> None:
         def func(input: Any) -> Any:

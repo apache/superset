@@ -134,6 +134,7 @@ export default class SpatialControl extends React.Component {
   renderSelect(name, type) {
     return (
       <SelectControl
+        ariaLabel={name}
         name={name}
         choices={this.props.choices}
         value={this.state[name]}

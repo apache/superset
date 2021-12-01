@@ -5,9 +5,7 @@
   "numTestsKeptInMemory": 0,
   "experimentalFetchPolyfill": true,
   "requestTimeout": 10000,
-  "ignoreTestFiles": [
-    "**/!(*.test.js|*.test.ts)"
-  ],
+  "ignoreTestFiles": ["**/!(*.test.js|*.test.ts)"],
   "video": false,
   "videoUploadOnPasses": false,
   "viewportWidth": 1280,

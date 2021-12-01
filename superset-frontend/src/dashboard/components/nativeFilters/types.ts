@@ -39,6 +39,11 @@ export interface Target {
   // clarityColumns?: Column[];
 }
 
+export enum NativeFilterType {
+  NATIVE_FILTER = 'NATIVE_FILTER',
+  DIVIDER = 'DIVIDER',
+}
+
 export interface Filter {
   cascadeParentIds: string[];
   defaultDataMask: DataMask;
@@ -55,10 +60,21 @@ export interface Filter {
   sortMetric?: string | null;
   adhoc_filters?: AdhocFilter[];
   granularity_sqla?: string;
+  granularity?: string;
+  druid_time_origin?: string;
+  time_grain_sqla?: string;
   time_range?: string;
   requiredFirst?: boolean;
   tabsInScope?: string[];
   chartsInScope?: number[];
+  type: typeof NativeFilterType.NATIVE_FILTER;
+  description: string;
+}
+export interface Divider {
+  id: string;
+  title: string;
+  description: string;
+  type: typeof NativeFilterType.DIVIDER;
 }
 
-export type FilterConfiguration = Filter[];
+export type FilterConfiguration = Array<Filter | Divider>;

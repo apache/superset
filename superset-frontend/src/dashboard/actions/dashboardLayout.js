@@ -18,19 +18,18 @@
  */
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
 import { t } from '@superset-ui/core';
-
-import { addWarningToast } from '../../messageToasts/actions';
-import { updateLayoutComponents } from './dashboardFilters';
-import { setUnsavedChanges } from './dashboardState';
-import { TABS_TYPE, ROW_TYPE } from '../util/componentTypes';
+import { addWarningToast } from 'src/components/MessageToasts/actions';
+import { TABS_TYPE, ROW_TYPE } from 'src/dashboard/util/componentTypes';
 import {
   DASHBOARD_ROOT_ID,
   NEW_COMPONENTS_SOURCE_ID,
   DASHBOARD_HEADER_ID,
-} from '../util/constants';
-import dropOverflowsParent from '../util/dropOverflowsParent';
-import findParentId from '../util/findParentId';
-import isInDifferentFilterScopes from '../util/isInDifferentFilterScopes';
+} from 'src/dashboard/util/constants';
+import dropOverflowsParent from 'src/dashboard/util/dropOverflowsParent';
+import findParentId from 'src/dashboard/util/findParentId';
+import isInDifferentFilterScopes from 'src/dashboard/util/isInDifferentFilterScopes';
+import { updateLayoutComponents } from './dashboardFilters';
+import { setUnsavedChanges } from './dashboardState';
 
 // Component CRUD -------------------------------------------------------------
 export const UPDATE_COMPONENTS = 'UPDATE_COMPONENTS';
@@ -39,28 +38,29 @@ export const UPDATE_COMPONENTS = 'UPDATE_COMPONENTS';
 // an additional setUnsavedChanges(true) action after the dispatch in the case
 // that dashboardState.hasUnsavedChanges is false.
 function setUnsavedChangesAfterAction(action) {
-  return (...args) => (dispatch, getState) => {
-    const result = action(...args);
-    if (typeof result === 'function') {
-      dispatch(result(dispatch, getState));
-    } else {
-      dispatch(result);
-    }
+  return (...args) =>
+    (dispatch, getState) => {
+      const result = action(...args);
+      if (typeof result === 'function') {
+        dispatch(result(dispatch, getState));
+      } else {
+        dispatch(result);
+      }
 
-    const isComponentLevelEvent =
-      result.type === UPDATE_COMPONENTS &&
-      result.payload &&
-      result.payload.nextComponents;
-    // trigger dashboardFilters state update if dashboard layout is changed.
-    if (!isComponentLevelEvent) {
-      const components = getState().dashboardLayout.present;
-      dispatch(updateLayoutComponents(components));
-    }
+      const isComponentLevelEvent =
+        result.type === UPDATE_COMPONENTS &&
+        result.payload &&
+        result.payload.nextComponents;
+      // trigger dashboardFilters state update if dashboard layout is changed.
+      if (!isComponentLevelEvent) {
+        const components = getState().dashboardLayout.present;
+        dispatch(updateLayoutComponents(components));
+      }
 
-    if (!getState().dashboardState.hasUnsavedChanges) {
-      dispatch(setUnsavedChanges(true));
-    }
-  };
+      if (!getState().dashboardState.hasUnsavedChanges) {
+        dispatch(setUnsavedChanges(true));
+      }
+    };
 }
 
 export const updateComponents = setUnsavedChangesAfterAction(

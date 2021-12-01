@@ -117,10 +117,6 @@ def test_get_time_filter_status_time_range():
     dataset = get_dataset_mock()
 
     assert get_time_filter_status(
-        dataset, {ExtraFiltersTimeColumnType.TIME_RANGE: NO_TIME_RANGE}
-    ) == ([], [])
-
-    assert get_time_filter_status(
         dataset, {ExtraFiltersTimeColumnType.TIME_RANGE: "1 year ago"}
     ) == ([{"column": ExtraFiltersTimeColumnType.TIME_RANGE}], [])
 

@@ -24,7 +24,7 @@ import { Link, useHistory } from 'react-router-dom';
 import moment from 'moment';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import ListView, {
@@ -46,6 +46,8 @@ interface AnnotationLayersListProps {
   addSuccessToast: (msg: string) => void;
   user: {
     userId: string | number;
+    firstName: string;
+    lastName: string;
   };
 }
 
@@ -71,19 +73,13 @@ function AnnotationLayersList({
     addDangerToast,
   );
 
-  const [
-    annotationLayerModalOpen,
-    setAnnotationLayerModalOpen,
-  ] = useState<boolean>(false);
-  const [
-    currentAnnotationLayer,
-    setCurrentAnnotationLayer,
-  ] = useState<AnnotationLayerObject | null>(null);
+  const [annotationLayerModalOpen, setAnnotationLayerModalOpen] =
+    useState<boolean>(false);
+  const [currentAnnotationLayer, setCurrentAnnotationLayer] =
+    useState<AnnotationLayerObject | null>(null);
 
-  const [
-    layerCurrentlyDeleting,
-    setLayerCurrentlyDeleting,
-  ] = useState<AnnotationLayerObject | null>(null);
+  const [layerCurrentlyDeleting, setLayerCurrentlyDeleting] =
+    useState<AnnotationLayerObject | null>(null);
 
   const handleLayerDelete = ({ id, name }: AnnotationLayerObject) => {
     SupersetClient.delete({
@@ -301,7 +297,7 @@ function AnnotationLayersList({
               errMsg,
             ),
           ),
-          user.userId,
+          user,
         ),
         paginate: true,
       },
