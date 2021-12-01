@@ -426,14 +426,9 @@ export default class FilterableTable extends PureComponent<
   }) {
     const columnKey = this.props.orderedColumnKeys[columnIndex];
     const cellData = this.list[rowIndex][columnKey];
+    const cellText = this.getCellContent({ cellData, columnKey });
     const content =
-      cellData === null ? (
-        <i className="text-muted">
-          {this.getCellContent({ cellData, columnKey })}
-        </i>
-      ) : (
-        this.getCellContent({ cellData, columnKey })
-      );
+      cellData === null ? <i className="text-muted">{cellText}</i> : cellText;
     const cellNode = (
       <div
         key={key}
@@ -531,11 +526,13 @@ export default class FilterableTable extends PureComponent<
     columnKey: string;
   }) {
     const cellNode = this.getCellContent({ cellData, columnKey });
+    const content =
+      cellData === null ? <i className="text-muted">{cellNode}</i> : cellNode;
     const jsonObject = safeJsonObjectParse(cellData);
     if (jsonObject) {
       return this.addJsonModal(cellNode, jsonObject, cellData);
     }
-    return cellNode;
+    return content;
   }
 
   renderTable() {

@@ -67,6 +67,44 @@ def test_cron_schedule_window_los_angeles(
 @pytest.mark.parametrize(
     "current_dttm, cron, expected",
     [
+        ("2020-01-01T00:59:01Z", "0 1 * * *", []),
+        (
+            "2020-01-01T00:59:02Z",
+            "0 1 * * *",
+            [FakeDatetime(2020, 1, 1, 1, 0).strftime("%A, %d %B %Y, %H:%M:%S")],
+        ),
+        (
+            "2020-01-01T00:59:59Z",
+            "0 1 * * *",
+            [FakeDatetime(2020, 1, 1, 1, 0).strftime("%A, %d %B %Y, %H:%M:%S")],
+        ),
+        (
+            "2020-01-01T01:00:00Z",
+            "0 1 * * *",
+            [FakeDatetime(2020, 1, 1, 1, 0).strftime("%A, %d %B %Y, %H:%M:%S")],
+        ),
+        ("2020-01-01T01:00:01Z", "0 1 * * *", []),
+    ],
+)
+def test_cron_schedule_window_invalid_timezone(
+    app_context: AppContext, current_dttm: str, cron: str, expected: List[FakeDatetime]
+) -> None:
+    """
+    Reports scheduler: Test cron schedule window for "invalid timezone"
+    """
+
+    with freeze_time(current_dttm):
+        datetimes = cron_schedule_window(cron, "invalid timezone")
+        # it should default to UTC
+        assert (
+            list(cron.strftime("%A, %d %B %Y, %H:%M:%S") for cron in datetimes)
+            == expected
+        )
+
+
+@pytest.mark.parametrize(
+    "current_dttm, cron, expected",
+    [
         ("2020-01-01T05:59:01Z", "0 1 * * *", []),
         (
             "2020-01-01T05:59:02Z",

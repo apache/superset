@@ -65,7 +65,8 @@ export const getMockStoreWithChartsInTabsAndRoot = () =>
   );
 
 export const mockStoreWithTabs = getMockStoreWithTabs();
-export const mockStoreWithChartsInTabsAndRoot = getMockStoreWithChartsInTabsAndRoot();
+export const mockStoreWithChartsInTabsAndRoot =
+  getMockStoreWithChartsInTabsAndRoot();
 
 export const sliceIdWithAppliedFilter = sliceId + 1;
 export const sliceIdWithRejectedFilter = sliceId + 2;

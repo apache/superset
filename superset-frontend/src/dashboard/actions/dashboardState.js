@@ -118,8 +118,13 @@ export function savePublished(id, isPublished) {
       }),
     })
       .then(() => {
-        const nowPublished = isPublished ? 'published' : 'hidden';
-        dispatch(addSuccessToast(t(`This dashboard is now ${nowPublished}`)));
+        dispatch(
+          addSuccessToast(
+            isPublished
+              ? t('This dashboard is now published')
+              : t('This dashboard is now hidden'),
+          ),
+        );
         dispatch(togglePublished(isPublished));
       })
       .catch(() => {
@@ -230,9 +235,7 @@ export function saveDashboardRequest(data, id, saveType) {
         getClientErrorObject(response).then(({ error }) =>
           dispatch(
             addDangerToast(
-              `${t(
-                'Sorry, there was an error saving this dashboard: ',
-              )} ${error}`,
+              t('Sorry, there was an error saving this dashboard: %s', error),
             ),
           ),
         ),

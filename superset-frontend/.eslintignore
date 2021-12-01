@@ -28,3 +28,9 @@ src/dashboard/deprecated/*
 src/temp/*
 **/node_modules
 *.d.ts
+coverage/
+esm/
+lib/
+tmp/
+storybook-static/
+temporary_superset_ui/**/*

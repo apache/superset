@@ -34,7 +34,7 @@ const propTypes = {
   savedMetrics: PropTypes.arrayOf(savedMetricType),
   savedMetricsOptions: PropTypes.arrayOf(savedMetricType),
   multi: PropTypes.bool,
-  datasourceType: PropTypes.string,
+  datasource: PropTypes.object,
 };
 
 export default function MetricDefinitionValue({
@@ -44,7 +44,7 @@ export default function MetricDefinitionValue({
   columns,
   savedMetrics,
   savedMetricsOptions,
-  datasourceType,
+  datasource,
   onMoveLabel,
   onDropLabel,
   index,
@@ -70,7 +70,7 @@ export default function MetricDefinitionValue({
       onRemoveMetric,
       columns,
       savedMetricsOptions,
-      datasourceType,
+      datasource,
       adhocMetric,
       onMoveLabel,
       onDropLabel,

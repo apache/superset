@@ -148,7 +148,9 @@ export default class SqlEditorLeftBar extends React.PureComponent {
         transform: rotate(90deg);
       `}
       aria-label="Collapse"
-      tooltip={t(`${isActive ? 'Collapse' : 'Expand'} table preview`)}
+      tooltip={
+        isActive ? t('Collapse table preview') : t('Expand table preview')
+      }
     >
       <Icons.RightOutlined
         iconSize="s"

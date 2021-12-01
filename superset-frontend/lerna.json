@@ -1,0 +1,13 @@
+{
+  "lerna": "3.2.1",
+  "npmClient": "npm",
+  "packages": ["packages/*", "plugins/*"],
+  "useWorkspaces": true,
+  "version": "0.0.0",
+  "ignoreChanges": [
+    "**/*.md",
+    "**/*.spec.tsx?",
+    "**/*.spec.jsx?",
+    "**/__mocks__/**"
+  ]
+}

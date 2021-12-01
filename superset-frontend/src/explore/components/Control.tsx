@@ -49,9 +49,8 @@ export type ControlProps = {
 /**
  *
  */
-export type ControlComponentProps<
-  ValueType extends JsonValue = JsonValue
-> = Omit<ControlProps, 'value'> & BaseControlComponentProps<ValueType>;
+export type ControlComponentProps<ValueType extends JsonValue = JsonValue> =
+  Omit<ControlProps, 'value'> & BaseControlComponentProps<ValueType>;
 
 export default function Control(props: ControlProps) {
   const {

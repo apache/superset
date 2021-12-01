@@ -246,15 +246,13 @@ const defaultSortComparator = (a: AntdLabeledValue, b: AntdLabeledValue) => {
  * It creates a comparator to check for a specific property.
  * Can be used with string and number property values.
  * */
-export const propertyComparator = (property: string) => (
-  a: AntdLabeledValue,
-  b: AntdLabeledValue,
-) => {
-  if (typeof a[property] === 'string' && typeof b[property] === 'string') {
-    return a[property].localeCompare(b[property]);
-  }
-  return (a[property] as number) - (b[property] as number);
-};
+export const propertyComparator =
+  (property: string) => (a: AntdLabeledValue, b: AntdLabeledValue) => {
+    if (typeof a[property] === 'string' && typeof b[property] === 'string') {
+      return a[property].localeCompare(b[property]);
+    }
+    return (a[property] as number) - (b[property] as number);
+  };
 
 /**
  * This component is a customized version of the Antdesign 4.X Select component
@@ -300,9 +298,8 @@ const Select = ({
   const shouldShowSearch = isAsync || allowNewOptions ? true : showSearch;
   const initialOptions =
     options && Array.isArray(options) ? options : EMPTY_OPTIONS;
-  const [selectOptions, setSelectOptions] = useState<OptionsType>(
-    initialOptions,
-  );
+  const [selectOptions, setSelectOptions] =
+    useState<OptionsType>(initialOptions);
   const shouldUseChildrenOptions = !!selectOptions.find(
     opt => opt?.customLabel,
   );

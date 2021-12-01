@@ -23,6 +23,10 @@ export const BOOL_TRUE_DISPLAY = 'True';
 export const BOOL_FALSE_DISPLAY = 'False';
 
 export const URL_PARAMS = {
+  migrationState: {
+    name: 'migration_state',
+    type: 'string',
+  },
   standalone: {
     name: 'standalone',
     type: 'number',

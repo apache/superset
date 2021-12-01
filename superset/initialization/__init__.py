@@ -117,6 +117,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.async_events.api import AsyncEventsRestApi
         from superset.cachekeys.api import CacheRestApi
         from superset.charts.api import ChartRestApi
+        from superset.charts.data.api import ChartDataRestApi
         from superset.connectors.druid.views import (
             Druid,
             DruidClusterModelView,
@@ -133,6 +134,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.css_templates.api import CssTemplateRestApi
         from superset.dashboards.api import DashboardRestApi
         from superset.dashboards.filter_sets.api import FilterSetRestApi
+        from superset.dashboards.filter_state.api import DashboardFilterStateRestApi
         from superset.databases.api import DatabaseRestApi
         from superset.datasets.api import DatasetRestApi
         from superset.datasets.columns.api import DatasetColumnsRestApi
@@ -199,6 +201,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(AsyncEventsRestApi)
         appbuilder.add_api(CacheRestApi)
         appbuilder.add_api(ChartRestApi)
+        appbuilder.add_api(ChartDataRestApi)
         appbuilder.add_api(CssTemplateRestApi)
         appbuilder.add_api(DashboardRestApi)
         appbuilder.add_api(DatabaseRestApi)
@@ -210,6 +213,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ReportScheduleRestApi)
         appbuilder.add_api(ReportExecutionLogRestApi)
         appbuilder.add_api(FilterSetRestApi)
+        appbuilder.add_api(DashboardFilterStateRestApi)
         #
         # Setup regular views
         #
@@ -267,7 +271,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view(
             RowLevelSecurityFiltersModelView,
             "Row Level Security",
-            label=__("Row level security"),
+            label=__("Row Level Security"),
             category="Security",
             category_label=__("Security"),
             icon="fa-lock",
@@ -376,7 +380,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         appbuilder.add_link(
             "Upload a Columnar file",
-            label=__("Upload a Columnar file"),
+            label=__("Upload a Columnar File"),
             href="/columnartodatabaseview/form",
             icon="fa-upload",
             category="Data",
