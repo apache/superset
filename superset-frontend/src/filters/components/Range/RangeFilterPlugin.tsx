@@ -48,7 +48,7 @@ const StyledMinSlider = styled(Slider)<{
   }
 
   .ant-slider-track {
-    background-color: ${LIGHT_GRAY} !important;
+    background-color: ${LIGHT_GRAY};
   }
 
   &:hover {
@@ -59,7 +59,7 @@ const StyledMinSlider = styled(Slider)<{
     }
 
     .ant-slider-track {
-      background-color: ${DARK_GRAY} !important;
+      background-color: ${DARK_GRAY};
     }
   }
   `}
