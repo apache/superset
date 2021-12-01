@@ -59,7 +59,7 @@ export default function transformProps(chartProps: BigNumberTotalChartProps) {
 
   const headerFormatter =
     coltypes[0] === GenericDataType.TEMPORAL ||
-    GenericDataType.STRING ||
+    coltypes[0] === GenericDataType.STRING ||
     forceTimestampFormatting
       ? formatTime
       : getNumberFormatter(yAxisFormat ?? metricEntry?.d3format ?? undefined);
