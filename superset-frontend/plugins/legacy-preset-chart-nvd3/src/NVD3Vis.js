@@ -673,7 +673,7 @@ function nvd3Vis(element, props) {
       chart.color(d => d.color || colorFn(cleanColorInput(d[colorKey])));
     }
 
-    if (isVizTypes(['line', 'area']) && useRichTooltip) {
+    if (isVizTypes(['line', 'area', 'dist_bar']) && useRichTooltip) {
       chart.useInteractiveGuideline(true);
       if (vizType === 'line') {
         chart.interactiveLayer.tooltip.contentGenerator(d =>
@@ -682,6 +682,10 @@ function nvd3Vis(element, props) {
             smartDateVerboseFormatter,
             yAxisFormatter,
           ),
+        );
+      } else if (vizType === 'dist_bar') {
+        chart.interactiveLayer.tooltip.contentGenerator(d =>
+          generateCompareTooltipContent(d, yAxisFormatter),
         );
       } else {
         // area chart
