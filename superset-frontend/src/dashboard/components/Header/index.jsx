@@ -492,6 +492,25 @@ class Header extends React.PureComponent {
       dashboardInfo.common.conf
         .SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE;
 
+    const handleOnPropertiesChange = updates => {
+      const { dashboardInfoChanged, dashboardTitleChanged } = this.props;
+      dashboardInfoChanged({
+        slug: updates.slug,
+        metadata: JSON.parse(updates.jsonMetadata || '{}'),
+        certified_by: updates.certifiedBy,
+        certification_details: updates.certificationDetails,
+        owners: updates.owners,
+        roles: updates.roles,
+      });
+      setColorSchemeAndUnsavedChanges(updates.colorScheme);
+      dashboardTitleChanged(updates.title);
+      window.history.pushState(
+        { event: 'dashboard_properties_changed' },
+        '',
+        `/superset/dashboard/${dashboardInfo.id}/`,
+      );
+    };
+
     return (
       <StyledDashboardHeader
         className="dashboard-header"
@@ -615,30 +634,12 @@ class Header extends React.PureComponent {
 
           <PropertiesModal
             dashboardId={dashboardInfo.id}
+            dashboardInfo={dashboardInfo}
             dashboardTitle={dashboardTitle}
-            dashboardMetadata={dashboardInfo.metadata}
             show={this.state.showingPropertiesModal}
             onHide={this.hidePropertiesModal}
             colorScheme={this.props.colorScheme}
-            onSubmit={updates => {
-              const { dashboardInfoChanged, dashboardTitleChanged } =
-                this.props;
-              dashboardInfoChanged({
-                slug: updates.slug,
-                metadata: JSON.parse(updates.jsonMetadata || '{}'),
-                certified_by: updates.certifiedBy,
-                certification_details: updates.certificationDetails,
-                owners: updates.ownerIds,
-                roles: updates.rolesIds,
-              });
-              setColorSchemeAndUnsavedChanges(updates.colorScheme);
-              dashboardTitleChanged(updates.title);
-              window.history.pushState(
-                { event: 'dashboard_properties_changed' },
-                '',
-                `/superset/dashboard/${updates.slug || dashboardInfo.id}/`,
-              );
-            }}
+            onSubmit={handleOnPropertiesChange}
             onlyApply
           />
 

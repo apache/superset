@@ -254,14 +254,11 @@ export function saveDashboardRequest(data, id, saveType) {
         );
         dispatch(setChartConfiguration(chartConfiguration));
       }
-      // making sure the state is updated with the latest data
-      if (updatedDashboard) {
+      // synching with the backend transformations of the metadata
+      if (updatedDashboard.json_metadata) {
         dispatch(
           dashboardInfoChanged({
-            ...updatedDashboard,
-            ...(updatedDashboard.json_metadata
-              ? { metadata: JSON.parse(updatedDashboard.json_metadata) }
-              : {}),
+            metadata: JSON.parse(updatedDashboard.json_metadata),
           }),
         );
       }
@@ -316,7 +313,7 @@ export function saveDashboardRequest(data, id, saveType) {
     }
     const finalCopyData = {
       ...copyData,
-      // the endpoint is expecting this flat
+      // the endpoint is expecting the metadata to be flat
       ...(cleanedData?.metadata || {}),
     };
     return SupersetClient.post({

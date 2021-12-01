@@ -18,6 +18,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Form, Row, Col, Input } from 'src/common/components';
+import { FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
 import Button from 'src/components/Button';
 import { Select } from 'src/components';
@@ -36,9 +37,6 @@ import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeContr
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
-import { SelectValue } from 'antd/lib/select';
-
-const FormItem = Form.Item;
 
 const StyledFormItem = styled(FormItem)`
   margin-bottom: 0;
@@ -52,7 +50,7 @@ const StyledJsonEditor = styled(JsonEditor)`
 type PropertiesModalProps = {
   dashboardId: number;
   dashboardTitle?: string;
-  dashboardMetadata?: Record<string, any>;
+  dashboardInfo?: Record<string, any>;
   show?: boolean;
   onHide?: () => void;
   colorScheme?: string;
@@ -62,11 +60,19 @@ type PropertiesModalProps = {
   onlyApply?: boolean;
 };
 
+type Roles = { id: number; name: string }[];
+type Owners = {
+  id: number;
+  full_name?: string;
+  first_name?: string;
+  last_name?: string;
+}[];
+
 const PropertiesModal = ({
   addSuccessToast,
   colorScheme: currentColorScheme,
   dashboardId,
-  dashboardMetadata,
+  dashboardInfo: currentDashboardInfo,
   dashboardTitle,
   onHide = () => {},
   onlyApply = false,
@@ -74,19 +80,19 @@ const PropertiesModal = ({
   show = false,
 }: PropertiesModalProps) => {
   const [form] = Form.useForm();
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [colorScheme, setColorScheme] = useState(currentColorScheme);
   const [jsonMetadata, setJsonMetadata] = useState('');
   const [dashboardInfo, setDashboardInfo] = useState({
     id: dashboardId,
     title: dashboardTitle || '',
-    slug: '',
-    certifiedBy: '',
-    certificationDetails: '',
+    slug: currentDashboardInfo?.slug || '',
+    certifiedBy: currentDashboardInfo?.certifiedBy || '',
+    certificationDetails: currentDashboardInfo?.certificationDetails || '',
   });
-  const [owners, setOwners] = useState<SelectValue | null>(null);
-  const [roles, setRoles] = useState<SelectValue | null>(null);
+  const [owners, setOwners] = useState<Owners>([]);
+  const [roles, setRoles] = useState<Roles>([]);
   const saveLabel = onlyApply ? t('Apply') : t('Save');
 
   const handleErrorResponse = async (response: Response) => {
@@ -132,6 +138,36 @@ const PropertiesModal = ({
     [],
   );
 
+  const handleDashboardData = useCallback(
+    dashboardData => {
+      const {
+        id,
+        dashboard_title,
+        slug,
+        certified_by,
+        certification_details,
+        owners,
+        roles,
+        metadata,
+      } = dashboardData;
+      const dashboardInfo = {
+        id,
+        title: dashboard_title,
+        slug,
+        certifiedBy: certified_by,
+        certificationDetails: certification_details,
+      };
+
+      form.setFieldsValue(dashboardInfo);
+      setDashboardInfo(dashboardInfo);
+      setJsonMetadata(metadata ? jsonStringify(metadata) : '');
+      setOwners(owners);
+      setRoles(roles);
+      setColorScheme(metadata.color_scheme);
+    },
+    [form],
+  );
+
   const fetchDashboardDetails = useCallback(() => {
     setIsLoading(true);
     // We fetch the dashboard details because not all code
@@ -145,37 +181,15 @@ const PropertiesModal = ({
       const jsonMetadataObj = dashboard.json_metadata?.length
         ? JSON.parse(dashboard.json_metadata)
         : {};
-      const initialSelectedOwners = dashboard.owners.map(
-        (owner: { id: number; first_name: string; last_name: string }) => ({
-          value: owner.id,
-          label: `${owner.first_name} ${owner.last_name}`,
-        }),
-      );
-      const initialSelectedRoles = dashboard.roles.map(
-        (role: { id: number; name: string }) => ({
-          value: role.id,
-          label: `${role.name}`,
-        }),
-      );
-      const fetchedInfo = {
-        id: dashboardId,
-        title: dashboard.dashboard_title || '',
-        slug: dashboard.slug || '',
-        certifiedBy: dashboard.certified_by || '',
-        certificationDetails: dashboard.certification_details || '',
-      };
 
-      form.setFieldsValue(fetchedInfo);
-      setDashboardInfo(fetchedInfo);
-      setOwners(initialSelectedOwners);
-      setRoles(initialSelectedRoles);
-      setJsonMetadata(
-        dashboard.json_metadata ? jsonStringify(jsonMetadataObj) : '',
-      );
-      setColorScheme(jsonMetadataObj.color_scheme);
+      handleDashboardData({
+        ...dashboard,
+        metadata: jsonMetadataObj,
+      });
+
       setIsLoading(false);
     }, handleErrorResponse);
-  }, [dashboardId, form]);
+  }, [dashboardId, handleDashboardData]);
 
   const getJsonMetadata = () => {
     try {
@@ -186,6 +200,53 @@ const PropertiesModal = ({
     } catch (_) {
       return {};
     }
+  };
+
+  const handleOnChangeOwners = (owners: { value: number; label: string }[]) => {
+    let parsedOwners: Owners = [];
+    if (owners && owners.length) {
+      parsedOwners = owners.map(o => ({
+        id: o.value,
+        full_name: o.label,
+      }));
+    }
+    setOwners(parsedOwners);
+  };
+
+  const handleOnChangeRoles = (roles: { value: number; label: string }[]) => {
+    let parsedRoles: Roles = [];
+    if (roles && roles.length) {
+      parsedRoles = roles.map(r => ({
+        id: r.value,
+        name: r.label,
+      }));
+    }
+    setRoles(parsedRoles);
+  };
+
+  const handleOwnersSelectValue = () => {
+    const parsedOwners = (owners || []).map(
+      (owner: {
+        id: number;
+        first_name?: string;
+        last_name?: string;
+        full_name?: string;
+      }) => ({
+        value: owner.id,
+        label: owner.full_name || `${owner.first_name} ${owner.last_name}`,
+      }),
+    );
+    return parsedOwners;
+  };
+
+  const handleRolesSelectValue = () => {
+    const parsedRoles = (roles || []).map(
+      (role: { id: number; name: string }) => ({
+        value: role.id,
+        label: `${role.name}`,
+      }),
+    );
+    return parsedRoles;
   };
 
   const onColorSchemeChange = (
@@ -221,22 +282,6 @@ const PropertiesModal = ({
       form.getFieldsValue();
     let currentColorScheme = colorScheme;
     let colorNamespace = '';
-    const ownersIds = Array.isArray(owners)
-      ? (
-          owners as {
-            value: number;
-            label: string;
-          }[]
-        ).map(o => o.value)
-      : [];
-    const rolesIds = Array.isArray(roles)
-      ? (
-          roles as {
-            value: number;
-            label: string;
-          }[]
-        ).map(r => r.value)
-      : [];
 
     // color scheme in json metadata has precedence over selection
     if (jsonMetadata?.length) {
@@ -249,25 +294,26 @@ const PropertiesModal = ({
       updateMetadata: false,
     });
 
-    const moreProps: Record<string, number[]> = {};
-    const morePutProps: Record<string, number[]> = {};
+    const moreOnSubmitProps: { roles?: Roles } = {};
+    const morePutProps: { roles?: number[] } = {};
     if (isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC)) {
-      moreProps.rolesIds = rolesIds;
-      morePutProps.roles = rolesIds;
+      moreOnSubmitProps.roles = roles;
+      morePutProps.roles = (roles || []).map(r => r.id);
     }
+    const onSubmitProps = {
+      id: dashboardId,
+      title,
+      slug,
+      jsonMetadata,
+      owners,
+      colorScheme: currentColorScheme,
+      colorNamespace,
+      certifiedBy,
+      certificationDetails,
+      ...moreOnSubmitProps,
+    };
     if (onlyApply) {
-      onSubmit({
-        id: dashboardId,
-        title,
-        slug,
-        jsonMetadata,
-        ownerIds: ownersIds,
-        colorScheme: currentColorScheme,
-        colorNamespace,
-        certifiedBy,
-        certificationDetails,
-        ...moreProps,
-      });
+      onSubmit(onSubmitProps);
       onHide();
     } else {
       SupersetClient.put({
@@ -277,30 +323,15 @@ const PropertiesModal = ({
           dashboard_title: title,
           slug: slug || null,
           json_metadata: jsonMetadata || null,
-          owners: ownersIds,
+          owners: (owners || []).map(o => o.id),
           certified_by: certifiedBy || null,
           certification_details:
             certifiedBy && certificationDetails ? certificationDetails : null,
           ...morePutProps,
         }),
-      }).then(({ json: { result } }) => {
-        const moreResultProps: Record<string, []> = {};
-        if (isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC)) {
-          moreResultProps.rolesIds = result.roles;
-        }
+      }).then(() => {
         addSuccessToast(t('The dashboard has been saved'));
-        onSubmit({
-          id: dashboardId,
-          title: result.dashboard_title,
-          slug: result.slug,
-          jsonMetadata: result.json_metadata,
-          ownerIds: result.owners,
-          colorScheme: currentColorScheme,
-          colorNamespace,
-          certifiedBy: result.certified_by,
-          certificationDetails: result.certification_details,
-          ...moreResultProps,
-        });
+        onSubmit(onSubmitProps);
         onHide();
       }, handleErrorResponse);
     }
@@ -316,24 +347,24 @@ const PropertiesModal = ({
       <Row gutter={16}>
         <Col xs={24} md={12}>
           <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
-          <FormItem label={t('Owners')} name="owners">
+          <StyledFormItem label={t('Owners')}>
             <Select
               allowClear
               ariaLabel={t('Owners')}
               disabled={isLoading}
               mode="multiple"
-              onChange={setOwners}
+              onChange={handleOnChangeOwners}
               options={(input, page, pageSize) =>
                 loadAccessOptions('owners', input, page, pageSize)
               }
-              value={owners || []}
+              value={handleOwnersSelectValue()}
             />
-            <p className="help-block">
-              {t(
-                'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
-              )}
-            </p>
-          </FormItem>
+          </StyledFormItem>
+          <p className="help-block">
+            {t(
+              'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
+            )}
+          </p>
         </Col>
         <Col xs={24} md={12}>
           <h3 style={{ marginTop: '1em' }}>{t('Colors')}</h3>
@@ -363,44 +394,44 @@ const PropertiesModal = ({
         </Row>
         <Row gutter={16}>
           <Col xs={24} md={12}>
-            <FormItem label={t('Owners')} name="owners">
+            <StyledFormItem label={t('Owners')}>
               <Select
                 allowClear
                 ariaLabel={t('Owners')}
                 disabled={isLoading}
                 mode="multiple"
-                onChange={setOwners}
+                onChange={handleOnChangeOwners}
                 options={(input, page, pageSize) =>
                   loadAccessOptions('owners', input, page, pageSize)
                 }
-                value={owners || []}
+                value={handleOwnersSelectValue()}
               />
-              <p className="help-block">
-                {t(
-                  'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
-                )}
-              </p>
-            </FormItem>
+            </StyledFormItem>
+            <p className="help-block">
+              {t(
+                'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
+              )}
+            </p>
           </Col>
           <Col xs={24} md={12}>
-            <FormItem label={t('Roles')} name="roles">
+            <StyledFormItem label={t('Roles')}>
               <Select
                 allowClear
                 ariaLabel={t('Roles')}
                 disabled={isLoading}
                 mode="multiple"
-                onChange={setRoles}
+                onChange={handleOnChangeRoles}
                 options={(input, page, pageSize) =>
                   loadAccessOptions('roles', input, page, pageSize)
                 }
-                value={roles || []}
+                value={handleRolesSelectValue()}
               />
-              <p className="help-block">
-                {t(
-                  'Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles defined then the dashboard is available to all roles.',
-                )}
-              </p>
-            </FormItem>
+            </StyledFormItem>
+            <p className="help-block">
+              {t(
+                'Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles defined then the dashboard is available to all roles.',
+              )}
+            </p>
           </Col>
         </Row>
         <Row>
@@ -418,9 +449,13 @@ const PropertiesModal = ({
   };
 
   useEffect(() => {
-    fetchDashboardDetails();
+    if (!currentDashboardInfo) {
+      fetchDashboardDetails();
+    } else {
+      handleDashboardData(currentDashboardInfo);
+    }
     JsonEditor.preload();
-  }, [fetchDashboardDetails]);
+  }, [currentDashboardInfo, handleDashboardData, fetchDashboardDetails]);
 
   useEffect(() => {
     // the title can be changed inline in the dashboard, this catches it
@@ -431,13 +466,6 @@ const PropertiesModal = ({
       });
     }
   }, [dashboardInfo, dashboardTitle, form]);
-
-  useEffect(() => {
-    // the metadata can be changed in several other places in the dashboard, this catches them
-    if (dashboardMetadata) {
-      setJsonMetadata(jsonStringify(dashboardMetadata));
-    }
-  }, [dashboardMetadata]);
 
   return (
     <Modal
@@ -543,23 +571,25 @@ const PropertiesModal = ({
               </Button>
             </h3>
             {isAdvancedOpen && (
-              <FormItem label={t('JSON metadata')}>
-                <StyledJsonEditor
-                  showLoadingForImport
-                  name="json_metadata"
-                  value={jsonMetadata}
-                  onChange={setJsonMetadata}
-                  tabSize={2}
-                  width="100%"
-                  height="200px"
-                  wrapEnabled
-                />
+              <>
+                <StyledFormItem label={t('JSON metadata')}>
+                  <StyledJsonEditor
+                    showLoadingForImport
+                    name="json_metadata"
+                    value={jsonMetadata}
+                    onChange={setJsonMetadata}
+                    tabSize={2}
+                    width="100%"
+                    height="200px"
+                    wrapEnabled
+                  />
+                </StyledFormItem>
                 <p className="help-block">
                   {t(
                     'This JSON object is generated dynamically when clicking the save or overwrite button in the dashboard view. It is exposed here for reference and for power users who may want to alter specific parameters.',
                   )}
                 </p>
-              </FormItem>
+              </>
             )}
           </Col>
         </Row>
