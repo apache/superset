@@ -38,11 +38,13 @@ assists people when migrating to a new version.
 - [17539](https://github.com/apache/superset/pull/17539): all Superset CLI commands
   (init, load_examples and etc) require setting the FLASK_APP environment variable
   (which is set by default when .flaskenv is loaded)
+
 ### Deprecations
 
 ### Other
 
 - [16809](https://github.com/apache/incubator-superset/pull/16809): When building the superset frontend assets manually, you should now use Node 16 (previously Node 14 was required/recommended). Node 14 will most likely still work for at least some time, but is no longer actively tested for on CI.
+- [17536](https://github.com/apache/superset/pull/17536): introduced a key-value endpoint to store dashboard filter state. This endpoint is backed by Flask-Caching and the default configuration assumes that the values will be stored in the file system. If you are already using another cache backend like Redis or Memchached, you'll probably want to change this setting in `superset_config.py`. The key is `FILTER_STATE_CACHE_CONFIG` and the available settings can be found in Flask-Caching [docs](https://flask-caching.readthedocs.io/en/latest/).
 
 ## 1.3.0
 
