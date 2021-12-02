@@ -258,9 +258,11 @@ def validate_sqlatable(table: models.SqlaTable) -> None:
 
 
 def create_table_permissions(table: models.SqlaTable) -> None:
-    security_manager.add_permission_view_menu("datasource_access", table.get_perm())
+    security_manager.add_permission_view_menu(
+        "datasource_access", table.get_perm())
     if table.schema:
-        security_manager.add_permission_view_menu("schema_access", table.schema_perm)
+        security_manager.add_permission_view_menu(
+            "schema_access", table.schema_perm)
 
 
 def get_user_roles() -> List[Role]:
@@ -373,7 +375,8 @@ def common_bootstrap_payload() -> Dict[str, Any]:
         "theme_overrides": conf["THEME_OVERRIDES"],
         "menu_data": menu_data(),
     }
-    bootstrap_data.update(conf["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
+    bootstrap_data.update(
+        conf["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
     return bootstrap_data
 
 
@@ -545,7 +548,8 @@ class YamlExportMixin:  # pylint: disable=too-few-public-methods
         data = [t.export_to_dict() for t in items]
 
         return Response(
-            yaml.safe_dump({self.yaml_dict_key: data} if self.yaml_dict_key else data),
+            yaml.safe_dump({self.yaml_dict_key: data}
+                           if self.yaml_dict_key else data),
             headers=generate_download_headers("yaml"),
             mimetype="application/text",
         )
@@ -612,7 +616,8 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: Query, value: Any) -> Query:
         if security_manager.can_access_all_datasources():
             return query
-        datasource_perms = security_manager.user_view_menu_names("datasource_access")
+        datasource_perms = security_manager.user_view_menu_names(
+            "datasource_access")
         schema_perms = security_manager.user_view_menu_names("schema_access")
         return query.filter(
             or_(
