@@ -154,9 +154,9 @@ const PropertiesModal = ({
       const dashboardInfo = {
         id,
         title: dashboard_title,
-        slug,
-        certifiedBy: certified_by,
-        certificationDetails: certification_details,
+        slug: slug || '',
+        certifiedBy: certified_by || '',
+        certificationDetails: certification_details || '',
       };
 
       form.setFieldsValue(dashboardInfo);
@@ -450,13 +450,16 @@ const PropertiesModal = ({
   };
 
   useEffect(() => {
-    if (!currentDashboardInfo) {
-      fetchDashboardDetails();
-    } else {
-      handleDashboardData(currentDashboardInfo);
+    if (show) {
+      if (!currentDashboardInfo) {
+        fetchDashboardDetails();
+      } else {
+        handleDashboardData(currentDashboardInfo);
+      }
     }
+
     JsonEditor.preload();
-  }, [currentDashboardInfo, handleDashboardData, fetchDashboardDetails]);
+  }, [currentDashboardInfo, fetchDashboardDetails, handleDashboardData, show]);
 
   useEffect(() => {
     // the title can be changed inline in the dashboard, this catches it

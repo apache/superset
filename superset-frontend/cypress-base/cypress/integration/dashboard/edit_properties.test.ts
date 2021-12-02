@@ -97,10 +97,6 @@ describe('Dashboard edit action', () => {
       .get('[data-test="dashboard-title-input"]')
       .type(`{selectall}{backspace}${dashboardTitle}`);
 
-    cy.wait('@dashboardGet').then(() => {
-      selectColorScheme('d3Category20b');
-    });
-
     // save edit changes
     cy.get('.ant-modal-footer')
       .contains('Save')
