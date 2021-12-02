@@ -1238,7 +1238,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         token = jwt.encode(claims, secret, algorithm="HS256")
         return token
 
-    def get_guest_user(self, req: Request):  # pylint: disable=unused-argument
+    def get_guest_user(self, req: Request):
         """
         If there is a guest token in the request (used for embedded),
         parses the token and returns the guest user.
@@ -1258,14 +1258,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             user.get("first_name", "Guest"),
             user.get("last_name", "User"),
         )
-
-    def raise_for_invalid_guest_token(self, token: GuestToken):
-        ...
-        # grab the token from the GUEST_TOKEN_COOKIE_NAME cookie
-        # check token age
-
-    def can_access_by_guest_token(self):
-        ...
 
 
 class GuestUser(AnonymousUserMixin):
