@@ -1970,7 +1970,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             ),
         )
 
-    
     @expose("/dashboard/<dashboard_id_or_slug>/embedded")
     @event_logger.log_this_with_extra_payload
     def embedded(
@@ -1985,8 +1984,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             default value to appease pylint
         """
         add_extra_log_payload(
-            dashboard_id=dashboard_id_or_slug,
-            dashboard_version="v2",
+            dashboard_id=dashboard_id_or_slug, dashboard_version="v2",
         )
 
         bootstrap_data = {
@@ -2000,7 +1998,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
             ),
         )
-
 
     @api
     @has_access
