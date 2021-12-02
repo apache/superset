@@ -18,9 +18,9 @@
  */
 import { fitBounds } from '@math.gl/web-mercator';
 import computeBoundsFromPoints from './computeBoundsFromPoints';
-import { Point } from './types';
+import { Point } from '../types';
 
-type Viewport = {
+export type Viewport = {
   longtitude: number;
   latitude: number;
   zoom: number;
@@ -28,7 +28,7 @@ type Viewport = {
   pitch?: number;
 };
 
-type FitViewportOptions = {
+export type FitViewportOptions = {
   points: Point[];
   width: number;
   height: number;

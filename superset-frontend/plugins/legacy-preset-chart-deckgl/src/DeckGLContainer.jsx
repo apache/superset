@@ -42,6 +42,7 @@ const propTypes = {
   bottomMargin: PropTypes.number,
   width: PropTypes.number.isRequired,
   height: PropTypes.number.isRequired,
+  onViewportChange: PropTypes.func,
 };
 const defaultProps = {
   mapStyle: 'light',
@@ -50,7 +51,7 @@ const defaultProps = {
   bottomMargin: 0,
 };
 
-class DeckGLContainer extends React.Component {
+export class DeckGLContainer extends React.Component {
   constructor(props) {
     super(props);
     this.tick = this.tick.bind(this);

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { extent as d3Extent } from 'd3-array';
-import { Point, Range } from './types';
+import { Point, Range } from '../types';
 
 const LAT_LIMIT: Range = [-90, 90];
 const LNG_LIMIT: Range = [-180, 180];

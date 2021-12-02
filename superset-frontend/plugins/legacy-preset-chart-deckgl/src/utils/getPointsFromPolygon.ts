@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Point } from './types';
+import { Point } from '../types';
 
 /** Format originally used by the Polygon plugin */
 type CustomPolygonFeature = {
