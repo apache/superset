@@ -38,6 +38,7 @@ const memoizedControls = memoize((vizType, controlPanel) => {
       });
     });
   });
+  console.log(controlsMap);
   return controlsMap;
 });
 

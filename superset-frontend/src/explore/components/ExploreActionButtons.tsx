@@ -16,17 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import cx from 'classnames';
-import { t } from '@superset-ui/core';
+import {t} from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-import { Tooltip } from 'src/components/Tooltip';
+import {Tooltip} from 'src/components/Tooltip';
 import copyTextToClipboard from 'src/utils/copy';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { useUrlShortener } from 'src/common/hooks/useUrlShortener';
+import {useUrlShortener} from 'src/common/hooks/useUrlShortener';
 import EmbedCodeButton from './EmbedCodeButton';
-import { exportChart, getExploreLongUrl } from '../exploreUtils';
+import {exportChart, getExploreLongUrl} from '../exploreUtils';
 import ExploreAdditionalActionsMenu from './ExploreAdditionalActionsMenu';
+// @ts-ignore
+import exportTableToExcel from 'src/dashboard/actions/exportTable';
 
 type ActionButtonProps = {
   icon: React.ReactElement;
@@ -71,14 +73,14 @@ const ActionButton = (props: ActionButtonProps) => {
         css={{
           display: 'flex',
           alignItems: 'center',
-          '&:focus, &:focus:active': { outline: 0 },
+          '&:focus, &:focus:active': {outline: 0},
         }}
         className={className || 'btn btn-default btn-sm'}
-        style={{ height: 30 }}
+        style={{height: 30}}
         {...rest}
       >
         {icon}
-        {text && <span style={{ marginLeft: 5 }}>{text}</span>}
+        {text && <span style={{marginLeft: 5}}>{text}</span>}
       </div>
     </Tooltip>
   );
@@ -93,6 +95,8 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
     slice,
     addDangerToast,
   } = props;
+
+  console.log(props);
 
   const copyTooltipText = t('Copy chart URL to clipboard');
   const [copyTooltip, setCopyTooltip] = useState(copyTooltipText);
@@ -123,10 +127,10 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
 
   const doExportCSV = canDownloadCSV
     ? exportChart.bind(this, {
-        formData: latestQueryFormData,
-        resultType: 'results',
-        resultFormat: 'csv',
-      })
+      formData: latestQueryFormData,
+      resultType: 'results',
+      resultFormat: 'xlsx',
+    })
     : null;
 
   const doExportJson = exportChart.bind(this, {
@@ -139,6 +143,11 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
     disabled: !canDownloadCSV,
   });
 
+  const OKToExportInCurrentView = ['pivot_table_v2', 'table', 'time_table'].includes(latestQueryFormData.viz_type)
+  const exportCurrentViewClasses = cx('btn btn-default btn-sm', {
+    disabled: !OKToExportInCurrentView,
+  });
+
   return (
     <div
       className="btn-group results"
@@ -148,7 +157,7 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
       {latestQueryFormData && (
         <>
           <ActionButton
-            icon={<Icons.Link iconSize="l" />}
+            icon={<Icons.Link iconSize="l"/>}
             tooltip={copyTooltip}
             onClick={doCopyLink}
             data-test="short-link-button"
@@ -157,23 +166,41 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
             }
           />
           <ActionButton
-            icon={<Icons.Email iconSize="l" />}
+            icon={<Icons.Email iconSize="l"/>}
             tooltip={t('Share chart by email')}
             onClick={doShareEmail}
           />
-          <EmbedCodeButton latestQueryFormData={latestQueryFormData} />
+          <EmbedCodeButton latestQueryFormData={latestQueryFormData}/>
           <ActionButton
-            icon={<Icons.FileTextOutlined iconSize="m" />}
+            icon={<Icons.FileTextOutlined iconSize="m"/>}
             text=".JSON"
             tooltip={t('Export to .JSON format')}
             onClick={doExportJson}
           />
           <ActionButton
-            icon={<Icons.FileExcelOutlined iconSize="m" />}
-            text=".CSV"
-            tooltip={t('Export to .CSV format')}
+            icon={<Icons.FileExcelOutlined iconSize="m"/>}
+            text=".XLSX"
+            tooltip={t('Export to Excel format')}
             onClick={doExportCSV}
             className={exportToCSVClasses}
+          />
+          <ActionButton
+            icon={<Icons.FileExcelOutlined iconSize="m"/>}
+            text="В текущем виде"
+            tooltip={t('Export current')}
+            onClick={() => {
+              if (OKToExportInCurrentView) {
+                const father = document.getElementById(
+                  `chart-id-${latestQueryFormData.slice_id}`,
+                );
+                console.log('father', father);
+                if (father) {
+                  const tables = father.querySelectorAll('table');
+                  exportTableToExcel(tables, `${slice.slice_name}`);
+                }
+              }
+            }}
+            className={exportCurrentViewClasses}
           />
         </>
       )}

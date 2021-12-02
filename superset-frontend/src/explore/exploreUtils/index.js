@@ -264,6 +264,7 @@ export const getLegacyEndpointType = ({ resultType, resultFormat }) =>
   ['csv', 'xlsx'].includes(resultFormat) ? resultFormat : resultType;
 
 export function postForm(url, payload, target = '_blank') {
+  console.log(url, payload);
   if (!url) {
     return;
   }

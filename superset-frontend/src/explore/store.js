@@ -88,6 +88,8 @@ Object.keys(controls).forEach(f => {
   defaultControls[f].value = controls[f].default;
 });
 
+console.log('defcont', defaultControls);
+
 const defaultState = {
   controls: defaultControls,
   form_data: getFormDataFromControls(defaultControls),
