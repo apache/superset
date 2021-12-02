@@ -333,6 +333,7 @@ const row_limit: SharedControlConfig<'SelectControl'> = {
   default: 10000,
   choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
   description: t('Limits the number of rows that get displayed.'),
+  sortByProperty: 'value',
 };
 
 const limit: SharedControlConfig<'SelectControl'> = {
@@ -348,6 +349,7 @@ const limit: SharedControlConfig<'SelectControl'> = {
       'fetched and rendered. This feature is useful when grouping by high cardinality ' +
       'column(s) though does increase the query complexity and cost.',
   ),
+  sortByProperty: 'value',
 };
 
 const series_limit: SharedControlConfig<'SelectControl'> = {
@@ -362,6 +364,7 @@ const series_limit: SharedControlConfig<'SelectControl'> = {
       'fetched and rendered. This feature is useful when grouping by high cardinality ' +
       'column(s) though does increase the query complexity and cost.',
   ),
+  sortByProperty: 'value',
 };
 
 const sort_by: SharedControlConfig<'MetricsControl'> = {

@@ -38,7 +38,7 @@ import { Switch } from 'src/components/Switch';
 import Modal from 'src/components/Modal';
 import TimezoneSelector from 'src/components/TimezoneSelector';
 import { Radio } from 'src/components/Radio';
-import Select, { propertyComparator } from 'src/components/Select/Select';
+import Select from 'src/components/Select/Select';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';
@@ -1177,7 +1177,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                         currentAlert?.validator_config_json?.op || undefined
                       }
                       options={CONDITIONS}
-                      sortComparator={propertyComparator('order')}
+                      sortByProperty="order"
                     />
                   </div>
                 </StyledInputContainer>
@@ -1249,7 +1249,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       : DEFAULT_RETENTION
                   }
                   options={RETENTION_OPTIONS}
-                  sortComparator={propertyComparator('value')}
+                  sortByProperty="value"
                 />
               </div>
             </StyledInputContainer>

@@ -40,7 +40,7 @@ import Label, { Type } from 'src/components/Label';
 import Popover from 'src/components/Popover';
 import { Divider } from 'src/common/components';
 import Icons from 'src/components/Icons';
-import Select, { propertyComparator } from 'src/components/Select/Select';
+import Select from 'src/components/Select/Select';
 import { Tooltip } from 'src/components/Tooltip';
 import { DEFAULT_TIME_RANGE } from 'src/explore/constants';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
@@ -295,7 +295,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         options={FRAME_OPTIONS}
         value={frame}
         onChange={onChangeFrame}
-        sortComparator={propertyComparator('order')}
+        sortByProperty="order"
       />
       {frame !== 'No filter' && <Divider />}
       {frame === 'Common' && (

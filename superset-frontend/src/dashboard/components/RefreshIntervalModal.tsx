@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { RefObject } from 'react';
-import Select, { propertyComparator } from 'src/components/Select/Select';
+import Select from 'src/components/Select/Select';
 import { t, styled } from '@superset-ui/core';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
@@ -120,7 +120,7 @@ class RefreshIntervalModal extends React.PureComponent<
               options={options}
               value={refreshFrequency}
               onChange={this.handleFrequencyChange}
-              sortComparator={propertyComparator('value')}
+              sortByProperty="value"
             />
             {showRefreshWarning && (
               <RefreshWarningContainer>

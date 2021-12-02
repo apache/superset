@@ -157,6 +157,7 @@ export interface SelectProps extends PickedSelectProps {
    * Works in async mode only (See the options property).
    */
   onError?: (error: string) => void;
+  sortByProperty?: string;
   sortComparator?: (a: AntdLabeledValue, b: AntdLabeledValue) => number;
 }
 
@@ -232,15 +233,19 @@ const Error = ({ error }: { error: string }) => (
   </StyledError>
 );
 
-const defaultSortComparator = (a: AntdLabeledValue, b: AntdLabeledValue) => {
-  if (typeof a.label === 'string' && typeof b.label === 'string') {
-    return a.label.localeCompare(b.label);
-  }
-  if (typeof a.value === 'string' && typeof b.value === 'string') {
-    return a.value.localeCompare(b.value);
-  }
-  return (a.value as number) - (b.value as number);
-};
+// Not sure if this is necessary anymore? Seems like all options being
+// passed in are being formatted to have a string label
+// -----------------------------------------
+// const defaultSortComparator = (a: AntdLabeledValue, b: AntdLabeledValue) => {
+//   if (typeof a.label === 'string' && typeof b.label === 'string') {
+//     return a.label.localeCompare(b.label);
+//   }
+//   if (typeof a.value === 'string' && typeof b.value === 'string') {
+//     return a.value.localeCompare(b.value);
+//   }
+//   return (a.value as number) - (b.value as number);
+// };
+// -----------------------------------------
 
 /**
  * It creates a comparator to check for a specific property.
@@ -289,7 +294,8 @@ const Select = ({
   pageSize = DEFAULT_PAGE_SIZE,
   placeholder = t('Select ...'),
   showSearch = true,
-  sortComparator = defaultSortComparator,
+  sortByProperty = 'label',
+  sortComparator = propertyComparator(sortByProperty),
   value,
   ...props
 }: SelectProps) => {
@@ -328,7 +334,6 @@ const Select = ({
         const isLabeledValue = isAsync || labelInValue;
         const topOptions: OptionsType = [];
         const otherOptions: OptionsType = [];
-
         selectOptions.forEach(opt => {
           let found = false;
           if (Array.isArray(selectedValue)) {
