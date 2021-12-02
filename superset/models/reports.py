@@ -146,7 +146,7 @@ class ReportSchedule(Model, AuditMixinNullable):
     working_timeout = Column(Integer, default=60 * 60 * 1)
 
     # Store the selected dashboard tabs
-    selected_components = Column(Text, nullable=True,)
+    extra_config = Column(Text, nullable=False, default="{}")
 
     def __repr__(self) -> str:
         return str(self.name)
