@@ -269,8 +269,8 @@ const config: ControlPanelConfig = {
                   <div>{t('Change order of columns.')}</div>
                   <div>{t('Available sorting modes:')}</div>
                   <ul>
-                    <li>{t('By key: use columns names as sorting key')}</li>
-                    <li>{t('By value: use metrics values as sorting key')}</li>
+                    <li>{t('By key: use column names as sorting key')}</li>
+                    <li>{t('By value: use metric values as sorting key')}</li>
                   </ul>
                 </React.Fragment>
               ),
