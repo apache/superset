@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
 import {
   QueryFormMetric,
   smartDateFormatter,
@@ -225,7 +226,7 @@ const config: ControlPanelConfig = {
             name: 'rowOrder',
             config: {
               type: 'SelectControl',
-              label: t('Rows sort by'),
+              label: t('Sort rows by'),
               default: 'key_a_to_z',
               choices: [
                 // [value, label]
@@ -235,7 +236,16 @@ const config: ControlPanelConfig = {
                 ['value_z_to_a', t('value descending')],
               ],
               renderTrigger: true,
-              description: t('Order of rows'),
+              description: (
+                <React.Fragment>
+                  <div>{t('Change order of rows.')}</div>
+                  <div>{t('Available sorting modes:')}</div>
+                  <ul>
+                    <li>{t('By key: use row names as sorting key')}</li>
+                    <li>{t('By value: use metric values as sorting key')}</li>
+                  </ul>
+                </React.Fragment>
+              ),
             },
           },
         ],
@@ -244,7 +254,7 @@ const config: ControlPanelConfig = {
             name: 'colOrder',
             config: {
               type: 'SelectControl',
-              label: t('Cols sort by'),
+              label: t('Sort columns by'),
               default: 'key_a_to_z',
               choices: [
                 // [value, label]
@@ -254,7 +264,16 @@ const config: ControlPanelConfig = {
                 ['value_z_to_a', t('value descending')],
               ],
               renderTrigger: true,
-              description: t('Order of columns'),
+              description: (
+                <React.Fragment>
+                  <div>{t('Change order of columns.')}</div>
+                  <div>{t('Available sorting modes:')}</div>
+                  <ul>
+                    <li>{t('By key: use column names as sorting key')}</li>
+                    <li>{t('By value: use metric values as sorting key')}</li>
+                  </ul>
+                </React.Fragment>
+              ),
             },
           },
         ],
@@ -280,7 +299,7 @@ const config: ControlPanelConfig = {
             name: 'colSubtotalPosition',
             config: {
               type: 'SelectControl',
-              label: t('Cols subtotal position'),
+              label: t('Columns subtotal position'),
               default: false,
               choices: [
                 // [value, label]
