@@ -24,7 +24,7 @@ import _ from 'lodash';
 import PropTypes from 'prop-types';
 import { SupersetClient } from '@superset-ui/core';
 
-import DeckGLContainer from '../DeckGLContainer';
+import { DeckGLContainerStyledWrapper } from '../DeckGLContainer';
 import { getExploreLongUrl } from '../utils/explore';
 import layerGenerators from '../layers';
 
@@ -126,7 +126,7 @@ class DeckMulti extends React.PureComponent {
     const layers = Object.values(subSlicesLayers);
 
     return (
-      <DeckGLContainer
+      <DeckGLContainerStyledWrapper
         ref={this.containerRef}
         mapboxApiAccessToken={payload.data.mapboxApiKey}
         viewport={this.state.viewport || this.props.viewport}

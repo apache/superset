@@ -23,7 +23,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import DeckGLContainer from './DeckGLContainer';
+import { DeckGLContainerStyledWrapper } from './DeckGLContainer';
 import PlaySlider from './components/PlaySlider';
 
 const PLAYSLIDER_HEIGHT = 20; // px
@@ -86,7 +86,7 @@ export default class AnimatableDeckGLContainer extends React.PureComponent {
 
     return (
       <div>
-        <DeckGLContainer
+        <DeckGLContainerStyledWrapper
           ref={this.containerRef}
           viewport={viewport}
           layers={layers}

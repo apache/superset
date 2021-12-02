@@ -20,7 +20,8 @@ import React from 'react';
 import { isEqual } from 'lodash';
 import { Datasource, QueryFormData, JsonObject } from '@superset-ui/core';
 
-import DeckGLContainerStyledWrapper, {
+import {
+  DeckGLContainerStyledWrapper,
   DeckGLContainer,
 } from './DeckGLContainer';
 import CategoricalDeckGLContainer from './CategoricalDeckGLContainer';

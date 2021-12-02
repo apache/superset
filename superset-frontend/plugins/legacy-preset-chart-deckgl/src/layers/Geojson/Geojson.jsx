@@ -22,7 +22,7 @@ import PropTypes from 'prop-types';
 import { GeoJsonLayer } from 'deck.gl';
 // TODO import geojsonExtent from 'geojson-extent';
 
-import DeckGLContainer from '../../DeckGLContainer';
+import { DeckGLContainerStyledWrapper } from '../../DeckGLContainer';
 import { hexToRGB } from '../../utils/colors';
 import sandboxedEval from '../../utils/sandbox';
 import { commonLayerProps } from '../common';
@@ -162,7 +162,7 @@ class DeckGLGeoJson extends React.Component {
     const layer = getLayer(formData, payload, onAddFilter, this.setTooltip);
 
     return (
-      <DeckGLContainer
+      <DeckGLContainerStyledWrapper
         ref={this.containerRef}
         mapboxApiAccessToken={payload.data.mapboxApiKey}
         viewport={viewport}

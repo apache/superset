@@ -134,7 +134,7 @@ export class DeckGLContainer extends React.Component {
 DeckGLContainer.propTypes = propTypes;
 DeckGLContainer.defaultProps = defaultProps;
 
-export default styled(DeckGLContainer)`
+export const DeckGLContainerStyledWrapper = styled(DeckGLContainer)`
   .deckgl-tooltip > div {
     overflow: hidden;
     text-overflow: ellipsis;
