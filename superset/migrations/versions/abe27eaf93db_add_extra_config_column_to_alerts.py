@@ -16,26 +16,39 @@
 # under the License.
 """add_extra_config_column_to_alerts
 
-Revision ID: f1b7603e1892
+Revision ID: abe27eaf93db
 Revises: aea15018d53b
-Create Date: 2021-12-02 09:03:11.627444
+Create Date: 2021-12-02 12:03:20.691171
 
 """
 
 # revision identifiers, used by Alembic.
-revision = "f1b7603e1892"
+revision = "abe27eaf93db"
 down_revision = "aea15018d53b"
 
 import sqlalchemy as sa
+from sqlalchemy.sql import table, column
+from sqlalchemy import String
+
 from alembic import op
+
+connection = op.get_bind()
+
+report_schedule = table("report_schedule", column("extra", String))
 
 
 def upgrade():
     op.add_column(
         "report_schedule",
-        sa.Column("extra_config", sa.Text(), nullable=False, server_default="{}"),
+        sa.Column(
+            "extra",
+            sa.Text(),
+            nullable=True,
+            default="{}",
+        ),
     )
+    connection.execute(report_schedule.update().values({"extra": "{}"}))
 
 
 def downgrade():
-    op.drop_column("report_schedule", "extra_config")
+    op.drop_column("report_schedule", "extra")
