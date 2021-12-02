@@ -85,7 +85,6 @@ describe('ControlPanelsContainer', () => {
 
   function getDefaultProps() {
     const controls = defaultControls as ControlPanelsContainerProps['controls'];
-    console.log('ControlPanelContainer', controls)
     return {
       datasource_type: DatasourceType.Table,
       actions: {},

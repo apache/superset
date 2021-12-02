@@ -96,8 +96,6 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
     addDangerToast,
   } = props;
 
-  console.log(props);
-
   const copyTooltipText = t('Copy chart URL to clipboard');
   const [copyTooltip, setCopyTooltip] = useState(copyTooltipText);
   const longUrl = getExploreLongUrl(latestQueryFormData);
@@ -193,7 +191,6 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
                 const father = document.getElementById(
                   `chart-id-${latestQueryFormData.slice_id}`,
                 );
-                console.log('father', father);
                 if (father) {
                   const tables = father.querySelectorAll('table');
                   exportTableToExcel(tables, `${slice.slice_name}`);
