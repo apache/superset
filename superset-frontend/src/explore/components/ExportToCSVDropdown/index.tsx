@@ -22,12 +22,12 @@ import Icons from 'src/components/Icons';
 import { Dropdown, Menu } from 'src/common/components';
 
 enum MENU_KEYS {
-  EXPORT_STANDARD = 'export_standard',
+  EXPORT_ORIGINAL = 'export_original',
   EXPORT_PIVOTED = 'export_pivoted',
 }
 
 interface ExportToCSVButtonProps {
-  exportCSVStandard: () => void;
+  exportCSVOriginal: () => void;
   exportCSVPivoted: () => void;
   children: ReactChild;
 }
@@ -44,15 +44,15 @@ const MenuItemContent = styled.div`
 `;
 
 export const ExportToCSVDropdown = ({
-  exportCSVStandard,
+  exportCSVOriginal,
   exportCSVPivoted,
   children,
 }: ExportToCSVButtonProps) => {
   const handleMenuClick = useCallback(
     ({ key }: { key: React.Key }) => {
       switch (key) {
-        case MENU_KEYS.EXPORT_STANDARD:
-          exportCSVStandard();
+        case MENU_KEYS.EXPORT_ORIGINAL:
+          exportCSVOriginal();
           break;
         case MENU_KEYS.EXPORT_PIVOTED:
           exportCSVPivoted();
@@ -61,7 +61,7 @@ export const ExportToCSVDropdown = ({
           break;
       }
     },
-    [exportCSVPivoted, exportCSVStandard],
+    [exportCSVPivoted, exportCSVOriginal],
   );
 
   return (
@@ -69,7 +69,7 @@ export const ExportToCSVDropdown = ({
       trigger={['click']}
       overlay={
         <Menu onClick={handleMenuClick} selectable={false}>
-          <Menu.Item key={MENU_KEYS.EXPORT_STANDARD}>
+          <Menu.Item key={MENU_KEYS.EXPORT_ORIGINAL}>
             <MenuItemContent>
               {t('Original')}
               <Icons.Download />

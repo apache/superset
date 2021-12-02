@@ -50,7 +50,7 @@ type ExploreActionButtonsProps = {
   addDangerToast: Function;
 };
 
-const VIZ_TYPES_PIVOT = ['pivot_table', 'pivot_table_v2'];
+const VIZ_TYPES_PIVOTABLE = ['pivot_table', 'pivot_table_v2'];
 
 const ActionButton = (props: ActionButtonProps) => {
   const {
@@ -153,7 +153,6 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
     disabled: !canDownloadCSV,
   });
 
-  console.log({ latestQueryFormData });
   return (
     <div
       className="btn-group results"
@@ -183,9 +182,9 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
             tooltip={t('Export to .JSON format')}
             onClick={doExportJson}
           />
-          {VIZ_TYPES_PIVOT.includes(latestQueryFormData.viz_type) ? (
+          {VIZ_TYPES_PIVOTABLE.includes(latestQueryFormData.viz_type) ? (
             <ExportToCSVDropdown
-              exportCSVStandard={doExportCSV}
+              exportCSVOriginal={doExportCSV}
               exportCSVPivoted={doExportCSVPivoted}
             >
               <ActionButton
