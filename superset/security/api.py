@@ -123,8 +123,7 @@ class SecurityRestApi(BaseApi):
             # make sure username doesn't reference an existing user
             # check rls rules for validity?
             token = self.appbuilder.sm.create_guest_access_token(
-                body["user"],
-                [body["resource"]]
+                body["user"], [body["resource"]]
             )
             return self.response(200, token=token)
         except ValidationError as error:

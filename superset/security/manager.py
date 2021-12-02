@@ -1222,8 +1222,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     @staticmethod
     def create_guest_access_token(
-        user: GuestTokenUser,
-        resources: List[GuestTokenResource]
+        user: GuestTokenUser, resources: List[GuestTokenResource]
     ) -> bytes:
         secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
         # calculate expiration time
@@ -1248,7 +1247,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         :return: A guest user object
         """
-        raw_token = req.cookies.get(current_app.config['GUEST_TOKEN_COOKIE_NAME'])
+        raw_token = req.cookies.get(current_app.config["GUEST_TOKEN_COOKIE_NAME"])
         if raw_token is None:
             return None
         token = jwt.decode(raw_token, current_app.config["GUEST_TOKEN_JWT_SECRET"])
@@ -1257,7 +1256,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return GuestUser(
             user.get("username", "guest_user"),
             user.get("first_name", "Guest"),
-            user.get("last_name", "User")
+            user.get("last_name", "User"),
         )
 
     def raise_for_invalid_guest_token(self, token: GuestToken):
@@ -1271,6 +1270,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
 class GuestUser(AnonymousUserMixin):
     """ Used as the "anonymous" user in case of guest authentication (embedded) """
+
     def __init__(self, username, first_name, last_name):
         self.username = username
         self.first_name = first_name

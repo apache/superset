@@ -79,25 +79,12 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
 
     def test_post_embed_token_authorized(self):
         self.login(username="admin")
-        user = {
-            "username": "bob",
-            "first_name": "Bob",
-            "last_name": "Also Bob",
-        }
-        resource = {
-            "type": "dashboard",
-            "id": "blah",
-            "rls": "1 = 1"
-        }
-        params = {
-            "user": user,
-            "resource": resource,
-        }
+        user = {"username": "bob", "first_name": "Bob", "last_name": "Also Bob"}
+        resource = {"type": "dashboard", "id": "blah", "rls": "1 = 1"}
+        params = {"user": user, "resource": resource}
 
         response = self.client.post(
-            self.uri,
-            data=json.dumps(params),
-            content_type="application/json",
+            self.uri, data=json.dumps(params), content_type="application/json"
         )
         self.assert200(response)
         token = json.loads(response.data)["token"]

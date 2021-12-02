@@ -969,9 +969,7 @@ class TestSecurityManager(SupersetTestCase):
 
         mock_raise_for_access.side_effect = SupersetSecurityException(
             SupersetError(
-                "dummy",
-                SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
-                ErrorLevel.ERROR,
+                "dummy", SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR, ErrorLevel.ERROR
             )
         )
 
@@ -1320,7 +1318,6 @@ class TestDatasources(SupersetTestCase):
 
 
 class TestGuestTokens(SupersetTestCase):
-
     def test_create_guest_access_token(self):
         user = {"any": "data"}
         resources = [{"some": "resource"}]
