@@ -67,6 +67,13 @@ type Owners = {
   first_name?: string;
   last_name?: string;
 }[];
+type DashboardInfo = {
+  id: number;
+  title: string;
+  slug: string;
+  certifiedBy: string;
+  certificationDetails: string;
+};
 
 const PropertiesModal = ({
   addSuccessToast,
@@ -84,13 +91,7 @@ const PropertiesModal = ({
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [colorScheme, setColorScheme] = useState(currentColorScheme);
   const [jsonMetadata, setJsonMetadata] = useState('');
-  const [dashboardInfo, setDashboardInfo] = useState({
-    id: dashboardId,
-    title: dashboardTitle || '',
-    slug: currentDashboardInfo?.slug || '',
-    certifiedBy: currentDashboardInfo?.certifiedBy || '',
-    certificationDetails: currentDashboardInfo?.certificationDetails || '',
-  });
+  const [dashboardInfo, setDashboardInfo] = useState<DashboardInfo>();
   const [owners, setOwners] = useState<Owners>([]);
   const [roles, setRoles] = useState<Roles>([]);
   const saveLabel = onlyApply ? t('Apply') : t('Save');
@@ -459,7 +460,11 @@ const PropertiesModal = ({
 
   useEffect(() => {
     // the title can be changed inline in the dashboard, this catches it
-    if (dashboardTitle && dashboardInfo.title !== dashboardTitle) {
+    if (
+      dashboardTitle &&
+      dashboardInfo &&
+      dashboardInfo.title !== dashboardTitle
+    ) {
       form.setFieldsValue({
         ...dashboardInfo,
         title: dashboardTitle,

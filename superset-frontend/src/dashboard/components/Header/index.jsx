@@ -340,6 +340,8 @@ class Header extends React.PureComponent {
     const {
       dashboardTitle,
       layout: positions,
+      colorScheme,
+      colorNamespace,
       customCss,
       dashboardInfo,
       refreshFrequency: currentRefreshFrequency,
@@ -364,6 +366,9 @@ class Header extends React.PureComponent {
       slug,
       metadata: {
         ...dashboardInfo?.metadata,
+        color_namespace:
+          dashboardInfo?.metadata?.color_namespace || colorNamespace,
+        color_scheme: dashboardInfo?.metadata?.color_scheme || colorScheme,
         positions,
         refresh_frequency: refreshFrequency,
       },
@@ -501,11 +506,6 @@ class Header extends React.PureComponent {
       });
       setColorSchemeAndUnsavedChanges(updates.colorScheme);
       dashboardTitleChanged(updates.title);
-      window.history.pushState(
-        { event: 'dashboard_properties_changed' },
-        '',
-        `/superset/dashboard/${dashboardInfo.id}/`,
-      );
     };
 
     return (

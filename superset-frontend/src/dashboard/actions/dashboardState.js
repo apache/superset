@@ -279,6 +279,13 @@ export function saveDashboardRequest(data, id, saveType) {
       if (lastModifiedTime) {
         dispatch(saveDashboardRequestSuccess(lastModifiedTime));
       }
+      // redirect to the new slug or id
+      window.history.pushState(
+        { event: 'dashboard_properties_changed' },
+        '',
+        `/superset/dashboard/${slug || id}/`,
+      );
+
       dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
       return response;
     };
