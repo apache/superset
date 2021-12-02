@@ -82,11 +82,15 @@ export const UNTIL_GRAIN_OPTIONS: SelectOptionType[] = GRAIN_OPTIONS.map(
   }),
 );
 
+// TODO: These should be retrieved from the server
+export const DEFAULT_RELATIVE_START_TIME = 'tomorrow';
+export const DEFAULT_RELATIVE_END_TIME = 'tomorrow';
+
 export const SINCE_MODE_OPTIONS: SelectOptionType[] = [
   { value: 'specific', label: t('Specific Date/Time') },
   { value: 'relative', label: t('Relative Date/Time') },
   { value: 'now', label: t('Now') },
-  { value: 'today', label: t('Midnight') },
+  { value: DEFAULT_RELATIVE_END_TIME, label: t('Midnight') },
 ];
 
 export const UNTIL_MODE_OPTIONS: SelectOptionType[] = SINCE_MODE_OPTIONS.slice();
@@ -108,7 +112,8 @@ export const CALENDAR_RANGE_SET: Set<CalendarRangeType> = new Set([
 export const MOMENT_FORMAT = 'YYYY-MM-DD[T]HH:mm:ss';
 export const SEVEN_DAYS_AGO = moment()
   .utc()
+  .add(DEFAULT_RELATIVE_START_TIME == 'tomorrow' ? 1 : 0, 'days')
   .startOf('day')
   .subtract(7, 'days')
   .format(MOMENT_FORMAT);
-export const MIDNIGHT = moment().utc().startOf('day').format(MOMENT_FORMAT);
+export const MIDNIGHT = moment().utc().add(DEFAULT_RELATIVE_END_TIME == 'tomorrow' ? 1 : 0, 'days').startOf('day').format(MOMENT_FORMAT);

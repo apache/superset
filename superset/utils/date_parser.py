@@ -45,6 +45,7 @@ from superset.charts.commands.exceptions import (
     TimeRangeParseFailError,
 )
 from superset.utils.memoized import memoized
+from superset import app
 
 ParserElement.enablePackrat()
 
@@ -170,9 +171,13 @@ def get_since_until(
         - Next X seconds/minutes/hours/days/weeks/months/years
 
     """
+    config = app.config
+    default_relative_start = config["DEFAULT_RELATIVE_START_TIME"]
+    default_relative_end = config["DEFAULT_RELATIVE_END_TIME"]
+
     separator = " : "
-    _relative_start = relative_start if relative_start else "today"
-    _relative_end = relative_end if relative_end else "today"
+    _relative_start = relative_start if relative_start else default_relative_start
+    _relative_end = relative_end if relative_end else default_relative_end
 
     if time_range == "No filter":
         return None, None
@@ -188,19 +193,19 @@ def get_since_until(
         and time_range.startswith("previous calendar week")
         and separator not in time_range
     ):
-        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, WEEK), WEEK) : DATETRUNC(DATETIME('today'), WEEK)"  # pylint: disable=line-too-long
+        time_range = f"DATETRUNC(DATEADD(DATETIME('{_relative_start}'), -1, WEEK), WEEK) : DATETRUNC(DATETIME('{_relative_end}'), WEEK)"  # pylint: disable=line-too-long
     if (
         time_range
         and time_range.startswith("previous calendar month")
         and separator not in time_range
     ):
-        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, MONTH), MONTH) : DATETRUNC(DATETIME('today'), MONTH)"  # pylint: disable=line-too-long
+        time_range = f"DATETRUNC(DATEADD(DATETIME('{_relative_start}'), -1, MONTH), MONTH) : DATETRUNC(DATETIME('{_relative_end}'), MONTH)"  # pylint: disable=line-too-long
     if (
         time_range
         and time_range.startswith("previous calendar year")
         and separator not in time_range
     ):
-        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, YEAR), YEAR) : DATETRUNC(DATETIME('today'), YEAR)"  # pylint: disable=line-too-long
+        time_range = f"DATETRUNC(DATEADD(DATETIME('{_relative_start}'), -1, YEAR), YEAR) : DATETRUNC(DATETIME('{_relative_end}'), YEAR)"  # pylint: disable=line-too-long
 
     if time_range and separator in time_range:
         time_range_lookup = [
