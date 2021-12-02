@@ -1246,8 +1246,9 @@ GLOBAL_ASYNC_QUERIES_POLLING_DELAY = int(
 GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL = "ws://127.0.0.1:8080/"
 
 # Embedded config options
-GUEST_TOKEN_JWT_SECRET = "another-test-secret-change-me"
+GUEST_TOKEN_JWT_SECRET = "test-guest-secret-change-me"
 GUEST_TOKEN_COOKIE_NAME = "__guest_token__"
+GUEST_TOKEN_JWT_EXP_SECONDS = 300  # 5 minutes
 
 # A SQL dataset health check. Note if enabled it is strongly advised that the callable
 # be memoized to aid with performance, i.e.,

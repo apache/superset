@@ -18,6 +18,7 @@
 """A set of constants and methods to manage permissions and security"""
 import logging
 import re
+import time
 from collections import defaultdict
 from typing import (
     Any,
@@ -28,6 +29,7 @@ from typing import (
     Optional,
     Set,
     Tuple,
+    TypedDict,
     TYPE_CHECKING,
     Union,
 )
@@ -64,6 +66,7 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from superset.security.guest_token import GuestToken, GuestTokenUser, GuestTokenResource
 from superset.utils.core import DatasourceName, RowLevelSecurityFilterType
 
 if TYPE_CHECKING:
@@ -120,8 +123,6 @@ ViewMenuModelView.include_route_methods = {RouteMethod.LIST}
 RoleModelView.list_columns = ["name"]
 RoleModelView.edit_columns = ["name", "permissions", "user"]
 RoleModelView.related_views = []
-
-GuestToken = Dict[str, Any]
 
 
 class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
@@ -1220,9 +1221,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return exists
 
     @staticmethod
-    def create_guest_access_token(params: Dict[str, Any]):
+    def create_guest_access_token(
+        user: GuestTokenUser,
+        resources: List[GuestTokenResource]
+    ) -> bytes:
         secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
-        token = jwt.encode({ "data": params }, secret, algorithm="HS256")
+        # calculate expiration time
+        now = time.time()
+        exp = now + (current_app.config["GUEST_TOKEN_JWT_EXP_SECONDS"] * 1000)
+        claims = {
+            "user": user,
+            "resources": resources,
+            # standard jwt claims:
+            "iat": now,  # issued at
+            "exp": exp,  # expiration time
+        }
+        token = jwt.encode(claims, secret, algorithm="HS256")
         return token
 
     def activate_guest_access(self):
@@ -1237,28 +1251,24 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     def get_guest_user(self, req: Request):  # pylint: disable=unused-argument
         """
-        If there is a guest token (used for embedded) in use,
+        If there is a guest token in the request (used for embedded),
         parses the token and returns the guest user.
         This is meant to be used as a request loader for the LoginManager.
         The LoginManager will only call this if an active session cannot be found.
 
         :return: A guest user object
         """
-        token = self.decode_guest_token()
-        if token is None:
+        raw_token = req.cookies.get(current_app.config['GUEST_TOKEN_COOKIE_NAME'])
+        if raw_token is None:
             return None
+        token = jwt.decode(raw_token, current_app.config["GUEST_TOKEN_JWT_SECRET"])
         self.raise_for_invalid_guest_token(token)
-        user = token["data"]["user"]
+        user = token["user"]
         return GuestUser(
             user.get("username", "guest_user"),
             user.get("first_name", "Guest"),
             user.get("last_name", "User")
         )
-
-    @staticmethod
-    def decode_guest_token():
-        token = request.cookies.get(current_app.config['GUEST_TOKEN_COOKIE_NAME'])
-        return jwt.decode(token, current_app.config["GUEST_TOKEN_JWT_SECRET"])
 
     def raise_for_invalid_guest_token(self, token: GuestToken):
         ...
@@ -1270,6 +1280,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
 
 class GuestUser(AnonymousUserMixin):
+    """ Used as the "anonymous" user in case of guest authentication (embedded) """
     def __init__(self, username, first_name, last_name):
         self.username = username
         self.first_name = first_name

@@ -38,7 +38,7 @@ class UserSchema(Schema):
 class ResourceSchema(Schema):
     type = fields.String(required=True)
     id = fields.String(required=True)
-    rls = fields.List(fields.String())
+    rls = fields.String()
 
 
 class GuestTokenCreateSchema(Schema):
@@ -83,19 +83,49 @@ class SecurityRestApi(BaseApi):
         """
         return self.response(200, result=generate_csrf())
 
-    @expose("/guest-token/", methods=["POST"])
+    @expose("/guest_token/", methods=["POST"])
     @event_logger.log_this
     @protect()
     @safe
     @permission_name("grant_guest_token")
     def guest_token(self) -> Response:
+        """Response
+        Returns a guest token that can be used for auth in embedded Superset
+        ---
+        post:
+          description: >-
+            Fetches a guest token
+          requestBody:
+            description: Parameters for the guest token
+            required: true
+            content:
+              application/json:
+                schema: GuestTokenCreateSchema
+          responses:
+            200:
+              description: Result contains the guest token
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                        token:
+                          type: string
+            401:
+              $ref: '#/components/responses/401'
+            500:
+              $ref: '#/components/responses/500'
+        """
         try:
-            token_data = guest_token_create_schema.load(request.json)
+            body = guest_token_create_schema.load(request.json)
             # validate stuff:
             # make sure the resource id is valid
             # make sure username doesn't reference an existing user
             # check rls rules for validity?
-            token = self.appbuilder.sm.create_guest_access_token(token_data)
+            token = self.appbuilder.sm.create_guest_access_token(
+                body["user"],
+                [body["resource"]]
+            )
             return self.response(200, token=token)
         except ValidationError as error:
             return self.response_400(message=error.messages)

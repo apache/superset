@@ -17,6 +17,7 @@
 # isort:skip_file
 import inspect
 import re
+import time
 import unittest
 from collections import namedtuple
 from unittest import mock
@@ -1321,9 +1322,13 @@ class TestDatasources(SupersetTestCase):
 class TestGuestTokens(SupersetTestCase):
 
     def test_create_guest_access_token(self):
-        params = {"any": "data"}
-        token = security_manager.create_guest_access_token(params)
-        self.assertEqual(
-            {"data": params},
-            jwt.decode(token, self.app.config["GUEST_TOKEN_JWT_SECRET"])
-        )
+        user = {"any": "data"}
+        resources = [{"some": "resource"}]
+
+        token = security_manager.create_guest_access_token(user, resources)
+        decoded_token = jwt.decode(token, self.app.config["GUEST_TOKEN_JWT_SECRET"])
+
+        self.assertEqual(user, decoded_token["user"])
+        self.assertEqual(resources, decoded_token["resources"])
+        self.assertGreaterEqual(time.time(), decoded_token["iat"])
+        self.assertGreaterEqual(time.time() + 300000, decoded_token["exp"])
