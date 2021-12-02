@@ -154,6 +154,10 @@
             "description": "Should the layer be shown",
             "type": "boolean"
           },
+          "showLabel": {
+            "description": "Should the label always be shown",
+            "type": "boolean"
+          },
           "showMarkers": {
             "description": "Should markers be shown. Only applies to line annotations.",
             "type": "boolean"
@@ -201,6 +205,7 @@
         "required": [
           "name",
           "show",
+          "showLabel",
           "showMarkers",
           "value"
         ],

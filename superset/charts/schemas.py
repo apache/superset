@@ -904,6 +904,9 @@ class AnnotationLayerSchema(Schema):
         allow_none=True,
     )
     show = fields.Boolean(description="Should the layer be shown", required=True)
+    showLabel = fields.Boolean(
+        description="Should the label always be shown", allow_none=True,
+    )
     showMarkers = fields.Boolean(
         description="Should markers be shown. Only applies to line annotations.",
         required=True,
