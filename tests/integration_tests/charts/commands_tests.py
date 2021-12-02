@@ -79,7 +79,6 @@ class TestExportChartsCommand(SupersetTestCase):
                 "slice_name": "Energy Sankey",
                 "viz_type": "sankey",
             },
-            "query_context": None,
             "cache_timeout": None,
             "dataset_uuid": str(example_chart.table.uuid),
             "uuid": str(example_chart.uuid),
@@ -87,6 +86,7 @@ class TestExportChartsCommand(SupersetTestCase):
         }
 
     @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_export_chart_command_no_access(self, mock_g):
         """Test that users can't export datasets they don't have access to"""
         mock_g.user = security_manager.find_user("gamma")
@@ -125,7 +125,6 @@ class TestExportChartsCommand(SupersetTestCase):
             "slice_name",
             "viz_type",
             "params",
-            "query_context",
             "cache_timeout",
             "uuid",
             "version",
@@ -191,34 +190,6 @@ class TestImportChartsCommand(SupersetTestCase):
         )
         assert dataset.table_name == "imported_dataset"
         assert chart.table == dataset
-        assert json.loads(chart.query_context) == {
-            "datasource": {"id": dataset.id, "type": "table"},
-            "force": False,
-            "queries": [
-                {
-                    "time_range": " : ",
-                    "filters": [],
-                    "extras": {
-                        "time_grain_sqla": None,
-                        "having": "",
-                        "having_druid": [],
-                        "where": "",
-                    },
-                    "applied_time_extras": {},
-                    "columns": [],
-                    "metrics": [],
-                    "annotation_layers": [],
-                    "row_limit": 5000,
-                    "timeseries_limit": 0,
-                    "order_desc": True,
-                    "url_params": {},
-                    "custom_params": {},
-                    "custom_form_data": {},
-                }
-            ],
-            "result_format": "json",
-            "result_type": "full",
-        }
 
         database = (
             db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
