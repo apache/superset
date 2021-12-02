@@ -27,10 +27,9 @@ revision = "abe27eaf93db"
 down_revision = "aea15018d53b"
 
 import sqlalchemy as sa
-from sqlalchemy.sql import table, column
-from sqlalchemy import String
-
 from alembic import op
+from sqlalchemy import String
+from sqlalchemy.sql import column, table
 
 connection = op.get_bind()
 
@@ -38,16 +37,13 @@ report_schedule = table("report_schedule", column("extra", String))
 
 
 def upgrade():
-    op.add_column(
-        "report_schedule",
-        sa.Column(
-            "extra",
-            sa.Text(),
-            nullable=True,
-            default="{}",
-        ),
-    )
-    connection.execute(report_schedule.update().values({"extra": "{}"}))
+    with op.batch_alter_table("report_schedule") as batch_op:
+        op.add_column(
+            "report_schedule",
+            sa.Column("extra", sa.Text(), nullable=True, default="{}",),
+        )
+        connection.execute(report_schedule.update().values({"extra": "{}"}))
+        batch_op.alter_column("extra", existing_type=sa.Text(), nullabe=False)
 
 
 def downgrade():
