@@ -290,12 +290,15 @@ test('submitting with onlyApply:false', async () => {
     expect(props.onHide).toBeCalledTimes(1);
     expect(props.onSubmit).toBeCalledTimes(1);
     expect(props.onSubmit).toBeCalledWith({
+      certificationDetails: 'Sample certification',
+      certifiedBy: 'John Doe',
       colorScheme: 'supersetColors',
+      colorNamespace: '',
       id: 26,
-      jsonMetadata: 'json_metadata',
-      ownerIds: 'owners',
-      slug: 'slug',
-      title: 'dashboard_title',
+      jsonMetadata: expect.anything(),
+      owners: [],
+      slug: null,
+      title: 'COVID Vaccine Dashboard',
     });
   });
 });

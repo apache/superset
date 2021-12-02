@@ -78,14 +78,14 @@ describe('Dashboard save action', () => {
       .find('.box_plot')
       .should('not.exist');
 
-    cy.intercept('POST', '/superset/save_dash/**/').as('saveRequest');
+    cy.intercept('PUT', '/**/dashboard/**/').as('putRequest');
     cy.get('[data-test="dashboard-header"]')
       .find('[data-test="header-save-button"]')
       .contains('Save')
       .click();
 
     // go back to view mode
-    cy.wait('@saveRequest');
+    cy.wait('@putRequest');
     cy.get('[data-test="dashboard-header"]')
       .find('[aria-label="edit-alt"]')
       .click();

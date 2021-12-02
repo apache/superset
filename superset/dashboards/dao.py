@@ -173,12 +173,12 @@ class DashboardDAO(BaseDAO):
             raise ex
 
     @staticmethod
-    def set_dash_metadata(
+    def set_dash_metadata(  # pylint: disable=too-many-locals
         dashboard: Dashboard,
         data: Dict[Any, Any],
         old_to_new_slice_ids: Optional[Dict[int, int]] = None,
         commit: bool = False,
-    ) -> Dashboard:  # pylint: disable=too-many-locals
+    ) -> Dashboard:
         positions = data.get("positions")
         new_filter_scopes = {}
         md = dashboard.params_dict
