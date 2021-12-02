@@ -29,14 +29,13 @@ from typing import (
     Optional,
     Set,
     Tuple,
-    TypedDict,
     TYPE_CHECKING,
     Union,
 )
 
 import jwt
-from flask import current_app, g, request, Request
-from flask_appbuilder import Model, AppBuilder
+from flask import current_app, g, Request
+from flask_appbuilder import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from flask_appbuilder.security.sqla.models import (
@@ -226,10 +225,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "all_query_access",
     )
 
-    def __init__(self, appbuilder: AppBuilder) -> None:
-        super().__init__(appbuilder)
-        # TODO put ff check here
-        self.activate_guest_access()
+    def create_login_manager(self, app) -> LoginManager:
+        lm = super().create_login_manager(app)
+        # todo put ff check here
+        lm.request_loader(self.get_guest_user)
+        return lm
 
     def get_schema_perm(  # pylint: disable=no-self-use
         self, database: Union["Database", str], schema: Optional[str] = None
@@ -1238,16 +1238,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         }
         token = jwt.encode(claims, secret, algorithm="HS256")
         return token
-
-    def activate_guest_access(self):
-        """
-        Attaches a handler to the login manager that allows "guest access"
-        for unauthenticated users carrying a valid guest access token
-        :return:
-        """
-        lm: LoginManager = self.lm
-        # the request loader only gets called if there is no session
-        lm.request_loader(self.get_guest_user)
 
     def get_guest_user(self, req: Request):  # pylint: disable=unused-argument
         """
