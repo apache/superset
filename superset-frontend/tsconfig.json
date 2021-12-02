@@ -33,9 +33,6 @@
       ],
       "@superset-ui/plugin-chart-*": ["./plugins/plugin-chart-*/src"],
       "@superset-ui/preset-chart-*": ["./plugins/preset-chart-*/src"],
-      // for supressing errors caused by incompatible @types/react when `npm link`
-      // Ref: https://github.com/Microsoft/typescript/issues/6496#issuecomment-384786222
-      "react": ["./node_modules/@types/react", "react"]
     },
     "skipLibCheck": true,
     "sourceMap": true,
