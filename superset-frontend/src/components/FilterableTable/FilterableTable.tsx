@@ -332,6 +332,11 @@ export default class FilterableTable extends PureComponent<
       const aValue = this.parseFloatingNums(a[sortBy]);
       const bValue = this.parseFloatingNums(b[sortBy]);
 
+      // equal items sort equally
+      if (aValue === bValue) {
+        return 0;
+      }
+
       // nulls sort after anything else
       if (aValue === null) {
         return 1;
