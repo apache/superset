@@ -12829,4 +12829,3 @@ msgstr "Jahr"
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:42
 msgid "yellow"
 msgstr "Gelb"
-
