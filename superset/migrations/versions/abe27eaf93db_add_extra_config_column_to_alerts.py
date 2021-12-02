@@ -38,12 +38,12 @@ report_schedule = table("report_schedule", column("extra", String))
 
 def upgrade():
     with op.batch_alter_table("report_schedule") as batch_op:
-        op.add_column(
-            "report_schedule",
+        batch_op.add_column(
             sa.Column("extra", sa.Text(), nullable=True, default="{}",),
         )
-        connection.execute(report_schedule.update().values({"extra": "{}"}))
-        batch_op.alter_column("extra", existing_type=sa.Text(), nullabe=False)
+    connection.execute(report_schedule.update().values({"extra": "{}"}))
+    with op.batch_alter_table("report_schedule") as batch_op:
+        batch_op.alter_column("extra", existing_type=sa.Text(), nullable=False)
 
 
 def downgrade():
