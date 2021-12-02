@@ -324,7 +324,7 @@ export default class FilterableTable extends PureComponent<
   // Parse any floating numbers so they'll sort correctly
   parseFloatingNums = (value: any) => {
     const floatValue = parseFloat(value);
-    return Number.isNaN(floatValue) ? value : parseFloat(value);
+    return Number.isNaN(floatValue) ? value : floatValue;
   };
 
   sortResults(sortBy: string, descending: boolean) {
