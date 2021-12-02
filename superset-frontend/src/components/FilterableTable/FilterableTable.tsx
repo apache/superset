@@ -332,10 +332,6 @@ export default class FilterableTable extends PureComponent<
       const aValue = this.parseFloatingNums(a[sortBy]);
       const bValue = this.parseFloatingNums(b[sortBy]);
 
-      String(aValue).localeCompare(String(bValue), undefined, {
-        numeric: true,
-      });
-
       // nulls sort after anything else
       if (aValue === null) {
         return 1;
