@@ -314,16 +314,13 @@ export const exportChart = ({
     payload = formData;
   } else {
     url = '/api/v1/chart/data';
-    payload = {
-      ...buildV1ChartDataPayload({
-        formData,
-        force,
-        resultFormat,
-        resultType,
-        ownState,
-      }),
-      form_data: formData,
-    };
+    payload = buildV1ChartDataPayload({
+      formData,
+      force,
+      resultFormat,
+      resultType,
+      ownState,
+    });
   }
   postForm(url, payload);
 };
