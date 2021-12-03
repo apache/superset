@@ -163,7 +163,7 @@ export interface QueryContext {
   /** Response format */
   result_format: string;
   queries: QueryObject[];
-  form_data: QueryFormData;
+  form_data?: QueryFormData;
 }
 
 export default {};
