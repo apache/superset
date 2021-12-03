@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-import jwt
 
 from flask import Response, request
 from flask_appbuilder import expose

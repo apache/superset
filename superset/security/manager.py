@@ -1221,12 +1221,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return exists
 
     @staticmethod
+    def _get_current_epoch_time():
+        """ This is used so the tests can mock time """
+        return time.time()
+
     def create_guest_access_token(
-        user: GuestTokenUser, resources: List[GuestTokenResource]
+        self, user: GuestTokenUser, resources: List[GuestTokenResource]
     ) -> bytes:
         secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
         # calculate expiration time
-        now = time.time()
+        now = self._get_current_epoch_time()
         exp = now + (current_app.config["GUEST_TOKEN_JWT_EXP_SECONDS"] * 1000)
         claims = {
             "user": user,
@@ -1250,20 +1254,47 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         raw_token = req.cookies.get(current_app.config["GUEST_TOKEN_COOKIE_NAME"])
         if raw_token is None:
             return None
-        token = jwt.decode(raw_token, current_app.config["GUEST_TOKEN_JWT_SECRET"])
-        self.raise_for_invalid_guest_token(token)
-        user = token["user"]
-        return GuestUser(
-            user.get("username", "guest_user"),
-            user.get("first_name", "Guest"),
-            user.get("last_name", "User"),
-        )
+
+        try:
+            token = self.parse_jwt_guest_token(raw_token)
+        except Exception as ex:  # pylint: disable=broad-except
+            # The login manager will handle sending 401s.
+            # We don't need to send a special error message.
+            logger.warn("Invalid guest token")
+            logger.warn(ex)
+        else:
+            user = token["user"]
+            return GuestUser(
+                user.get("username", "guest_user"),
+                user.get("first_name", "Guest"),
+                user.get("last_name", "User"),
+            )
+
+    @staticmethod
+    def parse_jwt_guest_token(raw_token: str) -> GuestToken:
+        """
+        Parses and validates a guest token.
+        Raises an error if the jwt is invalid:
+        if it is not signed with our secret,
+        or if required claims are not present.
+        :param raw_token: the token gotten from the request
+        :return: the same token that was passed in, tested but unchanged
+        """
+        secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
+        token = jwt.decode(raw_token, secret, algorithms=["HS256"])
+        if token.get("user") is None:
+            raise ValueError("Guest token does not contain a user claim")
+        if token.get("resources") is None:
+            raise ValueError("Guest token does not contain a resources claim")
+        return token
 
 
 class GuestUser(AnonymousUserMixin):
     """ Used as the "anonymous" user in case of guest authentication (embedded) """
 
-    def __init__(self, username, first_name, last_name):
+    is_guest_user = True
+
+    def __init__(self, username: str, first_name: str, last_name: str):
         self.username = username
         self.first_name = first_name
         self.last_name = last_name
