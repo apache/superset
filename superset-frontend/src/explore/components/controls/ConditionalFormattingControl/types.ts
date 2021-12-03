@@ -23,6 +23,7 @@ import { ControlComponentProps } from '@superset-ui/chart-controls/lib/shared-co
 
 export enum COMPARATOR {
   NONE = 'None',
+  INVERSE = 'Inverse',
   GREATER_THAN = '>',
   LESS_THAN = '<',
   GREATER_OR_EQUAL = '≥',
