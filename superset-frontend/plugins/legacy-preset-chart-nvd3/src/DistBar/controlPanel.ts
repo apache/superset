@@ -35,6 +35,7 @@ import {
   yAxisLabel,
   yAxisShowMinmax,
   yAxisBounds,
+  richTooltip,
 } from '../NVD3Controls';
 
 const config: ControlPanelConfig = {
@@ -81,6 +82,7 @@ const config: ControlPanelConfig = {
         ['color_scheme'],
         [showLegend],
         [showBarValue],
+        [richTooltip],
         [barStacked],
         [
           {
