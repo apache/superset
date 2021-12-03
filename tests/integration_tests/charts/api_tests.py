@@ -160,10 +160,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         rv = self.get_assert_metric(uri, "info")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
-        assert set(data["permissions"]) == {
-            "can_read",
-            "can_write",
-        }
+        assert set(data["permissions"]) == {"can_read", "can_write"}
 
     def create_chart_import(self):
         buf = BytesIO()
@@ -783,10 +780,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         rv = self.get_assert_metric(uri, "get_list")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(
-            data["result"][0]["changed_on_delta_humanized"],
-            "now",
-        )
+        self.assertEqual(data["result"][0]["changed_on_delta_humanized"], "now")
 
         # rollback changes
         db.session.delete(chart)
@@ -883,7 +877,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         # test filtering on datasource_name
         arguments = {
             "filters": [
-                {"col": "slice_name", "opr": "chart_all_text", "value": "energy",}
+                {"col": "slice_name", "opr": "chart_all_text", "value": "energy"}
             ],
             "keys": ["none"],
             "columns": ["slice_name"],
@@ -901,7 +895,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         # test filtering on datasource_name
         arguments = {
             "filters": [
-                {"col": "slice_name", "opr": "chart_all_text", "value": "energy",}
+                {"col": "slice_name", "opr": "chart_all_text", "value": "energy"}
             ],
             "keys": ["none"],
             "columns": ["slice_name"],
@@ -1088,9 +1082,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         uri = "api/v1/chart/import/"
 
         buf = self.create_chart_import()
-        form_data = {
-            "formData": (buf, "chart_export.zip"),
-        }
+        form_data = {"formData": (buf, "chart_export.zip")}
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
 
@@ -1126,9 +1118,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         uri = "api/v1/chart/import/"
 
         buf = self.create_chart_import()
-        form_data = {
-            "formData": (buf, "chart_export.zip"),
-        }
+        form_data = {"formData": (buf, "chart_export.zip")}
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
 
@@ -1137,9 +1127,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
 
         # import again without overwrite flag
         buf = self.create_chart_import()
-        form_data = {
-            "formData": (buf, "chart_export.zip"),
-        }
+        form_data = {"formData": (buf, "chart_export.zip")}
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
 
@@ -1165,10 +1153,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
 
         # import with overwrite flag
         buf = self.create_chart_import()
-        form_data = {
-            "formData": (buf, "chart_export.zip"),
-            "overwrite": "true",
-        }
+        form_data = {"formData": (buf, "chart_export.zip"), "overwrite": "true"}
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
 
@@ -1211,9 +1196,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
                 fp.write(yaml.safe_dump(chart_config).encode())
         buf.seek(0)
 
-        form_data = {
-            "formData": (buf, "chart_export.zip"),
-        }
+        form_data = {"formData": (buf, "chart_export.zip")}
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
 
