@@ -133,6 +133,25 @@ class ExtraCache:
             return g.user.username
         return None
 
+    def user_param(self, param: str, add_to_cache_keys: bool = True) -> Optional[str]:
+        """
+        Return the param of the user who is currently logged in.
+
+        :param param: Param to get from user
+        :param add_to_cache_keys: Whether the value should be included in the cache key
+        :returns: The username
+        """
+
+        if g.user and hasattr(g.user, param):
+            param = getattr(g.user, param)
+            if not isinstance(param, str):
+                param = str(param)
+
+            if add_to_cache_keys:
+                self.cache_key_wrapper(param)
+            return param
+        return None
+
     def cache_key_wrapper(self, key: Any) -> Any:
         """
         Adds values to a list that is added to the query object used for calculating a
@@ -462,6 +481,7 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
                 "url_param": partial(safe_proxy, extra_cache.url_param),
                 "current_user_id": partial(safe_proxy, extra_cache.current_user_id),
                 "current_username": partial(safe_proxy, extra_cache.current_username),
+                "user_param": partial(safe_proxy, extra_cache.user_param),
                 "cache_key_wrapper": partial(safe_proxy, extra_cache.cache_key_wrapper),
                 "filter_values": partial(safe_proxy, extra_cache.filter_values),
                 "get_filters": partial(safe_proxy, extra_cache.get_filters),
