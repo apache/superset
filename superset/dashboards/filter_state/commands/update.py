@@ -39,8 +39,8 @@ class UpdateFilterStateCommand(UpdateKeyValueCommand):
                 user_id = actor.get_user_id()
                 if entry["owner"] != user_id:
                     raise KeyValueAccessDeniedError()
-                newEntry: Entry = {"owner": actor.get_user_id(), "value": value}
+                new_entry: Entry = {"owner": actor.get_user_id(), "value": value}
                 return cache_manager.filter_state_cache.set(
-                    cache_key(resource_id, key), newEntry
+                    cache_key(resource_id, key), new_entry
                 )
         return False
