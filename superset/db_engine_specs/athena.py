@@ -32,6 +32,7 @@ SYNTAX_ERROR_REGEX = re.compile(
 class AthenaEngineSpec(BaseEngineSpec):
     engine = "awsathena"
     engine_name = "Amazon Athena"
+    allows_escaped_colons = False
 
     _time_grain_expressions = {
         None: "{col}",
