@@ -79,6 +79,8 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
 
     # pivot data; we'll compute totals and subtotals later
     if rows or columns:
+        # pivoting with null values will create an empty df
+        df = df.fillna("NULL")
         df = df.pivot_table(
             index=rows,
             columns=columns,
@@ -94,7 +96,10 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
     # if no rows were passed the metrics will be in the rows, so we
     # need to move them back to columns
     if columns and not rows:
-        df = df.stack().to_frame().T
+        df = df.stack()
+        if not isinstance(df, pd.DataFrame):
+            df = df.to_frame()
+        df = df.T
         df = df[metrics]
         df.index = pd.Index([*df.index[:-1], metric_name], name="metric")
 
