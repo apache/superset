@@ -638,7 +638,6 @@ class Header extends React.PureComponent {
                   );
                 }
               }}
-              onlyApply
             />
           )}
 

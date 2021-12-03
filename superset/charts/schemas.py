@@ -904,6 +904,9 @@ class AnnotationLayerSchema(Schema):
         allow_none=True,
     )
     show = fields.Boolean(description="Should the layer be shown", required=True)
+    showLabel = fields.Boolean(
+        description="Should the label always be shown", allow_none=True,
+    )
     showMarkers = fields.Boolean(
         description="Should markers be shown. Only applies to line annotations.",
         required=True,
@@ -1156,6 +1159,8 @@ class ChartDataQueryContextSchema(Schema):
 
     result_type = EnumField(ChartDataResultType, by_value=True)
     result_format = EnumField(ChartDataResultFormat, by_value=True)
+
+    form_data = fields.Raw(allow_none=True, required=False)
 
     # pylint: disable=unused-argument
     @post_load
