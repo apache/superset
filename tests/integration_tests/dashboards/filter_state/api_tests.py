@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 
 from superset import app
 from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
+from superset.dashboards.filter_state.commands.entry import Entry
 from superset.extensions import cache_manager
 from superset.key_value.utils import cache_key
 from superset.models.dashboard import Dashboard
@@ -63,9 +64,8 @@ def admin_id() -> int:
 def cache(dashboard_id, admin_id):
     app.config["FILTER_STATE_CACHE_CONFIG"] = {"CACHE_TYPE": "SimpleCache"}
     cache_manager.init_app(app)
-    cache_manager.filter_state_cache.set(
-        cache_key(dashboard_id, key), [admin_id, value]
-    )
+    entry: Entry = {"owner": admin_id, "value": value}
+    cache_manager.filter_state_cache.set(cache_key(dashboard_id, key), entry)
 
 
 def test_post(client, dashboard_id: int):

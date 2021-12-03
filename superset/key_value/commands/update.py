@@ -30,16 +30,16 @@ logger = logging.getLogger(__name__)
 
 class UpdateKeyValueCommand(BaseCommand, ABC):
     def __init__(
-        self, user: User, resource_id: int, key: str, value: str,
+        self, actor: User, resource_id: int, key: str, value: str,
     ):
-        self._user = user
+        self._actor = actor
         self._resource_id = resource_id
         self._key = key
         self._value = value
 
     def run(self) -> Model:
         try:
-            return self.update(self._user, self._resource_id, self._key, self._value)
+            return self.update(self._actor, self._resource_id, self._key, self._value)
         except SQLAlchemyError as ex:
             logger.exception("Error running update command")
             raise KeyValueUpdateFailedError() from ex
@@ -49,6 +49,6 @@ class UpdateKeyValueCommand(BaseCommand, ABC):
 
     @abstractmethod
     def update(
-        self, user: User, resource_id: int, key: str, value: str
+        self, actor: User, resource_id: int, key: str, value: str
     ) -> Optional[bool]:
         ...
