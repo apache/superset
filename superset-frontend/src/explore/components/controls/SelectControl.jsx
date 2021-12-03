@@ -241,6 +241,7 @@ export default class SelectControl extends React.PureComponent {
       options: this.state.options,
       placeholder,
       sortByProperty: this.props.sortByProperty,
+      sortOptions: this.props.sortOptions,
       value: getValue(),
     };
 

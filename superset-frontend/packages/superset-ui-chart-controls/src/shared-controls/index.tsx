@@ -106,6 +106,7 @@ const groupByControl: SharedControlConfig<'SelectControl', ColumnMeta> = {
     'One or many columns to group by. High cardinality groupings should include a sort by metric ' +
       'and series limit to limit the number of fetched and rendered series.',
   ),
+  sortOptions: true,
   optionRenderer: c => <ColumnOption showType column={c} />,
   valueRenderer: c => <ColumnOption column={c} />,
   valueKey: 'column_name',
@@ -333,7 +334,6 @@ const row_limit: SharedControlConfig<'SelectControl'> = {
   default: 10000,
   choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
   description: t('Limits the number of rows that get displayed.'),
-  sortByProperty: 'value',
 };
 
 const limit: SharedControlConfig<'SelectControl'> = {
@@ -349,7 +349,6 @@ const limit: SharedControlConfig<'SelectControl'> = {
       'fetched and rendered. This feature is useful when grouping by high cardinality ' +
       'column(s) though does increase the query complexity and cost.',
   ),
-  sortByProperty: 'value',
 };
 
 const series_limit: SharedControlConfig<'SelectControl'> = {
@@ -364,7 +363,6 @@ const series_limit: SharedControlConfig<'SelectControl'> = {
       'fetched and rendered. This feature is useful when grouping by high cardinality ' +
       'column(s) though does increase the query complexity and cost.',
   ),
-  sortByProperty: 'value',
 };
 
 const sort_by: SharedControlConfig<'MetricsControl'> = {

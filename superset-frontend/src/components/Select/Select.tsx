@@ -159,6 +159,7 @@ export interface SelectProps extends PickedSelectProps {
   onError?: (error: string) => void;
   sortByProperty?: string;
   sortComparator?: (a: AntdLabeledValue, b: AntdLabeledValue) => number;
+  sortOptions?: boolean;
 }
 
 const StyledContainer = styled.div`
@@ -247,6 +248,14 @@ const Error = ({ error }: { error: string }) => (
 // };
 // -----------------------------------------
 
+const getInitialIndexes = (options: OptionsType) =>
+  options.reduce((a, c, i) => ({ ...a, [c.value]: i }), {});
+
+const sortByInitialIndexes = (
+  options: OptionsType,
+  originals: { value?: number },
+) => options.sort((a, b) => originals[a.value] - originals[b.value]);
+
 /**
  * It creates a comparator to check for a specific property.
  * Can be used with string and number property values.
@@ -296,6 +305,7 @@ const Select = ({
   showSearch = true,
   sortByProperty = 'label',
   sortComparator = propertyComparator(sortByProperty),
+  sortOptions = false,
   value,
   ...props
 }: SelectProps) => {
@@ -304,8 +314,9 @@ const Select = ({
   const shouldShowSearch = isAsync || allowNewOptions ? true : showSearch;
   const initialOptions =
     options && Array.isArray(options) ? options : EMPTY_OPTIONS;
-  const [selectOptions, setSelectOptions] =
-    useState<OptionsType>(initialOptions);
+  const [selectOptions, setSelectOptions] = useState<OptionsType>(
+    sortOptions ? initialOptions.sort(sortComparator) : initialOptions,
+  );
   const shouldUseChildrenOptions = !!selectOptions.find(
     opt => opt?.customLabel,
   );
@@ -325,6 +336,7 @@ const Select = ({
     : allowNewOptions
     ? 'tags'
     : 'multiple';
+  const optionsInitialOrder = useRef(getInitialIndexes(initialOptions));
 
   // TODO: Don't assume that isAsync is always labelInValue
   const handleTopOptions = useCallback(
@@ -383,20 +395,23 @@ const Select = ({
           });
         }
         const sortedOptions = [
-          ...topOptions.sort(sortComparator),
-          ...otherOptions.sort(sortComparator),
+          ...sortByInitialIndexes(topOptions, optionsInitialOrder.current),
+          ...sortByInitialIndexes(otherOptions, optionsInitialOrder.current),
         ];
         if (!isEqual(sortedOptions, selectOptions)) {
           setSelectOptions(sortedOptions);
         }
       } else {
-        const sortedOptions = [...selectOptions].sort(sortComparator);
+        const sortedOptions = sortByInitialIndexes(
+          [...selectOptions],
+          optionsInitialOrder.current,
+        );
         if (!isEqual(sortedOptions, selectOptions)) {
           setSelectOptions(sortedOptions);
         }
       }
     },
-    [isAsync, isSingleMode, labelInValue, selectOptions, sortComparator],
+    [isAsync, isSingleMode, labelInValue, selectOptions],
   );
 
   const handleOnSelect = (
@@ -462,7 +477,6 @@ const Select = ({
         data.forEach(option =>
           dataValues.add(String(option.value).toLocaleLowerCase()),
         );
-
         // merges with existing and creates unique options
         setSelectOptions(prevOptions => {
           mergedData = [
@@ -474,13 +488,15 @@ const Select = ({
             ),
             ...data,
           ];
-          mergedData.sort(sortComparator);
+
+          if (sortOptions) mergedData.sort(sortComparator);
+          optionsInitialOrder.current = getInitialIndexes(mergedData);
           return mergedData;
         });
       }
       return mergedData;
     },
-    [sortComparator],
+    [sortComparator, sortOptions],
   );
 
   const handlePaginatedFetch = useMemo(
@@ -667,7 +683,11 @@ const Select = ({
         }
       });
       if (options.length > 0) {
-        setSelectOptions([...options, ...selectOptions]);
+        const sortedOriginal = sortByInitialIndexes(
+          selectOptions,
+          optionsInitialOrder.current,
+        );
+        setSelectOptions([...options, ...sortedOriginal]);
       }
     }
   }, [labelInValue, isAsync, selectOptions, selectValue]);
