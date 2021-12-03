@@ -59,7 +59,7 @@
     "composite": true,
 
     /* Completeness */
-    "skipLibCheck": true,
+    "skipLibCheck": true
   },
   "include": [
     "./src/**/*",
