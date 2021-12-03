@@ -16,19 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { formatNumber } from '@superset-ui/core';
-
-interface Props {
-  format: string;
-  num: number;
-}
-
-function FormattedNumber({ num = 0, format = '' }: Props) {
-  if (format) {
-    return <span title={num.toString()}>{formatNumber(format, num)}</span>;
-  }
-  return <span>{num}</span>;
-}
-
-export default FormattedNumber;
+declare module '@data-ui/sparkline';
