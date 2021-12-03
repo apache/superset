@@ -26,8 +26,8 @@ class GetFilterStateCommand(GetKeyValueCommand):
     def get(self, resource_id: int, key: str, refreshTimeout: bool) -> Optional[str]:
         dashboard = DashboardDAO.get_by_id_or_slug(str(resource_id))
         if dashboard:
-            value = cache_manager.filter_state_cache.get(cache_key(resource_id, key))
+            entry = cache_manager.filter_state_cache.get(cache_key(resource_id, key))
             if refreshTimeout:
-                cache_manager.filter_state_cache.set(key, value)
-            return value
+                cache_manager.filter_state_cache.set(key, entry)
+            return entry[1]
         return None

@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 class GetKeyValueCommand(BaseCommand, ABC):
     def __init__(self, user: User, resource_id: int, key: str):
-        self._actor = user
+        self._user = user
         self._resource_id = resource_id
         self._key = key
 

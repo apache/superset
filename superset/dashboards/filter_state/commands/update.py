@@ -16,17 +16,27 @@
 # under the License.
 from typing import Optional
 
+from flask_appbuilder.security.sqla.models import User
+
 from superset.dashboards.dao import DashboardDAO
 from superset.extensions import cache_manager
+from superset.key_value.commands.exceptions import KeyValueAccessDeniedError
 from superset.key_value.commands.update import UpdateKeyValueCommand
 from superset.key_value.utils import cache_key
 
 
 class UpdateFilterStateCommand(UpdateKeyValueCommand):
-    def update(self, resource_id: int, key: str, value: str) -> Optional[bool]:
+    def update(
+        self, user: User, resource_id: int, key: str, value: str
+    ) -> Optional[bool]:
         dashboard = DashboardDAO.get_by_id_or_slug(str(resource_id))
         if dashboard:
-            return cache_manager.filter_state_cache.set(
-                cache_key(resource_id, key), value
-            )
+            entry = cache_manager.filter_state_cache.get(cache_key(resource_id, key))
+            if entry:
+                user_id = user.get_user_id()
+                if entry[0] != user_id:
+                    raise KeyValueAccessDeniedError()
+                return cache_manager.filter_state_cache.set(
+                    cache_key(resource_id, key), [user_id, value]
+                )
         return False
