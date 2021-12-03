@@ -37,7 +37,7 @@ from celery.schedules import crontab
 from dateutil import tz
 from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
-from pandas.io.parsers import STR_NA_VALUES
+from pandas._libs.parsers import STR_NA_VALUES
 from typing_extensions import Literal
 from werkzeug.local import LocalProxy
 

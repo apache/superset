@@ -69,7 +69,7 @@
     "@emotion/react": "^11.4.1",
     "@emotion/styled": "^11.3.0",
     "@superset-ui/chart-controls": "^0.18.14",
-    "@superset-ui/core": "^0.18.14",
+    "@superset-ui/core": "git+ssh://git@github.com:tvorogme/superset-ui-core.git",
     "@superset-ui/legacy-plugin-chart-calendar": "^0.18.14",
     "@superset-ui/legacy-plugin-chart-chord": "^0.18.14",
     "@superset-ui/legacy-plugin-chart-country-map": "^0.18.14",
