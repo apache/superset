@@ -121,6 +121,7 @@ class RefreshIntervalModal extends React.PureComponent<
               value={refreshFrequency}
               onChange={this.handleFrequencyChange}
               sortByProperty="value"
+              sortOptions
             />
             {showRefreshWarning && (
               <RefreshWarningContainer>

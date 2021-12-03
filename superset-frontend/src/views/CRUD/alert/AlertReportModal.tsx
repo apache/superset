@@ -1178,6 +1178,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       }
                       options={CONDITIONS}
                       sortByProperty="order"
+                      sortOptions
                     />
                   </div>
                 </StyledInputContainer>
@@ -1250,6 +1251,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   }
                   options={RETENTION_OPTIONS}
                   sortByProperty="value"
+                  sortOptions
                 />
               </div>
             </StyledInputContainer>

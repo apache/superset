@@ -313,7 +313,7 @@ const Select = ({
   const isSingleMode = mode === 'single';
   const shouldShowSearch = isAsync || allowNewOptions ? true : showSearch;
   const initialOptions =
-    options && Array.isArray(options) ? options : EMPTY_OPTIONS;
+    options && Array.isArray(options) ? [...options] : EMPTY_OPTIONS;
   const [selectOptions, setSelectOptions] = useState<OptionsType>(
     sortOptions ? initialOptions.sort(sortComparator) : initialOptions,
   );

@@ -122,6 +122,7 @@ export function CustomFrame(props: FrameComponentProps) {
             value={sinceMode}
             onChange={(value: string) => onChange('sinceMode', value)}
             sortByProperty="order"
+            sortOptions
           />
           {sinceMode === 'specific' && (
             <Row>
@@ -157,6 +158,7 @@ export function CustomFrame(props: FrameComponentProps) {
                   value={sinceGrain}
                   onChange={(value: string) => onChange('sinceGrain', value)}
                   sortByProperty="order"
+                  sortOptions
                 />
               </Col>
             </Row>
@@ -176,6 +178,7 @@ export function CustomFrame(props: FrameComponentProps) {
             value={untilMode}
             onChange={(value: string) => onChange('untilMode', value)}
             sortByProperty="order"
+            sortOptions
           />
           {untilMode === 'specific' && (
             <Row>
@@ -210,6 +213,7 @@ export function CustomFrame(props: FrameComponentProps) {
                   value={untilGrain}
                   onChange={(value: string) => onChange('untilGrain', value)}
                   sortByProperty="order"
+                  sortOptions
                 />
               </Col>
             </Row>

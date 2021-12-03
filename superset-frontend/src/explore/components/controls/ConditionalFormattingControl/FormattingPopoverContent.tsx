@@ -130,6 +130,7 @@ const operatorField = (
       ariaLabel={t('Operator')}
       options={operatorOptions}
       sortByProperty="order"
+      sortOptions
     />
   </FormItem>
 );
