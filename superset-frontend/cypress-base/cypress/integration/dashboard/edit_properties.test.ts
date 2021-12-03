@@ -99,7 +99,7 @@ describe('Dashboard edit action', () => {
 
     // save edit changes
     cy.get('.ant-modal-footer')
-      .contains('Save')
+      .contains('Apply')
       .click()
       .then(() => {
         // assert that modal edit window has closed
