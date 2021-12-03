@@ -732,7 +732,7 @@ def test_pivot_df_complex():
 
 def test_pivot_df_multi_column():
     """
-    Pivot table when a two columns, no rows and 2 metrics are selected.
+    Pivot table when 2 columns, no rows and 2 metrics are selected.
     """
     df = pd.DataFrame.from_dict(
         {
