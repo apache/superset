@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useEffect } from 'react';
 import { t } from '@superset-ui/core';
 
 import URLShortLinkButton from 'src/components/URLShortLinkButton';
@@ -31,33 +31,17 @@ interface AnchorLinkProps {
   placement: 'right' | 'left' | 'top' | 'bottom';
 }
 
-class AnchorLink extends React.PureComponent<AnchorLinkProps> {
+function AnchorLink({
+  filters = {},
+  showShortLinkButton = false,
+  inFocus = false,
+  placement = "right",
+  ...props
+}: AnchorLinkProps) {
 
-  static defaultProps = {
-    inFocus: false,
-    showShortLinkButton: false,
-    placement: 'right',
-    filters: {},
-  };
+  const { anchorLinkId } = props;
 
-  componentDidMount() {
-    const hash = getLocationHash();
-    const { anchorLinkId } = this.props;
-
-    if (hash && anchorLinkId === hash) {
-      this.scrollToView();
-    }
-  }
-
-  UNSAFE_componentWillReceiveProps(nextProps: AnchorLinkProps) {
-    const { inFocus = false } = nextProps;
-    if (inFocus) {
-      this.scrollToView();
-    }
-  }
-
-  scrollToView(delay = 0) {
-    const { anchorLinkId } = this.props;
+  function scrollToView(delay = 0) {
     const directLinkComponent = document.getElementById(anchorLinkId);
     if (directLinkComponent) {
       setTimeout(() => {
@@ -69,26 +53,35 @@ class AnchorLink extends React.PureComponent<AnchorLinkProps> {
     }
   }
 
-  render() {
-    const { anchorLinkId, filters, showShortLinkButton, placement } =
-      this.props;
-    return (
-      <span className="anchor-link-container" id={anchorLinkId}>
-        {showShortLinkButton && (
-          <URLShortLinkButton
-            url={getDashboardUrl({
-              pathname: window.location.pathname,
-              filters,
-              hash: anchorLinkId,
-            })}
-            emailSubject={t('Superset chart')}
-            emailContent={t('Check out this chart in dashboard:')}
-            placement={placement}
-          />
-        )}
-      </span>
-    );
-  }
+  useEffect(() => {
+    if (inFocus) {
+      scrollToView();
+    }
+  }, [inFocus])
+
+  useEffect(() => {
+    const hash = getLocationHash();
+    if (hash && anchorLinkId === hash) {
+      scrollToView();
+    }
+  });
+
+  return (
+    <span className="anchor-link-container" id={anchorLinkId}>
+      {showShortLinkButton && (
+        <URLShortLinkButton
+          url={getDashboardUrl({
+            pathname: window.location.pathname,
+            filters,
+            hash: anchorLinkId,
+          })}
+          emailSubject={t('Superset chart')}
+          emailContent={t('Check out this chart in dashboard:')}
+          placement={placement}
+        />
+      )}
+    </span>
+  );
 }
 
 export default AnchorLink;
