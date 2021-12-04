@@ -65,10 +65,16 @@ import { TIMESERIES_CONSTANTS } from '../constants';
 export default function transformProps(
   chartProps: EchartsMixedTimeseriesFormData,
 ): EchartsMixedTimeseriesChartTransformedProps {
-  const { width, height, formData, queriesData, hooks, filterState,datasource  } =
-    chartProps;
+  const {
+    width,
+    height,
+    formData,
+    queriesData,
+    hooks,
+    filterState,
+    datasource,
+  } = chartProps;
   const { verboseMap = {} } = datasource;
-
   const { annotation_data: annotationData_ } = queriesData[0];
   const annotationData = annotationData_ || {};
   const data1: TimeseriesDataRecord[] = queriesData[0].data || [];
