@@ -302,7 +302,6 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     onOperatorChange,
     isOperatorRelevant,
     onComparatorChange,
-    clearOperator,
   } = useSimpleTabFilterProps(props);
   const [suggestions, setSuggestions] = useState<Record<string, any>>([]);
   const [comparator, setComparator] = useState(props.adhocFilter.comparator);
@@ -361,7 +360,6 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     autoFocus: !subject,
     placeholder: '',
   };
-
   if (props.datasource.type === 'druid') {
     subjectSelectProps.placeholder = t(
       '%s column(s) and metric(s)',
@@ -459,21 +457,6 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   useEffect(() => {
     setComparator(props.adhocFilter.comparator);
   }, [props.adhocFilter.comparator]);
-
-  useEffect(() => {
-    console.log(businessTypesState.subjectBusinessType && true);
-    if (
-      !(
-        operatorId &&
-        businessTypesState.busninessTypeOperatorList.length > 0 &&
-        businessTypesState.busninessTypeOperatorList.includes(
-          OPERATOR_ENUM_TO_OPERATOR_TYPE[operatorId].operation,
-        )
-      )
-    ) {
-      clearOperator();
-    }
-  }, [businessTypesState.busninessTypeOperatorList]);
 
   return (
     <>
