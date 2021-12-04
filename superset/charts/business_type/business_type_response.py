@@ -4,7 +4,7 @@ A docstring
 
 from typing import Any, List, Literal, Optional, TypedDict
 
-from superset.utils.core import FilterOperator
+from superset.utils.core import FilterStringOperators
 
 
 class BusinessTypeResponse(TypedDict, total=False):
@@ -16,4 +16,4 @@ class BusinessTypeResponse(TypedDict, total=False):
     values: List[Any]  # parsed value (can be any value)
     formatted_value: Optional[str]  # a string representation of the parsed value
     display_value: str  # The string representation of the parsed vlaues
-    valid_filter_operators: List[FilterOperator]
+    valid_filter_operators: List[FilterStringOperators]

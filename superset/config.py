@@ -1325,7 +1325,7 @@ import ipaddress
 
 from sqlalchemy import Column
 
-from superset.utils.core import FilterOperator
+from superset.utils.core import FilterOperator, FilterStringOperators
 
 
 def cidr_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
@@ -1334,26 +1334,31 @@ def cidr_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
         "status": "valid",
         "display_value": "",
         "valid_filter_operators": [
-            FilterOperator.EQUALS,
-            FilterOperator.GREATER_THAN_OR_EQUALS,
-            FilterOperator.GREATER_THAN,
-            FilterOperator.IN,
-            FilterOperator.LESS_THAN,
-            FilterOperator.LESS_THAN_OR_EQUALS,
+            FilterStringOperators.EQUALS,
+            FilterStringOperators.GREATER_THAN_OR_EQUAL,
+            FilterStringOperators.GREATER_THAN,
+            FilterStringOperators.IN,
+            FilterStringOperators.LESS_THAN,
+            FilterStringOperators.LESS_THAN_OR_EQUAL,
         ],
     }
     for val in req["values"]:
+        string_value = str(val)
         try:
-            ip_range = ipaddress.ip_network(val)
+            ip_range = (
+                ipaddress.ip_network(int(string_value), strict=False)
+                if string_value.isnumeric()
+                else ipaddress.ip_network(string_value, strict=False)
+            )
             resp["values"].append(
                 {"start": int(ip_range[0]), "end": int(ip_range[-1])}
                 if ip_range[0] != ip_range[-1]
                 else int(ip_range[0])
             )
-            resp["formatted_value"] = str(val)
+            resp["formatted_value"] = str(string_value)
         except Exception as e:
             resp["status"] = "invalid"
-            resp["values"].append("Invalid")
+            resp["values"].append("")
     resp["display_value"] = ", ".join(
         map(
             lambda x: f"{x['start']} - {x['end']}" if isinstance(x, dict) else str(x),
