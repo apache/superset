@@ -35,10 +35,9 @@ function AnchorLink({
   filters = {},
   showShortLinkButton = false,
   inFocus = false,
-  placement = "right",
+  placement = 'right',
   ...props
 }: AnchorLinkProps) {
-
   const { anchorLinkId } = props;
 
   function scrollToView(delay = 0) {
@@ -57,7 +56,7 @@ function AnchorLink({
     if (inFocus) {
       scrollToView();
     }
-  }, [inFocus])
+  }, [inFocus]);
 
   useEffect(() => {
     const hash = getLocationHash();
