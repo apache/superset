@@ -54,12 +54,7 @@ describe('Filter utils', () => {
         filters: [
           {
             col: 'testCol',
-            op: '>=',
-            val: 0,
-          },
-          {
-            col: 'testCol',
-            op: '<=',
+            op: '==',
             val: 0,
           },
         ],
