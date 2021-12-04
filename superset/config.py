@@ -184,7 +184,7 @@ SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = (  # pylint: disable=invalid-name
     SQLAlchemyUtilsAdapter
 )
 # The limit of queries fetched for query search
-QUERY_SEARCH_LIMIT = 1000
+QUERY_SEARCH_LIMIT = 10000
 
 # Flask-WTF flag for CSRF
 WTF_CSRF_ENABLED = True
@@ -214,7 +214,7 @@ PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefi
 # GLOBALS FOR APP Builder
 # ------------------------------
 # Uncomment to setup Your App name
-APP_NAME = "Superset"
+APP_NAME = "Vkusvill analytics"
 
 # Specify the App icon
 APP_ICON = "/static/assets/images/superset-logo-horiz.png"
@@ -347,7 +347,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # See `PR 7935 <https://github.com/apache/superset/pull/7935>`_ for more details.
     "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,
     "ENABLE_TEMPLATE_PROCESSING": True,
-    "ENABLE_TEMPLATE_REMOVE_FILTERS": False,
+    "ENABLE_TEMPLATE_REMOVE_FILTERS": True,
     "KV_STORE": False,
     # When this feature is enabled, nested types in Presto will be
     # expanded into extra columns and/or arrays. This is experimental,
@@ -374,7 +374,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "DASHBOARD_CROSS_FILTERS": False,
     # Feature is under active development and breaking changes are expected
     "DASHBOARD_NATIVE_FILTERS_SET": False,
-    "DASHBOARD_FILTERS_EXPERIMENTAL": False,
+    "DASHBOARD_FILTERS_EXPERIMENTAL": True,
     "GLOBAL_ASYNC_QUERIES": False,
     "VERSIONED_EXPORT": False,
     # Note that: RowLevelSecurityFilter is only given by default to the Admin role
@@ -384,14 +384,14 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # by that custom datasource access. So we are assuming a default security config,
     # a custom security config could potentially give access to setting filters on
     # tables that users do not have access to.
-    "ROW_LEVEL_SECURITY": True,
+    "ROW_LEVEL_SECURITY": False,
     # Enables Alerts and reports new implementation
     "ALERT_REPORTS": False,
     # Enable experimental feature to search for other dashboards
-    "OMNIBAR": False,
-    "DASHBOARD_RBAC": False,
-    "ENABLE_EXPLORE_DRAG_AND_DROP": False,
-    "ENABLE_DND_WITH_CLICK_UX": False,
+    "OMNIBAR": True,
+    "DASHBOARD_RBAC": True,
+    "ENABLE_EXPLORE_DRAG_AND_DROP": True,
+    "ENABLE_DND_WITH_CLICK_UX": True,
     # Enabling ALERTS_ATTACH_REPORTS, the system sends email and slack message
     # with screenshot and link
     # Disables ALERTS_ATTACH_REPORTS, the system DOES NOT generate screenshot
@@ -553,10 +553,21 @@ IMG_UPLOAD_URL = "/static/uploads/"
 CACHE_DEFAULT_TIMEOUT = int(timedelta(days=1).total_seconds())
 
 # Default cache for Superset objects
-CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
+CACHE_CONFIG: CacheConfig = {
+        "CACHE_TYPE": "redis",
+        "CACHE_DEFAULT_TIMEOUT": 3600,
+        "CACHE_KEY_PREFIX":"superset_13",
+        "CACHE_REDIS_URL":"redis://izb-superset01:7000/1"
+}
 
 # Cache for datasource metadata and query results
-DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
+
+DATA_CACHE_CONFIG: CacheConfig = {
+        "CACHE_TYPE": "redis",
+        "CACHE_DEFAULT_TIMEOUT": 3600,
+        "CACHE_KEY_PREFIX":"superset_13_data",
+        "CACHE_REDIS_URL":"redis://izb-superset01:7000/1"
+}
 
 # store cache keys by datasource UID (via CacheKey) for custom processing/invalidation
 STORE_CACHE_KEYS_IN_METADATA_DB = False
@@ -962,7 +973,7 @@ PRESTO_POLL_INTERVAL = int(timedelta(seconds=1).total_seconds())
 # this enables programmers to customize certain charts (like the
 # geospatial ones) by inputing javascript in controls. This exposes
 # an XSS security vulnerability
-ENABLE_JAVASCRIPT_CONTROLS = False
+ENABLE_JAVASCRIPT_CONTROLS = True
 
 # The id of a template dashboard that should be copied to every new user
 DASHBOARD_TEMPLATE_ID = None
