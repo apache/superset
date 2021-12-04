@@ -65,8 +65,10 @@ import { TIMESERIES_CONSTANTS } from '../constants';
 export default function transformProps(
   chartProps: EchartsMixedTimeseriesFormData,
 ): EchartsMixedTimeseriesChartTransformedProps {
-  const { width, height, formData, queriesData, hooks, filterState } =
+  const { width, height, formData, queriesData, hooks, filterState,datasource  } =
     chartProps;
+  const { verboseMap = {} } = datasource;
+
   const { annotation_data: annotationData_ } = queriesData[0];
   const annotationData = annotationData_ || {};
   const data1: TimeseriesDataRecord[] = queriesData[0].data || [];
@@ -121,10 +123,12 @@ export default function transformProps(
   }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
-  const rawSeriesA = extractTimeseriesSeries(rebaseTimeseriesDatum(data1), {
+  const rebasedDataA = rebaseTimeseriesDatum(data1, verboseMap);
+  const rawSeriesA = extractTimeseriesSeries(rebasedDataA, {
     fillNeighborValue: stack ? 0 : undefined,
   });
-  const rawSeriesB = extractTimeseriesSeries(rebaseTimeseriesDatum(data2), {
+  const rebasedDataB = rebaseTimeseriesDatum(data2, verboseMap);
+  const rawSeriesB = extractTimeseriesSeries(rebasedDataB, {
     fillNeighborValue: stackB ? 0 : undefined,
   });
 
