@@ -322,21 +322,30 @@ export default class FilterableTable extends PureComponent<
     );
   }
 
+  // Parse any floating numbers so they'll sort correctly
+  parseFloatingNums = (value: any) => {
+    const floatValue = parseFloat(value);
+    return Number.isNaN(floatValue) ? value : floatValue;
+  };
+
   sortResults(sortBy: string, descending: boolean) {
     return (a: Datum, b: Datum) => {
-      const aValue = a[sortBy];
-      const bValue = b[sortBy];
+      const aValue = this.parseFloatingNums(a[sortBy]);
+      const bValue = this.parseFloatingNums(b[sortBy]);
+
+      // equal items sort equally
       if (aValue === bValue) {
-        // equal items sort equally
         return 0;
       }
+
+      // nulls sort after anything else
       if (aValue === null) {
-        // nulls sort after anything else
         return 1;
       }
       if (bValue === null) {
         return -1;
       }
+
       if (descending) {
         return aValue < bValue ? 1 : -1;
       }
