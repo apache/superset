@@ -279,11 +279,20 @@ export const useSimpleTabFilterProps = (props: Props) => {
       }),
     );
   };
+  const clearOperator = (): void => {
+    props.onChange(
+      props.adhocFilter.duplicateWith({
+        operatorId: undefined,
+        operator: undefined,
+      }),
+    );
+  };
   return {
     onSubjectChange,
     onOperatorChange,
     onComparatorChange,
     isOperatorRelevant,
+    clearOperator,
   };
 };
 
@@ -293,6 +302,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     onOperatorChange,
     isOperatorRelevant,
     onComparatorChange,
+    clearOperator,
   } = useSimpleTabFilterProps(props);
   const [suggestions, setSuggestions] = useState<Record<string, any>>([]);
   const [comparator, setComparator] = useState(props.adhocFilter.comparator);
@@ -305,13 +315,11 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     fetchSubjectBusinessType,
   } = useBusinessTypes();
   // TODO: This does not need to exists, just use the busninessTypeOperatorList lsit
-  const isOperatorRelevantWrapper = (operator: Operators, subject: string) => {
-    const op = OPERATOR_ENUM_TO_OPERATOR_TYPE[operator].operation;
-    return businessTypesState.subjectBusinessType
+  const isOperatorRelevantWrapper = (operator: Operators, subject: string) =>
+    businessTypesState.subjectBusinessType
       ? isOperatorRelevant(operator, subject) &&
-          businessTypesState.busninessTypeOperatorList.includes(op)
+        businessTypesState.busninessTypeOperatorList.includes(operator)
       : isOperatorRelevant(operator, subject);
-  };
   const onInputComparatorChange = (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
@@ -403,16 +411,6 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     placeholder: createSuggestionsPlaceholder(),
     autoFocus: shouldFocusComparator,
   };
-  useEffect(() => {
-    fetchSubjectBusinessType(props);
-  }, [props.adhocFilter.subject]);
-
-  useEffect(() => {
-    fetchBusinessTypeValueCallback(
-      comparator === undefined ? '' : comparator,
-      businessTypesState.subjectBusinessType,
-    );
-  }, [businessTypesState.subjectBusinessType, comparator]);
 
   const labelText =
     comparator && comparator.length > 0 && createSuggestionsPlaceholder();
@@ -448,8 +446,34 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   }, [props.adhocFilter.subject]);
 
   useEffect(() => {
+    fetchSubjectBusinessType(props);
+  }, [props.adhocFilter.subject]);
+
+  useEffect(() => {
+    fetchBusinessTypeValueCallback(
+      comparator === undefined ? '' : comparator,
+      businessTypesState.subjectBusinessType,
+    );
+  }, [businessTypesState.subjectBusinessType, comparator]);
+
+  useEffect(() => {
     setComparator(props.adhocFilter.comparator);
   }, [props.adhocFilter.comparator]);
+
+  useEffect(() => {
+    console.log(businessTypesState.subjectBusinessType && true);
+    if (
+      !(
+        operatorId &&
+        businessTypesState.busninessTypeOperatorList.length > 0 &&
+        businessTypesState.busninessTypeOperatorList.includes(
+          OPERATOR_ENUM_TO_OPERATOR_TYPE[operatorId].operation,
+        )
+      )
+    ) {
+      clearOperator();
+    }
+  }, [businessTypesState.busninessTypeOperatorList]);
 
   return (
     <>
@@ -487,7 +511,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
         {...operatorSelectProps}
       />
       {MULTI_OPERATORS.has(operatorId) || suggestions.length > 0 ? (
-        <Tooltip title={businessTypesState.subjectBusinessType}>
+        <Tooltip title={businessTypesState.parsedBusniessType}>
           <SelectWithLabel
             labelText={labelText}
             options={suggestions.map((suggestion: string) => ({
