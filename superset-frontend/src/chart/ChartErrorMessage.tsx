@@ -22,7 +22,7 @@ import { useChartOwnerNames } from 'src/common/hooks/apiResources';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { SupersetError } from 'src/components/ErrorMessage/types';
 
-interface Props {
+interface ChartErrorMessageProps {
   chartId: string;
   error?: SupersetError;
 }
@@ -30,7 +30,7 @@ interface Props {
 /**
  * fetches the chart owners and adds them to the extra data of the error message
  */
-export const ChartErrorMessage: React.FC<Props> = ({
+export const ChartErrorMessage: React.FC<ChartErrorMessageProps> = ({
   chartId,
   error,
   ...props

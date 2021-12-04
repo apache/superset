@@ -17,29 +17,29 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
 
 import URLShortLinkButton from 'src/components/URLShortLinkButton';
 import getDashboardUrl from 'src/dashboard/util/getDashboardUrl';
 import getLocationHash from 'src/dashboard/util/getLocationHash';
 
-const propTypes = {
-  anchorLinkId: PropTypes.string.isRequired,
-  filters: PropTypes.object,
-  showShortLinkButton: PropTypes.bool,
-  inFocus: PropTypes.bool,
-  placement: PropTypes.oneOf(['right', 'left', 'top', 'bottom']),
-};
+interface AnchorLinkProps {
+  anchorLinkId: string;
+  filters: Record<string, any>;
+  showShortLinkButton?: boolean;
+  inFocus?: boolean;
+  placement: 'right' | 'left' | 'top' | 'bottom';
+}
 
-const defaultProps = {
-  inFocus: false,
-  showShortLinkButton: false,
-  placement: 'right',
-  filters: {},
-};
+class AnchorLink extends React.PureComponent<AnchorLinkProps> {
 
-class AnchorLink extends React.PureComponent {
+  static defaultProps = {
+    inFocus: false,
+    showShortLinkButton: false,
+    placement: 'right',
+    filters: {},
+  };
+
   componentDidMount() {
     const hash = getLocationHash();
     const { anchorLinkId } = this.props;
@@ -49,7 +49,7 @@ class AnchorLink extends React.PureComponent {
     }
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps: AnchorLinkProps) {
     const { inFocus = false } = nextProps;
     if (inFocus) {
       this.scrollToView();
@@ -90,8 +90,5 @@ class AnchorLink extends React.PureComponent {
     );
   }
 }
-
-AnchorLink.propTypes = propTypes;
-AnchorLink.defaultProps = defaultProps;
 
 export default AnchorLink;
