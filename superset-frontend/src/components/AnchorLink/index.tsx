@@ -52,11 +52,14 @@ function AnchorLink({
     }
   }
 
-  useEffect(() => {
-    if (inFocus) {
-      scrollToView();
-    }
-  }, [inFocus]);
+  useEffect(
+    (inFocus = false) => {
+      if (inFocus) {
+        scrollToView();
+      }
+    },
+    [inFocus],
+  );
 
   useEffect(() => {
     const hash = getLocationHash();
