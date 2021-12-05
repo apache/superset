@@ -234,11 +234,14 @@ supersetNode:
 
 ##
 ## Superset worker configuration
+
+supersetCeleryApp: ${SUPERSET_CELERY_APP:-superset.tasks.celery_app:app}
+
 supersetWorker:
   command:
     - "/bin/sh"
     - "-c"
-    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; celery --app=superset.tasks.celery_app:app worker"
+    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; celery --app={{ .Values.supersetCeleryApp }} worker"
   forceReload: false # If true, forces deployment to reload on each upgrade
   initContainers:
     - name: wait-for-postgres
@@ -261,7 +264,7 @@ supersetCeleryBeat:
   command:
     - "/bin/sh"
     - "-c"
-    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; celery --app=superset.tasks.celery_app:app beat --pidfile /tmp/celerybeat.pid --schedule /tmp/celerybeat-schedule"
+    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; celery --app={{ .Values.supersetCeleryApp }} beat --pidfile /tmp/celerybeat.pid --schedule /tmp/celerybeat-schedule"
   forceReload: false # If true, forces deployment to reload on each upgrade
   initContainers:
     - name: wait-for-postgres
