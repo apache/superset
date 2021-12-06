@@ -35,7 +35,11 @@ import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { safeStringify } from 'src/utils/safeStringify';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from './dashboardLayout';
-import { setChartConfiguration, dashboardInfoChanged } from './dashboardInfo';
+import {
+  setChartConfiguration,
+  dashboardInfoChanged,
+  SET_CHART_CONFIG_COMPLETE,
+} from './dashboardInfo';
 import { fetchDatasourceMetadata } from './datasources';
 import {
   addFilter,
@@ -230,35 +234,36 @@ export function saveDashboardRequest(data, id, saveType) {
     };
 
     const handleChartConfiguration = () => {
-      if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
-        const {
-          dashboardInfo: {
-            metadata: { chart_configuration = {} },
-          },
-        } = getState();
-        const chartConfiguration = Object.values(chart_configuration).reduce(
-          (prev, next) => {
-            // If chart removed from dashboard - remove it from metadata
-            if (
-              Object.values(layout).find(
-                layoutItem => layoutItem?.meta?.chartId === next.id,
-              )
-            ) {
-              return { ...prev, [next.id]: next };
-            }
-            return prev;
-          },
-          {},
-        );
-        dispatch(setChartConfiguration(chartConfiguration));
-      }
+      const {
+        dashboardInfo: {
+          metadata: { chart_configuration = {} },
+        },
+      } = getState();
+      const chartConfiguration = Object.values(chart_configuration).reduce(
+        (prev, next) => {
+          // If chart removed from dashboard - remove it from metadata
+          if (
+            Object.values(layout).find(
+              layoutItem => layoutItem?.meta?.chartId === next.id,
+            )
+          ) {
+            return { ...prev, [next.id]: next };
+          }
+          return prev;
+        },
+        {},
+      );
+      return chartConfiguration;
     };
 
     const onCopySuccess = response => {
-      handleChartConfiguration();
       const lastModifiedTime = response.json.last_modified_time;
       if (lastModifiedTime) {
         dispatch(saveDashboardRequestSuccess(lastModifiedTime));
+      }
+      if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+        const chartConfiguration = handleChartConfiguration();
+        dispatch(setChartConfiguration(chartConfiguration));
       }
       dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
       return response;
@@ -267,14 +272,20 @@ export function saveDashboardRequest(data, id, saveType) {
     const onUpdateSuccess = response => {
       const updatedDashboard = response.json.result;
       const lastModifiedTime = response.json.last_modified_time;
-      handleChartConfiguration();
       // synching with the backend transformations of the metadata
       if (updatedDashboard.json_metadata) {
+        const metadata = JSON.parse(updatedDashboard.json_metadata);
         dispatch(
           dashboardInfoChanged({
             metadata: JSON.parse(updatedDashboard.json_metadata),
           }),
         );
+        if (metadata.chart_configuration) {
+          dispatch({
+            type: SET_CHART_CONFIG_COMPLETE,
+            chartConfiguration: metadata.chart_configuration,
+          });
+        }
       }
       if (lastModifiedTime) {
         dispatch(saveDashboardRequestSuccess(lastModifiedTime));
@@ -305,6 +316,10 @@ export function saveDashboardRequest(data, id, saveType) {
     };
 
     if (saveType === SAVE_TYPE_OVERWRITE) {
+      let chartConfiguration = {};
+      if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+        chartConfiguration = handleChartConfiguration();
+      }
       const updatedDashboard = {
         certified_by: cleanedData.certified_by,
         certification_details: cleanedData.certification_details,
@@ -317,8 +332,10 @@ export function saveDashboardRequest(data, id, saveType) {
           ...(cleanedData?.metadata || {}),
           default_filters: safeStringify(serializedFilters),
           filter_scopes: serializedFilterScopes,
+          chart_configuration: chartConfiguration,
         }),
       };
+
       return SupersetClient.put({
         endpoint: `/api/v1/dashboard/${id}`,
         headers: { 'Content-Type': 'application/json' },
