@@ -49,7 +49,7 @@ const propTypes = {
   showValues: PropTypes.bool,
   steps: PropTypes.number,
   timeFormatter: PropTypes.func,
-  valueFormatter: PropTypes.string,
+  valueFormatter: PropTypes.func,
   verboseMap: PropTypes.object,
 };
 
