@@ -43,7 +43,7 @@ export default async function callApiAndParseWithTimeout<
   const response = await racedPromise;
 
   if (response && response.status === 401) {
-    return redirectUnauthorized(unauthorizedRedirectUrl);
+    redirectUnauthorized(unauthorizedRedirectUrl);
   }
   return parseResponse(response, parseMethod);
 }
