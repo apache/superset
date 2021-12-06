@@ -72,23 +72,6 @@
     "last 3 safari versions",
     "last 3 edge versions"
   ],
-  "stylelint": {
-    "rules": {
-      "block-opening-brace-space-before": "always",
-      "no-missing-end-of-source-newline": "never",
-      "rule-empty-line-before": [
-        "always",
-        {
-          "except": [
-            "first-nested"
-          ],
-          "ignore": [
-            "after-comment"
-          ]
-        }
-      ]
-    }
-  },
   "dependencies": {
     "@ant-design/icons": "^4.2.2",
     "@babel/runtime-corejs3": "^7.12.5",
