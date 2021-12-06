@@ -29,6 +29,7 @@ const propTypes = {
   mutator: PropTypes.func.isRequired,
   onAsyncError: PropTypes.func,
   value: PropTypes.oneOfType([
+    PropTypes.string,
     PropTypes.number,
     PropTypes.arrayOf(PropTypes.number),
   ]),
