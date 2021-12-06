@@ -17,43 +17,39 @@
  * under the License.
  */
 import React, { useState, useEffect } from 'react';
-import PropTypes from 'prop-types';
 // TODO: refactor this with `import { AsyncSelect } from src/components/Select`
 import { Select } from 'src/components/Select';
 import { t, SupersetClient } from '@superset-ui/core';
 import { getClientErrorObject } from '../../utils/getClientErrorObject';
+import { OptionTypeBase, ValueType } from 'react-select';
 
-const propTypes = {
-  dataEndpoint: PropTypes.string.isRequired,
-  onChange: PropTypes.func.isRequired,
-  mutator: PropTypes.func.isRequired,
-  onAsyncError: PropTypes.func,
-  value: PropTypes.oneOfType([
-    PropTypes.string,
-    PropTypes.number,
-    PropTypes.arrayOf(PropTypes.number),
-  ]),
-  valueRenderer: PropTypes.func,
-  placeholder: PropTypes.string,
-  autoSelect: PropTypes.bool,
-};
+interface AsyncSelectProps {
+  dataEndpoint: string;
+  onChange: Function;
+  mutator: Function;
+  onAsyncError?: Function;
+  value: ValueType<OptionTypeBase>;
+  valueRenderer?: (option: OptionTypeBase) => React.ReactNode;
+  placeholder?: string;
+  autoSelect?: boolean;
+}
 
-const defaultProps = {
-  placeholder: t('Select ...'),
-  onAsyncError: () => {},
-};
-
-function AsyncSelect(props) {
+function AsyncSelect({
+  placeholder = t('Select ...'),
+  onAsyncError = () => { },
+  ...props
+}: AsyncSelectProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [options, setOptions] = useState([]);
 
-  function onChange(option) {
-    props.onChange(option);
+  function onChange(option: any) {
+    onChange(option);
   }
+
+  const { mutator, dataEndpoint, value, valueRenderer } = props;
 
   async function fetchOptions() {
     setIsLoading(true);
-    const { mutator, dataEndpoint } = props;
 
     try {
       const { json } = await SupersetClient.get({ endpoint: dataEndpoint });
@@ -65,7 +61,7 @@ function AsyncSelect(props) {
       }
     } catch (response) {
       const error = await getClientErrorObject(response);
-      props.onAsyncError(error.error || error.statusText || error);
+      onAsyncError(error.error || response.statusText || error);
       setIsLoading(false);
     }
   }
@@ -76,18 +72,14 @@ function AsyncSelect(props) {
 
   return (
     <Select
-      placeholder={props.placeholder}
+      placeholder={placeholder}
       options={options}
-      value={props.value}
+      value={value}
       isLoading={isLoading}
       onChange={onChange}
-      valueRenderer={props.valueRenderer}
-      {...props}
+      valueRenderer={valueRenderer}
     />
   );
 }
-
-AsyncSelect.propTypes = propTypes;
-AsyncSelect.defaultProps = defaultProps;
 
 export default AsyncSelect;
