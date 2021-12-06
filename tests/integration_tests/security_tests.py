@@ -1319,7 +1319,7 @@ class TestDatasources(SupersetTestCase):
 
 
 class FakeRequest:
-    cookies = {}
+    cookies: Any = {}
 
 
 class TestGuestTokens(SupersetTestCase):
