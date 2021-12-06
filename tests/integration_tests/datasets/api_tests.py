@@ -432,7 +432,7 @@ class TestDatasetApi(SupersetTestCase):
         }
         uri = "api/v1/dataset/"
         rv = self.client.post(uri, json=table_data)
-        assert rv.status_code == 401
+        assert rv.status_code == 403
 
     def test_create_dataset_item_owner(self):
         """
@@ -1094,7 +1094,7 @@ class TestDatasetApi(SupersetTestCase):
         self.login(username="gamma")
         uri = f"api/v1/dataset/{dataset.id}"
         rv = self.client.delete(uri)
-        assert rv.status_code == 401
+        assert rv.status_code == 403
         db.session.delete(dataset)
         db.session.commit()
 
@@ -1313,7 +1313,7 @@ class TestDatasetApi(SupersetTestCase):
         self.login(username="gamma")
         uri = f"api/v1/dataset/?q={prison.dumps(dataset_ids)}"
         rv = self.client.delete(uri)
-        assert rv.status_code == 401
+        assert rv.status_code == 403
 
     @pytest.mark.usefixtures("create_datasets")
     def test_bulk_delete_dataset_item_incorrect(self):
