@@ -19,8 +19,14 @@
 
 import { ParseMethod, TextResponse, JsonResponse } from '../types';
 
+function isPromise(
+  apiRequest: Response | Promise<Response>,
+): apiRequest is Promise<Response> {
+  return (apiRequest as Promise<Response>).finally !== undefined;
+}
+
 export default async function parseResponse<T extends ParseMethod = 'json'>(
-  response: Response,
+  apiRequest: Response | Promise<Response>,
   parseMethod?: T,
 ) {
   type ReturnType = T extends 'raw' | null
@@ -30,6 +36,8 @@ export default async function parseResponse<T extends ParseMethod = 'json'>(
     : T extends 'text'
     ? TextResponse
     : never;
+
+  const response = isPromise(apiRequest) ? await apiRequest : apiRequest;
   // reject failed HTTP requests with the raw response
   if (!response.ok) {
     return Promise.reject(response);
