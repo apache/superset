@@ -31,6 +31,7 @@ import { QueryParamProvider } from 'use-query-params';
 import { initFeatureFlags } from 'src/featureFlags';
 import { ThemeProvider } from '@superset-ui/core';
 import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
+import { EmbeddedUiConfigProvider } from 'src/components/UiConfigContext';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
 import Menu from 'src/components/Menu/Menu';
@@ -68,14 +69,16 @@ const RootContextProviders: React.FC = ({ children }) => {
       <ReduxProvider store={store}>
         <DndProvider backend={HTML5Backend}>
           <FlashProvider messages={common.flash_messages}>
-            <DynamicPluginProvider>
-              <QueryParamProvider
-                ReactRouterRoute={Route}
-                stringifyOptions={{ encode: false }}
-              >
-                {children}
-              </QueryParamProvider>
-            </DynamicPluginProvider>
+            <EmbeddedUiConfigProvider>
+              <DynamicPluginProvider>
+                <QueryParamProvider
+                  ReactRouterRoute={Route}
+                  stringifyOptions={{ encode: false }}
+                >
+                  {children}
+                </QueryParamProvider>
+              </DynamicPluginProvider>
+            </EmbeddedUiConfigProvider>
           </FlashProvider>
         </DndProvider>
       </ReduxProvider>
