@@ -986,7 +986,7 @@ class TestDatasetApi(SupersetTestCase):
         table_data = {"description": "changed_description"}
         uri = f"api/v1/dataset/{dataset.id}"
         rv = self.client.put(uri, json=table_data)
-        assert rv.status_code == 401
+        assert rv.status_code == 403
         db.session.delete(dataset)
         db.session.commit()
 
@@ -1438,7 +1438,7 @@ class TestDatasetApi(SupersetTestCase):
 
         self.login(username="gamma")
         rv = self.client.get(uri)
-        assert rv.status_code == 401
+        assert rv.status_code == 403
 
         perm1 = security_manager.find_permission_view_menu("can_export", "Dataset")
 
@@ -1516,7 +1516,7 @@ class TestDatasetApi(SupersetTestCase):
         self.login(username="gamma")
         rv = self.client.get(uri)
         # gamma users by default do not have access to this dataset
-        assert rv.status_code == 401
+        assert rv.status_code == 403
 
     @unittest.skip("Number of related objects depend on DB")
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
