@@ -14,7 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import TypedDict, Union, Optional, List
+from typing import List, Optional, TypedDict, Union
+
+from flask_login import AnonymousUserMixin
 
 
 class GuestTokenUser(TypedDict, total=False):
@@ -34,3 +36,16 @@ class GuestToken(TypedDict):
     exp: float
     user: GuestTokenUser
     resources: List[GuestTokenResource]
+
+
+class GuestUser(AnonymousUserMixin):
+    """
+    Used as the "anonymous" user in case of guest authentication (embedded)
+    """
+
+    is_guest_user = True
+
+    def __init__(self, username: str, first_name: str, last_name: str):
+        self.username = username
+        self.first_name = first_name
+        self.last_name = last_name

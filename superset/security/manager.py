@@ -34,7 +34,7 @@ from typing import (
 )
 
 import jwt
-from flask import current_app, g, Request
+from flask import current_app, Flask, g, Request
 from flask_appbuilder import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.sqla.manager import SecurityManager
@@ -65,7 +65,12 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
-from superset.security.guest_token import GuestToken, GuestTokenUser, GuestTokenResource
+from superset.security.guest_token import (
+    GuestToken,
+    GuestTokenResource,
+    GuestTokenUser,
+    GuestUser,
+)
 from superset.utils.core import DatasourceName, RowLevelSecurityFilterType
 
 if TYPE_CHECKING:
@@ -225,7 +230,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "all_query_access",
     )
 
-    def create_login_manager(self, app) -> LoginManager:
+    guest_user_cls = GuestUser
+
+    def create_login_manager(self, app: Flask) -> LoginManager:
         lm = super().create_login_manager(app)
         # todo put ff check here
         lm.request_loader(self.get_guest_user)
@@ -1221,7 +1228,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return exists
 
     @staticmethod
-    def _get_current_epoch_time():
+    def _get_current_epoch_time() -> float:
         """ This is used so the tests can mock time """
         return time.time()
 
@@ -1242,7 +1249,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         token = jwt.encode(claims, secret, algorithm="HS256")
         return token
 
-    def get_guest_user(self, req: Request):
+    def get_guest_user(self, req: Request) -> Optional[GuestUser]:
         """
         If there is a guest token in the request (used for embedded),
         parses the token and returns the guest user.
@@ -1260,11 +1267,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         except Exception as ex:  # pylint: disable=broad-except
             # The login manager will handle sending 401s.
             # We don't need to send a special error message.
-            logger.warn("Invalid guest token")
-            logger.warn(ex)
+            logger.warning("Invalid guest token")
+            logger.warning(ex)
+            return None
         else:
             user = token["user"]
-            return GuestUser(
+            return self.guest_user_cls(
                 user.get("username", "guest_user"),
                 user.get("first_name", "Guest"),
                 user.get("last_name", "User"),
@@ -1286,15 +1294,4 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             raise ValueError("Guest token does not contain a user claim")
         if token.get("resources") is None:
             raise ValueError("Guest token does not contain a resources claim")
-        return token
-
-
-class GuestUser(AnonymousUserMixin):
-    """ Used as the "anonymous" user in case of guest authentication (embedded) """
-
-    is_guest_user = True
-
-    def __init__(self, username: str, first_name: str, last_name: str):
-        self.username = username
-        self.first_name = first_name
-        self.last_name = last_name
+        return cast(GuestToken, token)

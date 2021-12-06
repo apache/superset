@@ -16,12 +16,12 @@
 # under the License.
 import logging
 
-from flask import Response, request
+from flask import request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.api import BaseApi, safe
 from flask_appbuilder.security.decorators import permission_name, protect
 from flask_wtf.csrf import generate_csrf
-from marshmallow import Schema, fields, ValidationError
+from marshmallow import fields, Schema, ValidationError
 
 from superset.extensions import event_logger
 
