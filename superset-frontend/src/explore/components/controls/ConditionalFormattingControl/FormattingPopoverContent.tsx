@@ -19,7 +19,7 @@
 import React from 'react';
 import { styled, t } from '@superset-ui/core';
 import { Form, FormItem, FormProps } from 'src/components/Form';
-import Select from 'src/components/Select/Select';
+import Select, { propertyComparator } from 'src/components/Select/Select';
 import { Col, InputNumber, Row } from 'src/common/components';
 import Button from 'src/components/Button';
 import {
@@ -129,8 +129,7 @@ const operatorField = (
     <Select
       ariaLabel={t('Operator')}
       options={operatorOptions}
-      sortByProperty="order"
-      sortOptions
+      sortComparator={propertyComparator('order')}
     />
   </FormItem>
 );

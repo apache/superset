@@ -36,8 +36,8 @@ const defaultProps = {
 };
 
 const options = [
-  { value: '1 year ago', label: '1 year ago' },
-  { value: 'today', label: 'today' },
+  { value: '1 year ago', label: '1 year ago', order: 0 },
+  { value: 'today', label: 'today', order: 1 },
 ];
 
 describe('SelectControl', () => {
@@ -160,8 +160,8 @@ describe('SelectControl', () => {
   describe('UNSAFE_componentWillReceiveProps', () => {
     it('sets state.options if props.choices has changed', () => {
       const updatedOptions = [
-        { value: 'three', label: 'three' },
-        { value: 'four', label: 'four' },
+        { value: 'three', label: 'three', order: 0 },
+        { value: 'four', label: 'four', order: 1 },
       ];
       const newProps = {
         choices: [

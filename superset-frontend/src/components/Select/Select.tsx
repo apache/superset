@@ -157,9 +157,7 @@ export interface SelectProps extends PickedSelectProps {
    * Works in async mode only (See the options property).
    */
   onError?: (error: string) => void;
-  sortByProperty?: string;
   sortComparator?: (a: AntdLabeledValue, b: AntdLabeledValue) => number;
-  sortOptions?: boolean;
 }
 
 const StyledContainer = styled.div`
@@ -173,7 +171,6 @@ const StyledSelect = styled(AntdSelect)`
     && .ant-select-selector {
       border-radius: ${theme.gridUnit}px;
     }
-
     // Open the dropdown when clicking on the suffix
     // This is fixed in version 4.16
     .ant-select-arrow .anticon:not(.ant-select-suffix) {
@@ -198,7 +195,6 @@ const StyledError = styled.div`
     width: 100%;
     padding: ${theme.gridUnit * 2}px;
     color: ${theme.colors.error.base};
-
     & svg {
       margin-right: ${theme.gridUnit * 2}px;
     }
@@ -234,27 +230,15 @@ const Error = ({ error }: { error: string }) => (
   </StyledError>
 );
 
-// Not sure if this is necessary anymore? Seems like all options being
-// passed in are being formatted to have a string label
-// -----------------------------------------
-// const defaultSortComparator = (a: AntdLabeledValue, b: AntdLabeledValue) => {
-//   if (typeof a.label === 'string' && typeof b.label === 'string') {
-//     return a.label.localeCompare(b.label);
-//   }
-//   if (typeof a.value === 'string' && typeof b.value === 'string') {
-//     return a.value.localeCompare(b.value);
-//   }
-//   return (a.value as number) - (b.value as number);
-// };
-// -----------------------------------------
-
-const getInitialIndexes = (options: OptionsType) =>
-  options.reduce((a, c, i) => ({ ...a, [c.value]: i }), {});
-
-const sortByInitialIndexes = (
-  options: OptionsType,
-  originals: { value?: number },
-) => options.sort((a, b) => originals[a.value] - originals[b.value]);
+const defaultSortComparator = (a: AntdLabeledValue, b: AntdLabeledValue) => {
+  if (typeof a.label === 'string' && typeof b.label === 'string') {
+    return a.label.localeCompare(b.label);
+  }
+  if (typeof a.value === 'string' && typeof b.value === 'string') {
+    return a.value.localeCompare(b.value);
+  }
+  return (a.value as number) - (b.value as number);
+};
 
 /**
  * It creates a comparator to check for a specific property.
@@ -303,9 +287,7 @@ const Select = ({
   pageSize = DEFAULT_PAGE_SIZE,
   placeholder = t('Select ...'),
   showSearch = true,
-  sortByProperty = 'label',
-  sortComparator = propertyComparator(sortByProperty),
-  sortOptions = false,
+  sortComparator = defaultSortComparator,
   value,
   ...props
 }: SelectProps) => {
@@ -313,10 +295,9 @@ const Select = ({
   const isSingleMode = mode === 'single';
   const shouldShowSearch = isAsync || allowNewOptions ? true : showSearch;
   const initialOptions =
-    options && Array.isArray(options) ? [...options] : EMPTY_OPTIONS;
-  const [selectOptions, setSelectOptions] = useState<OptionsType>(
-    sortOptions ? initialOptions.sort(sortComparator) : initialOptions,
-  );
+    options && Array.isArray(options) ? options : EMPTY_OPTIONS;
+  const [selectOptions, setSelectOptions] =
+    useState<OptionsType>(initialOptions);
   const shouldUseChildrenOptions = !!selectOptions.find(
     opt => opt?.customLabel,
   );
@@ -336,7 +317,6 @@ const Select = ({
     : allowNewOptions
     ? 'tags'
     : 'multiple';
-  const optionsInitialOrder = useRef(getInitialIndexes(initialOptions));
 
   // TODO: Don't assume that isAsync is always labelInValue
   const handleTopOptions = useCallback(
@@ -346,6 +326,7 @@ const Select = ({
         const isLabeledValue = isAsync || labelInValue;
         const topOptions: OptionsType = [];
         const otherOptions: OptionsType = [];
+
         selectOptions.forEach(opt => {
           let found = false;
           if (Array.isArray(selectedValue)) {
@@ -395,23 +376,20 @@ const Select = ({
           });
         }
         const sortedOptions = [
-          ...sortByInitialIndexes(topOptions, optionsInitialOrder.current),
-          ...sortByInitialIndexes(otherOptions, optionsInitialOrder.current),
+          ...topOptions.sort(sortComparator),
+          ...otherOptions.sort(sortComparator),
         ];
         if (!isEqual(sortedOptions, selectOptions)) {
           setSelectOptions(sortedOptions);
         }
       } else {
-        const sortedOptions = sortByInitialIndexes(
-          [...selectOptions],
-          optionsInitialOrder.current,
-        );
+        const sortedOptions = [...selectOptions].sort(sortComparator);
         if (!isEqual(sortedOptions, selectOptions)) {
           setSelectOptions(sortedOptions);
         }
       }
     },
-    [isAsync, isSingleMode, labelInValue, selectOptions],
+    [isAsync, isSingleMode, labelInValue, selectOptions, sortComparator],
   );
 
   const handleOnSelect = (
@@ -477,6 +455,7 @@ const Select = ({
         data.forEach(option =>
           dataValues.add(String(option.value).toLocaleLowerCase()),
         );
+
         // merges with existing and creates unique options
         setSelectOptions(prevOptions => {
           mergedData = [
@@ -488,15 +467,13 @@ const Select = ({
             ),
             ...data,
           ];
-
-          if (sortOptions) mergedData.sort(sortComparator);
-          optionsInitialOrder.current = getInitialIndexes(mergedData);
+          mergedData.sort(sortComparator);
           return mergedData;
         });
       }
       return mergedData;
     },
-    [sortComparator, sortOptions],
+    [sortComparator],
   );
 
   const handlePaginatedFetch = useMemo(
@@ -683,11 +660,7 @@ const Select = ({
         }
       });
       if (options.length > 0) {
-        const sortedOriginal = sortByInitialIndexes(
-          selectOptions,
-          optionsInitialOrder.current,
-        );
-        setSelectOptions([...options, ...sortedOriginal]);
+        setSelectOptions([...options, ...selectOptions]);
       }
     }
   }, [labelInValue, isAsync, selectOptions, selectValue]);
