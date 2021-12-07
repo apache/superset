@@ -5,6 +5,7 @@ import DashboardBuilder from 'src/dashboard/components/DashboardBuilder/Dashboar
 
 interface Props {
   id: string | number;
+  onSelect: (selectedTabIds: string[]) => void;
 }
 type ComponentPosition = {
   id: string;
@@ -19,8 +20,8 @@ type PositionData = {
 
 function buildTree(
   nodeId: string,
-  data: PositionData,
-  tree: DataNode[],
+  data: { [key: string]: any },
+  tree: any,
   traversedIds: any,
 ) {
   if (nodeId in traversedIds) {
@@ -29,7 +30,7 @@ function buildTree(
   const element = data[nodeId];
 
   const parents: string[] = element.parents.filter(
-    parent => data[parent] && data[parent].type === 'TAB',
+    (parent: string) => data[parent] && data[parent].type === 'TAB',
   );
   const newNode = {
     key: nodeId,
@@ -37,27 +38,28 @@ function buildTree(
     children: [],
   };
 
+  // eslint-disable-next-line no-param-reassign
+  traversedIds[nodeId] = newNode;
   if (parents.length === 0) {
     tree.push(newNode);
-    Object.assign(traversedIds, { nodeId: newNode });
+
     return newNode;
   }
   // Only take the last parent.
   const parent = parents[parents.length - 1];
   const parentNode = buildTree(parent, data, tree, traversedIds);
   parentNode.children.push(newNode);
-  Object.assign(traversedIds, { nodeId: newNode });
   return newNode;
 }
-
-const AlertsTabsSelection: React.FC<Props> = (props: Props) => {
-  // @ts-ignore
-  const dashboardInfo = useDashboard(props.id);
-  const positionData: PositionData = dashboardInfo.result?.position_data;
+const AlertsTabsSelection: React.FC<Props> = ({ id, onSelect }: Props) => {
+  const dashboardInfo = useDashboard(id);
+  const positionData: PositionData | null = dashboardInfo.result?.position_data;
   const tree: DataNode[] = [];
   const traversed = {};
-  Object.entries(positionData).forEach(([id, component]) => {
-    // @ts-ignore
+  if (!positionData) {
+    return null;
+  }
+  Object.entries(positionData).forEach(([_, component]) => {
     if (['TABS'].includes(component.type)) {
       // @ts-ignore
       component.children.forEach(element => {
@@ -71,8 +73,7 @@ const AlertsTabsSelection: React.FC<Props> = (props: Props) => {
       defaultExpandedKeys={[tree[0].key]}
       defaultSelectedKeys={[tree[0].key]}
       defaultCheckedKeys={[tree[0].key]}
-      onSelect={selectedKeys => console.log(selectedKeys)}
-      onCheck={check => console.log(check)}
+      onSelect={onSelect}
       treeData={tree}
     />
   );

@@ -56,6 +56,7 @@ import {
 } from 'src/views/CRUD/alert/types';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
+import AlertsTabsSelection from './AlertTabsSelection';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -424,6 +425,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   // Chart metadata
   const [chartVizType, setChartVizType] = useState<string>('');
+  const [selectedTabs, setSelectedTabs] = useState<string[] | null>(null);
 
   const isEditMode = alert !== null;
   const formatOptionEnabled =
@@ -519,6 +521,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       dashboard:
         contentType === 'dashboard' ? currentAlert?.dashboard?.value : null,
       database: currentAlert?.database?.value,
+      selectedTabs,
       owners: (currentAlert?.owners || []).map(
         owner => (owner as MetaObject).value || owner.id,
       ),
@@ -1362,6 +1365,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               status={notificationAddState}
               onClick={onNotificationAdd}
             />
+            {currentAlert && currentAlert.dashboard?.value && (
+              <AlertsTabsSelection
+                id={currentAlert.dashboard?.value}
+                onSelect={setSelectedTabs}
+              />
+            )}
           </div>
         </div>
       </StyledSectionContainer>
