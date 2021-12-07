@@ -46,6 +46,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         *,
         datasource: DatasourceDict,
         queries: List[Dict[str, Any]],
+        form_data: Optional[Dict[str, Any]] = None,
         result_type: Optional[ChartDataResultType] = None,
         result_format: Optional[ChartDataResultFormat] = None,
         force: bool = False,
@@ -69,6 +70,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         return QueryContext(
             datasource=datasource_model_instance,
             queries=queries_,
+            form_data=form_data,
             result_type=result_type,
             result_format=result_format,
             force=force,

@@ -34,9 +34,11 @@ select the **Edit** button.
 
 <img src="/images/edit-record.png" />
 
-In the resulting modal window, switch to the **Extra** tab and
-tick the checkbox for **Allow Data Upload**. End by clicking the **Save** button.
+In the resulting modal window, switch to the **Advanced** tab and
+expand the **Security** section. Tick the checkbox for **Allow Data Upload**.
+End by clicking the **Save** button.
 
+<img src="/images/db-modal-advanced.png" />
 <img src="/images/add-data-upload.png" />
 
 ### Loading CSV Data
@@ -62,18 +64,7 @@ Leaving all the other options in their default settings, select **Save** at the 
 You should now see _tutorial_flights_ as a dataset in the **Datasets** tab. Click on the entry to
 launch an Explore workflow using this dataset.
 
-In this section, we'll create a table visualization
-to show the number of flights and cost per travel class.
-
-By default, Apache Superset only shows the last week of data. In our example, we want to visualize all
-of the data in the dataset. Click the **Time ‣ Time Range** section and change
-the **Range Type** to **No Filter**.
-
-<img src="/images/no_filter_on_time_filter.png" />
-
-Click **Apply** to save.
-
-Now, we want to specify the rows in our table by using the **Group by** option. Since in this
+First, we want to specify the rows in our table by using the **Group by** option. Since in this
 example, we want to understand different Travel Classes, we select **Travel Class** in this menu.
 
 Next, we can specify the metrics we would like to see in our table with the **Metrics** option.
@@ -82,6 +73,7 @@ Next, we can specify the metrics we would like to see in our table with the **Me
 (in this case, quantity of flights in each Travel Class)
 - `SUM(Cost)`, which represents the total cost spent by each Travel Class
 
+<img src="/images/count_column.png" />
 <img src="/images/sum_cost_column.png" />
 
 Finally, select **Run Query** to see the results of the table.
@@ -112,40 +104,42 @@ dashboard** and then hover over the table. By selecting the bottom right hand co
 
 Finally, save your changes by selecting Save changes in the top right.
 
-### Pivot Table
+### Pivot Table v2
 
-In this section, we will extend our analysis using a more complex visualization, Pivot Table. By the
+In this section, we will extend our analysis using a more complex visualization, Pivot Table v2. By the
 end of this section, you will have created a table that shows the monthly spend on flights for the
 first six months, by department, by travel class.
 
 Create a new chart by selecting **+ ‣ Chart** from the top right corner. Choose
 tutorial_flights again as a datasource, then click on the visualization type to get to the
-visualization menu. Select the **Pivot Table** visualization (you can filter by entering text in the
+visualization menu. Select the **Pivot Table v2** visualization (you can filter by entering text in the
 search box) and then **Create New Chart**.
 
-<img src="/images/create_pivot.png" />
+<img src="/images/create_pivot_2.png" />
 
-In the **Time** section, keep the Time Column as Travel Date (this is selected automatically as we
+In the **Time** section, keep the Time Column as Travel Date (this is selected automatically, as we
 only have one time column in our dataset). Then select Time Grain to be month as having daily data
-would be too granular to see patterns from. Then select the time range to be the first six months of
-2011 by click on Last week in the Time Range section, then in Custom selecting a Start / end of 1st
-January 2011 and 30th June 2011 respectively by either entering directly the dates or using the
-calendar widget (by selecting the month name and then the year, you can move more quickly to far
-away dates).
+would be too granular to see patterns from. Then select the Time Range to be the first six months of
+2011 by clicking into the Time Range edit menu, selecting Custom from the Range Type dropdown,
+and selecting a Start / end of 1st January 2011 and 30th June 2011 respectively by either entering
+the dates directly or using the calendar widget (by selecting the month name and then the year, you
+can move more quickly to far away dates).
 
-<img src="/images/select_dates_pivot_table.png" />
+<img src="/images/select_dates_pivot_table_v2.png" />
 
-Next, within the **Query** section, remove the default COUNT(\*) and add Cost, keeping the default
-SUM aggregate. Note that Apache Superset will indicate the type of the metric by the symbol on the
-left hand column of the list (ABC for string, # for number, a clock face for time, etc.).
+Next, within the **Query** section, add a SUM(Cost) metric. Note that Apache Superset will indicate
+the type of the metric by the symbol on the left hand column of the list (ABC for string, # for
+number, a clock face for time, etc.).
 
-In **Group by** select **Time**: this will automatically use the Time Column and Time Grain
+In **Rows** select **Travel Date**: this will automatically use the Time Column and Time Grain
 selections we defined in the Time section.
 
-Within **Columns**, select first Department and then Travel Class. All set – let’s **Run Query** to
-see some data!
+Within **Columns**, select first Department and then Travel Class.
 
-<img src="/images/tutorial_pivot_table.png" />
+Under **Options**, tick the Show Rows Total and Show Columns Total checkboxes. All set – let’s
+**Run Query** to see some data!
+
+<img src="/images/tutorial_pivot_table_v2.png" />
 
 You should see months in the rows and Department and Travel Class in the columns. Publish this chart
 to your existing Tutorial Dashboard you created earlier.
@@ -183,7 +177,7 @@ Once you’re done, publish the chart in your Tutorial Dashboard.
 
 ### Markup
 
-In this section, we will add some text to our dashboard. If you’re there already, you can navigate
+In this section, we will add some text to our dashboard. If you’re not there already, you can navigate
 to the dashboard by selecting Dashboards on the top menu, then Tutorial dashboard from the list of
 dashboards. Got into edit mode by selecting **Edit dashboard**.
 
@@ -229,6 +223,51 @@ Dashboard and then Save & go to dashboard. Once on the Dashboard, try using the 
 those flights that departed from the United Kingdom – you will see the filter is applied to all of
 the other visualizations on the dashboard.
 
+### Native Filters
+
+As Filter Box is set to be deprecated, this section will instruct you on how to use its replacement,
+**Native Filters**. These are built into the dashboard view itself. Go to the Tutorial Dashboard and
+select the filter icon in the top left corner:
+
+<img src="/images/native_filters_menu_open.png" />
+
+This will open the Native Filters panel, which is currently empty:
+
+<img src="/images/native_filters_empty_panel.png" />
+
+Click on the pencil icon to open up the **Filters Configuration** modal. From here, you can create new filters or
+manage existing ones.
+
+<img src="/images/native_filters_modal.png" />
+
+We're going to create a numerical range for ticket cost:
+
+- Select Numerical Range from the Filter Type dropdown
+- Give the filter a name
+- Select tutorial_flights from the Dataset dropdown if it's not been selected yet
+- Select Cost from the Column dropdown
+
+Click the **Save** button. Your filter will load in the panel.
+
+<img src="/images/native_filters_num_range.png" />
+
+You can adjust the slider to only include datapoints that fall within the selected range for Ticket
+Cost! Set your range and click **Apply** to see how it affects your charts.
+
+We can also recreate the Origin Country filter from the Filter Box section. In the **Filters
+Configuration** modal, click the Add button in the bottom left and select Filter. Set your filter up as
+follows:
+
+- Select Value from Filter Type dropdown
+- Select tutorial_flights from Dataset dropdown
+- Select Origin Country from Column dropdown
+- In Advanced, you can tick the Sort filter values checkbox to list country names alphabetically
+
+**Save** your filters! You can now select origin countries to include from the resulting dropdown.
+
+<img src="/images/native_filters_origin_country.png" />
+<img src="/images/native_filters_origin_country_dropdown.png" />
+
 ### Publishing Your Dashboard
 
 If you have followed all of the steps outlined in the previous section, you should have a dashboard
@@ -248,12 +287,12 @@ annotation to the Tutorial Line Chart we made in a previous section. Specificall
 dates when some flights were cancelled by the UK’s Civil Aviation Authority in response to the
 eruption of the Grímsvötn volcano in Iceland (23-25 May 2011).
 
-First, add an annotation layer by navigating to Manage ‣ Annotation Layers. Add a new annotation
-layer by selecting the green plus sign to add a new record. Enter the name Volcanic Eruptions and
+First, add an annotation layer by navigating to Settings ‣ Manage ‣ Annotation Layers. Add a new annotation
+layer by selecting the blue plus button to add a new record. Enter the name Volcanic Eruptions and
 save. We can use this layer to refer to a number of different annotations.
 
-Next, add an annotation by navigating to Manage ‣ Annotations and then create a new annotation by
-selecting the green plus sign. Then, select the Volcanic Eruptions layer, add a short description
+Next, add an annotation by clicking into the newly created layer and then create a new annotation by
+selecting the blue plus button. Then, select the Volcanic Eruptions layer, add a short description
 Grímsvötn and the eruption dates (23-25 May 2011) before finally saving.
 
 <img src="/images/edit_annotation.png" />
@@ -263,7 +302,7 @@ list. Next, go to the Annotations and Layers section and select Add Annotation L
 dialogue:
 
 - Name the layer as Volcanic Eruptions
-- Change the Annotation Layer Type to Event
+- Change the Annotation Layer Type to Interval
 - Set the Annotation Source as Superset annotation
 - Specify the Annotation Layer as Volcanic Eruptions
 
@@ -302,7 +341,7 @@ Dashboard.
 
 There is quite a lot of variation in the data, which makes it difficult to identify any trend. One
 approach we can take is to show instead a rolling average of the time series. To do this, in the
-**Moving Average** subsection of **Advanced Analytics**, select mean in the **Rolling** box and
+**Rolling Window** subsection of **Advanced Analytics**, select mean in the **Rolling Function** box and
 enter 7 into both Periods and Min Periods. The period is the length of the rolling period expressed
 as a multiple of the Time Grain. In our example, the Time Grain is day, so the rolling period is 7
 days, such that on the 7th October 2011 the value shown would correspond to the first seven days of
