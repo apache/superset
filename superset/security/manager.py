@@ -1164,7 +1164,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def raise_for_user_activity_access(user_id: int) -> None:
         user = g.user if g.user and g.user.get_id() else None
         if not user or (
-            not current_app.config["ENABLE_PUBLIC_ACTIVITY_ACCESS"]
+            not current_app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
             and user_id != user.id
         ):
             raise SupersetSecurityException(

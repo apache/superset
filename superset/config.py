@@ -1285,7 +1285,7 @@ SQLALCHEMY_DOCS_URL = "https://docs.sqlalchemy.org/en/13/core/engines.html"
 SQLALCHEMY_DISPLAY_TEXT = "SQLAlchemy docs"
 
 # Set to False to only allow viewing own recent activity
-ENABLE_PUBLIC_ACTIVITY_ACCESS = True
+ENABLE_BROAD_ACTIVITY_ACCESS = True
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *

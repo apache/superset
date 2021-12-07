@@ -836,8 +836,8 @@ class TestCore(SupersetTestCase):
                 assert resp.status_code == 200
 
         # disabling flag will block access to other users' activity data
-        access_flag = app.config["ENABLE_PUBLIC_ACTIVITY_ACCESS"]
-        app.config["ENABLE_PUBLIC_ACTIVITY_ACCESS"] = False
+        access_flag = app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
+        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = False
         for user in ("admin", "gamma"):
             for endpoint in self._get_user_activity_endpoints(user):
                 resp = self.client.get(endpoint)
@@ -845,7 +845,7 @@ class TestCore(SupersetTestCase):
                 assert resp.status_code == expected_status_code
 
         # restore flag
-        app.config["ENABLE_PUBLIC_ACTIVITY_ACCESS"] = access_flag
+        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = access_flag
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_slice_id_is_always_logged_correctly_on_web_request(self):
