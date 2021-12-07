@@ -233,9 +233,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     guest_user_cls = GuestUser
 
     def create_login_manager(self, app: Flask) -> LoginManager:
+        from superset.extensions import feature_flag_manager
+
         lm = super().create_login_manager(app)
-        # todo put ff check here
-        lm.request_loader(self.get_guest_user)
+        if feature_flag_manager.is_feature_enabled("EMBEDDED_SUPERSET"):
+            lm.request_loader(self.get_guest_user)
         return lm
 
     def get_schema_perm(  # pylint: disable=no-self-use
