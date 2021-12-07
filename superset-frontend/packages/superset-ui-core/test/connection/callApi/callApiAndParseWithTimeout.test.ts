@@ -53,7 +53,7 @@ describe('callApiAndParseWithTimeout()', () => {
     });
   });
 
-  describe.skip('parseResponse', () => {
+  describe('parseResponse', () => {
     it('calls parseResponse()', async () => {
       const parseSpy = jest.spyOn(parseResponse, 'default');
 

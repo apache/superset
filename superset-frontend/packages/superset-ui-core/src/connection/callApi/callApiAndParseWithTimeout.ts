@@ -35,17 +35,19 @@ export default async function callApiAndParseWithTimeout<
   unauthorizedRedirectUrl = '/login',
   ...rest
 }: { timeout?: ClientTimeout; parseMethod?: T } & CallApi) {
-  const apiPromise = callApi(rest);
-  const racedPromise =
-    typeof timeout === 'number' && timeout > 0
-      ? Promise.race([apiPromise, rejectAfterTimeout<Response>(timeout)])
-      : apiPromise;
-  const response = await racedPromise;
-  const parsedResponse = parseResponse(response, parseMethod);
+  try {
+    const apiPromise = callApi(rest);
+    const racedPromise =
+      typeof timeout === 'number' && timeout > 0
+        ? Promise.race([apiPromise, rejectAfterTimeout<Response>(timeout)])
+        : apiPromise;
+    const response = await racedPromise;
 
-  if (response && response.status === 401) {
-    redirectUnauthorized(unauthorizedRedirectUrl);
+    if (response && response.status === 401) {
+      redirectUnauthorized(unauthorizedRedirectUrl);
+    }
+    return parseResponse(response, parseMethod);
+  } catch (e) {
+    throw new Error(e);
   }
-
-  return parsedResponse;
 }
