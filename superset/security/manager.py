@@ -233,6 +233,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     guest_user_cls = GuestUser
 
     def create_login_manager(self, app: Flask) -> LoginManager:
+        # pylint: disable=import-outside-toplevel
         from superset.extensions import feature_flag_manager
 
         lm = super().create_login_manager(app)
