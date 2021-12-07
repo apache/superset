@@ -28,6 +28,9 @@ export function getUrlParam(param: UrlParam & { type: 'number' }): number;
 export function getUrlParam(param: UrlParam & { type: 'boolean' }): boolean;
 export function getUrlParam(param: UrlParam & { type: 'object' }): object;
 export function getUrlParam(param: UrlParam & { type: 'rison' }): object;
+export function getUrlParam(
+  param: UrlParam & { type: 'rison | string' },
+): object;
 export function getUrlParam({ name, type }: UrlParam): unknown {
   const urlParam = new URLSearchParams(window.location.search).get(name);
   switch (type) {
@@ -55,14 +58,20 @@ export function getUrlParam({ name, type }: UrlParam): unknown {
         return null;
       }
       return urlParam !== 'false' && urlParam !== '0';
-    case 'rison':
+    case 'rison | string':
       if (!urlParam) {
         return null;
       }
       try {
-        return rison.decode(urlParam);
+        console.log('urlParam', urlParam);
+        const parsedRison = rison.decode(urlParam);
+        console.log('parsedRison', parsedRison, typeof parsedRison);
+        return parsedRison;
+        // console.log('trydeconde', tryDecode);
+        // return tryDecode;
       } catch {
-        return null;
+        console.log('are you returning urlParam for rison | string')
+        return urlParam;
       }
     default:
       return urlParam;

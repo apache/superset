@@ -174,13 +174,15 @@ class Header extends React.PureComponent {
     this.startPeriodicRender(refreshFrequency * 1000);
     if (this.canAddReports()) {
       // this is in case there is an anonymous user.
-      this.props.fetchUISpecificReport(
-        user.userId,
-        'dashboard_id',
-        'dashboards',
-        dashboardInfo.id,
-        user.email,
-      );
+      if(Object.entries(dashboardInfo).length !== 0) {
+        this.props.fetchUISpecificReport(
+          user.userId,
+          'dashboard_id',
+          'dashboards',
+          dashboardInfo.id,
+          user.email,
+        );
+      }
     }
   }
 
@@ -212,11 +214,11 @@ class Header extends React.PureComponent {
     ) {
       // this is in case there is an anonymous user.
       this.props.fetchUISpecificReport(
-        user.userId,
+        user?.userId,
         'dashboard_id',
         'dashboards',
-        nextProps.dashboardInfo.id,
-        user.email,
+        nextProps?.dashboardInfo?.id,
+        user?.email,
       );
     }
   }
@@ -487,10 +489,10 @@ class Header extends React.PureComponent {
       filterboxMigrationState !== FILTER_BOX_MIGRATION_STATES.REVIEWING;
     const shouldShowReport = !editMode && this.canAddReports();
     const refreshLimit =
-      dashboardInfo.common.conf.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
+      dashboardInfo.common?.conf?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
     const refreshWarning =
-      dashboardInfo.common.conf
-        .SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE;
+      dashboardInfo.common?.conf
+        ?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE;
 
     return (
       <StyledDashboardHeader

@@ -59,6 +59,7 @@ import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
 import extractUrlParams from '../util/extractUrlParams';
 import getNativeFilterConfig from '../util/filterboxMigrationHelper';
+import { css } from 'jquery';
 
 export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
 
@@ -67,10 +68,11 @@ export const hydrateDashboard =
     dashboardData,
     chartData,
     filterboxMigrationState = FILTER_BOX_MIGRATION_STATES.NOOP,
+    dataMaskApplied,
   ) =>
   (dispatch, getState) => {
     const { user, common } = getState();
-
+    console.log('common', common)
     const { metadata } = dashboardData;
     const regularUrlParams = extractUrlParams('regular');
     const reservedUrlParams = extractUrlParams('reserved');
@@ -347,6 +349,9 @@ export const hydrateDashboard =
     const { roles } = user;
     const canEdit = canUserEditDashboard(dashboardData, user);
 
+    console.log('<***** dataMaskApplied dispatch *****>');
+    console.log('dataMaskApplied dispatch *****>', dataMaskApplied);
+    console.log('<***** dataMaskApplied End *****>');
     return dispatch({
       type: HYDRATE_DASHBOARD,
       data: {
@@ -378,10 +383,11 @@ export const hydrateDashboard =
           slice_can_edit: findPermission('can_slice', 'Superset', roles),
           common: {
             // legacy, please use state.common instead
-            flash_messages: common.flash_messages,
-            conf: common.conf,
+            flash_messages: common?.flash_messages,
+            conf: common?.conf,
           },
         },
+        dataMask: dataMaskApplied,
         dashboardFilters,
         nativeFilters,
         dashboardState: {

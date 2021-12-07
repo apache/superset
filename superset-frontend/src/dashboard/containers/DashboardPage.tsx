@@ -48,6 +48,7 @@ import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { canUserEditDashboard } from 'src/dashboard/util/findPermission';
 import { getFilterSets } from '../actions/nativeFilters';
+import { createFilterKey, getFilterValue,  } from '../components/nativeFilters/FilterBar/keyValue';
 
 export const MigrationContext = React.createContext(
   FILTER_BOX_MIGRATION_STATES.NOOP,
@@ -153,16 +154,45 @@ const DashboardPage: FC = () => {
   }, [readyToRender]);
 
   useEffect(() => {
-    if (readyToRender) {
-      if (!isDashboardHydrated.current) {
-        isDashboardHydrated.current = true;
-        if (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET)) {
-          // only initialize filterset once
-          dispatch(getFilterSets());
+    // eslint-disable-next-line consistent-return
+    async function getDataMaskApplied() {
+      //
+      console.log('DASHBOARD', dashboard);
+      // const isLongUrl = search.indexOf('NATIVE_FILTER');
+      const nativeFilterValue = getUrlParam(URL_PARAMS.nativeFilters);
+      // console.log('key in fill native filters', nativeFilterValue)
+      let dataMaskFromUrl = nativeFilterValue || {};
+      // if nativefiltervalue is string mean key
+      // console.log('nativeFilterValue', typeof nativeFilterValue)
+      console.log({ nativeFilterValue });
+      if (typeof nativeFilterValue === 'string') {
+        try {
+          dataMaskFromUrl = await getFilterValue(
+            dashboard?.id,
+            nativeFilterValue,
+          );
+
+          console.log('-------datamaskfromurl--------');
+          console.log('getfiltervalue datamask', dataMaskFromUrl);
+          console.log('-------datamaskfromurl end--------');
+          console.log('GET filterkey datamask', dataMaskFromUrl);
+        } catch (err) {
+          console.log(err);
+          return null;
         }
       }
-      dispatch(hydrateDashboard(dashboard, charts, filterboxMigrationState));
+      if (readyToRender) {
+        if (!isDashboardHydrated.current) {
+          isDashboardHydrated.current = true;
+          if (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET)) {
+            // only initialize filterset once
+            dispatch(getFilterSets());
+          }
+        }
+        dispatch(hydrateDashboard(dashboard, charts, filterboxMigrationState, dataMaskFromUrl));
+      }
     }
+    if (dashboard?.id) getDataMaskApplied();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readyToRender, filterboxMigrationState]);
 

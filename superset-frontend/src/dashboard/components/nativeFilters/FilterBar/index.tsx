@@ -20,7 +20,7 @@
 /* eslint-disable no-param-reassign */
 import { DataMask, HandlerFunction, styled, t } from '@superset-ui/core';
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import cx from 'classnames';
 import Icons from 'src/components/Icons';
 import { Tabs } from 'src/common/components';
@@ -50,9 +50,11 @@ import {
   useFilterUpdates,
   useInitialization,
 } from './state';
+import { createFilterKey } from './keyValue';
 import EditSection from './FilterSets/EditSection';
 import Header from './Header';
 import FilterControls from './FilterControls/FilterControls';
+import { getUrlParam } from 'src/utils/urlUtils';
 
 export const FILTER_BAR_TEST_ID = 'filter-bar';
 export const getFilterBarTestId = testWithId(FILTER_BAR_TEST_ID);
@@ -160,6 +162,9 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const filters = useFilters();
   const previousFilters = usePrevious(filters);
   const filterValues = Object.values<Filter>(filters);
+  const dashboardId = useSelector<any, string>(
+    ({ dashboardInfo }) => dashboardInfo?.id,
+  );
 
   const handleFilterSelectionChange = useCallback(
     (
@@ -186,27 +191,44 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     [dataMaskSelected, dispatch, setDataMaskSelected, tab],
   );
 
+  const getFilterKeyForUrl = async (value: string) => {
+    let key;
+    try {
+      key = await createFilterKey(dashboardId, value);
+      console.log('key', key)
+    } catch(err) {
+      console.log('err in key')
+      console.log(err);
+      return null;
+    }
+    return key;
+  };
+
   const publishDataMask = useCallback(
-    (dataMaskSelected: DataMaskStateWithId) => {
+    async (dataMaskSelected: DataMaskStateWithId) => {
       const { location } = history;
       const { search } = location;
       const previousParams = new URLSearchParams(search);
       const newParams = new URLSearchParams();
-
+      let dataMaskKey;
+      console.log('datamas', dataMaskSelected);
       previousParams.forEach((value, key) => {
         if (key !== URL_PARAMS.nativeFilters.name) {
           newParams.append(key, value);
         }
       });
+      
+      const createKey = JSON.stringify(dataMaskSelected);
+      //const getFilterKey = await getFilterKeyForUrl(createKey);
 
-      newParams.set(
+      /*newParams.set(
         URL_PARAMS.nativeFilters.name,
-        rison.encode(replaceUndefinedByNull(dataMaskSelected)),
-      );
+        getFilterKey // rison.encode(replaceUndefinedByNull(dataMaskSelected)),
+      );*/
 
-      history.replace({
+      /*history.replace({
         search: newParams.toString(),
-      });
+      });*/
     },
     [history],
   );
@@ -277,6 +299,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     dataMaskApplied,
     filterValues,
   );
+  console.log('isApplyDisabled', isApplyDisabled)
   const isInitialized = useInitialization();
   const tabPaneStyle = useMemo(() => ({ overflow: 'auto', height }), [height]);
 
@@ -284,6 +307,8 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     filterValue => filterValue.type === NativeFilterType.NATIVE_FILTER,
   ).length;
 
+  console.log('dataMaskSlected', dataMaskSelected);
+  // console.log('userFilterUpdates', useFilterUpdates);
   return (
     <BarWrapper
       {...getFilterBarTestId()}

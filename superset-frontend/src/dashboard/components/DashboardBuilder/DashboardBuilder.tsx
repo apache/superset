@@ -235,7 +235,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   );
 
   const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
-  const rootChildId = dashboardRoot.children[0];
+  const rootChildId = dashboardRoot?.children[0];
   const topLevelTabs =
     rootChildId !== DASHBOARD_GRID_ID
       ? dashboardLayout[rootChildId]

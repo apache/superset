@@ -25,7 +25,7 @@ import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponen
 
 export const getRootLevelTabsComponent = (dashboardLayout: DashboardLayout) => {
   const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
-  const rootChildId = dashboardRoot.children[0];
+  const rootChildId = dashboardRoot?.children[0];
   return rootChildId === DASHBOARD_GRID_ID
     ? dashboardLayout[DASHBOARD_ROOT_ID]
     : dashboardLayout[rootChildId];

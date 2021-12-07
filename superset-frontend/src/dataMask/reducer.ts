@@ -26,6 +26,7 @@ import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
 import { isFeatureEnabled } from 'src/featureFlags';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
+import { getFilterValue } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
 import { DataMaskStateWithId, DataMaskWithId } from './types';
 import {
   AnyDataMaskAction,
@@ -63,18 +64,37 @@ export function getInitialDataMask(
   } as DataMaskWithId;
 }
 
-function fillNativeFilters(
+async function fillNativeFilters(
   filterConfig: FilterConfiguration,
   mergedDataMask: DataMaskStateWithId,
   draftDataMask: DataMaskStateWithId,
+  initialDataMask?: DataMaskStateWithId,
   currentFilters?: Filters,
 ) {
-  const dataMaskFromUrl = getUrlParam(URL_PARAMS.nativeFilters) || {};
+
+  /* const isLongUrl = search.indexOf('NATIVE_FILTER');
+  const nativeFilterValue = getUrlParam(URL_PARAMS.nativeFilters);
+  // console.log('key in fill native filters', nativeFilterValue)
+  let dataMaskFromUrl = nativeFilterValue || {};
+  // if nativefiltervalue is string mean key
+  // console.log('nativeFilterValue', typeof nativeFilterValue)
+  console.log({nativeFilterValue});
+  if (typeof nativeFilterValue === 'string') {
+    try {
+      console.log('hello are you working in try catch****')
+      dataMaskFromUrl = await getFilterValue(dashboardId, nativeFilterValue);
+      console.log({ dataMaskFromUrl });
+      // console.log('GET filterkey datamask', dataMaskFromUrlTest)
+    } catch (err) {
+      console.log(err);
+    }
+  }
+  */
   filterConfig.forEach((filter: Filter) => {
     mergedDataMask[filter.id] = {
       ...getInitialDataMask(filter.id), // take initial data
       ...filter.defaultDataMask, // if something new came from BE - take it
-      ...dataMaskFromUrl[filter.id],
+      ...initialDataMask[filter.id],
     };
     if (
       currentFilters &&
@@ -131,13 +151,18 @@ const dataMaskReducer = produce(
             [],
           cleanState,
           draft,
+          // @ts-ignore
+          action.data.dataMask,
         );
+        console.log("hydrating dataMask.....", cleanState);
         return cleanState;
       case SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE:
         fillNativeFilters(
           action.filterConfig ?? [],
           cleanState,
           draft,
+          // @ts-ignore
+          action.data.dataMask,
           action.filters,
         );
         return cleanState;
