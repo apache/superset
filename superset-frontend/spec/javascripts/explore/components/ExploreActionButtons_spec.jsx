@@ -82,4 +82,36 @@ describe('ExploreActionButtons', () => {
       spyExportChart.restore();
     });
   });
+
+  describe('Dropdown csv button when viz type is pivot table', () => {
+    let wrapper;
+    const defaultProps = {
+      actions: {},
+      canDownloadCSV: false,
+      latestQueryFormData: { viz_type: 'pivot_table_v2' },
+      queryEndpoint: 'localhost',
+      chartHeight: '30px',
+    };
+
+    beforeEach(() => {
+      wrapper = mount(
+        <ThemeProvider theme={supersetTheme}>
+          <ExploreActionButtons {...defaultProps} />
+        </ThemeProvider>,
+        {
+          wrappingComponent: Provider,
+          wrappingComponentProps: {
+            store: mockStore,
+          },
+        },
+      );
+    });
+
+    it('should render a dropdown button when viz type is pivot table', () => {
+      const csvTrigger = wrapper.find(
+        'div[role="button"] span[aria-label="caret-down"]',
+      );
+      expect(csvTrigger).toExist();
+    });
+  });
 });

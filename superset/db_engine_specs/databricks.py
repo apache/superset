@@ -16,7 +16,7 @@
 # under the License.o
 
 from datetime import datetime
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.hive import HiveEngineSpec
@@ -40,8 +40,10 @@ class DatabricksODBCEngineSpec(BaseEngineSpec):
     _time_grain_expressions = HiveEngineSpec._time_grain_expressions
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
-        return HiveEngineSpec.convert_dttm(target_type, dttm)
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
+        return HiveEngineSpec.convert_dttm(target_type, dttm, db_extra=db_extra)
 
     @classmethod
     def epoch_to_dttm(cls) -> str:

@@ -1,53 +1,72 @@
 {
   "compilerOptions": {
-    "allowJs": true,
-    "allowSyntheticDefaultImports": true,
-    "baseUrl": ".",
-    "esModuleInterop": false,
-    "forceConsistentCasingInFileNames": true,
-    "importHelpers": false,
-    "jsx": "preserve",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "module": "esnext",
-    "moduleResolution": "node",
+    /* Type Checking */
     "noImplicitAny": true,
     "noImplicitReturns": true,
     "noImplicitThis": true,
     "noUnusedLocals": true,
-    "outDir": "./dist",
-    "pretty": true,
-    "paths": {
-      "@superset-ui/core": [
-        "./node_modules/@superset-ui/core/src",
-        "./node_modules/@superset-ui/core"
-      ],
-      "@superset-ui/chart-controls": [
-        "./node_modules/@superset-ui/chart-controls/src",
-        "./node_modules/@superset-ui/chart-controls"
-      ],
-      // for supressing errors caused by incompatible @types/react when `npm link`
-      // Ref: https://github.com/Microsoft/typescript/issues/6496#issuecomment-384786222
-      "react": ["./node_modules/@types/react", "react"]
-    },
-    "skipLibCheck": true,
-    "sourceMap": true,
     "strictNullChecks": true,
-    "suppressImplicitAnyIndexErrors": true,
-    "target": "esnext",
+
+    /* Modules */
+    "baseUrl": ".",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "paths": {
+      "@superset-ui/core": ["./packages/superset-ui-core/src"],
+      "@superset-ui/chart-controls": [
+        "./packages/superset-ui-chart-controls/src"
+      ],
+      "@superset-ui/legacy-plugin-chart-*": [
+        "./plugins/legacy-plugin-chart-*/src"
+      ],
+      "@superset-ui/legacy-preset-chart-*": [
+        "./plugins/legacy-preset-chart-*/src"
+      ],
+      "@superset-ui/plugin-chart-*": ["./plugins/plugin-chart-*/src"],
+      "@superset-ui/preset-chart-*": ["./plugins/preset-chart-*/src"],
+    },
     "types": [
       "@emotion/react/types/css-prop",
       "jest",
       "@testing-library/jest-dom"
-    ]
+    ],
+
+    /* Emit */
+    "declaration": true,
+    "declarationMap": true,
+    "importHelpers": false,
+    "noEmitOnError": true,
+    "outDir": "./dist",
+    "sourceMap": true,
+
+    /* JavaScript Support */
+    "allowJs": true,
+
+    /* Interop Constraints */
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": false,
+    "forceConsistentCasingInFileNames": true,
+
+    /* Backwards Compatibility */
+    "suppressImplicitAnyIndexErrors": true,
+
+    /* Language and Environment */
+    "target": "esnext",
+    "jsx": "preserve",
+    "lib": ["dom", "dom.iterable", "esnext"],
+
+    /* Projects */
+    "composite": true,
+
+    /* Completeness */
+    "skipLibCheck": true
   },
   "include": [
     "./src/**/*",
     "./spec/**/*",
-    // include the source code of each plugin
-    "./node_modules/*superset-ui*/**/src/**/*",
-    "./node_modules/*superset-ui*/**/types/**/*",
-    // and the type defs of their dependencies
-    "./node_modules/*superset-ui*/**/node_modules/**/*.d.ts"
-  ],
-  "exclude": ["./node_modules/*superset-ui*/**/node_modules/@superset-ui/**/*"]
+    "./packages/*/src/**/*",
+    "./packages/*/types/**/*",
+    "./plugins/*/src/**/*",
+    "./plugins/*/types/**/*"
+  ]
 }

@@ -29,6 +29,7 @@ import { DataMaskStateWithId, DataMaskType } from 'src/dataMask/types';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { Layout } from '../../types';
 import { getTreeCheckedItems } from '../nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/utils';
+import { NativeFilterType } from '../nativeFilters/types';
 
 export enum IndicatorStatus {
   Unset = 'UNSET',
@@ -268,11 +269,13 @@ export const selectNativeIndicatorsForChart = (
     nativeFilterIndicators =
       nativeFilters &&
       Object.values(nativeFilters)
-        .filter(nativeFilter =>
-          getTreeCheckedItems(nativeFilter.scope, dashboardLayout).some(
-            layoutItem =>
-              dashboardLayout[layoutItem]?.meta?.chartId === chartId,
-          ),
+        .filter(
+          nativeFilter =>
+            nativeFilter.type === NativeFilterType.NATIVE_FILTER &&
+            getTreeCheckedItems(nativeFilter.scope, dashboardLayout).some(
+              layoutItem =>
+                dashboardLayout[layoutItem]?.meta?.chartId === chartId,
+            ),
         )
         .map(nativeFilter => {
           const column = nativeFilter.targets[0]?.column?.name;

@@ -29,6 +29,7 @@ const StyledToastPresenter = styled.div`
   margin-right: 50px;
   margin-bottom: 50px;
   z-index: ${({ theme }) => theme.zIndex.max};
+  word-break: break-word;
 
   .toast {
     background: ${({ theme }) => theme.colors.grayscale.dark1};

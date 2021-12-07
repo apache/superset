@@ -106,7 +106,7 @@ export default function getControlItemsMap({
             initialValue={initColumn}
             label={
               <StyledLabel>
-                {t(`${mainControlItem.config?.label}`) || t('Column')}
+                {mainControlItem.config?.label || t('Column')}
               </StyledLabel>
             }
             rules={[
@@ -145,7 +145,8 @@ export default function getControlItemsMap({
     .filter(
       (controlItem: CustomControlItem) =>
         controlItem?.config?.renderTrigger &&
-        controlItem.name !== 'sortAscending',
+        controlItem.name !== 'sortAscending' &&
+        controlItem.name !== 'enableSingleValue',
     )
     .forEach(controlItem => {
       const initialValue =
