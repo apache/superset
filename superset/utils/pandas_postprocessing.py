@@ -820,7 +820,7 @@ def prophet(  # pylint: disable=too-many-arguments
     freq = PROPHET_TIME_GRAIN_MAP[time_grain]
     # check type at runtime due to marhsmallow schema not being able to handle
     # union types
-    if periods < 0 or not isinstance(periods, int):
+    if not isinstance(periods, int) or periods < 0:
         raise QueryObjectValidationError(_("Periods must be a whole number"))
     if not confidence_interval or confidence_interval <= 0 or confidence_interval >= 1:
         raise QueryObjectValidationError(
