@@ -115,9 +115,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.annotation_layers.annotations.api import AnnotationRestApi
         from superset.annotation_layers.api import AnnotationLayerRestApi
         from superset.async_events.api import AsyncEventsRestApi
+        from superset.business_type.api import BusinessTypeRestApi
         from superset.cachekeys.api import CacheRestApi
         from superset.charts.api import ChartRestApi
-        from superset.charts.business_type.api import BusinessTypeRestApi
         from superset.charts.data.api import ChartDataRestApi
         from superset.connectors.druid.views import (
             Druid,

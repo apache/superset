@@ -50,8 +50,8 @@ from flask_appbuilder.security.manager import AUTH_DB
 from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
 from werkzeug.local import LocalProxy
 
-from superset.charts.business_type.business_type_request import BusinessTypeRequest
-from superset.charts.business_type.business_type_response import BusinessTypeResponse
+from superset.business_type.business_type_request import BusinessTypeRequest
+from superset.business_type.business_type_response import BusinessTypeResponse
 from superset.jinja_context import BaseTemplateProcessor
 from superset.stats_logger import DummyStatsLogger
 from superset.typing import CacheConfig

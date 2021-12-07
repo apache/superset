@@ -7,12 +7,8 @@ business_type_convert_schema = {
     "items": {
         "type": "object",
         "properties": {
-            "type": {
-                "type": "string"
-            },
-            "value": {
-                "type": "string"
-            },
-        }
-    }
+            "type": {"type": "string"},
+            "value": {"type": "string"},
+        },
+    },
 }

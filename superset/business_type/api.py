@@ -8,8 +8,8 @@ from flask_appbuilder.api import expose, rison
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset import app
-from superset.charts.business_type.business_type_response import BusinessTypeResponse
-from superset.charts.business_type.schemas import business_type_convert_schema
+from superset.business_type.business_type_response import BusinessTypeResponse
+from superset.business_type.schemas import business_type_convert_schema
 from superset.connectors.sqla.models import SqlaTable
 from superset.extensions import event_logger
 from superset.utils.core import FilterOperator
@@ -27,14 +27,14 @@ class BusinessTypeRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(SqlaTable)
 
     include_route_methods = {"get", "get_types"}
-    resource_name = "chart"
+    resource_name = "business_type"
 
-    openapi_spec_tag = "Charts"
+    openapi_spec_tag = "Business Type"
     apispec_parameter_schemas = {
         "business_type_convert_schema": business_type_convert_schema,
     }
 
-    @expose("/business_type", methods=["GET"])
+    @expose("/convert", methods=["GET"])
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=False,  # pylint: disable-arguments-renamed
@@ -78,7 +78,7 @@ class BusinessTypeRestApi(BaseSupersetModelRestApi):
         )
         return self.response(200, result=bus_resp)
 
-    @expose("/business_type/types", methods=["GET"])
+    @expose("/types", methods=["GET"])
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=False,  # pylint: disable-arguments-renamed

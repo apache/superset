@@ -122,7 +122,7 @@ const useBusinessTypes = () => {
         type,
         values: typeof comp === 'string' ? [comp] : comp,
       });
-      const endpoint = `/api/v1/chart/business_type?q=${queryParams}`;
+      const endpoint = `/api/v1/business_type/convert?q=${queryParams}`;
       SupersetClient.get({ endpoint })
         .then(({ json }) => {
           setBusinessTypesState({
