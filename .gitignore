@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-*.ipynb
 *.bak
 *.db
 *.pyc
@@ -61,14 +60,29 @@ tmp
 rat-results.txt
 superset/app/
 
-# Node.js, webpack artifacts
+# Node.js, webpack artifacts, storybook
 *.entry.js
 *.js.map
 node_modules
 npm-debug.log*
 superset/static/assets
 superset/static/version_info.json
+superset-frontend/**/esm/*
+superset-frontend/**/lib/*
+superset-frontend/**/storybook-static/*
 yarn-error.log
+*.map
+*.min.js
+test-changelog.md
+*.tsbuildinfo
+
+# Ignore package-lock in packages
+plugins/*/package-lock.json
+packages/*/package-lock.json
+
+# For country map geojson conversion script
+.ipynb_checkpoints/
+scripts/*.zip
 
 # IntelliJ
 *.iml

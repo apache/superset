@@ -130,7 +130,9 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         return "DATEADD(MS, {col}, '1970-01-01')"
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
             return f"TO_DATE('{dttm.date().isoformat()}')"

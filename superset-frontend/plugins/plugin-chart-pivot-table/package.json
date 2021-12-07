@@ -1,0 +1,43 @@
+{
+  "name": "@superset-ui/plugin-chart-pivot-table",
+  "version": "0.18.25",
+  "description": "Superset Chart - Pivot Table",
+  "sideEffects": false,
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "files": [
+    "esm",
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache-superset/superset-ui.git"
+  },
+  "keywords": [
+    "superset"
+  ],
+  "author": "Superset",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui/issues"
+  },
+  "homepage": "https://github.com/apache-superset/superset-ui#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@superset-ui/chart-controls": "0.18.25",
+    "@superset-ui/core": "0.18.25",
+    "@superset-ui/react-pivottable": "^0.12.12"
+  },
+  "peerDependencies": {
+    "@ant-design/icons": "^4.2.2",
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1"
+  },
+  "devDependencies": {
+    "@babel/types": "^7.13.12",
+    "@types/jest": "^26.0.0",
+    "jest": "^26.0.1"
+  }
+}

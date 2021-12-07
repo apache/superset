@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.utils import core as utils
@@ -40,7 +40,9 @@ class KylinEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     }
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"

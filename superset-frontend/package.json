@@ -28,22 +28,37 @@
     "doc": "docs",
     "test": "spec"
   },
+  "workspaces": [
+    "packages/*",
+    "plugins/*"
+  ],
   "scripts": {
+    "_lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx,.ts,tsx .",
+    "_prettier": "prettier './({src,spec,cypress-base,plugins,packages}/**/*{.js,.jsx,.ts,.tsx,.css,.less,.scss,.sass}|package.json)'",
     "build": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=production BABEL_ENV=\"${BABEL_ENV:=production}\" webpack --mode=production --color",
     "build-dev": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=development webpack --mode=development --color",
     "build-instrumented": "cross-env NODE_ENV=production BABEL_ENV=instrumented webpack --mode=production --color",
     "build-storybook": "build-storybook",
     "check-translation": "prettier --check ../superset/translations/**/LC_MESSAGES/*.json",
-    "clean-css": "prettier --write 'src/**/*.{css,less,sass,scss}'",
     "clean-translation": "prettier --write ../superset/translations/**/LC_MESSAGES/*.json",
     "cover": "cross-env NODE_ENV=test jest --coverage",
     "dev": "webpack --mode=development --color --watch",
     "dev-server": "cross-env NODE_ENV=development BABEL_ENV=development node --max_old_space_size=4096 ./node_modules/webpack-dev-server/bin/webpack-dev-server.js --mode=development",
-    "format": "prettier --write './{src,spec,cypress-base,plugins,packages}/**/*{.js,.jsx,.ts,.tsx,.css,.less,.scss,.sass}'",
-    "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx,.ts,.tsx . && npm run type",
-    "lint-fix": "eslint --fix --ignore-path=.eslintignore --ext .js,.jsx,.ts,tsx . && npm run clean-css && npm run type",
-    "prettier": "npm run format",
-    "prettier-check": "prettier --check 'src/**/*.{css,less,sass,scss}'",
+    "format": "npm run _prettier -- --write",
+    "lint": "npm run _lint && npm run type",
+    "lint-fix": "npm run _lint -- --fix && npm run type",
+    "plugins:build": "node ./scripts/build.js",
+    "plugins:build-assets": "node ./scripts/copyAssets.js",
+    "plugins:build-storybook": "cd packages/superset-ui-demo && npm run build-storybook",
+    "plugins:chromatic": "cd packages/superset-ui-demo && npm run chromatic",
+    "plugins:create-conventional-version": "npm run prune && ./scripts/lernaVersion.sh '--conventional-commits --create-release github'",
+    "plugins:create-minor-version": "npm run prune && ./scripts/lernaVersion.sh minor",
+    "plugins:create-patch-version": "npm run prune && ./scripts/lernaVersion.sh patch",
+    "plugins:release-conventional": "npm run prune && lerna publish --conventional-commits --create-release github --yes",
+    "plugins:release-from-tag": "npm run prune && lerna publish from-package --yes",
+    "plugins:storybook": "cd packages/superset-ui-demo && npm run storybook",
+    "prettier": "npm run _prettier -- --write",
+    "prettier-check": "npm run _prettier -- --check",
     "prod": "npm run build",
     "prune": "rm -rf ./{packages,plugins}/*/{lib,esm,tsconfig.tsbuildinfo,package-lock.json}",
     "storybook": "cross-env NODE_ENV=development BABEL_ENV=development start-storybook -s ./src/assets/images -p 6006",
@@ -57,23 +72,6 @@
     "last 3 safari versions",
     "last 3 edge versions"
   ],
-  "stylelint": {
-    "rules": {
-      "block-opening-brace-space-before": "always",
-      "no-missing-end-of-source-newline": "never",
-      "rule-empty-line-before": [
-        "always",
-        {
-          "except": [
-            "first-nested"
-          ],
-          "ignore": [
-            "after-comment"
-          ]
-        }
-      ]
-    }
-  },
   "dependencies": {
     "@ant-design/icons": "^4.2.2",
     "@babel/runtime-corejs3": "^7.12.5",
@@ -115,6 +113,7 @@
     "abortcontroller-polyfill": "^1.1.9",
     "antd": "^4.9.4",
     "array-move": "^2.2.1",
+    "babel-plugin-typescript-to-proptypes": "^2.0.0",
     "bootstrap": "^3.4.1",
     "bootstrap-slider": "^10.0.0",
     "brace": "^0.11.1",
@@ -148,7 +147,7 @@
     "mousetrap": "^1.6.1",
     "mustache": "^2.2.1",
     "omnibar": "^2.1.1",
-    "polished": "^3.6.5",
+    "polished": "^3.7.2",
     "prop-types": "^15.7.2",
     "query-string": "^6.13.7",
     "re-resizable": "^6.6.1",
@@ -175,7 +174,6 @@
     "react-router-dom": "^5.1.2",
     "react-search-input": "^0.11.3",
     "react-select": "^3.1.0",
-    "react-select-async-paginate": "^0.4.1",
     "react-sortable-hoc": "^1.11.0",
     "react-split": "^2.0.9",
     "react-sticky": "^6.0.3",
@@ -203,7 +201,7 @@
     "yargs": "^15.4.1"
   },
   "devDependencies": {
-    "@babel/cli": "^7.15.7",
+    "@babel/cli": "^7.16.0",
     "@babel/compat-data": "^7.15.0",
     "@babel/core": "^7.15.5",
     "@babel/eslint-parser": "^7.15.7",
@@ -240,7 +238,7 @@
     "@types/enzyme-adapter-react-16": "^1.0.6",
     "@types/fetch-mock": "^7.3.2",
     "@types/jest": "^26.0.3",
-    "@types/jquery": "^3.3.32",
+    "@types/jquery": "^3.5.8",
     "@types/js-levenshtein": "^1.1.0",
     "@types/json-bigint": "^1.0.0",
     "@types/react": "^16.9.43",
@@ -279,7 +277,7 @@
     "eslint-config-airbnb": "^18.2.1",
     "eslint-config-prettier": "^7.1.0",
     "eslint-import-resolver-typescript": "^2.5.0",
-    "eslint-import-resolver-webpack": "^0.13.1",
+    "eslint-import-resolver-webpack": "^0.13.2",
     "eslint-plugin-cypress": "^2.11.2",
     "eslint-plugin-file-progress": "^1.2.0",
     "eslint-plugin-import": "^2.24.2",

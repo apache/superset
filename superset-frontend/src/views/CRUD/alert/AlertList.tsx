@@ -50,6 +50,14 @@ import { AlertObject, AlertState } from './types';
 
 const PAGE_SIZE = 25;
 
+const AlertStateLabel: Record<AlertState, string> = {
+  [AlertState.Success]: t('Success'),
+  [AlertState.Working]: t('Working'),
+  [AlertState.Error]: t('Error'),
+  [AlertState.Noop]: t('Not triggered'),
+  [AlertState.Grace]: t('On Grace'),
+};
+
 interface AlertListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -394,11 +402,17 @@ function AlertList({
         operator: FilterOperator.equals,
         unfilteredLabel: 'Any',
         selects: [
-          { label: t(`${AlertState.success}`), value: AlertState.success },
-          { label: t(`${AlertState.working}`), value: AlertState.working },
-          { label: t(`${AlertState.error}`), value: AlertState.error },
-          { label: t(`${AlertState.noop}`), value: AlertState.noop },
-          { label: t(`${AlertState.grace}`), value: AlertState.grace },
+          {
+            label: AlertStateLabel[AlertState.Success],
+            value: AlertState.Success,
+          },
+          {
+            label: AlertStateLabel[AlertState.Working],
+            value: AlertState.Working,
+          },
+          { label: AlertStateLabel[AlertState.Error], value: AlertState.Error },
+          { label: AlertStateLabel[AlertState.Noop], value: AlertState.Noop },
+          { label: AlertStateLabel[AlertState.Grace], value: AlertState.Grace },
         ],
       },
       {

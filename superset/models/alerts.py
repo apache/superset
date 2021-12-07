@@ -126,7 +126,7 @@ class Alert(Model, AuditMixinNullable):
 
     @property
     def pretty_config(self) -> str:
-        """ String representing the comparison that will trigger a validator """
+        """String representing the comparison that will trigger a validator"""
         config = json.loads(self.validator_config)
 
         if self.validator_type.lower() == "operator":
