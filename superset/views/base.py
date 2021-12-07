@@ -263,15 +263,8 @@ def create_table_permissions(table: models.SqlaTable) -> None:
         security_manager.add_permission_view_menu("schema_access", table.schema_perm)
 
 
-def get_user_roles() -> List[Role]:
-    if g.user.is_anonymous:
-        public_role = conf.get("AUTH_ROLE_PUBLIC")
-        return [security_manager.find_role(public_role)] if public_role else []
-    return g.user.roles
-
-
 def is_user_admin() -> bool:
-    user_roles = [role.name.lower() for role in list(get_user_roles())]
+    user_roles = [role.name.lower() for role in list(security_manager.get_user_roles())]
     return "admin" in user_roles
 
 

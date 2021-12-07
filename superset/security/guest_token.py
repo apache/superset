@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from enum import Enum
 from typing import List, Optional, TypedDict, Union
 
 from flask_appbuilder.security.sqla.models import Role
@@ -26,17 +27,24 @@ class GuestTokenUser(TypedDict, total=False):
     last_name: str
 
 
+class GuestTokenResourceType(Enum):
+    DASHBOARD = "dashboard"
+
+
 class GuestTokenResource(TypedDict):
-    type: str
+    type: GuestTokenResourceType
     id: Union[str, int]
     rls: Optional[str]
+
+
+GuestTokenResources = List[GuestTokenResource]
 
 
 class GuestToken(TypedDict):
     iat: float
     exp: float
     user: GuestTokenUser
-    resources: List[GuestTokenResource]
+    resources: GuestTokenResources
 
 
 class GuestUser(AnonymousUserMixin):
@@ -50,7 +58,7 @@ class GuestUser(AnonymousUserMixin):
     def is_authenticated(self) -> bool:
         """
         This is set to true because guest users should be considered authenticated,
-        at least in most places. The treatment of this flag is pretty inconsistent.
+        at least in most places. The treatment of this flag is kind of inconsistent.
         """
         return True
 

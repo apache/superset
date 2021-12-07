@@ -68,6 +68,7 @@ from superset.exceptions import SupersetSecurityException
 from superset.security.guest_token import (
     GuestToken,
     GuestTokenResource,
+    GuestTokenResources,
     GuestTokenUser,
     GuestUser,
 )
@@ -278,7 +279,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
 
         user = g.user
-        if user.is_anonymous:
+        if user.is_anonymous and not self.is_guest_user(user):
             return self.is_item_public(permission_name, view_name)
         return self._has_view_access(user, permission_name, view_name)
 
@@ -1097,6 +1098,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def get_anonymous_user(self) -> User:  # pylint: disable=no-self-use
         return AnonymousUserMixin()
 
+    def get_user_roles(self) -> List[Role]:
+        if g.user.is_anonymous:
+            public_role = current_app.config.get("AUTH_ROLE_PUBLIC")
+            return [self.get_public_role()] if public_role else []
+        return g.user.roles
+
     def get_rls_filters(self, table: "BaseDatasource") -> List[SqlaQuery]:
         """
         Retrieves the appropriate row level security filters for the current user and
@@ -1195,8 +1202,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 )
             )
 
-    @staticmethod
-    def raise_for_dashboard_access(dashboard: "Dashboard") -> None:
+    def raise_for_dashboard_access(self, dashboard: "Dashboard") -> None:
         """
         Raise an exception if the user cannot access the dashboard.
 
@@ -1206,14 +1212,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # pylint: disable=import-outside-toplevel
         from superset import is_feature_enabled
         from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
-        from superset.views.base import get_user_roles, is_user_admin
+        from superset.views.base import is_user_admin
         from superset.views.utils import is_owner
 
         has_rbac_access = True
 
         if is_feature_enabled("DASHBOARD_RBAC"):
             has_rbac_access = any(
-                dashboard_role.id in [user_role.id for user_role in get_user_roles()]
+                dashboard_role.id
+                in [user_role.id for user_role in self.get_user_roles()]
                 for dashboard_role in dashboard.roles
             )
 
@@ -1255,7 +1262,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return time.time()
 
     def create_guest_access_token(
-        self, user: GuestTokenUser, resources: List[GuestTokenResource]
+        self, user: GuestTokenUser, resources: GuestTokenResources
     ) -> bytes:
         secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
         algo = current_app.config["GUEST_TOKEN_JWT_ALGO"]
@@ -1319,3 +1326,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if token.get("resources") is None:
             raise ValueError("Guest token does not contain a resources claim")
         return cast(GuestToken, token)
+
+    @staticmethod
+    def is_guest_user(user: Any) -> bool:
+        return hasattr(user, "is_guest_user") and user.is_guest_user
