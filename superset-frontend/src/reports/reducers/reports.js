@@ -19,7 +19,6 @@
 /* eslint-disable camelcase */
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { report } from 'process';
-// import { allowCrossDomain } from 'src/utils/hostNamesConfig';
 import {
   SET_REPORT,
   ADD_REPORT,
@@ -78,49 +77,43 @@ export default function reportsReducer(state = {}, action) {
     },
 
     [ADD_REPORT]() {
-      // Grab first matching report by matching dashboard id
-      const reportWithDashboard = action.json.result.find(
-        report => !!report.dashboard_id,
-      );
-      // Assign the report's id
-      reportWithDashboard.id = action.json.id;
+      const { result, id } = action.json;
+      const report = { ...result, id };
 
-      // Grab first matching report by matching chart id
-      const reportWithChart = action.json.result.find(
-        report => !!report.chart.id,
-      );
-      // Assign the report's id
-      reportWithChart.id = action.json.id;
-
-      // This adds the report by its type, dashboard or chart
-      if (reportWithDashboard) {
+      if (result.dashboard) {
         return {
           ...state,
           dashboards: {
             ...state.dashboards,
-            [reportWithDashboard.dashboard_id]: report,
+            [report.id]: report,
+          },
+        };
+      }
+      if (result.chart) {
+        return {
+          ...state,
+          charts: {
+            ...state.chart,
+            [report.id]: report,
           },
         };
       }
       return {
         ...state,
-        charts: {
-          ...state.chart,
-          [reportWithChart.chart.id]: report,
-        },
       };
     },
 
     [EDIT_REPORT]() {
       // Grab first matching report by matching dashboard id
-      const reportWithDashboard = action.json.result.find(
+      // FIX THESE, THEY'RE OBJECTS, NOT ARRAYS, NO FIND
+      const reportWithDashboard = action.json.result?.find(
         report => !!report.dashboard_id,
       );
       // Assign the report's id
       reportWithDashboard.id = action.json.id;
 
       // Grab first matching report by matching chart id
-      const reportWithChart = action.json.result.find(
+      const reportWithChart = action.json.result?.find(
         report => !!report.chart.id,
       );
       // Assign the report's id
@@ -148,7 +141,7 @@ export default function reportsReducer(state = {}, action) {
     [DELETE_REPORT]() {
       // Grabs the first report with a dashboard id that
       // matches the parameter report's dashboard_id
-      const reportWithDashboard = action.report.result.find(
+      const reportWithDashboard = action.report.result?.find(
         report => !!report.dashboard_id,
       );
 
