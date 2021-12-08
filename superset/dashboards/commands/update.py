@@ -52,7 +52,7 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
         try:
             dashboard = DashboardDAO.update(self._model, self._properties, commit=False)
             dashboard = DashboardDAO.update_charts_owners(dashboard, commit=True)
-            if self._properties.get("json_metadata") is not None:
+            if self._properties.get("json_metadata"):
                 dashboard = DashboardDAO.set_dash_metadata(
                     dashboard,
                     data=json.loads(self._properties.get("json_metadata", "{}")),

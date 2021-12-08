@@ -240,7 +240,7 @@ class DashboardDAO(BaseDAO):
             md["default_filters"] = json.dumps(applicable_filters)
 
         # css and dashboard_title are not part of the metadata
-        # TODO remove by refactoring/deprecating save_dash endpoint
+        # TODO (geido): remove by refactoring/deprecating save_dash endpoint
         if data.get("css") is not None:
             dashboard.css = data.get("css")
         if data.get("dashboard_title") is not None:
@@ -251,8 +251,7 @@ class DashboardDAO(BaseDAO):
         else:
             md.pop("filter_scopes", None)
 
-        if "timed_refresh_immune_slices" not in md:
-            md["timed_refresh_immune_slices"] = []
+        md.setdefault("timed_refresh_immune_slices", [])
 
         if data.get("color_namespace") is None:
             md.pop("color_namespace", None)

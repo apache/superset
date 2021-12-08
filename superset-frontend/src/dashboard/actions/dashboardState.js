@@ -18,7 +18,7 @@
  */
 /* eslint camelcase: 0 */
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
-import { t, SupersetClient } from '@superset-ui/core';
+import { ensureIsArray, t, SupersetClient } from '@superset-ui/core';
 import { addChart, removeChart, refreshChart } from 'src/chart/chartAction';
 import { chart as initChart } from 'src/chart/chartReducer';
 import { applyDefaultFormData } from 'src/explore/store';
@@ -206,6 +206,8 @@ export function saveDashboardRequest(data, id, saveType) {
       slug,
     } = data;
 
+    const hasId = item => item.id !== undefined;
+
     // making sure the data is what the backend expects
     const cleanedData = {
       ...data,
@@ -214,12 +216,12 @@ export function saveDashboardRequest(data, id, saveType) {
         certified_by && certification_details ? certification_details : '',
       css: css || '',
       dashboard_title: dashboard_title || t('[ untitled dashboard ]'),
-      owners: owners && owners.length ? owners.map(o => (o.id ? o.id : o)) : [],
+      owners: ensureIsArray(owners)
+        ? owners.map(o => (hasId(o) ? o.id : o))
+        : [],
       roles: !isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC)
         ? undefined
-        : roles && roles.length
-        ? roles.map(r => (r.id ? r.id : r))
-        : [],
+        : ensureIsArray(roles).map(r => (hasId(r) ? r.id : r)),
       slug: slug || null,
       metadata: {
         ...data.metadata,
@@ -277,7 +279,7 @@ export function saveDashboardRequest(data, id, saveType) {
         const metadata = JSON.parse(updatedDashboard.json_metadata);
         dispatch(
           dashboardInfoChanged({
-            metadata: JSON.parse(updatedDashboard.json_metadata),
+            metadata,
           }),
         );
         if (metadata.chart_configuration) {
@@ -303,15 +305,17 @@ export function saveDashboardRequest(data, id, saveType) {
 
     const onError = async response => {
       const { error, message } = await getClientErrorObject(response);
-      let errorText = t(
-        'Sorry, there was an error saving this dashboard: %s',
-        error || t('Unknown'),
-      );
+      let errorText = t('Sorry, an unknown error occured');
 
+      if (error) {
+        errorText = t(
+          'Sorry, there was an error saving this dashboard: %s',
+          error,
+        );
+      }
       if (typeof message === 'string' && message === 'Forbidden') {
         errorText = t('You do not have permission to edit this dashboard');
       }
-
       dispatch(addDangerToast(errorText));
     };
 

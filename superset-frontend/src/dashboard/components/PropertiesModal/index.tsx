@@ -28,6 +28,7 @@ import {
   t,
   SupersetClient,
   getCategoricalSchemeRegistry,
+  ensureIsArray,
 } from '@superset-ui/core';
 
 import Modal from 'src/components/Modal';
@@ -116,26 +117,25 @@ const PropertiesModal = ({
     });
   };
 
-  const loadAccessOptions = useMemo(
-    () =>
-      (accessType = 'owners', input = '', page: number, pageSize: number) => {
-        const query = rison.encode({
-          filter: input,
-          page,
-          page_size: pageSize,
-        });
-        return SupersetClient.get({
-          endpoint: `/api/v1/dashboard/related/${accessType}?q=${query}`,
-        }).then(response => ({
-          data: response.json.result.map(
-            (item: { value: number; text: string }) => ({
-              value: item.value,
-              label: item.text,
-            }),
-          ),
-          totalCount: response.json.count,
-        }));
-      },
+  const loadAccessOptions = useCallback(
+    (accessType = 'owners', input = '', page: number, pageSize: number) => {
+      const query = rison.encode({
+        filter: input,
+        page,
+        page_size: pageSize,
+      });
+      return SupersetClient.get({
+        endpoint: `/api/v1/dashboard/related/${accessType}?q=${query}`,
+      }).then(response => ({
+        data: response.json.result.map(
+          (item: { value: number; text: string }) => ({
+            value: item.value,
+            label: item.text,
+          }),
+        ),
+        totalCount: response.json.count,
+      }));
+    },
     [],
   );
 
@@ -204,24 +204,18 @@ const PropertiesModal = ({
   };
 
   const handleOnChangeOwners = (owners: { value: number; label: string }[]) => {
-    let parsedOwners: Owners = [];
-    if (owners && owners.length) {
-      parsedOwners = owners.map(o => ({
-        id: o.value,
-        full_name: o.label,
-      }));
-    }
+    const parsedOwners: Owners = ensureIsArray(owners).map(o => ({
+      id: o.value,
+      full_name: o.label,
+    }));
     setOwners(parsedOwners);
   };
 
   const handleOnChangeRoles = (roles: { value: number; label: string }[]) => {
-    let parsedRoles: Roles = [];
-    if (roles && roles.length) {
-      parsedRoles = roles.map(r => ({
-        id: r.value,
-        name: r.label,
-      }));
-    }
+    const parsedRoles: Roles = ensureIsArray(roles).map(r => ({
+      id: r.value,
+      name: r.label,
+    }));
     setRoles(parsedRoles);
   };
 
@@ -430,7 +424,7 @@ const PropertiesModal = ({
             </StyledFormItem>
             <p className="help-block">
               {t(
-                'Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles defined then the dashboard is available to all roles.',
+                'Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, then the dashboard is available to all roles.',
               )}
             </p>
           </Col>
