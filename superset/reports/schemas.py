@@ -98,6 +98,10 @@ def validate_crontab(value: Union[bytes, bytearray, str]) -> None:
         raise ValidationError("Cron expression is not valid")
 
 
+def validate_report_extra(value: str) -> None:
+    return
+
+
 class ValidatorConfigJSONSchema(Schema):
     op = fields.String(  # pylint: disable=invalid-name
         description=validator_config_json_op_description,
@@ -170,6 +174,7 @@ class ReportSchedulePostSchema(Schema):
         description=creation_method_description,
     )
     dashboard = fields.Integer(required=False, allow_none=True)
+    selected_tabs = fields.List(fields.Integer(), required=False, allow_none=True)
     database = fields.Integer(required=False)
     owners = fields.List(fields.Integer(description=owners_description))
     validator_type = fields.String(
@@ -202,6 +207,7 @@ class ReportSchedulePostSchema(Schema):
         default=ReportDataFormat.VISUALIZATION,
         validate=validate.OneOf(choices=tuple(key.value for key in ReportDataFormat)),
     )
+    extra = fields.Dict(default=None,)
 
     @validates_schema
     def validate_report_references(  # pylint: disable=unused-argument,no-self-use

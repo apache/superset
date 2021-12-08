@@ -25,6 +25,8 @@ from marshmallow import ValidationError
 from superset.commands.base import CreateMixin
 from superset.dao.exceptions import DAOCreateFailedError
 from superset.databases.dao import DatabaseDAO
+from superset.extensions import db
+from superset.models.dashboard import Dashboard
 from superset.models.reports import ReportCreationMethodType, ReportScheduleType
 from superset.reports.commands.base import BaseReportScheduleCommand
 from superset.reports.commands.exceptions import (
@@ -88,6 +90,7 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
 
         # Validate chart or dashboard relations
         self.validate_chart_dashboard(exceptions)
+        self._validate_report_extra(exceptions)
 
         # Validate that each chart or dashboard only has one report with
         # the respective creation method.
@@ -113,3 +116,18 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
             exception = ReportScheduleInvalidError()
             exception.add_list(exceptions)
             raise exception
+
+    def _validate_report_extra(self, exceptions: List[ValidationError]) -> None:
+        extra = self._properties.get("extra")
+        dashboard = self._properties.get("dashboard")
+
+        if extra is None or dashboard is None:
+            return
+
+        dashboard_tab_ids = extra.get("dashboard_tab_ids")
+        position_data = json.loads(dashboard.position_json)
+        invalid_tab_ids = [
+            tab_id for tab_id in dashboard_tab_ids if tab_id not in position_data
+        ]
+        if invalid_tab_ids:
+            exceptions.append(ValidationError("Invalid tab IDs selected", "extra"))
