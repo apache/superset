@@ -207,7 +207,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       const { search } = location;
       const previousParams = new URLSearchParams(search);
       const newParams = new URLSearchParams();
-      let dataMaskKey = null;
+      let dataMaskKey = "";
       previousParams.forEach((value, key) => {
         if (key !== URL_PARAMS.nativeFilters.name) {
           newParams.append(key, value);

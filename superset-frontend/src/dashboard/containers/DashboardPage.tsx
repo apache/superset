@@ -166,7 +166,6 @@ const DashboardPage: FC = () => {
             nativeFilterValue,
           );
         } catch (err) {
-          console.log(err);
           return null;
         }
       }

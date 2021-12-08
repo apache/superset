@@ -72,10 +72,11 @@ async function fillNativeFilters(
   currentFilters?: Filters,
 ) {
   filterConfig.forEach((filter: Filter) => {
+    const dataMask = initialDataMask || {};
     mergedDataMask[filter.id] = {
       ...getInitialDataMask(filter.id), // take initial data
       ...filter.defaultDataMask, // if something new came from BE - take it
-      ...initialDataMask[filter.id],
+      ...dataMask[filter.id],
     };
     if (
       currentFilters &&
