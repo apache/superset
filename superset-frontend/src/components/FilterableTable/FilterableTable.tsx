@@ -28,6 +28,7 @@ import {
   SortDirectionType,
   SortIndicator,
   Table,
+  InfiniteLoader,
 } from 'react-virtualized';
 import { getMultipleTextDimensions, t, styled } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
@@ -154,6 +155,7 @@ export default class FilterableTable extends PureComponent<
     this.renderTable = this.renderTable.bind(this);
     this.rowClassName = this.rowClassName.bind(this);
     this.sort = this.sort.bind(this);
+    this._onSectionRendered = this._onSectionRendered.bind(this);
 
     // columns that have complex type and were expanded into sub columns
     this.complexColumns = props.orderedColumnKeys.reduce(
@@ -488,6 +490,36 @@ export default class FilterableTable extends PureComponent<
     // fix height of filterable table
     return (
       <StyledFilterableTable>
+        <InfiniteLoader
+          isRowLoaded={this._isRowLoaded}
+          loadMoreRows={this._loadMoreRows}
+          rowCount={100}
+          threshold={1}
+        >
+          {({ onRowsRendered, registerChild }) => {
+            this._onRowsRendered = onRowsRendered;
+            return (
+              <Grid
+                cellRenderer={this.renderGridCell}
+                columnCount={orderedColumnKeys.length}
+                columnWidth={getColumnWidth}
+                height={totalTableHeight - rowHeight}
+                // onScroll={onScroll}
+                overscanColumnCount={overscanColumnCount}
+                overscanRowCount={overscanRowCount}
+                rowCount={this.list.length}
+                rowHeight={rowHeight}
+                width={1000}
+                onSectionRendered={this._onSectionRendered}
+                ref={grid => {
+                  this._grid = grid;
+                  registerChild(grid);
+                }}
+              />
+            );
+          }}
+        </InfiniteLoader>
+
         <ScrollSync>
           {({ onScroll, scrollLeft }) => (
             <>
@@ -527,6 +559,22 @@ export default class FilterableTable extends PureComponent<
     );
   }
 
+  _isRowLoaded({ index }) {
+    console.log(index);
+    return true;
+  }
+
+  _loadMoreRows({ startIndex, stopIndex }) {
+    console.log('in loadmore rows');
+    let done;
+    return new Promise(resolve => (done = resolve));
+  }
+  _onSectionRendered({ rowStartIndex, rowStopIndex }) {
+    this._onRowsRendered({
+      startIndex: rowStartIndex,
+      stopIndex: rowStopIndex,
+    });
+  }
   renderTableCell({
     cellData,
     columnKey,
@@ -625,6 +673,6 @@ export default class FilterableTable extends PureComponent<
     if (this.props.orderedColumnKeys.length > MAX_COLUMNS_FOR_TABLE) {
       return this.renderGrid();
     }
-    return this.renderTable();
+    return this.renderGrid();
   }
 }
