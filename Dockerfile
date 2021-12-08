@@ -108,6 +108,8 @@ RUN cd /app \
 
 COPY ./docker/run-server.sh /usr/bin/
 
+RUN chmod a+x /usr/bin/run-server.sh
+
 WORKDIR /app
 
 USER superset
