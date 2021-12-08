@@ -24,7 +24,7 @@ import { Column, JsonObject } from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';
 import { ColumnSelect } from './ColumnSelect';
 
-fetchMock.get('http://localhost/api/v1/dataset/123', {
+fetchMock.get('glob:*/api/v1/dataset/123', {
   body: {
     result: {
       columns: [
@@ -35,7 +35,7 @@ fetchMock.get('http://localhost/api/v1/dataset/123', {
     },
   },
 });
-fetchMock.get('http://localhost/api/v1/dataset/456', {
+fetchMock.get('glob:*/api/v1/dataset/456', {
   body: {
     result: {
       columns: [
@@ -47,7 +47,7 @@ fetchMock.get('http://localhost/api/v1/dataset/456', {
   },
 });
 
-fetchMock.get('http://localhost/api/v1/dataset/789', { status: 404 });
+fetchMock.get('glob:*/api/v1/dataset/789', { status: 404 });
 
 const createProps = (extraProps: JsonObject = {}) => ({
   filterId: 'filterId',
