@@ -239,7 +239,7 @@ class DashboardDAO(BaseDAO):
             }
             md["default_filters"] = json.dumps(applicable_filters)
 
-        # css and dashboard_title are not part of the metadata
+        # The css and dashboard_title properties are not part of the metadata
         # TODO (geido): remove by refactoring/deprecating save_dash endpoint
         if data.get("css") is not None:
             dashboard.css = data.get("css")
