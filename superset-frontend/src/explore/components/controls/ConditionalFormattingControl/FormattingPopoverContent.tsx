@@ -17,12 +17,16 @@
  * under the License.
  */
 import React from 'react';
-import {styled, t} from '@superset-ui/core';
-import {Form, FormItem, FormProps} from 'src/components/Form';
-import {Select} from 'src/components';
-import {Col, InputNumber, Row} from 'src/common/components';
+import { styled, t } from '@superset-ui/core';
+import { Form, FormItem, FormProps } from 'src/components/Form';
+import { Select } from 'src/components';
+import { Col, InputNumber, Row } from 'src/common/components';
 import Button from 'src/components/Button';
-import {COMPARATOR, ConditionalFormattingConfig, MULTIPLE_VALUE_COMPARATORS,} from './types';
+import {
+  COMPARATOR,
+  ConditionalFormattingConfig,
+  MULTIPLE_VALUE_COMPARATORS,
+} from './types';
 
 const FullWidthInputNumber = styled(InputNumber)`
   width: 100%;
@@ -41,7 +45,7 @@ const colorSchemeOptions = [
 
 const operatorOptions = [
   { value: COMPARATOR.NONE, label: 'None' },
-  { value: COMPARATOR.INVERSE, label: 'Inverse'},
+  { value: COMPARATOR.INVERSE, label: 'Inverse' },
   { value: COMPARATOR.GREATER_THAN, label: '>' },
   { value: COMPARATOR.LESS_THAN, label: '<' },
   { value: COMPARATOR.GREATER_OR_EQUAL, label: '≥' },
