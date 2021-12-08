@@ -17,7 +17,7 @@ specific language governing permissions and limitations
 under the License.
 -->
 ## Change Log
-### 1.4 (Mon Oct 18 11:09:23 2021 -0700)
+### 1.4
 **Database Migrations**
 - [#16849](https://github.com/apache/superset/pull/16849) chore: db migrate timeseries_limit_metric to legacy_order_by (@zhaoyongjie)
 - [#14015](https://github.com/apache/superset/pull/14015) feat(filter-set): Add filterset resource (@ofekisr)
@@ -65,6 +65,11 @@ under the License.
 - [#16136](https://github.com/apache/superset/pull/16136) feat: add profiling to Superset pages (@betodealmeida)
 
 **Fixes**
+- [#17386](https://github.com/apache/superset/pull/17386) fix(sqllab): Have table name tooltip only show when name is truncated (@corbinrobb)
+- [#17431](https://github.com/apache/superset/pull/17431) fix: use full resultType with csv download on chart in dashboard (@eschutho)
+- [#17419](https://github.com/apache/superset/pull/17419) fix: avoid escaping bind-like params containing colons (@villebro)
+- [#17311](https://github.com/apache/superset/pull/17311) fix: Revert "fix(native-filters): Fix update ownState" (@etr2460)
+- [#17183](https://github.com/apache/superset/pull/17183) fix(Dashboard): Handle undefined tab when collapsing tabs (@geido)
 - [#17133](https://github.com/apache/superset/pull/17133) fix: sql lab crash caused by invalid template (@graceguo-supercat)
 - [#17123](https://github.com/apache/superset/pull/17123) fix(explore): remove unnecessary parameters from the explore url (@suddjian)
 - [#17117](https://github.com/apache/superset/pull/17117) fix: undefined error when anonymous user browses dashboards or charts (@wijnanjo)
@@ -216,6 +221,7 @@ under the License.
 - [#15762](https://github.com/apache/superset/pull/15762) fix: Align alert solid small svg center (@duynguyenhoang)
 
 **Others**
+- [#17579](https://github.com/apache/superset/pull/17579) chore(datasets): Sanitizing /save response (@craig-rueda)
 - [#17005](https://github.com/apache/superset/pull/17005) ci: skip unnecessary test steps (@villebro)
 - [#16609](https://github.com/apache/superset/pull/16609) chore: Select component refactoring - SelectAsyncControl - Iteration 5 (@geido)
 - [#17037](https://github.com/apache/superset/pull/17037) chore(Dashboard): Disable save button in Native Filters when an error is present (@geido)
@@ -340,4 +346,4 @@ under the License.
 - [#16048](https://github.com/apache/superset/pull/16048) chore: Changes the RefreshIntervalModal component to use the new select component (@michael-s-molina)
 - [#16064](https://github.com/apache/superset/pull/16064) chore: Changes the dashboard properties modal to use the new select component (@michael-s-molina)
 - [#16101](https://github.com/apache/superset/pull/16101) docs: fix link and clarify postgres install instructions (@nytai)
-- [#16040](https://github.com/apache/superset/pull/16040) refactor: adopt --app as celery global option (@john-bodle
+- [#16040](https://github.com/apache/superset/pull/16040) refactor: adopt --app as celery global option (@john-bodley)
