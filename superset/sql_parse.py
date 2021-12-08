@@ -22,6 +22,7 @@ from urllib import parse
 
 import sqlparse
 from sqlparse.sql import (
+    Comment,
     Identifier,
     IdentifierList,
     Parenthesis,
@@ -31,6 +32,8 @@ from sqlparse.sql import (
 )
 from sqlparse.tokens import DDL, DML, Keyword, Name, Punctuation, String, Whitespace
 from sqlparse.utils import imt
+
+from superset.exceptions import SupersetQueryParseException
 
 RESULT_OPERATIONS = {"UNION", "INTERSECT", "EXCEPT", "SELECT"}
 ON_KEYWORD = "ON"
@@ -378,3 +381,24 @@ class ParsedQuery:
         for i in statement.tokens:
             str_res += str(i.value)
         return str_res
+
+
+def validate_filter_clause(clause: str) -> None:
+    if sqlparse.format(clause, strip_comments=True) != sqlparse.format(clause):
+        raise SupersetQueryParseException("Filter clause contains comment")
+
+    statements = sqlparse.parse(clause)
+    if len(statements) != 1:
+        raise SupersetQueryParseException("Filter clause contains multiple queries")
+    open_parens = 0
+
+    for token in statements[0]:
+        if token.value in (")", "("):
+            open_parens += 1 if token.value == "(" else -1
+            if open_parens < 0:
+                raise SupersetQueryParseException(
+                    "Closing unclosed parenthesis in filter clause"
+                )
+    if open_parens > 0:
+        raise SupersetQueryParseException("Unclosed parenthesis in filter clause")
+    return

@@ -194,6 +194,10 @@ class CacheLoadError(SupersetException):
     status = 404
 
 
+class SupersetQueryParseException(SupersetException):
+    status = 400
+
+
 class DashboardImportException(SupersetException):
     pass
 
