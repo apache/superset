@@ -71,25 +71,6 @@ async function fillNativeFilters(
   initialDataMask?: DataMaskStateWithId,
   currentFilters?: Filters,
 ) {
-
-  /* const isLongUrl = search.indexOf('NATIVE_FILTER');
-  const nativeFilterValue = getUrlParam(URL_PARAMS.nativeFilters);
-  // console.log('key in fill native filters', nativeFilterValue)
-  let dataMaskFromUrl = nativeFilterValue || {};
-  // if nativefiltervalue is string mean key
-  // console.log('nativeFilterValue', typeof nativeFilterValue)
-  console.log({nativeFilterValue});
-  if (typeof nativeFilterValue === 'string') {
-    try {
-      console.log('hello are you working in try catch****')
-      dataMaskFromUrl = await getFilterValue(dashboardId, nativeFilterValue);
-      console.log({ dataMaskFromUrl });
-      // console.log('GET filterkey datamask', dataMaskFromUrlTest)
-    } catch (err) {
-      console.log(err);
-    }
-  }
-  */
   filterConfig.forEach((filter: Filter) => {
     mergedDataMask[filter.id] = {
       ...getInitialDataMask(filter.id), // take initial data
@@ -154,7 +135,6 @@ const dataMaskReducer = produce(
           // @ts-ignore
           action.data.dataMask,
         );
-        console.log("hydrating dataMask.....", cleanState);
         return cleanState;
       case SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE:
         fillNativeFilters(

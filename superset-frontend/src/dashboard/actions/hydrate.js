@@ -72,7 +72,6 @@ export const hydrateDashboard =
   ) =>
   (dispatch, getState) => {
     const { user, common } = getState();
-    console.log('common', common)
     const { metadata } = dashboardData;
     const regularUrlParams = extractUrlParams('regular');
     const reservedUrlParams = extractUrlParams('reserved');
@@ -349,9 +348,6 @@ export const hydrateDashboard =
     const { roles } = user;
     const canEdit = canUserEditDashboard(dashboardData, user);
 
-    console.log('<***** dataMaskApplied dispatch *****>');
-    console.log('dataMaskApplied dispatch *****>', dataMaskApplied);
-    console.log('<***** dataMaskApplied End *****>');
     return dispatch({
       type: HYDRATE_DASHBOARD,
       data: {

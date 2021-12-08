@@ -17,35 +17,29 @@
  * under the License.
  */
 import { SupersetClient } from '@superset-ui/core';
-import { DataMaskStateWithId, DataMaskWithId } from 'src/dataMask/types';
-import { createErrorHandler } from 'src/views/CRUD/utils';
-import queryString from 'query-string';
-import rison from 'rison';
 
-export const updateFilter = (dashId: string, value: string, key: string) =>
+export const updateFilterKey = (dashId: string, value: string, key: string) =>
   SupersetClient.put({
-    endpoint: `api/v1/dashboard/${dashId}/filter_state/${key}`,
-    body: value,
+    endpoint: `api/v1/dashboard/${dashId}/filter_state/${key}/`,
+    jsonPayload: { value },
   })
-    .then(r => {
-      console.log('RESPONSE --->', r);
-    })
+    .then(r => r.json.message)
     .catch(err => err);
 
-export const createFilterKey = (dashId: string, value: DataMaskStateWithId) =>
+export const createFilterKey = (dashId: string, value: string) =>
   SupersetClient.post({
     endpoint: `api/v1/dashboard/${dashId}/filter_state`,
     jsonPayload: { value },
   })
-    .then(r => {
-      console.log('createfilterkey', r.json.key);
-      return r.json.key;
-    })
+    .then(r => r.json.key)
     .catch(err => console.log('err', err));
 
-export const getFilterValue = (dashId: string, key: string) =>
+export const getFilterValue = (
+  dashId: string | number | undefined,
+  key: string,
+) =>
   SupersetClient.get({
     endpoint: `api/v1/dashboard/${dashId}/filter_state/${key}/`,
   })
-    .then(({json}) => JSON.parse(json.value))
+    .then(({ json }) => JSON.parse(json.value))
     .catch(err => err);

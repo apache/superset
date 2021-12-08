@@ -34,6 +34,12 @@ export interface UpdateDataMask {
   dataMask: DataMask;
 }
 
+export const INIT_DATAMASK = 'INIT_DATAMASK';
+export interface INITDATAMASK {
+  type: typeof INIT_DATAMASK;
+  dataMask: DataMask;
+}
+
 export const SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE =
   'SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE';
 
