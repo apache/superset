@@ -41,6 +41,7 @@ import Loading from 'src/components/Loading';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam} from 'src/utils/urlUtils';
+import replaceUndefinedByNull from 'src/dashboard/util/replaceUndefinedByNull';
 import { checkIsApplyDisabled, TabIds } from './utils';
 import FilterSets from './FilterSets';
 import {
@@ -54,7 +55,6 @@ import { createFilterKey, updateFilterKey } from './keyValue';
 import EditSection from './FilterSets/EditSection';
 import Header from './Header';
 import FilterControls from './FilterControls/FilterControls';
-import replaceUndefinedByNull from 'src/dashboard/util/replaceUndefinedByNull';
 
 export const FILTER_BAR_TEST_ID = 'filter-bar';
 export const getFilterBarTestId = testWithId(FILTER_BAR_TEST_ID);
@@ -207,7 +207,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       const { search } = location;
       const previousParams = new URLSearchParams(search);
       const newParams = new URLSearchParams();
-      let dataMaskKey = "";
+      let dataMaskKey = '';
       previousParams.forEach((value, key) => {
         if (key !== URL_PARAMS.nativeFilters.name) {
           newParams.append(key, value);
@@ -221,7 +221,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         const res = await getFilterKeyForUrl(rison.encode(getParam));
         if (res === null) {
           dataMaskKey = rison.encode(replaceUndefinedByNull(dataMaskSelected));
-        }
+        } else dataMaskKey = res;
       } else if (typeof getParam === 'string') {
         try {
           const res = await updateFilterKey(dashboardId, dataMask, getParam);
@@ -231,7 +231,6 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         // eslint-disable-next-line no-empty
         } catch {}
       }
-
       newParams.set(URL_PARAMS.nativeFilters.name, dataMaskKey);
 
       history.replace({
