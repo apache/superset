@@ -75,6 +75,9 @@
       "%s-%s of %s": ["%s-%s von %s"],
       "(Removed)": ["(Entfernt)"],
       "(deleted)": ["(gelöscht)"],
+      "(no description, click to see stack trace)": [
+        "(keine Beschreibung, klicken Sie hier, um Fehlermeldung zu sehen)"
+      ],
       "(optional) default value for the filter, when using the multiple option, you can use a semicolon-delimited list of options.": [
         "(Optionaler) Standardwert für den Filter, wenn Sie die Option ‚multiple‘ verwenden, können Sie eine durch Semikolons getrennte Liste von Optionen verwenden."
       ],
@@ -98,6 +101,8 @@
       "12 hours": ["12 Stunden"],
       "15 minute": ["15 Minuten"],
       "24 hours": ["24 Stunden"],
+      "2D": ["2D"],
+      "3 letter code of the country": ["3-Buchstaben-Code des Landes"],
       "30 days": ["30 Tage"],
       "30 minute": ["30 Minuten"],
       "30 minutes": ["30 Minuten"],
@@ -119,6 +124,7 @@
       "== (Is equal)": ["== (Ist gleich)"],
       "> (Larger than)": ["> (Größer als)"],
       ">= (Larger or equal)": [">= (Größer oder gleich)"],
+      "A Big Number": ["Eine Große Zahl"],
       "A SQL statement that defines whether the alert should get triggered or not. The query is expected to return either NULL or a number value.": [
         "Eine SQL-Anweisung, die definiert, ob ein Alarm ausgelöst werden soll oder nicht. Es wird erwartet, dass die Abfrage entweder NULL oder einen Zahlenwert zurückgibt."
       ],
@@ -138,8 +144,14 @@
       "A list of users who can alter the chart. Searchable by name or username.": [
         "Eine Liste der Benutzer*innen, die das Diagramm ändern können. Durchsuchbar nach Name oder Benutzer*innenname."
       ],
+      "A map of the world, that can indicate values in different countries.": [
+        "Eine Weltkarte, die Werte in verschiedenen Ländern anzeigen kann."
+      ],
       "A metric to use for color": [
         "Eine Metrik, die für die Farbe verwendet werden soll"
+      ],
+      "A polar coordinate chart where the circle is broken into wedges of equal angle, and the value represented by any wedge is illustrated by its area, rather than its radius or sweep angle.": [
+        "Ein Polarkoordinatendiagramm, in dem der Kreis in Sektoren mit gleichem Winkel unterteilt ist und der Wert, der durch einen Sektor dargestellt wird, durch seine Fläche und nicht durch seinen Radius oder Sweep-Winkel veranschaulicht wird."
       ],
       "A readable URL for your dashboard": [
         "Eine sprechende URL für Ihr Dashboard"
@@ -152,6 +164,9 @@
       ],
       "A set of parameters that become available in the query using Jinja templating syntax": [
         "Ein Satz von Parametern, die in der Abfrage mithilfe der Jinja-Vorlagensyntax verfügbar werden"
+      ],
+      "A time series chart that visualizes how a related metric from multiple groups vary over time. Each group is visualized using a different color.": [
+        "Ein Zeitreihendiagramm, das visualisiert, wie sich eine verwandte Metrik aus mehreren Gruppen im Laufe der Zeit ändert. Jede Gruppe wird mit einer anderen Farbe visualisiert."
       ],
       "A timeout occurred while executing the query.": [
         "Beim Ausführen der Abfrage ist ein Timeout aufgetreten."
@@ -175,12 +190,16 @@
       "About": ["Über"],
       "Access": ["Zugang"],
       "Access requests": ["Zugriffsanforderungen"],
+      "Access to user activity data is restricted": [
+        "Der Zugriff auf Benutzeraktivitätsdaten ist eingeschränkt"
+      ],
       "Access was requested": ["Zugang wurde beantragt"],
       "Action": ["Aktion"],
       "Action Log": ["Aktionsprotokoll"],
       "Actions": ["Aktion"],
       "Active": ["Aktiv"],
       "Actual time range": ["Tatsächlicher Zeitbereich"],
+      "Adaptative formating": ["Adaptative Formatierung"],
       "Add": ["Hinzufügen"],
       "Add Alert": ["Alarm hinzufügen"],
       "Add Annotation": ["Anmerkungen hinzufügen"],
@@ -227,12 +246,23 @@
       "Additional text to add before or after the value, e.g. unit": [
         "Zusätzlicher Text, der vor oder nach dem Wert hinzugefügt werden kann, z. B. Einheit"
       ],
+      "Additive": ["Additiv"],
       "Advanced": ["Erweitert"],
       "Advanced Analytics": ["Erweiterte Analysen"],
       "Advanced analytics": ["Erweiterte Analysen"],
       "Advanced-Analytics": ["Erweiterte Analysen"],
+      "Aesthetic": ["Ästhetisch"],
+      "After": ["Nach"],
+      "Aggregate": ["Aggregieren"],
       "Aggregate Mean": ["Aggregater Mittelwert"],
       "Aggregate Sum": ["Aggregierte Summe"],
+      "Aggregate function applied to the list of points in each cluster to produce the cluster label.": [
+        "Aggregatfunktion, die auf die Liste der Punkte in jedem Cluster angewendet wird, um die Clusterbezeichnung zu erstellen."
+      ],
+      "Aggregate function to apply when pivoting and computing the total rows and columns": [
+        "Aggregatfunktion, die beim Pivotieren und Berechnen der Summe der Zeilen und Spalten angewendet werden soll"
+      ],
+      "Aggregation function": ["Aggregationsfunktion"],
       "Alert Triggered, In Grace Period": ["Alarm ausgelöst, in Kulanzzeit"],
       "Alert condition": ["Alarmierungsbedingung"],
       "Alert condition schedule": ["Alarmierung-Zeitplan"],
@@ -275,7 +305,9 @@
       "All": ["Alle"],
       "All Text": ["Gesamter Texte"],
       "All charts": ["Alle Diagramme"],
+      "All filters": ["Alle Filter"],
       "All filters (%(filterCount)d)": ["Alle Filter (%(filterCount)d)"],
+      "All panels": ["Alle Bereiche"],
       "All panels with this column will be affected by this filter": [
         "Alle Bereiche mit dieser Spalte sind von diesem Filter betroffen"
       ],
@@ -310,6 +342,7 @@
       ],
       "Allow multiple selections": ["Mehrfachauswahl möglich"],
       "Allow node selections": ["Knotenauswahl zulassen"],
+      "Allow selecting multiple values": ["Auswählen mehrerer Werte zulassen"],
       "Allow this database to be explored": [
         "Abfragen dieser Datenbank in SQL Lab zulassen"
       ],
@@ -320,6 +353,9 @@
         "Benutzer*innen das Ausführen von Nicht-SELECT-Anweisungen (UPDATE, DELETE, CREATE, ...) in SQL Lab erlauben"
       ],
       "Alphabetical": ["Alphabetisch"],
+      "Also known as a box and whisker plot, this visualization compares the distributions of a related metric across multiple groups. The box in the middle emphasizes the mean, median, and inner 2 quartiles. The whiskers around each box visualize the min, max, range, and outer 2 quartiles.": [
+        "Diese Visualisierung, die auch als Box-Whisker-Plot bezeichnet wird, vergleicht die Verteilungen einer Metrik über mehrere Gruppen hinweg. Der Kasten in der Mitte stellt den Mittelwert, den Median und die inneren 2 Quartile dar. Die sogenannten „Whisker“ um jede Box visualisieren die Min-, Max-, Range- und äußeren 2 Quartile."
+      ],
       "Altered": ["Geändert"],
       "An enclosed time range (both start and end) must be specified when using a Time Comparison.": [
         "Bei Verwendung eines Zeitvergleichs muss ein geschlossener Zeitbereich (sowohl Anfang als auch Ende) angegeben werden."
@@ -334,6 +370,39 @@
       ],
       "An error occurred when refreshing queries": [
         "Beim Aktualisieren von Abfragen ist ein Fehler aufgetreten"
+      ],
+      "An error occurred while accessing the value.": [
+        "Beim Zugriff auf den Wert ist ein Fehler aufgetreten."
+      ],
+      "An error occurred while collapsing the table schema. Please contact your administrator.": [
+        "Beim Reduzieren des Tabellenschemas ist ein Fehler aufgetreten. Wenden Sie sich an Ihre*n Administrator*in."
+      ],
+      "An error occurred while creating %ss: %s": [
+        "Beim Erstellen von %s ist ein Fehler aufgetreten: %s"
+      ],
+      "An error occurred while creating the data source": [
+        "Beim Erstellen der Datenquelle ist ein Fehler aufgetreten"
+      ],
+      "An error occurred while creating the value.": [
+        "Beim Erstellen des Werts ist ein Fehler aufgetreten."
+      ],
+      "An error occurred while deleting the value.": [
+        "Beim Löschen des Werts ist ein Fehler aufgetreten."
+      ],
+      "An error occurred while editing this report.": [
+        "Beim Bearbeiten des Reports ist ein Fehler aufgetreten."
+      ],
+      "An error occurred while editing this report: %s": [
+        "Beim Bearbeiten dieses Reports ist ein Fehler aufgetreten: %s"
+      ],
+      "An error occurred while expanding the table schema. Please contact your administrator.": [
+        "Beim Erweitern des Tabellenschemas ist ein Fehler aufgetreten. Wenden Sie sich an Ihre*n Administrator*in."
+      ],
+      "An error occurred while fetching %s info: %s": [
+        "Beim Abrufen von %s ist ein Fehler aufgetreten: %s"
+      ],
+      "An error occurred while fetching %ss: %s": [
+        "Beim Abrufen von %s ist ein Fehler aufgetreten: %s"
       ],
       "An error occurred while fetching available CSS templates": [
         "Beim Abrufen verfügbarer CSS-Vorlagen ist ein Fehler aufgetreten"
@@ -352,6 +421,9 @@
       ],
       "An error occurred while fetching dashboard owner values: %s": [
         "Beim Abrufen von Dashboardbesitzer*innen-Werten ist ein Fehler aufgetreten: %s"
+      ],
+      "An error occurred while fetching dashboards": [
+        "Beim Abrufen von Dashboards ist ein Fehler aufgetreten"
       ],
       "An error occurred while fetching dashboards: %s": [
         "Beim Abrufen von Dashboards ist ein Fehler aufgetreten: %s"
@@ -377,14 +449,77 @@
       "An error occurred while fetching datasets: %s": [
         "Beim Abrufen von Datensätzen ist ein Fehler aufgetreten: %s"
       ],
+      "An error occurred while fetching function names.": [
+        "Fehler bei Abruf von Funktionsnamen."
+      ],
       "An error occurred while fetching schema values: %s": [
         "Beim Abrufen von Schemawerten ist ein Fehler aufgetreten: %s"
+      ],
+      "An error occurred while fetching tab state": [
+        "Beim Abrufen des Registerkartenstatus ist ein Fehler aufgetreten"
+      ],
+      "An error occurred while fetching table metadata": [
+        "Beim Abrufen von Tabellen-Metadaten ist ein Fehler aufgetreten"
+      ],
+      "An error occurred while fetching table metadata. Please contact your administrator.": [
+        "Beim Abrufen von Tabellen-Metadaten ist ein Fehler aufgetreten. Wenden Sie sich an Ihre*n Administrator*in."
       ],
       "An error occurred while fetching user values: %s": [
         "Beim Abrufen von Schemawerten ist ein Fehler aufgetreten: %s"
       ],
+      "An error occurred while hiding the left bar. Please contact your administrator.": [
+        "Beim Ausblenden der linken Leiste ist ein Fehler aufgetreten. Wenden Sie sich an Ihre*n Administrator*in."
+      ],
+      "An error occurred while importing %s: %s": [
+        "Beim Importieren von %s ist ein Fehler aufgetreten: %s"
+      ],
+      "An error occurred while loading the SQL": [
+        "Beim Laden des SQL ist ein Fehler aufgetreten"
+      ],
       "An error occurred while pruning logs ": [
         "Beim Kürzen von Protokollen ist ein Fehler aufgetreten "
+      ],
+      "An error occurred while removing query. Please contact your administrator.": [
+        "Beim Entfernen der Abfrage ist ein Fehler aufgetreten. Wenden Sie sich an Ihre*n Administrator*in."
+      ],
+      "An error occurred while removing tab. Please contact your administrator.": [
+        "Beim Entfernen der Registerkarte ist ein Fehler aufgetreten. Wenden Sie sich an Ihre*n Administrator*in."
+      ],
+      "An error occurred while removing the table schema. Please contact your administrator.": [
+        "Beim Entfernen des Tabellenschemas ist ein Fehler aufgetreten. Wenden Sie sich an Ihre*n Administrator*in."
+      ],
+      "An error occurred while rendering the visualization: %s": [
+        "Bei der Darstellung dieser Visualisierung ist ein Fehler aufgetreten: %s"
+      ],
+      "An error occurred while setting the active tab. Please contact your administrator.": [
+        "Beim Festlegen der aktiven Registerkarte ist ein Fehler aufgetreten. Wenden Sie sich an Ihre*n Administrator*in."
+      ],
+      "An error occurred while setting the tab autorun. Please contact your administrator.": [
+        "Beim Festlegen der Registerkarte Autorun ist ein Fehler aufgetreten. Wenden Sie sich an Ihre*n Administrator*in."
+      ],
+      "An error occurred while setting the tab database ID. Please contact your administrator.": [
+        "Beim Festlegen der Registerkartendatenbank-ID ist ein Fehler aufgetreten. Wenden Sie sich an Ihre*n Administrator*in."
+      ],
+      "An error occurred while setting the tab schema. Please contact your administrator.": [
+        "Beim Festlegen des Registerkartenschemas ist ein Fehler aufgetreten. Wenden Sie sich an Ihre*n Administrator*in."
+      ],
+      "An error occurred while setting the tab template parameters. Please contact your administrator.": [
+        "Beim Festlegen der Vorlagen-Parameter ist ein Fehler aufgetreten. Wenden Sie sich an Ihre*n Administrator*in."
+      ],
+      "An error occurred while setting the tab title. Please contact your administrator.": [
+        "Beim Festlegen des Registerkartentitels ist ein Fehler aufgetreten. Wenden Sie sich an Ihre*n Administrator*in."
+      ],
+      "An error occurred while starring this chart": [
+        "Beim Favorisieren des Diagramms ist ein Fehler aufgetreten."
+      ],
+      "An error occurred while storing the latest query id in the backend. Please contact your administrator if this problem persists.": [
+        "Beim Speichern der letzten Abfrage-ID im Backend ist ein Fehler aufgetreten. Wenden Sie sich an Ihre*n Administrator*in, wenn dieses Problem weiterhin besteht."
+      ],
+      "An error occurred while storing your query in the backend. To avoid losing your changes, please save your query using the \"Save Query\" button.": [
+        "Beim Speichern der Abfrage im Backend ist ein Fehler aufgetreten. Um zu vermeiden, dass Ihre Änderungen verloren gehen, speichern Sie Ihre Abfrage bitte über die Schaltfläche \"Abfrage speichern\"."
+      ],
+      "An error occurred while updating the value.": [
+        "Beim Aktualisieren des Werts ist ein Fehler aufgetreten."
       ],
       "An unknown error occurred. Please contact your Superset administrator": [
         "Ein unbekannter Fehler ist aufgetreten. Wenden Sie sich an Ihre*n Superset-Administrator*in"
@@ -481,9 +616,13 @@
         "Das angewendete rollierende Fenster hat keine Daten zurückgegeben. Bitte stellen Sie sicher, dass die Quellabfrage die im rollierenden Fenster definierten Mindestzeiträume erfüllt."
       ],
       "Apply": ["Übernehmen"],
+      "Apply conditional color formatting to metrics": [
+        "Bedingten Farbformatierung auf Metriken anwenden"
+      ],
       "Apply conditional color formatting to numeric columns": [
         "Bedingte Farbformatierung auf numerische Spalten anwenden"
       ],
+      "Apply metrics on": ["Metriken anwenden auf"],
       "Apply to all panels": ["Auf alle Bereiche anwenden"],
       "Apply to specific panels": ["Anwenden auf bestimmte Bereiche"],
       "April": ["April"],
@@ -533,11 +672,17 @@
       "Autocomplete query predicate": [
         "Abfrageprädikat für die automatische Vervollständigung"
       ],
+      "Available sorting modes:": ["Verfügbare Sortiermodi:"],
       "Axis": ["Achse"],
+      "Axis ascending": ["Achse aufsteigend"],
+      "Axis descending": ["Achse absteigend"],
       "Back": ["Zurück"],
       "Backend": ["Backend"],
       "Bad spatial key": ["Fehlerhafter räumlicher Schlüssel"],
+      "Bar": ["Balken"],
+      "Bar Chart": ["Balkendiagramm"],
       "Bar Values": ["Balkenwerte"],
+      "Base layer map style": ["Hintergrundkarten-Stil"],
       "Based on a metric": ["Auf Metrik basierend"],
       "Based on granularity, number of time periods to compare against": [
         "Basierend auf der Granularität, Anzahl der Zeiträume, mit denen verglichen werden soll"
@@ -545,9 +690,13 @@
       "Basic": ["Basic"],
       "Basic information": ["Basisangaben"],
       "Batch editing %d filters:": ["Stapelbearbeitung %d Filter:"],
+      "Battery level over time": ["Akkustand im Laufe der Zeit"],
       "Be careful.": ["Seien Sie vorsichtig."],
+      "Before": ["Vor"],
       "Big Number": ["Große Zahl"],
+      "Big Number Font Size": ["Große Zahl Schriftgröße"],
       "Big Number with Trendline": ["Große Zahl mit Trendlinie"],
+      "Bottom": ["Unten"],
       "Bottom Margin": ["Unterer Abstand"],
       "Bottom margin, in pixels, allowing for more room for axis labels": [
         "Unterer Rand in Pixeln, ermöglicht mehr Platz für Achsenbeschriftungen"
@@ -556,18 +705,31 @@
       "Bounds for the Y-axis. When left empty, the bounds are dynamically defined based on the min/max of the data. Note that this feature will only expand the axis range. It won't narrow the data's extent.": [
         "Grenzen für die Y-Achse. Wenn sie leer gelassen werden, werden die Grenzen basierend auf Min/Max der Daten dynamisch definiert. Beachten Sie, dass diese Funktion nur den Achsenbereich erweitert. Es wird den Umfang der Daten nicht einschränken."
       ],
+      "Box Plot": ["Boxplot"],
+      "Breakdowns": ["Aufschlüsselungen"],
       "Broker Endpoint": ["Broker-Endpunkt"],
       "Broker Host": ["Broker-Host"],
       "Broker Password": ["Broker-Passwort"],
       "Broker Port": ["Broker-Port"],
       "Broker Username": ["Broker-Benutzer*innenname"],
       "Bubble Chart": ["Blasen-Diagramm"],
+      "Bubble Color": ["Blasenfarbe"],
       "Bubble Size": ["Blasengröße"],
       "Bubble size": ["Blasengröße"],
       "Bulk select": ["Massenauswahl"],
       "Bullet Chart": ["Bullet-Diagramm"],
+      "Business": ["Geschäftlich"],
       "By default, each filter loads at most 1000 choices at the initial page load. Check this box if you have more than 1000 filter values and want to enable dynamically searching that loads filter values as users type (may add stress to your database).": [
         "Standardmäßig lädt jeder Filter beim ersten Laden der Seite höchstens 1000 Auswahlmöglichkeiten. Aktivieren Sie dieses Kontrollkästchen, wenn Sie über mehr als 1000 Filterwerte verfügen und die dynamische Suche aktivieren möchten, die Filterwerte während der Benutzereingabe lädt (was die Datenbank belasten kann)."
+      ],
+      "By key: use column names as sorting key": [
+        "Nach Schlüssel: Spaltennamen als Sortierschlüssel verwenden"
+      ],
+      "By key: use row names as sorting key": [
+        "Nach Schlüssel: Zeilennamen als Sortierschlüssel verwenden"
+      ],
+      "By value: use metric values as sorting key": [
+        "Nach Wert: Metrikwerte als Sortierschlüssel verwenden"
       ],
       "CANCEL": ["ABBRECHEN"],
       "CREATE TABLE AS": ["CREATE TABLE AS"],
@@ -617,6 +779,9 @@
       "Calculated columns": ["Berechnete Spalten"],
       "Calculation type": ["Berechnungstyp"],
       "Calendar Heatmap": ["Kalender Heatmap"],
+      "Can not move top level tab into nested tabs": [
+        "Registerkarte der obersten Ebene kann nicht in verschachtelte Registerkarten verschoben werden"
+      ],
       "Can't find DruidCluster with cluster_name = '%(name)s'": [
         "DruidCluster mit cluster_name = '%(name)s' nicht gefunden"
       ],
@@ -630,6 +795,9 @@
       "Cancel query on window unload event": [
         "Abfrage abbrechen bei ‚Window unload‘-Ereignis"
       ],
+      "Cannot create cyclic hierarchy": [
+        "Zyklische Hierarchie kann nicht erstellt werden"
+      ],
       "Cannot delete a database that has datasets attached": [
         "Eine Datenbank mit verknüpften Datensätzen kann nicht gelöscht werden"
       ],
@@ -640,8 +808,15 @@
       "Cannot parse time string [%(human_readable)s]": [
         "Zeitzeichenfolge [%(human_readable)s] kann nicht analysiert werden"
       ],
+      "Categorical": ["Kategorisch"],
+      "Categories to group by on the x-axis.": [
+        "Kategorien, nach denen auf der x-Achse gruppiert werden soll."
+      ],
       "Category": ["Kategorie"],
       "Category of target nodes": ["Kategorie der Zielknoten"],
+      "Cell Padding": ["Zellen Abstand"],
+      "Cell Radius": ["Zellenradius"],
+      "Cell Size": ["Zellengröße"],
       "Cell bars": ["Zellenbalken"],
       "Cell content": ["Zellinhalt"],
       "Center": ["Zentriert"],
@@ -652,6 +827,8 @@
       "Certified by": ["Zertifiziert durch"],
       "Certified by %s": ["Zertifiziert von %s"],
       "Change dataset": ["Datensatz wechseln"],
+      "Change order of columns.": ["Reihenfolge der Spalten ändern."],
+      "Change order of rows.": ["Reihenfolge der Zeilen ändern."],
       "Changed By": ["Bearbeitet von"],
       "Changed On": ["Bearbeitet am"],
       "Changed on": ["Bearbeitet am"],
@@ -682,6 +859,8 @@
       "Character to interpret as decimal point.": [
         "Zeichen, das als Dezimalstelle zu interpretieren ist."
       ],
+      "Charge": ["Laden"],
+      "Charge in the force layout": ["In kraftbasierte Anordnung laden"],
       "Chart": ["Diagramm"],
       "Chart %(id)s not found": ["Diagramm %(id)s nicht gefunden"],
       "Chart Cache Timeout": ["Diagramm Cache-Timeout"],
@@ -693,10 +872,13 @@
       "Chart [{}] has been overwritten": ["Diagramm [{}] wurde überschrieben"],
       "Chart [{}] has been saved": ["Diagramm [{}] wurde gespeichert"],
       "Chart [{}] was added to dashboard [{}]": [
-        "Diagramm [{}] wurde dem Dashboard hinzugefügt [{}]"
+        "Diagramm [{}] wurde dem Dashboard [{}] hinzugefügt"
       ],
       "Chart cache timeout": ["Diagramm-Cache Timeout"],
       "Chart changes": ["Diagrammänderungen"],
+      "Chart component that lets you add a custom filter UI in your dashboard. When added to dashboard, a filter box lets users specify specific values or ranges to filter charts by. The charts that each filter box is applied to can be fine tuned as well in the dashboard view.\n\n    Note that this plugin is being replaced with the new Filters feature that lives in the dashboard view itself. It's easier to use and has more capabilities!": [
+        "Diagrammkomponente, mit der Sie Ihrem Dashboard eine benutzerdefinierte Filter-Oberfläche hinzufügen können. Ist sie dem Dashboard zugefügt, können Benutzer*innen in einem Filterfeld bestimmte Werte oder Bereiche angeben, nach denen Diagramme gefiltert werden sollen. Die Diagramme, auf die jedes Filterfeld angewendet wird, können auch in der Dashboardansicht optimiert werden.\n\nBeachten Sie, dass dieses Plugin durch die neue Filterfunktion ersetzt wird, die sich in der Dashboard-Ansicht selbst befindet. Sie ist einfacher zu bedienen und hat mehr Funktionen!"
+      ],
       "Chart could not be created.": ["Diagramm konnte nicht erstellt werden."],
       "Chart could not be deleted.": ["Diagramm konnte nicht gelöscht werden."],
       "Chart could not be updated.": [
@@ -760,22 +942,42 @@
       ],
       "Choose a database...": ["Wählen Sie eine Datenbank..."],
       "Choose a dataset": ["Datensatz auswählen"],
+      "Choose a metric for left axis": [
+        "Wählen Sie eine Metrik für die linke Achse"
+      ],
       "Choose a metric for right axis": [
         "Wählen Sie eine Metrik für die rechte Achse"
       ],
+      "Choose a number format": ["Wählen Sie ein Zahlenformat"],
+      "Choose a source": ["Wählen Sie eine Quelle"],
+      "Choose a source and a target": ["Wählen Sie eine Quelle und ein Ziel"],
+      "Choose a target": ["Wählen Sie ein Ziel"],
       "Choose chart type": ["Diagrammtyp auswählen"],
+      "Choose one or more charts for left axis": [
+        "Wählen Sie ein oder mehrere Diagramme die rechte Achse"
+      ],
+      "Choose one or more charts for right axis": [
+        "Wählen Sie ein oder mehrerer Diagramme für die rechte Achse"
+      ],
       "Choose the annotation layer type": [
         "Auswählen des Anmerkungsebenen-Typs"
       ],
       "Choose the source of your annotations": [
         "Wählen Sie die Quelle Ihrer Anmerkungen aus"
       ],
+      "Chord Diagram": ["Sehnendiagramm"],
       "Chosen non-numeric column": ["Ausgewählte nicht numerische Spalte"],
       "Circle": ["Kreis"],
       "Circle -> Arrow": ["Kreis -> Pfeil"],
       "Circle -> Circle": ["Kreis -> Kreis"],
       "Circle radar shape": ["Kreisradarform"],
       "Circular": ["Kreisförmig"],
+      "Classic chart that visualizes how metrics change over time.": [
+        "Klassisches Diagramm, das visualisiert, wie sich Metriken im Laufe der Zeit ändern."
+      ],
+      "Classic row-by-column spreadsheet like view of a dataset. Use tables to showcase a view into the underlying data or to show aggregated metrics.": [
+        "Klassische Zeilen-für-Spalten-Tabellenansicht eines Datensatzes. Verwenden Sie Tabellen, um eine Ansicht der zugrunde liegenden Daten oder aggregierter Metriken anzuzeigen."
+      ],
       "Clause": ["Ausdruck"],
       "Clear": ["Zurücksetzen"],
       "Clear all": ["Alles löschen"],
@@ -811,20 +1013,32 @@
       "Close tab": ["Registerkarte schließen"],
       "Cluster": ["Cluster"],
       "Cluster Name": ["Cluster Name"],
+      "Cluster label aggregator": ["Cluster-Beschriftung-Aggregator"],
+      "Clustering Radius": ["Clustering-Radius"],
+      "Code": ["Code"],
       "Collapse all": ["Alle einklappen"],
       "Collapse table preview": ["Tabellenvorschau komprimieren"],
       "Color": ["Farbe"],
       "Color +/-": ["Farbe +/-"],
       "Color Metric": ["Farbmetrik"],
       "Color Scheme": ["Farbschema"],
+      "Color Steps": ["Farbschritte"],
       "Color metric": ["Metrik auswählen"],
       "Color scheme": ["Farbschema"],
+      "Color will be rendered based on a ratio of the cell against the sum of across this criteria": [
+        "Die Farbe wird basierend auf dem Verhältnis der Zelle zur Gesamtsumme dieses Kriteriums dargestellt."
+      ],
       "Colors": ["Farben"],
       "Column": ["Spalte"],
       "Column \"%(column)s\" is not numeric or does not exists in the query results.": [
         "Die Spalte \"%(column)s\" ist nicht numerisch oder existiert nicht in den Abfrageergebnissen."
       ],
       "Column Label(s)": ["Spaltenbezeichnung(en)"],
+      "Column containing ISO 3166-2 codes of region/province/department in your table.": [
+        "Spalte mit ISO 3166-2-Codes der Region/Provinz/Kreis in Ihrer Tabelle."
+      ],
+      "Column containing latitude data": ["Spalte mit Breitengraddaten"],
+      "Column containing longitude data": ["Spalte mit Längengraddaten"],
       "Column is required": ["Spalte ist erforderlich"],
       "Column label for index column(s). If None is given and Dataframe Index is True, Index Names are used.": [
         "Spaltenbezeichnung für Indexspalte(n). Wenn None angegeben ist und Dataframe Index den Wert True hat, werden Indexnamen verwendet."
@@ -849,8 +1063,20 @@
       "Columns missing in datasource: %(invalid_columns)s": [
         "Fehlende Spalten in Datenquelle: %(invalid_columns)s"
       ],
+      "Columns subtotal position": ["Zwischensummenposition der Spalten"],
+      "Columns to calculate distribution across. Defaults to temporal column if left empty.": [
+        "Spalten zum Berechnen der Verteilung. Falls leer, wird standardmäßig wird die temporale Spalte verwendet."
+      ],
       "Columns to display": ["Anzuzeigende Spalten"],
       "Columns to group by": ["Spalten, nach denen gruppiert wird"],
+      "Columns to group by on the columns": [
+        "Spalten, nach denen in den Spalten gruppiert werden soll"
+      ],
+      "Columns to group by on the rows": [
+        "Spalten, nach denen in den Zeilen gruppiert werden soll"
+      ],
+      "Combine Metrics": ["Metriken kombinieren"],
+      "Combine metrics": ["Metriken kombinieren"],
       "Comma-separated color picks for the intervals, e.g. 1,2,4. Integers denote colors from the chosen color scheme and are 1-indexed. Length must be matching that of interval bounds.": [
         "Kommagetrennte Farbwerte für die Intervalle, z.B. 1,2,4. Ganzzahlen bezeichnen Farben aus dem gewählten Farbschema und sind 1-indiziert. Die Anzahl muss mit der der Intervallgrenzen übereinstimmen."
       ],
@@ -858,6 +1084,22 @@
         "Durch Kommas getrennte Intervallgrenzen, z.B. 2,4,5 für die Intervalle 0-2, 2-4 und 4-5. Die letzte Zahl sollte mit dem für MAX angegebenen Wert übereinstimmen."
       ],
       "Comparator option": ["Komparator-Option"],
+      "Compare multiple time series charts (as sparklines) and related metrics quickly.": [
+        "Vergleichen Sie schnell mehrere Zeitreihendiagramme (als Sparklines) und verwandte Metriken."
+      ],
+      "Compare the same summarized metric across multiple groups.": [
+        "Vergleichen Sie dieselbe zusammengefasste Metrik über mehrere Gruppen hinweg."
+      ],
+      "Compares how a metric changes over time between different groups. Each group is mapped to a row and change over time is visualized bar lengths and color.": [
+        "Vergleicht, wie sich eine Metrik im Laufe der Zeit zwischen verschiedenen Gruppen ändert. Jede Gruppe wird einer Zeile zugeordnet und die Änderung im Laufe der Zeit werden als Balkenlängen und -farben visualisiert."
+      ],
+      "Compares metrics from different categories using bars. Bar lengths are used to indicate the magnitude of each value and color is used to differentiate groups.": [
+        "Vergleicht Metriken aus verschiedenen Kategorien mithilfe von Balken. Balkenlängen werden verwendet, um die Größe jedes Werts anzugeben, und Farbe wird verwendet, um Gruppen zu unterscheiden."
+      ],
+      "Compares the lengths of time different activities take in a shared timeline view.": [
+        "Vergleicht die Zeitspanne, die verschiedene Aktivitäten in einer freigegebenen Zeitachsenansicht benötigen."
+      ],
+      "Comparison": ["Vergleich"],
       "Comparison Period Lag": ["Verzögerung des Vergleichszeitraums"],
       "Comparison suffix": ["Vergleichssuffix"],
       "Components": ["Komponenten"],
@@ -904,10 +1146,13 @@
       "Connection failed, please check your connection settings": [
         "Verbindung fehlgeschlagen, bitte überprüfen Sie Ihre Verbindungseinstellungen"
       ],
+      "Connection looks good!": ["Verbindung möglich!"],
+      "Continuous": ["Kontinuierlich"],
       "Contribution": ["Beitrag"],
       "Contribution Mode": ["Beitragsmodus"],
       "Control labeled ": ["Feld "],
       "Controls labeled ": ["Steuerelemente beschriftet "],
+      "Coordinates": ["Koordinaten"],
       "Copied to clipboard!": ["In Zwischenablage kopiert!"],
       "Copy": ["Kopieren"],
       "Copy SELECT statement to the clipboard": [
@@ -926,6 +1171,7 @@
       "Copy dashboard URL": ["Dashboard-URL kopieren"],
       "Copy link": ["Link kopieren"],
       "Copy message": ["Meldung kopieren"],
+      "Copy of %s": ["Kopie von %s"],
       "Copy partition query to clipboard": [
         "Partitionsabfrage in Zwischenablage kopieren"
       ],
@@ -941,9 +1187,13 @@
       ],
       "Copy to Clipboard": ["In Zwischenablage kopieren"],
       "Copy to clipboard": ["In die Zwischenablage kopieren"],
+      "Correlation": ["Korrelation"],
       "Cost estimate": ["Kostenschätzung"],
       "Could not determine datasource type": [
         "Datenquellentyp konnte nicht ermittelt werden"
+      ],
+      "Could not fetch all saved charts": [
+        "Nicht alle gespeicherten Diagramme konnten abgerufen werden"
       ],
       "Could not find viz object": [
         "Visualisierungsobjekt konnte nicht gefunden werden"
@@ -958,6 +1208,10 @@
         "Datenbanktreiber konnte nicht geladen werden: {}"
       ],
       "Could not verify the host": ["Der Host konnte nicht überprüft werden"],
+      "Country": ["Land"],
+      "Country Color Scheme": ["Länderfarbschema"],
+      "Country Column": ["Länderspalte"],
+      "Country Field Type": ["Feldtyp \"Land\""],
       "Country Map": ["Länderkarte"],
       "Create": ["Erstellen"],
       "Create a new chart": ["Neues Diagramm erstellen"],
@@ -976,6 +1230,8 @@
       "Crontab": ["Crontab"],
       "Cross Filter Scoping": ["Kreuzfilter-Festlegung"],
       "Cross-filter scoping": ["Kreuzfilter-Bereichsdefinition"],
+      "Cumulative": ["Kumuliert"],
+      "Custom": ["Angepasst"],
       "Custom Plugin": ["Benutzerdefiniertes Plugin"],
       "Custom Plugins": ["Benutzerdefinierte Plugins"],
       "Custom SQL": ["Benutzerdefinierte SQL"],
@@ -988,6 +1244,7 @@
       "Custom SQL ad-hoc metrics are not enabled for this dataset": [
         "Benutzerdefinierte SQL-Ad-hoc-Metriken sind für diesen Datasatz nicht aktiviert"
       ],
+      "Custom time filter plugin": ["Benutzerdefiniertes Zeitfilter-Plugin"],
       "Customize": ["Anpassen"],
       "Customize Metrics": ["Anpassen von Metriken"],
       "Customize columns": ["Spalten anpassen"],
@@ -1002,10 +1259,14 @@
       "D3 time format for datetime columns": [
         "D3-Zeitformat für datetime-Spalten"
       ],
+      "D3 time format syntax: https://github.com/d3/d3-time-format": [
+        "D3-Zeitformatsyntax: https://github.com/d3/d3-time-format"
+      ],
       "DEC": ["DEZ"],
       "DELETE": ["LÖSCHEN"],
       "DESCRIPTION ERROR": ["BESCHREIBUNG FEHLER"],
       "DML": ["DML"],
+      "Dark mode": ["Dunkelmodus"],
       "Dashboard": ["Dashboard"],
       "Dashboard Emails": ["Dashboard-E-Mails"],
       "Dashboard [{}] just got created and chart [{}] was added to it": [
@@ -1033,6 +1294,7 @@
       "Dashboards do not exist": ["Dashboards existieren nicht"],
       "Data": ["Daten"],
       "Data Source": ["Datenquelle"],
+      "Data Table": ["Datentabelle"],
       "Data Zoom": ["Datenzoom"],
       "Data could not be deserialized from the results backend. The storage format might have changed, rendering the old data stake. You need to re-run the original query.": [
         "Daten konnten nicht aus dem Ergebnis-Backend deserialisiert werden. Das Speicherformat hat sich möglicherweise geändert, wodurch die alten Daten ungültig wurden. Sie müssen die ursprüngliche Abfrage erneut ausführen."
@@ -1140,6 +1402,7 @@
       ],
       "Datetime format": ["Datum Zeit Format"],
       "Day": ["Tag"],
+      "Days %s": ["Tage %s"],
       "Db engine did not return all queried columns": [
         "Db-Modul hat nicht alle abgefragten Spalten zurückgegeben"
       ],
@@ -1161,12 +1424,27 @@
         "Standard-URL, auf die beim Zugriff von der Datensatz-Listenseite aus zugegriffen werden soll"
       ],
       "Default Value": ["Standardwert"],
+      "Default latitude": ["Standard Breitengrad"],
+      "Default longitude": ["Standard-Längengrad"],
       "Default minimal column width in pixels, actual width may still be larger than this if other columns don't need much space": [
         "Standardmäßig minimale Spaltenbreite in Pixel, tatsächliche Breite kann immer noch größer sein, wenn andere Spalten nicht viel Platz benötigen"
       ],
+      "Default to first item": ["Erstes Element als Standard verwenden"],
       "Default value is required": ["Standardwert ist erforderlich"],
+      "Default value must be set when \"Filter has default value\" is checked": [
+        "Standardwert muss festgelegt werden, wenn \"Filter hat Standardwert\" aktiviert ist"
+      ],
+      "Default value must be set when \"Required\" is checked": [
+        "Der Standardwert muss festgelegt werden, wenn \"Erforderlich\" aktiviert ist"
+      ],
+      "Default value set automatically when \"Default to first item\" is checked": [
+        "Standardwert wird automatisch festgelegt, wenn „Erstes Element als Standard“ aktiviert ist"
+      ],
       "Defines a rolling window function to apply, works along with the [Periods] text box": [
         "Definiert eine Funktion ‚Rollierendes Fenster‘, die angewendet werden soll. Arbeitet zusammen mit dem Textfeld [Punkte]"
+      ],
+      "Defines how each series is broken down": [
+        "Definiert, wie jede Reihe aufgeschlüsselt wird"
       ],
       "Defines the grouping of entities. Each series is shown as a specific color on the chart and has a legend toggle": [
         "Definiert die Gruppierung von Entitäten. Jede Serie wird als bestimmte Farbe im Diagramm angezeigt und verfügt über einen Legenden-Umschalter"
@@ -1242,13 +1520,22 @@
       "Deliver As Group": ["Als Gruppe liefern"],
       "Delivery Type": ["Zustellart"],
       "Delivery method": ["Übermittlungsmethode"],
+      "Demographics": ["Demographische Daten"],
+      "Density": ["Dichte"],
+      "Deprecated": ["Veraltet"],
       "Description": ["Beschreibung"],
       "Description (this can be seen in the list)": [
         "Beschreibung (diese ist in der Liste zu sehen)"
       ],
       "Description Columns": ["Beschreibungsspalten"],
+      "Description text that shows up below your Big Number": [
+        "Beschreibungstext, der unter Ihrer Großen Zahl angezeigt wird"
+      ],
       "Deselect all": ["Alle abwählen"],
       "Details of the certification": ["Details zur Zertifizierung"],
+      "Determines how whiskers and outliers are calculated.": [
+        "Bestimmt, wie „Whisker“ und Ausreißer berechnet werden."
+      ],
       "Determines whether or not this dashboard is visible in the list of all dashboards": [
         "Bestimmt, ob dieses Dashboard in der Liste aller Dashboards sichtbar ist"
       ],
@@ -1256,14 +1543,28 @@
       "Did you mean:": ["Meintest du:"],
       "Difference": ["Differenz"],
       "Directed Force Layout": ["Kraftbasierte Anordnung"],
+      "Directional": ["Direktional"],
       "Disabled": ["Deaktiviert"],
       "Discard changes": ["Änderungen verwerfen"],
+      "Discrete": ["Diskret"],
       "Display Name": ["Anzeigename"],
+      "Display column level total": ["Summe auf Spaltenebene anzeigen"],
       "Display configuration": ["Anzeige-Konfiguration"],
+      "Display metrics side by side within each column, as opposed to each column being displayed side by side for each metric.": [
+        "Zeigen Sie Metriken innerhalb jeder Spalte nebeneinander an, im Gegensatz zur Darstellung einer Spalte je Metrik."
+      ],
+      "Display row level total": ["Summe auf Zeilenebene anzeigen"],
+      "Display total row/column": ["Gesamtsumme Zeile/Spalte anzeigen"],
+      "Displays connections between entities in a graph structure. Useful for mapping relationships and showing which nodes are important in a network. Graph charts can be configured to be force-directed or circulate. If your data has a geospatial component, try the deck.gl Arc chart.": [
+        "Zeigt Verbindungen zwischen Elementen in einer Graphstruktur an. Nützlich, um Beziehungen abzubilden und zu zeigen, welche Knoten in einem Netzwerk wichtig sind. Graphen-Diagramme können so konfiguriert werden, dass sie kraftgesteuert sind oder zirkulieren. Wenn Ihre Daten über eine Geodatenkomponente verfügen, versuchen Sie es mit dem deck.gl Arc-Diagramm."
+      ],
+      "Distribute across": ["Verteilen über"],
+      "Distribution": ["Verteilung"],
       "Distribution - Bar Chart": ["Verteilung - Balkendiagramm"],
       "Divider": ["Trenner"],
       "Do you want a donut or a pie?": ["Donut oder Torten-Diagramm?"],
       "Documentation": ["Dokumentation"],
+      "Domain": ["Wertebereich"],
       "Don't refresh": ["Nicht aktualisieren"],
       "Donut": ["Donut"],
       "Download as image": ["Herunterladen als Bild"],
@@ -1303,6 +1604,7 @@
       "Druid supports basic authentication. See [auth](http://druid.io/docs/latest/design/auth.html) and druid-basic-security extension": [
         "Druid unterstützt die Standardauthentifizierung. Siehe [auth](http://druid.io/docs/latest/design/auth.html) und druid-basic-security extension"
       ],
+      "Dual Line Chart": ["Doppelliniendiagramm"],
       "Duplicate column name(s): %(columns)s": [
         "Doppelte Spaltenname(n): %(columns)s"
       ],
@@ -1335,9 +1637,14 @@
       "Duration (in seconds) of the metadata caching timeout for tables of this database. If left unset, the cache never expires. ": [
         "Dauer (in Sekunden) der Caching-Zeitdauer für Diagramme dieser Datenbank. Ein Timeout von 0 gibt an, dass der Cache nie abläuft. Beachten Sie, dass standardmäßig der globale Timeout verwendet wird, wenn keiner definiert ist. "
       ],
+      "Duration in ms (1.40008 => 1ms 400µs 80ns)": [
+        "Dauer in ms (1,40008 => 1ms 400μs 80ns)"
+      ],
+      "Duration in ms (66000 => 1m 6s)": ["Dauer in ms (66000 => 1m 6s)"],
       "Duration: %s": ["Laufzeit: %s"],
       "ECharts": ["ECharts"],
       "END (EXCLUSIVE)": ["ENDE (EXKLUSIV)"],
+      "ERROR: %s": ["FEHLER: %s"],
       "Edge length": ["Kantenlänge"],
       "Edge length between nodes": ["Kantenlänge zwischen Knoten"],
       "Edge symbols": ["Kantensymbole"],
@@ -1410,6 +1717,7 @@
       "Emit dashboard cross filters.": ["Geben Sie Dashboard-Querfilter aus."],
       "Emitted values": ["Ausgegebene Werte"],
       "Emphasis": ["Hervorhebung"],
+      "Employment and education": ["Beschäftigung und Bildung"],
       "Empty circle": ["Leerer Kreis"],
       "Empty collection": ["Leere Sammlung"],
       "Empty query?": ["Leere Abfrage?"],
@@ -1477,6 +1785,7 @@
         "Fehler beim Laden von Diagrammdatenquellen. Filter funktionieren möglicherweise nicht ordnungsgemäß."
       ],
       "Error message": ["Fehlermeldung"],
+      "Error while fetching charts": ["Fehler beim Abrufen von Diagrammen"],
       "Error while fetching data: %s": ["Fehler beim Abrufen von Daten: %s"],
       "Error while rendering virtual dataset query: %(msg)s": [
         "Fehler bei Anzeige der virtuellen Datensatzabfrage: %(msg)s"
@@ -1488,14 +1797,17 @@
       "Estimate the cost before running a query": [
         "Schätzen der Kosten vor dem Ausführen einer Abfrage"
       ],
+      "Event Flow": ["Ereignisablauf"],
       "Event Names": ["Ereignisnamen"],
       "Event definition": ["Ereignisdefinition"],
       "Event flow": ["Ereignisablauf"],
       "Event time column": ["Spalte \"Ereigniszeit\""],
       "Every": ["Jeden"],
+      "Evolution": ["Entwicklung"],
+      "Exact": ["Genau"],
       "Example": ["Beispiel"],
       "Example %(tableName)s will appear here": [
-        "Beispiel %(tableName)s wird hier angezeigt"
+        "Beispiel-%(tableName)s werden hier angezeigt"
       ],
       "Examples": ["Beispiele"],
       "Excel File": ["Excel-Datei"],
@@ -1503,6 +1815,7 @@
         "Excel-Datei \"%(excel_filename)s\" in Tabelle \"%(table_name)s\" in Datenbank \"%(db_name)s\" hochgeladen"
       ],
       "Excel to Database configuration": ["Excel-zu-Datenbank-Konfiguration"],
+      "Exclude selected values": ["Auswahlwerte ausschließen"],
       "Executed SQL": ["Ausgeführtes SQL"],
       "Executed query": ["Ausgeführte Abfrage"],
       "Execution ID": ["Ausführungs-ID"],
@@ -1511,6 +1824,7 @@
       "Expand all": ["Alle aufklappen"],
       "Expand table preview": ["Tabellenvorschau erweitern"],
       "Expand tool bar": ["Werkzeugleiste erweitern"],
+      "Experimental": ["Experimentell"],
       "Explore": ["Erkunden"],
       "Explore - %(table)s": ["Erkunden - %(table)s"],
       "Explore in Superset": ["In Superset erkunden"],
@@ -1555,6 +1869,8 @@
       "Factor": ["Faktor"],
       "Fail": ["Fehlschlagen"],
       "Failed": ["Fehlgeschlagen"],
+      "Failed at retrieving results": ["Fehler beim Abrufen der Ergebnisse"],
+      "Failed at stopping query. %s": ["Fehler beim Beenden der Abfrage. %s"],
       "Failed to start remote query on a worker.": [
         "Remoteabfrage für einen Worker konnte nicht gestartet werden."
       ],
@@ -1583,6 +1899,7 @@
       "Filter": ["Filter"],
       "Filter List": ["Filterliste"],
       "Filter Type": ["Filtertyp"],
+      "Filter box": ["Filterkomponente"],
       "Filter by database": ["Filtern nach Datenbank"],
       "Filter by status": ["Nach Status filtern"],
       "Filter by user": ["Filtern nach Benutzer*in"],
@@ -1635,9 +1952,16 @@
       "Fixed": ["Fixiert"],
       "Fixed Color": ["Fixierte Farbe"],
       "Fixed color": ["Fixierte Farbe"],
+      "Flow": ["Fluss"],
       "Font size": ["Schriftgröße"],
       "Font size for axis labels, detail value and other text elements": [
         "Schriftgröße für Achsenbeschriftungen, Detailwerte und andere Textelemente"
+      ],
+      "Font size for the biggest value in the list": [
+        "Schriftgröße für den größten Wert in der Liste"
+      ],
+      "Font size for the smallest value in the list": [
+        "Schriftgröße für den kleinsten Wert in der Liste"
       ],
       "For Presto and Postgres, shows a button to compute cost before running a query.": [
         "Für Presto und Postgres wird ein Buttons angezeigt, um Kosten vor dem Ausführen einer Abfrage zu schätzen."
@@ -1652,24 +1976,31 @@
       "Force refresh": ["Aktualisierung erzwingen"],
       "Force refresh schema list": ["Aktualisierung der Schemaliste erzwingen"],
       "Force refresh table list": ["Aktualisierung erzwingen"],
+      "Force-directed Graph": ["Kraftgesteuerter Graph"],
       "Forecast periods": ["Prognosezeiträume"],
+      "Formattable": ["Formattabelle"],
       "Formatted CSV attached in email": [
         "Formatierte CSV-Datei in E-Mail angehängt"
       ],
+      "Found invalid orderby options": ["Ungültige Order-By-Optionen gefunden"],
       "Fraction digits": ["Nachkommastellen"],
+      "Frequency": ["Häufigkeit"],
       "Friction": ["Reibung"],
       "Friction between nodes": ["Reibung zwischen Knoten"],
       "Friday": ["Freitag"],
       "From date cannot be larger than to date": [
         "‚Von Datum' kann nicht größer als ‚Bis-Datum' sein"
       ],
+      "Funnel Chart": ["Trichterdiagramm"],
       "Further customize how to display each column": [
         "Weitere Anpassungen der Anzeige der Spaltenanzeige"
       ],
       "Further customize how to display each metric": [
         "Passen Sie weiter an, wie die einzelnen Metriken angezeigt werden sollen"
       ],
+      "Gauge Chart": ["Tachometerdiagramm"],
       "General": ["Allgemein"],
+      "Geo": ["Räumlich"],
       "Geohash": ["Geo Hashing"],
       "Get the last date by the date unit.": [
         "Das letzte Datum anhand der Datumseinheit anfordern."
@@ -1679,9 +2010,11 @@
       ],
       "Google Sheet Name and URL": ["Google Tabellen-Name und URL"],
       "Grace period": ["Kulanzzeit"],
+      "Graph Chart": ["Graphen-Diagramm"],
       "Graph layout": ["Graph-Layout"],
       "Gravity": ["Anziehungskraft"],
       "Group By": ["Gruppieren nach"],
+      "Group By filter plugin": ["Gruppieren nach Filter-Plugin"],
       "Group By' and 'Columns' can't overlap": [
         "„Gruppieren nach\" und \"Spalten\" dürfen sich nicht überlappen"
       ],
@@ -1690,19 +2023,26 @@
       ],
       "Group by": ["Gruppieren nach"],
       "Groupable": ["Gruppierbar"],
+      "Hard value bounds applied for color coding. Is only relevant and applied when the normalization is applied against the whole heatmap.": [
+        "Harte Wertgrenzen für die Farbcodierung. Ist nur relevant und wird angewendet, wenn die Normalisierung auf die gesamte Heatmap angewendet wird."
+      ],
       "Header": ["Header"],
       "Header Row": ["Kopfzeile"],
       "Heatmap": ["Heatmap"],
+      "Heatmap Options": ["Heatmap-Optionen"],
       "Height": ["Höhe"],
       "Hide layer": ["Ebene verstecken"],
       "Hide tool bar": ["Werkzeugleiste ausblenden"],
+      "Hierarchy": ["Hierarchie"],
       "Histogram": ["Histogramm"],
       "Home": ["Startseite"],
+      "Horizon Chart": ["Horizont-Diagramm"],
       "Horizon Charts": ["Horizontdiagramme"],
       "Horizontal alignment": ["Horizontale Ausrichtung"],
       "Host": ["Host"],
       "Hostname or IP address": ["Hostname oder IP-Adresse"],
       "Hour": ["Stunde"],
+      "Hours %s": ["Stunden %s"],
       "Hours offset": ["Stunden-Versatz"],
       "How do you want to enter service account credentials?": [
         "Wie möchten Sie die Anmeldeinformationen für das Dienstkonto eingeben?"
@@ -1716,6 +2056,8 @@
       "How to display time shifts: as individual lines; as the difference between the main time series and each time shift; as the percentage change; or as the ratio between series and time shifts.": [
         "So zeigen Sie Zeitverschiebungen an: als einzelne Linien; als absolute Differenz zwischen der Hauptzeitreihe und jeder Zeitverschiebung; als prozentuale Veränderung; oder wenn sich das Verhältnis zwischen Reihe und Zeit verschiebt."
       ],
+      "Huge": ["Riesig"],
+      "ISO 3166-2 Codes": ["ISO-3166-2-Codes"],
       "ISO 8601": ["ISO 8601"],
       "Id": ["ID"],
       "Id of root node of the tree.": ["ID des Stammknotens der Struktur."],
@@ -1743,6 +2085,9 @@
       ],
       "Ignore time": ["Zeit ignorieren"],
       "Image (PNG) embedded in email": ["Bild (PNG) in E-Mail eingebettet"],
+      "Image download failed, please refresh and try again.": [
+        "Bilddownload fehlgeschlagen, bitte aktualisieren und erneut versuchen."
+      ],
       "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)": [
         "Identität von angemeldeter Benutzer*in annehmen (Presto, Trino, Drill & Hive)"
       ],
@@ -1777,6 +2122,8 @@
       "Important! Select this if the table is not already sorted by entity id, else there is no guarantee that all events for each entity are returned.": [
         "Wichtig! Wählen Sie diese Option, wenn die Tabelle nicht bereits nach Entitäts-ID sortiert ist, da sonst nicht garantiert ist, dass alle Ereignisse für jede Entität zurückgegeben werden."
       ],
+      "Include Series": ["Serien einschließen"],
+      "Include series name as an axis": ["Seriennamen als Achse einschließen"],
       "Include time": ["Zeit einschließen"],
       "Incompatible Filters (%d)": ["Inkompatible Filter (%d)"],
       "Incorrect Fields": ["Falsche Felder"],
@@ -1792,6 +2139,7 @@
       "Instructions to add a dataset are available in the Superset tutorial.": [
         "Anleitungen zum Hinzufügen eines Datensatz finden Sie im Superset-Tutorial."
       ],
+      "Intensity": ["Intensität"],
       "Interval End column": ["Spalte \"Intervallende\""],
       "Interval bounds": ["Intervallgrenzen"],
       "Interval colors": ["Intervallfarben"],
@@ -1841,12 +2189,19 @@
       "Invalid spatial point encountered: %s": [
         "Ungültiger räumlicher Punkt: %s"
       ],
+      "Inverse selection": ["Auswahl umkehren"],
       "Is Hidden": ["Ist versteckt"],
       "Is certified": ["Zertifiziert"],
       "Is dimension": ["Ist Dimension"],
       "Is favorite": ["Favoriten"],
       "Is filterable": ["Ist filterbar"],
       "Is temporal": ["Ist zeitlich"],
+      "Issue 1000 - The dataset is too large to query.": [
+        "Problem 1000 - Die Datenquelle ist zu groß, um sie abzufragen."
+      ],
+      "Issue 1001 - The database is under an unusual load.": [
+        "Problem 1001 - Die Datenbank ist ungewöhnlich belastet."
+      ],
       "It seems you don't have access to any database": [
         "Es scheint, dass Sie keinen Zugriff auf eine Datenbank haben"
       ],
@@ -1871,6 +2226,7 @@
       ],
       "July": ["Juli"],
       "June": ["Juni"],
+      "KPI": ["KPI"],
       "Keep editing": ["Weiter bearbeiten"],
       "Keys for table": ["Schlüssel für Tabelle"],
       "Label": ["Label"],
@@ -1879,7 +2235,13 @@
       "Label for your query": ["Bezeichnung für Ihre Anfrage"],
       "Label position": ["Beschriftungsposition"],
       "Label threshold": ["Beschriftungsschwellenwert"],
+      "Labelling": ["Beschriftung"],
       "Labels": ["Beschriftungen"],
+      "Labels for the marker lines": ["Beschriftungen für die Markerlinien"],
+      "Labels for the markers": ["Beschriftungen für die Marker"],
+      "Labels for the ranges": ["Beschriftungen für Bereiche"],
+      "Large": ["Groß"],
+      "Last": ["Letzte"],
       "Last Changed": ["Zuletzt geändert"],
       "Last Modified": ["Zuletzt geändert"],
       "Last Updated %s": ["Letzte Aktualisierung %s"],
@@ -1887,6 +2249,10 @@
       "Last modified": ["Zuletzt geändert"],
       "Last modified by %s": ["Zuletzt geändert durch %s"],
       "Last run": ["Letzte Ausführung"],
+      "Latitude": ["Breitengrad"],
+      "Latitude of default viewport": [
+        "Breitengrad des Standardansichtsfensters"
+      ],
       "Layer": ["Ebene"],
       "Layer configuration": ["Ebenen-Konfiguration"],
       "Layout": ["Layout"],
@@ -1897,22 +2263,33 @@
       ],
       "Least recently modified": ["Zuletzt geändert"],
       "Left": ["Links"],
+      "Left Axis Format": ["Format der linken Achse"],
+      "Left Axis Metric": ["Metrik linke Achse"],
+      "Left Axis chart(s)": ["Diagramm(e) der linken Achse"],
       "Left Margin": ["Linker Abstand"],
       "Left margin, in pixels, allowing for more room for axis labels": [
         "Linker Rand in Pixeln, um mehr Platz für Achsenbeschriftungen zu schaffen"
       ],
       "Left to Right": ["Links nach rechts"],
       "Left value": ["Linker Wert"],
+      "Legacy": ["Veraltet"],
       "Legend": ["Legende"],
       "Legend type": ["Legendentyp"],
+      "Lift percent precision": ["Prozentuale Präzision erhöhen"],
+      "Light mode": ["Heller Modus"],
       "Limit reached": ["Limit erreicht"],
       "Limit selector values": ["Auswahlwerte einschränken"],
+      "Limiting rows may result in incomplete data and misleading charts. Consider filtering or grouping source/target names instead.": [
+        "Das Einschränken von Zeilen kann zu unvollständigen Daten und irreführenden Diagrammen führen. Erwägen Sie stattdessen, Quell-/Zielnamen zu filtern oder zu gruppieren."
+      ],
       "Limits the number of rows that get displayed.": [
         "Begrenzt die Anzahl der Zeilen, die angezeigt werden."
       ],
       "Limits the number of series that get displayed. A joined subquery (or an extra phase where subqueries are not supported) is applied to limit the number of series that get fetched and rendered. This feature is useful when grouping by high cardinality column(s) though does increase the query complexity and cost.": [
         "Begrenzt die Anzahl der Zeitreihen, die angezeigt werden. Eine Unterabfrage (oder eine zusätzliche Phase, falls Unterabfragen nicht unterstützt werden) wird angewendet, um die Anzahl der Zeitreihen zu begrenzen, die abgerufen und angezeigt werden. Diese Funktion ist nützlich, wenn Sie nach Dimension(en) mit hoher Kardinalität gruppieren, erhöht jedoch die Abfragekomplexität und -kosten."
       ],
+      "Line": ["Linie"],
+      "Line Chart": ["Liniendiagramm"],
       "Line Style": ["Linien Stil"],
       "Line interpolation as defined by d3.js": [
         "Linieninterpolation gemäß d3.js"
@@ -1921,9 +2298,20 @@
       "Linear Color Scheme": ["Farbverlaufschema"],
       "Linear color scheme": ["Farbverlaufschema"],
       "Link Copied!": ["Link kopiert!"],
+      "Link Length": ["Kantenlänge"],
+      "Link length in the force layout": [
+        "Kantenlänge in kraftbasierter Anordnung"
+      ],
       "List Observations": ["Beobachtungen auflisten"],
       "List Saved Query": ["Gespeicherte Abfragen auflisten"],
+      "List of values to mark with lines": [
+        "Liste der Werte, die mit Linien markiert werden sollen"
+      ],
+      "List of values to mark with triangles": [
+        "Liste der Werte, die mit Dreiecken markiert werden sollen"
+      ],
       "Live CSS editor": ["Live CSS Editor"],
+      "Live render": ["Live-Darstellung"],
       "Load a CSS template": ["CSS Vorlage laden"],
       "Loaded data cached": ["Geladene Daten zwischengespeichert"],
       "Loaded from cache": ["Aus Zwischenspeicher geladen"],
@@ -1941,7 +2329,11 @@
       "Login": ["Anmelden"],
       "Logout": ["Abmelden"],
       "Logs": ["Protokolle"],
+      "Longitude": ["Längengrad"],
       "Longitude & Latitude columns": ["Längen- und Breitengradspalten"],
+      "Longitude of default viewport": [
+        "Längengrad des Standardansichtfensters"
+      ],
       "MAR": ["MÄR"],
       "MAY": ["MAI"],
       "MON": ["MO"],
@@ -1958,15 +2350,26 @@
       ],
       "Mandatory": ["Notwendig"],
       "Mangle Duplicate Columns": ["Doppelte Spalten zusammenführen"],
+      "Map": ["Karte"],
+      "Map Style": ["Karten Stil"],
+      "MapBox": ["MapBox"],
       "Mapbox": ["Mapbox"],
       "March": ["März"],
       "Margin": ["Rand"],
       "Marker": ["Marker"],
       "Marker Size": ["Markergröße"],
+      "Marker labels": ["Markierungsbeschriftungen"],
+      "Marker line labels": ["Markierungslinienbeschriftungen"],
+      "Marker lines": ["Markierungslinien"],
       "Marker size": ["Markergröße"],
+      "Markers": ["Marker"],
+      "Markup type": ["Markup-Typ"],
       "Max": ["Max"],
+      "Max Bubble Size": ["Maximale Blasengröße"],
       "Max Events": ["Maximale Anzahl von Ereignissen"],
       "Maximize chart": ["Diagramm maximieren"],
+      "Maximum": ["Maximum"],
+      "Maximum Font Size": ["Maximale Schriftgrösse"],
       "Maximum value on the gauge axis": [
         "Maximalwert auf der Messgerät-Skala"
       ],
@@ -1980,6 +2383,7 @@
       "Median node size, the largest node will be 4 times larger than the smallest": [
         "Mittlere Knotengröße, der größte Knoten ist 4-mal größer als der kleinste"
       ],
+      "Medium": ["Mittel"],
       "Message Content": ["Inhalt der Nachricht"],
       "Message content": ["Nachrichteninhalt"],
       "Metadata": ["Metadaten"],
@@ -1994,6 +2398,7 @@
       "Metric '%(metric)s' does not exist": [
         "Metrik '%(metric)s' existiert nicht"
       ],
+      "Metric ascending": ["Metrik aufsteigend"],
       "Metric assigned to the [X] axis": [
         "Metrik, die der [X]-Achse zugewiesen ist"
       ],
@@ -2003,13 +2408,24 @@
       "Metric change in value from `since` to `until`": [
         "Metrische Wertänderung von 'seit' zu 'bis'"
       ],
+      "Metric descending": ["Metrik absteigend"],
       "Metric factor change from `since` to `until`": [
         "Änderung des metrischen Faktors von \"seit\" zu \"bis\""
       ],
+      "Metric for Color": ["Metrik für Farbe"],
       "Metric for node values": ["Metrik für Knotenwerte"],
       "Metric name [%s] is duplicated": ["Metrikname [%s] wird dupliziert"],
       "Metric percent change in value from `since` to `until`": [
         "Metrische prozentuale Wertänderung von \"seit\" zu \"bis\""
+      ],
+      "Metric that defines the color of the country": [
+        "Metrik, die die Farbe des Landes definiert"
+      ],
+      "Metric that defines the size of the bubble": [
+        "Metrik, die die Größe der Blase definiert"
+      ],
+      "Metric to display bottom title": [
+        "Metrik zur Anzeige des unteren Titels"
       ],
       "Metric to sort the results by": [
         "Metrik zum Sortieren der Ergebnisse nach"
@@ -2027,12 +2443,15 @@
       "Metrics for which percentage of total are to be displayed. Calculated from only data within the row limit.": [
         "Metriken, für die ein Prozentsatz der Gesamtsumme angezeigt werden soll. Berechnet nur aus Daten innerhalb des Zeilenlimits."
       ],
+      "Midnight": ["Mitternacht"],
       "Min": ["Min"],
       "Min Periods": ["Mindestzeiträume"],
       "Min Width": ["Min. Breite"],
       "Min periods": ["Mindestzeiträume"],
       "Mine": ["Meine"],
       "Minimize chart": ["Diagramm minimieren"],
+      "Minimum": ["Minimum"],
+      "Minimum Font Size": ["Minimale Schriftgröße"],
       "Minimum leaf node event count": [
         "Minimale Anzahl der Blattknotenereignisse"
       ],
@@ -2047,26 +2466,35 @@
       ],
       "Minor Split Line": ["Kleine geteilte Linie"],
       "Minute": ["Minute"],
+      "Minutes %s": ["Minuten %s"],
       "Missing Required Fields": ["Fehlende Pflichtfelder"],
       "Missing dataset": ["Fehlender Datensatz"],
+      "Mixed Time-Series": ["Gemischte Zeitreihen"],
       "Modified": ["Geändert"],
       "Modified %s": ["Geändert %s"],
       "Modified by": ["Geändert durch"],
       "Modified columns: %s": ["Geänderte Spalten: %s"],
       "Monday": ["Montag"],
       "Month": ["Monat"],
+      "Months %s": ["Monate %s"],
       "More dataset related options": ["Weitere Optionen zum Datensatz"],
       "Move only": ["Nur verschieben"],
       "Moves the given set of dates by a specified interval.": [
         "Verschiebt den angegebenen Satz von Datumsangaben um ein angegebenes Intervall."
       ],
+      "Multi-Dimensions": ["Multi-Dimensionen"],
+      "Multi-Layers": ["Mehr-Ebenen"],
+      "Multi-Levels": ["Mehrstufige"],
+      "Multi-Variables": ["Multi-Variablen"],
       "Multiple": ["Mehrfach"],
+      "Multiple Line Charts": ["Mehr-Liniendiagramme"],
       "Multiple file extensions are not allowed for columnar uploads. Please make sure all files are of the same extension.": [
         "Unterschiedliche Dateierweiterungen sind für spaltenförmige Uploads nicht zulässig. Bitte stellen Sie sicher, dass alle Dateien die gleiche Erweiterung haben."
       ],
       "Multiple formats accepted, look the geopy.points Python library for more details": [
         "Mehrere Formate akzeptiert, recherchieren Sie in der geopy.points Python-Bibliothek nach weiteren Details"
       ],
+      "Multiple select": ["Mehrfachauswahl"],
       "Multiple selections allowed, otherwise filter is limited to a single value": [
         "Mehrfachauswahl zulässig, andernfalls ist der Filter auf einen einzelnen Wert beschränkt"
       ],
@@ -2107,6 +2535,7 @@
       ],
       "Name of the target nodes": ["Name der Zielknoten"],
       "Name your database": ["Benennen der Datenbank"],
+      "Network error.": ["Netzwerk-Fehler."],
       "New": ["Neu"],
       "New Email Report": ["Neuer E-Mail-Bericht"],
       "New chart": ["Neues Diagramm"],
@@ -2116,6 +2545,7 @@
       "New tab (Ctrl + q)": ["Neue Registerkarte (Strg + q)"],
       "New tab (Ctrl + t)": ["Neue Registerkarte (Strg + t)"],
       "Next": ["Weiter"],
+      "Nightingale Rose Chart": ["Nightingale Rose Diagramm"],
       "No": ["Nein"],
       "No %(tableName)s yet": ["Noch keine %(tableName)s"],
       "No %s yet": ["Noch keine %s"],
@@ -2142,6 +2572,7 @@
       ],
       "No filter": ["Kein Filter"],
       "No filter is selected.": ["Kein Filter ausgewählt."],
+      "No of Bins": ["Anzahl der Bis"],
       "No query history yet...": ["Noch kein Abfrageverlauf..."],
       "No records found": ["Keine Datensätze gefunden"],
       "No results found": ["Keine Ergebnisse gefunden"],
@@ -2161,6 +2592,9 @@
       "None": ["Keine"],
       "None -> Arrow": ["Keine -> Pfeil"],
       "None -> None": ["Keine -> Keine"],
+      "Normal": ["Normal"],
+      "Normalize Across": ["Normalisieren über"],
+      "Normalized": ["Normalisiert"],
       "Not Time Series": ["Keine Zeitreihen"],
       "Not null": ["Nicht NULL"],
       "Not triggered": ["Nicht ausgelöst"],
@@ -2168,11 +2602,19 @@
       "Nothing triggered": ["Nichts ausgelöst"],
       "Notification method": ["Benachrichtigungsmethode"],
       "November": ["November"],
+      "Now": ["Jetzt"],
       "Null or Empty": ["Null oder Leer"],
       "Null values": ["NULL Werte"],
+      "Number Format": ["Zahlenformat"],
       "Number format": ["Nummern Format"],
       "Number of decimal digits to round numbers to": [
         "Anzahl der Dezimalstellen, auf die gerundet wird"
+      ],
+      "Number of decimal places with which to display lift values": [
+        "Anzahl der Dezimalstellen, mit denen Hubwerte angezeigt werden sollen"
+      ],
+      "Number of decimal places with which to display p-values": [
+        "Anzahl der Dezimalstellen, mit denen p-Werte angezeigt werden sollen"
       ],
       "Number of rows of file to read.": [
         "Anzahl der aus Datei zu lesenden Zeilen."
@@ -2182,6 +2624,12 @@
       ],
       "Number of split segments on the axis": [
         "Anzahl der geteilten Segmente auf der Achse"
+      ],
+      "Number of steps to take between ticks when displaying the X scale": [
+        "Anzahl der Schritte, die zwischen den Strichen bei der Anzeige der X-Skala ausgeführt werden müssen"
+      ],
+      "Number of steps to take between ticks when displaying the Y scale": [
+        "Anzahl der Schritte, die zwischen den Strichen bei der Anzeige der Y-Skala ausgeführt werden müssen"
       ],
       "Numerical range": ["Numerischer Bereich"],
       "OCT": ["OKT"],
@@ -2202,6 +2650,9 @@
       ],
       "One or many columns to pivot as columns": [
         "Eine oder mehrere Spalten, die als Spalten pivotiert werden sollen"
+      ],
+      "One or many controls to group by. If grouping, latitude and longitude columns must be present.": [
+        "Ein oder mehrere Steuerelemente, nach denen gruppiert werden soll. Bei der Gruppierung müssen Breiten- und Längengradspalten vorhanden sein."
       ],
       "One or many controls to pivot as columns": [
         "Ein oder mehrere Steuerelemente, um zu Spalten zu pivotieren"
@@ -2265,6 +2716,9 @@
       "Opacity of Area Chart. Also applies to confidence band.": [
         "Deckkraft des Flächendiagramms. Gilt auch für das Vertrauensband."
       ],
+      "Opacity of all clusters, points, and labels. Between 0 and 1.": [
+        "Deckkraft aller Cluster, Punkte und Beschriftungen. Zwischen 0 und 1."
+      ],
       "Opacity of area chart.": ["Deckkraft des Flächendiagramms."],
       "Open Datasource tab": ["Datenquellen-Reiter öffnen"],
       "Open in SQL Lab": ["In SQL Lab öffnen"],
@@ -2299,6 +2753,8 @@
       ],
       "Ordering": ["Sortierung"],
       "Orientation of tree": ["Ausrichtung des Baumes"],
+      "Origin": ["Herkunft"],
+      "Original": ["Original"],
       "Original table column order": [
         "Ursprüngliche Tabellenspaltenreihenfolge"
       ],
@@ -2327,6 +2783,7 @@
         "Besitzende ist eine Liste von Benutzer*innen, die das Dashboard ändern können. Durchsuchbar nach Name oder Benutzer*innenname."
       ],
       "Page length": ["Seitenlänge"],
+      "Paired t-test Table": ["Gepaarte t-Test-Tabelle"],
       "Pandas resample method": ["Pandas Resample-Methode"],
       "Pandas resample rule": ["Pandas Resample-Regel"],
       "Parallel Coordinates": ["Parallele Koordinaten"],
@@ -2337,6 +2794,8 @@
       "Parent filter": ["Übergeordneter Filter"],
       "Parent filter is required": ["Übergeordneter Filter ist erforderlich"],
       "Parse Dates": ["Datumsangaben auswerten"],
+      "Part of a Whole": ["Teil eines Ganzen"],
+      "Partition Chart": ["Partitionsdiagramm"],
       "Partition Diagram": ["Partitionsdiagramm"],
       "Partition Limit": ["Partitionslimit"],
       "Partition Threshold": ["Partitionsschwellenwert"],
@@ -2347,12 +2806,14 @@
       "Paste the shareable Google Sheet URL here": [
         "Fügen Sie die gemeinsam nutzbare Google Tabellen-URL hier ein"
       ],
+      "Pattern": ["Muster"],
       "Percent Change": ["Prozentuale Veränderung"],
       "Percentage metrics": ["Prozentuale Metriken"],
       "Percentage threshold": ["Prozentualer Schwellenwert"],
+      "Percentages": ["Prozentwerte"],
       "Periods": ["Zeiträume"],
-      "Periods must be a positive integer value": [
-        "Perioden müssen ein positiver ganzzahliger Wert sein"
+      "Periods must be a whole number": [
+        "Perioden müssen eine ganze Zahl sein"
       ],
       "Person or group that has certified this chart.": [
         "Person oder Gruppe, die dieses Diagramm zertifiziert hat."
@@ -2402,15 +2863,24 @@
       "Pick one or more columns that should be shown in the annotation. If you don't select a column all of them will be shown.": [
         "Wählen Sie eine oder mehrere Spalten aus, die in der Anmerkung angezeigt werden sollen. Wenn Sie keine Spalte auswählen, werden alle angezeigt."
       ],
+      "Pick your favorite markup language": [
+        "Wählen Sie Ihre bevorzugte Markup-Sprache"
+      ],
+      "Pie Chart": ["Kreisdiagramm"],
       "Pie shape": ["Kreisform"],
       "Pin": ["Pin"],
+      "Pivot Options": ["Pivot-Optionen"],
       "Pivot Table": ["Pivot-Tabelle"],
+      "Pivot Table v2": ["Pivot-Tabelle v2"],
       "Pivot operation must include at least one aggregate": [
         "Pivot-Operation muss mindestens ein Aggregat enthalten"
       ],
       "Pivot operation requires at least one index": [
         "Pivot-Operation erfordert mindestens einen Index"
       ],
+      "Pivoted": ["Pilotiert"],
+      "Pixel height of each series": ["Pixelhöhe jeder Serie"],
+      "Please apply filter changes": ["Bitte wenden Sie Filteränderungen an"],
       "Please check your query and confirm that all template parameters are surround by double braces, for example, \"{{ ds }}\". Then, try running your query again.": [
         "Bitte überprüfen Sie Ihre Anfrage und vergewissern Sie sich, dass alle Vorlagenparameter von doppelten Klammern umgeben sind, z. B. \"{{ ds }}\". Versuchen Sie dann erneut, die Abfrage auszuführen."
       ],
@@ -2463,12 +2933,22 @@
       "Please verify that port is open to connect.": [
         "Stellen Sie sicher, dass der Port für die Verbindung geöffnet ist."
       ],
+      "Plots the individual metrics for each row in the data vertically and links them together as a line. This chart is useful for comparing multiple metrics across all of the samples or rows in the data.": [
+        "Stellt die einzelnen Metriken für jede Zeile in den Daten vertikal dar und verknüpft sie als Linie miteinander. Dieses Diagramm ist nützlich, um mehrere Metriken in allen Stichproben oder Zeilen in den Daten zu vergleichen."
+      ],
       "Plugins": ["Plugins"],
+      "Point Radius": ["Punktradius"],
+      "Point Radius Unit": ["Punktradius-Einheit"],
+      "Points": ["Punkte"],
+      "Points and clusters will update as the viewport is being changed": [
+        "Punkte und Cluster werden aktualisiert, wenn das Ansichtsfenster geändert wird"
+      ],
       "Pop Tab Link": ["Tab-Link"],
       "Popular": ["Beliebt"],
       "Populate \"Default value\" to enable this control": [
         "Geben Sie den \"Standardwert\" an, um dieses Steuerelement zu aktivieren"
       ],
+      "Population age data": ["Daten zum Bevölkerungsalter"],
       "Port %(port)s on hostname \"%(hostname)s\" refused the connection.": [
         "Port %(port)s auf Hostname \"%(hostname)s\" verweigerte die Verbindung."
       ],
@@ -2477,8 +2957,14 @@
       "Position of child node label on tree": [
         "Position der Beschriftung des untergeordneten Knotens in der Struktur"
       ],
+      "Position of column level subtotal": [
+        "Position der Zwischensumme auf Spaltenebene"
+      ],
       "Position of intermidiate node label on tree": [
         "Position der Zwischenknoten-Beschriftung im Baum"
+      ],
+      "Position of row level subtotal": [
+        "Position der Zwischensumme auf Zeilenebene"
       ],
       "Powered by Apache Superset": ["Powered Apache Superset"],
       "Pre-filter": ["Vorfilter"],
@@ -2487,16 +2973,24 @@
       "Predicate applied when fetching distinct value to populate the filter control component. Supports jinja template syntax. Applies only when `Enable Filter Select` is on.": [
         "Prädikat, das beim Abrufen eines eindeutigen Werts angewendet wird, um die Filtersteuerelementkomponente aufzufüllen. Unterstützt jinja-Vorlagensyntax. Gilt nur, wenn \"Filterauswahl aktivieren\" aktiviert ist."
       ],
+      "Predictive": ["Prädikativ"],
       "Predictive Analytics": ["Prädiktive Analysen"],
+      "Prefix metric name with slice name": [
+        "Metrikname den Slice-Namen voranstellen"
+      ],
       "Preview": ["Vorschau"],
       "Preview: `%s`": ["Vorschau: `%s"],
       "Previous": ["Zurück"],
       "Primary": ["Primär"],
+      "Primary Metric": ["Primäre Metrik"],
       "Primary or secondary y-axis": ["Primäre oder sekundäre y-Achse"],
       "Primary y-axis format": ["Primäres y-Achsenformat"],
       "Profile": ["Profil"],
       "Profile picture provided by Gravatar": ["Profilbild von Gravatar"],
       "Progress": ["Fortschritt"],
+      "Progressive": ["Progressiv"],
+      "Propagate": ["Propagieren"],
+      "Proportional": ["Proportional"],
       "Public and privately shared sheets": [
         "Öffentliche und privat freigegebene Blätter"
       ],
@@ -2506,10 +3000,15 @@
       "Put the labels outside of the pie?": [
         "Sollen die Beschriftungen außerhalb der Torte dargestellt werden?"
       ],
+      "Put the labels outside the pie?": [
+        "Beschriftungen außerhalb des Kuchens anordnen?"
+      ],
+      "Put your code here": ["Geben Sie Ihren Code hier ein"],
       "Python Functions": ["Python-Funktionen"],
       "Python datetime string pattern": ["Python Datetime-Zeichenfolge"],
       "Python functions": ["Python-Funktionen"],
       "Quarter": ["Quartal"],
+      "Quarters %s": ["Quartale %s"],
       "Query": ["Abfrage"],
       "Query %s: %s": ["Abfrage %s: %s"],
       "Query A": ["Abfrage A"],
@@ -2525,15 +3024,28 @@
       "Query preview": ["Abfragen-Voransicht"],
       "Query search string": ["Abfragen suchen"],
       "Query was stopped": ["Abfrage wurde angehalten"],
+      "Query was stopped.": ["Die Abfrage wurde gestoppt."],
       "RANGE TYPE": ["BEREICHSTYP"],
       "REPORT NAME ERROR": ["BERICHTNAMEN FEHLER"],
+      "RGB Color": ["RGB-Farbe"],
       "Radar": ["Radar"],
+      "Radar Chart": ["Radar-Diagramm"],
       "Radar render type, whether to display 'circle' shape.": [
         "Radar-Darstellungsart, ob die Kreisform angezeigt werden soll."
       ],
       "Radial": ["Radial"],
       "Ran %s": ["Ausgeführt %s"],
+      "Range": ["Bereich"],
       "Range filter": ["Bereichsfilter"],
+      "Range filter plugin using AntD": ["Bereichsfilter-Plugin mit AntD"],
+      "Range labels": ["Bereichsbeschriftungen"],
+      "Ranges": ["Bereiche"],
+      "Ranges to highlight with shading": [
+        "Bereiche, die mit Schattierung hervorgehoben werden sollen"
+      ],
+      "Ranking": ["Rangliste"],
+      "Ratio": ["Verhältnis"],
+      "Raw records": ["Rohdatensätze"],
       "Ready to review filters in this dashboard?": [
         "Bereit, die Filter In diesem Dashboard zu prüfen?"
       ],
@@ -2587,6 +3099,11 @@
       "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter. Base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.": [
         "Reguläre Filter fügen Abfragen WHERE-Ausrücke hinzu, falls ein*e Benutzer*in einer im Filter referenzierten Rolle angehört. Basisfilter wenden Filter auf alle Abfragen mit Ausnahme der im Filter definierten Rollen an. Über sie lässt sich definieren, was Benutzer*innen sehen können, wenn auf sie keine RLS-Filter angewendet werden."
       ],
+      "Relational": ["Relational"],
+      "Relationships between community channels": [
+        "Beziehungen zwischen Community-Kanälen"
+      ],
+      "Relative Date/Time": ["Relatives Datum/Uhrzeit"],
       "Relative period": ["Relativer Zeitraum"],
       "Relative quantity": ["Relative Menge"],
       "Remind me in 24 hours": ["In 24 Stunden erinnern"],
@@ -2597,7 +3114,9 @@
       "Remove table preview": ["Tabellenvorschau entfernen"],
       "Removed columns: %s": ["Entfernte Spalten: %s"],
       "Rename tab": ["Registerkarte umbenennen"],
+      "Rendering": ["Darstellen"],
       "Replace": ["Ersetzen"],
+      "Report": ["Melden"],
       "Report Schedule could not be created.": [
         "Report-Ausführungsplan konnte nicht erstellt werden."
       ],
@@ -2677,6 +3196,7 @@
       "Right": ["Rechts"],
       "Right Axis Format": ["Format der rechten Achse"],
       "Right Axis Metric": ["Metrik der rechten Achse"],
+      "Right Axis chart(s)": ["Diagramm(e) der rechten Achse"],
       "Right axis metric": ["Metrik der rechten Achse"],
       "Right to Left": ["Rechts nach links"],
       "Right value": ["Rechter Wert"],
@@ -2699,6 +3219,9 @@
       "Root certificate": ["Root-Zertifikat"],
       "Root node id": ["Wurzelknoten-ID"],
       "Rotate x axis label": ["X-Achsenbeschriftung drehen"],
+      "Rotation to apply to words in the cloud": [
+        "Rotation, die auf Wörter in der Cloud angewendet werden soll"
+      ],
       "Round cap": ["Runde Kappe"],
       "Row": ["Zeile"],
       "Row Level Security": ["Sicherheit auf Zeilenebene"],
@@ -2711,6 +3234,7 @@
       "Rows per page, 0 means no pagination": [
         "Zeilen pro Seite, 0 bedeutet keine Paginierung"
       ],
+      "Rows subtotal position": ["Zeilen Zwischensummenposition"],
       "Rows to Read": ["Zu lesende Zeilen"],
       "Rule": ["Regel"],
       "Run": ["Ausführen"],
@@ -2746,6 +3270,8 @@
       "START (INCLUSIVE)": ["START (INKLUSIVE)"],
       "SUN": ["SO"],
       "Sankey": ["Sankey"],
+      "Sankey Diagram": ["Sankey-Diagramm"],
+      "Sankey Diagram with Loops": ["Sankey-Diagramm mit Schleifen"],
       "Saturday": ["Samstag"],
       "Save": ["Speichern"],
       "Save & Explore": ["Speichern & Erkunden"],
@@ -2778,6 +3304,8 @@
       "Scale and Move": ["Skalieren und Verschieben"],
       "Scale only": ["Nur Skalieren"],
       "Scan New Datasources": ["Neue Datenquellen suchen"],
+      "Scatter": ["Streudiagramm"],
+      "Scatter Plot": ["Streudiagramm"],
       "Schedule": ["Zeitplan"],
       "Schedule Email Reports for Charts": [
         "Planen von E-Mail-Berichten für Diagramme"
@@ -2814,8 +3342,10 @@
       "Search...": ["Suche..."],
       "Second": ["Sekunde"],
       "Secondary": ["Sekundär"],
+      "Secondary Metric": ["Sekundäre Metrik"],
       "Secondary y-axis format": ["Sekundäres y-Achsenformat"],
       "Secondary y-axis title": ["Titel der sekundären y-Achse"],
+      "Seconds %s": ["Sekunden %s"],
       "Secure Extra": ["Sicherheit Extra"],
       "Secure extra": ["Sicherheit extra"],
       "Security": ["Sicherheit"],
@@ -2844,6 +3374,7 @@
       "Select any columns for metadata inspection": [
         "Auswählen beliebiger Spalten für die Metadatenüberprüfung"
       ],
+      "Select charts": ["Diagramme auswählen"],
       "Select color scheme": ["Farbschema auswählen"],
       "Select column": ["Spalte auswählen"],
       "Select database or type database name": [
@@ -2853,6 +3384,10 @@
         "Für ausgewählte Datenbanken müssen zusätzliche Felder auf der Registerkarte Erweitert ausgefüllt werden, um die Datenbank erfolgreich zu verbinden. Erfahren Sie, welche Anforderungen Ihre Datenbanken haben "
       ],
       "Select filter": ["Filter auswählen"],
+      "Select filter plugin using AntD": ["Filter-Plugin mit AntD auswählen"],
+      "Select first item by default (when using this option, default value can’t be set)": [
+        "Standardmäßig das erste Element auswählen (bei Verwendung dieser Option kann der Standardwert nicht festgelegt werden)"
+      ],
       "Select operator": ["Operator auswählen"],
       "Select or type a value": ["Wert eingeben oder auswählen"],
       "Select owners": ["Besitzende auswählen"],
@@ -2867,11 +3402,22 @@
       "Select table or type table name": [
         "Tabelle auswählen oder Tabellennamen eingeben"
       ],
+      "Select the number of bins for the histogram": [
+        "Wählen Sie die Anzahl der Klassen für das Histogramm aus"
+      ],
+      "Select the numeric columns to draw the histogram": [
+        "Auswählen der numerischen Spalten zum Zeichnen des Histogramms"
+      ],
       "Send as CSV": ["Als CSV senden"],
       "Send as PNG": ["Als PNG senden"],
       "Send as text": ["Als Text senden"],
+      "Send range filter events to other charts": [
+        "Bereichsfilter-Ereignisse an andere Diagramme senden"
+      ],
       "September": ["September"],
+      "Sequential": ["Fortlaufend"],
       "Series": ["Serien"],
+      "Series Height": ["Serienhöhe"],
       "Series Style": ["Serienstil"],
       "Series chart type (line, bar etc)": [
         "Seriendiagrammtyp (Linie, Balken usw.)"
@@ -2888,6 +3434,7 @@
       "Share": ["Teilen"],
       "Share chart by email": ["Diagramm per Email teilen"],
       "Share dashboard by email": ["Dashboard per Email teilen"],
+      "Shared query": ["Geteilte Abfrage"],
       "Sheet Name": ["Blattname"],
       "Short description must be unique for this layer": [
         "Kurzbeschreibung muss für diese Ebene eindeutig sein"
@@ -2903,6 +3450,7 @@
       ],
       "Show Annotation": ["Anmerkungen anzeigen"],
       "Show Annotation Layer": ["Anmerkungsebene anzeigen"],
+      "Show Bubbles": ["Blasen anzeigen"],
       "Show CREATE VIEW statement": ["CREATE VIEW-Anweisung anzeigen"],
       "Show CSS Template": ["CSS Vorlagen anzeigen"],
       "Show Chart": ["Diagramm anzeigen"],
@@ -2922,6 +3470,7 @@
       "Show Log": ["Protokoll anzeigen"],
       "Show Markers": ["Markierungen anzeigen"],
       "Show Metric": ["Metrik anzeigen"],
+      "Show Metric Names": ["Metriknamen anzeigen"],
       "Show Observation": ["Beobachtung anzeigen"],
       "Show Range Filter": ["Bereichsfilter anzeigen"],
       "Show Row level security filter": [
@@ -2942,18 +3491,25 @@
       "Show all...": ["Zeige alle …"],
       "Show axis line ticks": ["Anzeigen von Achsenlinien-Ticks"],
       "Show cell bars": ["Zellenbalken anzeigen"],
+      "Show columns total": ["Spaltensumme anzeigen"],
       "Show data points as circle markers on the lines": [
         "Datenpunkte als Kreismarkierungen auf den Linien darstellen"
       ],
+      "Show hierarchical relationships of data, with with the value represented by area, showing proportion and contribution to the whole.": [
+        "Hierarchische Beziehungen von Daten anzeigen, wobei der Wert durch die Fläche dargestellt wird, die Anteil und Beitrag zum Ganzen darstellt."
+      ],
       "Show info tooltip": ["Info-Tooltip anzeigen"],
+      "Show label": ["Beschriftung anzeigen"],
       "Show labels when the node has children.": [
         "Zeigen Sie Beschriftungen an, wenn der Knoten untergeordnete Elemente hat."
       ],
       "Show legend": ["Legende anzeigen"],
       "Show less columns": ["Weniger Spalten anzeigen"],
       "Show less...": ["Weniger..."],
+      "Show percentage": ["Prozentsatz anzeigen"],
       "Show pointer": ["Zeiger anzeigen"],
       "Show progress": ["Fortschritt anzeigen"],
+      "Show rows total": ["Zeilensumme anzeigen"],
       "Show series values on the chart": ["Reihenwerten im Diagramm anzeigen"],
       "Show split lines": ["Geteilte Linien anzeigen"],
       "Show the value on top of the bar": [
@@ -2965,19 +3521,43 @@
         "Zeigen Sie die Gesamtaggregationen ausgewählter Metriken an. Beachten Sie, dass das Zeilenlimit nicht für das Ergebnis gilt."
       ],
       "Show totals": ["Gesamtwerte anzeigen"],
+      "Showcases a single metric front-and-center. Big number is best used to call attention to a KPI or the one thing you want your audience to focus on.": [
+        "Zeigt eine einzelne Metrik im Vordergrund. ‚Große Zahl‘ wird am besten verwendet, um die Aufmerksamkeit auf einen KPI oder die eine Information zu lenken, auf die sich Ihr Publikum konzentrieren soll."
+      ],
+      "Showcases a single number accompanied by a simple line chart, to call attention to an important metric along with its change over time or other dimension.": [
+        "Zeigt eine einzelne Zahl zusammen mit einem einfachen Liniendiagramm, um die Aufmerksamkeit auf eine wichtige Metrik zusammen mit ihrer Veränderung im Laufe der Zeit oder einer anderen Dimension zu lenken."
+      ],
+      "Showcases how a metric changes as the funnel progresses. This classic chart is useful for visualizing drop-off between stages in a pipeline or lifecycle.": [
+        "Zeigt, wie sich eine Metrik im Laufe des Trichters ändert. Dieses klassische Diagramm ist nützlich, um den Abfall zwischen Phasen in einer Pipeline oder einem Lebenszyklus zu visualisieren."
+      ],
+      "Showcases the flow or link between categories using thickness of chords. The value and corresponding thickness can be different for each side.": [
+        "Zeigt den Fluss oder die Verknüpfung zwischen Kategorien anhand der Dicke der Sehnen. Der Wert und die entsprechende Dicke können für jede Seite unterschiedlich sein."
+      ],
+      "Showcases the progress of a single metric against a given target. The higher the fill, the closer the metric is to the target.": [
+        "Zeigt den Fortschritt einer einzelnen Metrik gegenüber einem bestimmten Ziel. Je höher die Füllung, desto näher ist die Metrik am Ziel."
+      ],
       "Showing %s of %s": ["Sie sehen %s von %s"],
       "Shows a list of all series available at that point in time": [
         "Zeigt eine Liste aller zu diesem Zeitpunkt verfügbaren Serien an."
       ],
+      "Shows the composition of a dataset by segmenting a given rectangle as smaller rectangles with areas proportional to their value or contribution to the whole. Those rectangles may also, in turn, be further segmented hierarchically.": [
+        "Zeigt die Zusammensetzung eines Datensatzes an, indem ein bestimmtes Rechteck als kleinere Rechtecke mit Bereichen segmentiert wird, die proportional zu ihrem Wert oder Beitrag zum Ganzen sind. Diese Rechtecke können wiederum auch hierarchisch weiter segmentiert werden."
+      ],
+      "Significance Level": ["Signifikanzniveau"],
       "Simple": ["Einfach"],
       "Simple ad-hoc metrics are not enabled for this dataset": [
         "Einfache Ad-hoc-Metriken sind für diesen Datensatz nicht aktiviert"
       ],
       "Single": ["Einzeln"],
+      "Single Metric": ["Einzelne Metrik"],
+      "Single Value": ["Einzelner Wert"],
+      "Single value": ["Einzelner Wert"],
+      "Single value type": ["Einzelwerttyp"],
       "Size of edge symbols": ["Größe der Kantensymbole"],
       "Size of marker. Also applies to forecast observations.": [
         "Größe des Markers. Gilt auch für Prognosebeobachtungen."
       ],
+      "Sizes of vehicles": ["Fahrzeuggrößen"],
       "Skip Blank Lines": ["Leerzeilen überspringen"],
       "Skip Initial Space": ["Führende Leerzeichen überspringen"],
       "Skip Rows": ["Zeilen überspringen"],
@@ -2989,10 +3569,14 @@
       ],
       "Slack Channel": ["Slack-Kanal"],
       "Slug": ["Kopfzeile"],
+      "Small": ["Klein"],
       "Small number format": ["Kleines Zahlenformat"],
       "Some roles do not exist": ["Einige Rollen sind nicht vorhanden"],
       "Sorry there was an error fetching database information: %s": [
         "Beim Abrufen von Datenbankinformationen ist leider ein Fehler aufgetreten: %s"
+      ],
+      "Sorry there was an error fetching saved charts: ": [
+        "Beim Abrufen gespeicherter Diagramme ist leider ein Fehler aufgetreten: "
       ],
       "Sorry, An error occurred": ["Leider ist ein Fehler aufgetreten"],
       "Sorry, something went wrong. Try again later.": [
@@ -3001,6 +3585,9 @@
       "Sorry, there appears to be no data": [
         "Leider scheint es keine Daten zu geben"
       ],
+      "Sorry, there was an error saving this dashboard: %s": [
+        "Leider ist beim Speichern dieses Dashboards ein Fehler aufgetreten: %s"
+      ],
       "Sorry, your browser does not support copying.": [
         "Entschuldigung. Ihr Browser unterstützt leider kein Kopieren."
       ],
@@ -3008,21 +3595,29 @@
         "Ihr Browser unterstützt leider kein Kopieren. Verwenden Sie Strg / Cmd + C!"
       ],
       "Sort": ["Sortieren"],
+      "Sort Bars": ["Balken sortieren"],
       "Sort Descending": ["Absteigend sortieren"],
       "Sort Metric": ["Sortiermetrik"],
+      "Sort X Axis": ["X-Achse sortieren"],
+      "Sort Y Axis": ["Y-Achse sortieren"],
       "Sort ascending": ["Aufsteigend sortieren"],
+      "Sort bars by x labels.": ["Sortieren Sie Balken nach x-Beschriftungen."],
       "Sort by": ["Sortieren nach"],
       "Sort by %s": ["Sortieren nach %s"],
       "Sort by metric": ["Nach Metrik sortieren"],
       "Sort columns alphabetically": ["Spalten alphabetisch sortieren"],
+      "Sort columns by": ["Spalten sortieren nach"],
       "Sort descending": ["Absteigend sortieren"],
       "Sort filter values": ["Filterwerte sortieren"],
       "Sort metric": ["Metrik anzeigen"],
+      "Sort rows by": ["Zeilen sortieren nach"],
       "Sort type": ["Art der Sortierung"],
       "Source": ["Quelle"],
+      "Source / Target": ["Quelle / Ziel"],
       "Source SQL": ["Quell-SQL"],
       "Source category": ["Quellkategorie"],
       "Spatial": ["Raumbezug"],
+      "Specific Date/Time": ["Spezifisches Datum/Uhrzeit"],
       "Specify a schema (if database flavor supports this).": [
         "Geben Sie ein Schema an (wenn die Datenbankvariante dies unterstützt)."
       ],
@@ -3035,7 +3630,10 @@
       "Split number": ["Zahl aufteilen"],
       "Stack series": ["Stack-Serie"],
       "Stack series on top of each other": ["Reihen übereinander stapeln"],
+      "Stacked": ["Gestapelt"],
       "Stacked Bars": ["Gestapelte Balken"],
+      "Stacked Style": ["Gestapelter Stil"],
+      "Stacked style": ["Gestapelter Stil"],
       "Standard time series": ["Standard-Zeitreihen"],
       "Start": ["Start"],
       "Start Review": ["Starte Prüfung"],
@@ -3049,6 +3647,7 @@
         "Beginnen Sie die y-Achse bei Null. Deaktivieren Sie das Kontrollkästchen, um die y-Achse beim Minimalwert in den Daten beginnen zu lassen."
       ],
       "State": ["Zustand"],
+      "Statistical": ["Statistisch"],
       "Status": ["Status"],
       "Step type": ["Schritttyp"],
       "Stop": ["Stopp"],
@@ -3060,13 +3659,18 @@
       "Strength to pull the graph toward center": [
         "Stärke, mit der Graph in Richtung Mitte gezogen wird"
       ],
+      "Stretched style": ["Gestreckter Stil"],
       "Strings used for sheet names (default is the first sheet).": [
         "Zeichenfolgen, die für Blattnamen verwendet werden (Standard ist das erste Blatt)."
       ],
+      "Structural": ["Strukturell"],
       "Style": ["Stil"],
       "Style the ends of the progress bar with a round cap": [
         "Enden des Fortschrittsbalkens mit einer runden Kappe versehen"
       ],
+      "Subdomain": ["Subdomain"],
+      "Subheader": ["Untertitel"],
+      "Subheader Font Size": ["Schriftgröße Untertitel"],
       "Success": ["Erfolg"],
       "Suffix to apply after the percentage display": [
         "Suffix, das hinter der Prozentanzeige angezeigt werden soll"
@@ -3075,6 +3679,7 @@
         "Summe der Werte über einen bestimmten Zeitraum"
       ],
       "Sunburst": ["Sunburst"],
+      "Sunburst Chart": ["Sunburst Diagramm"],
       "Sunday": ["Sonntag"],
       "Superset Chart": ["Superset Diagramm"],
       "Superset chart": ["Superset Diagramm"],
@@ -3086,6 +3691,12 @@
         "Superset hat einen unerwarteten Fehler festgestellt."
       ],
       "Supported databases": ["Unterstützte Datenbanken"],
+      "Survey Responses": ["Umfrage-Antworten"],
+      "Swap Groups and Columns": ["Gruppen und Spalten tauschen"],
+      "Swap rows and columns": ["Zeilen und Spalten vertauschen"],
+      "Swiss army knife for visualizing time series data. Choose between  step, line, scatter, and bar charts. This viz type has many customization options as well.": [
+        "Schweizer Taschenmesser zur Visualisierung von Zeitreihendaten. Wählen Sie zwischen Schritt-, Linien-, Punkt- und Balkendiagrammen. Dieser Visualisierungstyp verfügt auch über viele Anpassungsoptionen."
+      ],
       "Symbol": ["Symbol"],
       "Symbol of two ends of edge line": [
         "Symbol für zwei Enden der Kantenlinie"
@@ -3097,6 +3708,7 @@
       "THU": ["DO"],
       "TUE": ["DI"],
       "Tab name": ["Tabellenname"],
+      "Tab title": ["Registerkartentitel"],
       "Table": ["Tabelle"],
       "Table %(table)s wasn't found in the database %(db)s": [
         "Tabelle %(table)s wurde in der Datenbank nicht gefunden %(db)s"
@@ -3112,14 +3724,27 @@
       ],
       "Table cache timeout": ["Tabellen-Cache Timeout"],
       "Table name undefined": ["Tabellenname nicht definiert"],
+      "Table that visualizes paired t-tests, which are used to understand statistical differences between groups.": [
+        "Tabelle, die gepaarte t-Tests visualisiert, die verwendet werden, um statistische Unterschiede zwischen Gruppen zu verstehen."
+      ],
       "Tables": ["Tabellen"],
       "Tabs": ["Reiter"],
+      "Tabular": ["Tabellarisch"],
       "Tags": ["Schlagwörter"],
+      "Take your data points, and group them into \"bins\" to see where the densest areas of information lie": [
+        "Gruppieren Sie Ihre Datenpunkte in Klassen, um zu sehen, wo die dichtesten Informationsbereiche liegen"
+      ],
       "Target": ["Ziel"],
+      "Target aspect ratio for treemap tiles.": [
+        "Ziel-Seitenverhältnis für Treemap-Kacheln."
+      ],
       "Target category": ["Zielkategorie"],
       "Target value": ["Zielwert"],
       "Template Name": ["Vorlagenname"],
       "Template parameters": ["Vorlagen-Parameter"],
+      "Templated link, it's possible to include {{ metric }} or other values coming from the controls.": [
+        "Vorlagen-Link. Es ist möglich, {{ metric }} oder andere Werte aus den Steuerelementen einzuschließen."
+      ],
       "Temporal expression not supported for type: %(col_type)s": [
         "Temporaler Ausdruck wird für type: %(col_type)s nicht unterstützt"
       ],
@@ -3128,6 +3753,7 @@
       ],
       "Test Connection": ["Verbindungstest"],
       "Test connection": ["Verbindungstest"],
+      "Text": ["Text"],
       "Text align": ["Textausrichtung"],
       "Text embedded in email": ["In E-Mail eingebetteter Text"],
       "The CSS for individual dashboards can be altered here, or in the dashboard view where changes are immediately visible": [
@@ -3153,6 +3779,12 @@
         "Die Kategorie der Quellknoten, die zum Zuweisen von Farben verwendet werden. Wenn ein Knoten mehr als einer Kategorie zugeordnet ist, wird nur die erste verwendet."
       ],
       "The chart does not exist": ["Das Diagramm ist nicht vorhanden"],
+      "The classic. Great for showing how much of a company each investor gets, what demographics follow your blog, or what portion of the budget goes to the military industrial complex.\n\n        Pie charts can be difficult to interpret precisely. If clarity of relative proportion is important, consider using a bar or other chart type instead.": [
+        "Der Klassiker. Großartig, um zu zeigen, wie viel von einem Unternehmen jeder Investor bekommt, welche Demografie Ihrem Blog folgt oder welcher Teil des Budgets in den militärisch-industriellen Komplex fließt.\n\nKreisdiagramme können schwierig zu interpretieren sein. Wenn die Klarheit des relativen Anteils wichtig ist, sollten Sie stattdessen die Verwendung eines Balkens oder eines anderen Diagrammtyps in Betracht ziehen."
+      ],
+      "The color for points and clusters in RGB": [
+        "Die Farbe für Punkte und Cluster in RGB"
+      ],
       "The color scheme for rendering chart": [
         "Das zur Diagrammanzeige verwendete Farbschema"
       ],
@@ -3161,6 +3793,9 @@
       ],
       "The column was deleted or renamed in the database.": [
         "Die Spalte wurde in der Datenbank gelöscht oder umbenannt."
+      ],
+      "The country code standard that Superset should expect to find in the [country] column": [
+        "Der Ländercodestandard, den Superset in der Spalte [Land] erwarten sollte"
       ],
       "The dashboard has been saved": [
         "Dashboard wurde erfolgreich gespeichert"
@@ -3201,11 +3836,17 @@
       "The dataset linked to this chart may have been deleted.": [
         "Der mit diesem Diagramm verknüpfte Datensatz wurde möglicherweise gelöscht."
       ],
+      "The datasource couldn't be loaded": [
+        "Datenquelle konnte nicht geladen werden"
+      ],
       "The datasource is too large to query.": [
         "Die Datenquelle ist zu groß, um sie abzufragen."
       ],
       "The description can be displayed as widget headers in the dashboard view. Supports markdown.": [
         "Die Beschreibung kann als Widget-Titel in der Dashboard-Ansicht angezeigt werden. Unterstützt Markdown."
+      ],
+      "The distance between cells, in pixels": [
+        "Der Abstand zwischen Zellen in Pixel"
       ],
       "The duration of time in seconds before the cache is invalidated": [
         "Die Zeitdauer in Sekunden, bevor der Cache ungültig wird"
@@ -3269,6 +3910,7 @@
       "The minimum number of rolling periods required to show a value. For instance if you do a cumulative sum on 7 days you may want your \"Min Period\" to be 7, so that all data points shown are the total of 7 periods. This will hide the \"ramp up\" taking place over the first 7 periods": [
         "Die Mindestanzahl von rollierender Perioden, die erforderlich sind, um einen Wert anzuzeigen. Wenn Sie beispielsweise eine kumulative Summe an 7 Tagen durchführen, möchten Sie möglicherweise, dass Ihr \"Mindestzeitraum\" 7 beträgt, so dass alle angezeigten Datenpunkte die Summe von 7 Perioden sind. Dies wird den \"Hochlauf\" verbergen, der in den ersten 7 Perioden stattfindet"
       ],
+      "The number color \"steps\"": ["Die Anzahl Farbabstufungen"],
       "The number of hours, negative or positive, to shift the time column. This can be used to move UTC time to local time.": [
         "Die Anzahl der Stunden, negativ oder positiv, um die Zeitspalte zu verschieben. Dies kann verwendet werden, um die UTC-Zeit auf die Ortszeit zu verschieben."
       ],
@@ -3312,6 +3954,9 @@
       "The passwords for the databases below are needed in order to import them together with the dashboards. Please note that the \"Secure Extra\" and \"Certificate\" sections of the database configuration are not present in export files, and should be added manually after the import if they are needed.": [
         "Die Passwörter für die unten aufgeführten Datenbanken werden benötigt, um sie zusammen mit den Dashboards zu importieren. Bitte beachten Sie, dass die Abschnitte \"Secure Extra\" und \"Certificate\" der Datenbankkonfiguration in Exportdateien nicht vorhanden sind und bei Bedarf nach dem Import manuell hinzugefügt werden sollten."
       ],
+      "The passwords for the databases below are needed in order to import them together with the datasets. Please note that the \"Secure Extra\" and \"Certificate\" sections of the database configuration are not present in export files, and should be added manually after the import if they are needed.": [
+        "Die Passwörter für die folgenden Datenbanken werden benötigt, um sie zusammen mit den Diagrammen zu importieren. Bitte beachten Sie, dass die Abschnitte \"Secure Extra\" und \"Certificate\" der Datenbankkonfiguration in Exportdateien nicht vorhanden sind und bei Bedarf nach dem Import manuell hinzugefügt werden sollten."
+      ],
       "The passwords for the databases below are needed in order to import them together with the saved queries. Please note that the \"Secure Extra\" and \"Certificate\" sections of the database configuration are not present in export files, and should be added manually after the import if they are needed.": [
         "Die Passwörter für die unten aufgeführten Datenbanken werden benötigt, um sie zusammen mit den gespeicherten Abfragen zu importieren. Bitte beachten Sie, dass die Abschnitte \"Secure Extra\" und \"Certificate\" der Datenbankkonfiguration in Exportdateien nicht vorhanden sind und bei Bedarf nach dem Import manuell hinzugefügt werden sollten."
       ],
@@ -3321,6 +3966,10 @@
       "The pattern of timestamp format. For strings use ": [
         "Das Muster des Zeitstempelformats. Für Zeichenfolgen verwenden Sie eine "
       ],
+      "The periodicity over which to pivot time. Users can provide\n            \"Pandas\" offset alias.\n            Click on the info bubble for more details on accepted \"freq\" expressions.": [
+        "Die Periodizität, über die die Zeit pilotiert werden soll. Benutzer können\n            ein“ Pandas\" Offset-Alias angeben.\n            Klicken Sie auf die Infoblase, um weitere Informationen zu akzeptierten \"freq\"-Ausdrücken zu erhalten."
+      ],
+      "The pixel radius": ["Der Pixelradius"],
       "The pointer to a physical table (or view). Keep in mind that the chart is associated to this Superset logical table, and this logical table points the physical table referenced here.": [
         "Der Zeiger auf eine physische Tabelle (oder Ansicht). Beachten Sie, dass das Diagramm dieser logischen Superset-Tabelle zugeordnet ist welche auf die hier angegebene physische Tabelle verweist."
       ],
@@ -3329,6 +3978,9 @@
         "Der Port muss eine ganze Zahl kleiner oder gleich 65535 sein."
       ],
       "The port number is invalid.": ["Die Port-Nummer ist ungültig."],
+      "The primary metric is used to define the arc segment sizes": [
+        "Die primäre Metrik wird verwendet, um die Bogensegmentgrößen zu definieren"
+      ],
       "The provided `rows` argument is not a valid integer.": [
         "Das angegebene Argument 'rows' ist keine gültige ganze Zahl."
       ],
@@ -3341,6 +3993,9 @@
       "The query contains one or more malformed template parameters.": [
         "Die Abfrage enthält einen oder mehrere fehlerhafte Vorlagenparameter."
       ],
+      "The query couldn't be loaded": [
+        "Die Abfrage konnte nicht geladen werden"
+      ],
       "The query has a syntax error.": [
         "Die Abfrage weist einen Syntaxfehler auf."
       ],
@@ -3350,6 +4005,13 @@
       "The query was killed after %(sqllab_timeout)s seconds. It might be too complex, or the database might be under heavy load.": [
         "Die Abfrage wurde nach %(sqllab_timeout)s Sekunden abgebrochen. Sie war eventuell zu komplex, oder die Datenbank ist aktuell stark belastet."
       ],
+      "The radius (in pixels) the algorithm uses to define a cluster. Choose 0 to turn off clustering, but beware that a large number of points (>1000) will cause lag.": [
+        "Der Radius (in Pixel), den der Algorithmus zum Definieren eines Clusters verwendet. Wählen Sie 0, um das Clustering zu deaktivieren, aber beachten Sie, dass eine große Anzahl von Punkten (>1000) zu Verzögerungen führt."
+      ],
+      "The radius of individual points (ones that are not in a cluster). Either a numerical column or `Auto`, which scales the point based on the largest cluster": [
+        "Der Radius einzelner Punkte (die sich nicht in einem Cluster befinden). Entweder eine numerische Spalte oder \"Auto\", die den Punkt basierend auf dem größten Cluster skaliert"
+      ],
+      "The report has been created": ["Der Report wurde erstellt"],
       "The results backend no longer has the data from the query.": [
         "Das Ergebnis-Backend verfügt nicht mehr über die Daten aus der Abfrage."
       ],
@@ -3367,6 +4029,9 @@
       ],
       "The schema was deleted or renamed in the database.": [
         "Das Schema wurde in der Datenbank gelöscht oder umbenannt."
+      ],
+      "The size of the square cell, in pixels": [
+        "Die Größe der quadratischen Zelle in Pixel"
       ],
       "The submitted payload has the incorrect format.": [
         "Die übermittelte Nutzlast hat das falsche Format."
@@ -3398,8 +4063,17 @@
       "The time range for the visualization. All relative times, e.g. \"Last month\", \"Last 7 days\", \"now\", etc. are evaluated on the server using the server's local time (sans timezone). All tooltips and placeholder times are expressed in UTC (sans timezone). The timestamps are then evaluated by the database using the engine's local timezone. Note one can explicitly set the timezone per the ISO 8601 format if specifying either the start and/or end time.": [
         "Der Zeitraum für die Visualisierung. Alle relativen Zeiten, z.B. \"Letzter Monat\", \"Letzte 7 Tage\", \"jetzt\" usw., werden auf dem Server anhand der Ortszeit des Servers (ohne Zeitzone) ausgewertet. Alle QuickInfos und Platzhalterzeiten werden in UTC (ohne Zeitzone) ausgedrückt. Die Zeitstempel werden dann von der Datenbank anhand der lokalen Zeitzone des Moduls ausgewertet. Beachten Sie, dass man die Zeitzone explizit nach dem ISO 8601-Format festlegen kann, wenn entweder die Start- und/oder Endzeit angegeben wird."
       ],
+      "The time unit for each block. Should be a smaller unit than domain_granularity. Should be larger or equal to Time Grain": [
+        "Die Zeiteinheit für jeden Block. Sollte eine kleinere Einheit als domain_granularity sein. Sollte größer oder gleich Zeitgranularität sein"
+      ],
+      "The time unit used for the grouping of blocks": [
+        "Die Zeiteinheit, die für die Gruppierung von Blöcken verwendet wird"
+      ],
       "The type of visualization to display": [
         "Der anzuzeigende Visualisierungstyp"
+      ],
+      "The unit of measure for the specified point radius": [
+        "Die Maßeinheit für den angegebenen Punktradius"
       ],
       "The user seems to have been deleted": [
         "Der/die Benutzer*in scheint gelöscht worden zu sein"
@@ -3429,6 +4103,12 @@
       "There is no chart definition associated with this component, could it have been deleted?": [
         "Es gibt keine Diagrammdefinition, die dieser Komponente zugeordnet ist. Könnte sie gelöscht worden sein?"
       ],
+      "There is not enough space for this component. Try decreasing its width, or increasing the destination width.": [
+        "Für diese Komponente ist nicht genügend Platz vorhanden. Versuchen Sie, die Breite zu verringern oder die Zielbreite zu erhöhen."
+      ],
+      "There was an error fetching the favorite status: %s": [
+        "Beim Abrufen des Favoritenstatus ist ein Problem aufgetreten: %s"
+      ],
       "There was an error fetching your recent activity:": [
         "Beim Abrufen der letzten Aktivität ist ein Fehler aufgetreten:"
       ],
@@ -3437,6 +4117,9 @@
       ],
       "There was an error loading the tables": [
         "Beim Laden der Tabellen ist ein Fehler aufgetreten"
+      ],
+      "There was an error saving the favorite status: %s": [
+        "Beim Speichern des Favoritenstatus ist ein Fehler aufgetreten: %s"
       ],
       "There was an error with your request": [
         "Bei Ihrer Anfrage ist ein Fehler aufgetreten"
@@ -3470,6 +4153,15 @@
       ],
       "There was an issue deleting: %s": [
         "Beim Löschen ist ein Problem aufgetreten: %s"
+      ],
+      "There was an issue favoriting this dashboard.": [
+        "Es gab ein Problem dabei, dieses Dashboard zu den Favoriten hinzuzufügen."
+      ],
+      "There was an issue fetching reports attached to this dashboard.": [
+        "Es gab ein Problem beim Abrufen von Reports, die an dieses Dashboard angehängt waren."
+      ],
+      "There was an issue fetching the favorite status of this dashboard.": [
+        "Beim Abrufen des Favoritenstatus dieses Dashboards ist ein Problem aufgetreten."
       ],
       "There was an issue fetching your recent activity: %s": [
         "Beim Abrufen Ihrer letzten Aktivität ist ein Problem aufgetreten: %s"
@@ -3519,6 +4211,12 @@
       "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com).": [
         "Dies kann entweder eine IP-Adresse (z.B. 127.0.0.1) oder ein Domainname (z.B. mydatabase.com) sein."
       ],
+      "This chart has been moved to a different filter scope.": [
+        "Dieses Diagramm wurde in einen anderen Filterbereich verschoben."
+      ],
+      "This chart might be incompatible with the filter (datasets don't match)": [
+        "Dieses Diagramm ist möglicherweise nicht mit dem Filter kompatibel (Datensätze stimmen nicht überein)"
+      ],
       "This color scheme is being overriden by custom label colors.\n              Check the JSON metadata in the Advanced settings": [
         "Dieses Farbschema wird durch benutzerdefinierte Beschriftungsfarben überschrieben.\n              Überprüfen Sie die JSON-Metadaten in den erweiterten Einstellungen"
       ],
@@ -3534,14 +4232,24 @@
       "This dashboard is not published, it will not show up in the list of dashboards. Click here to publish this dashboard.": [
         "Dieses Dashboard ist nicht veröffentlicht, es wird nicht in der Liste der Dashboards angezeigt. Klicken Sie hier, um dieses Dashboard zu veröffentlichen."
       ],
+      "This dashboard is now hidden": ["Dieses Dashboard ist nun verborgen"],
+      "This dashboard is now published": [
+        "Dieses Dashboard ist jetzt veröffentlicht"
+      ],
       "This dashboard is published. Click to make it a draft.": [
         "Dieses Dashboard ist veröffentlicht. Klicken Sie hier, um es in den Entwurfstatus zu setzen."
       ],
       "This dashboard was changed recently. Please reload dashboard to get latest version.": [
         "Dieses Dashboard wurde kürzlich geändert. Bitte laden Sie das Dashboard neu, um die neueste Version zu erhalten."
       ],
+      "This dashboard was saved successfully.": [
+        "Dieses Dashboard wurde erfolgreich gespeichert."
+      ],
       "This defines the element to be plotted on the chart": [
         "Definiert das Element, das im Diagramm dargestellt werden soll"
+      ],
+      "This defines the level of the hierarchy": [
+        "Dies definiert die Ebene der Hierarchie"
       ],
       "This feature is deprecated and will be removed on 2.0. Take a look at the replacement feature <a href='https://superset.apache.org/docs/installation/alerts-reports'>Alerts & Reports documentation</a>": [
         "Diese Funktion ist veraltet und wird in 2.0 entfernt. Werfen Sie einen Blick auf die Dokumentation zur Ersatzfunktion <a href='https://superset.apache.org/docs/installation/alerts-reports'>Alerts & Reports</a>"
@@ -3587,10 +4295,18 @@
         "Dieser Visualisierungstyp wird nicht unterstützt."
       ],
       "This was triggered by:": ["Ausgelöst durch:"],
+      "Threshold alpha level for determining significance": [
+        "Schwellenwert für Alpha-Level zur Bestimmung der Signifikanz"
+      ],
       "Thursday": ["Donnerstag"],
       "Time": ["Zeit"],
+      "Time Column": ["Zeitspalte"],
       "Time Comparison": ["Zeitvergleich"],
+      "Time Format": ["Zeitformat"],
+      "Time Grain": ["Zeitgranularität"],
+      "Time Granularity": ["Zeitgranularität"],
       "Time Offset": ["Zeitversatz"],
+      "Time Range": ["Zeitraum"],
       "Time Series": ["Zeitreihen"],
       "Time Series - Bar Chart": ["Zeitreihen - Balkendiagramm"],
       "Time Series - Dual Axis Line Chart": [
@@ -3614,6 +4330,7 @@
       "Time column \"%(col)s\" does not exist in dataset": [
         "Zeitspalte \"%(col)s\" ist im Datensatz nicht vorhanden"
       ],
+      "Time column filter plugin": ["Zeitspalten-Filter-Plugin"],
       "Time comparison": ["Zeitvergleich"],
       "Time delta is ambiguous. Please specify [%(human_readable)s ago] or [%(human_readable)s later].": [
         "Zeitinterval ist unklar. Bitte geben Sie [%(human_readable)s ago] oder [%(human_readable)s later] an."
@@ -3624,7 +4341,9 @@
       "Time filter": ["Zeitfilter"],
       "Time format": ["Zeitformat"],
       "Time grain": ["Zeitgranularität"],
+      "Time grain filter plugin": ["Zeitgranularität-Plugin"],
       "Time grain missing": ["Zeiteinteilung fehlt"],
+      "Time granularity": ["Zeitgranularität"],
       "Time in seconds": ["Zeit in Sekunden"],
       "Time range": ["Zeitbereich"],
       "Time range endpoints": ["Endpunkte des Zeitbereichs"],
@@ -3635,13 +4354,44 @@
       "Time string is ambiguous. Please specify [%(human_readable)s ago] or [%(human_readable)s later].": [
         "Die Zeitzeichenfolge ist mehrdeutig. Bitte geben Sie [%(human_readable)s ago] oder [%(human_readable)s later] an."
       ],
+      "Time-series Area Chart": ["Zeitreihen-Flächendiagramm"],
+      "Time-series Area chart are similar to line chart in that they represent variables with the same scale, but area charts stack the metrics on top of each other. An area chart in Superset can be stream, stack, or expand.": [
+        "Zeitreihen-Flächendiagramme ähneln Liniendiagrammen insofern, als sie Variablen mit der gleichen Skala darstellen, aber Flächendiagramme stapeln die Metriken übereinander. Ein Flächendiagramm in Superset kann streamen, stapeln oder erweitern."
+      ],
+      "Time-series Bar Chart": ["Zeitreihen - Balkendiagramm"],
+      "Time-series Bar Chart v2": ["Zeitreihen-Balkendiagramm v2"],
+      "Time-series Bar Charts are used to show the changes in a metric over time as a series of bars.": [
+        "Zeitreihen-Balkendiagramme werden verwendet, um die Änderungen in einer Metrik im Laufe der Zeit als eine Reihe von Balken anzuzeigen."
+      ],
+      "Time-series Chart": ["Zeitreihendiagramm"],
+      "Time-series Line Chart": ["Zeitreihen - Liniendiagramm"],
+      "Time-series Percent Change": ["Zeitreihen - Prozentuale Veränderung"],
+      "Time-series Period Pivot": ["Zeitreihen - Perioden-Pivot"],
+      "Time-series Scatter Plot": ["Zeitreihen-Streudiagramm"],
+      "Time-series Scatter Plot has time on the horizontal axis in linear units, and the points are connected in order. It shows a statistical relationship between two variables.": [
+        "Das Zeitreihen-Streudiagramm stellt die Zeit auf der horizontalen Achse in linearen Einheiten dar, und die Punkte sind in der richtigen Reihenfolge verbunden. Es zeigt eine statistische Beziehung zwischen zwei Variablen."
+      ],
+      "Time-series Smooth Line": ["Zeitreihe Glatte Linie"],
+      "Time-series Smooth-line is a variation of line chart. Without angles and hard edges, Smooth-line looks more smarter and more professional.": [
+        "Zeitreihe Glatte Linie ist eine Variation des Liniendiagramms. Ohne Winkel und harte Kanten sieht Smooth-line raffinierter und professioneller aus."
+      ],
+      "Time-series Stepped Line": ["Zeitreihen-Stufenlinie"],
+      "Time-series Stepped-line graph (also called step chart) is a variation of line chart but with the line forming a series of steps between data points. A step chart can be useful when you want to show the changes that occur at irregular intervals.": [
+        "Zeitreihen-Stufenliniendiagramm (auch Schrittdiagramm genannt) ist eine Variation des Liniendiagramms, wobei die Linie jedoch eine Reihe von Schritten zwischen Datenpunkten bildet. Ein Schrittdiagramm kann nützlich sein, wenn Sie die Änderungen anzeigen möchten, die in unregelmäßigen Abständen auftreten."
+      ],
+      "Time-series Table": ["Zeitreihentabelle"],
+      "Time-series line chart is used to visualize repeated measurements taken over regular time intervals. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.": [
+        "Das Zeitreihen-Liniendiagramm wird verwendet, um wiederholte Messungen in regelmäßigen Zeitintervallen zu visualisieren. Liniendiagramm ist ein Diagrammtyp, der Informationen als eine Reihe von Datenpunkten anzeigt, die durch gerade Liniensegmente verbunden sind. Es ist ein grundlegender Diagrammtyp, der in vielen Bereichen üblich ist."
+      ],
       "Timeout error": ["Zeitüberschreitung"],
+      "Timestamp Format": ["Zeitstempelformat"],
       "Timestamp format": ["Zeitstempelformat"],
       "Timezone": ["Zeitzone"],
       "Timezone offset (in hours) for this datasource": [
         "Zeitzonen-Offset (in Stunden) für diese Datenquelle"
       ],
       "Timezone selector": ["Zeitzonen-Auswahl"],
+      "Tiny": ["Sehr klein"],
       "Title": ["Titel"],
       "Title Column": ["Titelspalte"],
       "Title is required": ["Titel ist erforderlich"],
@@ -3653,15 +4403,24 @@
         "So erhalten Sie eine sprechende URL für Ihr Dashboard"
       ],
       "Toggle chart description": ["Diagramm-Beschreibung umschalten"],
+      "Tools": ["Werkzeuge"],
       "Tooltip": ["Tooltip"],
       "Tooltip sort by metric": ["Tooltip nach Metrik sortieren"],
       "Tooltip time format": ["Tooltip-Zeitformat"],
+      "Top": ["Oben"],
       "Top to Bottom": ["Oben nach unten"],
       "Totals": ["Summen"],
       "Track job": ["Auftrag verfolgen"],
+      "Transformable": ["Transportierbar"],
+      "Transparent": ["Transparent"],
+      "Transpose Pivot": ["Pivot transponieren"],
+      "Transpose pivot": ["Pivot transponieren"],
+      "Tree Chart": ["Baumdiagramm"],
       "Tree layout": ["Baum-Layout"],
       "Tree orientation": ["Baumausrichtung"],
       "Treemap": ["Treemap"],
+      "Treemap v2": ["Treemap v2"],
+      "Trend": ["Trend"],
       "Triangle": ["Dreieck"],
       "Trigger Alert If...": ["Alarm auslösen falls..."],
       "Truncate Y Axis": ["Y-Achse abschneiden"],
@@ -3682,10 +4441,15 @@
       "Type is required": ["Typ ist erforderlich"],
       "Type of Google Sheets allowed": ["Art der zulässigen Google Tabellen"],
       "Type or Select [%s]": ["Geben Sie ein oder wählen Sie [%s] aus."],
+      "UI Configuration": ["UI Konfiguration"],
+      "URL": ["URL"],
       "URL Parameters": ["URL-Parameter"],
       "URL could not be identified": ["URL konnte nicht identifiziert werden"],
       "URL parameters": ["URL-Parameter"],
       "URL slug": ["URL Titelform"],
+      "Unable to add a new tab to the backend. Please contact your administrator.": [
+        "Dem Backend kann keine neue Registerkarte hinzugefügt werden. Wenden Sie sich an Ihre*n Administrator*in."
+      ],
       "Unable to connect to catalog named \"%(catalog_name)s\".": [
         "Es konnte keine Verbindung zum Katalog mit dem Namen \"%(catalog_name)s\" hergestellt werden."
       ],
@@ -3694,6 +4458,15 @@
       ],
       "Unable to find such a holiday: [%(holiday)s]": [
         "Kann einen solchen Feiertag nicht finden: [%(holiday)s]"
+      ],
+      "Unable to migrate query editor state to backend. Superset will retry later. Please contact your administrator if this problem persists.": [
+        "Der Status des Abfrage-Editors kann nicht zum Backend übertragen werden. Superset wird es später erneut versuchen. Wenden Sie sich an Ihre*n Administrator*in, wenn dieses Problem weiterhin besteht."
+      ],
+      "Unable to migrate query state to backend. Superset will retry later. Please contact your administrator if this problem persists.": [
+        "Der Abfragestatus kann nicht zum Backend übertragen werden. Superset wird es später erneut versuchen. Wenden Sie sich an Ihre*n Administrator*in, wenn dieses Problem weiterhin besteht."
+      ],
+      "Unable to migrate table schema state to backend. Superset will retry later. Please contact your administrator if this problem persists.": [
+        "Der Tabellenschemastatus kann nicht zum Backend übertragen werden. Superset wird es später erneut versuchen. Wenden Sie sich an Ihre*n Administrator*in, wenn dieses Problem weiterhin besteht."
       ],
       "Unable to refresh metadata for the following table(s): %(tables)s": [
         "Metadaten für die folgende(n) Tabelle(n) können nicht aktualisiert werden: %(tables)s"
@@ -3716,6 +4489,7 @@
       "Unexpected error occurred, please check your logs for details": [
         "Unerwarteter Fehler aufgetreten, bitte überprüfen Sie Ihre Protokolle auf Details"
       ],
+      "Unexpected error: ": ["Unerwarteter Fehler:"],
       "Unknown": ["Unbekannt"],
       "Unknown MySQL server host \"%(hostname)s\".": [
         "Unbekannter MySQL-Server-Host \"%(hostname)s\"."
@@ -3725,6 +4499,8 @@
       "Unknown column used in orderby: %(col)s": [
         "Unbekannte Spalte in ORDER BY verwendet: %(col)s"
       ],
+      "Unknown error": ["Unbekannter Fehler"],
+      "Unknown value": ["Unbekannter Wert"],
       "Unsafe return type for function %(func)s: %(value_type)s": [
         "Unsicherer Rückgabetyp für %(func)s: %(value_type)s"
       ],
@@ -3753,6 +4529,9 @@
       "Untitled Query %s": ["Unbenannte Abfrage %s"],
       "Untitled query": ["Unbenannte Abfrage"],
       "Update": ["Aktualisieren"],
+      "Updating chart was stopped": [
+        "Aktualisierung des Diagramms wurde abgebrochen"
+      ],
       "Upload": ["Hochladen"],
       "Upload Credentials": ["Anmeldeinformationen hochladen"],
       "Upload Excel": ["Excel hochladen"],
@@ -3765,6 +4544,9 @@
         "Verwenden Sie Pandas, um das datetime-Format automatisch zu interpretieren."
       ],
       "Use a log scale": ["Verwenden einer Logarithmischen Skala"],
+      "Use a log scale for the X-axis": [
+        "Logarithmische Skala für die X-Achse verwenden"
+      ],
       "Use a log scale for the Y-axis": [
         "Logarithmische Skala für die Y-Achse verwenden"
       ],
@@ -3774,6 +4556,10 @@
       "Use legacy datasource editor": [
         "Verwenden des Legacy-Datenquellen-Editors"
       ],
+      "Use metrics as a top level group for columns or for rows": [
+        "Verwenden von Metriken als Gruppe der obersten Ebene für Spalten oder Zeilen"
+      ],
+      "Use only a single value.": ["Verwenden Sie nur einen einzigen Wert."],
       "Use the Advanced Analytics options below": [
         "Verwenden Sie die untenstehenden fortgeschrittenen Analytik-Optionen"
       ],
@@ -3789,23 +4575,47 @@
       "Used internally to identify the plugin. Should be set to the package name from the pluginʼs package.json": [
         "Wird intern verwendet, um das Plugin zu identifizieren. Sollte auf den Paketnamen aus der paket.json des Plugins gesetzt werden"
       ],
+      "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location.\n\n  This chart is being deprecated and we recommend checking out Pivot Table V2 instead!": [
+        "Wird verwendet, um einen Datensatz zusammenzufassen, indem mehrere Statistiken entlang zweier Achsen gruppiert werden. Beispiele: Verkaufszahlen nach Region und Monat, Aufgaben nach Status und Beauftragtem, aktive Nutzer nach Alter und Standort.\n\nDieses Diagramm ist überholt, und wir empfehlen stattdessen, Pivot Table V2 auszuprobieren!"
+      ],
+      "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location. Not the most visually stunning visualization, but highly informative and versatile.": [
+        "Wird verwendet, um einen Datensatz zusammenzufassen, indem mehrere Statistiken entlang zweier Achsen gruppiert werden. Beispiele: Verkaufszahlen nach Region und Monat, Aufgaben nach Status und Beauftragtem, aktive Nutzer nach Alter und Standort. Nicht die visuell beeindruckendste Visualisierung, aber sehr informativ und vielseitig."
+      ],
       "User": ["Nutzer*in"],
       "User Roles": ["Nutzer*innen-Rollen"],
       "User doesn't have the proper permissions.": [
         "Benutzer*in verfügt nicht über die richtigen Berechtigungen."
       ],
+      "User must select a value before applying the filter": [
+        "Benutzer*in muss einen Wert für diesen Filter auswählen"
+      ],
       "User must select a value for this filter": [
+        "Benutzer*in muss einen Wert für diesen Filter auswählen"
+      ],
+      "User must select a value for this filter.": [
         "Benutzer*in muss einen Wert für diesen Filter auswählen"
       ],
       "User query": ["Benutzer*innen-Abfrage"],
       "Username": ["Benutzer*innenname"],
+      "Uses a gauge to showcase progress of a metric towards a target. The position of the dial represents the progress and the terminal value in the gauge represents the target value.": [
+        "Verwendet ein Tachometer, um den Fortschritt einer Metrik in Richtung eines Ziels anzuzeigen. Die Position des Zifferblatts stellt den Fortschritt und der Endwert im Tachometer den Zielwert dar."
+      ],
+      "Uses circles to visualize the flow of data through different stages of a system. Hover over individual paths in the visualization to understand the stages a value took. Useful for multi-stage, multi-group visualizing funnels and pipelines.": [
+        "Verwendet Kreise, um den Datenfluss durch verschiedene Phasen eines Systems zu visualisieren. Bewegen Sie den Mauszeiger über einzelne Pfade in der Visualisierung, um die Phasen zu verstehen, die ein Wert durchlaufen hat. Nützlich für die Visualisierung von Trichtern und Pipelines in mehreren Gruppen."
+      ],
       "Value": ["Wert"],
+      "Value Domain": ["Wertebereich"],
+      "Value Format": ["Wertformat"],
+      "Value bounds": ["Wertgrenzen"],
       "Value format": ["Wertformat"],
       "Value is required": ["Wert ist erforderlich"],
       "Value must be greater than 0": ["Der Wert muss größer als 0 sein"],
+      "Vehicle Types": ["Fahrzeugtypen"],
       "Verbose Name": ["Ausführlicher Name"],
       "Version": ["Version"],
       "Version number": ["Versionsnummer"],
+      "Vertical": ["Vertikal"],
+      "Video game consoles": ["Videospielkonsolen"],
       "View All »": ["Alle ansehen »"],
       "View chart in Explore": ["Diagramm in Explorer anzeigen"],
       "View in SQL Lab": ["In SQL Lab anzeigen"],
@@ -3815,6 +4625,7 @@
       "View samples": ["Beispiele anzeigen"],
       "Viewed": ["Angesehen"],
       "Viewed %s": ["%s angesehen"],
+      "Viewport": ["Ansichtsfenster"],
       "Virtual (SQL)": ["Virtuell (SQL)"],
       "Virtual dataset": ["Virtueller Datensatz"],
       "Virtual dataset query cannot be empty": [
@@ -3826,9 +4637,49 @@
       "Virtual dataset query must be read-only": [
         "Virtuelle Datensatzabfrage muss schreibgeschützt sein"
       ],
+      "Visual Tweaks": ["Visuelle Optimierungen"],
       "Visualization": ["Visualisierung"],
       "Visualization Type": ["Visualisierungstyp"],
       "Visualization type": ["Visualisierungstyp"],
+      "Visualize a parallel set of metrics across multiple groups. Each group is visualized using its own line of points and each metric is represented as an edge in the chart.": [
+        "Visualisieren Sie einen parallelen Satz von Metriken über mehrere Gruppen hinweg. Jede Gruppe wird mit einer eigenen Punktlinie visualisiert und jede Metrik wird als Kante im Diagramm dargestellt."
+      ],
+      "Visualize a related metric across pairs of groups. Heatmaps excel at showcasing the correlation or strength between two groups. Color is used to emphasize the strength of the link between each pair of groups.": [
+        "Visualisieren Sie eine verwandte Metrik über Gruppenpaare hinweg. Heatmaps zeichnen sich dadurch aus, dass sie die Korrelation oder Stärke zwischen zwei Gruppen darstellen. Farbe wird verwendet, um die Stärke der Verbindung zwischen jedem Gruppenpaar zu betonen."
+      ],
+      "Visualize how a metric changes over time using bars. Add a group by column to visualize group level metrics and how they change over time.": [
+        "Visualisieren Sie mithilfe von Balken, wie sich eine Metrik im Laufe der Zeit ändert. Fügen Sie eine Gruppe nach Spalte hinzu, um Metriken auf Gruppenebene und deren Änderung im Laufe der Zeit zu visualisieren."
+      ],
+      "Visualize multiple levels of hierarchy using a familiar tree-like structure.": [
+        "Visualisieren Sie mehrere Hierarchieebenen mit einer vertrauten baumartigen Struktur."
+      ],
+      "Visualize two different time series using the same x-axis time range. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).": [
+        "Visualisieren Sie zwei verschiedene Zeitreihen mit demselben x-Achsen-Zeitbereich. Beachten Sie, dass jede Zeitreihe unterschiedlich visualisiert werden kann (z. B. 1 mit Balken und 1 mit einer Linie)."
+      ],
+      "Visualize two different time series using the same x-axis time range. This chart is being deprecated and we recommend using the Mixed Timeseries Chart instead!": [
+        "Visualisieren Sie zwei verschiedene Zeitreihen mit demselben x-Achsen-Zeitbereich. Dieses Diagramm ist überholt und wir empfehlen stattdessen, das Gemischte Zeitreihen-Diagramm zu verwenden!"
+      ],
+      "Visualizes 2 metrics as line plots using the same x-axis. This chart is useful for comparing metrics across the same time range.": [
+        "Visualisiert 2 Metriken als Liniendiagramme mit derselben x-Achse. Dieses Diagramm ist nützlich, um Metriken über den gleichen Zeitraum zu vergleichen."
+      ],
+      "Visualizes a metric across three dimensions of data in a single chart (X axis, Y axis, and bubble size). Bubbles from the same group can be showcased using bubble color.": [
+        "Visualisiert eine Metrik über drei Datendimensionen in einem einzelnen Diagramm (X-Achse, Y-Achse und Blasengröße). Blasen aus derselben Gruppe können mit Blasenfarbe präsentiert werden."
+      ],
+      "Visualizes how a metric has changed over a time using a color scale and a calendar view. Gray values are used to indicate missing values and the linear color scheme is used to encode the magnitude of each day's value.": [
+        "Visualisiert, wie sich eine Metrik im Laufe der Zeit mithilfe einer Farbskala und einer Kalenderansicht verändert hat. Grauwerte werden verwendet, um fehlende Werte anzuzeigen, und das lineare Farbschema wird verwendet, um den Betrag jedes Tageswerts zu kodieren."
+      ],
+      "Visualizes how a single metric varies across a country's principal subdivisions (states, provinces, etc) on a chloropleth map. Each subdivision's value is elevated when you hover over the corresponding geographic boundary.": [
+        "Visualisiert, wie sich eine einzelne Metrik zwischen den wichtigsten Unterteilungen eines Landes (Bundesstaaten, Provinzen usw.) auf einer Chlorplethenkarte unterscheidet. Der Wert jeder Unterteilung wird erhöht, wenn Sie den Mauszeiger über die entsprechende geografische Grenze bewegen."
+      ],
+      "Visualizes many different time-series objects in a single chart. This chart is being deprecated and we recommend using the Time-series Chart instead.": [
+        "Visualisiert viele verschiedene Zeitreihenobjekte in einem einzigen Diagramm. Dieses Diagramm ist überholt, und wir empfehlen, stattdessen das Zeitreihendiagramm zu verwenden."
+      ],
+      "Visualizes the flow of different group's values through different stages of a system. New stages in the pipeline are visualized as nodes or layers. The thickness of the bars or edges represent the metric being visualized.": [
+        "Visualisiert den Fluss der Werte verschiedener Gruppen durch verschiedene Phasen eines Systems. Neue Stufen in der Pipeline werden als Knoten oder Layer visualisiert. Die Dicke der Balken oder Kanten stellt die Metrik dar, die visualisiert wird."
+      ],
+      "Visualizes the words in a column that appear the most often. Bigger font corresponds to higher frequency.": [
+        "Visualisiert die Wörter in einer Spalte, die am häufigsten vorkommen. Größere Schrift entspricht einer höheren Frequenz."
+      ],
       "Viz is missing a datasource": ["Visualisierung fehlt eine Datenquelle"],
       "Viz type": ["Visualisierungstyp"],
       "WED": ["MI"],
@@ -3853,18 +4704,23 @@
       "We recommend your summarize your data further before following that flow. ": [
         "Wir empfehlen Ihnen, Ihre Daten weiter zusammenzufassen, bevor Sie fortfahren. "
       ],
+      "We were unable to active or deactivate this report.": [
+        "Wir konnten diesen Bericht nicht aktivieren oder deaktivieren."
+      ],
       "We were unable to connect to your database named \"%(database)s\". Please verify your database name and try again.": [
         "Wir konnten keine Verbindung zu Ihrer Datenbank mit dem Namen \"%(database)s\" herstellen. Überprüfen Sie Ihren Datenbanknamen und versuchen Sie es erneut."
       ],
       "We were unable to connect to your database. Please confirm that your service account has the Viewer and Job User roles on the project.": [
         "Wir konnten keine Verbindung zu Ihrer Datenbank herstellen. Vergewissern Sie sich, dass Ihr Dienstkonto über die Rollen „Viewer“ und „Job User“ im Projekt verfügt."
       ],
+      "Web": ["Web"],
       "Wednesday": ["Mittwoch"],
       "Week": ["Woche"],
       "Week ending Saturday": ["Woche endet am Samstag"],
       "Week starting Monday": ["Woche beginnt am Montag"],
       "Week starting Sunday": ["Woche beginnt am Sonntag"],
       "Week_ending Sunday": ["Woche endet am Sonntag"],
+      "Weeks %s": ["Wochen %s"],
       "We’re having trouble loading these results. Queries are set to timeout after %s second.": [
         "Wir haben Probleme beim Laden dieser Ergebnisse. Abfragen überschreiten nach %s Sekunden die Ausführungszeit (Timeout)."
       ],
@@ -3877,11 +4733,17 @@
       "When `Calculation type` is set to \"Percentage change\", the Y Axis Format is forced to `.1%`": [
         "Wenn 'Berechnungstyp' auf \"Prozentuale Änderung\" gesetzt ist, wird das Y-Achsenformat '.1%' erzwungen"
       ],
+      "When a secondary metric is provided, a linear color scale is used.": [
+        "Wenn eine sekundäre Metrik bereitgestellt wird, wird eine lineare Farbskala verwendet."
+      ],
       "When allowing CREATE TABLE AS option in SQL Lab, this option forces the table to be created in this schema": [
         "Wenn Sie die Option CREATE TABLE AS in SQL Lab zulassen, erzwingt diese Option, dass die Tabelle in diesem Schema erstellt wird"
       ],
       "When enabled, users are able to visualize SQL Lab results in Explore.": [
         "Wenn diese Option aktiviert ist, können Benutzer*innen SQL Lab-Ergebnisse in Explore visualisieren."
+      ],
+      "When only a primary metric is provided, a categorical color scale is used.": [
+        "Wenn nur eine primäre Metrik bereitgestellt wird, wird eine kategoriale Farbpalette verwendet."
       ],
       "When specifying SQL, the datasource acts as a view. Superset will use this statement as a subquery while grouping and filtering on the generated parent queries.": [
         "Beim Angeben von SQL fungiert die Datenquelle als Ansicht. Superset verwendet diese Anweisung als Unterabfrage beim Gruppieren und Filtern der generierten übergeordneten Abfragen."
@@ -3907,8 +4769,14 @@
       "Whether to align positive and negative values in cell bar chart at 0": [
         "Ob positive und negative Werte im Zellbalkendiagramm bei 0 ausgerichtet werden sollen"
       ],
+      "Whether to always show the annotation label": [
+        "Ob die Anmerkungs-Beschriftung immer angezeigt werden soll"
+      ],
       "Whether to animate the progress and the value or just display them": [
         "Ob der Fortschritt und der Wert animiert oder nur angezeigt werden sollen"
+      ],
+      "Whether to apply a normal distribution based on rank on the color scale": [
+        "Ob eine Normalverteilung basierend auf dem Rang auf der Farbskala angewendet werden soll"
       ],
       "Whether to colorize numeric values by if they are positive or negative": [
         "Ob numerische Werte eingefärbt werden sollen, wenn sie positiv oder negativ sind"
@@ -3919,11 +4787,23 @@
       "Whether to display a legend for the chart": [
         "Ob eine Legende für das Diagramm angezeigt werden soll"
       ],
+      "Whether to display bubbles on top of countries": [
+        "Ob Blasen über Ländern angezeigt werden sollen"
+      ],
+      "Whether to display the interactive data table": [
+        "Ob die interaktive Datentabelle angezeigt werden soll"
+      ],
       "Whether to display the labels.": [
         "Ob die Beschriftungen angezeigt werden sollen."
       ],
+      "Whether to display the labels. Note that the label only displays when the the 5% threshold.": [
+        "Ob die Beschriftungen angezeigt werden sollen. Beachten Sie, dass die Beschriftung nur angezeigt wird, wenn der Schwellenwert von 5 % erreicht ist."
+      ],
       "Whether to display the legend (toggles)": [
         "Ob die Legende angezeigt werden soll (Wechselschalter)"
+      ],
+      "Whether to display the metric name as a title": [
+        "Ob der Metrikname als Titel angezeigt werden soll"
       ],
       "Whether to display the min and max values of the X-axis": [
         "Ob die Min- und Max-Werte der X-Achse angezeigt werden sollen"
@@ -3949,17 +4829,29 @@
       "Whether to enable node dragging in force layout mode.": [
         "Ob das Ziehen von Knoten im Kräfte-basierten Layoutmodus aktiviert werden soll."
       ],
+      "Whether to format the timestamp": [
+        "Ob der Zeitstempel formatiert werden soll"
+      ],
       "Whether to include a client-side search box": [
         "Ob ein clientseitiges Suchfeld eingeschlossen werden soll"
       ],
       "Whether to include a time filter": [
         "Ob ein Zeitfilter eingebunden werden soll"
       ],
+      "Whether to include the percentage in the tooltip": [
+        "Ob der Prozentsatz in Tooltip aufgenommen werden soll"
+      ],
       "Whether to include the time granularity as defined in the time section": [
         "Ob die im Zeitabschnitt definierte Zeitgranularität einbezogen werden soll"
       ],
+      "Whether to make the histogram cumulative": [
+        "Ob das Histogramm kumulativ dargestellt werden soll"
+      ],
       "Whether to make this column available as a [Time Granularity] option, column has to be DATETIME or DATETIME-like": [
         "Unabhängig davon, ob diese Spalte als [Zeitgranularität]-Option verfügbar gemacht werden soll, muss die Spalte DATETIME oder DATETIME-ähnlich sein"
+      ],
+      "Whether to normalize the histogram": [
+        "Ob das Histogramm normalisiert werden soll"
       ],
       "Whether to populate autocomplete filters options": [
         "Ob Optionen für Auto-Vervollständigen-Filter vorgefühlt werden sollen"
@@ -3992,14 +4884,22 @@
       "Whether to sort tooltip by the selected metric in descending order.": [
         "Ob der Tooltip nach der ausgewählten Metrik in absteigender Reihenfolge sortiert werden soll."
       ],
+      "Which country to plot the map for?": [
+        "Für welches Land soll die Karte geplottet werden?"
+      ],
       "Which relatives to highlight on hover": [
         "Welche Verwandten beim Überfahren mit der Maus hervorgehoben werden sollen"
       ],
+      "Whisker/outlier options": ["Whisker/Ausreißer-Optionen"],
+      "White": ["Weiß"],
       "Width": ["Breite"],
       "Width of the confidence interval. Should be between 0 and 1": [
         "Breite des Konfidenzintervalls. Sollte zwischen 0 und 1 liegen"
       ],
       "Window must be > 0": ["Fenster muss > 0 sein"],
+      "With a subheader": ["Mit einem Untertitel"],
+      "Word Cloud": ["Wortwolke"],
+      "Word Rotation": ["Wort-Rotation"],
       "Working": ["In Bearbeitung"],
       "Working timeout": ["Zeitüberschreitung"],
       "World Map": ["Weltkarte"],
@@ -4012,20 +4912,28 @@
       "X Axis Format": ["X-Achsen-Format"],
       "X Axis Label": ["X Achsenbeschriftung"],
       "X Axis Title": ["Titel der X-Achse"],
+      "X Log Scale": ["X-Log-Skala"],
       "X Tick Layout": ["X Tick Layout"],
       "X bounds": ["X-Grenzen"],
+      "XScale Interval": ["X-Skalen-Intervall"],
       "Y 2 bounds": ["Y 2 Grenzen"],
       "Y AXIS TITLE MARGIN": ["Y-ACHSE TITEL RAND"],
       "Y AXIS TITLE POSITION": ["Y-ACHSE TITEL POSITION"],
       "Y Axis": ["Y-Achse"],
+      "Y Axis 1": ["Y-Achse 1"],
+      "Y Axis 2": ["Y-Achse 2"],
       "Y Axis 2 Bounds": ["Grenzen der Y-Achse 2"],
       "Y Axis Bounds": ["Grenzen der Y-Achse"],
       "Y Axis Format": ["Y-Achsenformat"],
       "Y Axis Label": ["Y Achsenbeschriftung"],
+      "Y Axis Left": ["Y-Achse links"],
+      "Y Axis Right": ["Y-Achse rechts"],
       "Y Axis Title": ["Titel der Y-Achse"],
       "Y Log Scale": ["Y-Log-Skala"],
       "Y bounds": ["Y-Grenzen"],
+      "YScale Interval": ["Y-Skalen-Intervall"],
       "Year": ["Jahr"],
+      "Years %s": ["Jahre %s"],
       "Yes": ["Ja"],
       "Yes, cancel": ["Ja, abbrechen"],
       "You are importing one or more charts that already exist. Overwriting might cause you to lose some of your work. Are you sure you want to overwrite?": [
@@ -4035,6 +4943,9 @@
         "Sie importieren ein oder mehrere Dashboards, die bereits vorhanden sind. Das Überschreiben kann dazu führen, dass Sie einen Teil Ihrer Arbeit verlieren. Sind Sie sicher, dass Sie diese überschreiben möchten?"
       ],
       "You are importing one or more databases that already exist. Overwriting might cause you to lose some of your work. Are you sure you want to overwrite?": [
+        "Sie importieren eine oder mehrere Datenbanken, die bereits vorhanden sind. Das Überschreiben kann dazu führen, dass Sie einen Teil Ihrer Arbeit verlieren. Sind Sie sicher, dass Sie diese überschreiben möchten?"
+      ],
+      "You are importing one or more datasets that already exist. Overwriting might cause you to lose some of your work. Are you sure you want to overwrite?": [
         "Sie importieren eine oder mehrere Datenbanken, die bereits vorhanden sind. Das Überschreiben kann dazu führen, dass Sie einen Teil Ihrer Arbeit verlieren. Sind Sie sicher, dass Sie diese überschreiben möchten?"
       ],
       "You are importing one or more saved queries that already exist. Overwriting might cause you to lose some of your work. Are you sure you want to overwrite?": [
@@ -4055,6 +4966,9 @@
       "You cannot specify a namespace both in the name of the table: \"%(excel_table.table)s\" and in the schema field: \"%(excel_table.schema)s\". Please remove one": [
         "Sie können keinen Namespace sowohl im Namen der Tabelle: \"%(excel_table.table)s\" als auch im Schemafeld: \"%(excel_table.schema)s\" angeben. Bitte entfernen Sie eine"
       ],
+      "You cannot use 45° tick layout along with the time range filter": [
+        "Sie können das 45°-Strich-Layout nicht zusammen mit dem Zeitbereichsfilter verwenden"
+      ],
       "You cannot use [Columns] in combination with [Group By]/[Metrics]/[Percentage Metrics]. Please choose one or the other.": [
         "Sie können [Spalten] nicht in Kombination mit [Gruppieren nach]/[Metriken]/[Prozentmetriken] verwenden. Bitte wählen Sie das eine oder das andere."
       ],
@@ -4067,10 +4981,16 @@
       "You do not have permissions to access the datasource(s): %(name)s.": [
         "Sie haben keine Berechtigungen für den Zugriff auf die Datenquelle(n): %(name)s."
       ],
+      "You do not have permissions to edit this dashboard.": [
+        "Sie haben keine Berechtigungen zum Bearbeiten dieses Dashboards."
+      ],
       "You don't have access to this dashboard.": [
         "Sie haben keinen Zugriff auf dieses Dashboard."
       ],
       "You don't have any favorites yet!": ["Sie haben noch keine Favoriten!"],
+      "You don't have permission to modify the value.": [
+        "Sie sind nicht berechtigt, den Wert zu ändern."
+      ],
       "You don't have the rights to ": ["Sie haben nicht die Rechte "],
       "You don't have the rights to alter this title.": [
         "Sie haben nicht das Recht, diesen Titel zu ändern."
@@ -4089,6 +5009,25 @@
       "Your dashboard is too large. Please reduce its size before saving it.": [
         "Ihr Dashboard ist zu groß. Bitte reduzieren Sie die Größe, bevor Sie es speichern."
       ],
+      "Your query could not be saved": [
+        "Ihre Abfrage konnte nicht gespeichert werden"
+      ],
+      "Your query could not be scheduled": [
+        "Ihre Abfrage konnte nicht eingeplant werden"
+      ],
+      "Your query could not be updated": [
+        "Ihre Abfrage konnte nicht aktualisiert werden."
+      ],
+      "Your query has been scheduled. To see details of your query, navigate to Saved queries": [
+        "Ihre Abfrage wurde geplant. Um Details zu Ihrer Abfrage anzuzeigen, navigieren Sie zu Gespeicherte Abfragen"
+      ],
+      "Your query was saved": ["Ihre Abfrage wurde gespeichert"],
+      "Your query was updated": ["Ihre Abfrage wurde angehalten"],
+      "Your report could not be deleted": [
+        "Ihr Report konnte nicht gelöscht werden"
+      ],
+      "Zoom": ["Zoom"],
+      "Zoom level of the map": ["Zoomstufe der Karte"],
       "[Alert] %(label)s": ["[Alarm] %(label)s"],
       "[From]-": ["[Von]-"],
       "[Longitude] and [Latitude] columns must be present in [Group By]": [
@@ -4104,6 +5043,9 @@
       "[To]-": ["[Bis]-"],
       "[Untitled]": ["[Unbenannt]"],
       "[dashboard name]": ["[Dashboard-Name]"],
+      "[optional] this secondary metric is used to define the color as a ratio against the primary metric. When omitted, the color is categorical and based on labels": [
+        "[optional] Diese sekundäre Metrik wird verwendet, um die Farbe als Verhältnis zur primären Metrik zu definieren. Wenn keine angegeben, werden diskrete Farben verwendet, die auf den Beschriftungen basieren"
+      ],
       "`compare_columns` must have the same length as `source_columns`.": [
         "„compare_columns“ muss die gleiche Länge wie „source_columns“ haben."
       ],
@@ -4112,6 +5054,9 @@
       ],
       "`confidence_interval` must be between 0 and 1 (exclusive)": [
         "\"confidence_interval\" muss zwischen 0 und 1 liegen (exklusiv)"
+      ],
+      "`count` is COUNT(*) if a group by is used. Numerical columns will be aggregated with the aggregator. Non-numerical columns will be used to label points. Leave empty to get a count of points in each cluster.": [
+        "'count' ist COUNT(*), wenn ein ‚GROUP BY’ verwendet wird. Numerische Spalten werden mit der Aggregatfunktion aggregiert. Nicht numerische Spalten werden verwendet, um Punkte zu beschriften. Falls leer, wird die Anzahl der Punkte in jedem Cluster zurückgegeben."
       ],
       "`operation` property of post processing object undefined": [
         "'operation'-Eigenschaft des Nachbearbeitungsobjekts undefiniert"
@@ -4148,6 +5093,7 @@
       "bolt": ["Riegel"],
       "bottom": ["Unten"],
       "cached": ["gecached"],
+      "cannot be empty": ["darf nicht leer sein"],
       "cannot be used as a column name. The column name/alias \"__timestamp\"\n          is reserved for the main temporal expression, and column aliases ending with\n          double underscores followed by a numeric value (e.g. \"my_col__1\") are reserved\n          for deduplicating duplicate column names. Please use aliases to rename the\n          invalid column names.": [
         "kann nicht als Spaltenname verwendet werden. Der Spaltenname/Alias \"__timestamp\"\n          ist für den temporalen Hauptausdruck reserviert, und Spaltenaliase, die mit\n          doppelten Unterstrichen, gefolgt von einem numerischen Wert, enden (z. B. \"my_col__1“), sind\n          zum Deduplizieren doppelter Spaltennamen reserviert. Bitte verwenden Sie Aliase, um die\n          ungültigen Spaltennamen umzubenennen.\n."
       ],
@@ -4207,10 +5153,23 @@
       "here": ["hier"],
       "hour": ["Stunde"],
       "id:": ["id:"],
+      "image-rendering CSS attribute of the canvas object that defines how the browser scales up the image": [
+        "CSS-Attribut zum Rendern von Bildern des Canvas-Objekts, das definiert, wie der Browser das Bild hochskaliert"
+      ],
       "in": ["in"],
       "in modal": [" "],
+      "is expected to be a number": ["wird als Zahl erwartet"],
+      "is expected to be an integer": ["wird als Ganzzahl erwartet"],
       "joined": ["Verknüpft"],
       "json isn't valid": ["JSON ist ungültig"],
+      "key a-z": ["Schlüssel a-z"],
+      "key z-a": ["Schlüssel z-a"],
+      "label": ["Beschriftung"],
+      "last day": ["Gestern"],
+      "last month": ["letzter Monat"],
+      "last quarter": ["letztes Quartal"],
+      "last week": ["letzte Woche"],
+      "last year": ["letztes Jahr"],
       "latest partition:": ["neueste Partition:"],
       "left": ["Links"],
       "log": ["Protokoll"],
@@ -4221,16 +5180,22 @@
       "minute(s)": ["Minute(n)"],
       "month": ["Monat"],
       "must have a value": ["Muss einen Wert haben"],
+      "nvd3": ["nvd3"],
       "on": ["an"],
       "orderby column must be populated": [
         "ORDER BY-Spalte muss angegeben werden"
       ],
+      "p-value precision": ["p-Wert-Präzision"],
+      "page_size.all": ["page_size.all"],
       "page_size.entries": ["page_size.entries"],
       "page_size.show": ["page_size.show"],
       "percentile (exclusive)": ["Perzentil (exklusiv)"],
       "percentiles must be a list or tuple with two numeric values, of which the first is lower than the second value": [
         "Perzentile müssen eine Liste oder ein Tupel mit zwei numerischen Werten sein, von denen der erste niedriger als der zweite Wert ist"
       ],
+      "previous calendar month": ["vorheriger Kalendermonat"],
+      "previous calendar week": ["vorherige Kalenderwoche"],
+      "previous calendar year": ["vorheriges Kalenderjahr"],
       "published": ["veröffentlicht"],
       "queries": ["Abfragen"],
       "query": ["Abfrage"],
@@ -4244,11 +5209,16 @@
       "rows retrieved": ["abgerufene Zeilen"],
       "saved queries": ["gespeicherte Abfragen"],
       "search.num_records": ["search.num_records"],
+      "series: Treat each series independently; overall: All series use the same scale; change: Show changes compared to the first data point in each series": [
+        "Serie: Behandeln Sie jede Serie unabhängig voneinander; insgesamt: Alle Serien verwenden den gleichen Maßstab; Änderung: Änderungen im Vergleich zum ersten Datenpunkt in jeder Datenreihe anzeigen"
+      ],
       "textarea": ["Textfeld"],
       "top": ["Oben"],
       "upper percentile must be greater than 0 and less than 100. Must be higher than lower percentile.": [
         "Das obere Perzentil muss größer als 0 und kleiner als 100 sein. Muss größer als das untere Perzentil sein."
       ],
+      "value ascending": ["Wert aufsteigend"],
+      "value descending": ["Wert absteigend"],
       "virtual": ["virtuell"],
       "was created": ["wurde erstellt"],
       "week": ["Woche"],
