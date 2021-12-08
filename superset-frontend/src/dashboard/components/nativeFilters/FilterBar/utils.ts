@@ -56,9 +56,6 @@ export const checkIsMissingRequiredValue = (
 ) => {
   const value = filterState?.value;
   // TODO: this property should be unhardcoded
-  console.log('checkIsMissingRequired', filter.controlValues?.enableEmptyFilter &&
-      (value === null || value === undefined),
-  );
   return (
     filter.controlValues?.enableEmptyFilter &&
     (value === null || value === undefined)
@@ -72,11 +69,6 @@ export const checkIsApplyDisabled = (
 ) => {
   const dataSelectedValues = Object.values(dataMaskSelected);
   const dataAppliedValues = Object.values(dataMaskApplied);
-  console.log('dataMaskSelected', dataMaskSelected);
-  console.log('dataMaskSelectedVAlue', dataSelectedValues.length);
-  console.log('dataMaskApplied', dataMaskApplied);
-  console.log('dataMaskAppliedValue', dataAppliedValues.length);
-  // console.log('filters')
   return (
     areObjectsEqual(
       getOnlyExtraFormData(dataMaskSelected),

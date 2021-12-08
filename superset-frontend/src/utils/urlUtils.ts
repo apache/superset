@@ -63,14 +63,9 @@ export function getUrlParam({ name, type }: UrlParam): unknown {
         return null;
       }
       try {
-        console.log('urlParam', urlParam);
         const parsedRison = rison.decode(urlParam);
-        console.log('parsedRison', parsedRison, typeof parsedRison);
         return parsedRison;
-        // console.log('trydeconde', tryDecode);
-        // return tryDecode;
       } catch {
-        console.log('are you returning urlParam for rison | string')
         return urlParam;
       }
     default:
