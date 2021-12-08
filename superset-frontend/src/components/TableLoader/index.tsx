@@ -27,12 +27,14 @@ export interface TableLoaderProps {
   dataEndpoint?: string;
   mutator?: (data: JsonObject) => any[];
   columns?: string[];
+  noDataText?: string;
   addDangerToast(text: string): any;
 }
 
 const TableLoader = (props: TableLoaderProps) => {
   const [data, setData] = useState<Array<any>>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isBlocked, setIsBlocked] = useState(false);
 
   useEffect(() => {
     const { dataEndpoint, mutator } = props;
@@ -41,16 +43,22 @@ const TableLoader = (props: TableLoaderProps) => {
         .then(({ json }) => {
           const data = (mutator ? mutator(json) : json) as Array<any>;
           setData(data);
+          setIsBlocked(false);
           setIsLoading(false);
         })
-        .catch(() => {
+        .catch(response => {
           setIsLoading(false);
-          props.addDangerToast(t('An error occurred'));
+          if (response.status === 403) {
+            setIsBlocked(true);
+          } else {
+            setIsBlocked(false);
+            props.addDangerToast(t('An error occurred'));
+          }
         });
     }
   }, [props]);
 
-  const { columns, ...tableProps } = props;
+  const { columns, noDataText, ...tableProps } = props;
 
   const memoizedColumns = useMemo(() => {
     let tableColumns = columns;
@@ -79,6 +87,9 @@ const TableLoader = (props: TableLoaderProps) => {
       pageSize={50}
       loading={isLoading}
       emptyWrapperType={EmptyWrapperType.Small}
+      noDataText={
+        isBlocked ? t('Access to user activity data is restricted') : noDataText
+      }
       {...tableProps}
     />
   );
