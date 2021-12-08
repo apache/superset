@@ -305,6 +305,11 @@ class ParsedQuery:
 
         table_name_preceding_token = False
 
+        # If the table name is a reserved word (eg, "table_name") it won't be returned. We
+        # fix this by ensuring that at least one identifier is returned after the FROM
+        # before stopping on a keyword.
+        has_processed_identifier = False
+
         for item in token.tokens:
             if item.is_group and (
                 not self._is_identifier(item) or isinstance(item.tokens[0], Parenthesis)
@@ -318,16 +323,25 @@ class ParsedQuery:
                 table_name_preceding_token = True
                 continue
 
-            if item.ttype in Keyword:
+            # If we haven't processed any identifiers it means the table name is a
+            # reserved keyword (eg, "table_name") and we shouldn't skip it.
+            if item.ttype in Keyword and has_processed_identifier:
                 table_name_preceding_token = False
                 continue
             if table_name_preceding_token:
                 if isinstance(item, Identifier):
                     self._process_tokenlist(item)
+                    has_processed_identifier = True
                 elif isinstance(item, IdentifierList):
                     for token2 in item.get_identifiers():
                         if isinstance(token2, TokenList):
                             self._process_tokenlist(token2)
+                    has_processed_identifier = True
+                elif item.ttype in Keyword:
+                    # convert into an identifier
+                    fixed = Identifier([Token(Name, item.value)])
+                    self._process_tokenlist(fixed)
+                    has_processed_identifier = True
             elif isinstance(item, IdentifierList):
                 if any(not self._is_identifier(token2) for token2 in item.tokens):
                     self._extract_from_token(item)

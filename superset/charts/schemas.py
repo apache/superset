@@ -542,7 +542,7 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
     )
     periods = fields.Integer(
         descrption="Time periods (in units of `time_grain`) to predict into the future",
-        min=1,
+        min=0,
         example=7,
         required=True,
     )
