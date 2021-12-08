@@ -16,19 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { formatNumber } from '@superset-ui/core';
 
-interface Props {
-  format: string;
-  num: number;
-}
+import { getFormattedUTCTime } from '../src/utils';
 
-function FormattedNumber({ num = 0, format = '' }: Props) {
-  if (format) {
-    return <span title={num.toString()}>{formatNumber(format, num)}</span>;
-  }
-  return <span>{num}</span>;
-}
-
-export default FormattedNumber;
+describe('getFormattedUTCTime', () => {
+  it('formatted date string should equal to UTC date', () => {
+    const ts = 1420070400000; // 2015.01.01 00:00:00 UTC
+    const formattedTime = getFormattedUTCTime(ts, '%Y-%m-%d %H:%M:%S');
+    expect(formattedTime).toEqual('2015-01-01 00:00:00');
+  });
+});

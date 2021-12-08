@@ -16,24 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
-import transformProps from './transformProps';
-import thumbnail from './images/thumbnail.png';
 
-const metadata = new ChartMetadata({
-  name: t('Time-series Table'),
-  description: '',
-  thumbnail,
-  useLegacyApi: true,
-});
+import { getTimeFormatter } from '@superset-ui/core';
 
-export default class TimeTableChartPlugin extends ChartPlugin {
-  constructor() {
-    super({
-      metadata,
-      // @ts-ignore
-      transformProps,
-      loadChart: () => import('./TimeTable'),
-    });
-  }
-}
+// Assume that given timestamp is UTC
+export const getFormattedUTCTime = (
+  ts: number | string,
+  timeFormat?: string,
+) => {
+  const date = new Date(ts);
+  const offset = date.getTimezoneOffset() * 60 * 1000;
+  return getTimeFormatter(timeFormat)(date.getTime() - offset);
+};

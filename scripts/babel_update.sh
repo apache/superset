@@ -46,6 +46,12 @@ pybabel extract \
   --copyright-holder=Superset \
   --project=Superset \
   -k _ -k __ -k t -k tn -k tct .
-cat $LICENSE_TMP $ROOT_DIR/superset/translations/messages.pot > messages.pot.tmp \
-  && mv messages.pot.tmp $ROOT_DIR/superset/translations/messages.pot \
-  && cd $CURRENT_DIR
+cat $LICENSE_TMP superset/translations/messages.pot > messages.pot.tmp \
+  && mv messages.pot.tmp superset/translations/messages.pot
+
+pybabel update \
+  -i superset/translations/messages.pot \
+  -d superset/translations \
+  --ignore-obsolete
+
+cd $CURRENT_DIR
