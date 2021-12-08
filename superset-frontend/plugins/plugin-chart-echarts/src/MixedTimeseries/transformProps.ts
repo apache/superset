@@ -74,9 +74,9 @@ export default function transformProps(
     filterState,
     datasource,
   } = chartProps;
-  const { verboseMap = {} } = datasource;
   const { annotation_data: annotationData_ } = queriesData[0];
   const annotationData = annotationData_ || {};
+  const extractedDataSource = datasource || {};
   const data1: TimeseriesDataRecord[] = queriesData[0].data || [];
   const data2: TimeseriesDataRecord[] = queriesData[1].data || [];
 
@@ -129,11 +129,11 @@ export default function transformProps(
   }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
-  const rebasedDataA = rebaseTimeseriesDatum(data1, verboseMap);
+  const rebasedDataA = rebaseTimeseriesDatum(data1, extractedDataSource);
   const rawSeriesA = extractTimeseriesSeries(rebasedDataA, {
     fillNeighborValue: stack ? 0 : undefined,
   });
-  const rebasedDataB = rebaseTimeseriesDatum(data2, verboseMap);
+  const rebasedDataB = rebaseTimeseriesDatum(data2, extractedDataSource);
   const rawSeriesB = extractTimeseriesSeries(rebasedDataB, {
     fillNeighborValue: stackB ? 0 : undefined,
   });

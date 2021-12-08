@@ -34,7 +34,6 @@ import { TimeRange, TimeRangeEndpoints } from './Time';
 import { TimeGranularity } from '../../time-format';
 import { JsonObject } from '../../connection';
 import { AdhocColumn, PhysicalColumn } from './Column';
-import { Datasource } from '..';
 
 /**
  * Metric definition/reference in query object.
@@ -147,7 +146,7 @@ export type ExtraFormData = ExtraFormDataAppend & ExtraFormDataOverride;
 
 export interface BaseFormData extends TimeRange, FormDataResidual {
   /** datasource identifier ${id}_${type} */
-  datasource: Datasource;
+  datasource: string;
   /**
    * visualization type
    * - necessary if you use the plugin and want to use
