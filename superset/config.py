@@ -314,6 +314,7 @@ LANGUAGES = {
     "pt_BR": {"flag": "br", "name": "Brazilian Portuguese"},
     "ru": {"flag": "ru", "name": "Russian"},
     "ko": {"flag": "kr", "name": "Korean"},
+    "sk": {"flag": "sk", "name": "Slovak"},
     "sl": {"flag": "si", "name": "Slovenian"},
 }
 # Turning off i18n by default as translation in most languages are
@@ -560,6 +561,15 @@ CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
 # Cache for datasource metadata and query results
 DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
 
+# Cache for filters state
+FILTER_STATE_CACHE_CONFIG: CacheConfig = {
+    "CACHE_TYPE": "filesystem",
+    "CACHE_DIR": os.path.join(DATA_DIR, "cache"),
+    "CACHE_DEFAULT_TIMEOUT": int(timedelta(days=90).total_seconds()),
+    "CACHE_THRESHOLD": 0,
+    "REFRESH_TIMEOUT_ON_RETRIEVAL": True,
+}
+
 # store cache keys by datasource UID (via CacheKey) for custom processing/invalidation
 STORE_CACHE_KEYS_IN_METADATA_DB = False
 
@@ -798,10 +808,12 @@ ESTIMATE_QUERY_COST = False
 #
 #     return out
 #
-# FEATURE_FLAGS = {
-#     "ESTIMATE_QUERY_COST": True,
-#     "QUERY_COST_FORMATTERS_BY_ENGINE": {"postgresql": postgres_query_cost_formatter},
-# }
+#  Then on define the formatter on the config:
+#
+# "QUERY_COST_FORMATTERS_BY_ENGINE": {"postgresql": postgres_query_cost_formatter},
+QUERY_COST_FORMATTERS_BY_ENGINE: Dict[
+    str, Callable[[List[Dict[str, Any]]], List[Dict[str, Any]]]
+] = {}
 
 # Flag that controls if limit should be enforced on the CTA (create table as queries).
 SQLLAB_CTAS_NO_LIMIT = False
@@ -1280,6 +1292,9 @@ MENU_HIDE_USER_INFO = False
 # SQLalchemy link doc reference
 SQLALCHEMY_DOCS_URL = "https://docs.sqlalchemy.org/en/13/core/engines.html"
 SQLALCHEMY_DISPLAY_TEXT = "SQLAlchemy docs"
+
+# Set to False to only allow viewing own recent activity
+ENABLE_BROAD_ACTIVITY_ACCESS = True
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *

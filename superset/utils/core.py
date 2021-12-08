@@ -1597,7 +1597,9 @@ def get_column_names_from_metrics(metrics: List[Metric]) -> List[str]:
     return [col for col in map(get_column_name_from_metric, metrics) if col]
 
 
-def extract_dataframe_dtypes(df: pd.DataFrame) -> List[GenericDataType]:
+def extract_dataframe_dtypes(
+    df: pd.DataFrame, datasource: Optional["BaseDatasource"] = None,
+) -> List[GenericDataType]:
     """Serialize pandas/numpy dtypes to generic types"""
 
     # omitting string types as those will be the default type
@@ -1612,11 +1614,21 @@ def extract_dataframe_dtypes(df: pd.DataFrame) -> List[GenericDataType]:
         "date": GenericDataType.TEMPORAL,
     }
 
+    columns_by_name = (
+        {column.column_name: column for column in datasource.columns}
+        if datasource
+        else {}
+    )
     generic_types: List[GenericDataType] = []
     for column in df.columns:
+        column_object = columns_by_name.get(column)
         series = df[column]
         inferred_type = infer_dtype(series)
-        generic_type = inferred_type_map.get(inferred_type, GenericDataType.STRING)
+        generic_type = (
+            GenericDataType.TEMPORAL
+            if column_object and column_object.is_dttm
+            else inferred_type_map.get(inferred_type, GenericDataType.STRING)
+        )
         generic_types.append(generic_type)
 
     return generic_types

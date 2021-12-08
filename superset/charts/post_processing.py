@@ -27,12 +27,15 @@ for these chart types.
 """
 
 from io import StringIO
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 import pandas as pd
 
 from superset.common.chart_data import ChartDataResultFormat
 from superset.utils.core import DTTM_ALIAS, extract_dataframe_dtypes, get_metric_name
+
+if TYPE_CHECKING:
+    from superset.connectors.base.models import BaseDatasource
 
 
 def get_column_key(label: Tuple[str, ...], metrics: List[str]) -> Tuple[Any, ...]:
@@ -76,6 +79,8 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
 
     # pivot data; we'll compute totals and subtotals later
     if rows or columns:
+        # pivoting with null values will create an empty df
+        df = df.fillna("NULL")
         df = df.pivot_table(
             index=rows,
             columns=columns,
@@ -91,7 +96,10 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
     # if no rows were passed the metrics will be in the rows, so we
     # need to move them back to columns
     if columns and not rows:
-        df = df.stack().to_frame().T
+        df = df.stack()
+        if not isinstance(df, pd.DataFrame):
+            df = df.to_frame()
+        df = df.T
         df = df[metrics]
         df.index = pd.Index([*df.index[:-1], metric_name], name="metric")
 
@@ -284,7 +292,9 @@ post_processors = {
 
 
 def apply_post_process(
-    result: Dict[Any, Any], form_data: Optional[Dict[str, Any]] = None,
+    result: Dict[Any, Any],
+    form_data: Optional[Dict[str, Any]] = None,
+    datasource: Optional["BaseDatasource"] = None,
 ) -> Dict[Any, Any]:
     form_data = form_data or {}
 
@@ -306,7 +316,7 @@ def apply_post_process(
 
         query["colnames"] = list(processed_df.columns)
         query["indexnames"] = list(processed_df.index)
-        query["coltypes"] = extract_dataframe_dtypes(processed_df)
+        query["coltypes"] = extract_dataframe_dtypes(processed_df, datasource)
         query["rowcount"] = len(processed_df.index)
 
         # Flatten hierarchical columns/index since they are represented as

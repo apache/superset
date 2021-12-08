@@ -43,11 +43,24 @@ jobs:
         run: |
           npm run lint
           npm run prettier-check
+      - name: Build plugins packages
+        if: steps.check.outcome == 'failure'
+        working-directory: ./superset-frontend
+        run: npm run plugins:build
+      - name: Build plugins Storybook
+        if: steps.check.outcome == 'failure'
+        working-directory: ./superset-frontend
+        run: npm run plugins:build-storybook
       - name: unit tests
         if: steps.check.outcome == 'failure'
         working-directory: ./superset-frontend
         run: |
           npm run test -- --coverage
+      # todo: remove this step when fix generator as a project in root jest.config.js
+      - name: generator-superset unit tests
+        if: steps.check.outcome == 'failure'
+        working-directory: ./superset-frontend/packages/generator-superset
+        run: npx jest
       - name: Upload code coverage
         if: steps.check.outcome == 'failure'
         working-directory: ./superset-frontend

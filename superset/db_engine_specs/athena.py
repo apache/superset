@@ -32,6 +32,7 @@ SYNTAX_ERROR_REGEX = re.compile(
 class AthenaEngineSpec(BaseEngineSpec):
     engine = "awsathena"
     engine_name = "Amazon Athena"
+    allows_escaped_colons = False
 
     _time_grain_expressions = {
         None: "{col}",
@@ -61,7 +62,9 @@ class AthenaEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
             return f"from_iso8601_date('{dttm.date().isoformat()}')"

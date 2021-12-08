@@ -31,7 +31,7 @@ bleach==3.3.1
     # via apache-superset
 brotli==1.0.9
     # via flask-compress
-cachelib==0.1.1
+cachelib==0.4.1
     # via apache-superset
 celery==4.4.7
     # via apache-superset
@@ -77,7 +77,7 @@ flask==1.1.4
     #   flask-openid
     #   flask-sqlalchemy
     #   flask-wtf
-flask-appbuilder==3.3.4
+flask-appbuilder==3.4.0
     # via apache-superset
 flask-babel==1.0.0
     # via flask-appbuilder
@@ -283,6 +283,7 @@ werkzeug==1.0.1
     #   flask-jwt-extended
 wtforms==2.3.3
     # via
+    #   flask-appbuilder
     #   flask-wtf
     #   wtforms-json
 wtforms-json==0.3.3
