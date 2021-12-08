@@ -118,7 +118,7 @@ HEALTHCHECK CMD curl -f "http://localhost:$SUPERSET_PORT/health"
 
 EXPOSE ${SUPERSET_PORT}
 
-CMD /user/bin/run-server.sh
+CMD /usr/bin/run-server.sh
 
 ######################################################################
 # Dev image...
