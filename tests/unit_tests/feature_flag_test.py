@@ -16,7 +16,7 @@
 # under the License.
 from pytest_mock import MockFixture
 
-from superset import get_feature_flags, is_feature_enabled
+from superset import is_feature_enabled
 
 
 def dummy_is_feature_enabled(feature_flag_name: str, default: bool = True) -> bool:
@@ -63,9 +63,3 @@ def test_is_feature_enabled(mocker: MockFixture) -> None:
     assert is_feature_enabled("True_Flag2") is True
     assert is_feature_enabled("Flag3") is False
     assert is_feature_enabled("Flag4") is True
-    assert get_feature_flags() == {
-        "True_Flag1": True,
-        "True_Flag2": True,
-        "Flag3": False,
-        "Flag4": True,
-    }
