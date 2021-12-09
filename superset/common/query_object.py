@@ -294,7 +294,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 try:
                     validate_filter_clause(clause)
                 except SupersetQueryParseException as ex:
-                    raise QueryObjectValidationError(ex.message)
+                    raise QueryObjectValidationError(ex.message) from ex
 
     def _validate_there_are_no_missing_series(self) -> None:
         missing_series = [col for col in self.series_columns if col not in self.columns]

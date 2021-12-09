@@ -23,13 +23,14 @@ from typing import Set
 import pytest
 import sqlparse
 
+from superset.exceptions import SupersetQueryParseException
 from superset.sql_parse import (
     ParsedQuery,
     strip_comments_from_sql,
     Table,
     validate_filter_clause,
 )
-from superset.exceptions import SupersetQueryParseException
+
 
 def extract_tables(query: str) -> Set[Table]:
     """

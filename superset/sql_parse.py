@@ -22,7 +22,6 @@ from urllib import parse
 
 import sqlparse
 from sqlparse.sql import (
-    Comment,
     Identifier,
     IdentifierList,
     Parenthesis,
@@ -401,4 +400,3 @@ def validate_filter_clause(clause: str) -> None:
                 )
     if open_parens > 0:
         raise SupersetQueryParseException("Unclosed parenthesis in filter clause")
-    return

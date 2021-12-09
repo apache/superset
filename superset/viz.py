@@ -382,7 +382,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                 try:
                     validate_filter_clause(clause)
                 except SupersetQueryParseException as ex:
-                    raise QueryObjectValidationError(ex.message)
+                    raise QueryObjectValidationError(ex.message) from ex
 
         # extras are used to query elements specific to a datasource type
         # for instance the extra where clause that applies only to Tables
