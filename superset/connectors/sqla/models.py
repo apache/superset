@@ -1290,7 +1290,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                         target_column_type=target_type,
                         is_list_target=is_list_target,
                     )
-                    if col_busniness_type != ""
+                    if col_busniness_type == ""
                     else self.filter_values_handler(
                         values=val,
                         target_column_type=GenericDataType.STRING,
@@ -1311,6 +1311,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                         raise QueryObjectValidationError(
                             _("Busniness tpye conversion falid, please check values")
                         )
+
                     where_clause_and.append(
                         BUSINESS_TYPE_TRANSLATIONS[col_busniness_type](
                             sqla_col, op, bus_resp["values"]

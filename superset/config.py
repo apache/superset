@@ -1385,11 +1385,9 @@ def cidr_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
 def cidr_translate_filter_func(
     col: Column, op: FilterOperator, values: List[Any]
 ) -> Any:
-
     if op == FilterOperator.IN or op == FilterOperator.NOT_IN:
         dict_items = [val for val in values if isinstance(val, dict)]
         single_values = [val for val in values if not isinstance(val, dict)]
-        print(single_values)
         if op == FilterOperator.IN.value:
             cond = col.in_(single_values)
             for dictionary in dict_items:
@@ -1404,7 +1402,6 @@ def cidr_translate_filter_func(
     if len(values) == 1:
         value = values[0]
         if op == FilterOperator.EQUALS.value:
-            print()
             return (
                 col == value
                 if not isinstance(value, dict)
@@ -1428,8 +1425,71 @@ def cidr_translate_filter_func(
             )
 
 
-def port_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
-    pass
+def port_translation_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
+    resp: BusinessTypeResponse = {
+        "values": [],
+        "status": "valid",
+        "display_value": "",
+        "valid_filter_operators": [
+            FilterStringOperators.EQUALS,
+            FilterStringOperators.GREATER_THAN_OR_EQUAL,
+            FilterStringOperators.GREATER_THAN,
+            FilterStringOperators.IN,
+            FilterStringOperators.LESS_THAN,
+            FilterStringOperators.LESS_THAN_OR_EQUAL,
+        ],
+    }
+    for val in req["values"]:
+        string_value = str(val)
+        try:
+            resp["values"].append(
+                int(string_value)
+                if string_value.isnumeric()
+                else port_conversion_dict[string_value]
+            )
+            resp["formatted_value"] = str(string_value)
+        except Exception as e:
+            resp["status"] = "invalid"
+            resp["values"].append("")
+
+    resp["display_value"] = ", ".join(
+        map(
+            lambda x: f"{x['start']} - {x['end']}" if isinstance(x, dict) else str(x),
+            resp["values"],
+        )
+    )
+    return resp
+
+
+# Ports are always aa list of lists
+import itertools
+
+
+def port_translate_filter_func(
+    col: Column, op: FilterOperator, values: List[Any]
+) -> Any:
+    if op == FilterOperator.IN or op == FilterOperator.NOT_IN:
+        vals_list = list(itertools.chain.from_iterable(values))
+        if op == FilterOperator.IN.value:
+            cond = col.in_(vals_list)
+        elif op == FilterOperator.NOT_IN.value:
+            cond = ~(col.in_(vals_list))
+        return cond
+    if len(values) == 1:
+        value = values[0]
+        value.sort()
+        if op == FilterOperator.EQUALS.value:
+            return col.in_(value)
+        if op == FilterOperator.GREATER_THAN_OR_EQUALS.value:
+            return col >= value[1]
+        if op == FilterOperator.GREATER_THAN.value:
+            return col > value[1]
+        if op == FilterOperator.LESS_THAN.value:
+            return col <= value[-1]
+        if op == FilterOperator.LESS_THAN_OR_EQUALS.value:
+            return col < value[-1]
+        if op == FilterOperator.NOT_EQUALS.value:
+            return ~col.in_(value)
 
 
 # Start a project called
@@ -1437,13 +1497,14 @@ def port_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
 # the business type key should correspond to that set in the column metadata
 BUSINESS_TYPE_ADDONS: Dict[
     str, Callable[[BusinessTypeRequest], BusinessTypeResponse]
-] = {"cidr": cidr_func, "port": port_func}
+] = {"cidr": cidr_func, "port": port_translation_func}
 
 # the business type key should correspond to that set in the column metadata
 BUSINESS_TYPE_TRANSLATIONS: Dict[
     str, Callable[[Column, FilterOperator, Any], List[Any]]
 ] = {
     "cidr": cidr_translate_filter_func,
+    "port": port_translate_filter_func,
 }
 
 # -------------------------------------------------------------------
