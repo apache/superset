@@ -27,6 +27,12 @@ from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import QueryObjectValidationError
 from superset.typing import Metric, OrderBy
+from superset.exceptions import (
+    QueryClauseValidationException,
+    QueryObjectValidationError,
+)
+from superset.sql_parse import validate_filter_clause
+from superset.typing import Metric, OrderBy
 from superset.utils import pandas_postprocessing
 from superset.utils.core import (
     apply_max_row_limit,
@@ -277,6 +283,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         try:
             self._validate_there_are_no_missing_series()
             self._validate_no_have_duplicate_labels()
+            self._validate_filters()
             return None
         except QueryObjectValidationError as ex:
             if raise_exceptions:
@@ -294,6 +301,15 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                     labels=", ".join(f'"{x}"' for x in dup_labels),
                 )
             )
+
+    def _validate_filters(self) -> None:
+        for param in ("where", "having"):
+            clause = self.extras.get(param)
+            if clause:
+                try:
+                    validate_filter_clause(clause)
+                except QueryClauseValidationException as ex:
+                    raise QueryObjectValidationError(ex.message) from ex
 
     def _validate_there_are_no_missing_series(self) -> None:
         missing_series = [col for col in self.series_columns if col not in self.columns]
