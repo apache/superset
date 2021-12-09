@@ -16,6 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import { getNumberFormatter } from '@superset-ui/core';
+import { getFormattedUTCTime } from './utils';
+
 export default function transformProps(chartProps) {
   const { height, formData, queriesData, datasource } = chartProps;
   const {
@@ -34,6 +38,8 @@ export default function transformProps(chartProps) {
   } = formData;
 
   const { verboseMap } = datasource;
+  const timeFormatter = ts => getFormattedUTCTime(ts, xAxisTimeFormat);
+  const valueFormatter = getNumberFormatter(yAxisFormat);
 
   return {
     height,
@@ -48,8 +54,8 @@ export default function transformProps(chartProps) {
     showValues,
     steps,
     subdomainGranularity,
-    timeFormat: xAxisTimeFormat,
-    valueFormat: yAxisFormat,
+    timeFormatter,
+    valueFormatter,
     verboseMap,
   };
 }

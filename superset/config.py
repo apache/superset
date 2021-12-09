@@ -297,6 +297,8 @@ AUTH_TYPE = AUTH_DB
 #    { 'name': 'Yahoo', 'url': 'https://open.login.yahoo.com/' },
 #    { 'name': 'Flickr', 'url': 'https://www.flickr.com/<username>' },
 
+AUTH_STRICT_RESPONSE_CODES = True
+
 # ---------------------------------------------------
 # Roles config
 # ---------------------------------------------------
@@ -1305,6 +1307,8 @@ MENU_HIDE_USER_INFO = False
 SQLALCHEMY_DOCS_URL = "https://docs.sqlalchemy.org/en/13/core/engines.html"
 SQLALCHEMY_DISPLAY_TEXT = "SQLAlchemy docs"
 
+# Set to False to only allow viewing own recent activity
+ENABLE_BROAD_ACTIVITY_ACCESS = True
 
 port_conversion_dict: Dict[str, List[int]] = {
     "http": [80],
@@ -1436,7 +1440,6 @@ BUSINESS_TYPE_TRANSLATIONS: Dict[
 ] = {
     "cidr": cidr_translate_filter_func,
 }
-
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *

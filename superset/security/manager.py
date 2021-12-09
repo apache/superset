@@ -1161,6 +1161,21 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return ids
 
     @staticmethod
+    def raise_for_user_activity_access(user_id: int) -> None:
+        user = g.user if g.user and g.user.get_id() else None
+        if not user or (
+            not current_app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
+            and user_id != user.id
+        ):
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.USER_ACTIVITY_SECURITY_ACCESS_ERROR,
+                    message="Access to user's activity data is restricted",
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
+    @staticmethod
     def raise_for_dashboard_access(dashboard: "Dashboard") -> None:
         """
         Raise an exception if the user cannot access the dashboard.
