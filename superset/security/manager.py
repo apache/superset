@@ -1283,7 +1283,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         :return: A guest user object
         """
-        raw_token = req.cookies.get(current_app.config["GUEST_TOKEN_COOKIE_NAME"])
+        raw_token = req.headers.get(current_app.config["GUEST_TOKEN_HEADER_NAME"])
         if raw_token is None:
             return None
 
