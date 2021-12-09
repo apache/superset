@@ -36,7 +36,7 @@ import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
 import Menu from 'src/components/Menu/Menu';
 import FlashProvider from 'src/components/FlashProvider';
-import { theme } from 'src/preamble';
+import { bootstrapData, theme } from 'src/preamble';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import setupApp from 'src/setup/setupApp';
 import { routes, isFrontendRoute } from 'src/views/routes';
@@ -45,13 +45,11 @@ import { store } from './store';
 
 setupApp();
 
-const container = document.getElementById('app');
-const bootstrap = JSON.parse(container?.getAttribute('data-bootstrap') ?? '{}');
-const user = { ...bootstrap.user };
-const menu = { ...bootstrap.common.menu_data };
-const common = { ...bootstrap.common };
+const user = { ...bootstrapData.user };
+const menu = { ...bootstrapData.common.menu_data };
+const common = { ...bootstrapData.common };
 let lastLocationPathname: string;
-initFeatureFlags(bootstrap.common.feature_flags);
+initFeatureFlags(bootstrapData.common.feature_flags);
 
 const RootContextProviders: React.FC = ({ children }) => {
   const location = useLocation();
