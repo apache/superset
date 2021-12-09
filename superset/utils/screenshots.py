@@ -16,7 +16,7 @@
 # under the License.
 import logging
 from io import BytesIO
-from typing import Optional, TYPE_CHECKING, Union
+from typing import List, Optional, TYPE_CHECKING, Union
 
 from flask import current_app
 

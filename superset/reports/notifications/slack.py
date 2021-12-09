@@ -136,8 +136,8 @@ Error: %(text)s
     def _get_inline_file(self) -> Optional[Union[str, IOBase, bytes]]:
         if self._content.csv:
             return self._content.csv
-        if self._content.screenshot:
-            return self._content.screenshot
+        if self._content.screenshots:
+            return self._content.screenshots
         return None
 
     @backoff.on_exception(backoff.expo, SlackApiError, factor=10, base=2, max_tries=5)

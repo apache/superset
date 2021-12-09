@@ -69,10 +69,15 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             return EmailContent(body=self._error_template(self._content.text))
         # Get the domain from the 'From' address ..
         # and make a message id without the < > in the end
-        image = None
         csv_data = None
         domain = self._get_smtp_domain()
-        msgid = make_msgid(domain)[1:-1]
+        images = {}
+
+        if self._content.screenshots:
+            images = {
+                make_msgid(domain)[1:-1]: screenshot
+                for screenshot in self._content.screenshots
+            }
 
         # Strip any malicious HTML from the description
         description = bleach.clean(self._content.description or "")
@@ -89,11 +94,15 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             html_table = ""
 
         call_to_action = __("Explore in Superset")
-        img_tag = (
-            f'<img width="1000px" src="cid:{msgid}">'
-            if self._content.screenshot
-            else ""
-        )
+        img_tag = ""
+        for msgid, _ in images.items():
+            img_tag = img_tag + (
+                f"""<div class="image">
+                    <img width="1000px" src="cid:{msgid}">
+                </div>
+                <
+                """
+            )
         body = textwrap.dedent(
             f"""
             <html>
@@ -104,6 +113,9 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                     border-color: rgb(200, 212, 227);
                     color: rgb(42, 63, 95);
                     padding: 4px 8px;
+                  }}
+                  .image{{
+                      margin-bottom: 18px;
                   }}
                 </style>
               </head>
@@ -116,11 +128,10 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             </html>
             """
         )
-        if self._content.screenshot:
-            image = {msgid: self._content.screenshot}
+
         if self._content.csv:
             csv_data = {__("%(name)s.csv", name=self._content.name): self._content.csv}
-        return EmailContent(body=body, images=image, data=csv_data)
+        return EmailContent(body=body, images=images, data=csv_data)
 
     def _get_subject(self) -> str:
         return __(
