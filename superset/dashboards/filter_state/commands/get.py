@@ -17,6 +17,7 @@
 from typing import Optional
 
 from superset.dashboards.dao import DashboardDAO
+from superset.dashboards.filter_state.commands.entry import Entry
 from superset.extensions import cache_manager
 from superset.key_value.commands.get import GetKeyValueCommand
 from superset.key_value.utils import cache_key
@@ -26,8 +27,10 @@ class GetFilterStateCommand(GetKeyValueCommand):
     def get(self, resource_id: int, key: str, refreshTimeout: bool) -> Optional[str]:
         dashboard = DashboardDAO.get_by_id_or_slug(str(resource_id))
         if dashboard:
-            value = cache_manager.filter_state_cache.get(cache_key(resource_id, key))
+            entry: Entry = cache_manager.filter_state_cache.get(
+                cache_key(resource_id, key)
+            )
             if refreshTimeout:
-                cache_manager.filter_state_cache.set(key, value)
-            return value
+                cache_manager.filter_state_cache.set(key, entry)
+            return entry["value"]
         return None

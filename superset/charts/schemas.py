@@ -542,7 +542,7 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
     )
     periods = fields.Integer(
         descrption="Time periods (in units of `time_grain`) to predict into the future",
-        min=1,
+        min=0,
         example=7,
         required=True,
     )
@@ -1159,6 +1159,8 @@ class ChartDataQueryContextSchema(Schema):
 
     result_type = EnumField(ChartDataResultType, by_value=True)
     result_format = EnumField(ChartDataResultFormat, by_value=True)
+
+    form_data = fields.Raw(allow_none=True, required=False)
 
     # pylint: disable=unused-argument
     @post_load

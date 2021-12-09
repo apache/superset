@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const path = require('path');
-
 // Superset's webpack.config.js
 const customConfig = require('../webpack.config.js');
 

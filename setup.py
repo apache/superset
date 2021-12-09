@@ -75,7 +75,7 @@ setup(
         "cryptography>=3.3.2",
         "deprecation>=2.1.0, <2.2.0",
         "flask>=1.1.0, <2.0.0",
-        "flask-appbuilder>=3.4.0, <4.0.0",
+        "flask-appbuilder>=3.4.1rc2, <4.0.0",
         "flask-caching>=1.10.0",
         "flask-compress",
         "flask-talisman",
@@ -109,7 +109,8 @@ setup(
         "sqlalchemy-utils>=0.37.8, <0.38",
         "sqlparse==0.3.0",  # PINNED! see https://github.com/andialbrecht/sqlparse/issues/562
         "tabulate==0.8.9",
-        "typing-extensions>=3.10, <4",  # needed to support Literal (3.8) and TypeGuard (3.10)
+        # needed to support Literal (3.8) and TypeGuard (3.10)
+        "typing-extensions>=3.10, <4",
         "wtforms-json",
     ],
     extras_require={

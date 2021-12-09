@@ -16,7 +16,7 @@
 # under the License.
 import copy
 import dataclasses
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from superset.common.chart_data import ChartDataResultType
 from superset.utils.core import AnnotationType, DTTM_ALIAS, TimeRangeEndpoint
@@ -242,7 +242,9 @@ class QueryContextGenerator:
         add_time_offsets: bool = False,
         table_id=1,
         table_type="table",
+        form_data: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
+        form_data = form_data or {}
         table_name = query_name.split(":")[0]
         table = self.get_table(table_name, table_id, table_type)
         return {
@@ -253,7 +255,8 @@ class QueryContextGenerator:
                 )
             ],
             "result_type": ChartDataResultType.FULL,
+            "form_data": form_data,
         }
 
-    def get_table(self, name, id, type):
-        return Table(id, type, name)
+    def get_table(self, name, id_, type_):
+        return Table(id_, type_, name)
