@@ -18,8 +18,8 @@
  */
 import React, { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom';
-import { SupersetClient } from '@superset-ui/core';
 import { bootstrapData } from 'src/preamble';
+import setupClient from 'src/setup/setupClient';
 import Loading from 'src/components/Loading';
 
 const LazyApp = lazy(
@@ -59,7 +59,7 @@ try {
   async function start(guestToken: string) {
     // the preamble configures a client, but we need to configure a new one
     // now that we have the guest token
-    SupersetClient.configure({
+    setupClient({
       guestToken,
       guestTokenHeaderName: bootstrapData.config?.GUEST_TOKEN_HEADER_NAME,
     });
