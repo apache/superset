@@ -17,9 +17,11 @@
  * under the License.
  */
 import React from 'react';
-import { css, styled } from '@superset-ui/core';
+import { css, FeatureFlag, isFeatureEnabled, styled } from '@superset-ui/core';
 import AntDTabs, { TabsProps as AntDTabsProps } from 'antd/lib/tabs';
 import Icons from 'src/components/Icons';
+import { useDispatch, useStore } from 'react-redux';
+import { clearDataMask } from 'src/dataMask/actions';
 
 export interface TabsProps extends AntDTabsProps {
   fullWidth?: boolean;
@@ -31,63 +33,74 @@ const StyledTabs = ({
   fullWidth = true,
   allowOverflow = true,
   ...props
-}: TabsProps) => (
-  <AntDTabs
-    animated={animated}
-    {...props}
-    css={theme => css`
-      overflow: ${allowOverflow ? 'visible' : 'hidden'};
+}: TabsProps) => {
+  const dispatch = useDispatch();
+  const store = useStore();
+  const handleChange = () => {
+    if (isFeatureEnabled(FeatureFlag.CLEAR_FILTER_ON_TAB_NAV)) {
+      const globalState = store.getState();
+      Object.keys(globalState.dataMask).forEach(key => dispatch(clearDataMask(globalState.dataMask[key].id)));
+    }
+  };
+  return (
+    <AntDTabs
+      animated={animated}
+      {...props}
+      css={theme => css`
+        overflow: ${allowOverflow ? 'visible' : 'hidden'};
 
-      .ant-tabs-content-holder {
-        overflow: ${allowOverflow ? 'visible' : 'auto'};
-      }
-      .ant-tabs-tab {
-        flex: 1 1 auto;
-        &.ant-tabs-tab-active .ant-tabs-tab-btn {
-          color: inherit;
+        .ant-tabs-content-holder {
+          overflow: ${allowOverflow ? 'visible' : 'auto'};
         }
-        &:hover {
-          .anchor-link-container {
-            cursor: pointer;
-            .fa.fa-link {
-              visibility: visible;
+        .ant-tabs-tab {
+          flex: 1 1 auto;
+          &.ant-tabs-tab-active .ant-tabs-tab-btn {
+            color: inherit;
+          }
+          &:hover {
+            .anchor-link-container {
+              cursor: pointer;
+              .fa.fa-link {
+                visibility: visible;
+              }
+            }
+          }
+          .short-link-trigger.btn {
+            padding: 0 ${theme.gridUnit}px;
+            & > .fa.fa-link {
+              top: 0;
             }
           }
         }
-        .short-link-trigger.btn {
-          padding: 0 ${theme.gridUnit}px;
-          & > .fa.fa-link {
-            top: 0;
+        ${fullWidth &&
+        css`
+          .ant-tabs-nav-list {
+            width: 100%;
+          }
+        `};
+
+        .ant-tabs-tab-btn {
+          display: flex;
+          flex: 1 1 auto;
+          align-items: center;
+          justify-content: center;
+          font-size: ${theme.typography.sizes.s}px;
+          text-align: center;
+          text-transform: uppercase;
+          user-select: none;
+          .required {
+            margin-left: ${theme.gridUnit / 2}px;
+            color: ${theme.colors.error.base};
           }
         }
-      }
-      ${fullWidth &&
-      css`
-        .ant-tabs-nav-list {
-          width: 100%;
+        .ant-tabs-ink-bar {
+          background: ${theme.colors.secondary.base};
         }
-      `};
-
-      .ant-tabs-tab-btn {
-        display: flex;
-        flex: 1 1 auto;
-        align-items: center;
-        justify-content: center;
-        font-size: ${theme.typography.sizes.s}px;
-        text-align: center;
-        text-transform: uppercase;
-        user-select: none;
-        .required {
-          margin-left: ${theme.gridUnit / 2}px;
-          color: ${theme.colors.error.base};
-        }
-      }
-      .ant-tabs-ink-bar {
-        background: ${theme.colors.secondary.base};
-      }
-    `}
-  />
-);
+      `}
+      onTabClick={handleChange}
+    />
+  );
+};
 
 const StyledTabPane = styled(AntDTabs.TabPane)``;
 
