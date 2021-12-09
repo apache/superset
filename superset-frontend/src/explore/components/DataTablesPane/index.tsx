@@ -305,7 +305,7 @@ export const DataTablesPane = ({
       const { colnames } = queriesResponse[0];
       setColumnNames({
         ...columnNames,
-        [RESULT_TYPES.results]: [...colnames],
+        [RESULT_TYPES.results]: colnames ? [...colnames] : [],
       });
     }
   }, [queriesResponse]);
