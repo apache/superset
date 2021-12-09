@@ -23,7 +23,7 @@ import setupClient from 'src/setup/setupClient';
 import Loading from 'src/components/Loading';
 
 const LazyApp = lazy(
-  () => import(/* webpackChunkName: "QueryList" */ 'src/views/App'),
+  () => import(/* webpackChunkName: "App" */ 'src/views/App'),
 );
 
 const EmbeddedPage = () => (
