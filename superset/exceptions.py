@@ -194,7 +194,7 @@ class CacheLoadError(SupersetException):
     status = 404
 
 
-class SupersetQueryParseException(SupersetException):
+class QueryClauseValidationException(SupersetException):
     status = 400
 
 

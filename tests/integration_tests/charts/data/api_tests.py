@@ -428,7 +428,6 @@ class TestPostChartDataApi(BaseTestChartDataApi):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_invalid_where_parameter_closing_unclosed__400(self):
         self.query_context_payload["queries"][0]["filters"] = []
-        # WHERE-clause closing unclosed parens
         self.query_context_payload["queries"][0]["extras"][
             "where"
         ] = "state = 'CA') OR (state = 'NY'"
@@ -440,7 +439,6 @@ class TestPostChartDataApi(BaseTestChartDataApi):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_invalid_having_parameter_closing_and_comment__400(self):
         self.query_context_payload["queries"][0]["filters"] = []
-        # WHERE-clause with unclosed parens
         self.query_context_payload["queries"][0]["extras"][
             "having"
         ] = "COUNT(1) = 0) UNION ALL SELECT 'abc', 1--comment"

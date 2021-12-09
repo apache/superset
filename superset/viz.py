@@ -62,9 +62,9 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
     NullValueException,
+    QueryClauseValidationException,
     QueryObjectValidationError,
     SpatialException,
-    SupersetQueryParseException,
     SupersetSecurityException,
 )
 from superset.extensions import cache_manager, security_manager
@@ -381,7 +381,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             if clause:
                 try:
                     validate_filter_clause(clause)
-                except SupersetQueryParseException as ex:
+                except QueryClauseValidationException as ex:
                     raise QueryObjectValidationError(ex.message) from ex
 
         # extras are used to query elements specific to a datasource type

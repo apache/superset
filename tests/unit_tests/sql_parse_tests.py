@@ -23,7 +23,7 @@ from typing import Set
 import pytest
 import sqlparse
 
-from superset.exceptions import SupersetQueryParseException
+from superset.exceptions import QueryClauseValidationException
 from superset.sql_parse import (
     ParsedQuery,
     strip_comments_from_sql,
@@ -1167,35 +1167,35 @@ def test_validate_filter_clause_valid():
 
 
 def test_validate_filter_clause_closing_unclosed():
-    with pytest.raises(SupersetQueryParseException):
+    with pytest.raises(QueryClauseValidationException):
         validate_filter_clause("col1 = 1) AND (col2 = 2)")
 
 
 def test_validate_filter_clause_unclosed():
-    with pytest.raises(SupersetQueryParseException):
+    with pytest.raises(QueryClauseValidationException):
         validate_filter_clause("(col1 = 1) AND (col2 = 2")
 
 
 def test_validate_filter_clause_closing_and_unclosed():
-    with pytest.raises(SupersetQueryParseException):
+    with pytest.raises(QueryClauseValidationException):
         validate_filter_clause("col1 = 1) AND (col2 = 2")
 
 
 def test_validate_filter_clause_closing_and_unclosed_nested():
-    with pytest.raises(SupersetQueryParseException):
+    with pytest.raises(QueryClauseValidationException):
         validate_filter_clause("(col1 = 1)) AND ((col2 = 2)")
 
 
 def test_validate_filter_clause_multiple():
-    with pytest.raises(SupersetQueryParseException):
+    with pytest.raises(QueryClauseValidationException):
         validate_filter_clause("TRUE; SELECT 1")
 
 
 def test_validate_filter_clause_comment():
-    with pytest.raises(SupersetQueryParseException):
+    with pytest.raises(QueryClauseValidationException):
         validate_filter_clause("1 = 1 -- comment")
 
 
 def test_validate_filter_clause_subquery_comment():
-    with pytest.raises(SupersetQueryParseException):
+    with pytest.raises(QueryClauseValidationException):
         validate_filter_clause("(1 = 1 -- comment\n)")

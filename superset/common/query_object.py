@@ -25,7 +25,10 @@ from flask_babel import gettext as _
 from pandas import DataFrame
 
 from superset.common.chart_data import ChartDataResultType
-from superset.exceptions import QueryObjectValidationError, SupersetQueryParseException
+from superset.exceptions import (
+    QueryClauseValidationException,
+    QueryObjectValidationError,
+)
 from superset.sql_parse import validate_filter_clause
 from superset.typing import Column, Metric, OrderBy
 from superset.utils import pandas_postprocessing
@@ -293,7 +296,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             if clause:
                 try:
                     validate_filter_clause(clause)
-                except SupersetQueryParseException as ex:
+                except QueryClauseValidationException as ex:
                     raise QueryObjectValidationError(ex.message) from ex
 
     def _validate_there_are_no_missing_series(self) -> None:
