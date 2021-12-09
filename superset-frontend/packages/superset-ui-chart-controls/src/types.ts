@@ -229,7 +229,7 @@ export type SelectControlType =
   | 'FilterBoxItemControl';
 
 // via react-select/src/filters
-interface FilterOption<T extends SelectOption> {
+export interface FilterOption<T extends SelectOption> {
   label: string;
   value: string;
   data: T;
