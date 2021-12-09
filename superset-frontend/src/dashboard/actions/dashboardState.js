@@ -347,7 +347,7 @@ export function saveDashboardRequest(data, id, saveType) {
         .catch(response => onError(response));
     }
     // changing the data as the endpoint requires
-    const copyData = cleanedData;
+    const copyData = { ...cleanedData };
     if (copyData.metadata) {
       delete copyData.metadata;
     }
