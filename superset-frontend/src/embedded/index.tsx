@@ -16,35 +16,94 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom';
-import App from 'src/views/App';
+import Loading from 'src/components/Loading';
 
-const MESSAGE_TYPE = '__embedded_comms__';
-const ALLOW_ORIGINS = ['http://127.0.0.1:9001', 'http://localhost:9001'];
+const LazyApp = lazy(
+  () => import(/* webpackChunkName: "QueryList" */ 'src/views/App'),
+);
 
-function start(token: string) {
-  document.cookie = `__guest_token__=${token}`;
-  ReactDOM.render(<App />, document.getElementById('app'));
+const EmbeddedPage = () => (
+  <Suspense fallback={<Loading />}>
+    <LazyApp />
+  </Suspense>
+);
+
+try {
+  const appMountPoint = document.getElementById('app')!;
+
+  const MESSAGE_TYPE = '__embedded_comms__';
+
+  if (!window.parent) {
+    appMountPoint.innerHTML =
+      'This page is intended to be embedded in an iframe, but no window.parent was found.';
+  }
+
+  if (!window.name) {
+    appMountPoint.innerHTML =
+      'This page is intended to be embedded by the Superset SDK, but there does not appear to be an SDK context present.';
+  }
+
+  // todo: check the referrer on the route serving this page and serve this list in bootstrap data
+  const ALLOW_ORIGINS = ['http://127.0.0.1:9001', 'http://localhost:9001'];
+  const parentOrigin = new URL(document.referrer).origin;
+  if (!ALLOW_ORIGINS.includes(parentOrigin)) {
+    throw new Error(
+      `[superset] iframe parent ${parentOrigin} is not in the list of allowed origins`,
+    );
+  }
+
+  async function start(token: string) {
+    document.cookie = `__guest_token__=${token}`;
+    ReactDOM.render(<EmbeddedPage />, appMountPoint);
+  }
+
+  console.info('[superset] posting handshake init');
+  window.parent.postMessage(
+    { type: MESSAGE_TYPE, iframeName: window.name, handshake: 'init' },
+    parentOrigin,
+  );
+
+  function validateMessageEvent(event: MessageEvent<any>) {
+    if (
+      event.data?.type === 'webpackClose' ||
+      event.data?.source === '@devtools-page'
+    ) {
+      throw new Error("Sir, this is a Wendy's");
+    }
+    if (!ALLOW_ORIGINS.includes(event.origin)) {
+      throw new Error('Message origin is not in the allowed list');
+    }
+
+    if (typeof event.data !== 'object' || event.data.type !== MESSAGE_TYPE) {
+      throw new Error(
+        `Message type does not match type used for embedded comms`,
+      );
+    }
+  }
+
+  window.addEventListener('message', function (event) {
+    try {
+      validateMessageEvent(event);
+    } catch (err) {
+      console.info('[superset] ignoring message', err, event);
+      return;
+    }
+
+    console.info('[superset] received message', event);
+    const hostAppPort = event.ports?.[0];
+    if (hostAppPort) {
+      hostAppPort.onmessage = function receiveMessage(event) {
+        console.info('[superset] received message event', event.data);
+        if (event.data.guestToken) {
+          start(event.data.guestToken);
+        }
+      };
+    }
+  });
+
+  console.info('[superset] embed page is ready to receive messages');
+} catch (err) {
+  console.error(err);
 }
-
-window.addEventListener('message', function (event) {
-  if (!ALLOW_ORIGINS.includes(event.origin)) {
-    return;
-  }
-
-  let data: any = {};
-  try {
-    data = JSON.parse(event.data);
-  } catch (err) {
-    return;
-  }
-
-  if (data.type !== MESSAGE_TYPE) {
-    return;
-  }
-
-  if (data.embedToken) {
-    start(data.embedToken);
-  }
-});
