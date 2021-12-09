@@ -20,9 +20,16 @@
 import unittest
 from typing import Set
 
+import pytest
 import sqlparse
 
-from superset.sql_parse import ParsedQuery, strip_comments_from_sql, Table
+from superset.exceptions import QueryClauseValidationException
+from superset.sql_parse import (
+    ParsedQuery,
+    strip_comments_from_sql,
+    Table,
+    validate_filter_clause,
+)
 
 
 def extract_tables(query: str) -> Set[Table]:
@@ -1144,3 +1151,51 @@ def test_strip_comments_from_sql() -> None:
         strip_comments_from_sql("SELECT '--abc' as abc, col2 FROM table1\n")
         == "SELECT '--abc' as abc, col2 FROM table1"
     )
+
+
+def test_validate_filter_clause_valid():
+    # regular clauses
+    assert validate_filter_clause("col = 1") is None
+    assert validate_filter_clause("1=\t\n1") is None
+    assert validate_filter_clause("(col = 1)") is None
+    assert validate_filter_clause("(col1 = 1) AND (col2 = 2)") is None
+
+    # Valid literal values that appear to be invalid
+    assert validate_filter_clause("col = 'col1 = 1) AND (col2 = 2'") is None
+    assert validate_filter_clause("col = 'select 1; select 2'") is None
+    assert validate_filter_clause("col = 'abc -- comment'") is None
+
+
+def test_validate_filter_clause_closing_unclosed():
+    with pytest.raises(QueryClauseValidationException):
+        validate_filter_clause("col1 = 1) AND (col2 = 2)")
+
+
+def test_validate_filter_clause_unclosed():
+    with pytest.raises(QueryClauseValidationException):
+        validate_filter_clause("(col1 = 1) AND (col2 = 2")
+
+
+def test_validate_filter_clause_closing_and_unclosed():
+    with pytest.raises(QueryClauseValidationException):
+        validate_filter_clause("col1 = 1) AND (col2 = 2")
+
+
+def test_validate_filter_clause_closing_and_unclosed_nested():
+    with pytest.raises(QueryClauseValidationException):
+        validate_filter_clause("(col1 = 1)) AND ((col2 = 2)")
+
+
+def test_validate_filter_clause_multiple():
+    with pytest.raises(QueryClauseValidationException):
+        validate_filter_clause("TRUE; SELECT 1")
+
+
+def test_validate_filter_clause_comment():
+    with pytest.raises(QueryClauseValidationException):
+        validate_filter_clause("1 = 1 -- comment")
+
+
+def test_validate_filter_clause_subquery_comment():
+    with pytest.raises(QueryClauseValidationException):
+        validate_filter_clause("(1 = 1 -- comment\n)")
