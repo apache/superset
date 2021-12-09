@@ -30,6 +30,7 @@ import { areArraysShallowEqual } from 'src/reduxUtils';
 import { Tooltip } from 'src/components/Tooltip';
 import { detectOS } from 'src/utils/common';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
+import Modal from 'src/components/Modal';
 import SqlEditor from '../SqlEditor';
 import TabStatusIcon from '../TabStatusIcon';
 
@@ -296,7 +297,15 @@ class TabbedSqlEditors extends React.PureComponent {
   }
 
   removeQueryEditor(qe) {
-    this.props.actions.removeQueryEditor(qe);
+    if (this.props.queryEditors.length > 1) {
+      this.props.actions.removeQueryEditor(qe);
+    } else {
+      Modal.error({
+        title: 'Error',
+        content: 'Last tab cannot not be closed.',
+        okButtonProps: { danger: true, className: 'btn-danger' },
+      });
+    }
   }
 
   removeAllOtherQueryEditors(cqe) {
