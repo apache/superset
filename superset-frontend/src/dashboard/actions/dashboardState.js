@@ -18,7 +18,7 @@
  */
 /* eslint camelcase: 0 */
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
-import { t, SupersetClient } from '@superset-ui/core';
+import { ensureIsArray, t, SupersetClient } from '@superset-ui/core';
 import { addChart, removeChart, refreshChart } from 'src/chart/chartAction';
 import { chart as initChart } from 'src/chart/chartReducer';
 import { applyDefaultFormData } from 'src/explore/store';
@@ -35,7 +35,11 @@ import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { safeStringify } from 'src/utils/safeStringify';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from './dashboardLayout';
-import { setChartConfiguration } from './dashboardInfo';
+import {
+  setChartConfiguration,
+  dashboardInfoChanged,
+  SET_CHART_CONFIG_COMPLETE,
+} from './dashboardInfo';
 import { fetchDatasourceMetadata } from './datasources';
 import {
   addFilter,
@@ -171,8 +175,6 @@ export function saveDashboardRequestSuccess(lastModifiedTime) {
 }
 
 export function saveDashboardRequest(data, id, saveType) {
-  const path = saveType === SAVE_TYPE_OVERWRITE ? 'save_dash' : 'copy_dash';
-
   return (dispatch, getState) => {
     dispatch({ type: UPDATE_COMPONENTS_PARENTS_LIST });
 
@@ -340,7 +342,7 @@ export function saveDashboardRequest(data, id, saveType) {
         .catch(response => onError(response));
     }
     // changing the data as the endpoint requires
-    const copyData = { ...cleanedData };
+    const copyData = cleanedData;
     if (copyData.metadata) {
       delete copyData.metadata;
     }
@@ -350,53 +352,17 @@ export function saveDashboardRequest(data, id, saveType) {
       ...(cleanedData?.metadata || {}),
     };
     return SupersetClient.post({
-      endpoint: `/superset/${path}/${id}/`,
+      endpoint: `/superset/copy_dash/${id}/`,
       postPayload: {
         data: {
-          ...data,
+          ...finalCopyData,
           default_filters: safeStringify(serializedFilters),
           filter_scopes: safeStringify(serializedFilterScopes),
         },
       },
     })
-      .then(response => {
-        if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
-          const {
-            dashboardInfo: {
-              metadata: { chart_configuration = {} },
-            },
-          } = getState();
-          const chartConfiguration = Object.values(chart_configuration).reduce(
-            (prev, next) => {
-              // If chart removed from dashboard - remove it from metadata
-              if (
-                Object.values(layout).find(
-                  layoutItem => layoutItem?.meta?.chartId === next.id,
-                )
-              ) {
-                return { ...prev, [next.id]: next };
-              }
-              return prev;
-            },
-            {},
-          );
-          dispatch(setChartConfiguration(chartConfiguration));
-        }
-        dispatch(saveDashboardRequestSuccess(response.json.last_modified_time));
-        dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
-        return response;
-      })
-      .catch(response =>
-        getClientErrorObject(response).then(({ error }) =>
-          dispatch(
-            addDangerToast(
-              `${t(
-                'Sorry, there was an error saving this dashboard: ',
-              )} ${error}`,
-            ),
-          ),
-        ),
-      );
+      .then(response => onCopySuccess(response))
+      .catch(response => onError(response));
   };
 }
 
