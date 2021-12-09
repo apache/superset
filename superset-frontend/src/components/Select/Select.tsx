@@ -171,7 +171,6 @@ const StyledSelect = styled(AntdSelect)`
     && .ant-select-selector {
       border-radius: ${theme.gridUnit}px;
     }
-
     // Open the dropdown when clicking on the suffix
     // This is fixed in version 4.16
     .ant-select-arrow .anticon:not(.ant-select-suffix) {
@@ -196,7 +195,6 @@ const StyledError = styled.div`
     width: 100%;
     padding: ${theme.gridUnit * 2}px;
     color: ${theme.colors.error.base};
-
     & svg {
       margin-right: ${theme.gridUnit * 2}px;
     }
@@ -298,8 +296,9 @@ const Select = ({
   const shouldShowSearch = isAsync || allowNewOptions ? true : showSearch;
   const initialOptions =
     options && Array.isArray(options) ? options : EMPTY_OPTIONS;
-  const [selectOptions, setSelectOptions] =
-    useState<OptionsType>(initialOptions);
+  const [selectOptions, setSelectOptions] = useState<OptionsType>(
+    initialOptions.sort(sortComparator),
+  );
   const shouldUseChildrenOptions = !!selectOptions.find(
     opt => opt?.customLabel,
   );

@@ -114,7 +114,7 @@ const config: ControlPanelConfig = {
               label: t('XScale Interval'),
               renderTrigger: true,
               choices: formatSelectOptionsForRange(1, 50),
-              default: '1',
+              default: 1,
               clearable: false,
               description: t(
                 'Number of steps to take between ticks when displaying the X scale',
@@ -129,7 +129,7 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               label: t('YScale Interval'),
               choices: formatSelectOptionsForRange(1, 50),
-              default: '1',
+              default: 1,
               clearable: false,
               renderTrigger: true,
               description: t(
