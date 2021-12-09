@@ -27,6 +27,7 @@ import { styledMount as mount } from 'spec/helpers/theming';
 const defaultProps = {
   choices: [
     ['1 year ago', '1 year ago'],
+    ['1 week ago', '1 week ago'],
     ['today', 'today'],
   ],
   name: 'row_limit',
@@ -36,8 +37,9 @@ const defaultProps = {
 };
 
 const options = [
-  { value: '1 year ago', label: '1 year ago' },
-  { value: 'today', label: 'today' },
+  { value: '1 year ago', label: '1 year ago', order: 0 },
+  { value: '1 week ago', label: '1 week ago', order: 1 },
+  { value: 'today', label: 'today', order: 2 },
 ];
 
 describe('SelectControl', () => {
@@ -149,6 +151,37 @@ describe('SelectControl', () => {
         expect(wrapper.html()).not.toContain('add something');
       });
     });
+
+    describe('when select has a sortComparator prop', () => {
+      it('does not add add order key and sorts by sortComparator', () => {
+        const sortComparator = (a, b) => a.label.localeCompare(b.label);
+        const optionsSortedByLabel = options
+          .map(opt => ({ label: opt.label, value: opt.value }))
+          .sort(sortComparator);
+        wrapper = mount(
+          <SelectControl
+            {...defaultProps}
+            sortComparator={sortComparator}
+            value={50}
+            placeholder="add something"
+          />,
+        );
+        expect(wrapper.state().options).toEqual(optionsSortedByLabel);
+      });
+    });
+
+    describe('when select does not have a sortComparator prop', () => {
+      it('adds an order key and maintains its intial order', () => {
+        wrapper = mount(
+          <SelectControl
+            {...defaultProps}
+            value={50}
+            placeholder="add something"
+          />,
+        );
+        expect(wrapper.state().options).toEqual(options);
+      });
+    });
   });
 
   describe('getOptions', () => {
@@ -160,8 +193,8 @@ describe('SelectControl', () => {
   describe('UNSAFE_componentWillReceiveProps', () => {
     it('sets state.options if props.choices has changed', () => {
       const updatedOptions = [
-        { value: 'three', label: 'three' },
-        { value: 'four', label: 'four' },
+        { value: 'three', label: 'three', order: 0 },
+        { value: 'four', label: 'four', order: 1 },
       ];
       const newProps = {
         choices: [
