@@ -72,6 +72,7 @@ const propTypes = {
   forcedHeight: PropTypes.string,
   form_data: PropTypes.object.isRequired,
   standalone: PropTypes.number.isRequired,
+  force: PropTypes.bool,
   timeout: PropTypes.number,
   impressionId: PropTypes.string,
   vizType: PropTypes.string,
@@ -206,6 +207,8 @@ function ExploreViewContainer(props) {
         formData,
         props.standalone ? URL_PARAMS.standalone.name : null,
         false,
+        {},
+        props.force,
       );
 
       try {
@@ -224,7 +227,7 @@ function ExploreViewContainer(props) {
         );
       }
     },
-    [props.form_data, props.standalone],
+    [props.form_data, props.standalone, props.force],
   );
 
   const handlePopstate = useCallback(() => {
@@ -233,7 +236,7 @@ function ExploreViewContainer(props) {
       props.actions.setExploreControls(formData);
       props.actions.postChartFormData(
         formData,
-        false,
+        props.force,
         props.timeout,
         props.chart.id,
       );
@@ -643,6 +646,7 @@ function mapStateToProps(state) {
     table_name: form_data.datasource_name,
     vizType: form_data.viz_type,
     standalone: explore.standalone,
+    force: explore.force,
     forcedHeight: explore.forced_height,
     chart,
     timeout: explore.common.conf.SUPERSET_WEBSERVER_TIMEOUT,

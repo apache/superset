@@ -107,11 +107,6 @@ class WebDriverProxy:
     def get_screenshot(
         self, url: str, element_name: str, user: "User"
     ) -> Optional[bytes]:
-        params = {"standalone": DashboardStandaloneMode.REPORT.value}
-        req = PreparedRequest()
-        req.prepare_url(url, params)
-        url = req.url or ""
-
         driver = self.auth(user)
         driver.set_window_size(*self._window)
         driver.get(url)

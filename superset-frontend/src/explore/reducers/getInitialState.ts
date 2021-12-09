@@ -48,6 +48,7 @@ export interface ExlorePageBootstrapData extends JsonObject {
   form_data: QueryFormData;
   slice: Slice | null;
   standalone: boolean;
+  force: boolean;
   user: UserWithPermissionsAndRoles;
 }
 

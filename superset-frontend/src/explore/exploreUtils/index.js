@@ -99,6 +99,7 @@ export function getExploreLongUrl(
   endpointType,
   allowOverflow = true,
   extraSearch = {},
+  force = false,
 ) {
   if (!formData.datasource) {
     return null;
@@ -112,6 +113,9 @@ export function getExploreLongUrl(
   });
   search.form_data = safeStringify(formData);
   if (endpointType === URL_PARAMS.standalone.name) {
+    if (force) {
+      search.force = '1';
+    }
     search.standalone = DashboardStandaloneMode.HIDE_NAV;
   }
   const url = uri.directory(directory).search(search).toString();
@@ -120,9 +124,15 @@ export function getExploreLongUrl(
       datasource: formData.datasource,
       viz_type: formData.viz_type,
     };
-    return getExploreLongUrl(minimalFormData, endpointType, false, {
-      URL_IS_TOO_LONG_TO_SHARE: null,
-    });
+    return getExploreLongUrl(
+      minimalFormData,
+      endpointType,
+      false,
+      {
+        URL_IS_TOO_LONG_TO_SHARE: null,
+      },
+      force,
+    );
   }
   return url;
 }

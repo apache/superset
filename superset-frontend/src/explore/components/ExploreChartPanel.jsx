@@ -51,6 +51,7 @@ const propTypes = {
   form_data: PropTypes.object,
   ownState: PropTypes.object,
   standalone: PropTypes.number,
+  force: PropTypes.bool,
   timeout: PropTypes.number,
   refreshOverlayVisible: PropTypes.bool,
   chart: chartPropShape,
@@ -134,7 +135,7 @@ const ExploreChartPanel = props => {
       if (slice && slice.query_context === null) {
         const queryContext = buildV1ChartDataPayload({
           formData: slice.form_data,
-          force: false,
+          force: props.force,
           resultFormat: 'json',
           resultType: 'full',
           setDataMask: null,
@@ -230,6 +231,7 @@ const ExploreChartPanel = props => {
           chartId={chart.id}
           chartStatus={chart.chartStatus}
           triggerRender={props.triggerRender}
+          force={props.force}
           datasource={props.datasource}
           errorMessage={props.errorMessage}
           formData={props.form_data}
