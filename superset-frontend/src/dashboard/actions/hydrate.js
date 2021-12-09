@@ -59,7 +59,6 @@ import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
 import extractUrlParams from '../util/extractUrlParams';
 import getNativeFilterConfig from '../util/filterboxMigrationHelper';
-import { css } from 'jquery';
 
 export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
 

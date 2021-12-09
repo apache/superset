@@ -174,7 +174,7 @@ class Header extends React.PureComponent {
     this.startPeriodicRender(refreshFrequency * 1000);
     if (this.canAddReports()) {
       // this is in case there is an anonymous user.
-      if(Object.entries(dashboardInfo).length !== 0) {
+      if (Object.entries(dashboardInfo).length !== 0) {
         this.props.fetchUISpecificReport(
           user.userId,
           'dashboard_id',

@@ -40,7 +40,7 @@ import {
 import Loading from 'src/components/Loading';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 import { URL_PARAMS } from 'src/constants';
-import { getUrlParam} from 'src/utils/urlUtils';
+import { getUrlParam } from 'src/utils/urlUtils';
 import replaceUndefinedByNull from 'src/dashboard/util/replaceUndefinedByNull';
 import { checkIsApplyDisabled, TabIds } from './utils';
 import FilterSets from './FilterSets';
@@ -228,7 +228,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
           if (res === 'Value updated successfully.') {
             dataMaskKey = getParam;
           }
-        // eslint-disable-next-line no-empty
+          // eslint-disable-next-line no-empty
         } catch {}
       }
       newParams.set(URL_PARAMS.nativeFilters.name, dataMaskKey);
