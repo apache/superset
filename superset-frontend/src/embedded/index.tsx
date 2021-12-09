@@ -47,7 +47,9 @@ try {
       'This page is intended to be embedded by the Superset SDK, but there does not appear to be an SDK context present.';
   }
 
-  // todo: check the referrer on the route serving this page and serve this list in bootstrap data
+  // if the page is embedded in an origin that hasn't
+  // been authorized by the curator, we forbid access entirely.
+  // todo: check the referrer on the route serving this page instead
   const ALLOW_ORIGINS = ['http://127.0.0.1:9001', 'http://localhost:9001'];
   const parentOrigin = new URL(document.referrer).origin;
   if (!ALLOW_ORIGINS.includes(parentOrigin)) {
@@ -66,17 +68,12 @@ try {
     ReactDOM.render(<EmbeddedPage />, appMountPoint);
   }
 
-  console.info('[superset] posting handshake init');
-  window.parent.postMessage(
-    { type: MESSAGE_TYPE, iframeName: window.name, handshake: 'init' },
-    parentOrigin,
-  );
-
-  function validateMessageEvent(event: MessageEvent<any>) {
+  function validateMessageEvent(event: MessageEvent) {
     if (
       event.data?.type === 'webpackClose' ||
       event.data?.source === '@devtools-page'
     ) {
+      // sometimes devtools use the messaging api and we want to ignore those
       throw new Error("Sir, this is a Wendy's");
     }
 
