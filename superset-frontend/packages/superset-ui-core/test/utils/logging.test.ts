@@ -22,7 +22,8 @@ describe('logging', () => {
   beforeEach(() => {
     jest.resetModules();
     // Explicit is better than implicit
-    console.warn = console.error = function mockedConsole(message) {
+    // eslint-disable-next-line no-console
+    console.warn = console.error = function mockedConsole(message: string) {
       throw new Error(message);
     };
   });

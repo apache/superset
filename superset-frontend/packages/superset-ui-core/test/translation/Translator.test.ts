@@ -17,16 +17,16 @@
  * under the License.
  */
 
-import { logging } from '@superset-ui/core';
-import Translator from '@superset-ui/core/src/translation/Translator';
 import {
+  logging,
   configure,
   t,
   tn,
   addLocaleData,
   addTranslation,
   addTranslations,
-} from '@superset-ui/core/src/translation/TranslatorSingleton';
+} from '@superset-ui/core';
+import Translator from '../../src/translation/Translator';
 import languagePackZh from './languagePacks/zh';
 import languagePackEn from './languagePacks/en';
 

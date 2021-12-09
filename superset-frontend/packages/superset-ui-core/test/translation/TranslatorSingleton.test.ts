@@ -19,13 +19,8 @@
 
 /* eslint no-console: 0 */
 import mockConsole from 'jest-mock-console';
-import Translator from '@superset-ui/core/src/translation/Translator';
-import {
-  configure,
-  resetTranslation,
-  t,
-  tn,
-} from '@superset-ui/core/src/translation/TranslatorSingleton';
+import { configure, resetTranslation, t, tn } from '@superset-ui/core';
+import Translator from '../../src/translation/Translator';
 
 import languagePackEn from './languagePacks/en';
 import languagePackZh from './languagePacks/zh';
