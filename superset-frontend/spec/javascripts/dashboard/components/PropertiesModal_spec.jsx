@@ -59,7 +59,8 @@ fetchMock.get('glob:*/api/v1/dashboard/*', {
   },
 });
 
-describe('PropertiesModal', () => {
+// all these tests need to be moved to dashboard/components/PropertiesModal/PropertiesModal.test.tsx
+describe.skip('PropertiesModal', () => {
   afterEach(() => {
     jest.restoreAllMocks();
     jest.resetAllMocks();
