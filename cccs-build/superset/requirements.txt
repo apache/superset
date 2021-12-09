@@ -5,9 +5,6 @@ authlib==0.15.4
 python-json-logger==2.0.2
 
 # Additional drivers for Superset (or SQLAlchemy) to use
-# uncomment and update release number when pr https://github.com/dungdm93/sqlalchemy-trino/pull/22 is merged.
-# sqlalchemy-trino==0.3.0
-# In the meantime, use following line
-git+https://github.com/cccs-mmrouet/sqlalchemy-trino.git@feature/timestamp-fix
+sqlalchemy-trino>=0.4.0
 mysql-connector-python==8.0.26
 elasticsearch-dbapi==0.2.4
