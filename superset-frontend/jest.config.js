@@ -58,7 +58,10 @@ module.exports = {
     '^.+\\.jsx?$': 'babel-jest',
     // ts-jest can't load plugin 'babel-plugin-typescript-to-proptypes'
     'reactify\\.tsx$': 'babel-jest',
-    '^.+\\.tsx?$': 'ts-jest',
+    // ts-jest doesn't work with `--coverage`. @superset-ui/core should
+    // 100% coverage, so we use babel-jest in packages and plugins.
+    '(plugins|packages)\\/.+\\.[jt]sx?$': 'babel-jest',
+    '((?!(plugins|packages)).)\\/.+\\.tsx?$': 'ts-jest',
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   snapshotSerializers: ['@emotion/jest/enzyme-serializer'],
