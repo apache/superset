@@ -722,6 +722,43 @@ def test_email_chart_alert_schedule(
 
 
 @pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_alert_email_chart"
+)
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_email_chart_alert_schedule(
+    screenshot_mock, email_mock, create_alert_email_chart,
+):
+    """
+    ExecuteReport Command: Test chart email alert schedule with screenshot
+    """
+    # setup screenshot mock
+    screenshot_mock.return_value = SCREENSHOT_FILE
+
+    with freeze_time("2020-01-01T00:00:00Z"):
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID, create_alert_email_chart.id, datetime.utcnow()
+        ).run()
+
+        notification_targets = get_target_from_report_schedule(create_alert_email_chart)
+        # assert that the link sent is correct
+        assert (
+            '<a href="http://0.0.0.0:8080/superset/explore/?'
+            "form_data=%7B%22slice_id%22%3A+"
+            f"{create_alert_email_chart.chart.id}%7D&"
+            'standalone=true&force=true">Explore in Superset</a>'
+            in email_mock.call_args[0][2]
+        )
+        # Assert the email smtp address
+        assert email_mock.call_args[0][0] == notification_targets[0]
+        # Assert the email inline screenshot
+        smtp_images = email_mock.call_args[1]["images"]
+        assert smtp_images[list(smtp_images.keys())[0]] == SCREENSHOT_FILE
+        # Assert logs are correct
+        assert_log(ReportState.SUCCESS)
+
+
+@pytest.mark.usefixtures(
     "load_birth_names_dashboard_with_slices", "create_report_email_chart"
 )
 @patch("superset.reports.notifications.email.send_email_smtp")
