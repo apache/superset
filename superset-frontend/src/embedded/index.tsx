@@ -18,18 +18,32 @@
  */
 import React, { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom';
+import { BrowserRouter as Router, Route } from 'react-router-dom';
 import { bootstrapData } from 'src/preamble';
 import setupClient from 'src/setup/setupClient';
+import { RootContextProviders } from 'src/views/RootContextProviders';
+import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
 
-const LazyApp = lazy(
-  () => import(/* webpackChunkName: "App" */ 'src/views/App'),
-);
+const LazyDashboardPage = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "DashboardPage" */ 'src/dashboard/containers/DashboardPage'
+    ),
+)
 
-const EmbeddedPage = () => (
-  <Suspense fallback={<Loading />}>
-    <LazyApp />
-  </Suspense>
+const EmbeddedApp = () => (
+  <Router>
+    <Route path="/superset/dashboard/:idOrSlug/embedded">
+      <Suspense fallback={<Loading />}>
+        <RootContextProviders>
+          <ErrorBoundary>
+              <LazyDashboardPage />
+          </ErrorBoundary>
+        </RootContextProviders>
+      </Suspense>
+    </Route>
+  </Router>
 );
 
 try {
@@ -65,7 +79,7 @@ try {
       guestToken,
       guestTokenHeaderName: bootstrapData.config?.GUEST_TOKEN_HEADER_NAME,
     });
-    ReactDOM.render(<EmbeddedPage />, appMountPoint);
+    ReactDOM.render(<EmbeddedApp />, appMountPoint);
   }
 
   function validateMessageEvent(event: MessageEvent) {
