@@ -50,12 +50,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger()
 
 
-# Replace psycopg2.tz.FixedOffsetTimezone with pytz, which is serializable by PyArrow
-# https://github.com/stub42/pytz/blob/b70911542755aeeea7b5a9e066df5e1c87e8f2c8/src/pytz/reference.py#L25
-class FixedOffsetTimezone(_FixedOffset):
-    pass
-
-
 # Regular expressions to catch custom errors
 CONNECTION_INVALID_USERNAME_REGEX = re.compile(
     'role "(?P<username>.*?)" does not exist'
@@ -168,7 +162,6 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     def fetch_data(
         cls, cursor: Any, limit: Optional[int] = None
     ) -> List[Tuple[Any, ...]]:
-        cursor.tzinfo_factory = FixedOffsetTimezone
         if not cursor.description:
             return []
         return super().fetch_data(cursor, limit)
