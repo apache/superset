@@ -32,7 +32,6 @@ from typing import (
 )
 
 from flask_babel import gettext as __
-from pytz import _FixedOffset
 from sqlalchemy.dialects.postgresql import ARRAY, DOUBLE_PRECISION, ENUM, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
 from sqlalchemy.types import String, TypeEngine
