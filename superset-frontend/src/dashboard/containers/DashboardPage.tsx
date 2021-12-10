@@ -186,6 +186,7 @@ const DashboardPage: FC = () => {
           ),
         );
       }
+      return null;
     }
     if (dashboard?.id) getDataMaskApplied();
     // eslint-disable-next-line react-hooks/exhaustive-deps
