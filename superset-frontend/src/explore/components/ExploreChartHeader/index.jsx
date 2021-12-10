@@ -44,7 +44,7 @@ import Timer from 'src/components/Timer';
 import CachedLabel from 'src/components/CachedLabel';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';
-import CertifiedIcon from 'src/components/CertifiedIcon';
+import CertifiedBadge from 'src/components/CertifiedBadge';
 import ExploreActionButtons from '../ExploreActionButtons';
 import RowCountLabel from '../RowCountLabel';
 
@@ -269,7 +269,7 @@ export class ExploreChartHeader extends React.PureComponent {
         <div className="title-panel">
           {slice?.certified_by && (
             <>
-              <CertifiedIcon
+              <CertifiedBadge
                 certifiedBy={slice.certified_by}
                 details={slice.certification_details}
               />{' '}

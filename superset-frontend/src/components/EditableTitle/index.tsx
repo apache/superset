@@ -20,7 +20,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import cx from 'classnames';
 import { styled, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
-import CertifiedIcon from '../CertifiedIcon';
+import CertifiedBadge from '../CertifiedBadge';
 
 export interface EditableTitleProps {
   canEdit?: boolean;
@@ -39,7 +39,7 @@ export interface EditableTitleProps {
   certificationDetails?: string;
 }
 
-const StyledCertifiedIcon = styled(CertifiedIcon)`
+const StyledCertifiedBadge = styled(CertifiedBadge)`
   vertical-align: middle;
 `;
 
@@ -233,7 +233,7 @@ export default function EditableTitle({
     >
       {certifiedBy && (
         <>
-          <StyledCertifiedIcon
+          <StyledCertifiedBadge
             certifiedBy={certifiedBy}
             details={certificationDetails}
           />{' '}
