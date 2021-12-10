@@ -1,0 +1,92 @@
+---
+name: Running Frontend Assets Locally
+menu: Installation and Configuration
+route: /docs/installation/local-frontend
+index: 3
+version: 1
+---
+
+### Frontend
+
+If you plan to make contributions to the superset frontend (contained within the `superset-frontend` folder in the main repo),
+frontend assets (TypeScript, JavaScript, CSS, and images) must be compiled in order to properly display the web UI.
+The `superset-frontend` directory contains all NPM-managed frontend assets.
+Note that for some legacy pages there are additional frontend assets bundled with Flask-Appbuilder (e.g. jQuery and bootstrap).
+These are not managed by NPM and may be phased out in the future.
+
+#### Prerequisite
+
+##### nvm and node
+
+First, be sure you are using the following versions of Node.js and npm:
+
+- `Node.js`: Version 16
+- `npm`: Version 7
+
+We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage your node environment:
+
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install.sh | bash
+
+cd superset-frontend
+nvm install --lts
+nvm use --lts
+```
+
+Or if you use the default macOS starting with Catalina shell `zsh`, try:
+
+```zsh
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install.sh)"
+```
+
+For those interested, you may also try out [avn](https://github.com/nvm-sh/nvm#deeper-shell-integration) to automatically
+switch to the node version that is required to run Superset frontend.
+
+#### Install dependencies
+
+Install third-party dependencies listed in `package.json` via:
+
+```bash
+# From the root of the repository
+cd superset-frontend
+
+# Install dependencies from `package-lock.json`
+npm ci
+```
+
+#### Build assets
+
+There are three types of assets you can build:
+
+1. `npm run build`: the production assets, CSS/JSS minified and optimized
+2. `npm run dev-server`: local development assets, with sourcemaps and hot refresh support
+3. `npm run build-instrumented`: instrumented application code for collecting code coverage from Cypress tests
+
+#### Webpack dev server
+
+The dev server by default starts at `http://localhost:9000` and proxies the backend requests to `http://localhost:8088`.
+It's possible to change these settings:
+
+```bash
+# Start the dev server at http://localhost:9000
+npm run dev-server
+
+# Run the dev server on a non-default port
+npm run dev-server -- --devserverPort=9001
+
+# Proxy backend requests to a Flask server running on a non-default port
+npm run dev-server -- --supersetPort=8081
+
+# Proxy to a remote backend but serve local assets
+npm run dev-server -- --superset=https://superset-dev.example.com
+```
+
+The `--superset=` option is useful in case you want to debug a production issue or have to setup Superset behind a firewall.
+It allows you to run Flask server in another environment while keep assets building locally for the best developer experience.
+
+#### Other npm commands
+
+Alternatively, there are other NPM commands you may find useful:
+
+1. `npm run build-dev`: build assets in development mode.
+2. `npm run dev`: built dev assets in watch mode, will automatically rebuild when a file changes
