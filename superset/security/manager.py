@@ -1278,11 +1278,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             logger.warning(ex)
             return None
         else:
-            user = token["user"]
             return self.guest_user_cls(
-                user.get("username", "guest_user"),
-                user.get("first_name", "Guest"),
-                user.get("last_name", "User"),
+                token=token,
+                roles=[self.find_role(current_app.config["GUEST_ROLE_NAME"])],
             )
 
     @staticmethod

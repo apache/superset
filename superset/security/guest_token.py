@@ -16,6 +16,7 @@
 # under the License.
 from typing import List, Optional, TypedDict, Union
 
+from flask_appbuilder.security.sqla.models import Role
 from flask_login import AnonymousUserMixin
 
 
@@ -45,7 +46,11 @@ class GuestUser(AnonymousUserMixin):
 
     is_guest_user = True
 
-    def __init__(self, username: str, first_name: str, last_name: str):
-        self.username = username
-        self.first_name = first_name
-        self.last_name = last_name
+    def __init__(self, token: GuestToken, roles: List[Role]):
+        user = token["user"]
+        self.guest_token = token
+        self.username = user.get("username", "guest_user"),
+        self.first_name = user.get("first_name", "Guest"),
+        self.last_name = user.get("last_name", "User"),
+        self.roles = roles,
+        self.resources = token["resources"],
