@@ -303,12 +303,12 @@ export const DataTablesPane = ({
   useEffect(() => {
     if (queriesResponse && chartStatus === 'success') {
       const { colnames } = queriesResponse[0];
-      setColumnNames({
-        ...columnNames,
+      setColumnNames(prevColumnNames => ({
+        ...prevColumnNames,
         [RESULT_TYPES.results]: colnames ? [...colnames] : [],
-      });
+      }));
     }
-  }, [queriesResponse]);
+  }, [queriesResponse, chartStatus]);
 
   useEffect(() => {
     if (panelOpen && isRequestPending[RESULT_TYPES.results]) {
