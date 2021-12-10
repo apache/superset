@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { buildQueryContext, QueryFormData } from '@superset-ui/core';
+import {
+  buildQueryContext,
+  DTTM_ALIAS,
+  QueryFormData,
+} from '@superset-ui/core';
 import { rollingWindowOperator } from '@superset-ui/chart-controls';
 
 export default function buildQuery(formData: QueryFormData) {
@@ -29,7 +33,17 @@ export default function buildQuery(formData: QueryFormData) {
       {
         ...baseQueryObject,
         is_timeseries: true,
-        post_processing: [postProc],
+        post_processing: [
+          {
+            operation: 'sort',
+            options: {
+              columns: {
+                [DTTM_ALIAS]: true,
+              },
+            },
+          },
+          postProc,
+        ],
       },
     ];
   });
