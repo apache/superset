@@ -46,6 +46,14 @@ class GuestUser(AnonymousUserMixin):
 
     is_guest_user = True
 
+    @property
+    def is_authenticated(self):
+        return True
+
+    @property
+    def is_anonymous(self):
+        return False
+
     def __init__(self, token: GuestToken, roles: List[Role]):
         user = token["user"]
         self.guest_token = token
