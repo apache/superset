@@ -49,7 +49,7 @@ import ImportModelsModal from 'src/components/ImportModal/index';
 import OmniContainer from 'src/components/OmniContainer';
 
 import Dashboard from 'src/dashboard/containers/Dashboard';
-import CertifiedIcon from 'src/components/CertifiedIcon';
+import CertifiedBadge from 'src/components/CertifiedBadge';
 import DashboardCard from './DashboardCard';
 import { DashboardStatus } from './types';
 
@@ -266,7 +266,7 @@ function DashboardList(props: DashboardListProps) {
           <Link to={url}>
             {certifiedBy && (
               <>
-                <CertifiedIcon
+                <CertifiedBadge
                   certifiedBy={certifiedBy}
                   details={certificationDetails}
                 />{' '}
