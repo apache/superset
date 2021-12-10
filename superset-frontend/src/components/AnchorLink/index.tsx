@@ -66,7 +66,7 @@ function AnchorLink({
     if (hash && anchorLinkId === hash) {
       scrollToView();
     }
-  });
+  }, []);
 
   return (
     <span className="anchor-link-container" id={anchorLinkId}>
