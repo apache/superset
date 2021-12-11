@@ -137,7 +137,7 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
             embedded_dashboard_ids = [
                 r["id"]
                 for r in guest_user.resources
-                if r["type"] == GuestTokenResourceType.DASHBOARD
+                if r["type"] == GuestTokenResourceType.DASHBOARD.value
             ]
             if len(embedded_dashboard_ids) != 0:
                 feature_flagged_filters.append(Dashboard.id.in_(embedded_dashboard_ids))
