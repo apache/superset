@@ -65,6 +65,9 @@ under the License.
 - [#16136](https://github.com/apache/superset/pull/16136) feat: add profiling to Superset pages (@betodealmeida)
 
 **Fixes**
+- [#17570](https://github.com/apache/superset/pull/17570) fix: Save properties after applying changes in Dashboard (@geido)
+- [#17707](https://github.com/apache/superset/pull/17707) fix(Dashboard): Copy dashboard with duplicating charts 500 error (@geido)
+- [#16041](https://github.com/apache/superset/pull/16041) fix: set correct schema on config import (@betodealmeida)
 - [#17386](https://github.com/apache/superset/pull/17386) fix(sqllab): Have table name tooltip only show when name is truncated (@corbinrobb)
 - [#17431](https://github.com/apache/superset/pull/17431) fix: use full resultType with csv download on chart in dashboard (@eschutho)
 - [#17419](https://github.com/apache/superset/pull/17419) fix: avoid escaping bind-like params containing colons (@villebro)
@@ -221,6 +224,7 @@ under the License.
 - [#15762](https://github.com/apache/superset/pull/15762) fix: Align alert solid small svg center (@duynguyenhoang)
 
 **Others**
+- [#17702](https://github.com/apache/superset/pull/17702) chore(sql): clean up invalid filter clause exception types (@villebro)
 - [#17579](https://github.com/apache/superset/pull/17579) chore(datasets): Sanitizing /save response (@craig-rueda)
 - [#17005](https://github.com/apache/superset/pull/17005) ci: skip unnecessary test steps (@villebro)
 - [#16609](https://github.com/apache/superset/pull/16609) chore: Select component refactoring - SelectAsyncControl - Iteration 5 (@geido)
