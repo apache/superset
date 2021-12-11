@@ -47,18 +47,27 @@ class GuestUser(AnonymousUserMixin):
     is_guest_user = True
 
     @property
-    def is_authenticated(self):
+    def is_authenticated(self) -> bool:
+        """
+        This is set to true because guest users should be considered authenticated,
+        at least in most places. The treatment of this flag is pretty inconsistent.
+        """
         return True
 
     @property
-    def is_anonymous(self):
+    def is_anonymous(self) -> bool:
+        """
+        This is set to false because lots of code assumes that
+        role = Public if user.is_anonymous == false.
+        But guest users need to have their own role independent of Public.
+        """
         return False
 
     def __init__(self, token: GuestToken, roles: List[Role]):
         user = token["user"]
         self.guest_token = token
-        self.username = user.get("username", "guest_user"),
-        self.first_name = user.get("first_name", "Guest"),
-        self.last_name = user.get("last_name", "User"),
-        self.roles = roles,
-        self.resources = token["resources"],
+        self.username = user.get("username", "guest_user")
+        self.first_name = user.get("first_name", "Guest")
+        self.last_name = user.get("last_name", "User")
+        self.roles = roles
+        self.resources = token["resources"]
