@@ -148,6 +148,10 @@ class ReportSchedule(Model, AuditMixinNullable):
     # Store the selected dashboard tabs etc.
     extra = Column(Text, default="{}")
 
+    # (Reports) When generating a screenshot, bypass the cache? This is always true for
+    # Alerts.
+    force_screenshot = Column(Boolean, default=False)
+
     def __repr__(self) -> str:
         return str(self.name)
 
