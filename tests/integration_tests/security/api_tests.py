@@ -75,7 +75,7 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
         """
         self.login(username="gamma")
         response = self.client.post(self.uri)
-        self.assert403(response)
+        self.assert401(response)
 
     def test_post_embed_token_authorized(self):
         self.login(username="admin")
