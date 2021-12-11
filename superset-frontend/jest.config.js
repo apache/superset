@@ -60,8 +60,8 @@ module.exports = {
     'reactify\\.tsx$': 'babel-jest',
     // ts-jest doesn't work with `--coverage`. @superset-ui/core should
     // 100% coverage, so we use babel-jest in packages and plugins.
-    '^(plugins|packages)\\/.+\\.tsx?$': 'babel-jest',
-    '^(((?!(plugins|packages)).)*)\\/.+\\.tsx?$': 'ts-jest',
+    '(plugins|packages)\\/.+\\.tsx?$': 'babel-jest',
+    '(((?!(plugins|packages)).)*)\\/.+\\.tsx?$': 'ts-jest',
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   snapshotSerializers: ['@emotion/jest/enzyme-serializer'],
