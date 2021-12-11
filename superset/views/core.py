@@ -38,6 +38,7 @@ from flask_appbuilder.security.decorators import (
 )
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __, lazy_gettext as _
+from flask_login import AnonymousUserMixin, LoginManager
 from sqlalchemy import and_, or_
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError, DBAPIError, NoSuchModuleError, SQLAlchemyError
@@ -1983,6 +1984,15 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         :param add_extra_log_payload: added by `log_this_with_manual_updates`, set a
             default value to appease pylint
         """
+        if not is_feature_enabled("EMBEDDED_SUPERSET"):
+            return Response(status=404)
+
+        # Log in as an anonymous user, just for this view.
+        # This view needs to be visible to all users,
+        # and building the page fails if g.user and/or ctx.user aren't present.
+        login_manager: LoginManager = security_manager.lm
+        login_manager.reload_user(AnonymousUserMixin())
+
         add_extra_log_payload(
             dashboard_id=dashboard_id_or_slug, dashboard_version="v2",
         )
