@@ -69,6 +69,7 @@ from superset.security.guest_token import (
     GuestToken,
     GuestTokenResource,
     GuestTokenResources,
+    GuestTokenResourceType,
     GuestTokenUser,
     GuestUser,
 )
@@ -1068,11 +1069,17 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
             assert datasource
 
+            is_dashboard_access_check_applicable = feature_flag_manager.is_feature_enabled(
+                "DASHBOARD_RBAC"
+            ) or feature_flag_manager.is_feature_enabled(
+                "EMBEDDED_SUPERSET"
+            )
+
             if not (
                 self.can_access_schema(datasource)
                 or self.can_access("datasource_access", datasource.perm or "")
                 or (
-                    feature_flag_manager.is_feature_enabled("DASHBOARD_RBAC")
+                    is_dashboard_access_check_applicable
                     and self.can_access_based_on_dashboard(datasource)
                 )
             ):
@@ -1215,19 +1222,25 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.views.base import is_user_admin
         from superset.views.utils import is_owner
 
-        has_rbac_access = True
-
-        if is_feature_enabled("DASHBOARD_RBAC"):
-            has_rbac_access = any(
+        def has_rbac_access() -> bool:
+            return is_feature_enabled("DASHBOARD_RBAC") and any(
                 dashboard_role.id
                 in [user_role.id for user_role in self.get_user_roles()]
                 for dashboard_role in dashboard.roles
             )
 
+        has_published_access = (
+            not is_feature_enabled("DASHBOARD_RBAC")
+            and not self.is_guest_user(g.user)
+            and dashboard.published
+        )
+
         can_access = (
             is_user_admin()
             or is_owner(dashboard, g.user)
-            or (dashboard.published and has_rbac_access)
+            or has_published_access
+            or has_rbac_access()
+            or self.has_guest_access(GuestTokenResourceType.DASHBOARD, dashboard.id)
             or (not dashboard.published and not dashboard.roles)
         )
 
@@ -1329,4 +1342,30 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     @staticmethod
     def is_guest_user(user: Any) -> bool:
+        # pylint: disable=import-outside-toplevel
+        from superset import is_feature_enabled
+
+        if not is_feature_enabled("EMBEDDED_SUPERSET"):
+            return False
         return hasattr(user, "is_guest_user") and user.is_guest_user
+
+    def get_current_guest_user_if_guest(self) -> Optional[GuestUser]:
+        # pylint: disable=import-outside-toplevel
+        from superset.extensions import feature_flag_manager
+
+        if self.is_guest_user(g.user):
+            return g.user
+        return None
+
+    def has_guest_access(
+        self, resource_type: GuestTokenResourceType, id: Union[str, int]
+    ) -> bool:
+        user = self.get_current_guest_user_if_guest()
+        if not user:
+            return False
+
+        strid = str(id)
+        for resource in user.resources:
+            if resource["type"] == resource_type.value and str(resource["id"]) == strid:
+                return True
+        return False
