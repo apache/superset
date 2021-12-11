@@ -1274,8 +1274,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         except Exception as ex:  # pylint: disable=broad-except
             # The login manager will handle sending 401s.
             # We don't need to send a special error message.
-            logger.warning("Invalid guest token")
-            logger.warning(ex)
+            logger.warning("Invalid guest token", exc_info=True)
             return None
         else:
             return self.guest_user_cls(
