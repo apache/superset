@@ -30,7 +30,7 @@ const LazyDashboardPage = lazy(
     import(
       /* webpackChunkName: "DashboardPage" */ 'src/dashboard/containers/DashboardPage'
     ),
-)
+);
 
 const EmbeddedApp = () => (
   <Router>
@@ -38,7 +38,7 @@ const EmbeddedApp = () => (
       <Suspense fallback={<Loading />}>
         <RootContextProviders>
           <ErrorBoundary>
-              <LazyDashboardPage />
+            <LazyDashboardPage />
           </ErrorBoundary>
         </RootContextProviders>
       </Suspense>
