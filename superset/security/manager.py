@@ -1243,9 +1243,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self, user: GuestTokenUser, resources: List[GuestTokenResource]
     ) -> bytes:
         secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
+        algo = current_app.config["GUEST_TOKEN_JWT_ALGO"]
+        exp_seconds = current_app.config["GUEST_TOKEN_JWT_EXP_SECONDS"]
+
         # calculate expiration time
         now = self._get_current_epoch_time()
-        exp = now + (current_app.config["GUEST_TOKEN_JWT_EXP_SECONDS"] * 1000)
+        exp = now + (exp_seconds * 1000)
         claims = {
             "user": user,
             "resources": resources,
@@ -1253,7 +1256,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             "iat": now,  # issued at
             "exp": exp,  # expiration time
         }
-        token = jwt.encode(claims, secret, algorithm="HS256")
+        token = jwt.encode(claims, secret, algorithm=algo)
         return token
 
     def get_guest_user(self, req: Request) -> Optional[GuestUser]:
@@ -1293,7 +1296,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :return: the same token that was passed in, tested but unchanged
         """
         secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
-        token = jwt.decode(raw_token, secret, algorithms=["HS256"])
+        algo = current_app.config["GUEST_TOKEN_JWT_ALGO"]
+
+        token = jwt.decode(raw_token, secret, algorithms=[algo])
         if token.get("user") is None:
             raise ValueError("Guest token does not contain a user claim")
         if token.get("resources") is None:
