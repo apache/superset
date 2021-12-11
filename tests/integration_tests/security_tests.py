@@ -1319,7 +1319,7 @@ class TestDatasources(SupersetTestCase):
 
 
 class FakeRequest:
-    cookies: Any = {}
+    headers: Any = {}
 
 
 class TestGuestTokens(SupersetTestCase):
@@ -1347,7 +1347,7 @@ class TestGuestTokens(SupersetTestCase):
         resources = [{"type": "dashboard", "id": 1}]
         token = security_manager.create_guest_access_token(user, resources)
         fake_request = FakeRequest()
-        fake_request.cookies[current_app.config["GUEST_TOKEN_COOKIE_NAME"]] = token
+        fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
 
         guest_user = security_manager.get_guest_user(fake_request)
 
@@ -1364,7 +1364,7 @@ class TestGuestTokens(SupersetTestCase):
         resources = [{"type": "dashboard", "id": 1}]
         token = security_manager.create_guest_access_token(user, resources)
         fake_request = FakeRequest()
-        fake_request.cookies[current_app.config["GUEST_TOKEN_COOKIE_NAME"]] = token
+        fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
 
         guest_user = security_manager.get_guest_user(fake_request)
 
