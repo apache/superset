@@ -1039,22 +1039,15 @@ LANGUAGES = {
 }
 ```
 
-### Extracting new strings for translation
-
-```bash
-pybabel extract -F superset/translations/babel.cfg -o superset/translations/messages.pot -k _ -k __ -k t -k tn -k tct .
-```
-
-This will update the template file `superset/translations/messages.pot` with current application strings. Do not forget to update
-this file with the appropriate license information.
-
 ### Updating language files
 
 ```bash
- pybabel update -i superset/translations/messages.pot -d superset/translations --ignore-obsolete
+./scripts/babel_update.sh
 ```
 
-This will update language files with the new extracted strings.
+This script will
+1. update the template file `superset/translations/messages.pot` with current application strings.
+2. update language files with the new extracted strings.
 
 You can then translate the strings gathered in files located under
 `superset/translation`, where there's one per language. You can use [Poedit](https://poedit.net/features)

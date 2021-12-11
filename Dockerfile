@@ -106,7 +106,9 @@ RUN cd /app \
         && chown -R superset:superset * \
         && pip install -e .
 
-COPY ./docker/docker-entrypoint.sh /usr/bin/
+COPY ./docker/run-server.sh /usr/bin/
+
+RUN chmod a+x /usr/bin/run-server.sh
 
 WORKDIR /app
 
@@ -116,7 +118,7 @@ HEALTHCHECK CMD curl -f "http://localhost:$SUPERSET_PORT/health"
 
 EXPOSE ${SUPERSET_PORT}
 
-ENTRYPOINT ["/usr/bin/docker-entrypoint.sh"]
+CMD /usr/bin/run-server.sh
 
 ######################################################################
 # Dev image...
