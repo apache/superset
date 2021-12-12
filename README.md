@@ -27,7 +27,6 @@ under the License.
 [![PyPI](https://img.shields.io/pypi/pyversions/apache-superset.svg?maxAge=2592000)](https://pypi.python.org/pypi/apache-superset)
 [![Get on Slack](https://img.shields.io/badge/slack-join-orange.svg)](https://join.slack.com/t/apache-superset/shared_invite/zt-uxbh5g36-AISUtHbzOXcu0BIj7kgUaw)
 [![Documentation](https://img.shields.io/badge/docs-apache.org-blue.svg)](https://superset.apache.org)
-[![Dependencies Status](https://david-dm.org/apache/superset/status.svg?path=superset-frontend)](https://david-dm.org/apache/superset?path=superset-frontend)
 
 <img
   src="https://github.com/apache/superset/raw/master/superset-frontend/src/assets/branding/superset-logo-horiz-apache.png"
@@ -53,11 +52,10 @@ Superset is a modern data exploration and data visualization platform. Superset 
 Superset provides:
 
 - A **no-code interface** for building charts quickly
-- A powerful, web-based **SQL Editro** for advanced querying
+- A powerful, web-based **SQL Editor** for advanced querying
 - A **lightweight semantic layer** for quickly defining custom dimensions and metrics
 - Out of the box support for **nearly any SQL** database or data engine
-- A wide array of **beautiful visualizations** to showcase your data
-metadata browser
+- A wide array of **beautiful visualizations** to showcase your data, ranging from simple bar charts to geospatial visualizations
 - Lightweight, configurable **caching layer** to help ease database load
 - Highly extensible **security roles and authentication** options
 - An **API** for programmatic customization
@@ -73,7 +71,7 @@ metadata browser
 
 <kbd><img title="View Dashboards" src="superset-frontend/src/assets/images/screenshots/slack_dash.jpg"/></kbd><br/>
 
-**No Code Chart Builder**
+**No-Code Chart Builder**
 
 <kbd><img title="Slice & dice your data" src="superset-frontend/src/assets/images/screenshots/explore.jpg"/></kbd><br/>
 
