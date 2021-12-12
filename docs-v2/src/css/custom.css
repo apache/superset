@@ -39,10 +39,3 @@ html[data-theme="dark"] .docusaurus-highlight-code-line {
 .swagger-ui table tr {
   border: none;
 }
-
-.ant-alert-info {
-  background-color: #e6f7ff;
-  border: 1px solid #91d5ff;
-  padding: 8px 15px;
-  font-size: 14px;
-}
