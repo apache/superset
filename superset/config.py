@@ -286,6 +286,8 @@ AUTH_TYPE = AUTH_DB
 #    { 'name': 'Yahoo', 'url': 'https://open.login.yahoo.com/' },
 #    { 'name': 'Flickr', 'url': 'https://www.flickr.com/<username>' },
 
+AUTH_STRICT_RESPONSE_CODES = True
+
 # ---------------------------------------------------
 # Roles config
 # ---------------------------------------------------

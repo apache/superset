@@ -17,14 +17,22 @@
 
 import pytest
 
+from superset.app import SupersetApp
+from superset.initialization import SupersetAppInitializer
+
 
 @pytest.fixture
 def app_context():
     """
     A fixture for running the test inside an app context.
     """
-    from superset.app import create_app
+    app = SupersetApp(__name__)
 
-    app = create_app()
+    app.config.from_object("superset.config")
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite://"
+
+    app_initializer = app.config.get("APP_INITIALIZER", SupersetAppInitializer)(app)
+    app_initializer.init_app()
+
     with app.app_context():
         yield
