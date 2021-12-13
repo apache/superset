@@ -790,6 +790,19 @@ class TestCore(SupersetTestCase):
         for k in keys:
             self.assertIn(k, resp.keys())
 
+    @staticmethod
+    def _get_user_activity_endpoints(user: str):
+        userid = security_manager.find_user(user).id
+        return (
+            f"/superset/recent_activity/{userid}/",
+            f"/superset/created_slices/{userid}/",
+            f"/superset/created_dashboards/{userid}/",
+            f"/superset/fave_slices/{userid}/",
+            f"/superset/fave_dashboards/{userid}/",
+            f"/superset/user_slices/{userid}/",
+            f"/superset/fave_dashboards_by_username/{user}/",
+        )
+
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_user_profile(self, username="admin"):
         self.login(username=username)
@@ -805,23 +818,34 @@ class TestCore(SupersetTestCase):
         resp = self.get_json_resp(url)
         self.assertEqual(resp["count"], 1)
 
-        userid = security_manager.find_user("admin").id
         resp = self.get_resp(f"/superset/profile/{username}/")
         self.assertIn('"app"', resp)
-        data = self.get_json_resp(f"/superset/recent_activity/{userid}/")
-        self.assertNotIn("message", data)
-        data = self.get_json_resp(f"/superset/created_slices/{userid}/")
-        self.assertNotIn("message", data)
-        data = self.get_json_resp(f"/superset/created_dashboards/{userid}/")
-        self.assertNotIn("message", data)
-        data = self.get_json_resp(f"/superset/fave_slices/{userid}/")
-        self.assertNotIn("message", data)
-        data = self.get_json_resp(f"/superset/fave_dashboards/{userid}/")
-        self.assertNotIn("message", data)
-        data = self.get_json_resp(f"/superset/user_slices/{userid}/")
-        self.assertNotIn("message", data)
-        data = self.get_json_resp(f"/superset/fave_dashboards_by_username/{username}/")
-        self.assertNotIn("message", data)
+
+        for endpoint in self._get_user_activity_endpoints(username):
+            data = self.get_json_resp(endpoint)
+            self.assertNotIn("message", data)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_user_activity_access(self, username="gamma"):
+        self.login(username=username)
+
+        # accessing own and other users' activity is allowed by default
+        for user in ("admin", "gamma"):
+            for endpoint in self._get_user_activity_endpoints(user):
+                resp = self.client.get(endpoint)
+                assert resp.status_code == 200
+
+        # disabling flag will block access to other users' activity data
+        access_flag = app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
+        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = False
+        for user in ("admin", "gamma"):
+            for endpoint in self._get_user_activity_endpoints(user):
+                resp = self.client.get(endpoint)
+                expected_status_code = 200 if user == username else 403
+                assert resp.status_code == expected_status_code
+
+        # restore flag
+        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = access_flag
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_slice_id_is_always_logged_correctly_on_web_request(self):
