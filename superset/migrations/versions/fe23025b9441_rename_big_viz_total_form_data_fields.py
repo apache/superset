@@ -66,7 +66,7 @@ def upgrade():
         except Exception as e:
             logger.exception(
                 f"An error occurred: parsing params for slice {slc.id} failed."
-                f"You need to fix it before upgrading your DB"
+                f"You need to fix it before upgrading your DB."
             )
             raise e
 
@@ -92,7 +92,7 @@ def downgrade():
         except Exception as e:
             logger.exception(
                 f"An error occurred: parsing params for slice {slc.id} failed."
-                f"You need to fix it before upgrading your DB"
+                f"You need to fix it before downgrading your DB."
             )
             raise e
 
