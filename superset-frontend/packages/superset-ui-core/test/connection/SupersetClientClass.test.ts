@@ -480,7 +480,7 @@ describe('SupersetClientClass', () => {
   });
 
   it('should redirect Unauthorized', async () => {
-    const mockRequestUrl = 'https://host//get/url';
+    const mockRequestUrl = 'https://host/get/url';
     const { location } = window;
     // @ts-ignore
     delete window.location;
