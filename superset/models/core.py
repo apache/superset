@@ -442,7 +442,11 @@ class Database(
         engine = self.get_sqla_engine(schema=schema)
 
         sql = str(qry.compile(engine, compile_kwargs={"literal_binds": True}))
-
+        
+        if engine.url.drivername == 'clickhouse' and limit and offset:
+            # 针对ck的limit offset bug特殊处理
+            sql = sql.replace(f'LIMIT 0,{offset}', f'LIMIT {offset},{limit}')
+        
         if (
             engine.dialect.identifier_preparer._double_percents  # pylint: disable=protected-access
         ):
