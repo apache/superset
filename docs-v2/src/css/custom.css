@@ -23,6 +23,19 @@
   padding: 0 var(--ifm-pre-padding);
 }
 
-html[data-theme='dark'] .docusaurus-highlight-code-line {
+html[data-theme="dark"] .docusaurus-highlight-code-line {
   background-color: rgba(0, 0, 0, 0.3);
+}
+
+/* Hacks to disable Swagger UI's "try it out" interactive mode */
+.try-out,
+.auth-wrapper,
+.information-container {
+  display: none !important;
+}
+
+.swagger-ui table td,
+.swagger-ui table th,
+.swagger-ui table tr {
+  border: none;
 }
