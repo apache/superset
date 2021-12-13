@@ -27,8 +27,8 @@ revision = "fe23025b9441"
 down_revision = "abe27eaf93db"
 
 import json
+import logging
 
-import sqlalchemy as sa
 from alembic import op
 from sqlalchemy import Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
@@ -36,6 +36,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from superset import db
 
 Base = declarative_base()
+
+logger = logging.getLogger("alembic")
 
 
 class Slice(Base):
@@ -62,8 +64,11 @@ def upgrade():
                 params["time_format"] = header_timestamp_format
             slc.params = json.dumps(params, sort_keys=True)
         except Exception as e:
-            print(e)
-            print(f"Parsing params for slice {slc.id} failed.")
+            logger.exception(
+                f"An error occurred: parsing params for slice {slc.id} failed."
+                f"You need to fix it before upgrading your DB"
+            )
+            raise e
 
     session.commit()
     session.close()
@@ -85,8 +90,11 @@ def downgrade():
                 params["header_format_selector"] = force_timestamp_formatting
             slc.params = json.dumps(params, sort_keys=True)
         except Exception as e:
-            print(e)
-            print(f"Parsing params for slice {slc.id} failed.")
+            logger.exception(
+                f"An error occurred: parsing params for slice {slc.id} failed."
+                f"You need to fix it before upgrading your DB"
+            )
+            raise e
 
     session.commit()
     session.close()
