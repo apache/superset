@@ -50,7 +50,7 @@ export interface ChartDataResponseResult {
   annotation_data: AnnotationData[] | null;
   cache_key: string | null;
   cache_timeout: number | null;
-  cache_dttm: string | null;
+  cached_dttm: string | null;
   /**
    * Array of data records as dictionary
    */
