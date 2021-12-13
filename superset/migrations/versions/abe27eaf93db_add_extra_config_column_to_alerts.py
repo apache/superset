@@ -31,7 +31,6 @@ from alembic import op
 from sqlalchemy import String
 from sqlalchemy.sql import column, table
 
-
 report_schedule = table("report_schedule", column("extra", String))
 
 
