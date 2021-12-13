@@ -1,0 +1,94 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""rename_big_viz_total_form_data_fields
+
+Revision ID: fe23025b9441
+Revises: abe27eaf93db
+Create Date: 2021-12-13 14:06:24.426970
+
+"""
+
+# revision identifiers, used by Alembic.
+revision = "fe23025b9441"
+down_revision = "abe27eaf93db"
+
+import json
+
+import sqlalchemy as sa
+from alembic import op
+from sqlalchemy import Column, Integer, String, Text
+from sqlalchemy.ext.declarative import declarative_base
+
+from superset import db
+
+Base = declarative_base()
+
+
+class Slice(Base):
+    __tablename__ = "slices"
+
+    id = Column(Integer, primary_key=True)
+    params = Column(Text)
+    viz_type = Column(String(250))
+
+
+def upgrade():
+    bind = op.get_bind()
+    session = db.Session(bind=bind)
+
+    slices = session.query(Slice).filter(Slice.viz_type == "big_number_total").all()
+    for slc in slices:
+        try:
+            params = json.loads(slc.params)
+            header_format_selector = params.pop("header_format_selector", None)
+            header_timestamp_format = params.pop("header_timestamp_format", None)
+            if header_format_selector:
+                params["time_format"] = header_format_selector
+            if header_timestamp_format:
+                params["force_timestamp_formatting"] = header_timestamp_format
+            slc.params = json.dumps(params, sort_keys=True)
+        except Exception as e:
+            print(e)
+            print(f"Parsing params for slice {slc.id} failed.")
+            pass
+
+    session.commit()
+    session.close()
+
+
+def downgrade():
+    bind = op.get_bind()
+    session = db.Session(bind=bind)
+
+    slices = session.query(Slice).filter(Slice.viz_type == "big_number_total").all()
+    for slc in slices:
+        try:
+            params = json.loads(slc.params)
+            time_format = params.pop("time_format", None)
+            force_timestamp_formatting = params.pop("force_timestamp_formatting", None)
+            if time_format:
+                params["header_format_selector"] = time_format
+            if force_timestamp_formatting:
+                params["header_timestamp_format"] = force_timestamp_formatting
+            slc.params = json.dumps(params, sort_keys=True)
+        except Exception as e:
+            print(e)
+            print(f"Parsing params for slice {slc.id} failed.")
+            pass
+
+    session.commit()
+    session.close()
