@@ -1242,8 +1242,7 @@ class ChartDataResponseResult(Schema):
     data = fields.List(fields.Dict(), description="A list with results")
     colnames = fields.List(fields.String(), description="A list of column names")
     coltypes = fields.List(
-        fields.Integer(),
-        description="A list of generic data types of each column"
+        fields.Integer(), description="A list of generic data types of each column"
     )
     applied_filters = fields.List(
         fields.Dict(), description="A list with applied filters"
@@ -1252,14 +1251,10 @@ class ChartDataResponseResult(Schema):
         fields.Dict(), description="A list with rejected filters"
     )
     from_dttm = fields.Integer(
-        desciption="Start timestamp of time range",
-        required=False,
-        allow_none=True
+        desciption="Start timestamp of time range", required=False, allow_none=True
     )
     to_dttm = fields.Integer(
-        desciption="End timestamp of time range",
-        required=False,
-        allow_none=True
+        desciption="End timestamp of time range", required=False, allow_none=True
     )
 
 
