@@ -56,8 +56,6 @@ module.exports = {
   coverageReporters: ['lcov', 'json-summary', 'html'],
   transform: {
     '^.+\\.jsx?$': 'babel-jest',
-    // ts-jest can't load plugin 'babel-plugin-typescript-to-proptypes'
-    'reactify\\.tsx$': 'babel-jest',
     // ts-jest doesn't work with `--coverage`. @superset-ui/core should
     // 100% coverage, so we use babel-jest in packages and plugins.
     '(plugins|packages)\\/.+\\.tsx?$': 'babel-jest',
