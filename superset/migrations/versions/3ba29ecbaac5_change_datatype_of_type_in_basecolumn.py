@@ -17,14 +17,14 @@
 """Change datatype of type in BaseColumn
 
 Revision ID: 3ba29ecbaac5
-Revises: b92d69a6643c
+Revises: abe27eaf93db
 Create Date: 2021-11-02 17:44:51.792138
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "3ba29ecbaac5"
-down_revision = "b92d69a6643c"
+down_revision = "abe27eaf93db"
 
 import sqlalchemy as sa
 from alembic import op
