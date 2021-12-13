@@ -23,10 +23,9 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 from celery.exceptions import SoftTimeLimitExceeded
-from flask import g
 from flask_babel import lazy_gettext as _
 
-from superset import app, jinja_context, security_manager
+from superset import app, jinja_context
 from superset.commands.base import BaseCommand
 from superset.models.reports import ReportSchedule, ReportScheduleValidatorType
 from superset.reports.commands.exceptions import (
@@ -67,9 +66,6 @@ class AlertCommand(BaseCommand):
         :raises AlertQueryTimeout: The SQL query received a celery soft timeout
         :raises AlertValidatorConfigError: The validator query data is not valid
         """
-        g.user = security_manager.get_user_by_username(
-            app.config["THUMBNAIL_SELENIUM_USER"]
-        )
         self.validate()
 
         if self._is_validator_not_null:
@@ -150,8 +146,11 @@ class AlertCommand(BaseCommand):
             limited_rendered_sql = self._report_schedule.database.apply_limit_to_sql(
                 rendered_sql, ALERT_SQL_LIMIT
             )
+            query_username = app.config["THUMBNAIL_SELENIUM_USER"]
             start = default_timer()
-            df = self._report_schedule.database.get_df(limited_rendered_sql)
+            df = self._report_schedule.database.get_df(
+                sql=limited_rendered_sql, username=query_username
+            )
             stop = default_timer()
             logger.info(
                 "Query for %s took %.2f ms",
