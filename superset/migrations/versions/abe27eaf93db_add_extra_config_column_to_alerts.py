@@ -31,17 +31,17 @@ from alembic import op
 from sqlalchemy import String
 from sqlalchemy.sql import column, table
 
-connection = op.get_bind()
-
 report_schedule = table("report_schedule", column("extra", String))
 
 
 def upgrade():
+    bind = op.get_bind()
+
     with op.batch_alter_table("report_schedule") as batch_op:
         batch_op.add_column(
             sa.Column("extra", sa.Text(), nullable=True, default="{}",),
         )
-    connection.execute(report_schedule.update().values({"extra": "{}"}))
+    bind.execute(report_schedule.update().values({"extra": "{}"}))
     with op.batch_alter_table("report_schedule") as batch_op:
         batch_op.alter_column("extra", existing_type=sa.Text(), nullable=False)
 
