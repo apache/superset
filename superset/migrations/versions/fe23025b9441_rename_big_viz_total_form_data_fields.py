@@ -57,9 +57,9 @@ def upgrade():
             header_format_selector = params.pop("header_format_selector", None)
             header_timestamp_format = params.pop("header_timestamp_format", None)
             if header_format_selector:
-                params["time_format"] = header_format_selector
+                params["force_timestamp_formatting"] = header_format_selector
             if header_timestamp_format:
-                params["force_timestamp_formatting"] = header_timestamp_format
+                params["time_format"] = header_timestamp_format
             slc.params = json.dumps(params, sort_keys=True)
         except Exception as e:
             print(e)
@@ -81,9 +81,9 @@ def downgrade():
             time_format = params.pop("time_format", None)
             force_timestamp_formatting = params.pop("force_timestamp_formatting", None)
             if time_format:
-                params["header_format_selector"] = time_format
+                params["header_timestamp_format"] = time_format
             if force_timestamp_formatting:
-                params["header_timestamp_format"] = force_timestamp_formatting
+                params["header_format_selector"] = force_timestamp_formatting
             slc.params = json.dumps(params, sort_keys=True)
         except Exception as e:
             print(e)
