@@ -122,11 +122,19 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
       dashboardInfo,
       layout: positions,
       customCss,
+      colorNamespace,
+      colorScheme,
+      expandedSlices,
       dashboardId,
       refreshFrequency: currentRefreshFrequency,
       shouldPersistRefreshFrequency,
       lastModifiedTime,
     } = this.props;
+
+    const labelColors =
+      colorScheme && dashboardInfo?.metadata?.label_colors
+        ? dashboardInfo.metadata.label_colors
+        : {};
 
     // check refresh frequency is for current session or persist
     const refreshFrequency = shouldPersistRefreshFrequency
@@ -134,20 +142,17 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
       : dashboardInfo.metadata?.refresh_frequency; // eslint-disable camelcase
 
     const data = {
-      certified_by: dashboardInfo.certified_by,
-      certification_details: dashboardInfo.certification_details,
+      positions,
       css: customCss,
+      color_namespace: colorNamespace,
+      color_scheme: colorScheme,
+      label_colors: labelColors,
+      expanded_slices: expandedSlices,
       dashboard_title:
         saveType === SAVE_TYPE_NEWDASHBOARD ? newDashName : dashboardTitle,
       duplicate_slices: this.state.duplicateSlices,
+      refresh_frequency: refreshFrequency,
       last_modified_time: lastModifiedTime,
-      owners: dashboardInfo.owners,
-      roles: dashboardInfo.roles,
-      metadata: {
-        ...dashboardInfo?.metadata,
-        positions,
-        refresh_frequency: refreshFrequency,
-      },
     };
 
     if (saveType === SAVE_TYPE_NEWDASHBOARD && !newDashName) {

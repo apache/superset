@@ -525,8 +525,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                         type: number
                       result:
                         $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
-                      last_modified_time:
-                        type: number
             400:
               $ref: '#/components/responses/400'
             401:
@@ -549,15 +547,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
         try:
             changed_model = UpdateDashboardCommand(g.user, pk, item).run()
-            last_modified_time = changed_model.changed_on.replace(
-                microsecond=0
-            ).timestamp()
-            response = self.response(
-                200,
-                id=changed_model.id,
-                result=item,
-                last_modified_time=last_modified_time,
-            )
+            response = self.response(200, id=changed_model.id, result=item)
         except DashboardNotFoundError:
             response = self.response_404()
         except DashboardForbiddenError:

@@ -71,26 +71,28 @@ describe('Dashboard save action', () => {
     cy.get('[aria-label="edit-alt"]').click({ timeout: 5000 });
     cy.get('[data-test="dashboard-delete-component-button"]')
       .last()
-      .trigger('mouseenter')
+      .trigger('moustenter')
       .click();
 
-    cy.get('[data-test="grid-container"]').find('.treemap').should('not.exist');
+    cy.get('[data-test="grid-container"]')
+      .find('.box_plot')
+      .should('not.exist');
 
-    cy.intercept('PUT', '/api/v1/dashboard/**').as('putDashboardRequest');
+    cy.intercept('POST', '/superset/save_dash/**/').as('saveRequest');
     cy.get('[data-test="dashboard-header"]')
       .find('[data-test="header-save-button"]')
       .contains('Save')
       .click();
 
     // go back to view mode
-    cy.wait('@putDashboardRequest');
+    cy.wait('@saveRequest');
     cy.get('[data-test="dashboard-header"]')
       .find('[aria-label="edit-alt"]')
       .click();
 
-    // deleted treemap should still not exist
+    // deleted boxplot should still not exist
     cy.get('[data-test="grid-container"]')
-      .find('.treemap', { timeout: 20000 })
+      .find('.box_plot', { timeout: 20000 })
       .should('not.exist');
   });
 
