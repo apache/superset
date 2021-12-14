@@ -578,7 +578,7 @@ class BaseColumn(AuditMixinNullable, ImportExportMixin):
     column_name = Column(String(255), nullable=False)
     verbose_name = Column(String(1024))
     is_active = Column(Boolean, default=True)
-    type = Column(String(32))
+    type = Column(Text)
     groupby = Column(Boolean, default=True)
     filterable = Column(Boolean, default=True)
     description = Column(Text)

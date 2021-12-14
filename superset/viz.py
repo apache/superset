@@ -254,6 +254,8 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                 "orderby": [],
                 "row_limit": config["SAMPLES_ROW_LIMIT"],
                 "columns": [o.column_name for o in self.datasource.columns],
+                "from_dttm": None,
+                "to_dttm": None,
             }
         )
         df = self.get_df_payload(query_obj)["df"]  # leverage caching logic
