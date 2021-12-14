@@ -16,15 +16,36 @@
 # under the License.
 import logging
 
-from flask import Response
+from flask import request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.api import BaseApi, safe
 from flask_appbuilder.security.decorators import permission_name, protect
 from flask_wtf.csrf import generate_csrf
+from marshmallow import fields, Schema, ValidationError
 
 from superset.extensions import event_logger
 
 logger = logging.getLogger(__name__)
+
+
+class UserSchema(Schema):
+    username = fields.String()
+    first_name = fields.String()
+    last_name = fields.String()
+
+
+class ResourceSchema(Schema):
+    type = fields.String(required=True)
+    id = fields.String(required=True)
+    rls = fields.String()
+
+
+class GuestTokenCreateSchema(Schema):
+    user = fields.Nested(UserSchema)
+    resource = fields.Nested(ResourceSchema, required=True)
+
+
+guest_token_create_schema = GuestTokenCreateSchema()
 
 
 class SecurityRestApi(BaseApi):
@@ -60,3 +81,49 @@ class SecurityRestApi(BaseApi):
               $ref: '#/components/responses/500'
         """
         return self.response(200, result=generate_csrf())
+
+    @expose("/guest_token/", methods=["POST"])
+    @event_logger.log_this
+    @protect()
+    @safe
+    @permission_name("grant_guest_token")
+    def guest_token(self) -> Response:
+        """Response
+        Returns a guest token that can be used for auth in embedded Superset
+        ---
+        post:
+          description: >-
+            Fetches a guest token
+          requestBody:
+            description: Parameters for the guest token
+            required: true
+            content:
+              application/json:
+                schema: GuestTokenCreateSchema
+          responses:
+            200:
+              description: Result contains the guest token
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                        token:
+                          type: string
+            401:
+              $ref: '#/components/responses/401'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            body = guest_token_create_schema.load(request.json)
+            # validate stuff:
+            # make sure the resource id is valid
+            # make sure username doesn't reference an existing user
+            # check rls rules for validity?
+            token = self.appbuilder.sm.create_guest_access_token(
+                body["user"], [body["resource"]]
+            )
+            return self.response(200, token=token)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
