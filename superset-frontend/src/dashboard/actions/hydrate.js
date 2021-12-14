@@ -71,6 +71,7 @@ export const hydrateDashboard =
   ) =>
   (dispatch, getState) => {
     const { user, common } = getState();
+
     const { metadata } = dashboardData;
     const regularUrlParams = extractUrlParams('regular');
     const reservedUrlParams = extractUrlParams('reserved');
