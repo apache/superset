@@ -17,14 +17,14 @@
 """rename_big_viz_total_form_data_fields
 
 Revision ID: fe23025b9441
-Revises: abe27eaf93db
+Revises: 3ba29ecbaac5
 Create Date: 2021-12-13 14:06:24.426970
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "fe23025b9441"
-down_revision = "abe27eaf93db"
+down_revision = "3ba29ecbaac5"
 
 import json
 import logging
@@ -91,8 +91,8 @@ def downgrade():
             slc.params = json.dumps(params, sort_keys=True)
         except Exception as e:
             logger.exception(
-                f"An error occurred: parsing params for slice {slc.id} failed."
-                f"You need to fix it before downgrading your DB."
+                f"An error occurred: parsing params for slice {slc.id} failed. "
+                "You need to fix it before downgrading your DB."
             )
             raise e
 
