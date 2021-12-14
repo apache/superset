@@ -334,6 +334,7 @@ function ColumnCollectionTable({
           ).is_dttm;
           return (
             <Radio
+              data-test={`radio-default-dttm-${record.column_name}`}
               checked={checked}
               disabled={disabled}
               onChange={() =>
