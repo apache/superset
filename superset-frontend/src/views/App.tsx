@@ -52,8 +52,8 @@ const LocationPathnameLogger = () => {
     }
     lastLocationPathname = location.pathname;
   }, [location.pathname]);
-  return <></>
-}
+  return <></>;
+};
 
 const App = () => (
   <Router>
