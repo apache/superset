@@ -238,7 +238,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         lm = super().create_login_manager(app)
         if feature_flag_manager.is_feature_enabled("EMBEDDED_SUPERSET"):
-            lm.request_loader(self.get_guest_user)
+            lm.request_loader(self.get_guest_user_from_request)
         return lm
 
     def get_schema_perm(  # pylint: disable=no-self-use
@@ -1274,7 +1274,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         token = jwt.encode(claims, secret, algorithm=algo)
         return token
 
-    def get_guest_user(self, req: Request) -> Optional[GuestUser]:
+    def get_guest_user_from_request(self, req: Request) -> Optional[GuestUser]:
         """
         If there is a guest token in the request (used for embedded),
         parses the token and returns the guest user.

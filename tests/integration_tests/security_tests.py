@@ -1349,7 +1349,7 @@ class TestGuestTokens(SupersetTestCase):
         fake_request = FakeRequest()
         fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
 
-        guest_user = security_manager.get_guest_user(fake_request)
+        guest_user = security_manager.get_guest_user_from_request(fake_request)
 
         self.assertIsNotNone(guest_user)
         self.assertEqual("test_guest", guest_user.username)
@@ -1366,6 +1366,6 @@ class TestGuestTokens(SupersetTestCase):
         fake_request = FakeRequest()
         fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
 
-        guest_user = security_manager.get_guest_user(fake_request)
+        guest_user = security_manager.get_guest_user_from_request(fake_request)
 
         self.assertIsNone(guest_user)
