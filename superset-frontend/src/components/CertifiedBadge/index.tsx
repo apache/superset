@@ -17,26 +17,41 @@
  * under the License.
  */
 import React from 'react';
-import CertifiedIcon, { CertifiedIconProps } from '.';
+import { t, supersetTheme } from '@superset-ui/core';
+import Icons, { IconType } from 'src/components/Icons';
+import { Tooltip } from 'src/components/Tooltip';
 
-export default {
-  title: 'CertifiedIconWithTooltip',
-};
+export interface CertifiedBadgeProps {
+  certifiedBy?: string;
+  details?: string;
+  size?: IconType['iconSize'];
+}
 
-export const InteractiveIcon = (args: CertifiedIconProps) => (
-  <CertifiedIcon {...args} />
-);
+function CertifiedBadge({
+  certifiedBy,
+  details,
+  size = 'l',
+}: CertifiedBadgeProps) {
+  return (
+    <Tooltip
+      id="certified-details-tooltip"
+      title={
+        <>
+          {certifiedBy && (
+            <div>
+              <strong>{t('Certified by %s', certifiedBy)}</strong>
+            </div>
+          )}
+          <div>{details}</div>
+        </>
+      }
+    >
+      <Icons.Certified
+        iconColor={supersetTheme.colors.primary.base}
+        iconSize={size}
+      />
+    </Tooltip>
+  );
+}
 
-InteractiveIcon.args = {
-  certifiedBy: 'Trusted Authority',
-  details: 'All requirements have been met.',
-  size: 30,
-};
-
-InteractiveIcon.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};
+export default CertifiedBadge;
