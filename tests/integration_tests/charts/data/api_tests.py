@@ -33,10 +33,13 @@ from tests.integration_tests.annotation_layers.fixtures import create_annotation
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
 )
+from tests.integration_tests.fixtures.world_bank_dashboard import (
+    load_world_bank_dashboard_with_slices,
+)
 from tests.integration_tests.test_app import app
 
 import pytest
-
+from superset import security_manager
 from superset.charts.data.commands.get_data_command import ChartDataCommand
 from superset.connectors.sqla.models import TableColumn, SqlaTable
 from superset.errors import SupersetErrorType
@@ -54,7 +57,10 @@ from superset.utils.core import (
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 
 from tests.common.query_context_generator import ANNOTATION_LAYERS
-from tests.integration_tests.fixtures.query_context import get_query_context
+from tests.integration_tests.fixtures.query_context import (
+    QueryContextGeneratorInteg,
+    get_query_context,
+)
 
 
 CHART_DATA_URI = "api/v1/chart/data"
@@ -689,6 +695,72 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert "':asdf'" in result["query"]
         assert "':xyz:qwerty'" in result["query"]
         assert "':qwerty:'" in result["query"]
+
+    @with_feature_flags(QUERY_CONTEXT_VALIDATION_SQL_EXPRESSION=True)
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_when_actor_does_not_have_permission_to_datasource__401(self):
+        self.test_with_not_permitted_actor__401()
+
+    @with_feature_flags(QUERY_CONTEXT_VALIDATION_SQL_EXPRESSION=True)
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_when_actor_has_permission_to_datasource__200(self):
+        self.logout()
+        self.login(username="gamma")
+        table = self.get_table("birth_names")
+        self.grant_role_access_to_table(table, "gamma")
+        # set required permissions to gamma role
+        role = security_manager.find_role("Gamma")
+        pvm1 = security_manager.find_permission_view_menu("can_sql_json", "Superset")
+        pvm2 = security_manager.find_permission_view_menu(
+            "database_access", "[examples].(id:1)"
+        )
+        security_manager.add_permission_role(role, pvm1)
+        security_manager.add_permission_role(role, pvm2)
+        self.test_with_valid_qc__data_is_returned()
+        role = security_manager.find_role("Gamma")
+        table = self.get_table("birth_names")
+        security_manager.del_permission_role(role, pvm1)
+        security_manager.del_permission_role(role, pvm2)
+        self.revoke_role_access_to_table("Gamma", table)
+
+    @with_feature_flags(QUERY_CONTEXT_VALIDATION_SQL_EXPRESSION=True)
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices",
+        "load_world_bank_dashboard_with_slices",
+    )
+    def test_when_actor_does_not_have_permission_to_metric_datasource__401(self):
+        self.logout()
+        self.login(username="gamma")
+        table = self.get_table("birth_names")
+        self.grant_role_access_to_table(table, "gamma")
+        metric = QueryContextGeneratorInteg.generate_sql_expression_metric(
+            column_name="country_name", table_name="wb_health_population"
+        )
+        self.query_context_payload["queries"][0]["metrics"].append(metric)
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+        assert rv.status_code == 401
+        self.revoke_role_access_to_table("Gamma", table)
+
+    @with_feature_flags(QUERY_CONTEXT_VALIDATION_SQL_EXPRESSION=True)
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices",
+        "load_world_bank_dashboard_with_slices",
+    )
+    def test_when_actor_has_permission_to_metric_datasource__200(self):
+        self.logout()
+        self.login(username="gamma")
+        birth_names_table = self.get_table("birth_names")
+        self.grant_role_access_to_table(birth_names_table, "gamma")
+        wb_table = self.get_table("wb_health_population")
+        self.grant_role_access_to_table(wb_table, "gamma")
+        metric = QueryContextGeneratorInteg.generate_sql_expression_metric(
+            column_name="country_name", table_name="wb_health_population"
+        )
+        self.query_context_payload["queries"][0]["metrics"] = [metric]
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+        assert rv.status_code == 200
+        self.revoke_role_access_to_table("Gamma", birth_names_table)
+        self.revoke_role_access_to_table("Gamma", wb_table)
 
 
 @pytest.mark.chart_data_flow

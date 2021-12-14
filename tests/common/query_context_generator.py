@@ -16,7 +16,7 @@
 # under the License.
 import copy
 import dataclasses
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from superset.common.chart_data import ChartDataResultType
 from superset.utils.core import AnnotationType, DTTM_ALIAS, TimeRangeEndpoint
@@ -296,9 +296,11 @@ class QueryContextGenerator:
         add_time_offsets: bool = False,
         table_id=1,
         table_type="table",
+        form_data: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         table_name = query_name.split(":")[0]
         table = self.get_table(table_name, table_id, table_type)
+        form_data = form_data or {}
         return {
             "datasource": {"id": table.id, "type": table.type},
             "queries": [
@@ -307,6 +309,7 @@ class QueryContextGenerator:
                 )
             ],
             "result_type": ChartDataResultType.FULL,
+            "form_data": form_data,
         }
 
     @staticmethod
@@ -344,6 +347,7 @@ class QueryContextGenerator:
     def generate_sql_expression_metric(
         column_name="name", table_name="superset.ab_permission", **kwargs: Any
     ) -> Dict[str, Any]:
+        sqlExpression = f"(SELECT count({column_name}) FROM {table_name})"
         return dict_merge(
             {
                 "aggregate": "COUNT",
@@ -369,7 +373,7 @@ class QueryContextGenerator:
                 "isNew": False,
                 "label": f"COUNT({column_name})",
                 "optionName": "metric_bvvzfjgdg7_eawlsdp84tq",
-                "sqlExpression": f"(SELECT count(name) FROM {table_name})",
+                "sqlExpression": sqlExpression,
             },
             kwargs,
         )
