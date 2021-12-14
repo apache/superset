@@ -41,7 +41,7 @@ import Loading from 'src/components/Loading';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
-import replaceUndefinedByNull from 'src/dashboard/util/replaceUndefinedByNull';
+// import replaceUndefinedByNull from 'src/dashboard/util/replaceUndefinedByNull';
 import { checkIsApplyDisabled, TabIds } from './utils';
 import FilterSets from './FilterSets';
 import {
@@ -156,6 +156,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const [dataMaskSelected, setDataMaskSelected] =
     useImmer<DataMaskStateWithId>(dataMaskApplied);
   const dispatch = useDispatch();
+  const [updateKey, setUpdateKey] = useState(0);
   const filterSets = useFilterSets();
   const filterSetFilterValues = Object.values(filterSets);
   const [tab, setTab] = useState(TabIds.AllFilters);
@@ -191,16 +192,6 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     [dataMaskSelected, dispatch, setDataMaskSelected, tab],
   );
 
-  const getFilterKeyForUrl = async (value: string) => {
-    let key;
-    try {
-      key = await createFilterKey(dashboardId, value);
-    } catch (err) {
-      return null;
-    }
-    return key;
-  };
-
   const publishDataMask = useCallback(
     async (dataMaskSelected: DataMaskStateWithId) => {
       const { location } = history;
@@ -214,22 +205,24 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         }
       });
 
-      const getParam = getUrlParam(URL_PARAMS.nativeFilters);
+      const nativeFiltersCacheKey = getUrlParam(
+        URL_PARAMS.nativeFiltersByCacheKey,
+      );
       const dataMask = JSON.stringify(dataMaskSelected);
+      if (
+        updateKey &&
+        nativeFiltersCacheKey &&
+        (await updateFilterKey(dashboardId, dataMask, nativeFiltersCacheKey))
+      ) {
+        dataMaskKey = nativeFiltersCacheKey;
+      } else {
+        let filterType;
+        const isOldRison = getUrlParam(URL_PARAMS.nativeFilters);
+        if (typeof isOldRison === 'object') {
+          filterType = rison.encode(isOldRison);
+        } else filterType = getUrlParam(URL_PARAMS.nativeFiltersByCacheKey);
 
-      if (typeof getParam === 'object') {
-        const res = await getFilterKeyForUrl(rison.encode(getParam));
-        if (res === null) {
-          dataMaskKey = rison.encode(replaceUndefinedByNull(dataMaskSelected));
-        } else dataMaskKey = res;
-      } else if (typeof getParam === 'string') {
-        try {
-          const res = await updateFilterKey(dashboardId, dataMask, getParam);
-          if (res === 'Value updated successfully.') {
-            dataMaskKey = getParam;
-          }
-          // eslint-disable-next-line no-empty
-        } catch {}
+        dataMaskKey = await createFilterKey(dashboardId, filterType);
       }
       newParams.set(URL_PARAMS.nativeFilters.name, dataMaskKey);
 
@@ -237,7 +230,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         search: newParams.toString(),
       });
     },
-    [history],
+    [history, updateKey],
   );
 
   useEffect(() => {
@@ -279,6 +272,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
 
   const handleApply = useCallback(() => {
     const filterIds = Object.keys(dataMaskSelected);
+    setUpdateKey(1);
     filterIds.forEach(filterId => {
       if (dataMaskSelected[filterId]) {
         dispatch(updateDataMask(filterId, dataMaskSelected[filterId]));

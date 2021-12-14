@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient, logging } from '@superset-ui/core';
 
 export const updateFilterKey = (dashId: string, value: string, key: string) =>
   SupersetClient.put({
@@ -24,7 +24,10 @@ export const updateFilterKey = (dashId: string, value: string, key: string) =>
     jsonPayload: { value },
   })
     .then(r => r.json.message)
-    .catch(err => err);
+    .catch(err => {
+      logging.error(err);
+      return null;
+    });
 
 export const createFilterKey = (dashId: string, value: string) =>
   SupersetClient.post({
@@ -32,7 +35,10 @@ export const createFilterKey = (dashId: string, value: string) =>
     jsonPayload: { value },
   })
     .then(r => r.json.key)
-    .catch(err => console.log('err', err));
+    .catch(err => {
+      logging.error(err);
+      return null;
+    });
 
 export const getFilterValue = (
   dashId: string | number | undefined,
@@ -42,4 +48,7 @@ export const getFilterValue = (
     endpoint: `api/v1/dashboard/${dashId}/filter_state/${key}/`,
   })
     .then(({ json }) => JSON.parse(json.value))
-    .catch(err => err);
+    .catch(err => {
+      logging.error(err);
+      return null;
+    });

@@ -58,13 +58,12 @@ export function getUrlParam({ name, type }: UrlParam): unknown {
         return null;
       }
       return urlParam !== 'false' && urlParam !== '0';
-    case 'rison | string':
+    case 'rison':
       if (!urlParam) {
         return null;
       }
       try {
-        const parsedRison = rison.decode(urlParam);
-        return parsedRison;
+        return rison.decode(urlParam);
       } catch {
         return urlParam;
       }

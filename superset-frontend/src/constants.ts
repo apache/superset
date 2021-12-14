@@ -37,7 +37,11 @@ export const URL_PARAMS = {
   },
   nativeFilters: {
     name: 'native_filters',
-    type: 'rison | string',
+    type: 'rison',
+  },
+  nativeFiltersByCacheKey: {
+    name: 'native_filters',
+    type: 'string',
   },
   filterSet: {
     name: 'filter_set',
