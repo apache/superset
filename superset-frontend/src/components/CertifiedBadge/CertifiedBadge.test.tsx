@@ -19,29 +19,29 @@
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import CertifiedIcon from 'src/components/CertifiedIcon';
+import CertifiedBadge from 'src/components/CertifiedBadge';
 
 test('renders with default props', () => {
-  render(<CertifiedIcon />);
+  render(<CertifiedBadge />);
   expect(screen.getByRole('img')).toBeInTheDocument();
 });
 
 test('renders a tooltip when hovered', async () => {
-  render(<CertifiedIcon />);
+  render(<CertifiedBadge />);
   userEvent.hover(screen.getByRole('img'));
   expect(await screen.findByRole('tooltip')).toBeInTheDocument();
 });
 
 test('renders with certified by', async () => {
   const certifiedBy = 'Trusted Authority';
-  render(<CertifiedIcon certifiedBy={certifiedBy} />);
+  render(<CertifiedBadge certifiedBy={certifiedBy} />);
   userEvent.hover(screen.getByRole('img'));
   expect(await screen.findByRole('tooltip')).toHaveTextContent(certifiedBy);
 });
 
 test('renders with details', async () => {
   const details = 'All requirements have been met.';
-  render(<CertifiedIcon details={details} />);
+  render(<CertifiedBadge details={details} />);
   userEvent.hover(screen.getByRole('img'));
   expect(await screen.findByRole('tooltip')).toHaveTextContent(details);
 });

@@ -90,7 +90,9 @@ def update_id_refs(  # pylint: disable=too-many-locals
         for columns in metadata["filter_scopes"].values():
             for attributes in columns.values():
                 attributes["immune"] = [
-                    id_map[old_id] for old_id in attributes["immune"]
+                    id_map[old_id]
+                    for old_id in attributes["immune"]
+                    if old_id in id_map
                 ]
 
     if "expanded_slices" in metadata:

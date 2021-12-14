@@ -58,7 +58,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 import setupPlugins from 'src/setup/setupPlugins';
-import CertifiedIcon from 'src/components/CertifiedIcon';
+import CertifiedBadge from 'src/components/CertifiedBadge';
 import ChartCard from './ChartCard';
 
 const PAGE_SIZE = 25;
@@ -249,7 +249,7 @@ function ChartList(props: ChartListProps) {
           <a href={url} data-test={`${sliceName}-list-chart-title`}>
             {certifiedBy && (
               <>
-                <CertifiedIcon
+                <CertifiedBadge
                   certifiedBy={certifiedBy}
                   details={certificationDetails}
                 />{' '}

@@ -38,6 +38,7 @@ assists people when migrating to a new version.
 - [17539](https://github.com/apache/superset/pull/17539): all Superset CLI commands
   (init, load_examples and etc) require setting the FLASK_APP environment variable
   (which is set by default when .flaskenv is loaded)
+- [17360](https://github.com/apache/superset/pull/17360): changes the column type from `VARCHAR(32)` to `TEXT` in table `table_columns`, potentially requiring a table lock on MySQL dbs or taking some time to complete on large deployments.
 
 ### Deprecations
 
