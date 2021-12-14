@@ -43,9 +43,13 @@ const colorSchemeOptions = [
   { value: 'rgb(255,0,0)', label: t('red') },
 ];
 
+const inverseOptions = [
+  { value: 'Inversed', label: t('Inversed') },
+  { value: 'Not inversed', label: t('Not inversed') },
+];
+
 const operatorOptions = [
   { value: COMPARATOR.NONE, label: 'None' },
-  { value: COMPARATOR.INVERSE, label: 'Inverse' },
   { value: COMPARATOR.GREATER_THAN, label: '>' },
   { value: COMPARATOR.LESS_THAN, label: '<' },
   { value: COMPARATOR.GREATER_OR_EQUAL, label: '≥' },
@@ -89,7 +93,7 @@ const isOperatorMultiValue = (operator?: COMPARATOR) =>
   operator && MULTIPLE_VALUE_COMPARATORS.includes(operator);
 
 const isOperatorNone = (operator?: COMPARATOR) =>
-  !operator || operator === COMPARATOR.NONE || operator === COMPARATOR.INVERSE;
+  !operator || operator === COMPARATOR.NONE;
 
 const rulesRequired = [{ required: true, message: t('Required') }];
 
@@ -218,6 +222,16 @@ export const FormattingPopoverContent = ({
     </Row>
     <FormItem noStyle shouldUpdate={shouldFormItemUpdate}>
       {renderOperatorFields}
+    </FormItem>
+    <FormItem noStyle shouldUpdate={shouldFormItemUpdate}>
+      <FormItem
+        name="inverseMode"
+        label={t('Inverse mode')}
+        initialValue={inverseOptions[0].value}
+        rules={rulesRequired}
+      >
+        <Select ariaLabel={t('Color scheme')} options={inverseOptions} />
+      </FormItem>
     </FormItem>
     <FormItem>
       <JustifyEnd>
