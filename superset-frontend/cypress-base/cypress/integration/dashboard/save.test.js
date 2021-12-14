@@ -74,9 +74,7 @@ describe('Dashboard save action', () => {
       .trigger('mouseenter')
       .click();
 
-    cy.get('[data-test="grid-container"]')
-      .find('.box_plot')
-      .should('not.exist');
+    cy.get('[data-test="grid-container"]').find('.treemap').should('not.exist');
 
     cy.intercept('PUT', '/api/v1/dashboard/**').as('putDashboardRequest');
     cy.get('[data-test="dashboard-header"]')
@@ -90,9 +88,9 @@ describe('Dashboard save action', () => {
       .find('[aria-label="edit-alt"]')
       .click();
 
-    // deleted boxplot should still not exist
+    // deleted treemap should still not exist
     cy.get('[data-test="grid-container"]')
-      .find('.box_plot', { timeout: 20000 })
+      .find('.treemap', { timeout: 20000 })
       .should('not.exist');
   });
 
