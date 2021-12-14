@@ -62,12 +62,14 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
     NullValueException,
+    QueryClauseValidationException,
     QueryObjectValidationError,
     SpatialException,
     SupersetSecurityException,
 )
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
+from superset.sql_parse import validate_filter_clause
 from superset.typing import Column, Metric, QueryObjectDict, VizData, VizPayload
 from superset.utils import core as utils, csv
 from superset.utils.cache import set_and_log_cache
@@ -252,6 +254,8 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                 "orderby": [],
                 "row_limit": config["SAMPLES_ROW_LIMIT"],
                 "columns": [o.column_name for o in self.datasource.columns],
+                "from_dttm": None,
+                "to_dttm": None,
             }
         )
         df = self.get_df_payload(query_obj)["df"]  # leverage caching logic
@@ -372,6 +376,15 @@ class BaseViz:  # pylint: disable=too-many-public-methods
 
         self.from_dttm = from_dttm
         self.to_dttm = to_dttm
+
+        # validate sql filters
+        for param in ("where", "having"):
+            clause = self.form_data.get(param)
+            if clause:
+                try:
+                    validate_filter_clause(clause)
+                except QueryClauseValidationException as ex:
+                    raise QueryObjectValidationError(ex.message) from ex
 
         # extras are used to query elements specific to a datasource type
         # for instance the extra where clause that applies only to Tables

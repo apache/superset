@@ -1039,22 +1039,15 @@ LANGUAGES = {
 }
 ```
 
-### Extracting new strings for translation
-
-```bash
-pybabel extract -F superset/translations/babel.cfg -o superset/translations/messages.pot -k _ -k __ -k t -k tn -k tct .
-```
-
-This will update the template file `superset/translations/messages.pot` with current application strings. Do not forget to update
-this file with the appropriate license information.
-
 ### Updating language files
 
 ```bash
- pybabel update -i superset/translations/messages.pot -d superset/translations --ignore-obsolete
+./scripts/babel_update.sh
 ```
 
-This will update language files with the new extracted strings.
+This script will
+1. update the template file `superset/translations/messages.pot` with current application strings.
+2. update language files with the new extracted strings.
 
 You can then translate the strings gathered in files located under
 `superset/translation`, where there's one per language. You can use [Poedit](https://poedit.net/features)
@@ -1346,9 +1339,9 @@ More information on the async query feature can be found in [SIP-39](https://git
 
 Chart parameters are stored as a JSON encoded string the `slices.params` column and are often referenced throughout the code as form-data. Currently the form-data is neither versioned nor typed as thus is somewhat free-formed. Note in the future there may be merit in using something like [JSON Schema](https://json-schema.org/) to both annotate and validate the JSON object in addition to using a Mypy `TypedDict` (introduced in Python 3.8) for typing the form-data in the backend. This section serves as a potential primer for that work.
 
-The following tables provide a non-exhausive list of the various fields which can be present in the JSON object grouped by the Explorer pane sections. These values were obtained by extracting the distinct fields from a legacy deployment consisting of tens of thousands of charts and thus some fields may be missing whilst others may be deprecated.
+The following tables provide a non-exhaustive list of the various fields which can be present in the JSON object grouped by the Explorer pane sections. These values were obtained by extracting the distinct fields from a legacy deployment consisting of tens of thousands of charts and thus some fields may be missing whilst others may be deprecated.
 
-Note not all fields are correctly categorized. The fields vary based on visualization type and may apprear in different sections depending on the type. Verified deprecated columns may indicate a missing migration and/or prior migrations which were unsuccessful and thus future work may be required to clean up the form-data.
+Note not all fields are correctly categorized. The fields vary based on visualization type and may appear in different sections depending on the type. Verified deprecated columns may indicate a missing migration and/or prior migrations which were unsuccessful and thus future work may be required to clean up the form-data.
 
 ### Datasource & Chart Type
 

@@ -17,10 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import {
-  SupersetClientClass,
-  ClientConfig,
-} from '@superset-ui/core/src/connection';
+import { SupersetClientClass, ClientConfig, CallApi } from '@superset-ui/core';
 import { LOGIN_GLOB } from './fixtures/constants';
 
 describe('SupersetClientClass', () => {
@@ -321,7 +318,7 @@ describe('SupersetClientClass', () => {
       await client.init();
       await client.get({ url: mockGetUrl });
 
-      const fetchRequest = fetchMock.calls(mockGetUrl)[0][1];
+      const fetchRequest = fetchMock.calls(mockGetUrl)[0][1] as CallApi;
       expect(fetchRequest.mode).toBe(clientConfig.mode);
       expect(fetchRequest.credentials).toBe(clientConfig.credentials);
       expect(fetchRequest.headers).toEqual(
@@ -378,7 +375,7 @@ describe('SupersetClientClass', () => {
         await client.init();
         await client.get({ url: mockGetUrl, ...overrideConfig });
 
-        const fetchRequest = fetchMock.calls(mockGetUrl)[0][1];
+        const fetchRequest = fetchMock.calls(mockGetUrl)[0][1] as CallApi;
         expect(fetchRequest.mode).toBe(overrideConfig.mode);
         expect(fetchRequest.credentials).toBe(overrideConfig.credentials);
         expect(fetchRequest.headers).toEqual(
@@ -423,7 +420,7 @@ describe('SupersetClientClass', () => {
         await client.init();
         await client.post({ url: mockPostUrl, ...overrideConfig });
 
-        const fetchRequest = fetchMock.calls(mockPostUrl)[0][1];
+        const fetchRequest = fetchMock.calls(mockPostUrl)[0][1] as CallApi;
 
         expect(fetchRequest.mode).toBe(overrideConfig.mode);
         expect(fetchRequest.credentials).toBe(overrideConfig.credentials);
@@ -454,7 +451,8 @@ describe('SupersetClientClass', () => {
         await client.init();
         await client.post({ url: mockPostUrl, postPayload });
 
-        const formData = fetchMock.calls(mockPostUrl)[0][1].body as FormData;
+        const fetchRequest = fetchMock.calls(mockPostUrl)[0][1] as CallApi;
+        const formData = fetchRequest.body as FormData;
 
         expect(fetchMock.calls(mockPostUrl)).toHaveLength(1);
         Object.entries(postPayload).forEach(([key, value]) => {
@@ -470,7 +468,8 @@ describe('SupersetClientClass', () => {
         await client.init();
         await client.post({ url: mockPostUrl, postPayload, stringify: false });
 
-        const formData = fetchMock.calls(mockPostUrl)[0][1].body as FormData;
+        const fetchRequest = fetchMock.calls(mockPostUrl)[0][1] as CallApi;
+        const formData = fetchRequest.body as FormData;
 
         expect(fetchMock.calls(mockPostUrl)).toHaveLength(1);
         Object.entries(postPayload).forEach(([key, value]) => {
@@ -478,5 +477,37 @@ describe('SupersetClientClass', () => {
         });
       });
     });
+  });
+
+  it('should redirect Unauthorized', async () => {
+    const mockRequestUrl = 'https://host/get/url';
+    const { location } = window;
+    // @ts-ignore
+    delete window.location;
+    // @ts-ignore
+    window.location = { href: mockRequestUrl };
+    const authSpy = jest
+      .spyOn(SupersetClientClass.prototype, 'ensureAuth')
+      .mockImplementation();
+    const rejectValue = { status: 401 };
+    fetchMock.get(mockRequestUrl, () => Promise.reject(rejectValue), {
+      overwriteRoutes: true,
+    });
+
+    const client = new SupersetClientClass({});
+
+    let error;
+    try {
+      await client.request({ url: mockRequestUrl, method: 'GET' });
+    } catch (err) {
+      error = err;
+    } finally {
+      const redirectURL = window.location.href;
+      expect(redirectURL).toBe(`/login?next=${mockRequestUrl}`);
+      expect(error.status).toBe(401);
+    }
+
+    authSpy.mockReset();
+    window.location = location;
   });
 });

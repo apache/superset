@@ -31,7 +31,7 @@ import DatabaseSelector, {
   DatabaseObject,
 } from 'src/components/DatabaseSelector';
 import RefreshLabel from 'src/components/RefreshLabel';
-import CertifiedIcon from 'src/components/CertifiedIcon';
+import CertifiedBadge from 'src/components/CertifiedBadge';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 
 const TableSelectorWrapper = styled.div`
@@ -123,7 +123,7 @@ const TableOption = ({ table }: { table: Table }) => {
         <Icons.Table iconSize="m" />
       )}
       {extra?.certification && (
-        <CertifiedIcon
+        <CertifiedBadge
           certifiedBy={extra.certification.certified_by}
           details={extra.certification.details}
           size="l"
