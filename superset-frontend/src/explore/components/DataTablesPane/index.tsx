@@ -216,7 +216,7 @@ export const DataTablesPane = ({
   );
 
   const getData = useCallback(
-    (resultType: string) => {
+    (resultType: string, force = false) => {
       setIsLoading(prevIsLoading => ({
         ...prevIsLoading,
         [resultType]: true,
@@ -226,6 +226,7 @@ export const DataTablesPane = ({
         resultFormat: 'json',
         resultType,
         ownState,
+        force,
       })
         .then(({ json }) => {
           // Only displaying the first query is currently supported
@@ -298,7 +299,7 @@ export const DataTablesPane = ({
       ...prevState,
       [RESULT_TYPES.samples]: true,
     }));
-  }, [queryFormData?.adhoc_filters, queryFormData?.datasource]);
+  }, [queryFormData?.adhoc_filters, queryFormData?.datasource, panelOpen]);
 
   useEffect(() => {
     if (queriesResponse && chartStatus === 'success') {
@@ -345,7 +346,7 @@ export const DataTablesPane = ({
         ...prevState,
         [RESULT_TYPES.samples]: false,
       }));
-      getData(RESULT_TYPES.samples);
+      getData(RESULT_TYPES.samples, true);
     }
   }, [
     panelOpen,
