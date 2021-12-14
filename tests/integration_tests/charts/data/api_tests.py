@@ -131,25 +131,26 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert rv.json["result"][0]["rowcount"] == expected_row_count
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch(
+        "superset.common.query_context_factory.config", {**app.config, "ROW_LIMIT": 7},
+    )
     def test_without_row_limit__row_count_as_default_row_limit(self):
         # arrange
-        row_limit_before = app.config["ROW_LIMIT"]
         expected_row_count = 7
-        app.config["ROW_LIMIT"] = expected_row_count
         del self.query_context_payload["queries"][0]["row_limit"]
         # act
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
         # assert
         self.assert_row_count(rv, expected_row_count)
-        # cleanup
-        app.config["ROW_LIMIT"] = row_limit_before
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch(
+        "superset.common.query_context_factory.config",
+        {**app.config, "SAMPLES_ROW_LIMIT": 5},
+    )
     def test_as_samples_without_row_limit__row_count_as_default_samples_row_limit(self):
         # arrange
-        samples_row_limit_before = app.config["SAMPLES_ROW_LIMIT"]
         expected_row_count = 5
-        app.config["SAMPLES_ROW_LIMIT"] = expected_row_count
         self.query_context_payload["result_type"] = ChartDataResultType.SAMPLES
         del self.query_context_payload["queries"][0]["row_limit"]
 
@@ -158,9 +159,6 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
         # assert
         self.assert_row_count(rv, expected_row_count)
-
-        # cleanup
-        app.config["SAMPLES_ROW_LIMIT"] = samples_row_limit_before
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_row_limit_bigger_then_sql_max_row__rowcount_as_sql_max_row(self):
@@ -367,6 +365,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         else:
             raise Exception("ds column not found")
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_prophet(self):
         """
         Chart data API: Ensure prophet post transformation works
@@ -448,6 +447,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
         assert rv.status_code == 400
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_not_permitted_actor__401(self):
         """
         Chart data API: Test chart data query not allowed
@@ -719,6 +719,10 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         self.test_with_valid_qc__data_is_returned()
         role = security_manager.find_role("Gamma")
         table = self.get_table("birth_names")
+        pvm1 = security_manager.find_permission_view_menu("can_sql_json", "Superset")
+        pvm2 = security_manager.find_permission_view_menu(
+            "database_access", "[examples].(id:1)"
+        )
         security_manager.del_permission_role(role, pvm1)
         security_manager.del_permission_role(role, pvm2)
         self.revoke_role_access_to_table("Gamma", table)
