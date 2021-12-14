@@ -33,13 +33,6 @@ import {
 } from './types';
 import { DEFAULT_FETCH_RETRY_OPTIONS, DEFAULT_BASE_URL } from './constants';
 
-function redirectUnauthorized() {
-  // the next param will be picked by flask to redirect the user after the login
-  setTimeout(() => {
-    window.location.href = `/login?next=${window.location.href}`;
-  });
-}
-
 export default class SupersetClientClass {
   credentials: Credentials;
 
@@ -159,8 +152,8 @@ export default class SupersetClientClass {
       timeout: timeout ?? this.timeout,
       fetchRetryOptions: fetchRetryOptions ?? this.fetchRetryOptions,
     }).catch(res => {
-      if (res && res.status === 401) {
-        redirectUnauthorized();
+      if (res?.status === 401) {
+        this.redirectUnauthorized();
       }
       return Promise.reject(res);
     });
@@ -225,5 +218,9 @@ export default class SupersetClientClass {
     return `${this.protocol}//${cleanHost}/${
       endpoint[0] === '/' ? endpoint.slice(1) : endpoint
     }`;
+  }
+
+  redirectUnauthorized() {
+    window.location.href = `/login?next=${window.location.href}`;
   }
 }
