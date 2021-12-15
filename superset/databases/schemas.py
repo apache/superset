@@ -558,19 +558,11 @@ class ImportV1DatabaseExtraSchema(Schema):
         self, data: Dict[str, Any], **kwargs: Any
     ) -> Dict[str, Any]:
         """
-        Fixes for ``schemas_allowed_for_csv_upload``.
-        """
-        # Fix for https://github.com/apache/superset/pull/16756, which temporarily
-        # changed the V1 schema. We need to support exports made after that PR and
-        # before this PR.
-        if "schemas_allowed_for_file_upload" in data:
-            data["schemas_allowed_for_csv_upload"] = data.pop(
-                "schemas_allowed_for_file_upload"
-            )
+        Fix ``schemas_allowed_for_csv_upload`` being a string.
 
-        # Fix ``schemas_allowed_for_csv_upload`` being a string.
-        # Due to a bug in the database modal, some databases might have been
-        # saved and exported with a string for ``schemas_allowed_for_csv_upload``.
+        Due to a bug in the database modal, some databases might have been
+        saved and exported with a string for ``schemas_allowed_for_csv_upload``.
+        """
         schemas_allowed_for_csv_upload = data.get("schemas_allowed_for_csv_upload")
         if isinstance(schemas_allowed_for_csv_upload, str):
             data["schemas_allowed_for_csv_upload"] = json.loads(
@@ -587,22 +579,6 @@ class ImportV1DatabaseExtraSchema(Schema):
 
 
 class ImportV1DatabaseSchema(Schema):
-    # pylint: disable=no-self-use, unused-argument
-    @pre_load
-    def fix_allow_csv_upload(
-        self, data: Dict[str, Any], **kwargs: Any
-    ) -> Dict[str, Any]:
-        """
-        Fix for ``allow_csv_upload`` .
-        """
-        # Fix for https://github.com/apache/superset/pull/16756, which temporarily
-        # changed the V1 schema. We need to support exports made after that PR and
-        # before this PR.
-        if "allow_file_upload" in data:
-            data["allow_csv_upload"] = data.pop("allow_file_upload")
-
-        return data
-
     database_name = fields.String(required=True)
     sqlalchemy_uri = fields.String(required=True)
     password = fields.String(allow_none=True)
