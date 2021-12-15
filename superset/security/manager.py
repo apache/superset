@@ -18,6 +18,7 @@
 """A set of constants and methods to manage permissions and security"""
 import logging
 import re
+import time
 from collections import defaultdict
 from typing import (
     Any,
@@ -32,7 +33,8 @@ from typing import (
     Union,
 )
 
-from flask import current_app, g
+import jwt
+from flask import current_app, Flask, g, Request
 from flask_appbuilder import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.sqla.manager import SecurityManager
@@ -51,7 +53,7 @@ from flask_appbuilder.security.views import (
     ViewMenuModelView,
 )
 from flask_appbuilder.widgets import ListWidget
-from flask_login import AnonymousUserMixin
+from flask_login import AnonymousUserMixin, LoginManager
 from sqlalchemy import and_, or_
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import Session
@@ -63,6 +65,12 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from superset.security.guest_token import (
+    GuestToken,
+    GuestTokenResource,
+    GuestTokenUser,
+    GuestUser,
+)
 from superset.utils.core import DatasourceName, RowLevelSecurityFilterType
 
 if TYPE_CHECKING:
@@ -172,6 +180,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "can_approve",
         "can_update_role",
         "all_query_access",
+        "can_grant_guest_token",
     }
 
     READ_ONLY_PERMISSION = {
@@ -220,6 +229,17 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "all_database_access",
         "all_query_access",
     )
+
+    guest_user_cls = GuestUser
+
+    def create_login_manager(self, app: Flask) -> LoginManager:
+        # pylint: disable=import-outside-toplevel
+        from superset.extensions import feature_flag_manager
+
+        lm = super().create_login_manager(app)
+        if feature_flag_manager.is_feature_enabled("EMBEDDED_SUPERSET"):
+            lm.request_loader(self.get_guest_user_from_request)
+        return lm
 
     def get_schema_perm(  # pylint: disable=no-self-use
         self, database: Union["Database", str], schema: Optional[str] = None
@@ -1228,3 +1248,74 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         exists = db.session.query(query.exists()).scalar()
         return exists
+
+    @staticmethod
+    def _get_current_epoch_time() -> float:
+        """ This is used so the tests can mock time """
+        return time.time()
+
+    def create_guest_access_token(
+        self, user: GuestTokenUser, resources: List[GuestTokenResource]
+    ) -> bytes:
+        secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
+        algo = current_app.config["GUEST_TOKEN_JWT_ALGO"]
+        exp_seconds = current_app.config["GUEST_TOKEN_JWT_EXP_SECONDS"]
+
+        # calculate expiration time
+        now = self._get_current_epoch_time()
+        exp = now + (exp_seconds * 1000)
+        claims = {
+            "user": user,
+            "resources": resources,
+            # standard jwt claims:
+            "iat": now,  # issued at
+            "exp": exp,  # expiration time
+        }
+        token = jwt.encode(claims, secret, algorithm=algo)
+        return token
+
+    def get_guest_user_from_request(self, req: Request) -> Optional[GuestUser]:
+        """
+        If there is a guest token in the request (used for embedded),
+        parses the token and returns the guest user.
+        This is meant to be used as a request loader for the LoginManager.
+        The LoginManager will only call this if an active session cannot be found.
+
+        :return: A guest user object
+        """
+        raw_token = req.headers.get(current_app.config["GUEST_TOKEN_HEADER_NAME"])
+        if raw_token is None:
+            return None
+
+        try:
+            token = self.parse_jwt_guest_token(raw_token)
+        except Exception:  # pylint: disable=broad-except
+            # The login manager will handle sending 401s.
+            # We don't need to send a special error message.
+            logger.warning("Invalid guest token", exc_info=True)
+            return None
+        else:
+            return self.guest_user_cls(
+                token=token,
+                roles=[self.find_role(current_app.config["GUEST_ROLE_NAME"])],
+            )
+
+    @staticmethod
+    def parse_jwt_guest_token(raw_token: str) -> GuestToken:
+        """
+        Parses and validates a guest token.
+        Raises an error if the jwt is invalid:
+        if it is not signed with our secret,
+        or if required claims are not present.
+        :param raw_token: the token gotten from the request
+        :return: the same token that was passed in, tested but unchanged
+        """
+        secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
+        algo = current_app.config["GUEST_TOKEN_JWT_ALGO"]
+
+        token = jwt.decode(raw_token, secret, algorithms=[algo])
+        if token.get("user") is None:
+            raise ValueError("Guest token does not contain a user claim")
+        if token.get("resources") is None:
+            raise ValueError("Guest token does not contain a resources claim")
+        return cast(GuestToken, token)
