@@ -87,8 +87,8 @@ EMAIL_PAGE_RENDER_WAIT = config["EMAIL_PAGE_RENDER_WAIT"]
 WEBDRIVER_BASEURL = config["WEBDRIVER_BASEURL"]
 WEBDRIVER_BASEURL_USER_FRIENDLY = config["WEBDRIVER_BASEURL_USER_FRIENDLY"]
 
-ALERT_OBSERVER_RETRY_WAIT = config["OBSERVER_RETRY_WAIT"]
-ALERT_OBSERVER_RETRY_COUNT = config["ALERT_OBSERVER_RETRY_COUNT"]
+ALERTS_OBSERVER_RETRY_WAIT = config["ALERTS_OBSERVER_RETRY_WAIT"]
+ALERTS_OBSERVER_RETRY_COUNT = config["ALERTS_OBSERVER_RETRY_COUNT"]
 ALERTS_RUN_QUERY_RETRY_COUNT = config["ALERTS_RUN_QUERY_RETRY_COUNT"]
 
 ReportContent = namedtuple(
@@ -705,8 +705,8 @@ def evaluate_alert(
         error_msg = retry_call(
             observe,
             fargs=[alert_id, session],
-            max_tries=ALERT_OBSERVER_RETRY_COUNT,
-            interval=ALERT_OBSERVER_RETRY_WAIT,
+            max_tries=ALERTS_OBSERVER_RETRY_COUNT,
+            interval=ALERTS_OBSERVER_RETRY_WAIT,
         )
         if error_msg:
             state = AlertState.ERROR
