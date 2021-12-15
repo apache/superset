@@ -14,37 +14,33 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""add_extra_config_column_to_alerts
+"""Change datatype of type in BaseColumn
 
-Revision ID: abe27eaf93db
-Revises: aea15018d53b
-Create Date: 2021-12-02 12:03:20.691171
+Revision ID: 3ba29ecbaac5
+Revises: abe27eaf93db
+Create Date: 2021-11-02 17:44:51.792138
 
 """
 
 # revision identifiers, used by Alembic.
-revision = "abe27eaf93db"
-down_revision = "aea15018d53b"
+revision = "3ba29ecbaac5"
+down_revision = "abe27eaf93db"
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy import String
-from sqlalchemy.sql import column, table
-
-report_schedule = table("report_schedule", column("extra", String))
+from sqlalchemy.dialects import postgresql
 
 
 def upgrade():
-    bind = op.get_bind()
 
-    with op.batch_alter_table("report_schedule") as batch_op:
-        batch_op.add_column(
-            sa.Column("extra", sa.Text(), nullable=True, default="{}",),
+    with op.batch_alter_table("table_columns") as batch_op:
+        batch_op.alter_column(
+            "type", existing_type=sa.VARCHAR(length=32), type_=sa.TEXT()
         )
-    bind.execute(report_schedule.update().values({"extra": "{}"}))
-    with op.batch_alter_table("report_schedule") as batch_op:
-        batch_op.alter_column("extra", existing_type=sa.Text(), nullable=False)
 
 
 def downgrade():
-    op.drop_column("report_schedule", "extra")
+    with op.batch_alter_table("table_columns") as batch_op:
+        batch_op.alter_column(
+            "type", existing_type=sa.TEXT(), type_=sa.VARCHAR(length=32)
+        )
