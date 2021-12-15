@@ -69,10 +69,10 @@ little bit helps, and credit will always be given.
   - [Git Hooks](#git-hooks)
   - [Linting](#linting)
   - [Conventions](#conventions)
-    - [Python](#python)
+    - [Python](#python-conventions)
   - [Typing](#typing)
-    - [Python](#python-1)
-    - [TypeScript](#typescript)
+    - [Python](#python-typing)
+    - [TypeScript](#typeScript-typing)
   - [Testing](#testing)
     - [Python Testing](#python-testing)
     - [Frontend Testing](#frontend-testing)
@@ -82,12 +82,10 @@ little bit helps, and credit will always be given.
     - [Storybook](#storybook)
   - [Translating](#translating)
     - [Enabling language selection](#enabling-language-selection)
-    - [Extracting new strings for translation](#extracting-new-strings-for-translation)
     - [Updating language files](#updating-language-files)
     - [Creating a new language dictionary](#creating-a-new-language-dictionary)
   - [Tips](#tips)
     - [Adding a new datasource](#adding-a-new-datasource)
-    - [Improving visualizations](#improving-visualizations)
     - [Visualization Plugins](#visualization-plugins)
     - [Adding a DB migration](#adding-a-db-migration)
     - [Merging DB migrations](#merging-db-migrations)
@@ -117,17 +115,6 @@ Here's a list of repositories that contain Superset-related packages:
   also includes Superset's main TypeScript/JavaScript bundles and react apps under
   the [superset-frontend](https://github.com/apache/superset/tree/master/superset-frontend)
   folder.
-- [apache-superset/superset-ui](https://github.com/apache-superset/superset-ui)
-  contains core Superset's
-  [npm packages](https://github.com/apache-superset/superset-ui/tree/master/packages).
-  These packages are shared across the React apps in the main repository,
-  and in visualization plugins.
-- [apache-superset/superset-ui-plugins](https://github.com/apache-superset/superset-ui-plugins)
-  contains the code for the default visualizations that ship with Superset
-  and are maintained by the core community.
-- [apache-superset/superset-ui-plugins-deckgl](https://github.com/apache-superset/superset-ui-plugins-deckgl)
-  contains the code for the geospatial visualizations that ship with Superset
-  and are maintained by the core community.
 - [github.com/apache-superset](https://github.com/apache-superset) is the
   Github organization under which we manage Superset-related
   small tools, forks and Superset-related experimental ideas.
@@ -683,7 +670,7 @@ If using the eslint extension with vscode, put the following in your workspace `
 
 ## Conventions
 
-### Python
+### Python Conventions
 
 Parameters in the `config.py` (which are accessible via the Flask app.config dictionary) are assumed to always be defined and thus should be accessed directly via,
 
@@ -701,7 +688,7 @@ or similar as the later will cause typing issues. The former is of type `List[Ca
 
 ## Typing
 
-### Python
+### Python Typing
 
 To ensure clarity, consistency, all readability, _all_ new functions should use
 [type hints](https://docs.python.org/3/library/typing.html) and include a
@@ -728,7 +715,7 @@ def sqrt(x: Union[float, int]) -> Union[float, int]:
     return math.sqrt(x)
 ```
 
-### TypeScript
+### TypeScript Typing
 
 TypeScript is fully supported and is the recommended language for writing all new frontend components. When modifying existing functions/components, migrating to TypeScript is appreciated, but not required. Examples of migrating functions/components to TypeScript can be found in [#9162](https://github.com/apache/superset/pull/9162) and [#9180](https://github.com/apache/superset/pull/9180).
 
@@ -1089,7 +1076,7 @@ pip install -r superset/translations/requirements.txt
 pybabel init -i superset/translations/messages.pot -d superset/translations -l LANGUAGE_CODE
 ```
 
-Then, [extract strings for the new language](#extracting-new-strings-for-translation).
+Then, [Updating language files](#updating-language-files).
 
 ## Tips
 
@@ -1111,44 +1098,13 @@ Then, [extract strings for the new language](#extracting-new-strings-for-transla
 
    This means it'll register MyDatasource and MyOtherDatasource in superset.my_models module in the source registry.
 
-### Improving visualizations
-
-To edit the frontend code for visualizations, you will have to check out a copy of [apache-superset/superset-ui](https://github.com/apache-superset/superset-ui):
-
-```bash
-git clone https://github.com/apache-superset/superset-ui.git
-cd superset-ui
-yarn
-yarn build
-```
-
-Then use `npm link` to create symlinks of the plugins/superset-ui packages you want to edit in `superset-frontend/node_modules`:
-
-```bash
-# Since npm 7, you have to install plugin dependencies separately, too
-cd ../../superset-ui/plugins/[PLUGIN NAME] && npm install --legacy-peer-deps
-
-cd superset/superset-frontend
-npm link ../../superset-ui/plugins/[PLUGIN NAME]
-
-# Or to link all core superset-ui and plugin packages:
-# npm link ../../superset-ui/{packages,plugins}/*
-
-# Start developing
-npm run dev-server
-```
-
-When `superset-ui` packages are linked with `npm link`, the dev server will automatically load a package's source code from its `/src` directory, instead of the built modules in `lib/` or `esm/`.
-
-Note that every time you do `npm install`, you will lose the symlink(s) and may have to run `npm link` again.
-
 ### Visualization Plugins
 
 The topic of authoring new plugins, whether you'd like to contribute
 it back or not has been well documented in the
 [So, You Want to Build a Superset Viz Plugin...](https://preset.io/blog/2020-07-02-hello-world/) blog post
 
-To contribute a plugin to Superset-UI, your plugin must meet the following criteria:
+To contribute a plugin to Superset, your plugin must meet the following criteria:
 
 - The plugin should be applicable to the community at large, not a particularly specialized use case
 - The plugin should be written with TypeScript
