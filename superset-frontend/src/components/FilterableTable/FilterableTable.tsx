@@ -156,6 +156,8 @@ export default class FilterableTable extends PureComponent<
     this.rowClassName = this.rowClassName.bind(this);
     this.sort = this.sort.bind(this);
     this._onSectionRendered = this._onSectionRendered.bind(this);
+    this._loadMoreRows = this._loadMoreRows.bind(this);
+    this._isRowLoaded = this._isRowLoaded.bind(this);
 
     // columns that have complex type and were expanded into sub columns
     this.complexColumns = props.orderedColumnKeys.reduce(
@@ -175,6 +177,7 @@ export default class FilterableTable extends PureComponent<
     this.state = {
       sortDirection: SortDirection.ASC,
       fitted: false,
+      rowIdx: 100,
     };
 
     this.container = React.createRef();
@@ -493,7 +496,7 @@ export default class FilterableTable extends PureComponent<
         <InfiniteLoader
           isRowLoaded={this._isRowLoaded}
           loadMoreRows={this._loadMoreRows}
-          rowCount={100}
+          rowCount={this.state.rowIdx}
           threshold={1}
         >
           {({ onRowsRendered, registerChild }) => {
@@ -507,7 +510,7 @@ export default class FilterableTable extends PureComponent<
                 // onScroll={onScroll}
                 overscanColumnCount={overscanColumnCount}
                 overscanRowCount={overscanRowCount}
-                rowCount={this.list.length}
+                rowCount={this.state.rowIdx}
                 rowHeight={rowHeight}
                 width={1000}
                 onSectionRendered={this._onSectionRendered}
@@ -560,16 +563,21 @@ export default class FilterableTable extends PureComponent<
   }
 
   _isRowLoaded({ index }) {
-    console.log(index);
-    return true;
+    const { rowIdx } = this.state;
+    console.log(rowIdx);
+    return index < rowIdx - 1; // this condition determins whether _loadMoreRows will be called
   }
 
   _loadMoreRows({ startIndex, stopIndex }) {
     console.log('in loadmore rows');
+    this.setState({ rowIdx: this.state.rowIdx + 1 });
     let done;
     return new Promise(resolve => (done = resolve));
   }
   _onSectionRendered({ rowStartIndex, rowStopIndex }) {
+    // console.log('rowStartIndex', rowStartIndex)
+    // console.log('rowStopIndex', rowStopIndex)
+
     this._onRowsRendered({
       startIndex: rowStartIndex,
       stopIndex: rowStopIndex,
