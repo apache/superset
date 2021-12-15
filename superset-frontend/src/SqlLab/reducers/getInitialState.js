@@ -70,6 +70,7 @@ export default function getInitialState({
    * Load state from the backend. This will be empty if the feature flag
    * `SQLLAB_BACKEND_PERSISTENCE` is off.
    */
+  console.log(activeTab);
   tabStateIds.forEach(({ id, label }) => {
     let queryEditor;
     if (activeTab && activeTab.id === id) {

@@ -877,6 +877,23 @@ export function saveQuery(query) {
       );
 }
 
+export function addSavedQueryToTabState(queryEditor, query) {
+  return function (dispatch) {
+    const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
+      ? SupersetClient.put({
+          endpoint: `/tabstateview/${queryEditor.id}`,
+          postPayload: { saved_query_id: query.remoteId },
+        })
+      : Promise.resolve();
+
+    return sync
+      .catch(() => {
+        dispatch(addDangerToast(t('Your query was not properly saved')));
+      })
+      .then(() => dispatch(updateQueryEditor(query)));
+  };
+}
+
 export function updateSavedQuery(query) {
   return dispatch =>
     SupersetClient.put({

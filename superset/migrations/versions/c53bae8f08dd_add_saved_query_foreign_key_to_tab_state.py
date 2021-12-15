@@ -38,5 +38,9 @@ def upgrade():
 
 def downgrade():
     with op.batch_alter_table("tab_state") as batch_op:
+<<<<<<< HEAD
         batch_op.drop_constraint("saved_query_id", type_="foreignkey")
+=======
+        batch_op.drop_contraint("saved_query_id", type_="foreignkey")
+>>>>>>> test
         batch_op.drop_column("saved_query_id")

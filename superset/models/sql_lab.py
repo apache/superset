@@ -285,6 +285,10 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
     template_params = Column(Text)
     hide_left_bar = Column(Boolean, default=False)
 
+    # any saved queries that are associated with the Tab State
+    saved_query_id = Column(Integer, ForeignKey("saved_query.id"), nullable=True)
+    saved_query = relationship("SavedQuery")
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "id": self.id,
