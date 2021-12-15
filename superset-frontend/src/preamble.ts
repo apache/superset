@@ -30,6 +30,7 @@ if (process.env.WEBPACK_MODE === 'development') {
   setHotLoaderConfig({ logLevel: 'debug', trackTailUpdates: false });
 }
 
+// eslint-disable-next-line import/no-mutable-exports
 export let bootstrapData: any;
 // Configure translation
 if (typeof window !== 'undefined') {

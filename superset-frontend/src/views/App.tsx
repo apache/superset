@@ -25,7 +25,6 @@ import {
   useLocation,
 } from 'react-router-dom';
 import { initFeatureFlags } from 'src/featureFlags';
-import { RootContextProviders } from './RootContextProviders';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
 import Menu from 'src/components/Menu/Menu';
@@ -34,6 +33,7 @@ import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import setupApp from 'src/setup/setupApp';
 import { routes, isFrontendRoute } from 'src/views/routes';
 import { Logger } from 'src/logger/LogUtils';
+import { RootContextProviders } from './RootContextProviders';
 
 setupApp();
 
