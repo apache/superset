@@ -193,7 +193,6 @@ class HeaderActionsDropdown extends React.PureComponent {
       dashboardTitle,
       dashboardId,
       dashboardInfo,
-      dataMask,
       refreshFrequency,
       shouldPersistRefreshFrequency,
       editMode,

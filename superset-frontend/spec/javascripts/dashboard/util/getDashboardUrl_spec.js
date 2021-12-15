@@ -74,12 +74,13 @@ describe('getChartIdsFromLayout', () => {
   });
 
   it('should process native filters key', () => {
-    const windowSpy = jest.spyOn(window, "window", "get");
+    const windowSpy = jest.spyOn(window, 'window', 'get');
     windowSpy.mockImplementation(() => ({
       location: {
-        origin: "https://localhost",
-        search: "?preselect_filters=%7B%7D&native_filters=024380498jdkjf-2094838"
-      }
+        origin: 'https://localhost',
+        search:
+          '?preselect_filters=%7B%7D&native_filters=024380498jdkjf-2094838',
+      },
     }));
 
     const urlWithNativeFilters = getDashboardUrl({
