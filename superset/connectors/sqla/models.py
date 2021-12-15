@@ -1452,7 +1452,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 # string into a timestamp.
                 if column_map[dimension].is_temporal and isinstance(value, str):
                     dttm = dateutil.parser.parse(value)
-                    value = text(self.db_engine_spec.convert_dttm("TIMESTAMP", dttm))
+                    value = text(
+                        str(self.db_engine_spec.convert_dttm("TIMESTAMP", dttm))
+                    )
 
                 group.append(groupby_exprs[dimension] == value)
             groups.append(and_(*group))
