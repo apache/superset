@@ -16,6 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-declare module '@data-ui/xy-chart';
-declare module '*.png';
-declare module '*.jpg';
+
+import moment from 'moment';
+import {
+  getTimeFormatter,
+  getTimeFormatterForGranularity,
+  smartDateFormatter,
+  TimeGranularity,
+} from '@superset-ui/core';
+
+export const parseMetricValue = (metricValue: number | string | null) => {
+  if (typeof metricValue === 'string') {
+    const dateObject = moment.utc(metricValue, moment.ISO_8601, true);
+    if (dateObject.isValid()) {
+      return dateObject.valueOf();
+    }
+    return null;
+  }
+  return metricValue;
+};
+
+export const getDateFormatter = (
+  timeFormat: string,
+  granularity?: TimeGranularity,
+  fallbackFormat?: string | null,
+) =>
+  timeFormat === smartDateFormatter.id
+    ? getTimeFormatterForGranularity(granularity)
+    : getTimeFormatter(timeFormat ?? fallbackFormat);

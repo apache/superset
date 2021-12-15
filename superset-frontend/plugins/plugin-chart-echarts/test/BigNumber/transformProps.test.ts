@@ -17,10 +17,11 @@
  * under the License.
  */
 import { DatasourceType, TimeGranularity } from '@superset-ui/core';
-import transformProps, {
-  BignumberChartProps,
+import transformProps from '../../src/BigNumber/BigNumberWithTrendline/transformProps';
+import {
   BigNumberDatum,
-} from '../src/BigNumber/transformProps';
+  BigNumberWithTrendlineChartProps,
+} from '../../src/BigNumber/types';
 
 const formData = {
   metric: 'value',
@@ -33,8 +34,9 @@ const formData = {
   compareLag: 1,
   timeGrainSqla: 'P3M' as TimeGranularity,
   compareSuffix: 'over last quarter',
-  vizType: 'big_number',
+  viz_type: 'big_number',
   yAxisFormat: '.3s',
+  datasource: 'test_datasource',
 };
 
 const rawFormData = {
@@ -56,7 +58,7 @@ function generateProps(
   data: BigNumberDatum[],
   extraFormData = {},
   extraQueryData = {},
-): BignumberChartProps {
+): BigNumberWithTrendlineChartProps {
   return {
     width: 200,
     height: 500,
@@ -84,10 +86,13 @@ function generateProps(
         ...extraQueryData,
       },
     ],
+    ownState: {},
+    filterState: {},
+    behaviors: [],
   };
 }
 
-describe('BigNumber', () => {
+describe('BigNumberWithTrendline', () => {
   const props = generateProps(
     [
       {
@@ -109,8 +114,8 @@ describe('BigNumber', () => {
       const lastDatum = transformed.trendLineData?.pop();
 
       // should use last available value
-      expect(lastDatum?.x).toStrictEqual(100);
-      expect(lastDatum?.y).toBeNull();
+      expect(lastDatum?.[0]).toStrictEqual(100);
+      expect(lastDatum?.[1]).toBeNull();
 
       // should note this is a fallback
       expect(transformed.bigNumber).toStrictEqual(1.2345);

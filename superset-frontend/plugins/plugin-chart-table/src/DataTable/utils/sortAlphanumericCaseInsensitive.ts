@@ -16,18 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Preset } from '@superset-ui/core';
-import BigNumberChartPlugin from './BigNumber';
-import BigNumberTotalChartPlugin from './BigNumberTotal';
 
-export default class BigNumberChartPreset extends Preset {
-  constructor() {
-    super({
-      name: 'BigNumber charts',
-      plugins: [
-        new BigNumberChartPlugin().configure({ key: 'big_number' }),
-        new BigNumberTotalChartPlugin().configure({ key: 'big_number_total' }),
-      ],
-    });
+import { Row } from 'react-table';
+
+export const sortAlphanumericCaseInsensitive = <D extends {}>(
+  rowA: Row<D>,
+  rowB: Row<D>,
+  columnId: string,
+) => {
+  const valueA = rowA.values[columnId];
+  const valueB = rowB.values[columnId];
+
+  if (!valueA || typeof valueA !== 'string') {
+    return -1;
   }
-}
+  if (!valueB || typeof valueB !== 'string') {
+    return 1;
+  }
+  return valueA.localeCompare(valueB) > 0 ? 1 : -1;
+};

@@ -17,10 +17,6 @@
  * under the License.
  */
 import { isFeatureEnabled, Preset, FeatureFlag } from '@superset-ui/core';
-import {
-  BigNumberChartPlugin,
-  BigNumberTotalChartPlugin,
-} from '@superset-ui/legacy-preset-chart-big-number';
 import CalendarChartPlugin from '@superset-ui/legacy-plugin-chart-calendar';
 import ChordChartPlugin from '@superset-ui/legacy-plugin-chart-chord';
 import CountryMapChartPlugin from '@superset-ui/legacy-plugin-chart-country-map';
@@ -54,6 +50,8 @@ import {
 } from '@superset-ui/legacy-preset-chart-nvd3';
 import { DeckGLChartPreset } from '@superset-ui/legacy-preset-chart-deckgl';
 import {
+  BigNumberChartPlugin,
+  BigNumberTotalChartPlugin,
   EchartsPieChartPlugin,
   EchartsBoxPlotChartPlugin,
   EchartsAreaChartPlugin,
