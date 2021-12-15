@@ -36,7 +36,7 @@ jobs:
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
-          JVM_OPTS: -Xmx12g -Xms12g -XX:MaxPermSize=1024m
+          JVM_OPTS: -Xmx16g -Xms16g -XX:MaxPermSize=1024m
         ports:
           # Use custom ports for services to avoid accidentally connecting to
           # GitHub action runner's default installations
@@ -82,9 +82,9 @@ jobs:
         if: steps.check.outcome == 'failure'
         run: |
           ./scripts/python_tests.sh
-      - name: Get presto log
-        if: always()
-        run: docker logs -f "${{ job.services.presto.id }}"
+#      - name: Get presto log
+#        if: always()
+#        run: docker logs -f "${{ job.services.presto.id }}"
 #      - name: Upload code coverage
 #        if: steps.check.outcome == 'failure'
 #        run: |
