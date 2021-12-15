@@ -78,10 +78,11 @@ jobs:
         if: steps.check.outcome == 'failure'
         run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
       - name: Python unit tests (PostgreSQL)
-#        if: steps.check.outcome == 'failure'
+        if: steps.check.outcome == 'failure'
         run: |
           ./scripts/python_tests.sh
       - name: Get presto log
+        if: always()
         run: docker logs -f "${{ job.services.presto.id }}"
 #      - name: Upload code coverage
 #        if: steps.check.outcome == 'failure'
