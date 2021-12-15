@@ -32,10 +32,11 @@ jobs:
           # GitHub action runner's default installations
           - 15432:5432
       presto:
-        image: starburstdata/presto:350-e.17
+        image: starburstdata/presto:350-e.6
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
+          JVM_OPTS: -Xmx12g -Xms12g -XX:MaxPermSize=1024m
         ports:
           # Use custom ports for services to avoid accidentally connecting to
           # GitHub action runner's default installations
