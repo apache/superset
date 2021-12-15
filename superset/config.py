@@ -1050,6 +1050,11 @@ ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG = int(timedelta(seconds=1).total_seconds
 # Useful for debugging
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = False
 
+# Retry config for the alert observer execution.
+# Can be helpful for database instabilities.
+ALERT_OBSERVER_RETRY_COUNT = 1
+ALERT_OBSERVER_RETRY_WAIT = 0  # seconds
+
 # A custom prefix to use on all Alerts & Reports emails
 EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
 

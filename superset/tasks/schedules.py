@@ -87,6 +87,9 @@ EMAIL_PAGE_RENDER_WAIT = config["EMAIL_PAGE_RENDER_WAIT"]
 WEBDRIVER_BASEURL = config["WEBDRIVER_BASEURL"]
 WEBDRIVER_BASEURL_USER_FRIENDLY = config["WEBDRIVER_BASEURL_USER_FRIENDLY"]
 
+ALERT_OBSERVER_RETRY_WAIT = config["OBSERVER_RETRY_WAIT"]
+ALERT_OBSERVER_RETRY_COUNT = config["ALERT_OBSERVER_RETRY_COUNT"]
+
 ReportContent = namedtuple(
     "ReportContent",
     [
@@ -422,8 +425,6 @@ def _get_slice_visualization(
     element = retry_call(
         driver.find_element_by_class_name,
         fargs=["chart-container"],
-        max_tries=2,
-        interval=EMAIL_PAGE_RENDER_WAIT,
     )
 
     try:
@@ -543,7 +544,7 @@ def schedule_email_report(
     # TODO: find cause of https://github.com/apache/superset/issues/10530
     # and remove retry
     autoretry_for=(NoSuchColumnError, ResourceClosedError,),
-    retry_kwargs={"max_retries": 1},
+    retry_kwargs={"max_retries": 3},
     retry_backoff=True,
 )
 def schedule_alert_query(
@@ -700,7 +701,12 @@ def evaluate_alert(
 
     try:
         logger.info("Querying observers for alert <%s:%s>", alert_id, label)
-        error_msg = observe(alert_id, session)
+        error_msg = retry_call(
+            observe,
+            fargs=[alert_id, session],
+            max_tries=ALERT_OBSERVER_RETRY_COUNT,
+            interval=ALERT_OBSERVER_RETRY_WAIT,
+        )
         if error_msg:
             state = AlertState.ERROR
             logging.error(error_msg)
