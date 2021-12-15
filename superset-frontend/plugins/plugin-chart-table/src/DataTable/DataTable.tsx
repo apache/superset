@@ -44,6 +44,7 @@ import SelectPageSize, {
 import SimplePagination from './components/Pagination';
 import useSticky from './hooks/useSticky';
 import { PAGE_SIZE_OPTIONS } from '../consts';
+import { sortAlphanumericCaseInsensitive } from './utils/sortAlphanumericCaseInsensitive';
 
 export interface DataTableProps<D extends object> extends TableOptions<D> {
   tableClassName?: string;
@@ -67,6 +68,10 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
 export interface RenderHTMLCellProps extends HTMLProps<HTMLTableCellElement> {
   cellContent: ReactNode;
 }
+
+const sortTypes = {
+  alphanumeric: sortAlphanumericCaseInsensitive,
+};
 
 // Be sure to pass our updateMyData and the skipReset option
 export default function DataTable<D extends object>({
@@ -174,6 +179,7 @@ export default function DataTable<D extends object>({
       initialState,
       getTableSize: defaultGetTableSize,
       globalFilter: defaultGlobalFilter,
+      sortTypes,
       ...moreUseTableOptions,
     },
     ...tableHooks,
