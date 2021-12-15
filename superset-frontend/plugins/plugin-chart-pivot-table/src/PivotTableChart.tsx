@@ -28,15 +28,8 @@ import {
   styled,
   useTheme,
 } from '@superset-ui/core';
-// @ts-ignore
-import PivotTable from '@superset-ui/react-pivottable/PivotTable';
-import {
-  sortAs,
-  aggregatorTemplates,
-  // @ts-ignore
-} from '@superset-ui/react-pivottable/Utilities';
-import '@superset-ui/react-pivottable/pivottable.css';
 import { isAdhocColumn } from '@superset-ui/chart-controls';
+import { PivotTable, sortAs, aggregatorTemplates } from './react-pivottable';
 import {
   FilterType,
   MetricsLayoutEnum,
