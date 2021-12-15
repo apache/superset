@@ -131,6 +131,7 @@ export default function transformProps(
 
   const totalStackedValues: number[] = [];
   const showValueIndexes: number[] = [];
+  const thresholdValues: number[] = [];
 
   rebasedData.forEach(data => {
     const values = Object.keys(data).reduce((prev, curr) => {
@@ -141,6 +142,7 @@ export default function transformProps(
       return prev + (value as number);
     }, 0);
     totalStackedValues.push(values);
+    thresholdValues.push((percentageThreshold / 100) * values);
   });
 
   if (stack) {
@@ -167,9 +169,9 @@ export default function transformProps(
       formatter,
       showValue,
       onlyTotal,
-      percentageThreshold,
       totalStackedValues,
       showValueIndexes,
+      thresholdValues,
       richTooltip,
     });
     if (transformedSeries) series.push(transformedSeries);

@@ -78,10 +78,10 @@ export function transformSeries(
     yAxisIndex?: number;
     showValue?: boolean;
     onlyTotal?: boolean;
-    percentageThreshold?: number;
     formatter?: NumberFormatter;
     totalStackedValues?: number[];
     showValueIndexes?: number[];
+    thresholdValues?: number[];
     richTooltip?: boolean;
   },
 ): SeriesOption | undefined {
@@ -98,10 +98,10 @@ export function transformSeries(
     yAxisIndex = 0,
     showValue,
     onlyTotal,
-    percentageThreshold = 0,
     formatter,
     totalStackedValues = [],
     showValueIndexes = [],
+    thresholdValues = [],
     richTooltip,
   } = opts;
   const contexts = seriesContexts[name || ''] || [];
@@ -215,10 +215,7 @@ export function transformSeries(
         if (!formatter) return numericValue;
         if (!stack || isSelectedLegend) return formatter(numericValue);
         if (!onlyTotal) {
-          if (
-            numericValue >=
-            (percentageThreshold / 100) * totalStackedValues[dataIndex]
-          ) {
+          if (numericValue >= thresholdValues[dataIndex]) {
             return formatter(numericValue);
           }
         }
