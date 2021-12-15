@@ -32,7 +32,7 @@ jobs:
           # GitHub action runner's default installations
           - 15432:5432
       presto:
-        image: starburstdata/presto:350-e.6
+        image: starburstdata/presto:350-e.17
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
