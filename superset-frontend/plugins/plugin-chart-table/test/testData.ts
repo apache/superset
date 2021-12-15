@@ -68,7 +68,7 @@ const basicChartProps = {
 const basicQueryResult: ChartDataResponseResult = {
   annotation_data: null,
   cache_key: null,
-  cache_dttm: null,
+  cached_dttm: null,
   cache_timeout: null,
   data: [],
   colnames: [],

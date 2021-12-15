@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { SuperChart } from '@superset-ui/core';
-import { BigNumberChartPlugin } from '@superset-ui/legacy-preset-chart-big-number';
+import { BigNumberChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import testData from './data';
 
 new BigNumberChartPlugin().configure({ key: 'big-number' }).register();
@@ -56,7 +56,7 @@ function withNulls(origData: object[], nullPosition = 3) {
 }
 
 export default {
-  title: 'Legacy Chart Plugins/legacy-preset-big-number/BigNumber',
+  title: 'Legacy Chart Plugins/legacy-preset-big-number/BigNumberWithTrendline',
 };
 
 export const basicWithTrendline = () => (
