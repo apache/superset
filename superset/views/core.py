@@ -1825,7 +1825,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         return json_success(json.dumps(result))
 
-    # change py file to trigger test
     @has_access_api
     @event_logger.log_this
     @expose("/favstar/<class_name>/<int:obj_id>/<action>/")
