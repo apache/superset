@@ -91,7 +91,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         request_payload = get_query_context("birth_names")
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
-        self.assertEqual(rv.status_code, 401)
+        self.assertEqual(rv.status_code, 403)
 
         # assert
         self.assert403(response)
