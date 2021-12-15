@@ -238,8 +238,9 @@ class DashboardDAO(BaseDAO):
                 if int(key) in slice_ids
             }
             md["default_filters"] = json.dumps(applicable_filters)
-        # positions have its own column, no need to store it in metadata
-        md.pop("positions", None)
+
+            # positions have its own column, no need to store it in metadata
+            md.pop("positions", None)
 
         # The css and dashboard_title properties are not part of the metadata
         # TODO (geido): remove by refactoring/deprecating save_dash endpoint
