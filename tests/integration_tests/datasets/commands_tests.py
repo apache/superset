@@ -323,7 +323,10 @@ class TestImportDatasetsCommand(SupersetTestCase):
         assert dataset.template_params == "{}"
         assert dataset.filter_select_enabled
         assert dataset.fetch_values_predicate is None
-        assert dataset.extra == "dttm > sysdate() -10 "
+        assert (
+            dataset.extra
+            == '{"certification": {"certified_by": "Data Platform Team", "details": "This table is the source of truth."}, "warning_markdown": "This is a warning."}'
+        )
 
         # user should be included as one of the owners
         assert dataset.owners == [mock_g.user]

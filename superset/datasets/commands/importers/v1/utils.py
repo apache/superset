@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 CHUNKSIZE = 512
 VARCHAR = re.compile(r"VARCHAR\((\d+)\)", re.IGNORECASE)
 
-JSON_KEYS = {"params", "template_params"}
+JSON_KEYS = {"params", "template_params", "extra"}
 
 
 type_map = {
@@ -98,7 +98,7 @@ def import_dataset(
     for key in ("metrics", "columns"):
         for attributes in config.get(key, []):
             # should be a dictionary, but in initial exports this was a string
-            if isinstance(attributes.get("extra"), dict):
+            if attributes.get("extra") is not None:
                 try:
                     attributes["extra"] = json.dumps(attributes["extra"])
                 except TypeError:
