@@ -19,6 +19,7 @@ from unittest import mock
 
 import pytest
 
+from superset.utils.core import backend
 from tests.integration_tests.dashboards.dashboard_test_utils import *
 from tests.integration_tests.dashboards.security.base_case import (
     BaseTestDashboardSecurity,
@@ -118,6 +119,9 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_dashboard_view__user_access_with_dashboard_permission(self):
+        if backend() == "hive":
+            return
+
         # arrange
 
         username = random_str()

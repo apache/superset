@@ -38,7 +38,11 @@ from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.sql_parse import Table
-from superset.utils.core import get_example_database, get_example_default_schema
+from superset.utils.core import (
+    backend,
+    get_example_database,
+    get_example_default_schema,
+)
 from superset.views.access_requests import AccessRequestsModelView
 
 from .base_tests import SupersetTestCase
@@ -832,11 +836,11 @@ class TestRolePermission(SupersetTestCase):
         self.assert_can_alpha(alpha_perm_tuples)
         self.assert_cannot_alpha(alpha_perm_tuples)
 
-    @unittest.skipUnless(
-        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
-    )
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_admin_permissions(self):
+        if backend() == "hive":
+            return
+
         self.assert_can_gamma(get_perm_tuples("Admin"))
         self.assert_can_alpha(get_perm_tuples("Admin"))
         self.assert_can_admin(get_perm_tuples("Admin"))
