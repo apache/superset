@@ -93,6 +93,12 @@ describe('Nativefilters Sanity test', () => {
     cy.get(nativeFilters.modal.container).should('be.visible');
   });
   it('User can add a new native filter', () => {
+    let cacheKey: string;
+    cy.wait(3000);
+    cy.location().then(loc => {
+      cacheKey = loc.search.split('=')[1];
+      expect(typeof cacheKey).eq('string');
+    });
     cy.get(nativeFilters.filterFromDashboardView.expand).click({ force: true });
     cy.get(nativeFilters.createFilterButton).should('be.visible').click();
     cy.get(nativeFilters.modal.container)
@@ -129,6 +135,11 @@ describe('Nativefilters Sanity test', () => {
       .should('be.visible')
       .click();
     cy.get(nativeFilters.modal.container).should('not.exist');
+    cy.wait(3000);
+    cy.location().then(loc => {
+      const sameCacheKey: string = loc.search.split('=')[1];
+      expect(sameCacheKey).eq(cacheKey);
+    });
   });
   it('User can delete a native filter', () => {
     cy.get(nativeFilters.createFilterButton).click({ force: true });

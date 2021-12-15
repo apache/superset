@@ -220,9 +220,10 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         const isOldRison = getUrlParam(URL_PARAMS.nativeFilters);
         if (typeof isOldRison === 'object') {
           filterType = rison.encode(isOldRison);
-        } else filterType = getUrlParam(URL_PARAMS.nativeFiltersByCacheKey);
+        } else filterType = dataMask;
 
         dataMaskKey = await createFilterKey(dashboardId, filterType);
+        console.log('dataMask', dataMaskKey);
       }
       newParams.set(URL_PARAMS.nativeFilters.name, dataMaskKey);
 

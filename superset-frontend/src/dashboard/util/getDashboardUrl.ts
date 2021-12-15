@@ -44,7 +44,7 @@ export default function getDashboardUrl({
   if (standalone) {
     newSearchParams.set(URL_PARAMS.standalone.name, standalone.toString());
   }
-  const dataMaskKey = getUrlParam(URL_PARAMS.nativeFilters);
+  const dataMaskKey = getUrlParam(URL_PARAMS.nativeFiltersByCacheKey);
   if (dataMaskKey) {
     newSearchParams.set(URL_PARAMS.nativeFilters.name, dataMaskKey as string);
   }
