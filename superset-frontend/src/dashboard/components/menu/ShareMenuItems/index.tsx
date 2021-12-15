@@ -36,7 +36,7 @@ interface ShareMenuItemProps {
   emailBody: string;
   addDangerToast: Function;
   addSuccessToast: Function;
-  dashboardId: string;
+  dashboardId?: string;
 }
 
 const ShareMenuItems = (props: ShareMenuItemProps) => {
@@ -56,7 +56,7 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
 
   async function getCopyUrl() {
     const isOldRison = getUrlParam(URL_PARAMS.nativeFilters);
-    if (typeof isOldRison === 'object') return null;
+    if (typeof isOldRison === 'object' || !dashboardId) return null;
     const getPrevData = await getFilterValue(
       dashboardId,
       getUrlParam(URL_PARAMS.nativeFiltersByCacheKey),
