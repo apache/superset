@@ -161,10 +161,15 @@ const PropertiesModal = ({
 
       form.setFieldsValue(dashboardInfo);
       setDashboardInfo(dashboardInfo);
-      setJsonMetadata(metadata ? jsonStringify(metadata) : '');
       setOwners(owners);
       setRoles(roles);
       setColorScheme(metadata.color_scheme);
+
+      // temporary fix to remove positions from dashboards' metadata
+      if (metadata?.positions) {
+        delete metadata.positions;
+      }
+      setJsonMetadata(metadata ? jsonStringify(metadata) : '');
     },
     [form],
   );
