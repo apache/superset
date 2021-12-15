@@ -423,10 +423,7 @@ def _get_slice_visualization(
 
     # Set up a function to retry once for the element.
     # This is buggy in certain selenium versions with firefox driver
-    element = retry_call(
-        driver.find_element_by_class_name,
-        fargs=["chart-container"],
-    )
+    element = retry_call(driver.find_element_by_class_name, fargs=["chart-container"],)
 
     try:
         screenshot = element.screenshot_as_png
