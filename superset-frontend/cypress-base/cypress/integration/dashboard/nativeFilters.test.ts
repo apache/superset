@@ -121,7 +121,7 @@ describe('Nativefilters Sanity test', () => {
     cy.wait(5000);
     cy.get(nativeFilters.filtersPanel.filterInfoInput)
       .last()
-      .should('be.visible')
+      .should('be.visible', { timeout: 20000 })
       .click({ force: true });
     cy.get(nativeFilters.filtersPanel.filterInfoInput)
       .last()
