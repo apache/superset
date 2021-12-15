@@ -166,7 +166,7 @@ const PropertiesModal = ({
       setColorScheme(metadata.color_scheme);
 
       // temporary fix to remove positions from dashboards' metadata
-      if (metadata && metadata.positions) {
+      if (metadata?.positions) {
         delete metadata.positions;
       }
       setJsonMetadata(metadata ? jsonStringify(metadata) : '');
