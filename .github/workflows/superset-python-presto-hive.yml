@@ -45,6 +45,8 @@ jobs:
         ports:
           - 16379:6379
     steps:
+      - name: Get presto log
+        run: docker logs -f "${{ job.services.presto.id }}"
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v2
         with:
