@@ -35,6 +35,7 @@ const createProps = () => ({
   emailMenuItemTitle: 'Share dashboard by email',
   emailSubject: 'Superset dashboard COVID Vaccine Dashboard',
   emailBody: 'Check out this dashboard: ',
+  dashboardId: '26',
 });
 
 const { location } = window;
