@@ -20,7 +20,7 @@ import React from 'react';
 import { styled } from '@superset-ui/core';
 import Select, { SelectProps } from 'antd/lib/select';
 
-export {
+export type {
   OptionType as NativeSelectOptionType,
   SelectProps as NativeSelectProps,
 } from 'antd/lib/select';
