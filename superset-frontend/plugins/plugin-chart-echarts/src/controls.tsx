@@ -136,10 +136,29 @@ const onlyTotalControl = {
   },
 };
 
+const percentageThresholdControl = {
+  name: 'percentage_threshold',
+  config: {
+    type: 'TextControl',
+    label: t('Percentage threshold'),
+    renderTrigger: true,
+    isFloat: true,
+    default: 5,
+    description: t(
+      'Minimum threshold in percentage points for showing labels.',
+    ),
+    visibility: ({ controls }: ControlPanelsContainerProps) =>
+      Boolean(controls?.show_value?.value) &&
+      Boolean(controls?.stack?.value) &&
+      Boolean(!controls?.only_total?.value),
+  },
+};
+
 export const showValueSection = [
   [showValueControl],
   [stackControl],
   [onlyTotalControl],
+  [percentageThresholdControl],
 ];
 
 const richTooltipControl = {
