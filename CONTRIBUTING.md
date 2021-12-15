@@ -1348,7 +1348,7 @@ Note not all fields are correctly categorized. The fields vary based on visualiz
 | Field             | Type     | Notes                               |
 | ----------------- | -------- | ----------------------------------- |
 | `database_name`   | _string_ | _Deprecated?_                       |
-| `datasource`      | _string_ | `<datasouce_id>__<datasource_type>` |
+| `datasource`      | _string_ | `<datasource_id>__<datasource_type>` |
 | `datasource_id`   | _string_ | _Deprecated?_ See `datasource`      |
 | `datasource_name` | _string_ | _Deprecated?_                       |
 | `datasource_type` | _string_ | _Deprecated?_ See `datasource`      |
