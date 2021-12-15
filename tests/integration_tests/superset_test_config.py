@@ -49,7 +49,7 @@ if "sqlite" in SQLALCHEMY_DATABASE_URI:
     )
 
 # Speeding up the tests.integration_tests.
-PRESTO_POLL_INTERVAL = 0.1
+PRESTO_POLL_INTERVAL = 0.2
 HIVE_POLL_INTERVAL = 0.1
 
 SQL_MAX_ROW = 10000
