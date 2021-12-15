@@ -223,6 +223,51 @@ Dashboard and then Save & go to dashboard. Once on the Dashboard, try using the 
 those flights that departed from the United Kingdom – you will see the filter is applied to all of
 the other visualizations on the dashboard.
 
+### Native Filters
+
+As Filter Box is set to be deprecated, this section will instruct you on how to use its replacement,
+**Native Filters**. These are built into the dashboard view itself. Go to the Tutorial Dashboard and
+select the filter icon in the top left corner:
+
+<img src="/images/native_filters_menu_open.png" />
+
+This will open the Native Filters panel, which is currently empty:
+
+<img src="/images/native_filters_empty_panel.png" />
+
+Click on the pencil icon to open up the **Filters Configuration** modal. From here, you can create new filters or
+manage existing ones.
+
+<img src="/images/native_filters_modal.png" />
+
+We're going to create a numerical range for ticket cost:
+
+- Select Numerical Range from the Filter Type dropdown
+- Give the filter a name
+- Select tutorial_flights from the Dataset dropdown if it's not been selected yet
+- Select Cost from the Column dropdown
+
+Click the **Save** button. Your filter will load in the panel.
+
+<img src="/images/native_filters_num_range.png" />
+
+You can adjust the slider to only include datapoints that fall within the selected range for Ticket
+Cost! Set your range and click **Apply** to see how it affects your charts.
+
+We can also recreate the Origin Country filter from the Filter Box section. In the **Filters
+Configuration** modal, click the Add button in the bottom left and select Filter. Set your filter up as
+follows:
+
+- Select Value from Filter Type dropdown
+- Select tutorial_flights from Dataset dropdown
+- Select Origin Country from Column dropdown
+- In Advanced, you can tick the Sort filter values checkbox to list country names alphabetically
+
+**Save** your filters! You can now select origin countries to include from the resulting dropdown.
+
+<img src="/images/native_filters_origin_country.png" />
+<img src="/images/native_filters_origin_country_dropdown.png" />
+
 ### Publishing Your Dashboard
 
 If you have followed all of the steps outlined in the previous section, you should have a dashboard

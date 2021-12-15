@@ -425,6 +425,28 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
         assert rv.status_code == 400
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_with_invalid_where_parameter_closing_unclosed__400(self):
+        self.query_context_payload["queries"][0]["filters"] = []
+        self.query_context_payload["queries"][0]["extras"][
+            "where"
+        ] = "state = 'CA') OR (state = 'NY'"
+
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+
+        assert rv.status_code == 400
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_with_invalid_having_parameter_closing_and_comment__400(self):
+        self.query_context_payload["queries"][0]["filters"] = []
+        self.query_context_payload["queries"][0]["extras"][
+            "having"
+        ] = "COUNT(1) = 0) UNION ALL SELECT 'abc', 1--comment"
+
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+
+        assert rv.status_code == 400
+
     def test_with_invalid_datasource__400(self):
         self.query_context_payload["datasource"] = "abc"
 

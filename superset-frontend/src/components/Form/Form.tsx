@@ -33,4 +33,4 @@ export default function Form(props: FormProps) {
   return <StyledForm {...props} />;
 }
 
-export { FormProps };
+export type { FormProps };

@@ -22,7 +22,7 @@ import AntDSlider, {
   SliderRangeProps,
 } from 'antd/lib/slider';
 
-export { SliderSingleProps, SliderRangeProps };
+export type { SliderSingleProps, SliderRangeProps };
 
 export default function Slider(props: SliderSingleProps | SliderRangeProps) {
   return <AntDSlider {...props} css={{ marginLeft: 0, marginRight: 0 }} />;

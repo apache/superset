@@ -29,14 +29,14 @@ logger = logging.getLogger(__name__)
 
 
 class DeleteKeyValueCommand(BaseCommand, ABC):
-    def __init__(self, user: User, resource_id: int, key: str):
-        self._actor = user
+    def __init__(self, actor: User, resource_id: int, key: str):
+        self._actor = actor
         self._resource_id = resource_id
         self._key = key
 
     def run(self) -> Model:
         try:
-            return self.delete(self._resource_id, self._key)
+            return self.delete(self._actor, self._resource_id, self._key)
         except SQLAlchemyError as ex:
             logger.exception("Error running delete command")
             raise KeyValueDeleteFailedError() from ex
@@ -45,5 +45,5 @@ class DeleteKeyValueCommand(BaseCommand, ABC):
         pass
 
     @abstractmethod
-    def delete(self, resource_id: int, key: str) -> Optional[bool]:
+    def delete(self, actor: User, resource_id: int, key: str) -> Optional[bool]:
         ...

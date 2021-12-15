@@ -542,7 +542,7 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
     )
     periods = fields.Integer(
         descrption="Time periods (in units of `time_grain`) to predict into the future",
-        min=1,
+        min=0,
         example=7,
         required=True,
     )
@@ -1240,11 +1240,21 @@ class ChartDataResponseResult(Schema):
         description="Amount of rows in result set", allow_none=False,
     )
     data = fields.List(fields.Dict(), description="A list with results")
+    colnames = fields.List(fields.String(), description="A list of column names")
+    coltypes = fields.List(
+        fields.Integer(), description="A list of generic data types of each column"
+    )
     applied_filters = fields.List(
         fields.Dict(), description="A list with applied filters"
     )
     rejected_filters = fields.List(
         fields.Dict(), description="A list with rejected filters"
+    )
+    from_dttm = fields.Integer(
+        desciption="Start timestamp of time range", required=False, allow_none=True
+    )
+    to_dttm = fields.Integer(
+        desciption="End timestamp of time range", required=False, allow_none=True
     )
 
 
