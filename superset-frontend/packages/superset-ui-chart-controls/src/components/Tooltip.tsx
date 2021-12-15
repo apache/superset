@@ -20,10 +20,10 @@
 import React from 'react';
 import { useTheme, css } from '@superset-ui/core';
 import { Tooltip as BaseTooltip } from 'antd';
-import { TooltipProps } from 'antd/lib/tooltip';
+import type { TooltipProps } from 'antd/lib/tooltip';
 import { Global } from '@emotion/react';
 
-export { TooltipProps } from 'antd/lib/tooltip';
+export type { TooltipProps } from 'antd/lib/tooltip';
 
 export const Tooltip = ({ overlayStyle, color, ...props }: TooltipProps) => {
   const theme = useTheme();
