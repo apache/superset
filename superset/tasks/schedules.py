@@ -89,6 +89,7 @@ WEBDRIVER_BASEURL_USER_FRIENDLY = config["WEBDRIVER_BASEURL_USER_FRIENDLY"]
 
 ALERT_OBSERVER_RETRY_WAIT = config["OBSERVER_RETRY_WAIT"]
 ALERT_OBSERVER_RETRY_COUNT = config["ALERT_OBSERVER_RETRY_COUNT"]
+ALERTS_RUN_QUERY_RETRY_COUNT = config["ALERTS_RUN_QUERY_RETRY_COUNT"]
 
 ReportContent = namedtuple(
     "ReportContent",
@@ -544,7 +545,7 @@ def schedule_email_report(
     # TODO: find cause of https://github.com/apache/superset/issues/10530
     # and remove retry
     autoretry_for=(NoSuchColumnError, ResourceClosedError,),
-    retry_kwargs={"max_retries": 3},
+    retry_kwargs={"max_retries": ALERTS_RUN_QUERY_RETRY_COUNT},
     retry_backoff=True,
 )
 def schedule_alert_query(

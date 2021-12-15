@@ -1052,8 +1052,11 @@ ALERT_REPORTS_NOTIFICATION_DRY_RUN = False
 
 # Retry config for the alert observer execution.
 # Can be helpful for database instabilities.
-ALERT_OBSERVER_RETRY_COUNT = 1
-ALERT_OBSERVER_RETRY_WAIT = 0  # seconds
+ALERTS_OBSERVER_RETRY_COUNT = 1
+ALERTS_OBSERVER_RETRY_WAIT = 0  # seconds
+
+# Retry count for the alerts.run_query celery task
+ALERTS_RUN_QUERY_RETRY_COUNT = 1
 
 # A custom prefix to use on all Alerts & Reports emails
 EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
