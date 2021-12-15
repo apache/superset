@@ -1186,7 +1186,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   <div className="control-label">
                     {t('Value')}{' '}
                     <InfoTooltipWithTrigger
-                      tooltip={t('Threshold value can only be integer')}
+                      tooltip={t(
+                        'Threshold value should be double precision number',
+                      )}
                     />
                     <span className="required">*</span>
                   </div>
