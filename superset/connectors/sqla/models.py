@@ -105,16 +105,6 @@ logger = logging.getLogger(__name__)
 VIRTUAL_TABLE_ALIAS = "virtual_table"
 
 
-def text(clause: str) -> TextClause:
-    """
-    SQLALchemy wrapper to ensure text clauses are escaped properly
-
-    :param clause: clause potentially containing colons
-    :return: text clause with escaped colons
-    """
-    return sa.text(clause.replace(":", "\\:"))
-
-
 class SqlaQuery(NamedTuple):
     applied_template_filters: List[str]
     extra_cache_keys: List[Any]
@@ -307,7 +297,10 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         l = []
         if start_dttm:
             l.append(
-                col >= text(self.dttm_sql_literal(start_dttm, time_range_endpoints))
+                col
+                >= self.table.text(
+                    self.dttm_sql_literal(start_dttm, time_range_endpoints)
+                )
             )
         if end_dttm:
             if (
@@ -315,10 +308,13 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
                 and time_range_endpoints[1] == utils.TimeRangeEndpoint.EXCLUSIVE
             ):
                 l.append(
-                    col < text(self.dttm_sql_literal(end_dttm, time_range_endpoints))
+                    col
+                    < self.table.text(
+                        self.dttm_sql_literal(end_dttm, time_range_endpoints)
+                    )
                 )
             else:
-                l.append(col <= text(self.dttm_sql_literal(end_dttm, None)))
+                l.append(col <= self.table.text(self.dttm_sql_literal(end_dttm, None)))
         return and_(*l)
 
     def get_timestamp_expression(
@@ -733,7 +729,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     def get_fetch_values_predicate(self) -> TextClause:
         tp = self.get_template_processor()
         try:
-            return text(tp.process_template(self.fetch_values_predicate))
+            return self.text(tp.process_template(self.fetch_values_predicate))
         except TemplateError as ex:
             raise QueryObjectValidationError(
                 _(
@@ -828,7 +824,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             raise QueryObjectValidationError(
                 _("Virtual dataset query must be read-only")
             )
-        return TextAsFrom(text(from_sql), []).alias(VIRTUAL_TABLE_ALIAS)
+        return TextAsFrom(self.text(from_sql), []).alias(VIRTUAL_TABLE_ALIAS)
 
     def get_rendered_sql(
         self, template_processor: Optional[BaseTemplateProcessor] = None
@@ -970,7 +966,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         filters_grouped: Dict[Union[int, str], List[str]] = defaultdict(list)
         try:
             for filter_ in security_manager.get_rls_filters(self):
-                clause = text(
+                clause = self.text(
                     f"({template_processor.process_template(filter_.clause)})"
                 )
                 filters_grouped[filter_.group_key or filter_.id].append(clause)
@@ -979,6 +975,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             raise QueryObjectValidationError(
                 _("Error in jinja expression in RLS filters: %(msg)s", msg=ex.message,)
             ) from ex
+
+    def text(self, clause: str) -> TextClause:
+        return self.db_engine_spec.get_text_clause(clause)
 
     def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
         self,
@@ -1340,7 +1339,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                             msg=ex.message,
                         )
                     ) from ex
-                where_clause_and += [text(f"({where})")]
+                where_clause_and += [self.text(f"({where})")]
             having = extras.get("having")
             if having:
                 try:
@@ -1352,7 +1351,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                             msg=ex.message,
                         )
                     ) from ex
-                having_clause_and += [text(f"({having})")]
+                having_clause_and += [self.text(f"({having})")]
         if apply_fetch_values_predicate and self.fetch_values_predicate:
             qry = qry.where(self.get_fetch_values_predicate())
         if granularity:
@@ -1541,7 +1540,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             )
 
             if sql:
-                value = text(sql)
+                value = self.text(sql)
 
         return value
 

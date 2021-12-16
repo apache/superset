@@ -25,6 +25,18 @@ Object.entries(packageConfig.dependencies).forEach(([pkg]) => {
     importCoreModules.push(pkg);
   }
 });
+
+// ignore files when running ForkTsCheckerWebpackPlugin
+let ignorePatterns = [];
+if (process.env.NODE_ENV === 'production') {
+  ignorePatterns = [
+    '*.test.{js,ts,jsx,tsx}',
+    'plugins/**/test/**/*',
+    'packages/**/test/**/*',
+    'packages/generator-superset/**/*',
+  ];
+}
+
 module.exports = {
   extends: [
     'airbnb',
@@ -307,4 +319,5 @@ module.exports = {
     'react/static-property-placement': 0, // disabled temporarily
     'prettier/prettier': 'error',
   },
+  ignorePatterns,
 };

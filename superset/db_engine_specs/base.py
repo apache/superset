@@ -52,7 +52,7 @@ from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import quoted_name, text
-from sqlalchemy.sql.expression import ColumnClause, Select, TextAsFrom
+from sqlalchemy.sql.expression import ColumnClause, Select, TextAsFrom, TextClause
 from sqlalchemy.types import String, TypeEngine, UnicodeText
 from typing_extensions import TypedDict
 
@@ -279,6 +279,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     allows_alias_in_select = True
     allows_alias_in_orderby = True
     allows_sql_comments = True
+    allows_escaped_colons = True
 
     # Whether ORDER BY clause can use aliases created in SELECT
     # that are the same as a source column
@@ -337,6 +338,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls, extra: Dict[str, Any],
     ) -> bool:
         return False
+
+    @classmethod
+    def get_text_clause(cls, clause: str) -> TextClause:
+        """
+        SQLALchemy wrapper to ensure text clauses are escaped properly
+
+        :param clause: string clause with potentially unescaped characters
+        :return: text clause with escaped characters
+        """
+        if cls.allows_escaped_colons:
+            clause = clause.replace(":", "\\:")
+        return text(clause)
 
     @classmethod
     def get_engine(

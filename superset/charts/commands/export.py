@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 
 # keys present in the standard export that are not needed
-REMOVE_KEYS = ["datasource_type", "datasource_name"]
+REMOVE_KEYS = ["datasource_type", "datasource_name", "query_context"]
 
 
 class ExportChartsCommand(ExportModelsCommand):
@@ -55,8 +55,10 @@ class ExportChartsCommand(ExportModelsCommand):
         )
         # TODO (betodealmeida): move this logic to export_to_dict once this
         #  becomes the default export endpoint
-        for key in REMOVE_KEYS:
-            del payload[key]
+        payload = {
+            key: value for key, value in payload.items() if key not in REMOVE_KEYS
+        }
+
         if payload.get("params"):
             try:
                 payload["params"] = json.loads(payload["params"])

@@ -14,14 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from tests.common.query_context_generator import QueryContextGenerator
 from tests.integration_tests.base_tests import SupersetTestCase
 
 
 class QueryContextGeneratorInteg(QueryContextGenerator):
-    def get_table(self, name, id, type):
+    def get_table(self, name, id_, type_):
         return SupersetTestCase.get_table(name=name)
 
 
@@ -29,6 +29,7 @@ def get_query_context(
     query_name: str,
     add_postprocessing_operations: bool = False,
     add_time_offsets: bool = False,
+    form_data: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Create a request payload for retrieving a QueryContext object via the
@@ -40,8 +41,12 @@ def get_query_context(
     :param datasource_type: type of datasource to query.
     :param add_postprocessing_operations: Add post-processing operations to QueryObject
     :param add_time_offsets: Add time offsets to QueryObject(advanced analytics)
+    :param form_data: chart metadata
     :return: Request payload
     """
     return QueryContextGeneratorInteg().generate(
-        query_name, add_postprocessing_operations, add_time_offsets
+        query_name=query_name,
+        add_postprocessing_operations=add_postprocessing_operations,
+        add_time_offsets=add_time_offsets,
+        form_data=form_data,
     )

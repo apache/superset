@@ -1,7 +1,7 @@
 {
   "lerna": "3.2.1",
   "npmClient": "npm",
-  "packages": ["packages/*", "plugins/*", "temporary_superset_ui/*"],
+  "packages": ["packages/*", "plugins/*"],
   "useWorkspaces": true,
   "version": "0.0.0",
   "ignoreChanges": [

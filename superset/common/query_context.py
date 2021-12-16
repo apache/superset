@@ -47,6 +47,7 @@ class QueryContext:
 
     datasource: BaseDatasource
     queries: List[QueryObject]
+    form_data: Optional[Dict[str, Any]]
     result_type: ChartDataResultType
     result_format: ChartDataResultFormat
     force: bool
@@ -63,6 +64,7 @@ class QueryContext:
         *,
         datasource: BaseDatasource,
         queries: List[QueryObject],
+        form_data: Optional[Dict[str, Any]],
         result_type: ChartDataResultType,
         result_format: ChartDataResultFormat,
         force: bool = False,
@@ -73,6 +75,7 @@ class QueryContext:
         self.result_type = result_type
         self.result_format = result_format
         self.queries = queries
+        self.form_data = form_data
         self.force = force
         self.custom_cache_timeout = custom_cache_timeout
         self.cache_values = cache_values

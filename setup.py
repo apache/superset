@@ -75,7 +75,7 @@ setup(
         "cryptography>=3.3.2",
         "deprecation>=2.1.0, <2.2.0",
         "flask>=1.1.0, <2.0.0",
-        "flask-appbuilder>=3.4.0, <4.0.0",
+        "flask-appbuilder>=3.4.1, <4.0.0",
         "flask-caching>=1.10.0",
         "flask-compress",
         "flask-talisman",
@@ -109,7 +109,8 @@ setup(
         "sqlalchemy-utils>=0.37.8, <0.38",
         "sqlparse==0.3.0",  # PINNED! see https://github.com/andialbrecht/sqlparse/issues/562
         "tabulate==0.8.9",
-        "typing-extensions>=3.10, <4",  # needed to support Literal (3.8) and TypeGuard (3.10)
+        # needed to support Literal (3.8) and TypeGuard (3.10)
+        "typing-extensions>=3.10, <4",
         "wtforms-json",
     ],
     extras_require={
@@ -141,7 +142,7 @@ setup(
         "impala": ["impyla>0.16.2, <0.17"],
         "kylin": ["kylinpy>=2.8.1, <2.9"],
         "mmsql": ["pymssql>=2.1.4, <2.2"],
-        "mysql": ["mysqlclient==1.4.2.post1"],
+        "mysql": ["mysqlclient>=2.1.0, <3"],
         "oracle": ["cx-Oracle>8.0.0, <8.1"],
         "pinot": ["pinotdb>=0.3.3, <0.4"],
         "postgres": ["psycopg2-binary==2.8.5"],

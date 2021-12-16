@@ -26,6 +26,10 @@ spec:
   template:
     metadata:
       name: {{ template "superset.name" . }}-init-db
+      {{- if .Values.init.podAnnotations }}
+      annotations:
+        {{ toYaml .Values.init.podAnnotations | nindent 8 }}
+      {{- end }}
     spec:
       securityContext:
         runAsUser: {{ .Values.runAsUser }}

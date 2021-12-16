@@ -373,7 +373,10 @@ export const getAlreadyExists = (errors: Record<string, any>[]) =>
 export const hasTerminalValidation = (errors: Record<string, any>[]) =>
   errors.some(
     error =>
-      !Object.values(error.extra).some(
-        payload => isNeedsPassword(payload) || isAlreadyExists(payload),
-      ),
+      !Object.entries(error.extra)
+        .filter(([key, _]) => key !== 'issue_codes')
+        .every(
+          ([_, payload]) =>
+            isNeedsPassword(payload) || isAlreadyExists(payload),
+        ),
   );

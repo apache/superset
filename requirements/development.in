@@ -17,7 +17,7 @@
 # under the License.
 -r base.in
 flask-cors>=2.0.0
-mysqlclient==2.0.3
+mysqlclient>=2.1.0
 pillow>=8.3.2,<9
 pydruid>=0.6.1,<0.7
 pyhive[hive]>=0.6.1

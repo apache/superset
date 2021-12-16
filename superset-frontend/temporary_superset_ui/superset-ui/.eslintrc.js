@@ -61,7 +61,6 @@ module.exports = {
       '@superset-ui/legacy-plugin-chart-sankey',
       '@superset-ui/legacy-plugin-chart-sankey-loop',
       '@superset-ui/legacy-plugin-chart-sunburst',
-      '@superset-ui/legacy-plugin-chart-time-table',
       '@superset-ui/legacy-plugin-chart-treemap',
       '@superset-ui/legacy-plugin-chart-world-map',
       '@superset-ui/legacy-preset-chart-big-number',
