@@ -67,7 +67,7 @@ describe('Dashboard save action', () => {
     // should load chart
     WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
 
-    // remove box_plot chart from dashboard
+    // remove treemap chart from dashboard
     cy.get('[aria-label="edit-alt"]').click({ timeout: 5000 });
     cy.get('[data-test="dashboard-delete-component-button"]')
       .last()
