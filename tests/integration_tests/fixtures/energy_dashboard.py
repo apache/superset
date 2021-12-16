@@ -45,6 +45,7 @@ def load_energy_table_data():
             if_exists="replace",
             chunksize=500,
             index=False,
+            dtype={"source": String(255), "target": String(255), "value": Float()},
             method="multi",
             schema=get_example_default_schema(),
         )
