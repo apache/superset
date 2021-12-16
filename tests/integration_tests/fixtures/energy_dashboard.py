@@ -27,7 +27,8 @@ from superset.models.slice import Slice
 from superset.utils.core import get_example_database
 from tests.integration_tests.dashboard_utils import (
     create_slice,
-    create_table_for_dashboard, get_table,
+    create_table_for_dashboard,
+    get_table,
 )
 from tests.integration_tests.test_app import app
 
@@ -39,13 +40,14 @@ ENERGY_USAGE_TBL_NAME = "energy_usage"
 
 @pytest.fixture(scope="session")
 def load_energy_table_data():
-    database = get_example_database()
-    table_description = "Energy consumption"
-    df = _get_dataframe()
-    schema = {"source": String(255), "target": String(255), "value": Float()}
-    create_table_for_dashboard(
-        df, ENERGY_USAGE_TBL_NAME, database, schema, table_description
-    )
+    with app.app_context():
+        database = get_example_database()
+        table_description = "Energy consumption"
+        df = _get_dataframe()
+        schema = {"source": String(255), "target": String(255), "value": Float()}
+        create_table_for_dashboard(
+            df, ENERGY_USAGE_TBL_NAME, database, schema, table_description
+        )
 
 
 @pytest.fixture()

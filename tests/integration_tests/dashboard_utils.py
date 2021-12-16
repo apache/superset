@@ -30,15 +30,15 @@ from superset.utils.core import get_example_default_schema
 
 
 def get_table(
-    table_name: str,
-    database: Database,
-    schema: Optional[str] = None,
+    table_name: str, database: Database, schema: Optional[str] = None,
 ):
     schema = schema or get_example_default_schema()
     table_source = ConnectorRegistry.sources["table"]
-    return db.session.query(table_source).filter_by(
-        database_id=database.id, schema=schema, table_name=table_name
-    ).one_or_none()
+    return (
+        db.session.query(table_source)
+        .filter_by(database_id=database.id, schema=schema, table_name=table_name)
+        .one_or_none()
+    )
 
 
 def create_table_for_dashboard(

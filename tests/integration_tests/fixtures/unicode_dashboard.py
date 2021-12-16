@@ -26,22 +26,23 @@ from superset.utils.core import get_example_database
 from tests.integration_tests.dashboard_utils import (
     create_dashboard,
     create_slice,
-    create_table_for_dashboard, get_table,
+    create_table_for_dashboard,
+    get_table,
 )
 from tests.integration_tests.test_app import app
-
 
 UNICODE_TBL_NAME = "unicode_test"
 
 
 @pytest.fixture(scope="session")
 def load_unicode_data():
-    database = get_example_database()
-    dtype = {
-        "phrase": String(500),
-    }
-    df = _get_dataframe()
-    create_table_for_dashboard(df, UNICODE_TBL_NAME, database, dtype)
+    with app.app_context():
+        database = get_example_database()
+        dtype = {
+            "phrase": String(500),
+        }
+        df = _get_dataframe()
+        create_table_for_dashboard(df, UNICODE_TBL_NAME, database, dtype)
 
 
 @pytest.fixture()
@@ -50,7 +51,6 @@ def load_unicode_dashboard_with_slice(load_unicode_data):
     with app.app_context():
         dash = _create_unicode_dashboard(slice_name, None)
         yield
-
         _cleanup(dash, slice_name)
 
 
@@ -82,9 +82,7 @@ def _get_unicode_data():
     ]
 
 
-def _create_unicode_dashboard(
-    slice_title: str, position: str
-) -> Dashboard:
+def _create_unicode_dashboard(slice_title: str, position: str) -> Dashboard:
     table = get_table(UNICODE_TBL_NAME, get_example_database())
     table.fetch_metadata()
 
