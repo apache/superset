@@ -591,6 +591,7 @@ function makeRenderer(opts = {}) {
         highlightHeaderCellsOnHover,
         omittedHighlightHeaderGroups = [],
         highlightedHeaderCells,
+        cellColorFormatters,
         dateFormatters,
       } = this.props.tableOptions;
       const flatRowKey = flatKey(rowKey);
@@ -682,7 +683,32 @@ function makeRenderer(opts = {}) {
         const agg = pivotData.getAggregator(rowKey, colKey);
         const aggValue = agg.value();
 
-        const style = agg.isSubtotal ? { fontWeight: 'bold' } : {};
+        const keys = [...rowKey, ...colKey];
+        let backgroundColor;
+        if (cellColorFormatters) {
+          Object.values(cellColorFormatters).forEach(cellColorFormatter => {
+            if (Array.isArray(cellColorFormatter)) {
+              keys.forEach(key => {
+                if (backgroundColor) {
+                  return;
+                }
+                cellColorFormatter
+                  .filter(formatter => formatter.column === key)
+                  .forEach(formatter => {
+                    const formatterResult =
+                      formatter.getColorFromValue(aggValue);
+                    if (formatterResult) {
+                      backgroundColor = formatterResult;
+                    }
+                  });
+              });
+            }
+          });
+        }
+
+        const style = agg.isSubtotal
+          ? { fontWeight: 'bold' }
+          : { backgroundColor };
 
         return (
           <td

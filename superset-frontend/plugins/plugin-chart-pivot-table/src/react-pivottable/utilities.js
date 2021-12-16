@@ -18,6 +18,7 @@
  */
 
 import PropTypes from 'prop-types';
+import { t } from '@superset-ui/core';
 
 const addSeparators = function (nStr, thousandsSep, decimalSep) {
   const x = String(nStr).split('.');
@@ -133,13 +134,12 @@ const sortAs = function (order) {
 
   // sort lowercased keys similarly
   const lMapping = {};
-  for (const i in order) {
-    const x = order[i];
-    mapping[x] = i;
-    if (typeof x === 'string') {
-      lMapping[x.toLowerCase()] = i;
+  order.forEach((element, i) => {
+    mapping[element] = i;
+    if (typeof element === 'string') {
+      lMapping[element.toLowerCase()] = i;
     }
-  }
+  });
   return function (a, b) {
     if (a in mapping && b in mapping) {
       return mapping[a] - mapping[b];
@@ -186,7 +186,7 @@ const usFmtPct = numberFormat({
   suffix: '%',
 });
 
-const aggregatorTemplates = {
+const baseAggregatorTemplates = {
   count(formatter = usFmtInt) {
     return () =>
       function () {
@@ -411,21 +411,43 @@ const aggregatorTemplates = {
   },
 };
 
-aggregatorTemplates.countUnique = f =>
-  aggregatorTemplates.uniques(x => x.length, f);
-aggregatorTemplates.listUnique = (s, f) =>
-  aggregatorTemplates.uniques(x => x.join(s), f || (x => x));
-aggregatorTemplates.max = f => aggregatorTemplates.extremes('max', f);
-aggregatorTemplates.min = f => aggregatorTemplates.extremes('min', f);
-aggregatorTemplates.first = f => aggregatorTemplates.extremes('first', f);
-aggregatorTemplates.last = f => aggregatorTemplates.extremes('last', f);
-aggregatorTemplates.median = f => aggregatorTemplates.quantile(0.5, f);
-aggregatorTemplates.average = f =>
-  aggregatorTemplates.runningStat('mean', 1, f);
-aggregatorTemplates.var = (ddof, f) =>
-  aggregatorTemplates.runningStat('var', ddof, f);
-aggregatorTemplates.stdev = (ddof, f) =>
-  aggregatorTemplates.runningStat('stdev', ddof, f);
+const extendedAggregatorTemplates = {
+  countUnique(f) {
+    return baseAggregatorTemplates.uniques(x => x.length, f);
+  },
+  listUnique(s, f) {
+    return baseAggregatorTemplates.uniques(x => x.join(s), f || (x => x));
+  },
+  max(f) {
+    return baseAggregatorTemplates.extremes('max', f);
+  },
+  min(f) {
+    return baseAggregatorTemplates.extremes('min', f);
+  },
+  first(f) {
+    return baseAggregatorTemplates.extremes('first', f);
+  },
+  last(f) {
+    return baseAggregatorTemplates.extremes('last', f);
+  },
+  median(f) {
+    return baseAggregatorTemplates.quantile(0.5, f);
+  },
+  average(f) {
+    return baseAggregatorTemplates.runningStat('mean', 1, f);
+  },
+  var(ddof, f) {
+    return baseAggregatorTemplates.runningStat('var', ddof, f);
+  },
+  stdev(ddof, f) {
+    return baseAggregatorTemplates.runningStat('stdev', ddof, f);
+  },
+};
+
+const aggregatorTemplates = {
+  ...baseAggregatorTemplates,
+  ...extendedAggregatorTemplates,
+};
 
 // default aggregators & renderers use US naming and number formatting
 const aggregators = (tpl => ({
@@ -545,6 +567,7 @@ Data Model class
 class PivotData {
   constructor(inputProps = {}, subtotals = {}) {
     this.props = { ...PivotData.defaultProps, ...inputProps };
+    this.processRecord = this.processRecord.bind(this);
     PropTypes.checkPropTypes(
       PivotData.propTypes,
       this.props,
@@ -579,24 +602,7 @@ class PivotData {
     this.sorted = false;
 
     // iterate through input, accumulating data for cells
-    PivotData.forEachRecord(
-      this.props.data,
-      this.props.derivedAttributes,
-      record => {
-        if (this.filter(record)) {
-          this.processRecord(record);
-        }
-      },
-    );
-  }
-
-  filter(record) {
-    for (const k in this.props.valueFilter) {
-      if (record[k] in this.props.valueFilter[k]) {
-        return false;
-      }
-    }
-    return true;
+    PivotData.forEachRecord(this.props.data, this.processRecord);
   }
 
   getFormattedAggregator(record, totalsKeys) {
@@ -617,25 +623,6 @@ class PivotData {
       return this.aggregator;
     }
     return this.formattedAggregators[groupName][groupValue] || this.aggregator;
-  }
-
-  forEachMatchingRecord(criteria, callback) {
-    return PivotData.forEachRecord(
-      this.props.data,
-      this.props.derivedAttributes,
-      record => {
-        if (!this.filter(record)) {
-          return;
-        }
-        for (const k in criteria) {
-          const v = criteria[k];
-          if (v !== (k in record ? record[k] : 'null')) {
-            return;
-          }
-        }
-        callback(record);
-      },
-    );
   }
 
   arrSort(attrs, partialOnTop, reverse = false) {
@@ -701,42 +688,6 @@ class PivotData {
 
   getRowKeys() {
     this.sortKeys();
-    const findFirstArrDiffIndex = (arr1, arr2) => {
-      for (let i = 0; i < arr1.length; i += 1) {
-        if (arr1[i] !== arr2[i]) {
-          return i;
-        }
-      }
-      return -1;
-    };
-
-    const limitGroups = (keys, max) => {
-      const groupLengths = keys[0].length;
-      let currentGroupsLengths = Array.from({ length: groupLengths }).fill(0);
-      return keys.reduce((acc, item, index, arr) => {
-        if (index === 0) {
-          currentGroupsLengths.fill(1);
-          acc.push(item);
-        } else {
-          if (currentGroupsLengths.some(len => len >= max)) {
-            return acc;
-          }
-          currentGroupsLengths = currentGroupsLengths.map((group, i) =>
-            i === 0 ? group : group + 1,
-          );
-          const diffIndex = findFirstArrDiffIndex(item, arr[index - 1]);
-          if (diffIndex === 0) {
-            currentGroupsLengths[0] += 1;
-          }
-          if (diffIndex > 0) {
-            currentGroupsLengths.fill(0, diffIndex);
-          }
-          acc.push(item);
-        }
-        return acc;
-      }, []);
-    };
-
     return this.rowKeys;
   }
 
@@ -744,12 +695,12 @@ class PivotData {
     // this code is called in a tight loop
     const colKey = [];
     const rowKey = [];
-    for (const x of this.props.cols) {
-      colKey.push(x in record ? record[x] : 'null');
-    }
-    for (const x of this.props.rows) {
-      rowKey.push(x in record ? record[x] : 'null');
-    }
+    this.props.cols.forEach(col => {
+      colKey.push(col in record ? record[col] : 'null');
+    });
+    this.props.rows.forEach(row => {
+      rowKey.push(row in record ? record[row] : 'null');
+    });
 
     this.allTotal.push(record);
 
@@ -842,57 +793,12 @@ class PivotData {
 }
 
 // can handle arrays or jQuery selections of tables
-PivotData.forEachRecord = function (input, derivedAttributes, f) {
-  let addRecord;
-  let record;
-  if (Object.getOwnPropertyNames(derivedAttributes).length === 0) {
-    addRecord = f;
-  } else {
-    addRecord = function (record) {
-      for (const k in derivedAttributes) {
-        const derived = derivedAttributes[k](record);
-        if (derived !== null) {
-          record[k] = derived;
-        }
-      }
-      return f(record);
-    };
-  }
-
-  // if it's a function, have it call us back
-  if (typeof input === 'function') {
-    return input(addRecord);
-  }
+PivotData.forEachRecord = function (input, processRecord) {
   if (Array.isArray(input)) {
-    if (Array.isArray(input[0])) {
-      // array of arrays
-      return (() => {
-        const result = [];
-        for (const i of Object.keys(input || {})) {
-          const compactRecord = input[i];
-          if (i > 0) {
-            record = {};
-            for (const j of Object.keys(input[0] || {})) {
-              const k = input[0][j];
-              record[k] = compactRecord[j];
-            }
-            result.push(addRecord(record));
-          }
-        }
-        return result;
-      })();
-    }
-
     // array of objects
-    return (() => {
-      const result1 = [];
-      for (record of Array.from(input)) {
-        result1.push(addRecord(record));
-      }
-      return result1;
-    })();
+    return input.map(record => processRecord(record));
   }
-  throw new Error('unknown input format');
+  throw new Error(t('Unknown input format'));
 };
 
 PivotData.defaultProps = {
@@ -902,10 +808,8 @@ PivotData.defaultProps = {
   vals: [],
   aggregatorName: 'Count',
   sorters: {},
-  valueFilter: {},
   rowOrder: 'key_a_to_z',
   colOrder: 'key_a_to_z',
-  derivedAttributes: {},
 };
 
 PivotData.propTypes = {
