@@ -121,7 +121,7 @@ describe('Nativefilters Sanity test', () => {
     cy.wait(5000);
     cy.get(nativeFilters.filtersPanel.filterInfoInput)
       .last()
-      .should('be.visible', { timeout: 20000 })
+      .should('be.visible', { timeout: 30000 })
       .click({ force: true });
     cy.get(nativeFilters.filtersPanel.filterInfoInput)
       .last()
@@ -134,12 +134,13 @@ describe('Nativefilters Sanity test', () => {
       .contains('Save')
       .should('be.visible')
       .click();
-    cy.get(nativeFilters.modal.container).should('not.exist');
     cy.wait(3000);
     cy.location().then(loc => {
       const sameCacheKey: string = loc.search.split('=')[1];
-      expect(sameCacheKey).eq(cacheKey);
+      expect(sameCacheKey).not.eq(cacheKey);
     });
+    cy.wait(3000);
+    cy.get(nativeFilters.modal.container).should('not.exist');
   });
   it('User can delete a native filter', () => {
     cy.get(nativeFilters.createFilterButton).click({ force: true });
