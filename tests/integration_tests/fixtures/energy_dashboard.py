@@ -24,12 +24,8 @@ from sqlalchemy import column, Float, String
 from superset import db
 from superset.connectors.sqla.models import SqlaTable, SqlMetric
 from superset.models.slice import Slice
-from superset.utils.core import get_example_database
-from tests.integration_tests.dashboard_utils import (
-    create_slice,
-    create_table_for_dashboard,
-    get_table,
-)
+from superset.utils.core import get_example_database, get_example_default_schema
+from tests.integration_tests.dashboard_utils import create_slice, create_table_metadata
 from tests.integration_tests.test_app import app
 
 misc_dash_slices: Set[str] = set()
@@ -42,17 +38,20 @@ ENERGY_USAGE_TBL_NAME = "energy_usage"
 def load_energy_table_data():
     with app.app_context():
         database = get_example_database()
-        table_description = "Energy consumption"
         df = _get_dataframe()
-        schema = {"source": String(255), "target": String(255), "value": Float()}
-        create_table_for_dashboard(
-            df, ENERGY_USAGE_TBL_NAME, database, schema, table_description
+        df.to_sql(
+            ENERGY_USAGE_TBL_NAME,
+            database.get_sqla_engine(),
+            if_exists="replace",
+            chunksize=500,
+            index=False,
+            method="multi",
+            schema=get_example_default_schema(),
         )
     yield
     with app.app_context():
         engine = get_example_database().get_sqla_engine()
         engine.execute("DROP TABLE IF EXISTS energy_usage")
-
 
 
 @pytest.fixture()
@@ -69,7 +68,9 @@ def _get_dataframe():
 
 
 def _create_energy_table():
-    table = get_table(ENERGY_USAGE_TBL_NAME, get_example_database())
+    table = create_table_metadata(
+        table_name=ENERGY_USAGE_TBL_NAME, database=get_example_database(),
+    )
     table.fetch_metadata()
 
     if not any(col.metric_name == "sum__value" for col in table.metrics):

@@ -29,11 +29,10 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.core import get_example_database
+from superset.utils.core import get_example_database, get_example_default_schema
 from tests.integration_tests.dashboard_utils import (
     create_dashboard,
-    create_table_for_dashboard,
-    get_table,
+    create_table_metadata,
 )
 from tests.integration_tests.test_app import app
 
@@ -44,14 +43,22 @@ WB_HEALTH_POPULATION = "wb_health_population"
 def load_world_bank_data():
     with app.app_context():
         database = get_example_database()
-        df = _get_dataframe(database)
         dtype = {
             "year": DateTime if database.backend != "presto" else String(255),
             "country_code": String(3),
             "country_name": String(255),
             "region": String(255),
         }
-        create_table_for_dashboard(df, WB_HEALTH_POPULATION, database, dtype)
+        _get_dataframe(database).to_sql(
+            WB_HEALTH_POPULATION,
+            get_example_database().get_sqla_engine(),
+            if_exists="replace",
+            chunksize=500,
+            dtype=dtype,
+            index=False,
+            method="multi",
+            schema=get_example_default_schema(),
+        )
 
     yield
     with app.app_context():
@@ -77,7 +84,7 @@ def load_world_bank_dashboard_with_slices_module_scope(load_world_bank_data):
 
 def create_dashboard_for_loaded_data():
     with app.app_context():
-        table = get_table(WB_HEALTH_POPULATION, get_example_database())
+        table = create_table_metadata(WB_HEALTH_POPULATION, get_example_database())
         slices = _create_world_bank_slices(table)
         dash = _create_world_bank_dashboard(table, slices)
         slices_ids_to_delete = [slice.id for slice in slices]

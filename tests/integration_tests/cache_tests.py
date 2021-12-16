@@ -23,7 +23,8 @@ from superset import app, db
 from superset.common.db_query_status import QueryStatus
 from superset.extensions import cache_manager
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices, load_birth_names_data
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 
 from .base_tests import SupersetTestCase

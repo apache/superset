@@ -29,7 +29,8 @@ from superset.key_value.utils import cache_key
 from superset.models.dashboard import Dashboard
 from tests.integration_tests.base_tests import login
 from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices, load_world_bank_data
+    load_world_bank_dashboard_with_slices,
+    load_world_bank_data,
 )
 from tests.integration_tests.test_app import app
 

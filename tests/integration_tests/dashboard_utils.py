@@ -41,27 +41,14 @@ def get_table(
     )
 
 
-def create_table_for_dashboard(
-    df: DataFrame,
+def create_table_metadata(
     table_name: str,
     database: Database,
-    dtype: Dict[str, Any],
     table_description: str = "",
     fetch_values_predicate: Optional[str] = None,
     schema: Optional[str] = None,
 ) -> SqlaTable:
     schema = schema or get_example_default_schema()
-
-    df.to_sql(
-        table_name,
-        database.get_sqla_engine(),
-        if_exists="replace",
-        chunksize=500,
-        dtype=dtype,
-        index=False,
-        method="multi",
-        schema=schema,
-    )
 
     table = get_table(table_name, database, schema)
     if not table:

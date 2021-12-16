@@ -31,10 +31,7 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.core import get_example_database, get_example_default_schema
-from tests.integration_tests.dashboard_utils import (
-    create_table_for_dashboard,
-    get_table,
-)
+from tests.integration_tests.dashboard_utils import create_table_metadata
 from tests.integration_tests.test_app import app
 
 BIRTH_NAMES_TBL_NAME = "birth_names"
@@ -51,12 +48,16 @@ def load_birth_names_data():
             "state": String(10),
             "name": String(255),
         }
-        _create_table(
-            df=df,
-            table_name=BIRTH_NAMES_TBL_NAME,
-            database=database,
+
+        df.to_sql(
+            BIRTH_NAMES_TBL_NAME,
+            database.get_sqla_engine(),
+            if_exists="replace",
+            chunksize=500,
             dtype=dtype,
-            fetch_values_predicate="123 = 123",
+            index=False,
+            method="multi",
+            schema=get_example_default_schema(),
         )
     yield
     with app.app_context():
@@ -81,9 +82,14 @@ def load_birth_names_dashboard_with_slices_module_scope(load_birth_names_data):
 
 
 def _create_dashboards():
+    table = _create_table(
+        table_name=BIRTH_NAMES_TBL_NAME,
+        database=get_example_database(),
+        fetch_values_predicate="123 = 123",
+    )
+
     from superset.examples.birth_names import create_dashboard, create_slices
 
-    table = get_table(BIRTH_NAMES_TBL_NAME, get_example_database())
     slices, _ = create_slices(table, admin_owner=False)
     dash = create_dashboard(slices)
     slices_ids_to_delete = [slice.id for slice in slices]
@@ -92,17 +98,11 @@ def _create_dashboards():
 
 
 def _create_table(
-    df: DataFrame,
-    table_name: str,
-    database: "Database",
-    dtype: Dict[str, Any],
-    fetch_values_predicate: Optional[str] = None,
+    table_name: str, database: "Database", fetch_values_predicate: Optional[str] = None,
 ):
-    table = create_table_for_dashboard(
-        df=df,
+    table = create_table_metadata(
         table_name=table_name,
         database=database,
-        dtype=dtype,
         fetch_values_predicate=fetch_values_predicate,
     )
     from superset.examples.birth_names import _add_table_metrics, _set_table_metadata

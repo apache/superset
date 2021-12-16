@@ -43,7 +43,8 @@ from superset.utils.core import (
     TemporalType,
 )
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices, load_birth_names_data
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 
 from .base_tests import SupersetTestCase

@@ -22,12 +22,11 @@ from superset import db
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.core import get_example_database
+from superset.utils.core import get_example_database, get_example_default_schema
 from tests.integration_tests.dashboard_utils import (
     create_dashboard,
     create_slice,
-    create_table_for_dashboard,
-    get_table,
+    create_table_metadata,
 )
 from tests.integration_tests.test_app import app
 
@@ -37,12 +36,16 @@ UNICODE_TBL_NAME = "unicode_test"
 @pytest.fixture(scope="session")
 def load_unicode_data():
     with app.app_context():
-        database = get_example_database()
-        dtype = {
-            "phrase": String(500),
-        }
-        df = _get_dataframe()
-        create_table_for_dashboard(df, UNICODE_TBL_NAME, database, dtype)
+        _get_dataframe().to_sql(
+            UNICODE_TBL_NAME,
+            get_example_database().get_sqla_engine(),
+            if_exists="replace",
+            chunksize=500,
+            dtype={"phrase": String(500)},
+            index=False,
+            method="multi",
+            schema=get_example_default_schema(),
+        )
 
     yield
     with app.app_context():
@@ -88,7 +91,7 @@ def _get_unicode_data():
 
 
 def _create_unicode_dashboard(slice_title: str, position: str) -> Dashboard:
-    table = get_table(UNICODE_TBL_NAME, get_example_database())
+    table = create_table_metadata(UNICODE_TBL_NAME, get_example_database())
     table.fetch_metadata()
 
     if slice_title:
