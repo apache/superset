@@ -38,7 +38,7 @@ def app_context():
         yield
 
 
-@pytest.fixture(autouse=True, scope="package")
+@pytest.fixture(autouse=True, scope="session")
 def setup_sample_data() -> Any:
     # TODO(john-bodley): Determine a cleaner way of setting up the sample data without
     # relying on `tests.integration_tests.test_app.app` leveraging an  `app` fixture which is purposely

@@ -31,29 +31,40 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.core import get_example_database, get_example_default_schema
-from tests.integration_tests.dashboard_utils import create_table_for_dashboard
+from tests.integration_tests.dashboard_utils import create_table_for_dashboard, \
+    get_table
 from tests.integration_tests.test_app import app
 
+BIRTH_NAMES_TBL_NAME = "birth_names"
 
 @pytest.fixture()
-def load_birth_names_dashboard_with_slices():
-    dash_id_to_delete, slices_ids_to_delete = _load_data()
+def load_birth_names_dashboard_with_slices(_load_data):
+    dash_id_to_delete, slices_ids_to_delete = _create_dashboards()
     yield
     with app.app_context():
         _cleanup(dash_id_to_delete, slices_ids_to_delete)
 
 
 @pytest.fixture(scope="module")
-def load_birth_names_dashboard_with_slices_module_scope():
-    dash_id_to_delete, slices_ids_to_delete = _load_data()
+def load_birth_names_dashboard_with_slices_module_scope(_load_data):
+    dash_id_to_delete, slices_ids_to_delete = _create_dashboards()
     yield
     with app.app_context():
         _cleanup(dash_id_to_delete, slices_ids_to_delete)
 
 
-def _load_data():
-    table_name = "birth_names"
+def _create_dashboards():
+    from superset.examples.birth_names import create_dashboard, create_slices
+    table = get_table(BIRTH_NAMES_TBL_NAME, get_example_database())
+    slices, _ = create_slices(table, admin_owner=False)
+    dash = create_dashboard(slices)
+    slices_ids_to_delete = [slice.id for slice in slices]
+    dash_id_to_delete = dash.id
+    return dash_id_to_delete, slices_ids_to_delete
 
+
+@pytest.fixture(scope="session")
+def _load_data():
     with app.app_context():
         database = get_example_database()
         df = _get_dataframe(database)
@@ -63,21 +74,13 @@ def _load_data():
             "state": String(10),
             "name": String(255),
         }
-        table = _create_table(
+        _create_table(
             df=df,
-            table_name=table_name,
+            table_name=BIRTH_NAMES_TBL_NAME,
             database=database,
             dtype=dtype,
             fetch_values_predicate="123 = 123",
         )
-
-        from superset.examples.birth_names import create_dashboard, create_slices
-
-        slices, _ = create_slices(table, admin_owner=False)
-        dash = create_dashboard(slices)
-        slices_ids_to_delete = [slice.id for slice in slices]
-        dash_id_to_delete = dash.id
-        return dash_id_to_delete, slices_ids_to_delete
 
 
 def _create_table(

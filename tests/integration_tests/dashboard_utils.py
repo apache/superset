@@ -29,6 +29,18 @@ from superset.models.slice import Slice
 from superset.utils.core import get_example_default_schema
 
 
+def get_table(
+    table_name: str,
+    database: Database,
+    schema: Optional[str] = None,
+):
+    schema = schema or get_example_default_schema()
+    table_source = ConnectorRegistry.sources["table"]
+    return db.session.query(table_source).filter_by(
+        database_id=database.id, schema=schema, table_name=table_name
+    ).one_or_none()
+
+
 def create_table_for_dashboard(
     df: DataFrame,
     table_name: str,
@@ -51,13 +63,9 @@ def create_table_for_dashboard(
         schema=schema,
     )
 
-    table_source = ConnectorRegistry.sources["table"]
-    table = (
-        db.session.query(table_source)
-        .filter_by(database_id=database.id, schema=schema, table_name=table_name)
-        .one_or_none()
-    )
+    table = get_table(table_name, database, schema)
     if not table:
+        table_source = ConnectorRegistry.sources["table"]
         table = table_source(schema=schema, table_name=table_name)
     if fetch_values_predicate:
         table.fetch_values_predicate = fetch_values_predicate
