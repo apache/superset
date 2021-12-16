@@ -314,14 +314,17 @@ describe('Does transformProps transform series correctly', () => {
     queriesData,
   };
 
-  const stackTotals = queriesData[0].data.reduce((totals, currentStack) => {
-    const total = Object.keys(currentStack).reduce((stackSum, key) => {
-      if (key === '__timestamp') return stackSum;
-      return stackSum + currentStack[key];
-    }, 0);
-    totals.push(total);
-    return totals;
-  }, [] as number[]);
+  const totalStackedValues = queriesData[0].data.reduce(
+    (totals, currentStack) => {
+      const total = Object.keys(currentStack).reduce((stackSum, key) => {
+        if (key === '__timestamp') return stackSum;
+        return stackSum + currentStack[key];
+      }, 0);
+      totals.push(total);
+      return totals;
+    },
+    [] as number[],
+  );
 
   it('should show labels when showValue is true', () => {
     const chartProps: unknown = new ChartProps(chartPropsConfig);
@@ -338,7 +341,7 @@ describe('Does transformProps transform series correctly', () => {
   it('should not show labels when showValue is false', () => {
     const updatedChartPropsConfig = {
       ...chartPropsConfig,
-      formData: { ...chartPropsConfig.formData, showValue: false },
+      formData: { ...formData, showValue: false },
     };
 
     const chartProps: unknown = new ChartProps(updatedChartPropsConfig);
@@ -355,7 +358,7 @@ describe('Does transformProps transform series correctly', () => {
   it('should show only totals when onlyTotal is true', () => {
     const updatedChartPropsConfig = {
       ...chartPropsConfig,
-      formData: { ...chartPropsConfig.formData, onlyTotal: true },
+      formData: { ...formData, onlyTotal: true },
     };
 
     const chartProps: unknown = new ChartProps(updatedChartPropsConfig);
@@ -387,7 +390,7 @@ describe('Does transformProps transform series correctly', () => {
         let expectedLabel: string;
 
         if (seriesIndex === showValueIndexes[dataIndex]) {
-          expectedLabel = String(stackTotals[dataIndex]);
+          expectedLabel = String(totalStackedValues[dataIndex]);
         } else {
           expectedLabel = '';
         }
@@ -397,15 +400,15 @@ describe('Does transformProps transform series correctly', () => {
     });
   });
 
-  it('should show labels on values >= percentageThreshold if onlyTotal false', () => {
+  it('should show labels on values >= percentageThreshold if onlyTotal is false', () => {
     const chartProps: unknown = new ChartProps(chartPropsConfig);
 
     const transformedSeries = transformProps(
       chartProps as EchartsTimeseriesChartProps,
     ).echartOptions.series as seriesType[];
 
-    const expectedThresholds = stackTotals.map(
-      total => (chartPropsConfig.formData.percentageThreshold / 100) * total,
+    const expectedThresholds = totalStackedValues.map(
+      total => (formData.percentageThreshold / 100) * total,
     );
 
     transformedSeries.forEach((series, seriesIndex) => {
@@ -418,6 +421,32 @@ describe('Does transformProps transform series correctly', () => {
         };
         const expectedLabel =
           value[1] >= expectedThresholds[dataIndex] ? String(value[1]) : '';
+        expect(series.label.formatter(params)).toBe(expectedLabel);
+      });
+    });
+  });
+
+  it('should not apply percentage threshold when showValue is true and stack is false', () => {
+    const updatedChartPropsConfig = {
+      ...chartPropsConfig,
+      formData: { ...formData, stack: false },
+    };
+
+    const chartProps: unknown = new ChartProps(updatedChartPropsConfig);
+
+    const transformedSeries = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    ).echartOptions.series as seriesType[];
+
+    transformedSeries.forEach((series, seriesIndex) => {
+      expect(series.label.show).toBe(true);
+      series.data.forEach((value, dataIndex) => {
+        const params = {
+          value,
+          dataIndex,
+          seriesIndex,
+        };
+        const expectedLabel = String(value[1]);
         expect(series.label.formatter(params)).toBe(expectedLabel);
       });
     });
