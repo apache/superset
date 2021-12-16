@@ -69,7 +69,9 @@ def _get_dataframe():
 
 def _create_energy_table():
     table = create_table_metadata(
-        table_name=ENERGY_USAGE_TBL_NAME, database=get_example_database(),
+        table_name=ENERGY_USAGE_TBL_NAME,
+        database=get_example_database(),
+        table_description="Energy consumption",
     )
     table.fetch_metadata()
 
