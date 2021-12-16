@@ -20,3 +20,4 @@ tox
 py>=1.10.0
 click==7.1.2
 packaging==21.0
+pyparsing==2.4.7
