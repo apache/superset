@@ -27,31 +27,40 @@ from superset.utils.core import get_example_database
 from tests.integration_tests.dashboard_utils import (
     create_dashboard,
     create_slice,
-    create_table_for_dashboard,
+    create_table_for_dashboard, get_table,
 )
 from tests.integration_tests.test_app import app
 
 
-@pytest.fixture()
-def load_unicode_dashboard_with_slice():
-    table_name = "unicode_test"
-    slice_name = "Unicode Cloud"
+UNICODE_TBL_NAME = "unicode_test"
+
+
+@pytest.fixture(scope="session")
+def load_unicode_data():
+    database = get_example_database()
+    dtype = {
+        "phrase": String(500),
+    }
     df = _get_dataframe()
+    create_table_for_dashboard(df, UNICODE_TBL_NAME, database, dtype)
+
+
+@pytest.fixture()
+def load_unicode_dashboard_with_slice(load_unicode_data):
+    slice_name = "Unicode Cloud"
     with app.app_context():
-        dash = _create_unicode_dashboard(df, table_name, slice_name, None)
+        dash = _create_unicode_dashboard(slice_name, None)
         yield
 
         _cleanup(dash, slice_name)
 
 
 @pytest.fixture()
-def load_unicode_dashboard_with_position():
-    table_name = "unicode_test"
+def load_unicode_dashboard_with_position(load_unicode_data):
     slice_name = "Unicode Cloud"
-    df = _get_dataframe()
     position = "{}"
     with app.app_context():
-        dash = _create_unicode_dashboard(df, table_name, slice_name, position)
+        dash = _create_unicode_dashboard(slice_name, position)
         yield
         _cleanup(dash, slice_name)
 
@@ -75,13 +84,9 @@ def _get_unicode_data():
 
 
 def _create_unicode_dashboard(
-    df: DataFrame, table_name: str, slice_title: str, position: str
+    slice_title: str, position: str
 ) -> Dashboard:
-    database = get_example_database()
-    dtype = {
-        "phrase": String(500),
-    }
-    table = create_table_for_dashboard(df, table_name, database, dtype)
+    table = get_table(UNICODE_TBL_NAME, get_example_database())
     table.fetch_metadata()
 
     if slice_title:

@@ -37,6 +37,27 @@ from tests.integration_tests.test_app import app
 
 BIRTH_NAMES_TBL_NAME = "birth_names"
 
+
+@pytest.fixture(scope="session")
+def _load_data():
+    with app.app_context():
+        database = get_example_database()
+        df = _get_dataframe(database)
+        dtype = {
+            "ds": DateTime if database.backend != "presto" else String(255),
+            "gender": String(16),
+            "state": String(10),
+            "name": String(255),
+        }
+        _create_table(
+            df=df,
+            table_name=BIRTH_NAMES_TBL_NAME,
+            database=database,
+            dtype=dtype,
+            fetch_values_predicate="123 = 123",
+        )
+
+
 @pytest.fixture()
 def load_birth_names_dashboard_with_slices(_load_data):
     dash_id_to_delete, slices_ids_to_delete = _create_dashboards()
@@ -61,26 +82,6 @@ def _create_dashboards():
     slices_ids_to_delete = [slice.id for slice in slices]
     dash_id_to_delete = dash.id
     return dash_id_to_delete, slices_ids_to_delete
-
-
-@pytest.fixture(scope="session")
-def _load_data():
-    with app.app_context():
-        database = get_example_database()
-        df = _get_dataframe(database)
-        dtype = {
-            "ds": DateTime if database.backend != "presto" else String(255),
-            "gender": String(16),
-            "state": String(10),
-            "name": String(255),
-        }
-        _create_table(
-            df=df,
-            table_name=BIRTH_NAMES_TBL_NAME,
-            database=database,
-            dtype=dtype,
-            fetch_values_predicate="123 = 123",
-        )
 
 
 def _create_table(

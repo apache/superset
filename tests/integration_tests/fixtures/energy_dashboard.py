@@ -20,29 +20,39 @@ from typing import Dict, Set
 
 import pandas as pd
 import pytest
-from pandas import DataFrame
 from sqlalchemy import column, Float, String
 
 from superset import db
 from superset.connectors.sqla.models import SqlaTable, SqlMetric
-from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.core import get_example_database
 from tests.integration_tests.dashboard_utils import (
     create_slice,
-    create_table_for_dashboard,
+    create_table_for_dashboard, get_table,
 )
 from tests.integration_tests.test_app import app
 
 misc_dash_slices: Set[str] = set()
 
 
-@pytest.fixture()
-def load_energy_table_with_slice():
-    table_name = "energy_usage"
+ENERGY_USAGE_TBL_NAME = "energy_usage"
+
+
+@pytest.fixture(scope="session")
+def load_energy_table_data():
+    database = get_example_database()
+    table_description = "Energy consumption"
     df = _get_dataframe()
+    schema = {"source": String(255), "target": String(255), "value": Float()}
+    create_table_for_dashboard(
+        df, ENERGY_USAGE_TBL_NAME, database, schema, table_description
+    )
+
+
+@pytest.fixture()
+def load_energy_table_with_slice(load_energy_table_data):
     with app.app_context():
-        _create_energy_table(df, table_name)
+        _create_energy_table()
         yield
         _cleanup()
 
@@ -52,14 +62,8 @@ def _get_dataframe():
     return pd.DataFrame.from_dict(data)
 
 
-def _create_energy_table(df: DataFrame, table_name: str):
-    database = get_example_database()
-
-    table_description = "Energy consumption"
-    schema = {"source": String(255), "target": String(255), "value": Float()}
-    table = create_table_for_dashboard(
-        df, table_name, database, schema, table_description
-    )
+def _create_energy_table():
+    table = get_table(ENERGY_USAGE_TBL_NAME, get_example_database())
     table.fetch_metadata()
 
     if not any(col.metric_name == "sum__value" for col in table.metrics):
