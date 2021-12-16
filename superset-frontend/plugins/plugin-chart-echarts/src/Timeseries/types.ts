@@ -81,6 +81,7 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   groupby: QueryFormColumn[];
   showValue: boolean;
   onlyTotal: boolean;
+  percentThreshold: number;
 } & EchartsLegendFormData &
   EchartsTitleFormData;
 
@@ -117,6 +118,7 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   groupby: [],
   showValue: false,
   onlyTotal: false,
+  percentThreshold: 0,
   ...DEFAULT_TITLE_FORM_DATA,
 };
 

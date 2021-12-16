@@ -218,6 +218,7 @@ export function transformSeries(
           if (numericValue >= thresholdValues[dataIndex]) {
             return formatter(numericValue);
           }
+          return '';
         }
         if (seriesIndex === showValueIndexes[dataIndex]) {
           return formatter(totalStackedValues[dataIndex]);
