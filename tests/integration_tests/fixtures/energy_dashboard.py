@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import random
-import textwrap
 from typing import Dict, Set
 
 import pandas as pd

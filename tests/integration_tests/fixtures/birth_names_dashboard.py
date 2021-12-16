@@ -23,7 +23,7 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 import pytest
 from pandas import DataFrame
-from sqlalchemy import DateTime, String, TIMESTAMP
+from sqlalchemy import DateTime, String
 
 from superset import ConnectorRegistry, db
 from superset.connectors.sqla.models import SqlaTable
@@ -39,7 +39,7 @@ BIRTH_NAMES_TBL_NAME = "birth_names"
 
 
 @pytest.fixture(scope="session")
-def _load_data():
+def load_birth_names_data():
     with app.app_context():
         database = get_example_database()
         df = _get_dataframe(database)
@@ -59,7 +59,7 @@ def _load_data():
 
 
 @pytest.fixture()
-def load_birth_names_dashboard_with_slices(_load_data):
+def load_birth_names_dashboard_with_slices(load_birth_names_data):
     dash_id_to_delete, slices_ids_to_delete = _create_dashboards()
     yield
     with app.app_context():
@@ -67,7 +67,7 @@ def load_birth_names_dashboard_with_slices(_load_data):
 
 
 @pytest.fixture(scope="module")
-def load_birth_names_dashboard_with_slices_module_scope(_load_data):
+def load_birth_names_dashboard_with_slices_module_scope(load_birth_names_data):
     dash_id_to_delete, slices_ids_to_delete = _create_dashboards()
     yield
     with app.app_context():

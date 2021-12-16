@@ -16,7 +16,6 @@
 # under the License.
 import pandas as pd
 import pytest
-from pandas import DataFrame
 from sqlalchemy import String
 
 from superset import db
