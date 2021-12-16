@@ -397,11 +397,12 @@ class Database(
         sql: str,
         schema: Optional[str] = None,
         mutator: Optional[Callable[[pd.DataFrame], None]] = None,
+        username: Optional[str] = None,
     ) -> pd.DataFrame:
         sqls = [str(s).strip(" ;") for s in sqlparse.parse(sql)]
 
-        engine = self.get_sqla_engine(schema=schema)
-        username = utils.get_username()
+        engine = self.get_sqla_engine(schema=schema, user_name=username)
+        username = utils.get_username() or username
 
         def needs_conversion(df_series: pd.Series) -> bool:
             return (
