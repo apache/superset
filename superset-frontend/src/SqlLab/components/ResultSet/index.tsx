@@ -801,16 +801,7 @@ export default class ResultSet extends React.PureComponent<
         );
       }
     }
-    let progressBar;
     let trackingUrl;
-    if (query.progress > 0) {
-      progressBar = (
-        <ProgressBar
-          percent={parseInt(query.progress.toFixed(0), 10)}
-          striped
-        />
-      );
-    }
     if (query.trackingUrl) {
       trackingUrl = (
         <Button
@@ -827,12 +818,13 @@ export default class ResultSet extends React.PureComponent<
         : null;
     return (
       <div style={LOADING_STYLES}>
-        <div>{!progressBar && <Loading position="normal" />}</div>
+        <div>
+          <Loading position="normal" />
+        </div>
         <QueryStateLabel query={query} />
         <div>
           {progressMsg && <Alert type="success" message={progressMsg} />}
         </div>
-        <div>{progressBar}</div>
         <div>{trackingUrl}</div>
       </div>
     );
