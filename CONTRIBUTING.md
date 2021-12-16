@@ -574,7 +574,7 @@ The dev server by default starts at `http://localhost:9000` and proxies the back
 npm run dev-server
 
 # Run the dev server on a non-default port
-npm run dev-server -- --devserverPort=9001
+npm run dev-server -- --port=9001
 
 # Proxy backend requests to a Flask server running on a non-default port
 npm run dev-server -- --supersetPort=8081

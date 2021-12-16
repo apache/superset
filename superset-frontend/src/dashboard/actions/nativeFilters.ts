@@ -204,8 +204,7 @@ export interface SetBootstrapData {
 }
 
 export const getFilterSets =
-  () => async (dispatch: Dispatch, getState: () => RootState) => {
-    const dashboardId = getState().dashboardInfo.id;
+  (dashboardId: number) => async (dispatch: Dispatch) => {
     const fetchFilterSets = makeApi<
       null,
       {
@@ -271,7 +270,7 @@ export const createFilterSet =
     dispatch({
       type: CREATE_FILTER_SET_COMPLETE,
     });
-    dispatch(getFilterSets());
+    dispatch(getFilterSets(dashboardId));
   };
 
 export const updateFilterSet =
@@ -308,7 +307,7 @@ export const updateFilterSet =
     dispatch({
       type: UPDATE_FILTER_SET_COMPLETE,
     });
-    dispatch(getFilterSets());
+    dispatch(getFilterSets(dashboardId));
   };
 
 export const deleteFilterSet =
@@ -329,7 +328,7 @@ export const deleteFilterSet =
     dispatch({
       type: DELETE_FILTER_SET_COMPLETE,
     });
-    dispatch(getFilterSets());
+    dispatch(getFilterSets(dashboardId));
   };
 
 export const SET_FOCUSED_NATIVE_FILTER = 'SET_FOCUSED_NATIVE_FILTER';

@@ -174,7 +174,7 @@ const DashboardPage: FC = () => {
           isDashboardHydrated.current = true;
           if (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET)) {
             // only initialize filterset once
-            dispatch(getFilterSets());
+            dispatch(getFilterSets(id));
           }
         }
         dispatch(
