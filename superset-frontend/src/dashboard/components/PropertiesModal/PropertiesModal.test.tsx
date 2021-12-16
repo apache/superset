@@ -232,11 +232,10 @@ test('should open advance', async () => {
 
   expect(screen.getAllByRole('combobox')).toHaveLength(2);
   userEvent.click(screen.getByRole('button', { name: 'Advanced' }));
-  expect(screen.getAllByRole('textbox')).toHaveLength(4);
-  expect(screen.getAllByRole('textbox')).toHaveLength(5);
+  expect(screen.getAllByRole('textbox')).toHaveLength(6);
   expect(screen.getAllByRole('combobox')).toHaveLength(2);
   userEvent.click(screen.getByRole('button', { name: 'Advanced' }));
-  expect(screen.getAllByRole('textbox')).toHaveLength(6);
+  expect(screen.getAllByRole('textbox')).toHaveLength(5);
   expect(screen.getAllByRole('combobox')).toHaveLength(2);
 });
 
