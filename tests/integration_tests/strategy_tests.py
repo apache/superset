@@ -20,7 +20,7 @@ import datetime
 import json
 from unittest.mock import MagicMock
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
+    load_birth_names_dashboard_with_slices, load_birth_names_data
 )
 
 from sqlalchemy import String, Date, Float

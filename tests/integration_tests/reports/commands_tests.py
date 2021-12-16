@@ -58,7 +58,7 @@ from superset.reports.commands.execute import AsyncExecuteReportScheduleCommand
 from superset.reports.commands.log_prune import AsyncPruneReportScheduleLogCommand
 from superset.utils.core import get_example_database
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
+    load_birth_names_dashboard_with_slices, load_birth_names_data
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices_module_scope,

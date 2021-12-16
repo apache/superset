@@ -24,7 +24,7 @@ import time
 import unittest.mock as mock
 from typing import Optional
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
+    load_birth_names_dashboard_with_slices, load_birth_names_data
 )
 
 import pytest

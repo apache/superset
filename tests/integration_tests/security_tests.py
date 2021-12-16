@@ -47,20 +47,20 @@ from superset.views.access_requests import AccessRequestsModelView
 
 from .base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
+    load_birth_names_dashboard_with_slices, load_birth_names_data
 )
 from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_with_slice,
+    load_energy_table_with_slice, load_energy_table_data
 )
 from tests.integration_tests.fixtures.public_role import (
     public_role_like_gamma,
     public_role_like_test_role,
 )
 from tests.integration_tests.fixtures.unicode_dashboard import (
-    load_unicode_dashboard_with_slice,
+    load_unicode_dashboard_with_slice, load_unicode_data
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
+    load_world_bank_dashboard_with_slices, load_world_bank_data
 )
 
 NEW_SECURITY_CONVERGE_VIEWS = (

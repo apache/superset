@@ -34,7 +34,7 @@ from superset.models.core import Database
 from superset.models.slice import Slice
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_with_slice,
+    load_energy_table_with_slice, load_energy_table_data
 )
 from tests.integration_tests.fixtures.importexport import (
     chart_config,

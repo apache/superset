@@ -47,7 +47,7 @@ from tests.integration_tests.fixtures.importexport import (
     dataset_metadata_config,
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
+    load_world_bank_dashboard_with_slices, load_world_bank_data
 )
 
 

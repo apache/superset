@@ -57,7 +57,7 @@ from superset.utils.core import (
 from .base_tests import SupersetTestCase
 from .conftest import CTAS_SCHEMA_NAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
+    load_birth_names_dashboard_with_slices, load_birth_names_data
 )
 
 QUERY_1 = "SELECT * FROM birth_names LIMIT 1"
