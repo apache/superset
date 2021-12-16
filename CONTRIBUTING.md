@@ -574,7 +574,7 @@ The dev server by default starts at `http://localhost:9000` and proxies the back
 npm run dev-server
 
 # Run the dev server on a non-default port
-npm run dev-server -- --devserverPort=9001
+npm run dev-server -- --port=9001
 
 # Proxy backend requests to a Flask server running on a non-default port
 npm run dev-server -- --supersetPort=8081
@@ -1348,7 +1348,7 @@ Note not all fields are correctly categorized. The fields vary based on visualiz
 | Field             | Type     | Notes                               |
 | ----------------- | -------- | ----------------------------------- |
 | `database_name`   | _string_ | _Deprecated?_                       |
-| `datasource`      | _string_ | `<datasouce_id>__<datasource_type>` |
+| `datasource`      | _string_ | `<datasource_id>__<datasource_type>` |
 | `datasource_id`   | _string_ | _Deprecated?_ See `datasource`      |
 | `datasource_name` | _string_ | _Deprecated?_                       |
 | `datasource_type` | _string_ | _Deprecated?_ See `datasource`      |

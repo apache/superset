@@ -340,6 +340,18 @@ class TestDatabaseModel(SupersetTestCase):
             df = main_db.get_df("USE superset; SELECT ';';", None)
             self.assertEqual(df.iat[0, 0], ";")
 
+    @mock.patch("superset.models.core.Database.get_sqla_engine")
+    def test_username_param(self, mocked_get_sqla_engine):
+        main_db = get_example_database()
+        main_db.impersonate_user = True
+        test_username = "test_username_param"
+
+        if main_db.backend == "mysql":
+            main_db.get_df("USE superset; SELECT 1", username=test_username)
+            mocked_get_sqla_engine.assert_called_with(
+                schema=None, user_name="test_username_param",
+            )
+
     @mock.patch("superset.models.core.create_engine")
     def test_get_sqla_engine(self, mocked_create_engine):
         model = Database(

@@ -18,46 +18,44 @@
  */
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import controlPanel from './controlPanel';
-import transformProps, {
-  BigNumberChartProps,
-  BigNumberFormData,
-} from '../BigNumber/transformProps';
-import example1 from './images/BigNumber.jpg';
-import example2 from './images/BigNumber2.jpg';
+import transformProps from './transformProps';
+import buildQuery from './buildQuery';
+import example from './images/Big_Number_Trendline.jpg';
 import thumbnail from './images/thumbnail.png';
+import {
+  BigNumberWithTrendlineChartProps,
+  BigNumberWithTrendlineFormData,
+} from '../types';
 
 const metadata = new ChartMetadata({
   category: t('KPI'),
   description: t(
-    'Showcases a single metric front-and-center. Big number is best used to call attention to a KPI or the one thing you want your audience to focus on.',
+    'Showcases a single number accompanied by a simple line chart, to call attention to an important metric along with its change over time or other dimension.',
   ),
-  exampleGallery: [
-    { url: example1, caption: t('A Big Number') },
-    { url: example2, caption: t('With a subheader') },
-  ],
-  name: t('Big Number'),
+  exampleGallery: [{ url: example }],
+  name: t('Big Number with Trendline'),
   tags: [
-    t('Additive'),
-    t('Business'),
+    t('Advanced-Analytics'),
     t('Formattable'),
-    t('Legacy'),
+    t('Line'),
     t('Percentages'),
     t('Popular'),
     t('Report'),
     t('Description'),
+    t('Trend'),
   ],
   thumbnail,
-  useLegacyApi: true,
 });
 
-export default class BigNumberTotalChartPlugin extends ChartPlugin<
-  BigNumberFormData,
-  BigNumberChartProps
+export default class BigNumberWithTrendlineChartPlugin extends ChartPlugin<
+  BigNumberWithTrendlineFormData,
+  BigNumberWithTrendlineChartProps
 > {
   constructor() {
     super({
-      loadChart: () => import('../BigNumber/BigNumber'),
+      loadChart: () => import('../BigNumberViz'),
       metadata,
+      buildQuery,
       transformProps,
       controlPanel,
     });

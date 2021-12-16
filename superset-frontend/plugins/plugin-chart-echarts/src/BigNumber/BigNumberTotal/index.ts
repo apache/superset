@@ -18,42 +18,45 @@
  */
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import controlPanel from './controlPanel';
-import transformProps, {
-  BigNumberChartProps,
-  BigNumberFormData,
-} from './transformProps';
-import example from './images/Big_Number_Trendline.jpg';
+import transformProps from './transformProps';
+import buildQuery from './buildQuery';
+import example1 from './images/BigNumber.jpg';
+import example2 from './images/BigNumber2.jpg';
 import thumbnail from './images/thumbnail.png';
+import { BigNumberTotalChartProps, BigNumberTotalFormData } from '../types';
 
 const metadata = new ChartMetadata({
   category: t('KPI'),
   description: t(
-    'Showcases a single number accompanied by a simple line chart, to call attention to an important metric along with its change over time or other dimension.',
+    'Showcases a single metric front-and-center. Big number is best used to call attention to a KPI or the one thing you want your audience to focus on.',
   ),
-  exampleGallery: [{ url: example }],
-  name: t('Big Number with Trendline'),
+  exampleGallery: [
+    { url: example1, caption: t('A Big Number') },
+    { url: example2, caption: t('With a subheader') },
+  ],
+  name: t('Big Number'),
   tags: [
-    t('Advanced-Analytics'),
+    t('Additive'),
+    t('Business'),
     t('Formattable'),
-    t('Line'),
+    t('Legacy'),
     t('Percentages'),
     t('Popular'),
     t('Report'),
     t('Description'),
-    t('Trend'),
   ],
   thumbnail,
-  useLegacyApi: true,
 });
 
-export default class BigNumberChartPlugin extends ChartPlugin<
-  BigNumberFormData,
-  BigNumberChartProps
+export default class BigNumberTotalChartPlugin extends ChartPlugin<
+  BigNumberTotalFormData,
+  BigNumberTotalChartProps
 > {
   constructor() {
     super({
-      loadChart: () => import('./BigNumber'),
+      loadChart: () => import('../BigNumberViz'),
       metadata,
+      buildQuery,
       transformProps,
       controlPanel,
     });
