@@ -19,7 +19,7 @@ from superset.dataframe import df_to_records
 from superset.typing import DbapiDescription
 
 
-def test_df_to_records(app_context: None) -> None:
+def test_df_to_records(app, client, app_context: None) -> None:
     from superset.db_engine_specs import BaseEngineSpec
     from superset.result_set import SupersetResultSet
 
