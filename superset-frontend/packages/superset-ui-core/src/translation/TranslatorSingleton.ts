@@ -71,6 +71,10 @@ function tn(key: string, ...args: unknown[]) {
   return getInstance().translateWithNumber(key, ...args);
 }
 
+function getLocale() {
+  return getInstance().locale;
+}
+
 export {
   configure,
   addTranslation,
@@ -79,4 +83,5 @@ export {
   t,
   tn,
   resetTranslation,
+  getLocale,
 };
