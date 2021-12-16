@@ -53,6 +53,11 @@ def load_world_bank_data():
         }
         create_table_for_dashboard(df, WB_HEALTH_POPULATION, database, dtype)
 
+    yield
+    with app.app_context():
+        engine = get_example_database().get_sqla_engine()
+        engine.execute("DROP TABLE IF EXISTS wb_health_population")
+
 
 @pytest.fixture()
 def load_world_bank_dashboard_with_slices(load_world_bank_data):
@@ -116,8 +121,6 @@ def _create_world_bank_dashboard(table: SqlaTable, slices: List[Slice]) -> Dashb
 
 
 def _cleanup(dash_id: int, slices_ids: List[int]) -> None:
-    engine = get_example_database().get_sqla_engine()
-    engine.execute("DROP TABLE IF EXISTS wb_health_population")
     dash = db.session.query(Dashboard).filter_by(id=dash_id).first()
     db.session.delete(dash)
     for slice_id in slices_ids:

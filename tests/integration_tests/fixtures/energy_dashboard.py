@@ -48,6 +48,11 @@ def load_energy_table_data():
         create_table_for_dashboard(
             df, ENERGY_USAGE_TBL_NAME, database, schema, table_description
         )
+    yield
+    with app.app_context():
+        engine = get_example_database().get_sqla_engine()
+        engine.execute("DROP TABLE IF EXISTS energy_usage")
+
 
 
 @pytest.fixture()
@@ -101,8 +106,6 @@ def _create_and_commit_energy_slice(
 
 
 def _cleanup() -> None:
-    engine = get_example_database().get_sqla_engine()
-    engine.execute("DROP TABLE IF EXISTS energy_usage")
     for slice_data in _get_energy_slices():
         slice = (
             db.session.query(Slice)

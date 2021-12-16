@@ -44,6 +44,11 @@ def load_unicode_data():
         df = _get_dataframe()
         create_table_for_dashboard(df, UNICODE_TBL_NAME, database, dtype)
 
+    yield
+    with app.app_context():
+        engine = get_example_database().get_sqla_engine()
+        engine.execute("DROP TABLE IF EXISTS unicode_test")
+
 
 @pytest.fixture()
 def load_unicode_dashboard_with_slice(load_unicode_data):
@@ -103,8 +108,6 @@ def _create_and_commit_unicode_slice(table: SqlaTable, title: str):
 
 
 def _cleanup(dash: Dashboard, slice_name: str) -> None:
-    engine = get_example_database().get_sqla_engine()
-    engine.execute("DROP TABLE IF EXISTS unicode_test")
     db.session.delete(dash)
     if slice_name:
         slice = db.session.query(Slice).filter_by(slice_name=slice_name).one_or_none()

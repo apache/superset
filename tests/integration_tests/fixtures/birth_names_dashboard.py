@@ -58,6 +58,10 @@ def load_birth_names_data():
             dtype=dtype,
             fetch_values_predicate="123 = 123",
         )
+    yield
+    with app.app_context():
+        engine = get_example_database().get_sqla_engine()
+        engine.execute("DROP TABLE IF EXISTS birth_names")
 
 
 @pytest.fixture()
@@ -122,8 +126,6 @@ def _cleanup(dash_id: int, slices_ids: List[int]) -> None:
     columns = [column for column in datasource.columns]
     metrics = [metric for metric in datasource.metrics]
 
-    engine = get_example_database().get_sqla_engine()
-    engine.execute("DROP TABLE IF EXISTS birth_names")
     for column in columns:
         db.session.delete(column)
     for metric in metrics:
