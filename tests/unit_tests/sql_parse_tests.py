@@ -19,7 +19,6 @@ import unittest
 from typing import Set
 
 import pytest
-import sqlparse
 
 from superset.exceptions import QueryClauseValidationException
 from superset.sql_parse import (
@@ -949,9 +948,6 @@ INSERT INTO TABLE (foo) VALUES (42);
 
 
 def test_is_select_cte_with_comments() -> None:
-    """
-    Some CTES with comments are not correctly identified as SELECTS.
-    """
     sql = ParsedQuery(
         """WITH blah AS
   (SELECT * FROM core_dev.manager_team),
