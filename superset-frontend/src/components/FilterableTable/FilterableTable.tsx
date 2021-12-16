@@ -156,8 +156,8 @@ export default class FilterableTable extends PureComponent<
     this.rowClassName = this.rowClassName.bind(this);
     this.sort = this.sort.bind(this);
     this._onSectionRendered = this._onSectionRendered.bind(this);
-    this._loadMoreRows = this._loadMoreRows.bind(this);
-    this._isRowLoaded = this._isRowLoaded.bind(this);
+    this.loadMoreRows = this.loadMoreRows.bind(this);
+    this.isRowLoaded = this.isRowLoaded.bind(this);
 
     // columns that have complex type and were expanded into sub columns
     this.complexColumns = props.orderedColumnKeys.reduce(
@@ -494,83 +494,72 @@ export default class FilterableTable extends PureComponent<
     return (
       <StyledFilterableTable>
         <InfiniteLoader
-          isRowLoaded={this._isRowLoaded}
-          loadMoreRows={this._loadMoreRows}
+          isRowLoaded={this.isRowLoaded}
+          loadMoreRows={this.loadMoreRows}
           rowCount={this.state.rowIdx}
           threshold={1}
         >
           {({ onRowsRendered, registerChild }) => {
             this._onRowsRendered = onRowsRendered;
             return (
-              <Grid
-                cellRenderer={this.renderGridCell}
-                columnCount={orderedColumnKeys.length}
-                columnWidth={getColumnWidth}
-                height={totalTableHeight - rowHeight}
-                // onScroll={onScroll}
-                overscanColumnCount={overscanColumnCount}
-                overscanRowCount={overscanRowCount}
-                rowCount={this.state.rowIdx}
-                rowHeight={rowHeight}
-                width={1000}
-                onSectionRendered={this._onSectionRendered}
-                ref={grid => {
-                  this._grid = grid;
-                  registerChild(grid);
-                }}
-              />
+              <ScrollSync>
+                {({ onScroll, scrollLeft }) => (
+                  <>
+                    <AutoSizer disableHeight>
+                      {({ width }) => (
+                        <div>
+                          <Grid
+                            cellRenderer={this.renderGridCellHeader}
+                            columnCount={orderedColumnKeys.length}
+                            columnWidth={getColumnWidth}
+                            height={rowHeight}
+                            rowCount={1}
+                            rowHeight={rowHeight}
+                            scrollLeft={scrollLeft}
+                            width={width}
+                            style={{ overflow: 'hidden' }}
+                          />
+                          <Grid
+                            cellRenderer={this.renderGridCell}
+                            columnCount={orderedColumnKeys.length}
+                            columnWidth={getColumnWidth}
+                            height={totalTableHeight - rowHeight}
+                            onScroll={onScroll}
+                            overscanColumnCount={overscanColumnCount}
+                            overscanRowCount={overscanRowCount}
+                            rowCount={this.state.rowIdx}
+                            rowHeight={rowHeight}
+                            width={1000}
+                            onSectionRendered={this._onSectionRendered}
+                            ref={grid => {
+                              this._grid = grid;
+                              registerChild(grid);
+                            }}
+                          />
+                        </div>
+                      )}
+                    </AutoSizer>
+                  </>
+                )}
+              </ScrollSync>
             );
           }}
         </InfiniteLoader>
-
-        <ScrollSync>
-          {({ onScroll, scrollLeft }) => (
-            <>
-              <AutoSizer disableHeight>
-                {({ width }) => (
-                  <div>
-                    <Grid
-                      cellRenderer={this.renderGridCellHeader}
-                      columnCount={orderedColumnKeys.length}
-                      columnWidth={getColumnWidth}
-                      height={rowHeight}
-                      rowCount={1}
-                      rowHeight={rowHeight}
-                      scrollLeft={scrollLeft}
-                      width={width}
-                      style={{ overflow: 'hidden' }}
-                    />
-                    <Grid
-                      cellRenderer={this.renderGridCell}
-                      columnCount={orderedColumnKeys.length}
-                      columnWidth={getColumnWidth}
-                      height={totalTableHeight - rowHeight}
-                      onScroll={onScroll}
-                      overscanColumnCount={overscanColumnCount}
-                      overscanRowCount={overscanRowCount}
-                      rowCount={this.list.length}
-                      rowHeight={rowHeight}
-                      width={width}
-                    />
-                  </div>
-                )}
-              </AutoSizer>
-            </>
-          )}
-        </ScrollSync>
       </StyledFilterableTable>
     );
   }
 
-  _isRowLoaded({ index }) {
+  isRowLoaded({ index }) {
     const { rowIdx } = this.state;
     console.log(rowIdx);
     return index < rowIdx - 1; // this condition determins whether _loadMoreRows will be called
   }
 
-  _loadMoreRows({ startIndex, stopIndex }) {
+  loadMoreRows({ startIndex, stopIndex }) {
     console.log('in loadmore rows');
-    this.setState({ rowIdx: this.state.rowIdx + 1 });
+    if (this.state.rowIdx + 1 < this.list.length) {
+      this.setState({ rowIdx: this.state.rowIdx + 1 });
+    }
     let done;
     return new Promise(resolve => (done = resolve));
   }
