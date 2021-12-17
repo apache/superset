@@ -85,7 +85,7 @@ test('Call fetchFaveStar only on the first render', () => {
   };
 
   const { rerender } = render(<FaveStar {...props} />);
-  expect(props.fetchFaveStar).toBeCalledTimes(1);
+  expect(props.).toBeCalledTimes(1);
   expect(props.fetchFaveStar).toBeCalledWith(props.itemId);
 
   rerender(<FaveStar {...{ ...props, itemId: 2 }} />);

@@ -41,7 +41,6 @@ import Loading from 'src/components/Loading';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
-// import replaceUndefinedByNull from 'src/dashboard/util/replaceUndefinedByNull';
 import { checkIsApplyDisabled, TabIds } from './utils';
 import FilterSets from './FilterSets';
 import {
@@ -223,7 +222,6 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         } else filterType = dataMask;
 
         dataMaskKey = await createFilterKey(dashboardId, filterType);
-        console.log('dataMask', dataMaskKey);
       }
       newParams.set(URL_PARAMS.nativeFilters.name, dataMaskKey);
 

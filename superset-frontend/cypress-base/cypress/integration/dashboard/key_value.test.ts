@@ -16,11 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import qs from 'querystringify';
 import {
   WORLD_HEALTH_DASHBOARD,
   WORLD_HEALTH_CHARTS,
   waitForChartLoad,
 } from './dashboard.helper';
+// import { URL_PARAMS } from 'superset-frontend/src/constants.ts';
+
+interface QueryString {
+  native_filters: string;
+}
 
 describe('nativefiler url param key', () => {
   // const urlParams = { param1: '123', param2: 'abc' };
@@ -33,14 +39,14 @@ describe('nativefiler url param key', () => {
     cy.login();
   });
   let initialFilterKey: string;
-  it('should have cachekey in in nativefilter param', () => {
+  it('should have cachekey in nativefilter param', () => {
     cy.location().then(loc => {
-      initialFilterKey = loc.search.split('=')[1];
-      expect(typeof initialFilterKey).eq('string');
+      const check = qs.parse(loc.search) as QueryString;
+      expect(typeof check.native_filters).eq('string');
     });
   });
 
-  it('should have different key when pages reloads', () => {
+  it('should have different key when page reloads', () => {
     cy.location().then(loc => {
       const newFilterKey = loc.search.split('=');
       expect(newFilterKey).not.equal(initialFilterKey);
