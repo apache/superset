@@ -40,15 +40,15 @@ describe('nativefiler url param key', () => {
   let initialFilterKey: string;
   it('should have cachekey in nativefilter param', () => {
     cy.location().then(loc => {
-      const check = qs.parse(loc.search) as QueryString;
-      expect(typeof check.native_filters_key).eq('string');
+      const queryParams = qs.parse(loc.search) as QueryString;
+      expect(typeof queryParams.native_filters_key).eq('string');
     });
   });
 
   it('should have different key when page reloads', () => {
     cy.location().then(loc => {
-      const newFilterKey = loc.search.split('=');
-      expect(newFilterKey).not.equal(initialFilterKey);
+      const queryParams = qs.parse(loc.search) as QueryString;
+      expect(queryParams.native_filters_key).not.equal(initialFilterKey);
     });
   });
 });

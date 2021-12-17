@@ -39,7 +39,7 @@ export const URL_PARAMS = {
     name: 'native_filters',
     type: 'rison',
   },
-  nativeFiltersByCacheKey: {
+  nativeFiltersKey: {
     name: 'native_filters_key',
     type: 'string',
   },

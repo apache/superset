@@ -156,9 +156,7 @@ const DashboardPage: FC = () => {
   useEffect(() => {
     // eslint-disable-next-line consistent-return
     async function getDataMaskApplied() {
-      const nativeFilterKeyValue = getUrlParam(
-        URL_PARAMS.nativeFiltersByCacheKey,
-      );
+      const nativeFilterKeyValue = getUrlParam(URL_PARAMS.nativeFiltersKey);
       let dataMaskFromUrl = nativeFilterKeyValue || {};
 
       const isOldRison = getUrlParam(URL_PARAMS.nativeFilters);

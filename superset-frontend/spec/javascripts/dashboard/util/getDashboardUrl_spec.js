@@ -79,7 +79,7 @@ describe('getChartIdsFromLayout', () => {
       location: {
         origin: 'https://localhost',
         search:
-          '?preselect_filters=%7B%7D&native_filters=024380498jdkjf-2094838',
+          '?preselect_filters=%7B%7D&native_filters_key=024380498jdkjf-2094838',
       },
     }));
 
@@ -87,7 +87,7 @@ describe('getChartIdsFromLayout', () => {
       pathname: 'path',
     });
     expect(urlWithNativeFilters).toBe(
-      'path?preselect_filters=%7B%7D&native_filters=024380498jdkjf-2094838',
+      'path?preselect_filters=%7B%7D&native_filters_key=024380498jdkjf-2094838',
     );
   });
 });

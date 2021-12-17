@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import qs from 'querystring';
 import { dashboardView, nativeFilters } from 'cypress/support/directories';
 import { testItems } from './dashboard.helper';
 import { DASHBOARD_LIST } from '../dashboard_list/dashboard_list.helper';
@@ -93,11 +94,14 @@ describe('Nativefilters Sanity test', () => {
     cy.get(nativeFilters.modal.container).should('be.visible');
   });
   it('User can add a new native filter', () => {
-    let cacheKey: string;
+    let filterKey: string;
+    const removeFirstChar = (search: string) =>
+      search.split('').slice(1, search.length).join('');
     cy.wait(3000);
     cy.location().then(loc => {
-      cacheKey = loc.search.split('=')[1];
-      expect(typeof cacheKey).eq('string');
+      const queryParams = qs.parse(removeFirstChar(loc.search));
+      filterKey = queryParams.native_filters_key as string;
+      expect(typeof filterKey).eq('string');
     });
     cy.get(nativeFilters.filterFromDashboardView.expand).click({ force: true });
     cy.get(nativeFilters.createFilterButton).should('be.visible').click();
@@ -136,8 +140,9 @@ describe('Nativefilters Sanity test', () => {
       .click();
     cy.wait(3000);
     cy.location().then(loc => {
-      const sameCacheKey: string = loc.search.split('=')[1];
-      expect(sameCacheKey).not.eq(cacheKey);
+      const queryParams = qs.parse(removeFirstChar(loc.search));
+      const newfilterKey = queryParams.native_filters_key;
+      expect(newfilterKey).not.eq(filterKey);
     });
     cy.wait(3000);
     cy.get(nativeFilters.modal.container).should('not.exist');
