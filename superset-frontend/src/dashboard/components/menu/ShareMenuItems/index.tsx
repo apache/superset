@@ -55,15 +55,15 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
   const getShortUrl = useUrlShortener(url);
 
   async function getCopyUrl() {
-    const isOldRison = getUrlParam(URL_PARAMS.nativeFilters);
-    if (typeof isOldRison === 'object' || !dashboardId) return null;
-    const getPrevData = await getFilterValue(
+    const risonObj = getUrlParam(URL_PARAMS.nativeFilters);
+    if (typeof risonObj === 'object' || !dashboardId) return null;
+    const prevData = await getFilterValue(
       dashboardId,
       getUrlParam(URL_PARAMS.nativeFiltersKey),
     );
     const newDataMaskKey = await createFilterKey(
       dashboardId,
-      JSON.stringify(getPrevData),
+      JSON.stringify(prevData),
     );
     const newUrl = new URL(`${window.location.origin}${url}`);
     newUrl.searchParams.set(URL_PARAMS.nativeFilters.name, newDataMaskKey);
@@ -77,7 +77,6 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
       await copyTextToClipboard(shortUrl);
       addSuccessToast(t('Copied to clipboard!'));
     } catch (error) {
-      console.error(error);
       addDangerToast(t('Sorry, your browser does not support copying.'));
     }
   }
