@@ -1,5 +1,7 @@
-import pytest
 import json
+
+import pytest
+
 from superset import db
 from tests.integration_tests.dashboard_utils import create_dashboard
 from tests.integration_tests.test_app import app
@@ -58,3 +60,4 @@ def tabbed_dashboard():
     yield dash
     with app.app_context():
         db.session.delete(dash)
+        db.session.commit()

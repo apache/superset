@@ -57,17 +57,16 @@ from superset.reports.commands.exceptions import (
 from superset.reports.commands.execute import AsyncExecuteReportScheduleCommand
 from superset.reports.commands.log_prune import AsyncPruneReportScheduleLogCommand
 from superset.utils.core import get_example_database
-from tests.integration_tests.fixtures.tabbed_dashboard import tabbed_dashboard
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
 )
+from tests.integration_tests.fixtures.tabbed_dashboard import tabbed_dashboard
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices_module_scope,
 )
 from tests.integration_tests.reports.utils import insert_report_schedule
 from tests.integration_tests.test_app import app
 from tests.integration_tests.utils import read_fixture
-
 
 pytestmark = pytest.mark.usefixtures(
     "load_world_bank_dashboard_with_slices_module_scope"
@@ -289,18 +288,6 @@ def create_report_email_tabbed_dashboard(tabbed_dashboard):
             },
         )
         yield report_schedule
-        cleanup_report_schedule(report_schedule)
-
-
-@pytest.fixture()
-def create_report_email_dashboard():
-    with app.app_context():
-        dashboard = db.session.query(Dashboard).first()
-        report_schedule = create_report_notification(
-            email_target="target@email.com", dashboard=dashboard
-        )
-        yield report_schedule
-
         cleanup_report_schedule(report_schedule)
 
 
@@ -1691,9 +1678,27 @@ def test_prune_log_soft_time_out(bulk_delete_logs, create_report_email_dashboard
 @pytest.mark.usefixtures(
     "create_report_email_tabbed_dashboard",
 )
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch(
+    "superset.reports.commands.execute.DashboardScreenshot",
+)
 def test_when_tabs_are_selected_it_takes_screenshots_for_every_tabs(
+    dashboard_screenshot_mock,
+    send_email_smtp_mock,
     create_report_email_tabbed_dashboard,
 ):
+    dashboard_screenshot_mock.get_screenshot.return_value = b"test-image"
+    dashboard = create_report_email_tabbed_dashboard.dashboard
+    
     AsyncExecuteReportScheduleCommand(
         TEST_ID, create_report_email_tabbed_dashboard.id, datetime.utcnow()
     ).run()
+    
+    tabs = json.loads(create_report_email_tabbed_dashboard.extra)["dashboard_tab_ids"]
+    assert dashboard_screenshot_mock.call_count == 2
+    for index, tab in enumerate(tabs):
+        assert dashboard_screenshot_mock.call_args_list[index].args == (
+            f"http://127.0.0.1:8088/superset/dashboard/{dashboard.id}/#{tab}",
+            f"{dashboard.digest}",
+        )
+    assert send_email_smtp_mock.called is True
