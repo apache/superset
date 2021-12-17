@@ -29,7 +29,7 @@ export const updateFilterKey = (dashId: string, value: string, key: string) =>
       return null;
     });
 
-export const createFilterKey = (dashId: string, value: string) =>
+export const createFilterKey = (dashId: string | number, value: string) =>
   SupersetClient.post({
     endpoint: `api/v1/dashboard/${dashId}/filter_state`,
     jsonPayload: { value },

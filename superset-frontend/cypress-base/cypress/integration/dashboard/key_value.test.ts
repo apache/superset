@@ -22,10 +22,9 @@ import {
   WORLD_HEALTH_CHARTS,
   waitForChartLoad,
 } from './dashboard.helper';
-// import { URL_PARAMS } from 'superset-frontend/src/constants.ts';
 
 interface QueryString {
-  native_filters: string;
+  native_filters_key: string;
 }
 
 describe('nativefiler url param key', () => {
@@ -42,7 +41,7 @@ describe('nativefiler url param key', () => {
   it('should have cachekey in nativefilter param', () => {
     cy.location().then(loc => {
       const check = qs.parse(loc.search) as QueryString;
-      expect(typeof check.native_filters).eq('string');
+      expect(typeof check.native_filters_key).eq('string');
     });
   });
 

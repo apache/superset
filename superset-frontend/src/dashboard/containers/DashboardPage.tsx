@@ -20,6 +20,7 @@ import React, { FC, useRef, useEffect, useState } from 'react';
 import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams } from 'react-router-dom';
+import rison from 'rison';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import Loading from 'src/components/Loading';
 import FilterBoxMigrationModal from 'src/dashboard/components/FilterBoxMigrationModal';
@@ -48,7 +49,10 @@ import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { canUserEditDashboard } from 'src/dashboard/util/findPermission';
 import { getFilterSets } from '../actions/nativeFilters';
-import { getFilterValue } from '../components/nativeFilters/FilterBar/keyValue';
+import {
+  createFilterKey,
+  getFilterValue,
+} from '../components/nativeFilters/FilterBar/keyValue';
 
 export const MigrationContext = React.createContext(
   FILTER_BOX_MIGRATION_STATES.NOOP,
@@ -156,19 +160,27 @@ const DashboardPage: FC = () => {
   useEffect(() => {
     // eslint-disable-next-line consistent-return
     async function getDataMaskApplied() {
-      const nativeFilterValue = getUrlParam(URL_PARAMS.nativeFilters);
-      let dataMaskFromUrl = nativeFilterValue || {};
+      const nativeFilterKeyValue = getUrlParam(
+        URL_PARAMS.nativeFiltersByCacheKey,
+      );
+      let dataMaskFromUrl = nativeFilterKeyValue || {};
 
-      if (typeof nativeFilterValue === 'string') {
+      const isOldRison = getUrlParam(URL_PARAMS.nativeFilters);
+      // check if key from key_value api and get datamask
+      if (nativeFilterKeyValue) {
         try {
           dataMaskFromUrl = await getFilterValue(
             dashboard?.id,
-            nativeFilterValue,
+            nativeFilterKeyValue,
           );
         } catch (err) {
           return null;
         }
+        // else get old old rison string and set as datamask
+      } else if (isOldRison && dashboard?.id) {
+        dataMaskFromUrl = isOldRison;
       }
+
       if (readyToRender) {
         if (!isDashboardHydrated.current) {
           isDashboardHydrated.current = true;

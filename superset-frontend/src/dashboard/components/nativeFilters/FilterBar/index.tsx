@@ -215,15 +215,10 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       ) {
         dataMaskKey = nativeFiltersCacheKey;
       } else {
-        let filterType;
-        const isOldRison = getUrlParam(URL_PARAMS.nativeFilters);
-        if (typeof isOldRison === 'object') {
-          filterType = rison.encode(isOldRison);
-        } else filterType = dataMask;
-
-        dataMaskKey = await createFilterKey(dashboardId, filterType);
+        dataMaskKey = await createFilterKey(dashboardId, dataMask);
       }
-      newParams.set(URL_PARAMS.nativeFilters.name, dataMaskKey);
+
+      newParams.set(URL_PARAMS.nativeFiltersByCacheKey.name, dataMaskKey);
 
       history.replace({
         search: newParams.toString(),
