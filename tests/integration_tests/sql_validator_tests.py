@@ -100,6 +100,37 @@ class TestSqlValidatorEndpoint(SupersetTestCase):
         PRESTO_SQL_VALIDATORS_BY_ENGINE,
         clear=True,
     )
+    def test_validate_sql_endpoint_mocked_params(self, get_validator_by_name):
+        """Assert that, with a mocked validator, annotations make it back out
+        from the validate_sql_json endpoint as a list of json dictionaries"""
+        if get_example_database().backend == "hive":
+            pytest.skip("Hive validator is not implemented")
+        self.login("admin")
+
+        validator = MagicMock()
+        get_validator_by_name.return_value = validator
+        validator.validate.return_value = [
+            SQLValidationAnnotation(
+                message="This worked", line_number=4, start_column=12, end_column=42,
+            )
+        ]
+
+        resp = self.validate_sql(
+            "SELECT * FROM somewhere_over_the_rainbow",
+            client_id="1",
+            raise_on_error=False,
+            template_params="null",
+        )
+
+        self.assertEqual(1, len(resp))
+        self.assertNotIn("error,", resp[0]["message"])
+
+    @patch("superset.views.core.get_validator_by_name")
+    @patch.dict(
+        "superset.config.SQL_VALIDATORS_BY_ENGINE",
+        PRESTO_SQL_VALIDATORS_BY_ENGINE,
+        clear=True,
+    )
     def test_validate_sql_endpoint_failure(self, get_validator_by_name):
         """Assert that validate_sql_json errors out when the selected validator
         raises an unexpected exception"""
