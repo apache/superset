@@ -20,6 +20,7 @@ import json
 import unittest
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 
 import pytest
@@ -28,6 +29,7 @@ from sqlalchemy.orm.session import make_transient
 
 from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_with_slice,
+    load_energy_table_data,
 )
 from tests.integration_tests.test_app import app
 from superset.dashboards.commands.importers.v0 import decode_dashboards
@@ -47,6 +49,7 @@ from superset.utils.core import get_example_database, get_example_default_schema
 
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
+    load_world_bank_data,
 )
 from .base_tests import SupersetTestCase
 

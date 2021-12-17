@@ -574,7 +574,7 @@ The dev server by default starts at `http://localhost:9000` and proxies the back
 npm run dev-server
 
 # Run the dev server on a non-default port
-npm run dev-server -- --devserverPort=9001
+npm run dev-server -- --port=9001
 
 # Proxy backend requests to a Flask server running on a non-default port
 npm run dev-server -- --supersetPort=8081
@@ -964,7 +964,7 @@ You are now ready to attach a debugger to the process. Using VSCode you can conf
 }
 ```
 
-VSCode will not stop on breakpoints right away. We've attached to PID 6 however it does not yet know of any sub-processes. In order to "wakeup" the debugger you need to modify a python file. This will trigger Flask to reload the code and create a new sub-process. This new sub-process will be detected by VSCode and breakpoints will be activated.
+VSCode will not stop on breakpoints right away. We've attached to PID 6 however it does not yet know of any sub-processes. In order to "wake up" the debugger you need to modify a python file. This will trigger Flask to reload the code and create a new sub-process. This new sub-process will be detected by VSCode and breakpoints will be activated.
 
 ### Debugging Server App in Kubernetes Environment
 
@@ -1339,16 +1339,16 @@ More information on the async query feature can be found in [SIP-39](https://git
 
 Chart parameters are stored as a JSON encoded string the `slices.params` column and are often referenced throughout the code as form-data. Currently the form-data is neither versioned nor typed as thus is somewhat free-formed. Note in the future there may be merit in using something like [JSON Schema](https://json-schema.org/) to both annotate and validate the JSON object in addition to using a Mypy `TypedDict` (introduced in Python 3.8) for typing the form-data in the backend. This section serves as a potential primer for that work.
 
-The following tables provide a non-exhausive list of the various fields which can be present in the JSON object grouped by the Explorer pane sections. These values were obtained by extracting the distinct fields from a legacy deployment consisting of tens of thousands of charts and thus some fields may be missing whilst others may be deprecated.
+The following tables provide a non-exhaustive list of the various fields which can be present in the JSON object grouped by the Explorer pane sections. These values were obtained by extracting the distinct fields from a legacy deployment consisting of tens of thousands of charts and thus some fields may be missing whilst others may be deprecated.
 
-Note not all fields are correctly categorized. The fields vary based on visualization type and may apprear in different sections depending on the type. Verified deprecated columns may indicate a missing migration and/or prior migrations which were unsuccessful and thus future work may be required to clean up the form-data.
+Note not all fields are correctly categorized. The fields vary based on visualization type and may appear in different sections depending on the type. Verified deprecated columns may indicate a missing migration and/or prior migrations which were unsuccessful and thus future work may be required to clean up the form-data.
 
 ### Datasource & Chart Type
 
 | Field             | Type     | Notes                               |
 | ----------------- | -------- | ----------------------------------- |
 | `database_name`   | _string_ | _Deprecated?_                       |
-| `datasource`      | _string_ | `<datasouce_id>__<datasource_type>` |
+| `datasource`      | _string_ | `<datasource_id>__<datasource_type>` |
 | `datasource_id`   | _string_ | _Deprecated?_ See `datasource`      |
 | `datasource_name` | _string_ | _Deprecated?_                       |
 | `datasource_type` | _string_ | _Deprecated?_ See `datasource`      |

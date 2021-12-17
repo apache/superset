@@ -17,7 +17,7 @@
  * under the License.
  */
 
-// These are control configurations that are shared ONLY within the BigNumber viz plugin repo.
+// These are control configurations that are shared ONLY within the BigNumberWithTrendline viz plugin repo.
 import { t } from '@superset-ui/core';
 import { CustomControlItem } from '@superset-ui/chart-controls';
 

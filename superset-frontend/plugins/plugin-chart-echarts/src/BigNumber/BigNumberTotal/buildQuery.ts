@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { buildQueryContext, QueryFormData } from '@superset-ui/core';
 
-export { default as BigNumberChartPlugin } from './BigNumber/index';
-export { default as BigNumberTotalChartPlugin } from './BigNumberTotal/index';
-export { default as BigNumberChartPreset } from './preset';
+export default function buildQuery(formData: QueryFormData) {
+  return buildQueryContext(formData, baseQueryObject => [baseQueryObject]);
+}
