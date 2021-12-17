@@ -640,36 +640,48 @@ export default class FilterableTable extends PureComponent<
         className="filterable-table-container"
         ref={this.container}
       >
-        {this.state.fitted && (
-          <Table
-            ref="Table"
-            headerHeight={headerHeight}
-            height={totalTableHeight}
-            overscanRowCount={overscanRowCount}
-            rowClassName={this.rowClassName}
-            rowHeight={rowHeight}
-            rowGetter={rowGetter}
-            rowCount={sortedAndFilteredList.length}
-            sort={this.sort}
-            sortBy={sortBy}
-            sortDirection={sortDirection}
-            width={this.totalTableWidth}
-          >
-            {orderedColumnKeys.map(columnKey => (
-              <Column
-                cellRenderer={({ cellData }) =>
-                  this.renderTableCell({ cellData, columnKey })
-                }
-                dataKey={columnKey}
-                disableSort={false}
-                headerRenderer={this.renderTableHeader}
-                width={this.widthsForColumnsByKey[columnKey]}
-                label={columnKey}
-                key={columnKey}
-              />
-            ))}
-          </Table>
-        )}
+        <InfiniteLoader
+          isRowLoaded={this.isRowLoaded}
+          loadMoreRows={this.loadMoreRows}
+          rowCount={this.state.rowIdx}
+          threshold={1}
+        >
+          {({ onRowsRendered, registerChild }) => (
+            <>
+              {this.state.fitted && (
+                <Table
+                  headerHeight={headerHeight}
+                  height={totalTableHeight}
+                  overscanRowCount={overscanRowCount}
+                  rowClassName={this.rowClassName}
+                  rowHeight={rowHeight}
+                  rowGetter={rowGetter}
+                  rowCount={sortedAndFilteredList.length}
+                  sort={this.sort}
+                  sortBy={sortBy}
+                  sortDirection={sortDirection}
+                  width={this.totalTableWidth}
+                  ref={registerChild}
+                  onRowsRendered={onRowsRendered}
+                >
+                  {orderedColumnKeys.map(columnKey => (
+                    <Column
+                      cellRenderer={({ cellData }) =>
+                        this.renderTableCell({ cellData, columnKey })
+                      }
+                      dataKey={columnKey}
+                      disableSort={false}
+                      headerRenderer={this.renderTableHeader}
+                      width={this.widthsForColumnsByKey[columnKey]}
+                      label={columnKey}
+                      key={columnKey}
+                    />
+                  ))}
+                </Table>
+              )}
+            </>
+          )}
+        </InfiniteLoader>
       </StyledFilterableTable>
     );
   }
@@ -678,6 +690,6 @@ export default class FilterableTable extends PureComponent<
     if (this.props.orderedColumnKeys.length > MAX_COLUMNS_FOR_TABLE) {
       return this.renderGrid();
     }
-    return this.renderGrid();
+    return this.renderTable();
   }
 }
