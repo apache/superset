@@ -27,7 +27,7 @@ import ShareMenuItems from '.';
 
 const spy = jest.spyOn(copyTextToClipboard, 'default');
 
-const DASHBOARD_ID = 26;
+const DASHBOARD_ID = '26';
 const createProps = () => ({
   addDangerToast: jest.fn(),
   addSuccessToast: jest.fn(),
