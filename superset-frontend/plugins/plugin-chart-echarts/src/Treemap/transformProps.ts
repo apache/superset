@@ -259,7 +259,7 @@ export default function transformProps(
         show: false,
       },
       itemStyle: {
-        color: CategoricalColorNamespace.getColor(),
+        color: '#1FA8C9',
       },
     },
   ];

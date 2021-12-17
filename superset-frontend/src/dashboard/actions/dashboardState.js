@@ -228,6 +228,7 @@ export function saveDashboardRequest(data, id, saveType) {
         color_scheme: data.metadata?.color_scheme || '',
         expanded_slices: data.metadata?.expanded_slices || {},
         label_colors: data.metadata?.label_colors || {},
+        default_label_colors: data.metadata?.default_label_colors || {},
         refresh_frequency: data.metadata?.refresh_frequency || 0,
         timed_refresh_immune_slices:
           data.metadata?.timed_refresh_immune_slices || [],

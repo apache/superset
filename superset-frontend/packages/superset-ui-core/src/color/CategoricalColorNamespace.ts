@@ -39,8 +39,19 @@ export default class CategoricalColorNamespace {
 
   getScale(schemeId?: string) {
     const id = schemeId ?? getCategoricalSchemeRegistry().getDefaultKey() ?? '';
+    const scale = this.scales[id];
+    if (scale) {
+      return scale;
+    }
     const scheme = getCategoricalSchemeRegistry().get(id);
-    return new CategoricalColorScale(scheme?.colors ?? [], this.forcedItems);
+    const newScale = new CategoricalColorScale(
+      scheme?.colors ?? [],
+      this.forcedItems,
+    );
+
+    this.scales[id] = newScale;
+
+    return newScale;
   }
 
   /**
@@ -50,14 +61,26 @@ export default class CategoricalColorNamespace {
    * @param {*} value value
    * @param {*} forcedColor color
    */
-  setColor(value: string, forcedColor: string) {
-    this.forcedItems[stringifyAndTrim(value)] = forcedColor;
+  setColor(value: string, forcedColor: string, schemeId?: string) {
+    const id = schemeId ?? getCategoricalSchemeRegistry().getDefaultKey() ?? '';
+    const scale = this.scales[id];
+    if (scale) {
+      scale.parentForcedColors[stringifyAndTrim(value)] = forcedColor;
+    } else {
+      this.forcedItems[stringifyAndTrim(value)] = forcedColor;
+    }
 
     return this;
   }
 
-  resetColors() {
-    this.forcedItems = {};
+  resetColors(schemeId?: string) {
+    const id = schemeId ?? getCategoricalSchemeRegistry().getDefaultKey() ?? '';
+    const scale = this.scales[id];
+    if (scale) {
+      scale.parentForcedColors = {};
+    } else {
+      this.forcedItems = {};
+    }
   }
 }
 

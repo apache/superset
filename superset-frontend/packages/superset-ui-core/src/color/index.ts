@@ -20,7 +20,10 @@
 import * as CategoricalColorNamespace from './CategoricalColorNamespace';
 
 export { CategoricalColorNamespace };
-export { default as CategoricalColorScale } from './CategoricalColorScale';
+export {
+  default as CategoricalColorScale,
+  getDefaultColorScale,
+} from './CategoricalColorScale';
 export { default as CategoricalScheme } from './CategoricalScheme';
 export * from './CategoricalScheme';
 export { default as getCategoricalSchemeRegistry } from './CategoricalSchemeRegistrySingleton';

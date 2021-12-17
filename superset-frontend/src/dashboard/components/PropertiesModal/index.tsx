@@ -29,6 +29,8 @@ import {
   SupersetClient,
   getCategoricalSchemeRegistry,
   ensureIsArray,
+  CategoricalColorNamespace,
+  getDefaultColorScale,
 } from '@superset-ui/core';
 
 import Modal from 'src/components/Modal';
@@ -271,6 +273,19 @@ const PropertiesModal = ({
     if (updateMetadata) {
       jsonMetadataObj.color_scheme = colorScheme;
       jsonMetadataObj.label_colors = jsonMetadataObj.label_colors || {};
+
+      const categoricalNamespace = CategoricalColorNamespace.getNamespace(
+        jsonMetadataObj.color_namespace || '',
+      );
+      const defaultColorScale = getDefaultColorScale();
+      const scale = categoricalNamespace.getScale(colorScheme);
+      const colorMap = defaultColorScale
+        .domain()
+        .reduce(
+          (res, name) => ({ ...res, [name.toString()]: scale(name) }),
+          {},
+        );
+      jsonMetadataObj.default_label_colors = colorMap;
 
       setJsonMetadata(jsonStringify(jsonMetadataObj));
     }

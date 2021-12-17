@@ -23,6 +23,25 @@ import { ChartConfiguration, DashboardInfo } from '../reducers/types';
 
 export const DASHBOARD_INFO_UPDATED = 'DASHBOARD_INFO_UPDATED';
 
+export function updateColorSchema(
+  metadata: any,
+  labelColors: Record<string, string>,
+) {
+  const categoricalNamespace = CategoricalColorNamespace.getNamespace(
+    metadata?.color_namespace,
+  );
+  const colorMap = isString(labelColors)
+    ? JSON.parse(labelColors)
+    : labelColors;
+  Object.keys(colorMap).forEach(label => {
+    categoricalNamespace.setColor(
+      label,
+      colorMap[label],
+      metadata.color_scheme,
+    );
+  });
+}
+
 // updates partially changed dashboard info
 export function dashboardInfoChanged(newInfo: { metadata: any }) {
   const { metadata } = newInfo;
@@ -31,16 +50,14 @@ export function dashboardInfoChanged(newInfo: { metadata: any }) {
     metadata?.color_namespace,
   );
 
-  categoricalNamespace.resetColors();
+  categoricalNamespace.resetColors(metadata.color_scheme);
+
+  if (metadata?.default_label_colors) {
+    updateColorSchema(metadata, metadata?.default_label_colors);
+  }
 
   if (metadata?.label_colors) {
-    const labelColors = metadata.label_colors;
-    const colorMap = isString(labelColors)
-      ? JSON.parse(labelColors)
-      : labelColors;
-    Object.keys(colorMap).forEach(label => {
-      categoricalNamespace.setColor(label, colorMap[label]);
-    });
+    updateColorSchema(metadata, metadata?.label_colors);
   }
 
   return { type: DASHBOARD_INFO_UPDATED, newInfo };

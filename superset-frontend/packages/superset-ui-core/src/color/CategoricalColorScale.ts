@@ -22,9 +22,20 @@ import { scaleOrdinal, ScaleOrdinal } from 'd3-scale';
 import { ExtensibleFunction } from '../models';
 import { ColorsLookup } from './types';
 import stringifyAndTrim from './stringifyAndTrim';
+import getCategoricalSchemeRegistry from './CategoricalSchemeRegistrySingleton';
 
 // Use type augmentation to correct the fact that
 // an instance of CategoricalScale is also a function
+
+let defaultColorScale: CategoricalColorScale;
+export function getDefaultColorScale() {
+  if (defaultColorScale) return defaultColorScale;
+  const defaultSchemaKey = getCategoricalSchemeRegistry().getDefaultKey() ?? '';
+  const scheme = getCategoricalSchemeRegistry().get(defaultSchemaKey);
+  // eslint-disable-next-line @typescript-eslint/no-use-before-define
+  defaultColorScale = new CategoricalColorScale(scheme?.colors ?? []);
+  return defaultColorScale;
+}
 
 interface CategoricalColorScale {
   (x: { toString(): string }): string;
@@ -35,7 +46,7 @@ class CategoricalColorScale extends ExtensibleFunction {
 
   scale: ScaleOrdinal<{ toString(): string }, string>;
 
-  parentForcedColors?: ColorsLookup;
+  parentForcedColors: ColorsLookup;
 
   forcedColors: ColorsLookup;
 
@@ -51,12 +62,15 @@ class CategoricalColorScale extends ExtensibleFunction {
     this.colors = colors;
     this.scale = scaleOrdinal<{ toString(): string }, string>();
     this.scale.range(colors);
-    this.parentForcedColors = parentForcedColors;
+    this.parentForcedColors = parentForcedColors || {};
     this.forcedColors = {};
   }
 
   getColor(value?: string) {
     const cleanedValue = stringifyAndTrim(value);
+
+    getDefaultColorScale().scale(cleanedValue);
+
     const parentColor =
       this.parentForcedColors && this.parentForcedColors[cleanedValue];
     if (parentColor) {
