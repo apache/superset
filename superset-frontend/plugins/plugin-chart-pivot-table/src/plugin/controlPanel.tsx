@@ -30,7 +30,6 @@ import {
   sections,
   sharedControls,
   emitFilterControl,
-  legacySortBy,
 } from '@superset-ui/chart-controls';
 import { MetricsLayoutEnum } from '../types';
 
@@ -90,15 +89,40 @@ const config: ControlPanelConfig = {
         ],
         ['adhoc_filters'],
         emitFilterControl,
+        ['limit'],
         [
           {
             name: 'row_limit',
             config: {
               ...sharedControls.row_limit,
+              label: t('Cell limit'),
+              description: t('Limits the number of cells that get retrieved.'),
             },
           },
         ],
-        ...legacySortBy,
+        [
+          {
+            name: 'timeseries_limit_metric',
+            config: {
+              ...sharedControls.timeseries_limit_metric,
+              description: t(
+                'Metric used to define how the top series are sorted if a series or cell limit is present. ' +
+                  'If undefined reverts to the first metric (where appropriate).',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'order_desc',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Sort Descending'),
+              default: true,
+              description: t('Whether to sort descending or ascending'),
+            },
+          },
+        ],
       ],
     },
     {
@@ -237,14 +261,14 @@ const config: ControlPanelConfig = {
               ],
               renderTrigger: true,
               description: (
-                <React.Fragment>
+                <>
                   <div>{t('Change order of rows.')}</div>
                   <div>{t('Available sorting modes:')}</div>
                   <ul>
                     <li>{t('By key: use row names as sorting key')}</li>
                     <li>{t('By value: use metric values as sorting key')}</li>
                   </ul>
-                </React.Fragment>
+                </>
               ),
             },
           },
@@ -265,14 +289,14 @@ const config: ControlPanelConfig = {
               ],
               renderTrigger: true,
               description: (
-                <React.Fragment>
+                <>
                   <div>{t('Change order of columns.')}</div>
                   <div>{t('Available sorting modes:')}</div>
                   <ul>
                     <li>{t('By key: use column names as sorting key')}</li>
                     <li>{t('By value: use metric values as sorting key')}</li>
                   </ul>
-                </React.Fragment>
+                </>
               ),
             },
           },

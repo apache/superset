@@ -19,46 +19,23 @@
 import {
   buildQueryContext,
   ensureIsArray,
-  getMetricLabel,
   normalizeOrderBy,
   QueryFormColumn,
 } from '@superset-ui/core';
 import { PivotTableQueryFormData } from '../types';
 
 export default function buildQuery(formData: PivotTableQueryFormData) {
-  const {
-    groupbyColumns = [],
-    groupbyRows = [],
-    order_desc = true,
-    legacy_order_by,
-  } = formData;
+  const { groupbyColumns = [], groupbyRows = [] } = formData;
   // TODO: add deduping of AdhocColumns
   const groupbySet = new Set([
     ...ensureIsArray<QueryFormColumn>(groupbyColumns),
     ...ensureIsArray<QueryFormColumn>(groupbyRows),
   ]);
-  return buildQueryContext(formData, baseQueryObject => {
-    const queryObject = normalizeOrderBy({
+  return buildQueryContext(formData, baseQueryObject => [
+    {
       ...baseQueryObject,
-      order_desc,
-      legacy_order_by,
-    });
-    const { metrics } = queryObject;
-    const orderBy = ensureIsArray(legacy_order_by);
-    if (
-      orderBy.length &&
-      !metrics?.find(
-        metric => getMetricLabel(metric) === getMetricLabel(orderBy[0]),
-      )
-    ) {
-      metrics?.push(orderBy[0]);
-    }
-    return [
-      {
-        ...queryObject,
-        columns: [...groupbySet],
-        metrics,
-      },
-    ];
-  });
+      orderby: normalizeOrderBy(baseQueryObject).orderby,
+      columns: [...groupbySet],
+    },
+  ]);
 }
