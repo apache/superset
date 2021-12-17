@@ -113,6 +113,7 @@ interface FilterableTableState {
   sortBy?: string;
   sortDirection: SortDirectionType;
   fitted: boolean;
+  rowIdx: number;
 }
 
 export default class FilterableTable extends PureComponent<
@@ -141,6 +142,8 @@ export default class FilterableTable extends PureComponent<
 
   container: React.RefObject<HTMLDivElement>;
 
+  onRowsRendered: any;
+
   constructor(props: FilterableTableProps) {
     super(props);
     this.list = this.formatTableData(props.data);
@@ -155,7 +158,7 @@ export default class FilterableTable extends PureComponent<
     this.renderTable = this.renderTable.bind(this);
     this.rowClassName = this.rowClassName.bind(this);
     this.sort = this.sort.bind(this);
-    this._onSectionRendered = this._onSectionRendered.bind(this);
+    this.onSectionRendered = this.onSectionRendered.bind(this);
     this.loadMoreRows = this.loadMoreRows.bind(this);
     this.isRowLoaded = this.isRowLoaded.bind(this);
 
@@ -500,7 +503,7 @@ export default class FilterableTable extends PureComponent<
           threshold={1}
         >
           {({ onRowsRendered, registerChild }) => {
-            this._onRowsRendered = onRowsRendered;
+            this.onRowsRendered = onRowsRendered;
             return (
               <ScrollSync>
                 {({ onScroll, scrollLeft }) => (
@@ -529,8 +532,8 @@ export default class FilterableTable extends PureComponent<
                             overscanRowCount={overscanRowCount}
                             rowCount={this.state.rowIdx}
                             rowHeight={rowHeight}
-                            width={1000}
-                            onSectionRendered={this._onSectionRendered}
+                            width={width}
+                            onSectionRendered={this.onSectionRendered}
                             ref={grid => {
                               this._grid = grid;
                               registerChild(grid);
@@ -551,27 +554,32 @@ export default class FilterableTable extends PureComponent<
 
   isRowLoaded({ index }) {
     const { rowIdx } = this.state;
-    console.log(rowIdx);
     return index < rowIdx - 1; // this condition determins whether _loadMoreRows will be called
   }
 
-  loadMoreRows({ startIndex, stopIndex }) {
-    console.log('in loadmore rows');
-    if (this.state.rowIdx + 1 < this.list.length) {
-      this.setState({ rowIdx: this.state.rowIdx + 1 });
+  loadMoreRows() {
+    const { rowIdx } = this.state;
+    if (rowIdx + 1 < this.list.length) {
+      this.setState({ rowIdx: rowIdx + 1 });
     }
+
     let done;
     return new Promise(resolve => (done = resolve));
   }
-  _onSectionRendered({ rowStartIndex, rowStopIndex }) {
-    // console.log('rowStartIndex', rowStartIndex)
-    // console.log('rowStopIndex', rowStopIndex)
 
-    this._onRowsRendered({
+  onSectionRendered({
+    rowStartIndex,
+    rowStopIndex,
+  }: {
+    rowStartIndex: number;
+    rowStopIndex: number;
+  }) {
+    this.onRowsRendered({
       startIndex: rowStartIndex,
       stopIndex: rowStopIndex,
     });
   }
+
   renderTableCell({
     cellData,
     columnKey,
