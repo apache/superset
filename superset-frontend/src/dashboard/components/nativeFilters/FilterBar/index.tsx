@@ -26,7 +26,6 @@ import Icons from 'src/components/Icons';
 import { Tabs } from 'src/common/components';
 import { useHistory } from 'react-router-dom';
 import { usePrevious } from 'src/common/hooks/usePrevious';
-import rison from 'rison';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { updateDataMask, clearDataMask } from 'src/dataMask/actions';
 import { DataMaskStateWithId, DataMaskWithId } from 'src/dataMask/types';

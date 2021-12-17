@@ -20,7 +20,6 @@ import React, { FC, useRef, useEffect, useState } from 'react';
 import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams } from 'react-router-dom';
-import rison from 'rison';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import Loading from 'src/components/Loading';
 import FilterBoxMigrationModal from 'src/dashboard/components/FilterBoxMigrationModal';
@@ -49,10 +48,7 @@ import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { canUserEditDashboard } from 'src/dashboard/util/findPermission';
 import { getFilterSets } from '../actions/nativeFilters';
-import {
-  createFilterKey,
-  getFilterValue,
-} from '../components/nativeFilters/FilterBar/keyValue';
+import { getFilterValue } from '../components/nativeFilters/FilterBar/keyValue';
 
 export const MigrationContext = React.createContext(
   FILTER_BOX_MIGRATION_STATES.NOOP,
