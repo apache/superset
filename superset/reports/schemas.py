@@ -103,7 +103,7 @@ class ValidatorConfigJSONSchema(Schema):
         description=validator_config_json_op_description,
         validate=validate.OneOf(choices=["<", "<=", ">", ">=", "==", "!="]),
     )
-    threshold = fields.Integer()
+    threshold = fields.Float()
 
 
 class ReportRecipientConfigJSONSchema(Schema):
