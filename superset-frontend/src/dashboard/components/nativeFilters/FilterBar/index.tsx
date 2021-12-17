@@ -256,7 +256,6 @@ const FilterBar: React.FC<FiltersBarProps> = ({
 
   const dataMaskAppliedText = JSON.stringify(dataMaskApplied);
   useEffect(() => {
-    console.log(' publish datamask initial')
     publishDataMask(dataMaskApplied);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataMaskAppliedText, publishDataMask]);
