@@ -363,7 +363,6 @@ export default function PivotTableChart(props: PivotTableProps) {
           customFormatters={metricFormatters}
           aggregatorName={aggregateFunction}
           vals={vals}
-          rendererName="Table With Subtotal"
           colOrder={colOrder}
           rowOrder={rowOrder}
           sorters={sorters}

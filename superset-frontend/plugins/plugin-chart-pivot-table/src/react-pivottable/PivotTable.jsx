@@ -18,32 +18,16 @@
  */
 
 import React from 'react';
-import PropTypes from 'prop-types';
 import { PivotData } from './utilities';
-import { TableRenderers } from './TableRenderers';
+import { TableRenderer } from './TableRenderers';
 
 class PivotTable extends React.PureComponent {
   render() {
-    const Renderer =
-      this.props.renderers[
-        this.props.rendererName in this.props.renderers
-          ? this.props.rendererName
-          : Object.keys(this.props.renderers)[0]
-      ];
-    return <Renderer {...this.props} />;
+    return <TableRenderer {...this.props} />;
   }
 }
 
-PivotTable.propTypes = {
-  ...PivotData.propTypes,
-  rendererName: PropTypes.string,
-  renderers: PropTypes.objectOf(PropTypes.func),
-};
-
-PivotTable.defaultProps = {
-  ...PivotData.defaultProps,
-  rendererName: 'Table',
-  renderers: TableRenderers,
-};
+PivotTable.propTypes = PivotData.propTypes;
+PivotTable.defaultProps = PivotData.defaultProps;
 
 export default PivotTable;
