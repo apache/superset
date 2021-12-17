@@ -26,7 +26,7 @@ import { URL_PARAMS } from 'src/constants';
 import {
   createFilterKey,
   getFilterValue,
-} from '../../nativeFilters/FilterBar/keyValue';
+} from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
 
 interface ShareMenuItemProps {
   url: string;
