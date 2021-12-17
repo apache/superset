@@ -77,7 +77,6 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
       await copyTextToClipboard(shortUrl);
       addSuccessToast(t('Copied to clipboard!'));
     } catch (error) {
-      console.error(error);
       addDangerToast(t('Sorry, your browser does not support copying.'));
     }
   }
