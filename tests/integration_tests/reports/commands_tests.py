@@ -411,7 +411,16 @@ def create_alert_slack_chart_grace(request):
 
 
 @pytest.fixture(
-    params=["alert1", "alert2", "alert3", "alert4", "alert5", "alert6", "alert7",]
+    params=[
+        "alert1",
+        "alert2",
+        "alert3",
+        "alert4",
+        "alert5",
+        "alert6",
+        "alert7",
+        "alert8",
+    ]
 )
 def create_alert_email_chart(request):
     param_config = {
@@ -449,6 +458,11 @@ def create_alert_email_chart(request):
             "sql": "SELECT {{ 5 + 5 }} as metric",
             "validator_type": ReportScheduleValidatorType.OPERATOR,
             "validator_config_json": '{"op": "!=", "threshold": 11}',
+        },
+        "alert8": {
+            "sql": "SELECT 55 as metric",
+            "validator_type": ReportScheduleValidatorType.OPERATOR,
+            "validator_config_json": '{"op": ">", "threshold": 54.999}',
         },
     }
     with app.app_context():
