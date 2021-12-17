@@ -22,6 +22,7 @@ from unittest import mock
 from superset.exceptions import SupersetException
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 
 import pytest
@@ -38,7 +39,10 @@ from superset.models.sql_types.base import literal_dttm_type_factory
 from superset.utils.core import get_example_database
 
 from .base_tests import SupersetTestCase
-from .fixtures.energy_dashboard import load_energy_table_with_slice
+from .fixtures.energy_dashboard import (
+    load_energy_table_with_slice,
+    load_energy_table_data,
+)
 
 
 class TestDatabaseModel(SupersetTestCase):

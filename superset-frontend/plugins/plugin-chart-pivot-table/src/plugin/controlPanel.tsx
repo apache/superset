@@ -43,21 +43,21 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [
           {
-            name: 'groupbyRows',
-            config: {
-              ...sharedControls.groupby,
-              label: t('Rows'),
-              description: t('Columns to group by on the rows'),
-            },
-          },
-        ],
-        [
-          {
             name: 'groupbyColumns',
             config: {
               ...sharedControls.groupby,
               label: t('Columns'),
               description: t('Columns to group by on the columns'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'groupbyRows',
+            config: {
+              ...sharedControls.groupby,
+              label: t('Rows'),
+              description: t('Columns to group by on the rows'),
             },
           },
         ],
