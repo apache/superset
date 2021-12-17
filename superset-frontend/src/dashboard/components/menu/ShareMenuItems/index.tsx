@@ -59,7 +59,7 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
     if (typeof isOldRison === 'object' || !dashboardId) return null;
     const getPrevData = await getFilterValue(
       dashboardId,
-      getUrlParam(URL_PARAMS.nativeFiltersByCacheKey),
+      getUrlParam(URL_PARAMS.nativeFiltersKey),
     );
     const newDataMaskKey = await createFilterKey(
       dashboardId,

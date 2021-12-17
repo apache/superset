@@ -198,14 +198,12 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       const newParams = new URLSearchParams();
       let dataMaskKey = '';
       previousParams.forEach((value, key) => {
-        if (key !== URL_PARAMS.nativeFilters.name) {
+        if (key !== URL_PARAMS.nativeFiltersKey.name) {
           newParams.append(key, value);
         }
       });
 
-      const nativeFiltersCacheKey = getUrlParam(
-        URL_PARAMS.nativeFiltersByCacheKey,
-      );
+      const nativeFiltersCacheKey = getUrlParam(URL_PARAMS.nativeFiltersKey);
       const dataMask = JSON.stringify(dataMaskSelected);
       if (
         updateKey &&
@@ -216,8 +214,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       } else {
         dataMaskKey = await createFilterKey(dashboardId, dataMask);
       }
-
-      newParams.set(URL_PARAMS.nativeFiltersByCacheKey.name, dataMaskKey);
+      newParams.set(URL_PARAMS.nativeFiltersKey.name, dataMaskKey);
 
       history.replace({
         search: newParams.toString(),
