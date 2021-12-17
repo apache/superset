@@ -18,7 +18,7 @@
 import json
 import logging
 from io import IOBase
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 import backoff
 from flask_babel import gettext as __
@@ -133,16 +133,16 @@ Error: %(text)s
 
         return self._message_template(table)
 
-    def _get_inline_file(self) -> Optional[Union[str, IOBase, bytes]]:
+    def _get_inline_files(self) -> List[Union[str, IOBase, bytes]]:
         if self._content.csv:
-            return self._content.csv
+            return [self._content.csv]
         if self._content.screenshots:
             return self._content.screenshots
-        return None
+        return []
 
     @backoff.on_exception(backoff.expo, SlackApiError, factor=10, base=2, max_tries=5)
     def send(self) -> None:
-        file = self._get_inline_file()
+        files = self._get_inline_files()
         title = self._content.name
         channel = self._get_channel()
         body = self._get_body()
@@ -153,14 +153,17 @@ Error: %(text)s
                 token = token()
             client = WebClient(token=token, proxy=app.config["SLACK_PROXY"])
             # files_upload returns SlackResponse as we run it in sync mode.
-            if file:
-                client.files_upload(
-                    channels=channel,
-                    file=file,
-                    initial_comment=body,
-                    title=title,
-                    filetype=file_type,
-                )
+            if files:
+                [
+                    client.files_upload(
+                        channels=channel,
+                        file=file,
+                        initial_comment=body,
+                        title=title,
+                        filetype=file_type,
+                    )
+                    for file in files
+                ]
             else:
                 client.chat_postMessage(channel=channel, text=body)
             logger.info("Report sent to slack")

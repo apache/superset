@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from flask_appbuilder.security.sqla.models import User
 
@@ -51,6 +51,7 @@ def insert_report_schedule(
     recipients: Optional[List[ReportRecipients]] = None,
     report_format: Optional[ReportDataFormat] = None,
     logs: Optional[List[ReportExecutionLog]] = None,
+    extra: Optional[Dict[Any, Any]] = None,
 ) -> ReportSchedule:
     owners = owners or []
     recipients = recipients or []
@@ -75,6 +76,7 @@ def insert_report_schedule(
         logs=logs,
         last_state=last_state,
         report_format=report_format,
+        extra=extra,
     )
     db.session.add(report_schedule)
     db.session.commit()

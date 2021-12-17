@@ -182,9 +182,9 @@ class BaseReportState:
             raise ReportScheduleSelleniumUserNotFoundError()
         return user
 
-    def _get_screenshot(self) -> bytes:
+    def _get_screenshots(self) -> bytes:
         """
-        Get a chart or dashboard screenshot
+        Get chart or dashboard screenshots
 
         :raises: ReportScheduleScreenshotFailedError
         """
@@ -204,9 +204,11 @@ class BaseReportState:
             tabs: Optional[List[str]] = json.loads(self._report_schedule.extra).get(
                 "dashboard_tab_ids", None
             )
-
-            urls = [f"{self._get_url()}#{tab_id}" for tab_id in tabs]
-            # logger.info("Screenshotting dashboard at %s", url)
+            dashboard_base_url = self._get_url()
+            if tabs is None:
+                urls = [dashboard_base_url]
+            else:
+                urls = [f"{dashboard_base_url}#{tab_id}" for tab_id in tabs]
             screenshots = [
                 DashboardScreenshot(
                     url,
@@ -291,7 +293,7 @@ class BaseReportState:
         context.
         """
         try:
-            self._get_screenshot()
+            self._get_screenshots()
         except (
             ReportScheduleScreenshotFailedError,
             ReportScheduleScreenshotTimeout,
@@ -318,7 +320,7 @@ class BaseReportState:
             or self._report_schedule.type == ReportScheduleType.REPORT
         ):
             if self._report_schedule.report_format == ReportDataFormat.VISUALIZATION:
-                screenshot_data = self._get_screenshot()
+                screenshot_data = self._get_screenshots()
                 if not screenshot_data:
                     error_text = "Unexpected missing screenshot"
             elif (
