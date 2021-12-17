@@ -145,7 +145,6 @@ configOverrides: {}
   #   AUTH_USER_REGISTRATION_ROLE = "Admin"
 # Same as above but the values are files
 configOverridesFiles:
-  hello_world: hello_world.py
   # extend_timeout: extend_timeout.py
   # enable_oauth: enable_oauth.py
 
