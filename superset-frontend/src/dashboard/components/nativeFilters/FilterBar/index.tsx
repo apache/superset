@@ -198,7 +198,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       const newParams = new URLSearchParams();
       let dataMaskKey = '';
       previousParams.forEach((value, key) => {
-        if (key !== URL_PARAMS.nativeFiltersKey.name) {
+        if (key !== URL_PARAMS.nativeFilters.name) {
           newParams.append(key, value);
         }
       });
@@ -256,6 +256,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
 
   const dataMaskAppliedText = JSON.stringify(dataMaskApplied);
   useEffect(() => {
+    console.log(' publish datamask initial')
     publishDataMask(dataMaskApplied);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataMaskAppliedText, publishDataMask]);
