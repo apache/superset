@@ -20,10 +20,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { PivotData } from './utilities';
-import TableRenderers from './TableRenderers';
-
-/* eslint-disable react/prop-types */
-// eslint can't see inherited propTypes!
+import { TableRenderers } from './TableRenderers';
 
 class PivotTable extends React.PureComponent {
   render() {

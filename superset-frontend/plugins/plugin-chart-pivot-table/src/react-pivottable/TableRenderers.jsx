@@ -911,7 +911,7 @@ function makeRenderer(opts = {}) {
   return TableRenderer;
 }
 
-export default {
+export const TableRenderers = {
   Table: makeRenderer(),
   'Table With Subtotal': makeRenderer({ subtotals: true }),
 };

@@ -51,33 +51,33 @@ export const Styles = styled.div`
     bottom: 0;
   }
 
-  table.pvtTable thead tr:last-child th,
-  table.pvtTable thead tr:first-child th.pvtTotalLabel,
-  table.pvtTable thead tr:nth-last-child(2) th.pvtColLabel,
+  table.pvtTable thead tr:last-of-type th,
+  table.pvtTable thead tr:first-of-type th.pvtTotalLabel,
+  table.pvtTable thead tr:nth-last-of-type(2) th.pvtColLabel,
   table.pvtTable thead th.pvtSubtotalLabel,
-  table.pvtTable tbody tr:last-child th,
-  table.pvtTable tbody tr:last-child td {
+  table.pvtTable tbody tr:last-of-type th,
+  table.pvtTable tbody tr:last-of-type td {
     border-bottom: 1px solid #e0e0e0;
   }
 
   table.pvtTable
     thead
-    tr:last-child:not(:only-child)
+    tr:last-of-type:not(:only-child)
     th.pvtAxisLabel
     ~ th.pvtColLabel,
-  table.pvtTable tbody tr:first-child th,
-  table.pvtTable tbody tr:first-child td {
+  table.pvtTable tbody tr:first-of-type th,
+  table.pvtTable tbody tr:first-of-type td {
     border-top: none;
   }
 
-  table.pvtTable tbody tr td:last-child,
-  table.pvtTable thead tr th:last-child:not(.pvtSubtotalLabel) {
+  table.pvtTable tbody tr td:last-of-type,
+  table.pvtTable thead tr th:last-of-type:not(.pvtSubtotalLabel) {
     border-right: 1px solid #e0e0e0;
   }
 
   table.pvtTable
     thead
-    tr:last-child:not(:only-child)
+    tr:last-of-type:not(:only-child)
     th.pvtAxisLabel
     + .pvtTotalLabel {
     border-right: none;
