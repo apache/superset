@@ -27,6 +27,7 @@ import ShareMenuItems from '.';
 
 const spy = jest.spyOn(copyTextToClipboard, 'default');
 
+const DASHBOARD_ID = 26;
 const createProps = () => ({
   addDangerToast: jest.fn(),
   addSuccessToast: jest.fn(),
@@ -35,7 +36,7 @@ const createProps = () => ({
   emailMenuItemTitle: 'Share dashboard by email',
   emailSubject: 'Superset dashboard COVID Vaccine Dashboard',
   emailBody: 'Check out this dashboard: ',
-  dashboardId: '26',
+  dashboardId: DASHBOARD_ID,
 });
 
 const { location } = window;
