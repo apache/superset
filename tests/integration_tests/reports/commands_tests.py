@@ -59,9 +59,11 @@ from superset.reports.commands.log_prune import AsyncPruneReportScheduleLogComma
 from superset.utils.core import get_example_database
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices_module_scope,
+    load_world_bank_data,
 )
 from tests.integration_tests.reports.utils import insert_report_schedule
 from tests.integration_tests.test_app import app

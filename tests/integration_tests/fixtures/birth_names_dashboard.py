@@ -23,7 +23,7 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 import pytest
 from pandas import DataFrame
-from sqlalchemy import DateTime, String, TIMESTAMP
+from sqlalchemy import DateTime, String
 
 from superset import ConnectorRegistry, db
 from superset.connectors.sqla.models import SqlaTable
@@ -31,29 +31,14 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.core import get_example_database, get_example_default_schema
-from tests.integration_tests.dashboard_utils import create_table_for_dashboard
+from tests.integration_tests.dashboard_utils import create_table_metadata
 from tests.integration_tests.test_app import app
 
-
-@pytest.fixture()
-def load_birth_names_dashboard_with_slices():
-    dash_id_to_delete, slices_ids_to_delete = _load_data()
-    yield
-    with app.app_context():
-        _cleanup(dash_id_to_delete, slices_ids_to_delete)
+BIRTH_NAMES_TBL_NAME = "birth_names"
 
 
-@pytest.fixture(scope="module")
-def load_birth_names_dashboard_with_slices_module_scope():
-    dash_id_to_delete, slices_ids_to_delete = _load_data()
-    yield
-    with app.app_context():
-        _cleanup(dash_id_to_delete, slices_ids_to_delete)
-
-
-def _load_data():
-    table_name = "birth_names"
-
+@pytest.fixture(scope="session")
+def load_birth_names_data():
     with app.app_context():
         database = get_example_database()
         df = _get_dataframe(database)
@@ -63,35 +48,61 @@ def _load_data():
             "state": String(10),
             "name": String(255),
         }
-        table = _create_table(
-            df=df,
-            table_name=table_name,
-            database=database,
+
+        df.to_sql(
+            BIRTH_NAMES_TBL_NAME,
+            database.get_sqla_engine(),
+            if_exists="replace",
+            chunksize=500,
             dtype=dtype,
-            fetch_values_predicate="123 = 123",
+            index=False,
+            method="multi",
+            schema=get_example_default_schema(),
         )
+    yield
+    with app.app_context():
+        engine = get_example_database().get_sqla_engine()
+        engine.execute("DROP TABLE IF EXISTS birth_names")
 
-        from superset.examples.birth_names import create_dashboard, create_slices
 
-        slices, _ = create_slices(table, admin_owner=False)
-        dash = create_dashboard(slices)
-        slices_ids_to_delete = [slice.id for slice in slices]
-        dash_id_to_delete = dash.id
-        return dash_id_to_delete, slices_ids_to_delete
+@pytest.fixture()
+def load_birth_names_dashboard_with_slices(load_birth_names_data):
+    with app.app_context():
+        dash_id_to_delete, slices_ids_to_delete = _create_dashboards()
+        yield
+        _cleanup(dash_id_to_delete, slices_ids_to_delete)
+
+
+@pytest.fixture(scope="module")
+def load_birth_names_dashboard_with_slices_module_scope(load_birth_names_data):
+    with app.app_context():
+        dash_id_to_delete, slices_ids_to_delete = _create_dashboards()
+        yield
+        _cleanup(dash_id_to_delete, slices_ids_to_delete)
+
+
+def _create_dashboards():
+    table = _create_table(
+        table_name=BIRTH_NAMES_TBL_NAME,
+        database=get_example_database(),
+        fetch_values_predicate="123 = 123",
+    )
+
+    from superset.examples.birth_names import create_dashboard, create_slices
+
+    slices, _ = create_slices(table, admin_owner=False)
+    dash = create_dashboard(slices)
+    slices_ids_to_delete = [slice.id for slice in slices]
+    dash_id_to_delete = dash.id
+    return dash_id_to_delete, slices_ids_to_delete
 
 
 def _create_table(
-    df: DataFrame,
-    table_name: str,
-    database: "Database",
-    dtype: Dict[str, Any],
-    fetch_values_predicate: Optional[str] = None,
+    table_name: str, database: "Database", fetch_values_predicate: Optional[str] = None,
 ):
-    table = create_table_for_dashboard(
-        df=df,
+    table = create_table_metadata(
         table_name=table_name,
         database=database,
-        dtype=dtype,
         fetch_values_predicate=fetch_values_predicate,
     )
     from superset.examples.birth_names import _add_table_metrics, _set_table_metadata
@@ -115,8 +126,6 @@ def _cleanup(dash_id: int, slices_ids: List[int]) -> None:
     columns = [column for column in datasource.columns]
     metrics = [metric for metric in datasource.metrics]
 
-    engine = get_example_database().get_sqla_engine()
-    engine.execute("DROP TABLE IF EXISTS birth_names")
     for column in columns:
         db.session.delete(column)
     for metric in metrics:

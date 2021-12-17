@@ -32,6 +32,7 @@ from tests.integration_tests.dashboards.superset_factory_util import (
 )
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 from tests.integration_tests.fixtures.public_role import public_role_like_gamma
 from tests.integration_tests.fixtures.query_context import get_query_context
