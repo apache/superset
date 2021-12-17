@@ -54,6 +54,7 @@ import {
   Operator,
   Recipient,
 } from 'src/views/CRUD/alert/types';
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
 
@@ -1183,7 +1184,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 </StyledInputContainer>
                 <StyledInputContainer>
                   <div className="control-label">
-                    {t('Value')}
+                    {t('Value')}{' '}
+                    <InfoTooltipWithTrigger
+                      tooltip={t(
+                        'Threshold value should be double precision number',
+                      )}
+                    />
                     <span className="required">*</span>
                   </div>
                   <div className="input-container">
