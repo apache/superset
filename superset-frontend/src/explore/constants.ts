@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import {t, TimeRangeEndpoints} from '@superset-ui/core';
 
 export const AGGREGATES = {
   AVG: 'AVG',
@@ -136,4 +136,9 @@ export const TIME_FILTER_MAP = {
 
 // TODO: make this configurable per Superset installation
 export const DEFAULT_TIME_RANGE = 'No filter';
+// Default time range endpoints [start, end)
+export const DEFAULT_TIME_RANGE_ENDPOINTS: TimeRangeEndpoints = [
+  'inclusive',
+  'exclusive',
+];
 export const NO_TIME_RANGE = 'No filter';
