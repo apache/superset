@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {t, TimeRangeEndpoints} from '@superset-ui/core';
+import { t, TimeRangeEndpoints } from '@superset-ui/core';
 
 export const AGGREGATES = {
   AVG: 'AVG',

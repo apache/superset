@@ -42,7 +42,10 @@ import { Divider } from 'src/common/components';
 import Icons from 'src/components/Icons';
 import { Select } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
-import {DEFAULT_TIME_RANGE, DEFAULT_TIME_RANGE_ENDPOINTS} from 'src/explore/constants';
+import {
+  DEFAULT_TIME_RANGE,
+  DEFAULT_TIME_RANGE_ENDPOINTS,
+} from 'src/explore/constants';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { testWithId } from 'src/utils/testUtils';
@@ -181,7 +184,12 @@ export const getDateFilterControlTestId = testWithId(
 );
 
 export default function DateFilterLabel(props: DateFilterControlProps) {
-  const { value = DEFAULT_TIME_RANGE, endpoints = DEFAULT_TIME_RANGE_ENDPOINTS, onChange, type } = props;
+  const {
+    value = DEFAULT_TIME_RANGE,
+    endpoints = DEFAULT_TIME_RANGE_ENDPOINTS,
+    onChange,
+    type,
+  } = props;
   const [actualTimeRange, setActualTimeRange] = useState<string>(value);
 
   const [show, setShow] = useState<boolean>(false);
