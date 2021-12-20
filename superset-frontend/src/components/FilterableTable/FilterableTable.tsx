@@ -1,3 +1,4 @@
+/* eslint-disable no-return-assign */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -143,6 +144,8 @@ export default class FilterableTable extends PureComponent<
   container: React.RefObject<HTMLDivElement>;
 
   onRowsRendered: any;
+
+  grid: Grid | null;
 
   constructor(props: FilterableTableProps) {
     super(props);
@@ -535,7 +538,7 @@ export default class FilterableTable extends PureComponent<
                             width={width}
                             onSectionRendered={this.onSectionRendered}
                             ref={grid => {
-                              this._grid = grid;
+                              this.grid = grid;
                               registerChild(grid);
                             }}
                           />
@@ -552,7 +555,7 @@ export default class FilterableTable extends PureComponent<
     );
   }
 
-  isRowLoaded({ index }) {
+  isRowLoaded({ index }: { index: number }) {
     const { rowIdx } = this.state;
     return index < rowIdx - 1; // this condition determins whether _loadMoreRows will be called
   }
@@ -562,9 +565,6 @@ export default class FilterableTable extends PureComponent<
     if (rowIdx + 1 < this.list.length) {
       this.setState({ rowIdx: rowIdx + 1 });
     }
-
-    let done;
-    return new Promise(resolve => (done = resolve));
   }
 
   onSectionRendered({
