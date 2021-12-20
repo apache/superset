@@ -162,16 +162,9 @@ const DashboardPage: FC = () => {
       const isOldRison = getUrlParam(URL_PARAMS.nativeFilters);
       // check if key from key_value api and get datamask
       if (nativeFilterKeyValue) {
-        try {
-          dataMaskFromUrl = await getFilterValue(
-            dashboard?.id,
-            nativeFilterKeyValue,
-          );
-        } catch (err) {
-          return null;
-        }
-        // else get old old rison string and set as datamask
-      } else if (isOldRison && dashboard?.id) {
+        dataMaskFromUrl = await getFilterValue(id, nativeFilterKeyValue);
+      }
+      if (isOldRison) {
         dataMaskFromUrl = isOldRison;
       }
 
@@ -194,7 +187,7 @@ const DashboardPage: FC = () => {
       }
       return null;
     }
-    if (dashboard?.id) getDataMaskApplied();
+    if (id) getDataMaskApplied();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readyToRender, filterboxMigrationState]);
 
