@@ -77,7 +77,8 @@ module.exports = class extends Generator {
     };
 
     [
-      ['babel.config.js', 'babel.config.js'],
+      ['babel.config.erb', 'babel.config.js'],
+      ['jest.config.erb', 'jest.config.js'],
       ['package.erb', 'package.json'],
       ['README.erb', 'README.md'],
       ['tsconfig.json', 'tsconfig.json'],

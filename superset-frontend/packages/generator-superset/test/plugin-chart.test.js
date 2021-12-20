@@ -40,6 +40,8 @@ test('generator-superset:plugin-chart:creates files', () =>
     .withOptions({ skipInstall: true })
     .then(function () {
       assert.file([
+        'babel.config.js',
+        'jest.config.js',
         'package.json',
         'README.md',
         'src/plugin/buildQuery.ts',
