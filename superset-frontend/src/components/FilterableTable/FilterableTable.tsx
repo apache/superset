@@ -1,3 +1,4 @@
+/* eslint-disable no-return-assign */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -564,6 +565,8 @@ export default class FilterableTable extends PureComponent<
     if (rowIdx + 1 < this.list.length) {
       this.setState({ rowIdx: rowIdx + 1 });
     }
+
+    return new Promise(resolve => resolve);
   }
 
   onSectionRendered({
