@@ -19,7 +19,7 @@
 import React, { useEffect, useState } from 'react';
 import moment from 'moment';
 import { styled, t } from '@superset-ui/core';
-import { setInLocalStorage } from 'src/utils/localStorageHelpers';
+import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 
 import ListViewCard from 'src/components/ListViewCard';
 import SubMenu from 'src/components/Menu/SubMenu';
@@ -29,7 +29,6 @@ import {
   CardStyles,
   getEditedObjects,
 } from 'src/views/CRUD/utils';
-import { HOMEPAGE_ACTIVITY_FILTER } from 'src/views/CRUD/storageKeys';
 import { Chart } from 'src/types/Chart';
 import { Dashboard, SavedQueryObject } from 'src/views/CRUD/types';
 
@@ -58,7 +57,7 @@ interface RecentDashboard extends RecentActivity {
   item_type: 'dashboard';
 }
 
-enum SetTabType {
+export enum SetTabType {
   EDITED = 'Edited',
   CREATED = 'Created',
   VIEWED = 'Viewed',
@@ -161,7 +160,7 @@ export default function ActivityTable({
       label: t('Edited'),
       onClick: () => {
         setActiveChild('Edited');
-        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, SetTabType.EDITED);
+        setItem(LocalStorageKeys.homepage_activity_filter, SetTabType.EDITED);
       },
     },
     {
@@ -169,7 +168,7 @@ export default function ActivityTable({
       label: t('Created'),
       onClick: () => {
         setActiveChild('Created');
-        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, SetTabType.CREATED);
+        setItem(LocalStorageKeys.homepage_activity_filter, SetTabType.CREATED);
       },
     },
   ];
@@ -180,7 +179,7 @@ export default function ActivityTable({
       label: t('Viewed'),
       onClick: () => {
         setActiveChild('Viewed');
-        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, SetTabType.VIEWED);
+        setItem(LocalStorageKeys.homepage_activity_filter, SetTabType.VIEWED);
       },
     });
   }
