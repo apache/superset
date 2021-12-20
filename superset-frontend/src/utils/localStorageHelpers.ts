@@ -48,6 +48,7 @@ export enum LocalStorageKeys {
    * Example:
    * sqllab__is_autocomplete_enabled
    */
+  sqllab__is_autocomplete_enabled = 'sqllab__is_autocomplete_enabled',
 }
 
 export type LocalStorageValues = {
@@ -60,6 +61,7 @@ export type LocalStorageValues = {
   homepage_dashboard_filter: TableTabTypes;
   homepage_collapse_state: string[];
   homepage_activity_filter: SetTabType | null;
+  sqllab__is_autocomplete_enabled: boolean;
 };
 
 export function getItem<K extends LocalStorageKeys>(
