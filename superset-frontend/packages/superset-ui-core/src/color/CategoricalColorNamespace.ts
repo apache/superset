@@ -44,14 +44,7 @@ export default class CategoricalColorNamespace {
       return scale;
     }
     const scheme = getCategoricalSchemeRegistry().get(id);
-    const newScale = new CategoricalColorScale(
-      scheme?.colors ?? [],
-      this.forcedItems,
-    );
-
-    this.scales[id] = newScale;
-
-    return newScale;
+    return new CategoricalColorScale(scheme?.colors ?? [], this.forcedItems);
   }
 
   /**
@@ -61,26 +54,14 @@ export default class CategoricalColorNamespace {
    * @param {*} value value
    * @param {*} forcedColor color
    */
-  setColor(value: string, forcedColor: string, schemeId?: string) {
-    const id = schemeId ?? getCategoricalSchemeRegistry().getDefaultKey() ?? '';
-    const scale = this.scales[id];
-    if (scale) {
-      scale.parentForcedColors[stringifyAndTrim(value)] = forcedColor;
-    } else {
-      this.forcedItems[stringifyAndTrim(value)] = forcedColor;
-    }
+  setColor(value: string, forcedColor: string) {
+    this.forcedItems[stringifyAndTrim(value)] = forcedColor;
 
     return this;
   }
 
-  resetColors(schemeId?: string) {
-    const id = schemeId ?? getCategoricalSchemeRegistry().getDefaultKey() ?? '';
-    const scale = this.scales[id];
-    if (scale) {
-      scale.parentForcedColors = {};
-    } else {
-      this.forcedItems = {};
-    }
+  resetColors() {
+    this.forcedItems = {};
   }
 }
 

@@ -34,11 +34,7 @@ export function updateColorSchema(
     ? JSON.parse(labelColors)
     : labelColors;
   Object.keys(colorMap).forEach(label => {
-    categoricalNamespace.setColor(
-      label,
-      colorMap[label],
-      metadata.color_scheme,
-    );
+    categoricalNamespace.setColor(label, colorMap[label]);
   });
 }
 
@@ -50,7 +46,7 @@ export function dashboardInfoChanged(newInfo: { metadata: any }) {
     metadata?.color_namespace,
   );
 
-  categoricalNamespace.resetColors(metadata.color_scheme);
+  categoricalNamespace.resetColors();
 
   if (metadata?.default_label_colors) {
     updateColorSchema(metadata, metadata?.default_label_colors);
