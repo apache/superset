@@ -44,6 +44,7 @@ from superset.sql_lab import (
     execute_sql_statement,
     get_sql_results,
     SqlLabException,
+    apply_limit_if_exists,
 )
 from superset.sql_parse import CtasMethod
 from superset.utils.core import (
@@ -57,6 +58,7 @@ from .base_tests import SupersetTestCase
 from .conftest import CTAS_SCHEMA_NAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 
 QUERY_1 = "SELECT * FROM birth_names LIMIT 1"
@@ -989,6 +991,29 @@ class TestSqlLab(SupersetTestCase):
                 }
             ]
         }
+
+    def test_apply_limit_if_exists_when_incremented_limit_is_none(self):
+        sql = """
+                   SET @value = 42;
+                   SELECT @value AS foo;
+               """
+        database = get_example_database()
+        mock_query = mock.MagicMock()
+        mock_query.limit = 300
+        final_sql = apply_limit_if_exists(database, None, mock_query, sql)
+
+        assert final_sql == sql
+
+    def test_apply_limit_if_exists_when_increased_limit(self):
+        sql = """
+                   SET @value = 42;
+                   SELECT @value AS foo;
+               """
+        database = get_example_database()
+        mock_query = mock.MagicMock()
+        mock_query.limit = 300
+        final_sql = apply_limit_if_exists(database, 1000, mock_query, sql)
+        assert "LIMIT 1000" in final_sql
 
 
 @pytest.mark.parametrize("spec", [HiveEngineSpec, PrestoEngineSpec])

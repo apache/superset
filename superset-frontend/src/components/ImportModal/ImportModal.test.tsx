@@ -22,6 +22,8 @@ import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import { styledMount as mount } from 'spec/helpers/theming';
 import { ReactWrapper } from 'enzyme';
+import fetchMock from 'fetch-mock';
+import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { Upload } from 'src/common/components';
 import Button from 'src/components/Button';
 import { ImportResourceName } from 'src/views/CRUD/types';
@@ -30,6 +32,10 @@ import Modal from 'src/components/Modal';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
+
+const DATABASE_IMPORT_URL = 'glob:*/api/v1/database/import/';
+fetchMock.config.overwriteRoutes = true;
+fetchMock.post(DATABASE_IMPORT_URL, { result: 'OK' });
 
 const requiredProps = {
   resourceName: 'database' as ImportResourceName,
@@ -99,6 +105,33 @@ describe('ImportModelsModal', () => {
     });
     wrapper.update();
     expect(wrapper.find(Button).at(2).prop('disabled')).toBe(false);
+  });
+
+  it('should POST with request header `Accept: application/json`', async () => {
+    const file = new File([new ArrayBuffer(1)], 'model_export.zip');
+    act(() => {
+      const handler = wrapper.find(Upload).prop('onChange');
+      if (handler) {
+        handler({
+          fileList: [],
+          file: {
+            name: 'model_export.zip',
+            originFileObj: file,
+            uid: '-1',
+            size: 0,
+            type: 'zip',
+          },
+        });
+      }
+    });
+    wrapper.update();
+
+    wrapper.find(Button).at(2).simulate('click');
+    await waitForComponentToPaint(wrapper);
+    expect(fetchMock.calls(DATABASE_IMPORT_URL)[0][1]?.headers).toStrictEqual({
+      Accept: 'application/json',
+      'X-CSRFToken': '1234',
+    });
   });
 
   it('should render password fields when needed for import', () => {

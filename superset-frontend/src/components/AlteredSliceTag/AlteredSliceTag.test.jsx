@@ -23,7 +23,7 @@ import { getChartControlPanelRegistry } from '@superset-ui/core';
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
 import ModalTrigger from 'src/components/ModalTrigger';
 import { Tooltip } from 'src/components/Tooltip';
-import TableCollection from 'src/components/dataViewCommon/TableCollection';
+import TableCollection from 'src/components/TableCollection';
 import TableView from 'src/components/TableView';
 
 import {

@@ -55,7 +55,6 @@ describe('utils/common', () => {
         { column1: 'dolor', column2: 'sit', column3: 'amet' },
       ];
       const column = ['column1', 'column2', 'column3'];
-      console.log(prepareCopyToClipboardTabularData(array, column));
       expect(prepareCopyToClipboardTabularData(array, column)).toEqual(
         'lorem\tipsum\t\ndolor\tsit\tamet\n',
       );

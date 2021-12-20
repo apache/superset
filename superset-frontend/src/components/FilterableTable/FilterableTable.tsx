@@ -20,6 +20,7 @@ import JSONbig from 'json-bigint';
 import React, { PureComponent } from 'react';
 import JSONTree from 'react-json-tree';
 import {
+  AutoSizer,
   Column,
   Grid,
   ScrollSync,
@@ -58,8 +59,8 @@ function safeJsonObjectParse(
   }
 }
 
-const SCROLL_BAR_HEIGHT = 15;
 const GRID_POSITION_ADJUSTMENT = 4;
+const SCROLL_BAR_HEIGHT = 15;
 const JSON_TREE_THEME = {
   scheme: 'monokai',
   author: 'wimer hazenberg (http://www.monokai.nl)',
@@ -321,21 +322,30 @@ export default class FilterableTable extends PureComponent<
     );
   }
 
+  // Parse any floating numbers so they'll sort correctly
+  parseFloatingNums = (value: any) => {
+    const floatValue = parseFloat(value);
+    return Number.isNaN(floatValue) ? value : floatValue;
+  };
+
   sortResults(sortBy: string, descending: boolean) {
     return (a: Datum, b: Datum) => {
-      const aValue = a[sortBy];
-      const bValue = b[sortBy];
+      const aValue = this.parseFloatingNums(a[sortBy]);
+      const bValue = this.parseFloatingNums(b[sortBy]);
+
+      // equal items sort equally
       if (aValue === bValue) {
-        // equal items sort equally
         return 0;
       }
+
+      // nulls sort after anything else
       if (aValue === null) {
-        // nulls sort after anything else
         return 1;
       }
       if (bValue === null) {
         return -1;
       }
+
       if (descending) {
         return aValue < bValue ? 1 : -1;
       }
@@ -359,7 +369,12 @@ export default class FilterableTable extends PureComponent<
         ? 'header-style-disabled'
         : 'header-style';
     return (
-      <Tooltip id="header-tooltip" title={label}>
+      <Tooltip
+        id="header-tooltip"
+        title={label}
+        placement="topLeft"
+        css={{ display: 'block' }}
+      >
         <div className={className}>
           {label}
           {sortBy === dataKey && (
@@ -385,7 +400,13 @@ export default class FilterableTable extends PureComponent<
         ? 'header-style-disabled'
         : 'header-style';
     return (
-      <Tooltip key={key} id="header-tooltip" title={label}>
+      <Tooltip
+        key={key}
+        id="header-tooltip"
+        title={label}
+        placement="topLeft"
+        css={{ display: 'block' }}
+      >
         <div
           style={{
             ...style,
@@ -415,14 +436,9 @@ export default class FilterableTable extends PureComponent<
   }) {
     const columnKey = this.props.orderedColumnKeys[columnIndex];
     const cellData = this.list[rowIndex][columnKey];
+    const cellText = this.getCellContent({ cellData, columnKey });
     const content =
-      cellData === null ? (
-        <i className="text-muted">
-          {this.getCellContent({ cellData, columnKey })}
-        </i>
-      ) : (
-        this.getCellContent({ cellData, columnKey })
-      );
+      cellData === null ? <i className="text-muted">{cellText}</i> : cellText;
     const cellNode = (
       <div
         key={key}
@@ -435,7 +451,7 @@ export default class FilterableTable extends PureComponent<
         }}
         className={`grid-cell ${this.rowClassName({ index: rowIndex })}`}
       >
-        <div>{content}</div>
+        <div css={{ width: 'inherit' }}>{content}</div>
       </div>
     );
 
@@ -473,39 +489,38 @@ export default class FilterableTable extends PureComponent<
     return (
       <StyledFilterableTable>
         <ScrollSync>
-          {({ onScroll, scrollTop }) => (
-            <div
-              className="filterable-table-container Table"
-              data-test="filterable-table-container"
-              ref={this.container}
-            >
-              <div className="LeftColumn">
-                <Grid
-                  cellRenderer={this.renderGridCellHeader}
-                  columnCount={orderedColumnKeys.length}
-                  columnWidth={getColumnWidth}
-                  height={rowHeight}
-                  rowCount={1}
-                  rowHeight={rowHeight}
-                  scrollTop={scrollTop}
-                  width={this.totalTableWidth}
-                />
-              </div>
-              <div className="RightColumn">
-                <Grid
-                  cellRenderer={this.renderGridCell}
-                  columnCount={orderedColumnKeys.length}
-                  columnWidth={getColumnWidth}
-                  height={totalTableHeight - rowHeight}
-                  onScroll={onScroll}
-                  overscanColumnCount={overscanColumnCount}
-                  overscanRowCount={overscanRowCount}
-                  rowCount={this.list.length}
-                  rowHeight={rowHeight}
-                  width={this.totalTableWidth}
-                />
-              </div>
-            </div>
+          {({ onScroll, scrollLeft }) => (
+            <>
+              <AutoSizer disableHeight>
+                {({ width }) => (
+                  <div>
+                    <Grid
+                      cellRenderer={this.renderGridCellHeader}
+                      columnCount={orderedColumnKeys.length}
+                      columnWidth={getColumnWidth}
+                      height={rowHeight}
+                      rowCount={1}
+                      rowHeight={rowHeight}
+                      scrollLeft={scrollLeft}
+                      width={width}
+                      style={{ overflow: 'hidden' }}
+                    />
+                    <Grid
+                      cellRenderer={this.renderGridCell}
+                      columnCount={orderedColumnKeys.length}
+                      columnWidth={getColumnWidth}
+                      height={totalTableHeight - rowHeight}
+                      onScroll={onScroll}
+                      overscanColumnCount={overscanColumnCount}
+                      overscanRowCount={overscanRowCount}
+                      rowCount={this.list.length}
+                      rowHeight={rowHeight}
+                      width={width}
+                    />
+                  </div>
+                )}
+              </AutoSizer>
+            </>
           )}
         </ScrollSync>
       </StyledFilterableTable>
@@ -520,11 +535,13 @@ export default class FilterableTable extends PureComponent<
     columnKey: string;
   }) {
     const cellNode = this.getCellContent({ cellData, columnKey });
+    const content =
+      cellData === null ? <i className="text-muted">{cellNode}</i> : cellNode;
     const jsonObject = safeJsonObjectParse(cellData);
     if (jsonObject) {
       return this.addJsonModal(cellNode, jsonObject, cellData);
     }
-    return cellNode;
+    return content;
   }
 
   renderTable() {

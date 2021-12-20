@@ -19,7 +19,7 @@
 
 /* eslint-disable no-param-reassign */
 import { DataMask, HandlerFunction, styled, t } from '@superset-ui/core';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import cx from 'classnames';
 import Icons from 'src/components/Icons';
@@ -33,7 +33,10 @@ import { DataMaskStateWithId, DataMaskWithId } from 'src/dataMask/types';
 import { useImmer } from 'use-immer';
 import { isEmpty, isEqual } from 'lodash';
 import { testWithId } from 'src/utils/testUtils';
-import { Filter } from 'src/dashboard/components/nativeFilters/types';
+import {
+  Filter,
+  NativeFilterType,
+} from 'src/dashboard/components/nativeFilters/types';
 import Loading from 'src/components/Loading';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 import { URL_PARAMS } from 'src/constants';
@@ -82,7 +85,6 @@ const Bar = styled.div<{ width: number }>`
   border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   min-height: 100%;
   display: none;
-
   &.open {
     display: flex;
   }
@@ -97,14 +99,12 @@ const CollapsedBar = styled.div<{ offset: number }>`
   padding-top: ${({ theme }) => theme.gridUnit * 2}px;
   display: none;
   text-align: center;
-
   &.open {
     display: flex;
     flex-direction: column;
     align-items: center;
     padding: ${({ theme }) => theme.gridUnit * 2}px;
   }
-
   svg {
     cursor: pointer;
   }
@@ -150,10 +150,9 @@ const FilterBar: React.FC<FiltersBarProps> = ({
 }) => {
   const history = useHistory();
   const dataMaskApplied: DataMaskStateWithId = useNativeFiltersDataMask();
-  const [editFilterSetId, setEditFilterSetId] = useState<string | null>(null);
-  const [dataMaskSelected, setDataMaskSelected] = useImmer<DataMaskStateWithId>(
-    dataMaskApplied,
-  );
+  const [editFilterSetId, setEditFilterSetId] = useState<number | null>(null);
+  const [dataMaskSelected, setDataMaskSelected] =
+    useImmer<DataMaskStateWithId>(dataMaskApplied);
   const dispatch = useDispatch();
   const filterSets = useFilterSets();
   const filterSetFilterValues = Object.values(filterSets);
@@ -161,30 +160,31 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const filters = useFilters();
   const previousFilters = usePrevious(filters);
   const filterValues = Object.values<Filter>(filters);
-  const [isFilterSetChanged, setIsFilterSetChanged] = useState(false);
 
-  const handleFilterSelectionChange = (
-    filter: Pick<Filter, 'id'> & Partial<Filter>,
-    dataMask: Partial<DataMask>,
-  ) => {
-    setIsFilterSetChanged(tab !== TabIds.AllFilters);
-    setDataMaskSelected(draft => {
-      // force instant updating on initialization for filters with `requiredFirst` is true or instant filters
-      if (
-        // filterState.value === undefined - means that value not initialized
-        dataMask.filterState?.value !== undefined &&
-        dataMaskSelected[filter.id]?.filterState?.value === undefined &&
-        filter.requiredFirst
-      ) {
-        dispatch(updateDataMask(filter.id, dataMask));
-      }
+  const handleFilterSelectionChange = useCallback(
+    (
+      filter: Pick<Filter, 'id'> & Partial<Filter>,
+      dataMask: Partial<DataMask>,
+    ) => {
+      setDataMaskSelected(draft => {
+        // force instant updating on initialization for filters with `requiredFirst` is true or instant filters
+        if (
+          // filterState.value === undefined - means that value not initialized
+          dataMask.filterState?.value !== undefined &&
+          dataMaskSelected[filter.id]?.filterState?.value === undefined &&
+          filter.requiredFirst
+        ) {
+          dispatch(updateDataMask(filter.id, dataMask));
+        }
 
-      draft[filter.id] = {
-        ...(getInitialDataMask(filter.id) as DataMaskWithId),
-        ...dataMask,
-      };
-    });
-  };
+        draft[filter.id] = {
+          ...(getInitialDataMask(filter.id) as DataMaskWithId),
+          ...dataMask,
+        };
+      });
+    },
+    [dataMaskSelected, dispatch, setDataMaskSelected, tab],
+  );
 
   const publishDataMask = useCallback(
     (dataMaskSelected: DataMaskStateWithId) => {
@@ -248,23 +248,28 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataMaskAppliedText, publishDataMask]);
 
-  const handleApply = () => {
+  const handleApply = useCallback(() => {
     const filterIds = Object.keys(dataMaskSelected);
     filterIds.forEach(filterId => {
       if (dataMaskSelected[filterId]) {
         dispatch(updateDataMask(filterId, dataMaskSelected[filterId]));
       }
     });
-  };
+  }, [dataMaskSelected, dispatch]);
 
-  const handleClearAll = () => {
+  const handleClearAll = useCallback(() => {
     const filterIds = Object.keys(dataMaskSelected);
     filterIds.forEach(filterId => {
       if (dataMaskSelected[filterId]) {
         dispatch(clearDataMask(filterId));
       }
     });
-  };
+  }, [dataMaskSelected, dispatch]);
+
+  const openFiltersBar = useCallback(
+    () => toggleFiltersBar(true),
+    [toggleFiltersBar],
+  );
 
   useFilterUpdates(dataMaskSelected, setDataMaskSelected);
   const isApplyDisabled = checkIsApplyDisabled(
@@ -273,6 +278,11 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     filterValues,
   );
   const isInitialized = useInitialization();
+  const tabPaneStyle = useMemo(() => ({ overflow: 'auto', height }), [height]);
+
+  const numberOfFilters = filterValues.filter(
+    filterValue => filterValue.type === NativeFilterType.NATIVE_FILTER,
+  ).length;
 
   return (
     <BarWrapper
@@ -283,7 +293,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       <CollapsedBar
         {...getFilterBarTestId('collapsable')}
         className={cx({ open: !filtersOpen })}
-        onClick={() => toggleFiltersBar(true)}
+        onClick={openFiltersBar}
         offset={offset}
       >
         <StyledCollapseIcon
@@ -313,9 +323,11 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             activeKey={editFilterSetId ? TabIds.AllFilters : undefined}
           >
             <Tabs.TabPane
-              tab={t(`All Filters (${filterValues.length})`)}
+              tab={t('All filters (%(filterCount)d)', {
+                filterCount: numberOfFilters,
+              })}
               key={TabIds.AllFilters}
-              css={{ overflow: 'auto', height }}
+              css={tabPaneStyle}
             >
               {editFilterSetId && (
                 <EditSection
@@ -333,21 +345,23 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             </Tabs.TabPane>
             <Tabs.TabPane
               disabled={!!editFilterSetId}
-              tab={t(`Filter Sets (${filterSetFilterValues.length})`)}
+              tab={t('Filter sets (%(filterSetCount)d)', {
+                filterSetCount: filterSetFilterValues.length,
+              })}
               key={TabIds.FilterSets}
-              css={{ overflow: 'auto', height }}
+              css={tabPaneStyle}
             >
               <FilterSets
                 onEditFilterSet={setEditFilterSetId}
                 disabled={!isApplyDisabled}
                 dataMaskSelected={dataMaskSelected}
-                isFilterSetChanged={isFilterSetChanged}
+                tab={tab}
                 onFilterSelectionChange={handleFilterSelectionChange}
               />
             </Tabs.TabPane>
           </StyledTabs>
         ) : (
-          <div css={{ overflow: 'auto', height }}>
+          <div css={tabPaneStyle}>
             <FilterControls
               dataMaskSelected={dataMaskSelected}
               directPathToChild={directPathToChild}
@@ -359,5 +373,4 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     </BarWrapper>
   );
 };
-
-export default FilterBar;
+export default React.memo(FilterBar);

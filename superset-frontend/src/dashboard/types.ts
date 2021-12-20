@@ -26,6 +26,7 @@ import { DatasourceMeta } from '@superset-ui/chart-controls';
 import { chart } from 'src/chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
 
+import { User } from 'src/types/bootstrapTypes';
 import { DataMaskStateWithId } from '../dataMask/types';
 import { NativeFiltersState } from './reducers/types';
 import { ChartState } from '../explore/types';
@@ -72,7 +73,9 @@ export type DashboardInfo = {
   };
   userId: string;
   dash_edit_perm: boolean;
+  json_metadata: string;
   metadata: {
+    native_filter_configuration: JsonObject;
     show_native_filters: boolean;
     chart_configuration: JsonObject;
   };
@@ -101,6 +104,7 @@ export type RootState = {
   dataMask: DataMaskStateWithId;
   impressionId: string;
   nativeFilters: NativeFiltersState;
+  user: User;
 };
 
 /** State of dashboardLayout in redux */

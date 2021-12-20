@@ -108,14 +108,10 @@ function SavedQueryList({
     t('Saved queries'),
     addDangerToast,
   );
-  const [
-    queryCurrentlyDeleting,
-    setQueryCurrentlyDeleting,
-  ] = useState<SavedQueryObject | null>(null);
-  const [
-    savedQueryCurrentlyPreviewing,
-    setSavedQueryCurrentlyPreviewing,
-  ] = useState<SavedQueryObject | null>(null);
+  const [queryCurrentlyDeleting, setQueryCurrentlyDeleting] =
+    useState<SavedQueryObject | null>(null);
+  const [savedQueryCurrentlyPreviewing, setSavedQueryCurrentlyPreviewing] =
+    useState<SavedQueryObject | null>(null);
   const [importingSavedQuery, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
@@ -137,7 +133,7 @@ function SavedQueryList({
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport =
-    hasPerm('can_read') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
+    hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
 
   const openNewQuery = () => {
     window.open(`${window.location.origin}/superset/sqllab?new=true`);

@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { css, t } from '@superset-ui/core';
-import { Select } from 'src/components';
+import Select, { propertyComparator } from 'src/components/Select/Select';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
 const propTypes = {
@@ -110,10 +110,12 @@ export default class SelectControl extends React.PureComponent {
     let onChangeVal = val;
 
     if (Array.isArray(val)) {
-      const values = val.map(v => v?.[valueKey] || v);
+      const values = val.map(v =>
+        v?.[valueKey] !== undefined ? v[valueKey] : v,
+      );
       onChangeVal = values;
     }
-    if (typeof val === 'object' && val?.[valueKey]) {
+    if (typeof val === 'object' && val?.[valueKey] !== undefined) {
       onChangeVal = val[valueKey];
     }
     this.props.onChange(onChangeVal, []);
@@ -131,9 +133,10 @@ export default class SelectControl extends React.PureComponent {
       }));
     } else if (choices) {
       // Accepts different formats of input
-      options = choices.map(c => {
+      options = choices.map((c, i) => {
         if (Array.isArray(c)) {
           const [value, label] = c.length > 1 ? c : [c[0], c[0]];
+          if (!this.props.sortComparator) return { value, label, order: i };
           return {
             value,
             label,
@@ -203,6 +206,21 @@ export default class SelectControl extends React.PureComponent {
       danger,
     };
 
+    const getValue = () => {
+      const currentValue =
+        value ||
+        (this.props.default !== undefined ? this.props.default : undefined);
+
+      // safety check - the value is intended to be undefined but null was used
+      if (
+        currentValue === null &&
+        !this.state.options.find(o => o.value === null)
+      ) {
+        return undefined;
+      }
+      return currentValue;
+    };
+
     const selectProps = {
       allowNewOptions: freeForm,
       autoFocus,
@@ -223,9 +241,8 @@ export default class SelectControl extends React.PureComponent {
       optionRenderer,
       options: this.state.options,
       placeholder,
-      value:
-        value ||
-        (this.props.default !== undefined ? this.props.default : undefined),
+      sortComparator: this.props.sortComparator || propertyComparator('order'),
+      value: getValue(),
     };
 
     return (

@@ -167,10 +167,8 @@ class ChartHolder extends React.Component {
 
   static getDerivedStateFromProps(props, state) {
     const { component, directPathToChild, directPathLastUpdated } = props;
-    const {
-      label: columnName,
-      chart: chartComponentId,
-    } = getChartAndLabelComponentIdFromPath(directPathToChild);
+    const { label: columnName, chart: chartComponentId } =
+      getChartAndLabelComponentIdFromPath(directPathToChild);
 
     if (
       directPathLastUpdated !== state.directPathLastUpdated &&

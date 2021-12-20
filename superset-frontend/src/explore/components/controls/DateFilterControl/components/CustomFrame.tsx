@@ -23,7 +23,7 @@ import { isInteger } from 'lodash';
 import { Col, InputNumber, Row } from 'src/common/components';
 import { DatePicker } from 'src/components/DatePicker';
 import { Radio } from 'src/components/Radio';
-import { Select } from 'src/components';
+import Select, { propertyComparator } from 'src/components/Select/Select';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import {
   SINCE_GRAIN_OPTIONS,
@@ -40,6 +40,8 @@ import {
   CustomRangeKey,
   FrameComponentProps,
 } from 'src/explore/components/controls/DateFilterControl/types';
+
+const sortComparator = propertyComparator('order');
 
 export function CustomFrame(props: FrameComponentProps) {
   const { customRange, matchedFlag } = customTimeRangeDecode(props.value);
@@ -121,6 +123,7 @@ export function CustomFrame(props: FrameComponentProps) {
             options={SINCE_MODE_OPTIONS}
             value={sinceMode}
             onChange={(value: string) => onChange('sinceMode', value)}
+            sortComparator={sortComparator}
           />
           {sinceMode === 'specific' && (
             <Row>
@@ -155,6 +158,7 @@ export function CustomFrame(props: FrameComponentProps) {
                   options={SINCE_GRAIN_OPTIONS}
                   value={sinceGrain}
                   onChange={(value: string) => onChange('sinceGrain', value)}
+                  sortComparator={sortComparator}
                 />
               </Col>
             </Row>
@@ -173,6 +177,7 @@ export function CustomFrame(props: FrameComponentProps) {
             options={UNTIL_MODE_OPTIONS}
             value={untilMode}
             onChange={(value: string) => onChange('untilMode', value)}
+            sortComparator={sortComparator}
           />
           {untilMode === 'specific' && (
             <Row>
@@ -206,6 +211,7 @@ export function CustomFrame(props: FrameComponentProps) {
                   options={UNTIL_GRAIN_OPTIONS}
                   value={untilGrain}
                   onChange={(value: string) => onChange('untilGrain', value)}
+                  sortComparator={sortComparator}
                 />
               </Col>
             </Row>

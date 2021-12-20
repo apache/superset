@@ -44,6 +44,7 @@ const Wrapper = styled.div`
   & > * {
     margin-bottom: ${({ theme }) => theme.gridUnit}px;
   }
+  padding: 0px ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
 const CleanFormItem = styled(Form.Item)`

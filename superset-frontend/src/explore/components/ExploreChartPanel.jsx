@@ -38,6 +38,7 @@ const propTypes = {
   can_overwrite: PropTypes.bool.isRequired,
   can_download: PropTypes.bool.isRequired,
   datasource: PropTypes.object,
+  dashboardId: PropTypes.number,
   column_formats: PropTypes.object,
   containerId: PropTypes.string.isRequired,
   height: PropTypes.string.isRequired,
@@ -291,6 +292,7 @@ const ExploreChartPanel = props => {
       addHistory={props.addHistory}
       can_overwrite={props.can_overwrite}
       can_download={props.can_download}
+      dashboardId={props.dashboardId}
       isStarred={props.isStarred}
       slice={props.slice}
       sliceName={props.sliceName}

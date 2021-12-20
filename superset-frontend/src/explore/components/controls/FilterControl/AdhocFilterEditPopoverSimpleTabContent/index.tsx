@@ -37,6 +37,21 @@ import AdhocFilter, {
   CLAUSES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { Input } from 'src/common/components';
+import { propertyComparator } from 'src/components/Select/Select';
+
+const StyledInput = styled(Input)`
+  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+`;
+
+const SelectWithLabel = styled(Select)<{ labelText: string }>`
+  .ant-select-selector::after {
+    content: ${({ labelText }) => labelText || '\\A0'};
+    display: inline-block;
+    white-space: nowrap;
+    color: ${({ theme }) => theme.colors.grayscale.light1};
+    width: max-content;
+  }
+`;
 
 export interface SimpleColumnType {
   id: number;
@@ -81,6 +96,7 @@ export interface Props {
     filter_select: boolean;
   };
   partitionColumn: string;
+  operators?: Operators[];
 }
 export const useSimpleTabFilterProps = (props: Props) => {
   const isOperatorRelevant = (operator: Operators, subject: string) => {
@@ -212,10 +228,8 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   } = useSimpleTabFilterProps(props);
   const [suggestions, setSuggestions] = useState<Record<string, any>>([]);
   const [comparator, setComparator] = useState(props.adhocFilter.comparator);
-  const [
-    loadingComparatorSuggestions,
-    setLoadingComparatorSuggestions,
-  ] = useState(false);
+  const [loadingComparatorSuggestions, setLoadingComparatorSuggestions] =
+    useState(false);
 
   const onInputComparatorChange = (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -280,7 +294,9 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   const operatorSelectProps = {
     placeholder: t(
       '%s operator(s)',
-      OPERATORS_OPTIONS.filter(op => isOperatorRelevant(op, subject)).length,
+      (props.operators ?? OPERATORS_OPTIONS).filter(op =>
+        isOperatorRelevant(op, subject),
+      ).length,
     ),
     value: operatorId,
     onChange: onOperatorChange,
@@ -309,16 +325,6 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
 
   const labelText =
     comparator && comparator.length > 0 && createSuggestionsPlaceholder();
-
-  const SelectWithLabel = styled(Select)`
-    .ant-select-selector::after {
-      content: ${() => labelText || '\\A0'};
-      display: inline-block;
-      white-space: nowrap;
-      color: ${({ theme }) => theme.colors.grayscale.light1};
-      width: max-content;
-    }
-  `;
 
   useEffect(() => {
     const refreshComparatorSuggestions = () => {
@@ -380,25 +386,31 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
       />
       <Select
         css={theme => ({ marginBottom: theme.gridUnit * 4 })}
-        options={OPERATORS_OPTIONS.filter(op =>
-          isOperatorRelevant(op, subject),
-        ).map(option => ({
-          value: option,
-          label: OPERATOR_ENUM_TO_OPERATOR_TYPE[option].display,
-          key: option,
-        }))}
+        options={(props.operators ?? OPERATORS_OPTIONS)
+          .filter(op => isOperatorRelevant(op, subject))
+          .map((option, index) => ({
+            value: option,
+            label: OPERATOR_ENUM_TO_OPERATOR_TYPE[option].display,
+            key: option,
+            order: index,
+          }))}
         {...operatorSelectProps}
+        sortComparator={propertyComparator('order')}
       />
       {MULTI_OPERATORS.has(operatorId) || suggestions.length > 0 ? (
         <SelectWithLabel
+          labelText={labelText}
           options={suggestions.map((suggestion: string) => ({
             value: suggestion,
             label: String(suggestion),
           }))}
           {...comparatorSelectProps}
+          sortComparator={propertyComparator(
+            typeof suggestions[0] === 'number' ? 'value' : 'label',
+          )}
         />
       ) : (
-        <Input
+        <StyledInput
           data-test="adhoc-filter-simple-value"
           name="filter-value"
           ref={ref => {

@@ -71,22 +71,17 @@ function CssTemplatesList({
     t('CSS templates'),
     addDangerToast,
   );
-  const [cssTemplateModalOpen, setCssTemplateModalOpen] = useState<boolean>(
-    false,
-  );
-  const [
-    currentCssTemplate,
-    setCurrentCssTemplate,
-  ] = useState<TemplateObject | null>(null);
+  const [cssTemplateModalOpen, setCssTemplateModalOpen] =
+    useState<boolean>(false);
+  const [currentCssTemplate, setCurrentCssTemplate] =
+    useState<TemplateObject | null>(null);
 
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
 
-  const [
-    templateCurrentlyDeleting,
-    setTemplateCurrentlyDeleting,
-  ] = useState<TemplateObject | null>(null);
+  const [templateCurrentlyDeleting, setTemplateCurrentlyDeleting] =
+    useState<TemplateObject | null>(null);
 
   const handleTemplateDelete = ({ id, template_name }: TemplateObject) => {
     SupersetClient.delete({
