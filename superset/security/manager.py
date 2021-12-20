@@ -1350,8 +1350,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return hasattr(user, "is_guest_user") and user.is_guest_user
 
     def get_current_guest_user_if_guest(self) -> Optional[GuestUser]:
-        # pylint: disable=import-outside-toplevel
-        from superset.extensions import feature_flag_manager
 
         if self.is_guest_user(g.user):
             return g.user
