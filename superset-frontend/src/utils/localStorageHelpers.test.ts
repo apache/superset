@@ -16,9 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import {
+  getItem,
+  setItem,
+  LocalStorageKeys,
+} from 'src/utils/localStorageHelpers';
 
-// storage keys for welcome page sticky tabs and tables
-export const HOMEPAGE_CHART_FILTER = 'homepage_chart_filter';
-export const HOMEPAGE_ACTIVITY_FILTER = 'homepage_activity_filter';
-export const HOMEPAGE_DASHBOARD_FILTER = 'homepage_dashboard_filter';
-export const HOMEPAGE_COLLAPSE_STATE = 'homepage_collapse_state';
+describe('localStorageHelpers', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  afterAll(() => {
+    localStorage.clear();
+  });
+
+  it('gets a value that was set', () => {
+    setItem(LocalStorageKeys.is_datapanel_open, false);
+
+    expect(getItem(LocalStorageKeys.is_datapanel_open, true)).toBe(false);
+  });
+
+  it('returns the default value for an unset value', () => {
+    expect(getItem(LocalStorageKeys.is_datapanel_open, true)).toBe(true);
+  });
+});
