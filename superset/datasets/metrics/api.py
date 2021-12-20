@@ -99,6 +99,9 @@ class DatasetMetricRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except DatasetMetricDeleteFailedError as ex:
             logger.error(
-                "Error deleting dataset column %s: %s", self.__class__.__name__, str(ex)
+                "Error deleting dataset column %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))

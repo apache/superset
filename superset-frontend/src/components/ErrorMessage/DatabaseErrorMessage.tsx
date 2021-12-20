@@ -35,12 +35,13 @@ interface DatabaseErrorExtra {
 function DatabaseErrorMessage({
   error,
   source = 'dashboard',
+  subtitle,
 }: ErrorMessageComponentProps<DatabaseErrorExtra>) {
   const { extra, level, message } = error;
 
   const isVisualization = ['dashboard', 'explore'].includes(source);
 
-  const body = (
+  const body = extra && (
     <>
       <p>
         {t('This may be triggered by:')}
@@ -74,14 +75,17 @@ function DatabaseErrorMessage({
     </>
   );
 
-  const copyText = `${message}
+  const copyText =
+    extra && extra.issue_codes
+      ? `${message}
 ${t('This may be triggered by:')}
-${extra.issue_codes.map(issueCode => issueCode.message).join('\n')}`;
+${extra.issue_codes.map(issueCode => issueCode.message).join('\n')}`
+      : message;
 
   return (
     <ErrorAlert
-      title={t('%s Error', extra.engine_name || t('DB engine'))}
-      subtitle={message}
+      title={t('%s Error', (extra && extra.engine_name) || t('DB engine'))}
+      subtitle={subtitle}
       level={level}
       source={source}
       copyText={copyText}

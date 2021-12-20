@@ -213,6 +213,7 @@ class ImportExportMixin:
                 cls.__name__,
                 str(obj_query),
                 yaml.safe_dump(dict_rep),
+                exc_info=True,
             )
             raise ex
 

@@ -135,6 +135,24 @@ export default function exploreReducer(state = {}, action) {
         ...getControlStateFromControlConfig(controlConfig, state, action.value),
       };
 
+      const newState = {
+        ...state,
+        controls: { ...state.controls, [action.controlName]: control },
+      };
+
+      const rerenderedControls = {};
+      if (Array.isArray(control.rerender)) {
+        control.rerender.forEach(controlName => {
+          rerenderedControls[controlName] = {
+            ...getControlStateFromControlConfig(
+              newState.controls[controlName],
+              newState,
+              newState.controls[controlName].value,
+            ),
+          };
+        });
+      }
+
       // combine newly detected errors with errors from `onChange` event of
       // each control component (passed via reducer action).
       const errors = control.validationErrors || [];
@@ -169,6 +187,7 @@ export default function exploreReducer(state = {}, action) {
             ...control,
             validationErrors: errors,
           },
+          ...rerenderedControls,
         },
       };
     },

@@ -38,11 +38,8 @@ from typing_extensions import TypedDict
 
 from superset.exceptions import SupersetTemplateException
 from superset.extensions import feature_flag_manager
-from superset.utils.core import (
-    convert_legacy_filters_into_adhoc,
-    memoized,
-    merge_extra_filters,
-)
+from superset.utils.core import convert_legacy_filters_into_adhoc, merge_extra_filters
+from superset.utils.memoized import memoized
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -297,7 +294,7 @@ class ExtraCache:
         filters: List[Filter] = []
 
         for flt in form_data.get("adhoc_filters", []):
-            val: Union[str, List[str]] = flt.get("comparator")
+            val: Union[Any, List[Any]] = flt.get("comparator")
             op: str = flt["operator"].upper() if "operator" in flt else None
             # fltOpName: str = flt.get("filterOptionName")
             if (

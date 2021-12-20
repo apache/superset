@@ -53,10 +53,16 @@ Rebuild your local image with the new driver baked in:
 docker-compose build --force-rm
 ```
 
-After the rebuild is complete, which make take a few minutes, relaunch:
+After the rebuild of the Docker images is complete (which make take a few minutes) you can relaunch using the following command:
 
 ```
 docker-compose up
+```
+
+The other option is to start Superset via Docker Compose is using the recipe in `docker-compose-non-dev.yml`, which will use pre-built frontend assets and skip the building of front-end assets:
+
+```
+docker-compose -f docker-compose-non-dev.yml up
 ```
 
 ### 3. Connect to MySQL

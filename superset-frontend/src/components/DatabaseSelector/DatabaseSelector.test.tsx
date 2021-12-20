@@ -38,7 +38,7 @@ const createProps = () => ({
   onDbChange: jest.fn(),
   onSchemaChange: jest.fn(),
   onSchemasLoad: jest.fn(),
-  onChange: jest.fn(),
+  onUpdate: jest.fn(),
 });
 
 beforeEach(() => {
@@ -161,7 +161,7 @@ test('Refresh should work', async () => {
     expect(props.onDbChange).toBeCalledTimes(0);
     expect(props.onSchemaChange).toBeCalledTimes(0);
     expect(props.onSchemasLoad).toBeCalledTimes(1);
-    expect(props.onChange).toBeCalledTimes(0);
+    expect(props.onUpdate).toBeCalledTimes(0);
   });
 
   userEvent.click(screen.getByRole('button'));
@@ -174,7 +174,7 @@ test('Refresh should work', async () => {
     expect(props.onDbChange).toBeCalledTimes(1);
     expect(props.onSchemaChange).toBeCalledTimes(1);
     expect(props.onSchemasLoad).toBeCalledTimes(2);
-    expect(props.onChange).toBeCalledTimes(1);
+    expect(props.onUpdate).toBeCalledTimes(1);
   });
 });
 

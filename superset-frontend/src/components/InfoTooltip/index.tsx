@@ -20,9 +20,9 @@
 import React from 'react';
 import { styled } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 
-interface InfoTooltipProps {
+export interface InfoTooltipProps {
   className?: string;
   tooltip: string;
   placement?:
@@ -42,11 +42,11 @@ interface InfoTooltipProps {
   trigger?: string | Array<string>;
   overlayStyle?: any;
   bgColor?: string;
+  viewBox?: string;
 }
 
 const StyledTooltip = styled(Tooltip)`
   cursor: pointer;
-
   path:first-of-type {
     fill: #999999;
   }
@@ -65,6 +65,7 @@ export default function InfoTooltip({
   trigger = 'hover',
   overlayStyle = defaultOverlayStyle,
   bgColor = defaultColor,
+  viewBox = '0 -2 24 24',
 }: InfoTooltipProps) {
   return (
     <StyledTooltip
@@ -74,7 +75,7 @@ export default function InfoTooltip({
       overlayStyle={overlayStyle}
       color={bgColor}
     >
-      <Icon name="info-solid-small" />
+      <Icons.InfoSolidSmall className="info-solid-small" viewBox={viewBox} />
     </StyledTooltip>
   );
 }

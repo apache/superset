@@ -159,6 +159,7 @@ class DashboardGetResponseSchema(Schema):
     owners = fields.List(fields.Nested(UserSchema))
     roles = fields.List(fields.Nested(RolesSchema))
     table_names = fields.String()  # legacy nonsense
+    changed_on_humanized = fields.String(data_key="changed_on_delta_humanized")
 
 
 class DatabaseSchema(Schema):
@@ -199,6 +200,7 @@ class DashboardDatasetSchema(Schema):
     template_params = fields.Str()
     owners = fields.List(fields.Int())
     columns = fields.List(fields.Dict())
+    column_types = fields.List(fields.Int())
     metrics = fields.List(fields.Dict())
     order_by_choices = fields.List(fields.List(fields.Str()))
     verbose_map = fields.Dict(fields.Str(), fields.Str())

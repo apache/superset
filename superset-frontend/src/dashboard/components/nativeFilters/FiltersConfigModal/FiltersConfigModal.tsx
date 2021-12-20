@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState, useRef } from 'react';
 import { uniq } from 'lodash';
 import { t, styled } from '@superset-ui/core';
 import { Form } from 'src/common/components';
@@ -27,6 +27,7 @@ import { useFilterConfigMap, useFilterConfiguration } from '../state';
 import { FilterRemoval, NativeFiltersForm } from './types';
 import { FilterConfiguration } from '../types';
 import {
+  validateForm,
   createHandleSave,
   createHandleTabEdit,
   generateFilterId,
@@ -37,8 +38,16 @@ import FilterTabs from './FilterTabs';
 import FiltersConfigForm from './FiltersConfigForm/FiltersConfigForm';
 import { useOpenModal, useRemoveCurrentFilter } from './state';
 
+const StyledModalWrapper = styled(StyledModal)`
+  min-width: 700px;
+  .ant-modal-body {
+    padding: 0px;
+  }
+`;
+
 export const StyledModalBody = styled.div`
   display: flex;
+  height: 700px;
   flex-direction: row;
   .filters-list {
     width: ${({ theme }) => theme.gridUnit * 50}px;
@@ -80,6 +89,8 @@ export function FiltersConfigModal({
   onCancel,
 }: FiltersConfigModalProps) {
   const [form] = Form.useForm<NativeFiltersForm>();
+
+  const configFormRef = useRef<any>();
 
   // the filter config from redux state, this does not change until modal is closed.
   const filterConfig = useFilterConfiguration();
@@ -156,11 +167,12 @@ export function FiltersConfigModal({
   // After this, it should be as if the modal was just opened fresh.
   // Called when the modal is closed.
   const resetForm = () => {
-    form.resetFields();
     setNewFilterIds([]);
     setCurrentFilterId(initialCurrentFilterId);
     setRemovedFilters({});
     setSaveAlertVisible(false);
+    setFormValues({ filters: {} });
+    form.setFieldsValue({ changed: false });
   };
 
   const getFilterTitle = (id: string) =>
@@ -172,23 +184,40 @@ export function FiltersConfigModal({
     filterIds
       .filter(filterId => filterId !== id && !removedFilters[filterId])
       .filter(filterId =>
-        CASCADING_FILTERS.includes(formValues.filters[filterId]?.filterType),
+        CASCADING_FILTERS.includes(
+          formValues.filters[filterId]
+            ? formValues.filters[filterId].filterType
+            : filterConfigMap[filterId]?.filterType,
+        ),
       )
       .map(id => ({
         id,
         title: getFilterTitle(id),
       }));
 
-  const handleSave = createHandleSave(
-    form,
-    currentFilterId,
-    filterConfigMap,
-    filterIds,
-    removedFilters,
-    setCurrentFilterId,
-    resetForm,
-    onSave,
-  );
+  const handleSave = async () => {
+    const values: NativeFiltersForm | null = await validateForm(
+      form,
+      currentFilterId,
+      filterConfigMap,
+      filterIds,
+      removedFilters,
+      setCurrentFilterId,
+    );
+
+    if (values) {
+      createHandleSave(
+        filterConfigMap,
+        filterIds,
+        removedFilters,
+        onSave,
+        values,
+      )();
+      resetForm();
+    } else {
+      configFormRef.current.changeTab('configuration');
+    }
+  };
 
   const handleConfirmCancel = () => {
     resetForm();
@@ -196,7 +225,8 @@ export function FiltersConfigModal({
   };
 
   const handleCancel = () => {
-    if (unsavedFiltersIds.length > 0) {
+    const changed = form.getFieldValue('changed');
+    if (unsavedFiltersIds.length > 0 || form.isFieldsTouched() || changed) {
       setSaveAlertVisible(true);
     } else {
       handleConfirmCancel();
@@ -204,11 +234,11 @@ export function FiltersConfigModal({
   };
 
   return (
-    <StyledModal
+    <StyledModalWrapper
       visible={isOpen}
       maskClosable={false}
       title={t('Filters configuration and scoping')}
-      width="55%"
+      width="50%"
       destroyOnClose
       onCancel={handleCancel}
       onOk={handleSave}
@@ -218,10 +248,8 @@ export function FiltersConfigModal({
         <Footer
           onDismiss={() => setSaveAlertVisible(false)}
           onCancel={handleCancel}
-          getFilterTitle={getFilterTitle}
           handleSave={handleSave}
           saveAlertVisible={saveAlertVisible}
-          unsavedFiltersIds={unsavedFiltersIds}
           onConfirmCancel={handleConfirmCancel}
         />
       }
@@ -256,6 +284,7 @@ export function FiltersConfigModal({
             >
               {(id: string) => (
                 <FiltersConfigForm
+                  ref={configFormRef}
                   form={form}
                   filterId={id}
                   filterToEdit={filterConfigMap[id]}
@@ -268,6 +297,6 @@ export function FiltersConfigModal({
           </StyledForm>
         </StyledModalBody>
       </ErrorBoundary>
-    </StyledModal>
+    </StyledModalWrapper>
   );
 }

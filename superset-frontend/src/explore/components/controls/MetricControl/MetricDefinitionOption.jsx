@@ -18,9 +18,12 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { ColumnOption, MetricOption } from '@superset-ui/chart-controls';
 
 import withToasts from 'src/messageToasts/enhancers/withToasts';
+import {
+  StyledColumnOption,
+  StyledMetricOption,
+} from 'src/explore/components/optionRenderers';
 import AggregateOption from './AggregateOption';
 import columnType from './columnType';
 import aggregateOptionType from './aggregateOptionType';
@@ -37,10 +40,10 @@ const propTypes = {
 
 function MetricDefinitionOption({ option, addWarningToast }) {
   if (option.metric_name) {
-    return <MetricOption metric={option} showType />;
+    return <StyledMetricOption metric={option} showType />;
   }
   if (option.column_name) {
-    return <ColumnOption column={option} showType />;
+    return <StyledColumnOption column={option} showType />;
   }
   if (option.aggregate_name) {
     return <AggregateOption aggregate={option} showType />;

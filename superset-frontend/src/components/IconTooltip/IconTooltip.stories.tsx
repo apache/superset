@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import { IconTooltip, Props } from '.';
 
 export default {
@@ -42,7 +42,7 @@ const PLACEMENTS = [
 export const InteractiveIconTooltip = (args: Props) => (
   <div css={{ margin: '40px 70px' }}>
     <IconTooltip {...args}>
-      <Icon name="info" />
+      <Icons.Info />
     </IconTooltip>
   </div>
 );

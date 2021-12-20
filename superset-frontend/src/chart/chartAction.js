@@ -145,11 +145,12 @@ const legacyChartDataRequest = async (
     'GET' && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)
       ? SupersetClient.get
       : SupersetClient.post;
-  return clientMethod(querySettings).then(({ json }) =>
+  return clientMethod(querySettings).then(({ json, response }) =>
     // Make the legacy endpoint return a payload that corresponds to the
     // V1 chart data endpoint response signature.
     ({
-      result: [json],
+      response,
+      json: { result: [json] },
     }),
   );
 };
@@ -196,7 +197,8 @@ const v1ChartDataRequest = async (
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   };
-  return SupersetClient.post(querySettings).then(({ json }) => json);
+
+  return SupersetClient.post(querySettings);
 };
 
 export async function getChartDataRequest({
@@ -390,14 +392,25 @@ export function exploreJSON(
     dispatch(chartUpdateStarted(controller, formData, key));
 
     const chartDataRequestCaught = chartDataRequest
-      .then(response => {
-        const queriesResponse = response.result;
+      .then(({ response, json }) => {
         if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
           // deal with getChartDataRequest transforming the response data
-          const result = 'result' in response ? response.result[0] : response;
-          return waitForAsyncData(result);
+          const result = 'result' in json ? json.result[0] : json;
+          switch (response.status) {
+            case 200:
+              // Query results returned synchronously, meaning query was already cached.
+              return Promise.resolve([result]);
+            case 202:
+              // Query is running asynchronously and we must await the results
+              return waitForAsyncData(result);
+            default:
+              throw new Error(
+                `Received unexpected response status (${response.status}) while fetching chart data`,
+              );
+          }
         }
-        return queriesResponse;
+
+        return json.result;
       })
       .then(queriesResponse => {
         queriesResponse.forEach(resultItem =>
@@ -541,11 +554,11 @@ export function postChartFormData(
 export function redirectSQLLab(formData) {
   return dispatch => {
     getChartDataRequest({ formData, resultFormat: 'json', resultType: 'query' })
-      .then(({ result }) => {
+      .then(({ json }) => {
         const redirectUrl = '/superset/sqllab/';
         const payload = {
           datasourceKey: formData.datasource,
-          sql: result[0].query,
+          sql: json.result[0].query,
         };
         postForm(redirectUrl, payload);
       })

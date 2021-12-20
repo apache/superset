@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Preset } from '@superset-ui/core';
-import { BigNumberTotalChartPlugin } from '@superset-ui/legacy-preset-chart-big-number';
+import { isFeatureEnabled, Preset } from '@superset-ui/core';
+import {
+  BigNumberTotalChartPlugin,
+} from '@superset-ui/legacy-preset-chart-big-number';
 import CalendarChartPlugin from '@superset-ui/legacy-plugin-chart-calendar';
 import ChordChartPlugin from '@superset-ui/legacy-plugin-chart-chord';
 import CountryMapChartPlugin from '@superset-ui/legacy-plugin-chart-country-map';
@@ -57,7 +59,10 @@ import {
   EchartsGraphChartPlugin,
   EchartsGaugeChartPlugin,
   EchartsRadarChartPlugin,
+  EchartsFunnelChartPlugin,
+  EchartsTreemapChartPlugin,
   EchartsMixedTimeseriesChartPlugin,
+  EchartsTreeChartPlugin,
 } from '@superset-ui/plugin-chart-echarts';
 import {
   SelectFilterPlugin,
@@ -80,9 +85,16 @@ import {
   BigNumberCurrencySelectionChartPlugin,
   BigNumberChartPlugin,
 } from 'src/cccs-viz/plugins/';
+import { FeatureFlag } from '../../featureFlags';
 
 export default class MainPreset extends Preset {
   constructor() {
+    const experimentalplugins = isFeatureEnabled(
+      FeatureFlag.DASHBOARD_FILTERS_EXPERIMENTAL,
+    )
+      ? [new GroupByFilterPlugin().configure({ key: 'filter_groupby' })]
+      : [];
+
     super({
       name: 'Legacy charts',
       presets: [new DeckGLChartPreset()],
@@ -108,6 +120,8 @@ export default class MainPreset extends Preset {
         new DualLineChartPlugin().configure({ key: 'dual_line' }),
         new EventFlowChartPlugin().configure({ key: 'event_flow' }),
         new FilterBoxChartPlugin().configure({ key: 'filter_box' }),
+        new EchartsFunnelChartPlugin().configure({ key: 'funnel' }),
+        new EchartsTreemapChartPlugin().configure({ key: 'treemap_v2' }),
         new EchartsGaugeChartPlugin().configure({ key: 'gauge_chart' }),
         new EchartsGraphChartPlugin().configure({ key: 'graph_chart' }),
         new EchartsRadarChartPlugin().configure({ key: 'radar' }),
@@ -143,7 +157,8 @@ export default class MainPreset extends Preset {
         new TimeFilterPlugin().configure({ key: 'filter_time' }),
         new TimeColumnFilterPlugin().configure({ key: 'filter_timecolumn' }),
         new TimeGrainFilterPlugin().configure({ key: 'filter_timegrain' }),
-        new GroupByFilterPlugin().configure({ key: 'filter_groupby' }),
+        new EchartsTreeChartPlugin().configure({ key: 'tree_chart' }),
+        ...experimentalplugins,
       ],
     });
   }

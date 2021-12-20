@@ -28,6 +28,7 @@ import dashboardInfo from './mockDashboardInfo';
 import { emptyFilters } from './mockDashboardFilters';
 import dashboardState from './mockDashboardState';
 import { sliceEntitiesForChart } from './mockSliceEntities';
+import { user } from '../javascripts/sqllab/fixtures';
 
 export default {
   datasources,
@@ -40,5 +41,6 @@ export default {
   dashboardState,
   dashboardLayout,
   messageToasts,
+  user,
   impressionId: 'mock_impression_id',
 };

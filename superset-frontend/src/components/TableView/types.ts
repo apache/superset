@@ -16,9 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export interface SortColumn {
-  id: string;
-  desc?: boolean;
-}
+import { SortingRule } from 'react-table';
 
-export type SortColumns = SortColumn[];
+export type SortByType = SortingRule<string>[];
+
+export interface ServerPagination {
+  pageIndex: number;
+  sortBy?: SortByType;
+}

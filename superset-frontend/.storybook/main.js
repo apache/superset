@@ -18,11 +18,11 @@
  */
 const path = require('path');
 
-// Suerset's webpack.config.js
+// Superset's webpack.config.js
 const customConfig = require('../webpack.config.js');
 
 module.exports = {
-stories: ['../src/@(components|common|filters)/**/*.stories.@(t|j)sx'],
+  stories: ['../src/@(components|common|filters)/**/*.stories.@(t|j)sx'],
   addons: [
     '@storybook/addon-essentials',
     '@storybook/addon-links',
@@ -43,4 +43,7 @@ stories: ['../src/@(components|common|filters)/**/*.stories.@(t|j)sx'],
     },
     plugins: [...config.plugins, ...customConfig.plugins],
   }),
+  typescript: {
+    reactDocgen: 'none',
+  },
 };

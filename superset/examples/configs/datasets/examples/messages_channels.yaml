@@ -25,7 +25,7 @@ sql: SELECT m.ts, c.name, m.text FROM messages m JOIN channels c ON m.channel_id
   c.id
 params: null
 template_params: null
-filter_select_enabled: false
+filter_select_enabled: true
 fetch_values_predicate: null
 extra: null
 uuid: 6e533506-fce6-4f6a-b116-d139df6dbdea

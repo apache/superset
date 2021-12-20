@@ -23,18 +23,25 @@ import React, {
   useEffect,
   useCallback,
 } from 'react';
-import { FormControl, FormControlProps } from 'react-bootstrap';
 import Alert from 'src/components/Alert';
 import { SupersetClient, t, styled } from '@superset-ui/core';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
+import { ServerPagination, SortByType } from 'src/components/TableView/types';
 import StyledModal from 'src/components/Modal';
 import Button from 'src/components/Button';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import Dataset from 'src/types/Dataset';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
-import { getClientErrorObject } from '../utils/getClientErrorObject';
-import Loading from '../components/Loading';
-import withToasts from '../messageToasts/enhancers/withToasts';
+import { SLOW_DEBOUNCE } from 'src/constants';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import Loading from 'src/components/Loading';
+import withToasts from 'src/messageToasts/enhancers/withToasts';
+import { Input, AntdInput } from 'src/common/components';
+import {
+  PAGE_SIZE as DATASET_PAGE_SIZE,
+  SORT_BY as DATASET_SORT_BY,
+} from 'src/views/CRUD/data/dataset/constants';
+import FacePile from '../components/FacePile';
 
 const CONFIRM_WARNING_MESSAGE = t(
   'Warning! Changing the dataset may break the chart if the metadata does not exist.',
@@ -81,21 +88,6 @@ const StyledSpan = styled.span`
   }
 `;
 
-const TABLE_COLUMNS = [
-  'name',
-  'type',
-  'schema',
-  'connection',
-  'creator',
-].map(col => ({ accessor: col, Header: col }));
-
-const emptyRequest = {
-  pageIndex: 0,
-  pageSize: 20,
-  filters: [],
-  sortBy: [{ id: 'changed_on_delta_humanized' }],
-};
-
 const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   addDangerToast,
   addSuccessToast,
@@ -105,12 +97,14 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   show,
 }) => {
   const [filter, setFilter] = useState<any>(undefined);
+  const [pageIndex, setPageIndex] = useState<number>(0);
+  const [sortBy, setSortBy] = useState<SortByType>(DATASET_SORT_BY);
   const [confirmChange, setConfirmChange] = useState(false);
   const [confirmedDataset, setConfirmedDataset] = useState<Datasource>();
-  let searchRef = useRef<HTMLInputElement>(null);
+  const searchRef = useRef<AntdInput>(null);
 
   const {
-    state: { loading, resourceCollection },
+    state: { loading, resourceCollection, resourceCount },
     fetchData,
   } = useListViewResource<Dataset>('dataset', t('dataset'), addDangerToast);
 
@@ -119,10 +113,17 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     setConfirmedDataset(datasource);
   }, []);
 
+  const fetchDatasetPayload = {
+    pageIndex,
+    pageSize: DATASET_PAGE_SIZE,
+    filters: [],
+    sortBy,
+  };
+
   useDebouncedEffect(
     () => {
       fetchData({
-        ...emptyRequest,
+        ...fetchDatasetPayload,
         ...(filter && {
           filters: [
             {
@@ -134,15 +135,13 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         }),
       });
     },
-    300,
-    [filter],
+    SLOW_DEBOUNCE,
+    [filter, pageIndex, sortBy],
   );
 
   useEffect(() => {
     const onEnterModal = async () => {
-      if (searchRef && searchRef.current) {
-        searchRef.current.focus();
-      }
+      setTimeout(() => searchRef?.current?.focus(), 200);
     };
 
     if (show) {
@@ -158,20 +157,15 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     show,
   ]);
 
-  const setSearchRef = (ref: any) => {
-    searchRef = ref;
-  };
-
-  const changeSearch = (
-    event: React.FormEvent<FormControl & FormControlProps>,
-  ) => {
-    const searchValue = (event.currentTarget?.value as string) ?? '';
+  const changeSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const searchValue = event.target.value ?? '';
     setFilter(searchValue);
+    setPageIndex(0);
   };
 
   const handleChangeConfirm = () => {
     SupersetClient.get({
-      endpoint: `/datasource/get/${confirmedDataset?.type}/${confirmedDataset?.id}`,
+      endpoint: `/datasource/get/${confirmedDataset?.type}/${confirmedDataset?.id}/`,
     })
       .then(({ json }) => {
         onDatasourceSave(json);
@@ -195,25 +189,53 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     setConfirmChange(false);
   };
 
-  const renderTableView = () => {
-    const data = resourceCollection.map((ds: any) => ({
-      rawName: ds.table_name,
-      connection: ds.database.database_name,
-      schema: ds.schema,
-      name: (
+  const columns = [
+    {
+      Cell: ({ row: { original } }: any) => (
         <StyledSpan
           role="button"
           tabIndex={0}
           data-test="datasource-link"
-          onClick={() => selectDatasource({ type: 'table', ...ds })}
+          onClick={() => selectDatasource({ type: 'table', ...original })}
         >
-          {ds.table_name}
+          {original?.table_name}
         </StyledSpan>
       ),
-      type: ds.kind,
-    }));
+      Header: t('Name'),
+      accessor: 'table_name',
+    },
+    {
+      Header: t('Type'),
+      accessor: 'kind',
+      disableSortBy: true,
+    },
+    {
+      Header: t('Schema'),
+      accessor: 'schema',
+    },
+    {
+      Header: t('Connection'),
+      accessor: 'database.database_name',
+      disableSortBy: true,
+    },
+    {
+      Cell: ({
+        row: {
+          original: { owners = [] },
+        },
+      }: any) => <FacePile users={owners} />,
+      Header: t('Owners'),
+      id: 'owners',
+      disableSortBy: true,
+    },
+  ];
 
-    return data;
+  const onServerPagination = (args: ServerPagination) => {
+    setPageIndex(args.pageIndex);
+    if (args.sortBy) {
+      // ensure default sort by
+      setSortBy(args.sortBy.length > 0 ? args.sortBy : DATASET_SORT_BY);
+    }
   };
 
   return (
@@ -223,7 +245,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       responsive
       title={t('Change dataset')}
       width={confirmChange ? '432px' : ''}
-      height={confirmChange ? 'auto' : '480px'}
+      height={confirmChange ? 'auto' : '540px'}
       hideFooter={!confirmChange}
       footer={
         <>
@@ -248,33 +270,36 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         {!confirmChange && (
           <>
             <Alert
+              roomBelow
               type="warning"
+              css={theme => ({ marginBottom: theme.gridUnit * 4 })}
               message={
                 <>
                   <strong>{t('Warning!')}</strong> {CHANGE_WARNING_MSG}
                 </>
               }
             />
-            <div>
-              <FormControl
-                inputRef={ref => {
-                  setSearchRef(ref);
-                }}
-                type="text"
-                bsSize="sm"
-                value={filter}
-                placeholder={t('Search / Filter')}
-                onChange={changeSearch}
-              />
-            </div>
+            <Input
+              ref={searchRef}
+              type="text"
+              value={filter}
+              placeholder={t('Search / Filter')}
+              onChange={changeSearch}
+            />
             {loading && <Loading />}
             {!loading && (
               <TableView
-                columns={TABLE_COLUMNS}
-                data={renderTableView()}
-                pageSize={20}
+                columns={columns}
+                data={resourceCollection}
+                pageSize={DATASET_PAGE_SIZE}
+                initialPageIndex={pageIndex}
+                initialSortBy={sortBy}
+                totalCount={resourceCount}
+                onServerPagination={onServerPagination}
                 className="table-condensed"
                 emptyWrapperType={EmptyWrapperType.Small}
+                serverPagination
+                isPaginationSticky
                 scrollTable
               />
             )}

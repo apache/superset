@@ -20,8 +20,10 @@ from croniter import croniter
 from flask_babel import gettext as _
 from marshmallow import fields, Schema, validate, validates_schema
 from marshmallow.validate import Length, Range, ValidationError
+from marshmallow_enum import EnumField
 
 from superset.models.reports import (
+    ReportCreationMethodType,
     ReportDataFormat,
     ReportRecipientType,
     ReportScheduleType,
@@ -55,6 +57,7 @@ crontab_description = (
     "[Crontab Guru](https://crontab.guru/) is "
     "a helpful resource that can help you craft a CRON expression."
 )
+timezone_description = "A timezone string that represents the location of the timezone."
 sql_description = (
     "A SQL statement that defines whether the alert should get triggered or "
     "not. The query is expected to return either NULL or a number value."
@@ -82,6 +85,10 @@ grace_period_description = (
 working_timeout_description = (
     "If an alert is staled at a working state, how long until it's state is reseted to"
     " error"
+)
+creation_method_description = (
+    "Creation method is used to inform the frontend whether the report/alert was "
+    "created in the dashboard, chart, or alerts and reports UI."
 )
 
 
@@ -146,10 +153,17 @@ class ReportSchedulePostSchema(Schema):
         allow_none=False,
         required=True,
     )
+    timezone = fields.String(description=timezone_description, default="UTC")
     sql = fields.String(
         description=sql_description, example="SELECT value FROM time_series_table"
     )
     chart = fields.Integer(required=False, allow_none=True)
+    creation_method = EnumField(
+        ReportCreationMethodType,
+        by_value=True,
+        required=False,
+        description=creation_method_description,
+    )
     dashboard = fields.Integer(required=False, allow_none=True)
     database = fields.Integer(required=False)
     owners = fields.List(fields.Integer(description=owners_description))
@@ -219,6 +233,7 @@ class ReportSchedulePutSchema(Schema):
         validate=[validate_crontab, Length(1, 1000)],
         required=False,
     )
+    timezone = fields.String(description=timezone_description, default="UTC")
     sql = fields.String(
         description=sql_description,
         example="SELECT value FROM time_series_table",
@@ -226,6 +241,12 @@ class ReportSchedulePutSchema(Schema):
         allow_none=True,
     )
     chart = fields.Integer(required=False, allow_none=True)
+    creation_method = EnumField(
+        ReportCreationMethodType,
+        by_value=True,
+        allow_none=True,
+        description=creation_method_description,
+    )
     dashboard = fields.Integer(required=False, allow_none=True)
     database = fields.Integer(required=False)
     owners = fields.List(fields.Integer(description=owners_description), required=False)

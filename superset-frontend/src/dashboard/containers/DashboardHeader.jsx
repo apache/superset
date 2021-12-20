@@ -19,6 +19,7 @@
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
+import { updateDataMask } from 'src/dataMask/actions';
 import DashboardHeader from '../components/Header';
 import isDashboardLoading from '../util/isDashboardLoading';
 
@@ -38,6 +39,7 @@ import {
   setMaxUndoHistoryExceeded,
   maxUndoHistoryToast,
   setRefreshFrequency,
+  onRefresh,
 } from '../actions/dashboardState';
 
 import {
@@ -55,12 +57,20 @@ import {
 
 import { logEvent } from '../../logger/actions';
 import { DASHBOARD_HEADER_ID } from '../util/constants';
+import {
+  fetchUISpecificReport,
+  toggleActive,
+  deleteActiveReport,
+} from '../../reports/actions/reports';
 
 function mapStateToProps({
   dashboardLayout: undoableLayout,
   dashboardState,
+  reports,
   dashboardInfo,
   charts,
+  dataMask,
+  user,
 }) {
   return {
     dashboardInfo,
@@ -77,7 +87,8 @@ function mapStateToProps({
     colorNamespace: dashboardState.colorNamespace,
     colorScheme: dashboardState.colorScheme,
     charts,
-    userId: dashboardInfo.userId,
+    dataMask,
+    user,
     isStarred: !!dashboardState.isStarred,
     isPublished: !!dashboardState.isPublished,
     isLoading: isDashboardLoading(charts),
@@ -90,6 +101,7 @@ function mapStateToProps({
     editMode: !!dashboardState.editMode,
     slug: dashboardInfo.slug,
     metadata: dashboardInfo.metadata,
+    reports,
   };
 }
 
@@ -116,8 +128,13 @@ function mapDispatchToProps(dispatch) {
       maxUndoHistoryToast,
       logEvent,
       setRefreshFrequency,
+      onRefresh,
       dashboardInfoChanged,
       dashboardTitleChanged,
+      updateDataMask,
+      fetchUISpecificReport,
+      toggleActive,
+      deleteActiveReport,
     },
     dispatch,
   );

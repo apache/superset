@@ -28,7 +28,7 @@ repos:
     hooks:
       - id: mypy
   - repo: https://github.com/peterdemin/pip-compile-multi
-    rev: v1.5.8
+    rev: v2.4.1
     hooks:
       - id: pip-compile-multi-verify
   - repo: https://github.com/pre-commit/pre-commit-hooks

@@ -26,7 +26,7 @@ import jsonSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/json';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import { ToastProps } from 'src/messageToasts/enhancers/withToasts';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import copyTextToClipboard from 'src/utils/copy';
 
 SyntaxHighlighter.registerLanguage('sql', sqlSyntax);
@@ -36,17 +36,20 @@ SyntaxHighlighter.registerLanguage('json', jsonSyntax);
 
 const SyntaxHighlighterWrapper = styled.div`
   margin-top: -24px;
+
   &:hover {
     svg {
       visibility: visible;
     }
   }
+
   svg {
     position: relative;
     top: 40px;
     left: 512px;
     visibility: hidden;
     margin: -4px;
+    color: ${({ theme }) => theme.colors.grayscale.base};
   }
 `;
 
@@ -64,21 +67,20 @@ export default function SyntaxHighlighterCopy({
   function copyToClipboard(textToCopy: string) {
     copyTextToClipboard(textToCopy)
       .then(() => {
-        if (addDangerToast) {
-          addDangerToast(t('Sorry, your browser does not support copying.'));
+        if (addSuccessToast) {
+          addSuccessToast(t('SQL Copied!'));
         }
       })
       .catch(() => {
-        if (addSuccessToast) {
-          addSuccessToast(t('SQL Copied!'));
+        if (addDangerToast) {
+          addDangerToast(t('Sorry, your browser does not support copying.'));
         }
       });
   }
   return (
     <SyntaxHighlighterWrapper>
-      <Icon
+      <Icons.Copy
         tabIndex={0}
-        name="copy"
         role="button"
         onClick={e => {
           e.preventDefault();

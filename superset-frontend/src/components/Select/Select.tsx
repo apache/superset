@@ -16,307 +16,501 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { SyntheticEvent, MutableRefObject, ComponentType } from 'react';
-import { merge } from 'lodash';
-import BasicSelect, {
-  OptionTypeBase,
-  MultiValueProps,
-  FormatOptionLabelMeta,
-  ValueType,
-  SelectComponentsConfig,
-  components as defaultComponents,
-  createFilter,
-} from 'react-select';
-import Async from 'react-select/async';
-import Creatable from 'react-select/creatable';
-import AsyncCreatable from 'react-select/async-creatable';
-import { withAsyncPaginate } from 'react-select-async-paginate';
+import React, {
+  ReactElement,
+  ReactNode,
+  RefObject,
+  UIEvent,
+  useEffect,
+  useMemo,
+  useState,
+  useRef,
+  useCallback,
+} from 'react';
+import { styled, t } from '@superset-ui/core';
+import AntdSelect, {
+  SelectProps as AntdSelectProps,
+  SelectValue as AntdSelectValue,
+  LabeledValue as AntdLabeledValue,
+} from 'antd/lib/select';
+import { DownOutlined, SearchOutlined } from '@ant-design/icons';
+import debounce from 'lodash/debounce';
+import { isEqual } from 'lodash';
+import { Spin } from 'antd';
+import Icons from 'src/components/Icons';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import { hasOption } from './utils';
 
-import { SelectComponents } from 'react-select/src/components';
-import {
-  SortableContainer,
-  SortableElement,
-  SortableContainerProps,
-} from 'react-sortable-hoc';
-import arrayMove from 'array-move';
-import { Props as SelectProps } from 'react-select/src/Select';
-import { useTheme } from '@superset-ui/core';
-import {
-  WindowedSelectComponentType,
-  WindowedSelectProps,
-  WindowedSelect,
-  WindowedAsyncSelect,
-  WindowedCreatableSelect,
-  WindowedAsyncCreatableSelect,
-} from './WindowedSelect';
-import {
-  DEFAULT_CLASS_NAME,
-  DEFAULT_CLASS_NAME_PREFIX,
-  DEFAULT_STYLES,
-  DEFAULT_COMPONENTS,
-  VALUE_LABELED_STYLES,
-  PartialThemeConfig,
-  PartialStylesConfig,
-  SelectComponentsType,
-  InputProps,
-  defaultTheme,
-} from './styles';
-import { findValue } from './utils';
+type AntdSelectAllProps = AntdSelectProps<AntdSelectValue>;
 
-type AnyReactSelect<OptionType extends OptionTypeBase> =
-  | BasicSelect<OptionType>
-  | Async<OptionType>
-  | Creatable<OptionType>
-  | AsyncCreatable<OptionType>;
+type PickedSelectProps = Pick<
+  AntdSelectAllProps,
+  | 'allowClear'
+  | 'autoFocus'
+  | 'value'
+  | 'disabled'
+  | 'filterOption'
+  | 'notFoundContent'
+  | 'onChange'
+  | 'placeholder'
+  | 'showSearch'
+  | 'value'
+>;
 
-export type SupersetStyledSelectProps<
-  OptionType extends OptionTypeBase,
-  T extends WindowedSelectProps<OptionType> = WindowedSelectProps<OptionType>
-> = T & {
-  // additional props for easier usage or backward compatibility
-  labelKey?: string;
-  valueKey?: string;
-  assistiveText?: string;
-  multi?: boolean;
-  clearable?: boolean;
-  sortable?: boolean;
-  ignoreAccents?: boolean;
-  creatable?: boolean;
-  selectRef?:
-    | React.RefCallback<AnyReactSelect<OptionType>>
-    | MutableRefObject<AnyReactSelect<OptionType>>;
-  getInputValue?: (selectBalue: ValueType<OptionType>) => string | undefined;
-  optionRenderer?: (option: OptionType) => React.ReactNode;
-  valueRenderer?: (option: OptionType) => React.ReactNode;
-  valueRenderedAsLabel?: boolean;
-  // callback for paste event
-  onPaste?: (e: SyntheticEvent) => void;
-  forceOverflow?: boolean;
-  // for simplier theme overrides
-  themeConfig?: PartialThemeConfig;
-  stylesConfig?: PartialStylesConfig;
+export type OptionsType = Exclude<AntdSelectAllProps['options'], undefined>;
+
+export type OptionsTypePage = {
+  data: OptionsType;
+  totalCount: number;
 };
 
-function styled<
-  OptionType extends OptionTypeBase,
-  SelectComponentType extends
-    | WindowedSelectComponentType<OptionType>
-    | ComponentType<
-        SelectProps<OptionType>
-      > = WindowedSelectComponentType<OptionType>
->(SelectComponent: SelectComponentType) {
-  type SelectProps = SupersetStyledSelectProps<OptionType>;
-  type Components = SelectComponents<OptionType>;
+export type OptionsPagePromise = (
+  search: string,
+  page: number,
+  pageSize: number,
+) => Promise<OptionsTypePage>;
 
-  const SortableSelectComponent = SortableContainer(SelectComponent, {
-    withRef: true,
-  });
-
-  // default components for the given OptionType
-  const supersetDefaultComponents: SelectComponentsConfig<OptionType> = DEFAULT_COMPONENTS;
-
-  const getSortableMultiValue = (MultiValue: Components['MultiValue']) =>
-    SortableElement((props: MultiValueProps<OptionType>) => {
-      const onMouseDown = (e: SyntheticEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-      };
-      const innerProps = { onMouseDown };
-      return <MultiValue {...props} innerProps={innerProps} />;
-    });
-
-  /**
-   * Superset styled `Select` component. Apply Superset themed stylesheets and
-   * consolidate props API for backward compatibility with react-select v1.
-   */
-  function StyledSelect(selectProps: SelectProps) {
-    let stateManager: AnyReactSelect<OptionType>; // reference to react-select StateManager
-    const {
-      // additional props for Superset Select
-      selectRef,
-      labelKey = 'label',
-      valueKey = 'value',
-      themeConfig,
-      stylesConfig = {},
-      optionRenderer,
-      valueRenderer,
-      // whether value is rendered as `option-label` in input,
-      // useful for AdhocMetric and AdhocFilter
-      valueRenderedAsLabel: valueRenderedAsLabel_,
-      onPaste,
-      multi = false, // same as `isMulti`, used for backward compatibility
-      clearable, // same as `isClearable`
-      sortable = true, // whether to enable drag & drop sorting
-      forceOverflow, // whether the dropdown should be forcefully overflowing
-
-      // react-select props
-      className = DEFAULT_CLASS_NAME,
-      classNamePrefix = DEFAULT_CLASS_NAME_PREFIX,
-      options,
-      value: value_,
-      components: components_,
-      isMulti: isMulti_,
-      isClearable: isClearable_,
-      minMenuHeight = 100, // apply different defaults
-      maxMenuHeight = 220,
-      filterOption,
-      ignoreAccents = false, // default is `true`, but it is slow
-
-      getOptionValue = option =>
-        typeof option === 'string' ? option : option[valueKey],
-
-      getOptionLabel = option =>
-        typeof option === 'string'
-          ? option
-          : option[labelKey] || option[valueKey],
-
-      formatOptionLabel = (
-        option: OptionType,
-        { context }: FormatOptionLabelMeta<OptionType>,
-      ) => {
-        if (context === 'value') {
-          return valueRenderer ? valueRenderer(option) : getOptionLabel(option);
-        }
-        return optionRenderer ? optionRenderer(option) : getOptionLabel(option);
-      },
-
-      ...restProps
-    } = selectProps;
-
-    // `value` may be rendered values (strings), we want option objects
-    const value: OptionType[] = findValue(value_, options || [], valueKey);
-
-    // Add backward compability to v1 API
-    const isMulti = isMulti_ === undefined ? multi : isMulti_;
-    const isClearable = isClearable_ === undefined ? clearable : isClearable_;
-
-    // Sort is only applied when there are multiple selected values
-    const shouldAllowSort =
-      isMulti && sortable && Array.isArray(value) && value.length > 1;
-
-    const MaybeSortableSelect = shouldAllowSort
-      ? SortableSelectComponent
-      : SelectComponent;
-    const components = { ...supersetDefaultComponents, ...components_ };
-
-    // Make multi-select sortable as per https://react-select.netlify.app/advanced
-    if (shouldAllowSort) {
-      components.MultiValue = getSortableMultiValue(
-        components.MultiValue || defaultComponents.MultiValue,
-      );
-
-      const sortableContainerProps: Partial<SortableContainerProps> = {
-        getHelperDimensions: ({ node }) => node.getBoundingClientRect(),
-        axis: 'xy',
-        onSortEnd: ({ oldIndex, newIndex }) => {
-          const newValue = arrayMove(value, oldIndex, newIndex);
-          if (restProps.onChange) {
-            restProps.onChange(newValue, { action: 'set-value' });
-          }
-        },
-        distance: 4,
-      };
-      Object.assign(restProps, sortableContainerProps);
-    }
-
-    // When values are rendered as labels, adjust valueContainer padding
-    const valueRenderedAsLabel =
-      valueRenderedAsLabel_ === undefined ? isMulti : valueRenderedAsLabel_;
-    if (valueRenderedAsLabel && !stylesConfig.valueContainer) {
-      Object.assign(stylesConfig, VALUE_LABELED_STYLES);
-    }
-
-    // Handle onPaste event
-    if (onPaste) {
-      const Input =
-        (components.Input as SelectComponentsType['Input']) ||
-        (defaultComponents.Input as SelectComponentsType['Input']);
-      components.Input = (props: InputProps) => (
-        <Input {...props} onPaste={onPaste} />
-      );
-    }
-    // for CreaTable
-    if (SelectComponent === WindowedCreatableSelect) {
-      restProps.getNewOptionData = (inputValue: string, label: string) => ({
-        label: label || inputValue,
-        [valueKey]: inputValue,
-        isNew: true,
-      });
-    }
-
-    // handle forcing dropdown overflow
-    // use only when setting overflow:visible isn't possible on the container element
-    if (forceOverflow) {
-      Object.assign(restProps, {
-        closeMenuOnScroll: (e: Event) => {
-          const target = e.target as HTMLElement;
-          return target && !target.classList?.contains('Select__menu-list');
-        },
-        menuPosition: 'fixed',
-      });
-    }
-
-    // Make sure always return StateManager for the refs.
-    // To get the real `Select` component, keep tap into `obj.select`:
-    //   - for normal <Select /> component: StateManager -> Select,
-    //   - for <Creatable />: StateManager -> Creatable -> Select
-    const setRef = (instance: any) => {
-      stateManager =
-        shouldAllowSort && instance && 'refs' in instance
-          ? instance.refs.wrappedInstance // obtain StateManger from SortableContainer
-          : instance;
-      if (typeof selectRef === 'function') {
-        selectRef(stateManager);
-      } else if (selectRef && 'current' in selectRef) {
-        selectRef.current = stateManager;
-      }
-    };
-
-    const theme = useTheme();
-
-    return (
-      <MaybeSortableSelect
-        ref={setRef}
-        className={className}
-        classNamePrefix={classNamePrefix}
-        isMulti={isMulti}
-        isClearable={isClearable}
-        options={options}
-        value={value}
-        minMenuHeight={minMenuHeight}
-        maxMenuHeight={maxMenuHeight}
-        filterOption={
-          // filterOption may be NULL
-          filterOption !== undefined
-            ? filterOption
-            : createFilter({ ignoreAccents })
-        }
-        styles={{ ...DEFAULT_STYLES, ...stylesConfig } as SelectProps['styles']}
-        // merge default theme from `react-select`, default theme for Superset,
-        // and the theme from props.
-        theme={reactSelectTheme =>
-          merge(reactSelectTheme, defaultTheme(theme), themeConfig)
-        }
-        formatOptionLabel={formatOptionLabel}
-        getOptionLabel={getOptionLabel}
-        getOptionValue={getOptionValue}
-        components={components}
-        {...restProps}
-      />
-    );
-  }
-
-  // React.memo makes sure the component does no rerender given the same props
-  return React.memo(StyledSelect);
+export interface SelectProps extends PickedSelectProps {
+  allowNewOptions?: boolean;
+  ariaLabel: string;
+  header?: ReactNode;
+  mode?: 'single' | 'multiple';
+  name?: string; // discourage usage
+  options: OptionsType | OptionsPagePromise;
+  pageSize?: number;
+  invertSelection?: boolean;
+  fetchOnlyOnSearch?: boolean;
 }
 
-export const Select = styled(WindowedSelect);
-export const AsyncSelect = styled(WindowedAsyncSelect);
-export const CreatableSelect = styled(WindowedCreatableSelect);
-export const AsyncCreatableSelect = styled(WindowedAsyncCreatableSelect);
-export const PaginatedSelect = withAsyncPaginate(
-  styled<OptionTypeBase, ComponentType<SelectProps<OptionTypeBase>>>(
-    BasicSelect,
-  ),
+const StyledContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const StyledSelect = styled(AntdSelect, {
+  shouldForwardProp: prop => prop !== 'hasHeader',
+})<{ hasHeader: boolean }>`
+  ${({ theme, hasHeader }) => `
+    width: 100%;
+    margin-top: ${hasHeader ? theme.gridUnit : 0}px;
+
+    && .ant-select-selector {
+      border-radius: ${theme.gridUnit}px;
+    }
+
+    // Open the dropdown when clicking on the suffix
+    // This is fixed in version 4.16
+    .ant-select-arrow .anticon:not(.ant-select-suffix) {
+      pointer-events: none;
+    }
+  `}
+`;
+
+const StyledStopOutlined = styled(Icons.StopOutlined)`
+  vertical-align: 0;
+`;
+
+const StyledCheckOutlined = styled(Icons.CheckOutlined)`
+  vertical-align: 0;
+`;
+
+const StyledError = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    width: 100%;
+    padding: ${theme.gridUnit * 2}px;
+    color: ${theme.colors.error.base};
+
+    & svg {
+      margin-right: ${theme.gridUnit * 2}px;
+    }
+  `}
+`;
+
+const StyledSpin = styled(Spin)`
+  margin-top: ${({ theme }) => -theme.gridUnit}px;
+`;
+
+const MAX_TAG_COUNT = 4;
+const TOKEN_SEPARATORS = [',', '\n', '\t', ';'];
+const DEBOUNCE_TIMEOUT = 500;
+const DEFAULT_PAGE_SIZE = 100;
+const EMPTY_OPTIONS: OptionsType = [];
+
+const Error = ({ error }: { error: string }) => (
+  <StyledError>
+    <Icons.ErrorSolid /> {error}
+  </StyledError>
 );
+
+const Select = ({
+  allowNewOptions = false,
+  ariaLabel,
+  fetchOnlyOnSearch,
+  filterOption = true,
+  header = null,
+  invertSelection = false,
+  mode = 'single',
+  name,
+  options,
+  pageSize = DEFAULT_PAGE_SIZE,
+  placeholder = t('Select ...'),
+  showSearch,
+  value,
+  ...props
+}: SelectProps) => {
+  const isAsync = typeof options === 'function';
+  const isSingleMode = mode === 'single';
+  const shouldShowSearch = isAsync || allowNewOptions ? true : showSearch;
+  const initialOptions =
+    options && Array.isArray(options) ? options : EMPTY_OPTIONS;
+  const [selectOptions, setSelectOptions] = useState<OptionsType>(
+    initialOptions,
+  );
+  const [selectValue, setSelectValue] = useState(value);
+  const [searchedValue, setSearchedValue] = useState('');
+  const [isLoading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loadingEnabled, setLoadingEnabled] = useState(false);
+  const fetchedQueries = useRef(new Map<string, number>());
+  const mappedMode = isSingleMode
+    ? undefined
+    : allowNewOptions
+    ? 'tags'
+    : 'multiple';
+
+  useEffect(() => {
+    setSelectOptions(
+      options && Array.isArray(options) ? options : EMPTY_OPTIONS,
+    );
+  }, [options]);
+
+  useEffect(() => {
+    if (isAsync && value) {
+      const array: AntdLabeledValue[] = Array.isArray(value)
+        ? (value as AntdLabeledValue[])
+        : [value as AntdLabeledValue];
+      const options: AntdLabeledValue[] = [];
+      array.forEach(element => {
+        const found = selectOptions.find(
+          option => option.value === element.value,
+        );
+        if (!found) {
+          options.push(element);
+        }
+      });
+      if (options.length > 0) {
+        setSelectOptions([...selectOptions, ...options]);
+      }
+    }
+  }, [isAsync, selectOptions, value]);
+
+  useEffect(() => {
+    setSelectValue(value);
+  }, [value]);
+
+  const handleTopOptions = useCallback(
+    (selectedValue: AntdSelectValue | undefined) => {
+      // bringing selected options to the top of the list
+      if (selectedValue) {
+        const topOptions: OptionsType = [];
+        const otherOptions: OptionsType = [];
+
+        selectOptions.forEach(opt => {
+          let found = false;
+          if (Array.isArray(selectedValue)) {
+            if (isAsync) {
+              found =
+                (selectedValue as AntdLabeledValue[]).find(
+                  element => element.value === opt.value,
+                ) !== undefined;
+            } else {
+              found = selectedValue.includes(opt.value);
+            }
+          } else {
+            found = isAsync
+              ? (selectedValue as AntdLabeledValue).value === opt.value
+              : selectedValue === opt.value;
+          }
+
+          if (found) {
+            topOptions.push(opt);
+          } else {
+            otherOptions.push(opt);
+          }
+        });
+
+        // fallback for custom options in tags mode as they
+        // do not appear in the selectOptions state
+        if (!isSingleMode && Array.isArray(selectedValue)) {
+          selectedValue.forEach((val: string | number | AntdLabeledValue) => {
+            if (
+              !topOptions.find(
+                tOpt =>
+                  tOpt.value ===
+                  (isAsync ? (val as AntdLabeledValue)?.value : val),
+              )
+            ) {
+              if (isAsync) {
+                const labelValue = val as AntdLabeledValue;
+                topOptions.push({
+                  label: labelValue.label,
+                  value: labelValue.value,
+                });
+              } else {
+                const value = val as string | number;
+                topOptions.push({ label: String(value), value });
+              }
+            }
+          });
+        }
+
+        const sortedOptions = [...topOptions, ...otherOptions];
+        if (!isEqual(sortedOptions, selectOptions)) {
+          setSelectOptions(sortedOptions);
+        }
+      }
+    },
+    [isAsync, isSingleMode, selectOptions],
+  );
+
+  const handleOnSelect = (
+    selectedValue: string | number | AntdLabeledValue,
+  ) => {
+    if (isSingleMode) {
+      setSelectValue(selectedValue);
+    } else {
+      const currentSelected = selectValue
+        ? Array.isArray(selectValue)
+          ? selectValue
+          : [selectValue]
+        : [];
+      if (
+        typeof selectedValue === 'number' ||
+        typeof selectedValue === 'string'
+      ) {
+        setSelectValue([
+          ...(currentSelected as (string | number)[]),
+          selectedValue as string | number,
+        ]);
+      } else {
+        setSelectValue([
+          ...(currentSelected as AntdLabeledValue[]),
+          selectedValue as AntdLabeledValue,
+        ]);
+      }
+    }
+    setSearchedValue('');
+  };
+
+  const handleOnDeselect = (value: string | number | AntdLabeledValue) => {
+    if (Array.isArray(selectValue)) {
+      const selectedValues = [
+        ...(selectValue as []).filter(opt => opt !== value),
+      ];
+      setSelectValue(selectedValues);
+    }
+    setSearchedValue('');
+  };
+
+  const onError = (response: Response) =>
+    getClientErrorObject(response).then(e => {
+      const { error } = e;
+      setError(error);
+    });
+
+  const handleData = (data: OptionsType) => {
+    if (data && Array.isArray(data) && data.length) {
+      // merges with existing and creates unique options
+      setSelectOptions(prevOptions => [
+        ...prevOptions,
+        ...data.filter(
+          newOpt =>
+            !prevOptions.find(prevOpt => prevOpt.value === newOpt.value),
+        ),
+      ]);
+    }
+  };
+
+  const handlePaginatedFetch = useMemo(
+    () => (value: string, page: number, pageSize: number) => {
+      const key = `${value};${page};${pageSize}`;
+      const cachedCount = fetchedQueries.current.get(key);
+      if (cachedCount) {
+        setTotalCount(cachedCount);
+        return;
+      }
+      setLoading(true);
+      const fetchOptions = options as OptionsPagePromise;
+      fetchOptions(value, page, pageSize)
+        .then(({ data, totalCount }: OptionsTypePage) => {
+          handleData(data);
+          fetchedQueries.current.set(key, totalCount);
+          setTotalCount(totalCount);
+        })
+        .catch(onError)
+        .finally(() => setLoading(false));
+    },
+    [options],
+  );
+
+  const handleOnSearch = debounce((search: string) => {
+    const searchValue = search.trim();
+    // enables option creation
+    if (allowNewOptions && isSingleMode) {
+      const firstOption = selectOptions.length > 0 && selectOptions[0].value;
+      // replaces the last search value entered with the new one
+      // only when the value wasn't part of the original options
+      if (
+        searchValue &&
+        firstOption === searchedValue &&
+        !initialOptions.find(o => o.value === searchedValue)
+      ) {
+        selectOptions.shift();
+        setSelectOptions(selectOptions);
+      }
+      if (searchValue && !hasOption(searchValue, selectOptions)) {
+        const newOption = {
+          label: searchValue,
+          value: searchValue,
+        };
+        // adds a custom option
+        const newOptions = [...selectOptions, newOption];
+        setSelectOptions(newOptions);
+        setSelectValue(searchValue);
+      }
+    }
+    setSearchedValue(searchValue);
+  }, DEBOUNCE_TIMEOUT);
+
+  const handlePagination = (e: UIEvent<HTMLElement>) => {
+    const vScroll = e.currentTarget;
+    const thresholdReached =
+      vScroll.scrollTop > (vScroll.scrollHeight - vScroll.offsetHeight) * 0.7;
+    const hasMoreData = page * pageSize + pageSize < totalCount;
+
+    if (!isLoading && isAsync && hasMoreData && thresholdReached) {
+      const newPage = page + 1;
+      handlePaginatedFetch(searchedValue, newPage, pageSize);
+      setPage(newPage);
+    }
+  };
+
+  const handleFilterOption = (search: string, option: AntdLabeledValue) => {
+    if (typeof filterOption === 'function') {
+      return filterOption(search, option);
+    }
+
+    if (filterOption) {
+      const searchValue = search.trim().toLowerCase();
+      const { value, label } = option;
+      const valueText = String(value);
+      const labelText = String(label);
+      return (
+        valueText.toLowerCase().includes(searchValue) ||
+        labelText.toLowerCase().includes(searchValue)
+      );
+    }
+
+    return false;
+  };
+
+  const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
+    setIsDropdownVisible(isDropdownVisible);
+
+    if (isAsync && !loadingEnabled) {
+      setLoadingEnabled(true);
+    }
+
+    // multiple or tags mode keep the dropdown visible while selecting options
+    // this waits for the dropdown to be closed before sorting the top options
+    if (!isSingleMode && !isDropdownVisible) {
+      handleTopOptions(selectValue);
+    }
+  };
+
+  useEffect(() => {
+    const allowFetch = !fetchOnlyOnSearch || searchedValue;
+    if (isAsync && loadingEnabled && allowFetch) {
+      const page = 0;
+      handlePaginatedFetch(searchedValue, page, pageSize);
+      setPage(page);
+    }
+  }, [
+    isAsync,
+    searchedValue,
+    pageSize,
+    handlePaginatedFetch,
+    loadingEnabled,
+    fetchOnlyOnSearch,
+  ]);
+
+  useEffect(() => {
+    if (isSingleMode) {
+      handleTopOptions(selectValue);
+    }
+  }, [handleTopOptions, isSingleMode, selectValue]);
+
+  const dropdownRender = (
+    originNode: ReactElement & { ref?: RefObject<HTMLElement> },
+  ) => {
+    if (!isDropdownVisible) {
+      originNode.ref?.current?.scrollTo({ top: 0 });
+    }
+    return error ? <Error error={error} /> : originNode;
+  };
+
+  const SuffixIcon = () => {
+    if (isLoading) {
+      return <StyledSpin size="small" />;
+    }
+    if (shouldShowSearch && isDropdownVisible) {
+      return <SearchOutlined />;
+    }
+    return <DownOutlined />;
+  };
+
+  return (
+    <StyledContainer>
+      {header}
+      <StyledSelect
+        hasHeader={!!header}
+        aria-label={ariaLabel || name}
+        dropdownRender={dropdownRender}
+        filterOption={handleFilterOption}
+        getPopupContainer={triggerNode => triggerNode.parentNode}
+        labelInValue={isAsync}
+        maxTagCount={MAX_TAG_COUNT}
+        mode={mappedMode}
+        onDeselect={handleOnDeselect}
+        onDropdownVisibleChange={handleOnDropdownVisibleChange}
+        onPopupScroll={isAsync ? handlePagination : undefined}
+        onSearch={shouldShowSearch ? handleOnSearch : undefined}
+        onSelect={handleOnSelect}
+        onClear={() => setSelectValue(undefined)}
+        options={selectOptions}
+        placeholder={placeholder}
+        showSearch={shouldShowSearch}
+        showArrow
+        tokenSeparators={TOKEN_SEPARATORS}
+        value={selectValue}
+        suffixIcon={<SuffixIcon />}
+        menuItemSelectedIcon={
+          invertSelection ? (
+            <StyledStopOutlined iconSize="m" />
+          ) : (
+            <StyledCheckOutlined iconSize="m" />
+          )
+        }
+        {...props}
+      />
+    </StyledContainer>
+  );
+};
+
 export default Select;

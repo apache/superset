@@ -30,7 +30,10 @@ import ControlHeader from 'src/explore/components/ControlHeader';
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
 import savedMetricType from 'src/explore/components/controls/MetricControl/savedMetricType';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
-import { OPERATORS } from 'src/explore/constants';
+import {
+  Operators,
+  OPERATOR_ENUM_TO_OPERATOR_TYPE,
+} from 'src/explore/constants';
 import FilterDefinitionOption from 'src/explore/components/controls/MetricControl/FilterDefinitionOption';
 import {
   AddControlLabel,
@@ -38,7 +41,7 @@ import {
   HeaderContainer,
   LabelsContainer,
 } from 'src/explore/components/controls/OptionControls';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger';
 import AdhocFilterOption from 'src/explore/components/controls/FilterControl/AdhocFilterOption';
 import AdhocFilter, {
@@ -54,6 +57,7 @@ const selectedMetricType = PropTypes.oneOfType([
 ]);
 
 const propTypes = {
+  label: PropTypes.oneOfType([PropTypes.object, PropTypes.string]),
   name: PropTypes.string,
   onChange: PropTypes.func,
   value: PropTypes.arrayOf(adhocFilterType),
@@ -241,7 +245,8 @@ class AdhocFilterControl extends React.Component {
           this.props.datasource.type === 'druid'
             ? option.saved_metric_name
             : this.getMetricExpression(option.saved_metric_name),
-        operator: OPERATORS['>'],
+        operator:
+          OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
         comparator: 0,
         clause: CLAUSES.HAVING,
       });
@@ -257,7 +262,8 @@ class AdhocFilterControl extends React.Component {
           this.props.datasource.type === 'druid'
             ? option.label
             : new AdhocMetric(option).translateToSql(),
-        operator: OPERATORS['>'],
+        operator:
+          OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
         comparator: 0,
         clause: CLAUSES.HAVING,
       });
@@ -267,7 +273,7 @@ class AdhocFilterControl extends React.Component {
       return new AdhocFilter({
         expressionType: EXPRESSION_TYPES.SIMPLE,
         subject: option.column_name,
-        operator: OPERATORS['=='],
+        operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.EQUALS].operation,
         comparator: '',
         clause: CLAUSES.WHERE,
         isNew: true,
@@ -338,11 +344,9 @@ class AdhocFilterControl extends React.Component {
           <ControlHeader {...this.props} />
           {this.addNewFilterPopoverTrigger(
             <AddIconButton data-test="add-filter-button">
-              <Icon
-                name="plus-large"
-                width={theme.gridUnit * 3}
-                height={theme.gridUnit * 3}
-                color={theme.colors.grayscale.light5}
+              <Icons.PlusLarge
+                iconSize="s"
+                iconColor={theme.colors.grayscale.light5}
               />
             </AddIconButton>,
           )}
@@ -354,10 +358,7 @@ class AdhocFilterControl extends React.Component {
               )
             : this.addNewFilterPopoverTrigger(
                 <AddControlLabel>
-                  <Icon
-                    name="plus-small"
-                    color={theme.colors.grayscale.light1}
-                  />
+                  <Icons.PlusSmall iconColor={theme.colors.grayscale.light1} />
                   {t('Add filter')}
                 </AddControlLabel>,
               )}

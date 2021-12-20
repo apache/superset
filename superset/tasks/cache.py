@@ -272,7 +272,7 @@ def cache_warmup(
             break
     else:
         message = f"No strategy {strategy_name} found!"
-        logger.error(message)
+        logger.error(message, exc_info=True)
         return message
 
     logger.info("Loading %s", class_.__name__)

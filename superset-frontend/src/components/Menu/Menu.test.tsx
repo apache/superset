@@ -18,7 +18,9 @@
  */
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
 import { Menu } from './Menu';
+import { dropdownItems } from './MenuRight';
 
 const mockedProps = {
   data: {
@@ -73,8 +75,11 @@ const mockedProps = {
       icon: '/static/assets/images/superset-logo-horiz.png',
       alt: 'Superset',
       width: '126',
+      tooltip: '',
+      text: '',
     },
     navbar_right: {
+      show_watermark: false,
       bug_report_url: '/report/',
       documentation_url: '/docs/',
       languages: {
@@ -157,18 +162,19 @@ test('should render all the top navbar menu items', () => {
   } = mockedProps;
   render(<Menu {...mockedProps} />);
   menu.forEach(item => {
-    const menuItem = screen.getByText(item.label);
-    expect(menuItem).toHaveAttribute('href', item.url);
+    expect(screen.getByText(item.label)).toBeInTheDocument();
   });
 });
 
-test('should render the top navbar child menu items', () => {
+test('should render the top navbar child menu items', async () => {
   const {
     data: { menu },
   } = mockedProps;
   render(<Menu {...mockedProps} />);
-  const datasets = screen.getByText('Datasets');
-  const databases = screen.getByText('Databases');
+  const sources = screen.getByText('Sources');
+  userEvent.hover(sources);
+  const datasets = await screen.findByText('Datasets');
+  const databases = await screen.findByText('Databases');
   const dataset = menu[1].childs![0] as { url: string };
   const database = menu[1].childs![2] as { url: string };
 
@@ -176,23 +182,53 @@ test('should render the top navbar child menu items', () => {
   expect(databases).toHaveAttribute('href', database.url);
 });
 
-test('should render the Settings', () => {
-  render(<Menu {...mockedProps} />);
-  const settings = screen.getByText('Settings');
-  expect(settings).toHaveAttribute('href', '#');
+test('should render the dropdown items', async () => {
+  render(<Menu {...notanonProps} />);
+  const dropdown = screen.getByTestId('new-dropdown-icon');
+  userEvent.hover(dropdown);
+  expect(await screen.findByText(dropdownItems[0].label)).toHaveAttribute(
+    'href',
+    dropdownItems[0].url,
+  );
+  expect(
+    screen.getByTestId(`menu-item-${dropdownItems[0].label}`),
+  ).toBeInTheDocument();
+  expect(await screen.findByText(dropdownItems[1].label)).toHaveAttribute(
+    'href',
+    dropdownItems[1].url,
+  );
+  expect(
+    screen.getByTestId(`menu-item-${dropdownItems[1].label}`),
+  ).toBeInTheDocument();
+  expect(await screen.findByText(dropdownItems[2].label)).toHaveAttribute(
+    'href',
+    dropdownItems[2].url,
+  );
+  expect(
+    screen.getByTestId(`menu-item-${dropdownItems[2].label}`),
+  ).toBeInTheDocument();
 });
 
-test('should render the Settings menu item', () => {
+test('should render the Settings', async () => {
   render(<Menu {...mockedProps} />);
-  expect(screen.getByText('Security')).toBeInTheDocument();
+  const settings = await screen.findByText('Settings');
+  expect(settings).toBeInTheDocument();
 });
 
-test('should render the Settings dropdown child menu items', () => {
+test('should render the Settings menu item', async () => {
+  render(<Menu {...mockedProps} />);
+  userEvent.hover(screen.getByText('Settings'));
+  const label = await screen.findByText('Security');
+  expect(label).toBeInTheDocument();
+});
+
+test('should render the Settings dropdown child menu items', async () => {
   const {
     data: { settings },
   } = mockedProps;
   render(<Menu {...mockedProps} />);
-  const listUsers = screen.getByText('List Users');
+  userEvent.hover(screen.getByText('Settings'));
+  const listUsers = await screen.findByText('List Users');
   expect(listUsers).toHaveAttribute('href', settings[0].childs[0].url);
 });
 
@@ -206,7 +242,7 @@ test('should NOT render the plus menu (+) when user is anonymous', () => {
   expect(screen.queryByTestId('new-dropdown')).not.toBeInTheDocument();
 });
 
-test('should render the user actions when user is not anonymous', () => {
+test('should render the user actions when user is not anonymous', async () => {
   const {
     data: {
       navbar_right: { user_info_url, user_logout_url },
@@ -214,10 +250,12 @@ test('should render the user actions when user is not anonymous', () => {
   } = mockedProps;
 
   render(<Menu {...notanonProps} />);
-  expect(screen.getByText('User')).toBeInTheDocument();
+  userEvent.hover(screen.getByText('Settings'));
+  const user = await screen.findByText('User');
+  expect(user).toBeInTheDocument();
 
-  const info = screen.getByText('Info');
-  const logout = screen.getByText('Logout');
+  const info = await screen.findByText('Info');
+  const logout = await screen.findByText('Logout');
 
   expect(info).toHaveAttribute('href', user_info_url);
   expect(logout).toHaveAttribute('href', user_logout_url);
@@ -228,7 +266,7 @@ test('should NOT render the user actions when user is anonymous', () => {
   expect(screen.queryByText('User')).not.toBeInTheDocument();
 });
 
-test('should render the Profile link when available', () => {
+test('should render the Profile link when available', async () => {
   const {
     data: {
       navbar_right: { user_profile_url },
@@ -236,11 +274,13 @@ test('should render the Profile link when available', () => {
   } = mockedProps;
 
   render(<Menu {...notanonProps} />);
-  const profile = screen.getByText('Profile');
+
+  userEvent.hover(screen.getByText('Settings'));
+  const profile = await screen.findByText('Profile');
   expect(profile).toHaveAttribute('href', user_profile_url);
 });
 
-test('should render the About section and version_string or sha when available', () => {
+test('should render the About section and version_string or sha when available', async () => {
   const {
     data: {
       navbar_right: { version_sha, version_string },
@@ -248,24 +288,28 @@ test('should render the About section and version_string or sha when available',
   } = mockedProps;
 
   render(<Menu {...mockedProps} />);
-  expect(screen.getByText('About')).toBeInTheDocument();
-  expect(screen.getByText(`Version: ${version_string}`)).toBeInTheDocument();
-  expect(screen.getByText(`SHA: ${version_sha}`)).toBeInTheDocument();
+  userEvent.hover(screen.getByText('Settings'));
+  const about = await screen.findByText('About');
+  const version = await screen.findByText(`Version: ${version_string}`);
+  const sha = await screen.findByText(`SHA: ${version_sha}`);
+  expect(about).toBeInTheDocument();
+  expect(version).toBeInTheDocument();
+  expect(sha).toBeInTheDocument();
 });
 
-test('should render the Documentation link when available', () => {
+test('should render the Documentation link when available', async () => {
   const {
     data: {
       navbar_right: { documentation_url },
     },
   } = mockedProps;
-
   render(<Menu {...mockedProps} />);
-  const doc = screen.getByTitle('Documentation');
+  userEvent.hover(screen.getByText('Settings'));
+  const doc = await screen.findByTitle('Documentation');
   expect(doc).toHaveAttribute('href', documentation_url);
 });
 
-test('should render the Bug Report link when available', () => {
+test('should render the Bug Report link when available', async () => {
   const {
     data: {
       navbar_right: { bug_report_url },
@@ -273,7 +317,7 @@ test('should render the Bug Report link when available', () => {
   } = mockedProps;
 
   render(<Menu {...mockedProps} />);
-  const bugReport = screen.getByTitle('Report a Bug');
+  const bugReport = await screen.findByTitle('Report a bug');
   expect(bugReport).toHaveAttribute('href', bug_report_url);
 });
 
@@ -291,5 +335,5 @@ test('should render the Login link when user is anonymous', () => {
 
 test('should render the Language Picker', () => {
   render(<Menu {...mockedProps} />);
-  expect(screen.getByTestId('language-picker')).toBeInTheDocument();
+  expect(screen.getByLabelText('Languages')).toBeInTheDocument();
 });

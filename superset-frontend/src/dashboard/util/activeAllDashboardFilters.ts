@@ -104,7 +104,7 @@ export const getAllActiveFilters = ({
       };
     // Iterate over all roots to find all affected charts
     scope.rootPath.forEach((layoutItemId: string | number) => {
-      layout[layoutItemId].children.forEach((child: string) => {
+      layout[layoutItemId]?.children?.forEach((child: string) => {
         // Need exclude from affected charts, charts that located in scope `excluded`
         findAffectedCharts({
           child,

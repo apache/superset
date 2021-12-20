@@ -16,12 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { TIME_FILTER_MAP } from 'src/explore/constants';
+import { NO_TIME_RANGE, TIME_FILTER_MAP } from 'src/explore/constants';
 import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
-import {
-  ChartConfiguration,
-  NativeFiltersState,
-} from 'src/dashboard/reducers/types';
+import { ChartConfiguration, Filters } from 'src/dashboard/reducers/types';
 import { DataMaskStateWithId, DataMaskType } from 'src/dataMask/types';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { Layout } from '../../types';
@@ -63,7 +60,7 @@ const selectIndicatorValue = (
 
   if (
     values == null ||
-    (filter.isDateFilter && values === 'No filter') ||
+    (filter.isDateFilter && values === NO_TIME_RANGE) ||
     arrValues.length === 0
   ) {
     return [];
@@ -147,12 +144,8 @@ export const selectIndicatorsForChart = (
   chartId: number,
   filters: { [key: number]: Filter },
   datasources: { [key: string]: Datasource },
-  charts: any,
+  chart: any,
 ): Indicator[] => {
-  const chart = charts[chartId];
-  // no indicators if chart is loading
-  if (chart.chartStatus === 'loading') return [];
-
   // for now we only need to know which columns are compatible/incompatible,
   // so grab the columns from the applied/rejected filters
   const appliedColumns = getAppliedColumns(chart);
@@ -178,34 +171,27 @@ export const selectIndicatorsForChart = (
 };
 
 export const selectNativeIndicatorsForChart = (
-  nativeFilters: NativeFiltersState,
+  nativeFilters: Filters,
   dataMask: DataMaskStateWithId,
   chartId: number,
-  charts: any,
+  chart: any,
   dashboardLayout: Layout,
   chartConfiguration: ChartConfiguration = {},
 ): Indicator[] => {
-  const chart = charts[chartId];
-
   const appliedColumns = getAppliedColumns(chart);
   const rejectedColumns = getRejectedColumns(chart);
 
   const getStatus = ({
     value,
-    isAffectedByScope,
     column,
     type = DataMaskType.NativeFilters,
   }: {
     value: any;
-    isAffectedByScope: boolean;
     column?: string;
     type?: DataMaskType;
   }): IndicatorStatus => {
     // a filter is only considered unset if it's value is null
     const hasValue = value !== null;
-    if (!isAffectedByScope) {
-      return IndicatorStatus.Unset;
-    }
     if (type === DataMaskType.CrossFilters && hasValue) {
       return IndicatorStatus.CrossFilterApplied;
     }
@@ -223,43 +209,50 @@ export const selectNativeIndicatorsForChart = (
 
   let nativeFilterIndicators: any = [];
   if (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS)) {
-    nativeFilterIndicators = Object.values(nativeFilters.filters).map(
-      nativeFilter => {
-        const isAffectedByScope = getTreeCheckedItems(
-          nativeFilter.scope,
-          dashboardLayout,
-        ).some(
-          layoutItem => dashboardLayout[layoutItem]?.meta?.chartId === chartId,
-        );
-        const column = nativeFilter.targets[0]?.column?.name;
-        let value = dataMask[nativeFilter.id]?.filterState?.value ?? null;
-        if (!Array.isArray(value) && value !== null) {
-          value = [value];
-        }
-        return {
-          column,
-          name: nativeFilter.name,
-          path: [nativeFilter.id],
-          status: getStatus({ value, isAffectedByScope, column }),
-          value,
-        };
-      },
-    );
+    nativeFilterIndicators =
+      nativeFilters &&
+      Object.values(nativeFilters)
+        .filter(nativeFilter =>
+          getTreeCheckedItems(nativeFilter.scope, dashboardLayout).some(
+            layoutItem =>
+              dashboardLayout[layoutItem]?.meta?.chartId === chartId,
+          ),
+        )
+        .map(nativeFilter => {
+          const column = nativeFilter.targets[0]?.column?.name;
+          let value =
+            dataMask[nativeFilter.id]?.filterState?.label ??
+            dataMask[nativeFilter.id]?.filterState?.value ??
+            null;
+          if (!Array.isArray(value) && value !== null) {
+            value = [value];
+          }
+          return {
+            column,
+            name: nativeFilter.name,
+            path: [nativeFilter.id],
+            status: getStatus({ value, column }),
+            value,
+          };
+        });
   }
 
   let crossFilterIndicators: any = [];
   if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
     crossFilterIndicators = Object.values(chartConfiguration)
-      .map(chartConfig => {
-        const scope = chartConfig?.crossFilters?.scope;
-        const isAffectedByScope = getTreeCheckedItems(
-          scope,
+      .filter(chartConfig =>
+        getTreeCheckedItems(
+          chartConfig?.crossFilters?.scope,
           dashboardLayout,
         ).some(
           layoutItem => dashboardLayout[layoutItem]?.meta?.chartId === chartId,
-        );
-
-        let value = dataMask[chartConfig.id]?.filterState?.value ?? null;
+        ),
+      )
+      .map(chartConfig => {
+        let value =
+          dataMask[chartConfig.id]?.filterState?.label ??
+          dataMask[chartConfig.id]?.filterState?.value ??
+          null;
         if (!Array.isArray(value) && value !== null) {
           value = [value];
         }
@@ -270,7 +263,6 @@ export const selectNativeIndicatorsForChart = (
           path: [`${chartConfig.id}`],
           status: getStatus({
             value,
-            isAffectedByScope,
             type: DataMaskType.CrossFilters,
           }),
           value,

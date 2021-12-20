@@ -19,17 +19,17 @@
 import React, { MouseEventHandler } from 'react';
 import { SupersetTheme } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
-import Icon, { IconProps } from 'src/components/Icon';
+import Icons, { IconType } from 'src/components/Icons';
 
 export interface RefreshLabelProps {
-  onClick: MouseEventHandler<SVGSVGElement>;
+  onClick: MouseEventHandler<HTMLSpanElement>;
   tooltipContent: string;
 }
 
 const RefreshLabel = ({ onClick, tooltipContent }: RefreshLabelProps) => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const IconWithoutRef = React.forwardRef((props: IconProps, ref: any) => (
-    <Icon {...props} />
+  const IconWithoutRef = React.forwardRef((props: IconType, ref: any) => (
+    <Icons.Refresh {...props} />
   ));
 
   return (
@@ -37,7 +37,6 @@ const RefreshLabel = ({ onClick, tooltipContent }: RefreshLabelProps) => {
       <IconWithoutRef
         role="button"
         onClick={onClick}
-        name="refresh"
         css={(theme: SupersetTheme) => ({
           cursor: 'pointer',
           color: theme.colors.grayscale.base,

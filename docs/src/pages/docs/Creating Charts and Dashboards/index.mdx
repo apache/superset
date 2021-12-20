@@ -172,3 +172,19 @@ into a position you like onto the underlying grid.
 Congrats! You’ve successfully linked, analyzed, and visualized data in Superset. There are a wealth
 of other table configuration and visualization options, so please start exploring and creating
 slices and dashboards of your own
+
+ֿ
+### Manage access to Dashboards
+
+
+Access to dashboards is managed via owners (users that have edit permissions to the dashboard)
+
+Non-owner users access can be managed two different ways:
+
+1. Dataset permissions - if you add to the relevant role permissions to datasets it automatically grants implict access to all dashboards that uses those permitted datasets
+2. Dashboard roles - if you enable **DASHBOARD_RBAC** feature flag  then you be able to manage which roles can access the dashboard
+- Having dashboard access implicitly grants read access to the associated datasets, therefore
+all charts will load their data even if feature flag is turned on and no roles assigned
+to roles the access will fallback to **Dataset permissions**
+
+<img src="/images/tutorial_dashboard_access.png" />

@@ -29,6 +29,7 @@ class DrillEngineSpec(BaseEngineSpec):
 
     engine = "drill"
     engine_name = "Apache Drill"
+    default_driver = "sadrill"
 
     _time_grain_expressions = {
         None: "{col}",

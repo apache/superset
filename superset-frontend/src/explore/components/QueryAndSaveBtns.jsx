@@ -93,6 +93,9 @@ export default function QueryAndSaveBtns({
         '& button': {
           width: 100,
         },
+        '.errMsg': {
+          marginLeft: theme.gridUnit * 4,
+        },
       }}
     >
       <ButtonGroup className="query-and-save">
@@ -110,7 +113,7 @@ export default function QueryAndSaveBtns({
         </Button>
       </ButtonGroup>
       {errorMessage && (
-        <span>
+        <span className="errMsg">
           {' '}
           <Tooltip
             id="query-error-tooltip"

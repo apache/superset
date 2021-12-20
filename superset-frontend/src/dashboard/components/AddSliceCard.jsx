@@ -19,7 +19,7 @@
 import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 
 const propTypes = {
   datasourceUrl: PropTypes.string,
@@ -41,6 +41,69 @@ const defaultProps = {
   lastModified: null,
 };
 
+const Styled = styled.div`
+  ${({ theme }) => `
+    .chart-card {
+      border: 1px solid ${theme.colors.grayscale.light2};
+      border-radius: ${theme.gridUnit}px;
+      background: ${theme.colors.grayscale.light5};
+      font-weight: ${theme.typography.weights.light};
+      padding: ${theme.gridUnit * 2}px;
+      margin: 0 ${theme.gridUnit * 3}px
+        ${theme.gridUnit * 3}px
+        ${theme.gridUnit * 3}px;
+      position: relative;
+      cursor: move;
+      white-space: nowrap;
+      overflow: hidden;
+
+      &:hover {
+        background: ${theme.colors.grayscale.light4};
+      }
+    }
+
+    .chart-card.is-selected {
+      cursor: not-allowed;
+      opacity: 0.4;
+    }
+
+    .card-title {
+      margin-right: 60px;
+      margin-bottom: ${theme.gridUnit * 2}px;
+      font-weight: ${theme.typography.weights.bold};
+    }
+
+    .card-body {
+      display: flex;
+      flex-direction: column;
+
+      .item {
+        span {
+          word-break: break-all;
+
+          &:first-child {
+            font-weight: ${theme.typography.weights.normal};
+          }
+        }
+      }
+    }
+
+    .is-added-label {
+      background: ${theme.colors.grayscale.base};
+      border-radius: ${theme.gridUnit}px;
+      color: ${theme.colors.grayscale.light5};
+      font-size: ${theme.typography.sizes.s}px;
+      text-transform: uppercase;
+      position: absolute;
+      padding: ${theme.gridUnit}px
+        ${theme.gridUnit * 2}px;
+      top: ${theme.gridUnit * 8}px;
+      right: ${theme.gridUnit * 8}px;
+      pointer-events: none;
+    }
+  `}
+`;
+
 function AddSliceCard({
   datasourceUrl,
   datasourceName,
@@ -52,7 +115,7 @@ function AddSliceCard({
   visType,
 }) {
   return (
-    <div ref={innerRef} className="chart-card-container" style={style}>
+    <Styled ref={innerRef} style={style}>
       <div
         className={cx('chart-card', isSelected && 'is-selected')}
         data-test="chart-card"
@@ -76,7 +139,7 @@ function AddSliceCard({
         </div>
       </div>
       {isSelected && <div className="is-added-label">{t('Added')}</div>}
-    </div>
+    </Styled>
   );
 }
 

@@ -47,7 +47,7 @@ can be altered in your local `superset_config.py`. Administrators will want to r
 to understand what can be configured locally as well as the default values in place.
 
 Since `superset_config.py` acts as a Flask configuration module, it can be used to alter the
-settings Flask itself, as well as Flask extensions like `flask-wtf`, `flask-cache`, `flask-migrate`,
+settings Flask itself, as well as Flask extensions like `flask-wtf`, `flask-caching`, `flask-migrate`,
 and `flask-appbuilder`. Flask App Builder, the web framework used by Superset, offers many
 configuration settings. Please consult the
 [Flask App Builder Documentation](https://flask-appbuilder.readthedocs.org/en/latest/config.html)
@@ -113,6 +113,8 @@ RequestHeader set X-Forwarded-Proto "https"
 Beyond FAB supported providers (Github, Twitter, LinkedIn, Google, Azure, etc), its easy to connect
 Superset with other OAuth2 Authorization Server implementations that support “code” authorization.
 
+Make sure the pip package [`Authlib`](https://authlib.org/) is installed on the webserver.
+
 First, configure authorization in Superset `superset_config.py`.
 
 ```python
@@ -134,7 +136,7 @@ OAUTH_PROVIDERS = [
             'access_token_headers':{    # Additional headers for calls to access_token_url
                 'Authorization': 'Basic Base64EncodedClientIdAndSecret'
             },
-            'base_url':'https://myAuthorizationServer/oauth2AuthorizationServer/',
+            'api_base_url':'https://myAuthorizationServer/oauth2AuthorizationServer/',
             'access_token_url':'https://myAuthorizationServer/oauth2AuthorizationServer/token',
             'authorize_url':'https://myAuthorizationServer/oauth2AuthorizationServer/authorize'
         }
@@ -152,6 +154,7 @@ Then, create a `CustomSsoSecurityManager` that extends `SupersetSecurityManager`
 `oauth_user_info`:
 
 ```python
+import logging
 from superset.security import SupersetSecurityManager
 
 class CustomSsoSecurityManager(SupersetSecurityManager):
@@ -174,6 +177,29 @@ This file must be located at the same directory than `superset_config.py` with t
 from custom_sso_security_manager import CustomSsoSecurityManager
 CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
 ```
+
+**Notes**
+
+- The redirect URL will be `https://<superset-webserver>/oauth-authorized/<provider-name>`
+  When configuring an OAuth2 authorization provider if needed. For instance, the redirect URL will
+  be `https://<superset-webserver>/oauth-authorized/egaSSO` for the above configuration.
+
+- If an OAuth2 authorization server supports OpenID Connect 1.0, you could configure its configuration
+  document URL only without providing `api_base_url`, `access_token_url`, `authorize_url` and other
+  required options like user info endpoint, jwks uri etc. For instance:
+  ```python
+  OAUTH_PROVIDERS = [
+    {   'name':'egaSSO',
+        'token_key':'access_token', # Name of the token in the response of access_token_url
+        'icon':'fa-address-card',   # Icon for the provider
+        'remote_app': {
+            'client_id':'myClientId',  # Client Id (Identify Superset application)
+            'client_secret':'MySecret', # Secret for this Client Id (Identify Superset application)
+            'server_metadata_url': 'https://myAuthorizationServer/.well-known/openid-configuration'
+        }
+    }
+  ]
+  ```
 
 ### Feature Flags
 

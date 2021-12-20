@@ -19,93 +19,81 @@
 import React from 'react';
 import { css, styled } from '@superset-ui/core';
 import AntDTabs, { TabsProps as AntDTabsProps } from 'antd/lib/tabs';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 
 export interface TabsProps extends AntDTabsProps {
   fullWidth?: boolean;
   allowOverflow?: boolean;
 }
 
-const notForwardedProps = ['fullWidth', 'allowOverflow'];
+const StyledTabs = ({
+  animated = false,
+  fullWidth = true,
+  allowOverflow = true,
+  ...props
+}: TabsProps) => (
+  <AntDTabs
+    animated={animated}
+    {...props}
+    css={theme => css`
+      overflow: ${allowOverflow ? 'visible' : 'hidden'};
 
-const StyledTabs = styled(AntDTabs, {
-  shouldForwardProp: prop => !notForwardedProps.includes(prop),
-})<TabsProps>`
-  overflow: ${({ allowOverflow }) => (allowOverflow ? 'visible' : 'hidden')};
-
-  .ant-tabs-content-holder {
-    overflow: ${({ allowOverflow }) => (allowOverflow ? 'visible' : 'auto')};
-  }
-
-  .ant-tabs-tab {
-    flex: 1 1 auto;
-
-    &.ant-tabs-tab-active .ant-tabs-tab-btn {
-      color: inherit;
-    }
-
-    &:hover {
-      .anchor-link-container {
-        cursor: pointer;
-
-        .fa.fa-link {
-          visibility: visible;
+      .ant-tabs-content-holder {
+        overflow: ${allowOverflow ? 'visible' : 'auto'};
+      }
+      .ant-tabs-tab {
+        flex: 1 1 auto;
+        &.ant-tabs-tab-active .ant-tabs-tab-btn {
+          color: inherit;
+        }
+        &:hover {
+          .anchor-link-container {
+            cursor: pointer;
+            .fa.fa-link {
+              visibility: visible;
+            }
+          }
+        }
+        .short-link-trigger.btn {
+          padding: 0 ${theme.gridUnit}px;
+          & > .fa.fa-link {
+            top: 0;
+          }
         }
       }
-    }
+      ${fullWidth &&
+      css`
+        .ant-tabs-nav-list {
+          width: 100%;
+        }
+      `};
 
-    .short-link-trigger.btn {
-      padding: 0 ${({ theme }) => theme.gridUnit}px;
-
-      & > .fa.fa-link {
-        top: 0;
+      .ant-tabs-tab-btn {
+        display: flex;
+        flex: 1 1 auto;
+        align-items: center;
+        justify-content: center;
+        font-size: ${theme.typography.sizes.s}px;
+        text-align: center;
+        text-transform: uppercase;
+        user-select: none;
+        .required {
+          margin-left: ${theme.gridUnit / 2}px;
+          color: ${theme.colors.error.base};
+        }
       }
-    }
-  }
-
-  ${({ fullWidth }) =>
-    fullWidth &&
-    css`
-      .ant-tabs-nav-list {
-        width: 100%;
+      .ant-tabs-ink-bar {
+        background: ${theme.colors.secondary.base};
       }
-
-      .ant-tabs-tab {
-        width: 0;
-      }
-    `};
-
-  .ant-tabs-tab-btn {
-    display: flex;
-    flex: 1 1 auto;
-    align-items: center;
-    justify-content: center;
-    font-size: ${({ theme }) => theme.typography.sizes.s}px;
-    text-align: center;
-    text-transform: uppercase;
-    user-select: none;
-
-    .required {
-      margin-left: ${({ theme }) => theme.gridUnit / 2}px;
-      color: ${({ theme }) => theme.colors.error.base};
-    }
-  }
-
-  .ant-tabs-ink-bar {
-    background: ${({ theme }) => theme.colors.secondary.base};
-  }
-`;
+    `}
+  />
+);
 
 const StyledTabPane = styled(AntDTabs.TabPane)``;
 
 const Tabs = Object.assign(StyledTabs, {
   TabPane: StyledTabPane,
 });
-
-Tabs.defaultProps = {
-  fullWidth: true,
-  animated: true,
-};
 
 const StyledEditableTabs = styled(StyledTabs)`
   .ant-tabs-content-holder {
@@ -131,6 +119,9 @@ const StyledEditableTabs = styled(StyledTabs)`
     `}
 `;
 
+const StyledCancelXIcon = styled(Icons.CancelX)`
+  color: ${({ theme }) => theme.colors.grayscale.base};
+`;
 export const EditableTabs = Object.assign(StyledEditableTabs, {
   TabPane: StyledTabPane,
 });
@@ -138,12 +129,11 @@ export const EditableTabs = Object.assign(StyledEditableTabs, {
 EditableTabs.defaultProps = {
   type: 'editable-card',
   fullWidth: false,
+  animated: { inkBar: true, tabPane: false },
 };
 
 EditableTabs.TabPane.defaultProps = {
-  closeIcon: (
-    <Icon role="button" tabIndex={0} cursor="pointer" name="cancel-x" />
-  ),
+  closeIcon: <StyledCancelXIcon role="button" tabIndex={0} />,
 };
 
 export const StyledLineEditableTabs = styled(EditableTabs)`

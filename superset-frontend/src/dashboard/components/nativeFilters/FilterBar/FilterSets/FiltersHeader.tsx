@@ -17,10 +17,10 @@
  * under the License.
  */
 import React, { FC } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { styled, t, useTheme } from '@superset-ui/core';
 import { Collapse, Typography, Tooltip } from 'src/common/components';
 import { DataMaskState } from 'src/dataMask/types';
-import { CaretDownOutlined } from '@ant-design/icons';
+import Icons from 'src/components/Icons';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { FilterSet } from 'src/dashboard/reducers/types';
 import { getFilterValueForDisplay } from './utils';
@@ -55,12 +55,18 @@ const StyledCollapse = styled(Collapse)`
   }
 `;
 
+const StyledFilterRow = styled.div`
+  padding-top: ${({ theme }) => theme.gridUnit}px;
+  padding-bottom: ${({ theme }) => theme.gridUnit}px;
+`;
+
 export type FiltersHeaderProps = {
   dataMask?: DataMaskState;
   filterSet?: FilterSet;
 };
 
 const FiltersHeader: FC<FiltersHeaderProps> = ({ dataMask, filterSet }) => {
+  const theme = useTheme();
   const filters = useFilters();
   const filterValues = Object.values(filters);
 
@@ -98,7 +104,7 @@ const FiltersHeader: FC<FiltersHeaderProps> = ({ dataMask, filterSet }) => {
         placement="bottomLeft"
         key={id}
       >
-        <div data-test="filter-info">
+        <StyledFilterRow data-test="filter-info">
           <Typography.Text strong delete={removedFilter} mark={changedFilter}>
             {name}:&nbsp;
           </Typography.Text>
@@ -107,9 +113,15 @@ const FiltersHeader: FC<FiltersHeaderProps> = ({ dataMask, filterSet }) => {
               <Typography.Text type="secondary">{t('None')}</Typography.Text>
             )}
           </Typography.Text>
-        </div>
+        </StyledFilterRow>
       </Tooltip>
     );
+  };
+
+  const getExpandIcon = ({ isActive }: { isActive: boolean }) => {
+    const color = theme.colors.grayscale.base;
+    const Icon = isActive ? Icons.CaretUpOutlined : Icons.CaretDownOutlined;
+    return <Icon iconColor={color} />;
   };
 
   return (
@@ -117,9 +129,7 @@ const FiltersHeader: FC<FiltersHeaderProps> = ({ dataMask, filterSet }) => {
       ghost
       expandIconPosition="right"
       defaultActiveKey={!filterSet ? ['filters'] : undefined}
-      expandIcon={({ isActive }: { isActive: boolean }) => (
-        <CaretDownOutlined rotate={isActive ? 0 : 180} />
-      )}
+      expandIcon={getExpandIcon}
     >
       <Collapse.Panel
         {...getFilterBarTestId('collapse-filter-set-description')}

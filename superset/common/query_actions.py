@@ -157,6 +157,10 @@ _result_type_functions: Dict[
     ChartDataResultType.SAMPLES: _get_samples,
     ChartDataResultType.FULL: _get_full,
     ChartDataResultType.RESULTS: _get_results,
+    # for requests for post-processed data we return the full results,
+    # and post-process it later where we have the chart context, since
+    # post-processing is unique to each visualization type
+    ChartDataResultType.POST_PROCESSED: _get_full,
 }
 
 
@@ -180,5 +184,5 @@ def get_query_results(
     if result_func:
         return result_func(query_context, query_obj, force_cached)
     raise QueryObjectValidationError(
-        _("Invalid result type: %(result_type)", result_type=result_type)
+        _("Invalid result type: %(result_type)s", result_type=result_type)
     )

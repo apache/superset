@@ -20,10 +20,15 @@ import React from 'react';
 import { shallow } from 'enzyme';
 import { supersetTheme } from '@superset-ui/core';
 import { Provider } from 'react-redux';
+import { Store } from 'redux';
 import * as SupersetUI from '@superset-ui/core';
-import { CHART_UPDATE_SUCCEEDED } from 'src/chart/chartAction';
+import { styledMount as mount } from 'spec/helpers/theming';
+import {
+  CHART_RENDERING_SUCCEEDED,
+  CHART_UPDATE_SUCCEEDED,
+} from 'src/chart/chartAction';
 import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
-import FiltersBadge from 'src/dashboard/containers/FiltersBadge';
+import { FiltersBadge } from 'src/dashboard/components/FiltersBadge';
 import {
   getMockStoreWithFilters,
   getMockStoreWithNativeFilters,
@@ -33,6 +38,15 @@ import { dashboardFilters } from 'spec/fixtures/mockDashboardFilters';
 import { dashboardWithFilter } from 'spec/fixtures/mockDashboardLayout';
 import Icons from 'src/components/Icons';
 import { FeatureFlag } from 'src/featureFlags';
+
+const defaultStore = getMockStoreWithFilters();
+function setup(store: Store = defaultStore) {
+  return mount(
+    <Provider store={store}>
+      <FiltersBadge chartId={sliceId} />
+    </Provider>,
+  );
+}
 
 describe('FiltersBadge', () => {
   // there's this bizarre "active filters" thing
@@ -71,9 +85,7 @@ describe('FiltersBadge', () => {
           <FiltersBadge chartId={sliceId} />,
         </Provider>,
       );
-      expect(
-        wrapper.dive().find('[data-test="applied-filter-count"]'),
-      ).not.toExist();
+      expect(wrapper.find('[data-test="applied-filter-count"]')).not.toExist();
     });
 
     it('shows the indicator when filters have been applied', () => {
@@ -91,14 +103,13 @@ describe('FiltersBadge', () => {
         ],
         dashboardFilters,
       });
-      const wrapper = shallow(
-        <FiltersBadge {...{ store }} chartId={sliceId} />,
-      ).dive();
-      expect(wrapper.dive().find('DetailsPanelPopover')).toExist();
-      expect(
-        wrapper.dive().find('[data-test="applied-filter-count"]'),
-      ).toHaveText('1');
-      expect(wrapper.dive().find('WarningFilled')).not.toExist();
+      store.dispatch({ type: CHART_RENDERING_SUCCEEDED, key: sliceId });
+      const wrapper = setup(store);
+      expect(wrapper.find('DetailsPanelPopover')).toExist();
+      expect(wrapper.find('[data-test="applied-filter-count"]')).toHaveText(
+        '1',
+      );
+      expect(wrapper.find('WarningFilled')).not.toExist();
     });
 
     it("shows a warning when there's a rejected filter", () => {
@@ -118,19 +129,18 @@ describe('FiltersBadge', () => {
         ],
         dashboardFilters,
       });
-      const wrapper = shallow(
-        <FiltersBadge {...{ store }} chartId={sliceId} />,
-      ).dive();
-      expect(wrapper.dive().find('DetailsPanelPopover')).toExist();
+      store.dispatch({ type: CHART_RENDERING_SUCCEEDED, key: sliceId });
+      const wrapper = setup(store);
+      expect(wrapper.find('DetailsPanelPopover')).toExist();
+      expect(wrapper.find('[data-test="applied-filter-count"]')).toHaveText(
+        '0',
+      );
       expect(
-        wrapper.dive().find('[data-test="applied-filter-count"]'),
-      ).toHaveText('0');
-      expect(
-        wrapper.dive().find('[data-test="incompatible-filter-count"]'),
+        wrapper.find('[data-test="incompatible-filter-count"]'),
       ).toHaveText('1');
       // to look at the shape of the wrapper use:
-      // console.log(wrapper.dive().debug())
-      expect(wrapper.dive().find(Icons.AlertSolid)).toExist();
+      // console.log(wrapper.debug())
+      expect(wrapper.find(Icons.AlertSolid)).toExist();
     });
   });
 
@@ -149,14 +159,9 @@ describe('FiltersBadge', () => {
           },
         ],
       });
-      const wrapper = shallow(
-        <Provider store={store}>
-          <FiltersBadge chartId={sliceId} />,
-        </Provider>,
-      );
-      expect(
-        wrapper.dive().find('[data-test="applied-filter-count"]'),
-      ).not.toExist();
+      store.dispatch({ type: CHART_RENDERING_SUCCEEDED, key: sliceId });
+      const wrapper = setup(store);
+      expect(wrapper.find('[data-test="applied-filter-count"]')).not.toExist();
     });
 
     it('shows the indicator when filters have been applied', () => {
@@ -177,14 +182,13 @@ describe('FiltersBadge', () => {
           },
         ],
       });
-      const wrapper = shallow(
-        <FiltersBadge {...{ store }} chartId={sliceId} />,
-      ).dive();
-      expect(wrapper.dive().find('DetailsPanelPopover')).toExist();
-      expect(
-        wrapper.dive().find('[data-test="applied-filter-count"]'),
-      ).toHaveText('1');
-      expect(wrapper.dive().find('WarningFilled')).not.toExist();
+      store.dispatch({ type: CHART_RENDERING_SUCCEEDED, key: sliceId });
+      const wrapper = setup(store);
+      expect(wrapper.find('DetailsPanelPopover')).toExist();
+      expect(wrapper.find('[data-test="applied-filter-count"]')).toHaveText(
+        '1',
+      );
+      expect(wrapper.find('WarningFilled')).not.toExist();
     });
 
     it("shows a warning when there's a rejected filter", () => {
@@ -207,17 +211,16 @@ describe('FiltersBadge', () => {
           },
         ],
       });
-      const wrapper = shallow(
-        <FiltersBadge {...{ store }} chartId={sliceId} />,
-      ).dive();
-      expect(wrapper.dive().find('DetailsPanelPopover')).toExist();
+      store.dispatch({ type: CHART_RENDERING_SUCCEEDED, key: sliceId });
+      const wrapper = setup(store);
+      expect(wrapper.find('DetailsPanelPopover')).toExist();
+      expect(wrapper.find('[data-test="applied-filter-count"]')).toHaveText(
+        '0',
+      );
       expect(
-        wrapper.dive().find('[data-test="applied-filter-count"]'),
-      ).toHaveText('0');
-      expect(
-        wrapper.dive().find('[data-test="incompatible-filter-count"]'),
+        wrapper.find('[data-test="incompatible-filter-count"]'),
       ).toHaveText('1');
-      expect(wrapper.dive().find(Icons.AlertSolid)).toExist();
+      expect(wrapper.find(Icons.AlertSolid)).toExist();
     });
   });
 });

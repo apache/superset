@@ -17,8 +17,9 @@
  * under the License.
  */
 import React from 'react';
+import { useTheme } from '@superset-ui/core';
 import Button from 'src/components/Button';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
 import CopyToClipboard from '.';
 
@@ -28,9 +29,10 @@ export default {
 };
 
 export const InteractiveCopyToClipboard = ({ copyNode, ...rest }: any) => {
+  const theme = useTheme();
   let node = <Button>Copy</Button>;
   if (copyNode === 'Icon') {
-    node = <Icon name="copy" />;
+    node = <Icons.Copy iconColor={theme.colors.grayscale.base} />;
   } else if (copyNode === 'Text') {
     node = <span role="button">Copy</span>;
   }

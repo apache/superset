@@ -26,7 +26,7 @@ import {
   HeaderContainer,
 } from 'src/explore/components/controls/OptionControls';
 import { DatasourcePanelDndItem } from 'src/explore/components/DatasourcePanel/types';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import { DndColumnSelectProps } from './types';
 
 export default function DndSelectLabel<T, O>({
@@ -54,7 +54,7 @@ export default function DndSelectLabel<T, O>({
   function renderGhostButton() {
     return (
       <AddControlLabel cancelHover>
-        <Icon name="plus-small" color={theme.colors.grayscale.light1} />
+        <Icons.PlusSmall iconColor={theme.colors.grayscale.light1} />
         {t(props.ghostButtonText || 'Drop columns')}
       </AddControlLabel>
     );

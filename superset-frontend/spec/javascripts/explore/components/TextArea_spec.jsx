@@ -18,10 +18,10 @@
  */
 /* eslint-disable no-unused-expressions */
 import React from 'react';
-import { FormControl } from 'react-bootstrap';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
 import { TextAreaEditor } from 'src/components/AsyncAceEditor';
+import { TextArea } from 'src/common/components';
 
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 
@@ -38,11 +38,11 @@ describe('SelectControl', () => {
   });
 
   it('renders a FormControl', () => {
-    expect(wrapper.find(FormControl)).toExist();
+    expect(wrapper.find(TextArea)).toExist();
   });
 
   it('calls onChange when toggled', () => {
-    const select = wrapper.find(FormControl);
+    const select = wrapper.find(TextArea);
     select.simulate('change', { target: { value: 'x' } });
     expect(defaultProps.onChange.calledWith('x')).toBe(true);
   });
@@ -51,7 +51,7 @@ describe('SelectControl', () => {
     const props = { ...defaultProps };
     props.language = 'markdown';
     wrapper = shallow(<TextAreaControl {...props} />);
-    expect(wrapper.find(FormControl)).not.toExist();
+    expect(wrapper.find(TextArea)).not.toExist();
     expect(wrapper.find(TextAreaEditor)).toExist();
   });
 });

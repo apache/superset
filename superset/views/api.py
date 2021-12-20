@@ -25,8 +25,8 @@ from flask_appbuilder.security.decorators import has_access_api
 
 from superset import db, event_logger
 from superset.charts.commands.exceptions import (
+    TimeRangeAmbiguousError,
     TimeRangeParseFailError,
-    TimeRangeUnclearError,
 )
 from superset.common.query_context import QueryContext
 from superset.legacy import update_time_range
@@ -97,6 +97,6 @@ class Api(BaseSupersetView):
                 "timeRange": time_range,
             }
             return self.json_response({"result": result})
-        except (ValueError, TimeRangeParseFailError, TimeRangeUnclearError) as error:
+        except (ValueError, TimeRangeParseFailError, TimeRangeAmbiguousError) as error:
             error_msg = {"message": f"Unexpected time range: {error}"}
             return self.json_response(error_msg, 400)

@@ -38,7 +38,7 @@ describe('Dashboard filter', () => {
       cy.get('.Select__placeholder:first').click();
 
       // should show the filter indicator
-      cy.get('svg[data-test="filter"]:visible').should(nodes => {
+      cy.get('span[aria-label="filter"]:visible').should(nodes => {
         expect(nodes.length).to.least(9);
       });
 
@@ -50,7 +50,7 @@ describe('Dashboard filter', () => {
       cy.get('.Select__menu').first().contains('South Asia').click();
 
       // should still have all filter indicators
-      cy.get('svg[data-test="filter"]:visible').should(nodes => {
+      cy.get('span[aria-label="filter"]:visible').should(nodes => {
         expect(nodes.length).to.least(9);
       });
 
@@ -70,8 +70,8 @@ describe('Dashboard filter', () => {
           }
           expect(requestFilter).deep.eq({
             col: 'region',
-            op: '==',
-            val: 'South Asia',
+            op: 'IN',
+            val: ['South Asia'],
           });
         });
       });

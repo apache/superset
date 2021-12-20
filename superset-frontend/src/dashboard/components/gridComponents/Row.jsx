@@ -20,18 +20,18 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 
-import DragDroppable from '../dnd/DragDroppable';
-import DragHandle from '../dnd/DragHandle';
-import DashboardComponent from '../../containers/DashboardComponent';
-import DeleteComponentButton from '../DeleteComponentButton';
-import HoverMenu from '../menu/HoverMenu';
-import IconButton from '../IconButton';
-import BackgroundStyleDropdown from '../menu/BackgroundStyleDropdown';
-import WithPopoverMenu from '../menu/WithPopoverMenu';
-
-import { componentShape } from '../../util/propShapes';
-import backgroundStyleOptions from '../../util/backgroundStyleOptions';
-import { BACKGROUND_TRANSPARENT } from '../../util/constants';
+import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import DragHandle from 'src/dashboard/components/dnd/DragHandle';
+import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
+import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
+import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
+import Icons from 'src/components/Icons';
+import IconButton from 'src/dashboard/components/IconButton';
+import BackgroundStyleDropdown from 'src/dashboard/components/menu/BackgroundStyleDropdown';
+import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
+import { componentShape } from 'src/dashboard/util/propShapes';
+import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
+import { BACKGROUND_TRANSPARENT } from 'src/dashboard/util/constants';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -149,7 +149,7 @@ class Row extends React.PureComponent {
                 <DeleteComponentButton onDelete={this.handleDeleteComponent} />
                 <IconButton
                   onClick={this.handleChangeFocus}
-                  className="fa fa-cog"
+                  icon={<Icons.Cog iconSize="xl" />}
                 />
               </HoverMenu>
             )}

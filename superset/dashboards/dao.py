@@ -71,7 +71,8 @@ class DashboardDAO(BaseDAO):
             if isinstance(id_or_slug_or_dashboard, str)
             else id_or_slug_or_dashboard
         )
-        return dashboard.changed_on
+        # drop microseconds in datetime to match with last_modified header
+        return dashboard.changed_on.replace(microsecond=0)
 
     @staticmethod
     def get_dashboard_and_slices_changed_on(  # pylint: disable=invalid-name
@@ -91,7 +92,11 @@ class DashboardDAO(BaseDAO):
             else id_or_slug_or_dashboard
         )
         dashboard_changed_on = DashboardDAO.get_dashboard_changed_on(dashboard)
-        slices_changed_on = max([slc.changed_on for slc in dashboard.slices])
+        slices = dashboard.slices
+        slices_changed_on = max(
+            [slc.changed_on for slc in slices]
+            + ([datetime.fromtimestamp(0)] if len(slices) == 0 else [])
+        )
         # drop microseconds in datetime to match with last_modified header
         return max(dashboard_changed_on, slices_changed_on).replace(microsecond=0)
 
@@ -113,8 +118,10 @@ class DashboardDAO(BaseDAO):
             else id_or_slug_or_dashboard
         )
         dashboard_changed_on = DashboardDAO.get_dashboard_changed_on(dashboard)
+        datasources = dashboard.datasources
         datasources_changed_on = max(
-            [datasource.changed_on for datasource in dashboard.datasources]
+            [datasource.changed_on for datasource in datasources]
+            + ([datetime.fromtimestamp(0)] if len(datasources) == 0 else [])
         )
         # drop microseconds in datetime to match with last_modified header
         return max(dashboard_changed_on, datasources_changed_on).replace(microsecond=0)

@@ -20,7 +20,7 @@ import React from 'react';
 import cx from 'classnames';
 import { styled, useTheme } from '@superset-ui/core';
 import { Dropdown, Menu } from 'src/common/components';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 
 export interface OptionProps {
   value: string;
@@ -109,7 +109,10 @@ const PopoverDropdown = (props: PopoverDropdownProps) => {
     >
       <div role="button" css={{ display: 'flex', alignItems: 'center' }}>
         {selected && renderButton(selected)}
-        <Icon name="caret-down" css={{ marginTop: theme.gridUnit }} />
+        <Icons.CaretDown
+          iconColor={theme.colors.grayscale.base}
+          css={{ marginTop: theme.gridUnit * 0.5 }}
+        />
       </div>
     </Dropdown>
   );

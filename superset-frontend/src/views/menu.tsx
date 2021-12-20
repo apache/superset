@@ -21,7 +21,7 @@
 // eg, backend rendered views
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { CacheProvider } from '@emotion/core';
+import { CacheProvider } from '@emotion/react';
 import createCache from '@emotion/cache';
 import { ThemeProvider } from '@superset-ui/core';
 import Menu from 'src/components/Menu/Menu';
