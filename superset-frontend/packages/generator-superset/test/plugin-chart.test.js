@@ -49,6 +49,7 @@ test('generator-superset:plugin-chart:creates files', () =>
         'src/ColdMap.tsx',
         'src/index.ts',
         'test/index.test.ts',
+        'test/__mocks__/mockExportString.js',
         'test/plugin/buildQuery.test.ts',
         'test/plugin/transformProps.test.ts',
         'types/external.d.ts',
