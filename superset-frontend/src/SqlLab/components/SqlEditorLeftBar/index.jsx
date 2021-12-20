@@ -89,33 +89,33 @@ export default function SqlEditorLeftBar(props) {
     props.actions.setDatabases(dbs);
   };
 
-  const dbMutator = data => {
-    const options = data.result.map(db => ({
-      value: db.id,
-      label: db.database_name,
-    }));
-    props.actions.setDatabases(data.result);
-    if (data.result.length === 0) {
-      props.actions.addDangerToast(
-        t("It seems you don't have access to any database"),
-      );
-    }
-    return options;
-  };
+  // const dbMutator = data => {
+  //   const options = data.result.map(db => ({
+  //     value: db.id,
+  //     label: db.database_name,
+  //   }));
+  //   props.actions.setDatabases(data.result);
+  //   if (data.result.length === 0) {
+  //     props.actions.addDangerToast(
+  //       t("It seems you don't have access to any database"),
+  //     );
+  //   }
+  //   return options;
+  // };
 
   const resetState = () => {
     props.actions.resetState();
   };
 
-  const changeTable = tableOpt => {
-    if (!tableOpt) {
-      return;
-    }
-    const schemaName = tableOpt.value.schema;
-    const tableName = tableOpt.value.table;
-    props.actions.queryEditorSetSchema(props.queryEditor, schemaName);
-    props.actions.addTable(props.queryEditor, tableName, schemaName);
-  };
+  // const changeTable = tableOpt => {
+  //   if (!tableOpt) {
+  //     return;
+  //   }
+  //   const schemaName = tableOpt.value.schema;
+  //   const tableName = tableOpt.value.table;
+  //   props.actions.queryEditorSetSchema(props.queryEditor, schemaName);
+  //   props.actions.addTable(props.queryEditor, tableName, schemaName);
+  // };
 
   const renderExpandIconWithTooltip = ({ isActive }) => (
     <IconTooltip
@@ -139,6 +139,10 @@ export default function SqlEditorLeftBar(props) {
   const shouldShowReset = window.location.search === '?reset=1';
   const tableMetaDataHeight = props.height - 130; // 130 is the height of the selects above
   const qe = props.queryEditor;
+
+  // console.log(props.database, 'DATABASE IN EDITOR LEFT');
+  // console.log(props.tables, 'TABLES');
+
   return (
     <div className="SqlEditorLeftBar">
       <TableSelector
