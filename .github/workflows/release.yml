@@ -55,9 +55,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Build packages
-        run: npm run build
+        run: npm run plugins:build
       - name: Run unit tests
-        run: npm run test
+        run: npm run test -- plugins packages
 
       - name: Configure npm and git
         run: |
@@ -75,7 +75,7 @@ jobs:
       - name: Bump version and publish package(s)
         run: |
           git tag -d `git tag | grep -E '^trigger-'`
-          npm run ci:release-from-tag
+          npm run plugins:release-from-tag
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
