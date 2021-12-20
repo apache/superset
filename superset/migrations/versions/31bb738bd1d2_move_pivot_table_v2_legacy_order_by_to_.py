@@ -59,7 +59,7 @@ def upgrade():
             params = json.loads(slc.params)
             legacy_order_by = params.pop("legacy_order_by", None)
             if legacy_order_by:
-                params["timeseries_limit_metric"] = legacy_order_by
+                params["series_limit_metric"] = legacy_order_by
             slc.params = json.dumps(params, sort_keys=True)
         except Exception as e:
             logger.exception(
@@ -80,9 +80,9 @@ def downgrade():
     for slc in slices:
         try:
             params = json.loads(slc.params)
-            timeseries_limit_metric = params.pop("timeseries_limit_metric", None)
-            if timeseries_limit_metric:
-                params["legacy_order_by"] = timeseries_limit_metric
+            series_limit_metric = params.pop("series_limit_metric", None)
+            if series_limit_metric:
+                params["legacy_order_by"] = series_limit_metric
             slc.params = json.dumps(params, sort_keys=True)
         except Exception as e:
             logger.exception(

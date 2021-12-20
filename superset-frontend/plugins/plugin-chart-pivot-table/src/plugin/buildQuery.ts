@@ -19,8 +19,8 @@
 import {
   buildQueryContext,
   ensureIsArray,
-  normalizeOrderBy,
   QueryFormColumn,
+  QueryFormOrderBy,
 } from '@superset-ui/core';
 import { PivotTableQueryFormData } from '../types';
 
@@ -31,11 +31,21 @@ export default function buildQuery(formData: PivotTableQueryFormData) {
     ...ensureIsArray<QueryFormColumn>(groupbyColumns),
     ...ensureIsArray<QueryFormColumn>(groupbyRows),
   ]);
-  return buildQueryContext(formData, baseQueryObject => [
-    {
-      ...baseQueryObject,
-      orderby: normalizeOrderBy(baseQueryObject).orderby,
-      columns: [...groupbySet],
-    },
-  ]);
+  return buildQueryContext(formData, baseQueryObject => {
+    const { series_limit_metric, metrics, order_desc } = baseQueryObject;
+    let orderBy: QueryFormOrderBy[] | undefined;
+    if (series_limit_metric) {
+      orderBy = [[series_limit_metric, !order_desc]];
+    }
+    if (Array.isArray(metrics) && metrics[0]) {
+      orderBy = [[metrics[0], !order_desc]];
+    }
+    return [
+      {
+        ...baseQueryObject,
+        orderby: orderBy,
+        columns: [...groupbySet],
+      },
+    ];
+  });
 }

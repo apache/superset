@@ -89,7 +89,7 @@ const config: ControlPanelConfig = {
         ],
         ['adhoc_filters'],
         emitFilterControl,
-        ['limit'],
+        ['series_limit'],
         [
           {
             name: 'row_limit',
@@ -102,9 +102,9 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'timeseries_limit_metric',
+            name: 'series_limit_metric',
             config: {
-              ...sharedControls.timeseries_limit_metric,
+              ...sharedControls.series_limit_metric,
               description: t(
                 'Metric used to define how the top series are sorted if a series or cell limit is present. ' +
                   'If undefined reverts to the first metric (where appropriate).',
