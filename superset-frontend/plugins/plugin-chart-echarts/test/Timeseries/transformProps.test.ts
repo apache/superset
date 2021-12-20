@@ -27,7 +27,6 @@ import {
   AnnotationSourceType,
 } from '@superset-ui/core';
 import transformProps from '../../src/Timeseries/transformProps';
-import { EchartsTimeseriesChartProps } from '../../src/Timeseries/types';
 
 describe('EchartsTimeseries transformProps', () => {
   const formData = {
@@ -53,8 +52,8 @@ describe('EchartsTimeseries transformProps', () => {
   };
 
   it('should tranform chart props for viz', () => {
-    const chartProps: unknown = new ChartProps(chartPropsConfig);
-    expect(transformProps(chartProps as EchartsTimeseriesChartProps)).toEqual(
+    const chartProps = new ChartProps(chartPropsConfig);
+    expect(transformProps(chartProps)).toEqual(
       expect.objectContaining({
         width: 800,
         height: 600,
@@ -92,14 +91,14 @@ describe('EchartsTimeseries transformProps', () => {
       showLabel: true,
       show: true,
     };
-    const chartProps: unknown = new ChartProps({
+    const chartProps = new ChartProps({
       ...chartPropsConfig,
       formData: {
         ...formData,
         annotationLayers: [formula],
       },
     });
-    expect(transformProps(chartProps as EchartsTimeseriesChartProps)).toEqual(
+    expect(transformProps(chartProps)).toEqual(
       expect.objectContaining({
         width: 800,
         height: 600,
@@ -170,7 +169,7 @@ describe('EchartsTimeseries transformProps', () => {
       titleColumn: '',
       value: 3,
     };
-    const chartProps: unknown = new ChartProps({
+    const chartProps = new ChartProps({
       ...chartPropsConfig,
       formData: {
         ...formData,
@@ -227,7 +226,7 @@ describe('EchartsTimeseries transformProps', () => {
         },
       ],
     });
-    expect(transformProps(chartProps as EchartsTimeseriesChartProps)).toEqual(
+    expect(transformProps(chartProps)).toEqual(
       expect.objectContaining({
         echartOptions: expect.objectContaining({
           legend: expect.objectContaining({
@@ -327,11 +326,10 @@ describe('Does transformProps transform series correctly', () => {
   );
 
   it('should show labels when showValue is true', () => {
-    const chartProps: unknown = new ChartProps(chartPropsConfig);
+    const chartProps = new ChartProps(chartPropsConfig);
 
-    const transformedSeries = transformProps(
-      chartProps as EchartsTimeseriesChartProps,
-    ).echartOptions.series as seriesType[];
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as seriesType[];
 
     transformedSeries.forEach(series => {
       expect(series.label.show).toBe(true);
@@ -344,11 +342,10 @@ describe('Does transformProps transform series correctly', () => {
       formData: { ...formData, showValue: false },
     };
 
-    const chartProps: unknown = new ChartProps(updatedChartPropsConfig);
+    const chartProps = new ChartProps(updatedChartPropsConfig);
 
-    const transformedSeries = transformProps(
-      chartProps as EchartsTimeseriesChartProps,
-    ).echartOptions.series as seriesType[];
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as seriesType[];
 
     transformedSeries.forEach(series => {
       expect(series.label.show).toBe(false);
@@ -361,11 +358,10 @@ describe('Does transformProps transform series correctly', () => {
       formData: { ...formData, onlyTotal: true },
     };
 
-    const chartProps: unknown = new ChartProps(updatedChartPropsConfig);
+    const chartProps = new ChartProps(updatedChartPropsConfig);
 
-    const transformedSeries = transformProps(
-      chartProps as EchartsTimeseriesChartProps,
-    ).echartOptions.series as seriesType[];
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as seriesType[];
 
     const showValueIndexes: number[] = [];
 
@@ -401,14 +397,13 @@ describe('Does transformProps transform series correctly', () => {
   });
 
   it('should show labels on values >= percentageThreshold if onlyTotal is false', () => {
-    const chartProps: unknown = new ChartProps(chartPropsConfig);
+    const chartProps = new ChartProps(chartPropsConfig);
 
-    const transformedSeries = transformProps(
-      chartProps as EchartsTimeseriesChartProps,
-    ).echartOptions.series as seriesType[];
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as seriesType[];
 
     const expectedThresholds = totalStackedValues.map(
-      total => (formData.percentageThreshold / 100) * total,
+      total => (formData.percentageThreshold || 0 / 100) * total,
     );
 
     transformedSeries.forEach((series, seriesIndex) => {
@@ -432,11 +427,10 @@ describe('Does transformProps transform series correctly', () => {
       formData: { ...formData, stack: false },
     };
 
-    const chartProps: unknown = new ChartProps(updatedChartPropsConfig);
+    const chartProps = new ChartProps(updatedChartPropsConfig);
 
-    const transformedSeries = transformProps(
-      chartProps as EchartsTimeseriesChartProps,
-    ).echartOptions.series as seriesType[];
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as seriesType[];
 
     transformedSeries.forEach((series, seriesIndex) => {
       expect(series.label.show).toBe(true);

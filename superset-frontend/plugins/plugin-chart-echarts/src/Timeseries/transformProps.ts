@@ -142,7 +142,7 @@ export default function transformProps(
       return prev + (value as number);
     }, 0);
     totalStackedValues.push(values);
-    thresholdValues.push((percentageThreshold / 100) * values);
+    thresholdValues.push((percentageThreshold || 0 / 100) * values);
   });
 
   if (stack) {
