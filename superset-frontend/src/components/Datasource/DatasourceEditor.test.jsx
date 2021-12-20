@@ -78,7 +78,7 @@ describe('DatasourceEditor', () => {
     });
     userEvent.click(getToggles[0]);
     const getTextboxes = screen.getAllByRole('textbox');
-    expect(getTextboxes.length).toEqual(5);
+    expect(getTextboxes.length).toEqual(12);
 
     const inputLabel = screen.getByPlaceholderText('Label');
     const inputDescription = screen.getByPlaceholderText('Description');
@@ -122,10 +122,9 @@ describe('DatasourceEditor', () => {
     });
     expect(addBtn).toBeInTheDocument();
     userEvent.click(addBtn);
-    const newColumn = screen.getByRole('button', {
-      name: /<new column>/i,
-    });
-    expect(newColumn).toBeInTheDocument();
+    // newColumn (Column name) is the first textbox in the tab
+    const newColumn = screen.getAllByRole('textbox', { name: '' })[0];
+    expect(newColumn).toHaveValue('<new column>');
   });
 
   it('renders isSqla fields', () => {
