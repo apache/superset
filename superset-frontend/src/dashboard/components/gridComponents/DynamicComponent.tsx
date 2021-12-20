@@ -35,6 +35,13 @@ import DeleteComponentButton from '../DeleteComponentButton';
 import BackgroundStyleDropdown from '../menu/BackgroundStyleDropdown';
 import dashboardComponents from '../../../visualizations/presets/dashboardComponents';
 import { RootState } from '../../types';
+import { NativeFiltersState } from '../../reducers/types';
+import { DataMaskStateWithId } from '../../../dataMask/types';
+
+type DashboardData = {
+  nativeFilters: NativeFiltersState;
+  dataMask: DataMaskStateWithId;
+};
 
 type FilterSummaryType = {
   component: JsonObject;
@@ -99,12 +106,10 @@ const DynamicComponent: FC<FilterSummaryType> = ({
 
   const { Component } = dashboardComponents.get(component.meta.componentKey);
 
-  const dashboardData = useSelector<RootState>(
-    ({ nativeFilters, dataMask, charts, dashboardInfo }) => ({
+  const dashboardData = useSelector<RootState, DashboardData>(
+    ({ nativeFilters, dataMask }) => ({
       nativeFilters,
       dataMask,
-      charts,
-      dashboardInfo,
     }),
   );
 
