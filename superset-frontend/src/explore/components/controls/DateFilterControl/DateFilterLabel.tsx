@@ -230,11 +230,6 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         ) {
           setActualTimeRange(guessedFrame);
           setTooltipTitle(actualRange || '');
-          setTooltipTitle(
-            type === ('error' as Type)
-              ? t('Default value is required')
-              : actualRange || '',
-          );
         } else {
           setActualTimeRange(actualRange || '');
           setTooltipTitle(value || '');

@@ -168,6 +168,11 @@ export const StyledLabel = styled.span`
   text-transform: uppercase;
 `;
 
+export const StyledCheckboxFormItem = styled(FormItem)`
+  margin-bottom: 0;
+`;
+
+
 const CleanFormItem = styled(FormItem)`
   margin-bottom: 0;
 `;

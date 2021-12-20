@@ -209,14 +209,7 @@ export default function DataSourcePanel({
     });
     setInputValue('');
   }, [columns, datasource, metrics]);
-
-  const metricSlice = showAllMetrics
-    ? lists.metrics
-    : lists.metrics.slice(0, DEFAULT_MAX_COLUMNS_LENGTH);
-  const columnSlice = showAllColumns
-    ? lists.columns
-    : lists.columns.slice(0, DEFAULT_MAX_METRICS_LENGTH);
-
+  
   const mainBody = (
     <>
       <div className="field-selections">

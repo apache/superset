@@ -86,8 +86,6 @@ export type DatasourcesState = {
   [key: string]: Datasource;
 };
 
-export type ChartsState = { [key: string]: Chart };
-
 /** Root state of redux */
 export type RootState = {
   datasources: DatasourcesState;

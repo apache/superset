@@ -56,18 +56,6 @@ export const validateForm = async (
         throw error;
       }
     }
-    const validateInstant = (filterId: string) => {
-      const isInstant = formValues.filters[filterId]
-        ? formValues.filters[filterId].isInstant
-        : filterConfigMap[filterId]?.isInstant;
-      if (!isInstant) {
-        addValidationError(
-          filterId,
-          'isInstant',
-          'For parent filters changes must be applied instantly',
-        );
-      }
-    }
 
     const validateCycles = (filterId: string, trace: string[] = []) => {
       if (trace.includes(filterId)) {
