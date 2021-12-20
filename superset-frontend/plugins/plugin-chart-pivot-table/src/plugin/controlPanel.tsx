@@ -237,14 +237,14 @@ const config: ControlPanelConfig = {
               ],
               renderTrigger: true,
               description: (
-                <React.Fragment>
+                <>
                   <div>{t('Change order of rows.')}</div>
                   <div>{t('Available sorting modes:')}</div>
                   <ul>
                     <li>{t('By key: use row names as sorting key')}</li>
                     <li>{t('By value: use metric values as sorting key')}</li>
                   </ul>
-                </React.Fragment>
+                </>
               ),
             },
           },
@@ -265,14 +265,14 @@ const config: ControlPanelConfig = {
               ],
               renderTrigger: true,
               description: (
-                <React.Fragment>
+                <>
                   <div>{t('Change order of columns.')}</div>
                   <div>{t('Available sorting modes:')}</div>
                   <ul>
                     <li>{t('By key: use column names as sorting key')}</li>
                     <li>{t('By value: use metric values as sorting key')}</li>
                   </ul>
-                </React.Fragment>
+                </>
               ),
             },
           },
