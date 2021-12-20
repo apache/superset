@@ -40,16 +40,139 @@ const defaultProps = {
   query: {},
 };
 
-class ExploreResultsButton extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.getInvalidColumns = this.getInvalidColumns.bind(this);
-    this.renderInvalidColumnMessage =
-      this.renderInvalidColumnMessage.bind(this);
-  }
+// class ExploreResultsButton extends React.PureComponent {
+//   constructor(props) {
+//     super(props);
+//     this.getInvalidColumns = this.getInvalidColumns.bind(this);
+//     this.renderInvalidColumnMessage =
+//       this.renderInvalidColumnMessage.bind(this);
+//   }
+//   getColumns() {
+//     const { props } = this;
+//     if (
+//       props.query &&
+//       props.query.results &&
+//       props.query.results.selected_columns
+//     ) {
+//       return props.query.results.selected_columns;
+//     }
+//     return [];
+//   }
 
-  getColumns() {
-    const { props } = this;
+//   getQueryDuration() {
+//     return moment
+//       .duration(this.props.query.endDttm - this.props.query.startDttm)
+//       .asSeconds();
+//   }
+
+//   getInvalidColumns() {
+//     const re1 = /__\d+$/; // duplicate column name pattern
+//     const re2 = /^__timestamp/i; // reserved temporal column alias
+
+//     return this.props.query.results.selected_columns
+//       .map(col => col.name)
+//       .filter(col => re1.test(col) || re2.test(col));
+//   }
+
+//   datasourceName() {
+//     const { query } = this.props;
+//     const uniqueId = shortid.generate();
+//     let datasourceName = uniqueId;
+//     if (query) {
+//       datasourceName = query.user ? `${query.user}-` : '';
+//       datasourceName += `${query.tab}-${uniqueId}`;
+//     }
+//     return datasourceName;
+//   }
+
+//   buildVizOptions() {
+//     const { schema, sql, dbId, templateParams } = this.props.query;
+//     return {
+//       dbId,
+//       schema,
+//       sql,
+//       templateParams,
+//       datasourceName: this.datasourceName(),
+//       columns: this.getColumns(),
+//     };
+//   }
+
+//   renderTimeoutWarning() {
+//     return (
+//       <Alert
+//         type="warning"
+//         message={
+//           <>
+//             {t(
+//               'This query took %s seconds to run, ',
+//               Math.round(this.getQueryDuration()),
+//             ) +
+//               t(
+//                 'and the explore view times out at %s seconds ',
+//                 this.props.timeout,
+//               ) +
+//               t(
+//                 'following this flow will most likely lead to your query timing out. ',
+//               ) +
+//               t(
+//                 'We recommend your summarize your data further before following that flow. ',
+//               ) +
+//               t('If activated you can use the ')}
+//             <strong>CREATE TABLE AS </strong>
+//             {t(
+//               'feature to store a summarized data set that you can then explore.',
+//             )}
+//           </>
+//         }
+//       />
+//     );
+//   }
+
+//   renderInvalidColumnMessage() {
+//     const invalidColumns = this.getInvalidColumns();
+//     if (invalidColumns.length === 0) {
+//       return null;
+//     }
+//     return (
+//       <div>
+//         {t('Column name(s) ')}
+//         <code>
+//           <strong>{invalidColumns.join(', ')} </strong>
+//         </code>
+//         {t(`cannot be used as a column name. The column name/alias "__timestamp"
+//           is reserved for the main temporal expression, and column aliases ending with
+//           double underscores followed by a numeric value (e.g. "my_col__1") are reserved
+//           for deduplicating duplicate column names. Please use aliases to rename the
+//           invalid column names.`)}
+//       </div>
+//     );
+//   }
+
+//   render() {
+//     const allowsSubquery =
+//       this.props.database && this.props.database.allows_subquery;
+//     return (
+//       <>
+//         <Button
+//           buttonSize="small"
+//           onClick={this.props.onClick}
+//           disabled={!allowsSubquery}
+//           tooltip={t('Explore the result set in the data exploration view')}
+//         >
+//           <InfoTooltipWithTrigger
+//             icon="line-chart"
+//             placement="top"
+//             label="explore"
+//           />{' '}
+//           {t('Explore')}
+//         </Button>
+//       </>
+//     );
+//   }
+// }
+
+function ExploreResultsButton(props) {
+  function getColumns() {
     if (
       props.query &&
       props.query.results &&
@@ -60,45 +183,43 @@ class ExploreResultsButton extends React.PureComponent {
     return [];
   }
 
-  getQueryDuration() {
+  function getQueryDuration() {
     return moment
-      .duration(this.props.query.endDttm - this.props.query.startDttm)
+      .duration(props.query.endDttm - props.query.startDttm)
       .asSeconds();
   }
 
-  getInvalidColumns() {
+  function getInvalidColumns() {
     const re1 = /__\d+$/; // duplicate column name pattern
     const re2 = /^__timestamp/i; // reserved temporal column alias
-
-    return this.props.query.results.selected_columns
+    return props.query.results.selected_columns
       .map(col => col.name)
       .filter(col => re1.test(col) || re2.test(col));
   }
 
-  datasourceName() {
-    const { query } = this.props;
+  function datasourceName() {
     const uniqueId = shortid.generate();
     let datasourceName = uniqueId;
-    if (query) {
-      datasourceName = query.user ? `${query.user}-` : '';
-      datasourceName += `${query.tab}-${uniqueId}`;
+    if (props.query) {
+      datasourceName = props.query.user ? `${props.query.user}-` : '';
+      datasourceName += `${props.query.tab}-${uniqueId}`;
     }
     return datasourceName;
   }
 
-  buildVizOptions() {
-    const { schema, sql, dbId, templateParams } = this.props.query;
+  function buildVizOptions() {
+    const { schema, sql, dbId, templateParams } = props.query;
     return {
       dbId,
       schema,
       sql,
       templateParams,
-      datasourceName: this.datasourceName(),
-      columns: this.getColumns(),
+      datasourceName: datasourceName(),
+      columns: getColumns(),
     };
   }
 
-  renderTimeoutWarning() {
+  function renderTimeoutWarning() {
     return (
       <Alert
         type="warning"
@@ -106,11 +227,11 @@ class ExploreResultsButton extends React.PureComponent {
           <>
             {t(
               'This query took %s seconds to run, ',
-              Math.round(this.getQueryDuration()),
+              Math.round(getQueryDuration()),
             ) +
               t(
                 'and the explore view times out at %s seconds ',
-                this.props.timeout,
+                props.timeout,
               ) +
               t(
                 'following this flow will most likely lead to your query timing out. ',
@@ -129,8 +250,8 @@ class ExploreResultsButton extends React.PureComponent {
     );
   }
 
-  renderInvalidColumnMessage() {
-    const invalidColumns = this.getInvalidColumns();
+  function renderInvalidColumnMessage() {
+    const invalidColumns = getInvalidColumns();
     if (invalidColumns.length === 0) {
       return null;
     }
@@ -149,28 +270,27 @@ class ExploreResultsButton extends React.PureComponent {
     );
   }
 
-  render() {
-    const allowsSubquery =
-      this.props.database && this.props.database.allows_subquery;
-    return (
-      <>
-        <Button
-          buttonSize="small"
-          onClick={this.props.onClick}
-          disabled={!allowsSubquery}
-          tooltip={t('Explore the result set in the data exploration view')}
-        >
-          <InfoTooltipWithTrigger
-            icon="line-chart"
-            placement="top"
-            label="explore"
-          />{' '}
-          {t('Explore')}
-        </Button>
-      </>
-    );
-  }
+  const allowsSubquery = props.database && props.database.allows_subquery;
+
+  return (
+    <>
+      <Button
+        buttonSize="small"
+        onClick={props.onClick}
+        disabled={!allowsSubquery}
+        tooltop={t('Explore the result set in the data exploration view')}
+      >
+        <InfoTooltipWithTrigger
+          icon="line-chart"
+          placement="top"
+          label="explore"
+        />{' '}
+        {t('Explore')}
+      </Button>
+    </>
+  );
 }
+
 ExploreResultsButton.propTypes = propTypes;
 ExploreResultsButton.defaultProps = defaultProps;
 
