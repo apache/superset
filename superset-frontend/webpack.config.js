@@ -428,6 +428,7 @@ Object.entries(packageConfig.dependencies).forEach(([pkg, version]) => {
     console.log(
       `[Superset External Plugin] Use symlink source for ${pkg} @ ${version}`,
     );
+    // TODO: remove alias once React has been upgraaded to v. 17
     config.resolve.alias[pkg] = path.resolve(
       APP_DIR,
       `node_modules/${pkg}/src`,
