@@ -25,8 +25,9 @@ import TableView, { EmptyWrapperType } from 'src/components/TableView';
 import { getChartDataRequest } from 'src/chart/chartAction';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import {
-  getFromLocalStorage,
-  setInLocalStorage,
+  getItem,
+  setItem,
+  LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
 import {
   CopyToClipboardButton,
@@ -48,10 +49,6 @@ const NULLISH_RESULTS_STATE = {
 };
 
 const DATA_TABLE_PAGE_SIZE = 50;
-
-const STORAGE_KEYS = {
-  isOpen: 'is_datapanel_open',
-};
 
 const DATAPANEL_KEY = 'data';
 
@@ -200,7 +197,7 @@ export const DataTablesPane = ({
     [RESULT_TYPES.samples]?: boolean;
   }>(NULLISH_RESULTS_STATE);
   const [panelOpen, setPanelOpen] = useState(
-    getFromLocalStorage(STORAGE_KEYS.isOpen, false),
+    getItem(LocalStorageKeys.is_datapanel_open, false),
   );
 
   const formattedData = useMemo(
@@ -283,7 +280,7 @@ export const DataTablesPane = ({
   );
 
   useEffect(() => {
-    setInLocalStorage(STORAGE_KEYS.isOpen, panelOpen);
+    setItem(LocalStorageKeys.is_datapanel_open, panelOpen);
   }, [panelOpen]);
 
   useEffect(() => {
@@ -303,12 +300,12 @@ export const DataTablesPane = ({
   useEffect(() => {
     if (queriesResponse && chartStatus === 'success') {
       const { colnames } = queriesResponse[0];
-      setColumnNames({
-        ...columnNames,
-        [RESULT_TYPES.results]: [...colnames],
-      });
+      setColumnNames(prevColumnNames => ({
+        ...prevColumnNames,
+        [RESULT_TYPES.results]: colnames ? [...colnames] : [],
+      }));
     }
-  }, [queriesResponse]);
+  }, [queriesResponse, chartStatus]);
 
   useEffect(() => {
     if (panelOpen && isRequestPending[RESULT_TYPES.results]) {

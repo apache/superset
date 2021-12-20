@@ -43,21 +43,21 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [
           {
-            name: 'groupbyRows',
-            config: {
-              ...sharedControls.groupby,
-              label: t('Rows'),
-              description: t('Columns to group by on the rows'),
-            },
-          },
-        ],
-        [
-          {
             name: 'groupbyColumns',
             config: {
               ...sharedControls.groupby,
               label: t('Columns'),
               description: t('Columns to group by on the columns'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'groupbyRows',
+            config: {
+              ...sharedControls.groupby,
+              label: t('Rows'),
+              description: t('Columns to group by on the rows'),
             },
           },
         ],
@@ -237,14 +237,14 @@ const config: ControlPanelConfig = {
               ],
               renderTrigger: true,
               description: (
-                <React.Fragment>
+                <>
                   <div>{t('Change order of rows.')}</div>
                   <div>{t('Available sorting modes:')}</div>
                   <ul>
                     <li>{t('By key: use row names as sorting key')}</li>
                     <li>{t('By value: use metric values as sorting key')}</li>
                   </ul>
-                </React.Fragment>
+                </>
               ),
             },
           },
@@ -265,14 +265,14 @@ const config: ControlPanelConfig = {
               ],
               renderTrigger: true,
               description: (
-                <React.Fragment>
+                <>
                   <div>{t('Change order of columns.')}</div>
                   <div>{t('Available sorting modes:')}</div>
                   <ul>
                     <li>{t('By key: use column names as sorting key')}</li>
                     <li>{t('By value: use metric values as sorting key')}</li>
                   </ul>
-                </React.Fragment>
+                </>
               ),
             },
           },

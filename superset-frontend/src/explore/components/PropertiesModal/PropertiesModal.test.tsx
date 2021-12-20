@@ -70,7 +70,7 @@ const createProps = () => ({
   onSave: jest.fn(),
 });
 
-fetchMock.get('http://localhost/api/v1/chart/318', {
+fetchMock.get('glob:*/api/v1/chart/318', {
   body: {
     description_columns: {},
     id: 318,
@@ -128,23 +128,20 @@ fetchMock.get('http://localhost/api/v1/chart/318', {
   },
 });
 
-fetchMock.get(
-  'http://localhost/api/v1/chart/related/owners?q=(filter:%27%27)',
-  {
-    body: {
-      count: 1,
-      result: [
-        {
-          text: 'Superset Admin',
-          value: 1,
-        },
-      ],
-    },
-    sendAsJson: true,
+fetchMock.get('glob:*/api/v1/chart/related/owners?q=(filter:%27%27)', {
+  body: {
+    count: 1,
+    result: [
+      {
+        text: 'Superset Admin',
+        value: 1,
+      },
+    ],
   },
-);
+  sendAsJson: true,
+});
 
-fetchMock.put('http://localhost/api/v1/chart/318', {
+fetchMock.put('glob:*/api/v1/chart/318', {
   body: {
     id: 318,
     result: {
