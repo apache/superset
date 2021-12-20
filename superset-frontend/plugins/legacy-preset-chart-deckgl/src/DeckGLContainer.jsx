@@ -63,6 +63,12 @@ export class DeckGLContainer extends React.Component {
     };
   }
 
+  UNSAFE_componentWillReceiveProps(nextProps) {
+    if (nextProps.viewport !== this.props.viewport) {
+      this.setState({ viewState: nextProps.viewport });
+    }
+  }
+
   componentWillUnmount() {
     clearInterval(this.state.timer);
   }
