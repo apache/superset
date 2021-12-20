@@ -297,7 +297,7 @@ function ColumnCollectionTable({
                   details={record.certification_details}
                 />
               )}
-              <EditableTitle canEdit title={v} onSaveTitle={onItemChange} />
+              <TextControl value={v} onChange={onItemChange} />
             </StyledLabelWrapper>
           ) : (
             <StyledLabelWrapper>
@@ -1041,11 +1041,6 @@ class DatasourceEditor extends React.PureComponent {
           <FormContainer>
             <Fieldset compact>
               <Field
-                fieldKey="verbose_name"
-                label={t('Label')}
-                control={<TextControl controlId="verbose_name" />}
-              />
-              <Field
                 fieldKey="description"
                 label={t('Description')}
                 control={
@@ -1127,15 +1122,17 @@ class DatasourceEditor extends React.PureComponent {
             </FlexRowContainer>
           ),
           verbose_name: (v, onChange) => (
-            <EditableTitle canEdit title={v} onSaveTitle={onChange} />
+            <TextControl canEdit value={v} onChange={onChange} />
           ),
           expression: (v, onChange) => (
-            <EditableTitle
+            <TextAreaControl
               canEdit
-              title={v}
-              onSaveTitle={onChange}
+              initialValue={v}
+              onChange={onChange}
               extraClasses={['datasource-sql-expression']}
-              multiLine
+              language="sql"
+              offerEditInModal={false}
+              minLines={5}
             />
           ),
           description: (v, onChange, label) => (
@@ -1226,6 +1223,7 @@ class DatasourceEditor extends React.PureComponent {
               </ColumnButtonWrapper>
               <ColumnCollectionTable
                 className="columns-table"
+                editableColumnName
                 columns={this.state.databaseColumns}
                 onChange={databaseColumns =>
                   this.setColumns({ databaseColumns })
