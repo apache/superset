@@ -55,6 +55,8 @@ const StyledAddBox = styled.div`
   ${({ theme }) => `
   cursor: pointer;
   margin: ${theme.gridUnit * 4}px;
+  position: sticky;
+  bottom: ${theme.gridUnit * 4}px;
   &:hover {
     color: ${theme.colors.primary.base};
   }
