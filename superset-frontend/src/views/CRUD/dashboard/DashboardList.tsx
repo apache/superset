@@ -37,7 +37,7 @@ import ListView, {
   Filters,
   FilterOperator,
 } from 'src/components/ListView';
-import { getFromLocalStorage } from 'src/utils/localStorageHelpers';
+import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import FacePile from 'src/components/FacePile';
@@ -144,7 +144,8 @@ function DashboardList(props: DashboardListProps) {
   };
 
   const { userId } = props.user;
-  const userKey = getFromLocalStorage(userId?.toString(), null);
+  // TODO: Fix usage of localStorage keying on the user id
+  const userKey = dangerouslyGetItemDoNotUse(userId?.toString(), null);
 
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
