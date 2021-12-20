@@ -100,6 +100,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        // TODO(kgabryje): add series_columns control after control panel is redesigned to avoid clutter
         [
           {
             name: 'series_limit_metric',
