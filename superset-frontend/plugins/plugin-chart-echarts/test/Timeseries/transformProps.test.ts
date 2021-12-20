@@ -403,7 +403,7 @@ describe('Does transformProps transform series correctly', () => {
       .series as seriesType[];
 
     const expectedThresholds = totalStackedValues.map(
-      total => (formData.percentageThreshold || 0 / 100) * total,
+      total => ((formData.percentageThreshold || 0) / 100) * total,
     );
 
     transformedSeries.forEach((series, seriesIndex) => {
