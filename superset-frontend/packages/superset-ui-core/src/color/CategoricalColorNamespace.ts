@@ -39,10 +39,6 @@ export default class CategoricalColorNamespace {
 
   getScale(schemeId?: string) {
     const id = schemeId ?? getCategoricalSchemeRegistry().getDefaultKey() ?? '';
-    const scale = this.scales[id];
-    if (scale) {
-      return scale;
-    }
     const scheme = getCategoricalSchemeRegistry().get(id);
     return new CategoricalColorScale(scheme?.colors ?? [], this.forcedItems);
   }
