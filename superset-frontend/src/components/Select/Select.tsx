@@ -171,7 +171,6 @@ const StyledSelect = styled(AntdSelect)`
     && .ant-select-selector {
       border-radius: ${theme.gridUnit}px;
     }
-
     // Open the dropdown when clicking on the suffix
     // This is fixed in version 4.16
     .ant-select-arrow .anticon:not(.ant-select-suffix) {
@@ -196,7 +195,6 @@ const StyledError = styled.div`
     width: 100%;
     padding: ${theme.gridUnit * 2}px;
     color: ${theme.colors.error.base};
-
     & svg {
       margin-right: ${theme.gridUnit * 2}px;
     }
@@ -246,15 +244,13 @@ const defaultSortComparator = (a: AntdLabeledValue, b: AntdLabeledValue) => {
  * It creates a comparator to check for a specific property.
  * Can be used with string and number property values.
  * */
-export const propertyComparator = (property: string) => (
-  a: AntdLabeledValue,
-  b: AntdLabeledValue,
-) => {
-  if (typeof a[property] === 'string' && typeof b[property] === 'string') {
-    return a[property].localeCompare(b[property]);
-  }
-  return (a[property] as number) - (b[property] as number);
-};
+export const propertyComparator =
+  (property: string) => (a: AntdLabeledValue, b: AntdLabeledValue) => {
+    if (typeof a[property] === 'string' && typeof b[property] === 'string') {
+      return a[property].localeCompare(b[property]);
+    }
+    return (a[property] as number) - (b[property] as number);
+  };
 
 /**
  * This component is a customized version of the Antdesign 4.X Select component
@@ -301,7 +297,7 @@ const Select = ({
   const initialOptions =
     options && Array.isArray(options) ? options : EMPTY_OPTIONS;
   const [selectOptions, setSelectOptions] = useState<OptionsType>(
-    initialOptions,
+    initialOptions.sort(sortComparator),
   );
   const shouldUseChildrenOptions = !!selectOptions.find(
     opt => opt?.customLabel,

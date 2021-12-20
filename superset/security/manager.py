@@ -1161,6 +1161,21 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return ids
 
     @staticmethod
+    def raise_for_user_activity_access(user_id: int) -> None:
+        user = g.user if g.user and g.user.get_id() else None
+        if not user or (
+            not current_app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
+            and user_id != user.id
+        ):
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.USER_ACTIVITY_SECURITY_ACCESS_ERROR,
+                    message="Access to user's activity data is restricted",
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
+    @staticmethod
     def raise_for_dashboard_access(dashboard: "Dashboard") -> None:
         """
         Raise an exception if the user cannot access the dashboard.
@@ -1174,19 +1189,23 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.views.base import get_user_roles, is_user_admin
         from superset.views.utils import is_owner
 
+        has_rbac_access = True
+
         if is_feature_enabled("DASHBOARD_RBAC"):
             has_rbac_access = any(
                 dashboard_role.id in [user_role.id for user_role in get_user_roles()]
                 for dashboard_role in dashboard.roles
             )
-            can_access = (
-                is_user_admin()
-                or is_owner(dashboard, g.user)
-                or (dashboard.published and has_rbac_access)
-            )
 
-            if not can_access:
-                raise DashboardAccessDeniedError()
+        can_access = (
+            is_user_admin()
+            or is_owner(dashboard, g.user)
+            or (dashboard.published and has_rbac_access)
+            or (not dashboard.published and not dashboard.roles)
+        )
+
+        if not can_access:
+            raise DashboardAccessDeniedError()
 
     @staticmethod
     def can_access_based_on_dashboard(datasource: "BaseDatasource") -> bool:

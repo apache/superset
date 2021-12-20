@@ -178,6 +178,7 @@ export default class FixedOrMetricControl extends React.Component {
                   }}
                   onChange={this.setMetric}
                   value={this.state.metricValue}
+                  datasource={this.props.datasource}
                 />
               </PopoverSection>
             </div>

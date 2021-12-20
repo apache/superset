@@ -44,6 +44,7 @@ from superset.utils.core import (
 )
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 
 from .base_tests import SupersetTestCase
@@ -521,7 +522,9 @@ def test__normalize_prequery_result_type(
     dimension: str,
     result: Any,
 ) -> None:
-    def _convert_dttm(target_type: str, dttm: datetime) -> Optional[str]:
+    def _convert_dttm(
+        target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         if target_type.upper() == TemporalType.TIMESTAMP:
             return f"""TIME_PARSE('{dttm.isoformat(timespec="seconds")}')"""
 

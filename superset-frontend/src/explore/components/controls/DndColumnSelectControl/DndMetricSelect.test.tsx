@@ -120,6 +120,62 @@ test('remove selected custom metric when metric gets removed from dataset', () =
   expect(screen.getByText('SUM(Column B)')).toBeVisible();
 });
 
+test('remove selected custom metric when metric gets removed from dataset for single-select metric control', () => {
+  let metricValue = 'metric_b';
+
+  const onChange = (val: any) => {
+    metricValue = val;
+  };
+
+  const { rerender } = render(
+    <DndMetricSelect
+      {...defaultProps}
+      value={metricValue}
+      onChange={onChange}
+      multi={false}
+    />,
+    {
+      useDnd: true,
+    },
+  );
+
+  expect(screen.getByText('Metric B')).toBeVisible();
+  expect(
+    screen.queryByText('Drop column or metric here'),
+  ).not.toBeInTheDocument();
+
+  const newPropsWithRemovedMetric = {
+    ...defaultProps,
+    savedMetrics: [
+      {
+        metric_name: 'metric_a',
+        expression: 'expression_a',
+      },
+    ],
+  };
+
+  // rerender twice - first to update columns, second to update value
+  rerender(
+    <DndMetricSelect
+      {...newPropsWithRemovedMetric}
+      value={metricValue}
+      onChange={onChange}
+      multi={false}
+    />,
+  );
+  rerender(
+    <DndMetricSelect
+      {...newPropsWithRemovedMetric}
+      value={metricValue}
+      onChange={onChange}
+      multi={false}
+    />,
+  );
+
+  expect(screen.queryByText('Metric B')).not.toBeInTheDocument();
+  expect(screen.getByText('Drop column or metric here')).toBeVisible();
+});
+
 test('remove selected adhoc metric when column gets removed from dataset', async () => {
   let metricValues = ['metric_a', 'metric_b', adhocMetricA, adhocMetricB];
   const onChange = (val: any[]) => {

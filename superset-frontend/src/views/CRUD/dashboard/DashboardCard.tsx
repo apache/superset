@@ -66,7 +66,7 @@ function DashboardCard({
   const history = useHistory();
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
-  const canExport = hasPerm('can_read');
+  const canExport = hasPerm('can_export');
 
   const theme = useTheme();
   const menu = (
@@ -147,6 +147,8 @@ function DashboardCard({
       <ListViewCard
         loading={dashboard.loading || false}
         title={dashboard.dashboard_title}
+        certifiedBy={dashboard.certified_by}
+        certificationDetails={dashboard.certification_details}
         titleRight={
           <Label>{dashboard.published ? t('published') : t('draft')}</Label>
         }

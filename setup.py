@@ -66,7 +66,7 @@ setup(
     install_requires=[
         "backoff>=1.8.0",
         "bleach>=3.0.2, <4.0.0",
-        "cachelib>=0.1.1,<0.2",
+        "cachelib>=0.4.1,<0.5",
         "celery>=4.3.0, <5.0.0, !=4.4.1",
         "click<8",
         "colorama",
@@ -75,7 +75,7 @@ setup(
         "cryptography>=3.3.2",
         "deprecation>=2.1.0, <2.2.0",
         "flask>=1.1.0, <2.0.0",
-        "flask-appbuilder>=3.3.4, <4.0.0",
+        "flask-appbuilder>=3.4.1, <4.0.0",
         "flask-caching>=1.10.0",
         "flask-compress",
         "flask-talisman",
@@ -109,7 +109,8 @@ setup(
         "sqlalchemy-utils>=0.37.8, <0.38",
         "sqlparse==0.3.0",  # PINNED! see https://github.com/andialbrecht/sqlparse/issues/562
         "tabulate==0.8.9",
-        "typing-extensions>=3.10, <4",  # needed to support Literal (3.8) and TypeGuard (3.10)
+        # needed to support Literal (3.8) and TypeGuard (3.10)
+        "typing-extensions>=3.10, <4",
         "wtforms-json",
     ],
     extras_require={
@@ -141,7 +142,7 @@ setup(
         "impala": ["impyla>0.16.2, <0.17"],
         "kylin": ["kylinpy>=2.8.1, <2.9"],
         "mmsql": ["pymssql>=2.1.4, <2.2"],
-        "mysql": ["mysqlclient==1.4.2.post1"],
+        "mysql": ["mysqlclient>=2.1.0, <3"],
         "oracle": ["cx-Oracle>8.0.0, <8.1"],
         "pinot": ["pinotdb>=0.3.3, <0.4"],
         "postgres": ["psycopg2-binary==2.8.5"],
@@ -157,7 +158,7 @@ setup(
             "snowflake-sqlalchemy==1.2.4"
         ],  # PINNED! 1.2.5 introduced breaking changes requiring sqlalchemy>=1.4.0
         "teradata": ["sqlalchemy-teradata==0.9.0.dev0"],
-        "thumbnails": ["Pillow>=7.0.0, <8.0.0"],
+        "thumbnails": ["Pillow>=8.3.2, <9.0.0"],
         "vertica": ["sqlalchemy-vertica-python>=0.5.9, < 0.6"],
         "netezza": ["nzalchemy>=11.0.2"],
     },

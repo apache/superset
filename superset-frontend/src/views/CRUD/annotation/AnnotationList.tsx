@@ -65,18 +65,13 @@ function AnnotationList({
     addDangerToast,
     false,
   );
-  const [annotationModalOpen, setAnnotationModalOpen] = useState<boolean>(
-    false,
-  );
+  const [annotationModalOpen, setAnnotationModalOpen] =
+    useState<boolean>(false);
   const [annotationLayerName, setAnnotationLayerName] = useState<string>('');
-  const [
-    currentAnnotation,
-    setCurrentAnnotation,
-  ] = useState<AnnotationObject | null>(null);
-  const [
-    annotationCurrentlyDeleting,
-    setAnnotationCurrentlyDeleting,
-  ] = useState<AnnotationObject | null>(null);
+  const [currentAnnotation, setCurrentAnnotation] =
+    useState<AnnotationObject | null>(null);
+  const [annotationCurrentlyDeleting, setAnnotationCurrentlyDeleting] =
+    useState<AnnotationObject | null>(null);
   const handleAnnotationEdit = (annotation: AnnotationObject | null) => {
     setCurrentAnnotation(annotation);
     setAnnotationModalOpen(true);

@@ -26,6 +26,8 @@ assists people when migrating to a new version.
 
 ### Breaking Changes
 
+- [17556](https://github.com/apache/superset/pull/17556): Bumps mysqlclient from v1 to v2
+- [15254](https://github.com/apache/superset/pull/15254): Previously `QUERY_COST_FORMATTERS_BY_ENGINE`, `SQL_VALIDATORS_BY_ENGINE` and `SCHEDULED_QUERIES` were expected to be defined in the feature flag dictionary in the `config.py` file. These should now be defined as a top-level config, with the feature flag dictionary being reserved for boolean only values.
 - [17290](https://github.com/apache/superset/pull/17290): Bumps pandas to `1.3.4` and pyarrow to `5.0.0`
 - [16660](https://github.com/apache/incubator-superset/pull/16660): The `columns` Jinja parameter has been renamed `table_columns` to make the `columns` query object parameter available in the Jinja context.
 - [16711](https://github.com/apache/incubator-superset/pull/16711): The `url_param` Jinja function will now by default escape the result. For instance, the value `O'Brien` will now be changed to `O''Brien`. To disable this behavior, call `url_param` with `escape_result` set to `False`: `url_param("my_key", "my default", escape_result=False)`.
@@ -33,12 +35,18 @@ assists people when migrating to a new version.
 ### Potential Downtime
 
 - [16756](https://github.com/apache/incubator-superset/pull/16756): a change which renames the `dbs.allow_csv_upload` column to `dbs.allow_file_upload` via a (potentially locking) DDL operation.
+- [17539](https://github.com/apache/superset/pull/17539): all Superset CLI commands
+  (init, load_examples and etc) require setting the FLASK_APP environment variable
+  (which is set by default when .flaskenv is loaded)
+- [17360](https://github.com/apache/superset/pull/17360): changes the column type from `VARCHAR(32)` to `TEXT` in table `table_columns`, potentially requiring a table lock on MySQL dbs or taking some time to complete on large deployments.
 
 ### Deprecations
 
 ### Other
 
+- [17589](https://github.com/apache/incubator-superset/pull/17589): It is now possible to limit access to users' recent activity data by setting the `ENABLE_BROAD_ACTIVITY_ACCESS` config flag to false, or customizing the `raise_for_user_activity_access` method in the security manager.
 - [16809](https://github.com/apache/incubator-superset/pull/16809): When building the superset frontend assets manually, you should now use Node 16 (previously Node 14 was required/recommended). Node 14 will most likely still work for at least some time, but is no longer actively tested for on CI.
+- [17536](https://github.com/apache/superset/pull/17536): introduced a key-value endpoint to store dashboard filter state. This endpoint is backed by Flask-Caching and the default configuration assumes that the values will be stored in the file system. If you are already using another cache backend like Redis or Memchached, you'll probably want to change this setting in `superset_config.py`. The key is `FILTER_STATE_CACHE_CONFIG` and the available settings can be found in Flask-Caching [docs](https://flask-caching.readthedocs.io/en/latest/).
 
 ## 1.3.0
 
@@ -49,7 +57,7 @@ assists people when migrating to a new version.
 
 ### Potential Downtime
 
-- [14234](https://github.com/apache/superset/pull/14234): Adds the `limiting_factor` column to the `query` table. Give the migration includes a DDL operation on a heavily trafficed table, potential service downtime may be required.
+- [14234](https://github.com/apache/superset/pull/14234): Adds the `limiting_factor` column to the `query` table. Give the migration includes a DDL operation on a heavily trafficked table, potential service downtime may be required.
 
 -[16454](https://github.com/apache/superset/pull/16454): Adds the `extra` column to the `table_columns` table. Users using MySQL will either need to schedule downtime or use the percona toolkit (or similar) to perform the migration.
 
@@ -232,7 +240,7 @@ assists people when migrating to a new version.
 - [8699](https://github.com/apache/superset/pull/8699): A `row_level_security_filters`
   table has been added, which is many-to-many with `tables` and `ab_roles`. The applicable filters
   are added to the sqla query, and the RLS ids are added to the query cache keys. If RLS is enabled in config.py (`ENABLE_ROW_LEVEL_SECURITY = True`; by default, it is disabled), they can be
-  accessed through the `Security` menu, or when editting a table.
+  accessed through the `Security` menu, or when editing a table.
 
 - [8732](https://github.com/apache/superset/pull/8732): Swagger user interface is now enabled by default.
   A new permission `show on SwaggerView` is created by `superset init` and given to the `Admin` Role. To disable the UI,
@@ -411,7 +419,7 @@ Superset 0.25.0 contains a backwards incompatible changes.
 If you run a production system you should schedule downtime for this
 upgrade.
 
-The PRs bellow have more information around the breaking changes:
+The PRs below have more information around the breaking changes:
 
 - [9825](https://github.com/apache/superset/pull/9825): Support for Excel sheet upload added. To enable support, install Superset with the optional dependency `excel`
 

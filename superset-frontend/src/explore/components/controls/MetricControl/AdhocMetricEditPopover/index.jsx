@@ -22,6 +22,7 @@ import PropTypes from 'prop-types';
 import Tabs from 'src/components/Tabs';
 import Button from 'src/components/Button';
 import { Select } from 'src/components';
+import { Tooltip } from 'src/components/Tooltip';
 import { t, styled } from '@superset-ui/core';
 
 import { Form, FormItem } from 'src/components/Form';
@@ -29,7 +30,11 @@ import { SQLEditor } from 'src/components/AsyncAceEditor';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { noOp } from 'src/utils/common';
 
-import { AGGREGATES_OPTIONS } from 'src/explore/constants';
+import {
+  AGGREGATES_OPTIONS,
+  POPOVER_INITIAL_HEIGHT,
+  POPOVER_INITIAL_WIDTH,
+} from 'src/explore/constants';
 import columnType from 'src/explore/components/controls/MetricControl/columnType';
 import savedMetricType from 'src/explore/components/controls/MetricControl/savedMetricType';
 import AdhocMetric, {
@@ -50,7 +55,7 @@ const propTypes = {
   columns: PropTypes.arrayOf(columnType),
   savedMetricsOptions: PropTypes.arrayOf(savedMetricType),
   savedMetric: savedMetricType,
-  datasourceType: PropTypes.string,
+  datasource: PropTypes.object,
 };
 
 const defaultProps = {
@@ -71,9 +76,6 @@ const StyledSelect = styled(Select)`
 `;
 
 export const SAVED_TAB_KEY = 'SAVED';
-
-const startingWidth = 320;
-const startingHeight = 240;
 
 export default class AdhocMetricEditPopover extends React.PureComponent {
   // "Saved" is a default tab unless there are no saved metrics for dataset
@@ -102,8 +104,8 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
     this.state = {
       adhocMetric: this.props.adhocMetric,
       savedMetric: this.props.savedMetric,
-      width: startingWidth,
-      height: startingHeight,
+      width: POPOVER_INITIAL_WIDTH,
+      height: POPOVER_INITIAL_HEIGHT,
     };
 
     document.addEventListener('mouseup', this.onMouseUp);
@@ -224,11 +226,11 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
     this.setState({
       width: Math.max(
         this.dragStartWidth + (e.clientX - this.dragStartX),
-        startingWidth,
+        POPOVER_INITIAL_WIDTH,
       ),
       height: Math.max(
         this.dragStartHeight + (e.clientY - this.dragStartY) * 2,
-        startingHeight,
+        POPOVER_INITIAL_HEIGHT,
       ),
     });
   }
@@ -277,7 +279,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
       onChange,
       onClose,
       onResize,
-      datasourceType,
+      datasource,
       ...popoverProps
     } = this.props;
     const { adhocMetric, savedMetric } = this.state;
@@ -322,7 +324,10 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
       autoFocus: true,
     };
 
-    if (this.props.datasourceType === 'druid' && aggregateSelectProps.options) {
+    if (
+      this.props.datasource?.type === 'druid' &&
+      aggregateSelectProps.options
+    ) {
       aggregateSelectProps.options = aggregateSelectProps.options.filter(
         aggregate => aggregate !== 'AVG',
       );
@@ -336,6 +341,13 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
         typeof propsSavedMetric?.metric_name === 'undefined'
       ) &&
         savedMetric?.metric_name !== propsSavedMetric?.metric_name);
+
+    let extra = {};
+    if (datasource?.extra) {
+      try {
+        extra = JSON.parse(datasource.extra);
+      } catch {} // eslint-disable-line no-empty
+    }
 
     return (
       <Form
@@ -370,7 +382,23 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
               />
             </FormItem>
           </Tabs.TabPane>
-          <Tabs.TabPane key={EXPRESSION_TYPES.SIMPLE} tab={t('Simple')}>
+          <Tabs.TabPane
+            key={EXPRESSION_TYPES.SIMPLE}
+            tab={
+              extra.disallow_adhoc_metrics ? (
+                <Tooltip
+                  title={t(
+                    'Simple ad-hoc metrics are not enabled for this dataset',
+                  )}
+                >
+                  {t('Simple')}
+                </Tooltip>
+              ) : (
+                t('Simple')
+              )
+            }
+            disabled={extra.disallow_adhoc_metrics}
+          >
             <FormItem label={t('column')}>
               <Select
                 options={columns.map(column => ({
@@ -395,32 +423,47 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
           </Tabs.TabPane>
           <Tabs.TabPane
             key={EXPRESSION_TYPES.SQL}
-            tab={t('Custom SQL')}
+            tab={
+              extra.disallow_adhoc_metrics ||
+              this.props.datasource?.type === 'druid' ? (
+                <Tooltip
+                  title={
+                    this.props.datasource?.type === 'druid'
+                      ? t(
+                          'Custom SQL ad-hoc metrics are not available for the native Druid connector',
+                        )
+                      : t(
+                          'Custom SQL ad-hoc metrics are not enabled for this dataset',
+                        )
+                  }
+                >
+                  {t('Custom SQL')}
+                </Tooltip>
+              ) : (
+                t('Custom SQL')
+              )
+            }
             data-test="adhoc-metric-edit-tab#custom"
+            disabled={
+              extra.disallow_adhoc_metrics ||
+              this.props.datasource?.type === 'druid'
+            }
           >
-            {this.props.datasourceType !== 'druid' ? (
-              <SQLEditor
-                data-test="sql-editor"
-                showLoadingForImport
-                ref={this.handleAceEditorRef}
-                keywords={keywords}
-                height={`${this.state.height - 80}px`}
-                onChange={this.onSqlExpressionChange}
-                width="100%"
-                showGutter={false}
-                value={
-                  adhocMetric.sqlExpression || adhocMetric.translateToSql()
-                }
-                editorProps={{ $blockScrolling: true }}
-                enableLiveAutocompletion
-                className="filter-sql-editor"
-                wrapEnabled
-              />
-            ) : (
-              <div className="custom-sql-disabled-message">
-                Custom SQL Metrics are not available on druid datasources
-              </div>
-            )}
+            <SQLEditor
+              data-test="sql-editor"
+              showLoadingForImport
+              ref={this.handleAceEditorRef}
+              keywords={keywords}
+              height={`${this.state.height - 80}px`}
+              onChange={this.onSqlExpressionChange}
+              width="100%"
+              showGutter={false}
+              value={adhocMetric.sqlExpression || adhocMetric.translateToSql()}
+              editorProps={{ $blockScrolling: true }}
+              enableLiveAutocompletion
+              className="filter-sql-editor"
+              wrapEnabled
+            />
           </Tabs.TabPane>
         </Tabs>
         <div>

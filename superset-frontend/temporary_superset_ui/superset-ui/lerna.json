@@ -1,0 +1,26 @@
+{
+  "lerna": "3.2.1",
+  "npmClient": "npm",
+  "packages": [
+    "packages/*",
+    "plugins/*"
+  ],
+  "useWorkspaces": true,
+  "version": "0.18.25",
+  "ignoreChanges": [
+    "**/*.md",
+    "**/*.spec.tsx?",
+    "**/*.spec.jsx?",
+    "**/__mocks__/**"
+  ],
+  "command": {
+    "publish": {
+      "message": "chore: publish %s",
+      "graphType": "all"
+    },
+    "version": {
+      "message": "chore: publish %s",
+      "exact": true
+    }
+  }
+}

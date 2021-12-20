@@ -21,10 +21,7 @@ import React from 'react';
 import { Slice } from 'src/types/Chart';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import fetchMock from 'fetch-mock';
 import ExploreHeader from '.';
-
-fetchMock.get('http://localhost/api/v1/chart/318', {});
 
 const createProps = () => ({
   chart: {
@@ -48,7 +45,7 @@ const createProps = () => ({
     },
     chartStatus: 'rendered',
   },
-  slice: ({
+  slice: {
     cache_timeout: null,
     changed_on: '2021-03-19T16:30:56.750230',
     changed_on_humanized: '7 days ago',
@@ -85,7 +82,7 @@ const createProps = () => ({
     slice_id: 318,
     slice_name: 'Age distribution of respondents',
     slice_url: '/superset/explore/?form_data=%7B%22slice_id%22%3A%20318%7D',
-  } as unknown) as Slice,
+  } as unknown as Slice,
   slice_name: 'Age distribution of respondents',
   actions: {
     postChartFormData: () => null,

@@ -27,9 +27,10 @@ from sqlalchemy import MetaData
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError
 
+from superset import db
 from superset.db_engine_specs import BaseEngineSpec, get_engine_specs
 from superset.exceptions import CertificateException, SupersetSecurityException
-from superset.models.core import ConfigurationMethod, PASSWORD_MASK
+from superset.models.core import ConfigurationMethod, Database, PASSWORD_MASK
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.utils.core import markdown, parse_ssl_cert
 
@@ -620,6 +621,11 @@ class ImportV1DatabaseSchema(Schema):
     @validates_schema
     def validate_password(self, data: Dict[str, Any], **kwargs: Any) -> None:
         """If sqlalchemy_uri has a masked password, password is required"""
+        uuid = data["uuid"]
+        existing = db.session.query(Database).filter_by(uuid=uuid).first()
+        if existing:
+            return
+
         uri = data["sqlalchemy_uri"]
         password = make_url(uri).password
         if password == PASSWORD_MASK and data.get("password") is None:

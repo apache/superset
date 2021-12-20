@@ -52,12 +52,35 @@ export default function DeleteModal({
   title,
 }: DeleteModalProps) {
   const [disableChange, setDisableChange] = useState(true);
+  const [confirmation, setConfirmation] = useState<string>('');
+
+  const hide = () => {
+    setConfirmation('');
+    onHide();
+  };
+
+  const confirm = () => {
+    setConfirmation('');
+    onConfirm();
+  };
+
+  const onChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const targetValue = event.target.value ?? '';
+    setDisableChange(targetValue.toUpperCase() !== t('DELETE'));
+    setConfirmation(targetValue);
+  };
+
+  const onPressEnter = () => {
+    if (!disableChange) {
+      confirm();
+    }
+  };
 
   return (
     <Modal
       disablePrimaryButton={disableChange}
-      onHide={onHide}
-      onHandledPrimaryAction={onConfirm}
+      onHide={hide}
+      onHandledPrimaryAction={confirm}
       primaryButtonName={t('delete')}
       primaryButtonType="danger"
       show={open}
@@ -73,10 +96,9 @@ export default function DeleteModal({
           type="text"
           id="delete"
           autoComplete="off"
-          onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-            const targetValue = event.target.value ?? '';
-            setDisableChange(targetValue.toUpperCase() !== t('DELETE'));
-          }}
+          value={confirmation}
+          onChange={onChange}
+          onPressEnter={onPressEnter}
         />
       </StyledDiv>
     </Modal>
