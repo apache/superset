@@ -206,7 +206,6 @@ export default function DatabaseSelector({
     [formMode, getDbList, handleError, sqlLabMode],
   );
 
-  console.log(db, schema, 'INSIDE DATABASE SELECTOR');
   useEffect(() => {
     if (currentDb) {
       setLoadingSchemas(true);

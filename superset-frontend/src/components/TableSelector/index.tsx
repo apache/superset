@@ -324,8 +324,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     return renderSelectRow(select, refreshLabel);
   }
 
-  // console.log(database, 'DATABASE IN TABLE SELECT');
-
   return (
     <TableSelectorWrapper>
       {renderDatabaseSelector()}
