@@ -94,7 +94,9 @@ class BaseReportState:
         self._execution_id = execution_id
 
     def set_state_and_log(
-        self, state: ReportState, error_message: Optional[str] = None,
+        self,
+        state: ReportState,
+        error_message: Optional[str] = None,
     ) -> None:
         """
         Updates current ReportSchedule state and TS. If on final state writes the log
@@ -103,7 +105,8 @@ class BaseReportState:
         now_dttm = datetime.utcnow()
         self.set_state(state, now_dttm)
         self.create_log(
-            state, error_message=error_message,
+            state,
+            error_message=error_message,
         )
 
     def set_state(self, state: ReportState, dttm: datetime) -> None:
@@ -179,13 +182,12 @@ class BaseReportState:
             raise ReportScheduleSelleniumUserNotFoundError()
         return user
 
-    def _get_screenshots(self) -> bytes:
+    def _get_screenshots(self) -> List[bytes]:
         """
         Get chart or dashboard screenshots
-
         :raises: ReportScheduleScreenshotFailedError
         """
-        screenshots: List[BaseScreenshot] = None
+        screenshots: List[BaseScreenshot] = []
         if self._report_schedule.chart:
             url = self._get_url(standalone="true")
             logger.info("Screenshotting chart at %s", url)
@@ -217,7 +219,7 @@ class BaseReportState:
             ]
         user = self._get_user()
         try:
-            image_data = [
+            image_data: List[bytes] = [
                 screenshot.get_screenshot(user=user) for screenshot in screenshots
             ]
         except SoftTimeLimitExceeded as ex:
@@ -310,7 +312,7 @@ class BaseReportState:
         csv_data = None
         embedded_data = None
         error_text = None
-        screenshot_data = None
+        screenshot_data = []
         url = self._get_url(user_friendly=True)
         if (
             feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
@@ -523,12 +525,14 @@ class ReportWorkingState(BaseReportState):
         if self.is_on_working_timeout():
             exception_timeout = ReportScheduleWorkingTimeoutError()
             self.set_state_and_log(
-                ReportState.ERROR, error_message=str(exception_timeout),
+                ReportState.ERROR,
+                error_message=str(exception_timeout),
             )
             raise exception_timeout
         exception_working = ReportSchedulePreviousWorkingError()
         self.set_state_and_log(
-            ReportState.WORKING, error_message=str(exception_working),
+            ReportState.WORKING,
+            error_message=str(exception_working),
         )
         raise exception_working
 

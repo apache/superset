@@ -98,10 +98,6 @@ def validate_crontab(value: Union[bytes, bytearray, str]) -> None:
         raise ValidationError("Cron expression is not valid")
 
 
-def validate_report_extra(value: str) -> None:
-    return
-
-
 class ValidatorConfigJSONSchema(Schema):
     op = fields.String(  # pylint: disable=invalid-name
         description=validator_config_json_op_description,

@@ -280,12 +280,7 @@ def create_report_email_tabbed_dashboard(tabbed_dashboard):
         report_schedule = create_report_notification(
             email_target="target@email.com",
             dashboard=tabbed_dashboard,
-            extra={
-                "dashboard_tab_ids": [
-                    "TAB-j53G4gtKGF",
-                    "TAB-nerWR09Ju",
-                ]
-            },
+            extra={"dashboard_tab_ids": ["TAB-j53G4gtKGF", "TAB-nerWR09Ju",]},
         )
         yield report_schedule
         cleanup_report_schedule(report_schedule)
@@ -386,9 +381,7 @@ def create_alert_slack_chart_success():
 
 
 @pytest.fixture(
-    params=[
-        "alert1",
-    ]
+    params=["alert1",]
 )
 def create_alert_slack_chart_grace(request):
     param_config = {
@@ -431,15 +424,7 @@ def create_alert_slack_chart_grace(request):
 
 
 @pytest.fixture(
-    params=[
-        "alert1",
-        "alert2",
-        "alert3",
-        "alert4",
-        "alert5",
-        "alert6",
-        "alert7",
-    ]
+    params=["alert1", "alert2", "alert3", "alert4", "alert5", "alert6", "alert7",]
 )
 def create_alert_email_chart(request):
     param_config = {
@@ -659,9 +644,7 @@ def create_invalid_sql_alert_email_chart(request):
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
 def test_email_chart_report_schedule(
-    screenshot_mock,
-    email_mock,
-    create_report_email_chart,
+    screenshot_mock, email_mock, create_report_email_chart,
 ):
     """
     ExecuteReport Command: Test chart email report schedule with screenshot
@@ -698,9 +681,7 @@ def test_email_chart_report_schedule(
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
 def test_email_chart_report_dry_run(
-    screenshot_mock,
-    email_mock,
-    create_report_email_chart,
+    screenshot_mock, email_mock, create_report_email_chart,
 ):
     """
     ExecuteReport Command: Test chart email report schedule dry run
@@ -725,11 +706,7 @@ def test_email_chart_report_dry_run(
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch("superset.utils.csv.get_chart_csv_data")
 def test_email_chart_report_schedule_with_csv(
-    csv_mock,
-    email_mock,
-    mock_open,
-    mock_urlopen,
-    create_report_email_chart_with_csv,
+    csv_mock, email_mock, mock_open, mock_urlopen, create_report_email_chart_with_csv,
 ):
     """
     ExecuteReport Command: Test chart email report schedule with CSV
@@ -916,9 +893,7 @@ def test_email_dashboard_report_schedule(
 @patch("superset.reports.notifications.slack.WebClient.files_upload")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
 def test_slack_chart_report_schedule(
-    screenshot_mock,
-    file_upload_mock,
-    create_report_slack_chart,
+    screenshot_mock, file_upload_mock, create_report_slack_chart,
 ):
     """
     ExecuteReport Command: Test chart slack report schedule
@@ -1137,9 +1112,7 @@ def test_report_schedule_success_grace_end(
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
 def test_alert_limit_is_applied(
-    screenshot_mock,
-    email_mock,
-    create_alert_email_chart,
+    screenshot_mock, email_mock, create_alert_email_chart,
 ):
     """
     ExecuteReport Command: Test that all alerts apply a SQL limit to stmts
@@ -1195,9 +1168,7 @@ def test_email_dashboard_report_fails(
     ALERTS_ATTACH_REPORTS=True,
 )
 def test_slack_chart_alert(
-    screenshot_mock,
-    email_mock,
-    create_alert_email_chart,
+    screenshot_mock, email_mock, create_alert_email_chart,
 ):
     """
     ExecuteReport Command: Test chart slack alert
@@ -1254,9 +1225,7 @@ def test_slack_chart_alert_no_attachment(email_mock, create_alert_email_chart):
 @patch("superset.reports.notifications.slack.WebClient")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
 def test_slack_token_callable_chart_report(
-    screenshot_mock,
-    slack_client_mock_class,
-    create_report_slack_chart,
+    screenshot_mock, slack_client_mock_class, create_report_slack_chart,
 ):
     """
     ExecuteReport Command: Test chart slack alert (slack token callable)
@@ -1368,11 +1337,7 @@ def test_soft_timeout_screenshot(screenshot_mock, email_mock, create_alert_email
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch("superset.utils.csv.get_chart_csv_data")
 def test_soft_timeout_csv(
-    csv_mock,
-    email_mock,
-    mock_open,
-    mock_urlopen,
-    create_report_email_chart_with_csv,
+    csv_mock, email_mock, mock_open, mock_urlopen, create_report_email_chart_with_csv,
 ):
     """
     ExecuteReport Command: Test fail on generating csv
@@ -1396,8 +1361,7 @@ def test_soft_timeout_csv(
     assert email_mock.call_args[0][0] == OWNER_EMAIL
 
     assert_log(
-        ReportState.ERROR,
-        error_message="A timeout occurred while generating a csv.",
+        ReportState.ERROR, error_message="A timeout occurred while generating a csv.",
     )
 
 
@@ -1409,11 +1373,7 @@ def test_soft_timeout_csv(
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch("superset.utils.csv.get_chart_csv_data")
 def test_generate_no_csv(
-    csv_mock,
-    email_mock,
-    mock_open,
-    mock_urlopen,
-    create_report_email_chart_with_csv,
+    csv_mock, email_mock, mock_open, mock_urlopen, create_report_email_chart_with_csv,
 ):
     """
     ExecuteReport Command: Test fail on generating csv
@@ -1596,9 +1556,7 @@ def test_grace_period_error(email_mock, create_invalid_sql_alert_email_chart):
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
 def test_grace_period_error_flap(
-    screenshot_mock,
-    email_mock,
-    create_invalid_sql_alert_email_chart,
+    screenshot_mock, email_mock, create_invalid_sql_alert_email_chart,
 ):
     """
     ExecuteReport Command: Test alert grace period on error
@@ -1675,13 +1633,9 @@ def test_prune_log_soft_time_out(bulk_delete_logs, create_report_email_dashboard
     assert str(excinfo.value) == "SoftTimeLimitExceeded()"
 
 
-@pytest.mark.usefixtures(
-    "create_report_email_tabbed_dashboard",
-)
+@pytest.mark.usefixtures("create_report_email_tabbed_dashboard",)
 @patch("superset.reports.notifications.email.send_email_smtp")
-@patch(
-    "superset.reports.commands.execute.DashboardScreenshot",
-)
+@patch("superset.reports.commands.execute.DashboardScreenshot",)
 def test_when_tabs_are_selected_it_takes_screenshots_for_every_tabs(
     dashboard_screenshot_mock,
     send_email_smtp_mock,
@@ -1689,16 +1643,17 @@ def test_when_tabs_are_selected_it_takes_screenshots_for_every_tabs(
 ):
     dashboard_screenshot_mock.get_screenshot.return_value = b"test-image"
     dashboard = create_report_email_tabbed_dashboard.dashboard
-    
+
     AsyncExecuteReportScheduleCommand(
         TEST_ID, create_report_email_tabbed_dashboard.id, datetime.utcnow()
     ).run()
-    
+
     tabs = json.loads(create_report_email_tabbed_dashboard.extra)["dashboard_tab_ids"]
     assert dashboard_screenshot_mock.call_count == 2
     for index, tab in enumerate(tabs):
         assert dashboard_screenshot_mock.call_args_list[index].args == (
-            f"http://127.0.0.1:8088/superset/dashboard/{dashboard.id}/#{tab}",
+            f"http://0.0.0.0:8080/superset/dashboard/{dashboard.id}/#{tab}",
             f"{dashboard.digest}",
         )
     assert send_email_smtp_mock.called is True
+    assert len(send_email_smtp_mock.call_args.kwargs["images"]) == 2

@@ -125,6 +125,8 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
             return
 
         dashboard_tab_ids = extra.get("dashboard_tab_ids")
+        if dashboard_tab_ids is None:
+            return
         position_data = json.loads(dashboard.position_json)
         invalid_tab_ids = [
             tab_id for tab_id in dashboard_tab_ids if tab_id not in position_data
