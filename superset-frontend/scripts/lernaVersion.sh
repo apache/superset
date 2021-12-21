@@ -53,7 +53,7 @@ fi
 
 # Get the current tag version
 tag=v$(node -e "process.stdout.write(require('./lerna.json').version)");
-message="chore: publish $tag"
+message="chore(plugins): publish $tag"
 
 if [[ $? -ne 0 ]]; then
   echo '[ERROR] Can not update package-lock.json'
