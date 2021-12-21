@@ -148,13 +148,13 @@ export default function SqlEditorLeftBar(props) {
       <TableSelector
         database={props.database}
         dbId={qe.dbId}
-        getDbList={getDbList}
+        getDbList={() => getDbList}
         handleError={props.actions.addDangerToast}
         onDbChange={onDbChange}
         onSchemaChange={onSchemaChange}
-        onSchemasLoad={onSchemasLoad}
+        onSchemasLoad={() => onSchemasLoad}
         onTableChange={onTableChange}
-        onTablesLoad={onTablesLoad}
+        onTablesLoad={() => onTablesLoad}
         schema={qe.schema}
         sqlLabMode
       />
