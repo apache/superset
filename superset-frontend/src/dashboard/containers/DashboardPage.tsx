@@ -48,6 +48,7 @@ import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { canUserEditDashboard } from 'src/dashboard/util/findPermission';
 import { getFilterSets } from '../actions/nativeFilters';
+import { getFilterValue } from '../components/nativeFilters/FilterBar/keyValue';
 
 export const MigrationContext = React.createContext(
   FILTER_BOX_MIGRATION_STATES.NOOP,
@@ -155,16 +156,40 @@ const DashboardPage: FC = () => {
   }, [readyToRender]);
 
   useEffect(() => {
-    if (readyToRender) {
-      if (!isDashboardHydrated.current) {
-        isDashboardHydrated.current = true;
-        if (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET)) {
-          // only initialize filterset once
-          dispatch(getFilterSets(id));
-        }
+    // eslint-disable-next-line consistent-return
+    async function getDataMaskApplied() {
+      const nativeFilterKeyValue = getUrlParam(URL_PARAMS.nativeFiltersKey);
+      let dataMaskFromUrl = nativeFilterKeyValue || {};
+
+      const isOldRison = getUrlParam(URL_PARAMS.nativeFilters);
+      // check if key from key_value api and get datamask
+      if (nativeFilterKeyValue) {
+        dataMaskFromUrl = await getFilterValue(id, nativeFilterKeyValue);
       }
-      dispatch(hydrateDashboard(dashboard, charts, filterboxMigrationState));
+      if (isOldRison) {
+        dataMaskFromUrl = isOldRison;
+      }
+
+      if (readyToRender) {
+        if (!isDashboardHydrated.current) {
+          isDashboardHydrated.current = true;
+          if (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET)) {
+            // only initialize filterset once
+            dispatch(getFilterSets(id));
+          }
+        }
+        dispatch(
+          hydrateDashboard(
+            dashboard,
+            charts,
+            filterboxMigrationState,
+            dataMaskFromUrl,
+          ),
+        );
+      }
+      return null;
     }
+    if (id) getDataMaskApplied();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readyToRender, filterboxMigrationState]);
 
