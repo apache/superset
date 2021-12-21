@@ -54,7 +54,7 @@ import { StaticPosition, verticalAlign, StyledTooltip } from './styles';
 interface QueryTableProps {
   columns: Array<string>;
   actions: Record<string, any>;
-  queries: Array<Record<string, any>> | Query[];
+  queries: Query[];
   onUserClicked: Function;
   onDbClicked: Function;
   displayLimit: number;
@@ -177,7 +177,8 @@ const QueryTable = ({
     return queries
       .map(query => {
         const q = { ...query };
-        // console.log('qq', q, typeof q.queryId)
+        console.log('qq', q, typeof q.queryId);
+        console.log('state', statusAttributes, statusAttributes[q.state]);
         const status = statusAttributes[q.state] || statusAttributes.error;
 
         if (q.endDttm) {
@@ -309,7 +310,16 @@ const QueryTable = ({
         return q;
       })
       .reverse();
-  }, [columns, actions, queries, onUserClicked, onDbClicked, displayLimit]);
+  }, [
+    // columns,
+    actions,
+    queries,
+    onUserClicked,
+    onDbClicked,
+    displayLimit,
+    statusAttributes,
+    user,
+  ]);
 
   return (
     <div className="QueryTable">

@@ -95,7 +95,7 @@ interface ResultSetProps {
   showSql?: boolean;
   visualize?: boolean;
   user: UserWithPermissionsAndRoles;
-  defaultQueryLimit: number;
+  defaultQueryLimit?: number;
 }
 
 interface ResultSetState {
@@ -149,7 +149,7 @@ const ResultSetErrorMessage = styled.div`
 const updateDataset = async (
   dbId: number,
   datasetId: number,
-  sql: string,
+  sql: string | Record<string, any>,
   columns: Array<Record<string, any>>,
   owners: [number],
   overrideColumns: boolean,

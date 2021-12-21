@@ -26,7 +26,7 @@ import ModalTrigger from 'src/components/ModalTrigger';
 SyntaxHighlighter.registerLanguage('sql', sql);
 
 interface HighlightedSqlProps {
-  sql: string;
+  sql: string | Record<string, any>;
   rawSql?: string;
   maxWidth?: number;
   maxLines?: number;
@@ -35,19 +35,23 @@ interface HighlightedSqlProps {
 
 interface HighlightedSqlModalTypes {
   rawSql?: string;
-  sql: string;
+  sql: string | Record<string, any>;
 }
 
 interface TriggerNodeProps {
   shrink: boolean;
-  sql: string;
+  sql: string | Record<string, any>;
   maxLines: number;
   maxWidth: number;
 }
 
-const shrinkSql = (sql: string, maxLines: number, maxWidth: number) => {
+const shrinkSql = (
+  sql: string | Record<string, any>,
+  maxLines: number,
+  maxWidth: number,
+) => {
   const ssql = sql || '';
-  let lines = ssql.split('\n');
+  let lines: string[] = ssql.split('\n');
   if (lines.length >= maxLines) {
     lines = lines.slice(0, maxLines);
     lines.push('{...}');

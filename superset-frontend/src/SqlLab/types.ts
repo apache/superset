@@ -46,7 +46,7 @@ export type Query = {
   id: string;
   isDataPreview: boolean;
   link?: string;
-  progress: number;
+  progress: number | Record<string, any>;
   results: {
     displayLimitReached: boolean;
     columns: Column[];
@@ -57,9 +57,9 @@ export type Query = {
   };
   resultsKey: string | null;
   schema: string;
-  sql: string;
+  sql: string | Record<string, any>;
   sqlEditorId: string;
-  state: QueryState;
+  state: QueryState | Record<string, any>;
   tab: string | null;
   tempSchema: string | null;
   tempTable: string;
@@ -68,6 +68,19 @@ export type Query = {
   rows: number;
   queryLimit: number;
   limitingFactor: string;
+  endDttm: number;
+  duration: string;
+  startDttm: number;
+  time: Record<string, any>;
+  user: Record<string, any>;
+  userId: number;
+  db: Record<string, any>;
+  started: string;
+  querylink: Record<string, any>;
+  queryId: number;
+  executedSql: string;
+  output: string | Record<string, any>;
+  actions: Record<string, any>;
 };
 
 export interface QueryEditor {
