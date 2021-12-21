@@ -13,18 +13,23 @@ module.exports = results => {
     }, {}
   );
 
+  const enforcedRules = [
+    "@typescript-eslint/no-non-null-assertion",
+  ];
+
   const metricsByRule = Object.entries(byRuleId)
+    .filter(([ruleId, occurrences]) => enforcedRules.includes(ruleId) )
     .map(([ruleId, occurrences]) => `
-    {
-      "rule": "${ruleId}",
-      "count": ${occurrences.length},
-      "files": [
-      \t"${occurrences.join('",\n\t\t"')}"
-      ]
-    }`)
+    \t{
+    \t\t"rule": "${ruleId}",
+    \t\t"count": ${occurrences.length},
+    \t\t"files": [
+    \t\t\t"${occurrences.join('",\n\t\t\t\t"')}"
+    \t\t]
+    \t}`)
     .join(',\n');
 
-    return `{\n\t"metrics": [\n\t\t\t${metricsByRule}\n\t]\n}`;
+    return `{\n\t"metrics": [\t\t${metricsByRule}\n\t]\n}`;
 };
   
 
