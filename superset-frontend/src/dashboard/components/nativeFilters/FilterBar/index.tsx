@@ -20,13 +20,12 @@
 /* eslint-disable no-param-reassign */
 import { DataMask, HandlerFunction, styled, t } from '@superset-ui/core';
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import cx from 'classnames';
 import Icons from 'src/components/Icons';
 import { Tabs } from 'src/common/components';
 import { useHistory } from 'react-router-dom';
 import { usePrevious } from 'src/common/hooks/usePrevious';
-import rison from 'rison';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { updateDataMask, clearDataMask } from 'src/dataMask/actions';
 import { DataMaskStateWithId, DataMaskWithId } from 'src/dataMask/types';
@@ -40,7 +39,7 @@ import {
 import Loading from 'src/components/Loading';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 import { URL_PARAMS } from 'src/constants';
-import replaceUndefinedByNull from 'src/dashboard/util/replaceUndefinedByNull';
+import { getUrlParam } from 'src/utils/urlUtils';
 import { checkIsApplyDisabled, TabIds } from './utils';
 import FilterSets from './FilterSets';
 import {
@@ -50,6 +49,7 @@ import {
   useFilterUpdates,
   useInitialization,
 } from './state';
+import { createFilterKey, updateFilterKey } from './keyValue';
 import EditSection from './FilterSets/EditSection';
 import Header from './Header';
 import FilterControls from './FilterControls/FilterControls';
@@ -154,12 +154,16 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const [dataMaskSelected, setDataMaskSelected] =
     useImmer<DataMaskStateWithId>(dataMaskApplied);
   const dispatch = useDispatch();
+  const [updateKey, setUpdateKey] = useState(0);
   const filterSets = useFilterSets();
   const filterSetFilterValues = Object.values(filterSets);
   const [tab, setTab] = useState(TabIds.AllFilters);
   const filters = useFilters();
   const previousFilters = usePrevious(filters);
   const filterValues = Object.values<Filter>(filters);
+  const dashboardId = useSelector<any, string>(
+    ({ dashboardInfo }) => dashboardInfo?.id,
+  );
 
   const handleFilterSelectionChange = useCallback(
     (
@@ -187,28 +191,36 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   );
 
   const publishDataMask = useCallback(
-    (dataMaskSelected: DataMaskStateWithId) => {
+    async (dataMaskSelected: DataMaskStateWithId) => {
       const { location } = history;
       const { search } = location;
       const previousParams = new URLSearchParams(search);
       const newParams = new URLSearchParams();
-
+      let dataMaskKey = '';
       previousParams.forEach((value, key) => {
         if (key !== URL_PARAMS.nativeFilters.name) {
           newParams.append(key, value);
         }
       });
 
-      newParams.set(
-        URL_PARAMS.nativeFilters.name,
-        rison.encode(replaceUndefinedByNull(dataMaskSelected)),
-      );
+      const nativeFiltersCacheKey = getUrlParam(URL_PARAMS.nativeFiltersKey);
+      const dataMask = JSON.stringify(dataMaskSelected);
+      if (
+        updateKey &&
+        nativeFiltersCacheKey &&
+        (await updateFilterKey(dashboardId, dataMask, nativeFiltersCacheKey))
+      ) {
+        dataMaskKey = nativeFiltersCacheKey;
+      } else {
+        dataMaskKey = await createFilterKey(dashboardId, dataMask);
+      }
+      newParams.set(URL_PARAMS.nativeFiltersKey.name, dataMaskKey);
 
       history.replace({
         search: newParams.toString(),
       });
     },
-    [history],
+    [history, updateKey],
   );
 
   useEffect(() => {
@@ -250,6 +262,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
 
   const handleApply = useCallback(() => {
     const filterIds = Object.keys(dataMaskSelected);
+    setUpdateKey(1);
     filterIds.forEach(filterId => {
       if (dataMaskSelected[filterId]) {
         dispatch(updateDataMask(filterId, dataMaskSelected[filterId]));
