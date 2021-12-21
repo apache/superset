@@ -36,8 +36,7 @@ export default function buildQuery(formData: PivotTableQueryFormData) {
     let orderBy: QueryFormOrderBy[] | undefined;
     if (series_limit_metric) {
       orderBy = [[series_limit_metric, !order_desc]];
-    }
-    if (Array.isArray(metrics) && metrics[0]) {
+    } else if (Array.isArray(metrics) && metrics[0]) {
       orderBy = [[metrics[0], !order_desc]];
     }
     return [
