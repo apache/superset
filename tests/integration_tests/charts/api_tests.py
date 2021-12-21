@@ -2179,5 +2179,3 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         assert "':asdf'" in result["query"]
         assert "':xyz:qwerty'" in result["query"]
         assert "':qwerty:'" in result["query"]
-
-
