@@ -33,7 +33,6 @@ import DatabaseSelector, {
 import RefreshLabel from 'src/components/RefreshLabel';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
-import { ConsoleSqlOutlined } from '@ant-design/icons';
 
 const TableSelectorWrapper = styled.div`
   ${({ theme }) => `
@@ -321,8 +320,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
 
     return renderSelectRow(select, refreshLabel);
   }
-
-  // console.log(database, 'DATABASE IN TABLE SELECT');
 
   return (
     <TableSelectorWrapper>
