@@ -55,8 +55,8 @@ interface QueryTableProps {
   columns: Array<string>;
   actions: Record<string, any>;
   queries: Query[];
-  onUserClicked: Function;
-  onDbClicked: Function;
+  onUserClicked?: Function;
+  onDbClicked?: Function;
   displayLimit: number;
 }
 
@@ -177,9 +177,14 @@ const QueryTable = ({
     return queries
       .map(query => {
         const q = { ...query };
-        console.log('qq', q, typeof q.queryId);
-        console.log('state', statusAttributes, statusAttributes[q.state]);
-        const status = statusAttributes[q.state] || statusAttributes.error;
+        // console.log('!', q.state);
+        // console.log('qq', q, q.state);
+        // console.log('state', statusAttributes, statusAttributes[q.state]);
+        let status: any;
+        if (typeof q.state === 'string') {
+          status = statusAttributes[q.state] || statusAttributes.error;
+        }
+        // const status = statusAttributes[q.state] || statusAttributes.error;
 
         if (q.endDttm) {
           q.duration = fDuration(q.startDttm, q.endDttm);
