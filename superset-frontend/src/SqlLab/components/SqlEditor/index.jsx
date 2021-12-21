@@ -63,6 +63,11 @@ import {
   SQL_EDITOR_GUTTER_MARGIN,
   SQL_TOOLBAR_HEIGHT,
 } from 'src/SqlLab/constants';
+import {
+  getItem,
+  LocalStorageKeys,
+  setItem,
+} from 'src/utils/localStorageHelpers';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import TemplateParamsEditor from '../TemplateParamsEditor';
 import ConnectedSouthPane from '../SouthPane/state';
@@ -171,7 +176,10 @@ class SqlEditor extends React.PureComponent {
       northPercent: props.queryEditor.northPercent || INITIAL_NORTH_PERCENT,
       southPercent: props.queryEditor.southPercent || INITIAL_SOUTH_PERCENT,
       sql: props.queryEditor.sql,
-      autocompleteEnabled: true,
+      autocompleteEnabled: getItem(
+        LocalStorageKeys.sqllab__is_autocomplete_enabled,
+        true,
+      ),
       showCreateAsModal: false,
       createAs: '',
     };
@@ -365,9 +373,15 @@ class SqlEditor extends React.PureComponent {
   }
 
   handleToggleAutocompleteEnabled = () => {
-    this.setState(prevState => ({
-      autocompleteEnabled: !prevState.autocompleteEnabled,
-    }));
+    this.setState(prevState => {
+      setItem(
+        LocalStorageKeys.sqllab__is_autocomplete_enabled,
+        !prevState.autocompleteEnabled,
+      );
+      return {
+        autocompleteEnabled: !prevState.autocompleteEnabled,
+      };
+    });
   };
 
   handleWindowResize() {

@@ -28,6 +28,7 @@ from tests.integration_tests.dashboards.consts import *
 from tests.integration_tests.dashboards.dashboard_test_utils import *
 from tests.integration_tests.dashboards.superset_factory_util import *
 from tests.integration_tests.fixtures.energy_dashboard import (
+    load_energy_table_data,
     load_energy_table_with_slice,
 )
 

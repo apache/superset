@@ -36,13 +36,13 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
 
 import {
-  getFromLocalStorage,
-  setInLocalStorage,
+  getItem,
+  setItem,
+  LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
 import {
   FILTER_BOX_MIGRATION_STATES,
   FILTER_BOX_TRANSITION_SNOOZE_DURATION,
-  FILTER_BOX_TRANSITION_SNOOZED_AT,
 } from 'src/explore/constants';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
@@ -126,8 +126,10 @@ const DashboardPage: FC = () => {
           }
 
           // has cookie?
-          const snoozeDash =
-            getFromLocalStorage(FILTER_BOX_TRANSITION_SNOOZED_AT, 0) || {};
+          const snoozeDash = getItem(
+            LocalStorageKeys.filter_box_transition_snoozed_at,
+            {},
+          );
           if (
             Date.now() - (snoozeDash[id] || 0) <
             FILTER_BOX_TRANSITION_SNOOZE_DURATION
@@ -158,7 +160,7 @@ const DashboardPage: FC = () => {
         isDashboardHydrated.current = true;
         if (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET)) {
           // only initialize filterset once
-          dispatch(getFilterSets());
+          dispatch(getFilterSets(id));
         }
       }
       dispatch(hydrateDashboard(dashboard, charts, filterboxMigrationState));
@@ -210,9 +212,11 @@ const DashboardPage: FC = () => {
           setFilterboxMigrationState(FILTER_BOX_MIGRATION_STATES.REVIEWING);
         }}
         onClickSnooze={() => {
-          const snoozedDash =
-            getFromLocalStorage(FILTER_BOX_TRANSITION_SNOOZED_AT, 0) || {};
-          setInLocalStorage(FILTER_BOX_TRANSITION_SNOOZED_AT, {
+          const snoozedDash = getItem(
+            LocalStorageKeys.filter_box_transition_snoozed_at,
+            {},
+          );
+          setItem(LocalStorageKeys.filter_box_transition_snoozed_at, {
             ...snoozedDash,
             [id]: Date.now(),
           });

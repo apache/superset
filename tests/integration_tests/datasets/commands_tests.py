@@ -33,6 +33,7 @@ from superset.models.core import Database
 from superset.utils.core import get_example_database, get_example_default_schema
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.energy_dashboard import (
+    load_energy_table_data,
     load_energy_table_with_slice,
 )
 from tests.integration_tests.fixtures.importexport import (
@@ -45,6 +46,7 @@ from tests.integration_tests.fixtures.importexport import (
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
+    load_world_bank_data,
 )
 
 
